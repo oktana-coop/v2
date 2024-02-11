@@ -1,28 +1,26 @@
-import React from "react";
-import logo from "./logo.svg";
 import "./App.css";
+import { default as A } from "@automerge/automerge/next";
+import { AutomergeUrl } from "@automerge/automerge-repo";
+import { useDocument } from "@automerge/automerge-repo-react-hooks";
 
-function App() {
+interface Document {
+  doc: A.Doc<string>;
+}
+
+function App({ docUrl }: { docUrl: AutomergeUrl }) {
+  const [document, changeDocument] = useDocument<Document>(docUrl);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1 className="text-3xl font-bold underline">
-          Tailwind says hello world!
-        </h1>
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <textarea
+      id="message"
+      value={document && document.doc}
+      rows={4}
+      className="block p-2.5 w-96 h-80 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+      placeholder="Write your thoughts here..."
+      onChange={(e) =>
+        changeDocument((document) => (document.doc = e.target.value))
+      }
+    />
   );
 }
 
