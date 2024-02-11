@@ -1,41 +1,27 @@
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-import {default as A} from "@automerge/automerge/next"
-import {AutomergeUrl} from '@automerge/automerge-repo'
-import {useDocument} from '@automerge/automerge-repo-react-hooks'
+import "./App.css";
+import { default as A } from "@automerge/automerge/next";
+import { AutomergeUrl } from "@automerge/automerge-repo";
+import { useDocument } from "@automerge/automerge-repo-react-hooks";
 
-interface CounterDoc {
-    counter: A.Counter
+interface Document {
+  doc: A.Doc<string>;
 }
 
-function App({docUrl}: {docUrl: AutomergeUrl}) {
-  const [doc, changeDoc] = useDocument<CounterDoc>(docUrl) 
+function App({ docUrl }: { docUrl: AutomergeUrl }) {
+  const [document, changeDocument] = useDocument<Document>(docUrl);
 
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => changeDoc((d) => d.counter.increment(1))}>
-          count is { doc && doc.counter.value }
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <textarea
+      id="message"
+      value={document && document.doc}
+      rows={4}
+      className="block p-2.5 w-96 h-80 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+      placeholder="Write your thoughts here..."
+      onChange={(e) =>
+        changeDocument((document) => (document.doc = e.target.value))
+      }
+    />
+  );
 }
 
-export default App
+export default App;
