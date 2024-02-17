@@ -1,7 +1,7 @@
-import "./App.css";
-import { default as A } from "@automerge/automerge/next";
-import { AutomergeUrl } from "@automerge/automerge-repo";
-import { useDocument } from "@automerge/automerge-repo-react-hooks";
+import './App.css';
+import { default as A } from '@automerge/automerge/next';
+import { AutomergeUrl } from '@automerge/automerge-repo';
+import { useDocument } from '@automerge/automerge-repo-react-hooks';
 
 interface Document {
   doc: A.Doc<string>;
