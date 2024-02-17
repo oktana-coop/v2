@@ -1,13 +1,15 @@
-import '../App.css';
-import { useState, useEffect } from 'react';
-import {
-  Heads,
-  getHeads,
-  getHistory,
-  default as A,
-} from '@automerge/automerge/next';
 import { AutomergeUrl } from '@automerge/automerge-repo';
 import { useDocument } from '@automerge/automerge-repo-react-hooks';
+import {
+  default as A,
+  Change,
+  DecodedChange,
+  decodeChange,
+  getAllChanges,
+  view,
+} from '@automerge/automerge/next';
+import { useEffect, useState } from 'react';
+import '../App.css';
 
 interface Document {
   doc: A.Doc<string>;
@@ -15,22 +17,25 @@ interface Document {
 
 export const Editor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
   const [document, changeDocument] = useDocument<Document>(docUrl);
-  const [heads, setHeads] = useState<Heads>();
+  const [hashes, setHashes] = useState<Array<string>>([]);
 
   useEffect(() => {
     if (document) {
-      console.log('document 👉', document);
-      const history = getHistory(document);
-      console.log('history 👉', history);
+      const changes = getAllChanges(document);
+      const decodedChanges = changes.map(
+        (change: Change) => decodeChange(change) as DecodedChange
+      );
+      const hashes = decodedChanges.map((change) => change.hash as string);
+      setHashes(hashes);
     }
   }, [document]);
 
-  useEffect(() => {
+  const handleHashClick = (hash: string) => {
     if (document) {
-      const heads = getHeads(document);
-      setHeads(heads);
+      const docView = view(document, [hash]);
+      console.log(docView.doc);
     }
-  }, [document]);
+  };
 
   return (
     <div className="flex h-dvh">
@@ -47,12 +52,12 @@ export const Editor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
       />
       <div className="flex-auto w-32 p-5 break-words">
         <div>
-          <h1>Heads</h1>
-          {heads && heads.map((head) => <div key={head}>{head}</div>)}
-        </div>
-        <div>
           <h1>History</h1>
-          {heads && heads.map((head) => <div key={head}>{head}</div>)}
+          {hashes.map((hash) => (
+            <div key={hash} onClick={() => handleHashClick(hash)}>
+              {hash}
+            </div>
+          ))}
         </div>
       </div>
     </div>
