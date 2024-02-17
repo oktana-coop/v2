@@ -1,5 +1,5 @@
 name: Quality Checks
-description: Checks that are ensuring the the code is fab
+description: Ensure code quality and consistency
 runs:
   using: composite
   steps:
