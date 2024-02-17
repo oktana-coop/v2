@@ -7,9 +7,9 @@ runs:
     - name: 📦 Install dependencies
       shell: bash
       run: npm install
-    - name: 🏗️ Compile
+    - name: 🏗️ Compile & Build
       shell: bash
-      run: npm compile
+      run: npm run build
     - name: 🔎 Run ESLint checks
       shell: bash
       run: npm run lint
