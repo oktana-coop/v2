@@ -36,6 +36,7 @@ export const Editor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
     <div className="flex h-dvh">
       <textarea
         id="message"
+        autoFocus={true}
         value={document && document.doc}
         rows={4}
         className="block p-2.5 w-96 h-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 flex-auto"
@@ -45,8 +46,14 @@ export const Editor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
         }
       />
       <div className="flex-auto w-32 p-5 break-words">
-        <h1>Heads</h1>
-        {heads && heads.map((head) => <div>{head}</div>)}
+        <div>
+          <h1>Heads</h1>
+          {heads && heads.map((head) => <div key={head}>{head}</div>)}
+        </div>
+        <div>
+          <h1>History</h1>
+          {heads && heads.map((head) => <div key={head}>{head}</div>)}
+        </div>
       </div>
     </div>
   );
