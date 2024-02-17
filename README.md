@@ -1,6 +1,6 @@
 # flow
 
-This is an example project using automerge repo
+This is a rich-text Editor with versioning capabilities based on [Automerge](https://automerge.org/) [CRDT](https://crdt.tech/) implementation.
 
 ## Development notes
 
