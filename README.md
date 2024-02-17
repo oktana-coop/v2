@@ -7,7 +7,7 @@ This is a rich-text Editor with versioning capabilities based on [Automerge](htt
 ### Recommended tooling/practices
 
 * Package manager: npm
-* Node version: v20.0.0 (as listed on `.nvmrc`)
+* Node version: v20.11.1 (as listed on `.nvmrc`)
 * Commit style: [Conventional commits](https://www.conventionalcommits.org/)
 
 ### Install
