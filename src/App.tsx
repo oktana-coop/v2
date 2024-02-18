@@ -38,8 +38,8 @@ function App({ docUrl }: { docUrl: AutomergeUrl }) {
           id="message"
           value={value}
           rows={4}
-          className="w-2/3 h-full resize-none p-2 text-sm text-black bg-white rounded-md border border-gray-400"
-          placeholder="Write your thoughts here..."
+          className="w-3/5 h-full resize-none p-5 text-black bg-white rounded-md border-none outline-none border-gray-400"
+          autoFocus
           onChange={handleChange}
           onBlur={handleBlur}
         />
