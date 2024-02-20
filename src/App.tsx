@@ -1,4 +1,7 @@
 import './App.css';
+import './App.css';
+import { Sidebar } from './Sidebar';
+import React, { useEffect } from 'react';
 import { default as A } from '@automerge/automerge/next';
 import { AutomergeUrl } from '@automerge/automerge-repo';
 import { useDocument } from '@automerge/automerge-repo-react-hooks';
@@ -8,19 +11,40 @@ interface Document {
 }
 
 function App({ docUrl }: { docUrl: AutomergeUrl }) {
+  const [value, changeValue] = React.useState<string>('');
   const [document, changeDocument] = useDocument<Document>(docUrl);
 
+  useEffect(() => {
+    if (document) {
+      changeValue(document.doc || '');
+    }
+  }, [document]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    changeValue(e.target.value);
+  };
+
+  const handleBlur = () => {
+    changeDocument((doc) => {
+      doc.doc = value;
+    });
+  };
+
   return (
-    <textarea
-      id="message"
-      value={document && document.doc}
-      rows={4}
-      className="block p-2.5 w-96 h-80 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-      placeholder="Write your thoughts here..."
-      onChange={(e) =>
-        changeDocument((document) => (document.doc = e.target.value))
-      }
-    />
+    <div className="flex flex-row h-full">
+      <Sidebar />
+      <div className="flex items-center justify-center w-full m-2">
+        <textarea
+          id="message"
+          value={value}
+          rows={4}
+          className="w-3/5 h-full resize-none p-5 text-black bg-white rounded-md border-none outline-none border-gray-400"
+          autoFocus
+          onChange={handleChange}
+          onBlur={handleBlur}
+        />
+      </div>
+    </div>
   );
 }
 
