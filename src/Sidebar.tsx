@@ -1,11 +1,30 @@
-import classnames from 'classnames';
+import { BranchIcon, OptionsIcon, PenIcon, UserIcon } from './components/icons';
+
+const ICON_SIZE = 32;
 
 const navigation = [
-  { name: 'Edit', href: '#', icon: 'gg-pen', current: true },
+  {
+    name: 'Edit',
+    href: '#',
+    component: <PenIcon size={ICON_SIZE} />,
+    current: true,
+  },
   {
     name: 'History',
     href: '#',
-    icon: 'gg-git-fork',
+    component: <BranchIcon size={ICON_SIZE} />,
+    current: false,
+  },
+  {
+    name: 'User',
+    href: '#',
+    component: <UserIcon size={ICON_SIZE} />,
+    current: false,
+  },
+  {
+    name: 'Settings',
+    href: '#',
+    component: <OptionsIcon size={ICON_SIZE} />,
     current: false,
   },
 ];
@@ -17,17 +36,10 @@ export function Sidebar() {
         <i className="gg-sync"></i>
       </div>
       <nav className="flex flex-1 flex-col">
-        <ul role="list" className="flex flex-1 flex-col space-y-6">
+        <ul role="list" className="flex flex-1 flex-col">
           {navigation.map((item) => (
-            <li key={item.name}>
-              <i
-                className={classnames(
-                  item.current
-                    ? 'bg-white text-purple-500'
-                    : 'text-gray-400 hover:text-purple-500 hover:bg-purple-500',
-                  `${item.icon}`
-                )}
-              ></i>
+            <li key={item.name} className="mb-2">
+              {item.component}
             </li>
           ))}
         </ul>
