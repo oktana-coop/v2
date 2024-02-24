@@ -7,16 +7,11 @@ import {
   getAllChanges,
   view,
 } from '@automerge/automerge/next';
+import { EditingHistory, Commit } from './EditingHistory';
 
 interface Document {
   doc: Automerge.Doc<string>;
 }
-
-type Commit = {
-  hash: string;
-  message: string;
-  time: Date;
-};
 
 const isCommit = (change: Automerge.Change) => {
   // we make the rules!
@@ -54,6 +49,7 @@ export function Editor({ docUrl }: { docUrl: AutomergeUrl }) {
   };
 
   const commitChanges = () => {
+    // temporary solution until we decide on a better way to handle user input for commiting changes
     const commitMessage = prompt('Save your changes with a message..') || '';
     const message = commitMessage?.trim();
 
@@ -76,7 +72,7 @@ export function Editor({ docUrl }: { docUrl: AutomergeUrl }) {
     }
   };
 
-  const handleHashClick = (hash: string) => {
+  const handleCommitClick = (hash: string) => {
     if (document) {
       const docView = view(document, [hash]);
       console.log(docView.doc);
@@ -95,16 +91,11 @@ export function Editor({ docUrl }: { docUrl: AutomergeUrl }) {
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
       />
-      <div className="flex-auto w-32 p-5 h-full break-words text-black bg-white">
-        <div>
-          <h1>Change history</h1>
-          {commits.map((commit) => (
-            <div key={commit.hash} onClick={() => handleHashClick(commit.hash)}>
-              {commit.message}
-            </div>
-          ))}
-        </div>
-      </div>
+      {
+        // This can temporarily live here, until we move it to the sidebar
+        // possibly
+      }
+      <EditingHistory commits={commits} onClick={handleCommitClick} />
     </div>
   );
 }
