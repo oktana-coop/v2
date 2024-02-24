@@ -12,10 +12,21 @@ interface Document {
   doc: Automerge.Doc<string>;
 }
 
+type Commit = {
+  hash: string;
+  message: string;
+  time: Date;
+};
+
+const isCommit = (change: Automerge.Change) => {
+  // we make the rules!
+  return change.message && change.time;
+};
+
 export function Editor({ docUrl }: { docUrl: AutomergeUrl }) {
   const [value, changeValue] = React.useState<string>('');
   const [document, changeDocument] = useDocument<Document>(docUrl);
-  const [hashes, setHashes] = React.useState<Array<string>>([]);
+  const [commits, setCommits] = React.useState<Array<Commit>>([]);
 
   useEffect(() => {
     if (document) {
@@ -23,9 +34,12 @@ export function Editor({ docUrl }: { docUrl: AutomergeUrl }) {
 
       const changes = getAllChanges(document);
       const decodedChanges = changes.map((change) => decodeChange(change));
-      console.log('decodedChanges 👉', decodedChanges);
-      const hashes = decodedChanges.map((change) => change.hash);
-      setHashes(hashes);
+      const commits = decodedChanges.filter(isCommit).map((change) => ({
+        hash: change.hash,
+        message: change.message,
+        time: new Date(change.time),
+      }));
+      setCommits(commits);
     }
   }, [document]);
 
@@ -39,20 +53,26 @@ export function Editor({ docUrl }: { docUrl: AutomergeUrl }) {
     });
   };
 
-  const onSave = () => {
-    const commitMessage = prompt('Save your changes with a message..');
-    console.log('commitMessage 👉', commitMessage);
+  const commitChanges = () => {
+    const commitMessage = prompt('Save your changes with a message..') || '';
+    const message = commitMessage?.trim();
 
-    changeDocument((doc) => {
-      doc.doc = value;
-    });
+    changeDocument(
+      (doc) => {
+        doc.doc = value;
+      },
+      {
+        message: message,
+        time: new Date().getTime(),
+      }
+    );
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // cmd/ctrl + s
     if (e.metaKey && e.key === 's') {
       e.preventDefault();
-      onSave();
+      commitChanges();
     }
   };
 
@@ -77,10 +97,10 @@ export function Editor({ docUrl }: { docUrl: AutomergeUrl }) {
       />
       <div className="flex-auto w-32 p-5 h-full break-words text-black bg-white">
         <div>
-          <h1>History</h1>
-          {hashes.map((hash) => (
-            <div key={hash} onClick={() => handleHashClick(hash)}>
-              {hash}
+          <h1>Change history</h1>
+          {commits.map((commit) => (
+            <div key={commit.hash} onClick={() => handleHashClick(commit.hash)}>
+              {commit.message}
             </div>
           ))}
         </div>

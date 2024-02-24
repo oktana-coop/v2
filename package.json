@@ -16,7 +16,7 @@
     "@automerge/automerge": "2.1",
     "@automerge/automerge-repo": "1.0.19",
     "@automerge/automerge-repo-network-websocket": "1.0.19",
-    "@automerge/automerge-repo-react-hooks": "1.0.19",
+    "@automerge/automerge-repo-react-hooks": "^1.1.1",
     "@automerge/automerge-repo-storage-indexeddb": "1.0.19",
     "classnames": "^2.5.1",
     "react": "^18.2.0",
