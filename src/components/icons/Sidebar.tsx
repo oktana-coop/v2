@@ -1,7 +1,7 @@
 import { IconProps } from './types';
 import { DEFAULT_COLOR, DEFAULT_SIZE } from './constants';
 
-const SidebarIcon = ({
+export const SidebarIcon = ({
   color = DEFAULT_COLOR,
   size = DEFAULT_SIZE,
   className,
@@ -28,5 +28,3 @@ const SidebarIcon = ({
     </svg>
   );
 };
-
-export default SidebarIcon;

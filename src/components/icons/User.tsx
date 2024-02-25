@@ -1,7 +1,7 @@
 import { IconProps } from './types';
 import { DEFAULT_COLOR, DEFAULT_SIZE } from './constants';
 
-const UserIcon = ({
+export const UserIcon = ({
   color = DEFAULT_COLOR,
   size = DEFAULT_SIZE,
   className,
@@ -31,5 +31,3 @@ const UserIcon = ({
     </svg>
   );
 };
-
-export default UserIcon;

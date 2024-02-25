@@ -1,7 +1,7 @@
 import { IconProps } from './types';
 import { DEFAULT_COLOR, DEFAULT_SIZE } from './constants';
 
-const RevertIcon = ({
+export const RevertIcon = ({
   color = DEFAULT_COLOR,
   size = DEFAULT_SIZE,
   className,
@@ -25,5 +25,3 @@ const RevertIcon = ({
     </svg>
   );
 };
-
-export default RevertIcon;

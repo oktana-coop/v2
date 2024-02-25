@@ -1,7 +1,7 @@
 import { IconProps } from './types';
 import { DEFAULT_COLOR, DEFAULT_SIZE } from './constants';
 
-const FormatHeading = ({
+export const FormatHeading = ({
   color = DEFAULT_COLOR,
   size = DEFAULT_SIZE,
   className,
@@ -22,5 +22,3 @@ const FormatHeading = ({
     </svg>
   );
 };
-
-export default FormatHeading;

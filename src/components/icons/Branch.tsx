@@ -1,7 +1,7 @@
 import { IconProps } from './types';
 import { DEFAULT_COLOR, DEFAULT_SIZE } from './constants';
 
-const BranchIcon = ({
+export const BranchIcon = ({
   color = DEFAULT_COLOR,
   size = DEFAULT_SIZE,
   className,
@@ -25,5 +25,3 @@ const BranchIcon = ({
     </svg>
   );
 };
-
-export default BranchIcon;

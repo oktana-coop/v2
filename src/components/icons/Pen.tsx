@@ -1,7 +1,7 @@
 import { IconProps } from './types';
 import { DEFAULT_COLOR, DEFAULT_SIZE } from './constants';
 
-const PenIcon = ({
+export const PenIcon = ({
   color = DEFAULT_COLOR,
   size = DEFAULT_SIZE,
   className,
@@ -28,5 +28,3 @@ const PenIcon = ({
     </svg>
   );
 };
-
-export default PenIcon;

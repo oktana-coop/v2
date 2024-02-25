@@ -1,7 +1,7 @@
 import { IconProps } from './types';
 import { DEFAULT_COLOR, DEFAULT_SIZE } from './constants';
 
-const CheckIcon = ({
+export const CheckIcon = ({
   color = DEFAULT_COLOR,
   size = DEFAULT_SIZE,
   className,
@@ -25,5 +25,3 @@ const CheckIcon = ({
     </svg>
   );
 };
-
-export default CheckIcon;

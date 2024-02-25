@@ -1,7 +1,7 @@
 import { IconProps } from './types';
 import { DEFAULT_COLOR, DEFAULT_SIZE } from './constants';
 
-const CommitHistoryIcon = ({
+export const CommitHistoryIcon = ({
   color = DEFAULT_COLOR,
   size = DEFAULT_SIZE,
   className,
@@ -27,5 +27,3 @@ const CommitHistoryIcon = ({
     </svg>
   );
 };
-
-export default CommitHistoryIcon;

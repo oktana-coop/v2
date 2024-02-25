@@ -1,7 +1,7 @@
 import { IconProps } from './types';
 import { DEFAULT_COLOR, DEFAULT_SIZE } from './constants';
 
-const PushIcon = ({
+export const PushIcon = ({
   color = DEFAULT_COLOR,
   size = DEFAULT_SIZE,
   className,
@@ -29,5 +29,3 @@ const PushIcon = ({
     </svg>
   );
 };
-
-export default PushIcon;

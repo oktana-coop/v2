@@ -1,7 +1,7 @@
 import { IconProps } from './types';
 import { DEFAULT_COLOR, DEFAULT_SIZE } from './constants';
 
-const LinkIcon = ({
+export const LinkIcon = ({
   color = DEFAULT_COLOR,
   size = DEFAULT_SIZE,
   className,
@@ -33,5 +33,3 @@ const LinkIcon = ({
     </svg>
   );
 };
-
-export default LinkIcon;

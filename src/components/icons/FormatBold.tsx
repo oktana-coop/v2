@@ -1,7 +1,7 @@
 import { IconProps } from './types';
 import { DEFAULT_COLOR, DEFAULT_SIZE } from './constants';
 
-const FormatBoldIcon = ({
+export const FormatBoldIcon = ({
   color = DEFAULT_COLOR,
   size = DEFAULT_SIZE,
   className,
@@ -26,5 +26,3 @@ const FormatBoldIcon = ({
     </svg>
   );
 };
-
-export default FormatBoldIcon;

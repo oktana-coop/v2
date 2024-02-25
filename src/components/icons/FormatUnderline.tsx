@@ -1,7 +1,7 @@
 import { IconProps } from './types';
 import { DEFAULT_COLOR, DEFAULT_SIZE } from './constants';
 
-const FormatUnderlineIcon = ({
+export const FormatUnderlineIcon = ({
   color = DEFAULT_COLOR,
   size = DEFAULT_SIZE,
   className,
@@ -29,5 +29,3 @@ const FormatUnderlineIcon = ({
     </svg>
   );
 };
-
-export default FormatUnderlineIcon;

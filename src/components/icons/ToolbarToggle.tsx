@@ -1,7 +1,7 @@
 import { IconProps } from './types';
 import { DEFAULT_COLOR, DEFAULT_SIZE as DEFAULT_HEIGHT } from './constants';
 
-const ToolbarToggleIcon = ({
+export const ToolbarToggleIcon = ({
   color = DEFAULT_COLOR,
   size: height = DEFAULT_HEIGHT, // height in this case
   className,
@@ -41,5 +41,3 @@ const ToolbarToggleIcon = ({
     </svg>
   );
 };
-
-export default ToolbarToggleIcon;
