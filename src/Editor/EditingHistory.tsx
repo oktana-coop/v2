@@ -18,7 +18,7 @@ export const EditingHistory = ({
       <div>
         <h1>Change history</h1>
         {commits.map((commit) => (
-          <Commit commit={commit} onClick={onClick} />
+          <Commit key={commit.hash} commit={commit} onClick={onClick} />
         ))}
       </div>
     </div>

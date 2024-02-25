@@ -66,7 +66,7 @@ export function Editor({ docUrl }: { docUrl: AutomergeUrl }) {
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // cmd/ctrl + s
-    if (e.metaKey && e.key === 's') {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
       commitChanges();
     }
