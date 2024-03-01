@@ -31,7 +31,7 @@ const navigation = [
 
 export function Sidebar() {
   return (
-    <div className="flex flex-col gap-y-5 items-center overflow-y-auto bg-white text-black border border-gray-300 px-4 w-14 h-full">
+    <div className="flex flex-col gap-y-5 items-center overflow-y-auto bg-white text-black border border-gray-300 px-2 w-14 h-full">
       <div className="flex h-14 shrink-0 items-center">
         <i className="gg-sync"></i>
       </div>
