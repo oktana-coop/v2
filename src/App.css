@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  font-family: 'Montserrat', sans-serif;
+}
+
 #root {
   margin: 0 auto;
   text-align: center;
