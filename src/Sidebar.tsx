@@ -1,29 +1,30 @@
 import { BranchIcon, OptionsIcon, PenIcon, UserIcon } from './components/icons';
+import { Outlet, Link } from 'react-router-dom';
 
 const ICON_SIZE = 32;
 
 const navigation = [
   {
     name: 'Edit',
-    href: '#',
+    href: '/edit',
     component: <PenIcon size={ICON_SIZE} />,
     current: true,
   },
   {
     name: 'History',
-    href: '#',
+    href: '/history',
     component: <BranchIcon size={ICON_SIZE} />,
     current: false,
   },
   {
     name: 'User',
-    href: '#',
+    href: '/user',
     component: <UserIcon size={ICON_SIZE} />,
     current: false,
   },
   {
     name: 'Settings',
-    href: '#',
+    href: '/settings',
     component: <OptionsIcon size={ICON_SIZE} />,
     current: false,
   },
@@ -39,11 +40,12 @@ export function Sidebar() {
         <ul role="list" className="flex flex-1 flex-col">
           {navigation.map((item) => (
             <li key={item.name} className="mb-2">
-              {item.component}
+              <Link to={item.href}>{item.component}</Link>
             </li>
           ))}
         </ul>
       </nav>
+      <Outlet />
     </div>
   );
 }
