@@ -8,6 +8,7 @@ import {
   view,
 } from '@automerge/automerge/next';
 import { EditingHistory, Commit } from './EditingHistory';
+import { useSearchParams } from 'react-router-dom';
 
 interface Document {
   doc: Automerge.Doc<string>;
@@ -21,6 +22,14 @@ const isCommit = (change: Automerge.Change) => {
 export function Editor({ docUrl }: { docUrl: AutomergeUrl }) {
   const [value, changeValue] = React.useState<string>('');
   const [document, changeDocument] = useDocument<Document>(docUrl);
+  const [, setSearchParams] = useSearchParams();
+
+  // HACK: This is a temporary solution to get an existing document from the URL
+  useEffect(() => {
+    setSearchParams({ docUrl });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [commits, setCommits] = React.useState<Array<Commit>>([]);
 
   useEffect(() => {
@@ -50,7 +59,7 @@ export function Editor({ docUrl }: { docUrl: AutomergeUrl }) {
 
   const commitChanges = () => {
     // temporary solution until we decide on a better way to handle user input for commiting changes
-    const commitMessage = prompt('Save your changes with a message..') || '';
+    const commitMessage = prompt('Save your changes with a message...') || '';
     const message = commitMessage?.trim();
 
     changeDocument(

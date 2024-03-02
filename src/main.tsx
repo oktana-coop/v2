@@ -24,7 +24,9 @@ declare global {
   }
 }
 
-const rootDocUrl = `${document.location.hash.substr(1)}`;
+const queryParams = new URLSearchParams(window.location.search);
+const rootDocUrl = queryParams.get('docUrl');
+
 let handle;
 if (isValidAutomergeUrl(rootDocUrl)) {
   handle = repo.find(rootDocUrl);
@@ -32,8 +34,7 @@ if (isValidAutomergeUrl(rootDocUrl)) {
   handle = repo.create<{ counter?: A.Counter }>();
   handle.change((d) => (d.counter = new A.Counter()));
 }
-const docUrl = (document.location.hash = handle.url);
-window.handle = handle; // we'll use this later for experimentation
+const docUrl = handle.url;
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
