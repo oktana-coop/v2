@@ -18,8 +18,8 @@ export const SidebarIcon = ({
     >
       <g transform={`scale(${scale})`}>
         <path
-          fill-rule="evenodd"
-          clip-rule="evenodd"
+          fillRule="evenodd"
+          clipRule="evenodd"
           d="M21 20H7V4H21V20ZM19 18H9V6H19V18Z"
           fill={color}
         />
