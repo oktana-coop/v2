@@ -6,9 +6,9 @@ This is a rich-text Editor with versioning capabilities based on [Automerge](htt
 
 ### Recommended tooling/practices
 
-- Package manager: npm
-- Node version: v20.11.1 (as listed on `.nvmrc`)
-- Commit style: [Conventional commits](https://www.conventionalcommits.org/)
+* Package manager: npm
+* Node version: v20.11.1 (as listed on `.nvmrc`)
+* Commit style: [Conventional commits](https://www.conventionalcommits.org/)
 
 ### Install
 
@@ -20,14 +20,4 @@ $ npm install
 
 ```sh
 $ npm run dev
-```
-
-## Storybook
-
-[Storybook](https://storybook.js.org) is used to build and render components in isolation.
-
-To start Storybook, run
-
-```sh
-$ npm run storybook
 ```
