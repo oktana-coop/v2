@@ -9,10 +9,10 @@ import { Link } from './Link';
 const styles = {
   base: [
     // Base
-    'relative isolate inline-flex items-center justify-center gap-x-2 rounded-lg border text-base/6 font-semibold',
+    'relative isolate inline-flex items-center justify-center gap-x-2 border text-base/6 font-medium',
 
     // Sizing
-    'px-[calc(theme(spacing[3.5])-1px)] py-[calc(theme(spacing[2.5])-1px)] sm:px-[calc(theme(spacing.3)-1px)] sm:py-[calc(theme(spacing[1.5])-1px)] sm:text-sm/6',
+    'px-[calc(theme(spacing[3.5])-1px)] py-[calc(theme(spacing[2.5])-1px)] sm:px-[calc(theme(spacing[3.5])-1px)] sm:py-[calc(theme(spacing[2.5])-1px)] sm:text-base/6',
 
     // Focus
     'focus:outline-none data-[focus]:outline data-[focus]:outline-2 data-[focus]:outline-offset-2 data-[focus]:outline-blue-500',
@@ -31,7 +31,7 @@ const styles = {
     'dark:bg-[--btn-bg]',
 
     // Button background, implemented as foreground layer to stack on top of pseudo-border layer
-    'before:absolute before:inset-0 before:-z-10 before:rounded-[calc(theme(borderRadius.lg)-1px)] before:bg-[--btn-bg]',
+    'before:absolute before:inset-0 before:-z-10 before:bg-[--btn-bg]',
 
     // Drop shadow, applied to the inset `before` layer so it blends with the border
     'before:shadow',
@@ -43,7 +43,7 @@ const styles = {
     'dark:border-white/5',
 
     // Shim/overlay, inset to match button foreground and used for hover state + highlight shadow
-    'after:absolute after:inset-0 after:-z-10 after:rounded-[calc(theme(borderRadius.lg)-1px)]',
+    'after:absolute after:inset-0 after:-z-10',
 
     // Inner highlight shadow
     'after:shadow-[shadow:inset_0_1px_theme(colors.white/15%)]',
@@ -52,7 +52,7 @@ const styles = {
     'after:data-[active]:bg-[--btn-hover-overlay] after:data-[hover]:bg-[--btn-hover-overlay]',
 
     // Dark mode: `after` layer expands to cover entire button
-    'dark:after:-inset-px dark:after:rounded-lg',
+    'dark:after:-inset-px',
 
     // Disabled
     'before:data-[disabled]:shadow-none after:data-[disabled]:shadow-none',
