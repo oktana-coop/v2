@@ -10,7 +10,7 @@ export function Paragraph({
       data-slot="text"
       className={clsx(
         className,
-        'text-base/6 text-zinc-500 sm:text-sm/6 dark:text-zinc-400'
+        'text-base/relaxed text-black text-opacity-90 dark:text-zinc-400'
       )}
     />
   );
