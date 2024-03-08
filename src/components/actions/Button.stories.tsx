@@ -4,7 +4,7 @@ import type { ComponentProps } from 'react';
 import { Button } from './Button';
 
 const meta: Meta<typeof Button> = {
-  title: 'actions/buttons/Primary',
+  title: 'actions/Button',
   component: Button,
   parameters: {
     layout: 'centered',
@@ -15,9 +15,16 @@ export default meta;
 
 type Story = StoryObj<ComponentProps<typeof Button>>;
 
-export const Primary: Story = {
+export const Solid: Story = {
   args: {
     color: 'purple',
-    children: 'Primary Button',
+    children: 'Solid Button',
+  },
+};
+
+export const Plain: Story = {
+  args: {
+    plain: true,
+    children: 'Plain Button',
   },
 };

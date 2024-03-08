@@ -69,13 +69,13 @@ const styles = {
   ],
   plain: [
     // Base
-    'border-transparent text-zinc-950 data-[active]:bg-zinc-950/5 data-[hover]:bg-zinc-950/5',
+    'border-transparent text-black text-opacity-75 data-[active]:bg-zinc-950/5 data-[hover]:bg-zinc-950/5',
 
     // Dark mode
     'dark:text-white dark:data-[active]:bg-white/10 dark:data-[hover]:bg-white/10',
 
     // Icon
-    '[--btn-icon:theme(colors.zinc.500)] data-[active]:[--btn-icon:theme(colors.zinc.700)] data-[hover]:[--btn-icon:theme(colors.zinc.700)] dark:[--btn-icon:theme(colors.zinc.500)] dark:data-[active]:[--btn-icon:theme(colors.zinc.400)] dark:data-[hover]:[--btn-icon:theme(colors.zinc.400)]',
+    '[--btn-icon:text-black:text-opacity-75] data-[active]:[--btn-icon:text-black:text-opacity-100] data-[hover]:[--btn-icon:text-black:text-opacity-100] dark:[--btn-icon:theme(colors.zinc.500)] dark:data-[active]:[--btn-icon:theme(colors.zinc.400)] dark:data-[hover]:[--btn-icon:theme(colors.zinc.400)]',
   ],
   colors: {
     'dark/zinc': [
