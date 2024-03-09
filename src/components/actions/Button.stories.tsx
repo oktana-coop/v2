@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import type { ComponentProps } from 'react';
 
 import { Button } from './Button';
+import { IconButton as IconButtonComponent } from './IconButton';
 import { CheckIcon } from '../icons';
 
 const meta: Meta<typeof Button> = {
@@ -52,4 +53,8 @@ export const Disabled: Story = {
     disabled: true,
     children: 'Disabled Button',
   },
+};
+
+export const IconButton: Story = {
+  render: () => <IconButtonComponent icon={<CheckIcon color="purple" />} />,
 };
