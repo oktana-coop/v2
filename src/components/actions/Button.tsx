@@ -9,7 +9,7 @@ import { Link } from './Link';
 const styles = {
   base: [
     // Base
-    'relative isolate inline-flex items-center justify-center gap-x-2 border text-base/6 font-medium',
+    'relative isolate inline-flex items-center justify-center gap-x-0.5 border text-base/6 font-medium',
 
     // Sizing
     'px-[calc(theme(spacing[3.5])-1px)] py-[calc(theme(spacing[2.5])-1px)] sm:px-[calc(theme(spacing[3.5])-1px)] sm:py-[calc(theme(spacing[2.5])-1px)] sm:text-base/6',
@@ -162,7 +162,7 @@ const styles = {
     ],
     purple: [
       'text-white [--btn-hover-overlay:theme(colors.white/10%)] [--btn-bg:theme(colors.purple.500)] [--btn-border:theme(colors.purple.600/90%)]',
-      '[--btn-icon:theme(colors.purple.300)] data-[active]:[--btn-icon:theme(colors.purple.200)] data-[hover]:[--btn-icon:theme(colors.purple.200)]',
+      '[--btn-icon:white]',
     ],
     fuchsia: [
       'text-white [--btn-hover-overlay:theme(colors.white/10%)] [--btn-bg:theme(colors.fuchsia.500)] [--btn-border:theme(colors.fuchsia.600/90%)]',

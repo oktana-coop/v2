@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import type { ComponentProps } from 'react';
 
 import { Button } from './Button';
+import { CheckIcon } from '../icons';
 
 const meta: Meta<typeof Button> = {
   title: 'actions/Button',
@@ -20,6 +21,15 @@ export const Solid: Story = {
     color: 'purple',
     children: 'Solid Button',
   },
+};
+
+export const SolidWithIcon: Story = {
+  render: () => (
+    <Button color="purple">
+      <CheckIcon color="var(--btn-icon)" />
+      Solid Button
+    </Button>
+  ),
 };
 
 export const Plain: Story = {
