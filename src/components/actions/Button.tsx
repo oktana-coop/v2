@@ -213,11 +213,7 @@ export const Button = React.forwardRef(function Button(
   ) : (
     // @ts-expect-error onCopy handler not typed properly.
     // TODO: search for issues or PRs in headlessui
-    <HeadlessButton
-      {...props}
-      className={clsx(classes, 'cursor-default')}
-      ref={ref}
-    >
+    <HeadlessButton {...props} className={classes} ref={ref}>
       <TouchTarget>{children}</TouchTarget>
     </HeadlessButton>
   );

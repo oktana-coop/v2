@@ -40,6 +40,15 @@ export const Plain: Story = {
   },
 };
 
+export const PlainWithIcon: Story = {
+  render: () => (
+    <Button plain>
+      <CheckIcon color="var(--btn-icon)" />
+      Plain Button
+    </Button>
+  ),
+};
+
 export const Outline: Story = {
   args: {
     outline: true,
