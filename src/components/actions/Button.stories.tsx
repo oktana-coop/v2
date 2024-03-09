@@ -28,3 +28,18 @@ export const Plain: Story = {
     children: 'Plain Button',
   },
 };
+
+export const Outline: Story = {
+  args: {
+    outline: true,
+    children: 'Outline Button',
+  },
+};
+
+export const Disabled: Story = {
+  args: {
+    color: 'purple',
+    disabled: true,
+    children: 'Disabled Button',
+  },
+};
