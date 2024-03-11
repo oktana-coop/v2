@@ -6,7 +6,7 @@ export type IconButtonProps = {
 };
 
 export const IconButton = ({ icon }: IconButtonProps) => (
-  <Button plain className="px-0 py-0 sm:px-0 sm:py-0">
+  <Button type="plain" className="px-0 py-0 sm:px-0 sm:py-0">
     {icon}
   </Button>
 );
