@@ -121,7 +121,7 @@ const styles = {
         'dark:border-purple-100 dark:text-purple-100 dark:[--btn-bg:transparent] dark:data-[active]:bg-purple-50 dark:data-[hover]:bg-purple-50',
 
         // Icon
-        '[--btn-icon:purple-500)] dark:[--btn-icon:purple-100)]',
+        '[--btn-icon:theme(colors.purple.500)] dark:[--btn-icon:theme(colors.purple.100))]',
       ],
     },
     plain: {
@@ -139,8 +139,8 @@ const styles = {
         '[--btn-icon:text:white]',
       ],
       purple: [
-        'text-purple-500 dark:text-purple-100 dark:data-[active]:bg-purple-50 dark:data-[hover]:bg-purple-50',
-        '[--btn-icon:purple-500] dark:[--btn-icon:purple-100)]',
+        'text-purple-500 text-opacity-100 dark:text-purple-100 dark:data-[active]:bg-purple-50 dark:data-[hover]:bg-purple-50',
+        '[--btn-icon:theme(colors.purple.500)] dark:[--btn-icon:theme(colors.purple.100))]',
       ],
     },
   },
@@ -176,11 +176,7 @@ export const Button = React.forwardRef(function Button(
   const classes = clsx(
     className,
     styles.base,
-    variant === buttonVariants.outline
-      ? styles.outline
-      : variant === buttonVariants.plain
-        ? styles.plain
-        : clsx(styles.solid, styles.colors[variant][color ?? 'dark/zinc'])
+    clsx(styles[variant], styles.colors[variant][color ?? 'dark/zinc'])
   );
 
   return 'href' in props ? (
