@@ -26,7 +26,7 @@ export const Solid: Story = {
 
 export const SolidWithIcon: Story = {
   render: () => (
-    <Button type="solid" color="purple">
+    <Button variant="solid" color="purple">
       <CheckIcon color="var(--btn-icon)" />
       Solid Button
     </Button>
@@ -35,14 +35,14 @@ export const SolidWithIcon: Story = {
 
 export const Plain: Story = {
   args: {
-    type: 'plain',
+    variant: 'plain',
     children: 'Plain Button',
   },
 };
 
 export const PlainWithIcon: Story = {
   render: () => (
-    <Button type="plain">
+    <Button variant="plain">
       <CheckIcon color="var(--btn-icon)" />
       Plain Button
     </Button>
@@ -51,7 +51,7 @@ export const PlainWithIcon: Story = {
 
 export const Outline: Story = {
   args: {
-    type: 'outline',
+    variant: 'outline',
     children: 'Outline Button',
   },
 };

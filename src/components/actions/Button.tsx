@@ -146,35 +146,41 @@ const styles = {
   },
 };
 
-const buttonTypes = {
+const buttonVariants = {
   solid: 'solid',
   outline: 'outline',
   plain: 'plain',
 };
 
-type ButtonType = keyof typeof buttonTypes;
+type ButtonVariant = keyof typeof buttonVariants;
 
 type ButtonColor =
   | keyof typeof styles.colors.solid
   | keyof typeof styles.colors.outline
   | keyof typeof styles.colors.plain;
 
-type ButtonProps = { type: ButtonType; color: ButtonColor } & {
+type ButtonProps = { variant?: ButtonVariant; color?: ButtonColor } & {
   children: React.ReactNode;
 } & (HeadlessButtonProps | React.ComponentPropsWithoutRef<typeof Link>);
 
 export const Button = React.forwardRef(function Button(
-  { color, type, className, children, ...props }: ButtonProps,
+  {
+    color = 'dark/zinc',
+    variant = 'solid',
+    className,
+    children,
+    ...props
+  }: ButtonProps,
   ref: React.ForwardedRef<HTMLElement>
 ) {
   const classes = clsx(
     className,
     styles.base,
-    type === buttonTypes.outline
+    variant === buttonVariants.outline
       ? styles.outline
-      : type === buttonTypes.plain
+      : variant === buttonVariants.plain
         ? styles.plain
-        : clsx(styles.solid, styles.colors[type][color ?? 'dark/zinc'])
+        : clsx(styles.solid, styles.colors[variant][color ?? 'dark/zinc'])
   );
 
   return 'href' in props ? (
