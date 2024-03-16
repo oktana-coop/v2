@@ -24,4 +24,5 @@ export default {
     },
   },
   plugins: [],
+  darkMode: 'selector',
 };

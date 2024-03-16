@@ -60,6 +60,7 @@
     "prettier": "^3.2.5",
     "storybook": "^8.0.0",
     "storybook-addon-remix-react-router": "^3.0.0",
+    "storybook-dark-mode": "^4.0.1",
     "tailwindcss": "^3.4.1",
     "ts-jest": "^29.1.2",
     "typescript": "^5.3.3",
