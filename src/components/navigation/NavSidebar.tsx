@@ -51,7 +51,7 @@ export const NavSidebarItem = ({ item }) => {
         {({ isActive }) => (
           <div
             className={clsx(
-              'h-12 flex items-center justify-center relative',
+              'h-12 flex items-center justify-center relative hover:bg-zinc-950/5',
               isActive
                 ? 'before:absolute before:top-0 before:bottom-0 before:left-0 before:border-l-2 before:border-purple-500'
                 : ''
