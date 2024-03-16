@@ -51,8 +51,10 @@ export const NavSidebarItem = ({ item }) => {
         {({ isActive }) => (
           <div
             className={clsx(
-              'h-12 flex items-center justify-center',
-              isActive ? 'border-l-2 border-purple-500' : ''
+              'h-12 flex items-center justify-center relative',
+              isActive
+                ? 'before:absolute before:top-0 before:bottom-0 before:left-0 before:border-l-2 before:border-purple-500'
+                : ''
             )}
           >
             <Icon
@@ -60,7 +62,7 @@ export const NavSidebarItem = ({ item }) => {
               color={
                 isActive
                   ? twConfig.theme.colors.purple[500]
-                  : twConfig.theme.colors.gray[500]
+                  : 'rgba(0,0,0,0.55)'
               }
             />
           </div>
@@ -72,7 +74,7 @@ export const NavSidebarItem = ({ item }) => {
 
 export function NavSidebar() {
   return (
-    <div className="flex flex-col gap-y-5 items-center overflow-y-auto bg-transparent border-r border-gray-300 py-4 w-12 h-full">
+    <div className="flex-initial flex flex-col gap-y-5 items-center overflow-y-auto bg-transparent border-r border-gray-300 py-4 w-12 h-full">
       <NavLink to="/edit">
         <Logo />
       </NavLink>

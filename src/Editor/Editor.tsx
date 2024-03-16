@@ -89,7 +89,7 @@ export function Editor({ docUrl }: { docUrl: AutomergeUrl }) {
   };
 
   return (
-    <div className="flex items-center justify-center w-full m-2">
+    <div className="flex-auto flex items-center justify-center m-2">
       <textarea
         id="message"
         value={value}
