@@ -1,50 +1,53 @@
 import { clsx } from 'clsx';
 import resolveConfig from 'tailwindcss/resolveConfig';
 
-// @ts-ignore
 import tailwindConfig from '../../../tailwind.config';
 import { BranchIcon, OptionsIcon, PenIcon, UserIcon } from '../icons';
 import { Logo } from '../brand/Logo';
 import { Outlet, NavLink } from 'react-router-dom';
+import { IconProps } from '../icons/types';
 
 const twConfig = resolveConfig(tailwindConfig);
 
 const ICON_SIZE = 32;
 
-const navigation = [
+type NavItem = {
+  name: string;
+  href: string;
+  icon: React.ComponentType<IconProps>;
+  current: boolean;
+};
+
+const navigation: NavItem[] = [
   {
     name: 'Edit',
     href: '/edit',
     icon: PenIcon,
-    component: <PenIcon size={ICON_SIZE} />,
     current: true,
   },
   {
     name: 'History',
     href: '/history',
     icon: BranchIcon,
-    component: <BranchIcon size={ICON_SIZE} />,
     current: false,
   },
   {
     name: 'User',
     href: '/user',
     icon: UserIcon,
-    component: <UserIcon size={ICON_SIZE} />,
     current: false,
   },
   {
     name: 'Settings',
     href: '/settings',
     icon: OptionsIcon,
-    component: <OptionsIcon size={ICON_SIZE} />,
     current: false,
   },
 ];
 
-// @ts-ignore
-export const NavSidebarItem = ({ item }) => {
+export const NavSidebarItem = ({ item }: { item: NavItem }) => {
   const Icon = item.icon;
+
   return (
     <li key={item.name} className="mb-2">
       <NavLink to={item.href}>
