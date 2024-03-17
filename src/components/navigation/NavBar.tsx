@@ -45,7 +45,7 @@ const navigation: NavItem[] = [
   },
 ];
 
-export const NavSidebarItem = ({ item }: { item: NavItem }) => {
+export const NavBarItem = ({ item }: { item: NavItem }) => {
   const Icon = item.icon;
 
   return (
@@ -75,11 +75,11 @@ export const NavSidebarItem = ({ item }: { item: NavItem }) => {
   );
 };
 
-export function NavSidebar() {
+export function NavBar() {
   return (
     <div
       className="flex-initial flex flex-col gap-y-5 items-center overflow-y-auto bg-transparent border-r border-gray-300 py-4 w-12 h-full"
-      data-testid="nav-sidebar"
+      data-testid="nav-bar"
     >
       <NavLink to="/edit">
         <Logo />
@@ -88,7 +88,7 @@ export function NavSidebar() {
       <nav className="self-stretch flex flex-1 flex-col">
         <ul role="list" className="flex flex-1 flex-col">
           {navigation.map((item) => (
-            <NavSidebarItem key={item.href} item={item} />
+            <NavBarItem key={item.href} item={item} />
           ))}
         </ul>
       </nav>

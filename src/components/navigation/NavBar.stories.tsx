@@ -6,18 +6,18 @@ import {
   reactRouterOutlets,
 } from 'storybook-addon-remix-react-router';
 
-import { NavSidebar } from './NavSidebar';
+import { NavBar } from './NavBar';
 
-const meta: Meta<typeof NavSidebar> = {
-  title: 'navigation/NavSidebar',
-  component: NavSidebar,
+const meta: Meta<typeof NavBar> = {
+  title: 'navigation/Navigation Bar',
+  component: NavBar,
   decorators: [withRouter],
   parameters: {
     layout: 'centered',
   },
 };
 
-type Story = StoryObj<ComponentProps<typeof NavSidebar>>;
+type Story = StoryObj<ComponentProps<typeof NavBar>>;
 
 export const Default: Story = {
   parameters: {
