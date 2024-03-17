@@ -8,6 +8,7 @@ describe('NavBar', () => {
   it('renders the nav bar successfully', () => {
     render(<Default />);
 
+    // TODO: Add more tests (e.g. check for the logo, check for the nav items, routing changes, etc.)
     expect(screen.getByTestId('nav-bar')).toBeInTheDocument();
   });
 });
