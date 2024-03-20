@@ -95,8 +95,8 @@ const styles = {
         '[--btn-icon:theme(colors.zinc.400)]',
       ],
       purple: [
-        'text-white [--btn-hover-overlay:theme(colors.white/10%)] [--btn-bg:theme(colors.purple.500)] [--btn-border:theme(colors.purple.600/90%)]',
-        '[--btn-icon:white]',
+        'text-white dark:text-zinc-950 [--btn-hover-overlay:theme(colors.white/10%)] [--btn-bg:theme(colors.purple.500)] dark:[--btn-bg:theme(colors.purple.300)] [--btn-border:theme(colors.purple.600/90%)]',
+        '[--btn-icon:white] dark:[--btn-icon:theme(colors.zinc.950)]',
       ],
     },
     outline: {
@@ -140,7 +140,7 @@ const styles = {
       ],
       purple: [
         'text-purple-500 text-opacity-100 dark:text-purple-100 dark:data-[active]:bg-purple-50 dark:data-[hover]:bg-purple-50',
-        '[--btn-icon:theme(colors.purple.500)] dark:[--btn-icon:theme(colors.purple.100))]',
+        '[--btn-icon:theme(colors.purple.500)] dark:[--btn-icon:theme(colors.purple.300)]',
       ],
     },
   },
