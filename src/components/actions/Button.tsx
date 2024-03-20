@@ -72,7 +72,7 @@ const styles = {
     'border-transparent data-[active]:bg-zinc-950/5 data-[hover]:bg-zinc-950/5',
 
     // Dark mode
-    'dark:text-white dark:data-[active]:bg-white/10 dark:data-[hover]:bg-white/10',
+    'dark:data-[active]:bg-white/10 dark:data-[hover]:bg-white/10',
   ],
   colors: {
     solid: {
