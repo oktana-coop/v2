@@ -22,7 +22,8 @@
     "noFallthroughCasesInSwitch": true,
 
     /* Types */
-    "types": ["jest", "@testing-library/jest-dom"]
+    // https://stackoverflow.com/a/71343465
+    "types": ["jest", "@testing-library/jest-dom", "@types/wicg-file-system-access"]
   },
   "include": ["src", "./jest.setup.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]

@@ -26,8 +26,10 @@
     "clsx": "^2.1.0",
     "electron-updater": "^6.1.8",
     "react": "^18.2.0",
+    "react-complex-tree": "^2.3.7",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.22.2",
+    "use-file-picker": "^2.1.1",
     "vite-plugin-top-level-await": "^1.4.1",
     "vite-plugin-wasm": "^3.3.0"
   },
@@ -46,6 +48,7 @@
     "@types/jest": "^29.5.12",
     "@types/react": "^18.2.58",
     "@types/react-dom": "^18.2.19",
+    "@types/wicg-file-system-access": "^2023.10.5",
     "@typescript-eslint/eslint-plugin": "^7.0.2",
     "@typescript-eslint/parser": "^7.0.2",
     "@vitejs/plugin-react": "^4.2.1",

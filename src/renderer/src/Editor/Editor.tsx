@@ -8,6 +8,7 @@ import {
   view,
 } from '@automerge/automerge/next';
 import { EditingHistory, Commit } from './EditingHistory';
+import { FileExplorer } from './FileExplorer';
 import { useSearchParams } from 'react-router-dom';
 
 interface Document {
@@ -89,7 +90,8 @@ export function Editor({ docUrl }: { docUrl: AutomergeUrl }) {
   };
 
   return (
-    <div className="flex-auto flex items-center justify-center m-2">
+    <div className="flex items-center justify-center w-full m-2">
+      <FileExplorer />
       <textarea
         id="message"
         value={value}
