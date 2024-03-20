@@ -69,13 +69,10 @@ const styles = {
   ],
   plain: [
     // Base
-    'border-transparent text-black text-opacity-75 data-[active]:bg-zinc-950/5 data-[hover]:bg-zinc-950/5',
+    'border-transparent data-[active]:bg-zinc-950/5 data-[hover]:bg-zinc-950/5',
 
     // Dark mode
     'dark:text-white dark:data-[active]:bg-white/10 dark:data-[hover]:bg-white/10',
-
-    // Icon
-    '[--btn-icon:text-black:text-opacity-75] data-[active]:[--btn-icon:text-black:text-opacity-100] data-[hover]:[--btn-icon:text-black:text-opacity-100] dark:[--btn-icon:theme(colors.zinc.500)] dark:data-[active]:[--btn-icon:theme(colors.zinc.400)] dark:data-[hover]:[--btn-icon:theme(colors.zinc.400)]',
   ],
   colors: {
     solid: {
@@ -121,25 +118,25 @@ const styles = {
         'dark:border-purple-100 dark:text-purple-100 dark:[--btn-bg:transparent] dark:data-[active]:bg-purple-50 dark:data-[hover]:bg-purple-50',
 
         // Icon
-        '[--btn-icon:theme(colors.purple.500)] dark:[--btn-icon:theme(colors.purple.100))]',
+        '[--btn-icon:theme(colors.purple.500)] dark:[--btn-icon:theme(colors.purple.100)]',
       ],
     },
     plain: {
       'dark/zinc': [
-        'dark:text-white dark:data-[active]:bg-white/10 dark:data-[hover]:bg-white/10',
-        '[--btn-icon:text-black:text-opacity-75]',
+        'text-black text-opacity-75 dark:text-white dark:data-[active]:bg-white/10 dark:data-[hover]:bg-white/10',
+        '[--btn-icon:rgba(0,0,0,0.75)] dark:[--btn-icon:theme(colors.white)]',
       ],
       // same with dark/zinc
       light: [
-        'dark:text-white dark:data-[active]:bg-white/10 dark:data-[hover]:bg-white/10',
-        '[--btn-icon:text-black:text-opacity-75]',
+        'text-black text-opacity-75 dark:text-white dark:data-[active]:bg-white/10 dark:data-[hover]:bg-white/10',
+        '[--btn-icon:rgba(0,0,0,0.75)] dark:[--btn-icon:theme(colors.white)]',
       ],
       'dark/white': [
-        'dark:text-white dark:data-[active]:bg-white/10 dark:data-[hover]:bg-white/10',
-        '[--btn-icon:text:white]',
+        'text-black text-opacity-75 dark:text-white dark:data-[active]:bg-white/10 dark:data-[hover]:bg-white/10',
+        '[--btn-icon:rgba(0,0,0,0.75)] dark:[--btn-icon:theme(colors.white)]',
       ],
       purple: [
-        'text-purple-500 text-opacity-100 dark:text-purple-100 dark:data-[active]:bg-purple-50 dark:data-[hover]:bg-purple-50',
+        'text-purple-500 text-opacity-100 dark:text-purple-300 dark:data-[active]:bg-purple-50 dark:data-[hover]:bg-purple-50',
         '[--btn-icon:theme(colors.purple.500)] dark:[--btn-icon:theme(colors.purple.300)]',
       ],
     },
@@ -154,7 +151,7 @@ const buttonVariants = {
 
 type ButtonVariant = keyof typeof buttonVariants;
 
-type ButtonColor =
+export type ButtonColor =
   | keyof typeof styles.colors.solid
   | keyof typeof styles.colors.outline
   | keyof typeof styles.colors.plain;

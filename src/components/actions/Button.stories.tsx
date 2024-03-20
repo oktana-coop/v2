@@ -74,5 +74,10 @@ export const Disabled: Story = {
 };
 
 export const IconButton: Story = {
-  render: () => <IconButtonComponent icon={<CheckIcon color="purple" />} />,
+  render: () => (
+    <IconButtonComponent
+      icon={<CheckIcon color="var(--btn-icon)" />}
+      color="purple"
+    />
+  ),
 };
