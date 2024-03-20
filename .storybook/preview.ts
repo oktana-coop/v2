@@ -1,6 +1,7 @@
 import type { Preview } from '@storybook/react';
 
 import '../src/App.css';
+import './preview.css';
 
 const preview: Preview = {
   parameters: {
@@ -9,6 +10,11 @@ const preview: Preview = {
         color: /(background|color)$/i,
         date: /Date$/i,
       },
+    },
+    darkMode: {
+      darkClass: 'dark',
+      stylePreview: true,
+      classTarget: 'body',
     },
   },
 };
