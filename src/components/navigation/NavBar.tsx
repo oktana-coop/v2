@@ -2,7 +2,7 @@ import { clsx } from 'clsx';
 import resolveConfig from 'tailwindcss/resolveConfig';
 
 import tailwindConfig from '../../../tailwind.config';
-import { BranchIcon, OptionsIcon, PenIcon, UserIcon } from '../icons';
+import { BranchIcon, OptionsIcon, PenIcon } from '../icons';
 import { Logo } from '../brand/Logo';
 import { Outlet, NavLink } from 'react-router-dom';
 import { IconProps } from '../icons/types';
@@ -32,14 +32,8 @@ const navigation: NavItem[] = [
     current: false,
   },
   {
-    name: 'User',
-    href: '/user',
-    icon: UserIcon,
-    current: false,
-  },
-  {
-    name: 'Settings',
-    href: '/settings',
+    name: 'Options',
+    href: '/options',
     icon: OptionsIcon,
     current: false,
   },
