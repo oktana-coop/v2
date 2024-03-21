@@ -1,1 +1,7 @@
-export const Options = () => <div>Options Screen</div>;
+import { SectionHeader } from './SectionHeader';
+
+export const Options = () => (
+  <div>
+    <SectionHeader />
+  </div>
+);
