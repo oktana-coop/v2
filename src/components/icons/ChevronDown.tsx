@@ -1,8 +1,8 @@
 import { IconProps } from './types';
-import { DEFAULT_COLOR, DEFAULT_SIZE } from './constants';
+import { DEFAULT_SIZE } from './constants';
 
 export const ChevronDownIcon = ({
-  color = DEFAULT_COLOR,
+  color,
   size = DEFAULT_SIZE,
   className,
 }: IconProps) => {
@@ -19,7 +19,7 @@ export const ChevronDownIcon = ({
       <g transform={`scale(${scale})`}>
         <path
           d="M6.34317 7.75732L4.92896 9.17154L12 16.2426L19.0711 9.17157L17.6569 7.75735L12 13.4142L6.34317 7.75732Z"
-          fill={color}
+          fill={color ?? 'currentColor'}
         />
       </g>
     </svg>

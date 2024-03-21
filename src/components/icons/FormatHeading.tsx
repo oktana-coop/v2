@@ -1,8 +1,8 @@
 import { IconProps } from './types';
-import { DEFAULT_COLOR, DEFAULT_SIZE } from './constants';
+import { DEFAULT_SIZE } from './constants';
 
 export const FormatHeading = ({
-  color = DEFAULT_COLOR,
+  color,
   size = DEFAULT_SIZE,
   className,
 }: IconProps) => {
@@ -17,7 +17,10 @@ export const FormatHeading = ({
       className={className}
     >
       <g transform={`scale(${scale})`}>
-        <path d="M6 19V5H8V11H16V5H18V19H16V13H8V19H6Z" fill={color} />
+        <path
+          d="M6 19V5H8V11H16V5H18V19H16V13H8V19H6Z"
+          fill={color ?? 'currentColor'}
+        />
       </g>
     </svg>
   );

@@ -1,8 +1,8 @@
 import { IconProps } from './types';
-import { DEFAULT_COLOR, DEFAULT_SIZE } from './constants';
+import { DEFAULT_SIZE } from './constants';
 
 export const SidebarIcon = ({
-  color = DEFAULT_COLOR,
+  color,
   size = DEFAULT_SIZE,
   className,
 }: IconProps) => {
@@ -21,9 +21,9 @@ export const SidebarIcon = ({
           fillRule="evenodd"
           clipRule="evenodd"
           d="M21 20H7V4H21V20ZM19 18H9V6H19V18Z"
-          fill={color}
+          fill={color ?? 'currentColor'}
         />
-        <path d="M3 20H5V4H3V20Z" fill={color} />
+        <path d="M3 20H5V4H3V20Z" fill={color ?? 'currentColor'} />
       </g>
     </svg>
   );
