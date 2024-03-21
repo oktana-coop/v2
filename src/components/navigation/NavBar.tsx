@@ -1,13 +1,8 @@
 import { clsx } from 'clsx';
-import resolveConfig from 'tailwindcss/resolveConfig';
-
-import tailwindConfig from '../../../tailwind.config';
 import { BranchIcon, OptionsIcon, PenIcon } from '../icons';
 import { Logo } from '../brand/Logo';
 import { Outlet, NavLink } from 'react-router-dom';
 import { IconProps } from '../icons/types';
-
-const twConfig = resolveConfig(tailwindConfig);
 
 const ICON_SIZE = 32;
 
@@ -50,18 +45,11 @@ export const NavBarItem = ({ item }: { item: NavItem }) => {
             className={clsx(
               'h-12 flex items-center justify-center relative hover:bg-zinc-950/5',
               isActive
-                ? 'before:absolute before:top-0 before:bottom-0 before:left-0 before:border-l-2 before:border-purple-500'
-                : ''
+                ? 'text-purple-500 dark:text-purple-300 before:absolute before:top-0 before:bottom-0 before:left-0 before:border-l-2 before:border-purple-500 dark:before:border-purple-300'
+                : 'text-black text-opacity-55 dark:text-white dark:text-opacity-55'
             )}
           >
-            <Icon
-              size={ICON_SIZE}
-              color={
-                isActive
-                  ? twConfig.theme.colors.purple[500]
-                  : 'rgba(0,0,0,0.55)'
-              }
-            />
+            <Icon size={ICON_SIZE} />
           </div>
         )}
       </NavLink>

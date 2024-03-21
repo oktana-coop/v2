@@ -1,8 +1,8 @@
 import { IconProps } from './types';
-import { DEFAULT_COLOR, DEFAULT_SIZE } from './constants';
+import { DEFAULT_SIZE } from './constants';
 
 export const SidebarOpenIcon = ({
-  color = DEFAULT_COLOR,
+  color,
   size = DEFAULT_SIZE,
   className,
 }: IconProps) => {
@@ -21,7 +21,7 @@ export const SidebarOpenIcon = ({
           fillRule="evenodd"
           clipRule="evenodd"
           d="M3 4H21V20H3V4ZM9 6H19V18H9V6Z"
-          fill={color}
+          fill={color ?? 'currentColor'}
         />
       </g>
     </svg>
