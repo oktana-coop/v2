@@ -12,8 +12,7 @@ type ThemeContextType = {
 
 export const ThemeContext = createContext<ThemeContextType>({
   theme: getDefaultTheme(),
-  // This is a placeholder. It will be properly implemented
-  // in the main container that provides the context.
+  // This is a placeholder. It will be properly implemented in the provider below.
   setTheme: () => {},
 });
 
