@@ -1,13 +1,22 @@
+import { useContext } from 'react';
+
 import './App.css';
 import { NavBar } from './components/navigation/NavBar';
 import { AutomergeUrl } from '@automerge/automerge-repo';
 import { Editor } from './Editor/Editor';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Options } from './pages/Options/Options';
+import { themes, ThemeContext } from './personalization/theme';
+import clsx from 'clsx';
 
 function App({ docUrl }: { docUrl: AutomergeUrl }) {
+  const { theme } = useContext(ThemeContext);
+
+  const themeStyles =
+    theme === themes.dark ? 'dark bg-neutral-800' : 'light bg-[#fafafa]';
+
   return (
-    <div className="flex flex-row h-full">
+    <div className={clsx('flex flex-row h-full', themeStyles)}>
       <BrowserRouter>
         <NavBar />
         <Routes>
