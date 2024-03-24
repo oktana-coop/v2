@@ -6,8 +6,8 @@
   "main": "./dist/main/index.js",
   "scripts": {
     "dev": "electron-vite dev -w --outDir=dist",
-    "build": "electron-vite build --outDir=dist",
     "prebuild": "npm run compile",
+    "build": "electron-vite build --outDir=dist",
     "preview": "electron-vite preview --outDir=dist",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "compile": "tsc",
