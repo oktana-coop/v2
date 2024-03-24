@@ -1,13 +1,11 @@
 import { createContext } from 'react';
-import { themes, type Theme } from './theme';
+import { type Theme } from './theme';
+import { getDefaultTheme } from './default';
 
 type ThemeContextType = {
   theme: Theme;
   setTheme: (theme: Theme) => void;
 };
-
-export const getDefaultTheme = () =>
-  (localStorage.getItem('theme') ?? themes.light) as Theme;
 
 export const ThemeContext = createContext<ThemeContextType>({
   theme: getDefaultTheme(),

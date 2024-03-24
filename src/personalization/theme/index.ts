@@ -1,2 +1,3 @@
 export * from './theme';
-export { ThemeContext, getDefaultTheme } from './ThemeContext';
+export { ThemeContext } from './ThemeContext';
+export { ThemeProvider } from './ThemeProvider';

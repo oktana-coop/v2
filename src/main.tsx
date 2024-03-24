@@ -12,6 +12,7 @@ import {
 import { BrowserWebSocketClientAdapter } from '@automerge/automerge-repo-network-websocket';
 import { IndexedDBStorageAdapter } from '@automerge/automerge-repo-storage-indexeddb';
 import { RepoContext } from '@automerge/automerge-repo-react-hooks';
+import { ThemeProvider } from './personalization/theme';
 
 const repo = new Repo({
   network: [new BrowserWebSocketClientAdapter('wss://sync.automerge.org')],
@@ -39,7 +40,9 @@ const docUrl = handle.url;
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <RepoContext.Provider value={repo}>
-      <App docUrl={docUrl} />
+      <ThemeProvider>
+        <App docUrl={docUrl} />
+      </ThemeProvider>
     </RepoContext.Provider>
   </React.StrictMode>
 );
