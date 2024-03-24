@@ -144,7 +144,10 @@ export function Radio({
     <HeadlessRadio
       data-slot="control"
       {...props}
-      className={clsx(className, 'group inline-flex focus:outline-none')}
+      className={clsx(
+        className,
+        'group inline-flex focus:outline-none cursor-pointer'
+      )}
     >
       <span className={clsx([base, colors[color]])}>
         <span
