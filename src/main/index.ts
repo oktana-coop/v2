@@ -59,14 +59,6 @@ async function createWindow() {
     },
   });
 
-  console.log(
-    'process.env.VITE_DEV_SERVER_URL',
-    process.env.VITE_DEV_SERVER_URL
-  );
-  console.log('process.env.DEPLOY_PRIME_URL', process.env.DEPLOY_PRIME_URL);
-  console.log('URL', url);
-  console.log('indexHtml', indexHtml);
-
   if (url) {
     // electron-vite-vue#298
     win.loadURL(url);
