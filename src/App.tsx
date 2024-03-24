@@ -11,6 +11,7 @@ function App({ docUrl }: { docUrl: AutomergeUrl }) {
       <BrowserRouter>
         <NavBar />
         <Routes>
+          <Route path="/" element={<Editor docUrl={docUrl} />} />
           <Route path="/edit" element={<Editor docUrl={docUrl} />} />
           <Route path="/options" element={<Options />} />
         </Routes>
