@@ -1,110 +1,48 @@
 import React from 'react';
-
-import {
-  UncontrolledTreeEnvironment,
-  Tree,
-  StaticTreeDataProvider,
-} from 'react-complex-tree';
-
-declare module 'react' {
-  interface InputHTMLAttributes<T> extends HTMLAttributes<T> {
-    webkitdirectory?: string;
-    directory?: string;
-  }
-}
-
-const items = {
-  root: {
-    index: 'root',
-    canMove: true,
-    isFolder: true,
-    children: ['child1', 'child2'],
-    data: 'Root item',
-    canRename: true,
-  },
-  child1: {
-    index: 'child1',
-    canMove: true,
-    isFolder: false,
-    children: [],
-    data: 'Child item 1',
-    canRename: true,
-  },
-  child2: {
-    index: 'child2',
-    canMove: true,
-    isFolder: false,
-    children: [],
-    data: 'Child item 2',
-    canRename: true,
-  },
-};
+import { FileDocumentIcon } from '../components/icons';
 
 export const FileExplorer = () => {
-  const ref = React.useRef<HTMLInputElement>(null);
+  const [files, setFiles] = React.useState<
+    Array<{ filename: string; handler: FileSystemFileHandle }>
+  >([]);
+  const [directory, setDirectory] = React.useState<string>('');
 
-  React.useEffect(() => {
-    if (ref.current !== null) {
-      ref.current.setAttribute('directory', '');
-      ref.current.setAttribute('webkitdirectory', '');
+  async function getFiles() {
+    const dirHandle = await window.showDirectoryPicker();
+    const files = [];
+
+    setDirectory(`${dirHandle.name}/`);
+
+    for await (const [key, value] of dirHandle.entries()) {
+      if (value.kind === 'file') {
+        files.push({ filename: key, handler: value });
+      }
     }
-  }, [ref]);
 
-  const handleFilesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    console.log(files);
-  };
-
-  async function getFile() {
-    // Open file picker and destructure the result the first handle
-    const [fileHandle] = await window.showOpenFilePicker();
-    const file = await fileHandle.getFile();
-    return file;
+    setFiles(files);
   }
 
   return (
-    <div className="text-black">
-      <div>File Explorer</div>
+    <div className="flex flex-col h-full">
+      <FileDocumentIcon
+        className="hover:bg-zinc-950/5 text-purple-500 dark:text-purple-300 cursor-pointer"
+        onClick={async () => await getFiles()}
+      />
 
-      <div>
-        <button onClick={async () => await getFile()}></button>
-        <input
-          type="file"
-          name="files"
-          webkitdirectory=""
-          directory=""
-          id="files"
-          onChange={async () => {
-            // await new Promise((resolve) => setTimeout(resolve, 1000));
-
-            const handle = await window.showSaveFilePicker({
-              suggestedName: 'test',
-              // startIn: fileHandle,
-              types: [
-                {
-                  description: 'ZIP files',
-                  accept: {
-                    'application/zip': ['.zip'],
-                  },
-                },
-              ],
-            });
-          }}
-        ></input>
+      <div className="w-48 text-left pt-2 text-black font-bold truncate">
+        {directory}
       </div>
-
-      <UncontrolledTreeEnvironment
-        dataProvider={
-          new StaticTreeDataProvider(items, (item, data) => ({
-            ...item,
-            data,
-          }))
-        }
-        getItemTitle={(item) => item.data}
-        viewState={{}}
-      >
-        <Tree treeId="tree-1" rootItem="root" treeLabel="Tree Example" />
-      </UncontrolledTreeEnvironment>
+      <div className="max-h-96 w-48 text-black">
+        {files.map((file) => (
+          <div
+            key={file.filename}
+            className="truncate px-2 py-1 text-left"
+            title={file.filename}
+          >
+            {file.filename}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

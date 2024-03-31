@@ -26,10 +26,8 @@
     "clsx": "^2.1.0",
     "electron-updater": "^6.1.8",
     "react": "^18.2.0",
-    "react-complex-tree": "^2.3.7",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.22.2",
-    "use-file-picker": "^2.1.1",
     "vite-plugin-top-level-await": "^1.4.1",
     "vite-plugin-wasm": "^3.3.0"
   },
