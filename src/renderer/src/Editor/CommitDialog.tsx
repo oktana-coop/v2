@@ -43,9 +43,13 @@ export const CommitDialog = ({
       isOpen={isOpen}
       title="Commit changes"
       description="Are you sure you want to commit these changes?"
-      secondaryButton={<Button onClick={onCancel}>Cancel</Button>}
+      secondaryButton={
+        <Button variant="plain" onClick={onCancel}>
+          Cancel
+        </Button>
+      }
       primaryButton={
-        <Button onClick={handleCommitSubmission} variant="solid" color="purple">
+        <Button onClick={handleCommitSubmission} color="purple">
           <CheckIcon />
           Commit
         </Button>
