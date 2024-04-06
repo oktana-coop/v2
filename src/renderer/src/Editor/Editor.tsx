@@ -1,15 +1,16 @@
-import React, { useEffect } from 'react';
-import { useDocument } from '@automerge/automerge-repo-react-hooks';
 import { AutomergeUrl } from '@automerge/automerge-repo';
+import { useDocument } from '@automerge/automerge-repo-react-hooks';
 import {
   default as Automerge,
   decodeChange,
   getAllChanges,
   view,
 } from '@automerge/automerge/next';
-import { EditingHistory, Commit } from './EditingHistory';
-import { FileExplorer } from './FileExplorer';
+import React, { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { CommitDialog } from './CommitDialog';
+import { Commit, EditingHistory } from './EditingHistory';
+import { FileExplorer } from './FileExplorer';
 
 interface Document {
   doc: Automerge.Doc<string>;
@@ -22,6 +23,7 @@ const isCommit = (change: Automerge.Change) => {
 
 export function Editor({ docUrl }: { docUrl: AutomergeUrl }) {
   const [value, changeValue] = React.useState<string>('');
+  const [isCommitting, openCommitDialog] = React.useState<boolean>(false);
   const [document, changeDocument] = useDocument<Document>(docUrl);
   const [, setSearchParams] = useSearchParams();
 
@@ -58,27 +60,24 @@ export function Editor({ docUrl }: { docUrl: AutomergeUrl }) {
     });
   };
 
-  const commitChanges = () => {
-    // temporary solution until we decide on a better way to handle user input for commiting changes
-    const commitMessage = prompt('Save your changes with a message...') || '';
-    const message = commitMessage?.trim();
-
+  const commitChanges = (message: string) => {
     changeDocument(
       (doc) => {
         doc.doc = value;
       },
       {
-        message: message,
+        message,
         time: new Date().getTime(),
       }
     );
+    openCommitDialog(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // cmd/ctrl + s
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
-      commitChanges();
+      openCommitDialog(true);
     }
   };
 
@@ -90,23 +89,30 @@ export function Editor({ docUrl }: { docUrl: AutomergeUrl }) {
   };
 
   return (
-    <div className="flex items-center justify-center w-full m-2">
-      <FileExplorer />
-      <textarea
-        id="message"
-        value={value}
-        rows={4}
-        className="focus:shadow-inner w-3/5 h-full resize-none p-5 text-black bg-white rounded-md border-none outline-none border-gray-400"
-        autoFocus
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        onBlur={handleBlur}
+    <>
+      <CommitDialog
+        isOpen={isCommitting}
+        onCancel={() => openCommitDialog(false)}
+        onCommit={(message: string) => commitChanges(message)}
       />
-      {
-        // This can temporarily live here, until we move it to the sidebar
-        // possibly
-      }
-      <EditingHistory commits={commits} onClick={handleCommitClick} />
-    </div>
+      <div className="flex-auto flex items-center justify-center m-2">
+        <FileExplorer />
+        <textarea
+          id="message"
+          value={value}
+          rows={4}
+          className="focus:shadow-inner w-3/5 h-full resize-none p-5 text-black bg-white rounded-sm border-none outline-none border-gray-400"
+          autoFocus
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
+        />
+        {
+          // This can temporarily live here, until we move it to the sidebar
+          // possibly
+        }
+        <EditingHistory commits={commits} onClick={handleCommitClick} />
+      </div>
+    </>
   );
 }

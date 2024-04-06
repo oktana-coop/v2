@@ -23,4 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
+# ignore storybook ancielary files
 *storybook.log
+storybook-static/
