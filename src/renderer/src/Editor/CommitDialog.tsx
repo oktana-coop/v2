@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '../components/actions/Button';
 import { Modal } from '../components/dialogs/Modal';
 import { CheckIcon } from '../components/icons/Check';
+import { Textarea } from '../components/inputs/Textarea';
 
 type CommitDialogProps = {
   onCommit: (message: string) => void;
@@ -54,10 +55,10 @@ export const CommitDialog = ({
         </Button>
       }
     >
-      <textarea
-        className="shadow-inner w-full h-full resize-none p-3 text-black bg-white rounded-sm outline-none border-gray-400"
-        //  did not manage to make autoFocus work
+      <Textarea
+        className="shadow-inner w-full h-full resize-none outline-none border-gray-400"
         autoFocus={true}
+        autoComplete="off"
         rows={3}
         onInput={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
           setErrorMessage('');
@@ -65,7 +66,7 @@ export const CommitDialog = ({
         }}
         onKeyDown={handleKeyDown}
       />
-      <p className="text-red-500 text-sm">{errorMessage}</p>
+      <p className="text-red-500 text-sm mt-2">{errorMessage}</p>
     </Modal>
   );
 };
