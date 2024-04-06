@@ -42,7 +42,6 @@ export const CommitDialog = ({
     <Modal
       isOpen={isOpen}
       title="Commit changes"
-      description="Are you sure you want to commit these changes?"
       secondaryButton={
         <Button variant="plain" onClick={onCancel}>
           Cancel
