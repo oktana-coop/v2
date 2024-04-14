@@ -4,20 +4,11 @@ import App from './App.tsx';
 import * as A from '@automerge/automerge';
 
 import './index.css';
-import {
-  isValidAutomergeUrl,
-  Repo,
-  DocHandle,
-} from '@automerge/automerge-repo';
-import { BrowserWebSocketClientAdapter } from '@automerge/automerge-repo-network-websocket';
-import { IndexedDBStorageAdapter } from '@automerge/automerge-repo-storage-indexeddb';
+import { isValidAutomergeUrl, DocHandle } from '@automerge/automerge-repo';
+
 import { RepoContext } from '@automerge/automerge-repo-react-hooks';
 import { ThemeProvider } from './personalization/theme';
-
-const repo = new Repo({
-  network: [new BrowserWebSocketClientAdapter('wss://sync.automerge.org')],
-  storage: new IndexedDBStorageAdapter(),
-});
+import { repo } from './automerge';
 
 declare global {
   interface Window {
