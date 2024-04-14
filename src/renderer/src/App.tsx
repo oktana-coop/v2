@@ -9,6 +9,7 @@ import { Options } from './pages/Options/Options';
 import { themes, ThemeContext } from './personalization/theme';
 import clsx from 'clsx';
 import { History } from './pages/History/History';
+import { HistoryIndex } from './pages/History';
 
 function App({ docUrl }: { docUrl: AutomergeUrl }) {
   const { theme } = useContext(ThemeContext);
@@ -23,6 +24,7 @@ function App({ docUrl }: { docUrl: AutomergeUrl }) {
         <Routes>
           <Route path="/" element={<Editor docUrl={docUrl} />} />
           <Route path="/edit" element={<Editor docUrl={docUrl} />} />
+          <Route path="/history" element={<HistoryIndex />} />
           <Route path="/history/:documentId" element={<History />} />
           <Route path="/options" element={<Options />} />
         </Routes>

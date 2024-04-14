@@ -1,5 +1,5 @@
-import { relativeDate } from '../../utils/dates';
 import clsx from 'clsx';
+import { relativeDate } from '../../utils/dates';
 
 export type Commit = {
   hash: string;
