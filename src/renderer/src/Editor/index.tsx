@@ -52,7 +52,7 @@ export const EditorIndex = () => {
 
   return (
     <div className="flex-auto flex">
-      {docIds.length === 0 && (
+      {docIds.length > 0 && (
         <div className="h-full w-2/5 grow-0 p-5 overflow-y-scroll ">
           <h2>Your docs</h2>
           {docIds.map((docId) => (
@@ -65,8 +65,8 @@ export const EditorIndex = () => {
       <div className="h-full w-full grow flex flex-col items-center justify-center">
         <h2 className="text-2xl">Welcome to v2 👋</h2>
         <p className="text-gray-500">
-          {docIds.length === 0
-            ? '👈 Pick one documents of the list to continue editing 😉'
+          {docIds.length > 0
+            ? '👈 Pick one documents of the list to continue editing. Or create a new one 😉'
             : 'Create a new document and explore the world of versioning'}
         </p>
         <p className="m-5">
