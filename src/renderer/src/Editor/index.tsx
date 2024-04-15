@@ -1,14 +1,13 @@
-import * as Automerge from '@automerge/automerge';
+import { AutomergeUrl } from '@automerge/automerge-repo';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { VersionedDocument } from '../automerge';
 import { repo } from '../automerge/repo';
 import { Button } from '../components/actions/Button';
 import { Link } from '../components/actions/Link';
+import { Modal } from '../components/dialogs/Modal';
 import { PenIcon } from '../components/icons';
 import { PersonalFile } from '../components/illustrations/PersonalFile';
-import { AutomergeUrl } from '@automerge/automerge-repo';
-import { Modal } from '../components/dialogs/Modal';
-import { VersionedDocument } from '../automerge';
 
 const persistDocumentUrl = (docUrl: AutomergeUrl, docTitle: string) => {
   const currentDocUrls = localStorage.getItem('docUrls');
