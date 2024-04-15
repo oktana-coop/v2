@@ -8,6 +8,7 @@ import { PenIcon } from '../components/icons';
 import { PersonalFile } from '../components/illustrations/PersonalFile';
 import { AutomergeUrl } from '@automerge/automerge-repo';
 import { Modal } from '../components/dialogs/Modal';
+import { VersionedDocument } from '../automerge';
 
 const persistDocumentUrl = (docUrl: AutomergeUrl, docTitle: string) => {
   const currentDocUrls = localStorage.getItem('docUrls');
@@ -43,6 +44,10 @@ export const EditorIndex = () => {
     useState<boolean>(false);
 
   useEffect(() => {
+    document.title = 'v2 | Editor';
+  }, []);
+
+  useEffect(() => {
     const docUrls = localStorage.getItem('docUrls');
     if (docUrls) {
       const docs = JSON.parse(docUrls);
@@ -55,8 +60,12 @@ export const EditorIndex = () => {
   }, []);
 
   const handleDocumentCreation = (docTitle: string) => {
-    const handle = repo.create<{ doc?: Automerge.Doc<string> }>();
+    const handle = repo.create<VersionedDocument>();
     const newDocUrl = handle.url;
+    handle.change((doc) => {
+      doc.title = docTitle;
+      doc.content = docTitle;
+    });
     // temporary workaround to persist the document url
     // until we figure out how to handle existing documents persistence
     persistDocumentUrl(newDocUrl, docTitle);

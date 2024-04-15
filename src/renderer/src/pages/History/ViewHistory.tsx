@@ -1,5 +1,5 @@
 import { AutomergeUrl } from '@automerge/automerge-repo';
-import { default as Automerge, view } from '@automerge/automerge/next';
+import { view } from '@automerge/automerge/next';
 import React, { useCallback, useEffect } from 'react';
 import { Commit, CommitLog } from './CommitLog';
 
@@ -8,38 +8,41 @@ import { decodeChange, getAllChanges } from '@automerge/automerge/next';
 import { Link } from '../../components/actions/Link';
 import { isCommit } from './isCommit';
 import { useNavigate } from 'react-router-dom';
-
-interface Document {
-  doc: Automerge.Doc<string>;
-}
+import { VersionedDocument } from '../../automerge';
 
 export const ViewHistory = ({ documentId }: { documentId: AutomergeUrl }) => {
-  const [document] = useDocument<Document>(documentId as AutomergeUrl);
+  const [versionedDocument] = useDocument<VersionedDocument>(
+    documentId as AutomergeUrl
+  );
   const [docValue, setDocValue] = React.useState<string>('');
   const [selectedCommit, setSelectedCommit] = React.useState<string>();
   const [commits, setCommits] = React.useState<Array<Commit>>([]);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    document.title = `v2 | "${versionedDocument?.title}" log`;
+  }, [versionedDocument]);
+
   const selectCommit = useCallback(
     (hash: string) => {
-      if (document) {
-        const docView = view(document, [hash]);
-        setDocValue(docView.doc);
+      if (versionedDocument) {
+        const docView = view(versionedDocument, [hash]);
+        setDocValue(docView.content);
         setSelectedCommit(hash);
       }
     },
-    [document]
+    [versionedDocument]
   );
 
   useEffect(() => {
-    if (document) {
-      setDocValue(document.doc || '');
+    if (versionedDocument) {
+      setDocValue(versionedDocument.content || '');
     }
-  }, [document]);
+  }, [versionedDocument]);
 
   useEffect(() => {
-    if (document) {
-      const changes = getAllChanges(document);
+    if (versionedDocument) {
+      const changes = getAllChanges(versionedDocument);
       const decodedChanges = changes.map((change) => decodeChange(change));
       const commits = decodedChanges.filter(isCommit).map((change) => ({
         hash: change.hash,
@@ -55,7 +58,7 @@ export const ViewHistory = ({ documentId }: { documentId: AutomergeUrl }) => {
         selectCommit(lastCommit.hash);
       }
     }
-  }, [document, selectCommit]);
+  }, [versionedDocument, selectCommit]);
 
   const handleCommitClick = (hash: string) => {
     selectCommit(hash);
@@ -71,7 +74,7 @@ export const ViewHistory = ({ documentId }: { documentId: AutomergeUrl }) => {
           >
             <p className="font-bold">No commits 🧐</p>
             <p className="text-left">
-              We couldn't find any commits on this document.
+              We couldn't find any commits on this versionedDocument.
             </p>
             <p className="mt-2">
               <Link to={`/edit/${documentId}`}>Commit on Editor</Link>

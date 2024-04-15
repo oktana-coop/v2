@@ -12,6 +12,10 @@ export const HistoryIndex = () => {
   >([]);
 
   useEffect(() => {
+    document.title = 'v2 | History';
+  }, []);
+
+  useEffect(() => {
     const docUrls = localStorage.getItem('docUrls');
     if (docUrls) {
       const docs = JSON.parse(docUrls);

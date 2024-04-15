@@ -1,24 +1,22 @@
 import { AutomergeUrl } from '@automerge/automerge-repo';
 import { useDocument } from '@automerge/automerge-repo-react-hooks';
-import { default as Automerge } from '@automerge/automerge/next';
 import React, { useEffect } from 'react';
 import { CommitDialog } from './CommitDialog';
 import { FileExplorer } from './FileExplorer';
-
-interface Document {
-  doc: Automerge.Doc<string>;
-}
+import { VersionedDocument } from '../automerge';
 
 export const DocumentEditor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
   const [value, changeValue] = React.useState<string>('');
   const [isCommitting, openCommitDialog] = React.useState<boolean>(false);
-  const [document, changeDocument] = useDocument<Document>(docUrl);
+  const [versionedDocument, changeDocument] =
+    useDocument<VersionedDocument>(docUrl);
 
   useEffect(() => {
-    if (document) {
-      changeValue(document.doc || '');
+    if (versionedDocument) {
+      changeValue(versionedDocument.content || '');
+      document.title = `v2 | editing "${versionedDocument?.title}"`;
     }
-  }, [document]);
+  }, [versionedDocument]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     changeValue(e.target.value);
@@ -26,14 +24,14 @@ export const DocumentEditor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
 
   const handleBlur = () => {
     changeDocument((doc) => {
-      doc.doc = value;
+      doc.content = value;
     });
   };
 
   const commitChanges = (message: string) => {
     changeDocument(
       (doc) => {
-        doc.doc = value;
+        doc.content = value;
       },
       {
         message,
