@@ -1,15 +1,25 @@
 import { useEffect, useState } from 'react';
 import { Link } from '../../components/actions/Link';
 import { PersonalFile } from '../../components/illustrations/PersonalFile';
+import { AutomergeUrl } from '@automerge/automerge-repo';
 
 export const HistoryIndex = () => {
-  const [docIds, setDocIds] = useState<Array<string>>([]);
+  const [docs, setDocs] = useState<
+    Array<{
+      id: AutomergeUrl;
+      title: string;
+    }>
+  >([]);
 
   useEffect(() => {
     const docUrls = localStorage.getItem('docUrls');
     if (docUrls) {
       const docs = JSON.parse(docUrls);
-      setDocIds(Object.keys(docs));
+      const docsWithTitles = Object.entries(docs).map(([key, value]) => ({
+        id: key as AutomergeUrl,
+        title: value as string,
+      }));
+      setDocs(docsWithTitles);
     }
   }, []);
 
@@ -17,9 +27,9 @@ export const HistoryIndex = () => {
     <div className="flex-auto flex">
       <div className="h-full w-2/5 grow-0 p-5 overflow-y-scroll ">
         <h2>Your docs</h2>
-        {docIds.map((docId) => (
-          <div className="text-left" key={docId}>
-            <Link to={`/history/${docId}`}>{docId}</Link>
+        {docs.map((doc) => (
+          <div className="text-left" key={doc.id}>
+            <Link to={`/history/${doc.id}`}>{doc.title}</Link>
           </div>
         ))}
       </div>

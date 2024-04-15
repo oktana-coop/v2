@@ -32,7 +32,12 @@ const persistDocumentUrl = (docUrl: AutomergeUrl, docTitle: string) => {
 
 export const EditorIndex = () => {
   const navigate = useNavigate();
-  const [docIds, setDocIds] = useState<Array<string>>([]);
+  const [docs, setDocs] = useState<
+    Array<{
+      id: AutomergeUrl;
+      title: string;
+    }>
+  >([]);
   const [newDocTitle, setNewDocTitle] = useState<string>('');
   const [isDocumentCreationModalOpen, openCreateDocumentModal] =
     useState<boolean>(false);
@@ -41,7 +46,11 @@ export const EditorIndex = () => {
     const docUrls = localStorage.getItem('docUrls');
     if (docUrls) {
       const docs = JSON.parse(docUrls);
-      setDocIds(Object.values(docs));
+      const docsWithTitles = Object.entries(docs).map(([key, value]) => ({
+        id: key as AutomergeUrl,
+        title: value as string,
+      }));
+      setDocs(docsWithTitles);
     }
   }, []);
 
@@ -92,12 +101,12 @@ export const EditorIndex = () => {
           className="w-full p-2 border border-gray-300 rounded-md"
         />
       </Modal>
-      {docIds.length > 0 && (
+      {docs.length > 0 && (
         <div className="h-full w-2/5 grow-0 p-5 overflow-y-scroll ">
           <h2>Your docs</h2>
-          {docIds.map((docId) => (
-            <div className="text-left" key={docId}>
-              <Link to={`/edit/${docId}`}>{docId}</Link>
+          {docs.map((doc) => (
+            <div className="text-left" key={doc.id}>
+              <Link to={`/edit/${doc.id}`}>{doc.title}</Link>
             </div>
           ))}
         </div>
@@ -105,7 +114,7 @@ export const EditorIndex = () => {
       <div className="h-full w-full grow flex flex-col items-center justify-center">
         <h2 className="text-2xl">Welcome to v2 👋</h2>
         <p className="text-gray-500">
-          {docIds.length > 0
+          {docs.length > 0
             ? '👈 Pick one documents of the list to continue editing. Or create a new one 😉'
             : 'Create a new document and explore the world of versioning'}
         </p>
