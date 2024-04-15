@@ -56,7 +56,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <RepoContext.Provider value={repo}>
       <ThemeProvider>
-        <App docUrl={docUrl} />
+        <App />
       </ThemeProvider>
     </RepoContext.Provider>
   </React.StrictMode>
