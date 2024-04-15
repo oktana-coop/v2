@@ -7,6 +7,7 @@ import { useDocument } from '@automerge/automerge-repo-react-hooks';
 import { decodeChange, getAllChanges } from '@automerge/automerge/next';
 import { Link } from '../../components/actions/Link';
 import { isCommit } from './isCommit';
+import { useNavigate } from 'react-router-dom';
 
 interface Document {
   doc: Automerge.Doc<string>;
@@ -17,6 +18,7 @@ export const ViewHistory = ({ documentId }: { documentId: AutomergeUrl }) => {
   const [docValue, setDocValue] = React.useState<string>('');
   const [selectedCommit, setSelectedCommit] = React.useState<string>();
   const [commits, setCommits] = React.useState<Array<Commit>>([]);
+  const navigate = useNavigate();
 
   const selectCommit = useCallback(
     (hash: string) => {
@@ -85,9 +87,11 @@ export const ViewHistory = ({ documentId }: { documentId: AutomergeUrl }) => {
       </div>
       <div className="h-full w-full grow">
         <textarea
+          onFocus={(e) => {
+            return navigate(`/edit/${documentId}`);
+          }}
           id="message"
           value={docValue}
-          disabled={true}
           rows={4}
           className="focus:shadow-inner h-full w-full resize-none p-5 rounded-sm border-none outline-none border-gray-400"
         />
