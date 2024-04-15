@@ -87,11 +87,11 @@ export const ViewHistory = ({ documentId }: { documentId: AutomergeUrl }) => {
       </div>
       <div className="h-full w-full grow">
         <textarea
-          onFocus={(e) => {
-            return navigate(`/edit/${documentId}`);
-          }}
           id="message"
           value={docValue}
+          onDoubleClick={() => {
+            navigate(`/edit/${documentId}`);
+          }}
           rows={4}
           className="focus:shadow-inner h-full w-full resize-none p-5 rounded-sm border-none outline-none border-gray-400"
         />
