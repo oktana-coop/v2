@@ -72,7 +72,7 @@ export const ViewHistory = ({ documentId }: { documentId: AutomergeUrl }) => {
               We couldn't find any commits on this document.
             </p>
             <p className="mt-2">
-              <Link to={`/edit?docUrl=${documentId}`}>Go to Editor</Link>
+              <Link to={`/edit/${documentId}`}>Commit on Editor</Link>
             </p>
           </div>
         ) : (
