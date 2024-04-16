@@ -11,16 +11,17 @@ import { useNavigate } from 'react-router-dom';
 import { VersionedDocument } from '../../automerge';
 
 export const ViewHistory = ({ documentId }: { documentId: AutomergeUrl }) => {
-  const [versionedDocument] = useDocument<VersionedDocument>(
-    documentId as AutomergeUrl
-  );
+  const [versionedDocument] = useDocument<VersionedDocument>(documentId);
   const [docValue, setDocValue] = React.useState<string>('');
   const [selectedCommit, setSelectedCommit] = React.useState<string>();
   const [commits, setCommits] = React.useState<Array<Commit>>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = `v2 | "${versionedDocument?.title}" log`;
+    if (versionedDocument) {
+      document.title = `v2 | "${versionedDocument.title}" log`;
+      setDocValue(versionedDocument.content || '');
+    }
   }, [versionedDocument]);
 
   const selectCommit = useCallback(
@@ -33,12 +34,6 @@ export const ViewHistory = ({ documentId }: { documentId: AutomergeUrl }) => {
     },
     [versionedDocument]
   );
-
-  useEffect(() => {
-    if (versionedDocument) {
-      setDocValue(versionedDocument.content || '');
-    }
-  }, [versionedDocument]);
 
   useEffect(() => {
     if (versionedDocument) {
@@ -74,7 +69,7 @@ export const ViewHistory = ({ documentId }: { documentId: AutomergeUrl }) => {
           >
             <p className="font-bold">No commits 🧐</p>
             <p className="text-left">
-              We couldn't find any commits on this versionedDocument.
+              We couldn't find any commits on this document.
             </p>
             <p className="mt-2">
               <Link to={`/edit/${documentId}`}>Commit on Editor</Link>

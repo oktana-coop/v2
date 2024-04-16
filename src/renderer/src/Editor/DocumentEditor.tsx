@@ -14,7 +14,7 @@ export const DocumentEditor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
   useEffect(() => {
     if (versionedDocument) {
       changeValue(versionedDocument.content || '');
-      document.title = `v2 | editing "${versionedDocument?.title}"`;
+      document.title = `v2 | editing "${versionedDocument.title}"`;
     }
   }, [versionedDocument]);
 
