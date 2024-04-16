@@ -1,23 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
-import * as A from '@automerge/automerge';
 
+import { DocHandle } from '@automerge/automerge-repo';
 import './index.css';
-import {
-  isValidAutomergeUrl,
-  Repo,
-  DocHandle,
-} from '@automerge/automerge-repo';
-import { BrowserWebSocketClientAdapter } from '@automerge/automerge-repo-network-websocket';
-import { IndexedDBStorageAdapter } from '@automerge/automerge-repo-storage-indexeddb';
-import { RepoContext } from '@automerge/automerge-repo-react-hooks';
-import { ThemeProvider } from './personalization/theme';
 
-const repo = new Repo({
-  network: [new BrowserWebSocketClientAdapter('wss://sync.automerge.org')],
-  storage: new IndexedDBStorageAdapter(),
-});
+import { RepoContext } from '@automerge/automerge-repo-react-hooks';
+import { repo } from './automerge';
+import { ThemeProvider } from './personalization/theme';
 
 declare global {
   interface Window {
@@ -25,23 +15,11 @@ declare global {
   }
 }
 
-const queryParams = new URLSearchParams(window.location.search);
-const rootDocUrl = queryParams.get('docUrl');
-
-let handle;
-if (isValidAutomergeUrl(rootDocUrl)) {
-  handle = repo.find(rootDocUrl);
-} else {
-  handle = repo.create<{ counter?: A.Counter }>();
-  handle.change((d) => (d.counter = new A.Counter()));
-}
-const docUrl = handle.url;
-
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <RepoContext.Provider value={repo}>
       <ThemeProvider>
-        <App docUrl={docUrl} />
+        <App />
       </ThemeProvider>
     </RepoContext.Provider>
   </React.StrictMode>
