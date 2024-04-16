@@ -124,7 +124,7 @@ export const EditorIndex = () => {
         <p className="text-gray-500">
           {docs.length > 0
             ? '👈 Pick one document from the list to continue editing. Or create a new one 😉.'
-            : 'Create a new document and explore the world of versioning'}
+            : 'Create a new document and explore the world of versioning.'}
         </p>
         <p className="m-5">
           <Button
