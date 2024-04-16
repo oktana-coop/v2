@@ -123,7 +123,7 @@ export const EditorIndex = () => {
         <h2 className="text-2xl">Welcome to v2 👋</h2>
         <p className="text-gray-500">
           {docs.length > 0
-            ? '👈 Pick one documents of the list to continue editing. Or create a new one 😉'
+            ? '👈 Pick one document from the list to continue editing. Or create a new one 😉.'
             : 'Create a new document and explore the world of versioning'}
         </p>
         <p className="m-5">
