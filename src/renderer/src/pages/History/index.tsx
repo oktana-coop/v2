@@ -40,8 +40,8 @@ export const HistoryIndex = () => {
       <div className="h-full w-full grow flex flex-col items-center justify-center">
         <h2 className="text-2xl">Welcome to v2 👋</h2>
         <p className="text-gray-500">
-          👈 You can explore a documents' editing history by picking up one of
-          the list 😉
+          👈 You can explore a document's editing history by picking up one of
+          the list 😉.
         </p>
         <PersonalFile />
       </div>
