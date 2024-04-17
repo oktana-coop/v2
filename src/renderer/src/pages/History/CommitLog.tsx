@@ -1,5 +1,6 @@
 import clsx from 'clsx';
-import { relativeDate } from '../../utils/dates';
+import { CommitHistoryIcon } from '../../components/icons';
+import { Timeliner } from '../../components/icons/Timeliner';
 
 export type Commit = {
   hash: string;
@@ -18,7 +19,10 @@ export const CommitLog = ({
 }) => {
   return (
     <div className="flex-auto p-5 h-full break-words">
-      <h2>Version history</h2>
+      <div className="flex-auto flex items-center justify-center w-full font-bold">
+        <CommitHistoryIcon />
+        Version History
+      </div>
       {commits.map((commit) => (
         <Commit
           key={commit.hash}
@@ -40,20 +44,21 @@ const Commit = ({
   onClick: (hash: string) => void;
   isSelected?: boolean;
 }) => {
-  const themeStyles = isSelected ? 'border-opacity-1' : 'border-opacity-0';
-
+  const themeStyles = isSelected ? 'font-bold' : '';
   return (
     <div
-      className={clsx(
-        'text-left my-8 pl-2 border-l-4 border-purple-500 cursor-pointer',
-        themeStyles
-      )}
+      className="text-left"
       key={commit.hash}
       onClick={() => onClick(commit.hash)}
     >
-      <div className="font-bold">{commit.message}</div>
-      {`You saved this at `}
-      <span className="italic">{relativeDate(commit.time)}</span>
+      <div className="flex flex-row items-center">
+        <div className="w-10 h-full flex-shrink-0">
+          <Timeliner color="#a855f7" />
+        </div>
+        <div className={clsx('cursor-pointer', themeStyles)}>
+          {commit.message}
+        </div>
+      </div>
     </div>
   );
 };

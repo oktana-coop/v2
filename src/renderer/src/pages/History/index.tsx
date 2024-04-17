@@ -12,7 +12,7 @@ export const HistoryIndex = () => {
   >([]);
 
   useEffect(() => {
-    document.title = 'v2 | History';
+    document.title = 'v2 | Version History';
   }, []);
 
   useEffect(() => {

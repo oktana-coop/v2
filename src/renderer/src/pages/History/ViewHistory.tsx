@@ -19,7 +19,7 @@ export const ViewHistory = ({ documentId }: { documentId: AutomergeUrl }) => {
 
   useEffect(() => {
     if (versionedDocument) {
-      document.title = `v2 | "${versionedDocument.title}" log`;
+      document.title = `v2 | "${versionedDocument.title}" version history`;
       setDocValue(versionedDocument.content || '');
     }
   }, [versionedDocument]);
