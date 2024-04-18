@@ -24,24 +24,83 @@ export const Solid: Story = {
 
 export const TimelinerStory: Story = {
   render: () => (
-    <div
-      className="flex flex-row items-center"
-      style={{
-        width: 500,
-        backgroundColor: 'white',
-      }}
-    >
+    <div>
       <div
         className="flex flex-row items-center"
         style={{
-          width: 50,
-          height: '100%',
+          width: 500,
           backgroundColor: 'white',
         }}
       >
-        <Timeliner color="purple" />
+        <div
+          className="flex flex-row items-center"
+          style={{
+            width: 50,
+            height: '100%',
+            backgroundColor: 'white',
+          }}
+        >
+          <Timeliner isSpecial={true} isTopOne={true} />
+        </div>
+        Uncommited changes
       </div>
-      Some message
+      <div
+        className="flex flex-row items-center"
+        style={{
+          width: 500,
+          backgroundColor: 'white',
+        }}
+      >
+        <div
+          className="flex flex-row items-center"
+          style={{
+            width: 50,
+            height: '100%',
+            backgroundColor: 'white',
+          }}
+        >
+          <Timeliner color="purple" />
+        </div>
+        Some message 1
+      </div>
+      <div
+        className="flex flex-row items-center"
+        style={{
+          width: 500,
+          backgroundColor: 'white',
+        }}
+      >
+        <div
+          className="flex flex-row items-center"
+          style={{
+            width: 50,
+            height: '100%',
+            backgroundColor: 'white',
+          }}
+        >
+          <Timeliner color="purple" />
+        </div>
+        Some message 2
+      </div>
+      <div
+        className="flex flex-row items-center"
+        style={{
+          width: 500,
+          backgroundColor: 'white',
+        }}
+      >
+        <div
+          className="flex flex-row items-center"
+          style={{
+            width: 50,
+            height: '100%',
+            backgroundColor: 'white',
+          }}
+        >
+          <Timeliner color="purple" isBottomOne={true} />
+        </div>
+        Some message 3
+      </div>
     </div>
   ),
 };

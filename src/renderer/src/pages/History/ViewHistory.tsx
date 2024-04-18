@@ -87,6 +87,7 @@ export const ViewHistory = ({ documentId }: { documentId: AutomergeUrl }) => {
         <textarea
           id="message"
           value={docValue}
+          readOnly={true}
           onDoubleClick={() => navigate(`/edit/${documentId}`)}
           onKeyDown={() => navigate(`/edit/${documentId}`)}
           rows={4}

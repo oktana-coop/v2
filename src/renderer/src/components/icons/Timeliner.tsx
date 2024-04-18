@@ -2,12 +2,18 @@ type Props = {
   size?: number;
   color?: string;
   className?: string;
+  isTopOne?: boolean;
+  isBottomOne?: boolean;
+  isSpecial?: boolean;
 };
 
 export const Timeliner = ({
   size = 100,
   color = 'black',
   className,
+  isTopOne = false,
+  isBottomOne = false,
+  isSpecial = false,
 }: Props) => {
   const cx = size / 2;
   const cy = size / 2;
@@ -23,13 +29,42 @@ export const Timeliner = ({
       className={className}
     >
       <g color="purple">
-        <rect
-          x={cx - rectWidth / 2}
-          width={rectWidth}
-          height={size}
-          fill={color ?? 'currentColor'}
-        />
-        <circle r={r} cx={cx} cy={cy} fill={color ?? 'currentColor'} />
+        {!isTopOne && (
+          <rect
+            x={cx - rectWidth / 2}
+            width={rectWidth}
+            height={size / 2 - r}
+            fill={color ?? 'currentColor'}
+          />
+        )}
+        {!isBottomOne && (
+          <rect
+            x={cx - rectWidth / 2}
+            y={size / 2 + r}
+            width={rectWidth}
+            height={size / 2}
+            fill={color ?? 'currentColor'}
+          />
+        )}
+        {isSpecial ? (
+          <circle
+            stroke="rgba(0,0,0,1)"
+            fill="rgba(0,0,0,0)"
+            stroke-width={rectWidth}
+            r={r * 1.2}
+            cx={cx}
+            cy={cy}
+          />
+        ) : (
+          <circle
+            stroke="currentcolor"
+            strokeWidth={0}
+            r={r}
+            cx={cx}
+            cy={cy}
+            fill={color ?? 'currentColor'}
+          />
+        )}
       </g>
     </svg>
   );
