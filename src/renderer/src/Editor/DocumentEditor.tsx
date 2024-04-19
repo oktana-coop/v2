@@ -23,7 +23,9 @@ export const DocumentEditor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
   };
 
   const handleBlur = () => {
-    // On BLur ==> auto-save if needed
+    // On Blur ==> auto-save if needed
+    // no-matter if there are any changes if you changeDocument it
+    // produces a new hash
     if (versionedDocument?.content !== value) {
       changeDocument((doc) => {
         doc.content = value;
