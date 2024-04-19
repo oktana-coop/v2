@@ -82,7 +82,7 @@ const UncommitChange = ({
         <div
           className={clsx('text-sm max-h-10', isSelected ? 'font-bold' : '')}
         >
-          Uncommited change
+          Uncommited changes
         </div>
       </div>
     </div>
