@@ -1,20 +1,22 @@
 import { AutomergeUrl } from '@automerge/automerge-repo';
-import { view } from '@automerge/automerge/next';
+import { default as Automerge, view } from '@automerge/automerge/next';
 import React, { useCallback, useEffect } from 'react';
-import { Commit, CommitLog } from './CommitLog';
+import { ChangeLog, Commit } from './CommitLog';
 
 import { useDocument } from '@automerge/automerge-repo-react-hooks';
 import { decodeChange, getAllChanges } from '@automerge/automerge/next';
-import { Link } from '../../components/actions/Link';
-import { isCommit } from './isCommit';
 import { useNavigate } from 'react-router-dom';
 import { VersionedDocument } from '../../automerge';
+import { CommitHistoryIcon } from '../../components/icons';
+import { isCommit } from './isCommit';
 
 export const ViewHistory = ({ documentId }: { documentId: AutomergeUrl }) => {
   const [versionedDocument] = useDocument<VersionedDocument>(documentId);
   const [docValue, setDocValue] = React.useState<string>('');
   const [selectedCommit, setSelectedCommit] = React.useState<string>();
-  const [commits, setCommits] = React.useState<Array<Commit>>([]);
+  const [commits, setCommits] = React.useState<
+    Array<Automerge.DecodedChange | Commit>
+  >([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,6 +29,7 @@ export const ViewHistory = ({ documentId }: { documentId: AutomergeUrl }) => {
   const selectCommit = useCallback(
     (hash: string) => {
       if (versionedDocument) {
+        console.log('hash 👉', hash);
         const docView = view(versionedDocument, [hash]);
         setDocValue(docView.content);
         setSelectedCommit(hash);
@@ -37,21 +40,23 @@ export const ViewHistory = ({ documentId }: { documentId: AutomergeUrl }) => {
 
   useEffect(() => {
     if (versionedDocument) {
-      const changes = getAllChanges(versionedDocument);
-      const decodedChanges = changes.map((change) => decodeChange(change));
+      const allChanges = getAllChanges(versionedDocument);
+      const decodedChanges = allChanges.map(decodeChange);
+      const [latestChange] = decodedChanges.slice(-1);
       const commits = decodedChanges.filter(isCommit).map((change) => ({
         hash: change.hash,
         message: change.message,
         time: new Date(change.time),
-      }));
-      const sortedByRecency = commits.sort(
-        (a, b) => b.time.getTime() - a.time.getTime()
-      );
-      setCommits(sortedByRecency);
-      const [lastCommit] = sortedByRecency;
-      if (lastCommit) {
-        selectCommit(lastCommit.hash);
-      }
+      })) as Array<Commit>;
+      const orderedCommits = commits.reverse();
+      const [lastCommit] = orderedCommits;
+      const changes =
+        latestChange?.hash !== lastCommit?.hash
+          ? [latestChange, ...orderedCommits]
+          : orderedCommits;
+      setCommits(changes);
+      const [lastChange] = changes;
+      if (lastChange) selectCommit(lastChange.hash);
     }
   }, [versionedDocument, selectCommit]);
 
@@ -61,27 +66,18 @@ export const ViewHistory = ({ documentId }: { documentId: AutomergeUrl }) => {
 
   return (
     <div className="flex-auto flex">
-      <div className="h-full w-2/5 grow-0">
-        {commits.length === 0 ? (
-          <div
-            className="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4"
-            role="alert"
-          >
-            <p className="font-bold">No commits 🧐</p>
-            <p className="text-left">
-              We couldn't find any commits on this document.
-            </p>
-            <p className="mt-2">
-              <Link to={`/edit/${documentId}`}>Commit on Editor</Link>
-            </p>
+      <div className="h-full w-2/5 grow-0 p-5 overflow-y-scroll">
+        <div className="flex-auto h-full break-words">
+          <div className="flex-auto flex items-center justify-center w-full font-bold mb-5">
+            <CommitHistoryIcon />
+            Version History
           </div>
-        ) : (
-          <CommitLog
-            commits={commits}
+          <ChangeLog
+            changes={commits}
             onClick={handleCommitClick}
             selectedCommit={selectedCommit}
           />
-        )}
+        </div>
       </div>
       <div className="h-full w-full grow">
         <textarea

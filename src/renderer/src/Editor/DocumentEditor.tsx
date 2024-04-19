@@ -23,9 +23,12 @@ export const DocumentEditor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
   };
 
   const handleBlur = () => {
-    changeDocument((doc) => {
-      doc.content = value;
-    });
+    // On BLur ==> auto-save if needed
+    if (versionedDocument?.content !== value) {
+      changeDocument((doc) => {
+        doc.content = value;
+      });
+    }
   };
 
   const commitChanges = (message: string) => {

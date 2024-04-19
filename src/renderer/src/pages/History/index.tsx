@@ -29,7 +29,7 @@ export const HistoryIndex = () => {
 
   return (
     <div className="flex-auto flex">
-      <div className="h-full w-2/5 grow-0 p-5 overflow-y-scroll ">
+      <div className="h-full w-2/5 grow-0 p-5 overflow-y-scroll">
         <h2>Your docs</h2>
         {docs.map((doc) => (
           <div className="text-left" key={doc.id}>
