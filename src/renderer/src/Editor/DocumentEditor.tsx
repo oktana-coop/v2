@@ -68,7 +68,7 @@ export const DocumentEditor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
             id="message"
             value={value}
             rows={4}
-            className="focus:shadow-inner h-full w-full resize-none p-5 rounded-sm border-none outline-none border-gray-400"
+            className="bg-inherit focus:shadow-inner h-full w-full resize-none p-5 outline-none"
             autoFocus
             onChange={handleChange}
             onKeyDown={handleKeyDown}

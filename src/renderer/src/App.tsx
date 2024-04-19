@@ -15,7 +15,9 @@ function App() {
   const { theme } = useContext(ThemeContext);
 
   const themeStyles =
-    theme === themes.dark ? 'dark bg-neutral-800' : 'light bg-[#fafafa]';
+    theme === themes.dark
+      ? 'dark bg-neutral-800 text-white'
+      : 'light bg-[#fafafa] text-black';
 
   return (
     <div className={clsx('flex flex-row h-full', themeStyles)}>

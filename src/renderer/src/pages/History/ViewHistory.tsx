@@ -86,7 +86,7 @@ export const ViewHistory = ({ documentId }: { documentId: AutomergeUrl }) => {
           onDoubleClick={() => navigate(`/edit/${documentId}`)}
           onKeyDown={() => navigate(`/edit/${documentId}`)}
           rows={4}
-          className="focus:shadow-inner h-full w-full resize-none p-5 rounded-sm border-none outline-none border-gray-400"
+          className="bg-inherit focus:shadow-inner h-full w-full resize-none p-5 outline-none"
         />
       </div>
     </div>

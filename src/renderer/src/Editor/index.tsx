@@ -121,7 +121,7 @@ export const EditorIndex = () => {
       )}
       <div className="h-full w-full grow flex flex-col items-center justify-center">
         <h2 className="text-2xl">Welcome to v2 👋</h2>
-        <p className="text-gray-500">
+        <p>
           {docs.length > 0
             ? '👈 Pick one document from the list to continue editing. Or create a new one 😉.'
             : 'Create a new document and explore the world of versioning.'}
