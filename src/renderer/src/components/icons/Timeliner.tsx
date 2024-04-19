@@ -1,23 +1,30 @@
 type Props = {
-  size?: number;
   color?: string;
+  circleSize?: number;
+  circleFillColor?: string;
+  circleStrokeColor?: string;
+  circleStrokeSize?: number;
   className?: string;
-  isTopOne?: boolean;
-  isBottomOne?: boolean;
-  isSpecial?: boolean;
+  hasTopStem?: boolean;
+  hasBottomStem?: boolean;
 };
 
 export const Timeliner = ({
-  size = 100,
   color = 'black',
+  circleSize = 10,
+  circleFillColor,
+  circleStrokeColor,
+  circleStrokeSize = 0,
   className,
-  isTopOne = false,
-  isBottomOne = false,
-  isSpecial = false,
+  hasTopStem = true,
+  hasBottomStem = true,
 }: Props) => {
+  const size = 100;
+  const fillCircle = circleFillColor ?? color;
+  const strokeColor = circleStrokeColor ?? color;
+  const r = circleSize;
   const cx = size / 2;
   const cy = size / 2;
-  const r = size / 10;
   const rectWidth = size / 20;
 
   return (
@@ -28,43 +35,32 @@ export const Timeliner = ({
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      <g color="purple">
-        {!isTopOne && (
+      <g>
+        {hasTopStem && (
           <rect
             x={cx - rectWidth / 2}
             width={rectWidth}
-            height={size / 2 - r}
-            fill={color ?? 'currentColor'}
+            height={size / 2 - r + 1}
+            fill={color}
           />
         )}
-        {!isBottomOne && (
+        {hasBottomStem && (
           <rect
             x={cx - rectWidth / 2}
-            y={size / 2 + r}
+            y={size / 2 + r - 1}
             width={rectWidth}
             height={size / 2}
-            fill={color ?? 'currentColor'}
+            fill={color}
           />
         )}
-        {isSpecial ? (
-          <circle
-            stroke="rgba(0,0,0,1)"
-            fill="rgba(0,0,0,0)"
-            strokeWidth={rectWidth}
-            r={r * 1.2}
-            cx={cx}
-            cy={cy}
-          />
-        ) : (
-          <circle
-            stroke="currentcolor"
-            strokeWidth={0}
-            r={r}
-            cx={cx}
-            cy={cy}
-            fill={color ?? 'currentColor'}
-          />
-        )}
+        <circle
+          stroke={strokeColor}
+          strokeWidth={circleStrokeSize}
+          r={r}
+          cx={cx}
+          cy={cy}
+          fill={fillCircle}
+        />
       </g>
     </svg>
   );

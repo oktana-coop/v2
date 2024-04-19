@@ -15,14 +15,13 @@ export default meta;
 
 type Story = StoryObj<ComponentProps<typeof Timeliner>>;
 
-export const Solid: Story = {
+export const Simple: Story = {
   args: {
     color: 'purple',
-    size: 100,
   },
 };
 
-export const TimelinerStory: Story = {
+export const Timeline: Story = {
   render: () => (
     <div>
       <div
@@ -40,7 +39,12 @@ export const TimelinerStory: Story = {
             backgroundColor: 'white',
           }}
         >
-          <Timeliner isSpecial={true} isTopOne={true} />
+          <Timeliner
+            circleSize={12.5}
+            circleStrokeSize={5}
+            circleFillColor="transparent"
+            hasTopStem={false}
+          />
         </div>
         Uncommited changes
       </div>
@@ -59,7 +63,7 @@ export const TimelinerStory: Story = {
             backgroundColor: 'white',
           }}
         >
-          <Timeliner color="purple" />
+          <Timeliner color="#0f0" />
         </div>
         Some message 1
       </div>
@@ -78,7 +82,7 @@ export const TimelinerStory: Story = {
             backgroundColor: 'white',
           }}
         >
-          <Timeliner color="purple" />
+          <Timeliner color="#f00" />
         </div>
         Some message 2
       </div>
@@ -97,7 +101,7 @@ export const TimelinerStory: Story = {
             backgroundColor: 'white',
           }}
         >
-          <Timeliner color="purple" isBottomOne={true} />
+          <Timeliner color="purple" hasBottomStem={false} />
         </div>
         Some message 3
       </div>

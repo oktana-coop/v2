@@ -34,7 +34,12 @@ const Commit = ({
     >
       <div className="flex flex-row items-center">
         <div className="w-14 h-full flex-shrink-0">
-          <Timeliner color="#a855f7" isTopOne={isFirst} isBottomOne={isLast} />
+          <Timeliner
+            circleSize={7.5}
+            color="#a855f7"
+            hasTopStem={!isFirst}
+            hasBottomStem={!isLast}
+          />
         </div>
         <div className={clsx('cursor-pointer text-sm max-h-10', themeStyles)}>
           {commit.message}
@@ -48,8 +53,6 @@ const UncommitChange = ({
   commit,
   onClick,
   isSelected = false,
-  isFirst = false,
-  isLast = false,
 }: {
   commit: Automerge.DecodedChange;
   onClick: (hash: string) => void;
@@ -66,7 +69,12 @@ const UncommitChange = ({
     >
       <div className="flex flex-row items-center">
         <div className="w-14 h-full flex-shrink-0">
-          <Timeliner isSpecial={true} isTopOne={isFirst} isBottomOne={isLast} />
+          <Timeliner
+            circleSize={12.5}
+            circleStrokeSize={5}
+            circleFillColor="transparent"
+            hasTopStem={false}
+          />
         </div>
         <div className={clsx('text-sm max-h-10', themeStyles)}>
           Uncommited change
