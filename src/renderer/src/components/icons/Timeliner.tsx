@@ -50,7 +50,7 @@ export const Timeliner = ({
           <circle
             stroke="rgba(0,0,0,1)"
             fill="rgba(0,0,0,0)"
-            stroke-width={rectWidth}
+            strokeWidth={rectWidth}
             r={r * 1.2}
             cx={cx}
             cy={cy}
