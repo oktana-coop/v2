@@ -7,9 +7,6 @@ import { MoonIcon, SunIcon } from '../../components/icons';
 
 export const ThemeSection = () => {
   const { theme, setTheme } = useContext(ThemeContext);
-
-  console.log('theme:', theme);
-
   return (
     <div>
       <SectionHeader

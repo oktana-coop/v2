@@ -3,6 +3,8 @@ import { Timeliner } from '../../components/icons/Timeliner';
 import { DecodedChange } from '@automerge/automerge/next';
 import { isCommit } from './isCommit';
 import { default as Automerge } from '@automerge/automerge/next';
+import { useContext } from 'react';
+import { ThemeContext, themes } from '../../personalization/theme';
 
 // Commit is a special type of an (automerge) change that
 // strictly has a message and a time
@@ -36,7 +38,7 @@ const Commit = ({
         <div className="w-14 h-full flex-shrink-0">
           <Timeliner
             circleSize={7.5}
-            color="#a855f7"
+            color="#9352FF"
             hasTopStem={!isFirst}
             hasBottomStem={!isLast}
           />
@@ -60,7 +62,7 @@ const UncommitChange = ({
   isFirst?: boolean;
   isLast?: boolean;
 }) => {
-  const themeStyles = isSelected ? 'font-bold' : '';
+  const { theme } = useContext(ThemeContext);
   return (
     <div
       className="text-left cursor-pointer"
@@ -70,13 +72,16 @@ const UncommitChange = ({
       <div className="flex flex-row items-center">
         <div className="w-14 h-full flex-shrink-0">
           <Timeliner
+            color={theme === themes.dark ? '#f3f4f6' : '#111827'}
             circleSize={12.5}
             circleStrokeSize={5}
             circleFillColor="transparent"
             hasTopStem={false}
           />
         </div>
-        <div className={clsx('text-sm max-h-10', themeStyles)}>
+        <div
+          className={clsx('text-sm max-h-10', isSelected ? 'font-bold' : '')}
+        >
           Uncommited change
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { AutomergeUrl } from '@automerge/automerge-repo';
 import { default as Automerge, view } from '@automerge/automerge/next';
 import React, { useCallback, useEffect } from 'react';
-import { ChangeLog, Commit } from './CommitLog';
+import { ChangeLog, Commit } from './ChangeLog';
 
 import { useDocument } from '@automerge/automerge-repo-react-hooks';
 import { decodeChange, getAllChanges } from '@automerge/automerge/next';
@@ -29,7 +29,6 @@ export const ViewHistory = ({ documentId }: { documentId: AutomergeUrl }) => {
   const selectCommit = useCallback(
     (hash: string) => {
       if (versionedDocument) {
-        console.log('hash 👉', hash);
         const docView = view(versionedDocument, [hash]);
         setDocValue(docView.content);
         setSelectedCommit(hash);

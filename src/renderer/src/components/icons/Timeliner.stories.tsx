@@ -63,7 +63,7 @@ export const Timeline: Story = {
             backgroundColor: 'white',
           }}
         >
-          <Timeliner color="#0f0" />
+          <Timeliner color="purple-500" />
         </div>
         Some message 1
       </div>
