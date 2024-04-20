@@ -2,8 +2,8 @@ import { AutomergeUrl, isValidAutomergeUrl } from '@automerge/automerge-repo';
 import React, { useEffect } from 'react';
 
 import { useParams } from 'react-router-dom';
-import { InvalidDocument } from './InvalidDocument';
-import { ViewHistory } from './ViewHistory';
+import { DocumentsHistory } from './Document/DocumentsHistory';
+import { InvalidDocument } from './InvalidDocument/InvalidDocument';
 
 export const History = () => {
   const { documentId } = useParams();
@@ -17,7 +17,7 @@ export const History = () => {
   return (
     <>
       {isValid ? (
-        <ViewHistory documentId={documentId as AutomergeUrl} />
+        <DocumentsHistory documentId={documentId as AutomergeUrl} />
       ) : (
         <InvalidDocument />
       )}

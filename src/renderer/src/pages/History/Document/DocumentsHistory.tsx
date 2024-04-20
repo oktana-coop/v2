@@ -6,11 +6,14 @@ import { ChangeLog, Commit } from './ChangeLog';
 import { useDocument } from '@automerge/automerge-repo-react-hooks';
 import { decodeChange, getAllChanges } from '@automerge/automerge/next';
 import { useNavigate } from 'react-router-dom';
-import { VersionedDocument } from '../../automerge';
-import { CommitHistoryIcon } from '../../components/icons';
-import { isCommit } from './isCommit';
+import { VersionedDocument, isCommit } from '../../../automerge';
+import { CommitHistoryIcon } from '../../../components/icons';
 
-export const ViewHistory = ({ documentId }: { documentId: AutomergeUrl }) => {
+export const DocumentsHistory = ({
+  documentId,
+}: {
+  documentId: AutomergeUrl;
+}) => {
   const [versionedDocument] = useDocument<VersionedDocument>(documentId);
   const [docValue, setDocValue] = React.useState<string>('');
   const [selectedCommit, setSelectedCommit] = React.useState<string>();

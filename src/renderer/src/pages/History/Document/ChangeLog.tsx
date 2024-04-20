@@ -1,10 +1,10 @@
 import clsx from 'clsx';
-import { Timeliner } from '../../components/icons/Timeliner';
+import { Timeliner } from '../../../components/icons/Timeliner';
 import { DecodedChange } from '@automerge/automerge/next';
-import { isCommit } from './isCommit';
 import { default as Automerge } from '@automerge/automerge/next';
 import { useContext } from 'react';
-import { ThemeContext, themes } from '../../personalization/theme';
+import { ThemeContext, themes } from '../../../personalization/theme';
+import { isCommit } from '../../../automerge';
 
 // Commit is a special type of an (automerge) change that
 // strictly has a message and a time
