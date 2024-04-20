@@ -27,6 +27,7 @@ const Commit = ({
   isFirst?: boolean;
   isLast?: boolean;
 }) => {
+  const { theme } = useContext(ThemeContext);
   const themeStyles = isSelected ? 'font-bold' : '';
   return (
     <div
@@ -38,7 +39,7 @@ const Commit = ({
         <div className="w-14 h-full flex-shrink-0">
           <Timeliner
             circleSize={7.5}
-            color="#9352FF"
+            color={theme === themes.light ? '#9352FF' : '#C8B1FF'}
             hasTopStem={!isFirst}
             hasBottomStem={!isLast}
           />
@@ -72,7 +73,7 @@ const UncommitChange = ({
       <div className="flex flex-row items-center">
         <div className="w-14 h-full flex-shrink-0">
           <Timeliner
-            color={theme === themes.dark ? '#f3f4f6' : '#111827'}
+            color={theme === themes.light ? '#2C2C2C' : '#fff'}
             circleSize={12.5}
             circleStrokeSize={5}
             circleFillColor="transparent"
