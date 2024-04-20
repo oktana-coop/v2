@@ -65,9 +65,9 @@ export const ViewHistory = ({ documentId }: { documentId: AutomergeUrl }) => {
 
   return (
     <div className="flex-auto flex">
-      <div className="h-full w-2/5 grow-0 p-5 overflow-y-scroll">
+      <div className="h-full w-2/5 grow-0 p-5 overflow-y-scroll border-r border-gray-300 dark:border-neutral-600">
         <div className="flex-auto h-full break-words">
-          <div className="flex-auto flex text-left w-full font-bold mb-5">
+          <div className="flex-auto flex text-left w-full font-bold mb-5 text-sm">
             <CommitHistoryIcon />
             Version History
           </div>
