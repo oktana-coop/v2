@@ -29,8 +29,8 @@ export const HistoryIndex = () => {
 
   return (
     <div className="flex-auto flex">
-      <div className="h-full w-2/5 grow-0 p-5 overflow-y-scroll">
-        <h2>Your docs</h2>
+      <div className="h-full w-2/5 grow-0 p-5 overflow-y-scroll border-r border-gray-300 dark:border-neutral-600">
+        <h2>My documents</h2>
         {docs.map((doc) => (
           <div className="text-left" key={doc.id}>
             <Link to={`/history/${doc.id}`}>{doc.title}</Link>

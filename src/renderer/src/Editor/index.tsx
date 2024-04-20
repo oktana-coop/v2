@@ -110,8 +110,8 @@ export const EditorIndex = () => {
         />
       </Modal>
       {docs.length > 0 && (
-        <div className="h-full w-2/5 grow-0 p-5 overflow-y-scroll ">
-          <h2>Your docs</h2>
+        <div className="h-full w-2/5 grow-0 p-5 overflow-y-scroll border-r border-gray-300 dark:border-neutral-600">
+          <h2>My documents</h2>
           {docs.map((doc) => (
             <div className="text-left" key={doc.id}>
               <Link to={`/edit/${doc.id}`}>{doc.title}</Link>

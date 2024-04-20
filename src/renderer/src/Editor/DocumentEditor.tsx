@@ -62,7 +62,7 @@ export const DocumentEditor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
         onCommit={(message: string) => commitChanges(message)}
       />
       <div className="flex-auto flex">
-        <div className="h-full w-2/5 grow-0">
+        <div className="h-full w-2/5 grow-0 border-r border-gray-300 dark:border-neutral-600">
           <FileExplorer />
         </div>
         <div className="h-full w-full grow">
