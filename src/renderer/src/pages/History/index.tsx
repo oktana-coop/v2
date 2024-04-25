@@ -2,8 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link } from '../../components/actions/Link';
 import { PersonalFile } from '../../components/illustrations/PersonalFile';
 import { AutomergeUrl } from '@automerge/automerge-repo';
+import { useParams } from 'react-router-dom';
+import { History } from './History';
 
 export const HistoryIndex = () => {
+  const { documentId } = useParams();
+
   const [docs, setDocs] = useState<
     Array<{
       id: AutomergeUrl;
@@ -27,7 +31,9 @@ export const HistoryIndex = () => {
     }
   }, []);
 
-  return (
+  return documentId ? (
+    <History />
+  ) : (
     <div className="flex-auto flex">
       <div className="h-full w-2/5 grow-0 p-5 overflow-y-scroll border-r border-gray-300 dark:border-neutral-600">
         <h2>My documents</h2>

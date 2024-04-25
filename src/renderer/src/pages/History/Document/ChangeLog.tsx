@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { Timeliner } from '../../../components/icons/Timeliner';
+import { TimelinePoint } from '../../../components/icons/TimelinePoint';
 import { DecodedChange } from '@automerge/automerge/next';
 import { default as Automerge } from '@automerge/automerge/next';
 import { useContext } from 'react';
@@ -37,7 +37,7 @@ const Commit = ({
     >
       <div className="flex flex-row items-center">
         <div className="w-14 h-full flex-shrink-0">
-          <Timeliner
+          <TimelinePoint
             circleSize={7.5}
             color={theme === themes.light ? '#9352FF' : '#C8B1FF'}
             hasTopStem={!isFirst}
@@ -52,7 +52,7 @@ const Commit = ({
   );
 };
 
-const UncommitChange = ({
+const UncommittedChange = ({
   commit,
   onClick,
   isSelected = false,
@@ -72,7 +72,7 @@ const UncommitChange = ({
     >
       <div className="flex flex-row items-center">
         <div className="w-14 h-full flex-shrink-0">
-          <Timeliner
+          <TimelinePoint
             color={theme === themes.light ? '#2C2C2C' : '#fff'}
             circleSize={12.5}
             circleStrokeSize={5}
@@ -112,7 +112,7 @@ export const ChangeLog = ({
             isLast={changes.length - 1 === index}
           />
         ) : (
-          <UncommitChange
+          <UncommittedChange
             key={commit.hash}
             commit={commit}
             onClick={onClick}

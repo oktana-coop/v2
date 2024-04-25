@@ -9,7 +9,7 @@ type Props = {
   hasBottomStem?: boolean;
 };
 
-export const Timeliner = ({
+export const TimelinePoint = ({
   color = 'black',
   circleSize = 10,
   circleFillColor,

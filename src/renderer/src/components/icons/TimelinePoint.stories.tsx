@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import type { ComponentProps } from 'react';
 
-import { Timeliner } from './Timeliner';
+import { TimelinePoint } from './TimelinePoint';
 
-const meta: Meta<typeof Timeliner> = {
-  title: 'icons/Timeliner',
-  component: Timeliner,
+const meta: Meta<typeof TimelinePoint> = {
+  title: 'icons/TimelinePoint',
+  component: TimelinePoint,
   parameters: {
     layout: 'centered',
   },
@@ -13,7 +13,7 @@ const meta: Meta<typeof Timeliner> = {
 
 export default meta;
 
-type Story = StoryObj<ComponentProps<typeof Timeliner>>;
+type Story = StoryObj<ComponentProps<typeof TimelinePoint>>;
 
 export const Simple: Story = {
   args: {
@@ -39,7 +39,7 @@ export const Timeline: Story = {
             backgroundColor: 'white',
           }}
         >
-          <Timeliner
+          <TimelinePoint
             circleSize={12.5}
             circleStrokeSize={5}
             circleFillColor="transparent"
@@ -63,7 +63,7 @@ export const Timeline: Story = {
             backgroundColor: 'white',
           }}
         >
-          <Timeliner color="purple-500" />
+          <TimelinePoint color="purple-500" />
         </div>
         Some message 1
       </div>
@@ -82,7 +82,7 @@ export const Timeline: Story = {
             backgroundColor: 'white',
           }}
         >
-          <Timeliner color="#f00" />
+          <TimelinePoint color="#f00" />
         </div>
         Some message 2
       </div>
@@ -101,7 +101,7 @@ export const Timeline: Story = {
             backgroundColor: 'white',
           }}
         >
-          <Timeliner color="purple" hasBottomStem={false} />
+          <TimelinePoint color="purple" hasBottomStem={false} />
         </div>
         Some message 3
       </div>

@@ -27,8 +27,9 @@ function App() {
           <Route path="/" element={<EditorIndex />} />
           <Route path="/edit" element={<EditorIndex />} />
           <Route path="/edit/:documentId" element={<Editor />} />
-          <Route path="/history" element={<HistoryIndex />} />
-          <Route path="/history/:documentId" element={<History />} />
+          <Route path="history" element={<HistoryIndex />}>
+            <Route path=":documentId" element={<History />} />
+          </Route>
           <Route path="/options" element={<Options />} />
         </Routes>
       </BrowserRouter>
