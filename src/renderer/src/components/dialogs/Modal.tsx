@@ -30,7 +30,7 @@ export const Modal = ({
   }, [isOpenProp]);
 
   return (
-    <Dialog open={isOpen} onClose={(e) => console.log(e)}>
+    <Dialog open={isOpen} onClose={() => {}}>
       <DialogTitle>{title}</DialogTitle>
       {description && <DialogDescription>{description}</DialogDescription>}
       {children && <DialogBody>{children}</DialogBody>}

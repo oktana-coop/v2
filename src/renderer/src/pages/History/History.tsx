@@ -1,26 +1,76 @@
 import { AutomergeUrl, isValidAutomergeUrl } from '@automerge/automerge-repo';
-import React, { useEffect } from 'react';
-
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { InvalidDocument } from './InvalidDocument';
-import { ViewHistory } from './ViewHistory';
+import { Link } from '../../components/actions/Link';
+import { PersonalFile } from '../../components/illustrations/PersonalFile';
+import { DocumentsHistory } from './Document/DocumentsHistory';
+import { InvalidDocument } from './InvalidDocument/InvalidDocument';
 
-export const History = () => {
-  const { documentId } = useParams();
-  const [isValid, setIsValid] = React.useState<boolean>(false);
+const DocumentList = () => {
+  const [docs, setDocs] = useState<
+    Array<{
+      id: AutomergeUrl;
+      title: string;
+    }>
+  >([]);
 
   useEffect(() => {
-    const urlValidity = isValidAutomergeUrl(documentId);
-    setIsValid(urlValidity);
-  }, [documentId]);
+    const docUrls = localStorage.getItem('docUrls');
+    if (docUrls) {
+      const docs = JSON.parse(docUrls);
+      const docsWithTitles = Object.entries(docs).map(([key, value]) => ({
+        id: key as AutomergeUrl,
+        title: value as string,
+      }));
+      setDocs(docsWithTitles);
+    }
+  }, []);
 
   return (
     <>
-      {isValid ? (
-        <ViewHistory documentId={documentId as AutomergeUrl} />
-      ) : (
-        <InvalidDocument />
-      )}
+      <h2>My documents</h2>
+      {docs.map((doc) => (
+        <div className="text-left" key={doc.id}>
+          <Link to={`/history/${doc.id}`}>{doc.title}</Link>
+        </div>
+      ))}
     </>
+  );
+};
+
+export const History = () => {
+  const { documentId } = useParams();
+  const [isValidAutomergeId, setIsValidAutomergeId] =
+    React.useState<boolean>(false);
+
+  useEffect(() => {
+    document.title = 'v2 | Version History';
+  }, []);
+
+  useEffect(() => {
+    const urlValidity = isValidAutomergeUrl(documentId);
+    setIsValidAutomergeId(urlValidity);
+  }, [documentId]);
+
+  return documentId ? (
+    isValidAutomergeId ? (
+      <DocumentsHistory documentId={documentId as AutomergeUrl} />
+    ) : (
+      <InvalidDocument />
+    )
+  ) : (
+    <div className="flex-auto flex">
+      <div className="h-full w-2/5 grow-0 p-5 overflow-y-scroll border-r border-gray-300 dark:border-neutral-600">
+        <DocumentList />
+      </div>
+      <div className="h-full w-full grow flex flex-col items-center justify-center">
+        <h2 className="text-2xl">Welcome to v2 👋</h2>
+        <p>
+          👈 You can explore a document's editing history by picking up one of
+          the list 😉.
+        </p>
+        <PersonalFile />
+      </div>
+    </div>
   );
 };

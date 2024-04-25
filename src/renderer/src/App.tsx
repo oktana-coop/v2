@@ -6,7 +6,6 @@ import './App.css';
 import { Editor } from './Editor/Editor';
 import { EditorIndex } from './Editor/index';
 import { NavBar } from './components/navigation/NavBar';
-import { HistoryIndex } from './pages/History';
 import { History } from './pages/History/History';
 import { Options } from './pages/Options/Options';
 import { ThemeContext, themes } from './personalization/theme';
@@ -15,7 +14,9 @@ function App() {
   const { theme } = useContext(ThemeContext);
 
   const themeStyles =
-    theme === themes.dark ? 'dark bg-neutral-800' : 'light bg-[#fafafa]';
+    theme === themes.dark
+      ? 'dark bg-neutral-800 text-white'
+      : 'light bg-[#fafafa] text-black';
 
   return (
     <div className={clsx('flex flex-row h-full', themeStyles)}>
@@ -25,8 +26,9 @@ function App() {
           <Route path="/" element={<EditorIndex />} />
           <Route path="/edit" element={<EditorIndex />} />
           <Route path="/edit/:documentId" element={<Editor />} />
-          <Route path="/history" element={<HistoryIndex />} />
-          <Route path="/history/:documentId" element={<History />} />
+          <Route path="history" element={<History />}>
+            <Route path=":documentId" element={<History />} />
+          </Route>
           <Route path="/options" element={<Options />} />
         </Routes>
       </BrowserRouter>

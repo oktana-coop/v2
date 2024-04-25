@@ -23,9 +23,14 @@ export const DocumentEditor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
   };
 
   const handleBlur = () => {
-    changeDocument((doc) => {
-      doc.content = value;
-    });
+    // On Blur ==> auto-save if needed
+    // no-matter if there are any changes if you changeDocument it
+    // produces a new hash
+    if (versionedDocument?.content !== value) {
+      changeDocument((doc) => {
+        doc.content = value;
+      });
+    }
   };
 
   const commitChanges = (message: string) => {
@@ -57,7 +62,7 @@ export const DocumentEditor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
         onCommit={(message: string) => commitChanges(message)}
       />
       <div className="flex-auto flex">
-        <div className="h-full w-2/5 grow-0">
+        <div className="h-full w-2/5 grow-0 border-r border-gray-300 dark:border-neutral-600">
           <FileExplorer />
         </div>
         <div className="h-full w-full grow">
@@ -65,7 +70,7 @@ export const DocumentEditor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
             id="message"
             value={value}
             rows={4}
-            className="focus:shadow-inner h-full w-full resize-none p-5 rounded-sm border-none outline-none border-gray-400"
+            className="bg-inherit focus:shadow-inner h-full w-full resize-none p-5 outline-none"
             autoFocus
             onChange={handleChange}
             onKeyDown={handleKeyDown}

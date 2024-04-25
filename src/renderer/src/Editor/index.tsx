@@ -110,8 +110,8 @@ export const EditorIndex = () => {
         />
       </Modal>
       {docs.length > 0 && (
-        <div className="h-full w-2/5 grow-0 p-5 overflow-y-scroll ">
-          <h2>Your docs</h2>
+        <div className="h-full w-2/5 grow-0 p-5 overflow-y-scroll border-r border-gray-300 dark:border-neutral-600">
+          <h2>My documents</h2>
           {docs.map((doc) => (
             <div className="text-left" key={doc.id}>
               <Link to={`/edit/${doc.id}`}>{doc.title}</Link>
@@ -121,7 +121,7 @@ export const EditorIndex = () => {
       )}
       <div className="h-full w-full grow flex flex-col items-center justify-center">
         <h2 className="text-2xl">Welcome to v2 👋</h2>
-        <p className="text-gray-500">
+        <p>
           {docs.length > 0
             ? '👈 Pick one document from the list to continue editing. Or create a new one 😉.'
             : 'Create a new document and explore the world of versioning.'}
