@@ -5,14 +5,7 @@ import { default as Automerge } from '@automerge/automerge/next';
 import { useContext } from 'react';
 import { ThemeContext, themes } from '../../../personalization/theme';
 import { isCommit } from '../../../automerge';
-
-// Commit is a special type of an (automerge) change that
-// strictly has a message and a time
-export type Commit = {
-  hash: string;
-  message: string;
-  time: Date;
-};
+import type { Commit } from '../../../automerge';
 
 const Commit = ({
   commit,

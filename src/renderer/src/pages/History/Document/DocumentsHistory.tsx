@@ -1,7 +1,8 @@
 import { AutomergeUrl } from '@automerge/automerge-repo';
 import { default as Automerge, view } from '@automerge/automerge/next';
 import React, { useCallback, useEffect } from 'react';
-import { ChangeLog, Commit } from './ChangeLog';
+import { ChangeLog } from './ChangeLog';
+import type { Commit } from '../../../automerge';
 
 import { useDocument } from '@automerge/automerge-repo-react-hooks';
 import { decodeChange, getAllChanges } from '@automerge/automerge/next';
