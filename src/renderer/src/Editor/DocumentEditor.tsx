@@ -61,16 +61,16 @@ export const DocumentEditor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
         onCancel={() => openCommitDialog(false)}
         onCommit={(message: string) => commitChanges(message)}
       />
-      <div className="flex-auto flex">
-        <div className="h-full w-2/5 grow-0 border-r border-gray-300 dark:border-neutral-600">
+      <div className="flex-auto flex items-stretch">
+        <div className="w-2/5 grow-0 border-r border-gray-300 dark:border-neutral-600">
           <FileExplorer />
         </div>
-        <div className="h-full w-full grow">
+        <div className="w-full grow flex items-stretch">
           <textarea
             id="message"
             value={value}
             rows={4}
-            className="bg-inherit focus:shadow-inner h-full w-full resize-none p-5 outline-none"
+            className="bg-inherit focus:shadow-inner w-full resize-none p-5 outline-none"
             autoFocus
             onChange={handleChange}
             onKeyDown={handleKeyDown}
