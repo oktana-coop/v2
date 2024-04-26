@@ -6,8 +6,9 @@ import { repo } from '../automerge/repo';
 import { Button } from '../components/actions/Button';
 import { Link } from '../components/actions/Link';
 import { Modal } from '../components/dialogs/Modal';
-import { PenIcon } from '../components/icons';
+import { PenIcon, FolderIcon } from '../components/icons';
 import { PersonalFile } from '../components/illustrations/PersonalFile';
+import { SidebarHeading } from '../components/sidebar/SidebarHeading';
 
 const persistDocumentUrl = (docUrl: AutomergeUrl, docTitle: string) => {
   const currentDocUrls = localStorage.getItem('docUrls');
@@ -111,7 +112,7 @@ export const EditorIndex = () => {
       </Modal>
       {docs.length > 0 && (
         <div className="h-full w-2/5 grow-0 p-5 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
-          <h2>My documents</h2>
+          <SidebarHeading icon={FolderIcon} text="File Explorer" />
           {docs.map((doc) => (
             <div className="text-left" key={doc.id}>
               <Link to={`/edit/${doc.id}`}>{doc.title}</Link>

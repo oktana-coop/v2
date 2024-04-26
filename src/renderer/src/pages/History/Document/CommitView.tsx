@@ -1,13 +1,14 @@
 import { AutomergeUrl } from '@automerge/automerge-repo';
 import { default as Automerge, view } from '@automerge/automerge/next';
 import React, { useCallback, useEffect } from 'react';
-import { ChangeLog, Commit } from './ChangeLog';
-
 import { useDocument } from '@automerge/automerge-repo-react-hooks';
 import { decodeChange, getAllChanges } from '@automerge/automerge/next';
 import { useNavigate } from 'react-router-dom';
+
+import { ChangeLog, Commit } from './ChangeLog';
 import { VersionedDocument, isCommit } from '../../../automerge';
 import { CommitHistoryIcon } from '../../../components/icons';
+import { SidebarHeading } from '../../../components/sidebar/SidebarHeading';
 
 export const CommitView = ({ documentId }: { documentId: AutomergeUrl }) => {
   const [versionedDocument] = useDocument<VersionedDocument>(documentId);
@@ -66,10 +67,7 @@ export const CommitView = ({ documentId }: { documentId: AutomergeUrl }) => {
     <div className="flex-auto flex">
       <div className="h-full w-2/5 grow-0 p-5 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
         <div className="flex-auto h-full break-words">
-          <div className="flex-auto flex text-left w-full font-bold mb-5 text-sm">
-            <CommitHistoryIcon />
-            Version History
-          </div>
+          <SidebarHeading icon={CommitHistoryIcon} text="Version History" />
           <ChangeLog
             changes={commits}
             onClick={handleCommitClick}
