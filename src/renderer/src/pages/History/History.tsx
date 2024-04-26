@@ -60,7 +60,7 @@ export const History = () => {
     )
   ) : (
     <div className="flex-auto flex">
-      <div className="h-full w-2/5 grow-0 p-5 overflow-y-scroll border-r border-gray-300 dark:border-neutral-600">
+      <div className="h-full w-2/5 grow-0 p-5 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
         <DocumentList />
       </div>
       <div className="h-full w-full grow flex flex-col items-center justify-center">
