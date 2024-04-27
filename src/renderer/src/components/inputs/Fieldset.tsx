@@ -59,7 +59,7 @@ export function Field({ className, ...props }: HeadlessFieldProps) {
     <HeadlessField
       className={clsx(
         className,
-        '[&>[data-slot=label]+[data-slot=control]]:mt-3',
+        '[&>[data-slot=label]+[data-slot=control]]:mt-0',
         '[&>[data-slot=label]+[data-slot=description]]:mt-1',
         '[&>[data-slot=description]+[data-slot=control]]:mt-3',
         '[&>[data-slot=control]+[data-slot=description]]:mt-3',
