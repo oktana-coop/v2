@@ -22,7 +22,7 @@ export const WithLabel: Story = {
   render: () => (
     <Field>
       <Label>Message</Label>
-      <Textarea />
+      <Textarea aria-label="Message" name="message" />
     </Field>
   ),
 };
