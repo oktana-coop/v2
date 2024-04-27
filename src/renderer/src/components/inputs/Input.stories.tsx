@@ -17,8 +17,8 @@ type Story = StoryObj<ComponentProps<typeof Input>>;
 export const Default: Story = {
   render: () => (
     <Field>
-      <Label>Label</Label>
-      <Input />
+      <Label>Name</Label>
+      <Input name="firstName" />
     </Field>
   ),
 };
@@ -27,7 +27,7 @@ export const Disabled: Story = {
   render: () => (
     <Field disabled>
       <Label>Label</Label>
-      <Input />
+      <Input name="firstName" />
     </Field>
   ),
 };
@@ -36,7 +36,7 @@ export const Error: Story = {
   render: () => (
     <Field>
       <Label>Label</Label>
-      <Input invalid />
+      <Input name="firstName" invalid />
     </Field>
   ),
 };
