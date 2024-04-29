@@ -1,11 +1,13 @@
 import { AutomergeUrl } from '@automerge/automerge-repo';
 import { default as Automerge, view } from '@automerge/automerge/next';
 import React, { useCallback, useEffect } from 'react';
+import type { Commit } from '../../../automerge';
+import { ChangeLog } from './ChangeLog';
+
 import { useDocument } from '@automerge/automerge-repo-react-hooks';
 import { decodeChange, getAllChanges } from '@automerge/automerge/next';
 import { useNavigate } from 'react-router-dom';
 
-import { ChangeLog, Commit } from './ChangeLog';
 import { VersionedDocument, isCommit } from '../../../automerge';
 import { CommitHistoryIcon } from '../../../components/icons';
 import { SidebarHeading } from '../../../components/sidebar/SidebarHeading';
