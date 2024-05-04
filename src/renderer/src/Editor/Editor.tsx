@@ -17,7 +17,7 @@ export const Editor = () => {
   return (
     <>
       {isValid ? (
-        <DocumentEditor docUrl={documentId as AutomergeUrl} />
+        <DocumentEditor initDocUrl={documentId as AutomergeUrl} />
       ) : (
         <InvalidDocument />
       )}

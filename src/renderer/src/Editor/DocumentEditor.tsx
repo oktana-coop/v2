@@ -4,12 +4,20 @@ import React, { useEffect } from 'react';
 import { CommitDialog } from './CommitDialog';
 import { FileExplorer } from './FileExplorer';
 import { VersionedDocument } from '../automerge';
+import { writeFile } from '../lib/filesystem';
 
-export const DocumentEditor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
+export const DocumentEditor = ({
+  initDocUrl,
+}: {
+  initDocUrl: AutomergeUrl;
+}) => {
   const [value, changeValue] = React.useState<string>('');
   const [isCommitting, openCommitDialog] = React.useState<boolean>(false);
+  const [docUrl, setDocUrl] = React.useState<AutomergeUrl>(initDocUrl);
   const [versionedDocument, changeDocument] =
     useDocument<VersionedDocument>(docUrl);
+  const [fileHandle, setFilehandle] =
+    React.useState<FileSystemFileHandle | null>(null);
 
   useEffect(() => {
     if (versionedDocument) {
@@ -43,6 +51,15 @@ export const DocumentEditor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
         time: new Date().getTime(),
       }
     );
+
+    if (fileHandle) {
+      const fileContent = {
+        docUrl,
+        value,
+      };
+      writeFile(fileHandle, fileContent);
+    }
+
     openCommitDialog(false);
   };
 
@@ -63,7 +80,7 @@ export const DocumentEditor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
       />
       <div className="flex-auto flex items-stretch">
         <div className="w-2/5 grow-0 border-r border-gray-300 dark:border-neutral-600">
-          <FileExplorer />
+          <FileExplorer setFilehandle={setFilehandle} setDocUrl={setDocUrl} />
         </div>
         <div className="w-full grow flex items-stretch">
           <textarea

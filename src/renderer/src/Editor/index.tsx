@@ -9,6 +9,7 @@ import { Modal } from '../components/dialogs/Modal';
 import { PenIcon, FolderIcon } from '../components/icons';
 import { PersonalFile } from '../components/illustrations/PersonalFile';
 import { SidebarHeading } from '../components/sidebar/SidebarHeading';
+import { createNewFile } from '../lib/filesystem';
 
 const persistDocumentUrl = (docUrl: AutomergeUrl, docTitle: string) => {
   const currentDocUrls = localStorage.getItem('docUrls');
@@ -59,18 +60,22 @@ export const EditorIndex = () => {
     }
   }, []);
 
-  const handleDocumentCreation = (docTitle: string) => {
+  async function handleDocumentCreation(docTitle: string) {
     const handle = repo.create<VersionedDocument>();
     const newDocUrl = handle.url;
     handle.change((doc) => {
       doc.title = docTitle;
       doc.content = docTitle;
     });
-    // temporary workaround to persist the document url
+    // HACK: temporary workaround to persist the document url
     // until we figure out how to handle existing documents persistence
     persistDocumentUrl(newDocUrl, docTitle);
+
+    // HACK: Temporary way to create a new file. A prompt appears after the
+    // V2 modal shows up.
+    await createNewFile(newDocUrl);
     navigate(`/edit/${newDocUrl}`);
-  };
+  }
 
   return (
     <div className="flex-auto flex">
@@ -91,8 +96,8 @@ export const EditorIndex = () => {
         primaryButton={
           <Button
             disabled={newDocTitle.length === 0}
-            onClick={() => {
-              handleDocumentCreation(newDocTitle);
+            onClick={async () => {
+              await handleDocumentCreation(newDocTitle);
               setNewDocTitle('');
               openCreateDocumentModal(false);
             }}
