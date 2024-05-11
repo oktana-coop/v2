@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, ipcMain } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, nativeImage } from 'electron';
 import { release } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -45,9 +45,18 @@ const url = process.env.VITE_DEV_SERVER_URL;
 const indexHtml = join(process.env.DIST, '../renderer/index.html');
 
 async function createWindow() {
+  const icon = nativeImage.createFromPath(
+    join(process.env.VITE_PUBLIC as string, 'icon.png')
+  );
+
+  const macOSDockIcon = nativeImage.createFromPath(
+    join(process.env.VITE_PUBLIC as string, 'macos-dock-icon.png')
+  );
+  app.dock.setIcon(macOSDockIcon);
+
   win = new BrowserWindow({
     title: 'Main window',
-    icon: join(process.env.VITE_PUBLIC as string, 'favicon.ico'),
+    icon,
     webPreferences: {
       preload,
       // Warning: Enable nodeIntegration and disable contextIsolation is not secure in production
