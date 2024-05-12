@@ -3,6 +3,7 @@ import { IconProps } from '../../components/icons/types';
 type SidebarHeadingProps = {
   icon?: React.ComponentType<IconProps>;
   text: string;
+  onClick?: () => void;
 };
 
 export const SidebarHeading = ({ icon: Icon, text }: SidebarHeadingProps) => (

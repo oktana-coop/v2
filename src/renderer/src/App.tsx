@@ -3,7 +3,6 @@ import { useContext } from 'react';
 import clsx from 'clsx';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import './App.css';
-import { Editor } from './Editor/Editor';
 import { EditorIndex } from './Editor/index';
 import { NavBar } from './components/navigation/NavBar';
 import { History } from './pages/History/History';
@@ -25,7 +24,6 @@ function App() {
         <Routes>
           <Route path="/" element={<EditorIndex />} />
           <Route path="/edit" element={<EditorIndex />} />
-          <Route path="/edit/:documentId" element={<Editor />} />
           <Route path="history" element={<History />}>
             <Route path=":documentId" element={<History />} />
           </Route>

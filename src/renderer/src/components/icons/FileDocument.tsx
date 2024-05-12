@@ -5,7 +5,6 @@ export const FileDocumentIcon = ({
   color,
   size = DEFAULT_SIZE,
   className,
-  onClick,
 }: IconProps) => {
   const scale = size / DEFAULT_SIZE;
 
@@ -16,7 +15,6 @@ export const FileDocumentIcon = ({
       viewBox={`0 0 ${size} ${size}`}
       xmlns="http://www.w3.org/2000/svg"
       className={className}
-      onClick={onClick}
     >
       <g transform={`scale(${scale})`}>
         <path d="M7 18H17V16H7V18Z" fill={color ?? 'currentColor'} />

@@ -23,15 +23,10 @@ export async function readFile(
   return JSON.parse(await file.text());
 }
 
-async function verifyPermission(
-  fileHandle: FileSystemFileHandle
-  // readWrite
-) {
+async function verifyPermission(fileHandle: FileSystemFileHandle) {
   const options: FileSystemHandlePermissionDescriptor = {};
-
-  // if (readWrite) {
   options.mode = 'readwrite';
-  // }
+
   // Check if permission was already granted. If so, return true.
   if ((await fileHandle.queryPermission(options)) === 'granted') {
     return true;
@@ -49,18 +44,28 @@ async function verifyPermission(
 export async function createNewFile(docUrl: AutomergeUrl) {
   try {
     // Prompt the user to select where to save the file
-    const fileHandle = await window.showSaveFilePicker();
+    const fileHandle = await window.showSaveFilePicker({
+      excludeAcceptAllOption: true,
+      types: [
+        {
+          description: 'v2',
+          accept: {
+            'application/v2': ['.v2'],
+          },
+        },
+      ],
+    });
 
-    // Create a writable stream to the file
     const writable = await fileHandle.createWritable();
 
     // Write initial content to the file
     await writable.write(JSON.stringify({ docUrl, value: '' }));
 
-    // Close the writable stream
     await writable.close();
 
-    console.log('File created successfully!');
+    console.info('File created successfully!');
+
+    return fileHandle;
   } catch (error) {
     console.error('Error creating file:', error);
   }

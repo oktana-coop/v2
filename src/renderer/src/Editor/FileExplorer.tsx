@@ -1,7 +1,9 @@
 import React from 'react';
-import { FileDocumentIcon } from '../components/icons';
-import { readFile } from '../lib/filesystem';
+import { readFile } from '../utils/filesystem';
 import { AutomergeUrl } from '@automerge/automerge-repo';
+import { FolderIcon } from '../components/icons';
+import { SidebarHeading } from '../components/sidebar/SidebarHeading';
+import { Button } from '../components/actions/Button';
 
 export const FileExplorer = ({
   setFilehandle,
@@ -10,7 +12,7 @@ export const FileExplorer = ({
   setFilehandle: React.Dispatch<
     React.SetStateAction<FileSystemFileHandle | null>
   >;
-  setDocUrl: React.Dispatch<React.SetStateAction<AutomergeUrl>>;
+  setDocUrl: React.Dispatch<React.SetStateAction<AutomergeUrl | null>>;
 }) => {
   const [files, setFiles] = React.useState<
     Array<{ filename: string; handle: FileSystemFileHandle }>
@@ -40,26 +42,39 @@ export const FileExplorer = ({
 
   return (
     <div className="flex flex-col h-full">
-      <FileDocumentIcon
-        className="hover:bg-zinc-950/5 text-purple-500 dark:text-purple-300 cursor-pointer"
-        onClick={async () => await getFiles()}
-      />
+      <SidebarHeading icon={FolderIcon} text="File Explorer" />
+      {/* <SidebarHeading icon={FolderIcon} text="File Explorer" onClick={async () => await getFiles()}> */}
 
-      <div className="w-48 text-left pt-2 text-black font-bold truncate">
-        {directory}
-      </div>
-      <div className="max-h-96 w-48 text-black flex flex-col">
-        {files.map((file) => (
-          <button
-            key={file.filename}
-            className="truncate px-2 py-1 text-left"
-            title={file.filename}
-            onClick={async () => handleOnClick(file.handle)}
+      {directory ? (
+        <>
+          <div className="w-48 text-left pt-2 text-black font-bold truncate">
+            {directory}
+          </div>
+          <div className="max-h-96 w-48 text-black flex flex-col">
+            {files.map((file) => (
+              <button
+                key={file.filename}
+                className="truncate px-2 py-1 text-left"
+                title={file.filename}
+                onClick={async () => handleOnClick(file.handle)}
+              >
+                {file.filename}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="flex items-center justify-center h-full">
+          <Button
+            onClick={async () => await getFiles()}
+            variant="solid"
+            color="purple"
           >
-            {file.filename}
-          </button>
-        ))}
-      </div>
+            <FolderIcon />
+            Open folder
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
