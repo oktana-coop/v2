@@ -26,6 +26,8 @@
     "classnames": "^2.5.1",
     "clsx": "^2.1.0",
     "electron-updater": "^6.1.8",
+    "prosemirror-commands": "^1.5.2",
+    "prosemirror-keymap": "^1.2.2",
     "prosemirror-model": "^1.21.0",
     "prosemirror-state": "^1.4.3",
     "prosemirror-view": "^1.33.6",
