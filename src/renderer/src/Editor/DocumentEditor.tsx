@@ -4,6 +4,7 @@ import { AutoMirror } from '@automerge/prosemirror';
 import { keymap } from 'prosemirror-keymap';
 import { baseKeymap, toggleMark } from 'prosemirror-commands';
 import { MarkType, Schema } from 'prosemirror-model';
+import { EditorView } from 'prosemirror-view';
 import { Command, EditorState, Transaction } from 'prosemirror-state';
 import React, { useEffect } from 'react';
 import { CommitDialog } from './CommitDialog';
