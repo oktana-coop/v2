@@ -2,7 +2,7 @@ import {
   AutomergeUrl,
   DocHandleChangePayload,
 } from '@automerge/automerge-repo';
-import { useDocument, useHandle } from '@automerge/automerge-repo-react-hooks';
+import { useDocument } from '@automerge/automerge-repo-react-hooks';
 import { AutoMirror } from '@automerge/prosemirror';
 import { keymap } from 'prosemirror-keymap';
 import { baseKeymap, toggleMark } from 'prosemirror-commands';
@@ -13,6 +13,7 @@ import React, { useEffect, useRef } from 'react';
 import { CommitDialog } from './CommitDialog';
 import { VersionedDocument } from '../automerge';
 import { writeFile } from '../utils/filesystem';
+import { useHandle } from '../automerge/repo';
 
 const toggleMarkCommand = (mark: MarkType): Command => {
   return (
@@ -35,10 +36,10 @@ export const DocumentEditor = ({
   const [isCommitting, openCommitDialog] = React.useState<boolean>(false);
   const [versionedDocument, changeDocument] =
     useDocument<VersionedDocument>(docUrl);
-  const handle = useHandle<VersionedDocument>(docUrl);
+  const { handle, isReady: isHandleReady } = useHandle(docUrl);
 
   useEffect(() => {
-    if (versionedDocument && handle) {
+    if (isHandleReady && handle && versionedDocument) {
       changeValue(versionedDocument.content || '');
       document.title = `v2 | editing "${versionedDocument.title}"`;
 
@@ -86,7 +87,7 @@ export const DocumentEditor = ({
 
       handle.on('change', onPatch);
     }
-  }, [versionedDocument, handle]);
+  }, [isHandleReady]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     changeValue(e.target.value);
