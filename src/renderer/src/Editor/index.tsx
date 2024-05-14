@@ -32,7 +32,6 @@ const persistDocumentUrl = (docUrl: AutomergeUrl, docTitle: string) => {
 };
 
 export const EditorIndex = () => {
-  // const navigate = useNavigate();
   const [docs, setDocs] = useState<
     Array<{
       id: AutomergeUrl;

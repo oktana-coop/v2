@@ -4,6 +4,7 @@ import { AutomergeUrl } from '@automerge/automerge-repo';
 import { FolderIcon } from '../components/icons';
 import { SidebarHeading } from '../components/sidebar/SidebarHeading';
 import { Button } from '../components/actions/Button';
+import { clsx } from 'clsx';
 
 export const FileExplorer = ({
   setFilehandle,
@@ -18,7 +19,9 @@ export const FileExplorer = ({
     Array<{ filename: string; handle: FileSystemFileHandle }>
   >([]);
   const [directory, setDirectory] = React.useState<string>('');
+  const [selectedFilename, setSelectedFilename] = React.useState<string>('');
 
+  // TODO: Move this to filesystem.ts
   async function getFiles() {
     const dirHandle = await window.showDirectoryPicker();
     const files = [];
@@ -37,14 +40,13 @@ export const FileExplorer = ({
   async function handleOnClick(fileHandle: FileSystemFileHandle) {
     const fileContent = await readFile(fileHandle);
     setDocUrl(fileContent.docUrl);
+    setSelectedFilename(fileHandle.name);
     setFilehandle(fileHandle);
   }
 
   return (
     <div className="flex flex-col h-full">
       <SidebarHeading icon={FolderIcon} text="File Explorer" />
-      {/* <SidebarHeading icon={FolderIcon} text="File Explorer" onClick={async () => await getFiles()}> */}
-
       {directory ? (
         <>
           <div className="w-48 text-left pt-2 text-black font-bold truncate">
@@ -54,7 +56,12 @@ export const FileExplorer = ({
             {files.map((file) => (
               <button
                 key={file.filename}
-                className="truncate px-2 py-1 text-left"
+                className={clsx(
+                  'truncate px-2 py-1 text-left hover:bg-zinc-950/5',
+                  file.filename === selectedFilename
+                    ? 'text-purple-500 dark:text-purple-300'
+                    : ''
+                )}
                 title={file.filename}
                 onClick={async () => handleOnClick(file.handle)}
               >
