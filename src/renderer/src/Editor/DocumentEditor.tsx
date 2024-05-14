@@ -1,4 +1,7 @@
-import { AutomergeUrl } from '@automerge/automerge-repo';
+import {
+  AutomergeUrl,
+  DocHandleChangePayload,
+} from '@automerge/automerge-repo';
 import { useDocument, useHandle } from '@automerge/automerge-repo-react-hooks';
 import { AutoMirror } from '@automerge/prosemirror';
 import { keymap } from 'prosemirror-keymap';
@@ -6,7 +9,7 @@ import { baseKeymap, toggleMark } from 'prosemirror-commands';
 import { MarkType, Schema } from 'prosemirror-model';
 import { EditorView } from 'prosemirror-view';
 import { Command, EditorState, Transaction } from 'prosemirror-state';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { CommitDialog } from './CommitDialog';
 import { VersionedDocument } from '../automerge';
 import { writeFile } from '../utils/filesystem';
@@ -27,6 +30,7 @@ export const DocumentEditor = ({
   docUrl: AutomergeUrl;
   fileHandle: FileSystemFileHandle;
 }) => {
+  const editorRoot = useRef<HTMLDivElement>(null);
   const [value, changeValue] = React.useState<string>('');
   const [isCommitting, openCommitDialog] = React.useState<boolean>(false);
   const [versionedDocument, changeDocument] =
@@ -58,6 +62,29 @@ export const DocumentEditor = ({
       };
 
       const state = EditorState.create(editorConfig);
+      const view = new EditorView(editorRoot.current, {
+        state,
+        dispatchTransaction: (tx: Transaction) => {
+          const newState = autoMirror.intercept(handle, tx, view.state);
+          view.updateState(newState);
+        },
+      });
+
+      const onPatch: (args: DocHandleChangePayload<unknown>) => void = ({
+        doc,
+        patches,
+        patchInfo,
+      }) => {
+        const newState = autoMirror.reconcilePatch(
+          patchInfo.before,
+          doc,
+          patches,
+          view.state
+        );
+        view.updateState(newState);
+      };
+
+      handle.on('change', onPatch);
     }
   }, [versionedDocument, handle]);
 
@@ -111,20 +138,11 @@ export const DocumentEditor = ({
         onCancel={() => openCommitDialog(false)}
         onCommit={(message: string) => commitChanges(message)}
       />
-      <div className="flex-auto flex items-stretch">
-        <div className="w-full grow flex items-stretch">
-          <textarea
-            id="message"
-            value={value}
-            rows={4}
-            className="bg-inherit focus:shadow-inner w-full resize-none p-5 outline-none"
-            autoFocus
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            onBlur={handleBlur}
-          />
-        </div>
-      </div>
+      <div
+        className="w-4/5 flex-auto p-5 flex outline-none"
+        id="editor"
+        ref={editorRoot}
+      />
     </>
   );
 };

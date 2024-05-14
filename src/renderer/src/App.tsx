@@ -18,7 +18,7 @@ function App() {
       : 'light bg-[#fafafa] text-black';
 
   return (
-    <div className={clsx('flex flex-row h-full', themeStyles)}>
+    <div className={clsx('flex h-full', themeStyles)}>
       <BrowserRouter>
         <NavBar />
         <Routes>
