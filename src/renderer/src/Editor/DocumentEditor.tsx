@@ -57,6 +57,10 @@ export const DocumentEditor = ({
             ...baseKeymap,
             'Mod-b': toggleBold(autoMirror.schema),
             'Mod-i': toggleItalic(autoMirror.schema),
+            'Mod-s': () => {
+              openCommitDialog(true);
+              return true;
+            },
           }),
         ],
         doc: autoMirror.initialize(handle),
@@ -89,21 +93,6 @@ export const DocumentEditor = ({
     }
   }, [isHandleReady]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    changeValue(e.target.value);
-  };
-
-  const handleBlur = () => {
-    // On Blur ==> auto-save if needed
-    // no-matter if there are any changes if you changeDocument it
-    // produces a new hash
-    if (versionedDocument?.content !== value) {
-      changeDocument((doc) => {
-        doc.content = value;
-      });
-    }
-  };
-
   const commitChanges = (message: string) => {
     changeDocument(
       (doc) => {
@@ -122,14 +111,6 @@ export const DocumentEditor = ({
     writeFile(fileHandle, fileContent);
 
     openCommitDialog(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    // cmd/ctrl + s
-    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-      e.preventDefault();
-      openCommitDialog(true);
-    }
   };
 
   return (
