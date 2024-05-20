@@ -2,10 +2,16 @@ import { AutomergeUrl } from '@automerge/automerge-repo';
 import { useDocument } from '@automerge/automerge-repo-react-hooks';
 import React, { useEffect } from 'react';
 import { CommitDialog } from './CommitDialog';
-import { FileExplorer } from './FileExplorer';
 import { VersionedDocument } from '../automerge';
+import { writeFile } from '../utils/filesystem';
 
-export const DocumentEditor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
+export const DocumentEditor = ({
+  docUrl,
+  fileHandle,
+}: {
+  docUrl: AutomergeUrl;
+  fileHandle: FileSystemFileHandle;
+}) => {
   const [value, changeValue] = React.useState<string>('');
   const [isCommitting, openCommitDialog] = React.useState<boolean>(false);
   const [versionedDocument, changeDocument] =
@@ -43,6 +49,13 @@ export const DocumentEditor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
         time: new Date().getTime(),
       }
     );
+
+    const fileContent = {
+      docUrl,
+      value,
+    };
+    writeFile(fileHandle, fileContent);
+
     openCommitDialog(false);
   };
 
@@ -62,9 +75,6 @@ export const DocumentEditor = ({ docUrl }: { docUrl: AutomergeUrl }) => {
         onCommit={(message: string) => commitChanges(message)}
       />
       <div className="flex-auto flex items-stretch">
-        <div className="w-2/5 grow-0 border-r border-gray-300 dark:border-neutral-600">
-          <FileExplorer />
-        </div>
         <div className="w-full grow flex items-stretch">
           <textarea
             id="message"

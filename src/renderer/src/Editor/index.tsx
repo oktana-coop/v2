@@ -1,14 +1,14 @@
 import { AutomergeUrl } from '@automerge/automerge-repo';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { VersionedDocument } from '../automerge';
 import { repo } from '../automerge/repo';
 import { Button } from '../components/actions/Button';
-import { Link } from '../components/actions/Link';
 import { Modal } from '../components/dialogs/Modal';
-import { PenIcon, FolderIcon } from '../components/icons';
+import { PenIcon } from '../components/icons';
 import { PersonalFile } from '../components/illustrations/PersonalFile';
-import { SidebarHeading } from '../components/sidebar/SidebarHeading';
+import { FileExplorer } from './FileExplorer';
+import { createNewFile } from '../utils/filesystem';
+import { DocumentEditor } from './DocumentEditor';
 
 const persistDocumentUrl = (docUrl: AutomergeUrl, docTitle: string) => {
   const currentDocUrls = localStorage.getItem('docUrls');
@@ -32,7 +32,6 @@ const persistDocumentUrl = (docUrl: AutomergeUrl, docTitle: string) => {
 };
 
 export const EditorIndex = () => {
-  const navigate = useNavigate();
   const [docs, setDocs] = useState<
     Array<{
       id: AutomergeUrl;
@@ -42,6 +41,10 @@ export const EditorIndex = () => {
   const [newDocTitle, setNewDocTitle] = useState<string>('');
   const [isDocumentCreationModalOpen, openCreateDocumentModal] =
     useState<boolean>(false);
+  const [fileHandle, setFilehandle] = useState<FileSystemFileHandle | null>(
+    null
+  );
+  const [docUrl, setDocUrl] = useState<AutomergeUrl | null>(null);
 
   useEffect(() => {
     document.title = 'v2 | Editor';
@@ -59,18 +62,48 @@ export const EditorIndex = () => {
     }
   }, []);
 
-  const handleDocumentCreation = (docTitle: string) => {
+  async function handleDocumentCreation(docTitle: string) {
     const handle = repo.create<VersionedDocument>();
     const newDocUrl = handle.url;
     handle.change((doc) => {
       doc.title = docTitle;
       doc.content = docTitle;
     });
-    // temporary workaround to persist the document url
+    // HACK: temporary workaround to persist the document url
     // until we figure out how to handle existing documents persistence
     persistDocumentUrl(newDocUrl, docTitle);
-    navigate(`/edit/${newDocUrl}`);
-  };
+    const fileHandle = await createNewFile(newDocUrl);
+
+    setDocUrl(newDocUrl);
+    if (fileHandle) {
+      setFilehandle(fileHandle);
+    }
+  }
+
+  // TODO: Export this to its own component
+  function renderEmptyDocument() {
+    return (
+      <div className="h-full w-full grow flex flex-col items-center justify-center">
+        <h2 className="text-2xl">Welcome to v2 👋</h2>
+        <p>
+          {docs.length > 0
+            ? '👈 Pick one document from the list to continue editing. Or create a new one 😉.'
+            : 'Create a new document and explore the world of versioning.'}
+        </p>
+        <p className="m-5">
+          <Button
+            onClick={() => openCreateDocumentModal(true)}
+            variant="solid"
+            color="purple"
+          >
+            <PenIcon />
+            Create document
+          </Button>
+        </p>
+        <PersonalFile />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-auto flex">
@@ -91,8 +124,8 @@ export const EditorIndex = () => {
         primaryButton={
           <Button
             disabled={newDocTitle.length === 0}
-            onClick={() => {
-              handleDocumentCreation(newDocTitle);
+            onClick={async () => {
+              await handleDocumentCreation(newDocTitle);
               setNewDocTitle('');
               openCreateDocumentModal(false);
             }}
@@ -112,33 +145,14 @@ export const EditorIndex = () => {
       </Modal>
       {docs.length > 0 && (
         <div className="h-full w-2/5 grow-0 p-5 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
-          <SidebarHeading icon={FolderIcon} text="File Explorer" />
-          {docs.map((doc) => (
-            <div className="text-left" key={doc.id}>
-              <Link to={`/edit/${doc.id}`}>{doc.title}</Link>
-            </div>
-          ))}
+          <FileExplorer setFilehandle={setFilehandle} setDocUrl={setDocUrl} />
         </div>
       )}
-      <div className="h-full w-full grow flex flex-col items-center justify-center">
-        <h2 className="text-2xl">Welcome to v2 👋</h2>
-        <p>
-          {docs.length > 0
-            ? '👈 Pick one document from the list to continue editing. Or create a new one 😉.'
-            : 'Create a new document and explore the world of versioning.'}
-        </p>
-        <p className="m-5">
-          <Button
-            onClick={() => openCreateDocumentModal(true)}
-            variant="solid"
-            color="purple"
-          >
-            <PenIcon />
-            Create document
-          </Button>
-        </p>
-        <PersonalFile />
-      </div>
+      {docUrl && fileHandle ? (
+        <DocumentEditor docUrl={docUrl} fileHandle={fileHandle} />
+      ) : (
+        renderEmptyDocument()
+      )}
     </div>
   );
 };
