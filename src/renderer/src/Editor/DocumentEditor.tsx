@@ -2,7 +2,6 @@ import {
   AutomergeUrl,
   DocHandleChangePayload,
 } from '@automerge/automerge-repo';
-import { useDocument } from '@automerge/automerge-repo-react-hooks';
 import { AutoMirror } from '@automerge/prosemirror';
 import { keymap } from 'prosemirror-keymap';
 import { baseKeymap, toggleMark } from 'prosemirror-commands';
@@ -32,16 +31,12 @@ export const DocumentEditor = ({
   fileHandle: FileSystemFileHandle;
 }) => {
   const editorRoot = useRef<HTMLDivElement>(null);
-  const [value, changeValue] = React.useState<string>('');
   const [isCommitting, openCommitDialog] = React.useState<boolean>(false);
-  const [versionedDocument, changeDocument] =
-    useDocument<VersionedDocument>(docUrl);
   const { handle, isReady: isHandleReady } = useHandle(docUrl);
 
   useEffect(() => {
-    if (isHandleReady && handle && versionedDocument) {
-      changeValue(versionedDocument.content || '');
-      document.title = `v2 | editing "${versionedDocument.title}"`;
+    if (isHandleReady && handle) {
+      document.title = `v2 | editing "${handle.docSync()?.title}"`;
 
       const autoMirror = new AutoMirror(['text']);
 
@@ -94,9 +89,12 @@ export const DocumentEditor = ({
   }, [isHandleReady]);
 
   const commitChanges = (message: string) => {
-    changeDocument(
+    if (!handle) return;
+
+    handle.change(
       (doc) => {
-        doc.content = value;
+        // eslint-disable-next-line no-self-assign
+        doc.content = doc.content;
       },
       {
         message,
@@ -104,6 +102,7 @@ export const DocumentEditor = ({
       }
     );
 
+    const value = handle.docSync()?.content || '';
     const fileContent = {
       docUrl,
       value,
