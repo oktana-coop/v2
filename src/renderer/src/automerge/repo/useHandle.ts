@@ -14,6 +14,7 @@ export function useHandle(docUrl: AutomergeUrl) {
         setIsReady(true);
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handle]);
 
   return { handle, isReady };
