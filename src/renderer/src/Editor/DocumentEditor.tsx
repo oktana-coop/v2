@@ -90,11 +90,13 @@ export const DocumentEditor = ({
 
   const commitChanges = (message: string) => {
     if (!handle) return;
-
     handle.change(
       (doc) => {
+        // this is effectively a no-op, but it triggers a change event
+        // (not) changing the title of the document, as interfering with the
+        // content outside the Prosemirror API will cause loss of formatting
         // eslint-disable-next-line no-self-assign
-        doc.content = doc.content;
+        doc.title = doc.title;
       },
       {
         message,
