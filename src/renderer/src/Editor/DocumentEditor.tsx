@@ -3,16 +3,15 @@ import {
   DocHandleChangePayload,
 } from '@automerge/automerge-repo';
 import { AutoMirror } from '@automerge/prosemirror';
-import { keymap } from 'prosemirror-keymap';
 import { baseKeymap, toggleMark } from 'prosemirror-commands';
+import { keymap } from 'prosemirror-keymap';
 import { MarkType, Schema } from 'prosemirror-model';
-import { EditorView } from 'prosemirror-view';
 import { Command, EditorState, Transaction } from 'prosemirror-state';
+import { EditorView } from 'prosemirror-view';
 import React, { useEffect, useRef } from 'react';
-import { CommitDialog } from './CommitDialog';
-import { VersionedDocument } from '../automerge';
-import { writeFile } from '../utils/filesystem';
 import { useHandle } from '../automerge/repo';
+import { writeFile } from '../utils/filesystem';
+import { CommitDialog } from './CommitDialog';
 
 const toggleMarkCommand = (mark: MarkType): Command => {
   return (
@@ -37,9 +36,7 @@ export const DocumentEditor = ({
   useEffect(() => {
     if (isHandleReady && handle) {
       document.title = `v2 | editing "${handle.docSync()?.title}"`;
-
-      const autoMirror = new AutoMirror(['text']);
-
+      const autoMirror = new AutoMirror(['content']);
       const toggleBold = (schema: Schema) =>
         toggleMarkCommand(schema.marks.strong);
       const toggleItalic = (schema: Schema) =>
@@ -85,8 +82,13 @@ export const DocumentEditor = ({
       };
 
       handle.on('change', onPatch);
+
+      return () => {
+        handle.off('change', onPatch);
+        view.destroy();
+      };
     }
-  }, [isHandleReady]);
+  }, [isHandleReady, handle]);
 
   const commitChanges = (message: string) => {
     if (!handle) return;
