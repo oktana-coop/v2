@@ -1,9 +1,26 @@
-import { AutomergeUrl } from '@automerge/automerge-repo';
-import { useDocument } from '@automerge/automerge-repo-react-hooks';
-import React, { useEffect } from 'react';
-import { CommitDialog } from './CommitDialog';
-import { VersionedDocument } from '../automerge';
+import {
+  AutomergeUrl,
+  DocHandleChangePayload,
+} from '@automerge/automerge-repo';
+import { AutoMirror } from '@automerge/prosemirror';
+import { baseKeymap, toggleMark } from 'prosemirror-commands';
+import { keymap } from 'prosemirror-keymap';
+import { MarkType, Schema } from 'prosemirror-model';
+import { Command, EditorState, Transaction } from 'prosemirror-state';
+import { EditorView } from 'prosemirror-view';
+import React, { useEffect, useRef } from 'react';
+import { useHandle } from '../automerge/repo';
 import { writeFile } from '../utils/filesystem';
+import { CommitDialog } from './CommitDialog';
+
+const toggleMarkCommand = (mark: MarkType): Command => {
+  return (
+    state: EditorState,
+    dispatch: ((tr: Transaction) => void) | undefined
+  ) => {
+    return toggleMark(mark)(state, dispatch);
+  };
+};
 
 export const DocumentEditor = ({
   docUrl,
@@ -12,37 +29,76 @@ export const DocumentEditor = ({
   docUrl: AutomergeUrl;
   fileHandle: FileSystemFileHandle;
 }) => {
-  const [value, changeValue] = React.useState<string>('');
+  const editorRoot = useRef<HTMLDivElement>(null);
   const [isCommitting, openCommitDialog] = React.useState<boolean>(false);
-  const [versionedDocument, changeDocument] =
-    useDocument<VersionedDocument>(docUrl);
+  const { handle, isReady: isHandleReady } = useHandle(docUrl);
 
   useEffect(() => {
-    if (versionedDocument) {
-      changeValue(versionedDocument.content || '');
-      document.title = `v2 | editing "${versionedDocument.title}"`;
-    }
-  }, [versionedDocument]);
+    if (isHandleReady && handle) {
+      document.title = `v2 | editing "${handle.docSync()?.title}"`;
+      const autoMirror = new AutoMirror(['content']);
+      const toggleBold = (schema: Schema) =>
+        toggleMarkCommand(schema.marks.strong);
+      const toggleItalic = (schema: Schema) =>
+        toggleMarkCommand(schema.marks.em);
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    changeValue(e.target.value);
-  };
+      const editorConfig = {
+        schema: autoMirror.schema, // This _must_ be the schema from the AutoMirror
+        plugins: [
+          keymap({
+            ...baseKeymap,
+            'Mod-b': toggleBold(autoMirror.schema),
+            'Mod-i': toggleItalic(autoMirror.schema),
+            'Mod-s': () => {
+              openCommitDialog(true);
+              return true;
+            },
+          }),
+        ],
+        doc: autoMirror.initialize(handle),
+      };
 
-  const handleBlur = () => {
-    // On Blur ==> auto-save if needed
-    // no-matter if there are any changes if you changeDocument it
-    // produces a new hash
-    if (versionedDocument?.content !== value) {
-      changeDocument((doc) => {
-        doc.content = value;
+      const state = EditorState.create(editorConfig);
+      const view = new EditorView(editorRoot.current, {
+        state,
+        dispatchTransaction: (tx: Transaction) => {
+          const newState = autoMirror.intercept(handle, tx, view.state);
+          view.updateState(newState);
+        },
       });
+
+      const onPatch: (args: DocHandleChangePayload<unknown>) => void = ({
+        doc,
+        patches,
+        patchInfo,
+      }) => {
+        const newState = autoMirror.reconcilePatch(
+          patchInfo.before,
+          doc,
+          patches,
+          view.state
+        );
+        view.updateState(newState);
+      };
+
+      handle.on('change', onPatch);
+
+      return () => {
+        handle.off('change', onPatch);
+        view.destroy();
+      };
     }
-  };
+  }, [isHandleReady, handle]);
 
   const commitChanges = (message: string) => {
-    changeDocument(
+    if (!handle) return;
+    handle.change(
       (doc) => {
-        doc.content = value;
+        // this is effectively a no-op, but it triggers a change event
+        // (not) changing the title of the document, as interfering with the
+        // content outside the Prosemirror API will cause loss of formatting
+        // eslint-disable-next-line no-self-assign
+        doc.title = doc.title;
       },
       {
         message,
@@ -50,6 +106,7 @@ export const DocumentEditor = ({
       }
     );
 
+    const value = handle.docSync()?.content || '';
     const fileContent = {
       docUrl,
       value,
@@ -59,14 +116,6 @@ export const DocumentEditor = ({
     openCommitDialog(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    // cmd/ctrl + s
-    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-      e.preventDefault();
-      openCommitDialog(true);
-    }
-  };
-
   return (
     <>
       <CommitDialog
@@ -74,20 +123,11 @@ export const DocumentEditor = ({
         onCancel={() => openCommitDialog(false)}
         onCommit={(message: string) => commitChanges(message)}
       />
-      <div className="flex-auto flex items-stretch">
-        <div className="w-full grow flex items-stretch">
-          <textarea
-            id="message"
-            value={value}
-            rows={4}
-            className="bg-inherit focus:shadow-inner w-full resize-none p-5 outline-none"
-            autoFocus
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            onBlur={handleBlur}
-          />
-        </div>
-      </div>
+      <div
+        className="w-4/5 flex-auto p-5 flex outline-none"
+        id="editor"
+        ref={editorRoot}
+      />
     </>
   );
 };

@@ -60,7 +60,7 @@ export const NavBarItem = ({ item }: { item: NavItem }) => {
 export function NavBar() {
   return (
     <div
-      className="flex-initial flex flex-col gap-y-5 items-center overflow-y-auto bg-transparent border-r border-gray-300 dark:border-neutral-600 py-4 w-12 h-full"
+      className="w-12 h-full flex-none flex flex-col gap-y-5 items-center overflow-y-auto bg-transparent border-r border-gray-300 dark:border-neutral-600 py-4"
       data-testid="nav-bar"
     >
       <NavLink to="/edit">

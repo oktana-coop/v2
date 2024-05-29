@@ -8,3 +8,12 @@
   height: 100%;
   width: 100%;
 }
+
+.ProseMirror {
+  width: 100%;
+  flex: auto;
+  text-wrap: wrap;
+  outline: none;
+  overflow-x: hidden;
+  text-align: left;
+}

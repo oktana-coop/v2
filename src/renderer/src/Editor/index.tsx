@@ -52,6 +52,7 @@ export const EditorIndex = () => {
 
   useEffect(() => {
     const docUrls = localStorage.getItem('docUrls');
+    console.log(docUrls);
     if (docUrls) {
       const docs = JSON.parse(docUrls);
       const docsWithTitles = Object.entries(docs).map(([key, value]) => ({
