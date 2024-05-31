@@ -1,6 +1,7 @@
 import {
   AutomergeUrl,
   DocHandleChangePayload,
+  DocHandle,
 } from '@automerge/automerge-repo';
 import { AutoMirror } from '@automerge/prosemirror';
 import { baseKeymap, toggleMark } from 'prosemirror-commands';
@@ -9,9 +10,9 @@ import { MarkType, Schema } from 'prosemirror-model';
 import { Command, EditorState, Transaction } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import React, { useEffect, useRef } from 'react';
-import { useHandle } from '../automerge/repo';
 import { writeFile } from '../utils/filesystem';
 import { CommitDialog } from './CommitDialog';
+import { VersionedDocument } from '../automerge';
 
 const toggleMarkCommand = (mark: MarkType): Command => {
   return (
@@ -24,18 +25,19 @@ const toggleMarkCommand = (mark: MarkType): Command => {
 
 export const DocumentEditor = ({
   docUrl,
+  automergeHandle,
   fileHandle,
 }: {
   docUrl: AutomergeUrl;
+  automergeHandle: DocHandle<VersionedDocument>;
   fileHandle: FileSystemFileHandle;
 }) => {
   const editorRoot = useRef<HTMLDivElement>(null);
   const [isCommitting, openCommitDialog] = React.useState<boolean>(false);
-  const { handle, isReady: isHandleReady } = useHandle(docUrl);
 
   useEffect(() => {
-    if (isHandleReady && handle) {
-      document.title = `v2 | editing "${handle.docSync()?.title}"`;
+    if (automergeHandle) {
+      document.title = `v2 | editing "${automergeHandle.docSync()?.title}"`;
       const autoMirror = new AutoMirror(['content']);
       const toggleBold = (schema: Schema) =>
         toggleMarkCommand(schema.marks.strong);
@@ -55,14 +57,18 @@ export const DocumentEditor = ({
             },
           }),
         ],
-        doc: autoMirror.initialize(handle),
+        doc: autoMirror.initialize(automergeHandle),
       };
 
       const state = EditorState.create(editorConfig);
       const view = new EditorView(editorRoot.current, {
         state,
         dispatchTransaction: (tx: Transaction) => {
-          const newState = autoMirror.intercept(handle, tx, view.state);
+          const newState = autoMirror.intercept(
+            automergeHandle,
+            tx,
+            view.state
+          );
           view.updateState(newState);
         },
       });
@@ -81,18 +87,18 @@ export const DocumentEditor = ({
         view.updateState(newState);
       };
 
-      handle.on('change', onPatch);
+      automergeHandle.on('change', onPatch);
 
       return () => {
-        handle.off('change', onPatch);
+        automergeHandle.off('change', onPatch);
         view.destroy();
       };
     }
-  }, [isHandleReady, handle]);
+  }, [automergeHandle]);
 
   const commitChanges = (message: string) => {
-    if (!handle) return;
-    handle.change(
+    if (!automergeHandle) return;
+    automergeHandle.change(
       (doc) => {
         // this is effectively a no-op, but it triggers a change event
         // (not) changing the title of the document, as interfering with the
@@ -106,7 +112,7 @@ export const DocumentEditor = ({
       }
     );
 
-    const value = handle.docSync()?.content || '';
+    const value = automergeHandle.docSync()?.content || '';
     const fileContent = {
       docUrl,
       value,

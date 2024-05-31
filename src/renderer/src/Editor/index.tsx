@@ -1,4 +1,4 @@
-import { AutomergeUrl } from '@automerge/automerge-repo';
+import { AutomergeUrl, DocHandle } from '@automerge/automerge-repo';
 import { useEffect, useState } from 'react';
 import { VersionedDocument } from '../automerge';
 import { repo } from '../automerge/repo';
@@ -45,10 +45,23 @@ export const EditorIndex = () => {
     null
   );
   const [docUrl, setDocUrl] = useState<AutomergeUrl | null>(null);
+  const [readyAutomergeHandle, setReadyAutomergeHandle] =
+    useState<DocHandle<VersionedDocument> | null>(null);
 
   useEffect(() => {
     document.title = 'v2 | Editor';
   }, []);
+
+  useEffect(() => {
+    if (docUrl) {
+      const automergeHandle = repo.find<VersionedDocument>(docUrl);
+      automergeHandle.whenReady().then(() => {
+        setReadyAutomergeHandle(automergeHandle);
+      });
+    } else {
+      setReadyAutomergeHandle(null);
+    }
+  }, [docUrl]);
 
   useEffect(() => {
     const docUrls = localStorage.getItem('docUrls');
@@ -149,8 +162,12 @@ export const EditorIndex = () => {
           <FileExplorer setFilehandle={setFilehandle} setDocUrl={setDocUrl} />
         </div>
       )}
-      {docUrl && fileHandle ? (
-        <DocumentEditor docUrl={docUrl} fileHandle={fileHandle} />
+      {docUrl && fileHandle && readyAutomergeHandle ? (
+        <DocumentEditor
+          docUrl={docUrl}
+          fileHandle={fileHandle}
+          automergeHandle={readyAutomergeHandle}
+        />
       ) : (
         renderEmptyDocument()
       )}
