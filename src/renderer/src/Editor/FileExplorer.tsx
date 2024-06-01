@@ -1,5 +1,5 @@
-import React from 'react';
-import { readFile } from '../utils/filesystem';
+import React, { useEffect } from 'react';
+import { readFile, getFiles } from '../utils/filesystem';
 import { AutomergeUrl } from '@automerge/automerge-repo';
 import { FolderIcon } from '../components/icons';
 import { SidebarHeading } from '../components/sidebar/SidebarHeading';
@@ -7,35 +7,40 @@ import { Button } from '../components/actions/Button';
 import { clsx } from 'clsx';
 
 export const FileExplorer = ({
+  directoryHandle,
   setFilehandle,
+  setDirectoryHandle,
   setDocUrl,
 }: {
+  directoryHandle: FileSystemDirectoryHandle | null;
   setFilehandle: React.Dispatch<
     React.SetStateAction<FileSystemFileHandle | null>
   >;
-  setDocUrl: React.Dispatch<React.SetStateAction<AutomergeUrl | null>>;
+  setDirectoryHandle: (directoryHandle: FileSystemDirectoryHandle) => void;
+  setDocUrl: (docUrl: AutomergeUrl) => void;
 }) => {
   const [files, setFiles] = React.useState<
     Array<{ filename: string; handle: FileSystemFileHandle }>
   >([]);
-  const [directory, setDirectory] = React.useState<string>('');
   const [selectedFilename, setSelectedFilename] = React.useState<string>('');
 
-  // TODO: Move this to filesystem.ts
-  async function getFiles() {
-    const dirHandle = await window.showDirectoryPicker();
-    const files = [];
+  useEffect(() => {
+    const getDirectoryFiles = async (
+      directoryHandle: FileSystemDirectoryHandle
+    ) => {
+      const files = await getFiles(directoryHandle);
+      setFiles(files);
+    };
 
-    setDirectory(`${dirHandle.name}/`);
-
-    for await (const [key, value] of dirHandle.entries()) {
-      if (value.kind === 'file') {
-        files.push({ filename: key, handle: value });
-      }
+    if (directoryHandle) {
+      getDirectoryFiles(directoryHandle);
     }
+  }, [directoryHandle]);
 
-    setFiles(files);
-  }
+  const openFolder = async () => {
+    const dirHandle = await window.showDirectoryPicker();
+    setDirectoryHandle(dirHandle);
+  };
 
   async function handleOnClick(fileHandle: FileSystemFileHandle) {
     const fileContent = await readFile(fileHandle);
@@ -47,10 +52,10 @@ export const FileExplorer = ({
   return (
     <div className="flex flex-col h-full">
       <SidebarHeading icon={FolderIcon} text="File Explorer" />
-      {directory ? (
+      {directoryHandle ? (
         <>
           <div className="w-48 text-left pt-2 text-black font-bold truncate">
-            {directory}
+            {directoryHandle.name}
           </div>
           <div className="max-h-96 w-48 text-black flex flex-col">
             {files.map((file) => (
@@ -73,7 +78,7 @@ export const FileExplorer = ({
       ) : (
         <div className="flex items-center justify-center h-full">
           <Button
-            onClick={async () => await getFiles()}
+            onClick={async () => await openFolder()}
             variant="solid"
             color="purple"
           >

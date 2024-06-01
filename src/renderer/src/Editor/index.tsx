@@ -1,5 +1,6 @@
 import { AutomergeUrl, DocHandle } from '@automerge/automerge-repo';
 import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { VersionedDocument } from '../automerge';
 import { repo } from '../automerge/repo';
 import { Button } from '../components/actions/Button';
@@ -44,7 +45,8 @@ export const EditorIndex = () => {
   const [fileHandle, setFilehandle] = useState<FileSystemFileHandle | null>(
     null
   );
-  const [docUrl, setDocUrl] = useState<AutomergeUrl | null>(null);
+  const navigate = useNavigate();
+  const { directory, documentId: docUrl } = useParams();
   const [readyAutomergeHandle, setReadyAutomergeHandle] =
     useState<DocHandle<VersionedDocument> | null>(null);
 
@@ -54,7 +56,9 @@ export const EditorIndex = () => {
 
   useEffect(() => {
     if (docUrl) {
-      const automergeHandle = repo.find<VersionedDocument>(docUrl);
+      const automergeHandle = repo.find<VersionedDocument>(
+        docUrl as AutomergeUrl
+      );
       automergeHandle.whenReady().then(() => {
         setReadyAutomergeHandle(automergeHandle);
       });
@@ -64,8 +68,14 @@ export const EditorIndex = () => {
   }, [docUrl]);
 
   useEffect(() => {
+    if (directory) {
+      const directoryHandle = ;
+    }
+  }, [directory]);
+
+  useEffect(() => {
     const docUrls = localStorage.getItem('docUrls');
-    console.log(docUrls);
+
     if (docUrls) {
       const docs = JSON.parse(docUrls);
       const docsWithTitles = Object.entries(docs).map(([key, value]) => ({
@@ -88,11 +98,19 @@ export const EditorIndex = () => {
     persistDocumentUrl(newDocUrl, docTitle);
     const fileHandle = await createNewFile(newDocUrl);
 
-    setDocUrl(newDocUrl);
+    setSearchParams(new URLSearchParams({ id: newDocUrl }));
     if (fileHandle) {
       setFilehandle(fileHandle);
     }
   }
+
+  const setSelectedDoc = (docUrl: AutomergeUrl) => {
+    navigate(`/edit/${directory}/${docUrl}`);
+  };
+
+  const setDirectoryHandle = (directoryHandle: FileSystemDirectoryHandle) => {
+    navigate(`/edit/${directoryHandle.name}`);
+  };
 
   // TODO: Export this to its own component
   function renderEmptyDocument() {
@@ -118,6 +136,8 @@ export const EditorIndex = () => {
       </div>
     );
   }
+
+  console.log(docUrl, fileHandle, readyAutomergeHandle);
 
   return (
     <div className="flex-auto flex">
@@ -159,12 +179,18 @@ export const EditorIndex = () => {
       </Modal>
       {docs.length > 0 && (
         <div className="h-full w-2/5 grow-0 p-5 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
-          <FileExplorer setFilehandle={setFilehandle} setDocUrl={setDocUrl} />
+          <FileExplorer
+            directoryHandle={directoryHandle}
+            setFilehandle={setFilehandle}
+            setDocUrl={setSelectedDoc}
+            setDirectoryHandle={setDirectoryHandle}
+          />
         </div>
       )}
       {docUrl && fileHandle && readyAutomergeHandle ? (
         <DocumentEditor
-          docUrl={docUrl}
+          // TODO: Assert that this is indeed an automerge URL
+          docUrl={docUrl as AutomergeUrl}
           fileHandle={fileHandle}
           automergeHandle={readyAutomergeHandle}
         />

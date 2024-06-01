@@ -23,7 +23,11 @@ function App() {
         <NavBar />
         <Routes>
           <Route path="/" element={<EditorIndex />} />
-          <Route path="/edit" element={<EditorIndex />} />
+          <Route path="/edit" element={<EditorIndex />}>
+            <Route path=":directory" element={<EditorIndex />}>
+              <Route path=":documentId" element={<EditorIndex />} />
+            </Route>
+          </Route>
           <Route path="history" element={<History />}>
             <Route path=":documentId" element={<History />} />
           </Route>
