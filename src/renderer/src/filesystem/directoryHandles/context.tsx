@@ -1,0 +1,49 @@
+import { createContext, useEffect, useState } from 'react';
+import { openDB, getFirst, insertOne } from './database';
+
+type DirectoryContextType = {
+  directoryHandle: FileSystemDirectoryHandle | null;
+  setDirectoryHandle: (directoryHandle: FileSystemDirectoryHandle) => void;
+};
+
+export const DirectoryContext = createContext<DirectoryContextType>({
+  directoryHandle: null,
+  // This is a placeholder. It will be properly implemented in the provider below.
+  setDirectoryHandle: () => {},
+});
+
+export const DirectoryProvider = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
+  const [directoryHandle, setDirectoryHandle] =
+    useState<FileSystemDirectoryHandle | null>(null);
+
+  useEffect(() => {
+    const getFirstHandle = async () => {
+      // This is the IndexedDB object store for the directory handles
+      const objectStore = await openDB();
+      const directoryHandle = await getFirst(objectStore);
+
+      setDirectoryHandle(directoryHandle);
+    };
+
+    getFirstHandle();
+  }, []);
+
+  const handleSetDirectoryHandle = async (
+    handle: FileSystemDirectoryHandle
+  ) => {
+    const objectStore = await openDB();
+    await insertOne({ handle, objectStore });
+  };
+
+  return (
+    <DirectoryContext.Provider
+      value={{ directoryHandle, setDirectoryHandle: handleSetDirectoryHandle }}
+    >
+      {children}
+    </DirectoryContext.Provider>
+  );
+};
