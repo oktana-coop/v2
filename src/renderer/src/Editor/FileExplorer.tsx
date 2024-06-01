@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { readFile, getFiles } from '../utils/filesystem';
+import { readFile, getFiles } from '../filesystem/io';
 import { AutomergeUrl } from '@automerge/automerge-repo';
 import { FolderIcon } from '../components/icons';
 import { SidebarHeading } from '../components/sidebar/SidebarHeading';
