@@ -34,16 +34,15 @@ export const DirectoryProvider = ({
     getFirstHandle();
   }, []);
 
-  const handleSetDirectoryHandle = async (
-    handle: FileSystemDirectoryHandle
-  ) => {
+  const persistDirectoryHandle = async (handle: FileSystemDirectoryHandle) => {
+    setDirectoryHandle(handle);
     const db = await openDB();
     await insertOne({ handle, db });
   };
 
   return (
     <DirectoryContext.Provider
-      value={{ directoryHandle, setDirectoryHandle: handleSetDirectoryHandle }}
+      value={{ directoryHandle, setDirectoryHandle: persistDirectoryHandle }}
     >
       {children}
     </DirectoryContext.Provider>
