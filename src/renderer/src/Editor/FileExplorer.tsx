@@ -25,7 +25,6 @@ export const FileExplorer = ({
   const [selectedFilename, setSelectedFilename] = React.useState<string>('');
 
   useEffect(() => {
-    console.log(directoryHandle);
     const getDirectoryFiles = async (
       directoryHandle: FileSystemDirectoryHandle
     ) => {

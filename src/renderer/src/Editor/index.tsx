@@ -52,8 +52,6 @@ export const EditorIndex = () => {
   const { directoryHandle, setDirectoryHandle: persistDirectoryHandle } =
     useContext(DirectoryContext);
 
-  console.log(directoryHandle);
-
   useEffect(() => {
     document.title = 'v2 | Editor';
   }, []);
@@ -137,8 +135,6 @@ export const EditorIndex = () => {
       </div>
     );
   }
-
-  console.log(docUrl, fileHandle, readyAutomergeHandle);
 
   return (
     <div className="flex-auto flex">

@@ -40,7 +40,6 @@ export const insertOne: (input: {
   handle: FileSystemDirectoryHandle;
   db: IDBDatabase;
 }) => Promise<void> = ({ handle, db }) => {
-  console.log(handle);
   const transaction = db
     .transaction(storeName, 'readwrite')
     .objectStore(storeName)

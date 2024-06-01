@@ -27,8 +27,11 @@ export const DirectoryProvider = ({
       // This is the IndexedDB object store for the directory handles
       const db = await openDB();
       const directoryHandle = await getFirst(db);
-
-      setDirectoryHandle(directoryHandle);
+      if (directoryHandle) {
+        setDirectoryHandle(directoryHandle);
+      } else {
+        setDirectoryHandle(null);
+      }
     };
 
     getFirstHandle();
