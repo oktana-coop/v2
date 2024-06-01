@@ -1,5 +1,5 @@
 import { AutomergeUrl, DocHandle } from '@automerge/automerge-repo';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { VersionedDocument } from '../automerge';
 import { repo } from '../automerge/repo';
@@ -8,7 +8,7 @@ import { Modal } from '../components/dialogs/Modal';
 import { PenIcon } from '../components/icons';
 import { PersonalFile } from '../components/illustrations/PersonalFile';
 import { FileExplorer } from './FileExplorer';
-import { createNewFile } from '../utils/filesystem';
+import { DirectoryContext, createNewFile } from '../filesystem';
 import { DocumentEditor } from './DocumentEditor';
 
 const persistDocumentUrl = (docUrl: AutomergeUrl, docTitle: string) => {
@@ -49,6 +49,8 @@ export const EditorIndex = () => {
   const { directory, documentId: docUrl } = useParams();
   const [readyAutomergeHandle, setReadyAutomergeHandle] =
     useState<DocHandle<VersionedDocument> | null>(null);
+  const { directoryHandle, setDirectoryHandle: persistDirectoryHandle } =
+    useContext(DirectoryContext);
 
   useEffect(() => {
     document.title = 'v2 | Editor';
@@ -66,12 +68,6 @@ export const EditorIndex = () => {
       setReadyAutomergeHandle(null);
     }
   }, [docUrl]);
-
-  useEffect(() => {
-    if (directory) {
-      const directoryHandle = ;
-    }
-  }, [directory]);
 
   useEffect(() => {
     const docUrls = localStorage.getItem('docUrls');
@@ -98,7 +94,7 @@ export const EditorIndex = () => {
     persistDocumentUrl(newDocUrl, docTitle);
     const fileHandle = await createNewFile(newDocUrl);
 
-    setSearchParams(new URLSearchParams({ id: newDocUrl }));
+    // setSearchParams(new URLSearchParams({ id: newDocUrl }));
     if (fileHandle) {
       setFilehandle(fileHandle);
     }
@@ -108,7 +104,10 @@ export const EditorIndex = () => {
     navigate(`/edit/${directory}/${docUrl}`);
   };
 
-  const setDirectoryHandle = (directoryHandle: FileSystemDirectoryHandle) => {
+  const setDirectoryHandle = async (
+    directoryHandle: FileSystemDirectoryHandle
+  ) => {
+    await persistDirectoryHandle(directoryHandle);
     navigate(`/edit/${directoryHandle.name}`);
   };
 

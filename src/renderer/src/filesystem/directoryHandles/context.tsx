@@ -3,13 +3,15 @@ import { openDB, getFirst, insertOne } from './database';
 
 type DirectoryContextType = {
   directoryHandle: FileSystemDirectoryHandle | null;
-  setDirectoryHandle: (directoryHandle: FileSystemDirectoryHandle) => void;
+  setDirectoryHandle: (
+    directoryHandle: FileSystemDirectoryHandle
+  ) => Promise<void>;
 };
 
 export const DirectoryContext = createContext<DirectoryContextType>({
   directoryHandle: null,
   // This is a placeholder. It will be properly implemented in the provider below.
-  setDirectoryHandle: () => {},
+  setDirectoryHandle: async () => {},
 });
 
 export const DirectoryProvider = ({

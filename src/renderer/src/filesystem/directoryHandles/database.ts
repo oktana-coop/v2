@@ -14,10 +14,9 @@ export const openDB: () => Promise<IDBObjectStore> = () => {
     request.onsuccess = () => {
       const db = request.result;
       const transaction = db.transaction([storeName], 'readwrite');
+      const objectStore = transaction.objectStore(storeName);
 
-      transaction.oncomplete = () => {
-        resolve(transaction.objectStore(storeName));
-      };
+      transaction.oncomplete = () => resolve(objectStore);
 
       transaction.onerror = (err) => {
         return reject(err);

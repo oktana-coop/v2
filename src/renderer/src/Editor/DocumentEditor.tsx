@@ -10,7 +10,7 @@ import { MarkType, Schema } from 'prosemirror-model';
 import { Command, EditorState, Transaction } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import React, { useEffect, useRef } from 'react';
-import { writeFile } from '../utils/filesystem';
+import { writeFile } from '../filesystem';
 import { CommitDialog } from './CommitDialog';
 import { VersionedDocument } from '../automerge';
 
