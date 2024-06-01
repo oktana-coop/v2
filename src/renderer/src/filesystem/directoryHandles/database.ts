@@ -2,7 +2,7 @@ const dbName = 'directory_handles';
 const dbVersion = 1;
 const storeName = 'directory_handles';
 
-export const openDB: () => Promise<IDBObjectStore> = () => {
+export const openDB: () => Promise<IDBDatabase> = () => {
   const request = window.indexedDB.open(dbName, dbVersion);
 
   return new Promise((resolve, reject) => {
@@ -10,31 +10,19 @@ export const openDB: () => Promise<IDBObjectStore> = () => {
       return reject(err);
     };
 
-    // In this case the database already exists and we get the reference to the object store.
+    // In this case the database already exists and we get the reference to it.
     request.onsuccess = () => {
-      const db = request.result;
-      const transaction = db.transaction([storeName], 'readwrite');
-      const objectStore = transaction.objectStore(storeName);
-
-      transaction.oncomplete = () => resolve(objectStore);
-
-      transaction.onerror = (err) => {
-        return reject(err);
-      };
-
-      transaction.onabort = () => {
-        return reject(new Error('Object store transaction aborted'));
-      };
+      resolve(request.result);
     };
 
     // Handle initial DB creation and migrations here.
-    // Then, return the reference to the newly created object store.
+    // Then, return the reference to the DB.
     request.onupgradeneeded = () => {
       const db = request.result;
-      const objectStore = db.createObjectStore(storeName, { keyPath: 'name' });
+      const objectStore = db.createObjectStore(storeName);
 
       objectStore.transaction.oncomplete = () => {
-        return resolve(objectStore);
+        return resolve(db);
       };
 
       objectStore.transaction.onerror = (err) => {
@@ -50,20 +38,27 @@ export const openDB: () => Promise<IDBObjectStore> = () => {
 
 export const insertOne: (input: {
   handle: FileSystemDirectoryHandle;
-  objectStore: IDBObjectStore;
-}) => Promise<void> = ({ handle, objectStore }) => {
-  const request = objectStore.add(handle);
+  db: IDBDatabase;
+}) => Promise<void> = ({ handle, db }) => {
+  console.log(handle);
+  const transaction = db
+    .transaction(storeName, 'readwrite')
+    .objectStore(storeName)
+    .add(handle, handle.name);
 
   return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve();
-    request.onerror = (err) => reject(err);
+    transaction.onsuccess = () => resolve();
+    transaction.onerror = (err) => reject(err);
   });
 };
 
 export const getFirst: (
-  objectStore: IDBObjectStore
-) => Promise<FileSystemDirectoryHandle | null> = (objectStore) => {
-  const request = objectStore.openCursor();
+  db: IDBDatabase
+) => Promise<FileSystemDirectoryHandle | null> = (db) => {
+  const request = db
+    .transaction(storeName, 'readwrite')
+    .objectStore(storeName)
+    .openCursor();
 
   return new Promise((resolve, reject) => {
     request.onsuccess = () => {

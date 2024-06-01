@@ -25,8 +25,8 @@ export const DirectoryProvider = ({
   useEffect(() => {
     const getFirstHandle = async () => {
       // This is the IndexedDB object store for the directory handles
-      const objectStore = await openDB();
-      const directoryHandle = await getFirst(objectStore);
+      const db = await openDB();
+      const directoryHandle = await getFirst(db);
 
       setDirectoryHandle(directoryHandle);
     };
@@ -37,8 +37,8 @@ export const DirectoryProvider = ({
   const handleSetDirectoryHandle = async (
     handle: FileSystemDirectoryHandle
   ) => {
-    const objectStore = await openDB();
-    await insertOne({ handle, objectStore });
+    const db = await openDB();
+    await insertOne({ handle, db });
   };
 
   return (
