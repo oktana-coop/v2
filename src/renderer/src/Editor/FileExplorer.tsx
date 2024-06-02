@@ -31,13 +31,6 @@ export const FileExplorer = ({
   const [selectedFilename, setSelectedFilename] = React.useState<string>('');
 
   useEffect(() => {
-    console.log('directoryPermissionState 👉', {
-      directoryHandle,
-      directoryPermissionState,
-    });
-  }, [directoryPermissionState, directoryHandle]);
-
-  useEffect(() => {
     const getDirectoryFiles = async (
       directoryHandle: FileSystemDirectoryHandle
     ) => {
@@ -45,7 +38,7 @@ export const FileExplorer = ({
       setFiles(files);
     };
 
-    if (directoryHandle && directoryPermissionState !== 'prompt') {
+    if (directoryHandle && directoryPermissionState === 'granted') {
       getDirectoryFiles(directoryHandle);
     }
   }, [directoryHandle, directoryPermissionState]);
@@ -53,6 +46,10 @@ export const FileExplorer = ({
   const openFolder = async () => {
     const dirHandle = await window.showDirectoryPicker();
     setDirectoryHandle(dirHandle);
+
+    // update permission state
+    const perm = await dirHandle.queryPermission();
+    setDirectoryPermissionState(perm);
   };
 
   const requestPermissions = async () => {
@@ -74,7 +71,7 @@ export const FileExplorer = ({
   return (
     <div className="flex flex-col h-full">
       <SidebarHeading icon={FolderIcon} text="File Explorer" />
-      {directoryHandle && directoryPermissionState !== 'prompt' ? (
+      {directoryHandle && directoryPermissionState === 'granted' ? (
         <>
           <div className="w-48 text-left pt-2 text-black font-bold truncate">
             {directoryHandle.name}
