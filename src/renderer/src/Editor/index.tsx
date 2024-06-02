@@ -11,34 +11,7 @@ import { FileExplorer } from './FileExplorer';
 import { DirectoryContext, createNewFile } from '../filesystem';
 import { DocumentEditor } from './DocumentEditor';
 
-const persistDocumentUrl = (docUrl: AutomergeUrl, docTitle: string) => {
-  const currentDocUrls = localStorage.getItem('docUrls');
-  if (currentDocUrls) {
-    const currentDocs = JSON.parse(currentDocUrls);
-    localStorage.setItem(
-      'docUrls',
-      JSON.stringify({
-        ...currentDocs,
-        [docUrl]: docTitle,
-      })
-    );
-  } else {
-    localStorage.setItem(
-      'docUrls',
-      JSON.stringify({
-        [docUrl]: docTitle,
-      })
-    );
-  }
-};
-
 export const EditorIndex = () => {
-  const [docs, setDocs] = useState<
-    Array<{
-      id: AutomergeUrl;
-      title: string;
-    }>
-  >([]);
   const [newDocTitle, setNewDocTitle] = useState<string>('');
   const [isDocumentCreationModalOpen, openCreateDocumentModal] =
     useState<boolean>(false);
@@ -69,19 +42,6 @@ export const EditorIndex = () => {
     }
   }, [docUrl]);
 
-  useEffect(() => {
-    const docUrls = localStorage.getItem('docUrls');
-
-    if (docUrls) {
-      const docs = JSON.parse(docUrls);
-      const docsWithTitles = Object.entries(docs).map(([key, value]) => ({
-        id: key as AutomergeUrl,
-        title: value as string,
-      }));
-      setDocs(docsWithTitles);
-    }
-  }, []);
-
   async function handleDocumentCreation(docTitle: string) {
     const handle = repo.create<VersionedDocument>();
     const newDocUrl = handle.url;
@@ -89,12 +49,8 @@ export const EditorIndex = () => {
       doc.title = docTitle;
       doc.content = docTitle;
     });
-    // HACK: temporary workaround to persist the document url
-    // until we figure out how to handle existing documents persistence
-    persistDocumentUrl(newDocUrl, docTitle);
-    const fileHandle = await createNewFile(newDocUrl);
 
-    // setSearchParams(new URLSearchParams({ id: newDocUrl }));
+    const fileHandle = await createNewFile(newDocUrl);
     if (fileHandle) {
       setFilehandle(fileHandle);
     }
@@ -117,7 +73,7 @@ export const EditorIndex = () => {
       <div className="h-full w-full grow flex flex-col items-center justify-center">
         <h2 className="text-2xl">Welcome to v2 👋</h2>
         <p>
-          {docs.length > 0
+          {directory
             ? '👈 Pick one document from the list to continue editing. Or create a new one 😉.'
             : 'Create a new document and explore the world of versioning.'}
         </p>
@@ -174,16 +130,14 @@ export const EditorIndex = () => {
           className="w-full p-2 border border-gray-300 rounded-md"
         />
       </Modal>
-      {docs.length > 0 && (
-        <div className="h-full w-2/5 grow-0 p-5 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
-          <FileExplorer
-            directoryHandle={directoryHandle}
-            setFilehandle={setFilehandle}
-            setDocUrl={setSelectedDoc}
-            setDirectoryHandle={setDirectoryHandle}
-          />
-        </div>
-      )}
+      <div className="h-full w-2/5 grow-0 p-5 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
+        <FileExplorer
+          directoryHandle={directoryHandle}
+          setFilehandle={setFilehandle}
+          setDocUrl={setSelectedDoc}
+          setDirectoryHandle={setDirectoryHandle}
+        />
+      </div>
       {docUrl && fileHandle && readyAutomergeHandle ? (
         <DocumentEditor
           // TODO: Assert that this is indeed an automerge URL
