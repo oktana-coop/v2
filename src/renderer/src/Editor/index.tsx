@@ -131,7 +131,9 @@ export const EditorIndex = () => {
         automergeHandle={readyAutomergeHandle}
         onDocumentChange={handleDocumentChange}
       />
-    ) : null;
+    ) : (
+      <div>Loading...</div>
+    );
   }
 
   return (
