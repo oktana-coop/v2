@@ -70,7 +70,7 @@ export const EditorIndex = () => {
     writeFile(fileHandle, fileContent);
   };
 
-  const setSelectedDoc = (docUrl: AutomergeUrl) => {
+  const handleFileSelection = (directory: string, docUrl: AutomergeUrl) => {
     navigate(`/edit/${directory}/${docUrl}`);
   };
 
@@ -148,8 +148,8 @@ export const EditorIndex = () => {
         <FileExplorer
           directoryHandle={directoryHandle}
           setFilehandle={setFilehandle}
-          setDocUrl={setSelectedDoc}
           setDirectoryHandle={setDirectoryHandle}
+          onFileSelection={handleFileSelection}
         />
       </div>
       {readyAutomergeHandle ? (

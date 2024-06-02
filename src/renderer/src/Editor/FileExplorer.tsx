@@ -10,14 +10,14 @@ export const FileExplorer = ({
   directoryHandle,
   setFilehandle,
   setDirectoryHandle,
-  setDocUrl,
+  onFileSelection,
 }: {
   directoryHandle: FileSystemDirectoryHandle | null;
   setFilehandle: React.Dispatch<
     React.SetStateAction<FileSystemFileHandle | null>
   >;
   setDirectoryHandle: (directoryHandle: FileSystemDirectoryHandle) => void;
-  setDocUrl: (docUrl: AutomergeUrl) => void;
+  onFileSelection: (directoryName: string, docUrl: AutomergeUrl) => void;
 }) => {
   const [files, setFiles] = React.useState<
     Array<{ filename: string; handle: FileSystemFileHandle }>
@@ -44,9 +44,11 @@ export const FileExplorer = ({
 
   async function handleOnClick(fileHandle: FileSystemFileHandle) {
     const fileContent = await readFile(fileHandle);
-    setDocUrl(fileContent.docUrl);
     setSelectedFilename(fileHandle.name);
     setFilehandle(fileHandle);
+    if (directoryHandle) {
+      return onFileSelection(directoryHandle?.name, fileContent.docUrl);
+    }
   }
 
   return (
