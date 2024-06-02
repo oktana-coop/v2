@@ -1,4 +1,8 @@
-import { AutomergeUrl, DocHandle } from '@automerge/automerge-repo';
+import {
+  AutomergeUrl,
+  DocHandle,
+  isValidAutomergeUrl,
+} from '@automerge/automerge-repo';
 import { useEffect, useState, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { VersionedDocument } from '../automerge';
@@ -10,6 +14,7 @@ import { PersonalFile } from '../components/illustrations/PersonalFile';
 import { FileExplorer } from './FileExplorer';
 import { DirectoryContext, createNewFile, writeFile } from '../filesystem';
 import { DocumentEditor } from './DocumentEditor';
+import { InvalidDocument } from '../pages/History/InvalidDocument/InvalidDocument';
 
 export const EditorIndex = () => {
   const [newDocTitle, setNewDocTitle] = useState<string>('');
@@ -20,6 +25,7 @@ export const EditorIndex = () => {
   );
   const navigate = useNavigate();
   const { directory, documentId: docUrl } = useParams();
+  const [isValidAutomergeId, setIsValidAutomergeId] = useState<boolean>(false);
   const [readyAutomergeHandle, setReadyAutomergeHandle] =
     useState<DocHandle<VersionedDocument> | null>(null);
   const { directoryHandle, setDirectoryHandle: persistDirectoryHandle } =
@@ -30,7 +36,12 @@ export const EditorIndex = () => {
   }, []);
 
   useEffect(() => {
-    if (docUrl) {
+    if (!docUrl) return;
+
+    const isValidDocUrl = isValidAutomergeUrl(docUrl);
+    setIsValidAutomergeId(isValidDocUrl);
+
+    if (isValidDocUrl) {
       const automergeHandle = repo.find<VersionedDocument>(
         docUrl as AutomergeUrl
       );
@@ -106,6 +117,23 @@ export const EditorIndex = () => {
     );
   }
 
+  function renderMainPane() {
+    if (!docUrl) {
+      return renderEmptyDocument();
+    }
+
+    if (!isValidAutomergeId) {
+      return <InvalidDocument />;
+    }
+
+    return readyAutomergeHandle ? (
+      <DocumentEditor
+        automergeHandle={readyAutomergeHandle}
+        onDocumentChange={handleDocumentChange}
+      />
+    ) : null;
+  }
+
   return (
     <div className="flex-auto flex">
       <Modal
@@ -152,14 +180,7 @@ export const EditorIndex = () => {
           onFileSelection={handleFileSelection}
         />
       </div>
-      {readyAutomergeHandle ? (
-        <DocumentEditor
-          automergeHandle={readyAutomergeHandle}
-          onDocumentChange={handleDocumentChange}
-        />
-      ) : (
-        renderEmptyDocument()
-      )}
+      {renderMainPane()}
     </div>
   );
 };
