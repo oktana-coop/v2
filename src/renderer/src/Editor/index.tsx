@@ -28,8 +28,12 @@ export const EditorIndex = () => {
   const [isValidAutomergeId, setIsValidAutomergeId] = useState<boolean>(false);
   const [readyAutomergeHandle, setReadyAutomergeHandle] =
     useState<DocHandle<VersionedDocument> | null>(null);
-  const { directoryHandle, setDirectoryHandle: persistDirectoryHandle } =
-    useContext(DirectoryContext);
+  const {
+    directoryPermissionState,
+    directoryHandle,
+    setDirectoryHandle: persistDirectoryHandle,
+    setDirectoryPermissionState,
+  } = useContext(DirectoryContext);
 
   useEffect(() => {
     document.title = 'v2 | Editor';
@@ -176,6 +180,8 @@ export const EditorIndex = () => {
       </Modal>
       <div className="h-full w-2/5 grow-0 p-5 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
         <FileExplorer
+          directoryPermissionState={directoryPermissionState}
+          setDirectoryPermissionState={setDirectoryPermissionState}
           directoryHandle={directoryHandle}
           setFilehandle={setFilehandle}
           setDirectoryHandle={setDirectoryHandle}

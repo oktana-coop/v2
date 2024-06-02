@@ -10,12 +10,18 @@ export const FileExplorer = ({
   directoryHandle,
   setFilehandle,
   setDirectoryHandle,
+  setDirectoryPermissionState,
   onFileSelection,
+  directoryPermissionState,
 }: {
+  directoryPermissionState: PermissionState | null;
   directoryHandle: FileSystemDirectoryHandle | null;
   setFilehandle: React.Dispatch<
     React.SetStateAction<FileSystemFileHandle | null>
   >;
+  setDirectoryPermissionState: (
+    directoryPermissionState: PermissionState
+  ) => void;
   setDirectoryHandle: (directoryHandle: FileSystemDirectoryHandle) => void;
   onFileSelection: (directoryName: string, docUrl: AutomergeUrl) => void;
 }) => {
@@ -32,14 +38,21 @@ export const FileExplorer = ({
       setFiles(files);
     };
 
-    if (directoryHandle) {
+    if (directoryHandle && directoryPermissionState === 'granted') {
       getDirectoryFiles(directoryHandle);
     }
-  }, [directoryHandle]);
+  }, [directoryHandle, directoryPermissionState]);
 
   const openFolder = async () => {
     const dirHandle = await window.showDirectoryPicker();
     setDirectoryHandle(dirHandle);
+  };
+
+  const requestPermissions = async () => {
+    if (directoryHandle) {
+      const perm = await directoryHandle.requestPermission();
+      setDirectoryPermissionState(perm);
+    }
   };
 
   async function handleOnClick(fileHandle: FileSystemFileHandle) {
@@ -54,7 +67,7 @@ export const FileExplorer = ({
   return (
     <div className="flex flex-col h-full">
       <SidebarHeading icon={FolderIcon} text="File Explorer" />
-      {directoryHandle ? (
+      {directoryHandle && directoryPermissionState === 'granted' ? (
         <>
           <div className="w-48 text-left pt-2 text-black font-bold truncate">
             {directoryHandle.name}
@@ -80,12 +93,16 @@ export const FileExplorer = ({
       ) : (
         <div className="flex items-center justify-center h-full">
           <Button
-            onClick={async () => await openFolder()}
+            onClick={async () =>
+              directoryPermissionState === 'prompt'
+                ? await requestPermissions()
+                : await openFolder()
+            }
             variant="solid"
             color="purple"
           >
             <FolderIcon />
-            Open folder
+            Open Folder
           </Button>
         </div>
       )}

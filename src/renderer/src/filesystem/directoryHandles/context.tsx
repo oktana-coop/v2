@@ -3,6 +3,10 @@ import { openDB, getFirst, insertOne } from './database';
 
 type DirectoryContextType = {
   directoryHandle: FileSystemDirectoryHandle | null;
+  directoryPermissionState: PermissionState | null;
+  setDirectoryPermissionState: (
+    directoryPermissionState: PermissionState
+  ) => void;
   setDirectoryHandle: (
     directoryHandle: FileSystemDirectoryHandle
   ) => Promise<void>;
@@ -10,8 +14,10 @@ type DirectoryContextType = {
 
 export const DirectoryContext = createContext<DirectoryContextType>({
   directoryHandle: null,
+  directoryPermissionState: null,
   // This is a placeholder. It will be properly implemented in the provider below.
   setDirectoryHandle: async () => {},
+  setDirectoryPermissionState: async () => {},
 });
 
 export const DirectoryProvider = ({
@@ -21,6 +27,8 @@ export const DirectoryProvider = ({
 }) => {
   const [directoryHandle, setDirectoryHandle] =
     useState<FileSystemDirectoryHandle | null>(null);
+  const [directoryPermissionState, setDirectoryPermissionState] =
+    useState<PermissionState | null>(null);
 
   useEffect(() => {
     const getFirstHandle = async () => {
@@ -28,6 +36,8 @@ export const DirectoryProvider = ({
       const db = await openDB();
       const directoryHandle = await getFirst(db);
       if (directoryHandle) {
+        const permissionState = await directoryHandle.queryPermission();
+        setDirectoryPermissionState(permissionState);
         setDirectoryHandle(directoryHandle);
       } else {
         setDirectoryHandle(null);
@@ -45,7 +55,12 @@ export const DirectoryProvider = ({
 
   return (
     <DirectoryContext.Provider
-      value={{ directoryHandle, setDirectoryHandle: persistDirectoryHandle }}
+      value={{
+        directoryPermissionState,
+        directoryHandle,
+        setDirectoryHandle: persistDirectoryHandle,
+        setDirectoryPermissionState: setDirectoryPermissionState,
+      }}
     >
       {children}
     </DirectoryContext.Provider>
