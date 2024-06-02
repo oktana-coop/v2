@@ -8,7 +8,7 @@ import { Modal } from '../components/dialogs/Modal';
 import { PenIcon } from '../components/icons';
 import { PersonalFile } from '../components/illustrations/PersonalFile';
 import { FileExplorer } from './FileExplorer';
-import { DirectoryContext, createNewFile } from '../filesystem';
+import { DirectoryContext, createNewFile, writeFile } from '../filesystem';
 import { DocumentEditor } from './DocumentEditor';
 
 export const EditorIndex = () => {
@@ -42,7 +42,7 @@ export const EditorIndex = () => {
     }
   }, [docUrl]);
 
-  async function handleDocumentCreation(docTitle: string) {
+  const handleDocumentCreation = async (docTitle: string) => {
     const handle = repo.create<VersionedDocument>();
     const newDocUrl = handle.url;
     handle.change((doc) => {
@@ -54,7 +54,21 @@ export const EditorIndex = () => {
     if (fileHandle) {
       setFilehandle(fileHandle);
     }
-  }
+  };
+
+  const handleDocumentChange = (docUrl: AutomergeUrl, value: string) => {
+    // TODO: The fileHandle should be set when the document is selected
+    // or on initial page load
+    if (!fileHandle) {
+      console.error('fileHandle has not been initialized');
+      return;
+    }
+    const fileContent = {
+      docUrl,
+      value,
+    };
+    writeFile(fileHandle, fileContent);
+  };
 
   const setSelectedDoc = (docUrl: AutomergeUrl) => {
     navigate(`/edit/${directory}/${docUrl}`);
@@ -138,12 +152,10 @@ export const EditorIndex = () => {
           setDirectoryHandle={setDirectoryHandle}
         />
       </div>
-      {docUrl && fileHandle && readyAutomergeHandle ? (
+      {readyAutomergeHandle ? (
         <DocumentEditor
-          // TODO: Assert that this is indeed an automerge URL
-          docUrl={docUrl as AutomergeUrl}
-          fileHandle={fileHandle}
           automergeHandle={readyAutomergeHandle}
+          onDocumentChange={handleDocumentChange}
         />
       ) : (
         renderEmptyDocument()
