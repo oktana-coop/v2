@@ -25,7 +25,6 @@ export const EditorIndex = () => {
   );
   const navigate = useNavigate();
   const { directory, documentId: docUrl } = useParams();
-  const [isValidAutomergeId, setIsValidAutomergeId] = useState<boolean>(false);
   const [readyAutomergeHandle, setReadyAutomergeHandle] =
     useState<DocHandle<VersionedDocument> | null>(null);
   const {
@@ -40,15 +39,12 @@ export const EditorIndex = () => {
   }, []);
 
   useEffect(() => {
-    if (!docUrl) return;
+    if (!docUrl) {
+      return;
+    }
 
-    const isValidDocUrl = isValidAutomergeUrl(docUrl);
-    setIsValidAutomergeId(isValidDocUrl);
-
-    if (isValidDocUrl) {
-      const automergeHandle = repo.find<VersionedDocument>(
-        docUrl as AutomergeUrl
-      );
+    if (isValidAutomergeUrl(docUrl)) {
+      const automergeHandle = repo.find<VersionedDocument>(docUrl);
       automergeHandle.whenReady().then(() => {
         setReadyAutomergeHandle(automergeHandle);
       });
@@ -78,10 +74,12 @@ export const EditorIndex = () => {
       console.error('fileHandle has not been initialized');
       return;
     }
+
     const fileContent = {
       docUrl,
       value,
     };
+
     writeFile(fileHandle, fileContent);
   };
 
@@ -126,7 +124,7 @@ export const EditorIndex = () => {
       return renderEmptyDocument();
     }
 
-    if (!isValidAutomergeId) {
+    if (!isValidAutomergeUrl(docUrl)) {
       return <InvalidDocument />;
     }
 

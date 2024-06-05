@@ -43,7 +43,7 @@ export const FileExplorer = ({
     }
   }, [directoryHandle, directoryPermissionState]);
 
-  const openFolder = async () => {
+  const openDirectory = async () => {
     const dirHandle = await window.showDirectoryPicker();
     setDirectoryHandle(dirHandle);
 
@@ -100,7 +100,7 @@ export const FileExplorer = ({
             onClick={async () =>
               directoryPermissionState === 'prompt'
                 ? await requestPermissions()
-                : await openFolder()
+                : await openDirectory()
             }
             variant="solid"
             color="purple"
