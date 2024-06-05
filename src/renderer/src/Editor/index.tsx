@@ -15,6 +15,7 @@ import { FileExplorer } from './FileExplorer';
 import { DirectoryContext, createNewFile, writeFile } from '../filesystem';
 import { DocumentEditor } from './DocumentEditor';
 import { InvalidDocument } from '../pages/History/InvalidDocument/InvalidDocument';
+import { Layout } from '../components/layout/Layout';
 
 export const EditorIndex = () => {
   const [newDocTitle, setNewDocTitle] = useState<string>('');
@@ -139,54 +140,56 @@ export const EditorIndex = () => {
   }
 
   return (
-    <div className="flex-auto flex">
-      <Modal
-        isOpen={isDocumentCreationModalOpen}
-        title="Give your document a title"
-        secondaryButton={
-          <Button
-            variant="plain"
-            onClick={() => {
-              setNewDocTitle('');
-              openCreateDocumentModal(false);
-            }}
-          >
-            Cancel
-          </Button>
-        }
-        primaryButton={
-          <Button
-            disabled={newDocTitle.length === 0}
-            onClick={async () => {
-              await handleDocumentCreation(newDocTitle);
-              setNewDocTitle('');
-              openCreateDocumentModal(false);
-            }}
-            color="purple"
-          >
-            Create
-          </Button>
-        }
-      >
-        <input
-          type="text"
-          value={newDocTitle}
-          autoFocus={true}
-          onChange={(e) => setNewDocTitle(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-md"
-        />
-      </Modal>
-      <div className="h-full w-2/5 grow-0 p-5 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
-        <FileExplorer
-          directoryPermissionState={directoryPermissionState}
-          setDirectoryPermissionState={setDirectoryPermissionState}
-          directoryHandle={directoryHandle}
-          setFilehandle={setFilehandle}
-          setDirectoryHandle={setDirectoryHandle}
-          onFileSelection={handleFileSelection}
-        />
+    <Layout>
+      <div className="flex-auto flex">
+        <Modal
+          isOpen={isDocumentCreationModalOpen}
+          title="Give your document a title"
+          secondaryButton={
+            <Button
+              variant="plain"
+              onClick={() => {
+                setNewDocTitle('');
+                openCreateDocumentModal(false);
+              }}
+            >
+              Cancel
+            </Button>
+          }
+          primaryButton={
+            <Button
+              disabled={newDocTitle.length === 0}
+              onClick={async () => {
+                await handleDocumentCreation(newDocTitle);
+                setNewDocTitle('');
+                openCreateDocumentModal(false);
+              }}
+              color="purple"
+            >
+              Create
+            </Button>
+          }
+        >
+          <input
+            type="text"
+            value={newDocTitle}
+            autoFocus={true}
+            onChange={(e) => setNewDocTitle(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded-md"
+          />
+        </Modal>
+        <div className="h-full w-2/5 grow-0 p-5 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
+          <FileExplorer
+            directoryPermissionState={directoryPermissionState}
+            setDirectoryPermissionState={setDirectoryPermissionState}
+            directoryHandle={directoryHandle}
+            setFilehandle={setFilehandle}
+            setDirectoryHandle={setDirectoryHandle}
+            onFileSelection={handleFileSelection}
+          />
+        </div>
+        {renderMainPane()}
       </div>
-      {renderMainPane()}
-    </div>
+    </Layout>
   );
 };
