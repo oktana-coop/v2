@@ -4,7 +4,7 @@ import {
   isValidAutomergeUrl,
 } from '@automerge/automerge-repo';
 import { useEffect, useState, useContext } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { VersionedDocument } from '../automerge';
 import { repo } from '../automerge/repo';
 import { Button } from '../components/actions/Button';
@@ -28,7 +28,6 @@ export const EditorIndex = () => {
     useState<boolean>(false);
   const navigate = useNavigate();
   const { documentId: docUrl } = useParams();
-  const [, setSearchParams] = useSearchParams();
   const [readyAutomergeHandle, setReadyAutomergeHandle] =
     useState<DocHandle<VersionedDocument> | null>(null);
   const {
@@ -71,15 +70,9 @@ export const EditorIndex = () => {
     };
 
     if (directoryHandle && directoryPermissionState === 'granted') {
-      setSearchParams({ directory: directoryHandle.name });
       getDirectoryFiles(directoryHandle);
     }
-  }, [
-    directoryHandle,
-    directoryPermissionState,
-    selectedFileHandle,
-    setSearchParams,
-  ]);
+  }, [directoryHandle, directoryPermissionState, selectedFileHandle]);
 
   const handleDocumentCreation = async (docTitle: string) => {
     const handle = repo.create<VersionedDocument>();
@@ -116,20 +109,13 @@ export const EditorIndex = () => {
     fileHandle: FileSystemFileHandle
   ) => {
     setSelectedFilehandle(fileHandle);
-
-    const newPath = `/edit/${docUrl}`;
-    if (directoryHandle) {
-      navigate(`${newPath}?directory=${directoryHandle.name}`);
-    } else {
-      navigate(newPath);
-    }
+    navigate(`/edit/${docUrl}`);
   };
 
   const setDirectoryHandle = async (
     directoryHandle: FileSystemDirectoryHandle
   ) => {
     await persistDirectoryHandle(directoryHandle);
-    setSearchParams({ directory: directoryHandle.name });
   };
 
   // TODO: Export this to its own component

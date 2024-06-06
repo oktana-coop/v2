@@ -1,10 +1,5 @@
 import { clsx } from 'clsx';
-import {
-  NavLink,
-  useParams,
-  useLocation,
-  useSearchParams,
-} from 'react-router-dom';
+import { NavLink, useParams, useLocation } from 'react-router-dom';
 
 import { BranchIcon, OptionsIcon, PenIcon } from '../icons';
 import { Logo } from '../brand/Logo';
@@ -43,24 +38,16 @@ const navigation: NavItem[] = [
 export const NavBarItem = ({ item }: { item: NavItem }) => {
   const { pathname } = useLocation();
   const { documentId } = useParams();
-  const [searchParams] = useSearchParams();
   const Icon = item.icon;
 
   const constructLink = (destination: NavItem) => {
-    // In these cases, we want to maintain the document path (folder + document ID)
+    // In these cases, we want to maintain the document path
     if (
       ((pathname.startsWith('/edit') && destination.href === '/history') ||
         (pathname.startsWith('/history') && destination.href === '/edit')) &&
       documentId
     ) {
-      const path = `${item.href}/${documentId}`;
-
-      const directory = searchParams.get('directory');
-      if (directory) {
-        return `${path}?directory=${directory}`;
-      }
-
-      return path;
+      return `${item.href}/${documentId}`;
     }
 
     return item.href;
