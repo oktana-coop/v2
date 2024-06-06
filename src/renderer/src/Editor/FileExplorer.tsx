@@ -23,7 +23,6 @@ export const FileExplorer = ({
   ) => void;
   setDirectoryHandle: (directoryHandle: FileSystemDirectoryHandle) => void;
   onFileSelection: (
-    directoryName: string,
     docUrl: AutomergeUrl,
     fileHandle: FileSystemFileHandle
   ) => void;
@@ -49,13 +48,7 @@ export const FileExplorer = ({
   async function handleOnClick(fileHandle: FileSystemFileHandle) {
     const fileContent = await readFile(fileHandle);
     setSelectedFilename(fileHandle.name);
-    if (directoryHandle) {
-      return onFileSelection(
-        directoryHandle?.name,
-        fileContent.docUrl,
-        fileHandle
-      );
-    }
+    return onFileSelection(fileContent.docUrl, fileHandle);
   }
 
   return (

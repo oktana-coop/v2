@@ -4,7 +4,7 @@ import {
   isValidAutomergeUrl,
 } from '@automerge/automerge-repo';
 import { useEffect, useState, useContext } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { VersionedDocument } from '../automerge';
 import { repo } from '../automerge/repo';
 import { Button } from '../components/actions/Button';
@@ -27,7 +27,8 @@ export const EditorIndex = () => {
   const [isDocumentCreationModalOpen, openCreateDocumentModal] =
     useState<boolean>(false);
   const navigate = useNavigate();
-  const { directory, documentId: docUrl } = useParams();
+  const { documentId: docUrl } = useParams();
+  const [, setSearchParams] = useSearchParams();
   const [readyAutomergeHandle, setReadyAutomergeHandle] =
     useState<DocHandle<VersionedDocument> | null>(null);
   const {
@@ -70,9 +71,15 @@ export const EditorIndex = () => {
     };
 
     if (directoryHandle && directoryPermissionState === 'granted') {
+      setSearchParams({ directory: directoryHandle.name });
       getDirectoryFiles(directoryHandle);
     }
-  }, [directoryHandle, directoryPermissionState, selectedFileHandle]);
+  }, [
+    directoryHandle,
+    directoryPermissionState,
+    selectedFileHandle,
+    setSearchParams,
+  ]);
 
   const handleDocumentCreation = async (docTitle: string) => {
     const handle = repo.create<VersionedDocument>();
@@ -84,10 +91,7 @@ export const EditorIndex = () => {
 
     const fileHandle = await createNewFile(newDocUrl);
     if (fileHandle) {
-      setSelectedFilehandle(fileHandle);
-      if (directoryHandle) {
-        navigate(`/edit/${directoryHandle.name}/${newDocUrl}`);
-      }
+      handleFileSelection(newDocUrl, fileHandle);
     }
   };
 
@@ -108,19 +112,24 @@ export const EditorIndex = () => {
   };
 
   const handleFileSelection = (
-    directory: string,
     docUrl: AutomergeUrl,
     fileHandle: FileSystemFileHandle
   ) => {
     setSelectedFilehandle(fileHandle);
-    navigate(`/edit/${directory}/${docUrl}`);
+
+    const newPath = `/edit/${docUrl}`;
+    if (directoryHandle) {
+      navigate(`${newPath}?directory=${directoryHandle.name}`);
+    } else {
+      navigate(newPath);
+    }
   };
 
   const setDirectoryHandle = async (
     directoryHandle: FileSystemDirectoryHandle
   ) => {
     await persistDirectoryHandle(directoryHandle);
-    navigate(`/edit/${directoryHandle.name}`);
+    setSearchParams({ directory: directoryHandle.name });
   };
 
   // TODO: Export this to its own component
@@ -129,7 +138,7 @@ export const EditorIndex = () => {
       <div className="h-full w-full grow flex flex-col items-center justify-center">
         <h2 className="text-2xl">Welcome to v2 👋</h2>
         <p>
-          {directory
+          {directoryHandle
             ? '👈 Pick one document from the list to continue editing. Or create a new one 😉.'
             : 'Create a new document and explore the world of versioning.'}
         </p>

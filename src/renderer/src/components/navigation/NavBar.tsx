@@ -1,5 +1,10 @@
 import { clsx } from 'clsx';
-import { NavLink, useParams, useLocation } from 'react-router-dom';
+import {
+  NavLink,
+  useParams,
+  useLocation,
+  useSearchParams,
+} from 'react-router-dom';
 
 import { BranchIcon, OptionsIcon, PenIcon } from '../icons';
 import { Logo } from '../brand/Logo';
@@ -37,7 +42,8 @@ const navigation: NavItem[] = [
 
 export const NavBarItem = ({ item }: { item: NavItem }) => {
   const { pathname } = useLocation();
-  const { directory, documentId } = useParams();
+  const { documentId } = useParams();
+  const [searchParams] = useSearchParams();
   const Icon = item.icon;
 
   const constructLink = (destination: NavItem) => {
@@ -45,10 +51,16 @@ export const NavBarItem = ({ item }: { item: NavItem }) => {
     if (
       ((pathname.startsWith('/edit') && destination.href === '/history') ||
         (pathname.startsWith('/history') && destination.href === '/edit')) &&
-      directory &&
       documentId
     ) {
-      return `${item.href}/${directory}/${documentId}`;
+      const path = `${item.href}/${documentId}`;
+
+      const directory = searchParams.get('directory');
+      if (directory) {
+        return `${path}?directory=${directory}`;
+      }
+
+      return path;
     }
 
     return item.href;
