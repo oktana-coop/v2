@@ -1,14 +1,15 @@
-import React, { useEffect } from 'react';
-import { readFile, getFiles } from '../filesystem/io';
+import React from 'react';
+import { clsx } from 'clsx';
 import { AutomergeUrl } from '@automerge/automerge-repo';
+
 import { FolderIcon } from '../components/icons';
 import { SidebarHeading } from '../components/sidebar/SidebarHeading';
 import { Button } from '../components/actions/Button';
-import { clsx } from 'clsx';
+import { readFile } from '../filesystem';
 
 export const FileExplorer = ({
   directoryHandle,
-  setFilehandle,
+  files,
   setDirectoryHandle,
   setDirectoryPermissionState,
   onFileSelection,
@@ -16,32 +17,18 @@ export const FileExplorer = ({
 }: {
   directoryPermissionState: PermissionState | null;
   directoryHandle: FileSystemDirectoryHandle | null;
-  setFilehandle: React.Dispatch<
-    React.SetStateAction<FileSystemFileHandle | null>
-  >;
+  files: Array<{ filename: string; handle: FileSystemFileHandle }>;
   setDirectoryPermissionState: (
     directoryPermissionState: PermissionState
   ) => void;
   setDirectoryHandle: (directoryHandle: FileSystemDirectoryHandle) => void;
-  onFileSelection: (directoryName: string, docUrl: AutomergeUrl) => void;
+  onFileSelection: (
+    directoryName: string,
+    docUrl: AutomergeUrl,
+    fileHandle: FileSystemFileHandle
+  ) => void;
 }) => {
-  const [files, setFiles] = React.useState<
-    Array<{ filename: string; handle: FileSystemFileHandle }>
-  >([]);
   const [selectedFilename, setSelectedFilename] = React.useState<string>('');
-
-  useEffect(() => {
-    const getDirectoryFiles = async (
-      directoryHandle: FileSystemDirectoryHandle
-    ) => {
-      const files = await getFiles(directoryHandle);
-      setFiles(files);
-    };
-
-    if (directoryHandle && directoryPermissionState === 'granted') {
-      getDirectoryFiles(directoryHandle);
-    }
-  }, [directoryHandle, directoryPermissionState]);
 
   const openDirectory = async () => {
     const dirHandle = await window.showDirectoryPicker();
@@ -62,9 +49,12 @@ export const FileExplorer = ({
   async function handleOnClick(fileHandle: FileSystemFileHandle) {
     const fileContent = await readFile(fileHandle);
     setSelectedFilename(fileHandle.name);
-    setFilehandle(fileHandle);
     if (directoryHandle) {
-      return onFileSelection(directoryHandle?.name, fileContent.docUrl);
+      return onFileSelection(
+        directoryHandle?.name,
+        fileContent.docUrl,
+        fileHandle
+      );
     }
   }
 
