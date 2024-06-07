@@ -21,8 +21,17 @@ import {
 import { DocumentEditor } from './DocumentEditor';
 import { InvalidDocument } from '../pages/History/InvalidDocument/InvalidDocument';
 import { Layout } from '../components/layout/Layout';
+import { SelectedFileContext, SelectedFileProvider } from '../filesystem';
 
-export const EditorIndex = () => {
+export const Editor = () => {
+  return (
+    <SelectedFileProvider>
+      <EditorIndex />
+    </SelectedFileProvider>
+  );
+};
+
+const EditorIndex = () => {
   const [newDocTitle, setNewDocTitle] = useState<string>('');
   const [isDocumentCreationModalOpen, openCreateDocumentModal] =
     useState<boolean>(false);
@@ -36,11 +45,14 @@ export const EditorIndex = () => {
     setDirectoryHandle: persistDirectoryHandle,
     setDirectoryPermissionState,
   } = useContext(DirectoryContext);
+  const {
+    selectedFileInfo,
+    setSelectedFileInfo: persistSelectedFileInfo,
+    clearFileSelection,
+  } = useContext(SelectedFileContext);
   const [files, setFiles] = useState<
     Array<{ filename: string; handle: FileSystemFileHandle }>
   >([]);
-  const [selectedFileHandle, setSelectedFilehandle] =
-    useState<FileSystemFileHandle | null>(null);
 
   useEffect(() => {
     document.title = 'v2 | Editor';
@@ -59,7 +71,7 @@ export const EditorIndex = () => {
     } else {
       setReadyAutomergeHandle(null);
     }
-  }, [docUrl]);
+  }, [docUrl, clearFileSelection]);
 
   useEffect(() => {
     const getDirectoryFiles = async (
@@ -72,7 +84,7 @@ export const EditorIndex = () => {
     if (directoryHandle && directoryPermissionState === 'granted') {
       getDirectoryFiles(directoryHandle);
     }
-  }, [directoryHandle, directoryPermissionState, selectedFileHandle]);
+  }, [directoryHandle, directoryPermissionState, selectedFileInfo]);
 
   const handleDocumentCreation = async (docTitle: string) => {
     const handle = repo.create<VersionedDocument>();
@@ -91,7 +103,7 @@ export const EditorIndex = () => {
   const handleDocumentChange = (docUrl: AutomergeUrl, value: string) => {
     // TODO: The fileHandle should be set when the document is selected
     // or on initial page load
-    if (!selectedFileHandle) {
+    if (!selectedFileInfo?.fileHandle) {
       console.error('fileHandle has not been initialized');
       return;
     }
@@ -101,14 +113,14 @@ export const EditorIndex = () => {
       value,
     };
 
-    writeFile(selectedFileHandle, fileContent);
+    writeFile(selectedFileInfo.fileHandle, fileContent);
   };
 
-  const handleFileSelection = (
+  const handleFileSelection = async (
     docUrl: AutomergeUrl,
     fileHandle: FileSystemFileHandle
   ) => {
-    setSelectedFilehandle(fileHandle);
+    await persistSelectedFileInfo({ automergeUrl: docUrl, fileHandle });
     navigate(`/edit/${docUrl}`);
   };
 
@@ -207,6 +219,7 @@ export const EditorIndex = () => {
             setDirectoryPermissionState={setDirectoryPermissionState}
             directoryHandle={directoryHandle}
             files={files}
+            selectedFileHandle={selectedFileInfo?.fileHandle || null}
             setDirectoryHandle={setDirectoryHandle}
             onFileSelection={handleFileSelection}
           />

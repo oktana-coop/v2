@@ -1,4 +1,3 @@
-import React from 'react';
 import { clsx } from 'clsx';
 import { AutomergeUrl } from '@automerge/automerge-repo';
 
@@ -10,6 +9,7 @@ import { readFile } from '../filesystem';
 export const FileExplorer = ({
   directoryHandle,
   files,
+  selectedFileHandle,
   setDirectoryHandle,
   setDirectoryPermissionState,
   onFileSelection,
@@ -18,6 +18,7 @@ export const FileExplorer = ({
   directoryPermissionState: PermissionState | null;
   directoryHandle: FileSystemDirectoryHandle | null;
   files: Array<{ filename: string; handle: FileSystemFileHandle }>;
+  selectedFileHandle: FileSystemFileHandle | null;
   setDirectoryPermissionState: (
     directoryPermissionState: PermissionState
   ) => void;
@@ -27,8 +28,6 @@ export const FileExplorer = ({
     fileHandle: FileSystemFileHandle
   ) => void;
 }) => {
-  const [selectedFilename, setSelectedFilename] = React.useState<string>('');
-
   const openDirectory = async () => {
     const dirHandle = await window.showDirectoryPicker();
     setDirectoryHandle(dirHandle);
@@ -47,7 +46,6 @@ export const FileExplorer = ({
 
   async function handleOnClick(fileHandle: FileSystemFileHandle) {
     const fileContent = await readFile(fileHandle);
-    setSelectedFilename(fileHandle.name);
     return onFileSelection(fileContent.docUrl, fileHandle);
   }
 
@@ -65,7 +63,7 @@ export const FileExplorer = ({
                 key={file.filename}
                 className={clsx(
                   'truncate px-2 py-1 text-left hover:bg-zinc-950/5',
-                  file.filename === selectedFilename
+                  file.filename === selectedFileHandle?.name
                     ? 'text-purple-500 dark:text-purple-300'
                     : ''
                 )}
