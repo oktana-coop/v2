@@ -1,6 +1,7 @@
 import { AutomergeUrl, isValidAutomergeUrl } from '@automerge/automerge-repo';
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { Layout } from '../../components/layout/Layout';
 import { Link } from '../../components/actions/Link';
 import { FolderIcon } from '../../components/icons';
 import { PersonalFile } from '../../components/illustrations/PersonalFile';
@@ -54,25 +55,30 @@ export const History = () => {
     setIsValidAutomergeId(urlValidity);
   }, [documentId]);
 
-  return documentId ? (
-    isValidAutomergeId ? (
-      <DocumentsHistory documentId={documentId as AutomergeUrl} />
-    ) : (
-      <InvalidDocument />
-    )
-  ) : (
-    <div className="flex-auto flex">
-      <div className="h-full w-2/5 grow-0 p-5 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
-        <DocumentList />
-      </div>
-      <div className="h-full w-full grow flex flex-col items-center justify-center">
-        <h2 className="text-2xl">Welcome to v2 👋</h2>
-        <p>
-          👈 You can explore a document's editing history by picking up one of
-          the list 😉.
-        </p>
-        <PersonalFile />
-      </div>
-    </div>
+  return (
+    <Layout>
+      {documentId ? (
+        isValidAutomergeId ? (
+          <DocumentsHistory documentId={documentId as AutomergeUrl} />
+        ) : (
+          <InvalidDocument />
+        )
+      ) : (
+        <div className="flex-auto flex">
+          <div className="h-full w-2/5 grow-0 p-5 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
+            <DocumentList />
+          </div>
+          <div className="h-full w-full grow flex flex-col items-center justify-center">
+            <h2 className="text-2xl">Welcome to v2 👋</h2>
+            <p>
+              👈 You can explore a document's editing history by picking up one
+              of the list 😉.
+            </p>
+            <PersonalFile />
+          </div>
+        </div>
+      )}
+      ;
+    </Layout>
   );
 };

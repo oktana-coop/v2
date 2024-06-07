@@ -1,7 +1,8 @@
 import { clsx } from 'clsx';
+import { NavLink, useParams, useLocation } from 'react-router-dom';
+
 import { BranchIcon, OptionsIcon, PenIcon } from '../icons';
 import { Logo } from '../brand/Logo';
-import { Outlet, NavLink } from 'react-router-dom';
 import { IconProps } from '../icons/types';
 
 const ICON_SIZE = 32;
@@ -35,11 +36,26 @@ const navigation: NavItem[] = [
 ];
 
 export const NavBarItem = ({ item }: { item: NavItem }) => {
+  const { pathname } = useLocation();
+  const { documentId } = useParams();
   const Icon = item.icon;
+
+  const constructLink = (destination: NavItem) => {
+    // In these cases, we want to maintain the document path
+    if (
+      ((pathname.startsWith('/edit') && destination.href === '/history') ||
+        (pathname.startsWith('/history') && destination.href === '/edit')) &&
+      documentId
+    ) {
+      return `${item.href}/${documentId}`;
+    }
+
+    return item.href;
+  };
 
   return (
     <li key={item.name} className="mb-2">
-      <NavLink to={item.href}>
+      <NavLink to={constructLink(item)}>
         {({ isActive }) => (
           <div
             className={clsx(
@@ -74,7 +90,6 @@ export function NavBar() {
           ))}
         </ul>
       </nav>
-      <Outlet />
     </div>
   );
 }

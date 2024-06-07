@@ -70,3 +70,15 @@ export async function createNewFile(docUrl: AutomergeUrl) {
     console.error('Error creating file:', error);
   }
 }
+
+export async function getFiles(dirHandle: FileSystemDirectoryHandle) {
+  const files = [];
+
+  for await (const [key, value] of dirHandle.entries()) {
+    if (value.kind === 'file') {
+      files.push({ filename: key, handle: value });
+    }
+  }
+
+  return files;
+}

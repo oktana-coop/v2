@@ -1,7 +1,7 @@
 import {
   AutomergeUrl,
-  DocHandleChangePayload,
   DocHandle,
+  DocHandleChangePayload,
 } from '@automerge/automerge-repo';
 import { AutoMirror } from '@automerge/prosemirror';
 import { baseKeymap, toggleMark } from 'prosemirror-commands';
@@ -10,9 +10,8 @@ import { MarkType, Schema } from 'prosemirror-model';
 import { Command, EditorState, Transaction } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import React, { useEffect, useRef } from 'react';
-import { writeFile } from '../utils/filesystem';
-import { CommitDialog } from './CommitDialog';
 import { VersionedDocument } from '../automerge';
+import { CommitDialog } from './CommitDialog';
 
 const toggleMarkCommand = (mark: MarkType): Command => {
   return (
@@ -24,13 +23,11 @@ const toggleMarkCommand = (mark: MarkType): Command => {
 };
 
 export const DocumentEditor = ({
-  docUrl,
   automergeHandle,
-  fileHandle,
+  onDocumentChange,
 }: {
-  docUrl: AutomergeUrl;
   automergeHandle: DocHandle<VersionedDocument>;
-  fileHandle: FileSystemFileHandle;
+  onDocumentChange: (docUrl: AutomergeUrl, value: string) => void;
 }) => {
   const editorRoot = useRef<HTMLDivElement>(null);
   const [isCommitting, openCommitDialog] = React.useState<boolean>(false);
@@ -112,14 +109,11 @@ export const DocumentEditor = ({
       }
     );
 
-    const value = automergeHandle.docSync()?.content || '';
-    const fileContent = {
-      docUrl,
-      value,
-    };
-    writeFile(fileHandle, fileContent);
-
     openCommitDialog(false);
+
+    const content = automergeHandle.docSync()?.content || '';
+    const docUrl = automergeHandle.url;
+    return onDocumentChange(docUrl, content);
   };
 
   return (
