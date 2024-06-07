@@ -10,7 +10,7 @@ import { MarkType, Schema } from 'prosemirror-model';
 import { Command, EditorState, Transaction } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import React, { useEffect, useRef } from 'react';
-import { VersionedDocument } from '../automerge';
+import { VersionedDocument } from '../../automerge';
 import { CommitDialog } from './CommitDialog';
 
 const toggleMarkCommand = (mark: MarkType): Command => {

@@ -5,23 +5,25 @@ import {
 } from '@automerge/automerge-repo';
 import { useEffect, useState, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { VersionedDocument } from '../automerge';
-import { repo } from '../automerge/repo';
-import { Button } from '../components/actions/Button';
-import { Modal } from '../components/dialogs/Modal';
-import { PenIcon } from '../components/icons';
-import { PersonalFile } from '../components/illustrations/PersonalFile';
+
+import { VersionedDocument } from '../../automerge';
+import { repo } from '../../automerge/repo';
+import { Button } from '../../components/actions/Button';
+import { Modal } from '../../components/dialogs/Modal';
+import { PenIcon } from '../../components/icons';
+import { PersonalFile } from '../../components/illustrations/PersonalFile';
 import { FileExplorer } from './FileExplorer';
 import {
   DirectoryContext,
   createNewFile,
   writeFile,
   getFiles,
-} from '../filesystem';
+  SelectedFileContext,
+  SelectedFileProvider,
+} from '../../filesystem';
 import { DocumentEditor } from './DocumentEditor';
-import { InvalidDocument } from '../pages/History/InvalidDocument/InvalidDocument';
-import { Layout } from '../components/layout/Layout';
-import { SelectedFileContext, SelectedFileProvider } from '../filesystem';
+import { InvalidDocument } from '../History/InvalidDocument/InvalidDocument';
+import { Layout } from '../../components/layout/Layout';
 
 export const Editor = () => {
   return (

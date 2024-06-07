@@ -1,10 +1,10 @@
 import { clsx } from 'clsx';
 import { AutomergeUrl } from '@automerge/automerge-repo';
 
-import { FolderIcon } from '../components/icons';
-import { SidebarHeading } from '../components/sidebar/SidebarHeading';
-import { Button } from '../components/actions/Button';
-import { readFile } from '../filesystem';
+import { FolderIcon } from '../../components/icons';
+import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
+import { Button } from '../../components/actions/Button';
+import { readFile } from '../../filesystem';
 
 export const FileExplorer = ({
   directoryHandle,

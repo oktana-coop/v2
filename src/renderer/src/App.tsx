@@ -1,7 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import './App.css';
-import { Editor } from './Editor/index';
 
+import './App.css';
+import { Editor } from './pages/Editor/index';
 import { History } from './pages/History/History';
 import { Options } from './pages/Options/Options';
 
