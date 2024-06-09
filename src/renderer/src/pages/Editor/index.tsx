@@ -215,7 +215,7 @@ const EditorIndex = () => {
             className="w-full p-2 border border-gray-300 rounded-md"
           />
         </Modal>
-        <div className="h-full w-2/5 grow-0 p-5 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
+        <div className="h-full w-2/5 grow-0 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
           <FileExplorer
             directoryPermissionState={directoryPermissionState}
             setDirectoryPermissionState={setDirectoryPermissionState}

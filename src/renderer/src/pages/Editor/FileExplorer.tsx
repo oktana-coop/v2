@@ -50,31 +50,38 @@ export const FileExplorer = ({
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <SidebarHeading icon={FolderIcon} text="File Explorer" />
+    <div className="flex flex-col items-stretch py-6 h-full">
+      <div className="px-4">
+        <SidebarHeading icon={FolderIcon} text="File Explorer" />
+      </div>
+
       {directoryHandle && directoryPermissionState === 'granted' ? (
-        <>
-          <div className="w-48 text-left pt-2 text-black font-bold truncate">
+        <div className="flex flex-col items-stretch">
+          <div className="px-4 mb-1 text-left text-black dark:text-white text-opacity-85 dark:text-opacity-85 font-bold truncate">
             {directoryHandle.name}
           </div>
-          <div className="max-h-96 w-48 text-black flex flex-col">
+          <ul className="text-black dark:text-white flex flex-col items-stretch">
             {files.map((file) => (
-              <button
-                key={file.filename}
+              <li
                 className={clsx(
-                  'truncate px-2 py-1 text-left hover:bg-zinc-950/5',
+                  'py-1 pl-9 pr-4 hover:bg-zinc-950/5 dark:hover:bg-white/5',
                   file.filename === selectedFileHandle?.name
-                    ? 'text-purple-500 dark:text-purple-300'
+                    ? 'bg-purple-50 dark:bg-neutral-600'
                     : ''
                 )}
-                title={file.filename}
-                onClick={async () => handleOnClick(file.handle)}
               >
-                {file.filename}
-              </button>
+                <button
+                  key={file.filename}
+                  className="w-full truncate text-left bg-transparent"
+                  title={file.filename}
+                  onClick={async () => handleOnClick(file.handle)}
+                >
+                  {file.filename}
+                </button>
+              </li>
             ))}
-          </div>
-        </>
+          </ul>
+        </div>
       ) : (
         <div className="flex items-center justify-center h-full">
           <Button
