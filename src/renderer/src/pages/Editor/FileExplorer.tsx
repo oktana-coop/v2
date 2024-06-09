@@ -4,7 +4,7 @@ import { AutomergeUrl } from '@automerge/automerge-repo';
 import { FileDocumentIcon, FolderIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
 import { Button } from '../../components/actions/Button';
-import { readFile } from '../../filesystem';
+import { readFile, removeExtension } from '../../filesystem';
 
 export const FileExplorer = ({
   directoryHandle,
@@ -77,7 +77,7 @@ export const FileExplorer = ({
                   onClick={async () => handleOnClick(file.handle)}
                 >
                   <FileDocumentIcon className="mr-1" size={16} />
-                  {file.filename}
+                  {removeExtension(file.filename)}
                 </button>
               </li>
             ))}
