@@ -1,7 +1,7 @@
 import { clsx } from 'clsx';
 import { AutomergeUrl } from '@automerge/automerge-repo';
 
-import { FolderIcon } from '../../components/icons';
+import { FileDocumentIcon, FolderIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
 import { Button } from '../../components/actions/Button';
 import { readFile } from '../../filesystem';
@@ -72,10 +72,11 @@ export const FileExplorer = ({
               >
                 <button
                   key={file.filename}
-                  className="w-full truncate text-left bg-transparent"
+                  className="w-full truncate text-left bg-transparent flex items-center"
                   title={file.filename}
                   onClick={async () => handleOnClick(file.handle)}
                 >
+                  <FileDocumentIcon className="mr-1" size={16} />
                   {file.filename}
                 </button>
               </li>
