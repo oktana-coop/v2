@@ -63,6 +63,7 @@ export const FileExplorer = ({
           <ul className="text-black dark:text-white flex flex-col items-stretch">
             {files.map((file) => (
               <li
+                key={file.filename}
                 className={clsx(
                   'py-1 pl-9 pr-4 hover:bg-zinc-950/5 dark:hover:bg-white/5',
                   file.filename === selectedFileHandle?.name
@@ -71,7 +72,6 @@ export const FileExplorer = ({
                 )}
               >
                 <button
-                  key={file.filename}
                   className="w-full truncate text-left bg-transparent flex items-center"
                   title={file.filename}
                   onClick={async () => handleOnClick(file.handle)}
