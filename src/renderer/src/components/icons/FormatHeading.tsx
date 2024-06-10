@@ -1,7 +1,7 @@
 import { IconProps } from './types';
 import { DEFAULT_SIZE } from './constants';
 
-export const FormatHeading = ({
+export const FormatHeadingIcon = ({
   color,
   size = DEFAULT_SIZE,
   className,

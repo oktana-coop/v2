@@ -13,6 +13,7 @@ import React, { useEffect, useRef } from 'react';
 import { VersionedDocument } from '../../automerge';
 import { CommitDialog } from './CommitDialog';
 import { ActionsBar } from './ActionsBar';
+import { EditorToolbar } from './EditorToolbar';
 
 const toggleMarkCommand = (mark: MarkType): Command => {
   return (
@@ -124,13 +125,16 @@ export const DocumentEditor = ({
         onCancel={() => openCommitDialog(false)}
         onCommit={(message: string) => commitChanges(message)}
       />
-      <div className="w-4/5 flex-auto flex flex-col items-stretch">
+      <div className="w-4/5 flex-auto flex flex-col items-stretch relative">
         <ActionsBar />
         <div
           className="p-4 flex-auto flex outline-none"
           id="editor"
           ref={editorRoot}
         />
+        <div className="absolute bottom-4 self-center drop-shadow">
+          <EditorToolbar />
+        </div>
       </div>
     </>
   );
