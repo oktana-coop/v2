@@ -12,6 +12,7 @@ import { EditorView } from 'prosemirror-view';
 import React, { useEffect, useRef } from 'react';
 import { VersionedDocument } from '../../automerge';
 import { CommitDialog } from './CommitDialog';
+import { ActionsBar } from './ActionsBar';
 
 const toggleMarkCommand = (mark: MarkType): Command => {
   return (
@@ -123,11 +124,14 @@ export const DocumentEditor = ({
         onCancel={() => openCommitDialog(false)}
         onCommit={(message: string) => commitChanges(message)}
       />
-      <div
-        className="w-4/5 flex-auto p-5 flex outline-none"
-        id="editor"
-        ref={editorRoot}
-      />
+      <div className="w-4/5 flex-auto flex flex-col items-stretch">
+        <ActionsBar />
+        <div
+          className="p-4 flex-auto flex outline-none"
+          id="editor"
+          ref={editorRoot}
+        />
+      </div>
     </>
   );
 };
