@@ -1,5 +1,6 @@
 import { FileContent } from '../types';
 import { AutomergeUrl } from '@automerge/automerge-repo';
+import { FILE_EXTENSION } from './constants';
 
 export async function writeFile(
   fileHandle: FileSystemFileHandle,
@@ -50,7 +51,7 @@ export async function createNewFile(docUrl: AutomergeUrl) {
         {
           description: 'v2',
           accept: {
-            'application/v2': ['.v2'],
+            'application/v2': [FILE_EXTENSION],
           },
         },
       ],
@@ -75,7 +76,7 @@ export async function getFiles(dirHandle: FileSystemDirectoryHandle) {
   const files = [];
 
   for await (const [key, value] of dirHandle.entries()) {
-    if (value.kind === 'file') {
+    if (value.kind === 'file' && value.name.endsWith(FILE_EXTENSION)) {
       files.push({ filename: key, handle: value });
     }
   }

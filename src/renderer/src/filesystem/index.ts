@@ -1,4 +1,6 @@
 export * from './io';
+export * from './constants';
+export * from './utils';
 
 export {
   DirectoryContext,
