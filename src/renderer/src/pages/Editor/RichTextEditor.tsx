@@ -17,13 +17,17 @@ const toggleMarkCommand = (mark: MarkType): Command => {
   };
 };
 
+type RichTextEditorProps = {
+  automergeHandle: DocHandle<VersionedDocument>;
+  onSave?: () => void;
+  isEditable?: boolean;
+};
+
 export const RichTextEditor = ({
   automergeHandle,
   onSave = () => {},
-}: {
-  automergeHandle: DocHandle<VersionedDocument>;
-  onSave?: () => void;
-}) => {
+  isEditable = true,
+}: RichTextEditorProps) => {
   const editorRoot = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -61,6 +65,7 @@ export const RichTextEditor = ({
           );
           view.updateState(newState);
         },
+        editable: () => isEditable,
       });
 
       const onPatch: (args: DocHandleChangePayload<unknown>) => void = ({
@@ -84,7 +89,7 @@ export const RichTextEditor = ({
         view.destroy();
       };
     }
-  }, [automergeHandle, onSave]);
+  }, [automergeHandle, onSave, isEditable]);
 
   return (
     <div
