@@ -4,6 +4,7 @@ import {
   DocHandleChangePayload,
 } from '@automerge/automerge-repo';
 import { AutoMirror } from '@automerge/prosemirror';
+import { clsx } from 'clsx';
 import { baseKeymap, toggleMark } from 'prosemirror-commands';
 import { keymap } from 'prosemirror-keymap';
 import { MarkType, Schema } from 'prosemirror-model';
@@ -13,6 +14,7 @@ import React, { useEffect, useRef } from 'react';
 import { VersionedDocument } from '../../automerge';
 import { CommitDialog } from './CommitDialog';
 import { ActionsBar } from './ActionsBar';
+import { EditorToolbar } from './EditorToolbar';
 
 const toggleMarkCommand = (mark: MarkType): Command => {
   return (
@@ -32,6 +34,8 @@ export const DocumentEditor = ({
 }) => {
   const editorRoot = useRef<HTMLDivElement>(null);
   const [isCommitting, openCommitDialog] = React.useState<boolean>(false);
+  const [isEditorToolbarOpen, toggleEditorToolbar] =
+    React.useState<boolean>(false);
 
   useEffect(() => {
     if (automergeHandle) {
@@ -117,6 +121,10 @@ export const DocumentEditor = ({
     return onDocumentChange(docUrl, content);
   };
 
+  const handleEditorToolbarToggle = () => {
+    toggleEditorToolbar(!isEditorToolbarOpen);
+  };
+
   return (
     <>
       <CommitDialog
@@ -124,13 +132,21 @@ export const DocumentEditor = ({
         onCancel={() => openCommitDialog(false)}
         onCommit={(message: string) => commitChanges(message)}
       />
-      <div className="w-4/5 flex-auto flex flex-col items-stretch">
-        <ActionsBar />
+      <div className="w-4/5 flex-auto flex flex-col items-stretch relative overflow-hidden">
+        <ActionsBar onEditorToolbarToggle={handleEditorToolbarToggle} />
         <div
           className="p-4 flex-auto flex outline-none"
           id="editor"
           ref={editorRoot}
         />
+        <div
+          className={clsx(
+            'absolute bottom-4 self-center drop-shadow transition-bottom',
+            isEditorToolbarOpen ? 'bottom-4' : '-bottom-10'
+          )}
+        >
+          <EditorToolbar />
+        </div>
       </div>
     </>
   );
