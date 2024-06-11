@@ -10,7 +10,7 @@ import {
 
 export const EditorToolbar = () => {
   return (
-    <div className="flex bg-neutral-200 px-4 py-1.5 gap-x-6">
+    <div className="flex bg-neutral-200 dark:bg-neutral-700 px-4 py-1.5 gap-x-6">
       <div className="flex-initial flex gap-x-1">
         <IconButton icon={<FormatHeadingDropdownIcon />} />
         <IconButton icon={<FormatListDropdownIcon />} />
