@@ -19,6 +19,12 @@ export default {
           950: '#340B6A',
         },
       },
+      transitionProperty: {
+        top: 'top',
+        bottom: 'bottom',
+        left: 'left',
+        right: 'right',
+      },
     },
     fontFamily: {
       sans: ['Montserrat', 'sans-serif'],
