@@ -1,8 +1,8 @@
 import {
   Field as HeadlessField,
+  type FieldProps as HeadlessFieldProps,
   Radio as HeadlessRadio,
   RadioGroup as HeadlessRadioGroup,
-  type FieldProps as HeadlessFieldProps,
   type RadioGroupProps as HeadlessRadioGroupProps,
   type RadioProps as HeadlessRadioProps,
 } from '@headlessui/react';

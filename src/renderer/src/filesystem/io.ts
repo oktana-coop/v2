@@ -1,5 +1,6 @@
-import { FileContent } from '../types';
 import { AutomergeUrl } from '@automerge/automerge-repo';
+
+import { FileContent } from '../types';
 import { FILE_EXTENSION } from './constants';
 
 export async function writeFile(

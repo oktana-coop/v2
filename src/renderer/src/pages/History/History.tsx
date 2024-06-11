@@ -1,10 +1,11 @@
 import { AutomergeUrl, isValidAutomergeUrl } from '@automerge/automerge-repo';
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Layout } from '../../components/layout/Layout';
+
 import { Link } from '../../components/actions/Link';
 import { FolderIcon } from '../../components/icons';
 import { PersonalFile } from '../../components/illustrations/PersonalFile';
+import { Layout } from '../../components/layout/Layout';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
 import { DocumentsHistory } from './Document/DocumentsHistory';
 import { InvalidDocument } from './InvalidDocument/InvalidDocument';

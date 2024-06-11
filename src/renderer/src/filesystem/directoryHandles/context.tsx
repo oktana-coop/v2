@@ -1,5 +1,6 @@
 import { createContext, useEffect, useState } from 'react';
-import { openDB, getFirst, insertOne } from './database';
+
+import { getFirst, insertOne, openDB } from './database';
 
 type DirectoryContextType = {
   directoryHandle: FileSystemDirectoryHandle | null;

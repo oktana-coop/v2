@@ -1,8 +1,8 @@
 import clsx from 'clsx';
-import { useContext, type ReactNode } from 'react';
+import { type ReactNode, useContext } from 'react';
 
-import { NavBar } from '../navigation/NavBar';
 import { ThemeContext, themes } from '../../personalization/theme';
+import { NavBar } from '../navigation/NavBar';
 
 export const Layout = ({ children }: { children: ReactNode }) => {
   const { theme } = useContext(ThemeContext);

@@ -1,5 +1,6 @@
-import { Button, type ButtonColor } from './Button';
 import type { ReactNode } from 'react';
+
+import { Button, type ButtonColor } from './Button';
 
 export type IconButtonProps = {
   icon: ReactNode;

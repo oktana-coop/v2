@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import type { ComponentProps } from 'react';
-import { Button } from '../actions/Button';
 
+import { Button } from '../actions/Button';
 import { CheckIcon } from '../icons';
 import { Modal } from './Modal';
 

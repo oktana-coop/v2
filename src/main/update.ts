@@ -1,5 +1,6 @@
-import { app, ipcMain } from 'electron';
 import { createRequire } from 'node:module';
+
+import { app, ipcMain } from 'electron';
 import type {
   ProgressInfo,
   UpdateDownloadedEvent,
