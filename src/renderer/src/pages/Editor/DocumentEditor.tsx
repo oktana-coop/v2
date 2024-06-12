@@ -142,7 +142,7 @@ export const DocumentEditor = ({
         <div
           className={clsx(
             'absolute bottom-4 self-center drop-shadow transition-bottom',
-            isEditorToolbarOpen ? 'bottom-4' : '-bottom-10'
+            isEditorToolbarOpen ? 'bottom-4' : '-bottom-11'
           )}
         >
           <EditorToolbar />
