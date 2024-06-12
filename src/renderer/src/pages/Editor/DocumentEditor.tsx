@@ -1,12 +1,10 @@
 import { AutomergeUrl, DocHandle } from '@automerge/automerge-repo';
-import { clsx } from 'clsx';
-import React, { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { VersionedDocument } from '../../automerge';
 import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import { ActionsBar } from './ActionsBar';
 import { CommitDialog } from './CommitDialog';
-import { EditorToolbar } from './EditorToolbar';
 
 export const DocumentEditor = ({
   automergeHandle,
@@ -15,9 +13,8 @@ export const DocumentEditor = ({
   automergeHandle: DocHandle<VersionedDocument>;
   onDocumentChange: (docUrl: AutomergeUrl, value: string) => void;
 }) => {
-  const [isCommitting, openCommitDialog] = React.useState<boolean>(false);
-  const [isEditorToolbarOpen, toggleEditorToolbar] =
-    React.useState<boolean>(false);
+  const [isCommitting, openCommitDialog] = useState<boolean>(false);
+  const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
 
   useEffect(() => {
     if (automergeHandle) {
@@ -66,15 +63,8 @@ export const DocumentEditor = ({
           onSave={() => {
             openCommitDialog(true);
           }}
+          isToolbarOpen={isEditorToolbarOpen}
         />
-        <div
-          className={clsx(
-            'absolute self-center drop-shadow transition-bottom',
-            isEditorToolbarOpen ? 'bottom-4' : '-bottom-10'
-          )}
-        >
-          <EditorToolbar />
-        </div>
       </div>
     </>
   );
