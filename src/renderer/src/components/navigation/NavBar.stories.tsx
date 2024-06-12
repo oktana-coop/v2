@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import type { ComponentProps } from 'react';
 import {
-  withRouter,
-  reactRouterParameters,
   reactRouterOutlets,
+  reactRouterParameters,
+  withRouter,
 } from 'storybook-addon-remix-react-router';
 
 import { NavBar } from './NavBar';

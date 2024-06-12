@@ -1,8 +1,7 @@
-import { defineConfig, loadEnv } from 'electron-vite';
-
 import react from '@vitejs/plugin-react';
-import wasm from 'vite-plugin-wasm';
+import { defineConfig, loadEnv } from 'electron-vite';
 import topLevelAwait from 'vite-plugin-top-level-await';
+import wasm from 'vite-plugin-wasm';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode);

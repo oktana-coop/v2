@@ -1,14 +1,14 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App.tsx';
-
-import { DocHandle } from '@automerge/automerge-repo';
 import './index.css';
 
+import { DocHandle } from '@automerge/automerge-repo';
 import { RepoContext } from '@automerge/automerge-repo-react-hooks';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+
+import App from './App.tsx';
 import { repo } from './automerge';
-import { ThemeProvider } from './personalization/theme';
 import { DirectoryProvider } from './filesystem';
+import { ThemeProvider } from './personalization/theme';
 
 declare global {
   interface Window {

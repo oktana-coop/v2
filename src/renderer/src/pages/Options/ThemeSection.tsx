@@ -1,9 +1,10 @@
-import { SectionHeader } from './SectionHeader';
-import { RadioGroup, Radio, RadioField } from '../../components/inputs/Radio';
-import { Label } from '../../components/inputs/Fieldset';
 import { useContext } from 'react';
-import { themes, ThemeContext } from '../../personalization/theme';
+
 import { MoonIcon, SunIcon } from '../../components/icons';
+import { Label } from '../../components/inputs/Fieldset';
+import { Radio, RadioField, RadioGroup } from '../../components/inputs/Radio';
+import { ThemeContext, themes } from '../../personalization/theme';
+import { SectionHeader } from './SectionHeader';
 
 export const ThemeSection = () => {
   const { theme, setTheme } = useContext(ThemeContext);

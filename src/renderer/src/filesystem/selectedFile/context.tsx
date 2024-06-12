@@ -1,14 +1,14 @@
+import { isValidAutomergeUrl } from '@automerge/automerge-repo';
 import { createContext, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
-import { FileInfo } from './types';
 import {
-  openDB,
+  clearAll,
   clearAndInsertOne,
   get as getFromDB,
-  clearAll,
+  openDB,
 } from './database';
-import { isValidAutomergeUrl } from '@automerge/automerge-repo';
+import { FileInfo } from './types';
 
 type SelectedFileContextType = {
   selectedFileInfo: FileInfo | null;

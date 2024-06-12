@@ -1,5 +1,5 @@
-import { IconProps } from './types';
 import { DEFAULT_SIZE } from './constants';
+import { IconProps } from './types';
 
 export const LinkIcon = ({
   color,

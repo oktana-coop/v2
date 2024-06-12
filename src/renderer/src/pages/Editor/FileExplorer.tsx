@@ -1,9 +1,9 @@
-import { clsx } from 'clsx';
 import { AutomergeUrl } from '@automerge/automerge-repo';
+import { clsx } from 'clsx';
 
+import { Button } from '../../components/actions/Button';
 import { FileDocumentIcon, FolderIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
-import { Button } from '../../components/actions/Button';
 import { readFile, removeExtension } from '../../filesystem';
 
 export const FileExplorer = ({

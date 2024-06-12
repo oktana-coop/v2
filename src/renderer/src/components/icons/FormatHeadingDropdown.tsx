@@ -1,5 +1,5 @@
-import { IconProps } from './types';
 import { DEFAULT_SIZE as DEFAULT_HEIGHT } from './constants';
+import { IconProps } from './types';
 
 export const FormatHeadingDropdownIcon = ({
   color,

@@ -1,6 +1,6 @@
 import { createContext, useState } from 'react';
 
-import { themes, type Theme } from './theme';
+import { type Theme, themes } from './theme';
 
 const getDefaultTheme = () =>
   (localStorage.getItem('theme') ?? themes.light) as Theme;

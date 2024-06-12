@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import type { ComponentProps } from 'react';
 
+import { CheckIcon } from '../icons';
 import { Button } from './Button';
 import { IconButton as IconButtonComponent } from './IconButton';
-import { CheckIcon } from '../icons';
 
 const meta: Meta<typeof Button> = {
   title: 'actions/Button',

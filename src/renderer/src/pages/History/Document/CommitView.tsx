@@ -1,16 +1,15 @@
-import { AutomergeUrl } from '@automerge/automerge-repo';
 import { default as Automerge, view } from '@automerge/automerge/next';
-import React, { useCallback, useEffect } from 'react';
-import type { Commit } from '../../../automerge';
-import { ChangeLog } from './ChangeLog';
-
-import { useDocument } from '@automerge/automerge-repo-react-hooks';
 import { decodeChange, getAllChanges } from '@automerge/automerge/next';
+import { AutomergeUrl } from '@automerge/automerge-repo';
+import { useDocument } from '@automerge/automerge-repo-react-hooks';
+import React, { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { VersionedDocument, isCommit } from '../../../automerge';
+import type { Commit } from '../../../automerge';
+import { isCommit, VersionedDocument } from '../../../automerge';
 import { CommitHistoryIcon } from '../../../components/icons';
 import { SidebarHeading } from '../../../components/sidebar/SidebarHeading';
+import { ChangeLog } from './ChangeLog';
 
 export const CommitView = ({ documentId }: { documentId: AutomergeUrl }) => {
   const [versionedDocument] = useDocument<VersionedDocument>(documentId);

@@ -1,7 +1,9 @@
-import { app, BrowserWindow, shell, ipcMain, nativeImage } from 'electron';
 import { release } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { app, BrowserWindow, ipcMain, nativeImage, shell } from 'electron';
+
 import { update } from './update';
 
 globalThis.__filename = fileURLToPath(import.meta.url);

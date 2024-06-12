@@ -1,7 +1,6 @@
-import { Link as ReactRouterLink, type LinkProps } from 'react-router-dom';
-
 import { DataInteractive as HeadlessDataInteractive } from '@headlessui/react';
 import React from 'react';
+import { Link as ReactRouterLink, type LinkProps } from 'react-router-dom';
 
 export const Link = React.forwardRef(function Link(
   props: LinkProps & React.ComponentPropsWithoutRef<'a'>,

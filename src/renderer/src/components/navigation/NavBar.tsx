@@ -1,8 +1,8 @@
 import { clsx } from 'clsx';
-import { NavLink, useParams, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useParams } from 'react-router-dom';
 
-import { BranchIcon, OptionsIcon, PenIcon } from '../icons';
 import { Logo } from '../brand/Logo';
+import { BranchIcon, OptionsIcon, PenIcon } from '../icons';
 import { IconProps } from '../icons/types';
 
 const ICON_SIZE = 32;

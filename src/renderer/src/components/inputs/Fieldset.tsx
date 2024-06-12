@@ -1,13 +1,13 @@
 import {
   Description as HeadlessDescription,
-  Field as HeadlessField,
-  Fieldset as HeadlessFieldset,
-  Label as HeadlessLabel,
-  Legend as HeadlessLegend,
   type DescriptionProps as HeadlessDescriptionProps,
+  Field as HeadlessField,
   type FieldProps as HeadlessFieldProps,
+  Fieldset as HeadlessFieldset,
   type FieldsetProps as HeadlessFieldsetProps,
+  Label as HeadlessLabel,
   type LabelProps as HeadlessLabelProps,
+  Legend as HeadlessLegend,
   type LegendProps as HeadlessLegendProps,
 } from '@headlessui/react';
 import clsx from 'clsx';

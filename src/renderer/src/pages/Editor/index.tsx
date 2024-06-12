@@ -3,8 +3,8 @@ import {
   DocHandle,
   isValidAutomergeUrl,
 } from '@automerge/automerge-repo';
-import { useEffect, useState, useContext } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useContext, useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { VersionedDocument } from '../../automerge';
 import { repo } from '../../automerge/repo';
@@ -12,18 +12,18 @@ import { Button } from '../../components/actions/Button';
 import { Modal } from '../../components/dialogs/Modal';
 import { PenIcon } from '../../components/icons';
 import { PersonalFile } from '../../components/illustrations/PersonalFile';
-import { FileExplorer } from './FileExplorer';
+import { Layout } from '../../components/layout/Layout';
 import {
-  DirectoryContext,
   createNewFile,
-  writeFile,
+  DirectoryContext,
   getFiles,
   SelectedFileContext,
   SelectedFileProvider,
+  writeFile,
 } from '../../filesystem';
-import { DocumentEditor } from './DocumentEditor';
 import { InvalidDocument } from '../History/InvalidDocument/InvalidDocument';
-import { Layout } from '../../components/layout/Layout';
+import { DocumentEditor } from './DocumentEditor';
+import { FileExplorer } from './FileExplorer';
 
 export const Editor = () => {
   return (

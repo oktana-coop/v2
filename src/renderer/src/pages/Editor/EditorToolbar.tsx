@@ -1,11 +1,11 @@
 import { IconButton } from '../../components/actions/IconButton';
 import {
   FormatBoldIcon,
-  FormatItalicIcon,
-  LinkIcon,
   FormatHeadingDropdownIcon,
+  FormatItalicIcon,
   FormatListDropdownIcon,
   ImageIcon,
+  LinkIcon,
 } from '../../components/icons';
 
 export const EditorToolbar = () => {
