@@ -1,7 +1,7 @@
 import { clsx } from 'clsx';
 
 export const classes =
-  'text-base/relaxed text-red text-opacity-90 dark:text-zinc-400';
+  'text-base/relaxed text-black text-opacity-90 dark:text-white dark:text-opacity-90';
 
 export function Paragraph({
   className,
