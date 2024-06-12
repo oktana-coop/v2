@@ -1,6 +1,7 @@
 import { AutomergeUrl, DocHandle } from '@automerge/automerge-repo';
 import { clsx } from 'clsx';
 import React, { useEffect } from 'react';
+
 import { VersionedDocument } from '../../automerge';
 import { ActionsBar } from './ActionsBar';
 import { CommitDialog } from './CommitDialog';
