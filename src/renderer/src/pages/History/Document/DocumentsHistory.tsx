@@ -1,14 +1,19 @@
 import { default as Automerge, view } from '@automerge/automerge/next';
 import { decodeChange, getAllChanges } from '@automerge/automerge/next';
-import { AutomergeUrl } from '@automerge/automerge-repo';
+import {
+  AutomergeUrl,
+  DocHandle,
+  isValidAutomergeUrl,
+} from '@automerge/automerge-repo';
 import { useDocument } from '@automerge/automerge-repo-react-hooks';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import type { Commit } from '../../../automerge';
-import { isCommit, VersionedDocument } from '../../../automerge';
+import { isCommit, repo, VersionedDocument } from '../../../automerge';
 import { CommitHistoryIcon } from '../../../components/icons';
 import { SidebarHeading } from '../../../components/sidebar/SidebarHeading';
+import { RichTextEditor } from '../../Editor/RichTextEditor';
 import { ChangeLog } from './ChangeLog';
 
 export const DocumentsHistory = ({
@@ -23,6 +28,23 @@ export const DocumentsHistory = ({
     Array<Automerge.DecodedChange | Commit>
   >([]);
   const navigate = useNavigate();
+  const [readyAutomergeHandle, setReadyAutomergeHandle] =
+    useState<DocHandle<VersionedDocument> | null>(null);
+
+  useEffect(() => {
+    if (!documentId) {
+      return;
+    }
+
+    if (isValidAutomergeUrl(documentId)) {
+      const automergeHandle = repo.find<VersionedDocument>(documentId);
+      automergeHandle.whenReady().then(() => {
+        setReadyAutomergeHandle(automergeHandle);
+      });
+    } else {
+      setReadyAutomergeHandle(null);
+    }
+  }, [documentId]);
 
   useEffect(() => {
     if (versionedDocument) {
@@ -78,16 +100,17 @@ export const DocumentsHistory = ({
           selectedCommit={selectedCommit}
         />
       </div>
-      <div className="flex w-full grow items-stretch">
-        <textarea
-          id="message"
-          value={docValue}
-          readOnly={true}
-          onDoubleClick={() => navigate(`/edit/${documentId}`)}
-          onKeyDown={() => navigate(`/edit/${documentId}`)}
-          rows={4}
-          className="w-full resize-none bg-inherit p-5 outline-none focus:shadow-inner"
-        />
+      <div className="w-full grow flex items-stretch">
+        {readyAutomergeHandle ? (
+          <div onDoubleClick={() => navigate(`/edit/${documentId}`)}>
+            <RichTextEditor
+              automergeHandle={readyAutomergeHandle}
+              isEditable={false}
+            />
+          </div>
+        ) : (
+          <div>Loading...</div>
+        )}
       </div>
     </div>
   );
