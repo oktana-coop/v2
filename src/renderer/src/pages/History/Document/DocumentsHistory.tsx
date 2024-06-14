@@ -1,4 +1,4 @@
-import { default as Automerge, view } from '@automerge/automerge/next';
+import * as Automerge from '@automerge/automerge/next';
 import { decodeChange, getAllChanges } from '@automerge/automerge/next';
 import {
   AutomergeUrl,
@@ -11,9 +11,9 @@ import { useNavigate } from 'react-router-dom';
 
 import type { Commit } from '../../../automerge';
 import { isCommit, repo, VersionedDocument } from '../../../automerge';
+import { RichTextEditor } from '../../../components/flow-commons/RichTextEditor';
 import { CommitHistoryIcon } from '../../../components/icons';
 import { SidebarHeading } from '../../../components/sidebar/SidebarHeading';
-import { RichTextEditor } from '../../Editor/RichTextEditor';
 import { ChangeLog } from './ChangeLog';
 
 export const DocumentsHistory = ({
@@ -22,13 +22,12 @@ export const DocumentsHistory = ({
   documentId: AutomergeUrl;
 }) => {
   const [versionedDocument] = useDocument<VersionedDocument>(documentId);
-  const [docValue, setDocValue] = React.useState<string>('');
   const [selectedCommit, setSelectedCommit] = React.useState<string>();
   const [commits, setCommits] = React.useState<
     Array<Automerge.DecodedChange | Commit>
   >([]);
   const navigate = useNavigate();
-  const [readyAutomergeHandle, setReadyAutomergeHandle] =
+  const [automergeHandle, setAutomergeHandle] =
     useState<DocHandle<VersionedDocument> | null>(null);
 
   useEffect(() => {
@@ -39,25 +38,28 @@ export const DocumentsHistory = ({
     if (isValidAutomergeUrl(documentId)) {
       const automergeHandle = repo.find<VersionedDocument>(documentId);
       automergeHandle.whenReady().then(() => {
-        setReadyAutomergeHandle(automergeHandle);
+        setAutomergeHandle(automergeHandle);
       });
     } else {
-      setReadyAutomergeHandle(null);
+      setAutomergeHandle(null);
     }
   }, [documentId]);
 
   useEffect(() => {
     if (versionedDocument) {
       document.title = `v2 | "${versionedDocument.title}" version history`;
-      setDocValue(versionedDocument.content || '');
     }
   }, [versionedDocument]);
 
   const selectCommit = useCallback(
     (hash: string) => {
       if (versionedDocument) {
-        const docView = view(versionedDocument, [hash]);
-        setDocValue(docView.content);
+        console.log('hash 👉', hash);
+        const docView = Automerge.view(versionedDocument, [hash]);
+        console.log('docView 👉', docView);
+        // const currentDoc = Automerge.from(docView);
+        // const currentDocHandle = Automerge.
+
         setSelectedCommit(hash);
       }
     },
@@ -101,10 +103,10 @@ export const DocumentsHistory = ({
         />
       </div>
       <div className="w-full grow flex items-stretch">
-        {readyAutomergeHandle ? (
+        {automergeHandle ? (
           <div onDoubleClick={() => navigate(`/edit/${documentId}`)}>
             <RichTextEditor
-              automergeHandle={readyAutomergeHandle}
+              automergeHandle={automergeHandle}
               isEditable={false}
             />
           </div>

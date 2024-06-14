@@ -1,5 +1,5 @@
 import { DecodedChange } from '@automerge/automerge/next';
-import { default as Automerge } from '@automerge/automerge/next';
+import * as Automerge from '@automerge/automerge/next';
 import clsx from 'clsx';
 import { useContext } from 'react';
 

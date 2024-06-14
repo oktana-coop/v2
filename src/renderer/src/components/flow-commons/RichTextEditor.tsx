@@ -9,6 +9,10 @@ import { useEffect, useRef } from 'react';
 
 import { VersionedDocument } from '../../automerge';
 
+const toggleBold = (schema: Schema) => toggleMarkCommand(schema.marks.strong);
+
+const toggleItalic = (schema: Schema) => toggleMarkCommand(schema.marks.em);
+
 const toggleMarkCommand = (mark: MarkType): Command => {
   return (
     state: EditorState,
@@ -34,11 +38,6 @@ export const RichTextEditor = ({
   useEffect(() => {
     if (automergeHandle) {
       const autoMirror = new AutoMirror(['content']);
-      const toggleBold = (schema: Schema) =>
-        toggleMarkCommand(schema.marks.strong);
-      const toggleItalic = (schema: Schema) =>
-        toggleMarkCommand(schema.marks.em);
-
       const editorConfig = {
         schema: autoMirror.schema, // This _must_ be the schema from the AutoMirror
         plugins: [
@@ -82,7 +81,6 @@ export const RichTextEditor = ({
         );
         view.updateState(newState);
       };
-
       automergeHandle.on('change', onPatch);
 
       return () => {
