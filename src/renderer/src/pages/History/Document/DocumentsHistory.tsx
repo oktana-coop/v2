@@ -54,12 +54,9 @@ export const DocumentsHistory = ({
   const selectCommit = useCallback(
     (hash: string) => {
       if (versionedDocument) {
-        console.log('hash 👉', hash);
         const docView = Automerge.view(versionedDocument, [hash]);
-        console.log('docView 👉', docView);
-        // const currentDoc = Automerge.from(docView);
-        // const currentDocHandle = Automerge.
-
+        const spans = Automerge.spans(docView, ['content']);
+        console.log('spans 👉', spans);
         setSelectedCommit(hash);
       }
     },
@@ -105,10 +102,7 @@ export const DocumentsHistory = ({
       <div className="w-full grow flex items-stretch">
         {automergeHandle ? (
           <div onDoubleClick={() => navigate(`/edit/${documentId}`)}>
-            <RichTextEditor
-              automergeHandle={automergeHandle}
-              isEditable={false}
-            />
+            <RichTextEditor docHandle={automergeHandle} isEditable={false} />
           </div>
         ) : (
           <div>Loading...</div>

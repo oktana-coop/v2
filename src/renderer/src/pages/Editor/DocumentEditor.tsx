@@ -62,7 +62,7 @@ export const DocumentEditor = ({
       <div className="relative flex w-4/5 flex-auto flex-col items-stretch overflow-hidden">
         <ActionsBar onEditorToolbarToggle={handleEditorToolbarToggle} />
         <RichTextEditor
-          automergeHandle={automergeHandle}
+          docHandle={automergeHandle}
           onSave={() => {
             openCommitDialog(true);
           }}

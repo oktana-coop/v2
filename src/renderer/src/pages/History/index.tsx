@@ -41,7 +41,6 @@ const HistoryIndex = () => {
       ) : (
         <EmptyDocument message="👈 You can explore a document's editing history by picking up one of the list 😉." />
       )}
-      ;
     </Layout>
   );
 };

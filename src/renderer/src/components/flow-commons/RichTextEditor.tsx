@@ -23,21 +23,22 @@ const toggleMarkCommand = (mark: MarkType): Command => {
 };
 
 type RichTextEditorProps = {
-  automergeHandle: DocHandle<VersionedDocument>;
+  docHandle: DocHandle<VersionedDocument>;
   onSave?: () => void;
   isEditable?: boolean;
 };
 
 export const RichTextEditor = ({
-  automergeHandle,
+  docHandle,
   onSave = () => {},
   isEditable = true,
 }: RichTextEditorProps) => {
   const editorRoot = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (automergeHandle) {
+    if (docHandle) {
       const autoMirror = new AutoMirror(['content']);
+      const initialDoc = autoMirror.initialize(docHandle);
       const editorConfig = {
         schema: autoMirror.schema, // This _must_ be the schema from the AutoMirror
         plugins: [
@@ -51,18 +52,14 @@ export const RichTextEditor = ({
             },
           }),
         ],
-        doc: autoMirror.initialize(automergeHandle),
+        doc: initialDoc,
       };
 
       const state = EditorState.create(editorConfig);
       const view = new EditorView(editorRoot.current, {
         state,
         dispatchTransaction: (tx: Transaction) => {
-          const newState = autoMirror.intercept(
-            automergeHandle,
-            tx,
-            view.state
-          );
+          const newState = autoMirror.intercept(docHandle, tx, view.state);
           view.updateState(newState);
         },
         editable: () => isEditable,
@@ -81,14 +78,14 @@ export const RichTextEditor = ({
         );
         view.updateState(newState);
       };
-      automergeHandle.on('change', onPatch);
+      docHandle.on('change', onPatch);
 
       return () => {
-        automergeHandle.off('change', onPatch);
+        docHandle.off('change', onPatch);
         view.destroy();
       };
     }
-  }, [automergeHandle, onSave, isEditable]);
+  }, [docHandle, onSave, isEditable]);
 
   return (
     <div
