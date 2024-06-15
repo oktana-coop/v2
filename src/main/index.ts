@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, ipcMain, nativeImage, shell } from 'electron';
 
 import { update } from './update';
+import os from 'os';
 
 globalThis.__filename = fileURLToPath(import.meta.url);
 globalThis.__dirname = dirname(__filename);
@@ -51,10 +52,12 @@ async function createWindow() {
     join(process.env.VITE_PUBLIC as string, 'icon.png')
   );
 
-  const macOSDockIcon = nativeImage.createFromPath(
-    join(process.env.VITE_PUBLIC as string, 'macos-dock-icon.png')
-  );
-  app.dock.setIcon(macOSDockIcon);
+  if (os.platform() === 'darwin') {
+    const macOSDockIcon = nativeImage.createFromPath(
+      join(process.env.VITE_PUBLIC as string, 'macos-dock-icon.png')
+    );
+    app.dock.setIcon(macOSDockIcon);
+  }
 
   win = new BrowserWindow({
     title: 'Main window',
