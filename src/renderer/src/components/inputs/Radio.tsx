@@ -122,7 +122,7 @@ export function Radio({
       {...props}
       className={clsx(
         className,
-        'group inline-flex focus:outline-none cursor-pointer'
+        'group inline-flex cursor-pointer focus:outline-none'
       )}
     >
       <span className={clsx([base, colors[color]])}>

@@ -28,7 +28,7 @@ export const Logo = ({ size = DEFAULT_SIZE }: LogoProps) => {
         y="118.263"
         width="60"
         height="12"
-        className="fill-[#FBD9D9] dark: fill-[#F7BEC0]"
+        className="dark: fill-[#F7BEC0] fill-[#FBD9D9]"
       />
     </svg>
   );

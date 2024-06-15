@@ -135,7 +135,7 @@ const EditorIndex = () => {
   // TODO: Export this to its own component
   function renderEmptyDocument() {
     return (
-      <div className="h-full w-full grow flex flex-col items-center justify-center">
+      <div className="flex h-full w-full grow flex-col items-center justify-center">
         <h2 className="text-2xl">Welcome to v2 👋</h2>
         <p>
           {directoryHandle
@@ -178,7 +178,7 @@ const EditorIndex = () => {
 
   return (
     <Layout>
-      <div className="flex-auto flex">
+      <div className="flex flex-auto">
         <Modal
           isOpen={isDocumentCreationModalOpen}
           title="Give your document a title"
@@ -212,7 +212,7 @@ const EditorIndex = () => {
             value={newDocTitle}
             autoFocus={true}
             onChange={(e) => setNewDocTitle(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md"
+            className="w-full rounded-md border border-gray-300 p-2"
           />
         </Modal>
         <div className="h-full w-2/5 grow-0 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">

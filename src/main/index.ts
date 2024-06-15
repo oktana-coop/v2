@@ -3,9 +3,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { app, BrowserWindow, ipcMain, nativeImage, shell } from 'electron';
+import os from 'os';
 
 import { update } from './update';
-import os from 'os';
 
 globalThis.__filename = fileURLToPath(import.meta.url);
 globalThis.__dirname = dirname(__filename);

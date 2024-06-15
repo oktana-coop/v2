@@ -65,11 +65,11 @@ export const History = () => {
           <InvalidDocument />
         )
       ) : (
-        <div className="flex-auto flex">
-          <div className="h-full w-2/5 grow-0 p-5 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
+        <div className="flex flex-auto">
+          <div className="h-full w-2/5 grow-0 overflow-y-auto border-r border-gray-300 p-5 dark:border-neutral-600">
             <DocumentList />
           </div>
-          <div className="h-full w-full grow flex flex-col items-center justify-center">
+          <div className="flex h-full w-full grow flex-col items-center justify-center">
             <h2 className="text-2xl">Welcome to v2 👋</h2>
             <p>
               👈 You can explore a document's editing history by picking up one
