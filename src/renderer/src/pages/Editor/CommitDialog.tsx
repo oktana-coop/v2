@@ -57,7 +57,7 @@ export const CommitDialog = ({
       }
     >
       <Textarea
-        className="shadow-inner w-full h-full resize-none outline-none border-gray-400"
+        className="h-full w-full resize-none border-gray-400 shadow-inner outline-none"
         autoFocus={true}
         autoComplete="off"
         rows={3}
@@ -67,7 +67,7 @@ export const CommitDialog = ({
         }}
         onKeyDown={handleKeyDown}
       />
-      <p className="text-red-500 text-sm mt-2">{errorMessage}</p>
+      <p className="mt-2 text-sm text-red-500">{errorMessage}</p>
     </Modal>
   );
 };

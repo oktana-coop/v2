@@ -7,7 +7,7 @@ type SectionHeaderProps = {
 };
 
 export const SectionHeader = ({ icon: Icon, heading }: SectionHeaderProps) => (
-  <div className="flex gap-x-2 items-center mb-4">
+  <div className="mb-4 flex items-center gap-x-2">
     {Icon && (
       <Icon className="text-black text-opacity-90 dark:text-white dark:text-opacity-90" />
     )}

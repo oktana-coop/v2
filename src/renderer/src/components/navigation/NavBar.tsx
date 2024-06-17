@@ -59,9 +59,9 @@ export const NavBarItem = ({ item }: { item: NavItem }) => {
         {({ isActive }) => (
           <div
             className={clsx(
-              'h-12 flex items-center justify-center relative hover:bg-zinc-950/5',
+              'relative flex h-12 items-center justify-center hover:bg-zinc-950/5',
               isActive
-                ? 'text-purple-500 dark:text-purple-300 before:absolute before:top-0 before:bottom-0 before:left-0 before:border-l-2 before:border-purple-500 dark:before:border-purple-300'
+                ? 'text-purple-500 before:absolute before:bottom-0 before:left-0 before:top-0 before:border-l-2 before:border-purple-500 dark:text-purple-300 dark:before:border-purple-300'
                 : 'text-black text-opacity-55 dark:text-white dark:text-opacity-55'
             )}
           >
@@ -76,14 +76,14 @@ export const NavBarItem = ({ item }: { item: NavItem }) => {
 export function NavBar() {
   return (
     <div
-      className="w-12 h-full flex-none flex flex-col gap-y-5 items-center overflow-y-auto bg-transparent border-r border-gray-300 dark:border-neutral-600 py-4"
+      className="flex h-full w-12 flex-none flex-col items-center gap-y-5 overflow-y-auto border-r border-gray-300 bg-transparent py-4 dark:border-neutral-600"
       data-testid="nav-bar"
     >
       <NavLink to="/edit">
         <Logo />
       </NavLink>
 
-      <nav className="self-stretch flex flex-1 flex-col">
+      <nav className="flex flex-1 flex-col self-stretch">
         <ul role="list" className="flex flex-1 flex-col">
           {navigation.map((item) => (
             <NavBarItem key={item.href} item={item} />

@@ -25,12 +25,12 @@ const Commit = ({
   const themeStyles = isSelected ? 'font-bold' : '';
   return (
     <div
-      className="text-left cursor-pointer"
+      className="cursor-pointer text-left"
       key={commit.hash}
       onClick={() => onClick(commit.hash)}
     >
       <div className="flex flex-row items-center">
-        <div className="w-14 h-full flex-shrink-0">
+        <div className="h-full w-14 flex-shrink-0">
           <TimelinePoint
             circleSize={7.5}
             color={theme === themes.light ? '#9352FF' : '#C8B1FF'}
@@ -38,7 +38,7 @@ const Commit = ({
             hasBottomStem={!isLast}
           />
         </div>
-        <div className={clsx('cursor-pointer text-sm max-h-10', themeStyles)}>
+        <div className={clsx('max-h-10 cursor-pointer text-sm', themeStyles)}>
           {commit.message}
         </div>
       </div>
@@ -60,12 +60,12 @@ const UncommittedChange = ({
   const { theme } = useContext(ThemeContext);
   return (
     <div
-      className="text-left cursor-pointer"
+      className="cursor-pointer text-left"
       key={commit.hash}
       onClick={() => onClick(commit.hash)}
     >
       <div className="flex flex-row items-center">
-        <div className="w-14 h-full flex-shrink-0">
+        <div className="h-full w-14 flex-shrink-0">
           <TimelinePoint
             color={theme === themes.light ? '#2C2C2C' : '#fff'}
             circleSize={12.5}
@@ -75,7 +75,7 @@ const UncommittedChange = ({
           />
         </div>
         <div
-          className={clsx('text-sm max-h-10', isSelected ? 'font-bold' : '')}
+          className={clsx('max-h-10 text-sm', isSelected ? 'font-bold' : '')}
         >
           Uncommited changes
         </div>

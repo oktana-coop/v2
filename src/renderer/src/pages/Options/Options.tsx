@@ -10,7 +10,7 @@ export const Options = () => {
 
   return (
     <Layout>
-      <div className="container max-w-2xl mx-auto my-6">
+      <div className="container mx-auto my-6 max-w-2xl">
         <ThemeSection />
       </div>
     </Layout>

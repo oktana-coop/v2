@@ -65,9 +65,9 @@ export const CommitView = ({ documentId }: { documentId: AutomergeUrl }) => {
   };
 
   return (
-    <div className="flex-auto flex">
-      <div className="h-full w-2/5 grow-0 p-5 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
-        <div className="flex-auto h-full break-words">
+    <div className="flex flex-auto">
+      <div className="h-full w-2/5 grow-0 overflow-y-auto border-r border-gray-300 p-5 dark:border-neutral-600">
+        <div className="h-full flex-auto break-words">
           <SidebarHeading icon={CommitHistoryIcon} text="Version History" />
           <ChangeLog
             changes={commits}
@@ -84,7 +84,7 @@ export const CommitView = ({ documentId }: { documentId: AutomergeUrl }) => {
           onDoubleClick={() => navigate(`/edit/${documentId}`)}
           onKeyDown={() => navigate(`/edit/${documentId}`)}
           rows={4}
-          className="bg-inherit focus:shadow-inner h-full w-full resize-none p-5 outline-none"
+          className="h-full w-full resize-none bg-inherit p-5 outline-none focus:shadow-inner"
         />
       </div>
     </div>

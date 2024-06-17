@@ -50,17 +50,17 @@ export const FileExplorer = ({
   }
 
   return (
-    <div className="flex flex-col items-stretch py-6 h-full">
+    <div className="flex h-full flex-col items-stretch py-6">
       <div className="px-4">
         <SidebarHeading icon={FolderIcon} text="File Explorer" />
       </div>
 
       {directoryHandle && directoryPermissionState === 'granted' ? (
         <div className="flex flex-col items-stretch">
-          <div className="px-4 mb-1 text-left text-black dark:text-white text-opacity-85 dark:text-opacity-85 font-bold truncate">
+          <div className="mb-1 truncate px-4 text-left font-bold text-black text-opacity-85 dark:text-white dark:text-opacity-85">
             {directoryHandle.name}
           </div>
-          <ul className="text-black dark:text-white flex flex-col items-stretch">
+          <ul className="flex flex-col items-stretch text-black dark:text-white">
             {files.map((file) => (
               <li
                 key={file.filename}
@@ -72,7 +72,7 @@ export const FileExplorer = ({
                 )}
               >
                 <button
-                  className="w-full truncate text-left bg-transparent flex items-center"
+                  className="flex w-full items-center truncate bg-transparent text-left"
                   title={file.filename}
                   onClick={async () => handleOnClick(file.handle)}
                 >
@@ -84,7 +84,7 @@ export const FileExplorer = ({
           </ul>
         </div>
       ) : (
-        <div className="flex items-center justify-center h-full">
+        <div className="flex h-full items-center justify-center">
           <Button
             onClick={async () =>
               directoryPermissionState === 'prompt'

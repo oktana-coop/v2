@@ -1,10 +1,13 @@
 ## Description
+
 [Describe the changes introduced by this pull request]
 
 ## Related Issue
+
 [Cite any related issue(s) here]
 
 ## Screenshots (_if applicable_)
+
 [Attach screenshots if they help illustrate the changes]
 
 ## Checklist

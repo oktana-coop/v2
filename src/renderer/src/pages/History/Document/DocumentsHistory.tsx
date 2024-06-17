@@ -69,8 +69,8 @@ export const DocumentsHistory = ({
   };
 
   return (
-    <div className="flex-auto flex items-stretch">
-      <div className="w-2/5 grow-0 border-r border-gray-300 dark:border-neutral-600 p-5 break-words">
+    <div className="flex flex-auto items-stretch">
+      <div className="w-2/5 grow-0 break-words border-r border-gray-300 p-5 dark:border-neutral-600">
         <SidebarHeading icon={CommitHistoryIcon} text="Version History" />
         <ChangeLog
           changes={commits}
@@ -78,7 +78,7 @@ export const DocumentsHistory = ({
           selectedCommit={selectedCommit}
         />
       </div>
-      <div className="w-full grow flex items-stretch">
+      <div className="flex w-full grow items-stretch">
         <textarea
           id="message"
           value={docValue}
@@ -86,7 +86,7 @@ export const DocumentsHistory = ({
           onDoubleClick={() => navigate(`/edit/${documentId}`)}
           onKeyDown={() => navigate(`/edit/${documentId}`)}
           rows={4}
-          className="bg-inherit focus:shadow-inner w-full resize-none p-5 outline-none"
+          className="w-full resize-none bg-inherit p-5 outline-none focus:shadow-inner"
         />
       </div>
     </div>

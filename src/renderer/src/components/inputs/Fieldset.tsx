@@ -35,7 +35,7 @@ export function Legend({ ...props }: HeadlessLegendProps) {
       data-slot="legend"
       className={clsx(
         props.className,
-        'text-base/6 font-semibold text-zinc-950 data-[disabled]:opacity-50 sm:text-/6 dark:text-white'
+        'sm:text-/6 text-base/6 font-semibold text-zinc-950 data-[disabled]:opacity-50 dark:text-white'
       )}
     />
   );

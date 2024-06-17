@@ -133,10 +133,10 @@ export const DocumentEditor = ({
         onCancel={() => openCommitDialog(false)}
         onCommit={(message: string) => commitChanges(message)}
       />
-      <div className="w-4/5 flex-auto flex flex-col items-stretch relative overflow-hidden">
+      <div className="relative flex w-4/5 flex-auto flex-col items-stretch overflow-hidden">
         <ActionsBar onEditorToolbarToggle={handleEditorToolbarToggle} />
         <div
-          className="p-4 flex-auto flex outline-none"
+          className="flex flex-auto p-4 outline-none"
           id="editor"
           ref={editorRoot}
         />
