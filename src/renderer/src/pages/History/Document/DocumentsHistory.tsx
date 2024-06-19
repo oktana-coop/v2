@@ -55,8 +55,9 @@ export const DocumentsHistory = ({
     (hash: string) => {
       if (versionedDocument) {
         const docView = Automerge.view(versionedDocument, [hash]);
-        const spans = Automerge.spans(docView, ['content']);
-        console.log('spans 👉', spans);
+        // TODO: support rendering a rich text version of the document
+        // at a given point in time
+        console.info('This is the doc at this point in time 👉', docView.content, 'the rich-text version is not yet supported.');
         setSelectedCommit(hash);
       }
     },
