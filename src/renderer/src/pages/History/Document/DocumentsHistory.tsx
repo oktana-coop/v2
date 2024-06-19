@@ -58,9 +58,11 @@ export const DocumentsHistory = ({
         // TODO: support rendering a rich text version of the document
         // at a given point in time
         console.info(
-          'This is the doc at this point in time 👉',
-          docView.content,
-          'the rich-text version is not yet supported.'
+          `This is the plain document at this point in time 👉
+
+${docView.content}
+
+the rich-text version is not yet supported.`
         );
         setSelectedCommit(hash);
       }
