@@ -164,7 +164,9 @@ const EditorIndex = () => {
         onDocumentChange={handleDocumentChange}
       />
     ) : (
-      <div>Loading...</div>
+      <div className="flex h-full w-full items-center justify-center text-center">
+        Loading...
+      </div>
     );
   }
 

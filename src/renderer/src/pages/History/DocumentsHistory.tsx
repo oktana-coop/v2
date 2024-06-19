@@ -112,7 +112,9 @@ the rich-text version is not yet supported.`
             <RichTextEditor docHandle={automergeHandle} isEditable={false} />
           </div>
         ) : (
-          <div>Loading...</div>
+          <div className="flex h-full w-full items-center justify-center text-center">
+            Loading...
+          </div>
         )}
       </div>
     </div>
