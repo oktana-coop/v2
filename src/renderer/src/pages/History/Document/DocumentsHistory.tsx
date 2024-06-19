@@ -57,7 +57,11 @@ export const DocumentsHistory = ({
         const docView = Automerge.view(versionedDocument, [hash]);
         // TODO: support rendering a rich text version of the document
         // at a given point in time
-        console.info('This is the doc at this point in time 👉', docView.content, 'the rich-text version is not yet supported.');
+        console.info(
+          'This is the doc at this point in time 👉',
+          docView.content,
+          'the rich-text version is not yet supported.'
+        );
         setSelectedCommit(hash);
       }
     },
@@ -100,7 +104,7 @@ export const DocumentsHistory = ({
           selectedCommit={selectedCommit}
         />
       </div>
-      <div className="w-full grow flex items-stretch">
+      <div className="flex w-full grow items-stretch">
         {automergeHandle ? (
           <div onDoubleClick={() => navigate(`/edit/${documentId}`)}>
             <RichTextEditor docHandle={automergeHandle} isEditable={false} />

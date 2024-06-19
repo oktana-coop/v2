@@ -10,8 +10,8 @@ export const EmptyDocument = ({
   children?: React.ReactNode;
 }) => {
   return (
-    <div className="h-full w-full grow flex flex-col items-center justify-center">
-      <h2 className="text-2xl m-2">{heading}</h2>
+    <div className="flex h-full w-full grow flex-col items-center justify-center">
+      <h2 className="m-2 text-2xl">{heading}</h2>
       <p>{message}</p>
       <p className="m-5">{children}</p>
       <PersonalFile />

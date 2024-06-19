@@ -89,7 +89,7 @@ export const RichTextEditor = ({
 
   return (
     <div
-      className="p-4 flex-auto flex outline-none"
+      className="flex flex-auto p-4 outline-none"
       id="editor"
       ref={editorRoot}
     />
