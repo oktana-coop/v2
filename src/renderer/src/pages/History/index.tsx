@@ -5,18 +5,9 @@ import { useParams } from 'react-router-dom';
 import { EmptyDocument } from '../../components/flow-commons/EmptyDocument';
 import { InvalidDocument } from '../../components/flow-commons/InvalidDocument';
 import { Layout } from '../../components/layout/Layout';
-import { SelectedFileProvider } from '../../filesystem';
 import { DocumentsHistory } from './DocumentsHistory';
 
 export const History = () => {
-  return (
-    <SelectedFileProvider>
-      <HistoryIndex />
-    </SelectedFileProvider>
-  );
-};
-
-const HistoryIndex = () => {
   const { documentId } = useParams();
   const [isValidAutomergeId, setIsValidAutomergeId] =
     React.useState<boolean>(false);
