@@ -6,7 +6,7 @@ import { EmptyDocument } from '../../components/flow-commons/EmptyDocument';
 import { InvalidDocument } from '../../components/flow-commons/InvalidDocument';
 import { Layout } from '../../components/layout/Layout';
 import { SelectedFileProvider } from '../../filesystem';
-import { DocumentsHistory } from './Document/DocumentsHistory';
+import { DocumentsHistory } from './DocumentsHistory';
 
 export const History = () => {
   return (
