@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 
 import type { Commit } from '../../automerge';
 import { isCommit, repo, VersionedDocument } from '../../automerge';
-import { RichTextEditor } from '../../components/flow-commons/RichTextEditor';
+import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import { CommitHistoryIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
 import { ChangeLog } from './ChangeLog';

@@ -10,8 +10,8 @@ import { VersionedDocument } from '../../automerge';
 import { repo } from '../../automerge/repo';
 import { Button } from '../../components/actions/Button';
 import { Modal } from '../../components/dialogs/Modal';
-import { EmptyDocument } from '../../components/flow-commons/EmptyDocument';
-import { InvalidDocument } from '../../components/flow-commons/InvalidDocument';
+import { EmptyDocument } from '../../components/document-views/EmptyDocument';
+import { InvalidDocument } from '../../components/document-views/InvalidDocument';
 import { PenIcon } from '../../components/icons';
 import { Layout } from '../../components/layout/Layout';
 import {

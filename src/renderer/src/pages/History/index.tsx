@@ -2,8 +2,8 @@ import { AutomergeUrl, isValidAutomergeUrl } from '@automerge/automerge-repo';
 import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 
-import { EmptyDocument } from '../../components/flow-commons/EmptyDocument';
-import { InvalidDocument } from '../../components/flow-commons/InvalidDocument';
+import { EmptyDocument } from '../../components/document-views/EmptyDocument';
+import { InvalidDocument } from '../../components/document-views/InvalidDocument';
 import { Layout } from '../../components/layout/Layout';
 import { DocumentsHistory } from './DocumentsHistory';
 

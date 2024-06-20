@@ -3,7 +3,7 @@ import { clsx } from 'clsx';
 import React, { useEffect } from 'react';
 
 import { VersionedDocument } from '../../automerge';
-import { RichTextEditor } from '../../components/flow-commons/RichTextEditor';
+import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import { ActionsBar } from './ActionsBar';
 import { CommitDialog } from './CommitDialog';
 import { EditorToolbar } from './EditorToolbar';
