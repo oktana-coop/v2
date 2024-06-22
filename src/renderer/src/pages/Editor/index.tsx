@@ -10,8 +10,9 @@ import { VersionedDocument } from '../../automerge';
 import { repo } from '../../automerge/repo';
 import { Button } from '../../components/actions/Button';
 import { Modal } from '../../components/dialogs/Modal';
+import { EmptyDocument } from '../../components/document-views/EmptyDocument';
+import { InvalidDocument } from '../../components/document-views/InvalidDocument';
 import { PenIcon } from '../../components/icons';
-import { PersonalFile } from '../../components/illustrations/PersonalFile';
 import { Layout } from '../../components/layout/Layout';
 import {
   createNewFile,
@@ -21,7 +22,6 @@ import {
   SelectedFileProvider,
   writeFile,
 } from '../../filesystem';
-import { InvalidDocument } from '../History/InvalidDocument/InvalidDocument';
 import { DocumentEditor } from './DocumentEditor';
 import { FileExplorer } from './FileExplorer';
 
@@ -132,17 +132,16 @@ const EditorIndex = () => {
     await persistDirectoryHandle(directoryHandle);
   };
 
-  // TODO: Export this to its own component
-  function renderEmptyDocument() {
-    return (
-      <div className="flex h-full w-full grow flex-col items-center justify-center">
-        <h2 className="text-2xl">Welcome to v2 👋</h2>
-        <p>
-          {directoryHandle
-            ? '👈 Pick one document from the list to continue editing. Or create a new one 😉.'
-            : 'Create a new document and explore the world of versioning.'}
-        </p>
-        <p className="m-5">
+  function renderMainPane() {
+    if (!docUrl) {
+      return (
+        <EmptyDocument
+          message={
+            directoryHandle
+              ? '👈 Pick one document from the list to continue editing. Or create a new one 😉.'
+              : 'Create a new document and explore the world of versioning.'
+          }
+        >
           <Button
             onClick={() => openCreateDocumentModal(true)}
             variant="solid"
@@ -151,15 +150,8 @@ const EditorIndex = () => {
             <PenIcon />
             Create document
           </Button>
-        </p>
-        <PersonalFile />
-      </div>
-    );
-  }
-
-  function renderMainPane() {
-    if (!docUrl) {
-      return renderEmptyDocument();
+        </EmptyDocument>
+      );
     }
 
     if (!isValidAutomergeUrl(docUrl)) {
@@ -172,7 +164,9 @@ const EditorIndex = () => {
         onDocumentChange={handleDocumentChange}
       />
     ) : (
-      <div>Loading...</div>
+      <div className="flex h-full w-full items-center justify-center text-center">
+        Loading...
+      </div>
     );
   }
 

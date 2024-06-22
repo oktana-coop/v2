@@ -1,12 +1,12 @@
 import { DecodedChange } from '@automerge/automerge/next';
-import { default as Automerge } from '@automerge/automerge/next';
+import * as Automerge from '@automerge/automerge/next';
 import clsx from 'clsx';
 import { useContext } from 'react';
 
-import type { Commit } from '../../../automerge';
-import { isCommit } from '../../../automerge';
-import { TimelinePoint } from '../../../components/icons/TimelinePoint';
-import { ThemeContext, themes } from '../../../personalization/theme';
+import type { Commit } from '../../automerge';
+import { isCommit } from '../../automerge';
+import { TimelinePoint } from '../../components/icons/TimelinePoint';
+import { ThemeContext, themes } from '../../personalization/theme';
 
 const Commit = ({
   commit,

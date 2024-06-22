@@ -1,4 +1,4 @@
-import { default as Automerge } from '@automerge/automerge/next';
+import * as Automerge from '@automerge/automerge/next';
 
 export { repo } from './repo';
 

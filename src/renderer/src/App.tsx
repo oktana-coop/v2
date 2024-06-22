@@ -3,7 +3,7 @@ import './App.css';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
 import { Editor } from './pages/Editor/index';
-import { History } from './pages/History/History';
+import { History } from './pages/History/index';
 import { Options } from './pages/Options/Options';
 
 function App() {

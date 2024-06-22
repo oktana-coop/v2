@@ -1,30 +1,12 @@
-import {
-  AutomergeUrl,
-  DocHandle,
-  DocHandleChangePayload,
-} from '@automerge/automerge-repo';
-import { AutoMirror } from '@automerge/prosemirror';
+import { AutomergeUrl, DocHandle } from '@automerge/automerge-repo';
 import { clsx } from 'clsx';
-import { baseKeymap, toggleMark } from 'prosemirror-commands';
-import { keymap } from 'prosemirror-keymap';
-import { MarkType, Schema } from 'prosemirror-model';
-import { Command, EditorState, Transaction } from 'prosemirror-state';
-import { EditorView } from 'prosemirror-view';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 
 import { VersionedDocument } from '../../automerge';
+import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import { ActionsBar } from './ActionsBar';
 import { CommitDialog } from './CommitDialog';
 import { EditorToolbar } from './EditorToolbar';
-
-const toggleMarkCommand = (mark: MarkType): Command => {
-  return (
-    state: EditorState,
-    dispatch: ((tr: Transaction) => void) | undefined
-  ) => {
-    return toggleMark(mark)(state, dispatch);
-  };
-};
 
 export const DocumentEditor = ({
   automergeHandle,
@@ -33,7 +15,6 @@ export const DocumentEditor = ({
   automergeHandle: DocHandle<VersionedDocument>;
   onDocumentChange: (docUrl: AutomergeUrl, value: string) => void;
 }) => {
-  const editorRoot = useRef<HTMLDivElement>(null);
   const [isCommitting, openCommitDialog] = React.useState<boolean>(false);
   const [isEditorToolbarOpen, toggleEditorToolbar] =
     React.useState<boolean>(false);
@@ -41,61 +22,6 @@ export const DocumentEditor = ({
   useEffect(() => {
     if (automergeHandle) {
       document.title = `v2 | editing "${automergeHandle.docSync()?.title}"`;
-      const autoMirror = new AutoMirror(['content']);
-      const toggleBold = (schema: Schema) =>
-        toggleMarkCommand(schema.marks.strong);
-      const toggleItalic = (schema: Schema) =>
-        toggleMarkCommand(schema.marks.em);
-
-      const editorConfig = {
-        schema: autoMirror.schema, // This _must_ be the schema from the AutoMirror
-        plugins: [
-          keymap({
-            ...baseKeymap,
-            'Mod-b': toggleBold(autoMirror.schema),
-            'Mod-i': toggleItalic(autoMirror.schema),
-            'Mod-s': () => {
-              openCommitDialog(true);
-              return true;
-            },
-          }),
-        ],
-        doc: autoMirror.initialize(automergeHandle),
-      };
-
-      const state = EditorState.create(editorConfig);
-      const view = new EditorView(editorRoot.current, {
-        state,
-        dispatchTransaction: (tx: Transaction) => {
-          const newState = autoMirror.intercept(
-            automergeHandle,
-            tx,
-            view.state
-          );
-          view.updateState(newState);
-        },
-      });
-
-      const onPatch: (args: DocHandleChangePayload<unknown>) => void = ({
-        doc,
-        patches,
-        patchInfo,
-      }) => {
-        const newState = autoMirror.reconcilePatch(
-          patchInfo.before,
-          doc,
-          patches,
-          view.state
-        );
-        view.updateState(newState);
-      };
-
-      automergeHandle.on('change', onPatch);
-
-      return () => {
-        automergeHandle.off('change', onPatch);
-        view.destroy();
-      };
     }
   }, [automergeHandle]);
 
@@ -135,10 +61,11 @@ export const DocumentEditor = ({
       />
       <div className="relative flex w-4/5 flex-auto flex-col items-stretch overflow-hidden">
         <ActionsBar onEditorToolbarToggle={handleEditorToolbarToggle} />
-        <div
-          className="flex flex-auto p-4 outline-none"
-          id="editor"
-          ref={editorRoot}
+        <RichTextEditor
+          docHandle={automergeHandle}
+          onSave={() => {
+            openCommitDialog(true);
+          }}
         />
         <div
           className={clsx(
