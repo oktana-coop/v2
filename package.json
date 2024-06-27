@@ -16,12 +16,12 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
-    "@automerge/automerge": "2.2.2",
+    "@automerge/automerge": "2.2.1",
     "@automerge/automerge-repo": "1.1.12",
     "@automerge/automerge-repo-network-websocket": "1.1.12",
     "@automerge/automerge-repo-react-hooks": "1.1.12",
     "@automerge/automerge-repo-storage-indexeddb": "1.1.12",
-    "@automerge/prosemirror": "^0.0.12",
+    "@automerge/prosemirror": "^0.0.13-alpha.1",
     "@headlessui/react": "^2.0.4",
     "classnames": "^2.5.1",
     "clsx": "^2.1.1",
