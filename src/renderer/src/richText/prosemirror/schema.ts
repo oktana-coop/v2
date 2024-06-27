@@ -1,5 +1,9 @@
 import { next as Automerge } from '@automerge/automerge';
-import { MappedSchemaSpec, SchemaAdapter } from '@automerge/prosemirror';
+import {
+  MappedNodeSpec,
+  MappedSchemaSpec,
+  SchemaAdapter,
+} from '@automerge/prosemirror';
 import {
   DOMOutputSpec,
   Mark,
@@ -12,14 +16,6 @@ import { classes as heading1Classes } from '../../components/typography/headings
 import { classes as heading2Classes } from '../../components/typography/headings/Heading2';
 import { classes as heading3Classes } from '../../components/typography/headings/Heading3';
 import { classes as heading4Classes } from '../../components/typography/headings/Heading4';
-
-// TODO: Contribute to @automerge/prosemirror to export this type from there
-type BlockMarker = {
-  type: Automerge.RawString;
-  parents: Automerge.RawString[];
-  attrs: { [key: string]: Automerge.MaterializeValue };
-  isEmbed?: boolean;
-};
 
 // basics
 const pDOM: DOMOutputSpec = ['p', 0];
@@ -167,7 +163,7 @@ const schema: MappedSchemaSpec = {
         block: 'image',
         isEmbed: true,
         attrParsers: {
-          fromAutomerge: (block: BlockMarker) => ({
+          fromAutomerge: (block) => ({
             src: block.attrs.src?.toString() || null,
             alt: block.attrs.alt,
             title: block.attrs.title,
@@ -203,7 +199,7 @@ const schema: MappedSchemaSpec = {
         const { src, alt, title } = node.attrs;
         return ['img', { src, alt, title }];
       },
-    } as NodeSpec,
+    } as MappedNodeSpec,
 
     ordered_list: {
       group: 'block',
