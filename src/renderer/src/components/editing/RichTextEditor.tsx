@@ -13,16 +13,15 @@ import { EditorView } from 'prosemirror-view';
 import { useEffect, useRef, useState } from 'react';
 
 import { VersionedDocument } from '../../automerge';
-import { getHeadingLevel } from '../../richText/';
+import { getHeadingLevel, prosemirror } from '../../richText/';
 import {
   BlockElementType,
   blockElementTypes,
 } from '../../richText/constants/blocks';
-import {
-  automergeSchemaAdapter,
-  getCurrentBlockType,
-} from '../../richText/prosemirror';
 import { EditorToolbar } from './EditorToolbar';
+
+const { automergeSchemaAdapter, buildInputRules, getCurrentBlockType } =
+  prosemirror;
 
 const toggleBold = (schema: Schema) => toggleMarkCommand(schema.marks.strong);
 
@@ -62,6 +61,7 @@ export const RichTextEditor = ({
       const editorConfig = {
         schema: autoMirror.schema, // This _must_ be the schema from the AutoMirror
         plugins: [
+          buildInputRules(autoMirror.schema),
           keymap({
             ...baseKeymap,
             'Mod-b': toggleBold(autoMirror.schema),
