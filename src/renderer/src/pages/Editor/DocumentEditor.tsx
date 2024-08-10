@@ -1,5 +1,5 @@
 import { AutomergeUrl, DocHandle } from '@automerge/automerge-repo';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { VersionedDocument } from '../../automerge';
 import { RichTextEditor } from '../../components/editing/RichTextEditor';
@@ -45,9 +45,13 @@ export const DocumentEditor = ({
     return onDocumentChange(docUrl, content);
   };
 
-  const handleEditorToolbarToggle = () => {
+  const handleEditorToolbarToggle = useCallback(() => {
     toggleEditorToolbar(!isEditorToolbarOpen);
-  };
+  }, [isEditorToolbarOpen]);
+
+  const handleSave = useCallback(() => {
+    openCommitDialog(true);
+  }, []);
 
   return (
     <>
@@ -60,9 +64,7 @@ export const DocumentEditor = ({
         <ActionsBar onEditorToolbarToggle={handleEditorToolbarToggle} />
         <RichTextEditor
           docHandle={automergeHandle}
-          onSave={() => {
-            openCommitDialog(true);
-          }}
+          onSave={handleSave}
           isToolbarOpen={isEditorToolbarOpen}
         />
       </div>
