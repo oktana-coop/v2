@@ -113,7 +113,7 @@ export const RichTextEditor = ({
         view.destroy();
       };
     }
-  }, [docHandle, isEditable]);
+  }, [docHandle, onSave, isEditable]);
 
   const handleBlockSelect = (type: BlockElementType) => {
     if (view) {
