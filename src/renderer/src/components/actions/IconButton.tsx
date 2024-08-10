@@ -1,3 +1,4 @@
+import { type ButtonProps as HeadlessButtonProps } from '@headlessui/react';
 import { forwardRef, type ReactNode } from 'react';
 
 import { Button, type ButtonColor } from './Button';
@@ -5,7 +6,7 @@ import { Button, type ButtonColor } from './Button';
 export type IconButtonProps = {
   icon: ReactNode;
   color?: ButtonColor;
-  onClick?: () => void;
+  onClick?: HeadlessButtonProps['onClick'];
 };
 
 export const IconButton = forwardRef(function IconButton(

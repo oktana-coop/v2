@@ -23,9 +23,9 @@ import { EditorToolbar } from './EditorToolbar';
 const { automergeSchemaAdapter, buildInputRules, getCurrentBlockType } =
   prosemirror;
 
-const toggleBold = (schema: Schema) => toggleMarkCommand(schema.marks.strong);
+const toggleStrong = (schema: Schema) => toggleMarkCommand(schema.marks.strong);
 
-const toggleItalic = (schema: Schema) => toggleMarkCommand(schema.marks.em);
+const toggleEm = (schema: Schema) => toggleMarkCommand(schema.marks.em);
 
 const toggleMarkCommand = (mark: MarkType): Command => {
   return (
@@ -51,6 +51,7 @@ export const RichTextEditor = ({
 }: RichTextEditorProps) => {
   const editorRoot = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<EditorView | null>(null);
+  const [schema, setSchema] = useState<Schema | null>(null);
   const [blockType, setBlockType] = useState<BlockElementType | null>(null);
 
   useEffect(() => {
@@ -64,8 +65,8 @@ export const RichTextEditor = ({
           buildInputRules(autoMirror.schema),
           keymap({
             ...baseKeymap,
-            'Mod-b': toggleBold(autoMirror.schema),
-            'Mod-i': toggleItalic(autoMirror.schema),
+            'Mod-b': toggleStrong(autoMirror.schema),
+            'Mod-i': toggleEm(autoMirror.schema),
             'Mod-s': () => {
               onSave();
               return true;
@@ -89,6 +90,7 @@ export const RichTextEditor = ({
       });
 
       setView(view);
+      setSchema(autoMirror.schema);
 
       const onPatch: (args: DocHandleChangePayload<unknown>) => void = ({
         doc,
@@ -111,7 +113,7 @@ export const RichTextEditor = ({
         view.destroy();
       };
     }
-  }, [docHandle, onSave, isEditable]);
+  }, [docHandle, isEditable]);
 
   const handleBlockSelect = (type: BlockElementType) => {
     if (view) {
@@ -152,6 +154,20 @@ export const RichTextEditor = ({
     }
   };
 
+  const handleStrongToggle = () => {
+    if (view && schema) {
+      toggleStrong(schema)(view.state, view.dispatch);
+      view.focus();
+    }
+  };
+
+  const handleEmToggle = () => {
+    if (view && schema) {
+      toggleEm(schema)(view.state, view.dispatch);
+      view.focus();
+    }
+  };
+
   return (
     <>
       <div
@@ -168,6 +184,8 @@ export const RichTextEditor = ({
         >
           <EditorToolbar
             onBlockSelect={handleBlockSelect}
+            onStrongToggle={handleStrongToggle}
+            onEmToggle={handleEmToggle}
             blockType={blockType}
           />
         </div>
