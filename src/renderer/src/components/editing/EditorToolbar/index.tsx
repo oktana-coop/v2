@@ -45,11 +45,15 @@ const blockOptions = [
 export const EditorToolbar = ({
   blockType,
   onBlockSelect,
+  strongSelected,
+  emSelected,
   onStrongToggle,
   onEmToggle,
 }: {
   blockType: BlockElementType;
   onBlockSelect: (type: BlockElementType) => void;
+  strongSelected: boolean;
+  emSelected: boolean;
   onStrongToggle: () => void;
   onEmToggle: () => void;
 }) => {
@@ -63,8 +67,16 @@ export const EditorToolbar = ({
         />
       </div>
       <div className="flex flex-initial gap-x-1">
-        <IconButton icon={<FormatBoldIcon />} onClick={onStrongToggle} />
-        <IconButton icon={<FormatItalicIcon />} onClick={onEmToggle} />
+        <IconButton
+          icon={<FormatBoldIcon />}
+          color={strongSelected ? 'purple' : undefined}
+          onClick={onStrongToggle}
+        />
+        <IconButton
+          icon={<FormatItalicIcon />}
+          color={emSelected ? 'purple' : undefined}
+          onClick={onEmToggle}
+        />
         <IconButton icon={<LinkIcon />} />
       </div>
       <div className="flex flex-initial gap-x-1">

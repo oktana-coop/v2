@@ -1,4 +1,5 @@
-import { EditorState } from 'prosemirror-state';
+import type { MarkType } from 'prosemirror-model';
+import { EditorState, TextSelection } from 'prosemirror-state';
 
 import {
   BlockElementType,
@@ -29,3 +30,15 @@ export const getCurrentBlockType = (
       return null;
   }
 };
+
+export const isMarkActive =
+  (markType: MarkType) =>
+  (state: EditorState): boolean => {
+    const { from, to, empty, $cursor } = state.selection as TextSelection;
+
+    if (empty && $cursor) {
+      return Boolean(markType.isInSet(state.storedMarks || $cursor.marks()));
+    } else {
+      return state.doc.rangeHasMark(from, to, markType);
+    }
+  };

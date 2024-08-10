@@ -4,11 +4,10 @@ import { clsx } from 'clsx';
 import {
   baseKeymap,
   setBlockType as setProsemirrorBlockType,
-  toggleMark,
 } from 'prosemirror-commands';
 import { keymap } from 'prosemirror-keymap';
-import { MarkType, Schema } from 'prosemirror-model';
-import { Command, EditorState, Transaction } from 'prosemirror-state';
+import { Schema } from 'prosemirror-model';
+import { EditorState, Transaction } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { useEffect, useRef, useState } from 'react';
 
@@ -20,21 +19,15 @@ import {
 } from '../../richText/constants/blocks';
 import { EditorToolbar } from './EditorToolbar';
 
-const { automergeSchemaAdapter, buildInputRules, getCurrentBlockType } =
-  prosemirror;
-
-const toggleStrong = (schema: Schema) => toggleMarkCommand(schema.marks.strong);
-
-const toggleEm = (schema: Schema) => toggleMarkCommand(schema.marks.em);
-
-const toggleMarkCommand = (mark: MarkType): Command => {
-  return (
-    state: EditorState,
-    dispatch: ((tr: Transaction) => void) | undefined
-  ) => {
-    return toggleMark(mark)(state, dispatch);
-  };
-};
+const {
+  automergeSchemaAdapter,
+  buildInputRules,
+  getCurrentBlockType,
+  isMarkActive,
+  toggleEm,
+  toggleStrong,
+  transactionUpdatesMarks,
+} = prosemirror;
 
 type RichTextEditorProps = {
   docHandle: DocHandle<VersionedDocument>;
@@ -52,6 +45,8 @@ export const RichTextEditor = ({
   const editorRoot = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<EditorView | null>(null);
   const [schema, setSchema] = useState<Schema | null>(null);
+  const [strongSelected, setStrongSelected] = useState<boolean>(false);
+  const [emSelected, setEmSelected] = useState<boolean>(false);
   const [blockType, setBlockType] = useState<BlockElementType | null>(null);
 
   useEffect(() => {
@@ -85,6 +80,13 @@ export const RichTextEditor = ({
 
           // React state updates
           setBlockType(getCurrentBlockType(newState));
+
+          if (tx.selectionSet || transactionUpdatesMarks(tx)) {
+            setStrongSelected(
+              isMarkActive(autoMirror.schema.marks.strong)(newState)
+            );
+            setEmSelected(isMarkActive(autoMirror.schema.marks.em)(newState));
+          }
         },
         editable: () => isEditable,
       });
@@ -183,10 +185,12 @@ export const RichTextEditor = ({
           )}
         >
           <EditorToolbar
+            blockType={blockType}
             onBlockSelect={handleBlockSelect}
+            strongSelected={strongSelected}
+            emSelected={emSelected}
             onStrongToggle={handleStrongToggle}
             onEmToggle={handleEmToggle}
-            blockType={blockType}
           />
         </div>
       )}
