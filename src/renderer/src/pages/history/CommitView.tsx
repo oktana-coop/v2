@@ -5,10 +5,10 @@ import { useDocument } from '@automerge/automerge-repo-react-hooks';
 import React, { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import type { Commit } from '../../modules/version-control';
-import { isCommit, VersionedDocument } from '../../modules/version-control';
 import { CommitHistoryIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
+import type { Commit } from '../../modules/version-control';
+import { isCommit, VersionedDocument } from '../../modules/version-control';
 import { ChangeLog } from './ChangeLog';
 
 export const CommitView = ({ documentId }: { documentId: AutomergeUrl }) => {

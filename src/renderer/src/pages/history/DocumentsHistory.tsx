@@ -9,15 +9,15 @@ import { useDocument } from '@automerge/automerge-repo-react-hooks';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { RichTextEditor } from '../../components/editing/RichTextEditor';
+import { CommitHistoryIcon } from '../../components/icons';
+import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
 import type { Commit } from '../../modules/version-control';
 import {
   isCommit,
   repo,
   VersionedDocument,
 } from '../../modules/version-control';
-import { RichTextEditor } from '../../components/editing/RichTextEditor';
-import { CommitHistoryIcon } from '../../components/icons';
-import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
 import { ChangeLog } from './ChangeLog';
 
 export const DocumentsHistory = ({
