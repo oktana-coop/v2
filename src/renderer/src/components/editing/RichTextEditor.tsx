@@ -11,12 +11,12 @@ import { EditorState, Transaction } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { useEffect, useRef, useState } from 'react';
 
-import { VersionedDocument } from '../../automerge';
-import { getHeadingLevel, prosemirror } from '../../richText/';
+import { getHeadingLevel, prosemirror } from '../../modules/rich-text/';
 import {
   BlockElementType,
   blockElementTypes,
-} from '../../richText/constants/blocks';
+} from '../../modules/rich-text/constants/blocks';
+import { VersionedDocument } from '../../modules/version-control';
 import { EditorToolbar } from './EditorToolbar';
 
 const {

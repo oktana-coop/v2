@@ -6,8 +6,6 @@ import {
 import { useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { VersionedDocument } from '../../automerge';
-import { repo } from '../../automerge/repo';
 import { Button } from '../../components/actions/Button';
 import { Modal } from '../../components/dialogs/Modal';
 import { EmptyDocument } from '../../components/document-views/EmptyDocument';
@@ -21,7 +19,9 @@ import {
   SelectedFileContext,
   SelectedFileProvider,
   writeFile,
-} from '../../filesystem';
+} from '../../modules/filesystem';
+import { VersionedDocument } from '../../modules/version-control';
+import { repo } from '../../modules/version-control/repo';
 import { DocumentEditor } from './DocumentEditor';
 import { FileExplorer } from './FileExplorer';
 

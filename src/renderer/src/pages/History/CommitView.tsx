@@ -5,8 +5,8 @@ import { useDocument } from '@automerge/automerge-repo-react-hooks';
 import React, { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import type { Commit } from '../../automerge';
-import { isCommit, VersionedDocument } from '../../automerge';
+import type { Commit } from '../../modules/version-control';
+import { isCommit, VersionedDocument } from '../../modules/version-control';
 import { CommitHistoryIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
 import { ChangeLog } from './ChangeLog';

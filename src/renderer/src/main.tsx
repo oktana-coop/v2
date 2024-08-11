@@ -6,9 +6,9 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 import App from './App.tsx';
-import { repo } from './automerge';
-import { DirectoryProvider } from './filesystem';
-import { ThemeProvider } from './personalization/theme';
+import { DirectoryProvider } from './modules/filesystem';
+import { ThemeProvider } from './modules/personalization/theme';
+import { repo } from './modules/version-control/index.ts';
 
 declare global {
   interface Window {

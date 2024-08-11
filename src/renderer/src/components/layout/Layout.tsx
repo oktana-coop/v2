@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import { type ReactNode, useContext } from 'react';
 
-import { ThemeContext, themes } from '../../personalization/theme';
+import { ThemeContext, themes } from '../../modules/personalization/theme';
 import { NavBar } from '../navigation/NavBar';
 
 export const Layout = ({ children }: { children: ReactNode }) => {

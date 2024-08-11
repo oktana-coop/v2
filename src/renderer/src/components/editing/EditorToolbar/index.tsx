@@ -10,8 +10,10 @@ import {
   ImageIcon,
   LinkIcon,
 } from '../../../components/icons';
-import { blockElementTypes } from '../../../richText';
-import { BlockElementType } from '../../../richText';
+import {
+  type BlockElementType,
+  blockElementTypes,
+} from '../../../modules/rich-text';
 import { BlockSelect } from './BlockSelect';
 
 const blockOptions = [
