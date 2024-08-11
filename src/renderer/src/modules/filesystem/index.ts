@@ -5,11 +5,11 @@ export * from './utils';
 export {
   DirectoryContext,
   DirectoryProvider,
-} from './directoryHandles/context';
+} from './directory-handles/context';
 
 export {
   SelectedFileContext,
   SelectedFileProvider,
-} from './selectedFile/context';
+} from './selected-file/context';
 
-export { type FileInfo } from './selectedFile/types';
+export { type FileInfo } from './selected-file/types';
