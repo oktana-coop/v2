@@ -4,7 +4,7 @@ import { clsx } from 'clsx';
 import { Button } from '../../components/actions/Button';
 import { FileDocumentIcon, FolderIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
-import { readFile, removeExtension } from '../../filesystem';
+import { readFile, removeExtension } from '../../modules/filesystem';
 
 export const FileExplorer = ({
   directoryHandle,

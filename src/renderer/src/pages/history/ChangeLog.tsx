@@ -3,10 +3,10 @@ import * as Automerge from '@automerge/automerge/next';
 import clsx from 'clsx';
 import { useContext } from 'react';
 
-import type { Commit } from '../../automerge';
-import { isCommit } from '../../automerge';
 import { TimelinePoint } from '../../components/icons/TimelinePoint';
-import { ThemeContext, themes } from '../../personalization/theme';
+import { ThemeContext, themes } from '../../modules/personalization/theme';
+import type { Commit } from '../../modules/version-control';
+import { isCommit } from '../../modules/version-control';
 
 const Commit = ({
   commit,

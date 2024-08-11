@@ -4,7 +4,7 @@ import { EditorState, TextSelection } from 'prosemirror-state';
 import {
   BlockElementType,
   blockElementTypes,
-} from '../../richText/constants/blocks';
+} from '../../../modules/rich-text/constants/blocks';
 
 export const getCurrentBlockType = (
   state: EditorState

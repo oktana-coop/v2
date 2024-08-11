@@ -2,9 +2,9 @@ import './App.css';
 
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
-import { Editor } from './pages/Editor/index';
-import { History } from './pages/History/index';
-import { Options } from './pages/Options/Options';
+import { Editor } from './pages/editor/index';
+import { History } from './pages/history/index';
+import { Options } from './pages/options/Options';
 
 function App() {
   return (

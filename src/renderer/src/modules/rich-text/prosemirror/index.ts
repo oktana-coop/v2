@@ -1,4 +1,4 @@
 export * from './selection';
 export * from './schema';
-export * from './inputRules';
+export * from './input-rules';
 export * from './commands';
