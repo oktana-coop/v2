@@ -1,4 +1,8 @@
-import { IconButton } from '../../../components/actions/IconButton';
+import {
+  type BlockElementType,
+  blockElementTypes,
+} from '../../../modules/rich-text';
+import { IconButton } from '../../actions/IconButton';
 import {
   FormatBoldIcon,
   FormatHeading1Icon,
@@ -9,11 +13,7 @@ import {
   FormatTextIcon,
   ImageIcon,
   LinkIcon,
-} from '../../../components/icons';
-import {
-  type BlockElementType,
-  blockElementTypes,
-} from '../../../modules/rich-text';
+} from '../../icons';
 import { BlockSelect } from './BlockSelect';
 
 const blockOptions = [

@@ -17,7 +17,7 @@ import {
   blockElementTypes,
 } from '../../modules/rich-text/constants/blocks';
 import { VersionedDocument } from '../../modules/version-control';
-import { EditorToolbar } from './EditorToolbar';
+import { EditorToolbar } from './editor-toolbar';
 
 const {
   automergeSchemaAdapter,

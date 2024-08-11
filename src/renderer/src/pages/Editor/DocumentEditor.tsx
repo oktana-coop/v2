@@ -1,8 +1,8 @@
 import { AutomergeUrl, DocHandle } from '@automerge/automerge-repo';
 import { useCallback, useEffect, useState } from 'react';
 
-import { VersionedDocument } from '../../modules/version-control';
 import { RichTextEditor } from '../../components/editing/RichTextEditor';
+import { VersionedDocument } from '../../modules/version-control';
 import { ActionsBar } from './ActionsBar';
 import { CommitDialog } from './CommitDialog';
 
