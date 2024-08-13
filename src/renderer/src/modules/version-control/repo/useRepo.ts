@@ -1,1 +1,1 @@
-export { useRepo } from '@automerge/automerge-repo-react-hooks';
+export { useRepo, RepoContext } from '@automerge/automerge-repo-react-hooks';

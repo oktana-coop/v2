@@ -1,20 +1,12 @@
 import './index.css';
 
-import { DocHandle } from '@automerge/automerge-repo';
-import { RepoContext } from '@automerge/automerge-repo-react-hooks';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 import App from './App.tsx';
 import { DirectoryProvider } from './modules/filesystem';
 import { ThemeProvider } from './modules/personalization/theme';
-import { setupRepo } from './modules/version-control';
-
-declare global {
-  interface Window {
-    handle: DocHandle<unknown>;
-  }
-}
+import { RepoContext, setupRepo } from './modules/version-control';
 
 const repo = setupRepo();
 
