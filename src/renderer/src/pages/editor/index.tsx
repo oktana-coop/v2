@@ -77,7 +77,7 @@ const EditorIndex = () => {
     } else {
       setReadyAutomergeHandle(null);
     }
-  }, [docUrl, clearFileSelection]);
+  }, [repo, docUrl, clearFileSelection]);
 
   useEffect(() => {
     const getDirectoryFiles = async (
