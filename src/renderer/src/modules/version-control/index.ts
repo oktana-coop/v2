@@ -1,2 +1,2 @@
-export { repo } from './repo';
+export * from './repo';
 export * from './document';

@@ -5,17 +5,16 @@ import {
   DocHandle,
   isValidAutomergeUrl,
 } from '@automerge/automerge-repo';
-import { useDocument } from '@automerge/automerge-repo-react-hooks';
+import { useDocument, useRepo } from '@automerge/automerge-repo-react-hooks';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import { CommitHistoryIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
-import type { Commit } from '../../modules/version-control';
 import {
+  type Commit,
   isCommit,
-  repo,
   VersionedDocument,
 } from '../../modules/version-control';
 import { ChangeLog } from './ChangeLog';
@@ -33,6 +32,7 @@ export const DocumentsHistory = ({
   const navigate = useNavigate();
   const [automergeHandle, setAutomergeHandle] =
     useState<DocHandle<VersionedDocument> | null>(null);
+  const repo = useRepo();
 
   useEffect(() => {
     if (!documentId) {
@@ -47,7 +47,7 @@ export const DocumentsHistory = ({
     } else {
       setAutomergeHandle(null);
     }
-  }, [documentId]);
+  }, [documentId, repo]);
 
   useEffect(() => {
     if (versionedDocument) {
