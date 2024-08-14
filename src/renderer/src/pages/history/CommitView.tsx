@@ -7,8 +7,11 @@ import { useNavigate } from 'react-router-dom';
 
 import { CommitHistoryIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
-import type { Commit } from '../../modules/version-control';
-import { isCommit, VersionedDocument } from '../../modules/version-control';
+import {
+  type Commit,
+  isCommit,
+  VersionedDocument,
+} from '../../modules/version-control';
 import { ChangeLog } from './ChangeLog';
 
 export const CommitView = ({ documentId }: { documentId: AutomergeUrl }) => {

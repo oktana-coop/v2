@@ -20,8 +20,11 @@ import {
   SelectedFileProvider,
   writeFile,
 } from '../../modules/filesystem';
-import { VersionedDocument } from '../../modules/version-control';
-import { repo } from '../../modules/version-control/repo';
+import {
+  createDocument,
+  useRepo,
+  VersionedDocument,
+} from '../../modules/version-control';
 import { DocumentEditor } from './DocumentEditor';
 import { FileExplorer } from './FileExplorer';
 
@@ -55,6 +58,7 @@ const EditorIndex = () => {
   const [files, setFiles] = useState<
     Array<{ filename: string; handle: FileSystemFileHandle }>
   >([]);
+  const repo = useRepo();
 
   useEffect(() => {
     document.title = 'v2 | Editor';
@@ -73,7 +77,7 @@ const EditorIndex = () => {
     } else {
       setReadyAutomergeHandle(null);
     }
-  }, [docUrl, clearFileSelection]);
+  }, [repo, docUrl, clearFileSelection]);
 
   useEffect(() => {
     const getDirectoryFiles = async (
@@ -89,13 +93,7 @@ const EditorIndex = () => {
   }, [directoryHandle, directoryPermissionState, selectedFileInfo]);
 
   const handleDocumentCreation = async (docTitle: string) => {
-    const handle = repo.create<VersionedDocument>();
-    const newDocUrl = handle.url;
-    handle.change((doc) => {
-      doc.title = docTitle;
-      doc.content = docTitle;
-    });
-
+    const newDocUrl = await createDocument(repo)(docTitle);
     const fileHandle = await createNewFile(newDocUrl);
     if (fileHandle) {
       handleFileSelection(newDocUrl, fileHandle);
