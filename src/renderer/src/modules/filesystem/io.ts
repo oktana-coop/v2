@@ -1,5 +1,4 @@
-import { AutomergeUrl } from '@automerge/automerge-repo';
-
+import { AutomergeUrl } from '../../modules/version-control/';
 import { FILE_EXTENSION } from './constants';
 import { FileContent } from './types';
 

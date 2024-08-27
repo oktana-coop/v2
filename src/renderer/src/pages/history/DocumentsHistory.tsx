@@ -1,10 +1,5 @@
 import * as Automerge from '@automerge/automerge/next';
 import { decodeChange, getAllChanges } from '@automerge/automerge/next';
-import {
-  AutomergeUrl,
-  DocHandle,
-  isValidAutomergeUrl,
-} from '@automerge/automerge-repo';
 import { useDocument, useRepo } from '@automerge/automerge-repo-react-hooks';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -13,8 +8,11 @@ import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import { CommitHistoryIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
 import {
+  AutomergeUrl,
   type Commit,
+  DocHandle,
   isCommit,
+  isValidAutomergeUrl,
   VersionedDocument,
 } from '../../modules/version-control';
 import { ChangeLog } from './ChangeLog';

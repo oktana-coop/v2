@@ -1,7 +1,7 @@
-import { isValidAutomergeUrl } from '@automerge/automerge-repo';
 import { createContext, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
+import { isValidAutomergeUrl } from '../../version-control';
 import {
   clearAll,
   clearAndInsertOne,

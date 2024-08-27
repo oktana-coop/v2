@@ -1,8 +1,3 @@
-import {
-  AutomergeUrl,
-  DocHandle,
-  isValidAutomergeUrl,
-} from '@automerge/automerge-repo';
 import { useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -21,7 +16,10 @@ import {
   writeFile,
 } from '../../modules/filesystem';
 import {
+  AutomergeUrl,
   createDocument,
+  DocHandle,
+  isValidAutomergeUrl,
   useRepo,
   VersionedDocument,
 } from '../../modules/version-control';

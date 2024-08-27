@@ -1,4 +1,4 @@
-import { AutomergeUrl } from '@automerge/automerge-repo';
+import { AutomergeUrl } from '../version-control';
 
 export type FileContent = {
   docUrl: AutomergeUrl;

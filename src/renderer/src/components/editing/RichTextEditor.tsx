@@ -1,4 +1,3 @@
-import { DocHandle, DocHandleChangePayload } from '@automerge/automerge-repo';
 import { AutoMirror } from '@automerge/prosemirror';
 import { clsx } from 'clsx';
 import {
@@ -16,7 +15,11 @@ import {
   BlockElementType,
   blockElementTypes,
 } from '../../modules/rich-text/constants/blocks';
-import { VersionedDocument } from '../../modules/version-control';
+import {
+  DocHandle,
+  DocHandleChangePayload,
+  VersionedDocument,
+} from '../../modules/version-control';
 import { EditorToolbar } from './editor-toolbar';
 
 const {
