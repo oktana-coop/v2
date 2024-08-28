@@ -1,6 +1,5 @@
 import * as Automerge from '@automerge/automerge/next';
 import { decodeChange, getAllChanges } from '@automerge/automerge/next';
-import { useDocument, useRepo } from '@automerge/automerge-repo-react-hooks';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,6 +12,8 @@ import {
   DocHandle,
   isCommit,
   isValidAutomergeUrl,
+  useDocument,
+  useRepo,
   VersionedDocument,
 } from '../../modules/version-control';
 import { ChangeLog } from './ChangeLog';
