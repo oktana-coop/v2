@@ -3,9 +3,6 @@ import { decodeChange, getAllChanges } from '@automerge/automerge/next';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { RichTextEditor } from '../../components/editing/RichTextEditor';
-import { CommitHistoryIcon } from '../../components/icons';
-import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
 import {
   AutomergeUrl,
   type Commit,
@@ -16,6 +13,9 @@ import {
   useRepo,
   VersionedDocument,
 } from '../../../../modules/version-control';
+import { RichTextEditor } from '../../components/editing/RichTextEditor';
+import { CommitHistoryIcon } from '../../components/icons';
+import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
 import { ChangeLog } from './ChangeLog';
 
 export const DocumentsHistory = ({
