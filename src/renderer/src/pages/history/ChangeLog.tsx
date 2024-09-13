@@ -3,9 +3,12 @@ import * as Automerge from '@automerge/automerge/next';
 import clsx from 'clsx';
 import { useContext } from 'react';
 
+import {
+  ThemeContext,
+  themes,
+} from '../../../../modules/personalization/theme';
+import { type Commit, isCommit } from '../../../../modules/version-control';
 import { TimelinePoint } from '../../components/icons/TimelinePoint';
-import { ThemeContext, themes } from '../../modules/personalization/theme';
-import { type Commit, isCommit } from '../../modules/version-control';
 
 const Commit = ({
   commit,

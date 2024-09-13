@@ -12,10 +12,10 @@ import {
   NodeSpec,
 } from 'prosemirror-model';
 
-import { classes as heading1Classes } from '../../../components/typography/headings/Heading1';
-import { classes as heading2Classes } from '../../../components/typography/headings/Heading2';
-import { classes as heading3Classes } from '../../../components/typography/headings/Heading3';
-import { classes as heading4Classes } from '../../../components/typography/headings/Heading4';
+import { classes as heading1Classes } from '../../../renderer/src/components/typography/headings/Heading1';
+import { classes as heading2Classes } from '../../../renderer/src/components/typography/headings/Heading2';
+import { classes as heading3Classes } from '../../../renderer/src/components/typography/headings/Heading3';
+import { classes as heading4Classes } from '../../../renderer/src/components/typography/headings/Heading4';
 
 // basics
 const pDOM: DOMOutputSpec = ['p', 0];

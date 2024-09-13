@@ -1,10 +1,7 @@
 import type { MarkType } from 'prosemirror-model';
 import { EditorState, TextSelection } from 'prosemirror-state';
 
-import {
-  BlockElementType,
-  blockElementTypes,
-} from '../../../modules/rich-text/constants/blocks';
+import { BlockElementType, blockElementTypes } from '../constants/blocks';
 
 export const getCurrentBlockType = (
   state: EditorState

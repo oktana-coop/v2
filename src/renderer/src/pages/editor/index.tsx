@@ -1,12 +1,6 @@
 import { useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Button } from '../../components/actions/Button';
-import { Modal } from '../../components/dialogs/Modal';
-import { EmptyDocument } from '../../components/document-views/EmptyDocument';
-import { InvalidDocument } from '../../components/document-views/InvalidDocument';
-import { PenIcon } from '../../components/icons';
-import { Layout } from '../../components/layout/Layout';
 import {
   createNewFile,
   DirectoryContext,
@@ -14,7 +8,7 @@ import {
   SelectedFileContext,
   SelectedFileProvider,
   writeFile,
-} from '../../modules/filesystem';
+} from '../../../../modules/filesystem';
 import {
   AutomergeUrl,
   createDocument,
@@ -22,7 +16,13 @@ import {
   isValidAutomergeUrl,
   useRepo,
   VersionedDocument,
-} from '../../modules/version-control';
+} from '../../../../modules/version-control';
+import { Button } from '../../components/actions/Button';
+import { Modal } from '../../components/dialogs/Modal';
+import { EmptyDocument } from '../../components/document-views/EmptyDocument';
+import { InvalidDocument } from '../../components/document-views/InvalidDocument';
+import { PenIcon } from '../../components/icons';
+import { Layout } from '../../components/layout/Layout';
 import { DocumentEditor } from './DocumentEditor';
 import { FileExplorer } from './FileExplorer';
 

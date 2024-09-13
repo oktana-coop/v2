@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import {
   AutomergeUrl,
   DocHandle,
   VersionedDocument,
-} from '../../modules/version-control';
+} from '../../../../modules/version-control';
+import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import { ActionsBar } from './ActionsBar';
 import { CommitDialog } from './CommitDialog';
 
