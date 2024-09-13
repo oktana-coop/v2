@@ -14,7 +14,7 @@ import {
   SelectedFileContext,
   SelectedFileProvider,
   writeFile,
-} from '../../modules/filesystem';
+} from '../../../../modules/filesystem';
 import {
   AutomergeUrl,
   createDocument,
@@ -22,7 +22,7 @@ import {
   isValidAutomergeUrl,
   useRepo,
   VersionedDocument,
-} from '../../modules/version-control';
+} from '../../../../modules/version-control';
 import { DocumentEditor } from './DocumentEditor';
 import { FileExplorer } from './FileExplorer';
 

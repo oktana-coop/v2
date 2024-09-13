@@ -4,8 +4,11 @@ import clsx from 'clsx';
 import { useContext } from 'react';
 
 import { TimelinePoint } from '../../components/icons/TimelinePoint';
-import { ThemeContext, themes } from '../../modules/personalization/theme';
-import { type Commit, isCommit } from '../../modules/version-control';
+import {
+  ThemeContext,
+  themes,
+} from '../../../../modules/personalization/theme';
+import { type Commit, isCommit } from '../../../../modules/version-control';
 
 const Commit = ({
   commit,

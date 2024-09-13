@@ -15,7 +15,7 @@ import {
   useDocument,
   useRepo,
   VersionedDocument,
-} from '../../modules/version-control';
+} from '../../../../modules/version-control';
 import { ChangeLog } from './ChangeLog';
 
 export const DocumentsHistory = ({

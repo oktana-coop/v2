@@ -5,7 +5,7 @@ import {
   AutomergeUrl,
   DocHandle,
   VersionedDocument,
-} from '../../modules/version-control';
+} from '../../../../modules/version-control';
 import { ActionsBar } from './ActionsBar';
 import { CommitDialog } from './CommitDialog';
 

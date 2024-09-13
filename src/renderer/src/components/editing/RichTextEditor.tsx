@@ -10,16 +10,16 @@ import { EditorState, Transaction } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { useEffect, useRef, useState } from 'react';
 
-import { getHeadingLevel, prosemirror } from '../../modules/rich-text/';
+import { getHeadingLevel, prosemirror } from '../../../../modules/rich-text';
 import {
   BlockElementType,
   blockElementTypes,
-} from '../../modules/rich-text/constants/blocks';
+} from '../../../../modules/rich-text/constants/blocks';
 import {
   DocHandle,
   DocHandleChangePayload,
   VersionedDocument,
-} from '../../modules/version-control';
+} from '../../../../modules/version-control';
 import { EditorToolbar } from './editor-toolbar';
 
 const {

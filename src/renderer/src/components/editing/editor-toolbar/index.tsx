@@ -1,7 +1,7 @@
 import {
   type BlockElementType,
   blockElementTypes,
-} from '../../../modules/rich-text';
+} from '../../../../../modules/rich-text';
 import { IconButton } from '../../actions/IconButton';
 import {
   FormatBoldIcon,

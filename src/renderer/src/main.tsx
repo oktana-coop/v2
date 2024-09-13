@@ -4,9 +4,9 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 import App from './App.tsx';
-import { DirectoryProvider } from './modules/filesystem';
-import { ThemeProvider } from './modules/personalization/theme';
-import { RepoContext, setupRepo } from './modules/version-control';
+import { DirectoryProvider } from '../../modules/filesystem/index.ts';
+import { ThemeProvider } from '../../modules/personalization/theme/index.ts';
+import { RepoContext, setupRepo } from '../../modules/version-control/index.ts';
 
 const repo = setupRepo();
 

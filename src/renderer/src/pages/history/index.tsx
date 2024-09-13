@@ -7,7 +7,7 @@ import { Layout } from '../../components/layout/Layout';
 import {
   AutomergeUrl,
   isValidAutomergeUrl,
-} from '../../modules/version-control';
+} from '../../../../modules/version-control';
 import { DocumentsHistory } from './DocumentsHistory';
 
 export const History = () => {
