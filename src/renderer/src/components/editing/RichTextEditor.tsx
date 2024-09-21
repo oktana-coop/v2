@@ -54,7 +54,6 @@ export const RichTextEditor = ({
 
   useEffect(() => {
     if (docHandle) {
-      document.title = `v2 | editing "${docHandle.docSync()?.title}"`;
       const autoMirror = new AutoMirror(['content'], automergeSchemaAdapter);
 
       const editorConfig = {
