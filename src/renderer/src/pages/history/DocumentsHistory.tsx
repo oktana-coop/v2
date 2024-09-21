@@ -117,7 +117,12 @@ the rich-text version is not yet supported.`
       <div className="flex w-full grow items-stretch">
         {automergeHandle ? (
           <div onDoubleClick={() => navigate(`/edit/${documentId}`)}>
-            <RichTextEditor docHandle={automergeHandle} isEditable={false} />
+            <RichTextEditor
+              // explicitly define onSave as a no-op
+              onSave={() => {}}
+              docHandle={automergeHandle}
+              isEditable={false}
+            />
           </div>
         ) : (
           <div className="flex h-full w-full items-center justify-center text-center">

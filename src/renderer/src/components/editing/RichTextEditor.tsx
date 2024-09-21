@@ -34,14 +34,14 @@ const {
 
 type RichTextEditorProps = {
   docHandle: DocHandle<VersionedDocument>;
-  onSave?: () => void;
+  onSave: () => void;
   isEditable?: boolean;
   isToolbarOpen?: boolean;
 };
 
 export const RichTextEditor = ({
   docHandle,
-  onSave = () => {},
+  onSave,
   isEditable = true,
   isToolbarOpen = false,
 }: RichTextEditorProps) => {
