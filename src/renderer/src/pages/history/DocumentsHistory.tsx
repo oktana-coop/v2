@@ -78,18 +78,23 @@ the rich-text version is not yet supported.`
       const allChanges = getAllChanges(versionedDocument);
       const decodedChanges = allChanges.map(decodeChange);
       const [latestChange] = decodedChanges.slice(-1);
+
       const commits = decodedChanges.filter(isCommit).map((change) => ({
         hash: change.hash,
         message: change.message,
         time: new Date(change.time),
       })) as Array<Commit>;
+
       const orderedCommits = commits.reverse();
       const [lastCommit] = orderedCommits;
+
       const changes =
         latestChange?.hash !== lastCommit?.hash
           ? [latestChange, ...orderedCommits]
           : orderedCommits;
+
       setCommits(changes);
+
       const [lastChange] = changes;
       if (lastChange) selectCommit(lastChange.hash);
     }
@@ -112,7 +117,12 @@ the rich-text version is not yet supported.`
       <div className="flex w-full grow items-stretch">
         {automergeHandle ? (
           <div onDoubleClick={() => navigate(`/edit/${documentId}`)}>
-            <RichTextEditor docHandle={automergeHandle} isEditable={false} />
+            <RichTextEditor
+              // explicitly define onSave as a no-op
+              onSave={() => {}}
+              docHandle={automergeHandle}
+              isEditable={false}
+            />
           </div>
         ) : (
           <div className="flex h-full w-full items-center justify-center text-center">

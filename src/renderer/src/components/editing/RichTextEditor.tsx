@@ -34,14 +34,14 @@ const {
 
 type RichTextEditorProps = {
   docHandle: DocHandle<VersionedDocument>;
-  onSave?: () => void;
+  onSave: () => void;
   isEditable?: boolean;
   isToolbarOpen?: boolean;
 };
 
 export const RichTextEditor = ({
   docHandle,
-  onSave = () => {},
+  onSave,
   isEditable = true,
   isToolbarOpen = false,
 }: RichTextEditorProps) => {
@@ -54,7 +54,6 @@ export const RichTextEditor = ({
 
   useEffect(() => {
     if (docHandle) {
-      document.title = `v2 | editing "${docHandle.docSync()?.title}"`;
       const autoMirror = new AutoMirror(['content'], automergeSchemaAdapter);
 
       const editorConfig = {
