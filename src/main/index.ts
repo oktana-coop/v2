@@ -5,7 +5,9 @@ import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, ipcMain, nativeImage, shell } from 'electron';
 import os from 'os';
 
+import { setupRepo } from '../modules/version-control/index.ts';
 import { update } from './update';
+import { isElectron } from './utils.ts';
 
 globalThis.__filename = fileURLToPath(import.meta.url);
 globalThis.__dirname = dirname(__filename);
@@ -137,4 +139,12 @@ ipcMain.handle('open-win', (_, arg) => {
   } else {
     childWindow.loadFile(indexHtml, { hash: arg });
   }
+});
+
+ipcMain.handle('setup-version-control-repo', async () => {
+  if (isElectron()) {
+    return setupRepo({ useFs: true });
+  }
+
+  return setupRepo({ useFs: false });
 });
