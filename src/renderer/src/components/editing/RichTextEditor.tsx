@@ -1,4 +1,4 @@
-import { AutoMirror } from '@automerge/prosemirror';
+import { init } from '@automerge/prosemirror';
 import { clsx } from 'clsx';
 import {
   baseKeymap,
@@ -17,7 +17,6 @@ import {
 } from '../../../../modules/rich-text/constants/blocks';
 import {
   DocHandle,
-  DocHandleChangePayload,
   VersionedDocument,
 } from '../../../../modules/version-control';
 import { EditorToolbar } from './editor-toolbar';
@@ -54,66 +53,54 @@ export const RichTextEditor = ({
 
   useEffect(() => {
     if (docHandle) {
-      const autoMirror = new AutoMirror(['content'], automergeSchemaAdapter);
+      const {
+        schema,
+        pmDoc,
+        plugin: automergePlugin,
+      } = init(docHandle, ['content'], {
+        schemaAdapter: automergeSchemaAdapter,
+      });
 
       const editorConfig = {
-        schema: autoMirror.schema, // This _must_ be the schema from the AutoMirror
+        schema,
         plugins: [
-          buildInputRules(autoMirror.schema),
+          buildInputRules(schema),
           keymap({
             ...baseKeymap,
-            'Mod-b': toggleStrong(autoMirror.schema),
-            'Mod-i': toggleEm(autoMirror.schema),
+            'Mod-b': toggleStrong(schema),
+            'Mod-i': toggleEm(schema),
             'Mod-s': () => {
               onSave();
               return true;
             },
           }),
+          automergePlugin,
         ],
-        doc: autoMirror.initialize(docHandle),
+        doc: pmDoc,
       };
 
       const state = EditorState.create(editorConfig);
       const view = new EditorView(editorRoot.current, {
         state,
         dispatchTransaction: (tx: Transaction) => {
-          const newState = autoMirror.intercept(docHandle, tx, view.state);
+          const newState = view.state.apply(tx);
           view.updateState(newState);
 
           // React state updates
           setBlockType(getCurrentBlockType(newState));
 
           if (tx.selectionSet || transactionUpdatesMarks(tx)) {
-            setStrongSelected(
-              isMarkActive(autoMirror.schema.marks.strong)(newState)
-            );
-            setEmSelected(isMarkActive(autoMirror.schema.marks.em)(newState));
+            setStrongSelected(isMarkActive(schema.marks.strong)(newState));
+            setEmSelected(isMarkActive(schema.marks.em)(newState));
           }
         },
         editable: () => isEditable,
       });
 
       setView(view);
-      setSchema(autoMirror.schema);
-
-      const onPatch: (args: DocHandleChangePayload<unknown>) => void = ({
-        doc,
-        patches,
-        patchInfo,
-      }) => {
-        const newState = autoMirror.reconcilePatch(
-          patchInfo.before,
-          doc,
-          patches,
-          view.state
-        );
-        view.updateState(newState);
-      };
-
-      docHandle.on('change', onPatch);
+      setSchema(schema);
 
       return () => {
-        docHandle.off('change', onPatch);
         view.destroy();
       };
     }
