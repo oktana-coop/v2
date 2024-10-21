@@ -13,7 +13,16 @@ export default defineConfig(({ mode }) => {
         'process.env': env,
       },
     },
-    preload: {},
+    preload: {
+      build: {
+        rollupOptions: {
+          output: {
+            format: 'cjs', // Set output format to CommonJS
+            entryFileNames: 'index.js', // Customize the output file name
+          },
+        },
+      },
+    },
     renderer: {
       // Needed in the renderer because automerge dependencies
       // reference process.env.
