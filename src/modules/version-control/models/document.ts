@@ -1,4 +1,4 @@
-import * as Automerge from '@automerge/automerge/next';
+import { next as Automerge } from '@automerge/automerge/slim';
 
 export type VersionedDocument = {
   title: Automerge.Doc<string>;
