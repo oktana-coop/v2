@@ -12,16 +12,6 @@ export default defineConfig(({ mode }) => {
       define: {
         'process.env': env,
       },
-      build: {
-        rollupOptions: {
-          external: [
-            '@automerge/automerge-wasm',
-            '@automerge/automerge',
-            'bufferutil',
-            'ws',
-          ],
-        },
-      },
     },
     preload: {
       build: {
@@ -38,16 +28,6 @@ export default defineConfig(({ mode }) => {
       // reference process.env.
       define: {
         'process.env': env,
-      },
-      build: {
-        rollupOptions: {
-          external: [
-            '@automerge/automerge-wasm',
-            '@automerge/automerge',
-            'bufferutil',
-            'ws',
-          ],
-        },
       },
       plugins: [topLevelAwait(), wasm(), react()],
     },
