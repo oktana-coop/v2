@@ -1,8 +1,5 @@
-import {
-  decodeChange,
-  getAllChanges,
-  next as Automerge,
-} from '@automerge/automerge/slim';
+import * as Automerge from '@automerge/automerge/next';
+import { decodeChange, getAllChanges } from '@automerge/automerge/next';
 import React, { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 

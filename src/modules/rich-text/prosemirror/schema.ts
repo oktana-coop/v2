@@ -1,4 +1,4 @@
-import { next as Automerge } from '@automerge/automerge/slim';
+import { next as Automerge } from '@automerge/automerge';
 import {
   MappedNodeSpec,
   MappedSchemaSpec,

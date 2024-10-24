@@ -1,4 +1,4 @@
-import { AutomergeUrl, Repo } from '@automerge/automerge-repo/slim';
+import { AutomergeUrl, Repo } from '@automerge/automerge-repo';
 
 import { VersionedDocument } from '../models/document';
 

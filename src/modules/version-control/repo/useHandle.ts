@@ -1,4 +1,4 @@
-import { AutomergeUrl } from '@automerge/automerge-repo/slim';
+import { AutomergeUrl } from '@automerge/automerge-repo';
 import { useHandle as useHandleAutomerge } from '@automerge/automerge-repo-react-hooks';
 import { useEffect, useState } from 'react';
 
