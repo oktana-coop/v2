@@ -1,7 +1,7 @@
 import { clsx } from 'clsx';
 
 import { readFile, removeExtension } from '../../../../modules/filesystem';
-import { AutomergeUrl } from '../../../../modules/version-control';
+import type { AutomergeUrl } from '../../../../modules/version-control';
 import { Button } from '../../components/actions/Button';
 import { FileDocumentIcon, FolderIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';

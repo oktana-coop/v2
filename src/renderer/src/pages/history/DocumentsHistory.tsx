@@ -1,17 +1,16 @@
-import * as Automerge from '@automerge/automerge/next';
-import { decodeChange, getAllChanges } from '@automerge/automerge/next';
+import { next as Automerge } from '@automerge/automerge/slim';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
-  AutomergeUrl,
+  type AutomergeUrl,
   type Commit,
-  DocHandle,
+  type DocHandle,
   isCommit,
   isValidAutomergeUrl,
   useDocument,
   useRepo,
-  VersionedDocument,
+  type VersionedDocument,
 } from '../../../../modules/version-control';
 import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import { CommitHistoryIcon } from '../../components/icons';
@@ -75,8 +74,8 @@ the rich-text version is not yet supported.`
 
   useEffect(() => {
     if (versionedDocument) {
-      const allChanges = getAllChanges(versionedDocument);
-      const decodedChanges = allChanges.map(decodeChange);
+      const allChanges = Automerge.getAllChanges(versionedDocument);
+      const decodedChanges = allChanges.map(Automerge.decodeChange);
       const [latestChange] = decodedChanges.slice(-1);
 
       const commits = decodedChanges.filter(isCommit).map((change) => ({

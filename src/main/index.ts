@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, ipcMain, nativeImage, shell } from 'electron';
 import os from 'os';
 
-import { setupRepo } from '../modules/version-control/index.ts';
+import { setup as setupBrowserRepo } from '../modules/version-control/repo/browser';
+import { setup as setupNodeRepo } from '../modules/version-control/repo/node';
 import { update } from './update';
 import { isElectron } from './utils.ts';
 
@@ -143,8 +144,8 @@ ipcMain.handle('open-win', (_, arg) => {
 
 ipcMain.handle('setup-version-control-repo', async () => {
   if (isElectron()) {
-    return setupRepo({ useFs: true });
+    return await setupNodeRepo();
   }
 
-  return setupRepo({ useFs: false });
+  return await setupBrowserRepo();
 });

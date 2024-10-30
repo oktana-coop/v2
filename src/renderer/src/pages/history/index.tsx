@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 
 import {
-  AutomergeUrl,
+  type AutomergeUrl,
   isValidAutomergeUrl,
 } from '../../../../modules/version-control';
 import { EmptyDocument } from '../../components/document-views/EmptyDocument';

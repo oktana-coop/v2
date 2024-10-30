@@ -1,4 +1,4 @@
-import { AutomergeUrl } from '../../version-control';
+import type { AutomergeUrl } from '../../version-control';
 
 export type FileInfo = {
   automergeUrl: AutomergeUrl;

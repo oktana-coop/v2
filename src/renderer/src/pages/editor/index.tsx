@@ -10,12 +10,12 @@ import {
   writeFile,
 } from '../../../../modules/filesystem';
 import {
-  AutomergeUrl,
+  type AutomergeUrl,
   createDocument,
-  DocHandle,
+  type DocHandle,
   isValidAutomergeUrl,
   useRepo,
-  VersionedDocument,
+  type VersionedDocument,
 } from '../../../../modules/version-control';
 import { Button } from '../../components/actions/Button';
 import { Modal } from '../../components/dialogs/Modal';

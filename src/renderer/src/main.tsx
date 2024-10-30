@@ -3,9 +3,9 @@ import './index.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
-import { DirectoryProvider } from '../../modules/filesystem/index.ts';
-import { ThemeProvider } from '../../modules/personalization/theme/index.ts';
-import { RepoContext } from '../../modules/version-control/index.ts';
+import { DirectoryProvider } from '../../modules/filesystem';
+import { ThemeProvider } from '../../modules/personalization/theme';
+import { RepoContext } from '../../modules/version-control';
 import App from './App.tsx';
 
 const repo = await window.electronAPI.setupVersionControlRepo();

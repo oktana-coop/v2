@@ -1,2 +1,2 @@
-export * from './repo';
+export * from './repo/common';
 export * from './models/document';

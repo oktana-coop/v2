@@ -15,7 +15,7 @@ import {
   BlockElementType,
   blockElementTypes,
 } from '../../../../modules/rich-text/constants/blocks';
-import {
+import type {
   DocHandle,
   VersionedDocument,
 } from '../../../../modules/version-control';

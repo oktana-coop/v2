@@ -1,14 +1,13 @@
-import * as Automerge from '@automerge/automerge/next';
-import { decodeChange, getAllChanges } from '@automerge/automerge/next';
+import { next as Automerge } from '@automerge/automerge/slim';
 import React, { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
-  AutomergeUrl,
+  type AutomergeUrl,
   type Commit,
   isCommit,
   useDocument,
-  VersionedDocument,
+  type VersionedDocument,
 } from '../../../../modules/version-control';
 import { CommitHistoryIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
@@ -43,8 +42,8 @@ export const CommitView = ({ documentId }: { documentId: AutomergeUrl }) => {
 
   useEffect(() => {
     if (versionedDocument) {
-      const allChanges = getAllChanges(versionedDocument);
-      const decodedChanges = allChanges.map(decodeChange);
+      const allChanges = Automerge.getAllChanges(versionedDocument);
+      const decodedChanges = allChanges.map(Automerge.decodeChange);
       const [latestChange] = decodedChanges.slice(-1);
       const commits = decodedChanges.filter(isCommit).map((change) => ({
         hash: change.hash,

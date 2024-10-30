@@ -1,4 +1,4 @@
-import { AutomergeUrl } from '../version-control';
+import type { AutomergeUrl } from '../version-control';
 import { FILE_EXTENSION } from './constants';
 import { FileContent } from './types';
 
