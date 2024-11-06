@@ -1,11 +1,11 @@
-import type { Repo } from './src/modules/version-control';
+import { FromRendererMessage } from './src/modules/version-control';
 
-export interface ElectronAPI {
-  setupVersionControlRepo: () => Promise<Repo>;
+export interface AutomergeRepoNetworkAdapter {
+  sendRendererMessage: (message: FromRendererMessage) => void;
 }
 
 declare global {
   interface Window {
-    electronAPI: ElectronAPI;
+    automergeRepoNetworkAdapter: AutomergeRepoNetworkAdapter;
   }
 }

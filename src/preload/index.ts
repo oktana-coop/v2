@@ -1,6 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-contextBridge.exposeInMainWorld('electronAPI', {
-  setupVersionControlRepo: () =>
-    ipcRenderer.invoke('setup-version-control-repo'),
+import { FromRendererMessage } from '../modules/version-control';
+
+contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
+  sendRendererMessage: (message: FromRendererMessage) =>
+    ipcRenderer.send('automerge-repo-renderer-message', message),
 });
