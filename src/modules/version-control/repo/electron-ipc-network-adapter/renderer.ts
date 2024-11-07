@@ -1,11 +1,15 @@
 import {
-  type Message,
   NetworkAdapter,
   type PeerId,
   type PeerMetadata,
 } from '@automerge/automerge-repo/slim';
 
-import { FromRendererMessage, JoinMessage } from './messages';
+import {
+  FromMainMessage,
+  FromRendererMessage,
+  isPeerMessage,
+  JoinMessage,
+} from './messages';
 
 export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
   #ready = false;
@@ -29,7 +33,8 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
     }
   }
 
-  remotePeerId?: PeerId; // this adapter only connects to one remote client at a time
+  // this adapter only connects to one remote client at a time (the main process)
+  remotePeerId?: PeerId;
 
   constructor() {
     super();
@@ -38,15 +43,17 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
   connect(peerId: PeerId, peerMetadata?: PeerMetadata) {
     this.peerId = peerId;
     this.peerMetadata = peerMetadata;
+
+    window.automergeRepoNetworkAdapter.onReceiveMainProcessMessage(
+      (message: FromMainMessage) => {
+        this.receiveMessage(message);
+      }
+    );
+
     this.send(joinMessage(this.peerId, this.peerMetadata ?? {}));
-    // TODO: Do we need acknowledgement?
-    this.#forceReady();
   }
 
-  disconnect() {
-    if (this.remotePeerId)
-      this.emit('peer-disconnected', { peerId: this.remotePeerId });
-  }
+  disconnect() {}
 
   send(message: FromRendererMessage) {
     if ('data' in message && message.data?.byteLength === 0)
@@ -58,7 +65,25 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
       );
     }
 
-    window.automergeRepoNetworkAdapter.sendRendererMessage(message);
+    window.automergeRepoNetworkAdapter.sendRendererProcessMessage(message);
+  }
+
+  // Set the remote peer ID (which is the main process's peer ID), signify that we are ready and emit a peer-candidate event
+  peerCandidate(remotePeerId: PeerId, peerMetadata: PeerMetadata) {
+    this.#forceReady();
+    this.remotePeerId = remotePeerId;
+    this.emit('peer-candidate', {
+      peerId: remotePeerId,
+      peerMetadata,
+    });
+  }
+
+  receiveMessage(message: FromMainMessage) {
+    if (isPeerMessage(message)) {
+      this.peerCandidate(message.senderId, message.peerMetadata);
+    } else {
+      this.emit('message', message);
+    }
   }
 }
 

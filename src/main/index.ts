@@ -5,10 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, ipcMain, nativeImage, shell } from 'electron';
 import os from 'os';
 
-import { setup as setupBrowserRepo } from '../modules/version-control/repo/browser';
 import { setup as setupNodeRepo } from '../modules/version-control/repo/node';
 import { update } from './update';
-import { isElectron } from './utils.ts';
 
 globalThis.__filename = fileURLToPath(import.meta.url);
 globalThis.__dirname = dirname(__filename);
@@ -86,9 +84,16 @@ async function createWindow() {
     win.loadFile(indexHtml);
   }
 
+  const rendererProcessId = String(win.webContents.id);
+  // Setup the version control repository
+  await setupNodeRepo({
+    processId: 'main',
+    renderers: new Map([[rendererProcessId, win]]),
+  });
+
   // Test actively push message to the Electron-Renderer
   win.webContents.on('did-finish-load', () => {
-    win?.webContents.send('main-process-message', new Date().toLocaleString());
+    win?.webContents.send('renderer-process-id', rendererProcessId);
   });
 
   // Make all links open with the browser, not with the application
@@ -140,12 +145,4 @@ ipcMain.handle('open-win', (_, arg) => {
   } else {
     childWindow.loadFile(indexHtml, { hash: arg });
   }
-});
-
-ipcMain.handle('setup-version-control-repo', async () => {
-  if (isElectron()) {
-    return await setupNodeRepo();
-  }
-
-  return await setupBrowserRepo();
 });

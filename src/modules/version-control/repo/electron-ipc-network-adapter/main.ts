@@ -1,10 +1,15 @@
 import {
-  type Message,
   NetworkAdapter,
   type PeerId,
   type PeerMetadata,
 } from '@automerge/automerge-repo/slim';
 import { BrowserWindow, ipcMain } from 'electron';
+
+import {
+  FromMainMessage,
+  FromRendererMessage,
+  isJoinMessage,
+} from './messages';
 
 export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
   renderers: Map<PeerId, BrowserWindow>;
@@ -46,7 +51,7 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
     this.peerId = peerId;
     this.peerMetadata = peerMetadata;
 
-    ipcMain.on('automerge-repo-renderer-message', (_, message) => {
+    ipcMain.on('automerge-repo-renderer-process-message', (_, message) => {
       this.receiveMessage(message);
     });
 
@@ -60,7 +65,7 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
     this.#ready = false;
   }
 
-  send(message: Message): void {
+  send(message: FromMainMessage): void {
     if ('data' in message && message.data?.byteLength === 0)
       throw new Error('Tried to send a zero-length message');
 
@@ -75,20 +80,33 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
     const renderer = this.renderers.get(message.targetId);
 
     if (!renderer) {
-      console.log(`Tried to send to disconnected peer: ${message.targetId}`);
       return;
     }
 
-    renderer.webContents.send('automerge-repo-message', message);
+    renderer.webContents.send('automerge-repo-main-process-message', message);
   }
 
-  receiveMessage(message: Message) {
+  receiveMessage(message: FromRendererMessage) {
     if (!this.peerId) {
       throw new Error(
         'No peerId set for the Electron main process network adapter.'
       );
     }
 
-    this.emit('message', message);
+    if (isJoinMessage(message)) {
+      const { peerMetadata } = message;
+
+      // Let the repo know that we have a new connection.
+      this.emit('peer-candidate', { peerId: message.senderId, peerMetadata });
+
+      this.send({
+        type: 'peer',
+        senderId: this.peerId!,
+        peerMetadata: this.peerMetadata!,
+        targetId: message.senderId,
+      });
+    } else {
+      this.emit('message', message);
+    }
   }
 }

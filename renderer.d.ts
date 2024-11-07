@@ -1,11 +1,22 @@
-import { FromRendererMessage } from './src/modules/version-control';
+import type { IpcRenderer } from 'electron';
 
-export interface AutomergeRepoNetworkAdapter {
-  sendRendererMessage: (message: FromRendererMessage) => void;
-}
+import {
+  FromMainMessage,
+  FromRendererMessage,
+} from './src/modules/version-control';
+
+export type ElectronAPI = {
+  onReceiveProcessId: (callback: (processId: string) => void) => IpcRenderer;
+};
+
+export type AutomergeRepoNetworkAdapter = {
+  sendRendererProcessMessage: (message: FromRendererMessage) => void;
+  onReceiveMainProcessMessage: (message: FromMainMessage) => void;
+};
 
 declare global {
   interface Window {
+    electronAPI: ElectronAPI;
     automergeRepoNetworkAdapter: AutomergeRepoNetworkAdapter;
   }
 }
