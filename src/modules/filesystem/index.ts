@@ -5,7 +5,7 @@ export * from './utils';
 export {
   DirectoryContext,
   DirectoryProvider,
-} from './directory-handles/context';
+} from './directory-handles/context-v2';
 
 export {
   SelectedFileContext,
