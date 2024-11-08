@@ -36,6 +36,23 @@ export const openDB: () => Promise<IDBDatabase> = () => {
   });
 };
 
+// Clears the database and inserts a single directory object.
+export const clearAndInsertOne: (input: {
+  handle: FileSystemDirectoryHandle;
+  db: IDBDatabase;
+}) => Promise<void> = ({ handle, db }) => {
+  const transaction = db.transaction(storeName, 'readwrite');
+
+  const store = transaction.objectStore(storeName);
+  store.clear();
+  store.add(handle, handle.name);
+
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = (err) => reject(err);
+  });
+};
+
 export const insertOne: (input: {
   handle: FileSystemDirectoryHandle;
   db: IDBDatabase;

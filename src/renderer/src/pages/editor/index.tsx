@@ -80,7 +80,7 @@ const EditorIndex = () => {
     if (directory && directory.permissionState === 'granted') {
       getFiles();
     }
-  }, [directory, selectedFileInfo]);
+  }, [directory]);
 
   const handleDocumentCreation = async (docTitle: string) => {
     const newDocumentId = await createDocument(repo)(docTitle);
@@ -115,8 +115,13 @@ const EditorIndex = () => {
       );
     }
 
-    await setSelectedFileInfo({ documentId: docUrl, path: file.path! });
-    navigate(`/edit/${docUrl}`);
+    if (!file.path) {
+      // TODO: Handle more gracefully
+      throw new Error('Could not select file because the file path is missing');
+    }
+
+    await setSelectedFileInfo({ documentId: docUrl, path: file.path });
+    navigate(`/edit/${docUrl}?path=${encodeURIComponent(file.path)}`);
   };
 
   function renderMainPane() {

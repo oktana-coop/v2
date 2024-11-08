@@ -7,7 +7,7 @@ type FilesystemContextType = {
   directory: Directory | null;
   openDirectory: () => Promise<Directory | null>;
   listSelectedDirectoryFiles: () => Promise<Array<File>>;
-  requestPermissionForSelectedDirectory: () => Promise<PermissionState>;
+  requestPermissionForSelectedDirectory: () => Promise<void>;
   createNewFile: () => Promise<File>;
   writeFile: (path: string, content: string) => Promise<void>;
 };
@@ -48,9 +48,16 @@ export const FilesystemProvider = ({
     return directory;
   };
 
+  const requestPermissionForSelectedDirectory = async () => {
+    const permissionState =
+      await filesystem.requestPermissionForSelectedDirectory();
+    if (directory) {
+      setDirectory({ ...directory, permissionState });
+    }
+  };
+
   const listSelectedDirectoryFiles = filesystem.listSelectedDirectoryFiles;
-  const requestPermissionForSelectedDirectory =
-    filesystem.requestPermissionForSelectedDirectory;
+
   const createNewFile = filesystem.createNewFile;
   const writeFile = filesystem.writeFile;
 

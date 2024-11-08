@@ -94,6 +94,9 @@ export const adapter: Filesystem = {
 
     const files: Array<File> = [];
 
+    // Clear file handles in the browser storage every time we list directory files
+    await clearFileHandles();
+
     for await (const [key, value] of selectedDirectoryHandle.entries()) {
       if (value.kind === 'file' && value.name.endsWith(FILE_EXTENSION)) {
         const relativePath = await getFileRelativePath(

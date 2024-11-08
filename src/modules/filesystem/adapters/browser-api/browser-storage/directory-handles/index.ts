@@ -1,4 +1,4 @@
-import { getFirst, insertOne, openDB } from './database';
+import { clearAndInsertOne, getFirst, openDB } from './database';
 
 export const getSelectedDirectoryHandle = async () => {
   // This is the IndexedDB object store for the directory handles
@@ -10,5 +10,5 @@ export const persistDirectoryHandle = async (
   handle: FileSystemDirectoryHandle
 ) => {
   const db = await openDB();
-  await insertOne({ handle, db });
+  await clearAndInsertOne({ handle, db });
 };
