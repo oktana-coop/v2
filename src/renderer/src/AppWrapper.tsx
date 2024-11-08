@@ -1,7 +1,10 @@
 import { useContext, useEffect, useState } from 'react';
 
 import { ElectronContext } from '../../modules/electron';
-import { DirectoryProvider } from '../../modules/filesystem';
+import {
+  browserFilesystemAPIAdapter,
+  FilesystemProvider,
+} from '../../modules/filesystem';
 import { ThemeProvider } from '../../modules/personalization/theme';
 import { Repo, RepoContext } from '../../modules/version-control';
 import { setup as setupBrowserRepo } from '../../modules/version-control/repo/browser';
@@ -33,9 +36,9 @@ export const AppWrapper = () => {
   return (
     <RepoContext.Provider value={repo}>
       <ThemeProvider>
-        <DirectoryProvider>
+        <FilesystemProvider filesystem={browserFilesystemAPIAdapter}>
           <App />
-        </DirectoryProvider>
+        </FilesystemProvider>
       </ThemeProvider>
     </RepoContext.Provider>
   );

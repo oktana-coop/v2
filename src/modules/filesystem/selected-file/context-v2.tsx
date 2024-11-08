@@ -1,64 +1,67 @@
 import { createContext, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 
-import { Filesystem } from '../ports/filesystem';
-import { File } from '../types';
-import {
-  clearAll,
-  clearAndInsertOne,
-  get as getFromDB,
-  openDB,
-} from './database';
+import { type AutomergeUrl, isValidAutomergeUrl } from '../../version-control';
+
+export type VersionedFileInfo = {
+  documentId: AutomergeUrl;
+  path: string | null;
+};
 
 type SelectedFileContextType = {
-  selectedFile: File | null;
-  setSelectedFile: (file: File) => Promise<void>;
+  selectedFileInfo: VersionedFileInfo | null;
+  setSelectedFileInfo: (file: VersionedFileInfo) => Promise<void>;
   clearFileSelection: () => Promise<void>;
 };
 
 export const SelectedFileContext = createContext<SelectedFileContextType>({
-  selectedFile: null,
-  setSelectedFile: async () => {},
+  selectedFileInfo: null,
+  setSelectedFileInfo: async () => {},
   clearFileSelection: async () => {},
 });
 
 export const SelectedFileProvider = ({
   children,
-  filesystem,
 }: {
-  filesystem: Filesystem;
   children: React.ReactNode;
 }) => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFileInfo, setSelectedFileInfo] =
+    useState<VersionedFileInfo | null>(null);
   const { documentId } = useParams();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    const getFile = async (filePath: string) => {
-      const file = await filesystem.readFile(filePath);
-      setSelectedFile(file);
-    };
-
-    if (!filePath) {
-      filesystem.getSelectedFile();
+    if (!isValidAutomergeUrl(documentId)) {
+      clearFileSelection();
     } else {
-      getFile(filePath);
-    }
-  }, [filePath]);
+      const path = searchParams.get('path');
 
-  const persistSelectedFileInfo = async (fileInfo: FileInfo) => {
-    const db = await openDB();
-    await clearAndInsertOne({ fileInfo, db });
-  };
+      setSelectedFileInfo({
+        documentId,
+        path: path ? decodeURIComponent(path) : null,
+      });
+    }
+  }, [documentId]);
 
   const clearFileSelection = async () => {
-    await filesystem.setSelectedFile(null);
+    setSelectedFileInfo(null);
+  };
+
+  const handleSetSelectedFileInfo = async ({
+    documentId,
+    path,
+  }: VersionedFileInfo) => {
+    setSelectedFileInfo({
+      documentId,
+      path: path,
+    });
   };
 
   return (
     <SelectedFileContext.Provider
       value={{
         selectedFileInfo,
-        setSelectedFileInfo: persistSelectedFileInfo,
+        setSelectedFileInfo: handleSetSelectedFileInfo,
         clearFileSelection,
       }}
     >

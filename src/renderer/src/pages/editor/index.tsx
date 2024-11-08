@@ -2,15 +2,12 @@ import { useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import {
-  createNewFile,
-  DirectoryContext,
-  getFiles,
+  type File,
+  FilesystemContext,
   SelectedFileContext,
   SelectedFileProvider,
-  writeFile,
 } from '../../../../modules/filesystem';
 import {
-  type AutomergeUrl,
   createDocument,
   type DocHandle,
   isValidAutomergeUrl,
@@ -43,19 +40,16 @@ const EditorIndex = () => {
   const [readyAutomergeHandle, setReadyAutomergeHandle] =
     useState<DocHandle<VersionedDocument> | null>(null);
   const {
-    directoryPermissionState,
-    directoryHandle,
-    setDirectoryHandle: persistDirectoryHandle,
-    setDirectoryPermissionState,
-  } = useContext(DirectoryContext);
-  const {
-    selectedFileInfo,
-    setSelectedFileInfo: persistSelectedFileInfo,
-    clearFileSelection,
-  } = useContext(SelectedFileContext);
-  const [files, setFiles] = useState<
-    Array<{ filename: string; handle: FileSystemFileHandle }>
-  >([]);
+    directory,
+    openDirectory,
+    listSelectedDirectoryFiles,
+    requestPermissionForSelectedDirectory,
+    createNewFile,
+    writeFile,
+  } = useContext(FilesystemContext);
+  const { selectedFileInfo, setSelectedFileInfo, clearFileSelection } =
+    useContext(SelectedFileContext);
+  const [files, setFiles] = useState<Array<File>>([]);
   const repo = useRepo();
 
   useEffect(() => {
@@ -78,54 +72,51 @@ const EditorIndex = () => {
   }, [repo, docUrl, clearFileSelection]);
 
   useEffect(() => {
-    const getDirectoryFiles = async (
-      directoryHandle: FileSystemDirectoryHandle
-    ) => {
-      const files = await getFiles(directoryHandle);
+    const getFiles = async () => {
+      const files = await listSelectedDirectoryFiles();
       setFiles(files);
     };
 
-    if (directoryHandle && directoryPermissionState === 'granted') {
-      getDirectoryFiles(directoryHandle);
+    if (directory && directory.permissionState === 'granted') {
+      getFiles();
     }
-  }, [directoryHandle, directoryPermissionState, selectedFileInfo]);
+  }, [directory, selectedFileInfo]);
 
   const handleDocumentCreation = async (docTitle: string) => {
-    const newDocUrl = await createDocument(repo)(docTitle);
-    const fileHandle = await createNewFile(newDocUrl);
-    if (fileHandle) {
-      handleFileSelection(newDocUrl, fileHandle);
-    }
+    const newDocumentId = await createDocument(repo)(docTitle);
+    const file = await createNewFile();
+    setSelectedFileInfo({ documentId: newDocumentId, path: file.path! });
   };
 
-  const handleDocumentChange = (docUrl: AutomergeUrl, value: string) => {
-    // TODO: The fileHandle should be set when the document is selected
-    // or on initial page load
-    if (!selectedFileInfo?.fileHandle) {
-      console.error('fileHandle has not been initialized');
-      return;
+  const handleDocumentChange = (newContent: string) => {
+    if (!selectedFileInfo || !selectedFileInfo.path) {
+      // TODO: Handle more gracefully
+      throw new Error(
+        'Could not find file path from file selection data. Aborting file write operation'
+      );
     }
 
-    const fileContent = {
-      docUrl,
-      value,
-    };
-
-    writeFile(selectedFileInfo.fileHandle, fileContent);
+    writeFile(selectedFileInfo.path, newContent);
   };
 
-  const handleFileSelection = async (
-    docUrl: AutomergeUrl,
-    fileHandle: FileSystemFileHandle
-  ) => {
-    await persistSelectedFileInfo({ automergeUrl: docUrl, fileHandle });
+  const handleOpenDirectory = async () => {
+    await openDirectory();
+  };
+
+  const handlePermissionRequest = async () => {
+    await requestPermissionForSelectedDirectory();
+  };
+
+  const handleFileSelection = async (file: File) => {
+    if (!docUrl || !isValidAutomergeUrl(docUrl)) {
+      // TODO: Handle more gracefully
+      throw new Error(
+        'Could not select file because the document ID is unavailable or malformed'
+      );
+    }
+
+    await setSelectedFileInfo({ documentId: docUrl, path: file.path! });
     navigate(`/edit/${docUrl}`);
-  };
-
-  const setDirectoryHandle = async (
-    directoryHandle: FileSystemDirectoryHandle
-  ) => {
-    await persistDirectoryHandle(directoryHandle);
   };
 
   function renderMainPane() {
@@ -133,7 +124,7 @@ const EditorIndex = () => {
       return (
         <EmptyDocument
           message={
-            directoryHandle
+            directory
               ? '👈 Pick one document from the list to continue editing. Or create a new one 😉.'
               : 'Create a new document and explore the world of versioning.'
           }
@@ -207,12 +198,11 @@ const EditorIndex = () => {
         </Modal>
         <div className="h-full w-2/5 grow-0 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
           <FileExplorer
-            directoryPermissionState={directoryPermissionState}
-            setDirectoryPermissionState={setDirectoryPermissionState}
-            directoryHandle={directoryHandle}
+            directory={directory}
             files={files}
-            selectedFileHandle={selectedFileInfo?.fileHandle || null}
-            setDirectoryHandle={setDirectoryHandle}
+            selectedFileInfo={selectedFileInfo}
+            onOpenDirectory={handleOpenDirectory}
+            onRequestPermissionsForCurrentDirectory={handlePermissionRequest}
             onFileSelection={handleFileSelection}
           />
         </div>

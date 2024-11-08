@@ -1,15 +1,16 @@
 export * from './io';
 export * from './constants';
 export * from './utils';
+export * from './types';
 
-export {
-  DirectoryContext,
-  DirectoryProvider,
-} from './directory-handles/context-v2';
+export { FilesystemContext, FilesystemProvider } from './react/context';
 
 export {
   SelectedFileContext,
   SelectedFileProvider,
-} from './selected-file/context';
+  type VersionedFileInfo,
+} from './selected-file/context-v2';
 
 export { type FileInfo } from './selected-file/types';
+
+export { adapter as browserFilesystemAPIAdapter } from './adapters/browser-api/BrowserFilesystemAPIAdapter';

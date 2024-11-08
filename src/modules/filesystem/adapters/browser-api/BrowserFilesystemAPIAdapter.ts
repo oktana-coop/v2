@@ -52,7 +52,7 @@ const verifyPermission = async (fileHandle: FileSystemFileHandle) => {
   return false;
 };
 
-export const BrowserFilesystemAPIAdapter: Filesystem = {
+export const adapter: Filesystem = {
   openDirectory: async () => {
     const dirHandle = await window.showDirectoryPicker();
     const permissionState = await getDirectoryPermissionState(dirHandle);
@@ -112,6 +112,18 @@ export const BrowserFilesystemAPIAdapter: Filesystem = {
     }
 
     return files;
+  },
+  requestPermissionForSelectedDirectory: async () => {
+    const selectedDirectoryHandle = await getSelectedDirectoryHandle();
+
+    if (!selectedDirectoryHandle) {
+      // TODO: Handle better with typed errors
+      throw new Error('No current directory found in the browser storage');
+    }
+
+    const permission = await selectedDirectoryHandle.requestPermission();
+
+    return permission;
   },
   readFile: async (path: string) => {
     const fileInfo = await getFileHandle(path);

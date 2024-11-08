@@ -1,3 +1,4 @@
+import { type AutomergeUrl } from '../version-control';
 import { filesystemItemTypes } from './constants/filesystemItemTypes';
 
 export type FileContent = {
@@ -17,8 +18,5 @@ export type Directory = FilesystemItem & {
 
 export type File = FilesystemItem & {
   type: typeof filesystemItemTypes.FILE;
-};
-
-export type FileWithContent = File & {
-  content: string;
+  content?: string;
 };

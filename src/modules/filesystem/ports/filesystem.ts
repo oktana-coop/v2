@@ -4,6 +4,7 @@ export type Filesystem = {
   openDirectory: () => Promise<Directory>;
   getSelectedDirectory: () => Promise<Directory | null>;
   listSelectedDirectoryFiles: () => Promise<Array<File>>;
+  requestPermissionForSelectedDirectory: () => Promise<PermissionState>;
   createNewFile: () => Promise<File>;
   writeFile: (path: string, content: string) => Promise<void>;
   readFile: (path: string) => Promise<File>;
