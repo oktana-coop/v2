@@ -16,9 +16,7 @@ export const ElectronProvider = ({
   const [processId, setProcessId] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log('In electron context effect');
     window.electronAPI.onReceiveProcessId((processId: string) => {
-      console.log(processId);
       setProcessId(processId);
     });
   }, []);
