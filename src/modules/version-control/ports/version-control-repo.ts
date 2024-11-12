@@ -4,6 +4,10 @@ import type {
   VersionedProjectHandle,
 } from '../models';
 
+export type CreateProjectArgs = {
+  path: string;
+};
+
 export type CreateDocumentArgs = {
   title: string;
   path: string;
@@ -11,7 +15,7 @@ export type CreateDocumentArgs = {
 };
 
 export type VersionControlRepo = {
-  createProject: () => Promise<VersionControlId>;
+  createProject: (args: CreateProjectArgs) => Promise<VersionControlId>;
   findProjectById: (
     id: VersionControlId
   ) => Promise<VersionedProjectHandle | null>;

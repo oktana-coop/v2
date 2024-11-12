@@ -31,7 +31,7 @@ const getFileRelativePath = async (
     );
   }
 
-  return relativePathSegments.join('/');
+  return [relativeTo, ...relativePathSegments].join('/');
 };
 
 const verifyPermission = async (fileHandle: FileSystemFileHandle) => {
@@ -64,6 +64,7 @@ export const adapter: Filesystem = {
     return {
       type: filesystemItemTypes.DIRECTORY,
       name: dirHandle.name,
+      path: dirHandle.name,
       permissionState,
     };
   },
@@ -81,6 +82,7 @@ export const adapter: Filesystem = {
     return {
       type: filesystemItemTypes.DIRECTORY,
       name: selectedDirectoryHandle.name,
+      path: selectedDirectoryHandle.name,
       permissionState,
     };
   },

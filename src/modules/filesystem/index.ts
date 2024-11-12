@@ -9,7 +9,7 @@ export {
   SelectedFileContext,
   SelectedFileProvider,
   type VersionedFileInfo,
-} from './selected-file/context-v2';
+} from './selected-file/context';
 
 export { type FileInfo } from './selected-file/types';
 

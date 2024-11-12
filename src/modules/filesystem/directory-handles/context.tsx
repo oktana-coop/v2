@@ -1,66 +1,55 @@
 import { createContext, useEffect, useState } from 'react';
 
-import { getFirst, insertOne, openDB } from './database';
+import { Filesystem } from '../ports/filesystem';
+import type { Directory, File } from '../types';
 
 type DirectoryContextType = {
-  directoryHandle: FileSystemDirectoryHandle | null;
-  directoryPermissionState: PermissionState | null;
-  setDirectoryPermissionState: (
-    directoryPermissionState: PermissionState
-  ) => void;
-  setDirectoryHandle: (
-    directoryHandle: FileSystemDirectoryHandle
-  ) => Promise<void>;
+  directory: Directory | null;
+  openDirectory: () => Promise<Directory | null>;
+  listSelectedDirectoryFiles: () => Promise<Array<File>>;
 };
 
 export const DirectoryContext = createContext<DirectoryContextType>({
-  directoryHandle: null,
-  directoryPermissionState: null,
-  // This is a placeholder. It will be properly implemented in the provider below.
-  setDirectoryHandle: async () => {},
-  setDirectoryPermissionState: async () => {},
+  directory: null,
+  openDirectory: async () => null,
+  listSelectedDirectoryFiles: async () => [],
 });
 
 export const DirectoryProvider = ({
+  filesystem,
   children,
 }: {
+  filesystem: Filesystem;
   children: React.ReactNode;
 }) => {
-  const [directoryHandle, setDirectoryHandle] =
-    useState<FileSystemDirectoryHandle | null>(null);
-  const [directoryPermissionState, setDirectoryPermissionState] =
-    useState<PermissionState | null>(null);
+  const [directory, setDirectory] = useState<Directory | null>(null);
 
   useEffect(() => {
-    const getFirstHandle = async () => {
-      // This is the IndexedDB object store for the directory handles
-      const db = await openDB();
-      const directoryHandle = await getFirst(db);
-      if (directoryHandle) {
-        const permissionState = await directoryHandle.queryPermission();
-        setDirectoryPermissionState(permissionState);
-        setDirectoryHandle(directoryHandle);
-      } else {
-        setDirectoryHandle(null);
-      }
+    const getSelectedDirectory = async () => {
+      const directory = await filesystem.getSelectedDirectory();
+      setDirectory(directory);
     };
 
-    getFirstHandle();
+    getSelectedDirectory();
   }, []);
 
-  const persistDirectoryHandle = async (handle: FileSystemDirectoryHandle) => {
-    setDirectoryHandle(handle);
-    const db = await openDB();
-    await insertOne({ handle, db });
+  const openDirectory = async () => {
+    const directory = await filesystem.openDirectory();
+    setDirectory(directory);
+    return directory;
+  };
+
+  const listSelectedDirectoryFiles = async () => {
+    const files = await filesystem.listSelectedDirectoryFiles();
+    return files;
   };
 
   return (
     <DirectoryContext.Provider
       value={{
-        directoryPermissionState,
-        directoryHandle,
-        setDirectoryHandle: persistDirectoryHandle,
-        setDirectoryPermissionState: setDirectoryPermissionState,
+        directory,
+        openDirectory,
+        listSelectedDirectoryFiles,
       }}
     >
       {children}

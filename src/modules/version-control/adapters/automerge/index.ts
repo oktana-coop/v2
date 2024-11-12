@@ -10,8 +10,11 @@ import type {
 import { VersionControlRepo } from '../../ports/version-control-repo';
 
 export const createAdapter = (automergeRepo: Repo): VersionControlRepo => ({
-  createProject: async () => {
-    const handle = automergeRepo.create<Project>();
+  createProject: async ({ path }) => {
+    const handle = automergeRepo.create<Project>({
+      path,
+      documents: {},
+    });
     return handle.url;
   },
   findProjectById: async (id: VersionControlId) =>

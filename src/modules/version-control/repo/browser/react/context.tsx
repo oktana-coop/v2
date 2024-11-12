@@ -98,7 +98,9 @@ export const VersionControlProvider = ({
         ) {
           versionControlId = browserStorageBrowserData.versionControlId;
         } else {
-          versionControlId = await versionControlRepo.createProject();
+          versionControlId = await versionControlRepo.createProject({
+            path: directory.path!,
+          });
 
           localStorage.setItem(
             BROWSER_STORAGE_PROJECT_DATA_KEY,
