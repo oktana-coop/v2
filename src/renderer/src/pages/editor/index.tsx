@@ -104,6 +104,7 @@ const EditorIndex = () => {
     });
 
     setSelectedFileInfo({ documentId: newDocumentId, path: file.path! });
+    navigate(`/edit/${newDocumentId}?path=${encodeURIComponent(file.path!)}`);
   };
 
   const handleDocumentChange = (newContent: string) => {
@@ -179,6 +180,7 @@ const EditorIndex = () => {
     }
 
     if (!isValidVersionControlId(docUrl)) {
+      console.log(docUrl);
       return <InvalidDocument />;
     }
 
