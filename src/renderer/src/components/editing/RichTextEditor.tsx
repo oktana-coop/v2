@@ -17,7 +17,7 @@ import {
 } from '../../../../modules/rich-text/constants/blocks';
 import type {
   DocHandle,
-  VersionedDocument,
+  RichTextDocument,
 } from '../../../../modules/version-control';
 import { EditorToolbar } from './editor-toolbar';
 
@@ -32,7 +32,7 @@ const {
 } = prosemirror;
 
 type RichTextEditorProps = {
-  docHandle: DocHandle<VersionedDocument>;
+  docHandle: DocHandle<RichTextDocument>;
   onSave: () => void;
   isEditable?: boolean;
   isToolbarOpen?: boolean;

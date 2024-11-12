@@ -8,12 +8,11 @@ import {
   SelectedFileProvider,
 } from '../../../../modules/filesystem';
 import {
-  createDocument,
   type DocHandle,
-  isValidAutomergeUrl,
-  useRepo,
-  type VersionedDocument,
+  isValidVersionControlId,
+  type RichTextDocument,
 } from '../../../../modules/version-control';
+import { VersionControlContext } from '../../../../modules/version-control/repo/browser';
 import { Button } from '../../components/actions/Button';
 import { Modal } from '../../components/dialogs/Modal';
 import { EmptyDocument } from '../../components/document-views/EmptyDocument';
@@ -38,7 +37,7 @@ const EditorIndex = () => {
   const navigate = useNavigate();
   const { documentId: docUrl } = useParams();
   const [readyAutomergeHandle, setReadyAutomergeHandle] =
-    useState<DocHandle<VersionedDocument> | null>(null);
+    useState<DocHandle<RichTextDocument> | null>(null);
   const {
     directory,
     openDirectory,
@@ -50,26 +49,40 @@ const EditorIndex = () => {
   const { selectedFileInfo, setSelectedFileInfo, clearFileSelection } =
     useContext(SelectedFileContext);
   const [files, setFiles] = useState<Array<File>>([]);
-  const repo = useRepo();
+  const {
+    projectId,
+    createDocument: createVersionedDocument,
+    findDocument,
+    findDocumentInProject,
+  } = useContext(VersionControlContext);
 
   useEffect(() => {
     document.title = 'v2 | Editor';
   }, []);
 
   useEffect(() => {
-    if (!docUrl) {
-      return;
-    }
+    const findVersionedDocument = async () => {
+      if (!docUrl) {
+        return;
+      }
 
-    if (isValidAutomergeUrl(docUrl)) {
-      const automergeHandle = repo.find<VersionedDocument>(docUrl);
-      automergeHandle.whenReady().then(() => {
-        setReadyAutomergeHandle(automergeHandle);
-      });
-    } else {
-      setReadyAutomergeHandle(null);
-    }
-  }, [repo, docUrl, clearFileSelection]);
+      if (isValidVersionControlId(docUrl)) {
+        const automergeHandle = await findDocument(docUrl);
+
+        if (automergeHandle) {
+          automergeHandle.whenReady().then(() => {
+            setReadyAutomergeHandle(automergeHandle);
+          });
+        } else {
+          setReadyAutomergeHandle(null);
+        }
+      } else {
+        setReadyAutomergeHandle(null);
+      }
+    };
+
+    findVersionedDocument();
+  }, [docUrl, clearFileSelection]);
 
   useEffect(() => {
     const getFiles = async () => {
@@ -82,9 +95,14 @@ const EditorIndex = () => {
     }
   }, [directory]);
 
-  const handleDocumentCreation = async (docTitle: string) => {
-    const newDocumentId = await createDocument(repo)(docTitle);
+  const handleDocumentCreation = async (title: string) => {
     const file = await createNewFile();
+    const newDocumentId = await createVersionedDocument({
+      title,
+      path: file.path!,
+      projectId,
+    });
+
     setSelectedFileInfo({ documentId: newDocumentId, path: file.path! });
   };
 
@@ -108,10 +126,21 @@ const EditorIndex = () => {
   };
 
   const handleFileSelection = async (file: File) => {
-    if (!docUrl || !isValidAutomergeUrl(docUrl)) {
+    if (!projectId) {
+      // TODO: Handle more gracefully
+      throw new Error('Could not select file because no project ID was found');
+    }
+
+    const versionedDocumentHandle = await findDocumentInProject({
+      projectId,
+      path: file.path!,
+      name: file.name,
+    });
+
+    if (!versionedDocumentHandle) {
       // TODO: Handle more gracefully
       throw new Error(
-        'Could not select file because the document ID is unavailable or malformed'
+        'Could not select file because the versioned document was not found in project'
       );
     }
 
@@ -120,7 +149,10 @@ const EditorIndex = () => {
       throw new Error('Could not select file because the file path is missing');
     }
 
-    await setSelectedFileInfo({ documentId: docUrl, path: file.path });
+    await setSelectedFileInfo({
+      documentId: versionedDocumentHandle.url,
+      path: file.path,
+    });
     navigate(`/edit/${docUrl}?path=${encodeURIComponent(file.path)}`);
   };
 
@@ -146,7 +178,7 @@ const EditorIndex = () => {
       );
     }
 
-    if (!isValidAutomergeUrl(docUrl)) {
+    if (!isValidVersionControlId(docUrl)) {
       return <InvalidDocument />;
     }
 

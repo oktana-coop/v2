@@ -1,10 +1,13 @@
 import { createContext, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
-import { type AutomergeUrl, isValidAutomergeUrl } from '../../version-control';
+import {
+  isValidVersionControlId,
+  type VersionControlId,
+} from '../../version-control';
 
 export type VersionedFileInfo = {
-  documentId: AutomergeUrl;
+  documentId: VersionControlId;
   path: string | null;
 };
 
@@ -31,7 +34,7 @@ export const SelectedFileProvider = ({
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    if (!isValidAutomergeUrl(documentId)) {
+    if (!isValidVersionControlId(documentId)) {
       clearFileSelection();
     } else {
       const path = searchParams.get('path');

@@ -1,17 +1,19 @@
 import { next as Automerge } from '@automerge/automerge/slim';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
-  type AutomergeUrl,
   type Commit,
   type DocHandle,
   isCommit,
-  isValidAutomergeUrl,
-  useDocument,
-  useRepo,
-  type VersionedDocument,
+  isValidVersionControlId,
+  type RichTextDocument,
+  type VersionControlId,
 } from '../../../../modules/version-control';
+import {
+  useDocument,
+  VersionControlContext,
+} from '../../../../modules/version-control/repo/browser';
 import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import { CommitHistoryIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
@@ -20,25 +22,25 @@ import { ChangeLog } from './ChangeLog';
 export const DocumentsHistory = ({
   documentId,
 }: {
-  documentId: AutomergeUrl;
+  documentId: VersionControlId;
 }) => {
-  const [versionedDocument] = useDocument<VersionedDocument>(documentId);
+  const [versionedDocument] = useDocument<RichTextDocument>(documentId);
   const [selectedCommit, setSelectedCommit] = React.useState<string>();
   const [commits, setCommits] = React.useState<
     Array<Automerge.DecodedChange | Commit>
   >([]);
   const navigate = useNavigate();
   const [automergeHandle, setAutomergeHandle] =
-    useState<DocHandle<VersionedDocument> | null>(null);
-  const repo = useRepo();
+    useState<DocHandle<RichTextDocument> | null>(null);
+  const { repo } = useContext(VersionControlContext);
 
   useEffect(() => {
-    if (!documentId) {
+    if (!documentId || !repo) {
       return;
     }
 
-    if (isValidAutomergeUrl(documentId)) {
-      const automergeHandle = repo.find<VersionedDocument>(documentId);
+    if (isValidVersionControlId(documentId)) {
+      const automergeHandle = repo.find<RichTextDocument>(documentId);
       automergeHandle.whenReady().then(() => {
         setAutomergeHandle(automergeHandle);
       });

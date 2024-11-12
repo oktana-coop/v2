@@ -1,7 +1,7 @@
 import { createContext, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
-import { isValidAutomergeUrl } from '../../version-control';
+import { isValidVersionControlId } from '../../version-control';
 import {
   clearAll,
   clearAndInsertOne,
@@ -40,7 +40,7 @@ export const SelectedFileProvider = ({
       setSelectedFileInfo(fileInfo);
     };
 
-    if (!isValidAutomergeUrl(automergeUrl)) {
+    if (!isValidVersionControlId(automergeUrl)) {
       clearFileSelection();
     } else {
       getFile(automergeUrl);

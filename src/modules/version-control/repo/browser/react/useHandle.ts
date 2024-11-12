@@ -2,10 +2,10 @@ import { AutomergeUrl } from '@automerge/automerge-repo/slim';
 import { useHandle as useHandleAutomerge } from '@automerge/automerge-repo-react-hooks';
 import { useEffect, useState } from 'react';
 
-import { VersionedDocument } from '../models/document';
+import { RichTextDocument } from '../../../models/document';
 
 export function useHandle(docUrl: AutomergeUrl) {
-  const handle = useHandleAutomerge<VersionedDocument>(docUrl);
+  const handle = useHandleAutomerge<RichTextDocument>(docUrl);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {

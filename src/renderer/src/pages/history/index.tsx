@@ -2,8 +2,8 @@ import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 
 import {
-  type AutomergeUrl,
-  isValidAutomergeUrl,
+  isValidVersionControlId,
+  type VersionControlId,
 } from '../../../../modules/version-control';
 import { EmptyDocument } from '../../components/document-views/EmptyDocument';
 import { InvalidDocument } from '../../components/document-views/InvalidDocument';
@@ -20,7 +20,7 @@ export const History = () => {
   }, []);
 
   useEffect(() => {
-    const urlValidity = isValidAutomergeUrl(documentId);
+    const urlValidity = isValidVersionControlId(documentId);
     setIsValidAutomergeId(urlValidity);
   }, [documentId]);
 
@@ -28,7 +28,7 @@ export const History = () => {
     <Layout>
       {documentId ? (
         isValidAutomergeId ? (
-          <DocumentsHistory documentId={documentId as AutomergeUrl} />
+          <DocumentsHistory documentId={documentId as VersionControlId} />
         ) : (
           <InvalidDocument />
         )

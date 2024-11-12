@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import type {
-  AutomergeUrl,
   DocHandle,
-  VersionedDocument,
+  RichTextDocument,
+  VersionControlId,
 } from '../../../../modules/version-control';
 import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import { ActionsBar } from './ActionsBar';
@@ -13,8 +13,8 @@ export const DocumentEditor = ({
   automergeHandle,
   onDocumentChange,
 }: {
-  automergeHandle: DocHandle<VersionedDocument>;
-  onDocumentChange: (docUrl: AutomergeUrl, value: string) => void;
+  automergeHandle: DocHandle<RichTextDocument>;
+  onDocumentChange: (docUrl: VersionControlId, value: string) => void;
 }) => {
   const [isCommitting, openCommitDialog] = useState<boolean>(false);
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);

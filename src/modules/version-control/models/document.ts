@@ -1,9 +1,17 @@
 import { next as Automerge } from '@automerge/automerge/slim';
 
-export type VersionedDocument = {
-  title: Automerge.Doc<string>;
-  content: Automerge.Doc<string>;
+import { versionControlItemTypes } from '../constants/versionControlItemTypes';
+import { DocHandle } from './doc-handle';
+
+export type RichTextDocument = {
+  type: typeof versionControlItemTypes.RICH_TEXT_DOCUMENT;
+  title: string;
+  content: string;
 };
+
+export type VersionedDocument = Automerge.Doc<RichTextDocument>;
+
+export type VersionedDocumentHandle = DocHandle<RichTextDocument>;
 
 // Commit is a special type of an (automerge) change that
 // strictly has a message and a time

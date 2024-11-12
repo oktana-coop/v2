@@ -91,7 +91,6 @@ async function createWindow() {
     renderers: new Map([[rendererProcessId, win]]),
   });
 
-  // Test actively push message to the Electron-Renderer
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('renderer-process-id', rendererProcessId);
   });
