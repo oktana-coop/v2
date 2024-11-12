@@ -3,7 +3,11 @@ export * from './constants';
 export * from './utils';
 export * from './types';
 
-export { FilesystemContext, FilesystemProvider } from './react/context';
+export {
+  FilesystemContext,
+  FilesystemProvider,
+  type FilesystemContextType,
+} from './react/context';
 
 export {
   SelectedFileContext,

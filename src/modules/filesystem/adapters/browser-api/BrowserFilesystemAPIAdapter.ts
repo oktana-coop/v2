@@ -31,7 +31,7 @@ const getFileRelativePath = async (
     );
   }
 
-  return [relativeTo, ...relativePathSegments].join('/');
+  return [relativeTo.name, ...relativePathSegments].join('/');
 };
 
 const verifyPermission = async (fileHandle: FileSystemFileHandle) => {

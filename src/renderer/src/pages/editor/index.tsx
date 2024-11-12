@@ -89,6 +89,7 @@ const EditorIndex = () => {
       title,
       path: file.path!,
       projectId,
+      content: null,
     });
 
     setSelectedFileInfo({ documentId: newDocumentId, path: file.path! });
@@ -133,6 +134,8 @@ const EditorIndex = () => {
       );
     }
 
+    console.log(versionedDocumentHandle.url);
+
     if (!file.path) {
       // TODO: Handle more gracefully
       throw new Error('Could not select file because the file path is missing');
@@ -142,7 +145,9 @@ const EditorIndex = () => {
       documentId: versionedDocumentHandle.url,
       path: file.path,
     });
-    navigate(`/edit/${docUrl}?path=${encodeURIComponent(file.path)}`);
+    navigate(
+      `/edit/${versionedDocumentHandle.url}?path=${encodeURIComponent(file.path)}`
+    );
   };
 
   function renderMainPane() {
@@ -168,7 +173,6 @@ const EditorIndex = () => {
     }
 
     if (!isValidVersionControlId(docUrl)) {
-      console.log(docUrl);
       return <InvalidDocument />;
     }
 

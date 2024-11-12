@@ -3,13 +3,14 @@ import { createContext, useEffect, useState } from 'react';
 import { Filesystem } from '../ports/filesystem';
 import type { Directory, File } from '../types';
 
-type FilesystemContextType = {
+export type FilesystemContextType = {
   directory: Directory | null;
   directoryFiles: Array<File>;
   openDirectory: () => Promise<Directory | null>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
   createNewFile: () => Promise<File>;
   writeFile: (path: string, content: string) => Promise<void>;
+  readFile: (path: string) => Promise<File>;
 };
 
 export const FilesystemContext = createContext<FilesystemContextType>({
@@ -22,6 +23,8 @@ export const FilesystemContext = createContext<FilesystemContextType>({
   createNewFile: () => null,
   // @ts-expect-error will get overriden below
   writeFile: () => {},
+  // @ts-expect-error will get overriden below
+  readFile: () => {},
 });
 
 export const FilesystemProvider = ({
@@ -70,6 +73,7 @@ export const FilesystemProvider = ({
 
   const createNewFile = filesystem.createNewFile;
   const writeFile = filesystem.writeFile;
+  const readFile = filesystem.readFile;
 
   return (
     <FilesystemContext.Provider
@@ -79,6 +83,7 @@ export const FilesystemProvider = ({
         openDirectory,
         requestPermissionForSelectedDirectory,
         createNewFile,
+        readFile,
         writeFile,
       }}
     >

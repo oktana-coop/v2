@@ -1,4 +1,6 @@
 import type {
+  DocumentMetaData,
+  Project,
   VersionControlId,
   VersionedDocumentHandle,
   VersionedProjectHandle,
@@ -6,11 +8,13 @@ import type {
 
 export type CreateProjectArgs = {
   path: string;
+  documents: Project['documents'];
 };
 
 export type CreateDocumentArgs = {
   title: string;
   path: string;
+  content: string | null;
   projectId: VersionControlId | null;
 };
 
@@ -19,6 +23,9 @@ export type VersionControlRepo = {
   findProjectById: (
     id: VersionControlId
   ) => Promise<VersionedProjectHandle | null>;
+  listProjectDocuments: (
+    id: VersionControlId
+  ) => Promise<Array<DocumentMetaData>>;
   createDocument: ({
     title,
     path,

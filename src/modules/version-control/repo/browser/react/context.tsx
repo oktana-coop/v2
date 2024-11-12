@@ -1,9 +1,19 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import { ElectronContext } from '../../../../electron';
-import { type Directory, FilesystemContext } from '../../../../filesystem';
+import {
+  type Directory,
+  File,
+  FilesystemContext,
+  type FilesystemContextType,
+} from '../../../../filesystem';
 import { createAdapter } from '../../../adapters/automerge';
-import { VersionControlId, VersionedDocumentHandle } from '../../../models';
+import {
+  DocumentMetaData,
+  VersionControlId,
+  VersionedDocumentHandle,
+  VersionedProject,
+} from '../../../models';
 import {
   CreateDocumentArgs,
   VersionControlRepo,
@@ -47,6 +57,30 @@ export const VersionControlContext = createContext<VersionControlContextType>({
   findDocumentInProject: () => null,
 });
 
+const createVersionedDocument =
+  ({
+    repo,
+    readFile,
+  }: {
+    repo: VersionControlRepo;
+    readFile: FilesystemContextType['readFile'];
+  }) =>
+  async ({ file, projectId }: { file: File; projectId: VersionControlId }) => {
+    const data = await readFile(file.path!);
+    const documentId = await repo.createDocument({
+      path: file.path!,
+      title: file.name,
+      content: data.content ?? null,
+      projectId,
+    });
+
+    return {
+      versionControlId: documentId,
+      path: file.path!,
+      name: file.name,
+    };
+  };
+
 export const VersionControlProvider = ({
   children,
 }: {
@@ -57,7 +91,7 @@ export const VersionControlProvider = ({
   const [isRepoReady, setIsRepoReady] = useState<boolean>(false);
   const [projectId, setProjectId] = useState<VersionControlId | null>(null);
   const { processId } = useContext(ElectronContext);
-  const { directory } = useContext(FilesystemContext);
+  const { directory, directoryFiles, readFile } = useContext(FilesystemContext);
 
   useEffect(() => {
     const setupVersionControlRepo = async () => {
@@ -81,25 +115,94 @@ export const VersionControlProvider = ({
       }
 
       if (directory) {
+        // Check if we have a project ID in the browser storage
         const browserStorageBrowserDataValue = localStorage.getItem(
           BROWSER_STORAGE_PROJECT_DATA_KEY
         );
-
         const browserStorageBrowserData = browserStorageBrowserDataValue
           ? (JSON.parse(
               browserStorageBrowserDataValue
             ) as BrowserStorageProjectData)
           : null;
 
-        let versionControlId: VersionControlId;
+        // Perform some side effects conditionally and store the (potentially) new
+        // project ID in local storage
+        let newProjectId: VersionControlId;
         if (
           browserStorageBrowserData?.directoryName === directory.name &&
           browserStorageBrowserData?.directoryPath === directory.path
         ) {
-          versionControlId = browserStorageBrowserData.versionControlId;
+          // If we have a project ID and it matches the new directory name & path,
+          // we already have its version control ID. Return it and set it in the state.
+          newProjectId = browserStorageBrowserData.versionControlId;
+
+          // Check if we need to update the project documents
+          const projectHandle = await versionControlRepo.findProjectById(
+            browserStorageBrowserData.versionControlId
+          );
+          if (!projectHandle) {
+            throw new Error('No project handle found in repository');
+          }
+
+          const project = projectHandle.docSync() as VersionedProject;
+
+          const newDocuments = await Promise.all(
+            directoryFiles
+              .filter((file) => {
+                // Filter out existing documents
+                return Object.values(project.documents).find(
+                  (docMetaData) =>
+                    docMetaData.name === file.name &&
+                    docMetaData.path === file.path
+                )
+                  ? false
+                  : true;
+              })
+              .map((file) =>
+                createVersionedDocument({ repo: versionControlRepo, readFile })(
+                  {
+                    file,
+                    projectId: newProjectId,
+                  }
+                )
+              )
+          );
+
+          if (newDocuments.length > 0) {
+            projectHandle.change(
+              (proj) =>
+                (proj.documents = newDocuments.reduce(
+                  (acc, doc) => {
+                    return { ...acc, [doc.versionControlId]: doc };
+                  },
+                  {} as Record<VersionControlId, DocumentMetaData>
+                ))
+            );
+          }
         } else {
-          versionControlId = await versionControlRepo.createProject({
+          // If there is no project ID or if there is one but points to another directory
+          // we want to setup a new project and create versioned documents for each of its eligible files.
+          // Finally, we want to store the project ID in the local storage and set it in the state.
+
+          const documents = await Promise.all(
+            directoryFiles.map((file) =>
+              createVersionedDocument({ repo: versionControlRepo, readFile })({
+                file,
+                projectId: newProjectId,
+              })
+            )
+          );
+
+          console.log(JSON.stringify(documents, null, 2));
+
+          newProjectId = await versionControlRepo.createProject({
             path: directory.path!,
+            documents: documents.reduce(
+              (acc, doc) => {
+                return { ...acc, [doc.versionControlId]: doc };
+              },
+              {} as Record<VersionControlId, DocumentMetaData>
+            ),
           });
 
           localStorage.setItem(
@@ -107,19 +210,19 @@ export const VersionControlProvider = ({
             JSON.stringify({
               directoryName: directory.name,
               directoryPath: directory.path,
-              versionControlId,
+              versionControlId: newProjectId,
             })
           );
         }
 
-        setProjectId(versionControlId);
+        setProjectId(newProjectId);
       } else {
         setProjectId(null);
       }
     };
 
     openOrCreateProject();
-  }, [directory, versionControlRepo]);
+  }, [directory, directoryFiles, versionControlRepo]);
 
   const handleCreateDocument = async (args: CreateDocumentArgs) => {
     if (!versionControlRepo) {
@@ -146,13 +249,12 @@ export const VersionControlProvider = ({
       throw new Error('No repo found when trying to find file in project');
     }
 
-    const project = (
-      await versionControlRepo.findProjectById(projectId)
-    )?.docSync();
-
-    if (!project) {
+    const projectHandle = await versionControlRepo.findProjectById(projectId);
+    if (!projectHandle) {
       throw new Error('No project found in repository');
     }
+
+    const project = projectHandle.docSync() as VersionedProject;
 
     const documentMetaData = Object.values(project.documents).find(
       ({ name: documentName, path: documentPath }) =>

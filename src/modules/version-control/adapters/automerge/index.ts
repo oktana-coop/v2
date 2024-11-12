@@ -6,12 +6,13 @@ import type {
   Project,
   RichTextDocument,
   VersionControlId,
+  VersionedProject,
 } from '../../models';
 import { VersionControlRepo } from '../../ports/version-control-repo';
 
 export const createAdapter = (automergeRepo: Repo): VersionControlRepo => ({
   createProject: async ({ path }) => {
-    const handle = automergeRepo.create<Project>({
+    const handle = await automergeRepo.create<Project>({
       path,
       documents: {},
     });
@@ -19,11 +20,21 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => ({
   },
   findProjectById: async (id: VersionControlId) =>
     automergeRepo.find<Project>(id),
-  createDocument: async ({ title, path, projectId }) => {
-    const handle = automergeRepo.create<RichTextDocument>({
+  listProjectDocuments: async (id: VersionControlId) => {
+    const projectHandle = await automergeRepo.find<Project>(id);
+    if (!projectHandle) {
+      throw new Error('No project handle found in repository');
+    }
+
+    const project = projectHandle.docSync() as VersionedProject;
+
+    return Object.values(project.documents);
+  },
+  createDocument: async ({ title, path, content, projectId }) => {
+    const handle = await automergeRepo.create<RichTextDocument>({
       type: versionControlItemTypes.RICH_TEXT_DOCUMENT,
       title,
-      content: '',
+      content: content ?? '',
     });
 
     const documentUrl = handle.url;

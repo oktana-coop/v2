@@ -4,16 +4,13 @@ import { useNavigate } from 'react-router-dom';
 
 import {
   type Commit,
-  type DocHandle,
   isCommit,
   isValidVersionControlId,
-  type RichTextDocument,
   type VersionControlId,
+  type VersionedDocument,
+  type VersionedDocumentHandle,
 } from '../../../../modules/version-control';
-import {
-  useDocument,
-  VersionControlContext,
-} from '../../../../modules/version-control/repo/browser';
+import { VersionControlContext } from '../../../../modules/version-control/repo/browser';
 import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import { CommitHistoryIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
@@ -24,36 +21,50 @@ export const DocumentsHistory = ({
 }: {
   documentId: VersionControlId;
 }) => {
-  const [versionedDocument] = useDocument<RichTextDocument>(documentId);
   const [selectedCommit, setSelectedCommit] = React.useState<string>();
   const [commits, setCommits] = React.useState<
     Array<Automerge.DecodedChange | Commit>
   >([]);
   const navigate = useNavigate();
-  const [automergeHandle, setAutomergeHandle] =
-    useState<DocHandle<RichTextDocument> | null>(null);
-  const { repo } = useContext(VersionControlContext);
+  const [readyAutomergeHandle, setReadyAutomergeHandle] =
+    useState<VersionedDocumentHandle | null>(null);
+  const [versionedDocument, setVersionedDocument] =
+    useState<VersionedDocument | null>(null);
+  const { findDocument } = useContext(VersionControlContext);
 
   useEffect(() => {
-    if (!documentId || !repo) {
-      return;
-    }
+    const findVersionedDocument = async () => {
+      if (!documentId) {
+        return;
+      }
 
-    if (isValidVersionControlId(documentId)) {
-      const automergeHandle = repo.find<RichTextDocument>(documentId);
-      automergeHandle.whenReady().then(() => {
-        setAutomergeHandle(automergeHandle);
-      });
-    } else {
-      setAutomergeHandle(null);
-    }
-  }, [documentId, repo]);
+      if (isValidVersionControlId(documentId)) {
+        const automergeHandle = await findDocument(documentId);
+
+        if (automergeHandle) {
+          automergeHandle.whenReady().then(() => {
+            setReadyAutomergeHandle(automergeHandle);
+          });
+        } else {
+          setReadyAutomergeHandle(null);
+        }
+      } else {
+        setReadyAutomergeHandle(null);
+      }
+    };
+
+    findVersionedDocument();
+  }, [documentId]);
 
   useEffect(() => {
-    if (versionedDocument) {
-      document.title = `v2 | "${versionedDocument.title}" version history`;
+    if (readyAutomergeHandle) {
+      const versionedDocument = readyAutomergeHandle.docSync();
+      if (versionedDocument) {
+        document.title = `v2 | "${versionedDocument.title}" version history`;
+        setVersionedDocument(versionedDocument);
+      }
     }
-  }, [versionedDocument]);
+  }, [readyAutomergeHandle]);
 
   const selectCommit = useCallback(
     (hash: string) => {
@@ -63,10 +74,10 @@ export const DocumentsHistory = ({
         // at a given point in time
         console.info(
           `This is the plain document at this point in time 👉
-
-${docView.content}
-
-the rich-text version is not yet supported.`
+  
+  ${docView.content}
+  
+  the rich-text version is not yet supported.`
         );
         setSelectedCommit(hash);
       }
@@ -116,12 +127,12 @@ the rich-text version is not yet supported.`
         />
       </div>
       <div className="flex w-full grow items-stretch">
-        {automergeHandle ? (
+        {readyAutomergeHandle ? (
           <div onDoubleClick={() => navigate(`/edit/${documentId}`)}>
             <RichTextEditor
               // explicitly define onSave as a no-op
               onSave={() => {}}
-              docHandle={automergeHandle}
+              docHandle={readyAutomergeHandle}
               isEditable={false}
             />
           </div>
