@@ -1,11 +1,15 @@
 import { createContext, useEffect, useState } from 'react';
 
+import { isElectron } from './utils';
+
 type ElectronContextType = {
   processId: string | null;
+  isElectron: boolean;
 };
 
 export const ElectronContext = createContext<ElectronContextType>({
   processId: null,
+  isElectron: isElectron(),
 });
 
 export const ElectronProvider = ({
@@ -16,13 +20,15 @@ export const ElectronProvider = ({
   const [processId, setProcessId] = useState<string | null>(null);
 
   useEffect(() => {
-    window.electronAPI.onReceiveProcessId((processId: string) => {
-      setProcessId(processId);
-    });
+    if (isElectron()) {
+      window.electronAPI.onReceiveProcessId((processId: string) => {
+        setProcessId(processId);
+      });
+    }
   }, []);
 
   return (
-    <ElectronContext.Provider value={{ processId }}>
+    <ElectronContext.Provider value={{ processId, isElectron: isElectron() }}>
       {children}
     </ElectronContext.Provider>
   );

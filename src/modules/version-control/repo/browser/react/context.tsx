@@ -18,7 +18,10 @@ import {
   CreateDocumentArgs,
   VersionControlRepo,
 } from '../../../ports/version-control-repo';
-import { setup as setupBrowserRepo } from '../setup';
+import {
+  setupForElectron as setupBrowserRepoForElectron,
+  setupForWeb as setupBrowserRepoForWeb,
+} from '../setup';
 
 type BrowserStorageProjectData = {
   directoryName: Directory['name'];
@@ -90,18 +93,25 @@ export const VersionControlProvider = ({
     useState<VersionControlRepo | null>(null);
   const [isRepoReady, setIsRepoReady] = useState<boolean>(false);
   const [projectId, setProjectId] = useState<VersionControlId | null>(null);
-  const { processId } = useContext(ElectronContext);
+  const { processId, isElectron } = useContext(ElectronContext);
   const { directory, directoryFiles, readFile } = useContext(FilesystemContext);
 
   useEffect(() => {
     const setupVersionControlRepo = async () => {
-      if (processId) {
-        const automergeRepo = await setupBrowserRepo(processId);
+      if (isElectron) {
+        if (processId) {
+          const automergeRepo = await setupBrowserRepoForElectron(processId);
+          const vcRepo = createAdapter(automergeRepo);
+          setVersionControlRepo(vcRepo);
+          setIsRepoReady(true);
+        } else {
+          setIsRepoReady(false);
+        }
+      } else {
+        const automergeRepo = await setupBrowserRepoForWeb();
         const vcRepo = createAdapter(automergeRepo);
         setVersionControlRepo(vcRepo);
         setIsRepoReady(true);
-      } else {
-        setIsRepoReady(false);
       }
     };
 

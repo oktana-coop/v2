@@ -1,4 +1,4 @@
-export { setup } from './setup';
+export { setupForWeb, setupForElectron } from './setup';
 
 export { useHandle } from './react/useHandle';
 export { useDocument } from './react/useDocument';
