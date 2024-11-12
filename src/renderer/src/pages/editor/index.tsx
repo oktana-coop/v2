@@ -40,15 +40,14 @@ const EditorIndex = () => {
     useState<DocHandle<RichTextDocument> | null>(null);
   const {
     directory,
+    directoryFiles,
     openDirectory,
-    listSelectedDirectoryFiles,
     requestPermissionForSelectedDirectory,
     createNewFile,
     writeFile,
   } = useContext(FilesystemContext);
   const { selectedFileInfo, setSelectedFileInfo, clearFileSelection } =
     useContext(SelectedFileContext);
-  const [files, setFiles] = useState<Array<File>>([]);
   const {
     projectId,
     createDocument: createVersionedDocument,
@@ -83,17 +82,6 @@ const EditorIndex = () => {
 
     findVersionedDocument();
   }, [docUrl, clearFileSelection]);
-
-  useEffect(() => {
-    const getFiles = async () => {
-      const files = await listSelectedDirectoryFiles();
-      setFiles(files);
-    };
-
-    if (directory && directory.permissionState === 'granted') {
-      getFiles();
-    }
-  }, [directory]);
 
   const handleDocumentCreation = async (title: string) => {
     const file = await createNewFile();
@@ -238,7 +226,7 @@ const EditorIndex = () => {
         <div className="h-full w-2/5 grow-0 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
           <FileExplorer
             directory={directory}
-            files={files}
+            files={directoryFiles}
             selectedFileInfo={selectedFileInfo}
             onOpenDirectory={handleOpenDirectory}
             onRequestPermissionsForCurrentDirectory={handlePermissionRequest}

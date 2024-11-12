@@ -113,9 +113,9 @@ export const VersionControlProvider = ({
         }
 
         setProjectId(versionControlId);
+      } else {
+        setProjectId(null);
       }
-
-      setProjectId(null);
     };
 
     openOrCreateProject();

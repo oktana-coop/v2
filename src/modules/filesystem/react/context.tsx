@@ -5,8 +5,8 @@ import type { Directory, File } from '../types';
 
 type FilesystemContextType = {
   directory: Directory | null;
+  directoryFiles: Array<File>;
   openDirectory: () => Promise<Directory | null>;
-  listSelectedDirectoryFiles: () => Promise<Array<File>>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
   createNewFile: () => Promise<File>;
   writeFile: (path: string, content: string) => Promise<void>;
@@ -14,8 +14,8 @@ type FilesystemContextType = {
 
 export const FilesystemContext = createContext<FilesystemContextType>({
   directory: null,
+  directoryFiles: [],
   openDirectory: async () => null,
-  listSelectedDirectoryFiles: async () => [],
   // @ts-expect-error will get overriden below
   requestPermissionForSelectedDirectory: async () => null,
   // @ts-expect-error will get overriden below
@@ -32,6 +32,7 @@ export const FilesystemProvider = ({
   children: React.ReactNode;
 }) => {
   const [directory, setDirectory] = useState<Directory | null>(null);
+  const [directoryFiles, setDirectoryFiles] = useState<Array<File>>([]);
 
   useEffect(() => {
     const getSelectedDirectory = async () => {
@@ -41,6 +42,17 @@ export const FilesystemProvider = ({
 
     getSelectedDirectory();
   }, []);
+
+  useEffect(() => {
+    const getFiles = async () => {
+      const files = await filesystem.listSelectedDirectoryFiles();
+      setDirectoryFiles(files);
+    };
+
+    if (directory && directory.permissionState === 'granted') {
+      getFiles();
+    }
+  }, [directory]);
 
   const openDirectory = async () => {
     const directory = await filesystem.openDirectory();
@@ -56,8 +68,6 @@ export const FilesystemProvider = ({
     }
   };
 
-  const listSelectedDirectoryFiles = filesystem.listSelectedDirectoryFiles;
-
   const createNewFile = filesystem.createNewFile;
   const writeFile = filesystem.writeFile;
 
@@ -65,8 +75,8 @@ export const FilesystemProvider = ({
     <FilesystemContext.Provider
       value={{
         directory,
+        directoryFiles,
         openDirectory,
-        listSelectedDirectoryFiles,
         requestPermissionForSelectedDirectory,
         createNewFile,
         writeFile,
