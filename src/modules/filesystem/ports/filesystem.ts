@@ -8,7 +8,4 @@ export type Filesystem = {
   createNewFile: () => Promise<File>;
   writeFile: (path: string, content: string) => Promise<void>;
   readFile: (path: string) => Promise<File>;
-  setSelectedFile: (path: string) => Promise<void>;
-  clearFileSelection: () => Promise<void>;
-  getSelectedFile: () => Promise<File | null>;
 };

@@ -35,32 +35,3 @@ export const getFileHandle = async (relativePath: string) => {
   const db = await openDB();
   return get({ relativePath, db });
 };
-
-export const setSelectedFile = async (relativePath: string) => {
-  // For the selected file we can use the simplicity of local storage
-  // (we only store the relative path in this case and we can get the handle from IndexedDB if needed)
-  localStorage.setItem('selectedFile', relativePath);
-};
-
-export const clearFileSelection = async () => {
-  localStorage.removeItem('selectedFile');
-};
-
-export const getSelectedFile = async () => {
-  const selectedFileRelativePath = localStorage.getItem('selectedFile');
-
-  if (!selectedFileRelativePath) {
-    return null;
-  }
-
-  const fileInfo = await getFileHandle(selectedFileRelativePath);
-
-  if (!fileInfo) {
-    return null;
-  }
-
-  return {
-    path: selectedFileRelativePath,
-    fileInfo,
-  };
-};

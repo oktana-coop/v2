@@ -5,13 +5,10 @@ import { File } from '../../../types';
 import {
   clearAllAndInsertManyFileHandles,
   clearFileHandles,
-  clearFileSelection as clearFileSelectionInBrowserStorage,
   getFileHandle,
   getSelectedDirectoryHandle,
-  getSelectedFile as getSelectedFileFromBrowserStorage,
   persistDirectoryHandle,
   persistFileHandle,
-  setSelectedFile as persistFileSelection,
 } from './../browser-storage';
 
 const getDirectoryPermissionState = async (
@@ -176,29 +173,6 @@ export const adapter: Filesystem = {
     const writable = await fileInfo.fileHandle.createWritable();
     await writable.write(content);
     await writable.close();
-  },
-  setSelectedFile: async (path: string) => {
-    persistFileSelection(path);
-  },
-  clearFileSelection: async () => {
-    clearFileSelectionInBrowserStorage();
-  },
-  getSelectedFile: async () => {
-    const result = await getSelectedFileFromBrowserStorage();
-
-    if (!result) {
-      return null;
-    }
-
-    const fileData = await result.fileInfo.fileHandle.getFile();
-    const content = await fileData.text();
-
-    return {
-      type: filesystemItemTypes.FILE,
-      path: result.path,
-      name: fileData.name,
-      content,
-    };
   },
   createNewFile: async () => {
     // Prompt the user to select where to save the file
