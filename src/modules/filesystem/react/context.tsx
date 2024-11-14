@@ -55,7 +55,7 @@ export const FilesystemProvider = ({
     if (directory && directory.permissionState === 'granted') {
       getFiles();
     }
-  }, [directory]);
+  }, [directory, filesystem]);
 
   const openDirectory = async () => {
     const directory = await filesystem.openDirectory();
@@ -71,7 +71,18 @@ export const FilesystemProvider = ({
     }
   };
 
-  const createNewFile = filesystem.createNewFile;
+  const handleCreateNewFile = async () => {
+    const newFile = await filesystem.createNewFile();
+
+    // Refresh directory files if a directory is selected
+    if (directory && directory.permissionState === 'granted') {
+      const files = await filesystem.listSelectedDirectoryFiles();
+      setDirectoryFiles(files);
+    }
+
+    return newFile;
+  };
+
   const writeFile = filesystem.writeFile;
   const readFile = filesystem.readFile;
 
@@ -82,7 +93,7 @@ export const FilesystemProvider = ({
         directoryFiles,
         openDirectory,
         requestPermissionForSelectedDirectory,
-        createNewFile,
+        createNewFile: handleCreateNewFile,
         readFile,
         writeFile,
       }}

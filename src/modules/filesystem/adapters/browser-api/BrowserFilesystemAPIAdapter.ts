@@ -3,6 +3,7 @@ import { filesystemItemTypes } from '../../constants/filesystemItemTypes';
 import { Filesystem } from '../../ports/filesystem';
 import { File } from '../../types';
 import {
+  clearAllAndInsertManyFileHandles,
   clearFileHandles,
   clearFileSelection as clearFileSelectionInBrowserStorage,
   getFileHandle,
@@ -94,10 +95,11 @@ export const adapter: Filesystem = {
       throw new Error('No current directory found in the browser storage');
     }
 
-    const files: Array<File> = [];
+    type FileWithHandle = File & {
+      handle: FileSystemFileHandle;
+    };
 
-    // Clear file handles in the browser storage every time we list directory files
-    await clearFileHandles();
+    const files: Array<FileWithHandle> = [];
 
     for await (const [key, value] of selectedDirectoryHandle.entries()) {
       if (value.kind === 'file' && value.name.endsWith(FILE_EXTENSION)) {
@@ -105,16 +107,24 @@ export const adapter: Filesystem = {
           value,
           selectedDirectoryHandle
         );
-        // Store file handles in the browser storage so that we can retrieve them later on by relative bath.
-        await persistFileHandle({ handle: value, relativePath });
 
-        files.push({
+        const file: FileWithHandle = {
           type: filesystemItemTypes.FILE,
           name: key,
           path: relativePath,
-        });
+          handle: value,
+        };
+
+        files.push(file);
       }
     }
+
+    await clearAllAndInsertManyFileHandles(
+      files.map((file) => ({
+        fileHandle: file.handle,
+        relativePath: file.path!,
+      }))
+    );
 
     return files;
   },

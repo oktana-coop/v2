@@ -30,7 +30,7 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => ({
 
     return Object.values(project.documents);
   },
-  createDocument: async ({ title, path, content, projectId }) => {
+  createDocument: async ({ title, name, path, content, projectId }) => {
     const handle = await automergeRepo.create<RichTextDocument>({
       type: versionControlItemTypes.RICH_TEXT_DOCUMENT,
       title,
@@ -45,9 +45,10 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => ({
       if (project) {
         const metaData: DocumentMetaData = {
           versionControlId: documentUrl,
-          name: title,
+          name,
           path,
         };
+
         project.change((proj) => {
           proj.documents[documentUrl] = metaData;
         });

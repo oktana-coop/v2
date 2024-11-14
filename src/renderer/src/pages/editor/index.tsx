@@ -86,6 +86,7 @@ const EditorIndex = () => {
   const handleDocumentCreation = async (title: string) => {
     const file = await createNewFile();
     const newDocumentId = await createVersionedDocument({
+      name: file.name,
       title,
       path: file.path!,
       projectId,
@@ -133,8 +134,6 @@ const EditorIndex = () => {
         'Could not select file because the versioned document was not found in project'
       );
     }
-
-    console.log(versionedDocumentHandle.url);
 
     if (!file.path) {
       // TODO: Handle more gracefully

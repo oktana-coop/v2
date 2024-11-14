@@ -13,6 +13,7 @@ export type CreateProjectArgs = {
 
 export type CreateDocumentArgs = {
   title: string;
+  name: string;
   path: string;
   content: string | null;
   projectId: VersionControlId | null;
@@ -28,6 +29,7 @@ export type VersionControlRepo = {
   ) => Promise<Array<DocumentMetaData>>;
   createDocument: ({
     title,
+    name,
     path,
     projectId,
   }: CreateDocumentArgs) => Promise<VersionControlId>;

@@ -69,18 +69,19 @@ const createVersionedDocument =
     readFile: FilesystemContextType['readFile'];
   }) =>
   async ({ file, projectId }: { file: File; projectId: VersionControlId }) => {
-    const data = await readFile(file.path!);
+    const readFileResult = await readFile(file.path!);
     const documentId = await repo.createDocument({
-      path: file.path!,
-      title: file.name,
-      content: data.content ?? null,
+      path: readFileResult.path!,
+      name: readFileResult.name,
+      title: readFileResult.name,
+      content: readFileResult.content ?? null,
       projectId,
     });
 
     return {
       versionControlId: documentId,
-      path: file.path!,
-      name: file.name,
+      path: readFileResult.path!,
+      name: readFileResult.name,
     };
   };
 
@@ -154,40 +155,41 @@ export const VersionControlProvider = ({
             throw new Error('No project handle found in repository');
           }
 
-          const project = projectHandle.docSync() as VersionedProject;
+          const project = projectHandle.docSync() as
+            | VersionedProject
+            | undefined;
 
-          const newDocuments = await Promise.all(
-            directoryFiles
-              .filter((file) => {
+          if (project) {
+            const newDocuments = await Promise.all(
+              directoryFiles
                 // Filter out existing documents
-                return Object.values(project.documents).find(
-                  (docMetaData) =>
-                    docMetaData.name === file.name &&
-                    docMetaData.path === file.path
+                .filter(
+                  (file) =>
+                    !Object.values(project.documents).some(
+                      (docMetaData) =>
+                        docMetaData.name === file.name &&
+                        docMetaData.path === file.path
+                    )
                 )
-                  ? false
-                  : true;
-              })
-              .map((file) =>
-                createVersionedDocument({ repo: versionControlRepo, readFile })(
-                  {
+                .map((file) =>
+                  createVersionedDocument({
+                    repo: versionControlRepo,
+                    readFile,
+                  })({
                     file,
                     projectId: newProjectId,
-                  }
+                  })
                 )
-              )
-          );
-
-          if (newDocuments.length > 0) {
-            projectHandle.change(
-              (proj) =>
-                (proj.documents = newDocuments.reduce(
-                  (acc, doc) => {
-                    return { ...acc, [doc.versionControlId]: doc };
-                  },
-                  {} as Record<VersionControlId, DocumentMetaData>
-                ))
             );
+
+            if (newDocuments.length > 0) {
+              projectHandle.change(
+                (proj) =>
+                  (proj.documents = newDocuments.reduce((acc, doc) => {
+                    return { ...acc, [doc.versionControlId]: doc };
+                  }, proj.documents))
+              );
+            }
           }
         } else {
           // If there is no project ID or if there is one but points to another directory
@@ -202,8 +204,6 @@ export const VersionControlProvider = ({
               })
             )
           );
-
-          console.log(JSON.stringify(documents, null, 2));
 
           newProjectId = await versionControlRepo.createProject({
             path: directory.path!,

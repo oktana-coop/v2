@@ -82,6 +82,23 @@ export const clearAll: (db: IDBDatabase) => Promise<void> = (db) => {
   });
 };
 
+export const clearAndInsertMany: (input: {
+  files: Array<IDBFileInfo>;
+  db: IDBDatabase;
+}) => Promise<void> = ({ files, db }) => {
+  const transaction = db.transaction(storeName, 'readwrite');
+
+  const store = transaction.objectStore(storeName);
+  store.clear();
+
+  files.forEach((fileInfo) => store.add(fileInfo, fileInfo.relativePath));
+
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = (err) => reject(err);
+  });
+};
+
 export const get: (input: {
   db: IDBDatabase;
   relativePath: IDBFileInfo['relativePath'];
