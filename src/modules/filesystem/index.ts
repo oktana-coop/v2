@@ -1,4 +1,3 @@
-export * from './io';
 export * from './constants';
 export * from './utils';
 export * from './types';
@@ -17,4 +16,4 @@ export {
 
 export { type FileInfo } from './selected-file/types';
 
-export { adapter as browserFilesystemAPIAdapter } from './adapters/browser-api/BrowserFilesystemAPIAdapter';
+export { adapter as browserFilesystemAPIAdapter } from './adapters/browser-api/browser-filesystem-api/adapter';

@@ -1,7 +1,7 @@
-import { FILE_EXTENSION } from '../../constants';
-import { filesystemItemTypes } from '../../constants/filesystemItemTypes';
-import { Filesystem } from '../../ports/filesystem';
-import { File } from '../../types';
+import { FILE_EXTENSION } from '../../../constants';
+import { filesystemItemTypes } from '../../../constants/filesystemItemTypes';
+import { Filesystem } from '../../../ports/filesystem';
+import { File } from '../../../types';
 import {
   clearAllAndInsertManyFileHandles,
   clearFileHandles,
@@ -12,7 +12,7 @@ import {
   persistDirectoryHandle,
   persistFileHandle,
   setSelectedFile as persistFileSelection,
-} from './browser-storage';
+} from './../browser-storage';
 
 const getDirectoryPermissionState = async (
   directoryHandle: FileSystemDirectoryHandle

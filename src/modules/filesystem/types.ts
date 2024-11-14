@@ -1,10 +1,4 @@
-import { type AutomergeUrl } from '../version-control';
 import { filesystemItemTypes } from './constants/filesystemItemTypes';
-
-export type FileContent = {
-  docUrl: AutomergeUrl;
-  value: string;
-};
 
 export type FilesystemItem = {
   path?: string;
