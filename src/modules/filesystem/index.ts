@@ -6,14 +6,12 @@ export {
   FilesystemContext,
   FilesystemProvider,
   type FilesystemContextType,
-} from './react/context';
+} from './react/filesystem-context';
 
 export {
   SelectedFileContext,
   SelectedFileProvider,
   type VersionedFileInfo,
-} from './selected-file/context';
-
-export { type FileInfo } from './selected-file/types';
+} from './react/selected-file-context';
 
 export { adapter as browserFilesystemAPIAdapter } from './adapters/browser-api/browser-filesystem-api/adapter';
