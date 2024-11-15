@@ -1,1 +1,1 @@
-export type { FromRendererMessage } from './messages';
+export type { FromRendererMessage, FromMainMessage } from './messages';

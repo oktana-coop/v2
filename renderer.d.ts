@@ -1,6 +1,7 @@
 import type { IpcRenderer } from 'electron';
 
-import {
+import type { Filesystem as FilesystemAPI } from './src/modules/filesystem';
+import type {
   FromMainMessage,
   FromRendererMessage,
 } from './src/modules/version-control';
@@ -18,5 +19,6 @@ declare global {
   interface Window {
     electronAPI: ElectronAPI;
     automergeRepoNetworkAdapter: AutomergeRepoNetworkAdapter;
+    filesystemAPI: FilesystemAPI;
   }
 }

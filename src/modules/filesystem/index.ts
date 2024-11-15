@@ -1,6 +1,7 @@
 export * from './constants';
 export * from './utils';
 export * from './types';
+export type { Filesystem } from './ports/filesystem';
 
 export {
   FilesystemContext,

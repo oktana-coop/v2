@@ -1,7 +1,10 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-import { FromRendererMessage } from '../modules/version-control';
-import { FromMainMessage } from '../modules/version-control/repo/electron-ipc-network-adapter/messages';
+import type { Filesystem as FilesystemAPI } from '../modules/filesystem';
+import type {
+  FromMainMessage,
+  FromRendererMessage,
+} from '../modules/version-control';
 
 contextBridge.exposeInMainWorld('electronAPI', {
   onReceiveProcessId: (callback: (processId: string) => void) =>
@@ -18,3 +21,14 @@ contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
       callback(message)
     ),
 });
+
+contextBridge.exposeInMainWorld('filesystemAPI', {
+  openDirectory: () => ipcRenderer.invoke('open-directory'),
+  getDirectory: () => ipcRenderer.invoke('get-directory'),
+  listDirectoryFiles: () => ipcRenderer.invoke('list-directory-files'),
+  requestPermissionForDirectory: () =>
+    ipcRenderer.invoke('request-permission-for-directory'),
+  createNewFile: () => ipcRenderer.invoke('create-new-file'),
+  writeFile: () => ipcRenderer.invoke('write-file'),
+  readFile: () => ipcRenderer.invoke('read-file'),
+} as FilesystemAPI);
