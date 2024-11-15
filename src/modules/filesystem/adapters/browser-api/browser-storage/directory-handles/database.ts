@@ -68,6 +68,24 @@ export const insertOne: (input: {
   });
 };
 
+export const get: (input: {
+  db: IDBDatabase;
+  name: string;
+}) => Promise<FileSystemDirectoryHandle | null> = ({ name, db }) => {
+  const request = db
+    .transaction(storeName, 'readwrite')
+    .objectStore(storeName)
+    .get(name);
+
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => {
+      resolve((request.result as FileSystemDirectoryHandle) ?? null);
+    };
+
+    request.onerror = (err) => reject(err);
+  });
+};
+
 export const getFirst: (
   db: IDBDatabase
 ) => Promise<FileSystemDirectoryHandle | null> = (db) => {

@@ -5,8 +5,8 @@ import { File } from '../../../types';
 import {
   clearAllAndInsertManyFileHandles,
   clearFileHandles,
+  getDirectoryHandle,
   getFileHandle,
-  getSelectedDirectoryHandle,
   persistDirectoryHandle,
   persistFileHandle,
 } from './../browser-storage';
@@ -66,30 +66,30 @@ export const adapter: Filesystem = {
       permissionState,
     };
   },
-  getSelectedDirectory: async () => {
-    const selectedDirectoryHandle = await getSelectedDirectoryHandle();
+  getDirectory: async (path: string) => {
+    const directoryHandle = await getDirectoryHandle(path);
 
-    if (!selectedDirectoryHandle) {
+    if (!directoryHandle) {
       return null;
     }
 
-    const permissionState = await getDirectoryPermissionState(
-      selectedDirectoryHandle
-    );
+    const permissionState = await getDirectoryPermissionState(directoryHandle);
 
     return {
       type: filesystemItemTypes.DIRECTORY,
-      name: selectedDirectoryHandle.name,
-      path: selectedDirectoryHandle.name,
+      name: directoryHandle.name,
+      path: directoryHandle.name,
       permissionState,
     };
   },
-  listSelectedDirectoryFiles: async () => {
-    const selectedDirectoryHandle = await getSelectedDirectoryHandle();
+  listDirectoryFiles: async (path: string) => {
+    const directoryHandle = await getDirectoryHandle(path);
 
-    if (!selectedDirectoryHandle) {
+    if (!directoryHandle) {
       // TODO: Handle better with typed errors
-      throw new Error('No current directory found in the browser storage');
+      throw new Error(
+        'The directory handle was not found in the browser storage'
+      );
     }
 
     type FileWithHandle = File & {
@@ -98,12 +98,9 @@ export const adapter: Filesystem = {
 
     const files: Array<FileWithHandle> = [];
 
-    for await (const [key, value] of selectedDirectoryHandle.entries()) {
+    for await (const [key, value] of directoryHandle.entries()) {
       if (value.kind === 'file' && value.name.endsWith(FILE_EXTENSION)) {
-        const relativePath = await getFileRelativePath(
-          value,
-          selectedDirectoryHandle
-        );
+        const relativePath = await getFileRelativePath(value, directoryHandle);
 
         const file: FileWithHandle = {
           type: filesystemItemTypes.FILE,
@@ -125,15 +122,15 @@ export const adapter: Filesystem = {
 
     return files;
   },
-  requestPermissionForSelectedDirectory: async () => {
-    const selectedDirectoryHandle = await getSelectedDirectoryHandle();
+  requestPermissionForDirectory: async (path: string) => {
+    const directoryHandle = await getDirectoryHandle(path);
 
-    if (!selectedDirectoryHandle) {
+    if (!directoryHandle) {
       // TODO: Handle better with typed errors
       throw new Error('No current directory found in the browser storage');
     }
 
-    const permission = await selectedDirectoryHandle.requestPermission();
+    const permission = await directoryHandle.requestPermission();
 
     return permission;
   },

@@ -130,7 +130,7 @@ export const VersionControlProvider = ({
         const browserStorageBrowserDataValue = localStorage.getItem(
           BROWSER_STORAGE_PROJECT_DATA_KEY
         );
-        const browserStorageBrowserData = browserStorageBrowserDataValue
+        const browserStorageProjectData = browserStorageBrowserDataValue
           ? (JSON.parse(
               browserStorageBrowserDataValue
             ) as BrowserStorageProjectData)
@@ -140,16 +140,16 @@ export const VersionControlProvider = ({
         // project ID in local storage
         let newProjectId: VersionControlId;
         if (
-          browserStorageBrowserData?.directoryName === directory.name &&
-          browserStorageBrowserData?.directoryPath === directory.path
+          browserStorageProjectData?.directoryName === directory.name &&
+          browserStorageProjectData?.directoryPath === directory.path
         ) {
           // If we have a project ID and it matches the new directory name & path,
           // we already have its version control ID. Return it and set it in the state.
-          newProjectId = browserStorageBrowserData.versionControlId;
+          newProjectId = browserStorageProjectData.versionControlId;
 
           // Check if we need to update the project documents
           const projectHandle = await versionControlRepo.findProjectById(
-            browserStorageBrowserData.versionControlId
+            browserStorageProjectData.versionControlId
           );
           if (!projectHandle) {
             throw new Error('No project handle found in repository');
@@ -183,12 +183,11 @@ export const VersionControlProvider = ({
             );
 
             if (newDocuments.length > 0) {
-              projectHandle.change(
-                (proj) =>
-                  (proj.documents = newDocuments.reduce((acc, doc) => {
-                    return { ...acc, [doc.versionControlId]: doc };
-                  }, proj.documents))
-              );
+              projectHandle.change((proj) => {
+                newDocuments.forEach((doc) => {
+                  proj.documents[doc.versionControlId] = doc;
+                });
+              });
             }
           }
         } else {

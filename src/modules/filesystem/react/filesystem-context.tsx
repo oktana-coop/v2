@@ -3,6 +3,13 @@ import { createContext, useEffect, useState } from 'react';
 import { Filesystem } from '../ports/filesystem';
 import type { Directory, File } from '../types';
 
+const BROWSER_STORAGE_DIRECTORY_DATA_KEY = 'project';
+
+type BrowserStorageDirectoryData = {
+  directoryName: Directory['name'];
+  directoryPath: Directory['path'];
+};
+
 export type FilesystemContextType = {
   directory: Directory | null;
   directoryFiles: Array<File>;
@@ -39,21 +46,37 @@ export const FilesystemProvider = ({
 
   useEffect(() => {
     const getSelectedDirectory = async () => {
-      const directory = await filesystem.getSelectedDirectory();
-      setDirectory(directory);
+      // Check if we have a project ID in the browser storage
+      const browserStorageBrowserDataValue = localStorage.getItem(
+        BROWSER_STORAGE_DIRECTORY_DATA_KEY
+      );
+      const browserStorageDirectoryData = browserStorageBrowserDataValue
+        ? (JSON.parse(
+            browserStorageBrowserDataValue
+          ) as BrowserStorageDirectoryData)
+        : null;
+
+      if (browserStorageDirectoryData?.directoryPath) {
+        const directory = await filesystem.getDirectory(
+          browserStorageDirectoryData.directoryPath
+        );
+        setDirectory(directory);
+      }
     };
 
     getSelectedDirectory();
   }, []);
 
   useEffect(() => {
-    const getFiles = async () => {
-      const files = await filesystem.listSelectedDirectoryFiles();
-      setDirectoryFiles(files);
+    const getFiles = async (dir: Directory) => {
+      if (dir.path) {
+        const files = await filesystem.listDirectoryFiles(dir.path);
+        setDirectoryFiles(files);
+      }
     };
 
     if (directory && directory.permissionState === 'granted') {
-      getFiles();
+      getFiles(directory);
     }
   }, [directory, filesystem]);
 
@@ -64,8 +87,24 @@ export const FilesystemProvider = ({
   };
 
   const requestPermissionForSelectedDirectory = async () => {
-    const permissionState =
-      await filesystem.requestPermissionForSelectedDirectory();
+    if (!directory) {
+      throw new Error(
+        'There is no current directory to request permissions for'
+      );
+    }
+
+    return requestPermissionForDirectory(directory);
+  };
+
+  const requestPermissionForDirectory = async (dir: Directory) => {
+    if (!dir.path) {
+      throw new Error('The directory does not have a path');
+    }
+
+    const permissionState = await filesystem.requestPermissionForDirectory(
+      dir.path
+    );
+
     if (directory) {
       setDirectory({ ...directory, permissionState });
     }
@@ -75,8 +114,12 @@ export const FilesystemProvider = ({
     const newFile = await filesystem.createNewFile();
 
     // Refresh directory files if a directory is selected
-    if (directory && directory.permissionState === 'granted') {
-      const files = await filesystem.listSelectedDirectoryFiles();
+    if (
+      directory &&
+      directory.permissionState === 'granted' &&
+      directory.path
+    ) {
+      const files = await filesystem.listDirectoryFiles(directory.path);
       setDirectoryFiles(files);
     }
 
