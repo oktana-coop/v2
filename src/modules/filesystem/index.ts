@@ -16,3 +16,4 @@ export {
 } from './react/selected-file-context';
 
 export { adapter as browserFilesystemAPIAdapter } from './adapters/browser-api/browser-filesystem-api/adapter';
+export { adapter as electronRendererFilesystemAPIAdapter } from './adapters/electron-renderer-api';

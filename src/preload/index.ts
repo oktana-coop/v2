@@ -24,11 +24,13 @@ contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
 
 contextBridge.exposeInMainWorld('filesystemAPI', {
   openDirectory: () => ipcRenderer.invoke('open-directory'),
-  getDirectory: () => ipcRenderer.invoke('get-directory'),
-  listDirectoryFiles: () => ipcRenderer.invoke('list-directory-files'),
-  requestPermissionForDirectory: () =>
-    ipcRenderer.invoke('request-permission-for-directory'),
+  getDirectory: (path: string) => ipcRenderer.invoke('get-directory', path),
+  listDirectoryFiles: (path: string) =>
+    ipcRenderer.invoke('list-directory-files', path),
+  requestPermissionForDirectory: (path: string) =>
+    ipcRenderer.invoke('request-permission-for-directory', path),
   createNewFile: () => ipcRenderer.invoke('create-new-file'),
-  writeFile: () => ipcRenderer.invoke('write-file'),
-  readFile: () => ipcRenderer.invoke('read-file'),
+  writeFile: (path: string, content: string) =>
+    ipcRenderer.invoke('write-file', { path, content }),
+  readFile: (path: string) => ipcRenderer.invoke('read-file', path),
 } as FilesystemAPI);

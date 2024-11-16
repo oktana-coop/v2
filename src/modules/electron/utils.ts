@@ -1,7 +1,1 @@
-export const isElectron = () => {
-  return (
-    typeof process !== 'undefined' &&
-    !!process.versions &&
-    !!process.versions.electron
-  );
-};
+export const isElectron = () => navigator.userAgent.includes('Electron');

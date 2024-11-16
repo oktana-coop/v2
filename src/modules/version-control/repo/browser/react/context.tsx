@@ -117,7 +117,7 @@ export const VersionControlProvider = ({
     };
 
     setupVersionControlRepo();
-  }, [processId]);
+  }, [processId, isElectron]);
 
   useEffect(() => {
     const openOrCreateProject = async () => {

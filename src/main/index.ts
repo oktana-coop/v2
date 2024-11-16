@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, ipcMain, nativeImage, shell } from 'electron';
 import os from 'os';
 
+import { adapter as filesystemAPI } from '../modules/filesystem/adapters/electron-node-api';
 import { setup as setupNodeRepo } from '../modules/version-control/repo/node';
 import { update } from './update';
 
@@ -145,3 +146,23 @@ ipcMain.handle('open-win', (_, arg) => {
     childWindow.loadFile(indexHtml, { hash: arg });
   }
 });
+
+ipcMain.handle('open-directory', () => filesystemAPI.openDirectory());
+ipcMain.handle('get-directory', (_, path: string) =>
+  filesystemAPI.getDirectory(path)
+);
+ipcMain.handle('list-directory-files', (_, path: string) =>
+  filesystemAPI.listDirectoryFiles(path)
+);
+ipcMain.handle('request-permission-for-directory', (_, path: string) =>
+  filesystemAPI.requestPermissionForDirectory(path)
+);
+ipcMain.handle('create-new-file', () => filesystemAPI.createNewFile());
+ipcMain.handle(
+  'write-file',
+  (_, { path, content }: { path: string; content: string }) =>
+    filesystemAPI.writeFile(path, content)
+);
+ipcMain.handle('read-file', (_, path: string) =>
+  filesystemAPI.listDirectoryFiles(path)
+);

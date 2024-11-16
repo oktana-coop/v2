@@ -1,6 +1,7 @@
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+
 import { dialog } from 'electron';
-import { promises as fs } from 'fs';
-import path from 'path';
 
 import { filesystemItemTypes } from '../../constants/filesystemItemTypes';
 import { Filesystem } from '../../ports/filesystem';
@@ -39,6 +40,7 @@ export const adapter: Filesystem = {
     };
   },
   listDirectoryFiles: async (directoryPath: string) => {
+    console.log('listing directory files from node API');
     try {
       // Read directory contents with Dirent objects
       const dirEntries = await fs.readdir(directoryPath, {
@@ -68,6 +70,7 @@ export const adapter: Filesystem = {
     return 'granted';
   },
   createNewFile: async () => {
+    console.log('creating file from node API');
     const { canceled, filePath } = await dialog.showSaveDialog({
       filters: [{ name: 'v2 Files', extensions: ['v2'] }],
     });
