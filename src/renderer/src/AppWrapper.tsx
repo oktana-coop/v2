@@ -2,8 +2,8 @@ import { useContext } from 'react';
 
 import { ElectronContext } from '../../modules/electron';
 import {
-  browserFilesystemAPIAdapter,
-  electronRendererFilesystemAPIAdapter,
+  createBrowserFilesystemAPIAdapter,
+  createElectronRendererFilesystemAPIAdapter,
   FilesystemProvider,
 } from '../../modules/filesystem';
 import { ThemeProvider } from '../../modules/personalization/theme';
@@ -17,8 +17,8 @@ export const AppWrapper = () => {
     <FilesystemProvider
       filesystem={
         isElectron
-          ? electronRendererFilesystemAPIAdapter
-          : browserFilesystemAPIAdapter
+          ? createElectronRendererFilesystemAPIAdapter()
+          : createBrowserFilesystemAPIAdapter()
       }
     >
       <VersionControlProvider>

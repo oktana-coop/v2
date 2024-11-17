@@ -7,7 +7,7 @@ import { filesystemItemTypes } from '../../constants/filesystemItemTypes';
 import { Filesystem } from '../../ports/filesystem';
 import { File } from '../../types';
 
-export const adapter: Filesystem = {
+export const createAdapter = (): Filesystem => ({
   openDirectory: async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory'],
@@ -119,4 +119,4 @@ export const adapter: Filesystem = {
       throw err;
     }
   },
-};
+});

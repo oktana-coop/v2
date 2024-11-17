@@ -1,1 +1,1 @@
-export { adapter } from './browser-filesystem-api/adapter';
+export { createAdapter } from './browser-filesystem-api/adapter';

@@ -5,9 +5,11 @@ import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, ipcMain, nativeImage, shell } from 'electron';
 import os from 'os';
 
-import { adapter as filesystemAPI } from '../modules/filesystem/adapters/electron-node-api';
+import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/filesystem/adapters/electron-node-api';
 import { setup as setupNodeRepo } from '../modules/version-control/repo/node';
 import { update } from './update';
+
+const filesystemAPI = createElectronNodeFilesystemAPIAdapter();
 
 globalThis.__filename = fileURLToPath(import.meta.url);
 globalThis.__dirname = dirname(__filename);

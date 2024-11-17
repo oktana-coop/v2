@@ -50,7 +50,7 @@ const verifyPermission = async (fileHandle: FileSystemFileHandle) => {
   return false;
 };
 
-export const adapter: Filesystem = {
+export const createAdapter = (): Filesystem => ({
   openDirectory: async () => {
     const dirHandle = await window.showDirectoryPicker();
     const permissionState = await getDirectoryPermissionState(dirHandle);
@@ -209,4 +209,4 @@ export const adapter: Filesystem = {
       content: initialContent,
     };
   },
-};
+});

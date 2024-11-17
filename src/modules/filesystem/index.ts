@@ -15,5 +15,5 @@ export {
   type VersionedFileInfo,
 } from './react/selected-file-context';
 
-export { adapter as browserFilesystemAPIAdapter } from './adapters/browser-api/browser-filesystem-api/adapter';
-export { adapter as electronRendererFilesystemAPIAdapter } from './adapters/electron-renderer-api';
+export { createAdapter as createBrowserFilesystemAPIAdapter } from './adapters/browser-api/browser-filesystem-api/adapter';
+export { createAdapter as createElectronRendererFilesystemAPIAdapter } from './adapters/electron-renderer-api';
