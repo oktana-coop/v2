@@ -10,14 +10,19 @@ import { ElectronIPCMainProcessAdapter } from '../electron-ipc-network-adapter/m
 export type SetupProps = {
   processId: string;
   renderers: Map<string, BrowserWindow>;
+  directoryPath: string;
 };
 
-export const setup = async ({ renderers, processId }: SetupProps) => {
+export const setup = async ({
+  processId,
+  renderers,
+  directoryPath,
+}: SetupProps) => {
   await Automerge.initializeWasm(wasmUrl);
 
   return new Repo({
     network: [new ElectronIPCMainProcessAdapter(renderers)],
-    storage: new NodeFSStorageAdapter(),
+    storage: new NodeFSStorageAdapter(directoryPath),
     peerId: processId as PeerId,
   });
 };

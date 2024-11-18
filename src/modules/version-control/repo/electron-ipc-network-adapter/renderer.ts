@@ -7,9 +7,22 @@ import {
 import {
   FromMainMessage,
   FromRendererMessage,
-  isPeerMessage,
-  JoinMessage,
+  isMainJoinMessage,
+  RendererAckMessage,
 } from './messages';
+
+const createRendererAckMessage = (
+  senderId: PeerId,
+  peerMetadata: PeerMetadata,
+  targetId: PeerId
+): RendererAckMessage => {
+  return {
+    type: 'renderer-ack',
+    senderId,
+    peerMetadata,
+    targetId,
+  };
+};
 
 export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
   #ready = false;
@@ -49,8 +62,6 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
         this.receiveMessage(message);
       }
     );
-
-    this.send(joinMessage(this.peerId, this.peerMetadata ?? {}));
   }
 
   disconnect() {}
@@ -68,32 +79,29 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
     window.automergeRepoNetworkAdapter.sendRendererProcessMessage(message);
   }
 
-  // Set the remote peer ID (which is the main process's peer ID), signify that we are ready and emit a peer-candidate event
-  peerCandidate(remotePeerId: PeerId, peerMetadata: PeerMetadata) {
-    this.#forceReady();
-    this.remotePeerId = remotePeerId;
-    this.emit('peer-candidate', {
-      peerId: remotePeerId,
-      peerMetadata,
-    });
-  }
-
   receiveMessage(message: FromMainMessage) {
-    if (isPeerMessage(message)) {
-      this.peerCandidate(message.senderId, message.peerMetadata);
+    if (isMainJoinMessage(message)) {
+      // main process repo is ready, acknowledge by sending a renderer ack message
+      this.send(
+        createRendererAckMessage(
+          this.peerId!,
+          this.peerMetadata ?? {},
+          message.senderId
+        )
+      );
+
+      // Set the remote peer ID (which is the main process's peer ID)
+      this.remotePeerId = message.senderId;
+
+      // Let the repo know that we have a new connection.
+      this.emit('peer-candidate', {
+        peerId: message.senderId,
+        peerMetadata: this.peerMetadata ?? {},
+      });
+
+      this.#forceReady();
     } else {
       this.emit('message', message);
     }
   }
-}
-
-function joinMessage(
-  senderId: PeerId,
-  peerMetadata: PeerMetadata
-): JoinMessage {
-  return {
-    type: 'join',
-    senderId,
-    peerMetadata,
-  };
 }

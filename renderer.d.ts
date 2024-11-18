@@ -12,7 +12,9 @@ export type ElectronAPI = {
 
 export type AutomergeRepoNetworkAdapter = {
   sendRendererProcessMessage: (message: FromRendererMessage) => void;
-  onReceiveMainProcessMessage: (message: FromMainMessage) => void;
+  onReceiveMainProcessMessage: (
+    callback: (message: FromMainMessage) => void
+  ) => IpcRenderer;
 };
 
 declare global {

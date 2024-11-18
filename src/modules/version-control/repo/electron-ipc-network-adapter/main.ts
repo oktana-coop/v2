@@ -6,10 +6,24 @@ import {
 import { BrowserWindow, ipcMain } from 'electron';
 
 import {
-  FromMainMessage,
-  FromRendererMessage,
-  isJoinMessage,
+  type FromMainMessage,
+  type FromRendererMessage,
+  isRendererAck,
+  type MainJoinMessage,
 } from './messages';
+
+const createMainJoinMessage = (
+  senderId: PeerId,
+  peerMetadata: PeerMetadata,
+  targetId: PeerId
+): MainJoinMessage => {
+  return {
+    type: 'main-join',
+    senderId,
+    peerMetadata,
+    targetId,
+  };
+};
 
 export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
   renderers: Map<PeerId, BrowserWindow>;
@@ -55,7 +69,11 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
       this.receiveMessage(message);
     });
 
-    this.#forceReady();
+    [...this.renderers.keys()].forEach((rendererId) => {
+      this.send(
+        createMainJoinMessage(peerId, this.peerMetadata ?? {}, rendererId)
+      );
+    });
   }
 
   disconnect(): void {
@@ -93,18 +111,12 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
       );
     }
 
-    if (isJoinMessage(message)) {
+    if (isRendererAck(message)) {
       const { peerMetadata } = message;
 
       // Let the repo know that we have a new connection.
       this.emit('peer-candidate', { peerId: message.senderId, peerMetadata });
-
-      this.send({
-        type: 'peer',
-        senderId: this.peerId!,
-        peerMetadata: this.peerMetadata!,
-        targetId: message.senderId,
-      });
+      this.#forceReady();
     } else {
       this.emit('message', message);
     }

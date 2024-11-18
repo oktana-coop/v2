@@ -88,11 +88,6 @@ async function createWindow() {
   }
 
   const rendererProcessId = String(win.webContents.id);
-  // Setup the version control repository
-  await setupNodeRepo({
-    processId: 'main',
-    renderers: new Map([[rendererProcessId, win]]),
-  });
 
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('renderer-process-id', rendererProcessId);
@@ -106,6 +101,42 @@ async function createWindow() {
 
   // Apply electron-updater
   update(win);
+
+  ipcMain.handle('open-directory', async () => {
+    if (!win) {
+      throw new Error('No browser window found when trying to opern directory');
+    }
+
+    const directory = await filesystemAPI.openDirectory();
+
+    // Setup the version control repository
+    await setupNodeRepo({
+      processId: 'main',
+      directoryPath: join(directory.path!, '.v2'),
+      renderers: new Map([[rendererProcessId, win]]),
+    });
+
+    return directory;
+  });
+
+  ipcMain.handle('get-directory', (_, path: string) =>
+    filesystemAPI.getDirectory(path)
+  );
+  ipcMain.handle('list-directory-files', (_, path: string) =>
+    filesystemAPI.listDirectoryFiles(path)
+  );
+  ipcMain.handle('request-permission-for-directory', (_, path: string) =>
+    filesystemAPI.requestPermissionForDirectory(path)
+  );
+  ipcMain.handle('create-new-file', () => filesystemAPI.createNewFile());
+  ipcMain.handle(
+    'write-file',
+    (_, { path, content }: { path: string; content: string }) =>
+      filesystemAPI.writeFile(path, content)
+  );
+  ipcMain.handle('read-file', (_, path: string) =>
+    filesystemAPI.listDirectoryFiles(path)
+  );
 }
 
 app.whenReady().then(createWindow);
@@ -148,23 +179,3 @@ ipcMain.handle('open-win', (_, arg) => {
     childWindow.loadFile(indexHtml, { hash: arg });
   }
 });
-
-ipcMain.handle('open-directory', () => filesystemAPI.openDirectory());
-ipcMain.handle('get-directory', (_, path: string) =>
-  filesystemAPI.getDirectory(path)
-);
-ipcMain.handle('list-directory-files', (_, path: string) =>
-  filesystemAPI.listDirectoryFiles(path)
-);
-ipcMain.handle('request-permission-for-directory', (_, path: string) =>
-  filesystemAPI.requestPermissionForDirectory(path)
-);
-ipcMain.handle('create-new-file', () => filesystemAPI.createNewFile());
-ipcMain.handle(
-  'write-file',
-  (_, { path, content }: { path: string; content: string }) =>
-    filesystemAPI.writeFile(path, content)
-);
-ipcMain.handle('read-file', (_, path: string) =>
-  filesystemAPI.listDirectoryFiles(path)
-);

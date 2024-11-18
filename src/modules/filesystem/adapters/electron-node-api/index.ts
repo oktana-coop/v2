@@ -6,6 +6,7 @@ import { dialog } from 'electron';
 import { filesystemItemTypes } from '../../constants/filesystemItemTypes';
 import { Filesystem } from '../../ports/filesystem';
 import { File } from '../../types';
+import { isHiddenFile } from './utils';
 
 export const createAdapter = (): Filesystem => ({
   openDirectory: async () => {
@@ -40,7 +41,6 @@ export const createAdapter = (): Filesystem => ({
     };
   },
   listDirectoryFiles: async (directoryPath: string) => {
-    console.log('listing directory files from node API');
     try {
       // Read directory contents with Dirent objects
       const dirEntries = await fs.readdir(directoryPath, {
@@ -58,7 +58,8 @@ export const createAdapter = (): Filesystem => ({
           };
 
           return file;
-        });
+        })
+        .filter((file) => !isHiddenFile(file.path!));
 
       return files;
     } catch (err) {
