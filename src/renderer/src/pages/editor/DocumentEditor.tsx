@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from 'react';
 import type {
   DocHandle,
   RichTextDocument,
-  VersionControlId,
 } from '../../../../modules/version-control';
 import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import { ActionsBar } from './ActionsBar';
@@ -14,7 +13,7 @@ export const DocumentEditor = ({
   onDocumentChange,
 }: {
   automergeHandle: DocHandle<RichTextDocument>;
-  onDocumentChange: (docUrl: VersionControlId, value: string) => void;
+  onDocumentChange: (value: string) => void;
 }) => {
   const [isCommitting, openCommitDialog] = useState<boolean>(false);
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
@@ -27,6 +26,7 @@ export const DocumentEditor = ({
 
   const commitChanges = (message: string) => {
     if (!automergeHandle) return;
+
     automergeHandle.change(
       (doc) => {
         // this is effectively a no-op, but it triggers a change event
@@ -43,9 +43,15 @@ export const DocumentEditor = ({
 
     openCommitDialog(false);
 
-    const content = automergeHandle.docSync()?.content || '';
-    const docUrl = automergeHandle.url;
-    return onDocumentChange(docUrl, content);
+    const content = automergeHandle.docSync()?.content;
+
+    if (!content) {
+      throw new Error(
+        'No content was found in version control document. Aborting commit operation.'
+      );
+    }
+
+    return onDocumentChange(content);
   };
 
   const handleEditorToolbarToggle = useCallback(() => {
