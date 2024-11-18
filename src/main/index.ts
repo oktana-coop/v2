@@ -135,7 +135,7 @@ async function createWindow() {
       filesystemAPI.writeFile(path, content)
   );
   ipcMain.handle('read-file', (_, path: string) =>
-    filesystemAPI.listDirectoryFiles(path)
+    filesystemAPI.readFile(path)
   );
 }
 

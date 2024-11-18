@@ -71,7 +71,6 @@ export const createAdapter = (): Filesystem => ({
     return 'granted';
   },
   createNewFile: async () => {
-    console.log('creating file from node API');
     const { canceled, filePath } = await dialog.showSaveDialog({
       filters: [{ name: 'v2 Files', extensions: ['v2'] }],
     });
