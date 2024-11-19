@@ -5,7 +5,13 @@ import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, ipcMain, nativeImage, shell } from 'electron';
 import os from 'os';
 
+import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/filesystem/adapters/electron-node-api';
+import { createAutomergeVersionControlAdapter } from '../modules/version-control';
+import {} from '../modules/version-control/adapters/automerge';
+import { setup as setupNodeRepo } from '../modules/version-control/repo/node';
 import { update } from './update';
+
+const filesystemAPI = createElectronNodeFilesystemAPIAdapter();
 
 globalThis.__filename = fileURLToPath(import.meta.url);
 globalThis.__dirname = dirname(__filename);
@@ -16,7 +22,7 @@ globalThis.__dirname = dirname(__filename);
 // │ ├─┬ main
 // │ │ └── index.js    > Electron-Main
 // │ └─┬ preload
-// │   └── index.mjs   > Preload-Scripts
+// │   └── index.js   > Preload-Scripts
 // │ └─┬ renderer
 // │   └── index.mjs
 process.env.DIST_ELECTRON = join(__dirname, '../');
@@ -43,7 +49,7 @@ if (!app.requestSingleInstanceLock()) {
 
 let win: BrowserWindow | null = null;
 // Here, you can also use other preload
-const preload = join(__dirname, '../preload/index.mjs');
+const preload = join(__dirname, '../preload/index.js');
 const url = process.env.VITE_DEV_SERVER_URL;
 const indexHtml = join(process.env.DIST, '../renderer/index.html');
 
@@ -83,9 +89,10 @@ async function createWindow() {
     win.loadFile(indexHtml);
   }
 
-  // Test actively push message to the Electron-Renderer
+  const rendererProcessId = String(win.webContents.id);
+
   win.webContents.on('did-finish-load', () => {
-    win?.webContents.send('main-process-message', new Date().toLocaleString());
+    win?.webContents.send('renderer-process-id', rendererProcessId);
   });
 
   // Make all links open with the browser, not with the application
@@ -96,6 +103,63 @@ async function createWindow() {
 
   // Apply electron-updater
   update(win);
+
+  ipcMain.handle('open-directory', async () => {
+    if (!win) {
+      throw new Error('No browser window found when trying to open directory');
+    }
+
+    const directory = await filesystemAPI.openDirectory();
+
+    // Setup the version control repository
+    const automergeRepo = await setupNodeRepo({
+      processId: 'main',
+      directoryPath: join(directory.path!, '.v2'),
+      renderers: new Map([[rendererProcessId, win]]),
+    });
+
+    createAutomergeVersionControlAdapter(automergeRepo);
+
+    return directory;
+  });
+
+  ipcMain.handle('get-directory', async (_, path: string) => {
+    if (!win) {
+      throw new Error('No browser window found when trying to open directory');
+    }
+
+    const directory = await filesystemAPI.getDirectory(path);
+
+    if (!directory) {
+      return null;
+    }
+
+    // Setup the version control repository
+    const automergeRepo = await setupNodeRepo({
+      processId: 'main',
+      directoryPath: join(directory.path!, '.v2'),
+      renderers: new Map([[rendererProcessId, win]]),
+    });
+
+    createAutomergeVersionControlAdapter(automergeRepo);
+
+    return directory;
+  });
+  ipcMain.handle('list-directory-files', (_, path: string) =>
+    filesystemAPI.listDirectoryFiles(path)
+  );
+  ipcMain.handle('request-permission-for-directory', (_, path: string) =>
+    filesystemAPI.requestPermissionForDirectory(path)
+  );
+  ipcMain.handle('create-new-file', () => filesystemAPI.createNewFile());
+  ipcMain.handle(
+    'write-file',
+    (_, { path, content }: { path: string; content: string }) =>
+      filesystemAPI.writeFile(path, content)
+  );
+  ipcMain.handle('read-file', (_, path: string) =>
+    filesystemAPI.readFile(path)
+  );
 }
 
 app.whenReady().then(createWindow);

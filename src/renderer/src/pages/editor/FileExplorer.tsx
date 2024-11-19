@@ -1,83 +1,59 @@
 import { clsx } from 'clsx';
 
-import { readFile, removeExtension } from '../../../../modules/filesystem';
-import { AutomergeUrl } from '../../../../modules/version-control';
+import {
+  type Directory,
+  type File,
+  removeExtension,
+  type VersionedFileInfo,
+} from '../../../../modules/filesystem';
 import { Button } from '../../components/actions/Button';
 import { FileDocumentIcon, FolderIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
 
 export const FileExplorer = ({
-  directoryHandle,
+  directory,
   files,
-  selectedFileHandle,
-  setDirectoryHandle,
-  setDirectoryPermissionState,
+  selectedFileInfo,
+  onOpenDirectory,
+  onRequestPermissionsForCurrentDirectory,
   onFileSelection,
-  directoryPermissionState,
 }: {
-  directoryPermissionState: PermissionState | null;
-  directoryHandle: FileSystemDirectoryHandle | null;
-  files: Array<{ filename: string; handle: FileSystemFileHandle }>;
-  selectedFileHandle: FileSystemFileHandle | null;
-  setDirectoryPermissionState: (
-    directoryPermissionState: PermissionState
-  ) => void;
-  setDirectoryHandle: (directoryHandle: FileSystemDirectoryHandle) => void;
-  onFileSelection: (
-    docUrl: AutomergeUrl,
-    fileHandle: FileSystemFileHandle
-  ) => void;
+  directory: Directory | null;
+  files: Array<File>;
+  selectedFileInfo: VersionedFileInfo | null;
+  onOpenDirectory: () => Promise<void>;
+  onRequestPermissionsForCurrentDirectory: () => Promise<void>;
+  onFileSelection: (file: File) => Promise<void>;
 }) => {
-  const openDirectory = async () => {
-    const dirHandle = await window.showDirectoryPicker();
-    setDirectoryHandle(dirHandle);
-
-    // update permission state
-    const perm = await dirHandle.queryPermission();
-    setDirectoryPermissionState(perm);
-  };
-
-  const requestPermissions = async () => {
-    if (directoryHandle) {
-      const perm = await directoryHandle.requestPermission();
-      setDirectoryPermissionState(perm);
-    }
-  };
-
-  async function handleOnClick(fileHandle: FileSystemFileHandle) {
-    const fileContent = await readFile(fileHandle);
-    return onFileSelection(fileContent.docUrl, fileHandle);
-  }
-
   return (
     <div className="flex h-full flex-col items-stretch py-6">
       <div className="px-4">
         <SidebarHeading icon={FolderIcon} text="File Explorer" />
       </div>
 
-      {directoryHandle && directoryPermissionState === 'granted' ? (
+      {directory && directory.permissionState === 'granted' ? (
         <div className="flex flex-col items-stretch">
           <div className="mb-1 truncate px-4 text-left font-bold text-black text-opacity-85 dark:text-white dark:text-opacity-85">
-            {directoryHandle.name}
+            {directory.name}
           </div>
           <ul className="flex flex-col items-stretch text-black dark:text-white">
             {files.map((file) => (
               <li
-                key={file.filename}
+                key={file.name}
                 className={clsx(
                   'py-1 pl-9 pr-4 hover:bg-zinc-950/5 dark:hover:bg-white/5',
-                  file.filename === selectedFileHandle?.name
+                  file.path === selectedFileInfo?.path
                     ? 'bg-purple-50 dark:bg-neutral-600'
                     : ''
                 )}
               >
                 <button
                   className="flex w-full items-center truncate bg-transparent text-left"
-                  title={file.filename}
-                  onClick={async () => handleOnClick(file.handle)}
+                  title={file.name}
+                  onClick={async () => onFileSelection(file)}
                 >
                   <FileDocumentIcon className="mr-1" size={16} />
-                  {removeExtension(file.filename)}
+                  {removeExtension(file.name)}
                 </button>
               </li>
             ))}
@@ -87,9 +63,9 @@ export const FileExplorer = ({
         <div className="flex h-full items-center justify-center">
           <Button
             onClick={async () =>
-              directoryPermissionState === 'prompt'
-                ? await requestPermissions()
-                : await openDirectory()
+              directory?.permissionState === 'prompt'
+                ? await onRequestPermissionsForCurrentDirectory()
+                : await onOpenDirectory()
             }
             variant="solid"
             color="purple"

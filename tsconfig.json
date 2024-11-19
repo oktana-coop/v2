@@ -29,6 +29,6 @@
       "@types/wicg-file-system-access"
     ]
   },
-  "include": ["src", "./jest.setup.ts"],
+  "include": ["src", "./jest.setup.ts", "./renderer.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

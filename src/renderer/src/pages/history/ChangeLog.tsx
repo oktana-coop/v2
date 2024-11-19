@@ -1,5 +1,4 @@
-import { DecodedChange } from '@automerge/automerge/next';
-import * as Automerge from '@automerge/automerge/next';
+import { next as Automerge } from '@automerge/automerge/slim';
 import clsx from 'clsx';
 import { useContext } from 'react';
 
@@ -91,7 +90,7 @@ export const ChangeLog = ({
   onClick,
   selectedCommit,
 }: {
-  changes: Array<DecodedChange | Commit>;
+  changes: Array<Automerge.DecodedChange | Commit>;
   onClick: (hash: string) => void;
   selectedCommit?: string;
 }) => {

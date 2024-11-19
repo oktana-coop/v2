@@ -26,3 +26,6 @@ dist-ssr
 # ignore storybook ancielary files
 *storybook.log
 storybook-static/
+
+# Automerge repo data dev folder
+automerge-repo-data/

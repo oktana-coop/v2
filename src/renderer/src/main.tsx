@@ -3,21 +3,13 @@ import './index.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
-import { DirectoryProvider } from '../../modules/filesystem/index.ts';
-import { ThemeProvider } from '../../modules/personalization/theme/index.ts';
-import { RepoContext, setupRepo } from '../../modules/version-control/index.ts';
-import App from './App.tsx';
-
-const repo = setupRepo();
+import { ElectronProvider } from '../../modules/electron';
+import { AppWrapper } from './AppWrapper';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <RepoContext.Provider value={repo}>
-      <ThemeProvider>
-        <DirectoryProvider>
-          <App />
-        </DirectoryProvider>
-      </ThemeProvider>
-    </RepoContext.Provider>
+    <ElectronProvider>
+      <AppWrapper />
+    </ElectronProvider>
   </React.StrictMode>
 );

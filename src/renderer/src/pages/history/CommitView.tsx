@@ -1,21 +1,24 @@
-import * as Automerge from '@automerge/automerge/next';
-import { decodeChange, getAllChanges } from '@automerge/automerge/next';
+import { next as Automerge } from '@automerge/automerge/slim';
 import React, { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
-  AutomergeUrl,
   type Commit,
   isCommit,
-  useDocument,
-  VersionedDocument,
+  type RichTextDocument,
+  type VersionControlId,
 } from '../../../../modules/version-control';
+import { useDocument } from '../../../../modules/version-control/repo/browser';
 import { CommitHistoryIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
 import { ChangeLog } from './ChangeLog';
 
-export const CommitView = ({ documentId }: { documentId: AutomergeUrl }) => {
-  const [versionedDocument] = useDocument<VersionedDocument>(documentId);
+export const CommitView = ({
+  documentId,
+}: {
+  documentId: VersionControlId;
+}) => {
+  const [versionedDocument] = useDocument<RichTextDocument>(documentId);
   const [docValue, setDocValue] = React.useState<string>('');
   const [selectedCommit, setSelectedCommit] = React.useState<string>();
   const [commits, setCommits] = React.useState<
@@ -33,7 +36,9 @@ export const CommitView = ({ documentId }: { documentId: AutomergeUrl }) => {
   const selectCommit = useCallback(
     (hash: string) => {
       if (versionedDocument) {
-        const docView = Automerge.view(versionedDocument, [hash]);
+        const docView = Automerge.view<RichTextDocument>(versionedDocument, [
+          hash,
+        ]);
         setDocValue(docView.content);
         setSelectedCommit(hash);
       }
@@ -43,8 +48,8 @@ export const CommitView = ({ documentId }: { documentId: AutomergeUrl }) => {
 
   useEffect(() => {
     if (versionedDocument) {
-      const allChanges = getAllChanges(versionedDocument);
-      const decodedChanges = allChanges.map(decodeChange);
+      const allChanges = Automerge.getAllChanges(versionedDocument);
+      const decodedChanges = allChanges.map(Automerge.decodeChange);
       const [latestChange] = decodedChanges.slice(-1);
       const commits = decodedChanges.filter(isCommit).map((change) => ({
         hash: change.hash,

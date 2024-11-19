@@ -2,21 +2,17 @@ import { useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import {
-  createNewFile,
-  DirectoryContext,
-  getFiles,
+  type File,
+  FilesystemContext,
   SelectedFileContext,
   SelectedFileProvider,
-  writeFile,
 } from '../../../../modules/filesystem';
 import {
-  AutomergeUrl,
-  createDocument,
-  DocHandle,
-  isValidAutomergeUrl,
-  useRepo,
-  VersionedDocument,
+  type DocHandle,
+  isValidVersionControlId,
+  type RichTextDocument,
 } from '../../../../modules/version-control';
+import { VersionControlContext } from '../../../../modules/version-control/repo/browser';
 import { Button } from '../../components/actions/Button';
 import { Modal } from '../../components/dialogs/Modal';
 import { EmptyDocument } from '../../components/document-views/EmptyDocument';
@@ -41,91 +37,117 @@ const EditorIndex = () => {
   const navigate = useNavigate();
   const { documentId: docUrl } = useParams();
   const [readyAutomergeHandle, setReadyAutomergeHandle] =
-    useState<DocHandle<VersionedDocument> | null>(null);
+    useState<DocHandle<RichTextDocument> | null>(null);
   const {
-    directoryPermissionState,
-    directoryHandle,
-    setDirectoryHandle: persistDirectoryHandle,
-    setDirectoryPermissionState,
-  } = useContext(DirectoryContext);
+    directory,
+    directoryFiles,
+    openDirectory,
+    requestPermissionForSelectedDirectory,
+    createNewFile,
+    writeFile,
+  } = useContext(FilesystemContext);
+  const { selectedFileInfo, setSelectedFileInfo, clearFileSelection } =
+    useContext(SelectedFileContext);
   const {
-    selectedFileInfo,
-    setSelectedFileInfo: persistSelectedFileInfo,
-    clearFileSelection,
-  } = useContext(SelectedFileContext);
-  const [files, setFiles] = useState<
-    Array<{ filename: string; handle: FileSystemFileHandle }>
-  >([]);
-  const repo = useRepo();
+    projectId,
+    createDocument: createVersionedDocument,
+    findDocument,
+    findDocumentInProject,
+  } = useContext(VersionControlContext);
 
   useEffect(() => {
     document.title = 'v2 | Editor';
   }, []);
 
   useEffect(() => {
-    if (!docUrl) {
-      return;
-    }
+    const findVersionedDocument = async () => {
+      if (!docUrl) {
+        return;
+      }
 
-    if (isValidAutomergeUrl(docUrl)) {
-      const automergeHandle = repo.find<VersionedDocument>(docUrl);
-      automergeHandle.whenReady().then(() => {
-        setReadyAutomergeHandle(automergeHandle);
-      });
-    } else {
-      setReadyAutomergeHandle(null);
-    }
-  }, [repo, docUrl, clearFileSelection]);
+      if (isValidVersionControlId(docUrl)) {
+        const automergeHandle = await findDocument(docUrl);
 
-  useEffect(() => {
-    const getDirectoryFiles = async (
-      directoryHandle: FileSystemDirectoryHandle
-    ) => {
-      const files = await getFiles(directoryHandle);
-      setFiles(files);
+        if (automergeHandle) {
+          automergeHandle.whenReady().then(() => {
+            setReadyAutomergeHandle(automergeHandle);
+          });
+        } else {
+          setReadyAutomergeHandle(null);
+        }
+      } else {
+        setReadyAutomergeHandle(null);
+      }
     };
 
-    if (directoryHandle && directoryPermissionState === 'granted') {
-      getDirectoryFiles(directoryHandle);
-    }
-  }, [directoryHandle, directoryPermissionState, selectedFileInfo]);
+    findVersionedDocument();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [docUrl, clearFileSelection]);
 
-  const handleDocumentCreation = async (docTitle: string) => {
-    const newDocUrl = await createDocument(repo)(docTitle);
-    const fileHandle = await createNewFile(newDocUrl);
-    if (fileHandle) {
-      handleFileSelection(newDocUrl, fileHandle);
-    }
+  const handleDocumentCreation = async (title: string) => {
+    const file = await createNewFile();
+    const newDocumentId = await createVersionedDocument({
+      name: file.name,
+      title,
+      path: file.path!,
+      projectId,
+      content: null,
+    });
+
+    setSelectedFileInfo({ documentId: newDocumentId, path: file.path! });
+    navigate(`/edit/${newDocumentId}?path=${encodeURIComponent(file.path!)}`);
   };
 
-  const handleDocumentChange = (docUrl: AutomergeUrl, value: string) => {
-    // TODO: The fileHandle should be set when the document is selected
-    // or on initial page load
-    if (!selectedFileInfo?.fileHandle) {
-      console.error('fileHandle has not been initialized');
-      return;
+  const handleDocumentChange = (newContent: string) => {
+    if (!selectedFileInfo || !selectedFileInfo.path) {
+      // TODO: Handle more gracefully
+      throw new Error(
+        'Could not find file path from file selection data. Aborting file write operation'
+      );
     }
 
-    const fileContent = {
-      docUrl,
-      value,
-    };
-
-    writeFile(selectedFileInfo.fileHandle, fileContent);
+    writeFile(selectedFileInfo.path, newContent);
   };
 
-  const handleFileSelection = async (
-    docUrl: AutomergeUrl,
-    fileHandle: FileSystemFileHandle
-  ) => {
-    await persistSelectedFileInfo({ automergeUrl: docUrl, fileHandle });
-    navigate(`/edit/${docUrl}`);
+  const handleOpenDirectory = async () => {
+    await openDirectory();
   };
 
-  const setDirectoryHandle = async (
-    directoryHandle: FileSystemDirectoryHandle
-  ) => {
-    await persistDirectoryHandle(directoryHandle);
+  const handlePermissionRequest = async () => {
+    await requestPermissionForSelectedDirectory();
+  };
+
+  const handleFileSelection = async (file: File) => {
+    if (!projectId) {
+      // TODO: Handle more gracefully
+      throw new Error('Could not select file because no project ID was found');
+    }
+
+    const versionedDocumentHandle = await findDocumentInProject({
+      projectId,
+      path: file.path!,
+      name: file.name,
+    });
+
+    if (!versionedDocumentHandle) {
+      // TODO: Handle more gracefully
+      throw new Error(
+        'Could not select file because the versioned document was not found in project'
+      );
+    }
+
+    if (!file.path) {
+      // TODO: Handle more gracefully
+      throw new Error('Could not select file because the file path is missing');
+    }
+
+    await setSelectedFileInfo({
+      documentId: versionedDocumentHandle.url,
+      path: file.path,
+    });
+    navigate(
+      `/edit/${versionedDocumentHandle.url}?path=${encodeURIComponent(file.path)}`
+    );
   };
 
   function renderMainPane() {
@@ -133,7 +155,7 @@ const EditorIndex = () => {
       return (
         <EmptyDocument
           message={
-            directoryHandle
+            directory
               ? '👈 Pick one document from the list to continue editing. Or create a new one 😉.'
               : 'Create a new document and explore the world of versioning.'
           }
@@ -150,7 +172,7 @@ const EditorIndex = () => {
       );
     }
 
-    if (!isValidAutomergeUrl(docUrl)) {
+    if (!isValidVersionControlId(docUrl)) {
       return <InvalidDocument />;
     }
 
@@ -207,12 +229,11 @@ const EditorIndex = () => {
         </Modal>
         <div className="h-full w-2/5 grow-0 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
           <FileExplorer
-            directoryPermissionState={directoryPermissionState}
-            setDirectoryPermissionState={setDirectoryPermissionState}
-            directoryHandle={directoryHandle}
-            files={files}
-            selectedFileHandle={selectedFileInfo?.fileHandle || null}
-            setDirectoryHandle={setDirectoryHandle}
+            directory={directory}
+            files={directoryFiles}
+            selectedFileInfo={selectedFileInfo}
+            onOpenDirectory={handleOpenDirectory}
+            onRequestPermissionsForCurrentDirectory={handlePermissionRequest}
             onFileSelection={handleFileSelection}
           />
         </div>
