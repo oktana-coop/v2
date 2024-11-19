@@ -65,6 +65,7 @@ export const FilesystemProvider = ({
     };
 
     getSelectedDirectory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

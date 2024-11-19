@@ -54,6 +54,7 @@ export const DocumentsHistory = ({
     };
 
     findVersionedDocument();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documentId]);
 
   useEffect(() => {

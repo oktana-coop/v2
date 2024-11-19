@@ -44,6 +44,7 @@ export const SelectedFileProvider = ({
         path: path ? decodeURIComponent(path) : null,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documentId]);
 
   const clearFileSelection = async () => {

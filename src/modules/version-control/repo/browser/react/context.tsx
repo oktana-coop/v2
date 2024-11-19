@@ -233,6 +233,7 @@ export const VersionControlProvider = ({
     };
 
     openOrCreateProject();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [directory, directoryFiles, versionControlRepo, isRepoReady]);
 
   const handleCreateDocument = async (args: CreateDocumentArgs) => {

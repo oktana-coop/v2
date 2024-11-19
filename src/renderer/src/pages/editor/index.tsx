@@ -81,6 +81,7 @@ const EditorIndex = () => {
     };
 
     findVersionedDocument();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docUrl, clearFileSelection]);
 
   const handleDocumentCreation = async (title: string) => {
