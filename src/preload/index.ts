@@ -4,6 +4,7 @@ import type { Filesystem as FilesystemAPI } from '../modules/filesystem';
 import type {
   FromMainMessage,
   FromRendererMessage,
+  VersionControlId,
 } from '../modules/version-control';
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -11,6 +12,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('renderer-process-id', (_, processId) =>
       callback(processId)
     ),
+  sendCurrentDocumentId: (id: VersionControlId) =>
+    ipcRenderer.send('current-document-id', id),
 });
 
 contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {

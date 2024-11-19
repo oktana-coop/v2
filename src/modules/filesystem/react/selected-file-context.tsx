@@ -54,6 +54,8 @@ export const SelectedFileProvider = ({
     documentId,
     path,
   }: VersionedFileInfo) => {
+    window.electronAPI.sendCurrentDocumentId(documentId);
+
     setSelectedFileInfo({
       documentId,
       path: path,

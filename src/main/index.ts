@@ -6,6 +6,11 @@ import { app, BrowserWindow, ipcMain, nativeImage, shell } from 'electron';
 import os from 'os';
 
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/filesystem/adapters/electron-node-api';
+import {
+  createAutomergeVersionControlAdapter,
+  type VersionControlRepo,
+} from '../modules/version-control';
+import {} from '../modules/version-control/adapters/automerge';
 import { setup as setupNodeRepo } from '../modules/version-control/repo/node';
 import { update } from './update';
 
@@ -102,26 +107,49 @@ async function createWindow() {
   // Apply electron-updater
   update(win);
 
+  let versionControlRepo: VersionControlRepo | null = null;
+
   ipcMain.handle('open-directory', async () => {
     if (!win) {
-      throw new Error('No browser window found when trying to opern directory');
+      throw new Error('No browser window found when trying to open directory');
     }
 
     const directory = await filesystemAPI.openDirectory();
 
     // Setup the version control repository
-    await setupNodeRepo({
+    const automergeRepo = await setupNodeRepo({
       processId: 'main',
       directoryPath: join(directory.path!, '.v2'),
       renderers: new Map([[rendererProcessId, win]]),
     });
 
+    versionControlRepo = createAutomergeVersionControlAdapter(automergeRepo);
+
     return directory;
   });
 
-  ipcMain.handle('get-directory', (_, path: string) =>
-    filesystemAPI.getDirectory(path)
-  );
+  ipcMain.handle('get-directory', async (_, path: string) => {
+    if (!win) {
+      throw new Error('No browser window found when trying to open directory');
+    }
+
+    const directory = await filesystemAPI.getDirectory(path);
+
+    if (!directory) {
+      return null;
+    }
+
+    // Setup the version control repository
+    const automergeRepo = await setupNodeRepo({
+      processId: 'main',
+      directoryPath: join(directory.path!, '.v2'),
+      renderers: new Map([[rendererProcessId, win]]),
+    });
+
+    versionControlRepo = createAutomergeVersionControlAdapter(automergeRepo);
+
+    return directory;
+  });
   ipcMain.handle('list-directory-files', (_, path: string) =>
     filesystemAPI.listDirectoryFiles(path)
   );
@@ -137,6 +165,20 @@ async function createWindow() {
   ipcMain.handle('read-file', (_, path: string) =>
     filesystemAPI.readFile(path)
   );
+
+  ipcMain.on('current-document-id', async (_, id) => {
+    if (!versionControlRepo) {
+      throw new Error(
+        'Version control repo has not been setup yet in the main process'
+      );
+    }
+
+    const handle = await versionControlRepo?.findDocumentById(id);
+
+    handle?.on('change', ({ doc }) => {
+      console.log(doc.content);
+    });
+  });
 }
 
 app.whenReady().then(createWindow);

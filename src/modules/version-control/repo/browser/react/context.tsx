@@ -125,7 +125,7 @@ export const VersionControlProvider = ({
         return;
       }
 
-      if (directory) {
+      if (directory && isRepoReady) {
         // Check if we have a project ID in the browser storage
         const browserStorageBrowserDataValue = localStorage.getItem(
           BROWSER_STORAGE_PROJECT_DATA_KEY
@@ -159,36 +159,38 @@ export const VersionControlProvider = ({
             | VersionedProject
             | undefined;
 
-          if (project) {
-            const newDocuments = await Promise.all(
-              directoryFiles
-                // Filter out existing documents
-                .filter(
-                  (file) =>
-                    !Object.values(project.documents).some(
-                      (docMetaData) =>
-                        docMetaData.name === file.name &&
-                        docMetaData.path === file.path
-                    )
-                )
-                .map((file) =>
-                  createVersionedDocument({
-                    repo: versionControlRepo,
-                    readFile,
-                  })({
-                    file,
-                    projectId: newProjectId,
-                  })
-                )
-            );
+          if (!project) {
+            throw new Error('No project found in repository');
+          }
 
-            if (newDocuments.length > 0) {
-              projectHandle.change((proj) => {
-                newDocuments.forEach((doc) => {
-                  proj.documents[doc.versionControlId] = doc;
-                });
+          const newDocuments = await Promise.all(
+            directoryFiles
+              // Filter out existing documents
+              .filter(
+                (file) =>
+                  !Object.values(project.documents).some(
+                    (docMetaData) =>
+                      docMetaData.name === file.name &&
+                      docMetaData.path === file.path
+                  )
+              )
+              .map((file) =>
+                createVersionedDocument({
+                  repo: versionControlRepo,
+                  readFile,
+                })({
+                  file,
+                  projectId: newProjectId,
+                })
+              )
+          );
+
+          if (newDocuments.length > 0) {
+            projectHandle.change((proj) => {
+              newDocuments.forEach((doc) => {
+                proj.documents[doc.versionControlId] = doc;
               });
-            }
+            });
           }
         } else {
           // If there is no project ID or if there is one but points to another directory
@@ -231,7 +233,7 @@ export const VersionControlProvider = ({
     };
 
     openOrCreateProject();
-  }, [directory, directoryFiles, versionControlRepo]);
+  }, [directory, directoryFiles, versionControlRepo, isRepoReady]);
 
   const handleCreateDocument = async (args: CreateDocumentArgs) => {
     if (!versionControlRepo) {
@@ -260,10 +262,14 @@ export const VersionControlProvider = ({
 
     const projectHandle = await versionControlRepo.findProjectById(projectId);
     if (!projectHandle) {
-      throw new Error('No project found in repository');
+      throw new Error('No project handle found in repository');
     }
 
-    const project = projectHandle.docSync() as VersionedProject;
+    const project = projectHandle.docSync() as VersionedProject | undefined;
+
+    if (!project) {
+      throw new Error('No project found in repository');
+    }
 
     const documentMetaData = Object.values(project.documents).find(
       ({ name: documentName, path: documentPath }) =>

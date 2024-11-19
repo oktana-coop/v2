@@ -26,7 +26,11 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => ({
       throw new Error('No project handle found in repository');
     }
 
-    const project = projectHandle.docSync() as VersionedProject;
+    const project = projectHandle.docSync() as VersionedProject | undefined;
+
+    if (!project) {
+      throw new Error('Could not retrieve project from repository');
+    }
 
     return Object.values(project.documents);
   },
