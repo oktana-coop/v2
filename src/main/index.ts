@@ -6,10 +6,7 @@ import { app, BrowserWindow, ipcMain, nativeImage, shell } from 'electron';
 import os from 'os';
 
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/filesystem/adapters/electron-node-api';
-import {
-  createAutomergeVersionControlAdapter,
-  type VersionControlRepo,
-} from '../modules/version-control';
+import { createAutomergeVersionControlAdapter } from '../modules/version-control';
 import {} from '../modules/version-control/adapters/automerge';
 import { setup as setupNodeRepo } from '../modules/version-control/repo/node';
 import { update } from './update';
@@ -107,8 +104,6 @@ async function createWindow() {
   // Apply electron-updater
   update(win);
 
-  let versionControlRepo: VersionControlRepo | null = null;
-
   ipcMain.handle('open-directory', async () => {
     if (!win) {
       throw new Error('No browser window found when trying to open directory');
@@ -123,7 +118,7 @@ async function createWindow() {
       renderers: new Map([[rendererProcessId, win]]),
     });
 
-    versionControlRepo = createAutomergeVersionControlAdapter(automergeRepo);
+    createAutomergeVersionControlAdapter(automergeRepo);
 
     return directory;
   });
@@ -146,7 +141,7 @@ async function createWindow() {
       renderers: new Map([[rendererProcessId, win]]),
     });
 
-    versionControlRepo = createAutomergeVersionControlAdapter(automergeRepo);
+    createAutomergeVersionControlAdapter(automergeRepo);
 
     return directory;
   });
