@@ -165,20 +165,6 @@ async function createWindow() {
   ipcMain.handle('read-file', (_, path: string) =>
     filesystemAPI.readFile(path)
   );
-
-  ipcMain.on('current-document-id', async (_, id) => {
-    if (!versionControlRepo) {
-      throw new Error(
-        'Version control repo has not been setup yet in the main process'
-      );
-    }
-
-    const handle = await versionControlRepo?.findDocumentById(id);
-
-    handle?.on('change', ({ doc }) => {
-      console.log(doc.content);
-    });
-  });
 }
 
 app.whenReady().then(createWindow);

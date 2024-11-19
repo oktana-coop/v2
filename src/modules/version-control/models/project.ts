@@ -6,6 +6,7 @@ import { DocHandle } from './doc-handle';
 export type DocumentMetaData = {
   versionControlId: AutomergeUrl;
   name: string;
+  // TODO: use relative path to project directory in this model
   path: string;
 };
 
