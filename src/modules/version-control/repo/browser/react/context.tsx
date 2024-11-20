@@ -1,15 +1,13 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import { ElectronContext } from '../../../../electron';
-import {
-  type Directory,
-  File,
-  FilesystemContext,
-  type FilesystemContextType,
-} from '../../../../filesystem';
+import { type Directory, FilesystemContext } from '../../../../filesystem';
 import { createAdapter } from '../../../adapters/automerge';
 import {
-  DocumentMetaData,
+  createProjectFromFilesystemContent,
+  updateProjectFromFilesystemContent,
+} from '../../../commands';
+import {
   VersionControlId,
   VersionedDocumentHandle,
   VersionedProject,
@@ -60,31 +58,6 @@ export const VersionControlContext = createContext<VersionControlContextType>({
   findDocumentInProject: () => null,
 });
 
-const createVersionedDocument =
-  ({
-    repo,
-    readFile,
-  }: {
-    repo: VersionControlRepo;
-    readFile: FilesystemContextType['readFile'];
-  }) =>
-  async ({ file, projectId }: { file: File; projectId: VersionControlId }) => {
-    const readFileResult = await readFile(file.path!);
-    const documentId = await repo.createDocument({
-      path: readFileResult.path!,
-      name: readFileResult.name,
-      title: readFileResult.name,
-      content: readFileResult.content ?? null,
-      projectId,
-    });
-
-    return {
-      versionControlId: documentId,
-      path: readFileResult.path!,
-      name: readFileResult.name,
-    };
-  };
-
 export const VersionControlProvider = ({
   children,
 }: {
@@ -95,7 +68,8 @@ export const VersionControlProvider = ({
   const [isRepoReady, setIsRepoReady] = useState<boolean>(false);
   const [projectId, setProjectId] = useState<VersionControlId | null>(null);
   const { processId, isElectron } = useContext(ElectronContext);
-  const { directory, directoryFiles, readFile } = useContext(FilesystemContext);
+  const { directory, readFile, listDirectoryFiles } =
+    useContext(FilesystemContext);
 
   useEffect(() => {
     const setupVersionControlRepo = async () => {
@@ -125,7 +99,7 @@ export const VersionControlProvider = ({
         return;
       }
 
-      if (directory && isRepoReady) {
+      if (directory) {
         // Check if we have a project ID in the browser storage
         const browserStorageBrowserDataValue = localStorage.getItem(
           BROWSER_STORAGE_PROJECT_DATA_KEY
@@ -138,95 +112,63 @@ export const VersionControlProvider = ({
 
         // Perform some side effects conditionally and store the (potentially) new
         // project ID in local storage
-        let newProjectId: VersionControlId;
+        let projId: VersionControlId;
         if (
           browserStorageProjectData?.directoryName === directory.name &&
           browserStorageProjectData?.directoryPath === directory.path
         ) {
           // If we have a project ID and it matches the new directory name & path,
           // we already have its version control ID. Return it and set it in the state.
-          newProjectId = browserStorageProjectData.versionControlId;
+          projId = browserStorageProjectData.versionControlId;
 
-          // Check if we need to update the project documents
-          const projectHandle = await versionControlRepo.findProjectById(
-            browserStorageProjectData.versionControlId
-          );
-          if (!projectHandle) {
-            throw new Error('No project handle found in repository');
-          }
-
-          const project = projectHandle.docSync() as
-            | VersionedProject
-            | undefined;
-
-          if (!project) {
-            throw new Error('No project found in repository');
-          }
-
-          const newDocuments = await Promise.all(
-            directoryFiles
-              // Filter out existing documents
-              .filter(
-                (file) =>
-                  !Object.values(project.documents).some(
-                    (docMetaData) =>
-                      docMetaData.name === file.name &&
-                      docMetaData.path === file.path
-                  )
-              )
-              .map((file) =>
-                createVersionedDocument({
-                  repo: versionControlRepo,
-                  readFile,
-                })({
-                  file,
-                  projectId: newProjectId,
-                })
-              )
-          );
-
-          if (newDocuments.length > 0) {
-            projectHandle.change((proj) => {
-              newDocuments.forEach((doc) => {
-                proj.documents[doc.versionControlId] = doc;
-              });
+          if (isElectron) {
+            // Delegate opening the project to the main process
+            await window.versionControlAPI.openProject({
+              projectId: projId,
+              directoryPath: directory.path!,
+            });
+          } else {
+            await updateProjectFromFilesystemContent({
+              createDocument: versionControlRepo.createDocument,
+              listProjectDocuments: versionControlRepo.listProjectDocuments,
+              findDocumentInProject: versionControlRepo.findDocumentInProject,
+              deleteDocumentFromProject:
+                versionControlRepo.deleteDocumentFromProject,
+              listDirectoryFiles: listDirectoryFiles,
+              readFile: readFile,
+            })({
+              projectId: projId,
+              directoryPath: directory.path!,
             });
           }
         } else {
-          // If there is no project ID or if there is one but points to another directory
-          // we want to setup a new project and create versioned documents for each of its eligible files.
-          // Finally, we want to store the project ID in the local storage and set it in the state.
-
-          const documents = await Promise.all(
-            directoryFiles.map((file) =>
-              createVersionedDocument({ repo: versionControlRepo, readFile })({
-                file,
-                projectId: newProjectId,
-              })
-            )
-          );
-
-          newProjectId = await versionControlRepo.createProject({
-            path: directory.path!,
-            documents: documents.reduce(
-              (acc, doc) => {
-                return { ...acc, [doc.versionControlId]: doc };
-              },
-              {} as Record<VersionControlId, DocumentMetaData>
-            ),
-          });
+          if (isElectron) {
+            // Delegate creating the project to the main process
+            projId = await window.versionControlAPI.createProject({
+              directoryPath: directory.path!,
+            });
+          } else {
+            projId = await createProjectFromFilesystemContent({
+              createProject: versionControlRepo.createProject,
+              createDocument: versionControlRepo.createDocument,
+              listDirectoryFiles: listDirectoryFiles,
+              readFile: readFile,
+            })({
+              directoryPath: directory.path!,
+            });
+          }
 
           localStorage.setItem(
             BROWSER_STORAGE_PROJECT_DATA_KEY,
             JSON.stringify({
               directoryName: directory.name,
               directoryPath: directory.path,
-              versionControlId: newProjectId,
+              versionControlId: projId,
             })
           );
         }
 
-        setProjectId(newProjectId);
+        setProjectId(projId);
       } else {
         setProjectId(null);
       }
@@ -234,7 +176,7 @@ export const VersionControlProvider = ({
 
     openOrCreateProject();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [directory, directoryFiles, versionControlRepo, isRepoReady]);
+  }, [directory, isElectron, versionControlRepo]);
 
   const handleCreateDocument = async (args: CreateDocumentArgs) => {
     if (!versionControlRepo) {

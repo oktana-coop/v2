@@ -19,10 +19,19 @@ export type AutomergeRepoNetworkAdapter = {
   ) => IpcRenderer;
 };
 
+export type VersionControlAPI = {
+  createProject: (args: { directoryPath: string }) => Promise<VersionControlId>;
+  openProject: (args: {
+    projectId: VersionControlId;
+    directoryPath: string;
+  }) => Promise<void>;
+};
+
 declare global {
   interface Window {
     electronAPI: ElectronAPI;
     automergeRepoNetworkAdapter: AutomergeRepoNetworkAdapter;
     filesystemAPI: FilesystemAPI;
+    versionControlAPI: VersionControlAPI;
   }
 }

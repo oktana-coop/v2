@@ -37,3 +37,15 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
     ipcRenderer.invoke('write-file', { path, content }),
   readFile: (path: string) => ipcRenderer.invoke('read-file', path),
 } as FilesystemAPI);
+
+contextBridge.exposeInMainWorld('versionControlAPI', {
+  createProject: ({ directoryPath }: { directoryPath: string }) =>
+    ipcRenderer.invoke('create-project', { directoryPath }),
+  openProject: ({
+    projectId,
+    directoryPath,
+  }: {
+    projectId: VersionControlId;
+    directoryPath: string;
+  }) => ipcRenderer.invoke('open-project', { projectId, directoryPath }),
+});

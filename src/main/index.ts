@@ -13,8 +13,12 @@ import {
 import os from 'os';
 
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/filesystem/adapters/electron-node-api';
-import { createAutomergeVersionControlAdapter } from '../modules/version-control';
-import {} from '../modules/version-control/adapters/automerge';
+import {
+  createAutomergeVersionControlAdapter,
+  createProjectFromFilesystemContent,
+  updateProjectFromFilesystemContent,
+  type VersionControlId,
+} from '../modules/version-control';
 import { setup as setupNodeRepo } from '../modules/version-control/repo/node';
 import { update } from './update';
 
@@ -111,47 +115,10 @@ async function createWindow() {
   // Apply electron-updater
   update(win);
 
-  ipcMain.handle('open-directory', async () => {
-    if (!win) {
-      throw new Error('No browser window found when trying to open directory');
-    }
-
-    const directory = await filesystemAPI.openDirectory();
-
-    // Setup the version control repository
-    const automergeRepo = await setupNodeRepo({
-      processId: 'main',
-      directoryPath: join(directory.path!, '.v2'),
-      renderers: new Map([[rendererProcessId, win]]),
-    });
-
-    createAutomergeVersionControlAdapter(automergeRepo);
-
-    return directory;
-  });
-
-  ipcMain.handle('get-directory', async (_, path: string) => {
-    if (!win) {
-      throw new Error('No browser window found when trying to open directory');
-    }
-
-    const directory = await filesystemAPI.getDirectory(path);
-
-    if (!directory) {
-      return null;
-    }
-
-    // Setup the version control repository
-    const automergeRepo = await setupNodeRepo({
-      processId: 'main',
-      directoryPath: join(directory.path!, '.v2'),
-      renderers: new Map([[rendererProcessId, win]]),
-    });
-
-    createAutomergeVersionControlAdapter(automergeRepo);
-
-    return directory;
-  });
+  ipcMain.handle('open-directory', async () => filesystemAPI.openDirectory());
+  ipcMain.handle('get-directory', async (_, path: string) =>
+    filesystemAPI.getDirectory(path)
+  );
   ipcMain.handle('list-directory-files', (_, path: string) =>
     filesystemAPI.listDirectoryFiles(path)
   );
@@ -166,6 +133,72 @@ async function createWindow() {
   );
   ipcMain.handle('read-file', (_, path: string) =>
     filesystemAPI.readFile(path)
+  );
+
+  ipcMain.handle(
+    'create-project',
+    async (_, { directoryPath }: { directoryPath: string }) => {
+      if (!win) {
+        throw new Error(
+          'No browser window found when trying to create project'
+        );
+      }
+
+      // Setup the version control repository
+      const automergeRepo = await setupNodeRepo({
+        processId: 'main',
+        directoryPath: join(directoryPath, '.v2'),
+        renderers: new Map([[rendererProcessId, win]]),
+      });
+
+      const versionControlRepo =
+        createAutomergeVersionControlAdapter(automergeRepo);
+
+      const projectId = await createProjectFromFilesystemContent({
+        createProject: versionControlRepo.createProject,
+        createDocument: versionControlRepo.createDocument,
+        listDirectoryFiles: filesystemAPI.listDirectoryFiles,
+        readFile: filesystemAPI.readFile,
+      })({ directoryPath });
+
+      return projectId;
+    }
+  );
+
+  ipcMain.handle(
+    'open-project',
+    async (
+      _,
+      {
+        directoryPath,
+        projectId,
+      }: { projectId: VersionControlId; directoryPath: string }
+    ) => {
+      if (!win) {
+        throw new Error(
+          'No browser window found when trying to create project'
+        );
+      }
+
+      // Setup the version control repository
+      const automergeRepo = await setupNodeRepo({
+        processId: 'main',
+        directoryPath: join(directoryPath, '.v2'),
+        renderers: new Map([[rendererProcessId, win]]),
+      });
+
+      const versionControlRepo =
+        createAutomergeVersionControlAdapter(automergeRepo);
+
+      updateProjectFromFilesystemContent({
+        createDocument: versionControlRepo.createDocument,
+        listProjectDocuments: versionControlRepo.listProjectDocuments,
+        findDocumentInProject: versionControlRepo.findDocumentInProject,
+        deleteDocumentFromProject: versionControlRepo.deleteDocumentFromProject,
+        listDirectoryFiles: filesystemAPI.listDirectoryFiles,
+        readFile: filesystemAPI.readFile,
+      })({ projectId, directoryPath });
+    }
   );
 }
 

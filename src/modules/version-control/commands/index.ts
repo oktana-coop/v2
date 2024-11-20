@@ -1,1 +1,2 @@
-export { updateRepoFromFilesystemContent } from './updateRepoFromFilesystemContent';
+export { updateProjectFromFilesystemContent } from './updateProjectFromFilesystemContent';
+export { createProjectFromFilesystemContent } from './createProjectFromFilesystemContent';
