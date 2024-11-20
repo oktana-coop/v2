@@ -10,31 +10,44 @@ import type {
 } from '../../models';
 import { VersionControlRepo } from '../../ports/version-control-repo';
 
-export const createAdapter = (automergeRepo: Repo): VersionControlRepo => ({
-  createProject: async ({ path }) => {
+export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
+  const createProject: VersionControlRepo['createProject'] = async ({
+    path,
+  }) => {
     const handle = await automergeRepo.create<Project>({
       path,
       documents: {},
     });
     return handle.url;
-  },
-  findProjectById: async (id: VersionControlId) =>
-    automergeRepo.find<Project>(id),
-  listProjectDocuments: async (id: VersionControlId) => {
-    const projectHandle = await automergeRepo.find<Project>(id);
-    if (!projectHandle) {
-      throw new Error('No project handle found in repository');
-    }
+  };
 
-    const project = projectHandle.docSync() as VersionedProject | undefined;
+  const findProjectById: VersionControlRepo['findProjectById'] = async (
+    id: VersionControlId
+  ) => automergeRepo.find<Project>(id);
 
-    if (!project) {
-      throw new Error('Could not retrieve project from repository');
-    }
+  const listProjectDocuments: VersionControlRepo['listProjectDocuments'] =
+    async (id: VersionControlId) => {
+      const projectHandle = await automergeRepo.find<Project>(id);
+      if (!projectHandle) {
+        throw new Error('No project handle found in repository');
+      }
 
-    return Object.values(project.documents);
-  },
-  createDocument: async ({ title, name, path, content, projectId }) => {
+      const project = projectHandle.docSync() as VersionedProject | undefined;
+
+      if (!project) {
+        throw new Error('Could not retrieve project from repository');
+      }
+
+      return Object.values(project.documents);
+    };
+
+  const createDocument: VersionControlRepo['createDocument'] = async ({
+    title,
+    name,
+    path,
+    content,
+    projectId,
+  }) => {
     const handle = await automergeRepo.create<RichTextDocument>({
       type: versionControlItemTypes.RICH_TEXT_DOCUMENT,
       title,
@@ -44,23 +57,70 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => ({
     const documentUrl = handle.url;
 
     if (projectId) {
-      const project = await automergeRepo.find<Project>(projectId);
+      const projectHandle = await automergeRepo.find<Project>(projectId);
 
-      if (project) {
+      if (projectHandle) {
         const metaData: DocumentMetaData = {
           versionControlId: documentUrl,
           name,
           path,
         };
 
-        project.change((proj) => {
-          proj.documents[documentUrl] = metaData;
+        projectHandle.change((project) => {
+          project.documents[documentUrl] = metaData;
         });
       }
     }
 
     return documentUrl;
-  },
-  findDocumentById: async (id: VersionControlId) =>
-    automergeRepo.find<RichTextDocument>(id),
-});
+  };
+
+  const findDocumentById: VersionControlRepo['findDocumentById'] = async (
+    id: VersionControlId
+  ) => automergeRepo.find<RichTextDocument>(id);
+
+  const deleteDocumentFromProject: VersionControlRepo['deleteDocumentFromProject'] =
+    async ({ projectId, documentId }) => {
+      const projectHandle = await automergeRepo.find<Project>(projectId);
+      if (!projectHandle) {
+        throw new Error('No project handle found in repository');
+      }
+
+      const documentHandle =
+        await automergeRepo.find<RichTextDocument>(documentId);
+      if (!documentHandle) {
+        throw new Error('No document handle found in repository');
+      }
+
+      projectHandle.change((project) => {
+        delete project.documents[documentId];
+      });
+
+      documentHandle.delete();
+    };
+
+  const findDocumentInProject: VersionControlRepo['findDocumentInProject'] =
+    async ({ projectId, documentPath }) => {
+      const projectDocuments = await listProjectDocuments(projectId);
+
+      const documentId = projectDocuments.find(
+        (documentMetaData) => documentMetaData.path === documentPath
+      )?.versionControlId;
+
+      if (!documentId) {
+        return null;
+      }
+
+      return findDocumentById(documentId);
+    };
+
+  return {
+    createProject,
+    findProjectById,
+    listProjectDocuments,
+    createDocument,
+    findDocumentById,
+    deleteDocumentFromProject,
+    findDocumentInProject,
+  };
+};

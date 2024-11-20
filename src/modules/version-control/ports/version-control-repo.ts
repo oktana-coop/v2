@@ -19,6 +19,16 @@ export type CreateDocumentArgs = {
   projectId: VersionControlId | null;
 };
 
+export type DeleteDocumentFromProjectArgs = {
+  projectId: VersionControlId;
+  documentId: VersionControlId;
+};
+
+export type FindDocumentInProjectArgs = {
+  projectId: VersionControlId;
+  documentPath: string;
+};
+
 export type VersionControlRepo = {
   createProject: (args: CreateProjectArgs) => Promise<VersionControlId>;
   findProjectById: (
@@ -35,5 +45,11 @@ export type VersionControlRepo = {
   }: CreateDocumentArgs) => Promise<VersionControlId>;
   findDocumentById: (
     id: VersionControlId
+  ) => Promise<VersionedDocumentHandle | null>;
+  deleteDocumentFromProject: (
+    args: DeleteDocumentFromProjectArgs
+  ) => Promise<void>;
+  findDocumentInProject: (
+    args: FindDocumentInProjectArgs
   ) => Promise<VersionedDocumentHandle | null>;
 };

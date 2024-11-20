@@ -18,6 +18,7 @@ export type FilesystemContextType = {
   createNewFile: () => Promise<File>;
   writeFile: (path: string, content: string) => Promise<void>;
   readFile: (path: string) => Promise<File>;
+  listDirectoryFiles: (path: string) => Promise<Array<File>>;
 };
 
 export const FilesystemContext = createContext<FilesystemContextType>({
@@ -32,6 +33,8 @@ export const FilesystemContext = createContext<FilesystemContextType>({
   writeFile: () => {},
   // @ts-expect-error will get overriden below
   readFile: () => {},
+  // @ts-expect-error will get overriden below
+  listDirectoryFiles: () => {},
 });
 
 export const FilesystemProvider = ({
@@ -129,6 +132,7 @@ export const FilesystemProvider = ({
 
   const writeFile = filesystem.writeFile;
   const readFile = filesystem.readFile;
+  const listDirectoryFiles = filesystem.listDirectoryFiles;
 
   return (
     <FilesystemContext.Provider
@@ -140,6 +144,7 @@ export const FilesystemProvider = ({
         createNewFile: handleCreateNewFile,
         readFile,
         writeFile,
+        listDirectoryFiles,
       }}
     >
       {children}
