@@ -2,7 +2,14 @@ import { release } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { app, BrowserWindow, ipcMain, nativeImage, shell } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  nativeImage,
+  session,
+  shell,
+} from 'electron';
 import os from 'os';
 
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/filesystem/adapters/electron-node-api';
@@ -163,6 +170,13 @@ async function createWindow() {
 }
 
 app.whenReady().then(createWindow);
+
+app.on('before-quit', async () => {
+  const defaultSession = session.defaultSession;
+  await defaultSession.clearStorageData({
+    storages: ['indexdb'],
+  });
+});
 
 app.on('window-all-closed', () => {
   win = null;
