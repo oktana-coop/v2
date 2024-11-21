@@ -20,7 +20,9 @@ export type AutomergeRepoNetworkAdapter = {
 };
 
 export type VersionControlAPI = {
-  createProject: (args: { directoryPath: string }) => Promise<VersionControlId>;
+  openOrCreateProject: (args: {
+    directoryPath: string;
+  }) => Promise<VersionControlId>;
   openProject: (args: {
     projectId: VersionControlId;
     directoryPath: string;

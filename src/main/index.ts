@@ -13,13 +13,11 @@ import {
 import os from 'os';
 
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/filesystem/adapters/electron-node-api';
+import { type VersionControlId } from '../modules/version-control';
 import {
-  createAutomergeVersionControlAdapter,
-  createProjectFromFilesystemContent,
-  updateProjectFromFilesystemContent,
-  type VersionControlId,
-} from '../modules/version-control';
-import { setup as setupNodeRepo } from '../modules/version-control/repo/node';
+  openOrCreateProject,
+  openProjectById,
+} from '../modules/version-control/repo/node';
 import { update } from './update';
 
 const filesystemAPI = createElectronNodeFilesystemAPIAdapter();
@@ -136,7 +134,7 @@ async function createWindow() {
   );
 
   ipcMain.handle(
-    'create-project',
+    'open-or-create-project',
     async (_, { directoryPath }: { directoryPath: string }) => {
       if (!win) {
         throw new Error(
@@ -144,24 +142,13 @@ async function createWindow() {
         );
       }
 
-      // Setup the version control repository
-      const automergeRepo = await setupNodeRepo({
-        processId: 'main',
-        directoryPath: join(directoryPath, '.v2'),
-        renderers: new Map([[rendererProcessId, win]]),
-      });
-
-      const versionControlRepo =
-        createAutomergeVersionControlAdapter(automergeRepo);
-
-      const projectId = await createProjectFromFilesystemContent({
-        createProject: versionControlRepo.createProject,
-        createDocument: versionControlRepo.createDocument,
+      return openOrCreateProject({
+        directoryPath,
+        rendererProcessId,
+        browserWindow: win,
         listDirectoryFiles: filesystemAPI.listDirectoryFiles,
         readFile: filesystemAPI.readFile,
-      })({ directoryPath });
-
-      return projectId;
+      });
     }
   );
 
@@ -180,24 +167,14 @@ async function createWindow() {
         );
       }
 
-      // Setup the version control repository
-      const automergeRepo = await setupNodeRepo({
-        processId: 'main',
-        directoryPath: join(directoryPath, '.v2'),
-        renderers: new Map([[rendererProcessId, win]]),
-      });
-
-      const versionControlRepo =
-        createAutomergeVersionControlAdapter(automergeRepo);
-
-      updateProjectFromFilesystemContent({
-        createDocument: versionControlRepo.createDocument,
-        listProjectDocuments: versionControlRepo.listProjectDocuments,
-        findDocumentInProject: versionControlRepo.findDocumentInProject,
-        deleteDocumentFromProject: versionControlRepo.deleteDocumentFromProject,
+      return openProjectById({
+        projectId,
+        directoryPath,
+        rendererProcessId,
+        browserWindow: win,
         listDirectoryFiles: filesystemAPI.listDirectoryFiles,
         readFile: filesystemAPI.readFile,
-      })({ projectId, directoryPath });
+      });
     }
   );
 }

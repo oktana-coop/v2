@@ -143,8 +143,8 @@ export const VersionControlProvider = ({
           }
         } else {
           if (isElectron) {
-            // Delegate creating the project to the main process
-            projId = await window.versionControlAPI.createProject({
+            // Delegate opening/creating the project to the main process
+            projId = await window.versionControlAPI.openOrCreateProject({
               directoryPath: directory.path!,
             });
           } else {

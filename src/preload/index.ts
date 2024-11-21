@@ -39,8 +39,8 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
 } as FilesystemAPI);
 
 contextBridge.exposeInMainWorld('versionControlAPI', {
-  createProject: ({ directoryPath }: { directoryPath: string }) =>
-    ipcRenderer.invoke('create-project', { directoryPath }),
+  openOrCreateProject: ({ directoryPath }: { directoryPath: string }) =>
+    ipcRenderer.invoke('open-or-create-project', { directoryPath }),
   openProject: ({
     projectId,
     directoryPath,
