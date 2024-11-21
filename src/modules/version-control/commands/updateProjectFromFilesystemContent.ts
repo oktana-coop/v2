@@ -32,7 +32,7 @@ export const updateProjectFromFilesystemContent =
     // List directory files
     const directoryFiles = await listDirectoryFiles(directoryPath);
 
-    directoryFiles.forEach((file) => async () => {
+    const directoryFileTasks = directoryFiles.map(async (file) => {
       // If a document corresponding to the file is not found in the version control repository, create it.
       if (
         !projectDocuments.some(
@@ -59,10 +59,15 @@ export const updateProjectFromFilesystemContent =
       });
 
       if (!documentHandle) {
+        throw new Error('Could not find document handle in project');
+      }
+
+      const document = await documentHandle.doc();
+      if (!document) {
         throw new Error('Could not find document in project');
       }
 
-      const documentContent = documentHandle.docSync()?.content;
+      const documentContent = document.content;
       const { content: fileContent } = await readFile(file.path!);
 
       if (fileContent && fileContent !== documentContent) {
@@ -71,6 +76,8 @@ export const updateProjectFromFilesystemContent =
         });
       }
     });
+
+    await Promise.all(directoryFileTasks);
 
     // Delete project documents that are not found in the directory.
     // The source of truth is the directory content.

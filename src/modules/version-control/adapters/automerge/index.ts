@@ -23,16 +23,26 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
 
   const findProjectById: VersionControlRepo['findProjectById'] = async (
     id: VersionControlId
-  ) => automergeRepo.find<Project>(id);
+  ) => {
+    const handle = await automergeRepo.find<Project>(id);
+
+    if (!handle) {
+      return null;
+    }
+
+    await handle.whenReady();
+    return handle;
+  };
 
   const listProjectDocuments: VersionControlRepo['listProjectDocuments'] =
     async (id: VersionControlId) => {
-      const projectHandle = await automergeRepo.find<Project>(id);
+      const projectHandle = await findProjectById(id);
       if (!projectHandle) {
-        throw new Error('No project handle found in repository');
+        throw new Error('Could not retrieve project handle from repository');
       }
 
-      const project = projectHandle.docSync() as VersionedProject | undefined;
+      const project: VersionedProject | null =
+        (await projectHandle.doc()) ?? null;
 
       if (!project) {
         throw new Error('Could not retrieve project from repository');
@@ -57,7 +67,7 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
     const documentUrl = handle.url;
 
     if (projectId) {
-      const projectHandle = await automergeRepo.find<Project>(projectId);
+      const projectHandle = await findProjectById(projectId);
 
       if (projectHandle) {
         const metaData: DocumentMetaData = {
@@ -77,17 +87,25 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
 
   const findDocumentById: VersionControlRepo['findDocumentById'] = async (
     id: VersionControlId
-  ) => automergeRepo.find<RichTextDocument>(id);
+  ) => {
+    const handle = await automergeRepo.find<RichTextDocument>(id);
+
+    if (!handle) {
+      return null;
+    }
+
+    await handle.whenReady();
+    return handle;
+  };
 
   const deleteDocumentFromProject: VersionControlRepo['deleteDocumentFromProject'] =
     async ({ projectId, documentId }) => {
-      const projectHandle = await automergeRepo.find<Project>(projectId);
+      const projectHandle = await findProjectById(projectId);
       if (!projectHandle) {
         throw new Error('No project handle found in repository');
       }
 
-      const documentHandle =
-        await automergeRepo.find<RichTextDocument>(documentId);
+      const documentHandle = await findDocumentById(documentId);
       if (!documentHandle) {
         throw new Error('No document handle found in repository');
       }
