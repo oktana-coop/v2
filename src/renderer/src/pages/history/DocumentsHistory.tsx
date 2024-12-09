@@ -26,7 +26,7 @@ export const DocumentsHistory = ({
     Array<Automerge.DecodedChange | Commit>
   >([]);
   const navigate = useNavigate();
-  const [readyAutomergeHandle, setReadyAutomergeHandle] =
+  const [versionedDocumentHandle, setVersionedDocumentHandle] =
     useState<VersionedDocumentHandle | null>(null);
   const [versionedDocument, setVersionedDocument] =
     useState<VersionedDocument | null>(null);
@@ -39,17 +39,10 @@ export const DocumentsHistory = ({
       }
 
       if (isValidVersionControlId(documentId)) {
-        const automergeHandle = await findDocument(documentId);
-
-        if (automergeHandle) {
-          automergeHandle.whenReady().then(() => {
-            setReadyAutomergeHandle(automergeHandle);
-          });
-        } else {
-          setReadyAutomergeHandle(null);
-        }
+        const documentHandle = await findDocument(documentId);
+        setVersionedDocumentHandle(documentHandle);
       } else {
-        setReadyAutomergeHandle(null);
+        setVersionedDocumentHandle(null);
       }
     };
 
@@ -58,14 +51,14 @@ export const DocumentsHistory = ({
   }, [documentId]);
 
   useEffect(() => {
-    if (readyAutomergeHandle) {
-      const versionedDocument = readyAutomergeHandle.docSync();
+    if (versionedDocumentHandle) {
+      const versionedDocument = versionedDocumentHandle.docSync();
       if (versionedDocument) {
         document.title = `v2 | "${versionedDocument.title}" version history`;
         setVersionedDocument(versionedDocument);
       }
     }
-  }, [readyAutomergeHandle]);
+  }, [versionedDocumentHandle]);
 
   const selectCommit = useCallback(
     (hash: string) => {
@@ -128,12 +121,12 @@ export const DocumentsHistory = ({
         />
       </div>
       <div className="flex w-full grow items-stretch">
-        {readyAutomergeHandle ? (
+        {versionedDocumentHandle ? (
           <div onDoubleClick={() => navigate(`/edit/${documentId}`)}>
             <RichTextEditor
               // explicitly define onSave as a no-op
               onSave={() => {}}
-              docHandle={readyAutomergeHandle}
+              docHandle={versionedDocumentHandle}
               isEditable={false}
             />
           </div>

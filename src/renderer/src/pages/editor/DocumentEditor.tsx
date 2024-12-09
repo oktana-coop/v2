@@ -1,33 +1,30 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import type {
-  DocHandle,
-  RichTextDocument,
-} from '../../../../modules/version-control';
+import { type VersionedDocumentHandle } from '../../../../modules/version-control';
 import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import { ActionsBar } from './ActionsBar';
 import { CommitDialog } from './CommitDialog';
 
 export const DocumentEditor = ({
-  automergeHandle,
+  versionedDocumentHandle,
   onDocumentChange,
 }: {
-  automergeHandle: DocHandle<RichTextDocument>;
+  versionedDocumentHandle: VersionedDocumentHandle;
   onDocumentChange: (value: string) => void;
 }) => {
   const [isCommitting, openCommitDialog] = useState<boolean>(false);
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
 
   useEffect(() => {
-    if (automergeHandle) {
-      document.title = `v2 | editing "${automergeHandle.docSync()?.title}"`;
+    if (versionedDocumentHandle) {
+      document.title = `v2 | editing "${versionedDocumentHandle.docSync()?.title}"`;
     }
-  }, [automergeHandle]);
+  }, [versionedDocumentHandle]);
 
   const commitChanges = (message: string) => {
-    if (!automergeHandle) return;
+    if (!versionedDocumentHandle) return;
 
-    automergeHandle.change(
+    versionedDocumentHandle.change(
       (doc) => {
         // this is effectively a no-op, but it triggers a change event
         // (not) changing the title of the document, as interfering with the
@@ -43,15 +40,15 @@ export const DocumentEditor = ({
 
     openCommitDialog(false);
 
-    const content = automergeHandle.docSync()?.content;
+    const richTextDocument = versionedDocumentHandle.docSync();
 
-    if (!content) {
+    if (!richTextDocument) {
       throw new Error(
         'No content was found in version control document. Aborting commit operation.'
       );
     }
 
-    return onDocumentChange(content);
+    return onDocumentChange(richTextDocument.content);
   };
 
   const handleEditorToolbarToggle = useCallback(() => {
@@ -72,7 +69,7 @@ export const DocumentEditor = ({
       <div className="relative flex w-4/5 flex-auto flex-col items-stretch overflow-hidden">
         <ActionsBar onEditorToolbarToggle={handleEditorToolbarToggle} />
         <RichTextEditor
-          docHandle={automergeHandle}
+          docHandle={versionedDocumentHandle}
           onSave={handleSave}
           isToolbarOpen={isEditorToolbarOpen}
         />

@@ -8,9 +8,8 @@ import {
   SelectedFileProvider,
 } from '../../../../modules/filesystem';
 import {
-  type DocHandle,
   isValidVersionControlId,
-  type RichTextDocument,
+  VersionedDocumentHandle,
 } from '../../../../modules/version-control';
 import { VersionControlContext } from '../../../../modules/version-control/repo/browser';
 import { Button } from '../../components/actions/Button';
@@ -36,8 +35,8 @@ const EditorIndex = () => {
     useState<boolean>(false);
   const navigate = useNavigate();
   const { documentId: docUrl } = useParams();
-  const [readyAutomergeHandle, setReadyAutomergeHandle] =
-    useState<DocHandle<RichTextDocument> | null>(null);
+  const [versionedDocumentHandle, setVersionedDocumentHandle] =
+    useState<VersionedDocumentHandle | null>(null);
   const {
     directory,
     directoryFiles,
@@ -66,17 +65,10 @@ const EditorIndex = () => {
       }
 
       if (isValidVersionControlId(docUrl)) {
-        const automergeHandle = await findDocument(docUrl);
-
-        if (automergeHandle) {
-          automergeHandle.whenReady().then(() => {
-            setReadyAutomergeHandle(automergeHandle);
-          });
-        } else {
-          setReadyAutomergeHandle(null);
-        }
+        const documentHandle = await findDocument(docUrl);
+        setVersionedDocumentHandle(documentHandle);
       } else {
-        setReadyAutomergeHandle(null);
+        setVersionedDocumentHandle(null);
       }
     };
 
@@ -123,13 +115,13 @@ const EditorIndex = () => {
       throw new Error('Could not select file because no project ID was found');
     }
 
-    const versionedDocumentHandle = await findDocumentInProject({
+    const documentHandle = await findDocumentInProject({
       projectId,
       path: file.path!,
       name: file.name,
     });
 
-    if (!versionedDocumentHandle) {
+    if (!documentHandle) {
       // TODO: Handle more gracefully
       throw new Error(
         'Could not select file because the versioned document was not found in project'
@@ -142,11 +134,11 @@ const EditorIndex = () => {
     }
 
     await setSelectedFileInfo({
-      documentId: versionedDocumentHandle.url,
+      documentId: documentHandle.url,
       path: file.path,
     });
     navigate(
-      `/edit/${versionedDocumentHandle.url}?path=${encodeURIComponent(file.path)}`
+      `/edit/${documentHandle.url}?path=${encodeURIComponent(file.path)}`
     );
   };
 
@@ -176,9 +168,9 @@ const EditorIndex = () => {
       return <InvalidDocument />;
     }
 
-    return readyAutomergeHandle ? (
+    return versionedDocumentHandle ? (
       <DocumentEditor
-        automergeHandle={readyAutomergeHandle}
+        versionedDocumentHandle={versionedDocumentHandle}
         onDocumentChange={handleDocumentChange}
       />
     ) : (
