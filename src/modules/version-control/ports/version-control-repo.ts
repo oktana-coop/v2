@@ -3,7 +3,6 @@ import type {
   Project,
   RichTextDocumentSpan,
   VersionControlId,
-  VersionedDocument,
   VersionedDocumentHandle,
   VersionedProjectHandle,
 } from '../models';
