@@ -1,11 +1,12 @@
 import type { Filesystem } from '../../filesystem';
-import type { VersionControlId } from '../models';
+import { getSpans, type VersionControlId } from '../models';
 import type { VersionControlRepo } from '../ports/version-control-repo';
 import { createVersionedDocument } from './createVersionedDocument';
 
 export const updateProjectFromFilesystemContent =
   ({
     createDocument,
+    updateDocumentSpans,
     listProjectDocuments,
     findDocumentInProject,
     deleteDocumentFromProject,
@@ -13,6 +14,7 @@ export const updateProjectFromFilesystemContent =
     readFile,
   }: {
     createDocument: VersionControlRepo['createDocument'];
+    updateDocumentSpans: VersionControlRepo['updateDocumentSpans'];
     listProjectDocuments: VersionControlRepo['listProjectDocuments'];
     findDocumentInProject: VersionControlRepo['findDocumentInProject'];
     deleteDocumentFromProject: VersionControlRepo['deleteDocumentFromProject'];
@@ -67,12 +69,14 @@ export const updateProjectFromFilesystemContent =
         throw new Error('Could not find document in project');
       }
 
-      const documentContent = document.content;
+      const documentSpans = getSpans(document);
       const { content: fileContent } = await readFile(file.path!);
 
-      if (fileContent && fileContent !== documentContent) {
-        documentHandle.change((doc) => {
-          doc.content = fileContent;
+      // File content is the JSON-stringified document spans
+      if (fileContent && fileContent !== JSON.stringify(documentSpans)) {
+        await updateDocumentSpans({
+          documentHandle,
+          spans: JSON.parse(fileContent),
         });
       }
     });

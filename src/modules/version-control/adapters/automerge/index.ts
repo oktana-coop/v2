@@ -1,3 +1,4 @@
+import { next as Automerge } from '@automerge/automerge/slim';
 import { Repo } from '@automerge/automerge-repo/slim';
 
 import { versionControlItemTypes } from '../../constants/versionControlItemTypes';
@@ -132,6 +133,13 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
       return findDocumentById(documentId);
     };
 
+  const updateDocumentSpans: VersionControlRepo['updateDocumentSpans'] =
+    async ({ documentHandle, spans }) => {
+      documentHandle.change((doc) => {
+        Automerge.updateSpans(doc, ['content'], [...spans]);
+      });
+    };
+
   return {
     createProject,
     findProjectById,
@@ -140,5 +148,6 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
     findDocumentById,
     deleteDocumentFromProject,
     findDocumentInProject,
+    updateDocumentSpans,
   };
 };

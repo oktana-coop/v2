@@ -1,7 +1,9 @@
 import type {
   DocumentMetaData,
   Project,
+  RichTextDocumentSpan,
   VersionControlId,
+  VersionedDocument,
   VersionedDocumentHandle,
   VersionedProjectHandle,
 } from '../models';
@@ -29,6 +31,11 @@ export type FindDocumentInProjectArgs = {
   documentPath: string;
 };
 
+export type UpdateDocumentSpansArgs = {
+  documentHandle: VersionedDocumentHandle;
+  spans: Array<RichTextDocumentSpan>;
+};
+
 export type VersionControlRepo = {
   createProject: (args: CreateProjectArgs) => Promise<VersionControlId>;
   findProjectById: (
@@ -52,4 +59,6 @@ export type VersionControlRepo = {
   findDocumentInProject: (
     args: FindDocumentInProjectArgs
   ) => Promise<VersionedDocumentHandle | null>;
+  // TODO: Think of a better abstraction - this is too Automerge-specific
+  updateDocumentSpans: (args: UpdateDocumentSpansArgs) => Promise<void>;
 };

@@ -42,6 +42,7 @@ const openProject = async ({
     listProjectDocuments: versionControlRepo.listProjectDocuments,
     findDocumentInProject: versionControlRepo.findDocumentInProject,
     deleteDocumentFromProject: versionControlRepo.deleteDocumentFromProject,
+    updateDocumentSpans: versionControlRepo.updateDocumentSpans,
     listDirectoryFiles: listDirectoryFiles,
     readFile: readFile,
   })({ projectId, directoryPath });
