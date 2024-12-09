@@ -28,3 +28,7 @@ export const isCommit = (
   // we make the rules!
   return Boolean(change.message && change.time);
 };
+
+export const getSpans = (document: VersionedDocument) => {
+  return Automerge.spans(document, ['content']);
+};
