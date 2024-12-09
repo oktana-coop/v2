@@ -1,5 +1,5 @@
 import { next as Automerge } from '@automerge/automerge/slim';
-import { Repo } from '@automerge/automerge-repo/slim';
+import { RawString, Repo } from '@automerge/automerge-repo/slim';
 
 import { versionControlItemTypes } from '../../constants/versionControlItemTypes';
 import type {
@@ -136,7 +136,23 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
   const updateDocumentSpans: VersionControlRepo['updateDocumentSpans'] =
     async ({ documentHandle, spans }) => {
       documentHandle.change((doc) => {
-        Automerge.updateSpans(doc, ['content'], [...spans]);
+        Automerge.updateSpans(
+          doc,
+          ['content'],
+          spans.map((span) =>
+            span.type === 'block'
+              ? // Manually create the raw string for block types
+                {
+                  ...span,
+                  value: {
+                    ...span.value,
+                    type: new RawString(span.value.type as string),
+                  },
+                }
+              : // Inline span as-is
+                span
+          )
+        );
       });
     };
 
