@@ -69,3 +69,6 @@ export const getCommitsAndUncommittedChanges = (
 
   return commitsAndUncommittedChanges;
 };
+
+export const convertToStorageFormat = (document: VersionedDocument) =>
+  JSON.stringify(getSpans(document));

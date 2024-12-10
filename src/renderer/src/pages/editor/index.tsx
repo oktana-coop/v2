@@ -2,16 +2,11 @@ import { useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import {
-  type File,
-  FilesystemContext,
   SelectedFileContext,
   SelectedFileProvider,
-} from '../../../../modules/filesystem';
-import {
-  getSpans,
-  isValidVersionControlId,
-  VersionedDocumentHandle,
-} from '../../../../modules/version-control';
+} from '../../../../modules/editor-state';
+import { type File, FilesystemContext } from '../../../../modules/filesystem';
+import { isValidVersionControlId } from '../../../../modules/version-control';
 import { VersionControlContext } from '../../../../modules/version-control/repo/browser';
 import { Button } from '../../components/actions/Button';
 import { Modal } from '../../components/dialogs/Modal';
@@ -36,68 +31,24 @@ const EditorIndex = () => {
     useState<boolean>(false);
   const navigate = useNavigate();
   const { documentId: docUrl } = useParams();
-  const [versionedDocumentHandle, setVersionedDocumentHandle] =
-    useState<VersionedDocumentHandle | null>(null);
   const {
     directory,
     directoryFiles,
     openDirectory,
     requestPermissionForSelectedDirectory,
     createNewFile,
-    writeFile,
   } = useContext(FilesystemContext);
-  const { selectedFileInfo, setSelectedFileInfo, clearFileSelection } =
+  const { selectedFileInfo, setSelectedFileInfo, versionedDocumentHandle } =
     useContext(SelectedFileContext);
   const {
     projectId,
     createDocument: createVersionedDocument,
-    findDocument,
     findDocumentInProject,
   } = useContext(VersionControlContext);
 
   useEffect(() => {
     document.title = 'v2 | Editor';
   }, []);
-
-  useEffect(() => {
-    const findVersionedDocument = async () => {
-      if (!docUrl) {
-        return;
-      }
-
-      if (isValidVersionControlId(docUrl)) {
-        const documentHandle = await findDocument(docUrl);
-        setVersionedDocumentHandle(documentHandle);
-      } else {
-        setVersionedDocumentHandle(null);
-      }
-    };
-
-    findVersionedDocument();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [docUrl, clearFileSelection]);
-
-  useEffect(() => {
-    if (!versionedDocumentHandle || !selectedFileInfo) return;
-
-    // TODO: Move in a command/context
-    // @ts-expect-error expose change payload type properly
-    const handleChange = (changePayload) => {
-      console.log('Document changed:', getSpans(changePayload.doc));
-      writeFile(
-        selectedFileInfo.path!,
-        JSON.stringify(getSpans(changePayload.doc))
-      );
-    };
-
-    if (versionedDocumentHandle) {
-      versionedDocumentHandle.on('change', handleChange);
-    }
-
-    return () => {
-      versionedDocumentHandle?.off('change', handleChange);
-    };
-  }, [versionedDocumentHandle, selectedFileInfo, writeFile]);
 
   const handleDocumentCreation = async (title: string) => {
     const file = await createNewFile();

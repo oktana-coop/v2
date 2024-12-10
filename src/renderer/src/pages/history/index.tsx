@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 
+import { SelectedFileProvider } from '../../../../modules/editor-state';
 import {
   isValidVersionControlId,
   type VersionControlId,
@@ -25,16 +26,18 @@ export const History = () => {
   }, [documentId]);
 
   return (
-    <Layout>
-      {documentId ? (
-        isValidAutomergeId ? (
-          <DocumentsHistory documentId={documentId as VersionControlId} />
+    <SelectedFileProvider>
+      <Layout>
+        {documentId ? (
+          isValidAutomergeId ? (
+            <DocumentsHistory documentId={documentId as VersionControlId} />
+          ) : (
+            <InvalidDocument />
+          )
         ) : (
-          <InvalidDocument />
-        )
-      ) : (
-        <EmptyDocument message="👈 You can explore a document's editing history by picking up one of the list 😉." />
-      )}
-    </Layout>
+          <EmptyDocument message="👈 You can explore a document's editing history by picking up one of the list 😉." />
+        )}
+      </Layout>
+    </SelectedFileProvider>
   );
 };

@@ -1,17 +1,15 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { SelectedFileContext } from '../../../../modules/editor-state';
 import {
   type Commit,
   type DecodedChange,
   getCommitsAndUncommittedChanges,
   getDocumentAtCommit,
-  isValidVersionControlId,
   type VersionControlId,
   type VersionedDocument,
-  type VersionedDocumentHandle,
 } from '../../../../modules/version-control';
-import { VersionControlContext } from '../../../../modules/version-control/repo/browser';
 import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import { CommitHistoryIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
@@ -22,34 +20,14 @@ export const DocumentsHistory = ({
 }: {
   documentId: VersionControlId;
 }) => {
+  const { versionedDocumentHandle } = useContext(SelectedFileContext);
   const [selectedCommit, setSelectedCommit] = React.useState<string>();
   const [commits, setCommits] = React.useState<Array<DecodedChange | Commit>>(
     []
   );
   const navigate = useNavigate();
-  const [versionedDocumentHandle, setVersionedDocumentHandle] =
-    useState<VersionedDocumentHandle | null>(null);
   const [versionedDocument, setVersionedDocument] =
     useState<VersionedDocument | null>(null);
-  const { findDocument } = useContext(VersionControlContext);
-
-  useEffect(() => {
-    const findVersionedDocument = async () => {
-      if (!documentId) {
-        return;
-      }
-
-      if (isValidVersionControlId(documentId)) {
-        const documentHandle = await findDocument(documentId);
-        setVersionedDocumentHandle(documentHandle);
-      } else {
-        setVersionedDocumentHandle(null);
-      }
-    };
-
-    findVersionedDocument();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documentId]);
 
   useEffect(() => {
     if (versionedDocumentHandle) {
