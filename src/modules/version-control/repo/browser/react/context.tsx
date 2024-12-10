@@ -132,6 +132,7 @@ export const VersionControlProvider = ({
               createDocument: versionControlRepo.createDocument,
               listProjectDocuments: versionControlRepo.listProjectDocuments,
               findDocumentInProject: versionControlRepo.findDocumentInProject,
+              updateDocumentSpans: versionControlRepo.updateDocumentSpans,
               deleteDocumentFromProject:
                 versionControlRepo.deleteDocumentFromProject,
               listDirectoryFiles: listDirectoryFiles,

@@ -3,6 +3,8 @@ import { next as Automerge } from '@automerge/automerge/slim';
 import { versionControlItemTypes } from '../constants/versionControlItemTypes';
 import { DocHandle } from './doc-handle';
 
+export type RichTextDocumentSpan = Automerge.Span;
+
 export type RichTextDocument = {
   type: typeof versionControlItemTypes.RICH_TEXT_DOCUMENT;
   title: string;
@@ -29,6 +31,8 @@ export const isCommit = (
   return Boolean(change.message && change.time);
 };
 
-export const getSpans = (document: VersionedDocument) => {
+export const getSpans: (
+  document: VersionedDocument
+) => Array<RichTextDocumentSpan> = (document) => {
   return Automerge.spans(document, ['content']);
 };

@@ -7,10 +7,8 @@ import { CommitDialog } from './CommitDialog';
 
 export const DocumentEditor = ({
   versionedDocumentHandle,
-  onDocumentChange,
 }: {
   versionedDocumentHandle: VersionedDocumentHandle;
-  onDocumentChange: (value: string) => void;
 }) => {
   const [isCommitting, openCommitDialog] = useState<boolean>(false);
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
@@ -39,16 +37,6 @@ export const DocumentEditor = ({
     );
 
     openCommitDialog(false);
-
-    const richTextDocument = versionedDocumentHandle.docSync();
-
-    if (!richTextDocument) {
-      throw new Error(
-        'No content was found in version control document. Aborting commit operation.'
-      );
-    }
-
-    return onDocumentChange(richTextDocument.content);
   };
 
   const handleEditorToolbarToggle = useCallback(() => {

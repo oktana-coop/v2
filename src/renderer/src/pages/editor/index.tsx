@@ -8,6 +8,7 @@ import {
   SelectedFileProvider,
 } from '../../../../modules/filesystem';
 import {
+  getSpans,
   isValidVersionControlId,
   VersionedDocumentHandle,
 } from '../../../../modules/version-control';
@@ -76,6 +77,28 @@ const EditorIndex = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docUrl, clearFileSelection]);
 
+  useEffect(() => {
+    if (!versionedDocumentHandle || !selectedFileInfo) return;
+
+    // TODO: Move in a command/context
+    // @ts-expect-error expose change payload type properly
+    const handleChange = (changePayload) => {
+      console.log('Document changed:', getSpans(changePayload.doc));
+      writeFile(
+        selectedFileInfo.path!,
+        JSON.stringify(getSpans(changePayload.doc))
+      );
+    };
+
+    if (versionedDocumentHandle) {
+      versionedDocumentHandle.on('change', handleChange);
+    }
+
+    return () => {
+      versionedDocumentHandle?.off('change', handleChange);
+    };
+  }, [versionedDocumentHandle, selectedFileInfo, writeFile]);
+
   const handleDocumentCreation = async (title: string) => {
     const file = await createNewFile();
     const newDocumentId = await createVersionedDocument({
@@ -88,17 +111,6 @@ const EditorIndex = () => {
 
     setSelectedFileInfo({ documentId: newDocumentId, path: file.path! });
     navigate(`/edit/${newDocumentId}?path=${encodeURIComponent(file.path!)}`);
-  };
-
-  const handleDocumentChange = (newContent: string) => {
-    if (!selectedFileInfo || !selectedFileInfo.path) {
-      // TODO: Handle more gracefully
-      throw new Error(
-        'Could not find file path from file selection data. Aborting file write operation'
-      );
-    }
-
-    writeFile(selectedFileInfo.path, newContent);
   };
 
   const handleOpenDirectory = async () => {
@@ -169,10 +181,7 @@ const EditorIndex = () => {
     }
 
     return versionedDocumentHandle ? (
-      <DocumentEditor
-        versionedDocumentHandle={versionedDocumentHandle}
-        onDocumentChange={handleDocumentChange}
-      />
+      <DocumentEditor versionedDocumentHandle={versionedDocumentHandle} />
     ) : (
       <div className="flex h-full w-full items-center justify-center text-center">
         Loading...
