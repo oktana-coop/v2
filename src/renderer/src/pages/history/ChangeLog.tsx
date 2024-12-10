@@ -1,4 +1,3 @@
-import { next as Automerge } from '@automerge/automerge/slim';
 import clsx from 'clsx';
 import { useContext } from 'react';
 
@@ -6,7 +5,11 @@ import {
   ThemeContext,
   themes,
 } from '../../../../modules/personalization/theme';
-import { type Commit, isCommit } from '../../../../modules/version-control';
+import {
+  type Commit,
+  DecodedChange,
+  isCommit,
+} from '../../../../modules/version-control';
 import { TimelinePoint } from '../../components/icons/TimelinePoint';
 
 const Commit = ({
@@ -52,7 +55,7 @@ const UncommittedChange = ({
   onClick,
   isSelected = false,
 }: {
-  commit: Automerge.DecodedChange;
+  commit: DecodedChange;
   onClick: (hash: string) => void;
   isSelected?: boolean;
   isFirst?: boolean;
@@ -90,7 +93,7 @@ export const ChangeLog = ({
   onClick,
   selectedCommit,
 }: {
-  changes: Array<Automerge.DecodedChange | Commit>;
+  changes: Array<DecodedChange | Commit>;
   onClick: (hash: string) => void;
   selectedCommit?: string;
 }) => {

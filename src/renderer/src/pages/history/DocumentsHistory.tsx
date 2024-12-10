@@ -1,10 +1,11 @@
-import { next as Automerge } from '@automerge/automerge/slim';
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
   type Commit,
-  isCommit,
+  type DecodedChange,
+  getCommitsAndUncommittedChanges,
+  getDocumentAtCommit,
   isValidVersionControlId,
   type VersionControlId,
   type VersionedDocument,
@@ -22,9 +23,9 @@ export const DocumentsHistory = ({
   documentId: VersionControlId;
 }) => {
   const [selectedCommit, setSelectedCommit] = React.useState<string>();
-  const [commits, setCommits] = React.useState<
-    Array<Automerge.DecodedChange | Commit>
-  >([]);
+  const [commits, setCommits] = React.useState<Array<DecodedChange | Commit>>(
+    []
+  );
   const navigate = useNavigate();
   const [versionedDocumentHandle, setVersionedDocumentHandle] =
     useState<VersionedDocumentHandle | null>(null);
@@ -63,7 +64,7 @@ export const DocumentsHistory = ({
   const selectCommit = useCallback(
     (hash: string) => {
       if (versionedDocument) {
-        const docView = Automerge.view(versionedDocument, [hash]);
+        const docView = getDocumentAtCommit(versionedDocument)(hash);
         // TODO: support rendering a rich text version of the document
         // at a given point in time
         console.info(
@@ -81,27 +82,11 @@ export const DocumentsHistory = ({
 
   useEffect(() => {
     if (versionedDocument) {
-      const allChanges = Automerge.getAllChanges(versionedDocument);
-      const decodedChanges = allChanges.map(Automerge.decodeChange);
-      const [latestChange] = decodedChanges.slice(-1);
+      const commitsAndUncommittedChanges =
+        getCommitsAndUncommittedChanges(versionedDocument);
 
-      const commits = decodedChanges.filter(isCommit).map((change) => ({
-        hash: change.hash,
-        message: change.message,
-        time: new Date(change.time),
-      })) as Array<Commit>;
-
-      const orderedCommits = commits.reverse();
-      const [lastCommit] = orderedCommits;
-
-      const changes =
-        latestChange?.hash !== lastCommit?.hash
-          ? [latestChange, ...orderedCommits]
-          : orderedCommits;
-
-      setCommits(changes);
-
-      const [lastChange] = changes;
+      setCommits(commitsAndUncommittedChanges);
+      const [lastChange] = commitsAndUncommittedChanges;
       if (lastChange) selectCommit(lastChange.hash);
     }
   }, [versionedDocument, selectCommit]);

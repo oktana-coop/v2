@@ -23,6 +23,9 @@ export type Commit = {
   time: Date;
 };
 
+// TODO: Use something that is not Automerge-specific
+export type DecodedChange = Automerge.DecodedChange;
+
 // this is a TS type guard to check if a change is a commit
 export const isCommit = (
   change: Automerge.DecodedChange | Commit
@@ -35,4 +38,34 @@ export const getSpans: (
   document: VersionedDocument
 ) => Array<RichTextDocumentSpan> = (document) => {
   return Automerge.spans(document, ['content']);
+};
+
+export const getDocumentAtCommit =
+  (document: VersionedDocument) =>
+  (hash: string): VersionedDocument => {
+    return Automerge.view(document, [hash]);
+  };
+
+export const getCommitsAndUncommittedChanges = (
+  document: VersionedDocument
+) => {
+  const allChanges = Automerge.getAllChanges(document);
+  const decodedChanges = allChanges.map(Automerge.decodeChange);
+  const [latestChange] = decodedChanges.slice(-1);
+
+  const commits = decodedChanges.filter(isCommit).map((change) => ({
+    hash: change.hash,
+    message: change.message,
+    time: new Date(change.time),
+  })) as Array<Commit>;
+
+  const orderedCommits = commits.reverse();
+  const [lastCommit] = orderedCommits;
+
+  const commitsAndUncommittedChanges =
+    latestChange?.hash !== lastCommit?.hash
+      ? [latestChange, ...orderedCommits]
+      : orderedCommits;
+
+  return commitsAndUncommittedChanges;
 };
