@@ -7,7 +7,7 @@ import {
   FilesystemProvider,
 } from '../../modules/filesystem';
 import { ThemeProvider } from '../../modules/personalization/theme';
-import { VersionControlProvider } from '../../modules/version-control/repo/browser';
+import { VersionControlProvider } from '../../modules/version-control/react';
 import App from './App.tsx';
 
 export const AppWrapper = () => {

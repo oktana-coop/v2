@@ -17,7 +17,7 @@ import { type VersionControlId } from '../modules/version-control';
 import {
   openOrCreateProject,
   openProjectById,
-} from '../modules/version-control/repo/node';
+} from '../modules/version-control/automerge-repo/node';
 import { update } from './update';
 
 const filesystemAPI = createElectronNodeFilesystemAPIAdapter();

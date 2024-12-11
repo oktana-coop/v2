@@ -3,7 +3,7 @@ import './App.css';
 import { useContext } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
-import { VersionControlContext } from '../../modules/version-control/repo/browser';
+import { VersionControlContext } from '../../modules/version-control/react';
 import { Editor } from './pages/editor/index';
 import { History } from './pages/history/index';
 import { Options } from './pages/options/Options';

@@ -7,7 +7,7 @@ import {
 } from '../../../../modules/editor-state';
 import { type File, FilesystemContext } from '../../../../modules/filesystem';
 import { isValidVersionControlId } from '../../../../modules/version-control';
-import { VersionControlContext } from '../../../../modules/version-control/repo/browser';
+import { VersionControlContext } from '../../../../modules/version-control/react';
 import { Button } from '../../components/actions/Button';
 import { Modal } from '../../components/dialogs/Modal';
 import { EmptyDocument } from '../../components/document-views/EmptyDocument';
