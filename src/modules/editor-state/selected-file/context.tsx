@@ -11,7 +11,7 @@ import {
   type VersionControlId,
   type VersionedDocumentHandle,
 } from '../../version-control';
-import { VersionControlContext } from '../../version-control/repo/browser';
+import { VersionControlContext } from '../../version-control/react';
 
 export type SelectedFileInfo = {
   documentId: VersionControlId;
@@ -50,7 +50,6 @@ export const SelectedFileProvider = ({
   useEffect(() => {
     const updateFileSelection = async () => {
       if (!isValidVersionControlId(documentId)) {
-        console.log('setting selected file to null', documentId);
         clearFileSelection();
         setVersionedDocumentHandle(null);
       } else {

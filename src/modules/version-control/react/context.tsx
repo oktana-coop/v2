@@ -1,25 +1,25 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-import { ElectronContext } from '../../../../electron';
-import { type Directory, FilesystemContext } from '../../../../filesystem';
-import { createAdapter } from '../../../adapters/automerge';
+import { ElectronContext } from '../../electron';
+import { type Directory, FilesystemContext } from '../../filesystem';
+import { createAdapter } from '../adapters/automerge';
+import {
+  setupForElectron as setupBrowserRepoForElectron,
+  setupForWeb as setupBrowserRepoForWeb,
+} from '../automerge-repo/browser';
 import {
   createProjectFromFilesystemContent,
   updateProjectFromFilesystemContent,
-} from '../../../commands';
+} from '../commands';
 import {
   VersionControlId,
   VersionedDocumentHandle,
   VersionedProject,
-} from '../../../models';
+} from '../models';
 import {
   CreateDocumentArgs,
   VersionControlRepo,
-} from '../../../ports/version-control-repo';
-import {
-  setupForElectron as setupBrowserRepoForElectron,
-  setupForWeb as setupBrowserRepoForWeb,
-} from '../setup';
+} from '../ports/version-control-repo';
 
 type BrowserStorageProjectData = {
   directoryName: Directory['name'];
