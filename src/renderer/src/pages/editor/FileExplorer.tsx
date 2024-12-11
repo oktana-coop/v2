@@ -1,10 +1,10 @@
 import { clsx } from 'clsx';
 
+import { type SelectedFileInfo } from '../../../../modules/editor-state';
 import {
   type Directory,
   type File,
   removeExtension,
-  type VersionedFileInfo,
 } from '../../../../modules/filesystem';
 import { Button } from '../../components/actions/Button';
 import { FileDocumentIcon, FolderIcon } from '../../components/icons';
@@ -20,7 +20,7 @@ export const FileExplorer = ({
 }: {
   directory: Directory | null;
   files: Array<File>;
-  selectedFileInfo: VersionedFileInfo | null;
+  selectedFileInfo: SelectedFileInfo | null;
   onOpenDirectory: () => Promise<void>;
   onRequestPermissionsForCurrentDirectory: () => Promise<void>;
   onFileSelection: (file: File) => Promise<void>;

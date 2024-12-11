@@ -13,14 +13,14 @@ import {
 } from '../../version-control';
 import { VersionControlContext } from '../../version-control/repo/browser';
 
-export type VersionedFileInfo = {
+export type SelectedFileInfo = {
   documentId: VersionControlId;
   path: string | null;
 };
 
 type SelectedFileContextType = {
-  selectedFileInfo: VersionedFileInfo | null;
-  setSelectedFileInfo: (file: VersionedFileInfo) => Promise<void>;
+  selectedFileInfo: SelectedFileInfo | null;
+  setSelectedFileInfo: (file: SelectedFileInfo) => Promise<void>;
   clearFileSelection: () => Promise<void>;
   versionedDocumentHandle: VersionedDocumentHandle | null;
 };
@@ -39,7 +39,7 @@ export const SelectedFileProvider = ({
 }) => {
   const { isElectron } = useContext(ElectronContext);
   const [selectedFileInfo, setSelectedFileInfo] =
-    useState<VersionedFileInfo | null>(null);
+    useState<SelectedFileInfo | null>(null);
   const [versionedDocumentHandle, setVersionedDocumentHandle] =
     useState<VersionedDocumentHandle | null>(null);
   const { documentId } = useParams();
@@ -97,7 +97,7 @@ export const SelectedFileProvider = ({
   const handleSetSelectedFileInfo = async ({
     documentId,
     path,
-  }: VersionedFileInfo) => {
+  }: SelectedFileInfo) => {
     if (isElectron) {
       window.electronAPI.sendCurrentDocumentId(documentId);
     }

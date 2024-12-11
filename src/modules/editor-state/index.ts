@@ -1,5 +1,5 @@
 export {
   SelectedFileContext,
   SelectedFileProvider,
-  type VersionedFileInfo,
+  type SelectedFileInfo,
 } from './selected-file/context';
