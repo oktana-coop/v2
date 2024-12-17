@@ -18,6 +18,8 @@ import {
 } from '../models';
 import {
   CreateDocumentArgs,
+  GetDocumentAtArgs,
+  UpdateDocumentSpansArgs,
   VersionControlRepo,
 } from '../ports/version-control-repo';
 
@@ -39,6 +41,7 @@ type VersionControlContextType = {
   isRepoReady: boolean;
   projectId: VersionControlId | null;
   createDocument: (args: CreateDocumentArgs) => Promise<VersionControlId>;
+  getDocumentAt: (args: GetDocumentAtArgs) => Promise<VersionedDocumentHandle>;
   findDocument: (
     id: VersionControlId
   ) => Promise<VersionedDocumentHandle | null>;
@@ -52,6 +55,8 @@ export const VersionControlContext = createContext<VersionControlContextType>({
   projectId: null,
   // @ts-expect-error will get overriden below
   createDocument: () => null,
+  // @ts-expect-error will get overriden below
+  getDocumentAt: () => null,
   // @ts-expect-error will get overriden below
   findDocument: () => null,
   // @ts-expect-error will get overriden below
@@ -187,6 +192,14 @@ export const VersionControlProvider = ({
     return versionControlRepo.createDocument(args);
   };
 
+  const handleGetDocumentAt = async (args: GetDocumentAtArgs) => {
+    if (!versionControlRepo) {
+      throw new Error('No repo found when trying to clone document');
+    }
+
+    return versionControlRepo.getDocumentAt(args);
+  };
+
   const handleFindDocument = async (id: VersionControlId) => {
     if (!versionControlRepo) {
       throw new Error('No repo found when trying to create document');
@@ -237,6 +250,7 @@ export const VersionControlProvider = ({
         isRepoReady,
         projectId,
         createDocument: handleCreateDocument,
+        getDocumentAt: handleGetDocumentAt,
         findDocument: handleFindDocument,
         findDocumentInProject: handleFindDocumentInProject,
       }}

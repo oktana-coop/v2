@@ -3,6 +3,7 @@ import type {
   Project,
   RichTextDocumentSpan,
   VersionControlId,
+  VersionedDocument,
   VersionedDocumentHandle,
   VersionedProjectHandle,
 } from '../models';
@@ -18,6 +19,11 @@ export type CreateDocumentArgs = {
   path: string;
   content: string | null;
   projectId: VersionControlId | null;
+};
+
+export type GetDocumentAtArgs = {
+  document: VersionedDocument;
+  commit: string;
 };
 
 export type DeleteDocumentFromProjectArgs = {
@@ -49,6 +55,10 @@ export type VersionControlRepo = {
     path,
     projectId,
   }: CreateDocumentArgs) => Promise<VersionControlId>;
+  getDocumentAt: ({
+    document,
+    commit,
+  }: GetDocumentAtArgs) => Promise<VersionedDocumentHandle>;
   findDocumentById: (
     id: VersionControlId
   ) => Promise<VersionedDocumentHandle | null>;

@@ -8,9 +8,12 @@ import {
   type DecodedChange,
   getCommitsAndUncommittedChanges,
   getDocumentAtCommit,
+  getSpans,
   type VersionControlId,
   type VersionedDocument,
+  VersionedDocumentHandle,
 } from '../../../../modules/version-control';
+import { VersionControlContext } from '../../../../modules/version-control/react';
 import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import { CommitHistoryIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
@@ -22,7 +25,10 @@ export const DocumentsHistory = ({
   documentId: VersionControlId;
 }) => {
   const { versionedDocumentHandle } = useContext(SelectedFileContext);
+  const { getDocumentAt } = useContext(VersionControlContext);
   const [selectedCommit, setSelectedCommit] = React.useState<string>();
+  const [tmpDocHandle, setTmpDocHandle] =
+    React.useState<VersionedDocumentHandle | null>(null);
   const [commits, setCommits] = React.useState<Array<DecodedChange | Commit>>(
     []
   );
@@ -41,22 +47,19 @@ export const DocumentsHistory = ({
   }, [versionedDocumentHandle]);
 
   const selectCommit = useCallback(
-    (hash: string) => {
+    async (hash: string) => {
       if (versionedDocument) {
-        const docView = getDocumentAtCommit(versionedDocument)(hash);
-        // TODO: support rendering a rich text version of the document
-        // at a given point in time
-        console.info(
-          `This is the plain document at this point in time 👉
-  
-  ${docView.content}
-  
-  the rich-text version is not yet supported.`
-        );
         setSelectedCommit(hash);
+        const tmpHandle = await getDocumentAt({
+          document: versionedDocument,
+          commit: hash,
+        });
+        // ⚠️ CAUTION: This (tmpHandle) needs to be deleted
+        // as soon as it's not needed
+        setTmpDocHandle(tmpHandle);
       }
     },
-    [versionedDocument]
+    [getDocumentAt, versionedDocument]
   );
 
   useEffect(() => {
