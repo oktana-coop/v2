@@ -55,7 +55,10 @@ export const DocumentEditor = ({
         onCommit={(message: string) => commitChanges(message)}
       />
       <div className="relative flex w-4/5 flex-auto flex-col items-stretch overflow-hidden">
-        <ActionsBar onEditorToolbarToggle={handleEditorToolbarToggle} />
+        <ActionsBar
+          onEditorToolbarToggle={handleEditorToolbarToggle}
+          onCheckIconClick={handleSave}
+        />
         <RichTextEditor
           docHandle={versionedDocumentHandle}
           onSave={handleSave}
