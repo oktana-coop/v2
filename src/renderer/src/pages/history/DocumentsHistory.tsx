@@ -7,8 +7,6 @@ import {
   type Commit,
   type DecodedChange,
   getCommitsAndUncommittedChanges,
-  getDocumentAtCommit,
-  getSpans,
   type VersionControlId,
   type VersionedDocument,
   VersionedDocumentHandle,
@@ -28,7 +26,7 @@ export const DocumentsHistory = ({
   const { getDocumentAt } = useContext(VersionControlContext);
   const [selectedCommit, setSelectedCommit] = React.useState<string>();
   const [tmpDocHandle, setTmpDocHandle] =
-    React.useState<VersionedDocumentHandle | null>(null);
+    React.useState<VersionedDocumentHandle | null>();
   const [commits, setCommits] = React.useState<Array<DecodedChange | Commit>>(
     []
   );
@@ -88,13 +86,13 @@ export const DocumentsHistory = ({
         />
       </div>
       <div className="flex w-full grow items-stretch">
-        {versionedDocumentHandle ? (
+        {tmpDocHandle ? (
           <div onDoubleClick={() => navigate(`/edit/${documentId}`)}>
             <ProseMirrorProvider>
               <RichTextEditor
                 // explicitly define onSave as a no-op
                 onSave={() => {}}
-                docHandle={versionedDocumentHandle}
+                docHandle={tmpDocHandle}
                 isEditable={false}
               />
             </ProseMirrorProvider>
