@@ -7,12 +7,19 @@ import {
 
 export const ActionsBar = ({
   onEditorToolbarToggle,
+  onCheckIconClick,
 }: {
   onEditorToolbarToggle: () => void;
+  onCheckIconClick: () => void;
 }) => {
   const handleToolbarToggle = (ev: React.MouseEvent) => {
     ev.preventDefault();
     onEditorToolbarToggle();
+  };
+
+  const handleCheckIconClick = (ev: React.MouseEvent) => {
+    ev.preventDefault();
+    onCheckIconClick();
   };
 
   return (
@@ -23,7 +30,11 @@ export const ActionsBar = ({
           icon={<ToolbarToggleIcon />}
           onClick={handleToolbarToggle}
         />
-        <IconButton icon={<CheckIcon />} color="purple" />
+        <IconButton
+          onClick={handleCheckIconClick}
+          icon={<CheckIcon />}
+          color="purple"
+        />
       </div>
     </div>
   );
