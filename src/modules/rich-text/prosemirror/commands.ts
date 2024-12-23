@@ -1,19 +1,26 @@
 import { toggleMark } from 'prosemirror-commands';
-import { MarkType, Schema } from 'prosemirror-model';
+import { Attrs, MarkType, Schema } from 'prosemirror-model';
 import { Command, EditorState, Transaction } from 'prosemirror-state';
 import { AddMarkStep, RemoveMarkStep } from 'prosemirror-transform';
+
+import { LinkAttrs } from '../models/link';
 
 export const toggleStrong = (schema: Schema) =>
   toggleMarkCommand(schema.marks.strong);
 
 export const toggleEm = (schema: Schema) => toggleMarkCommand(schema.marks.em);
 
-const toggleMarkCommand = (mark: MarkType): Command => {
+export const addLink =
+  (schema: Schema) =>
+  (attrs: LinkAttrs): Command =>
+    toggleMarkCommand(schema.marks.link, attrs);
+
+const toggleMarkCommand = (mark: MarkType, attrs?: Attrs): Command => {
   return (
     state: EditorState,
     dispatch: ((tr: Transaction) => void) | undefined
   ) => {
-    return toggleMark(mark)(state, dispatch);
+    return toggleMark(mark, attrs)(state, dispatch);
   };
 };
 

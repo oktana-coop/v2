@@ -10,7 +10,11 @@ import { EditorState, Transaction } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { useEffect, useRef, useState } from 'react';
 
-import { getHeadingLevel, prosemirror } from '../../../../modules/rich-text';
+import {
+  getHeadingLevel,
+  LinkAttrs,
+  prosemirror,
+} from '../../../../modules/rich-text';
 import {
   BlockElementType,
   blockElementTypes,
@@ -20,6 +24,7 @@ import type {
   RichTextDocument,
 } from '../../../../modules/version-control';
 import { EditorToolbar } from './editor-toolbar';
+import { LinkDialog } from './LinkDialog';
 
 const {
   automergeSchemaAdapter,
@@ -29,6 +34,7 @@ const {
   toggleEm,
   toggleStrong,
   transactionUpdatesMarks,
+  addLink,
 } = prosemirror;
 
 type RichTextEditorProps = {
@@ -49,6 +55,8 @@ export const RichTextEditor = ({
   const [schema, setSchema] = useState<Schema | null>(null);
   const [strongSelected, setStrongSelected] = useState<boolean>(false);
   const [emSelected, setEmSelected] = useState<boolean>(false);
+  const [selectionIsLink, setSelectionIsLink] = useState<boolean>(false);
+  const [isLinkDialogOpen, setIsLinkDialogOpen] = useState<boolean>(false);
   const [blockType, setBlockType] = useState<BlockElementType | null>(null);
 
   useEffect(() => {
@@ -92,6 +100,7 @@ export const RichTextEditor = ({
           if (tx.selectionSet || transactionUpdatesMarks(tx)) {
             setStrongSelected(isMarkActive(schema.marks.strong)(newState));
             setEmSelected(isMarkActive(schema.marks.em)(newState));
+            setSelectionIsLink(isMarkActive(schema.marks.link)(newState));
           }
         },
         editable: () => isEditable,
@@ -159,6 +168,26 @@ export const RichTextEditor = ({
     }
   };
 
+  const handleLinkToggle = () => {
+    if (view && schema) {
+      // TODO: Handle link removal
+      if (!isMarkActive(schema.marks.link)(view.state)) {
+        setIsLinkDialogOpen(true);
+      }
+
+      view.focus();
+    }
+  };
+
+  const handleSaveLink = (attrs: LinkAttrs) => {
+    if (view && schema) {
+      addLink(schema)(attrs)(view.state, view.dispatch);
+      view.focus();
+    }
+
+    setIsLinkDialogOpen(false);
+  };
+
   return (
     <>
       <div
@@ -178,11 +207,18 @@ export const RichTextEditor = ({
             onBlockSelect={handleBlockSelect}
             strongSelected={strongSelected}
             emSelected={emSelected}
+            selectionIsLink={selectionIsLink}
             onStrongToggle={handleStrongToggle}
             onEmToggle={handleEmToggle}
+            onLinkToggle={handleLinkToggle}
           />
         </div>
       )}
+      <LinkDialog
+        isOpen={isLinkDialogOpen}
+        onCancel={() => setIsLinkDialogOpen(false)}
+        onSave={handleSaveLink}
+      />
     </>
   );
 };
