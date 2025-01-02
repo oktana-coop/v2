@@ -2,31 +2,50 @@ import type { MarkType, Node } from 'prosemirror-model';
 
 type SearchDirection = 'BACKWARD' | 'FORWARD';
 
-type FindMarkBoundaryProps = {
-  currentPos: number;
-  doc: Node;
-  direction: SearchDirection;
-};
-
 // Finds the mark boundary given a search direction (backward/forward)
-export const findMarkBoundary =
+const findMarkBoundary =
   (markType: MarkType) =>
-  ({ currentPos, doc, direction }: FindMarkBoundaryProps): number => {
-    if (currentPos < 0 || currentPos >= doc.content.size) {
+  ({
+    pos,
+    doc,
+    direction,
+  }: {
+    pos: number;
+    doc: Node;
+    direction: SearchDirection;
+  }): number => {
+    if (pos < 0 || pos >= doc.content.size) {
       // Base case: Out of bounds
-      return currentPos;
+      return pos;
     }
 
-    const $current = doc.resolve(currentPos);
-    if (!markType.isInSet($current.marks())) {
+    const currentPos = doc.resolve(pos);
+    if (!markType.isInSet(currentPos.marks())) {
       // Base case: Mark no longer present
-      return currentPos;
+      return pos;
     }
 
     // Recursive step: Move in the specified direction
     return findMarkBoundary(markType)({
-      currentPos: direction === 'BACKWARD' ? currentPos - 1 : currentPos + 1,
+      pos: direction === 'BACKWARD' ? pos - 1 : pos + 1,
       doc,
       direction,
     });
+  };
+
+export const findMarkBoundaries =
+  (markType: MarkType) =>
+  ({ pos, doc }: { pos: number; doc: Node }): [number, number] => {
+    const start = findMarkBoundary(markType)({
+      pos,
+      doc,
+      direction: 'BACKWARD',
+    });
+    const end = findMarkBoundary(markType)({
+      pos,
+      doc,
+      direction: 'FORWARD',
+    });
+
+    return [start, end];
   };
