@@ -35,6 +35,7 @@ const {
   toggleStrong,
   transactionUpdatesMarks,
   addLink,
+  linkSelectionPlugin,
 } = prosemirror;
 
 type RichTextEditorProps = {
@@ -82,6 +83,7 @@ export const RichTextEditor = ({
               return true;
             },
           }),
+          linkSelectionPlugin,
           automergePlugin,
         ],
         doc: pmDoc,

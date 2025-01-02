@@ -1,7 +1,8 @@
 import type { MarkType } from 'prosemirror-model';
-import { EditorState, TextSelection } from 'prosemirror-state';
+import { EditorState, Plugin, TextSelection } from 'prosemirror-state';
 
 import { BlockElementType, blockElementTypes } from '../constants/blocks';
+import { findMarkBoundary } from './marks';
 
 export const getCurrentBlockType = (
   state: EditorState
@@ -39,3 +40,41 @@ export const isMarkActive =
       return state.doc.rangeHasMark(from, to, markType);
     }
   };
+
+export const linkSelectionPlugin = new Plugin({
+  props: {
+    handleClick: (view, pos) => {
+      const { state } = view;
+      const { schema, doc } = state;
+      const linkMark = schema.marks.link;
+
+      const resolvedPosition = doc.resolve(pos);
+      const positionMarks = resolvedPosition.marks();
+
+      const positionHasLink = positionMarks.some(
+        (mark) => mark.type === linkMark
+      );
+
+      if (positionHasLink) {
+        const start = findMarkBoundary(linkMark)({
+          currentPos: pos,
+          doc,
+          direction: 'BACKWARD',
+        });
+        const end = findMarkBoundary(linkMark)({
+          currentPos: pos,
+          doc,
+          direction: 'FORWARD',
+        });
+
+        // Set the selection to the range of the link
+        const tr = state.tr.setSelection(TextSelection.create(doc, start, end));
+        view.dispatch(tr);
+
+        return true;
+      }
+
+      return false;
+    },
+  },
+});
