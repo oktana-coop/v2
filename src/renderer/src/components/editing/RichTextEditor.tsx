@@ -6,7 +6,7 @@ import {
 } from 'prosemirror-commands';
 import { keymap } from 'prosemirror-keymap';
 import { Schema } from 'prosemirror-model';
-import { EditorState, Transaction } from 'prosemirror-state';
+import { EditorState, Selection, Transaction } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { useEffect, useRef, useState } from 'react';
 
@@ -25,6 +25,7 @@ import type {
 } from '../../../../modules/version-control';
 import { EditorToolbar } from './editor-toolbar';
 import { LinkDialog } from './LinkDialog';
+import { LinkPopover } from './LinkPopover';
 
 const {
   automergeSchemaAdapter,
@@ -36,6 +37,8 @@ const {
   transactionUpdatesMarks,
   addLink,
   linkSelectionPlugin,
+  selectionChangePlugin,
+  findLinkAtSelection,
 } = prosemirror;
 
 type RichTextEditorProps = {
@@ -59,6 +62,34 @@ export const RichTextEditor = ({
   const [selectionIsLink, setSelectionIsLink] = useState<boolean>(false);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState<boolean>(false);
   const [blockType, setBlockType] = useState<BlockElementType | null>(null);
+  const [isLinkPopoverOpen, setIsLinkPopoverOpen] = useState<boolean>(false);
+  // Using state instead of useRef to trigger a popover re-render when the link ref changes
+  const [linkPopoverData, setLinkPopoverData] = useState<{
+    ref: Element;
+    linkAttrs: LinkAttrs;
+  } | null>(null);
+
+  const onSelectionChange: (
+    schema: Schema
+  ) => (selection: Selection, view: EditorView) => void =
+    (schema) => (selection, view) => {
+      const hideLinkPopover = () => {
+        setLinkPopoverData(null);
+        setIsLinkPopoverOpen(false);
+      };
+
+      if (isMarkActive(schema.marks.link)(view.state)) {
+        const link = findLinkAtSelection({ view, selection });
+        if (link) {
+          setLinkPopoverData({ ref: link.element, linkAttrs: link.linkAttrs });
+          setIsLinkPopoverOpen(true);
+        } else {
+          hideLinkPopover();
+        }
+      } else {
+        hideLinkPopover();
+      }
+    };
 
   useEffect(() => {
     if (docHandle) {
@@ -84,6 +115,7 @@ export const RichTextEditor = ({
             },
           }),
           linkSelectionPlugin,
+          selectionChangePlugin(onSelectionChange(schema)),
           automergePlugin,
         ],
         doc: pmDoc,
@@ -221,6 +253,8 @@ export const RichTextEditor = ({
         onCancel={() => setIsLinkDialogOpen(false)}
         onSave={handleSaveLink}
       />
+
+      <LinkPopover linkData={linkPopoverData} isOpen={isLinkPopoverOpen} />
     </>
   );
 };

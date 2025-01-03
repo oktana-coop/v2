@@ -8,3 +8,11 @@ export const isValidURL = (str: string) => {
     return false;
   }
 };
+
+export const getLinkAttrsFromDomElement = (domElement: HTMLElement) => {
+  const attrs: LinkAttrs = {
+    href: domElement.getAttribute('href') ?? '',
+    title: domElement.getAttribute('title') ?? '',
+  };
+  return attrs;
+};

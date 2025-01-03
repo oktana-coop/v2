@@ -17,7 +17,7 @@ import { classes as heading1Classes } from '../../../renderer/src/components/typ
 import { classes as heading2Classes } from '../../../renderer/src/components/typography/headings/Heading2';
 import { classes as heading3Classes } from '../../../renderer/src/components/typography/headings/Heading3';
 import { classes as heading4Classes } from '../../../renderer/src/components/typography/headings/Heading4';
-import { type LinkAttrs } from '../models/link';
+import { getLinkAttrsFromDomElement, type LinkAttrs } from '../models/link';
 
 // basics
 const pDOM: DOMOutputSpec = ['p', 0];
@@ -279,13 +279,7 @@ const schema: MappedSchemaSpec = {
       parseDOM: [
         {
           tag: 'a[href]',
-          getAttrs(dom: HTMLElement) {
-            const attrs: LinkAttrs = {
-              href: dom.getAttribute('href') ?? '',
-              title: dom.getAttribute('title') ?? '',
-            };
-            return attrs;
-          },
+          getAttrs: getLinkAttrsFromDomElement,
         },
       ],
       toDOM(node) {
