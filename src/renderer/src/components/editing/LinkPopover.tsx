@@ -12,7 +12,7 @@ type LinkPopoverProps = {
 };
 
 export const LinkPopover = ({ isOpen, linkData }: LinkPopoverProps) => {
-  const { x, y, strategy, refs, update } = useFloating<HTMLDivElement>({
+  const { x, strategy, refs, update } = useFloating<HTMLDivElement>({
     strategy: 'absolute',
   });
 
@@ -29,7 +29,6 @@ export const LinkPopover = ({ isOpen, linkData }: LinkPopoverProps) => {
     <div
       ref={refs.floating as RefObject<HTMLDivElement>}
       className={clsx(
-        '[--anchor-gap:theme(spacing.2)] [--anchor-padding:theme(spacing.1)] data-[anchor~=start]:[--anchor-offset:-6px] data-[anchor~=end]:[--anchor-offset:6px] sm:data-[anchor~=start]:[--anchor-offset:-4px] sm:data-[anchor~=end]:[--anchor-offset:4px]',
         // Base styles
         'isolate w-max p-3',
         // Invisible border that is only visible in `forced-colors` mode for accessibility purposes
@@ -45,7 +44,7 @@ export const LinkPopover = ({ isOpen, linkData }: LinkPopoverProps) => {
       )}
       style={{
         position: strategy,
-        top: y ?? 0,
+        top: linkData.ref.getBoundingClientRect().bottom + 8,
         left: x ?? 0,
       }}
     >
