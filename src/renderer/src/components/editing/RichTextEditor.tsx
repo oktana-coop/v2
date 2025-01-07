@@ -36,6 +36,7 @@ const {
   toggleStrong,
   transactionUpdatesMarks,
   addLink,
+  removeLink,
   linkSelectionPlugin,
   selectionChangePlugin,
   findLinkAtSelection,
@@ -222,6 +223,15 @@ export const RichTextEditor = ({
     setIsLinkDialogOpen(false);
   };
 
+  const handleRemoveLink = () => {
+    if (view && schema) {
+      removeLink(schema)(view.state, view.dispatch);
+      view.focus();
+    }
+
+    setIsLinkDialogOpen(false);
+  };
+
   return (
     <>
       <div
@@ -254,7 +264,11 @@ export const RichTextEditor = ({
         onSave={handleSaveLink}
       />
 
-      <LinkPopover linkData={linkPopoverData} isOpen={isLinkPopoverOpen} />
+      <LinkPopover
+        linkData={linkPopoverData}
+        isOpen={isLinkPopoverOpen}
+        onRemoveLink={handleRemoveLink}
+      />
     </>
   );
 };

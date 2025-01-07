@@ -4,6 +4,7 @@ import { Command, EditorState, Transaction } from 'prosemirror-state';
 import { AddMarkStep, RemoveMarkStep } from 'prosemirror-transform';
 
 import { LinkAttrs } from '../models/link';
+import { isMarkActive } from './selection';
 
 export const toggleStrong = (schema: Schema) =>
   toggleMarkCommand(schema.marks.strong);
@@ -14,6 +15,19 @@ export const addLink =
   (schema: Schema) =>
   (attrs: LinkAttrs): Command =>
     toggleMarkCommand(schema.marks.link, attrs);
+
+export const removeLink = (schema: Schema): Command => {
+  return (
+    state: EditorState,
+    dispatch: ((tr: Transaction) => void) | undefined
+  ) => {
+    if (isMarkActive(schema.marks.link)(state)) {
+      return toggleMark(schema.marks.link)(state, dispatch);
+    }
+
+    return false;
+  };
+};
 
 const toggleMarkCommand = (mark: MarkType, attrs?: Attrs): Command => {
   return (

@@ -3,15 +3,21 @@ import clsx from 'clsx';
 import { type RefObject, useEffect } from 'react';
 
 import { LinkAttrs } from '../../../../modules/rich-text';
+import { Button } from '../actions/Button';
 import { Heading4 } from '../typography/headings/Heading4';
 import { link as linkClasses } from './marks';
 
 type LinkPopoverProps = {
   isOpen: boolean;
   linkData: { ref: Element; linkAttrs: LinkAttrs } | null;
+  onRemoveLink: () => void;
 };
 
-export const LinkPopover = ({ isOpen, linkData }: LinkPopoverProps) => {
+export const LinkPopover = ({
+  isOpen,
+  linkData,
+  onRemoveLink,
+}: LinkPopoverProps) => {
   const { x, strategy, refs, update } = useFloating<HTMLDivElement>({
     strategy: 'absolute',
   });
@@ -48,11 +54,19 @@ export const LinkPopover = ({ isOpen, linkData }: LinkPopoverProps) => {
         left: x ?? 0,
       }}
     >
-      <Heading4>{linkData.linkAttrs.title}</Heading4>
       <div>
-        <a className={linkClasses} href={linkData.linkAttrs.href}>
-          {linkData.linkAttrs.href}
-        </a>
+        <Heading4>{linkData.linkAttrs.title}</Heading4>
+        <div>
+          <a className={linkClasses} href={linkData.linkAttrs.href}>
+            {linkData.linkAttrs.href}
+          </a>
+        </div>
+      </div>
+      <div className="mt-2 flex flex-col-reverse items-center justify-end gap-3 *:w-full sm:flex-row sm:*:w-auto">
+        <Button variant="plain">Edit</Button>
+        <Button onClick={onRemoveLink} color="purple">
+          Remove
+        </Button>
       </div>
     </div>
   );
