@@ -48,6 +48,28 @@ export const isMarkActive =
     }
   };
 
+export const getSelectedText = (state: EditorState): string | null => {
+  const { selection } = state;
+
+  // Check if the selection is a text selection and not a node selection
+  if (!(selection instanceof TextSelection)) {
+    return null;
+  }
+
+  // Check if the selection is a cursor (i.e., no range)
+  if (selection.empty) {
+    return null;
+  }
+
+  // Check if the selection spans multiple blocks
+  const { $from, $to } = selection;
+  if ($from.blockRange($to) === null) {
+    return null;
+  }
+
+  return state.doc.textBetween(selection.from, selection.to);
+};
+
 export const findLinkAtSelection = ({
   view,
   selection,

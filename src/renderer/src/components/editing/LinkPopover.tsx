@@ -10,12 +10,14 @@ import { link as linkClasses } from './marks';
 type LinkPopoverProps = {
   isOpen: boolean;
   linkData: { ref: Element; linkAttrs: LinkAttrs } | null;
+  onEditLink: () => void;
   onRemoveLink: () => void;
 };
 
 export const LinkPopover = ({
   isOpen,
   linkData,
+  onEditLink,
   onRemoveLink,
 }: LinkPopoverProps) => {
   const { x, strategy, refs, update } = useFloating<HTMLDivElement>({
@@ -63,7 +65,9 @@ export const LinkPopover = ({
         </div>
       </div>
       <div className="mt-3 flex flex-col-reverse items-center justify-end gap-3 *:w-full sm:flex-row sm:*:w-auto">
-        <Button variant="plain">Edit</Button>
+        <Button onClick={onEditLink} variant="plain">
+          Edit
+        </Button>
         <Button onClick={onRemoveLink} color="red">
           Remove
         </Button>

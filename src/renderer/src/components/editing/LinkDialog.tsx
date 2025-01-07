@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { ensureHttpPrefix, LinkAttrs } from '../../../../modules/rich-text';
 import { Button } from '../actions/Button';
@@ -8,18 +8,25 @@ import { Field, FieldGroup, Fieldset, Label } from '../inputs/Fieldset';
 import { Input } from '../inputs/Input';
 
 type LinkDialogProps = {
-  onSave: (attrs: LinkAttrs) => void;
-  onCancel?: () => void;
+  initialLinkAttrs: LinkAttrs;
   isOpen?: boolean;
+  onCancel?: () => void;
+  onSave: (attrs: LinkAttrs) => void;
 };
 
 export const LinkDialog = ({
+  initialLinkAttrs,
   isOpen = false,
   onCancel,
   onSave,
 }: LinkDialogProps) => {
-  const [title, setTitle] = useState<string>('');
-  const [href, setHref] = useState<string>('');
+  const [title, setTitle] = useState<string>(initialLinkAttrs.title);
+  const [href, setHref] = useState<string>(initialLinkAttrs.href);
+
+  useEffect(() => {
+    setTitle(initialLinkAttrs.title);
+    setHref(initialLinkAttrs.href);
+  }, [initialLinkAttrs]);
 
   const handleSave = () => {
     if (title && href) {
@@ -33,11 +40,14 @@ export const LinkDialog = ({
       onCancel();
     }
 
-    // on cmd/ctrl + enter --> save
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    if (e.key === 'Enter') {
       e.preventDefault();
       handleSave();
     }
+  };
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTitle(e.target.value);
   };
 
   const handleHrefChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,8 +76,9 @@ export const LinkDialog = ({
             <Label>Text</Label>
             <Input
               autoFocus={true}
+              value={title}
               name="title"
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={handleTitleChange}
               onKeyDown={handleKeyDown}
             />
           </Field>
@@ -75,6 +86,7 @@ export const LinkDialog = ({
             <Label>Link</Label>
             <Input
               name="href"
+              value={href}
               onChange={handleHrefChange}
               onKeyDown={handleKeyDown}
             />

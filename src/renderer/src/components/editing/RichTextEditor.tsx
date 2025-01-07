@@ -37,8 +37,10 @@ const {
   transactionUpdatesMarks,
   addLink,
   removeLink,
+  updateLink,
   linkSelectionPlugin,
   selectionChangePlugin,
+  getSelectedText,
   findLinkAtSelection,
 } = prosemirror;
 
@@ -58,14 +60,16 @@ export const RichTextEditor = ({
   const editorRoot = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<EditorView | null>(null);
   const [schema, setSchema] = useState<Schema | null>(null);
+  const [blockType, setBlockType] = useState<BlockElementType | null>(null);
   const [strongSelected, setStrongSelected] = useState<boolean>(false);
   const [emSelected, setEmSelected] = useState<boolean>(false);
   const [selectionIsLink, setSelectionIsLink] = useState<boolean>(false);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState<boolean>(false);
-  const [blockType, setBlockType] = useState<BlockElementType | null>(null);
+  const [linkDialogInitialAttrs, setLinkDialogInitialAttrs] =
+    useState<LinkAttrs>({ title: '', href: '' });
   const [isLinkPopoverOpen, setIsLinkPopoverOpen] = useState<boolean>(false);
   // Using state instead of useRef to trigger a popover re-render when the link ref changes
-  const [linkPopoverData, setLinkPopoverData] = useState<{
+  const [selectedLinkData, setSelectedLinkData] = useState<{
     ref: Element;
     linkAttrs: LinkAttrs;
   } | null>(null);
@@ -75,14 +79,14 @@ export const RichTextEditor = ({
   ) => (selection: Selection, view: EditorView) => void =
     (schema) => (selection, view) => {
       const hideLinkPopover = () => {
-        setLinkPopoverData(null);
+        setSelectedLinkData(null);
         setIsLinkPopoverOpen(false);
       };
 
       if (isMarkActive(schema.marks.link)(view.state)) {
         const link = findLinkAtSelection({ view, selection });
         if (link) {
-          setLinkPopoverData({ ref: link.element, linkAttrs: link.linkAttrs });
+          setSelectedLinkData({ ref: link.element, linkAttrs: link.linkAttrs });
           setIsLinkPopoverOpen(true);
         } else {
           hideLinkPopover();
@@ -205,9 +209,12 @@ export const RichTextEditor = ({
 
   const handleLinkToggle = () => {
     if (view && schema) {
-      // TODO: Handle link removal
       if (!isMarkActive(schema.marks.link)(view.state)) {
+        const selectedText = getSelectedText(view.state);
+        setLinkDialogInitialAttrs({ title: selectedText ?? '', href: '' });
         setIsLinkDialogOpen(true);
+      } else {
+        handleEditLink();
       }
 
       view.focus();
@@ -216,11 +223,23 @@ export const RichTextEditor = ({
 
   const handleSaveLink = (attrs: LinkAttrs) => {
     if (view && schema) {
-      addLink(schema)(attrs)(view.state, view.dispatch);
+      if (!isMarkActive(schema.marks.link)(view.state)) {
+        addLink(schema)(attrs)(view.state, view.dispatch);
+      } else {
+        updateLink(schema)(attrs)(view.state, view.dispatch);
+      }
       view.focus();
     }
 
     setIsLinkDialogOpen(false);
+  };
+
+  const handleEditLink = () => {
+    if (selectedLinkData) {
+      setLinkDialogInitialAttrs(selectedLinkData.linkAttrs);
+      setIsLinkPopoverOpen(false);
+      setIsLinkDialogOpen(true);
+    }
   };
 
   const handleRemoveLink = () => {
@@ -229,6 +248,7 @@ export const RichTextEditor = ({
       view.focus();
     }
 
+    setIsLinkPopoverOpen(false);
     setIsLinkDialogOpen(false);
   };
 
@@ -259,14 +279,15 @@ export const RichTextEditor = ({
         </div>
       )}
       <LinkDialog
+        initialLinkAttrs={linkDialogInitialAttrs}
         isOpen={isLinkDialogOpen}
         onCancel={() => setIsLinkDialogOpen(false)}
         onSave={handleSaveLink}
       />
-
       <LinkPopover
-        linkData={linkPopoverData}
+        linkData={selectedLinkData}
         isOpen={isLinkPopoverOpen}
+        onEditLink={handleEditLink}
         onRemoveLink={handleRemoveLink}
       />
     </>
