@@ -23,6 +23,24 @@ export const addLink =
       state: EditorState,
       dispatch: ((tr: Transaction) => void) | undefined
     ) => {
+      // if the selection is empty, insert text and mark at the cursor position
+      if (state.selection.empty && attrs.title.length > 0) {
+        const { tr } = state;
+
+        tr.insertText(attrs.title, state.selection.from).addMark(
+          state.selection.from,
+          state.selection.from + attrs.title.length,
+          schema.marks.link.create(attrs)
+        );
+
+        if (dispatch) {
+          dispatch(tr.scrollIntoView());
+        }
+
+        return true;
+      }
+
+      // if the selection is not empty, apply the link mark on it if it's not already active
       if (!isMarkActive(schema.marks.link)(state)) {
         return toggleMark(schema.marks.link, attrs)(state, dispatch);
       }
