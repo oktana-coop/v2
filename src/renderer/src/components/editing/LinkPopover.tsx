@@ -36,7 +36,7 @@ export const LinkPopover = ({
       ref={refs.floating as RefObject<HTMLDivElement>}
       className={clsx(
         // Base styles
-        'isolate w-max p-3',
+        'isolate w-max min-w-80 p-3',
         // Invisible border that is only visible in `forced-colors` mode for accessibility purposes
         'outline outline-1 outline-transparent focus:outline-none',
         // Handle scrolling when the popover won't fit in viewport
@@ -55,16 +55,16 @@ export const LinkPopover = ({
       }}
     >
       <div>
-        <Heading4>{linkData.linkAttrs.title}</Heading4>
-        <div>
+        <Heading4 className="text-left">{linkData.linkAttrs.title}</Heading4>
+        <div className="flex">
           <a className={linkClasses} href={linkData.linkAttrs.href}>
             {linkData.linkAttrs.href}
           </a>
         </div>
       </div>
-      <div className="mt-2 flex flex-col-reverse items-center justify-end gap-3 *:w-full sm:flex-row sm:*:w-auto">
+      <div className="mt-3 flex flex-col-reverse items-center justify-end gap-3 *:w-full sm:flex-row sm:*:w-auto">
         <Button variant="plain">Edit</Button>
-        <Button onClick={onRemoveLink} color="purple">
+        <Button onClick={onRemoveLink} color="red">
           Remove
         </Button>
       </div>

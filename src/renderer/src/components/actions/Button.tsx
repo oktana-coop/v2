@@ -96,6 +96,10 @@ const styles = {
         'text-white dark:text-zinc-950 [--btn-hover-overlay:theme(colors.white/10%)] [--btn-bg:theme(colors.purple.500)] dark:[--btn-bg:theme(colors.purple.300)] [--btn-border:theme(colors.purple.600/90%)]',
         '[--btn-icon:white] dark:[--btn-icon:theme(colors.zinc.950)]',
       ],
+      red: [
+        'text-white dark:text-zinc-950 [--btn-hover-overlay:theme(colors.white/10%)] [--btn-bg:theme(colors.red.500)] dark:[--btn-bg:theme(colors.red.300)] [--btn-border:theme(colors.red.600/90%)]',
+        '[--btn-icon:white] dark:[--btn-icon:theme(colors.zinc.950)]',
+      ],
     },
     outline: {
       'dark/zinc': [
@@ -121,6 +125,16 @@ const styles = {
         // Icon
         '[--btn-icon:theme(colors.purple.500)] dark:[--btn-icon:theme(colors.purple.100)]',
       ],
+      red: [
+        // Base
+        'border-red-500 text-red-500 data-[active]:bg-red-50 data-[hover]:bg-red-50',
+
+        // Dark mode
+        'dark:border-red-100 dark:text-red-100 dark:[--btn-bg:transparent] dark:data-[active]:bg-red-50 dark:data-[hover]:bg-red-50',
+
+        // Icon
+        '[--btn-icon:theme(colors.red.500)] dark:[--btn-icon:theme(colors.red.100)]',
+      ],
     },
     plain: {
       'dark/zinc': [
@@ -139,6 +153,10 @@ const styles = {
       purple: [
         'text-purple-500 text-opacity-100 dark:text-purple-300 dark:data-[active]:bg-purple-50 dark:data-[hover]:bg-purple-50',
         '[--btn-icon:theme(colors.purple.500)] dark:[--btn-icon:theme(colors.purple.300)]',
+      ],
+      red: [
+        'text-red-500 text-opacity-100 dark:text-red-300 dark:data-[active]:bg-red-50 dark:data-[hover]:bg-red-50',
+        '[--btn-icon:theme(colors.red.500)] dark:[--btn-icon:theme(colors.red.300)]',
       ],
     },
   },
