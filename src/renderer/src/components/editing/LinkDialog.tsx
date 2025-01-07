@@ -1,16 +1,10 @@
 import React, { useState } from 'react';
 
-import { isValidURL, LinkAttrs } from '../../../../modules/rich-text';
+import { ensureHttpPrefix, LinkAttrs } from '../../../../modules/rich-text';
 import { Button } from '../actions/Button';
 import { Modal } from '../dialogs/Modal';
 import { CheckIcon } from '../icons/Check';
-import {
-  ErrorMessage,
-  Field,
-  FieldGroup,
-  Fieldset,
-  Label,
-} from '../inputs/Fieldset';
+import { Field, FieldGroup, Fieldset, Label } from '../inputs/Fieldset';
 import { Input } from '../inputs/Input';
 
 type LinkDialogProps = {
@@ -26,16 +20,11 @@ export const LinkDialog = ({
 }: LinkDialogProps) => {
   const [title, setTitle] = useState<string>('');
   const [href, setHref] = useState<string>('');
-  const [invalidURL, setInvalidURL] = useState<boolean>(false);
-  const [hasClickedSave, setHasClickedSave] = useState<boolean>(false);
 
-  // TODO: Validate links before saving
   const handleSave = () => {
-    if (title && isValidURL(href)) {
-      onSave({ title, href });
+    if (title && href) {
+      onSave({ title, href: ensureHttpPrefix(href) });
     }
-
-    setHasClickedSave(true);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -53,12 +42,6 @@ export const LinkDialog = ({
 
   const handleHrefChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setHref(e.target.value);
-
-    if (isValidURL(href)) {
-      setInvalidURL(false);
-    } else {
-      setInvalidURL(true);
-    }
   };
 
   return (
@@ -71,11 +54,7 @@ export const LinkDialog = ({
         </Button>
       }
       primaryButton={
-        <Button
-          onClick={handleSave}
-          disabled={!(title && href && !invalidURL)}
-          color="purple"
-        >
+        <Button onClick={handleSave} disabled={!(title && href)} color="purple">
           <CheckIcon />
           Save
         </Button>
@@ -99,9 +78,6 @@ export const LinkDialog = ({
               onChange={handleHrefChange}
               onKeyDown={handleKeyDown}
             />
-            {hasClickedSave && invalidURL && (
-              <ErrorMessage>Invalid Link</ErrorMessage>
-            )}
           </Field>
         </FieldGroup>
       </Fieldset>

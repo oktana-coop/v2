@@ -9,6 +9,13 @@ export const isValidURL = (str: string) => {
   }
 };
 
+export const ensureHttpPrefix = (str: string) => {
+  if (str.startsWith('http://') || str.startsWith('https://')) {
+    return str;
+  }
+  return `https://${str}`;
+};
+
 export const getLinkAttrsFromDomElement = (domElement: HTMLElement) => {
   const attrs: LinkAttrs = {
     href: domElement.getAttribute('href') ?? '',
