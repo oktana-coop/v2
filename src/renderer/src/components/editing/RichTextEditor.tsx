@@ -259,7 +259,7 @@ export const RichTextEditor = ({
         id="editor"
         ref={editorRoot}
       />
-      {blockType && (
+      {isEditable && blockType && (
         <div
           className={clsx(
             'absolute self-center drop-shadow transition-bottom',
@@ -278,18 +278,22 @@ export const RichTextEditor = ({
           />
         </div>
       )}
-      <LinkDialog
-        initialLinkAttrs={linkDialogInitialAttrs}
-        isOpen={isLinkDialogOpen}
-        onCancel={() => setIsLinkDialogOpen(false)}
-        onSave={handleSaveLink}
-      />
-      <LinkPopover
-        linkData={selectedLinkData}
-        isOpen={isLinkPopoverOpen}
-        onEditLink={handleEditLink}
-        onRemoveLink={handleRemoveLink}
-      />
+      {isEditable && (
+        <>
+          <LinkDialog
+            initialLinkAttrs={linkDialogInitialAttrs}
+            isOpen={isLinkDialogOpen}
+            onCancel={() => setIsLinkDialogOpen(false)}
+            onSave={handleSaveLink}
+          />
+          <LinkPopover
+            linkData={selectedLinkData}
+            isOpen={isLinkPopoverOpen}
+            onEditLink={handleEditLink}
+            onRemoveLink={handleRemoveLink}
+          />
+        </>
+      )}
     </>
   );
 };
