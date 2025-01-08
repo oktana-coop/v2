@@ -1,4 +1,10 @@
-import { useFloating } from '@floating-ui/react';
+import {
+  autoPlacement,
+  hide,
+  inline,
+  offset,
+  useFloating,
+} from '@floating-ui/react';
 import clsx from 'clsx';
 import { type RefObject, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -21,8 +27,9 @@ export const LinkPopover = ({
   onEditLink,
   onRemoveLink,
 }: LinkPopoverProps) => {
-  const { x, strategy, refs, update } = useFloating<HTMLDivElement>({
+  const { x, y, strategy, refs, update } = useFloating<HTMLDivElement>({
     strategy: 'absolute',
+    middleware: [offset(8), autoPlacement(), hide(), inline()],
   });
 
   useEffect(() => {
@@ -56,7 +63,7 @@ export const LinkPopover = ({
       )}
       style={{
         position: strategy,
-        top: linkData.ref.getBoundingClientRect().bottom + 8,
+        top: y ?? 0,
         left: x ?? 0,
       }}
     >
