@@ -19,6 +19,9 @@ export const Layout = ({ children }: { children: ReactNode }) => {
     <div className={clsx('flex h-full', themeStyles)}>
       <NavBar />
       {children}
+      {/* container for popovers, useful for not being constrained by component 
+      hierarchy in the z axis. Meant to be used with React's `createPortal` */}
+      <div id="popover-container" />
     </div>
   );
 };
