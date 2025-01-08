@@ -1,5 +1,4 @@
 import {
-  arrow,
   autoPlacement,
   hide,
   inline,
@@ -7,7 +6,7 @@ import {
   useFloating,
 } from '@floating-ui/react';
 import clsx from 'clsx';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 import { LinkAttrs } from '../../../../modules/rich-text';
