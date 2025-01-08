@@ -1,7 +1,15 @@
 import type { MarkType } from 'prosemirror-model';
-import { EditorState, TextSelection } from 'prosemirror-state';
+import {
+  EditorState,
+  Plugin,
+  Selection,
+  TextSelection,
+} from 'prosemirror-state';
+import { EditorView } from 'prosemirror-view';
 
 import { BlockElementType, blockElementTypes } from '../constants/blocks';
+import { getLinkAttrsFromDomElement, type LinkAttrs } from '../models/link';
+import { findMarkBoundaries } from './marks';
 
 export const getCurrentBlockType = (
   state: EditorState
@@ -39,3 +47,110 @@ export const isMarkActive =
       return state.doc.rangeHasMark(from, to, markType);
     }
   };
+
+export const getSelectedText = (state: EditorState): string | null => {
+  const { selection } = state;
+
+  // Check if the selection is a text selection and not a node selection
+  if (!(selection instanceof TextSelection)) {
+    return null;
+  }
+
+  // Check if the selection is a cursor (i.e., no range)
+  if (selection.empty) {
+    return null;
+  }
+
+  // Check if the selection spans multiple blocks
+  const { $from, $to } = selection;
+  if ($from.blockRange($to) === null) {
+    return null;
+  }
+
+  return state.doc.textBetween(selection.from, selection.to);
+};
+
+export const findLinkAtSelection = ({
+  view,
+  selection,
+}: {
+  view: EditorView;
+  selection: Selection;
+}): { element: HTMLElement; linkAttrs: LinkAttrs } | null => {
+  const domAtPos = view.domAtPos(selection.from, 1);
+
+  const findLinkElement = (
+    node: Node
+  ): { element: HTMLElement; linkAttrs: LinkAttrs } | null => {
+    // Ensure the node exists and is a valid DOM element
+    if (!node || node.nodeType !== Node.ELEMENT_NODE) return null;
+
+    // Base case: If the node is an <a> element, return it
+    if (node instanceof HTMLElement && node.tagName === 'A') {
+      const linkAttrs = getLinkAttrsFromDomElement(node);
+      return { element: node, linkAttrs };
+    }
+
+    // Recursive case: Check the parent node if it exists
+    return node.parentNode ? findLinkElement(node.parentNode) : null;
+  };
+
+  const initialNode =
+    domAtPos.node.nodeType === Node.TEXT_NODE
+      ? domAtPos.node.parentNode // Start with the parent of a text node
+      : domAtPos.node; // Or use the node directly if it's not a text node
+
+  return initialNode ? findLinkElement(initialNode) : null;
+};
+
+export const linkSelectionPlugin = new Plugin({
+  props: {
+    handleClick: (view, pos) => {
+      const { state } = view;
+      const { schema, doc } = state;
+      const linkMark = schema.marks.link;
+
+      const resolvedPosition = doc.resolve(pos);
+      const positionMarks = resolvedPosition.marks();
+
+      const positionHasLink = positionMarks.some(
+        (mark) => mark.type === linkMark
+      );
+
+      if (positionHasLink) {
+        const [start, end] = findMarkBoundaries(linkMark)({ pos, doc });
+        const tr = state.tr.setSelection(TextSelection.create(doc, start, end));
+        view.dispatch(tr);
+
+        return true;
+      }
+
+      return false;
+    },
+  },
+});
+
+export const selectionChangePlugin = (
+  onSelectionChange: (selection: Selection, view: EditorView) => void
+) =>
+  new Plugin({
+    view() {
+      return {
+        update(view, prevState) {
+          const { state } = view;
+          const { selection } = state;
+
+          // Detect if the selection has changed
+          if (
+            !(
+              prevState &&
+              prevState.doc.eq(state.doc) &&
+              selection.eq(prevState.selection)
+            )
+          ) {
+            onSelectionChange(selection, view);
+          }
+        },
+      };
+    },
+  });

@@ -12,10 +12,12 @@ import {
   NodeSpec,
 } from 'prosemirror-model';
 
+import { link as linkClasses } from '../../../renderer/src/components/editing/marks';
 import { classes as heading1Classes } from '../../../renderer/src/components/typography/headings/Heading1';
 import { classes as heading2Classes } from '../../../renderer/src/components/typography/headings/Heading2';
 import { classes as heading3Classes } from '../../../renderer/src/components/typography/headings/Heading3';
 import { classes as heading4Classes } from '../../../renderer/src/components/typography/headings/Heading4';
+import { getLinkAttrsFromDomElement, type LinkAttrs } from '../models/link';
 
 // basics
 const pDOM: DOMOutputSpec = ['p', 0];
@@ -277,37 +279,44 @@ const schema: MappedSchemaSpec = {
       parseDOM: [
         {
           tag: 'a[href]',
-          getAttrs(dom: HTMLElement) {
-            return {
-              href: dom.getAttribute('href'),
-              title: dom.getAttribute('title'),
-            };
-          },
+          getAttrs: getLinkAttrsFromDomElement,
         },
       ],
       toDOM(node) {
         const { href, title } = node.attrs;
-        return ['a', { href, title }, 0];
+        return [
+          'a',
+          {
+            href,
+            title,
+            class: linkClasses,
+          },
+          0,
+        ];
       },
       automerge: {
         markName: 'link',
         parsers: {
           fromAutomerge: (mark: Automerge.MarkValue) => {
             if (typeof mark === 'string') {
+              // TODO: Move to link model
               try {
                 const value = JSON.parse(mark);
-                return {
+                const linkAttrs: LinkAttrs = {
                   href: value.href || '',
                   title: value.title || '',
                 };
+                return linkAttrs;
               } catch (e) {
                 console.warn('failed to parse link mark as JSON');
               }
             }
-            return {
+
+            const linkAttrs: LinkAttrs = {
               href: '',
               title: '',
             };
+            return linkAttrs;
           },
           fromProsemirror: (mark: Mark) =>
             JSON.stringify({

@@ -20,18 +20,23 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Editor />} />
-        <Route path="/edit" element={<Editor />}>
-          <Route path=":documentId" element={<Editor />} />
-        </Route>
-        <Route path="history" element={<History />}>
-          <Route path=":documentId" element={<History />} />
-        </Route>
-        <Route path="/options" element={<Options />} />
-      </Routes>
-    </BrowserRouter>
+    <>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Editor />} />
+          <Route path="/edit" element={<Editor />}>
+            <Route path=":documentId" element={<Editor />} />
+          </Route>
+          <Route path="history" element={<History />}>
+            <Route path=":documentId" element={<History />} />
+          </Route>
+          <Route path="/options" element={<Options />} />
+        </Routes>
+      </BrowserRouter>
+      {/* container for popovers, useful for not being constrained by component 
+      hierarchy in the z axis. Meant to be used with React's `createPortal` */}
+      <div id="popover-container" />
+    </>
   );
 }
 

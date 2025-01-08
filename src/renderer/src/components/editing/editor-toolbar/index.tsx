@@ -49,15 +49,19 @@ export const EditorToolbar = ({
   onBlockSelect,
   strongSelected,
   emSelected,
+  selectionIsLink,
   onStrongToggle,
   onEmToggle,
+  onLinkToggle,
 }: {
   blockType: BlockElementType;
   onBlockSelect: (type: BlockElementType) => void;
   strongSelected: boolean;
   emSelected: boolean;
+  selectionIsLink: boolean;
   onStrongToggle: () => void;
   onEmToggle: () => void;
+  onLinkToggle: () => void;
 }) => {
   return (
     <div className="flex gap-x-6 bg-neutral-200 px-4 py-1.5 dark:bg-neutral-700">
@@ -79,7 +83,11 @@ export const EditorToolbar = ({
           color={emSelected ? 'purple' : undefined}
           onClick={onEmToggle}
         />
-        <IconButton icon={<LinkIcon />} />
+        <IconButton
+          icon={<LinkIcon />}
+          color={selectionIsLink ? 'purple' : undefined}
+          onClick={onLinkToggle}
+        />
       </div>
       <div className="flex flex-initial gap-x-1">
         <IconButton icon={<ImageIcon />} />
