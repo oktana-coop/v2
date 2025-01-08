@@ -254,11 +254,10 @@ export const RichTextEditor = ({
 
   return (
     <>
-      <div
-        className="flex flex-auto p-4 outline-none"
-        id="editor"
-        ref={editorRoot}
-      />
+      <div className="flex flex-auto overflow-auto outline-none">
+        <div className="p-4" id="editor" ref={editorRoot} />
+      </div>
+
       {isEditable && blockType && (
         <div
           className={clsx(
