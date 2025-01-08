@@ -1,6 +1,7 @@
 import { useFloating } from '@floating-ui/react';
 import clsx from 'clsx';
 import { type RefObject, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 import { LinkAttrs } from '../../../../modules/rich-text';
 import { Button } from '../actions/Button';
@@ -31,9 +32,12 @@ export const LinkPopover = ({
     }
   }, [linkData, refs, update]);
 
-  if (!isOpen || !linkData) return null;
+  const containerElement = document.getElementById('popover-container');
 
-  return (
+  if (!isOpen || !linkData || !containerElement) return null;
+
+  // Using a portal to render the popover above its container in the z axis.
+  return createPortal(
     <div
       ref={refs.floating as RefObject<HTMLDivElement>}
       className={clsx(
@@ -72,6 +76,7 @@ export const LinkPopover = ({
           Remove
         </Button>
       </div>
-    </div>
+    </div>,
+    containerElement
   );
 };
