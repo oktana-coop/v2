@@ -1,4 +1,5 @@
 import {
+  arrow,
   autoPlacement,
   hide,
   inline,
@@ -6,7 +7,7 @@ import {
   useFloating,
 } from '@floating-ui/react';
 import clsx from 'clsx';
-import { type RefObject, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 import { LinkAttrs } from '../../../../modules/rich-text';
@@ -46,7 +47,7 @@ export const LinkPopover = ({
   // Using a portal to render the popover above its container in the z axis.
   return createPortal(
     <div
-      ref={refs.floating as RefObject<HTMLDivElement>}
+      ref={refs.setFloating}
       className={clsx(
         // Base styles
         'isolate w-max min-w-80 p-3',
