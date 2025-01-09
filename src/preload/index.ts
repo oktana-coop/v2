@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ),
   sendCurrentDocumentId: (id: VersionControlId) =>
     ipcRenderer.send('current-document-id', id),
+  openExternalLink: (url: string) =>
+    ipcRenderer.send('open-external-link', url),
 });
 
 contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {

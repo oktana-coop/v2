@@ -290,8 +290,6 @@ const schema: MappedSchemaSpec = {
             href,
             title,
             class: linkClasses,
-            target: '_blank',
-            rel: 'noopener noreferrer',
           },
           0,
         ];

@@ -10,6 +10,7 @@ import type {
 export type ElectronAPI = {
   onReceiveProcessId: (callback: (processId: string) => void) => IpcRenderer;
   sendCurrentDocumentId: (id: VersionControlId) => void;
+  openExternalLink: (url: string) => void;
 };
 
 export type AutomergeRepoNetworkAdapter = {
