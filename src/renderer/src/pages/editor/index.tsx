@@ -1,4 +1,10 @@
-import { useCallback, useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import {
+  ImperativePanelHandle,
+  Panel,
+  PanelGroup,
+  PanelResizeHandle,
+} from 'react-resizable-panels';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import {
@@ -46,6 +52,7 @@ const EditorIndex = () => {
     createDocument: createVersionedDocument,
     findDocumentInProject,
   } = useContext(VersionControlContext);
+  const sidebarPanelRef = useRef<ImperativePanelHandle | null>(null);
 
   useEffect(() => {
     document.title = 'v2 | Editor';
@@ -107,9 +114,25 @@ const EditorIndex = () => {
   };
 
   const handleSidebarToggle = useCallback(() => {
-    console.log(isSidebarOpen);
-    toggleSidebarOpen(!isSidebarOpen);
-  }, [isSidebarOpen]);
+    const sidebarPanel = sidebarPanelRef.current;
+    if (!sidebarPanel) {
+      return;
+    }
+
+    if (sidebarPanel.isExpanded()) {
+      sidebarPanel.collapse();
+    } else {
+      sidebarPanel.expand();
+    }
+  }, [sidebarPanelRef]);
+
+  const handleSidebarPanelCollapse = () => {
+    toggleSidebarOpen(false);
+  };
+
+  const handleSidebarPanelExpand = () => {
+    toggleSidebarOpen(true);
+  };
 
   function renderMainPane() {
     if (!docUrl) {
@@ -189,23 +212,32 @@ const EditorIndex = () => {
             className="w-full rounded-md border border-gray-300 p-2"
           />
         </Modal>
-        <div
-          className={`transition-width h-full overflow-y-auto border-r border-gray-300 duration-300 ease-in-out dark:border-neutral-600 ${
-            isSidebarOpen ? 'w-2/5 opacity-100' : 'w-0 opacity-0'
-          }`}
-        >
-          {isSidebarOpen && (
-            <FileExplorer
-              directory={directory}
-              files={directoryFiles}
-              selectedFileInfo={selectedFileInfo}
-              onOpenDirectory={handleOpenDirectory}
-              onRequestPermissionsForCurrentDirectory={handlePermissionRequest}
-              onFileSelection={handleFileSelection}
-            />
-          )}
-        </div>
-        {renderMainPane()}
+        <PanelGroup autoSaveId="editor-panel-group" direction="horizontal">
+          <Panel
+            ref={sidebarPanelRef}
+            collapsible
+            defaultSize={27}
+            onCollapse={handleSidebarPanelCollapse}
+            onExpand={handleSidebarPanelExpand}
+          >
+            {isSidebarOpen && (
+              <div className="h-full overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
+                <FileExplorer
+                  directory={directory}
+                  files={directoryFiles}
+                  selectedFileInfo={selectedFileInfo}
+                  onOpenDirectory={handleOpenDirectory}
+                  onRequestPermissionsForCurrentDirectory={
+                    handlePermissionRequest
+                  }
+                  onFileSelection={handleFileSelection}
+                />
+              </div>
+            )}
+          </Panel>
+          <PanelResizeHandle />
+          <Panel className="flex">{renderMainPane()}</Panel>
+        </PanelGroup>
       </div>
     </Layout>
   );
