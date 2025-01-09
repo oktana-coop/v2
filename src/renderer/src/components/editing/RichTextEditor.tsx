@@ -100,8 +100,12 @@ export const RichTextEditor = ({
     };
 
   const handleViewClick = useCallback(
-    (_: EditorView, ev: MouseEvent): boolean | undefined => {
-      if (ev.target instanceof HTMLElement && ev.target.tagName === 'A') {
+    (view: EditorView, ev: MouseEvent): boolean | undefined => {
+      if (
+        !view.editable &&
+        ev.target instanceof HTMLElement &&
+        ev.target.tagName === 'A'
+      ) {
         const linkAttrs = getLinkAttrsFromDomElement(ev.target);
 
         if (linkAttrs.href) {
