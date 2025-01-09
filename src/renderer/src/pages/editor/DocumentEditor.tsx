@@ -7,8 +7,12 @@ import { CommitDialog } from './CommitDialog';
 
 export const DocumentEditor = ({
   versionedDocumentHandle,
+  isSidebarOpen,
+  onSidebarToggle,
 }: {
   versionedDocumentHandle: VersionedDocumentHandle;
+  isSidebarOpen: boolean;
+  onSidebarToggle: () => void;
 }) => {
   const [isCommitting, openCommitDialog] = useState<boolean>(false);
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
@@ -56,6 +60,8 @@ export const DocumentEditor = ({
       />
       <div className="relative flex w-4/5 flex-auto flex-col items-stretch overflow-hidden">
         <ActionsBar
+          isSidebarOpen={isSidebarOpen}
+          onSidebarToggle={onSidebarToggle}
           onEditorToolbarToggle={handleEditorToolbarToggle}
           onCheckIconClick={handleSave}
         />

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import {
@@ -29,6 +29,7 @@ const EditorIndex = () => {
   const [newDocTitle, setNewDocTitle] = useState<string>('');
   const [isDocumentCreationModalOpen, openCreateDocumentModal] =
     useState<boolean>(false);
+  const [isSidebarOpen, toggleSidebarOpen] = useState<boolean>(true);
   const navigate = useNavigate();
   const { documentId: docUrl } = useParams();
   const {
@@ -105,6 +106,11 @@ const EditorIndex = () => {
     );
   };
 
+  const handleSidebarToggle = useCallback(() => {
+    console.log(isSidebarOpen);
+    toggleSidebarOpen(!isSidebarOpen);
+  }, [isSidebarOpen]);
+
   function renderMainPane() {
     if (!docUrl) {
       return (
@@ -132,7 +138,11 @@ const EditorIndex = () => {
     }
 
     return versionedDocumentHandle ? (
-      <DocumentEditor versionedDocumentHandle={versionedDocumentHandle} />
+      <DocumentEditor
+        versionedDocumentHandle={versionedDocumentHandle}
+        isSidebarOpen={isSidebarOpen}
+        onSidebarToggle={handleSidebarToggle}
+      />
     ) : (
       <div className="flex h-full w-full items-center justify-center text-center">
         Loading...
@@ -179,15 +189,21 @@ const EditorIndex = () => {
             className="w-full rounded-md border border-gray-300 p-2"
           />
         </Modal>
-        <div className="h-full w-2/5 grow-0 overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
-          <FileExplorer
-            directory={directory}
-            files={directoryFiles}
-            selectedFileInfo={selectedFileInfo}
-            onOpenDirectory={handleOpenDirectory}
-            onRequestPermissionsForCurrentDirectory={handlePermissionRequest}
-            onFileSelection={handleFileSelection}
-          />
+        <div
+          className={`transition-width h-full overflow-y-auto border-r border-gray-300 duration-300 ease-in-out dark:border-neutral-600 ${
+            isSidebarOpen ? 'w-2/5 opacity-100' : 'w-0 opacity-0'
+          }`}
+        >
+          {isSidebarOpen && (
+            <FileExplorer
+              directory={directory}
+              files={directoryFiles}
+              selectedFileInfo={selectedFileInfo}
+              onOpenDirectory={handleOpenDirectory}
+              onRequestPermissionsForCurrentDirectory={handlePermissionRequest}
+              onFileSelection={handleFileSelection}
+            />
+          )}
         </div>
         {renderMainPane()}
       </div>

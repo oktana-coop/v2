@@ -1,17 +1,27 @@
 import { IconButton } from '../../components/actions/IconButton';
 import {
   CheckIcon,
+  SidebarIcon,
   SidebarOpenIcon,
   ToolbarToggleIcon,
 } from '../../components/icons';
 
 export const ActionsBar = ({
+  isSidebarOpen,
+  onSidebarToggle,
   onEditorToolbarToggle,
   onCheckIconClick,
 }: {
+  isSidebarOpen: boolean;
+  onSidebarToggle: () => void;
   onEditorToolbarToggle: () => void;
   onCheckIconClick: () => void;
 }) => {
+  const handleSidebarToggle = (ev: React.MouseEvent) => {
+    ev.preventDefault();
+    onSidebarToggle();
+  };
+
   const handleToolbarToggle = (ev: React.MouseEvent) => {
     ev.preventDefault();
     onEditorToolbarToggle();
@@ -24,7 +34,10 @@ export const ActionsBar = ({
 
   return (
     <div className="flex flex-initial items-center justify-between px-4 py-2">
-      <IconButton icon={<SidebarOpenIcon />} />
+      <IconButton
+        icon={isSidebarOpen ? <SidebarOpenIcon /> : <SidebarIcon />}
+        onClick={handleSidebarToggle}
+      />
       <div className="flex flex-initial items-center gap-2">
         <IconButton
           icon={<ToolbarToggleIcon />}
