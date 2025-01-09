@@ -8,10 +8,12 @@ import { keymap } from 'prosemirror-keymap';
 import { Schema } from 'prosemirror-model';
 import { EditorState, Selection, Transaction } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 
+import { ElectronContext } from '../../../../modules/electron';
 import {
   getHeadingLevel,
+  getLinkAttrsFromDomElement,
   LinkAttrs,
   prosemirror,
 } from '../../../../modules/rich-text';
@@ -73,6 +75,7 @@ export const RichTextEditor = ({
     ref: Element;
     linkAttrs: LinkAttrs;
   } | null>(null);
+  const { openExternalLink } = useContext(ElectronContext);
 
   const onSelectionChange: (
     schema: Schema
@@ -95,6 +98,28 @@ export const RichTextEditor = ({
         hideLinkPopover();
       }
     };
+
+  const handleViewClick = useCallback(
+    (view: EditorView, ev: MouseEvent): boolean | undefined => {
+      if (
+        !view.editable &&
+        ev.target instanceof HTMLElement &&
+        ev.target.tagName === 'A'
+      ) {
+        const linkAttrs = getLinkAttrsFromDomElement(ev.target);
+
+        if (linkAttrs.href) {
+          ev.preventDefault();
+          openExternalLink(linkAttrs.href);
+          return true;
+        }
+      }
+
+      // Allow other handlers to process the event
+      return false;
+    },
+    [openExternalLink]
+  );
 
   useEffect(() => {
     if (docHandle) {
@@ -143,6 +168,9 @@ export const RichTextEditor = ({
           }
         },
         editable: () => isEditable,
+        handleDOMEvents: {
+          click: handleViewClick,
+        },
       });
 
       setView(view);
@@ -152,7 +180,7 @@ export const RichTextEditor = ({
         view.destroy();
       };
     }
-  }, [docHandle, onSave, isEditable]);
+  }, [docHandle, onSave, isEditable, handleViewClick]);
 
   const handleBlockSelect = (type: BlockElementType) => {
     if (view) {

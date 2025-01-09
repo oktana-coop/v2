@@ -2,6 +2,7 @@ import { release } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { exec } from 'child_process';
 import {
   app,
   BrowserWindow,
@@ -177,6 +178,22 @@ async function createWindow() {
       });
     }
   );
+
+  ipcMain.on('open-external-link', (_, url: string) => {
+    if (os.platform() === 'darwin') {
+      // Use the `open` command to launch the default browser
+      exec(`open "${url}"`, (error) => {
+        if (error) {
+          console.error("Failed to open link with 'open' command:", error);
+          // Fallback to Electron's default method
+          shell.openExternal(url);
+        }
+      });
+    } else {
+      // For non-macOS platforms, use Electron's default method
+      shell.openExternal(url);
+    }
+  });
 }
 
 app.whenReady().then(createWindow);

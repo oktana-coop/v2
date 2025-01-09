@@ -6,10 +6,14 @@ import {
   useFloating,
 } from '@floating-ui/react';
 import clsx from 'clsx';
-import { useEffect } from 'react';
+import { MouseEventHandler, useCallback, useContext, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
-import { LinkAttrs } from '../../../../modules/rich-text';
+import { ElectronContext } from '../../../../modules/electron';
+import {
+  getLinkAttrsFromDomElement,
+  LinkAttrs,
+} from '../../../../modules/rich-text';
 import { Button } from '../actions/Button';
 import { Heading4 } from '../typography/headings/Heading4';
 import { link as linkClasses } from './marks';
@@ -27,10 +31,23 @@ export const LinkPopover = ({
   onEditLink,
   onRemoveLink,
 }: LinkPopoverProps) => {
+  const { openExternalLink } = useContext(ElectronContext);
   const { x, y, strategy, refs, update } = useFloating<HTMLDivElement>({
     strategy: 'absolute',
     middleware: [offset(8), autoPlacement(), hide(), inline()],
   });
+
+  const handleLinkClick: MouseEventHandler<HTMLAnchorElement> = useCallback(
+    (ev) => {
+      const linkAttrs = getLinkAttrsFromDomElement(ev.target as HTMLElement);
+
+      if (linkAttrs.href) {
+        ev.preventDefault();
+        openExternalLink(linkAttrs.href);
+      }
+    },
+    [openExternalLink]
+  );
 
   useEffect(() => {
     if (linkData) {
@@ -70,7 +87,11 @@ export const LinkPopover = ({
       <div>
         <Heading4 className="text-left">{linkData.linkAttrs.title}</Heading4>
         <div className="flex">
-          <a className={linkClasses} href={linkData.linkAttrs.href}>
+          <a
+            className={linkClasses}
+            href={linkData.linkAttrs.href}
+            onClick={handleLinkClick}
+          >
             {linkData.linkAttrs.href}
           </a>
         </div>
