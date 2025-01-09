@@ -4,6 +4,7 @@ import {
   baseKeymap,
   setBlockType as setProsemirrorBlockType,
 } from 'prosemirror-commands';
+import { history, redo, undo } from 'prosemirror-history';
 import { keymap } from 'prosemirror-keymap';
 import { Schema } from 'prosemirror-model';
 import { EditorState, Selection, Transaction } from 'prosemirror-state';
@@ -110,6 +111,7 @@ export const RichTextEditor = ({
         schema,
         plugins: [
           buildInputRules(schema),
+          history(),
           keymap({
             ...baseKeymap,
             'Mod-b': toggleStrong(schema),
@@ -118,6 +120,9 @@ export const RichTextEditor = ({
               onSave();
               return true;
             },
+            'Mod-z': undo,
+            'Mod-y': redo,
+            'Shift-Mod-z': redo,
           }),
           linkSelectionPlugin,
           selectionChangePlugin(onSelectionChange(schema)),
