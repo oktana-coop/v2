@@ -19,7 +19,6 @@ import {
 import {
   CreateDocumentArgs,
   GetDocumentAtArgs,
-  UpdateDocumentSpansArgs,
   VersionControlRepo,
 } from '../ports/version-control-repo';
 
