@@ -257,6 +257,11 @@ export const RichTextEditor = ({
     setIsLinkDialogOpen(false);
   };
 
+  const handleCloseLinkPopover = () => {
+    setIsLinkPopoverOpen(false);
+    view?.focus();
+  };
+
   return (
     <>
       <div className="flex flex-auto overflow-auto outline-none">
@@ -295,6 +300,7 @@ export const RichTextEditor = ({
             isOpen={isLinkPopoverOpen}
             onEditLink={handleEditLink}
             onRemoveLink={handleRemoveLink}
+            onClose={handleCloseLinkPopover}
           />
         </>
       )}

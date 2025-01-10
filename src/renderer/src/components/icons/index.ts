@@ -1,6 +1,7 @@
 export { BranchIcon } from './Branch';
 export { CheckIcon } from './Check';
 export { ChevronDownIcon } from './ChevronDown';
+export { CloseIcon } from './Close';
 export { CommitHistoryIcon } from './CommitHistory';
 export { FileDocumentIcon } from './FileDocument';
 export { FolderIcon } from './Folder';

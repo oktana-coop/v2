@@ -15,6 +15,8 @@ import {
   LinkAttrs,
 } from '../../../../modules/rich-text';
 import { Button } from '../actions/Button';
+import { IconButton } from '../actions/IconButton';
+import { CloseIcon } from '../icons';
 import { Heading4 } from '../typography/headings/Heading4';
 import { link as linkClasses } from './marks';
 
@@ -23,6 +25,7 @@ type LinkPopoverProps = {
   linkData: { ref: Element; linkAttrs: LinkAttrs } | null;
   onEditLink: () => void;
   onRemoveLink: () => void;
+  onClose: () => void;
 };
 
 export const LinkPopover = ({
@@ -30,6 +33,7 @@ export const LinkPopover = ({
   linkData,
   onEditLink,
   onRemoveLink,
+  onClose,
 }: LinkPopoverProps) => {
   const { openExternalLink } = useContext(ElectronContext);
   const { x, y, strategy, refs, update } = useFloating<HTMLDivElement>({
@@ -85,7 +89,12 @@ export const LinkPopover = ({
       }}
     >
       <div>
-        <Heading4 className="text-left">{linkData.linkAttrs.title}</Heading4>
+        <div className="flex">
+          <Heading4 className="flex-auto text-left">
+            {linkData.linkAttrs.title}
+          </Heading4>
+          <IconButton icon={<CloseIcon size={16} />} onClick={onClose} />
+        </div>
         <div className="flex">
           <a
             className={linkClasses}
