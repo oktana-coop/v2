@@ -61,7 +61,7 @@ export const DocumentEditor = ({
         onCancel={() => openCommitDialog(false)}
         onCommit={(message: string) => commitChanges(message)}
       />
-      <div className="relative flex flex-col items-stretch overflow-hidden">
+      <div className="relative flex flex-auto flex-col items-stretch overflow-hidden">
         <ActionsBar
           isSidebarOpen={isSidebarOpen}
           onSidebarToggle={onSidebarToggle}
