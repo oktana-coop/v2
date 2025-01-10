@@ -9,7 +9,7 @@ import { keymap } from 'prosemirror-keymap';
 import { Schema } from 'prosemirror-model';
 import { EditorState, Selection, Transaction } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 
 import {
   getHeadingLevel,
@@ -20,6 +20,7 @@ import {
   BlockElementType,
   blockElementTypes,
 } from '../../../../modules/rich-text/constants/blocks';
+import { ProseMirrorContext } from '../../../../modules/rich-text/react/context';
 import type {
   DocHandle,
   RichTextDocument,
@@ -59,8 +60,7 @@ export const RichTextEditor = ({
   isToolbarOpen = false,
 }: RichTextEditorProps) => {
   const editorRoot = useRef<HTMLDivElement>(null);
-  const [view, setView] = useState<EditorView | null>(null);
-  const [schema, setSchema] = useState<Schema | null>(null);
+  const { schema, view, setView, setSchema } = useContext(ProseMirrorContext);
   const [blockType, setBlockType] = useState<BlockElementType | null>(null);
   const [strongSelected, setStrongSelected] = useState<boolean>(false);
   const [emSelected, setEmSelected] = useState<boolean>(false);
@@ -153,11 +153,16 @@ export const RichTextEditor = ({
       setView(view);
       setSchema(schema);
 
+      if (isEditable) {
+        view.focus();
+        setBlockType(getCurrentBlockType(state));
+      }
+
       return () => {
         view.destroy();
       };
     }
-  }, [docHandle, onSave, isEditable]);
+  }, [docHandle, onSave, isEditable, setSchema, setView]);
 
   const handleBlockSelect = (type: BlockElementType) => {
     if (view) {
@@ -197,7 +202,6 @@ export const RichTextEditor = ({
       }
     }
   };
-
   const handleStrongToggle = () => {
     if (view && schema) {
       toggleStrong(schema)(view.state, view.dispatch);

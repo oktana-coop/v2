@@ -12,6 +12,7 @@ import {
   SelectedFileProvider,
 } from '../../../../modules/editor-state';
 import { type File, FilesystemContext } from '../../../../modules/filesystem';
+import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
 import { isValidVersionControlId } from '../../../../modules/version-control';
 import { VersionControlContext } from '../../../../modules/version-control/react';
 import { Button } from '../../components/actions/Button';
@@ -212,32 +213,34 @@ const EditorIndex = () => {
             className="w-full rounded-md border border-gray-300 p-2"
           />
         </Modal>
-        <PanelGroup autoSaveId="editor-panel-group" direction="horizontal">
-          <Panel
-            ref={sidebarPanelRef}
-            collapsible
-            defaultSize={27}
-            onCollapse={handleSidebarPanelCollapse}
-            onExpand={handleSidebarPanelExpand}
-          >
-            {isSidebarOpen && (
-              <div className="h-full overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
-                <FileExplorer
-                  directory={directory}
-                  files={directoryFiles}
-                  selectedFileInfo={selectedFileInfo}
-                  onOpenDirectory={handleOpenDirectory}
-                  onRequestPermissionsForCurrentDirectory={
-                    handlePermissionRequest
-                  }
-                  onFileSelection={handleFileSelection}
-                />
-              </div>
-            )}
-          </Panel>
-          <PanelResizeHandle />
-          <Panel className="flex">{renderMainPane()}</Panel>
-        </PanelGroup>
+        <ProseMirrorProvider>
+          <PanelGroup autoSaveId="editor-panel-group" direction="horizontal">
+            <Panel
+              ref={sidebarPanelRef}
+              collapsible
+              defaultSize={27}
+              onCollapse={handleSidebarPanelCollapse}
+              onExpand={handleSidebarPanelExpand}
+            >
+              {isSidebarOpen && (
+                <div className="h-full overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
+                  <FileExplorer
+                    directory={directory}
+                    files={directoryFiles}
+                    selectedFileInfo={selectedFileInfo}
+                    onOpenDirectory={handleOpenDirectory}
+                    onRequestPermissionsForCurrentDirectory={
+                      handlePermissionRequest
+                    }
+                    onFileSelection={handleFileSelection}
+                  />
+                </div>
+              )}
+            </Panel>
+            <PanelResizeHandle />
+            <Panel className="flex">{renderMainPane()}</Panel>
+          </PanelGroup>
+        </ProseMirrorProvider>
       </div>
     </Layout>
   );
