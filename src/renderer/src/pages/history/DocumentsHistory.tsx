@@ -40,6 +40,7 @@ export const DocumentsHistory = ({
       // Cleanup tmp handles.
       if (tmpDocHandle) tmpDocHandle.delete();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -52,14 +53,17 @@ export const DocumentsHistory = ({
     }
   }, [versionedDocumentHandle]);
 
-  const updateTempHandle = (handle: VersionedDocumentHandle) => {
-    // before updating the temporary handle, delete any previously
-    // created ones to avoid bloating the repo.
-    if (tmpDocHandle) {
-      tmpDocHandle.delete();
-    }
-    setTmpDocHandle(handle);
-  };
+  const updateTempHandle = useCallback(
+    (handle: VersionedDocumentHandle) => {
+      // before updating the temporary handle, delete any previously
+      // created ones to avoid bloating the repo.
+      if (tmpDocHandle) {
+        tmpDocHandle.delete();
+      }
+      setTmpDocHandle(handle);
+    },
+    [tmpDocHandle]
+  );
 
   const selectCommit = useCallback(
     async (hash: string) => {
@@ -73,7 +77,7 @@ export const DocumentsHistory = ({
         updateTempHandle(currentHandle);
       }
     },
-    [getDocumentAt, versionedDocument]
+    [getDocumentAt, versionedDocument, updateTempHandle]
   );
 
   useEffect(() => {
