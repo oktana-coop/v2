@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 
+import { ProseMirrorContext } from '../../../../modules/rich-text/react/context';
 import { type VersionedDocumentHandle } from '../../../../modules/version-control';
 import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import { ActionsBar } from './ActionsBar';
@@ -16,6 +17,7 @@ export const DocumentEditor = ({
 }) => {
   const [isCommitting, openCommitDialog] = useState<boolean>(false);
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
+  const { view: editorView } = useContext(ProseMirrorContext);
 
   useEffect(() => {
     if (versionedDocumentHandle) {
@@ -45,7 +47,8 @@ export const DocumentEditor = ({
 
   const handleEditorToolbarToggle = useCallback(() => {
     toggleEditorToolbar(!isEditorToolbarOpen);
-  }, [isEditorToolbarOpen]);
+    editorView?.focus();
+  }, [editorView, isEditorToolbarOpen]);
 
   const handleSave = useCallback(() => {
     openCommitDialog(true);

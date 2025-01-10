@@ -2,6 +2,7 @@ import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { SelectedFileContext } from '../../../../modules/editor-state';
+import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
 import {
   type Commit,
   type DecodedChange,
@@ -86,12 +87,14 @@ export const DocumentsHistory = ({
       <div className="flex w-full grow items-stretch">
         {versionedDocumentHandle ? (
           <div onDoubleClick={() => navigate(`/edit/${documentId}`)}>
-            <RichTextEditor
-              // explicitly define onSave as a no-op
-              onSave={() => {}}
-              docHandle={versionedDocumentHandle}
-              isEditable={false}
-            />
+            <ProseMirrorProvider>
+              <RichTextEditor
+                // explicitly define onSave as a no-op
+                onSave={() => {}}
+                docHandle={versionedDocumentHandle}
+                isEditable={false}
+              />
+            </ProseMirrorProvider>
           </div>
         ) : (
           <div className="flex h-full w-full items-center justify-center text-center">
