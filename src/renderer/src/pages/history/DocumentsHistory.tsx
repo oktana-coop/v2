@@ -35,6 +35,14 @@ export const DocumentsHistory = ({
     useState<VersionedDocument | null>(null);
 
   useEffect(() => {
+    // Cleanup function: runs when the component is unmounted.
+    return () => {
+      // Cleanup tmp handles.
+      if (tmpDocHandle) tmpDocHandle.delete();
+    };
+  }, []);
+
+  useEffect(() => {
     if (versionedDocumentHandle) {
       const versionedDocument = versionedDocumentHandle.docSync();
       if (versionedDocument) {
@@ -44,17 +52,25 @@ export const DocumentsHistory = ({
     }
   }, [versionedDocumentHandle]);
 
+  const updateTempHandle = (handle: VersionedDocumentHandle) => {
+    // before updating the temporary handle, delete any previously
+    // created ones to avoid bloating the repo.
+    if (tmpDocHandle) {
+      tmpDocHandle.delete();
+    }
+    setTmpDocHandle(handle);
+  };
+
   const selectCommit = useCallback(
     async (hash: string) => {
       if (versionedDocument) {
         setSelectedCommit(hash);
-        const tmpHandle = await getDocumentAt({
+        const currentHandle = await getDocumentAt({
           document: versionedDocument,
           commit: hash,
         });
-        // ⚠️ CAUTION: This (tmpHandle) needs to be deleted
-        // as soon as it's not needed
-        setTmpDocHandle(tmpHandle);
+
+        updateTempHandle(currentHandle);
       }
     },
     [getDocumentAt, versionedDocument]

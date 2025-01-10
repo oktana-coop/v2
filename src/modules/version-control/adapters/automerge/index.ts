@@ -92,13 +92,19 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
     commit,
   }) => {
     const documentView = Automerge.view(document, [commit]);
-    const documentSpans = getSpans(documentView);
+    const spans = getSpans(documentView);
+    const documentHandle = automergeRepo.create<RichTextDocument>(documentView);
 
-    const documentHandle =
-      await automergeRepo.create<RichTextDocument>(documentView);
+    console.log('spans 👉', spans);
+    // TODO: This seems to be the right way to update the spans
+    // interrogating the spans above seems what we have all the right marks
+    // bold, italics, links
+    // though it's only the levels that are being applied while
+    // the rest are getting lost somewhere in the process.
     documentHandle.change((doc) => {
-      Automerge.updateSpans(doc, ['content'], documentSpans);
+      Automerge.updateSpans(doc, ['content'], spans);
     });
+
     return documentHandle;
   };
 
