@@ -6,6 +6,7 @@ export { CommitHistoryIcon } from './CommitHistory';
 export { FileDocumentIcon } from './FileDocument';
 export { FolderIcon } from './Folder';
 export { FormatBoldIcon } from './FormatBold';
+export { FormatCodeIcon } from './FormatCode';
 export { FormatItalicIcon } from './FormatItalic';
 export { FormatHeadingIcon } from './FormatHeading';
 export { FormatHeading1Icon } from './FormatHeading1';

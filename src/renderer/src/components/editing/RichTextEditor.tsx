@@ -191,6 +191,13 @@ export const RichTextEditor = ({
           }
           break;
         }
+        case blockElementTypes.CODE_BLOCK:
+          setProsemirrorBlockType(view.state.schema.nodes.code_block)(
+            view.state,
+            view.dispatch,
+            view
+          );
+          break;
         case blockElementTypes.PARAGRAPH:
         default:
           setProsemirrorBlockType(view.state.schema.nodes.paragraph)(

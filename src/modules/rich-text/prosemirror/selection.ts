@@ -31,6 +31,8 @@ export const getCurrentBlockType = (
         case 4:
           return blockElementTypes.HEADING_4;
       }
+    case 'code_block':
+      return blockElementTypes.CODE_BLOCK;
     default:
       return null;
   }

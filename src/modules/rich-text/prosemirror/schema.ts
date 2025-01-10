@@ -12,6 +12,7 @@ import {
   NodeSpec,
 } from 'prosemirror-model';
 
+import { codeBlock as codeBlockClasses } from '../../../renderer/src/components/editing/blocks';
 import { link as linkClasses } from '../../../renderer/src/components/editing/marks';
 import { classes as heading1Classes } from '../../../renderer/src/components/typography/headings/Heading1';
 import { classes as heading2Classes } from '../../../renderer/src/components/typography/headings/Heading2';
@@ -23,7 +24,6 @@ import { getLinkAttrsFromDomElement, type LinkAttrs } from '../models/link';
 const pDOM: DOMOutputSpec = ['p', 0];
 const blockquoteDOM: DOMOutputSpec = ['blockquote', 0];
 const hrDOM: DOMOutputSpec = ['hr'];
-const preDOM: DOMOutputSpec = ['pre', ['code', 0]];
 
 // marks
 const emDOM: DOMOutputSpec = ['em', 0];
@@ -148,7 +148,10 @@ const schema: MappedSchemaSpec = {
       defining: true,
       parseDOM: [{ tag: 'pre', preserveWhitespace: 'full' }],
       toDOM() {
-        return preDOM;
+        return [
+          'pre',
+          ['code', { class: codeBlockClasses, spellcheck: 'false' }, 0],
+        ];
       },
     } as NodeSpec,
 
