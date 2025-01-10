@@ -139,6 +139,8 @@ const createNewProject = async ({
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readFile: Filesystem['readFile'];
 }): Promise<VersionControlId> => {
+  await fs.mkdir(join(directoryPath, '.v2'), { recursive: true });
+
   // Setup the version control repository
   const automergeRepo = await setupNodeRepo({
     processId: 'main',
@@ -187,6 +189,7 @@ export const openOrCreateProject = async ({
     return projectId;
   } catch (err) {
     // Directory or index file does not exist; create a new repo & project
+    // TODO: Delete .v2 directory if anything goes wrong.
     return createNewProject({
       directoryPath,
       rendererProcessId,
