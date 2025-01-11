@@ -7,7 +7,7 @@ type SidebarHeadingProps = {
 };
 
 export const SidebarHeading = ({ icon: Icon, text }: SidebarHeadingProps) => (
-  <div className="mb-4 flex items-center gap-x-2">
+  <div className="flex items-center gap-x-2">
     {Icon && (
       <Icon className="text-black text-opacity-75 dark:text-white dark:text-opacity-75" />
     )}

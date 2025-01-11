@@ -24,6 +24,7 @@ export { LinkIcon } from './Link';
 export { MoonIcon } from './Moon';
 export { OptionsIcon } from './Options';
 export { PenIcon } from './Pen';
+export { PlusIcon } from './Plus';
 export { PushIcon } from './Push';
 export { RevertIcon } from './Revert';
 export { SidebarIcon } from './Sidebar';

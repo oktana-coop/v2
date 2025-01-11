@@ -233,6 +233,7 @@ const EditorIndex = () => {
                       handlePermissionRequest
                     }
                     onFileSelection={handleFileSelection}
+                    onCreateDocument={() => openCreateDocumentModal(true)}
                   />
                 </div>
               )}
