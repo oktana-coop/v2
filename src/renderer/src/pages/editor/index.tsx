@@ -180,6 +180,10 @@ const EditorIndex = () => {
         <Modal
           isOpen={isDocumentCreationModalOpen}
           title="Give your document a title"
+          onClose={() => {
+            setNewDocTitle('');
+            openCreateDocumentModal(false);
+          }}
           secondaryButton={
             <Button
               variant="plain"
