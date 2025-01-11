@@ -77,7 +77,8 @@ export const DocumentsHistory = ({
         updateTempHandle(currentHandle);
       }
     },
-    [getDocumentAt, versionedDocument, updateTempHandle]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [getDocumentAt, versionedDocument]
   );
 
   useEffect(() => {
