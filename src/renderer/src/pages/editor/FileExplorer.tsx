@@ -7,6 +7,7 @@ import {
   removeExtension,
 } from '../../../../modules/filesystem';
 import { Button } from '../../components/actions/Button';
+import { IconButton } from '../../components/actions/IconButton';
 import { FileDocumentIcon, FolderIcon, PlusIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
 
@@ -32,14 +33,10 @@ export const FileExplorer = ({
       <div className="flex items-center justify-between px-4 pb-4">
         <SidebarHeading icon={FolderIcon} text="File Explorer" />
         {directory && directory.permissionState === 'granted' && (
-          <Button
+          <IconButton
             onClick={onCreateDocument}
-            variant="plain"
-            className="text-gray-600 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400"
-            title="Create new document"
-          >
-            <PlusIcon size={20} />
-          </Button>
+            icon={<PlusIcon size={20} />}
+          ></IconButton>
         )}
       </div>
 
