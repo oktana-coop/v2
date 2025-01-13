@@ -44,6 +44,7 @@ const {
   selectionChangePlugin,
   getSelectedText,
   findLinkAtSelection,
+  ensureTrailingParagraphPlugin,
 } = prosemirror;
 
 type RichTextEditorProps = {
@@ -126,6 +127,7 @@ export const RichTextEditor = ({
           }),
           linkSelectionPlugin,
           selectionChangePlugin(onSelectionChange(schema)),
+          ensureTrailingParagraphPlugin(schema),
           automergePlugin,
         ],
         doc: pmDoc,
