@@ -9,3 +9,7 @@ export const headingRule = (nodeType: NodeType, maxLevel: number) => {
     (match) => ({ level: match[1].length })
   );
 };
+
+export const codeBlockRule = (nodeType: NodeType) => {
+  return textblockTypeInputRule(/^```(?:\s*)$/, nodeType, () => ({}));
+};
