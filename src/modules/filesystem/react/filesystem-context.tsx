@@ -115,7 +115,6 @@ export const FilesystemProvider = ({
   };
 
   const handleCreateNewFile = async (suggestedName: string) => {
-    console.log('handleCreateNewFile 👉', suggestedName);
     const newFile = await filesystem.createNewFile(suggestedName);
 
     // Refresh directory files if a directory is selected
