@@ -25,6 +25,9 @@ export default {
         left: 'left',
         right: 'right',
       },
+      fontFamily: {
+        mono: ['FiraCode-Regular', 'SFMono-Regular', 'monospace'],
+      },
     },
     fontFamily: {
       sans: ['Montserrat', 'sans-serif'],

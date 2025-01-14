@@ -5,6 +5,7 @@ import {
 import { IconButton } from '../../actions/IconButton';
 import {
   FormatBoldIcon,
+  FormatCodeIcon,
   FormatHeading1Icon,
   FormatHeading2Icon,
   FormatHeading3Icon,
@@ -41,6 +42,11 @@ const blockOptions = [
     label: 'Heading 4',
     value: blockElementTypes.HEADING_4,
     icon: FormatHeading4Icon,
+  },
+  {
+    label: 'Code Block',
+    value: blockElementTypes.CODE_BLOCK,
+    icon: FormatCodeIcon,
   },
 ];
 

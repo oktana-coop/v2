@@ -2,3 +2,4 @@ export * from './selection';
 export * from './schema';
 export * from './input-rules';
 export * from './commands';
+export * from './blocks';

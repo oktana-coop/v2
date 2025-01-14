@@ -44,6 +44,7 @@ const {
   selectionChangePlugin,
   getSelectedText,
   findLinkAtSelection,
+  ensureTrailingParagraphPlugin,
 } = prosemirror;
 
 type RichTextEditorProps = {
@@ -126,6 +127,7 @@ export const RichTextEditor = ({
           }),
           linkSelectionPlugin,
           selectionChangePlugin(onSelectionChange(schema)),
+          ensureTrailingParagraphPlugin(schema),
           automergePlugin,
         ],
         doc: pmDoc,
@@ -191,6 +193,13 @@ export const RichTextEditor = ({
           }
           break;
         }
+        case blockElementTypes.CODE_BLOCK:
+          setProsemirrorBlockType(view.state.schema.nodes.code_block)(
+            view.state,
+            view.dispatch,
+            view
+          );
+          break;
         case blockElementTypes.PARAGRAPH:
         default:
           setProsemirrorBlockType(view.state.schema.nodes.paragraph)(
@@ -268,12 +277,8 @@ export const RichTextEditor = ({
 
   return (
     <>
-      <div className="flex flex-auto overflow-auto outline-none">
-        <div
-          className="flex flex-auto items-stretch p-4"
-          id="editor"
-          ref={editorRoot}
-        />
+      <div className="flex flex-auto overflow-auto p-4 outline-none">
+        <div className="flex-auto" id="editor" ref={editorRoot} />
       </div>
 
       {isEditable && blockType && (
