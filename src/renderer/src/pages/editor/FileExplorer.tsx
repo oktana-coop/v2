@@ -7,7 +7,8 @@ import {
   removeExtension,
 } from '../../../../modules/filesystem';
 import { Button } from '../../components/actions/Button';
-import { FileDocumentIcon, FolderIcon } from '../../components/icons';
+import { IconButton } from '../../components/actions/IconButton';
+import { FileDocumentIcon, FolderIcon, PlusIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
 
 export const FileExplorer = ({
@@ -17,6 +18,7 @@ export const FileExplorer = ({
   onOpenDirectory,
   onRequestPermissionsForCurrentDirectory,
   onFileSelection,
+  onCreateDocument,
 }: {
   directory: Directory | null;
   files: Array<File>;
@@ -24,11 +26,18 @@ export const FileExplorer = ({
   onOpenDirectory: () => Promise<void>;
   onRequestPermissionsForCurrentDirectory: () => Promise<void>;
   onFileSelection: (file: File) => Promise<void>;
+  onCreateDocument: () => void;
 }) => {
   return (
     <div className="flex h-full flex-col items-stretch py-6">
-      <div className="px-4">
+      <div className="flex items-center justify-between px-4 pb-4">
         <SidebarHeading icon={FolderIcon} text="File Explorer" />
+        {directory && directory.permissionState === 'granted' && (
+          <IconButton
+            onClick={onCreateDocument}
+            icon={<PlusIcon size={20} />}
+          ></IconButton>
+        )}
       </div>
 
       {directory && directory.permissionState === 'granted' ? (
