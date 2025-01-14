@@ -12,7 +12,11 @@ import {
   NodeSpec,
 } from 'prosemirror-model';
 
-import { codeBlock as codeBlockClasses } from '../../../renderer/src/components/editing/blocks';
+import {
+  bulletList as bulletListClasses,
+  codeBlock as codeBlockClasses,
+  orderedList as orderedListClasses,
+} from '../../../renderer/src/components/editing/blocks';
 import { link as linkClasses } from '../../../renderer/src/components/editing/marks';
 import { classes as heading1Classes } from '../../../renderer/src/components/typography/headings/Heading1';
 import { classes as heading2Classes } from '../../../renderer/src/components/typography/headings/Heading2';
@@ -31,8 +35,6 @@ const strongDOM: DOMOutputSpec = ['strong', 0];
 const codeDOM: DOMOutputSpec = ['code', 0];
 
 // lists
-const olDOM: DOMOutputSpec = ['ol', 0];
-const ulDOM: DOMOutputSpec = ['ul', 0];
 const liDOM: DOMOutputSpec = ['li', 0];
 
 const getHeadingLevelClasses = (level: number) => {
@@ -224,8 +226,8 @@ const schema: MappedSchemaSpec = {
       ],
       toDOM(node) {
         return node.attrs.order == 1
-          ? olDOM
-          : ['ol', { start: node.attrs.order }, 0];
+          ? ['ol', { class: orderedListClasses }, 0]
+          : ['ol', { class: orderedListClasses, start: node.attrs.order }, 0];
       },
     } as NodeSpec,
 
@@ -234,7 +236,7 @@ const schema: MappedSchemaSpec = {
       group: 'block',
       parseDOM: [{ tag: 'ul' }],
       toDOM() {
-        return ulDOM;
+        return ['ul', { class: bulletListClasses }, 0];
       },
     },
 
