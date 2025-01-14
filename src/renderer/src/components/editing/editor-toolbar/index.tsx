@@ -4,6 +4,7 @@ import {
 } from '../../../../../modules/rich-text';
 import { IconButton } from '../../actions/IconButton';
 import {
+  BulletListIcon,
   FormatBoldIcon,
   FormatCodeIcon,
   FormatHeading1Icon,
@@ -14,6 +15,7 @@ import {
   FormatTextIcon,
   ImageIcon,
   LinkIcon,
+  OrderedListIcon,
 } from '../../icons';
 import { BlockSelect } from './BlockSelect';
 
@@ -42,6 +44,16 @@ const blockOptions = [
     label: 'Heading 4',
     value: blockElementTypes.HEADING_4,
     icon: FormatHeading4Icon,
+  },
+  {
+    label: 'Bullet List',
+    value: blockElementTypes.BULLET_LIST,
+    icon: BulletListIcon,
+  },
+  {
+    label: 'Ordered List',
+    value: blockElementTypes.ORDERED_LIST,
+    icon: OrderedListIcon,
   },
   {
     label: 'Code Block',

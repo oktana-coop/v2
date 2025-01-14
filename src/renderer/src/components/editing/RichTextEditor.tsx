@@ -45,6 +45,7 @@ const {
   getSelectedText,
   findLinkAtSelection,
   ensureTrailingParagraphPlugin,
+  wrapInList,
 } = prosemirror;
 
 type RichTextEditorProps = {
@@ -195,6 +196,20 @@ export const RichTextEditor = ({
         }
         case blockElementTypes.CODE_BLOCK:
           setProsemirrorBlockType(view.state.schema.nodes.code_block)(
+            view.state,
+            view.dispatch,
+            view
+          );
+          break;
+        case blockElementTypes.BULLET_LIST:
+          wrapInList(view.state.schema.nodes.bullet_list)(
+            view.state,
+            view.dispatch,
+            view
+          );
+          break;
+        case blockElementTypes.ORDERED_LIST:
+          wrapInList(view.state.schema.nodes.ordered_list)(
             view.state,
             view.dispatch,
             view

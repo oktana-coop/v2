@@ -33,6 +33,10 @@ export const getCurrentBlockType = (
       }
     case 'code_block':
       return blockElementTypes.CODE_BLOCK;
+    case 'bullet_list':
+      return blockElementTypes.BULLET_LIST;
+    case 'ordered_list':
+      return blockElementTypes.ORDERED_LIST;
     default:
       return null;
   }

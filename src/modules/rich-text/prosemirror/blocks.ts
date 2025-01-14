@@ -34,3 +34,5 @@ export const ensureTrailingParagraphPlugin = (schema: Schema) => {
     },
   });
 };
+
+export { wrapInList } from 'prosemirror-schema-list';
