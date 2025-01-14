@@ -70,8 +70,9 @@ export const createAdapter = (): Filesystem => ({
   requestPermissionForDirectory: async () => {
     return 'granted';
   },
-  createNewFile: async () => {
+  createNewFile: async (suggestedName) => {
     const { canceled, filePath } = await dialog.showSaveDialog({
+      defaultPath: suggestedName,
       filters: [{ name: 'v2 Files', extensions: ['v2'] }],
     });
 

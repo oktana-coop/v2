@@ -124,7 +124,9 @@ async function createWindow() {
   ipcMain.handle('request-permission-for-directory', (_, path: string) =>
     filesystemAPI.requestPermissionForDirectory(path)
   );
-  ipcMain.handle('create-new-file', () => filesystemAPI.createNewFile());
+  ipcMain.handle('create-new-file', (_, suggestedName: string) =>
+    filesystemAPI.createNewFile(suggestedName)
+  );
   ipcMain.handle(
     'write-file',
     (_, { path, content }: { path: string; content: string }) =>

@@ -15,7 +15,7 @@ export type FilesystemContextType = {
   directoryFiles: Array<File>;
   openDirectory: () => Promise<Directory | null>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
-  createNewFile: () => Promise<File>;
+  createNewFile: (suggestedName: string) => Promise<File>;
   writeFile: (path: string, content: string) => Promise<void>;
   readFile: (path: string) => Promise<File>;
   listDirectoryFiles: (path: string) => Promise<Array<File>>;
@@ -114,8 +114,9 @@ export const FilesystemProvider = ({
     }
   };
 
-  const handleCreateNewFile = async () => {
-    const newFile = await filesystem.createNewFile();
+  const handleCreateNewFile = async (suggestedName: string) => {
+    console.log('handleCreateNewFile 👉', suggestedName);
+    const newFile = await filesystem.createNewFile(suggestedName);
 
     // Refresh directory files if a directory is selected
     if (
