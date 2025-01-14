@@ -171,10 +171,11 @@ export const createAdapter = (): Filesystem => ({
     await writable.write(content);
     await writable.close();
   },
-  createNewFile: async () => {
+  createNewFile: async (suggestedName) => {
     // Prompt the user to select where to save the file
     const fileHandle = await window.showSaveFilePicker({
       excludeAcceptAllOption: true,
+      suggestedName,
       types: [
         {
           description: 'v2',

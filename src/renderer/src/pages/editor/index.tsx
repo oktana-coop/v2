@@ -60,7 +60,7 @@ const EditorIndex = () => {
   }, []);
 
   const handleDocumentCreation = async (title: string) => {
-    const file = await createNewFile();
+    const file = await createNewFile(title);
     const newDocumentId = await createVersionedDocument({
       name: file.name,
       title,

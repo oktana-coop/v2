@@ -34,7 +34,8 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
     ipcRenderer.invoke('list-directory-files', path),
   requestPermissionForDirectory: (path: string) =>
     ipcRenderer.invoke('request-permission-for-directory', path),
-  createNewFile: () => ipcRenderer.invoke('create-new-file'),
+  createNewFile: (suggestedName: string) =>
+    ipcRenderer.invoke('create-new-file', suggestedName),
   writeFile: (path: string, content: string) =>
     ipcRenderer.invoke('write-file', { path, content }),
   readFile: (path: string) => ipcRenderer.invoke('read-file', path),
