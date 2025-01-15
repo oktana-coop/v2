@@ -34,3 +34,10 @@ export const ensureTrailingParagraphPlugin = (schema: Schema) => {
     },
   });
 };
+
+export {
+  wrapInList,
+  splitListItem,
+  liftListItem,
+  sinkListItem,
+} from 'prosemirror-schema-list';

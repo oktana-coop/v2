@@ -7,35 +7,63 @@ import {
 } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 
-import { BlockElementType, blockElementTypes } from '../constants/blocks';
+import {
+  blockTypes,
+  type ContainerBlockType,
+  type LeafBlockType,
+} from '../constants/blocks';
 import { getLinkAttrsFromDomElement, type LinkAttrs } from '../models/link';
 import { findMarkBoundaries } from './marks';
 
-export const getCurrentBlockType = (
+export const getCurrentLeafBlockType = (
   state: EditorState
-): BlockElementType | null => {
+): LeafBlockType | null => {
   const { $from } = state.selection;
 
   switch ($from.node().type.name) {
     case 'paragraph':
-      return blockElementTypes.PARAGRAPH;
+      return blockTypes.PARAGRAPH;
     case 'heading':
       switch ($from.node().attrs.level) {
         case 1:
         default:
-          return blockElementTypes.HEADING_1;
+          return blockTypes.HEADING_1;
         case 2:
-          return blockElementTypes.HEADING_2;
+          return blockTypes.HEADING_2;
         case 3:
-          return blockElementTypes.HEADING_3;
+          return blockTypes.HEADING_3;
         case 4:
-          return blockElementTypes.HEADING_4;
+          return blockTypes.HEADING_4;
       }
     case 'code_block':
-      return blockElementTypes.CODE_BLOCK;
+      return blockTypes.CODE_BLOCK;
     default:
       return null;
   }
+};
+
+export const getCurrentContainerBlockType = (
+  state: EditorState
+): ContainerBlockType | null => {
+  const { $from } = state.selection;
+
+  const findContainerBlockType = (depth: number): ContainerBlockType | null => {
+    if (depth < 0) return null; // Base case: No more levels to check
+
+    const node = $from.node(depth);
+
+    switch (node.type.name) {
+      case 'bullet_list':
+        return blockTypes.BULLET_LIST;
+      case 'ordered_list':
+        return blockTypes.ORDERED_LIST;
+      // TODO: add blockquote
+      default:
+        return findContainerBlockType(depth - 1); // Recursive case
+    }
+  };
+
+  return findContainerBlockType($from.depth);
 };
 
 export const isMarkActive =

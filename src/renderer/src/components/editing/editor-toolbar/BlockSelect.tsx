@@ -2,14 +2,14 @@ import * as Headless from '@headlessui/react';
 import clsx from 'clsx';
 import type { ReactNode } from 'react';
 
-import { BlockElementType } from '../../../../../modules/rich-text';
+import { type LeafBlockType } from '../../../../../modules/rich-text';
 import { ChevronDownIcon } from '../../icons';
 import { IconProps } from '../../icons/types';
 import { Listbox, ListboxLabel, ListboxOption } from '../../inputs/Listbox';
 
 export type BlockSelectProps = {
-  value: BlockElementType;
-  onSelect: (value: BlockElementType) => void;
+  value: LeafBlockType;
+  onSelect: (value: LeafBlockType) => void;
   options: Array<{
     label: string;
     value: string;
@@ -91,7 +91,7 @@ const Options = ({
 };
 
 export const BlockSelect = ({ value, options, onSelect }: BlockSelectProps) => {
-  const handleChange = (value: string) => onSelect(value as BlockElementType);
+  const handleChange = (value: string) => onSelect(value as LeafBlockType);
 
   return (
     <Listbox

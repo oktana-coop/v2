@@ -1,4 +1,5 @@
 export { BranchIcon } from './Branch';
+export { BulletListIcon } from './BulletList';
 export { CheckIcon } from './Check';
 export { ChevronDownIcon } from './ChevronDown';
 export { CloseIcon } from './Close';
@@ -24,6 +25,7 @@ export { ImageIcon } from './Image';
 export { LinkIcon } from './Link';
 export { MoonIcon } from './Moon';
 export { OptionsIcon } from './Options';
+export { OrderedListIcon } from './OrderedList';
 export { PenIcon } from './Pen';
 export { PlusIcon } from './Plus';
 export { PushIcon } from './Push';
