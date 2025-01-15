@@ -91,7 +91,7 @@ const Options = ({
 };
 
 export const BlockSelect = ({ value, options, onSelect }: BlockSelectProps) => {
-  const handleChange = (value: string) => onSelect(value as BlockElementType);
+  const handleChange = (value: string) => onSelect(value as LeafBlockType);
 
   return (
     <Listbox
