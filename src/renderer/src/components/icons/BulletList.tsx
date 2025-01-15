@@ -17,12 +17,12 @@ export const BulletListIcon = ({
       className={className}
     >
       <g transform={`scale(${scale})`}>
-        <path d="M9 7H7V9H9V7Z" fill={color ?? 'currentColor'} />
-        <path d="M7 13V11H9V13H7Z" fill={color ?? 'currentColor'} />
-        <path d="M7 15V17H9V15H7Z" fill={color ?? 'currentColor'} />
-        <path d="M11 15V17H17V15H11Z" fill={color ?? 'currentColor'} />
-        <path d="M17 13V11H11V13H17Z" fill={color ?? 'currentColor'} />
-        <path d="M17 7V9H11V7H17Z" fill={color ?? 'currentColor'} />
+        <path d="M8 5H5V8H8V5Z" fill={color ?? 'currentColor'} />
+        <path d="M5 13V10H8V13H5Z" fill={color ?? 'currentColor'} />
+        <path d="M5 15V18H8V15H5Z" fill={color ?? 'currentColor'} />
+        <path d="M10 15V18H19V15H10Z" fill={color ?? 'currentColor'} />
+        <path d="M19 13V10H10V13H19Z" fill={color ?? 'currentColor'} />
+        <path d="M19 5V8H10V5H19Z" fill={color ?? 'currentColor'} />
       </g>
     </svg>
   );
