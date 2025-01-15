@@ -16,13 +16,23 @@ export const headingTypes = {
   HEADING_4,
 } as const;
 
-export const blockElementTypes = {
+export const leafBlockTypes = {
   PARAGRAPH,
   ...headingTypes,
   CODE_BLOCK,
+} as const;
+
+export const containerBlockTypes = {
   BULLET_LIST,
   ORDERED_LIST,
 } as const;
 
-export type BlockElementType = ValueOf<typeof blockElementTypes>;
+export const blockTypes = {
+  ...leafBlockTypes,
+  ...containerBlockTypes,
+} as const;
+
+export type BlockType = ValueOf<typeof blockTypes>;
 export type HeadingType = ValueOf<typeof headingTypes>;
+export type LeafBlockType = ValueOf<typeof leafBlockTypes>;
+export type ContainerBlockType = ValueOf<typeof containerBlockTypes>;

@@ -17,8 +17,10 @@ import {
   prosemirror,
 } from '../../../../modules/rich-text';
 import {
-  BlockElementType,
-  blockElementTypes,
+  type BlockType,
+  blockTypes,
+  type ContainerBlockType,
+  type LeafBlockType,
 } from '../../../../modules/rich-text/constants/blocks';
 import { ProseMirrorContext } from '../../../../modules/rich-text/react/context';
 import type {
@@ -32,7 +34,8 @@ import { LinkPopover } from './LinkPopover';
 const {
   automergeSchemaAdapter,
   buildInputRules,
-  getCurrentBlockType,
+  getCurrentLeafBlockType,
+  getCurrentContainerBlockType,
   isMarkActive,
   toggleEm,
   toggleStrong,
@@ -66,7 +69,11 @@ export const RichTextEditor = ({
 }: RichTextEditorProps) => {
   const editorRoot = useRef<HTMLDivElement>(null);
   const { schema, view, setView, setSchema } = useContext(ProseMirrorContext);
-  const [blockType, setBlockType] = useState<BlockElementType | null>(null);
+  const [leafBlockType, setLeafBlockType] = useState<LeafBlockType | null>(
+    null
+  );
+  const [containerBlockType, setContainerBlockType] =
+    useState<ContainerBlockType | null>(null);
   const [strongSelected, setStrongSelected] = useState<boolean>(false);
   const [emSelected, setEmSelected] = useState<boolean>(false);
   const [selectionIsLink, setSelectionIsLink] = useState<boolean>(false);
@@ -148,7 +155,8 @@ export const RichTextEditor = ({
           view.updateState(newState);
 
           // React state updates
-          setBlockType(getCurrentBlockType(newState));
+          setLeafBlockType(getCurrentLeafBlockType(newState));
+          setContainerBlockType(getCurrentContainerBlockType(newState));
 
           if (tx.selectionSet || transactionUpdatesMarks(tx)) {
             setStrongSelected(isMarkActive(schema.marks.strong)(newState));
@@ -164,7 +172,8 @@ export const RichTextEditor = ({
 
       if (isEditable) {
         view.focus();
-        setBlockType(getCurrentBlockType(state));
+        setLeafBlockType(getCurrentLeafBlockType(state));
+        setContainerBlockType(getCurrentContainerBlockType(state));
       }
 
       return () => {
@@ -173,15 +182,15 @@ export const RichTextEditor = ({
     }
   }, [docHandle, onSave, isEditable, setSchema, setView]);
 
-  const handleBlockSelect = (type: BlockElementType) => {
+  const handleBlockSelect = (type: BlockType) => {
     if (view) {
       const { $from } = view.state.selection;
 
       switch (type) {
-        case blockElementTypes.HEADING_1:
-        case blockElementTypes.HEADING_2:
-        case blockElementTypes.HEADING_3:
-        case blockElementTypes.HEADING_4: {
+        case blockTypes.HEADING_1:
+        case blockTypes.HEADING_2:
+        case blockTypes.HEADING_3:
+        case blockTypes.HEADING_4: {
           const level = getHeadingLevel(type);
 
           if (
@@ -200,28 +209,28 @@ export const RichTextEditor = ({
           }
           break;
         }
-        case blockElementTypes.CODE_BLOCK:
+        case blockTypes.CODE_BLOCK:
           setProsemirrorBlockType(view.state.schema.nodes.code_block)(
             view.state,
             view.dispatch,
             view
           );
           break;
-        case blockElementTypes.BULLET_LIST:
+        case blockTypes.BULLET_LIST:
           wrapInList(view.state.schema.nodes.bullet_list)(
             view.state,
             view.dispatch,
             view
           );
           break;
-        case blockElementTypes.ORDERED_LIST:
+        case blockTypes.ORDERED_LIST:
           wrapInList(view.state.schema.nodes.ordered_list)(
             view.state,
             view.dispatch,
             view
           );
           break;
-        case blockElementTypes.PARAGRAPH:
+        case blockTypes.PARAGRAPH:
         default:
           setProsemirrorBlockType(view.state.schema.nodes.paragraph)(
             view.state,
@@ -302,7 +311,7 @@ export const RichTextEditor = ({
         <div className="flex-auto" id="editor" ref={editorRoot} />
       </div>
 
-      {isEditable && blockType && (
+      {isEditable && leafBlockType && (
         <div
           className={clsx(
             'absolute self-center drop-shadow transition-bottom',
@@ -310,7 +319,8 @@ export const RichTextEditor = ({
           )}
         >
           <EditorToolbar
-            blockType={blockType}
+            leafBlockType={leafBlockType}
+            containerBlockType={containerBlockType}
             onBlockSelect={handleBlockSelect}
             strongSelected={strongSelected}
             emSelected={emSelected}
