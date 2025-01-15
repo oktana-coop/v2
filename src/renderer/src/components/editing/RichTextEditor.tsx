@@ -46,6 +46,9 @@ const {
   findLinkAtSelection,
   ensureTrailingParagraphPlugin,
   wrapInList,
+  splitListItem,
+  liftListItem,
+  sinkListItem,
 } = prosemirror;
 
 type RichTextEditorProps = {
@@ -115,7 +118,6 @@ export const RichTextEditor = ({
           buildInputRules(schema),
           history(),
           keymap({
-            ...baseKeymap,
             'Mod-b': toggleStrong(schema),
             'Mod-i': toggleEm(schema),
             'Mod-s': () => {
@@ -125,7 +127,11 @@ export const RichTextEditor = ({
             'Mod-z': undo,
             'Mod-y': redo,
             'Shift-Mod-z': redo,
+            Enter: splitListItem(schema.nodes.list_item),
+            'Mod-[': liftListItem(schema.nodes.list_item),
+            'Mod-]': sinkListItem(schema.nodes.list_item),
           }),
+          keymap(baseKeymap),
           linkSelectionPlugin,
           selectionChangePlugin(onSelectionChange(schema)),
           ensureTrailingParagraphPlugin(schema),
