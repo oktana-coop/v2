@@ -15,14 +15,14 @@ import {
 import {
   bulletList as bulletListClasses,
   codeBlock as codeBlockClasses,
+  heading1 as heading1Classes,
+  heading2 as heading2Classes,
+  heading3 as heading3Classes,
+  heading4 as heading4Classes,
   orderedList as orderedListClasses,
   paragraph as paragraphClasses,
 } from '../../../renderer/src/components/editing/blocks';
 import { link as linkClasses } from '../../../renderer/src/components/editing/marks';
-import { classes as heading1Classes } from '../../../renderer/src/components/typography/headings/Heading1';
-import { classes as heading2Classes } from '../../../renderer/src/components/typography/headings/Heading2';
-import { classes as heading3Classes } from '../../../renderer/src/components/typography/headings/Heading3';
-import { classes as heading4Classes } from '../../../renderer/src/components/typography/headings/Heading4';
 import { getLinkAttrsFromDomElement, type LinkAttrs } from '../models/link';
 
 // basics
