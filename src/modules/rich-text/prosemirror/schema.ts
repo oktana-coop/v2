@@ -16,6 +16,7 @@ import {
   bulletList as bulletListClasses,
   codeBlock as codeBlockClasses,
   orderedList as orderedListClasses,
+  paragraph as paragraphClasses,
 } from '../../../renderer/src/components/editing/blocks';
 import { link as linkClasses } from '../../../renderer/src/components/editing/marks';
 import { classes as heading1Classes } from '../../../renderer/src/components/typography/headings/Heading1';
@@ -25,7 +26,6 @@ import { classes as heading4Classes } from '../../../renderer/src/components/typ
 import { getLinkAttrsFromDomElement, type LinkAttrs } from '../models/link';
 
 // basics
-const pDOM: DOMOutputSpec = ['p', 0];
 const blockquoteDOM: DOMOutputSpec = ['blockquote', 0];
 const hrDOM: DOMOutputSpec = ['hr'];
 
@@ -69,7 +69,7 @@ const schema: MappedSchemaSpec = {
       group: 'block',
       parseDOM: [{ tag: 'p' }],
       toDOM() {
-        return pDOM;
+        return ['p', { class: paragraphClasses }, 0];
       },
     } as NodeSpec,
 
