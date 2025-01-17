@@ -6,6 +6,7 @@ import type {
   FromRendererMessage,
   VersionControlId,
 } from './src/modules/version-control';
+import type { Wasm as WasmAPI } from './src/modules/wasm';
 
 export type ElectronAPI = {
   onReceiveProcessId: (callback: (processId: string) => void) => IpcRenderer;
@@ -36,5 +37,6 @@ declare global {
     automergeRepoNetworkAdapter: AutomergeRepoNetworkAdapter;
     filesystemAPI: FilesystemAPI;
     versionControlAPI: VersionControlAPI;
+    wasmAPI: WasmAPI;
   }
 }
