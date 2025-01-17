@@ -7,7 +7,6 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode);
 
   return {
-    publicDir: false,
     main: {
       define: {
         'process.env': env,

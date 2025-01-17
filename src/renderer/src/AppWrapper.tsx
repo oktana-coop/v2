@@ -8,6 +8,7 @@ import {
 } from '../../modules/filesystem';
 import { ThemeProvider } from '../../modules/personalization/theme';
 import { VersionControlProvider } from '../../modules/version-control/react';
+import { WasmProvider } from '../../modules/wasm';
 import App from './App.tsx';
 
 export const AppWrapper = () => {
@@ -21,11 +22,13 @@ export const AppWrapper = () => {
           : createBrowserFilesystemAPIAdapter()
       }
     >
-      <VersionControlProvider>
-        <ThemeProvider>
-          <App />
-        </ThemeProvider>
-      </VersionControlProvider>
+      <WasmProvider>
+        <VersionControlProvider>
+          <ThemeProvider>
+            <App />
+          </ThemeProvider>
+        </VersionControlProvider>
+      </WasmProvider>
     </FilesystemProvider>
   );
 };

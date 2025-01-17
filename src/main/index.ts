@@ -19,6 +19,8 @@ import {
   openOrCreateProject,
   openProjectById,
 } from '../modules/version-control/automerge-repo/node';
+import { RunWasiCLIArgs } from '../modules/wasm';
+import { createAdapter as createNodeWasmAdapter } from '../modules/wasm/adapters/node-wasm';
 import { update } from './update';
 
 const filesystemAPI = createElectronNodeFilesystemAPIAdapter();
@@ -74,6 +76,8 @@ async function createWindow() {
     );
     app.dock.setIcon(macOSDockIcon);
   }
+
+  const wasmAPI = await createNodeWasmAdapter();
 
   win = new BrowserWindow({
     title: 'Main window',
@@ -196,6 +200,10 @@ async function createWindow() {
       shell.openExternal(url);
     }
   });
+
+  ipcMain.handle('run-wasi-cli', (_, args: RunWasiCLIArgs) =>
+    wasmAPI.runWasiCLI(args)
+  );
 }
 
 app.whenReady().then(createWindow);

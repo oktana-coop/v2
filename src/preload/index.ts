@@ -6,6 +6,7 @@ import type {
   FromRendererMessage,
   VersionControlId,
 } from '../modules/version-control';
+import type { RunWasiCLIArgs, Wasm as WasmAPI } from '../modules/wasm';
 
 contextBridge.exposeInMainWorld('electronAPI', {
   onReceiveProcessId: (callback: (processId: string) => void) =>
@@ -52,3 +53,8 @@ contextBridge.exposeInMainWorld('versionControlAPI', {
     directoryPath: string;
   }) => ipcRenderer.invoke('open-project', { projectId, directoryPath }),
 });
+
+contextBridge.exposeInMainWorld('wasmAPI', {
+  runWasiCLI: (args: RunWasiCLIArgs) =>
+    ipcRenderer.invoke('run-wasi-cli', args),
+} as WasmAPI);
