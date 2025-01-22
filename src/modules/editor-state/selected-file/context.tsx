@@ -4,19 +4,14 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { ElectronContext } from '../../electron';
 import { FilesystemContext } from '../../filesystem';
 import {
-  createAutomergePandocAdapter,
-  richTextRepresentations,
-} from '../../rich-text';
-import {
+  convertToStorageFormat,
   type DocHandleChangePayload,
-  getSpans,
   isValidVersionControlId,
   type RichTextDocument,
   type VersionControlId,
   type VersionedDocumentHandle,
 } from '../../version-control';
 import { VersionControlContext } from '../../version-control/react';
-import { WasmContext } from '../../wasm';
 
 export type SelectedFileInfo = {
   documentId: VersionControlId;
@@ -51,7 +46,6 @@ export const SelectedFileProvider = ({
   const [searchParams] = useSearchParams();
   const { findDocument } = useContext(VersionControlContext);
   const { writeFile } = useContext(FilesystemContext);
-  const { runWasiCLI } = useContext(WasmContext);
 
   useEffect(() => {
     const updateFileSelection = async () => {
@@ -69,24 +63,11 @@ export const SelectedFileProvider = ({
           );
         }
 
-        const propagateChangesToFile = async (
+        const propagateChangesToFile = (
           changePayload: DocHandleChangePayload<RichTextDocument>
         ) => {
-          console.log('propagating changes to file');
           if (path) {
-            const spans = getSpans(changePayload.doc);
-            const { transformFromAutomerge } = createAutomergePandocAdapter({
-              runWasiCLI,
-            });
-            const pandocAST = await transformFromAutomerge({
-              // Replace non-breaking spaces with regular ones becuase they are causing an issue
-              // with the pandoc transformation
-              // TODO: Revisit this, understand if this is the proper solution.
-              spans: JSON.stringify(spans).replace(/\u00A0/g, ' '),
-              representation: richTextRepresentations.PANDOC,
-            });
-            console.log('pandoc AST', pandocAST);
-            writeFile(path, pandocAST);
+            writeFile(path, convertToStorageFormat(changePayload.doc));
           }
         };
 
