@@ -25,12 +25,10 @@ export type Commit = {
   time: Date;
 };
 
-export type UncommitedChange = DecodedChange & {
+export type UncommitedChange = {
+  hash: string;
   heads: UrlHeads;
 };
-
-// TODO: Use something that is not Automerge-specific
-export type DecodedChange = Automerge.DecodedChange;
 
 // this is a TS type guard to check if a change is a commit
 export const isCommit = (
@@ -67,10 +65,18 @@ export const getDocumentHandleAtCommit =
 
 export const getDocumentHandleHistory = (
   documentHandle: VersionedDocumentHandle
-): Array<Commit> => {
+): Array<UncommitedChange | Commit> => {
   const history = documentHandle.history() || [];
+  const [latestChangeHeads] = history.slice(-1);
+  const uncommitedChangesMetadata = documentHandle.metadata(
+    latestChangeHeads[0]
+  ) as Automerge.DecodedChange;
+  const uncommitedChange = {
+    hash: uncommitedChangesMetadata.hash,
+    heads: latestChangeHeads,
+  } as UncommitedChange;
 
-  return history
+  const commits = history
     .map((heads) => {
       const [change] = heads;
       const changeMetadata = documentHandle.metadata(change);
@@ -86,6 +92,13 @@ export const getDocumentHandleHistory = (
       return undefined;
     })
     .filter((change) => !!change);
+
+  const orderedCommits = commits.reverse();
+  const [lastCommit] = orderedCommits;
+
+  return uncommitedChange.hash !== lastCommit.hash
+    ? [uncommitedChange, ...orderedCommits]
+    : orderedCommits;
 };
 
 export const getCommitsAndUncommittedChanges = (

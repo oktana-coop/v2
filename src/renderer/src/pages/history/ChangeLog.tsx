@@ -7,8 +7,8 @@ import {
 } from '../../../../modules/personalization/theme';
 import {
   type Commit,
-  DecodedChange,
   isCommit,
+  type UncommitedChange,
 } from '../../../../modules/version-control';
 import { TimelinePoint } from '../../components/icons/TimelinePoint';
 
@@ -55,7 +55,7 @@ const UncommittedChange = ({
   onClick,
   isSelected = false,
 }: {
-  commit: DecodedChange;
+  commit: UncommitedChange;
   onClick: (hash: string) => void;
   isSelected?: boolean;
   isFirst?: boolean;
@@ -93,7 +93,7 @@ export const ChangeLog = ({
   onClick,
   selectedCommit,
 }: {
-  changes: Array<DecodedChange | Commit>;
+  changes: Array<UncommitedChange | Commit>;
   onClick: (hash: string) => void;
   selectedCommit?: string;
 }) => {
