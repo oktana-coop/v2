@@ -5,12 +5,15 @@ import { SelectedFileContext } from '../../../../modules/editor-state';
 import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
 import {
   type Commit,
-  type DecodedChange,
-  getCommitsAndUncommittedChanges,
   type VersionControlId,
   type VersionedDocument,
   VersionedDocumentHandle,
 } from '../../../../modules/version-control';
+import {
+  getDocumentHandleAtCommit,
+  getDocumentHandleHistory,
+  UncommitedChange,
+} from '../../../../modules/version-control/models/document';
 import { VersionControlContext } from '../../../../modules/version-control/react';
 import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import { CommitHistoryIcon } from '../../components/icons';
@@ -25,23 +28,40 @@ export const DocumentsHistory = ({
   const { versionedDocumentHandle } = useContext(SelectedFileContext);
   const { getDocumentAt } = useContext(VersionControlContext);
   const [selectedCommit, setSelectedCommit] = React.useState<string>();
-  const [tmpDocHandle, setTmpDocHandle] =
+  const [currentDocHandle, setCurrentDocHandle] =
     React.useState<VersionedDocumentHandle | null>();
-  const [commits, setCommits] = React.useState<Array<DecodedChange | Commit>>(
-    []
-  );
+  const [commits, setCommits] = React.useState<
+    Array<UncommitedChange | Commit>
+  >([]);
   const navigate = useNavigate();
   const [versionedDocument, setVersionedDocument] =
     useState<VersionedDocument | null>(null);
 
-  useEffect(() => {
-    // Cleanup function: runs when the component is unmounted.
-    return () => {
-      // Cleanup tmp handles.
-      if (tmpDocHandle) tmpDocHandle.delete();
-    };
+  const selectCommit = useCallback(
+    async (hash: string) => {
+      setSelectedCommit(hash);
+      if (versionedDocumentHandle) {
+        const commit = commits.find((commit) => commit.hash === hash);
+        if (commit) {
+          const currentHandle = getDocumentHandleAtCommit(
+            versionedDocumentHandle
+          )(commit.heads);
+          setCurrentDocHandle(currentHandle);
+        }
+      }
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    [getDocumentAt, versionedDocument]
+  );
+
+  useEffect(() => {
+    if (versionedDocumentHandle) {
+      const commits = getDocumentHandleHistory(versionedDocumentHandle);
+      setCommits(commits);
+      // const [lastChange] = commits;
+      // if (lastChange) selectCommit(lastChange.hash);
+    }
+  }, [versionedDocumentHandle, selectCommit]);
 
   useEffect(() => {
     if (versionedDocumentHandle) {
@@ -52,45 +72,6 @@ export const DocumentsHistory = ({
       }
     }
   }, [versionedDocumentHandle]);
-
-  const updateTempHandle = useCallback(
-    (handle: VersionedDocumentHandle) => {
-      // before updating the temporary handle, delete any previously
-      // created ones to avoid bloating the repo.
-      if (tmpDocHandle) {
-        tmpDocHandle.delete();
-      }
-      setTmpDocHandle(handle);
-    },
-    [tmpDocHandle]
-  );
-
-  const selectCommit = useCallback(
-    async (hash: string) => {
-      if (versionedDocument) {
-        setSelectedCommit(hash);
-        const currentHandle = await getDocumentAt({
-          document: versionedDocument,
-          commit: hash,
-        });
-
-        updateTempHandle(currentHandle);
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [getDocumentAt, versionedDocument]
-  );
-
-  useEffect(() => {
-    if (versionedDocument) {
-      const commitsAndUncommittedChanges =
-        getCommitsAndUncommittedChanges(versionedDocument);
-
-      setCommits(commitsAndUncommittedChanges);
-      const [lastChange] = commitsAndUncommittedChanges;
-      if (lastChange) selectCommit(lastChange.hash);
-    }
-  }, [versionedDocument, selectCommit]);
 
   const handleCommitClick = (hash: string) => {
     selectCommit(hash);
@@ -107,13 +88,13 @@ export const DocumentsHistory = ({
         />
       </div>
       <div className="flex w-full grow items-stretch">
-        {tmpDocHandle ? (
+        {currentDocHandle ? (
           <div onDoubleClick={() => navigate(`/edit/${documentId}`)}>
             <ProseMirrorProvider>
               <RichTextEditor
                 // explicitly define onSave as a no-op
                 onSave={() => {}}
-                docHandle={tmpDocHandle}
+                docHandle={currentDocHandle}
                 isEditable={false}
               />
             </ProseMirrorProvider>

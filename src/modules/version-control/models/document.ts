@@ -1,4 +1,5 @@
 import { next as Automerge } from '@automerge/automerge/slim';
+import { UrlHeads } from '@automerge/automerge-repo/slim';
 
 import { versionControlItemTypes } from '../constants/versionControlItemTypes';
 import { DocHandle } from './doc-handle';
@@ -19,8 +20,13 @@ export type VersionedDocumentHandle = DocHandle<RichTextDocument>;
 // strictly has a message and a time
 export type Commit = {
   hash: string;
+  heads: UrlHeads;
   message: string;
   time: Date;
+};
+
+export type UncommitedChange = DecodedChange & {
+  heads: UrlHeads;
 };
 
 // TODO: Use something that is not Automerge-specific
@@ -28,10 +34,13 @@ export type DecodedChange = Automerge.DecodedChange;
 
 // this is a TS type guard to check if a change is a commit
 export const isCommit = (
-  change: Automerge.DecodedChange | Commit
+  change: Automerge.DecodedChange | Commit | undefined
 ): change is Commit => {
-  // we make the rules!
-  return Boolean(change.message && change.time);
+  if (change) {
+    // we make the rules!
+    return Boolean(change.message && change.time);
+  }
+  return false;
 };
 
 export const getSpans: (
@@ -45,6 +54,39 @@ export const getDocumentAtCommit =
   (hash: string): VersionedDocument => {
     return Automerge.view(document, [hash]);
   };
+
+// TODO: thing about this and the above.
+// Don't particularly like that we have to expose this and
+// the above. Tha fact that's a handle is a technical details
+// that should not really bother the rest of the app.
+export const getDocumentHandleAtCommit =
+  (documentHandle: VersionedDocumentHandle) =>
+  (heads: UrlHeads): VersionedDocumentHandle => {
+    return documentHandle.view(heads);
+  };
+
+export const getDocumentHandleHistory = (
+  documentHandle: VersionedDocumentHandle
+): Array<Commit> => {
+  const history = documentHandle.history() || [];
+
+  return history
+    .map((heads) => {
+      const [change] = heads;
+      const changeMetadata = documentHandle.metadata(change);
+      if (isCommit(changeMetadata)) {
+        return {
+          hash: changeMetadata.hash,
+          // TODO: cannot see why hash & heads are different things!
+          heads: heads,
+          message: changeMetadata.message,
+          time: changeMetadata.time,
+        };
+      }
+      return undefined;
+    })
+    .filter((change) => !!change);
+};
 
 export const getCommitsAndUncommittedChanges = (
   document: VersionedDocument
