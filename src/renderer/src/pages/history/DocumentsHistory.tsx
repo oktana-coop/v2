@@ -58,8 +58,8 @@ export const DocumentsHistory = ({
     if (versionedDocumentHandle) {
       const commits = getDocumentHandleHistory(versionedDocumentHandle);
       setCommits(commits);
-      // const [lastChange] = commits;
-      // if (lastChange) selectCommit(lastChange.hash);
+      const [lastChange] = commits;
+      if (lastChange) selectCommit(lastChange.hash);
     }
   }, [versionedDocumentHandle, selectCommit]);
 

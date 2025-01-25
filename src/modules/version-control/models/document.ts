@@ -18,9 +18,7 @@ export type VersionedDocumentHandle = DocHandle<RichTextDocument>;
 
 // Commit is a special type of an (automerge) change that
 // strictly has a message and a time
-export type Commit = {
-  hash: string;
-  heads: UrlHeads;
+export type Commit = UncommitedChange & {
   message: string;
   time: Date;
 };
@@ -32,13 +30,19 @@ export type UncommitedChange = {
 
 // this is a TS type guard to check if a change is a commit
 export const isCommit = (
-  change: Automerge.DecodedChange | Commit | undefined
+  change: Commit | UncommitedChange
 ): change is Commit => {
-  if (change) {
-    // we make the rules!
-    return Boolean(change.message && change.time);
-  }
-  return false;
+  // we make the rules!
+  return 'message' in change;
+};
+
+type CommittedChange = Automerge.DecodedChange & {
+  message: string;
+};
+const isCommittedChange = (
+  change: Automerge.DecodedChange | undefined
+): change is CommittedChange => {
+  return change ? !!change.message : false;
 };
 
 export const getSpans: (
@@ -67,49 +71,28 @@ export const getDocumentHandleHistory = (
   documentHandle: VersionedDocumentHandle
 ): Array<UncommitedChange | Commit> => {
   const history = documentHandle.history() || [];
-  const [latestChangeHeads] = history.slice(-1);
-  const uncommitedChangesMetadata = documentHandle.metadata(
-    latestChangeHeads[0]
-  ) as Automerge.DecodedChange;
-  const uncommitedChange = {
-    hash: uncommitedChangesMetadata.hash,
-    heads: latestChangeHeads,
+  const changes = history
+    .map((heads) => {
+      const [head] = heads;
+      const changeMetadata = documentHandle.metadata(head);
+      return changeMetadata
+        ? {
+            ...changeMetadata,
+            heads: heads,
+          }
+        : null;
+    })
+    .filter((change) => change !== null);
+  const [latestChangeMeta] = changes.slice(-1);
+  const latestChange = {
+    hash: latestChangeMeta.hash,
+    heads: latestChangeMeta.heads,
   } as UncommitedChange;
 
-  const commits = history
-    .map((heads) => {
-      const [change] = heads;
-      const changeMetadata = documentHandle.metadata(change);
-      if (isCommit(changeMetadata)) {
-        return {
-          hash: changeMetadata.hash,
-          // TODO: cannot see why hash & heads are different things!
-          heads: heads,
-          message: changeMetadata.message,
-          time: changeMetadata.time,
-        };
-      }
-      return undefined;
-    })
-    .filter((change) => !!change);
-
-  const orderedCommits = commits.reverse();
-  const [lastCommit] = orderedCommits;
-
-  return uncommitedChange.hash !== lastCommit.hash
-    ? [uncommitedChange, ...orderedCommits]
-    : orderedCommits;
-};
-
-export const getCommitsAndUncommittedChanges = (
-  document: VersionedDocument
-) => {
-  const allChanges = Automerge.getAllChanges(document);
-  const decodedChanges = allChanges.map(Automerge.decodeChange);
-  const [latestChange] = decodedChanges.slice(-1);
-
-  const commits = decodedChanges.filter(isCommit).map((change) => ({
+  const commits = changes.filter(isCommittedChange).map((change) => ({
     hash: change.hash,
+    // TODO: cannot see why hash & heads are different things!
+    heads: change.heads,
     message: change.message,
     time: new Date(change.time),
   })) as Array<Commit>;
@@ -118,10 +101,9 @@ export const getCommitsAndUncommittedChanges = (
   const [lastCommit] = orderedCommits;
 
   const commitsAndUncommittedChanges =
-    latestChange?.hash !== lastCommit?.hash
+    latestChange.hash !== lastCommit.hash
       ? [latestChange, ...orderedCommits]
       : orderedCommits;
-
   return commitsAndUncommittedChanges;
 };
 
