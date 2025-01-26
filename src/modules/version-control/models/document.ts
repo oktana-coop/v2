@@ -106,11 +106,15 @@ export const getDocumentHandleHistory = (
   const orderedCommits = commits.reverse();
   const [lastCommit] = orderedCommits;
 
-  const commitsAndUncommittedChanges =
-    latestChange.hash !== lastCommit.hash
-      ? [latestChange, ...orderedCommits]
-      : orderedCommits;
-  return commitsAndUncommittedChanges;
+  if (lastCommit) {
+    const commitsAndUncommittedChanges =
+      latestChange.hash !== lastCommit.hash
+        ? [latestChange, ...orderedCommits]
+        : orderedCommits;
+    return commitsAndUncommittedChanges;
+  }
+
+  return [latestChange];
 };
 
 export const convertToStorageFormat = (document: VersionedDocument) =>
