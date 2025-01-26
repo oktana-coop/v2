@@ -54,6 +54,7 @@ const UncommittedChange = ({
   commit,
   onClick,
   isSelected = false,
+  isLast = false,
 }: {
   commit: UncommitedChange;
   onClick: (hash: string) => void;
@@ -76,6 +77,7 @@ const UncommittedChange = ({
             circleStrokeSize={5}
             circleFillColor="transparent"
             hasTopStem={false}
+            hasBottomStem={!isLast}
           />
         </div>
         <div
@@ -116,7 +118,7 @@ export const ChangeLog = ({
             onClick={onClick}
             isSelected={selectedCommit === commit.hash}
             isFirst={index === 0}
-            isLast={changes.length - 1 === index}
+            isLast={changes.length === 1}
           />
         );
       })}
