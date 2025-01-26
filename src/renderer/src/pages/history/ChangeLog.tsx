@@ -20,7 +20,7 @@ const Commit = ({
   isLast = false,
 }: {
   commit: Commit;
-  onClick: (hash: string) => void;
+  onClick: (hash: Commit['hash']) => void;
   isSelected?: boolean;
   isFirst?: boolean;
   isLast?: boolean;
@@ -57,7 +57,7 @@ const UncommittedChange = ({
   isLast = false,
 }: {
   commit: UncommitedChange;
-  onClick: (hash: string) => void;
+  onClick: (hash: Commit['hash']) => void;
   isSelected?: boolean;
   isFirst?: boolean;
   isLast?: boolean;
@@ -96,8 +96,8 @@ export const ChangeLog = ({
   selectedCommit,
 }: {
   changes: Array<UncommitedChange | Commit>;
-  onClick: (hash: string) => void;
-  selectedCommit?: string;
+  onClick: (hash: Commit['hash']) => void;
+  selectedCommit?: Commit['hash'];
 }) => {
   return (
     <>

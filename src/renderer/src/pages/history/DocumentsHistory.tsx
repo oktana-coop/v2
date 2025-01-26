@@ -26,7 +26,8 @@ export const DocumentsHistory = ({
 }) => {
   const { versionedDocumentHandle } = useContext(SelectedFileContext);
   const { getDocumentHandleAtCommit } = useContext(VersionControlContext);
-  const [selectedCommit, setSelectedCommit] = React.useState<Commit['hash']>();
+  const [selectedCommitHash, setSelectedCommitHash] =
+    React.useState<Commit['hash']>();
   const [currentDocHandle, setCurrentDocHandle] =
     React.useState<VersionedDocumentHandle | null>();
   const [commits, setCommits] = React.useState<
@@ -38,7 +39,7 @@ export const DocumentsHistory = ({
 
   const selectCommit = useCallback(
     async (hash: string) => {
-      setSelectedCommit(hash);
+      setSelectedCommitHash(hash);
       if (versionedDocumentHandle) {
         const commit = commits.find((commit) => commit.hash === hash);
         if (commit) {
@@ -84,7 +85,7 @@ export const DocumentsHistory = ({
         <ChangeLog
           changes={commits}
           onClick={handleCommitClick}
-          selectedCommit={selectedCommit}
+          selectedCommit={selectedCommitHash}
         />
       </div>
       <div className="flex w-full grow items-stretch">
