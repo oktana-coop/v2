@@ -7,7 +7,7 @@ import {
   type Commit,
   type VersionControlId,
   type VersionedDocument,
-  VersionedDocumentHandle,
+  type VersionedDocumentHandle,
 } from '../../../../modules/version-control';
 import {
   getDocumentHandleHistory,
