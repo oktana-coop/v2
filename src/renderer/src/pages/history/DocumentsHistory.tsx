@@ -27,7 +27,7 @@ export const DocumentsHistory = ({
 }) => {
   const { versionedDocumentHandle } = useContext(SelectedFileContext);
   const { getDocumentAt } = useContext(VersionControlContext);
-  const [selectedCommit, setSelectedCommit] = React.useState<string>();
+  const [selectedCommit, setSelectedCommit] = React.useState<Commit['hash']>();
   const [currentDocHandle, setCurrentDocHandle] =
     React.useState<VersionedDocumentHandle | null>();
   const [commits, setCommits] = React.useState<

@@ -18,14 +18,15 @@ export type VersionedDocumentHandle = DocHandle<RichTextDocument>;
 
 // Commit is a special type of an (automerge) change that
 // strictly has a message and a time
-export type Commit = UncommitedChange & {
+export type Commit = {
+  hash: string;
+  heads: UrlHeads;
   message: string;
   time: Date;
 };
 
-export type UncommitedChange = {
-  hash: string;
-  heads: UrlHeads;
+export type UncommitedChange = Omit<Commit, 'message'> & {
+  message: undefined;
 };
 
 // this is a TS type guard to check if a change is a commit
@@ -33,7 +34,7 @@ export const isCommit = (
   change: Commit | UncommitedChange
 ): change is Commit => {
   // we make the rules!
-  return 'message' in change;
+  return Boolean(change.message);
 };
 
 type CommittedChange = Automerge.DecodedChange & {
@@ -74,6 +75,9 @@ export const getDocumentHandleHistory = (
   const changes = history
     .map((heads) => {
       const [head] = heads;
+      // TODO: .metadata is "hidden", and prone to changes or even removal
+      // but was the only way to construct the commit graph
+      // (history of changes with messages & time)
       const changeMetadata = documentHandle.metadata(head);
       return changeMetadata
         ? {
@@ -83,10 +87,12 @@ export const getDocumentHandleHistory = (
         : null;
     })
     .filter((change) => change !== null);
+
   const [latestChangeMeta] = changes.slice(-1);
   const latestChange = {
     hash: latestChangeMeta.hash,
     heads: latestChangeMeta.heads,
+    time: new Date(latestChangeMeta.time),
   } as UncommitedChange;
 
   const commits = changes.filter(isCommittedChange).map((change) => ({
