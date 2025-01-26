@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/main/index.js",
+  "packageManager": "pnpm@9.15.4",
   "scripts": {
     "dev": "electron-vite dev -w --outDir=dist",
     "prebuild": "npm run compile",
