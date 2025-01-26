@@ -71,6 +71,9 @@ importers:
       prosemirror-state:
         specifier: ^1.4.3
         version: 1.4.3
+      prosemirror-transform:
+        specifier: ^1.10.2
+        version: 1.10.2
       prosemirror-view:
         specifier: ^1.33.6
         version: 1.37.2
