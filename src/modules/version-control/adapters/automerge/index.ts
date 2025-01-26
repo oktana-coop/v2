@@ -4,7 +4,6 @@ import { RawString, Repo } from '@automerge/automerge-repo/slim';
 import { versionControlItemTypes } from '../../constants/versionControlItemTypes';
 import {
   type DocumentMetaData,
-  getSpans,
   type Project,
   type RichTextDocument,
   type VersionControlId,
@@ -87,26 +86,10 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
     return documentUrl;
   };
 
-  const getDocumentAt: VersionControlRepo['getDocumentAt'] = async ({
-    document,
-    commit,
-  }) => {
-    const documentView = Automerge.view(document, [commit]);
-    const spans = getSpans(documentView);
-    const documentHandle = automergeRepo.create<RichTextDocument>(documentView);
-
-    console.log('spans 👉', spans);
-    // TODO: This seems to be the right way to update the spans
-    // interrogating the spans above seems what we have all the right marks
-    // bold, italics, links
-    // though it's only the levels that are being applied while
-    // the rest are getting lost somewhere in the process.
-    documentHandle.change((doc) => {
-      Automerge.updateSpans(doc, ['content'], spans);
-    });
-
-    return documentHandle;
-  };
+  const getDocumentHandleAtCommit: VersionControlRepo['getDocumentHandleAtCommit'] =
+    ({ documentHandle, heads }) => {
+      return documentHandle.view(heads);
+    };
 
   const findDocumentById: VersionControlRepo['findDocumentById'] = async (
     id: VersionControlId
@@ -183,7 +166,7 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
     findProjectById,
     listProjectDocuments,
     createDocument,
-    getDocumentAt,
+    getDocumentHandleAtCommit,
     findDocumentById,
     deleteDocumentFromProject,
     findDocumentInProject,

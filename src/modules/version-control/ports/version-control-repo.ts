@@ -1,4 +1,5 @@
 import type {
+  Commit,
   DocumentMetaData,
   Project,
   RichTextDocumentSpan,
@@ -24,6 +25,11 @@ export type CreateDocumentArgs = {
 export type GetDocumentAtArgs = {
   document: VersionedDocument;
   commit: string;
+};
+
+export type GetDocumentHandleAtCommitArgs = {
+  documentHandle: VersionedDocumentHandle;
+  heads: Commit['heads'];
 };
 
 export type DeleteDocumentFromProjectArgs = {
@@ -55,10 +61,10 @@ export type VersionControlRepo = {
     path,
     projectId,
   }: CreateDocumentArgs) => Promise<VersionControlId>;
-  getDocumentAt: ({
-    document,
-    commit,
-  }: GetDocumentAtArgs) => Promise<VersionedDocumentHandle>;
+  getDocumentHandleAtCommit: ({
+    documentHandle,
+    heads,
+  }: GetDocumentHandleAtCommitArgs) => VersionedDocumentHandle;
   findDocumentById: (
     id: VersionControlId
   ) => Promise<VersionedDocumentHandle | null>;

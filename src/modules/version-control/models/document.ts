@@ -58,16 +58,6 @@ export const getDocumentAtCommit =
     return Automerge.view(document, [hash]);
   };
 
-// TODO: thing about this and the above.
-// Don't particularly like that we have to expose this and
-// the above. Tha fact that's a handle is a technical details
-// that should not really bother the rest of the app.
-export const getDocumentHandleAtCommit =
-  (documentHandle: VersionedDocumentHandle) =>
-  (heads: UrlHeads): VersionedDocumentHandle => {
-    return documentHandle.view(heads);
-  };
-
 export const getDocumentHandleHistory = (
   documentHandle: VersionedDocumentHandle
 ): Array<UncommitedChange | Commit> => {

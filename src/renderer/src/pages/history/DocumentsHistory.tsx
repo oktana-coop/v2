@@ -10,7 +10,6 @@ import {
   VersionedDocumentHandle,
 } from '../../../../modules/version-control';
 import {
-  getDocumentHandleAtCommit,
   getDocumentHandleHistory,
   UncommitedChange,
 } from '../../../../modules/version-control/models/document';
@@ -26,7 +25,7 @@ export const DocumentsHistory = ({
   documentId: VersionControlId;
 }) => {
   const { versionedDocumentHandle } = useContext(SelectedFileContext);
-  const { getDocumentAt } = useContext(VersionControlContext);
+  const { getDocumentHandleAtCommit } = useContext(VersionControlContext);
   const [selectedCommit, setSelectedCommit] = React.useState<Commit['hash']>();
   const [currentDocHandle, setCurrentDocHandle] =
     React.useState<VersionedDocumentHandle | null>();
@@ -43,15 +42,16 @@ export const DocumentsHistory = ({
       if (versionedDocumentHandle) {
         const commit = commits.find((commit) => commit.hash === hash);
         if (commit) {
-          const currentHandle = getDocumentHandleAtCommit(
-            versionedDocumentHandle
-          )(commit.heads);
+          const currentHandle = await getDocumentHandleAtCommit({
+            documentHandle: versionedDocumentHandle,
+            heads: commit.heads,
+          });
           setCurrentDocHandle(currentHandle);
         }
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [getDocumentAt, versionedDocument]
+    [versionedDocument, getDocumentHandleAtCommit]
   );
 
   useEffect(() => {
