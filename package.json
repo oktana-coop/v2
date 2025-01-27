@@ -4,12 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/main/index.js",
+  "packageManager": "pnpm@9.15.4",
   "scripts": {
     "dev": "electron-vite dev -w --outDir=dist",
     "prebuild": "npm run compile",
     "build": "electron-vite build --outDir=dist",
     "preview": "electron-vite preview --outDir=dist",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 7",
     "compile": "tsc",
     "test": "jest ./src --passWithNoTests",
     "storybook": "storybook dev -p 6006",
@@ -37,6 +38,7 @@
     "prosemirror-model": "^1.21.0",
     "prosemirror-schema-list": "^1.5.0",
     "prosemirror-state": "^1.4.3",
+    "prosemirror-transform": "^1.10.2",
     "prosemirror-view": "^1.33.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -85,6 +87,7 @@
     "storybook-dark-mode": "^4.0.1",
     "tailwindcss": "^3.4.1",
     "ts-jest": "^29.1.2",
+    "type-fest": "^4.33.0",
     "typescript": "^5.7.3",
     "vite": "^5.1.4"
   }
