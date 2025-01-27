@@ -40,10 +40,11 @@ export const isCommit = (
 type CommittedChange = Automerge.DecodedChange & {
   message: string;
 };
+
 const isCommittedChange = (
-  change: Automerge.DecodedChange | undefined
+  change: Automerge.DecodedChange
 ): change is CommittedChange => {
-  return change ? !!change.message : false;
+  return Boolean(change.message);
 };
 
 export const getSpans: (
