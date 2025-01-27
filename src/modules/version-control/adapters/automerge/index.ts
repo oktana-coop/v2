@@ -2,12 +2,12 @@ import { next as Automerge } from '@automerge/automerge/slim';
 import { RawString, Repo } from '@automerge/automerge-repo/slim';
 
 import { versionControlItemTypes } from '../../constants/versionControlItemTypes';
-import type {
-  DocumentMetaData,
-  Project,
-  RichTextDocument,
-  VersionControlId,
-  VersionedProject,
+import {
+  type DocumentMetaData,
+  type Project,
+  type RichTextDocument,
+  type VersionControlId,
+  type VersionedProject,
 } from '../../models';
 import { VersionControlRepo } from '../../ports/version-control-repo';
 
@@ -86,6 +86,11 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
     return documentUrl;
   };
 
+  const getDocumentHandleAtCommit: VersionControlRepo['getDocumentHandleAtCommit'] =
+    ({ documentHandle, heads }) => {
+      return documentHandle.view(heads);
+    };
+
   const findDocumentById: VersionControlRepo['findDocumentById'] = async (
     id: VersionControlId
   ) => {
@@ -161,6 +166,7 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
     findProjectById,
     listProjectDocuments,
     createDocument,
+    getDocumentHandleAtCommit,
     findDocumentById,
     deleteDocumentFromProject,
     findDocumentInProject,

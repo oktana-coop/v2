@@ -7,8 +7,8 @@ import {
 } from '../../../../modules/personalization/theme';
 import {
   type Commit,
-  DecodedChange,
   isCommit,
+  type UncommitedChange,
 } from '../../../../modules/version-control';
 import { TimelinePoint } from '../../components/icons/TimelinePoint';
 
@@ -20,7 +20,7 @@ const Commit = ({
   isLast = false,
 }: {
   commit: Commit;
-  onClick: (hash: string) => void;
+  onClick: (hash: Commit['hash']) => void;
   isSelected?: boolean;
   isFirst?: boolean;
   isLast?: boolean;
@@ -54,9 +54,10 @@ const UncommittedChange = ({
   commit,
   onClick,
   isSelected = false,
+  isLast = false,
 }: {
-  commit: DecodedChange;
-  onClick: (hash: string) => void;
+  commit: UncommitedChange;
+  onClick: (hash: Commit['hash']) => void;
   isSelected?: boolean;
   isFirst?: boolean;
   isLast?: boolean;
@@ -76,6 +77,7 @@ const UncommittedChange = ({
             circleStrokeSize={5}
             circleFillColor="transparent"
             hasTopStem={false}
+            hasBottomStem={!isLast}
           />
         </div>
         <div
@@ -93,9 +95,9 @@ export const ChangeLog = ({
   onClick,
   selectedCommit,
 }: {
-  changes: Array<DecodedChange | Commit>;
-  onClick: (hash: string) => void;
-  selectedCommit?: string;
+  changes: Array<UncommitedChange | Commit>;
+  onClick: (hash: Commit['hash']) => void;
+  selectedCommit?: Commit['hash'];
 }) => {
   return (
     <>
@@ -116,7 +118,7 @@ export const ChangeLog = ({
             onClick={onClick}
             isSelected={selectedCommit === commit.hash}
             isFirst={index === 0}
-            isLast={changes.length - 1 === index}
+            isLast={changes.length === 1}
           />
         );
       })}

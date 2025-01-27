@@ -5,12 +5,15 @@ import { SelectedFileContext } from '../../../../modules/editor-state';
 import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
 import {
   type Commit,
-  type DecodedChange,
-  getCommitsAndUncommittedChanges,
-  getDocumentAtCommit,
   type VersionControlId,
   type VersionedDocument,
+  type VersionedDocumentHandle,
 } from '../../../../modules/version-control';
+import {
+  getDocumentHandleHistory,
+  UncommitedChange,
+} from '../../../../modules/version-control/models/document';
+import { VersionControlContext } from '../../../../modules/version-control/react';
 import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import { CommitHistoryIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
@@ -22,13 +25,44 @@ export const DocumentsHistory = ({
   documentId: VersionControlId;
 }) => {
   const { versionedDocumentHandle } = useContext(SelectedFileContext);
-  const [selectedCommit, setSelectedCommit] = React.useState<string>();
-  const [commits, setCommits] = React.useState<Array<DecodedChange | Commit>>(
-    []
-  );
+  const { getDocumentHandleAtCommit } = useContext(VersionControlContext);
+  const [selectedCommitHash, setSelectedCommitHash] =
+    React.useState<Commit['hash']>();
+  const [currentDocHandle, setCurrentDocHandle] =
+    React.useState<VersionedDocumentHandle | null>();
+  const [commits, setCommits] = React.useState<
+    Array<UncommitedChange | Commit>
+  >([]);
   const navigate = useNavigate();
   const [versionedDocument, setVersionedDocument] =
     useState<VersionedDocument | null>(null);
+
+  const selectCommit = useCallback(
+    async (hash: string) => {
+      setSelectedCommitHash(hash);
+      if (versionedDocumentHandle) {
+        const commit = commits.find((commit) => commit.hash === hash);
+        if (commit) {
+          const currentHandle = await getDocumentHandleAtCommit({
+            documentHandle: versionedDocumentHandle,
+            heads: commit.heads,
+          });
+          setCurrentDocHandle(currentHandle);
+        }
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [versionedDocument, getDocumentHandleAtCommit]
+  );
+
+  useEffect(() => {
+    if (versionedDocumentHandle) {
+      const commits = getDocumentHandleHistory(versionedDocumentHandle);
+      setCommits(commits);
+      const [lastChange] = commits;
+      if (lastChange) selectCommit(lastChange.hash);
+    }
+  }, [versionedDocumentHandle, selectCommit]);
 
   useEffect(() => {
     if (versionedDocumentHandle) {
@@ -39,36 +73,6 @@ export const DocumentsHistory = ({
       }
     }
   }, [versionedDocumentHandle]);
-
-  const selectCommit = useCallback(
-    (hash: string) => {
-      if (versionedDocument) {
-        const docView = getDocumentAtCommit(versionedDocument)(hash);
-        // TODO: support rendering a rich text version of the document
-        // at a given point in time
-        console.info(
-          `This is the plain document at this point in time 👉
-  
-  ${docView.content}
-  
-  the rich-text version is not yet supported.`
-        );
-        setSelectedCommit(hash);
-      }
-    },
-    [versionedDocument]
-  );
-
-  useEffect(() => {
-    if (versionedDocument) {
-      const commitsAndUncommittedChanges =
-        getCommitsAndUncommittedChanges(versionedDocument);
-
-      setCommits(commitsAndUncommittedChanges);
-      const [lastChange] = commitsAndUncommittedChanges;
-      if (lastChange) selectCommit(lastChange.hash);
-    }
-  }, [versionedDocument, selectCommit]);
 
   const handleCommitClick = (hash: string) => {
     selectCommit(hash);
@@ -81,17 +85,17 @@ export const DocumentsHistory = ({
         <ChangeLog
           changes={commits}
           onClick={handleCommitClick}
-          selectedCommit={selectedCommit}
+          selectedCommit={selectedCommitHash}
         />
       </div>
       <div className="flex w-full grow items-stretch">
-        {versionedDocumentHandle ? (
+        {currentDocHandle ? (
           <div onDoubleClick={() => navigate(`/edit/${documentId}`)}>
             <ProseMirrorProvider>
               <RichTextEditor
                 // explicitly define onSave as a no-op
                 onSave={() => {}}
-                docHandle={versionedDocumentHandle}
+                docHandle={currentDocHandle}
                 isEditable={false}
               />
             </ProseMirrorProvider>
