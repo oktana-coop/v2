@@ -50,7 +50,14 @@ const isCommittedChange = (
 export const getSpans: (
   document: VersionedDocument
 ) => Array<RichTextDocumentSpan> = (document) => {
-  return Automerge.spans(document, ['content']);
+  const spans = Automerge.spans(document, ['content']);
+  return spans.map((span) => {
+    // Automerge.spans returns the link value stringified. We should probably raise an issue for this.
+    // TODO: Handle JSON parsing failure
+    return span.type === 'text' && typeof span.marks?.link === 'string'
+      ? { ...span, marks: { ...span.marks, link: JSON.parse(span.marks.link) } }
+      : span;
+  });
 };
 
 export const getDocumentAtCommit =
