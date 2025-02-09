@@ -6,20 +6,20 @@ This is a rich-text Editor with versioning capabilities based on [Automerge](htt
 
 ### Recommended tooling/practices
 
-- Package manager: npm
-- Node version: v20.11.1 (as listed on `.nvmrc`)
+- Package manager: pnpm
+- Node (version listed on `.nvmrc`)
 - Commit style: [Conventional commits](https://www.conventionalcommits.org/)
 
 ### Install
 
 ```sh
-$ npm install
+$ pnpm install
 ```
 
 ### Run
 
 ```sh
-$ npm run dev
+$ pnpm run dev
 ```
 
 ## Storybook
@@ -29,5 +29,5 @@ $ npm run dev
 To start Storybook, run
 
 ```sh
-$ npm run storybook
+$ pnpm run storybook
 ```
