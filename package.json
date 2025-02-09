@@ -7,7 +7,7 @@
   "packageManager": "pnpm@9.15.4",
   "scripts": {
     "dev": "electron-vite dev -w --outDir=dist",
-    "prebuild": "npm run compile",
+    "prebuild": "pnpm run compile",
     "build": "electron-vite build --outDir=dist",
     "preview": "electron-vite preview --outDir=dist",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 7",
