@@ -27,9 +27,7 @@ export const DocumentsHistory = ({
   documentId: VersionControlId;
 }) => {
   const { versionedDocumentHandle } = useContext(SelectedFileContext);
-  const { getDocumentHandleAtCommit, getWriteableHandleAtCommit } = useContext(
-    VersionControlContext
-  );
+  const { getDocumentHandleAtCommit } = useContext(VersionControlContext);
   const [selectedCommitHash, setSelectedCommitHash] =
     React.useState<Commit['hash']>();
   const [previousCommitDocHandle, setPreviousCommitDocHandle] =
@@ -61,13 +59,12 @@ export const DocumentsHistory = ({
             heads: currentCommit.heads,
           });
           const currentCommitDoc = await currentCommitDocHandle.doc();
-          const previousCommitDocHandle = await getWriteableHandleAtCommit({
+          const previousCommitDocHandle = await getDocumentHandleAtCommit({
             documentHandle: versionedDocumentHandle,
             heads: previousCommit.heads,
           });
-
           const diffPatches = await getDiff(
-            previousCommitDocHandle,
+            currentCommitDocHandle,
             previousCommit.hash,
             currentCommit.hash
           );

@@ -153,7 +153,6 @@ export const RichTextEditor = ({
           linkSelectionPlugin,
           selectionChangePlugin(onSelectionChange(schema)),
           ensureTrailingParagraphPlugin(schema),
-          automergePlugin,
         ],
         doc: pmDoc,
       };
@@ -180,7 +179,7 @@ export const RichTextEditor = ({
 
       if (diffProps) {
         const docBefore = docHandle.docSync()!;
-        view.state.apply(
+        view.dispatch(
           patchesToTr({
             adapter: automergeSchemaAdapter,
             path: ['content'],
