@@ -3,6 +3,7 @@ import { RawString, Repo } from '@automerge/automerge-repo/slim';
 
 import { versionControlItemTypes } from '../../constants/version-control-item-types';
 import {
+  VersionedDocument,
   type DocumentMetaData,
   type Project,
   type RichTextDocument,
@@ -91,6 +92,17 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
       return documentHandle.view(heads);
     };
 
+  const getWriteableHandleAtCommit: VersionControlRepo['getWriteableHandleAtCommit'] =
+    async ({ documentHandle, heads }) => {
+      const docHandle = documentHandle.view(heads);
+      const doc = await docHandle.doc();
+      const clonedDoc = Automerge.clone(doc!);
+      // Create a new document in the repo with the cloned content
+      const clonedHandle = automergeRepo.create<VersionedDocument>();
+      clonedHandle.change((doc) => Object.assign(doc, clonedDoc));
+      return clonedHandle;
+    };
+
   const findDocumentById: VersionControlRepo['findDocumentById'] = async (
     id: VersionControlId
   ) => {
@@ -171,5 +183,6 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
     deleteDocumentFromProject,
     findDocumentInProject,
     updateDocumentSpans,
+    getWriteableHandleAtCommit,
   };
 };

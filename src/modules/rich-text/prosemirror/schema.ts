@@ -22,7 +22,10 @@ import {
   orderedList as orderedListClasses,
   paragraph as paragraphClasses,
 } from '../../../renderer/src/components/editing/blocks';
-import { link as linkClasses } from '../../../renderer/src/components/editing/marks';
+import {
+  link as linkClasses,
+  insert as insertClasses,
+} from '../../../renderer/src/components/editing/marks';
 import { getLinkAttrsFromDomElement, type LinkAttrs } from '../models/link';
 
 // basics
@@ -384,6 +387,13 @@ const schema: MappedSchemaSpec = {
         return codeDOM;
       },
     } as MarkSpec,
+
+    insert: {
+      parseDOM: [{ tag: 'insert' }],
+      toDOM() {
+        return ['insert', { class: insertClasses }, 0];
+      },
+    },
   },
 };
 

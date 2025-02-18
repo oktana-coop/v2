@@ -19,6 +19,8 @@ export type VersionedDocument = Automerge.Doc<RichTextDocument>;
 
 export type VersionedDocumentHandle = AutomergeDocHandle<RichTextDocument>;
 
+export type VersionedDocumentPatch = Automerge.Patch;
+
 // Commit is a special type of an (automerge) change that
 // strictly has a message and a time
 export type Commit = {
@@ -60,6 +62,46 @@ export const getDocumentAtCommit =
   (document: VersionedDocument) =>
   (hash: string): VersionedDocument => {
     return Automerge.view(document, [hash]);
+  };
+
+export const getDiff = async (
+  documentHandle: VersionedDocumentHandle,
+  before: string,
+  after: string
+): Promise<Array<VersionedDocumentPatch> | null> => {
+  const document = await documentHandle.doc();
+  if (document) {
+    const patches = Automerge.diff(document, [before], [after]);
+    return patches;
+  }
+
+  return null;
+};
+
+export const getDiffFromPreviousCommit =
+  (documentHandle: VersionedDocumentHandle) =>
+  async (
+    current: UncommitedChange | Commit
+  ): Promise<Array<VersionedDocumentPatch> | null> => {
+    const history = getDocumentHandleHistory(documentHandle);
+    const currentChangeIndex = history.findIndex(
+      (item) => item.hash === current.hash
+    );
+
+    const previousChange = history[currentChangeIndex + 1];
+
+    const document = await documentHandle.doc();
+    if (document) {
+      const patches = Automerge.diff(
+        document,
+        [previousChange.hash],
+        [current.hash]
+      );
+
+      return patches;
+    }
+
+    return null;
   };
 
 export const getDocumentHandleHistory = (

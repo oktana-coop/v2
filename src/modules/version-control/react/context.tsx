@@ -19,6 +19,7 @@ import {
 import {
   CreateDocumentArgs,
   GetDocumentHandleAtCommitArgs,
+  GetWriteableHandleAtCommitArgs,
   VersionControlRepo,
 } from '../ports/version-control-repo';
 
@@ -43,6 +44,9 @@ type VersionControlContextType = {
   getDocumentHandleAtCommit: (
     args: GetDocumentHandleAtCommitArgs
   ) => Promise<VersionedDocumentHandle>;
+  getWriteableHandleAtCommit: (
+    args: GetWriteableHandleAtCommitArgs
+  ) => Promise<VersionedDocumentHandle>;
   findDocument: (
     id: VersionControlId
   ) => Promise<VersionedDocumentHandle | null>;
@@ -58,6 +62,8 @@ export const VersionControlContext = createContext<VersionControlContextType>({
   createDocument: () => null,
   // @ts-expect-error will get overriden below
   getDocumentHandleAtCommit: () => null,
+  // @ts-expect-error will get overriden below
+  getWriteableHandleAtCommit: () => null,
   // @ts-expect-error will get overriden below
   findDocument: () => null,
   // @ts-expect-error will get overriden below
@@ -203,6 +209,16 @@ export const VersionControlProvider = ({
     return versionControlRepo.getDocumentHandleAtCommit(args);
   };
 
+  const handleGetWriteableHandleAtCommit = async (
+    args: GetDocumentHandleAtCommitArgs
+  ) => {
+    if (!versionControlRepo) {
+      throw new Error('No repo found when trying to get doc handle at commit');
+    }
+
+    return versionControlRepo.getWriteableHandleAtCommit(args);
+  };
+
   const handleFindDocument = async (id: VersionControlId) => {
     if (!versionControlRepo) {
       throw new Error('No repo found when trying to create document');
@@ -253,6 +269,7 @@ export const VersionControlProvider = ({
         isRepoReady,
         projectId,
         createDocument: handleCreateDocument,
+        getWriteableHandleAtCommit: handleGetWriteableHandleAtCommit,
         getDocumentHandleAtCommit: handleGetDocumentHandleAtCommit,
         findDocument: handleFindDocument,
         findDocumentInProject: handleFindDocumentInProject,

@@ -1,4 +1,4 @@
-import { init } from '@automerge/prosemirror';
+import { init, patchesToTr } from '@automerge/prosemirror';
 import { clsx } from 'clsx';
 import {
   baseKeymap,
@@ -23,7 +23,11 @@ import {
   type LeafBlockType,
 } from '../../../../modules/rich-text/constants/blocks';
 import { ProseMirrorContext } from '../../../../modules/rich-text/react/context';
-import type { VersionedDocumentHandle } from '../../../../modules/version-control';
+import {
+  type VersionedDocumentHandle,
+  type VersionedDocumentPatch,
+  type VersionedDocument,
+} from '../../../../modules/version-control';
 import { EditorToolbar } from './editor-toolbar';
 import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';
@@ -51,11 +55,17 @@ const {
   sinkListItem,
 } = prosemirror;
 
+type RichTextEditorDiffProps = {
+  patches: Array<VersionedDocumentPatch>;
+  docAfter: VersionedDocument;
+};
+
 type RichTextEditorProps = {
   docHandle: VersionedDocumentHandle;
   onSave: () => void;
   isEditable?: boolean;
   isToolbarOpen?: boolean;
+  diffProps: RichTextEditorDiffProps | undefined;
 };
 
 export const RichTextEditor = ({
@@ -63,6 +73,7 @@ export const RichTextEditor = ({
   onSave,
   isEditable = true,
   isToolbarOpen = false,
+  diffProps,
 }: RichTextEditorProps) => {
   const editorRoot = useRef<HTMLDivElement>(null);
   const { schema, view, setView, setSchema } = useContext(ProseMirrorContext);
@@ -166,6 +177,21 @@ export const RichTextEditor = ({
         },
         editable: () => isEditable,
       });
+
+      if (diffProps) {
+        const docBefore = docHandle.docSync()!;
+        view.state.apply(
+          patchesToTr({
+            adapter: automergeSchemaAdapter,
+            path: ['content'],
+            before: docBefore,
+            after: diffProps.docAfter,
+            patches: diffProps.patches,
+            state: view.state,
+            diffMode: true,
+          })
+        );
+      }
 
       setView(view);
       setSchema(schema);

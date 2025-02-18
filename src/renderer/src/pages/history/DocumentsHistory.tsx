@@ -10,8 +10,10 @@ import {
   type VersionedDocumentHandle,
 } from '../../../../modules/version-control';
 import {
+  getDiff,
   getDocumentHandleHistory,
   UncommitedChange,
+  VersionedDocumentPatch,
 } from '../../../../modules/version-control/models/document';
 import { VersionControlContext } from '../../../../modules/version-control/react';
 import { RichTextEditor } from '../../components/editing/RichTextEditor';
@@ -25,11 +27,17 @@ export const DocumentsHistory = ({
   documentId: VersionControlId;
 }) => {
   const { versionedDocumentHandle } = useContext(SelectedFileContext);
-  const { getDocumentHandleAtCommit } = useContext(VersionControlContext);
+  const { getDocumentHandleAtCommit, getWriteableHandleAtCommit } = useContext(
+    VersionControlContext
+  );
   const [selectedCommitHash, setSelectedCommitHash] =
     React.useState<Commit['hash']>();
-  const [currentDocHandle, setCurrentDocHandle] =
+  const [previousCommitDocHandle, setPreviousCommitDocHandle] =
     React.useState<VersionedDocumentHandle | null>();
+  const [diffPatches, setDiffPatches] =
+    React.useState<Array<VersionedDocumentPatch> | null>();
+  const [currentCommitDoc, setCurrentCommitDoc] =
+    React.useState<VersionedDocument | null>();
   const [commits, setCommits] = React.useState<
     Array<UncommitedChange | Commit>
   >([]);
@@ -41,13 +49,32 @@ export const DocumentsHistory = ({
     async (hash: string) => {
       setSelectedCommitHash(hash);
       if (versionedDocumentHandle) {
-        const commit = commits.find((commit) => commit.hash === hash);
-        if (commit) {
-          const currentHandle = await getDocumentHandleAtCommit({
+        const currentCommitIndex = commits.findIndex(
+          (commit) => commit.hash === hash
+        );
+        const previousCommitIndex = currentCommitIndex + 1;
+        const currentCommit = commits[currentCommitIndex];
+        const previousCommit = commits[previousCommitIndex];
+        if (currentCommit && previousCommit) {
+          const currentCommitDocHandle = await getDocumentHandleAtCommit({
             documentHandle: versionedDocumentHandle,
-            heads: commit.heads,
+            heads: currentCommit.heads,
           });
-          setCurrentDocHandle(currentHandle);
+          const currentCommitDoc = await currentCommitDocHandle.doc();
+          const previousCommitDocHandle = await getWriteableHandleAtCommit({
+            documentHandle: versionedDocumentHandle,
+            heads: previousCommit.heads,
+          });
+
+          const diffPatches = await getDiff(
+            previousCommitDocHandle,
+            previousCommit.hash,
+            currentCommit.hash
+          );
+
+          setDiffPatches(diffPatches);
+          setCurrentCommitDoc(currentCommitDoc);
+          setPreviousCommitDocHandle(previousCommitDocHandle);
         }
       }
     },
@@ -89,14 +116,18 @@ export const DocumentsHistory = ({
         />
       </div>
       <div className="flex w-full grow items-stretch">
-        {currentDocHandle ? (
+        {previousCommitDocHandle && diffPatches ? (
           <div onDoubleClick={() => navigate(`/edit/${documentId}`)}>
             <ProseMirrorProvider>
               <RichTextEditor
                 // explicitly define onSave as a no-op
                 onSave={() => {}}
-                docHandle={currentDocHandle}
+                docHandle={previousCommitDocHandle}
                 isEditable={false}
+                diffProps={{
+                  patches: diffPatches,
+                  docAfter: currentCommitDoc!,
+                }}
               />
             </ProseMirrorProvider>
           </div>
