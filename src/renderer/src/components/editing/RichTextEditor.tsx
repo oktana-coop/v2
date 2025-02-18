@@ -23,10 +23,7 @@ import {
   type LeafBlockType,
 } from '../../../../modules/rich-text/constants/blocks';
 import { ProseMirrorContext } from '../../../../modules/rich-text/react/context';
-import type {
-  DocHandle,
-  RichTextDocument,
-} from '../../../../modules/version-control';
+import type { VersionedDocumentHandle } from '../../../../modules/version-control';
 import { EditorToolbar } from './editor-toolbar';
 import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';
@@ -55,7 +52,7 @@ const {
 } = prosemirror;
 
 type RichTextEditorProps = {
-  docHandle: DocHandle<RichTextDocument>;
+  docHandle: VersionedDocumentHandle;
   onSave: () => void;
   isEditable?: boolean;
   isToolbarOpen?: boolean;

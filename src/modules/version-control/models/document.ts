@@ -1,8 +1,11 @@
 import { next as Automerge } from '@automerge/automerge/slim';
-import { UrlHeads } from '@automerge/automerge-repo/slim';
+import {
+  type DocHandle as AutomergeDocHandle,
+  type DocHandleChangePayload as AutomergeDocHandleChangePayload,
+  type UrlHeads,
+} from '@automerge/automerge-repo/slim';
 
-import { versionControlItemTypes } from '../constants/versionControlItemTypes';
-import { DocHandle } from './doc-handle';
+import { versionControlItemTypes } from '../constants/version-control-item-types';
 
 export type RichTextDocumentSpan = Automerge.Span;
 
@@ -14,7 +17,7 @@ export type RichTextDocument = {
 
 export type VersionedDocument = Automerge.Doc<RichTextDocument>;
 
-export type VersionedDocumentHandle = DocHandle<RichTextDocument>;
+export type VersionedDocumentHandle = AutomergeDocHandle<RichTextDocument>;
 
 // Commit is a special type of an (automerge) change that
 // strictly has a message and a time
@@ -110,3 +113,5 @@ export const getDocumentHandleHistory = (
 
 export const convertToStorageFormat = (document: VersionedDocument) =>
   JSON.stringify(getSpans(document));
+
+export type DocHandleChangePayload<T> = AutomergeDocHandleChangePayload<T>;

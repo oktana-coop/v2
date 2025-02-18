@@ -1,7 +1,7 @@
 import { next as Automerge } from '@automerge/automerge/slim';
 import { RawString, Repo } from '@automerge/automerge-repo/slim';
 
-import { versionControlItemTypes } from '../../constants/versionControlItemTypes';
+import { versionControlItemTypes } from '../../constants/version-control-item-types';
 import {
   type DocumentMetaData,
   type Project,

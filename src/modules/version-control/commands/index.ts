@@ -1,2 +1,2 @@
-export { updateProjectFromFilesystemContent } from './updateProjectFromFilesystemContent';
-export { createProjectFromFilesystemContent } from './createProjectFromFilesystemContent';
+export { updateProjectFromFilesystemContent } from './update-project-from-fs';
+export { createProjectFromFilesystemContent } from './create-project-from-fs';

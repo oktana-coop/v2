@@ -1,7 +1,8 @@
 import { next as Automerge } from '@automerge/automerge/slim';
-import type { AutomergeUrl } from '@automerge/automerge-repo/slim';
-
-import { DocHandle } from './doc-handle';
+import {
+  type AutomergeUrl,
+  type DocHandle,
+} from '@automerge/automerge-repo/slim';
 
 export type DocumentMetaData = {
   versionControlId: AutomergeUrl;

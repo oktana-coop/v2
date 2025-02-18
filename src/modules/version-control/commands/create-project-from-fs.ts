@@ -1,7 +1,7 @@
 import type { Filesystem } from '../../filesystem';
 import type { DocumentMetaData, VersionControlId } from '../models';
 import type { VersionControlRepo } from '../ports/version-control-repo';
-import { createVersionedDocument } from './createVersionedDocument';
+import { createVersionedDocument } from './create-versioned-document';
 
 export const createProjectFromFilesystemContent =
   ({
