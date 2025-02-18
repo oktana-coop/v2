@@ -1,4 +1,4 @@
-import { filesystemItemTypes } from './constants/filesystemItemTypes';
+import { filesystemItemTypes } from './constants/filesystem-item-types';
 
 export type FilesystemItem = {
   path?: string;

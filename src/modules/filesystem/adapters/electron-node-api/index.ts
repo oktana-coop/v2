@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { dialog } from 'electron';
 
-import { filesystemItemTypes } from '../../constants/filesystemItemTypes';
+import { filesystemItemTypes } from '../../constants/filesystem-item-types';
 import { Filesystem } from '../../ports/filesystem';
 import { File } from '../../types';
 import { isHiddenFile } from './utils';

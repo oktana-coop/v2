@@ -1,5 +1,5 @@
 import { FILE_EXTENSION } from '../../../constants';
-import { filesystemItemTypes } from '../../../constants/filesystemItemTypes';
+import { filesystemItemTypes } from '../../../constants/filesystem-item-types';
 import { Filesystem } from '../../../ports/filesystem';
 import { File } from '../../../types';
 import {
