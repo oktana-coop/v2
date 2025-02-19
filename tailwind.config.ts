@@ -18,6 +18,9 @@ export default {
           900: '#53169C',
           950: '#340B6A',
         },
+        green: {
+          300: '#C6EDC3',
+        },
       },
       transitionProperty: {
         top: 'top',

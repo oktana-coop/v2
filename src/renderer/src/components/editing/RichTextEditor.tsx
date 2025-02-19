@@ -179,17 +179,16 @@ export const RichTextEditor = ({
 
       if (diffProps) {
         const docBefore = docHandle.docSync()!;
-        view.dispatch(
-          patchesToTr({
-            adapter: automergeSchemaAdapter,
-            path: ['content'],
-            before: docBefore,
-            after: diffProps.docAfter,
-            patches: diffProps.patches,
-            state: view.state,
-            diffMode: true,
-          })
-        );
+        const diffTransaction = patchesToTr({
+          adapter: automergeSchemaAdapter,
+          path: ['content'],
+          before: docBefore,
+          after: diffProps.docAfter,
+          patches: diffProps.patches,
+          state: view.state,
+          diffMode: true,
+        });
+        view.dispatch(diffTransaction);
       }
 
       setView(view);

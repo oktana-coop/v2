@@ -387,13 +387,12 @@ const schema: MappedSchemaSpec = {
         return codeDOM;
       },
     } as MarkSpec,
-
     insert: {
-      parseDOM: [{ tag: 'insert' }],
+      parseDOM: [{ tag: 'span.insert' }],
       toDOM() {
-        return ['insert', { class: insertClasses }, 0];
+        return ['span', { class: insertClasses }, 0];
       },
-    },
+    } as MarkSpec,
   },
 };
 
