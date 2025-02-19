@@ -65,7 +65,7 @@ type RichTextEditorProps = {
   onSave: () => void;
   isEditable?: boolean;
   isToolbarOpen?: boolean;
-  diffProps: RichTextEditorDiffProps | undefined;
+  diffProps?: RichTextEditorDiffProps;
 };
 
 export const RichTextEditor = ({
@@ -122,38 +122,44 @@ export const RichTextEditor = ({
       const {
         schema,
         pmDoc,
-        plugin: automergePlugin,
+        plugin: automergeSyncPlugin,
       } = init(docHandle, ['content'], {
         schemaAdapter: automergeSchemaAdapter,
       });
 
+      const plugins = [
+        buildInputRules(schema),
+        history(),
+        keymap({
+          'Mod-b': toggleStrong(schema),
+          'Mod-i': toggleEm(schema),
+          'Mod-s': () => {
+            onSave();
+            return true;
+          },
+          'Mod-z': undo,
+          'Mod-y': redo,
+          'Shift-Mod-z': redo,
+          Enter: splitListItem(schema.nodes.list_item),
+          'Mod-[': liftListItem(schema.nodes.list_item),
+          'Mod-]': sinkListItem(schema.nodes.list_item),
+          // Disable tab keystrokes in the editor to prevent tabbing
+          // to the next focusable element
+          Tab: () => true,
+        }),
+        keymap(baseKeymap),
+        linkSelectionPlugin,
+        selectionChangePlugin(onSelectionChange(schema)),
+        ensureTrailingParagraphPlugin(schema),
+      ];
+
+      if (!diffProps) {
+        plugins.push(automergeSyncPlugin);
+      }
+
       const editorConfig = {
         schema,
-        plugins: [
-          buildInputRules(schema),
-          history(),
-          keymap({
-            'Mod-b': toggleStrong(schema),
-            'Mod-i': toggleEm(schema),
-            'Mod-s': () => {
-              onSave();
-              return true;
-            },
-            'Mod-z': undo,
-            'Mod-y': redo,
-            'Shift-Mod-z': redo,
-            Enter: splitListItem(schema.nodes.list_item),
-            'Mod-[': liftListItem(schema.nodes.list_item),
-            'Mod-]': sinkListItem(schema.nodes.list_item),
-            // Disable tab keystrokes in the editor to prevent tabbing
-            // to the next focusable element
-            Tab: () => true,
-          }),
-          keymap(baseKeymap),
-          linkSelectionPlugin,
-          selectionChangePlugin(onSelectionChange(schema)),
-          ensureTrailingParagraphPlugin(schema),
-        ],
+        plugins,
         doc: pmDoc,
       };
 
