@@ -64,10 +64,6 @@ export type VersionControlRepo = {
     documentHandle,
     heads,
   }: GetDocumentHandleAtCommitArgs) => VersionedDocumentHandle;
-  getWriteableHandleAtCommit: ({
-    documentHandle,
-    heads,
-  }: GetWriteableHandleAtCommitArgs) => Promise<VersionedDocumentHandle>;
   findDocumentById: (
     id: VersionControlId
   ) => Promise<VersionedDocumentHandle | null>;
