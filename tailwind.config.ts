@@ -21,6 +21,9 @@ export default {
         green: {
           300: '#C6EDC3',
         },
+        red: {
+          200: '#F7BEC0',
+        },
       },
       transitionProperty: {
         top: 'top',

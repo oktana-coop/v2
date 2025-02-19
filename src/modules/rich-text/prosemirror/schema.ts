@@ -1,3 +1,5 @@
+import clsx from 'clsx';
+
 import { next as Automerge } from '@automerge/automerge/slim';
 import {
   MappedNodeSpec,
@@ -24,7 +26,9 @@ import {
 } from '../../../renderer/src/components/editing/blocks';
 import {
   link as linkClasses,
-  insert as insertClasses,
+  diffInsert as diffInsertClasses,
+  diffModify as diffModifyClasses,
+  diffDelete as diffDeleteClasses,
 } from '../../../renderer/src/components/editing/marks';
 import { getLinkAttrsFromDomElement, type LinkAttrs } from '../models/link';
 
@@ -387,10 +391,22 @@ const schema: MappedSchemaSpec = {
         return codeDOM;
       },
     } as MarkSpec,
-    insert: {
-      parseDOM: [{ tag: 'span.insert' }],
+    diff_insert: {
+      parseDOM: [{ tag: 'span.diff_insert' }],
       toDOM() {
-        return ['span', { class: insertClasses }, 0];
+        return ['span', { class: clsx('diff_insert', diffInsertClasses) }, 0];
+      },
+    } as MarkSpec,
+    diff_modify: {
+      parseDOM: [{ tag: 'span.diff_modify' }],
+      toDOM() {
+        return ['span', { class: clsx('diff_modify', diffModifyClasses) }, 0];
+      },
+    } as MarkSpec,
+    diff_delete: {
+      parseDOM: [{ tag: 'span.diff_delete' }],
+      toDOM() {
+        return ['span', { class: clsx('diff_modify', diffDeleteClasses) }, 0];
       },
     } as MarkSpec,
   },
