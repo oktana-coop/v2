@@ -312,7 +312,7 @@ const schema: MappedSchemaSpec = {
                   title: value.title || '',
                 };
                 return linkAttrs;
-              } catch (e) {
+              } catch {
                 console.warn('failed to parse link mark as JSON');
               }
             }
