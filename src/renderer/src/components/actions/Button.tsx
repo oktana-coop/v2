@@ -162,13 +162,7 @@ const styles = {
   },
 };
 
-const buttonVariants = {
-  solid: 'solid',
-  outline: 'outline',
-  plain: 'plain',
-};
-
-type ButtonVariant = keyof typeof buttonVariants;
+type ButtonVariant = 'solid' | 'outline' | 'plain';
 
 export type ButtonColor =
   | keyof typeof styles.colors.solid
