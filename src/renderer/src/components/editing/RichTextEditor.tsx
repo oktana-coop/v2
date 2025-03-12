@@ -7,8 +7,8 @@ import {
 import { history, redo, undo } from 'prosemirror-history';
 import { keymap } from 'prosemirror-keymap';
 import { Schema } from 'prosemirror-model';
-import { EditorState, Selection, Transaction } from 'prosemirror-state';
-import { EditorView } from 'prosemirror-view';
+import { EditorState, Selection, Transaction, Plugin } from 'prosemirror-state';
+import { EditorView, DecorationSet } from 'prosemirror-view';
 import { useContext, useEffect, useRef, useState } from 'react';
 
 import {
@@ -169,6 +169,23 @@ export const RichTextEditor = ({
         dispatchTransaction: (tx: Transaction) => {
           const newState = view.state.apply(tx);
           view.updateState(newState);
+
+          if (diffProps) {
+            // Apply decorations if present in the transaction meta
+            const decorations = tx.getMeta('decorations') as DecorationSet;
+            if (decorations) {
+              const decorationPlugin = new Plugin({
+                props: {
+                  decorations: () => decorations,
+                },
+              });
+              view.updateState(
+                view.state.reconfigure({
+                  plugins: view.state.plugins.concat(decorationPlugin),
+                })
+              );
+            }
+          }
 
           // React state updates
           setLeafBlockType(getCurrentLeafBlockType(newState));

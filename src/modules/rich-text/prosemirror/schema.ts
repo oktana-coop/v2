@@ -24,12 +24,7 @@ import {
   orderedList as orderedListClasses,
   paragraph as paragraphClasses,
 } from '../../../renderer/src/components/editing/blocks';
-import {
-  link as linkClasses,
-  diffInsert as diffInsertClasses,
-  diffModify as diffModifyClasses,
-  diffDelete as diffDeleteClasses,
-} from '../../../renderer/src/components/editing/marks';
+import { link as linkClasses } from '../../../renderer/src/components/editing/marks';
 import { getLinkAttrsFromDomElement, type LinkAttrs } from '../models/link';
 
 // basics
@@ -389,24 +384,6 @@ const schema: MappedSchemaSpec = {
       parseDOM: [{ tag: 'code' }],
       toDOM() {
         return codeDOM;
-      },
-    } as MarkSpec,
-    diff_insert: {
-      parseDOM: [{ tag: 'span.diff_insert' }],
-      toDOM() {
-        return ['span', { class: clsx('diff_insert', diffInsertClasses) }, 0];
-      },
-    } as MarkSpec,
-    diff_modify: {
-      parseDOM: [{ tag: 'span.diff_modify' }],
-      toDOM() {
-        return ['span', { class: clsx('diff_modify', diffModifyClasses) }, 0];
-      },
-    } as MarkSpec,
-    diff_delete: {
-      parseDOM: [{ tag: 'span.diff_delete' }],
-      toDOM() {
-        return ['span', { class: clsx('diff_modify', diffDeleteClasses) }, 0];
       },
     } as MarkSpec,
   },
