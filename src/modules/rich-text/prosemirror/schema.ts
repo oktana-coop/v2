@@ -1,5 +1,3 @@
-import clsx from 'clsx';
-
 import { next as Automerge } from '@automerge/automerge/slim';
 import {
   MappedNodeSpec,
