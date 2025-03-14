@@ -1,4 +1,7 @@
-import { init, patchesToTr } from '@automerge/prosemirror';
+import {
+  init,
+  diffPlugin as createAutomergeDiffPlugin,
+} from '@automerge/prosemirror';
 import { clsx } from 'clsx';
 import {
   baseKeymap,
@@ -7,8 +10,8 @@ import {
 import { history, redo, undo } from 'prosemirror-history';
 import { keymap } from 'prosemirror-keymap';
 import { Schema } from 'prosemirror-model';
-import { EditorState, Selection, Transaction, Plugin } from 'prosemirror-state';
-import { EditorView, DecorationSet } from 'prosemirror-view';
+import { EditorState, Selection, Transaction } from 'prosemirror-state';
+import { EditorView } from 'prosemirror-view';
 import { useContext, useEffect, useRef, useState } from 'react';
 
 import {
@@ -153,6 +156,8 @@ export const RichTextEditor = ({
         ensureTrailingParagraphPlugin(schema),
       ];
 
+      // We don't want any changes to the actual automerge document/handle if diff mode is on.
+      // This is why the sync plugin is not added in this case.
       if (!diffProps) {
         plugins.push(automergeSyncPlugin);
       }
@@ -170,23 +175,6 @@ export const RichTextEditor = ({
           const newState = view.state.apply(tx);
           view.updateState(newState);
 
-          if (diffProps) {
-            // Apply decorations if present in the transaction meta
-            const decorations = tx.getMeta('decorations') as DecorationSet;
-            if (decorations) {
-              const decorationPlugin = new Plugin({
-                props: {
-                  decorations: () => decorations,
-                },
-              });
-              view.updateState(
-                view.state.reconfigure({
-                  plugins: view.state.plugins.concat(decorationPlugin),
-                })
-              );
-            }
-          }
-
           // React state updates
           setLeafBlockType(getCurrentLeafBlockType(newState));
           setContainerBlockType(getCurrentContainerBlockType(newState));
@@ -201,17 +189,20 @@ export const RichTextEditor = ({
       });
 
       if (diffProps) {
-        const docBefore = docHandle.docSync()!;
-        const diffTransaction = patchesToTr({
-          adapter: automergeSchemaAdapter,
-          path: ['content'],
-          before: docBefore,
-          after: diffProps.docAfter,
-          patches: diffProps.patches,
-          state: view.state,
-          diffMode: true,
-        });
-        view.dispatch(diffTransaction);
+        // Add the diff plugin and update the editor's state if diff mode is on
+        view.updateState(
+          view.state.reconfigure({
+            plugins: view.state.plugins.concat(
+              createAutomergeDiffPlugin({
+                adapter: automergeSchemaAdapter,
+                docBefore: docHandle.docSync()!,
+                docAfter: diffProps.docAfter,
+                patches: diffProps.patches,
+                path: ['content'],
+              })
+            ),
+          })
+        );
       }
 
       setView(view);
