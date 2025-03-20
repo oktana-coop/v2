@@ -59,9 +59,10 @@ const {
   sinkListItem,
 } = prosemirror;
 
-type RichTextEditorDiffProps = {
-  patches: Array<VersionedDocumentPatch>;
+export type RichTextEditorDiffProps = {
+  docBefore: VersionedDocument;
   docAfter: VersionedDocument;
+  patches: Array<VersionedDocumentPatch>;
 };
 
 type RichTextEditorProps = {
@@ -69,7 +70,7 @@ type RichTextEditorProps = {
   onSave: () => void;
   isEditable?: boolean;
   isToolbarOpen?: boolean;
-  diffProps?: RichTextEditorDiffProps;
+  diffProps: RichTextEditorDiffProps | null;
 };
 
 export const RichTextEditor = ({
@@ -196,7 +197,7 @@ export const RichTextEditor = ({
             plugins: view.state.plugins.concat(
               createAutomergeDiffPlugin({
                 adapter: automergeSchemaAdapter,
-                docBefore: docHandle.docSync()!,
+                docBefore: diffProps.docBefore,
                 docAfter: diffProps.docAfter,
                 patches: diffProps.patches,
                 path: ['content'],
