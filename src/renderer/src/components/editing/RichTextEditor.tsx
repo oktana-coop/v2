@@ -1,6 +1,6 @@
 import {
-  init,
   diffPlugin as createAutomergeDiffPlugin,
+  init,
 } from '@oktana-coop/automerge-prosemirror';
 import { clsx } from 'clsx';
 import {
@@ -27,9 +27,9 @@ import {
 } from '../../../../modules/rich-text/constants/blocks';
 import { ProseMirrorContext } from '../../../../modules/rich-text/react/context';
 import {
+  type VersionedDocument,
   type VersionedDocumentHandle,
   type VersionedDocumentPatch,
-  type VersionedDocument,
 } from '../../../../modules/version-control';
 import { EditorToolbar } from './editor-toolbar';
 import { LinkDialog } from './LinkDialog';

@@ -15,7 +15,10 @@ import {
   UncommitedChange,
 } from '../../../../modules/version-control/models/document';
 import { VersionControlContext } from '../../../../modules/version-control/react';
-import { RichTextEditor, type RichTextEditorDiffProps } from '../../components/editing/RichTextEditor';
+import {
+  RichTextEditor,
+  type RichTextEditorDiffProps,
+} from '../../components/editing/RichTextEditor';
 import { CommitHistoryIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
 import { ChangeLog } from './ChangeLog';
@@ -31,7 +34,9 @@ export const DocumentsHistory = ({
     React.useState<Commit['hash']>();
   const [docHandle, setDocHandle] =
     React.useState<VersionedDocumentHandle | null>();
-  const [diffProps, setDiffProps] = useState<RichTextEditorDiffProps | null>(null)
+  const [diffProps, setDiffProps] = useState<RichTextEditorDiffProps | null>(
+    null
+  );
   const [commits, setCommits] = React.useState<
     Array<UncommitedChange | Commit>
   >([]);
@@ -42,7 +47,7 @@ export const DocumentsHistory = ({
   const selectCommit = useCallback(
     async (hash: string) => {
       setSelectedCommitHash(hash);
-      
+
       if (versionedDocumentHandle) {
         const currentCommitIndex = commits.findIndex(
           (commit) => commit.hash === hash
@@ -57,8 +62,8 @@ export const DocumentsHistory = ({
             heads: commits[currentCommitIndex].heads,
           });
 
-          setDiffProps(null)
-          setDocHandle(currentCommitDocHandle)
+          setDiffProps(null);
+          setDocHandle(currentCommitDocHandle);
         } else {
           // In this case, we get the previous & current commits and their diff
           const previousCommitIndex = currentCommitIndex + 1;
@@ -83,15 +88,15 @@ export const DocumentsHistory = ({
             setDiffProps({
               docBefore: previousCommitDoc,
               docAfter: currentCommitDoc,
-              patches: diffPatches
-            })
+              patches: diffPatches,
+            });
           }
-          
+
           // Due to how the automerge-prosemirror library works, we need to pass a document handle when initializing it.
           // In this case, the doc handle we start the editor with is the previous commit one.
           // The diff plugin will apply a transaction based on the patches and add the diff decorations.
-          setDocHandle(previousCommitDocHandle)
-        }        
+          setDocHandle(previousCommitDocHandle);
+        }
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
