@@ -70,7 +70,7 @@ type RichTextEditorProps = {
   onSave: () => void;
   isEditable?: boolean;
   isToolbarOpen?: boolean;
-  diffProps: RichTextEditorDiffProps | null;
+  diffProps?: RichTextEditorDiffProps;
 };
 
 export const RichTextEditor = ({

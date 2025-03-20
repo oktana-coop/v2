@@ -140,7 +140,7 @@ export const DocumentsHistory = ({
                 onSave={() => {}}
                 docHandle={docHandle}
                 isEditable={false}
-                diffProps={diffProps}
+                diffProps={diffProps ?? undefined}
               />
             </ProseMirrorProvider>
           </div>
