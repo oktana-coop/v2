@@ -26,11 +26,6 @@ export type GetDocumentHandleAtCommitArgs = {
   heads: Commit['heads'];
 };
 
-export type GetWriteableHandleAtCommitArgs = {
-  documentHandle: VersionedDocumentHandle;
-  heads: Commit['heads'];
-};
-
 export type DeleteDocumentFromProjectArgs = {
   projectId: VersionControlId;
   documentId: VersionControlId;
