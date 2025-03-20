@@ -34,6 +34,7 @@ import {
 import { EditorToolbar } from './editor-toolbar';
 import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';
+import { diffDelete, diffInsert, diffModify } from './marks';
 
 const {
   automergeSchemaAdapter,
@@ -199,6 +200,11 @@ export const RichTextEditor = ({
                 docAfter: diffProps.docAfter,
                 patches: diffProps.patches,
                 path: ['content'],
+                decorationClasses: {
+                  insert: diffInsert,
+                  modify: diffModify,
+                  delete: diffDelete,
+                },
               })
             ),
           })
