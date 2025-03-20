@@ -3,7 +3,7 @@ import {
   MappedNodeSpec,
   MappedSchemaSpec,
   SchemaAdapter,
-} from '@automerge/prosemirror';
+} from '@oktana-coop/automerge-prosemirror';
 import {
   DOMOutputSpec,
   Mark,
@@ -51,7 +51,7 @@ const getHeadingLevelClasses = (level: number) => {
   }
 };
 
-// Note: This schema is based on the @automerge/prosemirror basic schema
+// Note: This schema is based on the automerge-prosemirror basic schema
 const schema: MappedSchemaSpec = {
   nodes: {
     /// NodeSpec The top level document node.

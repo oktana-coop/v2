@@ -1,7 +1,7 @@
 import {
   init,
   diffPlugin as createAutomergeDiffPlugin,
-} from '@automerge/prosemirror';
+} from '@oktana-coop/automerge-prosemirror';
 import { clsx } from 'clsx';
 import {
   baseKeymap,
