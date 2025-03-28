@@ -48,7 +48,7 @@ export const DocumentsHistory = ({
     async (hash: string) => {
       setSelectedCommitHash(hash);
 
-      if (versionedDocumentHandle) {
+      if (versionedDocumentHandle && commits.length > 0) {
         const currentCommitIndex = commits.findIndex(
           (commit) => commit.hash === hash
         );
