@@ -6,6 +6,8 @@ on:
 jobs:
   quality-checks:
     runs-on: ubuntu-latest
+    env:
+      OKTANA_NPM_TOKEN: ${{ secrets.OKTANA_NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
