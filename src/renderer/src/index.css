@@ -18,6 +18,12 @@ body {
   margin-bottom: 0.25rem;
 }
 
+/* A separator and a trailing break appear after the diff deletion widgets if we don't do this. */
+div.ProseMirror[contenteditable='false'] .ProseMirror-trailingBreak,
+div.ProseMirror[contenteditable='false'] .ProseMirror-separator {
+  display: none;
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
