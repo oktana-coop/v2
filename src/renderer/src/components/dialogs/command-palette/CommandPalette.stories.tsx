@@ -40,7 +40,6 @@ const quickActions = [
   },
   {
     name: 'Add hashtag...',
-    shortcut: 'H',
     onActionSelection: () => {
       console.log('Add hashtag... selected');
     },
@@ -54,7 +53,27 @@ const quickActions = [
   },
 ];
 
-export const Primary: Story = {
+export const ActionsOnly: Story = {
+  args: {
+    open: true,
+    onClose: () => {
+      console.log('Closed');
+    },
+    actions: quickActions,
+  },
+};
+
+export const DocumentsOnly: Story = {
+  args: {
+    open: true,
+    onClose: () => {
+      console.log('Closed');
+    },
+    documents: myRecentDocuments,
+  },
+};
+
+export const WithDocumentsAndActions: Story = {
   args: {
     open: true,
     onClose: () => {
@@ -63,15 +82,6 @@ export const Primary: Story = {
     documentsGroupTitle: 'Recently opened documents',
     documents: myRecentDocuments,
     actions: quickActions,
-  },
-};
-
-export const NoDocuments: Story = {
-  args: {
-    open: true,
-    onClose: () => {
-      console.log('Closed');
-    },
   },
 };
 

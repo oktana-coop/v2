@@ -154,7 +154,7 @@ export const CommandPalette = ({
                     {filteredActions.map((action) => (
                       <ComboboxOption
                         as="li"
-                        key={action.shortcut}
+                        key={action.name}
                         value={action}
                         className="group flex cursor-default select-none items-center rounded-md px-2 py-2 data-[focus]:bg-gray-900/5 data-[focus]:text-gray-900 data-[focus]:outline-none dark:data-[focus]:bg-gray-300/5 dark:data-[focus]:text-gray-100"
                       >
