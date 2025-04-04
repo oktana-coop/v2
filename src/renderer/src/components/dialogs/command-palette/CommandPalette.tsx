@@ -1,5 +1,4 @@
 'use client';
-
 import {
   Combobox,
   ComboboxInput,
@@ -10,6 +9,7 @@ import {
   DialogPanel,
 } from '@headlessui/react';
 import { useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 
 const NoMatchingResults = () => {
   return (
@@ -31,7 +31,7 @@ function isDocumentOption(
 }
 
 type DocumentOption = {
-  id: string;
+  id?: string;
   title: string;
   onDocumentSelection: () => void;
 };
@@ -133,7 +133,7 @@ export const CommandPalette = ({
                     {filteredDocuments.map((project) => (
                       <ComboboxOption
                         as="li"
-                        key={project.id}
+                        key={project.id || uuidv4()}
                         value={project}
                         className="group flex cursor-default select-none items-center rounded-md px-2 py-2 data-[focus]:bg-gray-900/5 data-[focus]:text-gray-900 data-[focus]:outline-none dark:data-[focus]:bg-gray-300/5 dark:data-[focus]:text-gray-100"
                       >

@@ -2,10 +2,7 @@ import { useCallback, useContext, useEffect, useState } from 'react';
 
 import { ProseMirrorContext } from '../../../../modules/rich-text/react/context';
 import { type VersionedDocumentHandle } from '../../../../modules/version-control';
-import { CommandPalette } from '../../components/dialogs/command-palette/CommandPalette';
 import { RichTextEditor } from '../../components/editing/RichTextEditor';
-import { useKeyBindings } from '../../hooks/useKeyBindings';
-import { sleep } from '../../utils/sleep';
 import { ActionsBar } from './ActionsBar';
 import { CommitDialog } from './CommitDialog';
 
@@ -16,17 +13,12 @@ export const DocumentEditor = ({
 }: {
   versionedDocumentHandle: VersionedDocumentHandle;
   isSidebarOpen: boolean;
+  isCommitDialogOpen?: boolean;
   onSidebarToggle: () => void;
 }) => {
   const [isCommitting, openCommitDialog] = useState<boolean>(false);
-  const [isCommandPaletteOpen, setCommandPaletteOpen] =
-    useState<boolean>(false);
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
   const { view: editorView } = useContext(ProseMirrorContext);
-
-  useKeyBindings({
-    'ctrl+k': () => setCommandPaletteOpen((state) => !state),
-  });
 
   useEffect(() => {
     if (versionedDocumentHandle) {
@@ -69,32 +61,6 @@ export const DocumentEditor = ({
         isOpen={isCommitting}
         onCancel={() => openCommitDialog(false)}
         onCommit={(message: string) => commitChanges(message)}
-      />
-      <CommandPalette
-        open={isCommandPaletteOpen}
-        onClose={() => setCommandPaletteOpen(false)}
-        documentsGroupTitle={'Recently opened documents'}
-        documents={[
-          {
-            id: '1',
-            title: 'Flow collaboration workflow',
-            onDocumentSelection: () =>
-              console.log('Flow collaboration workflow clicked'),
-          },
-        ]}
-        actions={[
-          {
-            name: 'Commit changes',
-            shortcut: 'S',
-            onActionSelection: async () => {
-              // this is annoying, but the commit dialog is not
-              // getting autofocused when opened immediately
-              // after the command palette is closed
-              await sleep(250);
-              openCommitDialog(true);
-            },
-          },
-        ]}
       />
       <div className="relative flex flex-auto flex-col items-stretch overflow-hidden">
         <ActionsBar
