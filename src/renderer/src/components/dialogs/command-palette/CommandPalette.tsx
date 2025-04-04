@@ -22,9 +22,12 @@ const NoMatchingResults = () => {
 };
 
 function isDocumentOption(
-  option: DocumentOption | ActionOption
+  option: DocumentOption | ActionOption | null | undefined
 ): option is DocumentOption {
-  return (option as DocumentOption).onDocumentSelection !== undefined;
+  if (option) {
+    return (option as DocumentOption).onDocumentSelection !== undefined;
+  }
+  return false;
 }
 
 type DocumentOption = {
@@ -90,13 +93,13 @@ export const CommandPalette = ({
         >
           <Combobox
             onChange={(option: DocumentOption | ActionOption) => {
+              onClose();
               if (isDocumentOption(option)) {
                 option.onDocumentSelection();
               } else {
                 option.onActionSelection();
               }
               setQuery('');
-              onClose();
             }}
           >
             <div className="grid grid-cols-1">

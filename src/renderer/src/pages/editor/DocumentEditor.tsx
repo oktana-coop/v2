@@ -5,6 +5,7 @@ import { type VersionedDocumentHandle } from '../../../../modules/version-contro
 import { CommandPalette } from '../../components/dialogs/command-palette/CommandPalette';
 import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import { useKeyBindings } from '../../hooks/useKeyBindings';
+import { sleep } from '../../utils/sleep';
 import { ActionsBar } from './ActionsBar';
 import { CommitDialog } from './CommitDialog';
 
@@ -85,7 +86,13 @@ export const DocumentEditor = ({
           {
             name: 'Commit changes',
             shortcut: 'S',
-            onActionSelection: () => openCommitDialog(true),
+            onActionSelection: async () => {
+              // this is annoying, but the commit dialog is not
+              // getting autofocused when opened immediately
+              // after the command palette is closed
+              await sleep(250);
+              openCommitDialog(true);
+            },
           },
         ]}
       />
