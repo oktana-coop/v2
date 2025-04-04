@@ -2,7 +2,9 @@ import { useCallback, useContext, useEffect, useState } from 'react';
 
 import { ProseMirrorContext } from '../../../../modules/rich-text/react/context';
 import { type VersionedDocumentHandle } from '../../../../modules/version-control';
+import { CommandPalette } from '../../components/dialogs/command-palette/CommandPalette';
 import { RichTextEditor } from '../../components/editing/RichTextEditor';
+import { useKeyBindings } from '../../hooks/useKeyBindings';
 import { ActionsBar } from './ActionsBar';
 import { CommitDialog } from './CommitDialog';
 
@@ -16,8 +18,13 @@ export const DocumentEditor = ({
   onSidebarToggle: () => void;
 }) => {
   const [isCommitting, openCommitDialog] = useState<boolean>(false);
+  const [isCommandPaletteOpen, setCommandPaletteOpen] = useState<boolean>(true);
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
   const { view: editorView } = useContext(ProseMirrorContext);
+
+  useKeyBindings({
+    'ctrl+k': () => setCommandPaletteOpen((state) => !state),
+  });
 
   useEffect(() => {
     if (versionedDocumentHandle) {
@@ -60,6 +67,19 @@ export const DocumentEditor = ({
         isOpen={isCommitting}
         onCancel={() => openCommitDialog(false)}
         onCommit={(message: string) => commitChanges(message)}
+      />
+      <CommandPalette
+        open={isCommandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        documentsGroupTitle={'Recently opened documents'}
+        documents={[
+          {
+            id: '1',
+            title: 'Flow collaboration workflow',
+            onDocumentSelection: () =>
+              console.log('Flow collaboration workflow clicked'),
+          },
+        ]}
       />
       <div className="relative flex flex-auto flex-col items-stretch overflow-hidden">
         <ActionsBar
