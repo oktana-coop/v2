@@ -18,7 +18,8 @@ export const DocumentEditor = ({
   onSidebarToggle: () => void;
 }) => {
   const [isCommitting, openCommitDialog] = useState<boolean>(false);
-  const [isCommandPaletteOpen, setCommandPaletteOpen] = useState<boolean>(true);
+  const [isCommandPaletteOpen, setCommandPaletteOpen] =
+    useState<boolean>(false);
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
   const { view: editorView } = useContext(ProseMirrorContext);
 
@@ -78,6 +79,13 @@ export const DocumentEditor = ({
             title: 'Flow collaboration workflow',
             onDocumentSelection: () =>
               console.log('Flow collaboration workflow clicked'),
+          },
+        ]}
+        actions={[
+          {
+            name: 'Commit changes',
+            shortcut: 'S',
+            onActionSelection: () => openCommitDialog(true),
           },
         ]}
       />
