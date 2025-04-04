@@ -22,7 +22,7 @@ const NoMatchingResults = () => {
 };
 
 function isDocumentOption(
-  option: DocumentOption | ActionOption | null | undefined
+  option: DocumentOption | ActionOption
 ): option is DocumentOption {
   if (option) {
     return (option as DocumentOption).onDocumentSelection !== undefined;
@@ -92,14 +92,15 @@ export const CommandPalette = ({
           className="mx-auto max-w-2xl transform divide-y divide-gray-500/10 overflow-hidden bg-white/80 shadow-2xl ring-1 ring-black/5 backdrop-blur backdrop-filter transition-all data-[closed]:scale-95 data-[closed]:opacity-0 data-[enter]:duration-300 data-[leave]:duration-200 data-[enter]:ease-out data-[leave]:ease-in dark:bg-zinc-900/80"
         >
           <Combobox
-            onChange={(option: DocumentOption | ActionOption) => {
+            onChange={(option: DocumentOption | ActionOption | null) => {
+              if (option === null) return;
               onClose();
+              setQuery('');
               if (isDocumentOption(option)) {
                 option.onDocumentSelection();
               } else {
                 option.onActionSelection();
               }
-              setQuery('');
             }}
           >
             <div className="grid grid-cols-1">
