@@ -5,8 +5,17 @@ runs:
   steps:
     - name: Install pnpm
       uses: pnpm/action-setup@v4
-    - name: Configure Node 20 with pnpm & caching setup
+    - name: Configure Node 22 with pnpm & caching setup
       uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version-file: .nvmrc
         cache: 'pnpm'
+    # https://vercel.com/guides/corepack-errors-github-actions#quick-debug-steps
+    - name: Use Latest Corepack
+      shell: bash
+      run: |
+        echo "Before: corepack version => $(corepack --version || echo 'not installed')"
+        npm install -g corepack@latest
+        echo "After: corepack version => $(corepack --version)"
+        corepack enable
+        pnpm --version
