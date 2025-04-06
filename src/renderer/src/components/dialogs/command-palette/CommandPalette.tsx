@@ -135,7 +135,7 @@ export const CommandPalette = ({
                         as="li"
                         key={project.id || uuidv4()}
                         value={project}
-                        className="group flex cursor-default select-none items-center rounded-md px-2 py-2 data-[focus]:bg-gray-900/5 data-[focus]:text-gray-900 data-[focus]:outline-none dark:data-[focus]:bg-gray-300/5 dark:data-[focus]:text-gray-100"
+                        className="group flex cursor-default select-none items-center px-2 py-2 data-[focus]:bg-gray-900/5 data-[focus]:text-gray-900 data-[focus]:outline-none dark:data-[focus]:bg-gray-300/5 dark:data-[focus]:text-gray-100"
                       >
                         <span className="flex-auto truncate">
                           {project.title}
@@ -157,7 +157,7 @@ export const CommandPalette = ({
                         as="li"
                         key={action.name}
                         value={action}
-                        className="group flex cursor-default select-none items-center rounded-md px-2 py-2 data-[focus]:bg-gray-900/5 data-[focus]:text-gray-900 data-[focus]:outline-none dark:data-[focus]:bg-gray-300/5 dark:data-[focus]:text-gray-100"
+                        className="group flex cursor-default select-none items-center px-2 py-2 data-[focus]:bg-gray-900/5 data-[focus]:text-gray-900 data-[focus]:outline-none dark:data-[focus]:bg-gray-300/5 dark:data-[focus]:text-gray-100"
                       >
                         <span className="flex-auto truncate">
                           {action.name}
