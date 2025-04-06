@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { type ReactNode, useContext, useEffect } from 'react';
+import { type ReactNode, useContext } from 'react';
 
 import {
   ThemeContext,
@@ -9,12 +9,6 @@ import { NavBar } from '../navigation/NavBar';
 
 export const Layout = ({ children }: { children: ReactNode }) => {
   const { theme } = useContext(ThemeContext);
-
-  useEffect(() => {
-    // set the theme in the body element
-    document.body.classList.remove('dark', 'light');
-    document.body.classList.add(theme);
-  }, [theme]);
 
   const themeStyles =
     theme === themes.dark
