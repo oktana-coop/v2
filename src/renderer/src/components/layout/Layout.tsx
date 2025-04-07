@@ -12,8 +12,8 @@ export const Layout = ({ children }: { children: ReactNode }) => {
 
   const themeStyles =
     theme === themes.dark
-      ? 'dark bg-neutral-800 text-white'
-      : 'light bg-[#fafafa] text-black';
+      ? 'bg-neutral-800 text-white'
+      : 'bg-[#fafafa] text-black';
 
   return (
     <div className={clsx('flex h-full', themeStyles)}>

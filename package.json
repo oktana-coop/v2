@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/main/index.js",
-  "packageManager": "pnpm@9.15.4",
+  "packageManager": "pnpm@10.7.1",
   "scripts": {
     "dev": "electron-vite dev -w --outDir=dist",
     "prebuild": "pnpm run compile",
@@ -53,6 +53,8 @@
     "@eslint/compat": "^1.2.7",
     "@eslint/eslintrc": "^3.3.0",
     "@eslint/js": "^9.21.0",
+    "@storybook/addon-actions": "^8.6.12",
+    "@storybook/addon-console": "^3.0.0",
     "@storybook/addon-essentials": "^8.0.0",
     "@storybook/addon-interactions": "^8.0.0",
     "@storybook/addon-links": "^8.0.0",
@@ -94,5 +96,13 @@
     "type-fest": "^4.33.0",
     "typescript": "^5.7.3",
     "vite": "^6.1.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@swc/core",
+      "cbor-extract",
+      "electron",
+      "esbuild"
+    ]
   }
 }

@@ -13,6 +13,7 @@ export const DocumentEditor = ({
 }: {
   versionedDocumentHandle: VersionedDocumentHandle;
   isSidebarOpen: boolean;
+  isCommitDialogOpen?: boolean;
   onSidebarToggle: () => void;
 }) => {
   const [isCommitting, openCommitDialog] = useState<boolean>(false);

@@ -11,16 +11,22 @@ import {
   SelectedFileContext,
   SelectedFileProvider,
 } from '../../../../modules/editor-state';
-import { type File, FilesystemContext } from '../../../../modules/filesystem';
+import {
+  type File,
+  FilesystemContext,
+  removeExtension,
+} from '../../../../modules/filesystem';
 import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
 import { isValidVersionControlId } from '../../../../modules/version-control';
 import { VersionControlContext } from '../../../../modules/version-control/react';
 import { Button } from '../../components/actions/Button';
+import { CommandPalette } from '../../components/dialogs/command-palette/CommandPalette';
 import { Modal } from '../../components/dialogs/Modal';
 import { EmptyDocument } from '../../components/document-views/EmptyDocument';
 import { InvalidDocument } from '../../components/document-views/InvalidDocument';
 import { PenIcon } from '../../components/icons';
 import { Layout } from '../../components/layout/Layout';
+import { useKeyBindings } from '../../hooks/useKeyBindings';
 import { DocumentEditor } from './DocumentEditor';
 import { FileExplorer } from './FileExplorer';
 
@@ -54,6 +60,14 @@ const EditorIndex = () => {
     findDocumentInProject,
   } = useContext(VersionControlContext);
   const sidebarPanelRef = useRef<ImperativePanelHandle | null>(null);
+
+  const [isCommandPaletteOpen, setCommandPaletteOpen] =
+    useState<boolean>(false);
+
+  useKeyBindings({
+    'ctrl+k': () => setCommandPaletteOpen((state) => !state),
+    'ctrl+d': () => openCreateDocumentModal(true),
+  });
 
   useEffect(() => {
     document.title = 'v2 | Editor';
@@ -217,6 +231,27 @@ const EditorIndex = () => {
             className="w-full rounded-md border border-gray-300 p-2"
           />
         </Modal>
+        <CommandPalette
+          open={isCommandPaletteOpen}
+          onClose={() => setCommandPaletteOpen(false)}
+          documentsGroupTitle={'Recent documents'}
+          documents={directoryFiles.map((file) => ({
+            title: removeExtension(file.name),
+            onDocumentSelection: () => {
+              handleFileSelection(file);
+              setCommandPaletteOpen(false);
+            },
+          }))}
+          actions={[
+            {
+              name: 'Create new document',
+              shortcut: 'D',
+              onActionSelection: () => {
+                openCreateDocumentModal(true);
+              },
+            },
+          ]}
+        />
         <ProseMirrorProvider>
           <PanelGroup autoSaveId="editor-panel-group" direction="horizontal">
             <Panel
