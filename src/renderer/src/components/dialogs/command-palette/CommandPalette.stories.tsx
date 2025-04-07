@@ -16,9 +16,8 @@ type Story = StoryObj<ComponentProps<typeof CommandPalette>>;
 const myRecentDocuments = [
   {
     id: '1',
-    title: 'Flow collaboration workflow',
-    onDocumentSelection: () =>
-      console.log('Flow collaboration workflow clicked'),
+    title: 'v2 collaboration workflow',
+    onDocumentSelection: () => console.log('v2 collaboration workflow clicked'),
   },
   {
     id: '2',
