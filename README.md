@@ -1,6 +1,8 @@
-# flow
+# v2
 
-This is a rich-text Editor with versioning capabilities based on [Automerge](https://automerge.org/) [CRDT](https://crdt.tech/) implementation.
+v2 is a local-first rich-text editor with versioning capabilities.
+
+Built on top of [Automerge](https://automerge.org/), [ProseMirror](https://prosemirror.net/) and integreted with the [Pandoc](https://pandoc.org/) ecosystem.
 
 ## Development notes
 
