@@ -31,7 +31,7 @@ storybook: install
 	pnpm run storybook
 
 build-storybook: clean install
-	pnpm run build-storybook
+	pnpm run storybook:build
 
 preview-storybook: install build-storybook
 	serve $(MAKE_DIR)/storybook-static

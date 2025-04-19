@@ -1,7 +1,7 @@
 import './App.css';
 
 import { useContext } from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { HashRouter, Route, Routes } from 'react-router-dom';
 
 import { VersionControlContext } from '../../modules/version-control/react';
 import { Editor } from './pages/editor/index';
@@ -20,7 +20,7 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<Editor />} />
         <Route path="/edit" element={<Editor />}>
@@ -31,7 +31,7 @@ function App() {
         </Route>
         <Route path="/options" element={<Options />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 

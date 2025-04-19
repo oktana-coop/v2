@@ -1,20 +1,33 @@
 {
   "name": "v2",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.1.0",
   "type": "module",
   "main": "./dist/main/index.js",
   "packageManager": "pnpm@10.7.1",
   "scripts": {
-    "dev": "electron-vite dev -w --outDir=dist",
-    "prebuild": "pnpm run compile",
+    "app:dir": "electron-builder --dir",
+    "app:dist": "electron-builder",
     "build": "electron-vite build --outDir=dist",
-    "preview": "electron-vite preview --outDir=dist",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 8",
     "compile": "tsc",
-    "test": "jest ./src --passWithNoTests",
+    "dev": "electron-vite dev -w --outDir=dist",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 8",
+    "postinstall": "electron-builder install-app-deps",
+    "prebuild": "pnpm run compile",
+    "start": "electron-vite preview --outDir=dist",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "storybook:build": "storybook build",
+    "test": "jest ./src --passWithNoTests"
+  },
+  "build": {
+    "appId": "dev.oktana.v2",
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "bin"
+    }
   },
   "dependencies": {
     "@automerge/automerge": "^2.2.8",
@@ -74,6 +87,7 @@
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.17",
     "electron": "^33.0.0",
+    "electron-builder": "^26.0.12",
     "electron-vite": "^3.0.0",
     "eslint": "^9.21.0",
     "eslint-config-prettier": "^9.1.0",
