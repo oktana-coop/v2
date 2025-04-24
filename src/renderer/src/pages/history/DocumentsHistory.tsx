@@ -15,13 +15,11 @@ import {
   UncommitedChange,
 } from '../../../../modules/version-control/models/document';
 import { VersionControlContext } from '../../../../modules/version-control/react';
-import {
-  RichTextEditor,
-  type RichTextEditorDiffProps,
-} from '../../components/editing/RichTextEditor';
+import { RichTextEditor } from '../../components/editing/RichTextEditor';
 import { CommitHistoryIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
 import { ChangeLog } from './ChangeLog';
+import { type DiffProps, DiffView } from './DiffView';
 
 export const DocumentsHistory = ({
   documentId,
@@ -34,9 +32,7 @@ export const DocumentsHistory = ({
     React.useState<Commit['hash']>();
   const [docHandle, setDocHandle] =
     React.useState<VersionedDocumentHandle | null>();
-  const [diffProps, setDiffProps] = useState<RichTextEditorDiffProps | null>(
-    null
-  );
+  const [diffProps, setDiffProps] = useState<DiffProps | null>(null);
   const [commits, setCommits] = React.useState<
     Array<UncommitedChange | Commit>
   >([]);
@@ -88,7 +84,6 @@ export const DocumentsHistory = ({
             setDiffProps({
               docBefore: previousCommitDoc,
               docAfter: currentCommitDoc,
-              patches: diffPatches,
             });
           }
 
@@ -140,13 +135,16 @@ export const DocumentsHistory = ({
         {docHandle ? (
           <div onDoubleClick={() => navigate(`/edit/${documentId}`)}>
             <ProseMirrorProvider>
-              <RichTextEditor
-                // explicitly define onSave as a no-op
-                onSave={() => {}}
-                docHandle={docHandle}
-                isEditable={false}
-                diffProps={diffProps ?? undefined}
-              />
+              {diffProps ? (
+                <DiffView diffProps={diffProps} />
+              ) : (
+                <RichTextEditor
+                  // explicitly define onSave as a no-op
+                  onSave={() => {}}
+                  docHandle={docHandle}
+                  isEditable={false}
+                />
+              )}
             </ProseMirrorProvider>
           </div>
         ) : (

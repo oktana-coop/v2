@@ -1,9 +1,9 @@
 import type { ValueOf } from 'type-fest';
 
-export const AUTOMERGE_PANDOC = 'AUTOMERGE_PANDOC';
+export const HS_LIB = 'HS_LIB';
 
 export const cliTypes = {
-  AUTOMERGE_PANDOC,
+  HS_LIB,
 } as const;
 
 export type WasmCLIType = ValueOf<typeof cliTypes>;

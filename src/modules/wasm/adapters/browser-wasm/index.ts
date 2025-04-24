@@ -1,5 +1,5 @@
 import { cliTypes, type WasmCLIType } from '../../constants/cli-types';
-import automergePandocWasm from '../../files/automerge-pandoc.wasm?url';
+import hsLib from '../../files/v2-hs-lib.wasm?url';
 import type { RunWasiCLIArgs, Wasm } from '../../ports/wasm';
 import type { RunWasiCLIMessage } from './wasi-cli-worker/types';
 
@@ -12,8 +12,8 @@ const worker = new Worker(
 
 const getFilePath = ({ type }: { type: WasmCLIType }) => {
   switch (type) {
-    case cliTypes.AUTOMERGE_PANDOC:
-      return automergePandocWasm;
+    case cliTypes.HS_LIB:
+      return hsLib;
   }
 };
 
