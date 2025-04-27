@@ -1,8 +1,9 @@
 import './App.css';
 
 import { useContext } from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Route, Routes } from 'react-router-dom';
 
+import { ElectronContext } from '../../modules/electron';
 import { VersionControlContext } from '../../modules/version-control/react';
 import { Editor } from './pages/editor/index';
 import { History } from './pages/history/index';
@@ -10,6 +11,9 @@ import { Options } from './pages/options/Options';
 
 function App() {
   const { isRepoReady } = useContext(VersionControlContext);
+  const { isElectron } = useContext(ElectronContext);
+
+  const Router = isElectron ? HashRouter : BrowserRouter;
 
   if (!isRepoReady) {
     return (
@@ -20,7 +24,7 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
         <Route path="/" element={<Editor />} />
         <Route path="/edit" element={<Editor />}>
@@ -31,7 +35,7 @@ function App() {
         </Route>
         <Route path="/options" element={<Options />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
 
