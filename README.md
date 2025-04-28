@@ -10,6 +10,7 @@ Built on top of [Automerge](https://automerge.org/), [ProseMirror](https://prose
 
 - Package manager: pnpm
 - Node (version listed on `.nvmrc`)
+- [Git LFS](https://git-lfs.com/) (needed for WASM files)
 - Commit style: [Conventional commits](https://www.conventionalcommits.org/)
 
 ### Install
