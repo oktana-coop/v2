@@ -63,12 +63,6 @@ type HSLibFailureOutput = {
 
 type HSLibDiffOutput = HSLibDiffSuccessOutput | HSLibFailureOutput;
 
-const isHSLibDiffSuccessOutput = (
-  output: HSLibDiffOutput
-): output is HSLibDiffSuccessOutput => {
-  return 'data' in output;
-};
-
 const isHSLibFailureOutput = (
   output: HSLibDiffOutput
 ): output is HSLibFailureOutput => {
