@@ -46,6 +46,35 @@ type DOMText = globalThis.Text;
 
 type DiffDecoration = InlineDiffDecoration | WidgetDiffDecoration;
 
+type HSLibDiffSuccessOutput = {
+  data: {
+    doc: PMNode;
+    decorations: DiffDecoration[];
+  };
+};
+
+type HSLibError = {
+  message: string;
+};
+
+type HSLibFailureOutput = {
+  errors: HSLibError[];
+};
+
+type HSLibDiffOutput = HSLibDiffSuccessOutput | HSLibFailureOutput;
+
+const isHSLibDiffSuccessOutput = (
+  output: HSLibDiffOutput
+): output is HSLibDiffSuccessOutput => {
+  return 'data' in output;
+};
+
+const isHSLibFailureOutput = (
+  output: HSLibDiffOutput
+): output is HSLibFailureOutput => {
+  return 'errors' in output;
+};
+
 const toInlineDecoration = (decoration: InlineDiffDecoration): Decoration =>
   Decoration.inline(decoration.from, decoration.to, {
     class: decoration.attrs.class,
@@ -130,12 +159,15 @@ export const createAdapter = ({
     });
 
     // TODO: Perform proper validation & handle error cases
-    const parsedOutput = JSON.parse(output) as {
-      doc: PMBlockNode;
-      decorations: DiffDecoration[];
-    };
+    const parsedOutput = JSON.parse(output) as HSLibDiffOutput;
 
-    const decorations = parsedOutput.decorations.map((decoration) =>
+    if (isHSLibFailureOutput(parsedOutput)) {
+      throw new Error(
+        `Diff failed: ${parsedOutput.errors.map((error) => error.message).join(', ')}`
+      );
+    }
+
+    const decorations = parsedOutput.data.decorations.map((decoration) =>
       decoration.type === 'inline'
         ? toInlineDecoration(decoration)
         : toWidgetDeleteDecoration({ proseMirrorSchema, decorationClasses })(
@@ -143,7 +175,7 @@ export const createAdapter = ({
           )
     );
 
-    const pmDoc = Node.fromJSON(proseMirrorSchema, parsedOutput.doc);
+    const pmDoc = Node.fromJSON(proseMirrorSchema, parsedOutput.data.doc);
 
     return {
       pmDocAfter: pmDoc,
