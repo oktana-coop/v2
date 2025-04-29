@@ -30,12 +30,12 @@
     }
   },
   "dependencies": {
-    "@automerge/automerge": "^2.2.8",
-    "@automerge/automerge-repo": "2.0.0-alpha.20",
-    "@automerge/automerge-repo-network-websocket": "2.0.0-alpha.13",
-    "@automerge/automerge-repo-react-hooks": "2.0.0-alpha.13",
-    "@automerge/automerge-repo-storage-indexeddb": "2.0.0-alpha.13",
-    "@automerge/automerge-repo-storage-nodefs": "2.0.0-alpha.13",
+    "@automerge/automerge": "^2.2.9-alpha.6",
+    "@automerge/automerge-repo": "2.0.0-alpha.27",
+    "@automerge/automerge-repo-network-websocket": "2.0.0-alpha.27",
+    "@automerge/automerge-repo-react-hooks": "2.0.0-alpha.27",
+    "@automerge/automerge-repo-storage-indexeddb": "2.0.0-alpha.27",
+    "@automerge/automerge-repo-storage-nodefs": "2.0.0-alpha.27",
     "@floating-ui/react": "^0.27.2",
     "@headlessui/react": "^2.0.4",
     "@oktana-coop/automerge-prosemirror": "0.0.13-10",
@@ -117,6 +117,9 @@
       "cbor-extract",
       "electron",
       "esbuild"
-    ]
+    ],
+    "overrides": {
+      "@automerge/automerge": "2.2.9-alpha.6"
+    }
   }
 }
