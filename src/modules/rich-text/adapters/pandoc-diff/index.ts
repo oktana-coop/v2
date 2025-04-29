@@ -35,6 +35,13 @@ type InlineDiffDecoration = {
   attrs: DecorationAttrs;
 };
 
+type NodeDiffDecoration = {
+  type: 'node';
+  from: number;
+  to: number;
+  attrs: DecorationAttrs;
+};
+
 type WidgetDiffDecoration = {
   type: 'widget';
   pos: number;
@@ -44,7 +51,10 @@ type WidgetDiffDecoration = {
 type DOMNode = globalThis.Node;
 type DOMText = globalThis.Text;
 
-type DiffDecoration = InlineDiffDecoration | WidgetDiffDecoration;
+type DiffDecoration =
+  | InlineDiffDecoration
+  | NodeDiffDecoration
+  | WidgetDiffDecoration;
 
 type HSLibDiffSuccessOutput = {
   data: {
@@ -71,6 +81,11 @@ const isHSLibFailureOutput = (
 
 const toInlineDecoration = (decoration: InlineDiffDecoration): Decoration =>
   Decoration.inline(decoration.from, decoration.to, {
+    class: decoration.attrs.class,
+  });
+
+const toNodeDecoration = (decoration: NodeDiffDecoration): Decoration =>
+  Decoration.node(decoration.from, decoration.to, {
     class: decoration.attrs.class,
   });
 
@@ -161,13 +176,19 @@ export const createAdapter = ({
       );
     }
 
-    const decorations = parsedOutput.data.decorations.map((decoration) =>
-      decoration.type === 'inline'
-        ? toInlineDecoration(decoration)
-        : toWidgetDeleteDecoration({ proseMirrorSchema, decorationClasses })(
-            decoration
-          )
-    );
+    const decorations = parsedOutput.data.decorations.map((decoration) => {
+      switch (decoration.type) {
+        case 'inline':
+          return toInlineDecoration(decoration);
+        case 'node':
+          return toNodeDecoration(decoration);
+        case 'widget':
+          return toWidgetDeleteDecoration({
+            proseMirrorSchema,
+            decorationClasses,
+          })(decoration);
+      }
+    });
 
     const pmDoc = Node.fromJSON(proseMirrorSchema, parsedOutput.data.doc);
 
