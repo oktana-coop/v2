@@ -30,7 +30,7 @@
     }
   },
   "dependencies": {
-    "@automerge/automerge": "^2.2.9-alpha.6",
+    "@automerge/automerge": "^2.2.9",
     "@automerge/automerge-repo": "2.0.0-alpha.27",
     "@automerge/automerge-repo-network-websocket": "2.0.0-alpha.27",
     "@automerge/automerge-repo-react-hooks": "2.0.0-alpha.27",
@@ -119,7 +119,7 @@
       "esbuild"
     ],
     "overrides": {
-      "@automerge/automerge": "2.2.9-alpha.6"
+      "@automerge/automerge": "2.2.9"
     }
   }
 }

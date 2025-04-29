@@ -5,15 +5,15 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@automerge/automerge': 2.2.9-alpha.6
+  '@automerge/automerge': 2.2.9
 
 importers:
 
   .:
     dependencies:
       '@automerge/automerge':
-        specifier: 2.2.9-alpha.6
-        version: 2.2.9-alpha.6
+        specifier: 2.2.9
+        version: 2.2.9
       '@automerge/automerge-repo':
         specifier: 2.0.0-alpha.27
         version: 2.0.0-alpha.27
@@ -281,8 +281,8 @@ packages:
   '@automerge/automerge-repo@2.0.0-alpha.27':
     resolution: {integrity: sha512-sL67zlBL3id4B2fy+RQasfVTyRx+C4v5m4ij5xsMr1WZAwNmZKy2med/7owV+EGff7gOaZhAI3JRiACjD5Q9ug==}
 
-  '@automerge/automerge@2.2.9-alpha.6':
-    resolution: {integrity: sha512-thT1gsfOebIe3GG2eiWnwbBG87Qzc1A8P1pqMmTNoQlTbIIlsIZ5hM1e6ppN2nUGR2OsK+SGnqebpoXzwhY27Q==}
+  '@automerge/automerge@2.2.9':
+    resolution: {integrity: sha512-6HM52Ops79hAQBWMg/t0MNfGOdEiXyenQjO9F1hKZq0RWDsMLpPa1SzRy/C4/4UyX67sTHuA5CwBpH34SpfZlA==}
 
   '@babel/code-frame@7.26.2':
     resolution: {integrity: sha512-RJlIHRueQgwWitWgF8OdFYGZX328Ax5BCemNGlqHfplnRT9ESi8JkFlvaVYbS+UubVY6dpv87Fs2u5M29iNFVQ==}
@@ -4725,7 +4725,7 @@ snapshots:
 
   '@automerge/automerge-repo-react-hooks@2.0.0-alpha.27(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@automerge/automerge': 2.2.9-alpha.6
+      '@automerge/automerge': 2.2.9
       '@automerge/automerge-repo': 2.0.0-alpha.27
       eventemitter3: 5.0.1
       react: 18.3.1
@@ -4749,7 +4749,7 @@ snapshots:
 
   '@automerge/automerge-repo@2.0.0-alpha.27':
     dependencies:
-      '@automerge/automerge': 2.2.9-alpha.6
+      '@automerge/automerge': 2.2.9
       bs58check: 3.0.1
       cbor-x: 1.6.0
       debug: 4.4.0
@@ -4760,7 +4760,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@automerge/automerge@2.2.9-alpha.6':
+  '@automerge/automerge@2.2.9':
     dependencies:
       uuid: 9.0.1
 
@@ -5562,7 +5562,7 @@ snapshots:
 
   '@oktana-coop/automerge-prosemirror@0.0.13-10':
     dependencies:
-      '@automerge/automerge': 2.2.9-alpha.6
+      '@automerge/automerge': 2.2.9
       ordered-map: 0.1.0
       prosemirror-changeset: 2.2.1
       prosemirror-history: 1.4.1
