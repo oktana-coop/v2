@@ -177,8 +177,6 @@ export const RichTextEditor = ({
           const newState = view.state.apply(tx);
           view.updateState(newState);
 
-          console.log(newState.toJSON());
-
           // React state updates
           setLeafBlockType(getCurrentLeafBlockType(newState));
           setContainerBlockType(getCurrentContainerBlockType(newState));
