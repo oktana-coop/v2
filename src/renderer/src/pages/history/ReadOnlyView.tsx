@@ -17,19 +17,41 @@ import {
 
 const { automergeSchemaAdapter, diffPlugin } = prosemirror;
 
-export type DiffProps = {
+export type DiffViewProps = {
   docBefore: VersionedDocument;
   docAfter: VersionedDocument;
 };
 
-type RichTextEditorProps = {
-  diffProps: DiffProps;
+export type SingleDocViewProps = {
+  doc: VersionedDocument;
 };
 
-export const DiffView = ({ diffProps }: RichTextEditorProps) => {
+const isDiffViewProps = (
+  props: DiffViewProps | SingleDocViewProps
+): props is DiffViewProps => {
+  return (
+    (props as DiffViewProps).docBefore !== undefined &&
+    (props as DiffViewProps).docAfter !== undefined
+  );
+};
+
+const isSingleDocViewProps = (
+  props: DiffViewProps | SingleDocViewProps
+): props is SingleDocViewProps => {
+  return (props as SingleDocViewProps).doc !== undefined;
+};
+
+type ReadOnlyViewProps = DiffViewProps | SingleDocViewProps;
+
+export const ReadOnlyView = (props: ReadOnlyViewProps) => {
   const editorRoot = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
-  const { proseMirrorDiff, diffAdapterReady } = useContext(ProseMirrorContext);
+  const {
+    proseMirrorDiff,
+    diffAdapterReady,
+    convertToProseMirror,
+    representationTransformAdapterReady,
+  } = useContext(ProseMirrorContext);
 
   // This effect is used to create the ProseMirror view once.
   // Then, every time the diff changes, we update the state of the view.
@@ -57,12 +79,12 @@ export const DiffView = ({ diffProps }: RichTextEditorProps) => {
   useEffect(() => {
     let destroyed = false;
 
-    const updateDiff = async () => {
-      if (!viewRef.current) return;
+    const produceAndShowDiff = async () => {
+      if (!viewRef.current || !isDiffViewProps(props)) return;
 
       const { schema } = automergeSchemaAdapter;
-      const spansBefore = convertToStorageFormat(diffProps.docBefore);
-      const spansAfter = convertToStorageFormat(diffProps.docAfter);
+      const spansBefore = convertToStorageFormat(props.docBefore);
+      const spansAfter = convertToStorageFormat(props.docAfter);
       const { pmDocAfter: pmDoc, decorations } = await proseMirrorDiff({
         representation: richTextRepresentations.AUTOMERGE,
         proseMirrorSchema: schema,
@@ -88,13 +110,45 @@ export const DiffView = ({ diffProps }: RichTextEditorProps) => {
 
     // TODO: Handle adapter readiness with a promise
     if (diffAdapterReady) {
-      updateDiff();
+      produceAndShowDiff();
     }
 
     return () => {
       destroyed = true;
     };
-  }, [diffProps, proseMirrorDiff, diffAdapterReady]);
+  }, [props, proseMirrorDiff, diffAdapterReady]);
+
+  useEffect(() => {
+    let destroyed = false;
+
+    const versionedDocToProseMirror = async () => {
+      if (!viewRef.current || !isSingleDocViewProps(props)) return;
+
+      const { schema } = automergeSchemaAdapter;
+      const pmDoc = await convertToProseMirror({
+        schema: schema,
+        spans: convertToStorageFormat(props.doc),
+      });
+
+      if (destroyed) return;
+
+      const state = EditorState.create({
+        schema,
+        doc: pmDoc,
+      });
+
+      viewRef.current.updateState(state);
+    };
+
+    // TODO: Handle adapter readiness with a promise
+    if (representationTransformAdapterReady) {
+      versionedDocToProseMirror();
+    }
+
+    return () => {
+      destroyed = true;
+    };
+  }, [props, convertToProseMirror, representationTransformAdapterReady]);
 
   return (
     <div className="flex flex-auto overflow-auto p-4 outline-none">

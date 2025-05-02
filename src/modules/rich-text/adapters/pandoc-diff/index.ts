@@ -1,60 +1,20 @@
 import { DOMSerializer, Node, type Schema } from 'prosemirror-model';
-import {
-  Decoration,
-  type DecorationAttrs,
-  DecorationSet,
-} from 'prosemirror-view';
+import { Decoration, DecorationSet } from 'prosemirror-view';
 
 import { cliTypes, type Wasm } from '../../../wasm';
 import { type Diff, type DiffDecorationClasses } from '../../ports/diff';
+import { pmDocFromJSONString } from '../../prosemirror';
+import {
+  type DiffDecoration,
+  type InlineDiffDecoration,
+  type NodeDiffDecoration,
+  type PMNode,
+  type WidgetDiffDecoration,
+} from '../../prosemirror/hs-lib';
 import { representationToCliArg } from './cli-args';
-
-type PMMark = {
-  type: string;
-  attrs?: Record<string, unknown>;
-};
-
-type PMInlineNode = {
-  type: 'text';
-  text: string;
-  marks?: PMMark[];
-};
-
-type PMBlockNode = {
-  type: string;
-  content?: PMNode[];
-  attrs?: Record<string, unknown>;
-};
-
-type PMNode = PMInlineNode | PMBlockNode;
-
-type InlineDiffDecoration = {
-  type: 'inline';
-  from: number;
-  to: number;
-  attrs: DecorationAttrs;
-};
-
-type NodeDiffDecoration = {
-  type: 'node';
-  from: number;
-  to: number;
-  attrs: DecorationAttrs;
-};
-
-type WidgetDiffDecoration = {
-  type: 'widget';
-  pos: number;
-  node: PMBlockNode | PMInlineNode;
-};
 
 type DOMNode = globalThis.Node;
 type DOMText = globalThis.Text;
-
-type DiffDecoration =
-  | InlineDiffDecoration
-  | NodeDiffDecoration
-  | WidgetDiffDecoration;
 
 type HSLibDiffSuccessOutput = {
   data: {
@@ -190,7 +150,7 @@ export const createAdapter = ({
       }
     });
 
-    const pmDoc = Node.fromJSON(proseMirrorSchema, parsedOutput.data.doc);
+    const pmDoc = pmDocFromJSONString(parsedOutput.data.doc, proseMirrorSchema);
 
     return {
       pmDocAfter: pmDoc,

@@ -1,4 +1,4 @@
-import { Schema } from 'prosemirror-model';
+import { type Node, type Schema } from 'prosemirror-model';
 import { EditorView } from 'prosemirror-view';
 import {
   createContext,
@@ -9,12 +9,22 @@ import {
 } from 'react';
 
 import { WasmContext } from '../../wasm';
+import { createAdapter as createAutomergePandocAdapter } from '../adapters/automerge-pandoc-cli';
 import { createAdapter as createPandocDiffAdapter } from '../adapters/pandoc-diff';
+import { richTextRepresentations } from '../constants/representations';
 import {
   type Diff,
   type ProseMirrorDiffArgs,
   type ProseMirrorDiffResult,
 } from '../ports/diff';
+import { type RepresentationTransform } from '../ports/representation-transform';
+import { pmDocFromJSONString } from '../prosemirror';
+import { type PMNode } from '../prosemirror/hs-lib';
+
+type ConvertAutomergeToProseMirrorArgs = {
+  schema: Schema;
+  spans: string;
+};
 
 type ProseMirrorContextType = {
   schema: Schema | null;
@@ -25,6 +35,10 @@ type ProseMirrorContextType = {
     args: ProseMirrorDiffArgs
   ) => Promise<ProseMirrorDiffResult>;
   diffAdapterReady: boolean;
+  convertToProseMirror: (
+    args: ConvertAutomergeToProseMirrorArgs
+  ) => Promise<Node>;
+  representationTransformAdapterReady: boolean;
 };
 
 export const ProseMirrorContext = createContext<ProseMirrorContextType>({
@@ -46,10 +60,16 @@ export const ProseMirrorProvider = ({
   const [schema, setSchema] = useState<Schema | null>(null);
   const [view, setView] = useState<EditorView | null>(null);
   const [diffAdapter, setDiffAdapter] = useState<Diff | null>(null);
+  const [representationTransformAdapter, setRepresentationTransformAdapter] =
+    useState<RepresentationTransform | null>(null);
 
   useEffect(() => {
-    const adapter = createPandocDiffAdapter({ runWasiCLI });
-    setDiffAdapter(adapter);
+    const pandocDiffAdapter = createPandocDiffAdapter({ runWasiCLI });
+    setDiffAdapter(pandocDiffAdapter);
+    const automergePandocAdapter = createAutomergePandocAdapter({
+      runWasiCLI,
+    });
+    setRepresentationTransformAdapter(automergePandocAdapter);
   }, [runWasiCLI]);
 
   const handleSetSchema = useCallback((schema: Schema) => {
@@ -71,6 +91,40 @@ export const ProseMirrorProvider = ({
     return diffAdapter.proseMirrorDiff(args);
   };
 
+  const handleConvertToProseMirror = async (
+    args: ConvertAutomergeToProseMirrorArgs
+  ) => {
+    // TODO: Handle adapter readiness with a promise
+    if (!representationTransformAdapter) {
+      throw new Error(
+        'No representation transform adapter found when trying to convert to ProseMirror'
+      );
+    }
+
+    const result = await representationTransformAdapter.transformFromAutomerge({
+      representation: richTextRepresentations.PROSEMIRROR,
+      spans: args.spans,
+    });
+
+    type RepresentationTransformPMOutput = {
+      doc: PMNode;
+    };
+
+    let parsedOutput;
+
+    try {
+      parsedOutput = JSON.parse(result) as RepresentationTransformPMOutput;
+    } catch (error) {
+      throw new Error(
+        `Failed to parse output from representation transform adapter: ${error}`
+      );
+    }
+
+    const pmDoc = pmDocFromJSONString(parsedOutput.doc, args.schema);
+
+    return pmDoc;
+  };
+
   return (
     <ProseMirrorContext.Provider
       value={{
@@ -80,6 +134,10 @@ export const ProseMirrorProvider = ({
         setView: handleSetView,
         proseMirrorDiff: produceProseMirrorDiff,
         diffAdapterReady: Boolean(diffAdapter),
+        convertToProseMirror: handleConvertToProseMirror,
+        representationTransformAdapterReady: Boolean(
+          representationTransformAdapter
+        ),
       }}
     >
       {children}
