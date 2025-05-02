@@ -64,6 +64,7 @@ export const createAdapter = async (): Promise<Wasm> => {
           }
         };
 
+        // Listen for messages from the worker
         worker.addEventListener('message', handleMessage);
 
         const message: RunWasiCLIMessage = {
@@ -72,6 +73,7 @@ export const createAdapter = async (): Promise<Wasm> => {
           args,
         };
 
+        // Post a message to the worker to start the WASI CLI execution
         worker.postMessage(message);
       });
     },
