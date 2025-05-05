@@ -6,6 +6,8 @@ import {
   SidebarIcon,
   SidebarOpenIcon,
 } from '../../components/icons';
+import { Checkbox, CheckboxField } from '../../components/inputs/Checkbox';
+import { Label } from '../../components/inputs/Fieldset';
 
 export const ActionsBar = ({
   title,
@@ -45,7 +47,11 @@ export const ActionsBar = ({
         onClick={handleSidebarToggle}
       />
       <h3 className="flex-auto px-4 text-left text-base/7">{title}</h3>
-      <div className="flex flex-initial items-center gap-2">
+      <div className="flex flex-initial items-center gap-3">
+        <CheckboxField className="flex items-center !gap-x-2">
+          <Checkbox name="show-diff" checked={true} />
+          <Label>Show Diff with</Label>
+        </CheckboxField>
         <IconButton onClick={handleRevertIconClick} icon={<RevertIcon />} />
       </div>
     </div>
