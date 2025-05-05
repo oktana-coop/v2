@@ -12,6 +12,7 @@ import {
   getDiff,
   getDocumentHandleHistory,
   UncommitedChange,
+  VersionedDocumentHandle,
 } from '../../../../modules/version-control/models/document';
 import { VersionControlContext } from '../../../../modules/version-control/react';
 import { CommitHistoryIcon } from '../../components/icons';
@@ -103,12 +104,16 @@ export const DocumentsHistory = ({
   }, [versionedDocumentHandle, selectCommit]);
 
   useEffect(() => {
-    if (versionedDocumentHandle) {
-      const versionedDocument = versionedDocumentHandle.docSync();
+    const loadDocument = async (docHandle: VersionedDocumentHandle) => {
+      const versionedDocument = await docHandle.doc();
       if (versionedDocument) {
         document.title = `v2 | "${versionedDocument.title}" version history`;
         setVersionedDocument(versionedDocument);
       }
+    };
+
+    if (versionedDocumentHandle) {
+      loadDocument(versionedDocumentHandle);
     }
   }, [versionedDocumentHandle]);
 

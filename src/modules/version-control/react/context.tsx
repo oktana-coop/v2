@@ -225,7 +225,7 @@ export const VersionControlProvider = ({
       throw new Error('No project handle found in repository');
     }
 
-    const project = projectHandle.docSync() as VersionedProject | undefined;
+    const project = (await projectHandle.doc()) as VersionedProject | undefined;
 
     if (!project) {
       throw new Error('No project found in repository');

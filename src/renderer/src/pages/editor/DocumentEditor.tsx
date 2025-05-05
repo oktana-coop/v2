@@ -21,8 +21,13 @@ export const DocumentEditor = ({
   const { view: editorView } = useContext(ProseMirrorContext);
 
   useEffect(() => {
+    const updateDocTitle = async (docHandle: VersionedDocumentHandle) => {
+      const doc = await docHandle.doc();
+      document.title = `v2 | editing "${doc.title}"`;
+    };
+
     if (versionedDocumentHandle) {
-      document.title = `v2 | editing "${versionedDocumentHandle.docSync()?.title}"`;
+      updateDocTitle(versionedDocumentHandle);
     }
   }, [versionedDocumentHandle]);
 
