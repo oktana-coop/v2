@@ -85,9 +85,6 @@ export const DocumentsHistory = ({
             });
           }
 
-          // Due to how the automerge-prosemirror library works, we need to pass a document handle when initializing it.
-          // In this case, the doc handle we start the editor with is the previous commit one.
-          // The diff plugin will apply a transaction based on the patches and add the diff decorations.
           setDoc(currentCommitDoc);
         }
       }

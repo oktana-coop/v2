@@ -54,7 +54,7 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
   } = useContext(ProseMirrorContext);
 
   // This effect is used to create the ProseMirror view once.
-  // Then, every time the diff changes, we update the state of the view.
+  // Then, every time the document or diff changes, we update the state of the view.
   useEffect(() => {
     if (!editorRoot.current || viewRef.current) return;
 

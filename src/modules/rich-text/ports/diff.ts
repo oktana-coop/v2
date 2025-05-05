@@ -2,12 +2,7 @@ import { type Node, type Schema } from 'prosemirror-model';
 import { type DecorationSet } from 'prosemirror-view';
 
 import { type RichTextRepresentation } from '../constants/representations';
-
-export type DiffDecorationClasses = {
-  insert: string;
-  modify: string;
-  delete: string;
-};
+import { type DiffDecorationClasses } from '../prosemirror';
 
 export type ProseMirrorDiffArgs = {
   representation: RichTextRepresentation;

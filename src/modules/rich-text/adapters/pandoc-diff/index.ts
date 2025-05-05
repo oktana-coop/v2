@@ -1,9 +1,15 @@
-import { DOMSerializer, Node, type Schema } from 'prosemirror-model';
+import { Node, type Schema } from 'prosemirror-model';
 import { Decoration, DecorationSet } from 'prosemirror-view';
 
 import { cliTypes, type Wasm } from '../../../wasm';
-import { type Diff, type DiffDecorationClasses } from '../../ports/diff';
-import { pmDocFromJSONString } from '../../prosemirror';
+import { type Diff } from '../../ports/diff';
+import {
+  createInlineDecoration,
+  createNodeDecoration,
+  createWidgetDeleteDecoration,
+  type DiffDecorationClasses,
+  pmDocFromJSONString,
+} from '../../prosemirror';
 import {
   type DiffDecoration,
   type InlineDiffDecoration,
@@ -12,9 +18,6 @@ import {
   type WidgetDiffDecoration,
 } from '../../prosemirror/hs-lib';
 import { representationToCliArg } from './cli-args';
-
-type DOMNode = globalThis.Node;
-type DOMText = globalThis.Text;
 
 type HSLibDiffSuccessOutput = {
   data: {
@@ -39,49 +42,29 @@ const isHSLibFailureOutput = (
   return 'errors' in output;
 };
 
-const toInlineDecoration = (decoration: InlineDiffDecoration): Decoration =>
-  Decoration.inline(decoration.from, decoration.to, {
-    class: decoration.attrs.class,
+const toInlineDecoration = (decoration: InlineDiffDecoration): Decoration => {
+  if (!decoration.attrs.class) {
+    throw new Error('Inline decoration must have a CSS class');
+  }
+
+  return createInlineDecoration({
+    from: decoration.from,
+    to: decoration.to,
+    className: decoration.attrs.class,
   });
+};
 
-const toNodeDecoration = (decoration: NodeDiffDecoration): Decoration =>
-  Decoration.node(decoration.from, decoration.to, {
-    class: decoration.attrs.class,
+const toNodeDecoration = (decoration: NodeDiffDecoration): Decoration => {
+  if (!decoration.attrs.class) {
+    throw new Error('Node decoration must have a CSS class');
+  }
+
+  return createNodeDecoration({
+    from: decoration.from,
+    to: decoration.to,
+    className: decoration.attrs.class,
   });
-
-const createDeletedInlineElement =
-  (decorationClasses: DiffDecorationClasses) => (docFragment: DOMNode) => {
-    const element = document.createElement('span');
-    element.className = decorationClasses.delete;
-    element.appendChild(docFragment);
-    return element;
-  };
-
-const createDeletedBlockElement =
-  (decorationClasses: DiffDecorationClasses) => (docFragment: DOMNode) => {
-    const element = document.createElement('div');
-    element.appendChild(docFragment);
-
-    const getTextNodes = (node: DOMNode): DOMText[] =>
-      [...node.childNodes].flatMap(
-        (child) =>
-          child.nodeType === globalThis.Node.TEXT_NODE &&
-          child.nodeValue?.trim()
-            ? [child as DOMText] // Type assertion since we check `nodeType`
-            : getTextNodes(child) // Recursively get all text nodes
-      );
-
-    const wrapNode = (textNode: Text): void => {
-      const span = document.createElement('span');
-      span.className = decorationClasses.delete;
-      span.textContent = textNode.nodeValue;
-      textNode.replaceWith(span);
-    };
-
-    getTextNodes(element).forEach(wrapNode);
-
-    return element;
-  };
+};
 
 type ToWidgetDecorationDeps = {
   proseMirrorSchema: Schema;
@@ -90,18 +73,16 @@ type ToWidgetDecorationDeps = {
 
 const toWidgetDeleteDecoration =
   ({ proseMirrorSchema, decorationClasses }: ToWidgetDecorationDeps) =>
-  (decoration: WidgetDiffDecoration): Decoration =>
-    Decoration.widget(decoration.pos, () => {
-      const node = Node.fromJSON(proseMirrorSchema, decoration.node);
-      const domSerializer = DOMSerializer.fromSchema(proseMirrorSchema);
-      const docFragment = domSerializer.serializeNode(node);
+  (decoration: WidgetDiffDecoration): Decoration => {
+    const node = Node.fromJSON(proseMirrorSchema, decoration.node);
 
-      if (node.isInline) {
-        return createDeletedInlineElement(decorationClasses)(docFragment);
-      }
-
-      return createDeletedBlockElement(decorationClasses)(docFragment);
+    return createWidgetDeleteDecoration({
+      pos: decoration.pos,
+      node,
+      proseMirrorSchema,
+      decorationClasses,
     });
+  };
 
 export const createAdapter = ({
   runWasiCLI,
