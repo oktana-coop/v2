@@ -1,16 +1,14 @@
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import {
-  ImperativePanelHandle,
-  Panel,
-  PanelGroup,
-  PanelResizeHandle,
-} from 'react-resizable-panels';
+import { useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import {
   SelectedFileContext,
   SelectedFileProvider,
 } from '../../../../modules/editor-state';
+import {
+  SidebarLayoutContext,
+  SidebarLayoutProvider,
+} from '../../../../modules/editor-state/sidebar-layout/context';
 import {
   type File,
   FilesystemContext,
@@ -26,6 +24,7 @@ import { EmptyDocument } from '../../components/document-views/EmptyDocument';
 import { InvalidDocument } from '../../components/document-views/InvalidDocument';
 import { PenIcon } from '../../components/icons';
 import { Layout } from '../../components/layout/Layout';
+import { SidebarLayout } from '../../components/layout/SidebarLayout';
 import { useKeyBindings } from '../../hooks/useKeyBindings';
 import { DocumentEditor } from './DocumentEditor';
 import { FileExplorer } from './FileExplorer';
@@ -42,7 +41,6 @@ const EditorIndex = () => {
   const [newDocTitle, setNewDocTitle] = useState<string>('');
   const [isDocumentCreationModalOpen, openCreateDocumentModal] =
     useState<boolean>(false);
-  const [isSidebarOpen, toggleSidebarOpen] = useState<boolean>(true);
   const navigate = useNavigate();
   const { documentId: docUrl } = useParams();
   const {
@@ -59,7 +57,8 @@ const EditorIndex = () => {
     createDocument: createVersionedDocument,
     findDocumentInProject,
   } = useContext(VersionControlContext);
-  const sidebarPanelRef = useRef<ImperativePanelHandle | null>(null);
+  const { sidebarPanelRef, isSidebarOpen, toggleSidebar } =
+    useContext(SidebarLayoutContext);
 
   const [isCommandPaletteOpen, setCommandPaletteOpen] =
     useState<boolean>(false);
@@ -128,27 +127,6 @@ const EditorIndex = () => {
     );
   };
 
-  const handleSidebarToggle = useCallback(() => {
-    const sidebarPanel = sidebarPanelRef.current;
-    if (!sidebarPanel) {
-      return;
-    }
-
-    if (sidebarPanel.isExpanded()) {
-      sidebarPanel.collapse();
-    } else {
-      sidebarPanel.expand();
-    }
-  }, [sidebarPanelRef]);
-
-  const handleSidebarPanelCollapse = () => {
-    toggleSidebarOpen(false);
-  };
-
-  const handleSidebarPanelExpand = () => {
-    toggleSidebarOpen(true);
-  };
-
   function renderMainPane() {
     if (!docUrl) {
       return (
@@ -179,7 +157,7 @@ const EditorIndex = () => {
       <DocumentEditor
         versionedDocumentHandle={versionedDocumentHandle}
         isSidebarOpen={isSidebarOpen}
-        onSidebarToggle={handleSidebarToggle}
+        onSidebarToggle={toggleSidebar}
       />
     ) : (
       <div className="flex h-full w-full items-center justify-center text-center">
@@ -253,33 +231,25 @@ const EditorIndex = () => {
           ]}
         />
         <ProseMirrorProvider>
-          <PanelGroup autoSaveId="editor-panel-group" direction="horizontal">
-            <Panel
-              ref={sidebarPanelRef}
-              collapsible
-              defaultSize={27}
-              onCollapse={handleSidebarPanelCollapse}
-              onExpand={handleSidebarPanelExpand}
+          <SidebarLayoutProvider>
+            <SidebarLayout
+              sidebar={
+                <FileExplorer
+                  directory={directory}
+                  files={directoryFiles}
+                  selectedFileInfo={selectedFileInfo}
+                  onOpenDirectory={handleOpenDirectory}
+                  onRequestPermissionsForCurrentDirectory={
+                    handlePermissionRequest
+                  }
+                  onFileSelection={handleFileSelection}
+                  onCreateDocument={() => openCreateDocumentModal(true)}
+                />
+              }
             >
-              {isSidebarOpen && (
-                <div className="h-full overflow-y-auto border-r border-gray-300 dark:border-neutral-600">
-                  <FileExplorer
-                    directory={directory}
-                    files={directoryFiles}
-                    selectedFileInfo={selectedFileInfo}
-                    onOpenDirectory={handleOpenDirectory}
-                    onRequestPermissionsForCurrentDirectory={
-                      handlePermissionRequest
-                    }
-                    onFileSelection={handleFileSelection}
-                    onCreateDocument={() => openCreateDocumentModal(true)}
-                  />
-                </div>
-              )}
-            </Panel>
-            <PanelResizeHandle />
-            <Panel className="flex">{renderMainPane()}</Panel>
-          </PanelGroup>
+              {renderMainPane()}
+            </SidebarLayout>
+          </SidebarLayoutProvider>
         </ProseMirrorProvider>
       </div>
     </Layout>
