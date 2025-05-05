@@ -23,6 +23,8 @@ type SelectedFileContextType = {
   setSelectedFileInfo: (file: SelectedFileInfo) => Promise<void>;
   clearFileSelection: () => Promise<void>;
   versionedDocumentHandle: VersionedDocumentHandle | null;
+  showDiffInHistoryView: boolean;
+  toggleShowDiffInHistoryView: () => void;
 };
 
 export const SelectedFileContext = createContext<SelectedFileContextType>({
@@ -30,6 +32,8 @@ export const SelectedFileContext = createContext<SelectedFileContextType>({
   setSelectedFileInfo: async () => {},
   clearFileSelection: async () => {},
   versionedDocumentHandle: null,
+  showDiffInHistoryView: true,
+  toggleShowDiffInHistoryView: () => {},
 });
 
 export const SelectedFileProvider = ({
@@ -46,6 +50,7 @@ export const SelectedFileProvider = ({
   const [searchParams] = useSearchParams();
   const { findDocument } = useContext(VersionControlContext);
   const { writeFile } = useContext(FilesystemContext);
+  const [showDiffInHistoryView, setShowDiffInHistoryView] = useState(true);
 
   useEffect(() => {
     const updateFileSelection = async () => {
@@ -107,6 +112,10 @@ export const SelectedFileProvider = ({
     });
   };
 
+  const handleToggleShowDiffInHistoryView = () => {
+    setShowDiffInHistoryView(!showDiffInHistoryView);
+  };
+
   return (
     <SelectedFileContext.Provider
       value={{
@@ -114,6 +123,8 @@ export const SelectedFileProvider = ({
         versionedDocumentHandle,
         setSelectedFileInfo: handleSetSelectedFileInfo,
         clearFileSelection,
+        showDiffInHistoryView,
+        toggleShowDiffInHistoryView: handleToggleShowDiffInHistoryView,
       }}
     >
       {children}

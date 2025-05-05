@@ -32,6 +32,8 @@ export const DocumentsHistory = ({
     Array<UncommitedChange | Commit>
   >([]);
   const navigate = useNavigate();
+  const { showDiffInHistoryView, toggleShowDiffInHistoryView } =
+    useContext(SelectedFileContext);
 
   useEffect(() => {
     const loadDocOrDiff = async (
@@ -75,7 +77,12 @@ export const DocumentsHistory = ({
           commits[currentCommitIndex].hash
         );
 
-        if (previousCommitDoc && currentCommitDoc && diffPatches) {
+        if (
+          previousCommitDoc &&
+          currentCommitDoc &&
+          diffPatches &&
+          showDiffInHistoryView
+        ) {
           setDiffProps({
             docBefore: previousCommitDoc,
             docAfter: currentCommitDoc,
@@ -89,7 +96,13 @@ export const DocumentsHistory = ({
     if (versionedDocumentHandle && commits.length > 0 && changeId) {
       loadDocOrDiff(versionedDocumentHandle, commits, changeId);
     }
-  }, [changeId, getDocumentHandleAtCommit, versionedDocumentHandle, commits]);
+  }, [
+    changeId,
+    getDocumentHandleAtCommit,
+    versionedDocumentHandle,
+    commits,
+    showDiffInHistoryView,
+  ]);
 
   const selectCommit = useCallback(
     (hash: string) => navigate(`/history/${documentId}/${hash}`),
