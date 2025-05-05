@@ -6,13 +6,13 @@ import { WASI } from 'node:wasi';
 import { v4 as uuidv4 } from 'uuid';
 
 import { cliTypes, type WasmCLIType } from '../../constants/cli-types';
-import automergePandocWasm from '../../files/automerge-pandoc.wasm?url';
+import hsLibWasm from '../../files/v2-hs-lib.wasm?url';
 import type { RunWasiCLIArgs, Wasm } from '../../ports/wasm';
 
 const getFilePath = ({ type }: { type: WasmCLIType }) => {
   switch (type) {
-    case cliTypes.AUTOMERGE_PANDOC:
-      return automergePandocWasm;
+    case cliTypes.HS_LIB:
+      return hsLibWasm;
   }
 };
 

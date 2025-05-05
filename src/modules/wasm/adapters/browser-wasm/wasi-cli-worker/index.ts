@@ -5,7 +5,7 @@ import { init, WASI } from '@wasmer/wasi';
 import type { RunWasiCLIMessage } from './types';
 
 self.onmessage = async (event) => {
-  const { wasmModule, args } = event.data as RunWasiCLIMessage;
+  const { wasmModule, args, messageId } = event.data as RunWasiCLIMessage;
 
   try {
     await init();
@@ -21,6 +21,7 @@ self.onmessage = async (event) => {
 
     // Send the result back to the main thread
     self.postMessage({
+      messageId,
       success: true,
       output,
     });

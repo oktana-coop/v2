@@ -3,3 +3,5 @@ export * from './schema';
 export * from './input-rules';
 export * from './commands';
 export * from './blocks';
+export * from './diff';
+export * from './json';

@@ -1,5 +1,5 @@
 import { cliTypes, type WasmCLIType } from '../../constants/cli-types';
-import automergePandocWasm from '../../files/automerge-pandoc.wasm?url';
+import hsLib from '../../files/v2-hs-lib.wasm?url';
 import type { RunWasiCLIArgs, Wasm } from '../../ports/wasm';
 import type { RunWasiCLIMessage } from './wasi-cli-worker/types';
 
@@ -12,8 +12,8 @@ const worker = new Worker(
 
 const getFilePath = ({ type }: { type: WasmCLIType }) => {
   switch (type) {
-    case cliTypes.AUTOMERGE_PANDOC:
-      return automergePandocWasm;
+    case cliTypes.HS_LIB:
+      return hsLib;
   }
 };
 
@@ -40,23 +40,35 @@ const loadWasmCLIModules = async (): Promise<
 };
 
 export const createAdapter = async (): Promise<Wasm> => {
-  // Load all WASM modules during adapter creation
   const wasmCLIModules = await loadWasmCLIModules();
+
+  // Assign a unique ID to each message sent to the worker and include it in the worker's response.
+  // This way, the worker's response is matched to the correct promise.
+  let messageId = 0; // Unique ID for each message
 
   return {
     runWasiCLI: async ({ type, args }: RunWasiCLIArgs) => {
       return new Promise((resolve, reject) => {
-        // Listen for messages from the worker
-        worker.onmessage = (event) => {
-          const { success, output, error } = event.data;
-          if (success) {
-            resolve(output);
-          } else {
-            reject(new Error(error));
+        const currentMessageId = messageId++;
+
+        const handleMessage = (event: MessageEvent) => {
+          const { messageId, success, output, error } = event.data;
+
+          if (messageId === currentMessageId) {
+            worker.removeEventListener('message', handleMessage); // Clean up listener
+            if (success) {
+              resolve(output);
+            } else {
+              reject(new Error(error));
+            }
           }
         };
 
+        // Listen for messages from the worker
+        worker.addEventListener('message', handleMessage);
+
         const message: RunWasiCLIMessage = {
+          messageId: currentMessageId,
           wasmModule: wasmCLIModules[type],
           args,
         };

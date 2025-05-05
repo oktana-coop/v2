@@ -10,9 +10,9 @@ export const createAdapter = ({
   const transformFromAutomerge: RepresentationTransform['transformFromAutomerge'] =
     async ({ spans, representation }) => {
       const output = await runWasiCLI({
-        type: cliTypes.AUTOMERGE_PANDOC,
+        type: cliTypes.HS_LIB,
         args: [
-          'automerge-pandoc',
+          'v2-hs-lib',
           'fromAutomerge',
           '--to',
           representationToCliArg(representation),
@@ -26,9 +26,9 @@ export const createAdapter = ({
   const transformToAutomerge: RepresentationTransform['transformToAutomerge'] =
     async ({ input, representation }) => {
       const output = await runWasiCLI({
-        type: cliTypes.AUTOMERGE_PANDOC,
+        type: cliTypes.HS_LIB,
         args: [
-          'automerge-pandoc',
+          'v2-hs-lib',
           'toAutomerge',
           '--from',
           representationToCliArg(representation),
