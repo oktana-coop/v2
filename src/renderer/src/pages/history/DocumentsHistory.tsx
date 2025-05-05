@@ -2,10 +2,7 @@ import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { SelectedFileContext } from '../../../../modules/editor-state';
-import {
-  SidebarLayoutContext,
-  SidebarLayoutProvider,
-} from '../../../../modules/editor-state/sidebar-layout/context';
+import { SidebarLayoutContext } from '../../../../modules/editor-state/sidebar-layout/context';
 import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
 import {
   type Commit,
@@ -18,6 +15,7 @@ import {
 } from '../../../../modules/version-control';
 import { VersionControlContext } from '../../../../modules/version-control/react';
 import { SidebarLayout } from '../../components/layout/SidebarLayout';
+import { ActionsBar } from './ActionsBar';
 import { ChangeLogSidebar } from './change-log/Sidebar';
 import { type DiffViewProps, ReadOnlyView } from './ReadOnlyView';
 
@@ -152,29 +150,36 @@ export const DocumentsHistory = ({
 
   return (
     <ProseMirrorProvider>
-      <SidebarLayoutProvider>
-        <SidebarLayout
-          sidebar={
-            <ChangeLogSidebar
-              commits={commits}
-              onCommitClick={handleCommitClick}
-              selectedCommit={changeId}
-            />
-          }
-        >
+      <SidebarLayout
+        sidebar={
+          <ChangeLogSidebar
+            commits={commits}
+            onCommitClick={handleCommitClick}
+            selectedCommit={changeId}
+          />
+        }
+      >
+        <>
           {doc ? (
-            <>
+            <div className="flex flex-auto flex-col items-stretch overflow-auto outline-none">
+              <ActionsBar
+                isSidebarOpen={isSidebarOpen}
+                onSidebarToggle={toggleSidebar}
+                // TODO: Implement revert functionality
+                onRevertIconClick={() => {}}
+              />
               {diffProps ? (
                 <ReadOnlyView {...diffProps} />
               ) : (
                 <ReadOnlyView doc={doc} />
               )}
-            </>
+            </div>
           ) : (
-            <>Loading...</>
+            // TODO: Use a spinner
+            <div>Loading...</div>
           )}
-        </SidebarLayout>
-      </SidebarLayoutProvider>
+        </>
+      </SidebarLayout>
     </ProseMirrorProvider>
   );
 };

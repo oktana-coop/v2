@@ -1,4 +1,4 @@
-import { createContext, useCallback, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useRef, useState } from 'react';
 import { ImperativePanelHandle } from 'react-resizable-panels';
 
 type SidebarLayoutContextType = {

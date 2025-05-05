@@ -32,7 +32,9 @@ import { FileExplorer } from './FileExplorer';
 export const Editor = () => {
   return (
     <SelectedFileProvider>
-      <EditorIndex />
+      <SidebarLayoutProvider>
+        <EditorIndex />
+      </SidebarLayoutProvider>
     </SelectedFileProvider>
   );
 };
@@ -230,25 +232,23 @@ const EditorIndex = () => {
           ]}
         />
         <ProseMirrorProvider>
-          <SidebarLayoutProvider>
-            <SidebarLayout
-              sidebar={
-                <FileExplorer
-                  directory={directory}
-                  files={directoryFiles}
-                  selectedFileInfo={selectedFileInfo}
-                  onOpenDirectory={handleOpenDirectory}
-                  onRequestPermissionsForCurrentDirectory={
-                    handlePermissionRequest
-                  }
-                  onFileSelection={handleFileSelection}
-                  onCreateDocument={() => openCreateDocumentModal(true)}
-                />
-              }
-            >
-              {renderMainPane()}
-            </SidebarLayout>
-          </SidebarLayoutProvider>
+          <SidebarLayout
+            sidebar={
+              <FileExplorer
+                directory={directory}
+                files={directoryFiles}
+                selectedFileInfo={selectedFileInfo}
+                onOpenDirectory={handleOpenDirectory}
+                onRequestPermissionsForCurrentDirectory={
+                  handlePermissionRequest
+                }
+                onFileSelection={handleFileSelection}
+                onCreateDocument={() => openCreateDocumentModal(true)}
+              />
+            }
+          >
+            {renderMainPane()}
+          </SidebarLayout>
         </ProseMirrorProvider>
       </div>
     </Layout>
