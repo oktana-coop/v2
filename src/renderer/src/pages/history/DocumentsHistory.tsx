@@ -1,19 +1,17 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { SelectedFileContext } from '../../../../modules/editor-state';
 import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
 import {
   type Commit,
-  type VersionControlId,
-  type VersionedDocument,
-} from '../../../../modules/version-control';
-import {
   getDiff,
   getDocumentHandleHistory,
-  UncommitedChange,
-  VersionedDocumentHandle,
-} from '../../../../modules/version-control/models/document';
+  type UncommitedChange,
+  type VersionControlId,
+  type VersionedDocument,
+  type VersionedDocumentHandle,
+} from '../../../../modules/version-control';
 import { VersionControlContext } from '../../../../modules/version-control/react';
 import { CommitHistoryIcon } from '../../components/icons';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
@@ -25,90 +23,104 @@ export const DocumentsHistory = ({
 }: {
   documentId: VersionControlId;
 }) => {
+  const { changeId } = useParams();
   const { versionedDocumentHandle } = useContext(SelectedFileContext);
   const { getDocumentHandleAtCommit } = useContext(VersionControlContext);
-  const [selectedCommitHash, setSelectedCommitHash] =
-    React.useState<Commit['hash']>();
   const [doc, setDoc] = React.useState<VersionedDocument | null>();
   const [diffProps, setDiffProps] = useState<DiffViewProps | null>(null);
   const [commits, setCommits] = React.useState<
     Array<UncommitedChange | Commit>
   >([]);
   const navigate = useNavigate();
-  const [versionedDocument, setVersionedDocument] =
-    useState<VersionedDocument | null>(null);
 
-  const selectCommit = useCallback(
-    async (hash: string) => {
-      setSelectedCommitHash(hash);
+  useEffect(() => {
+    const loadDocOrDiff = async (
+      docHandle: VersionedDocumentHandle,
+      commits: (Commit | UncommitedChange)[],
+      changeId: Commit['hash']
+    ) => {
+      const currentCommitIndex = commits.findIndex(
+        (commit) => commit.hash === changeId
+      );
 
-      if (versionedDocumentHandle && commits.length > 0) {
-        const currentCommitIndex = commits.findIndex(
-          (commit) => commit.hash === hash
+      // If it's the first commit, there is no diff;
+      // We just get the corresponding doc handle.
+      // The first element of the commits array is the current one.
+      if (currentCommitIndex === commits.length - 1) {
+        const currentCommitDocHandle = await getDocumentHandleAtCommit({
+          documentHandle: docHandle,
+          heads: commits[currentCommitIndex].heads,
+        });
+        const currentCommitDoc = await currentCommitDocHandle.doc();
+
+        setDiffProps(null);
+        setDoc(currentCommitDoc);
+      } else {
+        // In this case, we get the previous & current commits and their diff
+        const previousCommitIndex = currentCommitIndex + 1;
+
+        const currentCommitDocHandle = await getDocumentHandleAtCommit({
+          documentHandle: docHandle,
+          heads: commits[currentCommitIndex].heads,
+        });
+        const currentCommitDoc = await currentCommitDocHandle.doc();
+        const previousCommitDocHandle = await getDocumentHandleAtCommit({
+          documentHandle: docHandle,
+          heads: commits[previousCommitIndex].heads,
+        });
+        const previousCommitDoc = await previousCommitDocHandle.doc();
+        const diffPatches = await getDiff(
+          currentCommitDocHandle,
+          commits[previousCommitIndex].hash,
+          commits[currentCommitIndex].hash
         );
 
-        // If it's the first commit, there is no diff;
-        // We just get the corresponding doc handle.
-        // The first element of the commits array is the current one.
-        if (currentCommitIndex === commits.length - 1) {
-          const currentCommitDocHandle = await getDocumentHandleAtCommit({
-            documentHandle: versionedDocumentHandle,
-            heads: commits[currentCommitIndex].heads,
+        if (previousCommitDoc && currentCommitDoc && diffPatches) {
+          setDiffProps({
+            docBefore: previousCommitDoc,
+            docAfter: currentCommitDoc,
           });
-          const currentCommitDoc = await currentCommitDocHandle.doc();
-
-          setDiffProps(null);
-          setDoc(currentCommitDoc);
-        } else {
-          // In this case, we get the previous & current commits and their diff
-          const previousCommitIndex = currentCommitIndex + 1;
-
-          const currentCommitDocHandle = await getDocumentHandleAtCommit({
-            documentHandle: versionedDocumentHandle,
-            heads: commits[currentCommitIndex].heads,
-          });
-          const currentCommitDoc = await currentCommitDocHandle.doc();
-          const previousCommitDocHandle = await getDocumentHandleAtCommit({
-            documentHandle: versionedDocumentHandle,
-            heads: commits[previousCommitIndex].heads,
-          });
-          const previousCommitDoc = await previousCommitDocHandle.doc();
-          const diffPatches = await getDiff(
-            currentCommitDocHandle,
-            commits[previousCommitIndex].hash,
-            commits[currentCommitIndex].hash
-          );
-
-          if (previousCommitDoc && currentCommitDoc && diffPatches) {
-            setDiffProps({
-              docBefore: previousCommitDoc,
-              docAfter: currentCommitDoc,
-            });
-          }
-
-          setDoc(currentCommitDoc);
         }
+
+        setDoc(currentCommitDoc);
       }
-    },
+    };
+
+    if (versionedDocumentHandle && commits.length > 0 && changeId) {
+      loadDocOrDiff(versionedDocumentHandle, commits, changeId);
+    }
+  }, [changeId, getDocumentHandleAtCommit, versionedDocumentHandle, commits]);
+
+  const selectCommit = useCallback(
+    (hash: string) => navigate(`/history/${documentId}/${hash}`),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [versionedDocument, getDocumentHandleAtCommit]
+    [documentId]
   );
 
   useEffect(() => {
-    if (versionedDocumentHandle) {
-      const commits = getDocumentHandleHistory(versionedDocumentHandle);
+    const loadHistoryAndSelectCommit = (docHandle: VersionedDocumentHandle) => {
+      const commits = getDocumentHandleHistory(docHandle);
       setCommits(commits);
-      const [lastChange] = commits;
-      if (lastChange) selectCommit(lastChange.hash);
+
+      if (changeId) {
+        selectCommit(changeId);
+      } else {
+        // If no changeId is provided, we select the last commit
+        const [lastChange] = commits;
+        selectCommit(lastChange.hash);
+      }
+    };
+
+    if (versionedDocumentHandle) {
+      loadHistoryAndSelectCommit(versionedDocumentHandle);
     }
-  }, [versionedDocumentHandle, selectCommit]);
+  }, [versionedDocumentHandle, selectCommit, changeId]);
 
   useEffect(() => {
     const loadDocument = async (docHandle: VersionedDocumentHandle) => {
       const versionedDocument = await docHandle.doc();
       if (versionedDocument) {
         document.title = `v2 | "${versionedDocument.title}" version history`;
-        setVersionedDocument(versionedDocument);
       }
     };
 
@@ -128,7 +140,7 @@ export const DocumentsHistory = ({
         <ChangeLog
           changes={commits}
           onClick={handleCommitClick}
-          selectedCommit={selectedCommitHash}
+          selectedCommit={changeId}
         />
       </div>
       <div className="flex w-full grow items-stretch">
