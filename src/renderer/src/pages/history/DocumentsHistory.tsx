@@ -2,6 +2,10 @@ import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { SelectedFileContext } from '../../../../modules/editor-state';
+import {
+  SidebarLayoutContext,
+  SidebarLayoutProvider,
+} from '../../../../modules/editor-state/sidebar-layout/context';
 import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
 import {
   type Commit,
@@ -13,9 +17,8 @@ import {
   type VersionedDocumentHandle,
 } from '../../../../modules/version-control';
 import { VersionControlContext } from '../../../../modules/version-control/react';
-import { CommitHistoryIcon } from '../../components/icons';
-import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
-import { ChangeLog } from './ChangeLog';
+import { SidebarLayout } from '../../components/layout/SidebarLayout';
+import { ChangeLogSidebar } from './change-log/Sidebar';
 import { type DiffViewProps, ReadOnlyView } from './ReadOnlyView';
 
 export const DocumentsHistory = ({
@@ -26,6 +29,7 @@ export const DocumentsHistory = ({
   const { changeId } = useParams();
   const { versionedDocumentHandle } = useContext(SelectedFileContext);
   const { getDocumentHandleAtCommit } = useContext(VersionControlContext);
+  const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const [doc, setDoc] = React.useState<VersionedDocument | null>();
   const [diffProps, setDiffProps] = useState<DiffViewProps | null>(null);
   const [commits, setCommits] = React.useState<
@@ -147,32 +151,30 @@ export const DocumentsHistory = ({
   };
 
   return (
-    <div className="flex flex-auto items-stretch">
-      <div className="w-2/5 grow-0 break-words border-r border-gray-300 p-5 dark:border-neutral-600">
-        <SidebarHeading icon={CommitHistoryIcon} text="Version History" />
-        <ChangeLog
-          changes={commits}
-          onClick={handleCommitClick}
-          selectedCommit={changeId}
-        />
-      </div>
-      <div className="flex w-full grow items-stretch">
-        {doc ? (
-          <div onDoubleClick={() => navigate(`/edit/${documentId}`)}>
-            <ProseMirrorProvider>
+    <ProseMirrorProvider>
+      <SidebarLayoutProvider>
+        <SidebarLayout
+          sidebar={
+            <ChangeLogSidebar
+              commits={commits}
+              onCommitClick={handleCommitClick}
+              selectedCommit={changeId}
+            />
+          }
+        >
+          {doc ? (
+            <>
               {diffProps ? (
                 <ReadOnlyView {...diffProps} />
               ) : (
                 <ReadOnlyView doc={doc} />
               )}
-            </ProseMirrorProvider>
-          </div>
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-center">
-            Loading...
-          </div>
-        )}
-      </div>
-    </div>
+            </>
+          ) : (
+            <>Loading...</>
+          )}
+        </SidebarLayout>
+      </SidebarLayoutProvider>
+    </ProseMirrorProvider>
   );
 };

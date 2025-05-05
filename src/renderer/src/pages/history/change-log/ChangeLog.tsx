@@ -4,13 +4,13 @@ import { useContext } from 'react';
 import {
   ThemeContext,
   themes,
-} from '../../../../modules/personalization/theme';
+} from '../../../../../modules/personalization/theme';
 import {
   type Commit,
   isCommit,
   type UncommitedChange,
-} from '../../../../modules/version-control';
-import { TimelinePoint } from '../../components/icons/TimelinePoint';
+} from '../../../../../modules/version-control';
+import { TimelinePoint } from '../../../components/icons/TimelinePoint';
 
 const Commit = ({
   commit,

@@ -57,8 +57,7 @@ const EditorIndex = () => {
     createDocument: createVersionedDocument,
     findDocumentInProject,
   } = useContext(VersionControlContext);
-  const { sidebarPanelRef, isSidebarOpen, toggleSidebar } =
-    useContext(SidebarLayoutContext);
+  const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
 
   const [isCommandPaletteOpen, setCommandPaletteOpen] =
     useState<boolean>(false);
