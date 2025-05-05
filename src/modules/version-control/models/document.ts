@@ -2,10 +2,14 @@ import { next as Automerge } from '@automerge/automerge/slim';
 import {
   type DocHandle as AutomergeDocHandle,
   type DocHandleChangePayload as AutomergeDocHandleChangePayload,
-  type UrlHeads,
 } from '@automerge/automerge-repo/slim';
 
 import { versionControlItemTypes } from '../constants/version-control-item-types';
+import {
+  type Commit,
+  isCommittedChange,
+  type UncommitedChange,
+} from './commit';
 
 export type RichTextDocumentSpan = Automerge.Span;
 
@@ -20,37 +24,6 @@ export type VersionedDocument = Automerge.Doc<RichTextDocument>;
 export type VersionedDocumentHandle = AutomergeDocHandle<RichTextDocument>;
 
 export type VersionedDocumentPatch = Automerge.Patch;
-
-// Commit is a special type of an (automerge) change that
-// strictly has a message and a time
-export type Commit = {
-  hash: string;
-  heads: UrlHeads;
-  message: string;
-  time: Date;
-};
-
-export type UncommitedChange = Omit<Commit, 'message'> & {
-  message: undefined;
-};
-
-// this is a TS type guard to check if a change is a commit
-export const isCommit = (
-  change: Commit | UncommitedChange
-): change is Commit => {
-  // we make the rules!
-  return Boolean(change.message);
-};
-
-type CommittedChange = Automerge.DecodedChange & {
-  message: string;
-};
-
-const isCommittedChange = (
-  change: Automerge.DecodedChange
-): change is CommittedChange => {
-  return Boolean(change.message);
-};
 
 export const getSpans: (
   document: VersionedDocument
