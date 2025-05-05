@@ -8,6 +8,7 @@ import {
   type Commit,
   getDiff,
   getDocumentHandleHistory,
+  isCommit,
   type UncommitedChange,
   type VersionControlId,
   type VersionedDocument,
@@ -29,13 +30,23 @@ export const DocumentsHistory = ({
   const { getDocumentHandleAtCommit } = useContext(VersionControlContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const [doc, setDoc] = React.useState<VersionedDocument | null>();
+  const [viewTitle, setViewTitle] = useState<string>('');
   const [diffProps, setDiffProps] = useState<DiffViewProps | null>(null);
   const [commits, setCommits] = React.useState<
     Array<UncommitedChange | Commit>
   >([]);
   const navigate = useNavigate();
+
   const { showDiffInHistoryView, toggleShowDiffInHistoryView } =
     useContext(SelectedFileContext);
+
+  const updateViewTitle = (change: Commit | UncommitedChange) => {
+    if (isCommit(change)) {
+      setViewTitle(change.message);
+    } else {
+      setViewTitle('Uncommitted Changes');
+    }
+  };
 
   useEffect(() => {
     const loadDocOrDiff = async (
@@ -59,6 +70,7 @@ export const DocumentsHistory = ({
 
         setDiffProps(null);
         setDoc(currentCommitDoc);
+        updateViewTitle(commits[currentCommitIndex]);
       } else {
         // In this case, we get the previous & current commits and their diff
         const previousCommitIndex = currentCommitIndex + 1;
@@ -92,6 +104,7 @@ export const DocumentsHistory = ({
         }
 
         setDoc(currentCommitDoc);
+        updateViewTitle(commits[currentCommitIndex]);
       }
     };
 
@@ -167,6 +180,7 @@ export const DocumentsHistory = ({
                 onSidebarToggle={toggleSidebar}
                 // TODO: Implement revert functionality
                 onRevertIconClick={() => {}}
+                title={viewTitle}
               />
               {diffProps ? (
                 <ReadOnlyView {...diffProps} />

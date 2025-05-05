@@ -8,10 +8,12 @@ import {
 } from '../../components/icons';
 
 export const ActionsBar = ({
+  title,
   isSidebarOpen,
   onSidebarToggle,
   onRevertIconClick,
 }: {
+  title: string;
   isSidebarOpen: boolean;
   onSidebarToggle: () => void;
   onRevertIconClick: () => void;
@@ -42,6 +44,7 @@ export const ActionsBar = ({
         icon={isSidebarOpen ? <SidebarOpenIcon /> : <SidebarIcon />}
         onClick={handleSidebarToggle}
       />
+      <h3 className="flex-auto px-4 text-left text-base/7">{title}</h3>
       <div className="flex flex-initial items-center gap-2">
         <IconButton onClick={handleRevertIconClick} icon={<RevertIcon />} />
       </div>
