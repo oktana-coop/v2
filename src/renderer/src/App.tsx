@@ -31,9 +31,7 @@ function App() {
           <Route path=":documentId" element={<Editor />} />
         </Route>
         <Route path="/history" element={<History />}>
-          <Route path=":documentId" element={<History />}>
-            <Route path=":commitId" element={<History />} />
-          </Route>
+          <Route path=":documentId" element={<History />} />
         </Route>
         <Route path="/options" element={<Options />} />
       </Routes>
