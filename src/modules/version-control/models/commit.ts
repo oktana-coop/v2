@@ -1,5 +1,6 @@
 import { next as Automerge } from '@automerge/automerge/slim';
 import { type UrlHeads } from '@automerge/automerge-repo/slim';
+import deepEqual from 'fast-deep-equal';
 
 // Commit is a special type of an (automerge) change that
 // strictly has a message and a time
@@ -30,4 +31,23 @@ export const isCommittedChange = (
   change: Automerge.DecodedChange
 ): change is CommittedChange => {
   return Boolean(change.message);
+};
+
+export const getURLEncodedHeads = (change: Commit | UncommitedChange) =>
+  encodeURIComponent(JSON.stringify(change.heads));
+
+export const decodeURLHeads = (urlHeads: string): UrlHeads | null => {
+  try {
+    const parsedHeads = JSON.parse(decodeURIComponent(urlHeads));
+    return parsedHeads;
+  } catch (e) {
+    console.error('Failed to decode URL heads:', e);
+    return null;
+  }
+};
+
+export { type UrlHeads } from '@automerge/automerge-repo/slim';
+
+export const headsAreSame = (a: UrlHeads, b: UrlHeads) => {
+  return deepEqual(a, b);
 };

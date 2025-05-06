@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { SelectedFileContext } from '../../../../modules/editor-state';
 import { SidebarLayoutContext } from '../../../../modules/editor-state/sidebar-layout/context';
@@ -7,8 +7,11 @@ import { FunctionalityConfigContext } from '../../../../modules/personalization/
 import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
 import {
   type Commit,
+  decodeURLHeads,
   getDiff,
   getDocumentHandleHistory,
+  getURLEncodedHeads,
+  headsAreSame,
   isCommit,
   type UncommitedChange,
   type VersionControlId,
@@ -37,6 +40,7 @@ export const DocumentsHistory = ({
     Array<UncommitedChange | Commit>
   >([]);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const { showDiffInHistoryView, setShowDiffInHistoryView } = useContext(
     FunctionalityConfigContext
@@ -49,6 +53,17 @@ export const DocumentsHistory = ({
       setViewTitle('Uncommitted Changes');
     }
   };
+
+  const getDecodedDiffParam = useCallback(() => {
+    const diffWithParam = searchParams.get('diffWith');
+    if (diffWithParam) {
+      const decodedHeads = decodeURLHeads(diffWithParam);
+      if (decodedHeads) {
+        return decodedHeads;
+      }
+    }
+    return null;
+  }, [searchParams]);
 
   useEffect(() => {
     const loadDocOrDiff = async (
@@ -71,25 +86,31 @@ export const DocumentsHistory = ({
       if (!showDiffInHistoryView || isFirstCommit) {
         setDiffProps(null);
       } else {
-        // In this case, we need to get the target commit and diff with the current one
-        const previousCommitIndex = currentCommitIndex + 1;
+        const diffWith = getDecodedDiffParam();
+        const diffCommit =
+          diffWith &&
+          commits.find((commit) => headsAreSame(commit.heads, diffWith));
 
-        const previousCommitDocHandle = await getDocumentHandleAtCommit({
-          documentHandle: docHandle,
-          heads: commits[previousCommitIndex].heads,
-        });
-        const previousCommitDoc = await previousCommitDocHandle.doc();
-        const diffPatches = await getDiff(
-          currentCommitDocHandle,
-          commits[previousCommitIndex].hash,
-          commits[currentCommitIndex].hash
-        );
-
-        if (previousCommitDoc && currentCommitDoc && diffPatches) {
-          setDiffProps({
-            docBefore: previousCommitDoc,
-            docAfter: currentCommitDoc,
+        if (diffCommit) {
+          const diffCommitDocHandle = await getDocumentHandleAtCommit({
+            documentHandle: docHandle,
+            heads: diffCommit.heads,
           });
+          const previousCommitDoc = await diffCommitDocHandle.doc();
+          const diffPatches = await getDiff(
+            currentCommitDocHandle,
+            diffCommit.hash,
+            commits[currentCommitIndex].hash
+          );
+
+          if (previousCommitDoc && currentCommitDoc && diffPatches) {
+            setDiffProps({
+              docBefore: previousCommitDoc,
+              docAfter: currentCommitDoc,
+            });
+          }
+        } else {
+          setDiffProps(null);
         }
       }
 
@@ -106,32 +127,48 @@ export const DocumentsHistory = ({
     versionedDocumentHandle,
     commits,
     showDiffInHistoryView,
+    searchParams,
+    getDecodedDiffParam,
   ]);
 
   const selectCommit = useCallback(
-    (hash: string) => navigate(`/history/${documentId}/${hash}`),
+    (hash: string) => {
+      const selectedCommitIndex = commits.findIndex(
+        (commit) => commit.hash === hash
+      );
+
+      const isFirstCommit = selectedCommitIndex === commits.length - 1;
+
+      const diffCommit = isFirstCommit
+        ? null
+        : commits[selectedCommitIndex + 1];
+
+      let newUrl = `/history/${documentId}/${hash}`;
+      if (diffCommit) {
+        const diffCommitURLEncodedHeads = getURLEncodedHeads(diffCommit);
+        newUrl += `?diffWith=${diffCommitURLEncodedHeads}`;
+      }
+
+      if (showDiffInHistoryView && diffCommit) {
+        newUrl += `&showDiff`;
+      }
+
+      navigate(newUrl);
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [documentId]
+    [documentId, commits, showDiffInHistoryView]
   );
 
   useEffect(() => {
-    const loadHistoryAndSelectCommit = (docHandle: VersionedDocumentHandle) => {
+    const loadHistory = (docHandle: VersionedDocumentHandle) => {
       const commits = getDocumentHandleHistory(docHandle);
       setCommits(commits);
-
-      if (changeId) {
-        selectCommit(changeId);
-      } else {
-        // If no changeId is provided, we select the last commit
-        const [lastChange] = commits;
-        selectCommit(lastChange.hash);
-      }
     };
 
     if (versionedDocumentHandle) {
-      loadHistoryAndSelectCommit(versionedDocumentHandle);
+      loadHistory(versionedDocumentHandle);
     }
-  }, [versionedDocumentHandle, selectCommit, changeId]);
+  }, [versionedDocumentHandle, changeId]);
 
   useEffect(() => {
     const loadDocument = async (docHandle: VersionedDocumentHandle) => {
