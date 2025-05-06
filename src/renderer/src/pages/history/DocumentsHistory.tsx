@@ -223,6 +223,20 @@ export const DocumentsHistory = ({
     });
   };
 
+  const handleSetShowDiffInHistoryView = (checked: boolean) => {
+    setSearchParams((prev) => {
+      const newParams = new URLSearchParams(prev);
+      if (checked) {
+        newParams.set('showDiff', 'true');
+      } else {
+        newParams.delete('showDiff');
+      }
+      return newParams;
+    });
+
+    return setShowDiffInHistoryView(checked);
+  };
+
   return (
     <ProseMirrorProvider>
       <SidebarLayout
@@ -248,7 +262,7 @@ export const DocumentsHistory = ({
                   !isInitialChange(selectedCommitIndex, commits)
                 }
                 showDiff={showDiffInHistoryView}
-                onSetShowDiffChecked={setShowDiffInHistoryView}
+                onSetShowDiffChecked={handleSetShowDiffInHistoryView}
                 diffWith={getDecodedDiffParam()}
                 history={
                   selectedCommitIndex
