@@ -6,11 +6,12 @@ import { SidebarLayoutContext } from '../../../../modules/editor-state/sidebar-l
 import { FunctionalityConfigContext } from '../../../../modules/personalization/functionality-config';
 import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
 import {
+  type ChangeWithUrlInfo,
   type Commit,
   decodeURLHeads,
   getDiff,
   getDocumentHandleHistory,
-  getURLEncodedHeads,
+  getURLEncodedHeadsForChange,
   headsAreSame,
   isCommit,
   type UncommitedChange,
@@ -36,9 +37,7 @@ export const DocumentsHistory = ({
   const [doc, setDoc] = React.useState<VersionedDocument | null>();
   const [viewTitle, setViewTitle] = useState<string>('');
   const [diffProps, setDiffProps] = useState<DiffViewProps | null>(null);
-  const [commits, setCommits] = React.useState<
-    Array<UncommitedChange | Commit>
-  >([]);
+  const [commits, setCommits] = React.useState<Array<ChangeWithUrlInfo>>([]);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -145,7 +144,8 @@ export const DocumentsHistory = ({
 
       let newUrl = `/history/${documentId}/${hash}`;
       if (diffCommit) {
-        const diffCommitURLEncodedHeads = getURLEncodedHeads(diffCommit);
+        const diffCommitURLEncodedHeads =
+          getURLEncodedHeadsForChange(diffCommit);
         newUrl += `?diffWith=${diffCommitURLEncodedHeads}`;
       }
 
@@ -161,7 +161,10 @@ export const DocumentsHistory = ({
 
   useEffect(() => {
     const loadHistory = (docHandle: VersionedDocumentHandle) => {
-      const commits = getDocumentHandleHistory(docHandle);
+      const commits = getDocumentHandleHistory(docHandle).map((commit) => ({
+        ...commit,
+        urlEncodedHeads: getURLEncodedHeadsForChange(commit),
+      }));
       setCommits(commits);
     };
 
@@ -209,6 +212,8 @@ export const DocumentsHistory = ({
                 title={viewTitle}
                 showDiff={showDiffInHistoryView}
                 onSetShowDiffChecked={setShowDiffInHistoryView}
+                diffWith={getDecodedDiffParam()}
+                history={commits}
               />
               {diffProps ? (
                 <ReadOnlyView {...diffProps} />

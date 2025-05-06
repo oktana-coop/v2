@@ -15,6 +15,10 @@ export type UncommitedChange = Omit<Commit, 'message'> & {
   message: undefined;
 };
 
+export type ChangeWithUrlInfo = (Commit | UncommitedChange) & {
+  urlEncodedHeads: string;
+};
+
 // this is a TS type guard to check if a change is a commit
 export const isCommit = (
   change: Commit | UncommitedChange
@@ -33,8 +37,12 @@ export const isCommittedChange = (
   return Boolean(change.message);
 };
 
-export const getURLEncodedHeads = (change: Commit | UncommitedChange) =>
-  encodeURIComponent(JSON.stringify(change.heads));
+export const encodeURLHeads = (heads: UrlHeads): string =>
+  encodeURIComponent(JSON.stringify(heads));
+
+export const getURLEncodedHeadsForChange = (
+  change: Commit | UncommitedChange
+) => encodeURLHeads(change.heads);
 
 export const decodeURLHeads = (urlHeads: string): UrlHeads | null => {
   try {

@@ -1,5 +1,10 @@
 import { useRef } from 'react';
 
+import {
+  ChangeWithUrlInfo,
+  encodeURLHeads,
+  type UrlHeads,
+} from '../../../../modules/version-control';
 import { IconButton } from '../../components/actions/IconButton';
 import {
   RevertIcon,
@@ -8,6 +13,11 @@ import {
 } from '../../components/icons';
 import { Checkbox, CheckboxField } from '../../components/inputs/Checkbox';
 import { Label } from '../../components/inputs/Fieldset';
+import {
+  Listbox,
+  ListboxLabel,
+  ListboxOption,
+} from '../../components/inputs/Listbox';
 
 export const ActionsBar = ({
   title,
@@ -16,6 +26,8 @@ export const ActionsBar = ({
   onRevertIconClick,
   showDiff,
   onSetShowDiffChecked,
+  diffWith,
+  history,
 }: {
   title: string;
   isSidebarOpen: boolean;
@@ -23,6 +35,8 @@ export const ActionsBar = ({
   onRevertIconClick: () => void;
   showDiff: boolean;
   onSetShowDiffChecked: (value: boolean) => void;
+  diffWith: UrlHeads | null;
+  history: Array<ChangeWithUrlInfo>;
 }) => {
   const sidebarButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -51,14 +65,27 @@ export const ActionsBar = ({
       />
       <h3 className="flex-auto px-4 text-left text-base/7">{title}</h3>
       <div className="flex flex-initial items-center gap-3">
-        <CheckboxField className="flex items-center !gap-x-2">
-          <Checkbox
-            checked={showDiff}
-            onChange={onSetShowDiffChecked}
-            color="purple"
-          />
-          <Label>Show Diff with</Label>
-        </CheckboxField>
+        <div className="flex items-center gap-2">
+          <CheckboxField className="flex items-center !gap-x-2">
+            <Checkbox
+              checked={showDiff}
+              onChange={onSetShowDiffChecked}
+              color="purple"
+            />
+            <Label className="whitespace-nowrap">Show Diff with</Label>
+          </CheckboxField>
+          <Listbox
+            name="diff commits"
+            value={diffWith ? encodeURLHeads(diffWith) : null}
+          >
+            {history.map(({ message, urlEncodedHeads }) => (
+              <ListboxOption key={urlEncodedHeads} value={urlEncodedHeads}>
+                <ListboxLabel>{message}</ListboxLabel>
+              </ListboxOption>
+            ))}
+          </Listbox>
+        </div>
+
         <IconButton onClick={handleRevertIconClick} icon={<RevertIcon />} />
       </div>
     </div>
