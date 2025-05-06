@@ -9,12 +9,14 @@ import {
   type ChangeWithUrlInfo,
   type Commit,
   decodeURLHeads,
+  encodeURLHeads,
   getDiff,
   getDocumentHandleHistory,
   getURLEncodedHeadsForChange,
   headsAreSame,
   isCommit,
   type UncommitedChange,
+  UrlHeads,
   type VersionControlId,
   type VersionedDocument,
   type VersionedDocumentHandle,
@@ -38,8 +40,11 @@ export const DocumentsHistory = ({
   const [viewTitle, setViewTitle] = useState<string>('');
   const [diffProps, setDiffProps] = useState<DiffViewProps | null>(null);
   const [commits, setCommits] = React.useState<Array<ChangeWithUrlInfo>>([]);
+  const [selectedCommitIndex, setSelectedCommitIndex] = useState<number | null>(
+    null
+  );
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { showDiffInHistoryView, setShowDiffInHistoryView } = useContext(
     FunctionalityConfigContext
@@ -63,6 +68,15 @@ export const DocumentsHistory = ({
     }
     return null;
   }, [searchParams]);
+
+  const handleDiffCommitSelect = (heads: UrlHeads) => {
+    setSearchParams((prev) => {
+      const newParams = new URLSearchParams(prev);
+      const encodedHeads = encodeURLHeads(heads);
+      newParams.set('diffWith', encodedHeads);
+      return newParams;
+    });
+  };
 
   useEffect(() => {
     const loadDocOrDiff = async (
@@ -150,9 +164,10 @@ export const DocumentsHistory = ({
       }
 
       if (showDiffInHistoryView && diffCommit) {
-        newUrl += `&showDiff`;
+        newUrl += `&showDiff=true`;
       }
 
+      setSelectedCommitIndex(selectedCommitIndex);
       navigate(newUrl);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -213,7 +228,12 @@ export const DocumentsHistory = ({
                 showDiff={showDiffInHistoryView}
                 onSetShowDiffChecked={setShowDiffInHistoryView}
                 diffWith={getDecodedDiffParam()}
-                history={commits}
+                history={
+                  selectedCommitIndex
+                    ? commits.slice(selectedCommitIndex + 1)
+                    : commits
+                }
+                onDiffCommitSelect={handleDiffCommitSelect}
               />
               {diffProps ? (
                 <ReadOnlyView {...diffProps} />

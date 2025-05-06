@@ -2,6 +2,7 @@ import { useRef } from 'react';
 
 import {
   ChangeWithUrlInfo,
+  decodeURLHeads,
   encodeURLHeads,
   type UrlHeads,
 } from '../../../../modules/version-control';
@@ -28,6 +29,7 @@ export const ActionsBar = ({
   onSetShowDiffChecked,
   diffWith,
   history,
+  onDiffCommitSelect,
 }: {
   title: string;
   isSidebarOpen: boolean;
@@ -37,6 +39,7 @@ export const ActionsBar = ({
   onSetShowDiffChecked: (value: boolean) => void;
   diffWith: UrlHeads | null;
   history: Array<ChangeWithUrlInfo>;
+  onDiffCommitSelect: (heads: UrlHeads) => void;
 }) => {
   const sidebarButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -54,6 +57,13 @@ export const ActionsBar = ({
   const handleRevertIconClick = (ev: React.MouseEvent) => {
     ev.preventDefault();
     onRevertIconClick();
+  };
+
+  const handleDiffCommitSelect = (heads: string) => {
+    const decodedHeads = decodeURLHeads(heads);
+    if (decodedHeads) {
+      onDiffCommitSelect(decodedHeads);
+    }
   };
 
   return (
@@ -77,6 +87,7 @@ export const ActionsBar = ({
           <Listbox
             name="diff commits"
             value={diffWith ? encodeURLHeads(diffWith) : null}
+            onChange={handleDiffCommitSelect}
           >
             {history.map(({ message, urlEncodedHeads }) => (
               <ListboxOption key={urlEncodedHeads} value={urlEncodedHeads}>
