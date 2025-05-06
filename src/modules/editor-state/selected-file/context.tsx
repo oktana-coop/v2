@@ -13,8 +13,6 @@ import {
 } from '../../version-control';
 import { VersionControlContext } from '../../version-control/react';
 
-const SHOW_DIFF_IN_HISTORY_VIEW_KEY = 'showDiffInHistoryView';
-
 export type SelectedFileInfo = {
   documentId: VersionControlId;
   path: string | null;
@@ -25,8 +23,6 @@ type SelectedFileContextType = {
   setSelectedFileInfo: (file: SelectedFileInfo) => Promise<void>;
   clearFileSelection: () => Promise<void>;
   versionedDocumentHandle: VersionedDocumentHandle | null;
-  showDiffInHistoryView: boolean;
-  setShowDiffInHistoryView: (value: boolean) => void;
 };
 
 export const SelectedFileContext = createContext<SelectedFileContextType>({
@@ -34,8 +30,6 @@ export const SelectedFileContext = createContext<SelectedFileContextType>({
   setSelectedFileInfo: async () => {},
   clearFileSelection: async () => {},
   versionedDocumentHandle: null,
-  showDiffInHistoryView: true,
-  setShowDiffInHistoryView: () => {},
 });
 
 export const SelectedFileProvider = ({
@@ -52,10 +46,6 @@ export const SelectedFileProvider = ({
   const [searchParams] = useSearchParams();
   const { findDocument } = useContext(VersionControlContext);
   const { writeFile } = useContext(FilesystemContext);
-
-  const [showDiffInHistoryView, setShowDiffInHistoryView] = useState(
-    localStorage.getItem(SHOW_DIFF_IN_HISTORY_VIEW_KEY) === 'true'
-  );
 
   useEffect(() => {
     const updateFileSelection = async () => {
@@ -117,11 +107,6 @@ export const SelectedFileProvider = ({
     });
   };
 
-  const handleToggleShowDiffInHistoryView = (value: boolean) => {
-    localStorage.setItem(SHOW_DIFF_IN_HISTORY_VIEW_KEY, value.toString());
-    setShowDiffInHistoryView(value);
-  };
-
   return (
     <SelectedFileContext.Provider
       value={{
@@ -129,8 +114,6 @@ export const SelectedFileProvider = ({
         versionedDocumentHandle,
         setSelectedFileInfo: handleSetSelectedFileInfo,
         clearFileSelection,
-        showDiffInHistoryView,
-        setShowDiffInHistoryView: handleToggleShowDiffInHistoryView,
       }}
     >
       {children}

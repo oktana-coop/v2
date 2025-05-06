@@ -6,6 +6,7 @@ import {
   createElectronRendererFilesystemAPIAdapter,
   FilesystemProvider,
 } from '../../modules/filesystem';
+import { FunctionalityConfigProvider } from '../../modules/personalization/functionality-config';
 import { ThemeProvider } from '../../modules/personalization/theme';
 import { VersionControlProvider } from '../../modules/version-control/react';
 import { WasmProvider } from '../../modules/wasm';
@@ -25,7 +26,9 @@ export const AppWrapper = () => {
       <WasmProvider>
         <VersionControlProvider>
           <ThemeProvider>
-            <App />
+            <FunctionalityConfigProvider>
+              <App />
+            </FunctionalityConfigProvider>
           </ThemeProvider>
         </VersionControlProvider>
       </WasmProvider>

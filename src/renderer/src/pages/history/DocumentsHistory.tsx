@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { SelectedFileContext } from '../../../../modules/editor-state';
 import { SidebarLayoutContext } from '../../../../modules/editor-state/sidebar-layout/context';
+import { FunctionalityConfigContext } from '../../../../modules/personalization/functionality-config';
 import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
 import {
   type Commit,
@@ -37,8 +38,9 @@ export const DocumentsHistory = ({
   >([]);
   const navigate = useNavigate();
 
-  const { showDiffInHistoryView, setShowDiffInHistoryView } =
-    useContext(SelectedFileContext);
+  const { showDiffInHistoryView, setShowDiffInHistoryView } = useContext(
+    FunctionalityConfigContext
+  );
 
   const updateViewTitle = (change: Commit | UncommitedChange) => {
     if (isCommit(change)) {
