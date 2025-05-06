@@ -37,6 +37,7 @@ export const getDocumentAtCommit =
     return Automerge.view(document, [hash]);
   };
 
+// TODO: Use heads instead of hashes
 export const getDiff = async (
   documentHandle: VersionedDocumentHandle,
   before: string,

@@ -99,6 +99,7 @@ export const DocumentsHistory = ({
             heads: diffCommit.heads,
           });
           const previousCommitDoc = await diffCommitDocHandle.doc();
+          // TODO: Use heads instead of hashes
           const diffPatches = await getDiff(
             currentCommitDocHandle,
             diffCommit.hash,
