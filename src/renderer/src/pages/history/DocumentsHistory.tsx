@@ -58,28 +58,20 @@ export const DocumentsHistory = ({
         (commit) => commit.hash === changeId
       );
 
-      // If it's the first commit, there is no diff;
-      // We just get the corresponding doc handle.
-      // The first element of the commits array is the current one.
-      if (currentCommitIndex === commits.length - 1) {
-        const currentCommitDocHandle = await getDocumentHandleAtCommit({
-          documentHandle: docHandle,
-          heads: commits[currentCommitIndex].heads,
-        });
-        const currentCommitDoc = await currentCommitDocHandle.doc();
+      const currentCommitDocHandle = await getDocumentHandleAtCommit({
+        documentHandle: docHandle,
+        heads: commits[currentCommitIndex].heads,
+      });
+      const currentCommitDoc = await currentCommitDocHandle.doc();
 
+      const isFirstCommit = currentCommitIndex === commits.length - 1;
+
+      if (!showDiffInHistoryView || isFirstCommit) {
         setDiffProps(null);
-        setDoc(currentCommitDoc);
-        updateViewTitle(commits[currentCommitIndex]);
       } else {
-        // In this case, we get the previous & current commits and their diff
+        // In this case, we need to get the target commit and diff with the current one
         const previousCommitIndex = currentCommitIndex + 1;
 
-        const currentCommitDocHandle = await getDocumentHandleAtCommit({
-          documentHandle: docHandle,
-          heads: commits[currentCommitIndex].heads,
-        });
-        const currentCommitDoc = await currentCommitDocHandle.doc();
         const previousCommitDocHandle = await getDocumentHandleAtCommit({
           documentHandle: docHandle,
           heads: commits[previousCommitIndex].heads,
@@ -91,21 +83,16 @@ export const DocumentsHistory = ({
           commits[currentCommitIndex].hash
         );
 
-        if (
-          previousCommitDoc &&
-          currentCommitDoc &&
-          diffPatches &&
-          showDiffInHistoryView
-        ) {
+        if (previousCommitDoc && currentCommitDoc && diffPatches) {
           setDiffProps({
             docBefore: previousCommitDoc,
             docAfter: currentCommitDoc,
           });
         }
-
-        setDoc(currentCommitDoc);
-        updateViewTitle(commits[currentCommitIndex]);
       }
+
+      setDoc(currentCommitDoc);
+      updateViewTitle(commits[currentCommitIndex]);
     };
 
     if (versionedDocumentHandle && commits.length > 0 && changeId) {
