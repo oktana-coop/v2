@@ -13,6 +13,8 @@ import {
 } from '../../version-control';
 import { VersionControlContext } from '../../version-control/react';
 
+const SHOW_DIFF_IN_HISTORY_VIEW_KEY = 'showDiffInHistoryView';
+
 export type SelectedFileInfo = {
   documentId: VersionControlId;
   path: string | null;
@@ -50,7 +52,10 @@ export const SelectedFileProvider = ({
   const [searchParams] = useSearchParams();
   const { findDocument } = useContext(VersionControlContext);
   const { writeFile } = useContext(FilesystemContext);
-  const [showDiffInHistoryView, setShowDiffInHistoryView] = useState(true);
+
+  const [showDiffInHistoryView, setShowDiffInHistoryView] = useState(
+    localStorage.getItem(SHOW_DIFF_IN_HISTORY_VIEW_KEY) === 'true'
+  );
 
   useEffect(() => {
     const updateFileSelection = async () => {
@@ -113,6 +118,7 @@ export const SelectedFileProvider = ({
   };
 
   const handleToggleShowDiffInHistoryView = (value: boolean) => {
+    localStorage.setItem(SHOW_DIFF_IN_HISTORY_VIEW_KEY, value.toString());
     setShowDiffInHistoryView(value);
   };
 
