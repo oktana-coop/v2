@@ -8,8 +8,8 @@ import { ChangeLog } from './ChangeLog';
 
 export type ChangeLogSidebarProps = {
   commits: (Commit | UncommitedChange)[];
-  onCommitClick: (hash: Commit['hash']) => void;
-  selectedCommit?: Commit['hash'];
+  onCommitClick: (heads: Commit['heads']) => void;
+  selectedCommit: Commit['heads'] | null;
 };
 
 export const ChangeLogSidebar = ({

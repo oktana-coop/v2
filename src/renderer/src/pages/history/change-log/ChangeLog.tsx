@@ -6,7 +6,10 @@ import {
   themes,
 } from '../../../../../modules/personalization/theme';
 import {
+  type Change,
   type Commit,
+  encodeURLHeads,
+  headsAreSame,
   isCommit,
   type UncommitedChange,
 } from '../../../../../modules/version-control';
@@ -20,7 +23,7 @@ const Commit = ({
   isLast = false,
 }: {
   commit: Commit;
-  onClick: (hash: Commit['hash']) => void;
+  onClick: (heads: Commit['heads']) => void;
   isSelected?: boolean;
   isFirst?: boolean;
   isLast?: boolean;
@@ -30,8 +33,7 @@ const Commit = ({
   return (
     <div
       className="cursor-pointer text-left"
-      key={commit.hash}
-      onClick={() => onClick(commit.hash)}
+      onClick={() => onClick(commit.heads)}
     >
       <div className="flex flex-row items-center">
         <div className="h-full w-14 flex-shrink-0">
@@ -57,17 +59,18 @@ const UncommittedChange = ({
   isLast = false,
 }: {
   commit: UncommitedChange;
-  onClick: (hash: Commit['hash']) => void;
+  onClick: (heads: Commit['heads']) => void;
   isSelected?: boolean;
   isFirst?: boolean;
   isLast?: boolean;
 }) => {
   const { theme } = useContext(ThemeContext);
+
   return (
     <div
       className="cursor-pointer text-left"
-      key={commit.hash}
-      onClick={() => onClick(commit.hash)}
+      key={encodeURLHeads(commit.heads)}
+      onClick={() => onClick(commit.heads)}
     >
       <div className="flex flex-row items-center">
         <div className="h-full w-14 flex-shrink-0">
@@ -95,28 +98,32 @@ export const ChangeLog = ({
   onClick,
   selectedCommit,
 }: {
-  changes: Array<UncommitedChange | Commit>;
-  onClick: (hash: Commit['hash']) => void;
-  selectedCommit?: Commit['hash'];
+  changes: Array<Change>;
+  onClick: (heads: Commit['heads']) => void;
+  selectedCommit: Commit['heads'] | null;
 }) => {
   return (
     <>
       {changes.map((commit, index) => {
         return isCommit(commit) ? (
           <Commit
-            key={commit.hash}
+            key={encodeURLHeads(commit.heads)}
             commit={commit}
             onClick={onClick}
-            isSelected={selectedCommit === commit.hash}
+            isSelected={Boolean(
+              selectedCommit && headsAreSame(selectedCommit, commit.heads)
+            )}
             isFirst={index === 0}
             isLast={changes.length - 1 === index}
           />
         ) : (
           <UncommittedChange
-            key={commit.hash}
+            key={encodeURLHeads(commit.heads)}
             commit={commit}
             onClick={onClick}
-            isSelected={selectedCommit === commit.hash}
+            isSelected={Boolean(
+              selectedCommit && headsAreSame(selectedCommit, commit.heads)
+            )}
             isFirst={index === 0}
             isLast={changes.length === 1}
           />

@@ -6,16 +6,15 @@ import { SidebarLayoutContext } from '../../../../modules/editor-state/sidebar-l
 import { FunctionalityConfigContext } from '../../../../modules/personalization/functionality-config';
 import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
 import {
+  type Change,
   type ChangeWithUrlInfo,
-  type Commit,
   decodeURLHeads,
   encodeURLHeads,
+  encodeURLHeadsForChange,
   getDiff,
   getDocumentHandleHistory,
-  getURLEncodedHeadsForChange,
   headsAreSame,
   isCommit,
-  type UncommitedChange,
   UrlHeads,
   type VersionControlId,
   type VersionedDocument,
@@ -50,7 +49,7 @@ export const DocumentsHistory = ({
     FunctionalityConfigContext
   );
 
-  const updateViewTitle = (change: Commit | UncommitedChange) => {
+  const updateViewTitle = (change: Change) => {
     if (isCommit(change)) {
       setViewTitle(change.message);
     } else {
@@ -72,13 +71,9 @@ export const DocumentsHistory = ({
   useEffect(() => {
     const loadDocOrDiff = async (
       docHandle: VersionedDocumentHandle,
-      commits: (Commit | UncommitedChange)[],
-      changeId: Commit['hash']
+      commits: ChangeWithUrlInfo[],
+      currentCommitIndex: number
     ) => {
-      const currentCommitIndex = commits.findIndex(
-        (commit) => commit.hash === changeId
-      );
-
       const currentCommitDocHandle = await getDocumentHandleAtCommit({
         documentHandle: docHandle,
         heads: commits[currentCommitIndex].heads,
@@ -122,23 +117,27 @@ export const DocumentsHistory = ({
       updateViewTitle(commits[currentCommitIndex]);
     };
 
-    if (versionedDocumentHandle && commits.length > 0 && changeId) {
-      loadDocOrDiff(versionedDocumentHandle, commits, changeId);
+    if (
+      versionedDocumentHandle &&
+      commits.length > 0 &&
+      selectedCommitIndex !== null
+    ) {
+      loadDocOrDiff(versionedDocumentHandle, commits, selectedCommitIndex);
     }
   }, [
-    changeId,
     getDocumentHandleAtCommit,
     versionedDocumentHandle,
     commits,
     showDiffInHistoryView,
     searchParams,
     getDecodedDiffParam,
+    selectedCommitIndex,
   ]);
 
   const selectCommit = useCallback(
-    (hash: string) => {
-      const selectedCommitIndex = commits.findIndex(
-        (commit) => commit.hash === hash
+    (heads: UrlHeads) => {
+      const selectedCommitIndex = commits.findIndex((commit) =>
+        headsAreSame(commit.heads, heads)
       );
 
       const isFirstCommit = selectedCommitIndex === commits.length - 1;
@@ -147,10 +146,9 @@ export const DocumentsHistory = ({
         ? null
         : commits[selectedCommitIndex + 1];
 
-      let newUrl = `/history/${documentId}/${hash}`;
+      let newUrl = `/history/${documentId}/${encodeURLHeads(heads)}`;
       if (diffCommit) {
-        const diffCommitURLEncodedHeads =
-          getURLEncodedHeadsForChange(diffCommit);
+        const diffCommitURLEncodedHeads = encodeURLHeadsForChange(diffCommit);
         newUrl += `?diffWith=${diffCommitURLEncodedHeads}`;
       }
 
@@ -169,7 +167,7 @@ export const DocumentsHistory = ({
     const loadHistory = (docHandle: VersionedDocumentHandle) => {
       const commits = getDocumentHandleHistory(docHandle).map((commit) => ({
         ...commit,
-        urlEncodedHeads: getURLEncodedHeadsForChange(commit),
+        urlEncodedHeads: encodeURLHeadsForChange(commit),
       }));
       setCommits(commits);
     };
@@ -182,11 +180,16 @@ export const DocumentsHistory = ({
   useEffect(() => {
     if (commits.length > 0) {
       if (changeId) {
-        selectCommit(changeId);
+        const urlHeads = decodeURLHeads(changeId);
+        if (!urlHeads) {
+          console.error('Invalid url heads for the selected commit:', changeId);
+          return;
+        }
+        selectCommit(urlHeads);
       } else {
         // If no changeId is provided, we select the last commit
         const [lastChange] = commits;
-        selectCommit(lastChange.hash);
+        selectCommit(lastChange.heads);
       }
     }
   }, [commits, changeId, selectCommit]);
@@ -204,8 +207,8 @@ export const DocumentsHistory = ({
     }
   }, [versionedDocumentHandle]);
 
-  const handleCommitClick = (hash: string) => {
-    selectCommit(hash);
+  const handleCommitClick = (heads: UrlHeads) => {
+    selectCommit(heads);
   };
 
   const handleDiffCommitSelect = (heads: UrlHeads) => {
@@ -224,7 +227,7 @@ export const DocumentsHistory = ({
           <ChangeLogSidebar
             commits={commits}
             onCommitClick={handleCommitClick}
-            selectedCommit={changeId}
+            selectedCommit={changeId ? decodeURLHeads(changeId) : null}
           />
         }
       >

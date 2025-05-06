@@ -15,7 +15,9 @@ export type UncommitedChange = Omit<Commit, 'message'> & {
   message: undefined;
 };
 
-export type ChangeWithUrlInfo = (Commit | UncommitedChange) & {
+export type Change = Commit | UncommitedChange;
+
+export type ChangeWithUrlInfo = Change & {
   urlEncodedHeads: string;
 };
 
@@ -40,9 +42,8 @@ export const isCommittedChange = (
 export const encodeURLHeads = (heads: UrlHeads): string =>
   encodeURIComponent(JSON.stringify(heads));
 
-export const getURLEncodedHeadsForChange = (
-  change: Commit | UncommitedChange
-) => encodeURLHeads(change.heads);
+export const encodeURLHeadsForChange = (change: Commit | UncommitedChange) =>
+  encodeURLHeads(change.heads);
 
 export const decodeURLHeads = (urlHeads: string): UrlHeads | null => {
   try {
