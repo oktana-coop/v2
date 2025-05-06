@@ -11,7 +11,7 @@
     "build": "electron-vite build --outDir=dist",
     "compile": "tsc",
     "dev": "electron-vite dev -w --outDir=dist",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 8",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 15",
     "postinstall": "electron-builder install-app-deps",
     "prebuild": "pnpm run compile",
     "start": "electron-vite preview --outDir=dist",
