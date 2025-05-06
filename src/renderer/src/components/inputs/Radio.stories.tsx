@@ -22,7 +22,7 @@ export const Default: Story = {
         <Label>Light</Label>
       </RadioField>
       <RadioField>
-        <Radio value="forbid" color="purple" />
+        <Radio value="dark" color="purple" />
         <Label>Dark</Label>
       </RadioField>
     </RadioGroup>

@@ -37,7 +37,7 @@ export const DocumentsHistory = ({
   >([]);
   const navigate = useNavigate();
 
-  const { showDiffInHistoryView, toggleShowDiffInHistoryView } =
+  const { showDiffInHistoryView, setShowDiffInHistoryView } =
     useContext(SelectedFileContext);
 
   const updateViewTitle = (change: Commit | UncommitedChange) => {
@@ -181,6 +181,8 @@ export const DocumentsHistory = ({
                 // TODO: Implement revert functionality
                 onRevertIconClick={() => {}}
                 title={viewTitle}
+                showDiff={showDiffInHistoryView}
+                onSetShowDiffChecked={setShowDiffInHistoryView}
               />
               {diffProps ? (
                 <ReadOnlyView {...diffProps} />

@@ -14,17 +14,20 @@ export const ActionsBar = ({
   isSidebarOpen,
   onSidebarToggle,
   onRevertIconClick,
+  showDiff,
+  onSetShowDiffChecked,
 }: {
   title: string;
   isSidebarOpen: boolean;
   onSidebarToggle: () => void;
   onRevertIconClick: () => void;
+  showDiff: boolean;
+  onSetShowDiffChecked: (value: boolean) => void;
 }) => {
   const sidebarButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const handleSidebarToggle = (ev: React.MouseEvent) => {
     ev.preventDefault();
-    console.log('in handleSidebarToggle');
     onSidebarToggle();
 
     // manually remove the hover state because headless-ui doesn't handle it properly in this case
@@ -49,7 +52,11 @@ export const ActionsBar = ({
       <h3 className="flex-auto px-4 text-left text-base/7">{title}</h3>
       <div className="flex flex-initial items-center gap-3">
         <CheckboxField className="flex items-center !gap-x-2">
-          <Checkbox name="show-diff" checked={true} />
+          <Checkbox
+            checked={showDiff}
+            onChange={onSetShowDiffChecked}
+            color="purple"
+          />
           <Label>Show Diff with</Label>
         </CheckboxField>
         <IconButton onClick={handleRevertIconClick} icon={<RevertIcon />} />

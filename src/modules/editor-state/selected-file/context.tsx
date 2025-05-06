@@ -24,7 +24,7 @@ type SelectedFileContextType = {
   clearFileSelection: () => Promise<void>;
   versionedDocumentHandle: VersionedDocumentHandle | null;
   showDiffInHistoryView: boolean;
-  toggleShowDiffInHistoryView: () => void;
+  setShowDiffInHistoryView: (value: boolean) => void;
 };
 
 export const SelectedFileContext = createContext<SelectedFileContextType>({
@@ -33,7 +33,7 @@ export const SelectedFileContext = createContext<SelectedFileContextType>({
   clearFileSelection: async () => {},
   versionedDocumentHandle: null,
   showDiffInHistoryView: true,
-  toggleShowDiffInHistoryView: () => {},
+  setShowDiffInHistoryView: () => {},
 });
 
 export const SelectedFileProvider = ({
@@ -112,8 +112,8 @@ export const SelectedFileProvider = ({
     });
   };
 
-  const handleToggleShowDiffInHistoryView = () => {
-    setShowDiffInHistoryView(!showDiffInHistoryView);
+  const handleToggleShowDiffInHistoryView = (value: boolean) => {
+    setShowDiffInHistoryView(value);
   };
 
   return (
@@ -124,7 +124,7 @@ export const SelectedFileProvider = ({
         setSelectedFileInfo: handleSetSelectedFileInfo,
         clearFileSelection,
         showDiffInHistoryView,
-        toggleShowDiffInHistoryView: handleToggleShowDiffInHistoryView,
+        setShowDiffInHistoryView: handleToggleShowDiffInHistoryView,
       }}
     >
       {children}
