@@ -25,6 +25,7 @@ export const ActionsBar = ({
   isSidebarOpen,
   onSidebarToggle,
   onRevertIconClick,
+  canShowDiff,
   showDiff,
   onSetShowDiffChecked,
   diffWith,
@@ -35,6 +36,7 @@ export const ActionsBar = ({
   isSidebarOpen: boolean;
   onSidebarToggle: () => void;
   onRevertIconClick: () => void;
+  canShowDiff: boolean;
   showDiff: boolean;
   onSetShowDiffChecked: (value: boolean) => void;
   diffWith: UrlHeads | null;
@@ -67,7 +69,7 @@ export const ActionsBar = ({
   };
 
   return (
-    <div className="flex flex-initial items-center justify-between px-4 py-2">
+    <div className="flex min-h-[52px] flex-initial items-center justify-between px-4 py-2">
       <IconButton
         ref={sidebarButtonRef}
         icon={isSidebarOpen ? <SidebarOpenIcon /> : <SidebarIcon />}
@@ -75,27 +77,32 @@ export const ActionsBar = ({
       />
       <h3 className="flex-auto px-4 text-left text-base/7">{title}</h3>
       <div className="flex flex-initial items-center gap-3">
-        <div className="flex items-center gap-2">
-          <CheckboxField className="flex items-center !gap-x-2">
-            <Checkbox
-              checked={showDiff}
-              onChange={onSetShowDiffChecked}
-              color="purple"
-            />
-            <Label className="whitespace-nowrap">Show Diff with</Label>
-          </CheckboxField>
-          <Listbox
-            name="diff commits"
-            value={diffWith ? encodeURLHeads(diffWith) : null}
-            onChange={handleDiffCommitSelect}
-          >
-            {history.map(({ message, urlEncodedHeads }) => (
-              <ListboxOption key={urlEncodedHeads} value={urlEncodedHeads}>
-                <ListboxLabel>{message}</ListboxLabel>
-              </ListboxOption>
-            ))}
-          </Listbox>
-        </div>
+        {canShowDiff && (
+          <div className="flex items-center gap-2">
+            <CheckboxField className="flex items-center !gap-x-2">
+              <Checkbox
+                disabled={!canShowDiff}
+                checked={showDiff}
+                onChange={onSetShowDiffChecked}
+                color="purple"
+              />
+              <Label className="whitespace-nowrap">Show Diff with</Label>
+            </CheckboxField>
+
+            <Listbox
+              name="diff commits"
+              value={diffWith ? encodeURLHeads(diffWith) : null}
+              onChange={handleDiffCommitSelect}
+              disabled={!showDiff}
+            >
+              {history.map(({ message, urlEncodedHeads }) => (
+                <ListboxOption key={urlEncodedHeads} value={urlEncodedHeads}>
+                  <ListboxLabel>{message}</ListboxLabel>
+                </ListboxOption>
+              ))}
+            </Listbox>
+          </div>
+        )}
 
         <IconButton onClick={handleRevertIconClick} icon={<RevertIcon />} />
       </div>

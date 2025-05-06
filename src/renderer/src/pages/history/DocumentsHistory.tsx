@@ -49,6 +49,9 @@ export const DocumentsHistory = ({
     FunctionalityConfigContext
   );
 
+  const isInitialChange = (index: number, changes: Change[]) =>
+    index === changes.length - 1;
+
   const updateViewTitle = (change: Change) => {
     if (isCommit(change)) {
       setViewTitle(change.message);
@@ -80,7 +83,7 @@ export const DocumentsHistory = ({
       });
       const currentCommitDoc = await currentCommitDocHandle.doc();
 
-      const isFirstCommit = currentCommitIndex === commits.length - 1;
+      const isFirstCommit = isInitialChange(currentCommitIndex, commits);
 
       if (!showDiffInHistoryView || isFirstCommit) {
         setDiffProps(null);
@@ -140,7 +143,7 @@ export const DocumentsHistory = ({
         headsAreSame(commit.heads, heads)
       );
 
-      const isFirstCommit = selectedCommitIndex === commits.length - 1;
+      const isFirstCommit = isInitialChange(selectedCommitIndex, commits);
 
       const diffCommit = isFirstCommit
         ? null
@@ -240,6 +243,10 @@ export const DocumentsHistory = ({
                 // TODO: Implement revert functionality
                 onRevertIconClick={() => {}}
                 title={viewTitle}
+                canShowDiff={
+                  !selectedCommitIndex ||
+                  !isInitialChange(selectedCommitIndex, commits)
+                }
                 showDiff={showDiffInHistoryView}
                 onSetShowDiffChecked={setShowDiffInHistoryView}
                 diffWith={getDecodedDiffParam()}
