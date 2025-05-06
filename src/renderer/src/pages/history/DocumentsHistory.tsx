@@ -69,15 +69,6 @@ export const DocumentsHistory = ({
     return null;
   }, [searchParams]);
 
-  const handleDiffCommitSelect = (heads: UrlHeads) => {
-    setSearchParams((prev) => {
-      const newParams = new URLSearchParams(prev);
-      const encodedHeads = encodeURLHeads(heads);
-      newParams.set('diffWith', encodedHeads);
-      return newParams;
-    });
-  };
-
   useEffect(() => {
     const loadDocOrDiff = async (
       docHandle: VersionedDocumentHandle,
@@ -186,7 +177,19 @@ export const DocumentsHistory = ({
     if (versionedDocumentHandle) {
       loadHistory(versionedDocumentHandle);
     }
-  }, [versionedDocumentHandle, changeId]);
+  }, [versionedDocumentHandle]);
+
+  useEffect(() => {
+    if (commits.length > 0) {
+      if (changeId) {
+        selectCommit(changeId);
+      } else {
+        // If no changeId is provided, we select the last commit
+        const [lastChange] = commits;
+        selectCommit(lastChange.hash);
+      }
+    }
+  }, [commits, changeId, selectCommit]);
 
   useEffect(() => {
     const loadDocument = async (docHandle: VersionedDocumentHandle) => {
@@ -203,6 +206,15 @@ export const DocumentsHistory = ({
 
   const handleCommitClick = (hash: string) => {
     selectCommit(hash);
+  };
+
+  const handleDiffCommitSelect = (heads: UrlHeads) => {
+    setSearchParams((prev) => {
+      const newParams = new URLSearchParams(prev);
+      const encodedHeads = encodeURLHeads(heads);
+      newParams.set('diffWith', encodedHeads);
+      return newParams;
+    });
   };
 
   return (
