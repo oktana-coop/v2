@@ -150,9 +150,5 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
     };
   }, [props, convertToProseMirror, representationTransformAdapterReady]);
 
-  return (
-    <div className="flex flex-auto overflow-auto p-4 outline-none">
-      <div className="flex-auto" id="editor" ref={editorRoot} />
-    </div>
-  );
+  return <div className="flex-auto p-4" id="editor" ref={editorRoot} />;
 };

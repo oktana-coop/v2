@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { SelectedFileProvider } from '../../../../modules/editor-state';
+import { SidebarLayoutProvider } from '../../../../modules/editor-state/sidebar-layout/context';
 import {
   isValidVersionControlId,
   type VersionControlId,
@@ -28,15 +29,17 @@ export const History = () => {
   return (
     <SelectedFileProvider>
       <Layout>
-        {documentId ? (
-          isValidAutomergeId ? (
-            <DocumentsHistory documentId={documentId as VersionControlId} />
+        <SidebarLayoutProvider>
+          {documentId ? (
+            isValidAutomergeId ? (
+              <DocumentsHistory documentId={documentId as VersionControlId} />
+            ) : (
+              <InvalidDocument />
+            )
           ) : (
-            <InvalidDocument />
-          )
-        ) : (
-          <EmptyDocument message="👈 You can explore a document's editing history by picking up one of the list 😉." />
-        )}
+            <EmptyDocument message="👈 You can explore a document's editing history by picking up one of the list 😉." />
+          )}
+        </SidebarLayoutProvider>
       </Layout>
     </SelectedFileProvider>
   );
