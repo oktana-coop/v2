@@ -196,7 +196,12 @@ export const DocumentsHistory = ({
         selectCommit(lastChange.heads);
       }
     }
-  }, [commits, changeId, selectCommit]);
+
+    // Consciously omitting selectCommit from the dependency array because it ends up
+    // resetting the selected diff commit as you check/uncheck the diff checkbox.
+    // It's a small detail but it makes the experience smoother.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [commits, changeId]);
 
   useEffect(() => {
     const loadDocument = async (docHandle: VersionedDocumentHandle) => {
