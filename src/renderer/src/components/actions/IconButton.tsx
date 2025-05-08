@@ -7,10 +7,11 @@ export type IconButtonProps = {
   icon: ReactNode;
   color?: ButtonColor;
   onClick?: HeadlessButtonProps['onClick'];
+  disabled?: boolean;
 };
 
 export const IconButton = forwardRef(function IconButton(
-  { icon, color, onClick }: IconButtonProps,
+  { icon, color, onClick, disabled }: IconButtonProps,
   ref: React.ForwardedRef<HTMLElement>
 ) {
   return (
@@ -20,6 +21,7 @@ export const IconButton = forwardRef(function IconButton(
       className="!sm:px-0 !sm:py-0 !px-0 !py-0"
       onClick={onClick}
       ref={ref}
+      disabled={disabled}
     >
       {icon}
     </Button>

@@ -35,6 +35,9 @@ importers:
       '@headlessui/react':
         specifier: ^2.0.4
         version: 2.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@noble/hashes':
+        specifier: ^1.8.0
+        version: 1.8.0
       '@oktana-coop/automerge-prosemirror':
         specifier: 0.0.13-10
         version: 0.0.13-10
@@ -939,8 +942,8 @@ packages:
       '@types/react': '>=16'
       react: '>=16'
 
-  '@noble/hashes@1.7.1':
-    resolution: {integrity: sha512-B8XBPsn4vT/KJAGqDzbwztd+6Yte3P4V7iafm24bxgDe/mlRuK6xmWPuCNrKt2vDafZ8MfJLlchDG/vYafQEjQ==}
+  '@noble/hashes@1.8.0':
+    resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
     engines: {node: ^14.21.3 || >=16}
 
   '@nodelib/fs.scandir@2.1.5':
@@ -5539,7 +5542,7 @@ snapshots:
       '@types/react': 18.3.20
       react: 18.3.1
 
-  '@noble/hashes@1.7.1': {}
+  '@noble/hashes@1.8.0': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
@@ -6635,7 +6638,7 @@ snapshots:
 
   bs58check@3.0.1:
     dependencies:
-      '@noble/hashes': 1.7.1
+      '@noble/hashes': 1.8.0
       bs58: 5.0.0
 
   bser@2.1.1:

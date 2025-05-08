@@ -12,11 +12,13 @@ export const ActionsBar = ({
   isSidebarOpen,
   onSidebarToggle,
   onEditorToolbarToggle,
+  canCommit,
   onCheckIconClick,
 }: {
   isSidebarOpen: boolean;
   onSidebarToggle: () => void;
   onEditorToolbarToggle: () => void;
+  canCommit: boolean;
   onCheckIconClick: () => void;
 }) => {
   const sidebarButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -58,6 +60,7 @@ export const ActionsBar = ({
           onClick={handleCheckIconClick}
           icon={<CheckIcon />}
           color="purple"
+          disabled={!canCommit}
         />
       </div>
     </div>

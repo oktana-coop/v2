@@ -52,8 +52,12 @@ const EditorIndex = () => {
     requestPermissionForSelectedDirectory,
     createNewFile,
   } = useContext(FilesystemContext);
-  const { selectedFileInfo, setSelectedFileInfo, versionedDocumentHandle } =
-    useContext(SelectedFileContext);
+  const {
+    selectedFileInfo,
+    setSelectedFileInfo,
+    versionedDocumentHandle,
+    canCommit,
+  } = useContext(SelectedFileContext);
   const {
     projectId,
     createDocument: createVersionedDocument,
@@ -157,6 +161,7 @@ const EditorIndex = () => {
     return versionedDocumentHandle ? (
       <DocumentEditor
         versionedDocumentHandle={versionedDocumentHandle}
+        canCommit={canCommit}
         isSidebarOpen={isSidebarOpen}
         onSidebarToggle={toggleSidebar}
       />
