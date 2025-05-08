@@ -1,12 +1,19 @@
 import { next as Automerge } from '@automerge/automerge/slim';
 import {
+  decodeHeads,
   type DocHandle as AutomergeDocHandle,
   type DocHandleChangePayload as AutomergeDocHandleChangePayload,
+  type UrlHeads,
 } from '@automerge/automerge-repo/slim';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils';
 
+import { sortKeysAndStrinfigy } from '../../../utils/object';
 import { versionControlItemTypes } from '../constants/version-control-item-types';
 import {
+  type Change,
   type Commit,
+  headsAreSame,
   isCommittedChange,
   type UncommitedChange,
 } from './commit';
@@ -33,8 +40,8 @@ export const getSpans: (
 
 export const getDocumentAtCommit =
   (document: VersionedDocument) =>
-  (hash: string): VersionedDocument => {
-    return Automerge.view(document, [hash]);
+  (heads: UrlHeads): VersionedDocument => {
+    return Automerge.view(document, decodeHeads(heads));
   };
 
 // TODO: Use heads instead of hashes
@@ -57,7 +64,7 @@ export const getDiffFromPreviousCommit =
   async (
     current: UncommitedChange | Commit
   ): Promise<Array<VersionedDocumentPatch> | null> => {
-    const history = getDocumentHandleHistory(documentHandle);
+    const { history } = await getDocumentHandleHistory(documentHandle);
     const currentChangeIndex = history.findIndex(
       (item) => item.hash === current.hash
     );
@@ -78,9 +85,16 @@ export const getDiffFromPreviousCommit =
     return null;
   };
 
-export const getDocumentHandleHistory = (
+export type GetDocumentHandleHistoryResponse = {
+  history: Change[];
+  currentDoc: VersionedDocument;
+  lastCommit: Commit | null;
+  lastCommitDoc: VersionedDocument | null;
+};
+
+export const getDocumentHandleHistory = async (
   documentHandle: VersionedDocumentHandle
-): Array<UncommitedChange | Commit> => {
+): Promise<GetDocumentHandleHistoryResponse> => {
   const history = documentHandle.history() || [];
   const changes = history
     .map((heads) => {
@@ -116,18 +130,67 @@ export const getDocumentHandleHistory = (
   const orderedCommits = commits.reverse();
   const [lastCommit] = orderedCommits;
 
+  const currentDoc = await documentHandle.doc();
+
   if (lastCommit) {
-    const commitsAndUncommittedChanges =
-      latestChange.hash !== lastCommit.hash
-        ? [latestChange, ...orderedCommits]
-        : orderedCommits;
-    return commitsAndUncommittedChanges;
+    const lastCommitDoc = await getDocumentAtCommit(currentDoc)(
+      lastCommit.heads
+    );
+
+    return headsAreSame(latestChange.heads, lastCommit.heads) ||
+      isContentSame(currentDoc, lastCommitDoc)
+      ? {
+          history: orderedCommits,
+          currentDoc,
+          lastCommit,
+          lastCommitDoc,
+        }
+      : {
+          history: [latestChange, ...orderedCommits],
+          currentDoc,
+          lastCommit,
+          lastCommitDoc,
+        };
   }
 
-  return [latestChange];
+  return {
+    history: [latestChange],
+    currentDoc,
+    lastCommit: null,
+    lastCommitDoc: null,
+  };
 };
 
-export const convertToStorageFormat = (document: VersionedDocument) =>
-  JSON.stringify(getSpans(document));
+export const isContentSameAtHeads = async (
+  documentHandle: VersionedDocumentHandle,
+  heads1: UrlHeads,
+  heads2: UrlHeads
+) => {
+  const doc = await documentHandle.doc();
+
+  const doc1 = await getDocumentAtCommit(doc)(heads1);
+  const doc2 = await getDocumentAtCommit(doc)(heads2);
+
+  return isContentSame(doc1, doc2);
+};
+
+export const getSpansString = (document: VersionedDocument) => {
+  const spans = getSpans(document);
+  return sortKeysAndStrinfigy(spans);
+};
+
+export const convertToStorageFormat = getSpansString;
+
+const hashDocumentContent = (document: VersionedDocument): string => {
+  const spansString = getSpansString(document);
+  const spansBytes = utf8ToBytes(spansString);
+  const hash = sha256.create().update(spansBytes).digest();
+  return bytesToHex(hash);
+};
+
+export const isContentSame = (
+  doc1: VersionedDocument,
+  doc2: VersionedDocument
+) => hashDocumentContent(doc1) === hashDocumentContent(doc2);
 
 export type DocHandleChangePayload<T> = AutomergeDocHandleChangePayload<T>;

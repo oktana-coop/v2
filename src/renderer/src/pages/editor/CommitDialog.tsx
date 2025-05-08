@@ -6,14 +6,16 @@ import { CheckIcon } from '../../components/icons/Check';
 import { Textarea } from '../../components/inputs/Textarea';
 
 type CommitDialogProps = {
-  onCommit: (message: string) => void;
-  onCancel?: () => void;
   isOpen?: boolean;
+  onCancel?: () => void;
+  canCommit: boolean;
+  onCommit: (message: string) => void;
 };
 
 export const CommitDialog = ({
   isOpen = false,
   onCancel,
+  canCommit,
   onCommit,
 }: CommitDialogProps) => {
   const [commitMessage, setCommitMessage] = useState<string>('');
@@ -50,7 +52,11 @@ export const CommitDialog = ({
         </Button>
       }
       primaryButton={
-        <Button onClick={handleCommitSubmission} color="purple">
+        <Button
+          onClick={handleCommitSubmission}
+          color="purple"
+          disabled={!canCommit}
+        >
           <CheckIcon />
           Commit
         </Button>

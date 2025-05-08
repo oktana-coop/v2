@@ -6,7 +6,7 @@ import { prosemirror } from '../../../../modules/rich-text';
 import { richTextRepresentations } from '../../../../modules/rich-text';
 import { ProseMirrorContext } from '../../../../modules/rich-text/react/context';
 import {
-  convertToStorageFormat,
+  getSpansString,
   type VersionedDocument,
 } from '../../../../modules/version-control';
 import {
@@ -83,8 +83,8 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
       if (!viewRef.current || !isDiffViewProps(props)) return;
 
       const { schema } = automergeSchemaAdapter;
-      const spansBefore = convertToStorageFormat(props.docBefore);
-      const spansAfter = convertToStorageFormat(props.docAfter);
+      const spansBefore = getSpansString(props.docBefore);
+      const spansAfter = getSpansString(props.docAfter);
       const { pmDocAfter: pmDoc, decorations } = await proseMirrorDiff({
         representation: richTextRepresentations.AUTOMERGE,
         proseMirrorSchema: schema,
@@ -127,7 +127,7 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
       const { schema } = automergeSchemaAdapter;
       const pmDoc = await convertToProseMirror({
         schema: schema,
-        spans: convertToStorageFormat(props.doc),
+        spans: getSpansString(props.doc),
       });
 
       if (destroyed) return;

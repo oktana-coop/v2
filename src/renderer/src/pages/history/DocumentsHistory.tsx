@@ -12,7 +12,6 @@ import {
   encodeURLHeads,
   encodeURLHeadsForChange,
   getDiff,
-  getDocumentHandleHistory,
   headsAreSame,
   isCommit,
   UrlHeads,
@@ -32,13 +31,13 @@ export const DocumentsHistory = ({
   documentId: VersionControlId;
 }) => {
   const { changeId } = useParams();
-  const { versionedDocumentHandle } = useContext(SelectedFileContext);
+  const { versionedDocumentHandle, versionedDocumentHistory: commits } =
+    useContext(SelectedFileContext);
   const { getDocumentHandleAtCommit } = useContext(VersionControlContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const [doc, setDoc] = React.useState<VersionedDocument | null>();
   const [viewTitle, setViewTitle] = useState<string>('');
   const [diffProps, setDiffProps] = useState<DiffViewProps | null>(null);
-  const [commits, setCommits] = React.useState<Array<ChangeWithUrlInfo>>([]);
   const [selectedCommitIndex, setSelectedCommitIndex] = useState<number | null>(
     null
   );
@@ -166,20 +165,6 @@ export const DocumentsHistory = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [documentId, commits, showDiffInHistoryView]
   );
-
-  useEffect(() => {
-    const loadHistory = (docHandle: VersionedDocumentHandle) => {
-      const commits = getDocumentHandleHistory(docHandle).map((commit) => ({
-        ...commit,
-        urlEncodedHeads: encodeURLHeadsForChange(commit),
-      }));
-      setCommits(commits);
-    };
-
-    if (versionedDocumentHandle) {
-      loadHistory(versionedDocumentHandle);
-    }
-  }, [versionedDocumentHandle]);
 
   useEffect(() => {
     if (commits.length > 0) {

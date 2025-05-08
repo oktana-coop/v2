@@ -8,10 +8,12 @@ import { CommitDialog } from './CommitDialog';
 
 export const DocumentEditor = ({
   versionedDocumentHandle,
+  canCommit,
   isSidebarOpen,
   onSidebarToggle,
 }: {
   versionedDocumentHandle: VersionedDocumentHandle;
+  canCommit: boolean;
   isSidebarOpen: boolean;
   isCommitDialogOpen?: boolean;
   onSidebarToggle: () => void;
@@ -65,6 +67,7 @@ export const DocumentEditor = ({
       <CommitDialog
         isOpen={isCommitting}
         onCancel={() => openCommitDialog(false)}
+        canCommit={canCommit}
         onCommit={(message: string) => commitChanges(message)}
       />
       <div className="relative flex flex-auto flex-col items-stretch overflow-hidden">
@@ -72,6 +75,7 @@ export const DocumentEditor = ({
           isSidebarOpen={isSidebarOpen}
           onSidebarToggle={onSidebarToggle}
           onEditorToolbarToggle={handleEditorToolbarToggle}
+          canCommit={canCommit}
           onCheckIconClick={handleSave}
         />
         <RichTextEditor
