@@ -3,10 +3,9 @@ import {
   decodeHeads,
   type DocHandle as AutomergeDocHandle,
   type DocHandleChangePayload as AutomergeDocHandleChangePayload,
+  encodeHeads,
   type UrlHeads,
 } from '@automerge/automerge-repo/slim';
-import { sha256 } from '@noble/hashes/sha2.js';
-import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils';
 
 import { sortKeysAndStrinfigy } from '../../../utils/object';
 import { versionControlItemTypes } from '../constants/version-control-item-types';
@@ -88,9 +87,12 @@ export const getDiffFromPreviousCommit =
 export type GetDocumentHandleHistoryResponse = {
   history: Change[];
   currentDoc: VersionedDocument;
+  latestChange: Change;
   lastCommit: Commit | null;
-  lastCommitDoc: VersionedDocument | null;
 };
+
+export const getDocumentHeads = (document: VersionedDocument): UrlHeads =>
+  encodeHeads(Automerge.getHeads(document));
 
 export const getDocumentHandleHistory = async (
   documentHandle: VersionedDocumentHandle
@@ -106,7 +108,7 @@ export const getDocumentHandleHistory = async (
       return changeMetadata
         ? {
             ...changeMetadata,
-            heads: heads,
+            heads,
           }
         : null;
     })
@@ -133,45 +135,41 @@ export const getDocumentHandleHistory = async (
   const currentDoc = await documentHandle.doc();
 
   if (lastCommit) {
-    const lastCommitDoc = await getDocumentAtCommit(currentDoc)(
-      lastCommit.heads
-    );
-
     return headsAreSame(latestChange.heads, lastCommit.heads) ||
-      isContentSame(currentDoc, lastCommitDoc)
+      isContentSameAtHeads(currentDoc, latestChange.heads, lastCommit.heads)
       ? {
           history: orderedCommits,
           currentDoc,
+          latestChange,
           lastCommit,
-          lastCommitDoc,
         }
       : {
           history: [latestChange, ...orderedCommits],
           currentDoc,
+          latestChange,
           lastCommit,
-          lastCommitDoc,
         };
   }
 
   return {
     history: [latestChange],
     currentDoc,
+    latestChange,
     lastCommit: null,
-    lastCommitDoc: null,
   };
 };
 
-export const isContentSameAtHeads = async (
-  documentHandle: VersionedDocumentHandle,
+export const isContentSameAtHeads = (
+  document: VersionedDocument,
   heads1: UrlHeads,
   heads2: UrlHeads
-) => {
-  const doc = await documentHandle.doc();
-
-  const doc1 = await getDocumentAtCommit(doc)(heads1);
-  const doc2 = await getDocumentAtCommit(doc)(heads2);
-
-  return isContentSame(doc1, doc2);
+): boolean => {
+  const diff = Automerge.diff(
+    document,
+    decodeHeads(heads1),
+    decodeHeads(heads2)
+  );
+  return diff.length === 0;
 };
 
 export const getSpansString = (document: VersionedDocument) => {
@@ -180,17 +178,5 @@ export const getSpansString = (document: VersionedDocument) => {
 };
 
 export const convertToStorageFormat = getSpansString;
-
-const hashDocumentContent = (document: VersionedDocument): string => {
-  const spansString = getSpansString(document);
-  const spansBytes = utf8ToBytes(spansString);
-  const hash = sha256.create().update(spansBytes).digest();
-  return bytesToHex(hash);
-};
-
-export const isContentSame = (
-  doc1: VersionedDocument,
-  doc2: VersionedDocument
-) => hashDocumentContent(doc1) === hashDocumentContent(doc2);
 
 export type DocHandleChangePayload<T> = AutomergeDocHandleChangePayload<T>;

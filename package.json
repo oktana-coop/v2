@@ -38,7 +38,6 @@
     "@automerge/automerge-repo-storage-nodefs": "2.0.0-beta.2",
     "@floating-ui/react": "^0.27.2",
     "@headlessui/react": "^2.0.4",
-    "@noble/hashes": "^1.8.0",
     "@oktana-coop/automerge-prosemirror": "0.0.13-10",
     "@wasmer/wasi": "^1.2.2",
     "buffer": "^6.0.3",
