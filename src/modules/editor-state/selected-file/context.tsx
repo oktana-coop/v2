@@ -5,13 +5,16 @@ import { ElectronContext } from '../../electron';
 import { FilesystemContext } from '../../filesystem';
 import {
   type ChangeWithUrlInfo,
+  type Commit,
   convertToStorageFormat,
   type DocHandleChangePayload,
   encodeURLHeadsForChange,
   getDocumentHandleHistory,
-  isContentSame,
+  getDocumentHeads,
+  isContentSameAtHeads,
   isValidVersionControlId,
   type RichTextDocument,
+  type UrlHeads,
   type VersionControlId,
   VersionedDocument,
   type VersionedDocumentHandle,
@@ -58,9 +61,7 @@ export const SelectedFileProvider = ({
   const [versionedDocumentHistory, setVersionedDocumentHistory] = useState<
     ChangeWithUrlInfo[]
   >([]);
-  const [lastCommitDoc, setLastCommitDoc] = useState<VersionedDocument | null>(
-    null
-  );
+  const [lastCommit, setLastCommit] = useState<Commit | null>(null);
   const [canCommit, setCanCommit] = useState(false);
 
   useEffect(() => {
@@ -107,9 +108,10 @@ export const SelectedFileProvider = ({
 
   const checkIfContentChangedFromLastCommit = (
     currentDoc: VersionedDocument,
-    previousDoc: VersionedDocument
+    latestChangeHeads: UrlHeads,
+    lastCommitHeads: UrlHeads
   ) => {
-    if (!isContentSame(currentDoc, previousDoc)) {
+    if (!isContentSameAtHeads(currentDoc, latestChangeHeads, lastCommitHeads)) {
       setCanCommit(true);
     } else {
       setCanCommit(false);
@@ -118,7 +120,7 @@ export const SelectedFileProvider = ({
 
   useEffect(() => {
     const loadHistory = async (docHandle: VersionedDocumentHandle) => {
-      const { history, lastCommitDoc, currentDoc } =
+      const { history, currentDoc, lastCommit, latestChange } =
         await getDocumentHandleHistory(docHandle);
 
       const historyWithURLInfo = history.map((commit) => ({
@@ -127,9 +129,13 @@ export const SelectedFileProvider = ({
       }));
 
       setVersionedDocumentHistory(historyWithURLInfo);
-      setLastCommitDoc(lastCommitDoc);
-      if (lastCommitDoc) {
-        checkIfContentChangedFromLastCommit(currentDoc, lastCommitDoc);
+      setLastCommit(lastCommit);
+      if (lastCommit) {
+        checkIfContentChangedFromLastCommit(
+          currentDoc,
+          latestChange.heads,
+          lastCommit.heads
+        );
       }
     };
 
@@ -139,15 +145,19 @@ export const SelectedFileProvider = ({
   }, [versionedDocumentHandle]);
 
   useEffect(() => {
-    if (versionedDocumentHandle && lastCommitDoc) {
+    if (versionedDocumentHandle && lastCommit) {
       versionedDocumentHandle.on(
         'change',
         (args: DocHandleChangePayload<VersionedDocument>) =>
-          checkIfContentChangedFromLastCommit(args.doc, lastCommitDoc)
+          checkIfContentChangedFromLastCommit(
+            args.doc,
+            getDocumentHeads(args.doc),
+            lastCommit.heads
+          )
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastCommitDoc]);
+  }, [lastCommit]);
 
   const clearFileSelection = async () => {
     setSelectedFileInfo(null);
