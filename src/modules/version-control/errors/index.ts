@@ -4,4 +4,6 @@ export class RepositoryError extends Cause.YieldableError {
   readonly _tag = 'RepositoryError';
 }
 
-export type NotFoundError = Cause.NoSuchElementException;
+export class NotFoundError extends Cause.YieldableError {
+  readonly _tag = 'NotFoundError';
+}

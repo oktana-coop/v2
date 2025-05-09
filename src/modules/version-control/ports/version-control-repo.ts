@@ -47,7 +47,7 @@ export type UpdateDocumentSpansArgs = {
 export type VersionControlRepo = {
   createProject: (
     args: CreateProjectArgs
-  ) => Effect.Effect<VersionControlId, RepositoryError | NotFoundError, never>;
+  ) => Effect.Effect<VersionControlId, RepositoryError, never>;
   findProjectById: (
     id: VersionControlId
   ) => Effect.Effect<
@@ -57,7 +57,11 @@ export type VersionControlRepo = {
   >;
   listProjectDocuments: (
     id: VersionControlId
-  ) => Effect.Effect<DocumentMetaData[], RepositoryError, never>;
+  ) => Effect.Effect<
+    DocumentMetaData[],
+    RepositoryError | NotFoundError,
+    never
+  >;
   createDocument: (
     args: CreateDocumentArgs
   ) => Effect.Effect<VersionControlId, RepositoryError, never>;
