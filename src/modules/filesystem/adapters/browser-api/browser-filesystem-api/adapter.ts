@@ -1,12 +1,16 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
-import * as Option from 'effect/Option';
 
 import { fromNullable } from '../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../utils/errors';
 import { FILE_EXTENSION } from '../../../constants';
 import { filesystemItemTypes } from '../../../constants/filesystem-item-types';
-import { AbortError, NotFoundError, RepositoryError } from '../../../errors';
+import {
+  AbortError,
+  AccessControlError,
+  NotFoundError,
+  RepositoryError,
+} from '../../../errors';
 import { Filesystem } from '../../../ports/filesystem';
 import { File } from '../../../types';
 import {
@@ -72,6 +76,47 @@ const verifyWritePermission = async (fileHandle: FileSystemFileHandle) => {
   return false;
 };
 
+const getDirHandleFromStorage = (
+  path: string
+): Effect.Effect<
+  FileSystemDirectoryHandle,
+  NotFoundError | RepositoryError,
+  never
+> =>
+  pipe(
+    Effect.tryPromise({
+      try: () => getDirectoryHandle(path),
+      catch: mapErrorTo(RepositoryError, 'Browser storage error'),
+    }),
+    Effect.flatMap((directoryHandle) =>
+      fromNullable(
+        directoryHandle,
+        () => new NotFoundError('Directory handle not found in browser storage')
+      )
+    )
+  );
+
+const getFileHandleFromStorage = (
+  path: string
+): Effect.Effect<
+  FileSystemFileHandle,
+  NotFoundError | RepositoryError,
+  never
+> =>
+  pipe(
+    Effect.tryPromise({
+      try: () => getFileHandle(path),
+      catch: mapErrorTo(RepositoryError, 'Browser storage error'),
+    }),
+    Effect.flatMap((fileInfo) =>
+      fromNullable(
+        fileInfo,
+        () => new NotFoundError('File handle not found in browser storage')
+      )
+    ),
+    Effect.map((file) => file.fileHandle)
+  );
+
 export const createAdapter = (): Filesystem => ({
   openDirectory: () =>
     Effect.Do.pipe(
@@ -100,23 +145,7 @@ export const createAdapter = (): Filesystem => ({
     ),
   getDirectory: (path: string) =>
     Effect.Do.pipe(
-      Effect.bind('dirHandle', () =>
-        pipe(
-          Effect.tryPromise({
-            try: () => getDirectoryHandle(path),
-            catch: mapErrorTo(RepositoryError, 'Browser storage error'),
-          }),
-          Effect.flatMap((directoryHandle) =>
-            fromNullable(
-              directoryHandle,
-              () =>
-                new NotFoundError(
-                  'Directory handle not found in browser storage'
-                )
-            )
-          )
-        )
-      ),
+      Effect.bind('dirHandle', () => getDirHandleFromStorage(path)),
       Effect.bind('permissionState', ({ dirHandle }) =>
         getDirectoryPermissionState(dirHandle)
       ),
@@ -167,36 +196,54 @@ export const createAdapter = (): Filesystem => ({
 
     return files;
   },
-  requestPermissionForDirectory: async (path: string) => {
-    const directoryHandle = await getDirectoryHandle(path);
+  requestPermissionForDirectory: (path: string) =>
+    pipe(
+      getDirHandleFromStorage(path),
+      Effect.flatMap((directoryHandle) =>
+        Effect.tryPromise({
+          try: () => directoryHandle.requestPermission(),
+          catch: mapErrorTo(
+            RepositoryError,
+            'Request directory handle permission error'
+          ),
+        })
+      )
+    ),
+  readFile: (path: string) =>
+    Effect.Do.pipe(
+      Effect.bind('fileHandle', () => getFileHandleFromStorage(path)),
+      Effect.bind('fileData', ({ fileHandle }) =>
+        Effect.tryPromise({
+          try: () => fileHandle.getFile(),
+          catch: (err: unknown) => {
+            if (err instanceof DOMException) {
+              if (err.name === 'NotAllowedError') {
+                return new AccessControlError(err.message);
+              } else if (err.name === 'NotFoundError') {
+                return new NotFoundError(err.message);
+              }
+            }
 
-    if (!directoryHandle) {
-      // TODO: Handle better with typed errors
-      throw new Error('No current directory found in the browser storage');
-    }
-
-    const permission = await directoryHandle.requestPermission();
-
-    return permission;
-  },
-  readFile: async (path: string) => {
-    const fileInfo = await getFileHandle(path);
-
-    if (!fileInfo) {
-      // TODO: Handle better with typed errors
-      throw new Error('File not found in browser storage');
-    }
-
-    const fileData = await fileInfo.fileHandle.getFile();
-    const content = await fileData.text();
-
-    return {
-      type: filesystemItemTypes.FILE,
-      name: fileData.name,
-      path,
-      content,
-    };
-  },
+            return mapErrorTo(
+              RepositoryError,
+              'Browser filesystem API error'
+            )(err);
+          },
+        })
+      ),
+      Effect.bind('content', ({ fileData }) =>
+        Effect.tryPromise({
+          try: () => fileData.text(),
+          catch: mapErrorTo(RepositoryError, 'Browser filesystem API error'),
+        })
+      ),
+      Effect.map(({ fileData, content }) => ({
+        type: filesystemItemTypes.FILE,
+        name: fileData.name,
+        path,
+        content,
+      }))
+    ),
   writeFile: async (path: string, content: string) => {
     const fileInfo = await getFileHandle(path);
 

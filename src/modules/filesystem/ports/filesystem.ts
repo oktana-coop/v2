@@ -27,7 +27,7 @@ export type Filesystem = {
   >;
   requestPermissionForDirectory: (
     path: string
-  ) => Effect.Effect<PermissionState, RepositoryError, never>;
+  ) => Effect.Effect<PermissionState, NotFoundError | RepositoryError, never>;
   createNewFile: (
     suggestedName: string
   ) => Effect.Effect<File, AbortError | RepositoryError, never>;
@@ -35,5 +35,11 @@ export type Filesystem = {
     path: string,
     content: string
   ) => Effect.Effect<void, AccessControlError | RepositoryError, never>;
-  readFile: (path: string) => Effect.Effect<File, RepositoryError, never>;
+  readFile: (
+    path: string
+  ) => Effect.Effect<
+    File,
+    AccessControlError | NotFoundError | RepositoryError,
+    never
+  >;
 };

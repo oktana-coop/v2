@@ -1,4 +1,4 @@
-export type IDBFileInfo = {
+export type BrowserStorageFileInfo = {
   relativePath: string;
   fileHandle: FileSystemFileHandle;
 };
