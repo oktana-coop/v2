@@ -34,7 +34,11 @@ export type Filesystem = {
   writeFile: (
     path: string,
     content: string
-  ) => Effect.Effect<void, AccessControlError | RepositoryError, never>;
+  ) => Effect.Effect<
+    void,
+    AccessControlError | NotFoundError | RepositoryError,
+    never
+  >;
   readFile: (
     path: string
   ) => Effect.Effect<

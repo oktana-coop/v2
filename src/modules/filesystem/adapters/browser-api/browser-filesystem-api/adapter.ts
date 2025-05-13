@@ -38,11 +38,6 @@ const showDirPicker = (): Effect.Effect<
     },
   });
 
-const getDirectoryPermissionState = (
-  directoryHandle: FileSystemDirectoryHandle
-): Effect.Effect<PermissionState, never, never> =>
-  Effect.promise(() => directoryHandle.queryPermission());
-
 const getFileRelativePath = async (
   fileHandle: FileSystemFileHandle,
   relativeTo: FileSystemDirectoryHandle
@@ -58,22 +53,39 @@ const getFileRelativePath = async (
   return [relativeTo.name, ...relativePathSegments].join('/');
 };
 
-const verifyWritePermission = async (fileHandle: FileSystemFileHandle) => {
+const getPermissionState = (
+  handle: FileSystemHandle
+): Effect.Effect<PermissionState, never, never> =>
+  Effect.promise(() => handle.queryPermission());
+
+const requestPermission = (
+  handle: FileSystemHandle
+): Effect.Effect<PermissionState, RepositoryError, never> =>
+  Effect.tryPromise({
+    try: () => handle.requestPermission(),
+    catch: mapErrorTo(RepositoryError, 'Request permission error'),
+  });
+
+const assertWritePermission = (
+  fileHandle: FileSystemFileHandle
+): Effect.Effect<void, AccessControlError | RepositoryError, never> => {
   const options: FileSystemHandlePermissionDescriptor = {};
   options.mode = 'readwrite';
 
-  // Check if permission was already granted. If so, return true.
-  if ((await fileHandle.queryPermission(options)) === 'granted') {
-    return true;
-  }
-
-  // Request permission. If the user grants permission, return true.
-  if ((await fileHandle.requestPermission(options)) === 'granted') {
-    return true;
-  }
-
-  // The user didn't grant permission, so return false.
-  return false;
+  return pipe(
+    getPermissionState(fileHandle),
+    Effect.flatMap((existingPermission) =>
+      existingPermission === 'granted'
+        ? Effect.succeed(undefined)
+        : requestPermission(fileHandle).pipe(
+            Effect.flatMap((requestedPermission) =>
+              requestedPermission === 'granted'
+                ? Effect.succeed(undefined)
+                : Effect.fail(new AccessControlError('Write permission denied'))
+            )
+          )
+    )
+  );
 };
 
 const getDirHandleFromStorage = (
@@ -122,7 +134,7 @@ export const createAdapter = (): Filesystem => ({
     Effect.Do.pipe(
       Effect.bind('dirHandle', () => showDirPicker()),
       Effect.bind('permissionState', ({ dirHandle }) =>
-        getDirectoryPermissionState(dirHandle)
+        getPermissionState(dirHandle)
       ),
       Effect.tap(({ dirHandle }) =>
         Effect.tryPromise({
@@ -147,7 +159,7 @@ export const createAdapter = (): Filesystem => ({
     Effect.Do.pipe(
       Effect.bind('dirHandle', () => getDirHandleFromStorage(path)),
       Effect.bind('permissionState', ({ dirHandle }) =>
-        getDirectoryPermissionState(dirHandle)
+        getPermissionState(dirHandle)
       ),
       Effect.map(({ dirHandle, permissionState }) => ({
         type: filesystemItemTypes.DIRECTORY,
@@ -199,15 +211,7 @@ export const createAdapter = (): Filesystem => ({
   requestPermissionForDirectory: (path: string) =>
     pipe(
       getDirHandleFromStorage(path),
-      Effect.flatMap((directoryHandle) =>
-        Effect.tryPromise({
-          try: () => directoryHandle.requestPermission(),
-          catch: mapErrorTo(
-            RepositoryError,
-            'Request directory handle permission error'
-          ),
-        })
-      )
+      Effect.flatMap((directoryHandle) => requestPermission(directoryHandle))
     ),
   readFile: (path: string) =>
     Effect.Do.pipe(
@@ -244,25 +248,21 @@ export const createAdapter = (): Filesystem => ({
         content,
       }))
     ),
-  writeFile: async (path: string, content: string) => {
-    const fileInfo = await getFileHandle(path);
-
-    if (!fileInfo) {
-      // TODO: Handle better with typed errors
-      throw new Error('File not found in browser storage');
-    }
-
-    const canWrite = await verifyWritePermission(fileInfo.fileHandle);
-
-    if (!canWrite) {
-      // TODO: Handle better with typed errors
-      throw new Error('Permission error when trying to write content to file');
-    }
-
-    const writable = await fileInfo.fileHandle.createWritable();
-    await writable.write(content);
-    await writable.close();
-  },
+  writeFile: (path: string, content: string) =>
+    pipe(
+      getFileHandleFromStorage(path),
+      Effect.tap(assertWritePermission),
+      Effect.flatMap((fileHandle) =>
+        Effect.tryPromise({
+          try: async () => {
+            const writable = await fileHandle.createWritable();
+            await writable.write(content);
+            await writable.close();
+          },
+          catch: mapErrorTo(RepositoryError, 'Browser filesystem API error'),
+        })
+      )
+    ),
   createNewFile: async (suggestedName) => {
     // Prompt the user to select where to save the file
     const fileHandle = await window.showSaveFilePicker({
