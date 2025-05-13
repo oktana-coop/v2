@@ -4,6 +4,7 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as Option from 'effect/Option';
 
+import { fromNullable } from '../../../../utils/effect';
 import { mapErrorTo } from '../../../../utils/errors';
 import { versionControlItemTypes } from '../../constants/version-control-item-types';
 import { NotFoundError, RepositoryError } from '../../errors';
@@ -30,14 +31,11 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
         try: async () => await handle.doc(),
         catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
       }),
+
       Effect.flatMap((doc) =>
-        pipe(
-          Option.fromNullable(doc),
-          Option.match({
-            onNone: () =>
-              Effect.fail(new NotFoundError('Project not found in handle')),
-            onSome: (project) => Effect.succeed(project),
-          })
+        fromNullable(
+          doc,
+          () => new NotFoundError('Project not found in handle')
         )
       )
     );

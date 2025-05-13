@@ -1,9 +1,12 @@
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
+import * as Option from 'effect/Option';
 
+import { fromNullable } from '../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../utils/errors';
 import { FILE_EXTENSION } from '../../../constants';
 import { filesystemItemTypes } from '../../../constants/filesystem-item-types';
-import { AbortError, RepositoryError } from '../../../errors';
+import { AbortError, NotFoundError, RepositoryError } from '../../../errors';
 import { Filesystem } from '../../../ports/filesystem';
 import { File } from '../../../types';
 import {
@@ -95,22 +98,35 @@ export const createAdapter = (): Filesystem => ({
         permissionState,
       }))
     ),
-  getDirectory: async (path: string) => {
-    const directoryHandle = await getDirectoryHandle(path);
-
-    if (!directoryHandle) {
-      return null;
-    }
-
-    const permissionState = await getDirectoryPermissionState(directoryHandle);
-
-    return {
-      type: filesystemItemTypes.DIRECTORY,
-      name: directoryHandle.name,
-      path: directoryHandle.name,
-      permissionState,
-    };
-  },
+  getDirectory: (path: string) =>
+    Effect.Do.pipe(
+      Effect.bind('dirHandle', () =>
+        pipe(
+          Effect.tryPromise({
+            try: () => getDirectoryHandle(path),
+            catch: mapErrorTo(RepositoryError, 'Browser storage error'),
+          }),
+          Effect.flatMap((directoryHandle) =>
+            fromNullable(
+              directoryHandle,
+              () =>
+                new NotFoundError(
+                  'Directory handle not found in browser storage'
+                )
+            )
+          )
+        )
+      ),
+      Effect.bind('permissionState', ({ dirHandle }) =>
+        getDirectoryPermissionState(dirHandle)
+      ),
+      Effect.map(({ dirHandle, permissionState }) => ({
+        type: filesystemItemTypes.DIRECTORY,
+        name: dirHandle.name,
+        path: dirHandle.name,
+        permissionState,
+      }))
+    ),
   listDirectoryFiles: async (path: string) => {
     const directoryHandle = await getDirectoryHandle(path);
 
