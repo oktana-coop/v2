@@ -1,5 +1,9 @@
+import * as Effect from 'effect/Effect';
+
+import { mapErrorTo } from '../../../../../utils/errors';
 import { FILE_EXTENSION } from '../../../constants';
 import { filesystemItemTypes } from '../../../constants/filesystem-item-types';
+import { AbortError, RepositoryError } from '../../../errors';
 import { Filesystem } from '../../../ports/filesystem';
 import { File } from '../../../types';
 import {
@@ -11,11 +15,26 @@ import {
   persistFileHandle,
 } from './../browser-storage';
 
-const getDirectoryPermissionState = async (
+const showDirPicker = (): Effect.Effect<
+  FileSystemDirectoryHandle,
+  AbortError | RepositoryError,
+  never
+> =>
+  Effect.tryPromise({
+    try: () => window.showDirectoryPicker(),
+    catch: (err: unknown) => {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return new AbortError(err.message);
+      }
+
+      return mapErrorTo(RepositoryError, 'Browser filesystem API error')(err);
+    },
+  });
+
+const getDirectoryPermissionState = (
   directoryHandle: FileSystemDirectoryHandle
-) => {
-  return directoryHandle.queryPermission();
-};
+): Effect.Effect<PermissionState, never, never> =>
+  Effect.promise(() => directoryHandle.queryPermission());
 
 const getFileRelativePath = async (
   fileHandle: FileSystemFileHandle,
@@ -32,7 +51,7 @@ const getFileRelativePath = async (
   return [relativeTo.name, ...relativePathSegments].join('/');
 };
 
-const verifyPermission = async (fileHandle: FileSystemFileHandle) => {
+const verifyWritePermission = async (fileHandle: FileSystemFileHandle) => {
   const options: FileSystemHandlePermissionDescriptor = {};
   options.mode = 'readwrite';
 
@@ -51,21 +70,31 @@ const verifyPermission = async (fileHandle: FileSystemFileHandle) => {
 };
 
 export const createAdapter = (): Filesystem => ({
-  openDirectory: async () => {
-    const dirHandle = await window.showDirectoryPicker();
-    const permissionState = await getDirectoryPermissionState(dirHandle);
-
-    await persistDirectoryHandle(dirHandle);
-    // Clear file handles in the browser storage every time we open a new directory
-    await clearFileHandles();
-
-    return {
-      type: filesystemItemTypes.DIRECTORY,
-      name: dirHandle.name,
-      path: dirHandle.name,
-      permissionState,
-    };
-  },
+  openDirectory: () =>
+    Effect.Do.pipe(
+      Effect.bind('dirHandle', () => showDirPicker()),
+      Effect.bind('permissionState', ({ dirHandle }) =>
+        getDirectoryPermissionState(dirHandle)
+      ),
+      Effect.tap(({ dirHandle }) =>
+        Effect.tryPromise({
+          try: () => persistDirectoryHandle(dirHandle),
+          catch: mapErrorTo(RepositoryError, 'Browser storage error'),
+        })
+      ),
+      Effect.tap(() =>
+        Effect.tryPromise({
+          try: () => clearFileHandles(),
+          catch: mapErrorTo(RepositoryError, 'Browser storage error'),
+        })
+      ),
+      Effect.map(({ dirHandle, permissionState }) => ({
+        type: filesystemItemTypes.DIRECTORY,
+        name: dirHandle.name,
+        path: dirHandle.name,
+        permissionState,
+      }))
+    ),
   getDirectory: async (path: string) => {
     const directoryHandle = await getDirectoryHandle(path);
 
@@ -160,7 +189,7 @@ export const createAdapter = (): Filesystem => ({
       throw new Error('File not found in browser storage');
     }
 
-    const canWrite = await verifyPermission(fileInfo.fileHandle);
+    const canWrite = await verifyWritePermission(fileInfo.fileHandle);
 
     if (!canWrite) {
       // TODO: Handle better with typed errors
