@@ -81,114 +81,170 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
       Effect.map((project) => Object.values(project.documents))
     );
 
-  const createDocument: VersionControlRepo['createDocument'] = async ({
+  const addDocumentToProject = ({
+    documentId,
+    name,
+    path,
+    projectId,
+  }: {
+    documentId: VersionControlId;
+    name: string;
+    path: string;
+    projectId: VersionControlId;
+  }): Effect.Effect<void, RepositoryError | NotFoundError, never> =>
+    pipe(
+      findProjectById(projectId),
+      Effect.flatMap((projectHandle) => {
+        const metaData: DocumentMetaData = {
+          versionControlId: documentId,
+          name,
+          path,
+        };
+
+        return Effect.try({
+          try: () =>
+            projectHandle.change((project) => {
+              project.documents[documentId] = metaData;
+            }),
+          catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+        });
+      })
+    );
+
+  const createDocument: VersionControlRepo['createDocument'] = ({
     title,
     name,
     path,
     content,
     projectId,
-  }) => {
-    const handle = await automergeRepo.create<RichTextDocument>({
-      type: versionControlItemTypes.RICH_TEXT_DOCUMENT,
-      title,
-      content: content ?? '',
-    });
-
-    const documentUrl = handle.url;
-
-    if (projectId) {
-      const projectHandle = await findProjectById(projectId);
-
-      if (projectHandle) {
-        const metaData: DocumentMetaData = {
-          versionControlId: documentUrl,
-          name,
-          path,
-        };
-
-        projectHandle.change((project) => {
-          project.documents[documentUrl] = metaData;
-        });
-      }
-    }
-
-    return documentUrl;
-  };
+  }) =>
+    pipe(
+      Effect.try({
+        try: () =>
+          automergeRepo.create<RichTextDocument>({
+            type: versionControlItemTypes.RICH_TEXT_DOCUMENT,
+            title,
+            content: content ?? '',
+          }),
+        catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+      }),
+      Effect.map((handle) => handle.url),
+      Effect.tap((documentId) =>
+        pipe(
+          Option.fromNullable(projectId),
+          Option.match({
+            onNone: () => Effect.succeed(false),
+            onSome: (projId) =>
+              pipe(
+                addDocumentToProject({
+                  documentId,
+                  name,
+                  path,
+                  projectId: projId,
+                }),
+                () => Effect.succeed(true)
+              ),
+          })
+        )
+      )
+    );
 
   const getDocumentHandleAtCommit: VersionControlRepo['getDocumentHandleAtCommit'] =
-    ({ documentHandle, heads }) => {
-      return documentHandle.view(heads);
-    };
+    ({ documentHandle, heads }) =>
+      Effect.try({
+        try: () => documentHandle.view(heads),
+        catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+      });
 
-  const findDocumentById: VersionControlRepo['findDocumentById'] = async (
+  const findDocumentById: VersionControlRepo['findDocumentById'] = (
     id: VersionControlId
-  ) => {
-    const handle = await automergeRepo.find<RichTextDocument>(id);
+  ) =>
+    pipe(
+      Effect.tryPromise({
+        try: () => automergeRepo.find<RichTextDocument>(id),
+        catch: (err: unknown) => {
+          // TODO: This is not-future proof as it depends on the error message. Find a better way.
+          if (err instanceof Error && err.message.includes('unavailable')) {
+            return new NotFoundError(err.message);
+          }
 
-    if (!handle) {
-      return null;
-    }
-
-    await handle.whenReady();
-    return handle;
-  };
+          return mapErrorTo(RepositoryError, 'Automerge repo error')(err);
+        },
+      })
+    );
 
   const deleteDocumentFromProject: VersionControlRepo['deleteDocumentFromProject'] =
-    async ({ projectId, documentId }) => {
-      const projectHandle = await findProjectById(projectId);
-      if (!projectHandle) {
-        throw new Error('No project handle found in repository');
-      }
+    ({ projectId, documentId }) =>
+      pipe(
+        Effect.all([findProjectById(projectId), findDocumentById(documentId)]),
+        Effect.tap(([projectHandle]) =>
+          Effect.try({
+            try: () =>
+              projectHandle.change((project) => {
+                delete project.documents[documentId];
+              }),
+            catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+          })
+        ),
+        Effect.tap(([, documentHandle]) =>
+          Effect.try({
+            try: () => documentHandle.delete(),
+            catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+          })
+        )
+      );
 
-      const documentHandle = await findDocumentById(documentId);
-      if (!documentHandle) {
-        throw new Error('No document handle found in repository');
-      }
+  const findDocumentInProject: VersionControlRepo['findDocumentInProject'] = ({
+    projectId,
+    documentPath,
+  }) =>
+    pipe(
+      listProjectDocuments(projectId),
+      Effect.flatMap((projectDocuments) =>
+        pipe(
+          Option.fromNullable(
+            projectDocuments.find(
+              (documentMetaData) => documentMetaData.path === documentPath
+            )
+          ),
+          Option.match({
+            onNone: () =>
+              Effect.fail(new NotFoundError('Document not found in project')),
+            onSome: (documentMetaData) =>
+              Effect.succeed(documentMetaData.versionControlId),
+          })
+        )
+      ),
+      Effect.flatMap(findDocumentById)
+    );
 
-      projectHandle.change((project) => {
-        delete project.documents[documentId];
-      });
-
-      documentHandle.delete();
-    };
-
-  const findDocumentInProject: VersionControlRepo['findDocumentInProject'] =
-    async ({ projectId, documentPath }) => {
-      const projectDocuments = await listProjectDocuments(projectId);
-
-      const documentId = projectDocuments.find(
-        (documentMetaData) => documentMetaData.path === documentPath
-      )?.versionControlId;
-
-      if (!documentId) {
-        return null;
-      }
-
-      return findDocumentById(documentId);
-    };
-
-  const updateDocumentSpans: VersionControlRepo['updateDocumentSpans'] =
-    async ({ documentHandle, spans }) => {
-      documentHandle.change((doc) => {
-        Automerge.updateSpans(
-          doc,
-          ['content'],
-          spans.map((span) =>
-            span.type === 'block'
-              ? // Manually create the raw string for block types
-                {
-                  ...span,
-                  value: {
-                    ...span.value,
-                    type: new RawString(span.value.type as string),
-                  },
-                }
-              : // Inline span as-is
-                span
-          )
-        );
-      });
-    };
+  const updateDocumentSpans: VersionControlRepo['updateDocumentSpans'] = ({
+    documentHandle,
+    spans,
+  }) =>
+    Effect.try({
+      try: () =>
+        documentHandle.change((doc) => {
+          Automerge.updateSpans(
+            doc,
+            ['content'],
+            spans.map((span) =>
+              span.type === 'block'
+                ? // Manually create the raw string for block types
+                  {
+                    ...span,
+                    value: {
+                      ...span.value,
+                      type: new RawString(span.value.type as string),
+                    },
+                  }
+                : // Inline span as-is
+                  span
+            )
+          );
+        }),
+      catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+    });
 
   return {
     createProject,
