@@ -1,7 +1,28 @@
-import type { Filesystem } from '../../filesystem';
+import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
+
+import {
+  AccessControlError as FilesystemAccessControlError,
+  DataIntegrityError as FilesystemDataIntegrityError,
+  type Filesystem,
+  NotFoundError as FilesystemNotFoundError,
+  RepositoryError as FilesystemRepositoryError,
+} from '../../filesystem';
+import { RepositoryError as VersionControlRepositoryError } from '../errors';
 import type { DocumentMetaData, VersionControlId } from '../models';
 import type { VersionControlRepo } from '../ports/version-control-repo';
 import { createVersionedDocument } from './create-versioned-document';
+
+export type CreateProjectFromFilesystemContentArgs = {
+  directoryPath: string;
+};
+
+export type CreateProjectFromFilesystemContentDeps = {
+  createProject: VersionControlRepo['createProject'];
+  createDocument: VersionControlRepo['createDocument'];
+  listDirectoryFiles: Filesystem['listDirectoryFiles'];
+  readFile: Filesystem['readFile'];
+};
 
 export const createProjectFromFilesystemContent =
   ({
@@ -9,41 +30,40 @@ export const createProjectFromFilesystemContent =
     createDocument,
     listDirectoryFiles,
     readFile,
-  }: {
-    createProject: VersionControlRepo['createProject'];
-    createDocument: VersionControlRepo['createDocument'];
-    listDirectoryFiles: Filesystem['listDirectoryFiles'];
-    readFile: Filesystem['readFile'];
-  }) =>
-  async ({
+  }: CreateProjectFromFilesystemContentDeps) =>
+  ({
     directoryPath,
-  }: {
-    directoryPath: string;
-  }): Promise<VersionControlId> => {
-    // List directory files
-    const directoryFiles = await listDirectoryFiles(directoryPath);
-
-    const documents = await Promise.all(
-      directoryFiles.map((file) =>
-        createVersionedDocument({
-          createDocument,
-          readFile,
-        })({
-          file,
-          projectId: null,
+  }: CreateProjectFromFilesystemContentArgs): Effect.Effect<
+    VersionControlId,
+    | VersionControlRepositoryError
+    | FilesystemAccessControlError
+    | FilesystemDataIntegrityError
+    | FilesystemNotFoundError
+    | FilesystemRepositoryError,
+    never
+  > =>
+    pipe(
+      listDirectoryFiles(directoryPath),
+      Effect.flatMap((directoryFiles) =>
+        Effect.forEach(directoryFiles, (file) =>
+          createVersionedDocument({
+            createDocument,
+            readFile,
+          })({
+            file,
+            projectId: null,
+          })
+        )
+      ),
+      Effect.flatMap((documents) =>
+        createProject({
+          path: directoryPath!,
+          documents: documents.reduce(
+            (acc, doc) => {
+              return { ...acc, [doc.versionControlId]: doc };
+            },
+            {} as Record<VersionControlId, DocumentMetaData>
+          ),
         })
       )
     );
-
-    const projectId = await createProject({
-      path: directoryPath!,
-      documents: documents.reduce(
-        (acc, doc) => {
-          return { ...acc, [doc.versionControlId]: doc };
-        },
-        {} as Record<VersionControlId, DocumentMetaData>
-      ),
-    });
-
-    return projectId;
-  };
