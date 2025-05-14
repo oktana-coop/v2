@@ -13,6 +13,8 @@ import {
   type Project,
   type RichTextDocument,
   type VersionControlId,
+  type VersionedDocument,
+  type VersionedDocumentHandle,
   type VersionedProject,
   type VersionedProjectHandle,
 } from '../../models';
