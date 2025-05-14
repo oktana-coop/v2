@@ -12,7 +12,6 @@ import {
   RepositoryError,
 } from '../../../errors';
 import { Filesystem } from '../../../ports/filesystem';
-import { File } from '../../../types';
 import {
   clearAllAndInsertManyFileHandles,
   clearFileHandles,
@@ -38,20 +37,51 @@ const showDirPicker = (): Effect.Effect<
     },
   });
 
-const getFileRelativePath = async (
+const showSaveFilePicker = (
+  suggestedName: string
+): Effect.Effect<FileSystemFileHandle, AbortError | RepositoryError, never> =>
+  Effect.tryPromise({
+    try: () =>
+      window.showSaveFilePicker({
+        excludeAcceptAllOption: true,
+        suggestedName,
+        types: [
+          {
+            description: 'v2',
+            accept: {
+              'application/v2': [FILE_EXTENSION],
+            },
+          },
+        ],
+      }),
+    catch: (err: unknown) => {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return new AbortError(err.message);
+      }
+
+      return mapErrorTo(RepositoryError, 'Browser filesystem API error')(err);
+    },
+  });
+
+const getFileRelativePath = (
   fileHandle: FileSystemFileHandle,
   relativeTo: FileSystemDirectoryHandle
-) => {
-  const relativePathSegments = await relativeTo.resolve(fileHandle);
-
-  if (!relativePathSegments) {
-    throw new Error(
-      `Could not resolve relative path for file ${fileHandle.name}`
-    );
-  }
-
-  return [relativeTo.name, ...relativePathSegments].join('/');
-};
+): Effect.Effect<string, RepositoryError, never> =>
+  pipe(
+    Effect.promise(() => relativeTo.resolve(fileHandle)),
+    Effect.flatMap((relativePathSegments) =>
+      fromNullable(
+        relativePathSegments,
+        () =>
+          new RepositoryError(
+            `Could not resolve relative path for file ${fileHandle.name}`
+          )
+      )
+    ),
+    Effect.map((relativePathSegments) =>
+      [relativeTo.name, ...relativePathSegments].join('/')
+    )
+  );
 
 const getPermissionState = (
   handle: FileSystemHandle
@@ -168,46 +198,67 @@ export const createAdapter = (): Filesystem => ({
         permissionState,
       }))
     ),
-  listDirectoryFiles: async (path: string) => {
-    const directoryHandle = await getDirectoryHandle(path);
-
-    if (!directoryHandle) {
-      // TODO: Handle better with typed errors
-      throw new Error(
-        'The directory handle was not found in the browser storage'
-      );
-    }
-
-    type FileWithHandle = File & {
-      handle: FileSystemFileHandle;
-    };
-
-    const files: Array<FileWithHandle> = [];
-
-    for await (const [key, value] of directoryHandle.entries()) {
-      if (value.kind === 'file' && value.name.endsWith(FILE_EXTENSION)) {
-        const relativePath = await getFileRelativePath(value, directoryHandle);
-
-        const file: FileWithHandle = {
-          type: filesystemItemTypes.FILE,
-          name: key,
-          path: relativePath,
-          handle: value,
+  listDirectoryFiles: (path: string) =>
+    Effect.Do.pipe(
+      Effect.bind('directoryHandle', () => getDirHandleFromStorage(path)),
+      Effect.bind('entries', ({ directoryHandle }) =>
+        Effect.tryPromise({
+          // TODO: Replace with `Array.fromAsync` when it's more widely supported
+          try: async () => {
+            const entries: [string, FileSystemHandle][] = [];
+            for await (const entry of directoryHandle.entries()) {
+              entries.push(entry);
+            }
+            return entries;
+          },
+          catch: mapErrorTo(
+            RepositoryError,
+            'Failed to read directory entries'
+          ),
+        })
+      ),
+      Effect.flatMap(({ entries, directoryHandle }) => {
+        const isFileEntry = (
+          entry: [string, FileSystemHandle]
+        ): entry is [string, FileSystemFileHandle] => {
+          const [, handle] = entry;
+          return handle.kind === 'file';
         };
 
-        files.push(file);
-      }
-    }
-
-    await clearAllAndInsertManyFileHandles(
-      files.map((file) => ({
-        fileHandle: file.handle,
-        relativePath: file.path!,
-      }))
-    );
-
-    return files;
-  },
+        return Effect.forEach(
+          entries.filter(
+            (entry): entry is [string, FileSystemFileHandle] =>
+              isFileEntry(entry) && entry[1].name.endsWith(FILE_EXTENSION)
+          ),
+          ([key, value]) =>
+            pipe(
+              getFileRelativePath(value, directoryHandle),
+              Effect.map((relativePath) => ({
+                type: filesystemItemTypes.FILE,
+                name: key,
+                path: relativePath,
+                handle: value,
+              }))
+            ),
+          { concurrency: 10 }
+        );
+      }),
+      Effect.tap((files) =>
+        Effect.tryPromise({
+          try: () =>
+            clearAllAndInsertManyFileHandles(
+              files.map((file) => ({
+                fileHandle: file.handle,
+                relativePath: file.path!,
+              }))
+            ),
+          catch: mapErrorTo(
+            RepositoryError,
+            'Failed to persist file handles in the browser storage'
+          ),
+        })
+      )
+    ),
   requestPermissionForDirectory: (path: string) =>
     pipe(
       getDirHandleFromStorage(path),
@@ -263,43 +314,41 @@ export const createAdapter = (): Filesystem => ({
         })
       )
     ),
-  createNewFile: async (suggestedName) => {
-    // Prompt the user to select where to save the file
-    const fileHandle = await window.showSaveFilePicker({
-      excludeAcceptAllOption: true,
-      suggestedName,
-      types: [
-        {
-          description: 'v2',
-          accept: {
-            'application/v2': [FILE_EXTENSION],
-          },
-        },
-      ],
-    });
-
-    const writable = await fileHandle.createWritable();
-
-    // Write initial content to the file
+  createNewFile: (suggestedName) => {
     const initialContent = '';
-    await writable.write(initialContent);
-    await writable.close();
 
-    // In this case we aren't necessarily allowed to access the containing folder;
-    // this is why the relative path is just a filename
-    const path = fileHandle.name;
+    return pipe(
+      showSaveFilePicker(suggestedName),
+      Effect.tap((fileHandle) =>
+        Effect.tryPromise({
+          try: async () => {
+            const writable = await fileHandle.createWritable();
 
-    // Store file handles in the browser storage so that we can retrieve them later on by relative bath.
-    await persistFileHandle({
-      handle: fileHandle,
-      relativePath: fileHandle.name,
-    });
-
-    return {
-      type: filesystemItemTypes.FILE,
-      path,
-      name: fileHandle.name,
-      content: initialContent,
-    };
+            // Write initial content to the file
+            await writable.write(initialContent);
+            await writable.close();
+          },
+          catch: mapErrorTo(RepositoryError, 'Browser filesystem API error'),
+        })
+      ),
+      Effect.tap((fileHandle) =>
+        Effect.tryPromise({
+          try: () =>
+            persistFileHandle({
+              handle: fileHandle,
+              relativePath: fileHandle.name,
+            }),
+          catch: mapErrorTo(RepositoryError, 'Browser storage error'),
+        })
+      ),
+      Effect.map((fileHandle) => ({
+        type: filesystemItemTypes.FILE,
+        // In this case we aren't necessarily allowed to access the containing folder;
+        // this is why the relative path is just a filename
+        path: fileHandle.name,
+        name: fileHandle.name,
+        content: initialContent,
+      }))
+    );
   },
 });
