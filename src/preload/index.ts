@@ -1,12 +1,17 @@
+import * as Effect from 'effect/Effect';
 import { contextBridge, ipcRenderer } from 'electron';
 
-import type { Filesystem as FilesystemAPI } from '../modules/filesystem';
+import {
+  type Filesystem as FilesystemAPI,
+  RepositoryError as FilesystemRepositoryError,
+} from '../modules/filesystem';
 import type {
   FromMainMessage,
   FromRendererMessage,
   VersionControlId,
 } from '../modules/version-control';
 import type { RunWasiCLIArgs, Wasm as WasmAPI } from '../modules/wasm';
+import { mapErrorTo } from '../utils/errors';
 
 contextBridge.exposeInMainWorld('electronAPI', {
   onReceiveProcessId: (callback: (processId: string) => void) =>
@@ -29,17 +34,41 @@ contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
 });
 
 contextBridge.exposeInMainWorld('filesystemAPI', {
-  openDirectory: () => ipcRenderer.invoke('open-directory'),
-  getDirectory: (path: string) => ipcRenderer.invoke('get-directory', path),
+  openDirectory: () =>
+    Effect.tryPromise({
+      try: () => ipcRenderer.invoke('open-directory'),
+      catch: mapErrorTo(FilesystemRepositoryError, 'Electron IPC error'),
+    }),
+  getDirectory: (path: string) =>
+    Effect.tryPromise({
+      try: () => ipcRenderer.invoke('get-directory', path),
+      catch: mapErrorTo(FilesystemRepositoryError, 'Electron IPC error'),
+    }),
   listDirectoryFiles: (path: string) =>
-    ipcRenderer.invoke('list-directory-files', path),
+    Effect.tryPromise({
+      try: () => ipcRenderer.invoke('list-directory-files', path),
+      catch: mapErrorTo(FilesystemRepositoryError, 'Electron IPC error'),
+    }),
   requestPermissionForDirectory: (path: string) =>
-    ipcRenderer.invoke('request-permission-for-directory', path),
+    Effect.tryPromise({
+      try: () => ipcRenderer.invoke('request-permission-for-directory', path),
+      catch: mapErrorTo(FilesystemRepositoryError, 'Electron IPC error'),
+    }),
   createNewFile: (suggestedName: string) =>
-    ipcRenderer.invoke('create-new-file', suggestedName),
+    Effect.tryPromise({
+      try: () => ipcRenderer.invoke('create-new-file', suggestedName),
+      catch: mapErrorTo(FilesystemRepositoryError, 'Electron IPC error'),
+    }),
   writeFile: (path: string, content: string) =>
-    ipcRenderer.invoke('write-file', { path, content }),
-  readFile: (path: string) => ipcRenderer.invoke('read-file', path),
+    Effect.tryPromise({
+      try: () => ipcRenderer.invoke('write-file', { path, content }),
+      catch: mapErrorTo(FilesystemRepositoryError, 'Electron IPC error'),
+    }),
+  readFile: (path: string) =>
+    Effect.tryPromise({
+      try: () => ipcRenderer.invoke('read-file', path),
+      catch: mapErrorTo(FilesystemRepositoryError, 'Electron IPC error'),
+    }),
 } as FilesystemAPI);
 
 contextBridge.exposeInMainWorld('versionControlAPI', {
