@@ -1,5 +1,9 @@
-import { next as Automerge } from '@automerge/automerge/slim';
-import { RawString, Repo } from '@automerge/automerge-repo/slim';
+import { type Doc, next as Automerge } from '@automerge/automerge/slim';
+import {
+  type DocHandle,
+  RawString,
+  type Repo,
+} from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as Option from 'effect/Option';
@@ -21,13 +25,11 @@ import {
 import { VersionControlRepo } from '../../ports/version-control-repo';
 
 export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
-  const getProjectFromHandle: (
-    handle: VersionedProjectHandle
-  ) => Effect.Effect<
-    VersionedProject,
-    RepositoryError | NotFoundError,
-    never
-  > = (handle) =>
+  const getDocFromHandle: <T>(
+    handle: DocHandle<T>
+  ) => Effect.Effect<Doc<T>, RepositoryError | NotFoundError, never> = (
+    handle
+  ) =>
     pipe(
       Effect.tryPromise({
         try: async () => await handle.doc(),
@@ -35,12 +37,22 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
       }),
 
       Effect.flatMap((doc) =>
-        fromNullable(
-          doc,
-          () => new NotFoundError('Project not found in handle')
-        )
+        fromNullable(doc, () => new NotFoundError('Doc not found in handle'))
       )
     );
+
+  const getProjectFromHandle: (
+    handle: VersionedProjectHandle
+  ) => Effect.Effect<VersionedProject, RepositoryError | NotFoundError, never> =
+    getDocFromHandle<VersionedProject>;
+
+  const getDocumentFromHandle: (
+    handle: VersionedDocumentHandle
+  ) => Effect.Effect<
+    VersionedDocument,
+    RepositoryError | NotFoundError,
+    never
+  > = getDocFromHandle<VersionedDocument>;
 
   const createProject: VersionControlRepo['createProject'] = ({ path }) =>
     pipe(
@@ -256,5 +268,7 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
     deleteDocumentFromProject,
     findDocumentInProject,
     updateDocumentSpans,
+    getProjectFromHandle,
+    getDocumentFromHandle,
   };
 };

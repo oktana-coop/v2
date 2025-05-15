@@ -7,7 +7,9 @@ import type {
   Project,
   RichTextDocumentSpan,
   VersionControlId,
+  VersionedDocument,
   VersionedDocumentHandle,
+  VersionedProject,
   VersionedProjectHandle,
 } from '../models';
 
@@ -85,6 +87,12 @@ export type VersionControlRepo = {
     RepositoryError | NotFoundError,
     never
   >;
+  getProjectFromHandle: (
+    handle: VersionedProjectHandle
+  ) => Effect.Effect<VersionedProject, RepositoryError | NotFoundError, never>;
+  getDocumentFromHandle: (
+    handle: VersionedDocumentHandle
+  ) => Effect.Effect<VersionedDocument, RepositoryError | NotFoundError, never>;
   // TODO: Think of a better abstraction - this is too Automerge-specific
   updateDocumentSpans: (
     args: UpdateDocumentSpansArgs
