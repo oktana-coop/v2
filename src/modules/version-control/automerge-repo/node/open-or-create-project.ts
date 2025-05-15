@@ -321,38 +321,55 @@ const createNewProject = ({
     )
   );
 
-export const openOrCreateProject = async ({
+export const openOrCreateProject = ({
   directoryPath,
   rendererProcessId,
   browserWindow,
   listDirectoryFiles,
   readFile,
+  writeFile,
+  assertWritePermissionForDirectory,
 }: {
   directoryPath: string;
   rendererProcessId: string;
   browserWindow: BrowserWindow;
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readFile: Filesystem['readFile'];
-}): Promise<VersionControlId> => {
-  try {
-    const projectId = await openProjectFromFilesystem({
+  writeFile: Filesystem['writeFile'];
+  assertWritePermissionForDirectory: Filesystem['assertWritePermissionForDirectory'];
+}): Effect.Effect<
+  VersionControlId,
+  | FilesystemAccessControlError
+  | FilesystemDataIntegrityError
+  | FilesystemNotFoundError
+  | FilesystemRepositoryError
+  | VersionControlRepositoryError
+  | VersionControlNotFoundError,
+  never
+> =>
+  pipe(
+    openProjectFromFilesystem({
       directoryPath,
       rendererProcessId,
       browserWindow,
       listDirectoryFiles,
       readFile,
-    });
-
-    return projectId;
-  } catch {
-    // Directory or index file does not exist; create a new repo & project
-    // TODO: Delete .v2 directory if anything goes wrong.
-    return createNewProject({
-      directoryPath,
-      rendererProcessId,
-      browserWindow,
-      listDirectoryFiles,
-      readFile,
-    });
-  }
-};
+      assertWritePermissionForDirectory,
+    }),
+    Effect.catchIf(
+      (error) =>
+        error instanceof FilesystemNotFoundError ||
+        error instanceof FilesystemAccessControlError,
+      // Directory does not exist or can't be accessed.
+      // Create a new repo & project
+      () =>
+        createNewProject({
+          directoryPath,
+          rendererProcessId,
+          browserWindow,
+          listDirectoryFiles,
+          readFile,
+          writeFile,
+        })
+    )
+  );

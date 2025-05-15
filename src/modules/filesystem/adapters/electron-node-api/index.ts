@@ -7,10 +7,15 @@ import { dialog } from 'electron';
 
 import { mapErrorTo } from '../../../../utils/errors';
 import { filesystemItemTypes } from '../../constants/filesystem-item-types';
-import { AbortError, AccessControlError, RepositoryError } from '../../errors';
+import {
+  AbortError,
+  AccessControlError,
+  NotFoundError,
+  RepositoryError,
+} from '../../errors';
 import { Filesystem } from '../../ports/filesystem';
 import { File } from '../../types';
-import { isHiddenFile } from './utils';
+import { isHiddenFile, isNodeError } from './utils';
 
 const showDirPicker = (): Effect.Effect<
   Electron.OpenDialogReturnValue,
@@ -105,11 +110,26 @@ export const createAdapter = (): Filesystem => ({
       Effect.tryPromise({
         try: () =>
           fs.access(directoryPath, fs.constants.F_OK | fs.constants.R_OK),
-        // TODO: Handle in a better way, not all errors are authorization-related.
-        catch: mapErrorTo(
-          AccessControlError,
-          'Read permission for directory denied'
-        ),
+        catch: (err: unknown) => {
+          if (isNodeError(err)) {
+            switch (err.code) {
+              case 'ENOENT':
+                return new NotFoundError(
+                  `Directory ${directoryPath} does not exist`
+                );
+              case 'EACCES':
+                return new AccessControlError(
+                  `Permission denied for directory ${directoryPath}`
+                );
+              default:
+                return new RepositoryError(err.message);
+            }
+          }
+
+          return new RepositoryError(
+            `Unknown when trying to access directory ${directoryPath}`
+          );
+        },
       }),
       Effect.flatMap(() => Effect.succeed('granted'))
     ),
@@ -121,11 +141,26 @@ export const createAdapter = (): Filesystem => ({
             directoryPath,
             fs.constants.F_OK | fs.constants.R_OK | fs.constants.W_OK
           ),
-        // TODO: Handle in a better way, not all errors are authorization-related.
-        catch: mapErrorTo(
-          AccessControlError,
-          'Write permission for directory denied'
-        ),
+        catch: (err: unknown) => {
+          if (isNodeError(err)) {
+            switch (err.code) {
+              case 'ENOENT':
+                return new NotFoundError(
+                  `Directory ${directoryPath} does not exist`
+                );
+              case 'EACCES':
+                return new AccessControlError(
+                  `Permission denied for directory ${directoryPath}`
+                );
+              default:
+                return new RepositoryError(err.message);
+            }
+          }
+
+          return new RepositoryError(
+            `Unknown when trying to access directory ${directoryPath}`
+          );
+        },
       })
     ),
   createNewFile: (suggestedName) => {
