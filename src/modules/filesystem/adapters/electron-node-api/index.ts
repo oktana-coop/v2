@@ -149,7 +149,7 @@ export const createAdapter = (): Filesystem => ({
   },
   writeFile: (filePath: string, content: string) =>
     Effect.tryPromise({
-      try: () => fs.writeFile(filePath, content),
+      try: () => fs.writeFile(filePath, content, 'utf8'),
       catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
     }),
   readFile: (filePath: string) =>

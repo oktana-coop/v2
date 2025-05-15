@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 
+import { type Repo } from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import { BrowserWindow } from 'electron';
@@ -27,6 +28,28 @@ import {
 import { isValidVersionControlId, type VersionControlId } from '../../models';
 import { setup as setupNodeRepo } from './setup';
 
+const setupAutomergeRepo = ({
+  directoryPath,
+  rendererProcessId,
+  browserWindow,
+}: {
+  directoryPath: string;
+  rendererProcessId: string;
+  browserWindow: BrowserWindow;
+}): Effect.Effect<Repo, VersionControlRepositoryError, never> =>
+  Effect.tryPromise({
+    try: () =>
+      setupNodeRepo({
+        processId: 'main',
+        directoryPath: join(directoryPath, '.v2', 'automerge'),
+        renderers: new Map([[rendererProcessId, browserWindow]]),
+      }),
+    catch: mapErrorTo(
+      VersionControlRepositoryError,
+      'Error in setting up Automerge repo'
+    ),
+  });
+
 const openProject = ({
   projectId,
   directoryPath,
@@ -52,17 +75,10 @@ const openProject = ({
   never
 > =>
   pipe(
-    Effect.tryPromise({
-      try: () =>
-        setupNodeRepo({
-          processId: 'main',
-          directoryPath: join(directoryPath, '.v2', 'automerge'),
-          renderers: new Map([[rendererProcessId, browserWindow]]),
-        }),
-      catch: mapErrorTo(
-        VersionControlRepositoryError,
-        'Error in setting up Automerge repo'
-      ),
+    setupAutomergeRepo({
+      directoryPath,
+      rendererProcessId,
+      browserWindow,
     }),
     Effect.map(createAutomergeVersionControlAdapter),
     Effect.flatMap((versionControlRepo) =>
@@ -214,43 +230,96 @@ export const openProjectById = ({
     )
   );
 
-const createNewProject = async ({
+// TODO: Move to filesystem repository as soon as we find a good way to manage it for the browser case
+// Note: This is really not needed in the browser case right now because we are using an IndexedDB repo currently.
+// But we are trying to keep the Filesystem API consistent across browser and Node to avoid the extra complexity.
+const createSubDirectory = ({
+  parentDirectoryPath,
+  subDirectory,
+}: {
+  parentDirectoryPath: string;
+  subDirectory: string;
+}): Effect.Effect<void, FilesystemRepositoryError, never> =>
+  pipe(
+    Effect.tryPromise({
+      try: () =>
+        fs.mkdir(join(parentDirectoryPath, subDirectory), { recursive: true }),
+      catch: mapErrorTo(
+        FilesystemRepositoryError,
+        'Error creating hidden directory for version control repo'
+      ),
+    }),
+    Effect.as(undefined)
+  );
+
+const writeIndexFile = ({
+  rootDirectoryPath,
+  projectId,
+  writeFile,
+}: {
+  rootDirectoryPath: string;
+  projectId: VersionControlId;
+  writeFile: Filesystem['writeFile'];
+}): Effect.Effect<
+  void,
+  | FilesystemAccessControlError
+  | FilesystemNotFoundError
+  | FilesystemRepositoryError,
+  never
+> => {
+  const indexFilePath = join(rootDirectoryPath, '.v2', 'index.txt');
+  return writeFile(indexFilePath, projectId);
+};
+
+const createNewProject = ({
   directoryPath,
   rendererProcessId,
   browserWindow,
   listDirectoryFiles,
   readFile,
+  writeFile,
 }: {
   directoryPath: string;
   rendererProcessId: string;
   browserWindow: BrowserWindow;
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readFile: Filesystem['readFile'];
-}): Promise<VersionControlId> => {
-  await fs.mkdir(join(directoryPath, '.v2'), { recursive: true });
-
-  // Setup the version control repository
-  const automergeRepo = await setupNodeRepo({
-    processId: 'main',
-    directoryPath: join(directoryPath, '.v2', 'automerge'),
-    renderers: new Map([[rendererProcessId, browserWindow]]),
-  });
-
-  const versionControlRepo =
-    createAutomergeVersionControlAdapter(automergeRepo);
-
-  const projectId = await createProjectFromFilesystemContent({
-    createProject: versionControlRepo.createProject,
-    createDocument: versionControlRepo.createDocument,
-    listDirectoryFiles: listDirectoryFiles,
-    readFile: readFile,
-  })({ directoryPath });
-
-  const indexFilePath = join(directoryPath, '.v2', 'index.txt');
-  await fs.writeFile(indexFilePath, projectId, 'utf8');
-
-  return projectId;
-};
+  writeFile: Filesystem['writeFile'];
+}): Effect.Effect<
+  VersionControlId,
+  | FilesystemAccessControlError
+  | FilesystemDataIntegrityError
+  | FilesystemNotFoundError
+  | FilesystemRepositoryError
+  | VersionControlRepositoryError
+  | VersionControlNotFoundError,
+  never
+> =>
+  pipe(
+    createSubDirectory({
+      parentDirectoryPath: directoryPath,
+      subDirectory: '.v2',
+    }),
+    Effect.flatMap(() =>
+      setupAutomergeRepo({
+        directoryPath,
+        rendererProcessId,
+        browserWindow,
+      })
+    ),
+    Effect.map(createAutomergeVersionControlAdapter),
+    Effect.flatMap((versionControlRepo) =>
+      createProjectFromFilesystemContent({
+        createProject: versionControlRepo.createProject,
+        createDocument: versionControlRepo.createDocument,
+        listDirectoryFiles: listDirectoryFiles,
+        readFile: readFile,
+      })({ directoryPath })
+    ),
+    Effect.tap((projectId) =>
+      writeIndexFile({ rootDirectoryPath: directoryPath, projectId, writeFile })
+    )
+  );
 
 export const openOrCreateProject = async ({
   directoryPath,
