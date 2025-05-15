@@ -49,6 +49,66 @@ const documentForFileExistsInProject = ({
       docMetaData.name === file.name && docMetaData.path === file.path
   );
 
+// For files with corresponding documents in the version control repository,
+// diff the content to see if anything has changed.
+// Update the document according to the file content if it's changed.
+// The files content is the source of truth.
+const propagateFileChangesToVersionedDocument =
+  ({
+    updateDocumentSpans,
+    findDocumentInProject,
+    getDocumentFromHandle,
+    readFile,
+  }: {
+    updateDocumentSpans: VersionControlRepo['updateDocumentSpans'];
+    findDocumentInProject: VersionControlRepo['findDocumentInProject'];
+    getDocumentFromHandle: VersionControlRepo['getDocumentFromHandle'];
+    readFile: Filesystem['readFile'];
+  }) =>
+  ({
+    projectId,
+    file,
+  }: {
+    projectId: VersionControlId;
+    file: File;
+  }): Effect.Effect<
+    void,
+    | VersionControlRepositoryError
+    | VersionControlNotFoundError
+    | FilesystemAccessControlError
+    | FilesystemNotFoundError
+    | FilesystemRepositoryError,
+    never
+  > =>
+    pipe(
+      findDocumentInProject({
+        documentPath: file.path!,
+        projectId,
+      }),
+      Effect.flatMap((documentHandle) =>
+        pipe(
+          getDocumentFromHandle(documentHandle),
+          Effect.flatMap((document) =>
+            pipe(
+              readFile(file.path!),
+              Effect.flatMap((fileContent) => {
+                if (
+                  fileContent.content &&
+                  fileContent.content !== convertToStorageFormat(document)
+                ) {
+                  return updateDocumentSpans({
+                    documentHandle,
+                    spans: JSON.parse(fileContent.content),
+                  });
+                }
+                return Effect.succeed(undefined);
+              })
+            )
+          )
+        )
+      )
+    );
+
 export const updateProjectFromFilesystemContent =
   ({
     createDocument,
@@ -81,35 +141,12 @@ export const updateProjectFromFilesystemContent =
           directoryFiles,
           (file) =>
             documentForFileExistsInProject({ file, projectDocuments })
-              ? pipe(
-                  findDocumentInProject({
-                    documentPath: file.path!,
-                    projectId,
-                  }),
-                  Effect.flatMap((documentHandle) =>
-                    pipe(
-                      getDocumentFromHandle(documentHandle),
-                      Effect.flatMap((document) =>
-                        pipe(
-                          readFile(file.path!),
-                          Effect.flatMap((fileContent) => {
-                            if (
-                              fileContent.content &&
-                              fileContent.content !==
-                                convertToStorageFormat(document)
-                            ) {
-                              return updateDocumentSpans({
-                                documentHandle,
-                                spans: JSON.parse(fileContent.content),
-                              });
-                            }
-                            return Effect.succeed(undefined);
-                          })
-                        )
-                      )
-                    )
-                  )
-                )
+              ? propagateFileChangesToVersionedDocument({
+                  updateDocumentSpans,
+                  findDocumentInProject,
+                  getDocumentFromHandle,
+                  readFile,
+                })({ file, projectId })
               : createVersionedDocument({
                   createDocument,
                   readFile,
