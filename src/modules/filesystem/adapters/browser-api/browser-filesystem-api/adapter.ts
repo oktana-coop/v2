@@ -97,7 +97,7 @@ const requestPermission = (
   });
 
 const assertWritePermission = (
-  fileHandle: FileSystemFileHandle
+  fileHandle: FileSystemHandle
 ): Effect.Effect<void, AccessControlError | RepositoryError, never> => {
   const options: FileSystemHandlePermissionDescriptor = {};
   options.mode = 'readwrite';
@@ -263,6 +263,13 @@ export const createAdapter = (): Filesystem => ({
     pipe(
       getDirHandleFromStorage(path),
       Effect.flatMap((directoryHandle) => requestPermission(directoryHandle))
+    ),
+  assertWritePermissionForDirectory: (path: string) =>
+    pipe(
+      getDirHandleFromStorage(path),
+      Effect.flatMap((directoryHandle) =>
+        assertWritePermission(directoryHandle)
+      )
     ),
   readFile: (path: string) =>
     Effect.Do.pipe(

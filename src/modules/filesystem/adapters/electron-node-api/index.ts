@@ -7,7 +7,7 @@ import { dialog } from 'electron';
 
 import { mapErrorTo } from '../../../../utils/errors';
 import { filesystemItemTypes } from '../../constants/filesystem-item-types';
-import { AbortError, RepositoryError } from '../../errors';
+import { AbortError, AccessControlError, RepositoryError } from '../../errors';
 import { Filesystem } from '../../ports/filesystem';
 import { File } from '../../types';
 import { isHiddenFile } from './utils';
@@ -100,7 +100,34 @@ export const createAdapter = (): Filesystem => ({
         return files;
       })
     ),
-  requestPermissionForDirectory: () => Effect.succeed('granted'),
+  requestPermissionForDirectory: (directoryPath: string) =>
+    pipe(
+      Effect.tryPromise({
+        try: () =>
+          fs.access(directoryPath, fs.constants.F_OK | fs.constants.R_OK),
+        // TODO: Handle in a better way, not all errors are authorization-related.
+        catch: mapErrorTo(
+          AccessControlError,
+          'Read permission for directory denied'
+        ),
+      }),
+      Effect.flatMap(() => Effect.succeed('granted'))
+    ),
+  assertWritePermissionForDirectory: (directoryPath: string) =>
+    pipe(
+      Effect.tryPromise({
+        try: () =>
+          fs.access(
+            directoryPath,
+            fs.constants.F_OK | fs.constants.R_OK | fs.constants.W_OK
+          ),
+        // TODO: Handle in a better way, not all errors are authorization-related.
+        catch: mapErrorTo(
+          AccessControlError,
+          'Write permission for directory denied'
+        ),
+      })
+    ),
   createNewFile: (suggestedName) => {
     const initialContent = '';
 

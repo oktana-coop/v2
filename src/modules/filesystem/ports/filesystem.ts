@@ -27,7 +27,18 @@ export type Filesystem = {
   >;
   requestPermissionForDirectory: (
     path: string
-  ) => Effect.Effect<PermissionState, NotFoundError | RepositoryError, never>;
+  ) => Effect.Effect<
+    PermissionState,
+    NotFoundError | RepositoryError | AccessControlError,
+    never
+  >;
+  assertWritePermissionForDirectory: (
+    path: string
+  ) => Effect.Effect<
+    void,
+    NotFoundError | RepositoryError | AccessControlError,
+    never
+  >;
   createNewFile: (
     suggestedName: string
   ) => Effect.Effect<File, AbortError | RepositoryError, never>;

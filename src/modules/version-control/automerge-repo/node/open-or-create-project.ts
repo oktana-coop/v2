@@ -41,6 +41,7 @@ const openProject = async ({
     createDocument: versionControlRepo.createDocument,
     listProjectDocuments: versionControlRepo.listProjectDocuments,
     findDocumentInProject: versionControlRepo.findDocumentInProject,
+    getDocumentFromHandle: versionControlRepo.getDocumentFromHandle,
     deleteDocumentFromProject: versionControlRepo.deleteDocumentFromProject,
     updateDocumentSpans: versionControlRepo.updateDocumentSpans,
     listDirectoryFiles: listDirectoryFiles,

@@ -8,6 +8,8 @@ export const createAdapter = (): Filesystem => ({
   listDirectoryFiles: window.filesystemAPI.listDirectoryFiles,
   requestPermissionForDirectory:
     window.filesystemAPI.requestPermissionForDirectory,
+  assertWritePermissionForDirectory:
+    window.filesystemAPI.assertWritePermissionForDirectory,
   createNewFile: window.filesystemAPI.createNewFile,
   writeFile: window.filesystemAPI.writeFile,
   readFile: window.filesystemAPI.readFile,

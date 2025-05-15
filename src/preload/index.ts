@@ -54,6 +54,12 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
       try: () => ipcRenderer.invoke('request-permission-for-directory', path),
       catch: mapErrorTo(FilesystemRepositoryError, 'Electron IPC error'),
     }),
+  assertWritePermissionForDirectory: (path: string) =>
+    Effect.tryPromise({
+      try: () =>
+        ipcRenderer.invoke('assert-write-permission-for-directory', path),
+      catch: mapErrorTo(FilesystemRepositoryError, 'Electron IPC error'),
+    }),
   createNewFile: (suggestedName: string) =>
     Effect.tryPromise({
       try: () => ipcRenderer.invoke('create-new-file', suggestedName),
