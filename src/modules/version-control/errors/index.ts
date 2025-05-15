@@ -7,3 +7,7 @@ export class RepositoryError extends Cause.YieldableError {
 export class NotFoundError extends Cause.YieldableError {
   readonly _tag = 'NotFoundError';
 }
+
+export class DataIntegrityError extends Cause.YieldableError {
+  readonly _tag = 'DataIntegrityError';
+}

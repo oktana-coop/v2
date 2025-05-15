@@ -35,7 +35,6 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
         try: async () => await handle.doc(),
         catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
       }),
-
       Effect.flatMap((doc) =>
         fromNullable(doc, () => new NotFoundError('Doc not found in handle'))
       )

@@ -1,18 +1,33 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 
+import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 import { BrowserWindow } from 'electron';
 
-import type { Filesystem } from '../../../filesystem';
+import { fromNullable } from '../../../../utils/effect';
+import { mapErrorTo } from '../../../../utils/errors';
+import {
+  AccessControlError as FilesystemAccessControlError,
+  DataIntegrityError as FilesystemDataIntegrityError,
+  type Filesystem,
+  NotFoundError as FilesystemNotFoundError,
+  RepositoryError as FilesystemRepositoryError,
+} from '../../../filesystem';
 import { createAdapter as createAutomergeVersionControlAdapter } from '../../adapters/automerge';
 import {
   createProjectFromFilesystemContent,
   updateProjectFromFilesystemContent,
 } from '../../commands';
+import {
+  DataIntegrityError as VersionControlDataIntegrityError,
+  NotFoundError as VersionControlNotFoundError,
+  RepositoryError as VersionControlRepositoryError,
+} from '../../errors';
 import { isValidVersionControlId, type VersionControlId } from '../../models';
 import { setup as setupNodeRepo } from './setup';
 
-const openProject = async ({
+const openProject = ({
   projectId,
   directoryPath,
   rendererProcessId,
@@ -26,72 +41,134 @@ const openProject = async ({
   browserWindow: BrowserWindow;
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readFile: Filesystem['readFile'];
-}): Promise<void> => {
-  // Setup the version control repository
-  const automergeRepo = await setupNodeRepo({
-    processId: 'main',
-    directoryPath: join(directoryPath, '.v2', 'automerge'),
-    renderers: new Map([[rendererProcessId, browserWindow]]),
-  });
+}): Effect.Effect<
+  void,
+  | FilesystemAccessControlError
+  | FilesystemDataIntegrityError
+  | FilesystemNotFoundError
+  | FilesystemRepositoryError
+  | VersionControlRepositoryError
+  | VersionControlNotFoundError,
+  never
+> =>
+  pipe(
+    Effect.tryPromise({
+      try: () =>
+        setupNodeRepo({
+          processId: 'main',
+          directoryPath: join(directoryPath, '.v2', 'automerge'),
+          renderers: new Map([[rendererProcessId, browserWindow]]),
+        }),
+      catch: mapErrorTo(
+        VersionControlRepositoryError,
+        'Error in setting up Automerge repo'
+      ),
+    }),
+    Effect.map(createAutomergeVersionControlAdapter),
+    Effect.flatMap((versionControlRepo) =>
+      updateProjectFromFilesystemContent({
+        createDocument: versionControlRepo.createDocument,
+        listProjectDocuments: versionControlRepo.listProjectDocuments,
+        findDocumentInProject: versionControlRepo.findDocumentInProject,
+        getDocumentFromHandle: versionControlRepo.getDocumentFromHandle,
+        deleteDocumentFromProject: versionControlRepo.deleteDocumentFromProject,
+        updateDocumentSpans: versionControlRepo.updateDocumentSpans,
+        listDirectoryFiles: listDirectoryFiles,
+        readFile: readFile,
+      })({ projectId, directoryPath })
+    )
+  );
 
-  const versionControlRepo =
-    createAutomergeVersionControlAdapter(automergeRepo);
+const readProjectIdFromDirIndexFile = ({
+  directoryPath,
+  readFile,
+}: {
+  directoryPath: string;
+  readFile: Filesystem['readFile'];
+}): Effect.Effect<
+  VersionControlId,
+  | FilesystemAccessControlError
+  | FilesystemNotFoundError
+  | FilesystemRepositoryError
+  | VersionControlDataIntegrityError,
+  never
+> => {
+  const indexFilePath = join(directoryPath, '.v2', 'index.txt');
 
-  await updateProjectFromFilesystemContent({
-    createDocument: versionControlRepo.createDocument,
-    listProjectDocuments: versionControlRepo.listProjectDocuments,
-    findDocumentInProject: versionControlRepo.findDocumentInProject,
-    getDocumentFromHandle: versionControlRepo.getDocumentFromHandle,
-    deleteDocumentFromProject: versionControlRepo.deleteDocumentFromProject,
-    updateDocumentSpans: versionControlRepo.updateDocumentSpans,
-    listDirectoryFiles: listDirectoryFiles,
-    readFile: readFile,
-  })({ projectId, directoryPath });
+  return pipe(
+    readFile(indexFilePath),
+    Effect.map((file) => file.content),
+    Effect.flatMap((content) =>
+      fromNullable(
+        content,
+        () =>
+          new VersionControlDataIntegrityError(
+            'Project ID not found in index file'
+          )
+      )
+    ),
+    Effect.flatMap((projectId) =>
+      isValidVersionControlId(projectId)
+        ? Effect.succeed(projectId)
+        : Effect.fail(
+            new VersionControlDataIntegrityError(
+              'Project ID found in index file is invalid Automerge URL'
+            )
+          )
+    )
+  );
 };
 
-const openProjectFromFilesystem = async ({
+const openProjectFromFilesystem = ({
   directoryPath,
   rendererProcessId,
   browserWindow,
   listDirectoryFiles,
   readFile,
+  assertWritePermissionForDirectory,
 }: {
   directoryPath: string;
   rendererProcessId: string;
   browserWindow: BrowserWindow;
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readFile: Filesystem['readFile'];
-}): Promise<VersionControlId> => {
-  // Check if the directory exists
-  await fs.access(directoryPath);
+  assertWritePermissionForDirectory: Filesystem['assertWritePermissionForDirectory'];
+}): Effect.Effect<
+  VersionControlId,
+  | FilesystemAccessControlError
+  | FilesystemDataIntegrityError
+  | FilesystemNotFoundError
+  | FilesystemRepositoryError
+  | VersionControlRepositoryError
+  | VersionControlNotFoundError
+  | VersionControlDataIntegrityError,
+  never
+> =>
+  pipe(
+    assertWritePermissionForDirectory(directoryPath),
+    Effect.flatMap(() =>
+      readProjectIdFromDirIndexFile({ directoryPath, readFile })
+    ),
+    Effect.tap((projectId) =>
+      openProject({
+        projectId,
+        directoryPath,
+        rendererProcessId,
+        browserWindow,
+        listDirectoryFiles,
+        readFile,
+      })
+    )
+  );
 
-  const indexFilePath = join(directoryPath, '.v2', 'index.txt');
-  // The only thing the index file should contain is the project ID.
-  const { content: projectId } = await readFile(indexFilePath);
-
-  if (!projectId || !isValidVersionControlId(projectId)) {
-    throw new Error('Project ID in the filesystem repo is invalid');
-  }
-
-  await openProject({
-    projectId,
-    directoryPath,
-    rendererProcessId,
-    browserWindow,
-    listDirectoryFiles,
-    readFile,
-  });
-
-  return projectId;
-};
-
-export const openProjectById = async ({
+export const openProjectById = ({
   projectId,
   directoryPath,
   rendererProcessId,
   browserWindow,
   listDirectoryFiles,
   readFile,
+  assertWritePermissionForDirectory,
 }: {
   projectId: VersionControlId;
   directoryPath: string;
@@ -99,33 +176,43 @@ export const openProjectById = async ({
   browserWindow: BrowserWindow;
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readFile: Filesystem['readFile'];
-}): Promise<void> => {
-  // Check if the directory exists
-  await fs.access(directoryPath);
-
-  const indexFilePath = join(directoryPath, '.v2', 'index.txt');
-  // The only thing the index file should contain is the project ID.
-  const { content: filesystemProjectId } = await readFile(indexFilePath);
-
-  if (!filesystemProjectId || !isValidVersionControlId(filesystemProjectId)) {
-    throw new Error('Project ID in the filesystem repo is invalid');
-  }
-
-  if (filesystemProjectId !== projectId) {
-    throw new Error(
-      'The project ID in the filesystem is different than the one the app is trying to open'
-    );
-  }
-
-  await openProject({
-    projectId,
-    directoryPath,
-    rendererProcessId,
-    browserWindow,
-    listDirectoryFiles,
-    readFile,
-  });
-};
+  assertWritePermissionForDirectory: Filesystem['assertWritePermissionForDirectory'];
+}): Effect.Effect<
+  void,
+  | FilesystemAccessControlError
+  | FilesystemDataIntegrityError
+  | FilesystemNotFoundError
+  | FilesystemRepositoryError
+  | VersionControlRepositoryError
+  | VersionControlNotFoundError
+  | VersionControlDataIntegrityError,
+  never
+> =>
+  pipe(
+    assertWritePermissionForDirectory(directoryPath),
+    Effect.flatMap(() =>
+      readProjectIdFromDirIndexFile({ directoryPath, readFile })
+    ),
+    Effect.flatMap((filesystemProjectId) =>
+      filesystemProjectId === projectId
+        ? Effect.succeed(projectId)
+        : Effect.fail(
+            new VersionControlDataIntegrityError(
+              'The project ID in the filesystem is different than the one the app is trying to open'
+            )
+          )
+    ),
+    Effect.flatMap((projectId) =>
+      openProject({
+        projectId,
+        directoryPath,
+        rendererProcessId,
+        browserWindow,
+        listDirectoryFiles,
+        readFile,
+      })
+    )
+  );
 
 const createNewProject = async ({
   directoryPath,
