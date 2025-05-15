@@ -178,5 +178,6 @@ export const updateProjectFromFilesystemContent =
           { concurrency: 10 }
         );
       }),
+      // We don't need to return anything, make the Effect's return type void.
       Effect.as(undefined)
     );
