@@ -191,7 +191,26 @@ export const createAdapter = (): Filesystem => ({
     pipe(
       Effect.tryPromise({
         try: () => fs.readFile(filePath, 'utf8'),
-        catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
+        catch: (err: unknown) => {
+          if (isNodeError(err)) {
+            switch (err.code) {
+              case 'ENOENT':
+                return new NotFoundError(
+                  `File in path ${filePath} does not exist`
+                );
+              case 'EACCES':
+                return new AccessControlError(
+                  `Permission denied for file with path ${filePath}`
+                );
+              default:
+                return new RepositoryError(err.message);
+            }
+          }
+
+          return new RepositoryError(
+            `Error reading file with path ${filePath}`
+          );
+        },
       }),
       Effect.map((content) => ({
         type: filesystemItemTypes.FILE,

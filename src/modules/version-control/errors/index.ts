@@ -8,6 +8,10 @@ export class NotFoundError extends Cause.YieldableError {
   readonly _tag = 'NotFoundError';
 }
 
+export class MissingIndexFileError extends Cause.YieldableError {
+  readonly _tag = 'MissingIndexFileError';
+}
+
 export class DataIntegrityError extends Cause.YieldableError {
   readonly _tag = 'DataIntegrityError';
 }

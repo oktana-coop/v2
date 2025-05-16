@@ -22,6 +22,7 @@ import {
 } from '../../commands';
 import {
   DataIntegrityError as VersionControlDataIntegrityError,
+  MissingIndexFileError as VersionControlMissingIndexFileError,
   NotFoundError as VersionControlNotFoundError,
   RepositoryError as VersionControlRepositoryError,
 } from '../../errors';
@@ -104,8 +105,8 @@ const readProjectIdFromDirIndexFile = ({
 }): Effect.Effect<
   VersionControlId,
   | FilesystemAccessControlError
-  | FilesystemNotFoundError
   | FilesystemRepositoryError
+  | VersionControlMissingIndexFileError
   | VersionControlDataIntegrityError,
   never
 > => {
@@ -113,6 +114,13 @@ const readProjectIdFromDirIndexFile = ({
 
   return pipe(
     readFile(indexFilePath),
+    Effect.catchTag('NotFoundError', () =>
+      Effect.fail(
+        new VersionControlMissingIndexFileError(
+          'Index file not found in the specified directory'
+        )
+      )
+    ),
     Effect.map((file) => file.content),
     Effect.flatMap((content) =>
       fromNullable(
@@ -155,6 +163,7 @@ const openProjectFromFilesystem = ({
   | FilesystemDataIntegrityError
   | FilesystemNotFoundError
   | FilesystemRepositoryError
+  | VersionControlMissingIndexFileError
   | VersionControlRepositoryError
   | VersionControlNotFoundError
   | VersionControlDataIntegrityError,
@@ -199,6 +208,7 @@ export const openProjectById = ({
   | FilesystemDataIntegrityError
   | FilesystemNotFoundError
   | FilesystemRepositoryError
+  | VersionControlMissingIndexFileError
   | VersionControlRepositoryError
   | VersionControlNotFoundError
   | VersionControlDataIntegrityError,
@@ -359,7 +369,8 @@ export const openOrCreateProject = ({
     Effect.catchIf(
       (error) =>
         error instanceof FilesystemNotFoundError ||
-        error instanceof FilesystemAccessControlError,
+        error instanceof FilesystemAccessControlError ||
+        error instanceof VersionControlMissingIndexFileError,
       // Directory does not exist or can't be accessed.
       // Create a new repo & project
       () =>

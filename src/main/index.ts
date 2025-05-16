@@ -152,8 +152,6 @@ async function createWindow() {
         );
       }
 
-      console.log(directoryPath);
-
       return Effect.runPromise(
         openOrCreateProject({
           directoryPath,
