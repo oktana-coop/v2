@@ -144,7 +144,7 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
         pipe(
           Option.fromNullable(projectId),
           Option.match({
-            onNone: () => Effect.succeed(false),
+            onNone: () => Effect.as(undefined),
             onSome: (projId) =>
               pipe(
                 addDocumentToProject({
@@ -152,8 +152,7 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
                   name,
                   path,
                   projectId: projId,
-                }),
-                () => Effect.succeed(true)
+                })
               ),
           })
         )

@@ -40,8 +40,9 @@ export type Filesystem = {
     never
   >;
   createNewFile: (
-    suggestedName: string
-  ) => Effect.Effect<File, AbortError | RepositoryError, never>;
+    suggestedName: string,
+    parentDirectory?: Directory
+  ) => Effect.Effect<File, AbortError | NotFoundError | RepositoryError, never>;
   writeFile: (
     path: string,
     content: string

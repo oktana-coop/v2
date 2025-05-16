@@ -120,7 +120,9 @@ export const FilesystemProvider = ({
 
   const handleCreateNewFile = async (suggestedName: string) => {
     const newFile = await Effect.runPromise(
-      filesystem.createNewFile(suggestedName)
+      directory
+        ? filesystem.createNewFile(suggestedName, directory)
+        : filesystem.createNewFile(suggestedName)
     );
 
     // Refresh directory files if a directory is selected

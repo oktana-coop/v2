@@ -138,6 +138,15 @@ const getDirHandleFromStorage = (
     )
   );
 
+const persistFileHandleInStorage = (args: {
+  handle: FileSystemFileHandle;
+  relativePath: string;
+}): Effect.Effect<void, RepositoryError, never> =>
+  Effect.tryPromise({
+    try: () => persistFileHandle(args),
+    catch: mapErrorTo(RepositoryError, 'Browser storage error'),
+  });
+
 const getFileHandleFromStorage = (
   path: string
 ): Effect.Effect<
@@ -321,12 +330,12 @@ export const createAdapter = (): Filesystem => ({
         })
       )
     ),
-  createNewFile: (suggestedName) => {
+  createNewFile: (suggestedName, parentDirectory) => {
     const initialContent = '';
 
-    return pipe(
-      showSaveFilePicker(suggestedName),
-      Effect.tap((fileHandle) =>
+    return Effect.Do.pipe(
+      Effect.bind('fileHandle', () => showSaveFilePicker(suggestedName)),
+      Effect.tap(({ fileHandle }) =>
         Effect.tryPromise({
           try: async () => {
             const writable = await fileHandle.createWritable();
@@ -338,21 +347,27 @@ export const createAdapter = (): Filesystem => ({
           catch: mapErrorTo(RepositoryError, 'Browser filesystem API error'),
         })
       ),
-      Effect.tap((fileHandle) =>
-        Effect.tryPromise({
-          try: () =>
-            persistFileHandle({
-              handle: fileHandle,
-              relativePath: fileHandle.name,
-            }),
-          catch: mapErrorTo(RepositoryError, 'Browser storage error'),
+      Effect.bind('relativePath', ({ fileHandle }) =>
+        // In this case we aren't necessarily allowed to access the containing folder;
+        // This is why we fallback to the file name
+        parentDirectory && parentDirectory.path
+          ? pipe(
+              getDirHandleFromStorage(parentDirectory.path),
+              Effect.flatMap((directoryHandle) =>
+                getFileRelativePath(fileHandle, directoryHandle)
+              )
+            )
+          : Effect.succeed(fileHandle.name)
+      ),
+      Effect.tap(({ fileHandle, relativePath }) =>
+        persistFileHandleInStorage({
+          handle: fileHandle,
+          relativePath,
         })
       ),
-      Effect.map((fileHandle) => ({
+      Effect.map(({ fileHandle, relativePath }) => ({
         type: filesystemItemTypes.FILE,
-        // In this case we aren't necessarily allowed to access the containing folder;
-        // this is why the relative path is just a filename
-        path: fileHandle.name,
+        path: relativePath,
         name: fileHandle.name,
         content: initialContent,
       }))
