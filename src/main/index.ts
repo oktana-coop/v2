@@ -119,26 +119,28 @@ async function createWindow() {
   // Apply electron-updater
   update(win);
 
-  ipcMain.handle('open-directory', async () => filesystemAPI.openDirectory());
+  ipcMain.handle('open-directory', async () =>
+    Effect.runPromise(filesystemAPI.openDirectory())
+  );
   ipcMain.handle('get-directory', async (_, path: string) =>
-    filesystemAPI.getDirectory(path)
+    Effect.runPromise(filesystemAPI.getDirectory(path))
   );
   ipcMain.handle('list-directory-files', (_, path: string) =>
-    filesystemAPI.listDirectoryFiles(path)
+    Effect.runPromise(filesystemAPI.listDirectoryFiles(path))
   );
   ipcMain.handle('request-permission-for-directory', (_, path: string) =>
-    filesystemAPI.requestPermissionForDirectory(path)
+    Effect.runPromise(filesystemAPI.requestPermissionForDirectory(path))
   );
   ipcMain.handle('create-new-file', (_, suggestedName: string) =>
-    filesystemAPI.createNewFile(suggestedName)
+    Effect.runPromise(filesystemAPI.createNewFile(suggestedName))
   );
   ipcMain.handle(
     'write-file',
     (_, { path, content }: { path: string; content: string }) =>
-      filesystemAPI.writeFile(path, content)
+      Effect.runPromise(filesystemAPI.writeFile(path, content))
   );
   ipcMain.handle('read-file', (_, path: string) =>
-    filesystemAPI.readFile(path)
+    Effect.runPromise(filesystemAPI.readFile(path))
   );
 
   ipcMain.handle(
@@ -149,6 +151,8 @@ async function createWindow() {
           'No browser window found when trying to create project'
         );
       }
+
+      console.log(directoryPath);
 
       return Effect.runPromise(
         openOrCreateProject({

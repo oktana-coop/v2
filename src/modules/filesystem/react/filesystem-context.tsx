@@ -1,3 +1,4 @@
+import * as Effect from 'effect/Effect';
 import { createContext, useEffect, useState } from 'react';
 
 import { Filesystem } from '../ports/filesystem';
@@ -13,6 +14,7 @@ type BrowserStorageDirectoryData = {
 export type FilesystemContextType = {
   directory: Directory | null;
   directoryFiles: Array<File>;
+  filesystem: Filesystem;
   openDirectory: () => Promise<Directory | null>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
   createNewFile: (suggestedName: string) => Promise<File>;
@@ -60,8 +62,8 @@ export const FilesystemProvider = ({
         : null;
 
       if (browserStorageDirectoryData?.directoryPath) {
-        const directory = await filesystem.getDirectory(
-          browserStorageDirectoryData.directoryPath
+        const directory = await Effect.runPromise(
+          filesystem.getDirectory(browserStorageDirectoryData.directoryPath)
         );
         setDirectory(directory);
       }
@@ -74,7 +76,9 @@ export const FilesystemProvider = ({
   useEffect(() => {
     const getFiles = async (dir: Directory) => {
       if (dir.path) {
-        const files = await filesystem.listDirectoryFiles(dir.path);
+        const files = await Effect.runPromise(
+          filesystem.listDirectoryFiles(dir.path)
+        );
         setDirectoryFiles(files);
       }
     };
@@ -85,7 +89,7 @@ export const FilesystemProvider = ({
   }, [directory, filesystem]);
 
   const openDirectory = async () => {
-    const directory = await filesystem.openDirectory();
+    const directory = await Effect.runPromise(filesystem.openDirectory());
     setDirectory(directory);
     return directory;
   };
@@ -105,8 +109,8 @@ export const FilesystemProvider = ({
       throw new Error('The directory does not have a path');
     }
 
-    const permissionState = await filesystem.requestPermissionForDirectory(
-      dir.path
+    const permissionState = await Effect.runPromise(
+      filesystem.requestPermissionForDirectory(dir.path)
     );
 
     if (directory) {
@@ -115,7 +119,9 @@ export const FilesystemProvider = ({
   };
 
   const handleCreateNewFile = async (suggestedName: string) => {
-    const newFile = await filesystem.createNewFile(suggestedName);
+    const newFile = await Effect.runPromise(
+      filesystem.createNewFile(suggestedName)
+    );
 
     // Refresh directory files if a directory is selected
     if (
@@ -123,22 +129,28 @@ export const FilesystemProvider = ({
       directory.permissionState === 'granted' &&
       directory.path
     ) {
-      const files = await filesystem.listDirectoryFiles(directory.path);
+      const files = await Effect.runPromise(
+        filesystem.listDirectoryFiles(directory.path)
+      );
       setDirectoryFiles(files);
     }
 
     return newFile;
   };
 
-  const writeFile = filesystem.writeFile;
-  const readFile = filesystem.readFile;
-  const listDirectoryFiles = filesystem.listDirectoryFiles;
+  const writeFile = (path: string, content: string) =>
+    Effect.runPromise(filesystem.writeFile(path, content));
+  const readFile = (path: string) =>
+    Effect.runPromise(filesystem.readFile(path));
+  const listDirectoryFiles = (path: string) =>
+    Effect.runPromise(filesystem.listDirectoryFiles(path));
 
   return (
     <FilesystemContext.Provider
       value={{
         directory,
         directoryFiles,
+        filesystem,
         openDirectory,
         requestPermissionForSelectedDirectory,
         createNewFile: handleCreateNewFile,
