@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
     ),
 });
 
+// TODO: Use an IPC bridge that propagates typed error properly
 contextBridge.exposeInMainWorld('filesystemAPI', {
   openDirectory: () =>
     Effect.tryPromise({

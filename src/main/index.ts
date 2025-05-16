@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { exec } from 'child_process';
+import * as Effect from 'effect/Effect';
 import {
   app,
   BrowserWindow,
@@ -149,13 +150,18 @@ async function createWindow() {
         );
       }
 
-      return openOrCreateProject({
-        directoryPath,
-        rendererProcessId,
-        browserWindow: win,
-        listDirectoryFiles: filesystemAPI.listDirectoryFiles,
-        readFile: filesystemAPI.readFile,
-      });
+      return Effect.runPromise(
+        openOrCreateProject({
+          directoryPath,
+          rendererProcessId,
+          browserWindow: win,
+          listDirectoryFiles: filesystemAPI.listDirectoryFiles,
+          readFile: filesystemAPI.readFile,
+          writeFile: filesystemAPI.writeFile,
+          assertWritePermissionForDirectory:
+            filesystemAPI.assertWritePermissionForDirectory,
+        })
+      );
     }
   );
 
@@ -174,14 +180,18 @@ async function createWindow() {
         );
       }
 
-      return openProjectById({
-        projectId,
-        directoryPath,
-        rendererProcessId,
-        browserWindow: win,
-        listDirectoryFiles: filesystemAPI.listDirectoryFiles,
-        readFile: filesystemAPI.readFile,
-      });
+      return Effect.runPromise(
+        openProjectById({
+          projectId,
+          directoryPath,
+          rendererProcessId,
+          browserWindow: win,
+          listDirectoryFiles: filesystemAPI.listDirectoryFiles,
+          readFile: filesystemAPI.readFile,
+          assertWritePermissionForDirectory:
+            filesystemAPI.assertWritePermissionForDirectory,
+        })
+      );
     }
   );
 
