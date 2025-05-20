@@ -81,32 +81,31 @@ export const createAdapter = (): Filesystem => ({
     });
   },
   listDirectoryFiles: (directoryPath: string) =>
-    Effect.fail(new DataIntegrityError('foo')),
-  // pipe(
-  //   Effect.tryPromise({
-  //     try: () =>
-  //       fs.readdir(directoryPath, {
-  //         withFileTypes: true,
-  //       }),
-  //     catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
-  //   }),
-  //   Effect.map((dirEntries) => {
-  //     const files = dirEntries
-  //       .filter((entry) => entry.isFile())
-  //       .map((entry) => {
-  //         const file: File = {
-  //           type: filesystemItemTypes.FILE,
-  //           name: entry.name,
-  //           path: path.join(directoryPath, entry.name),
-  //         };
+    pipe(
+      Effect.tryPromise({
+        try: () =>
+          fs.readdir(directoryPath, {
+            withFileTypes: true,
+          }),
+        catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
+      }),
+      Effect.map((dirEntries) => {
+        const files = dirEntries
+          .filter((entry) => entry.isFile())
+          .map((entry) => {
+            const file: File = {
+              type: filesystemItemTypes.FILE,
+              name: entry.name,
+              path: path.join(directoryPath, entry.name),
+            };
 
-  //         return file;
-  //       })
-  //       .filter((file) => !isHiddenFile(file.path!));
+            return file;
+          })
+          .filter((file) => !isHiddenFile(file.path!));
 
-  //     return files;
-  //   })
-  // ),
+        return files;
+      })
+    ),
   requestPermissionForDirectory: (directoryPath: string) =>
     pipe(
       Effect.tryPromise({
@@ -166,23 +165,25 @@ export const createAdapter = (): Filesystem => ({
       })
     ),
   createNewFile: (suggestedName) => {
-    const initialContent = '';
+    return Effect.fail(new AbortError('foo'));
 
-    return pipe(
-      showSaveDialog(suggestedName),
-      Effect.tap(({ filePath }) =>
-        Effect.tryPromise({
-          try: () => fs.writeFile(filePath, initialContent, 'utf8'),
-          catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
-        })
-      ),
-      Effect.map(({ filePath }) => ({
-        type: filesystemItemTypes.FILE,
-        path: filePath,
-        name: path.basename(filePath),
-        content: initialContent,
-      }))
-    );
+    // const initialContent = '';
+
+    // return pipe(
+    //   showSaveDialog(suggestedName),
+    //   Effect.tap(({ filePath }) =>
+    //     Effect.tryPromise({
+    //       try: () => fs.writeFile(filePath, initialContent, 'utf8'),
+    //       catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
+    //     })
+    //   ),
+    //   Effect.map(({ filePath }) => ({
+    //     type: filesystemItemTypes.FILE,
+    //     path: filePath,
+    //     name: path.basename(filePath),
+    //     content: initialContent,
+    //   }))
+    // );
   },
   writeFile: (filePath: string, content: string) =>
     Effect.tryPromise({

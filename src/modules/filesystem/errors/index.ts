@@ -21,11 +21,11 @@ export class AccessControlError extends Cause.YieldableError {
 }
 
 export const errorRegistry = {
-  RepositoryError,
-  NotFoundError,
-  AbortError,
-  DataIntegrityError,
-  AccessControlError,
+  FilesystemRepositoryError: RepositoryError,
+  FilesystemNotFoundError: NotFoundError,
+  FilesystemAbortError: AbortError,
+  FileystemDataIntegrityError: DataIntegrityError,
+  FilesystemAccessControlError: AccessControlError,
 } as const;
 
 export type FilesystemError =

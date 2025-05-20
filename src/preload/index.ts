@@ -34,7 +34,6 @@ contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
     ),
 });
 
-// TODO: Use an IPC bridge that propagates typed error properly
 contextBridge.exposeInMainWorld('filesystemAPI', {
   openDirectory: () =>
     invokeEffect(
@@ -76,7 +75,7 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
       errorRegistry as ErrorRegistry<FilesystemError>,
       FilesystemRepositoryError
     )('read-file', path),
-} as FilesystemAPI);
+});
 
 contextBridge.exposeInMainWorld('versionControlAPI', {
   openOrCreateProject: ({ directoryPath }: { directoryPath: string }) =>
