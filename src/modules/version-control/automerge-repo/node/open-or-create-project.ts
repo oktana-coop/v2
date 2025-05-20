@@ -114,7 +114,7 @@ const readProjectIdFromDirIndexFile = ({
 
   return pipe(
     readFile(indexFilePath),
-    Effect.catchTag('NotFoundError', () =>
+    Effect.catchTag('FilesystemNotFoundError', () =>
       Effect.fail(
         new VersionControlMissingIndexFileError(
           'Index file not found in the specified directory'
@@ -354,7 +354,8 @@ export const openOrCreateProject = ({
   | FilesystemNotFoundError
   | FilesystemRepositoryError
   | VersionControlRepositoryError
-  | VersionControlNotFoundError,
+  | VersionControlNotFoundError
+  | VersionControlDataIntegrityError,
   never
 > =>
   pipe(

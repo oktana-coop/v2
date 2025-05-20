@@ -1,8 +1,10 @@
-import * as Effect from 'effect/Effect';
 import { contextBridge, ipcRenderer } from 'electron';
 
+import { ErrorRegistry, invokeEffect } from '../modules/electron/ipc-effect';
 import {
+  errorRegistry,
   type Filesystem as FilesystemAPI,
+  FilesystemError,
   RepositoryError as FilesystemRepositoryError,
 } from '../modules/filesystem';
 import type {
@@ -11,7 +13,6 @@ import type {
   VersionControlId,
 } from '../modules/version-control';
 import type { RunWasiCLIArgs, Wasm as WasmAPI } from '../modules/wasm';
-import { mapErrorTo } from '../utils/errors';
 
 contextBridge.exposeInMainWorld('electronAPI', {
   onReceiveProcessId: (callback: (processId: string) => void) =>
@@ -36,46 +37,45 @@ contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
 // TODO: Use an IPC bridge that propagates typed error properly
 contextBridge.exposeInMainWorld('filesystemAPI', {
   openDirectory: () =>
-    Effect.tryPromise({
-      try: () => ipcRenderer.invoke('open-directory'),
-      catch: mapErrorTo(FilesystemRepositoryError, 'Electron IPC error'),
-    }),
+    invokeEffect(
+      errorRegistry as ErrorRegistry<FilesystemError>,
+      FilesystemRepositoryError
+    )('open-directory'),
   getDirectory: (path: string) =>
-    Effect.tryPromise({
-      try: () => ipcRenderer.invoke('get-directory', path),
-      catch: mapErrorTo(FilesystemRepositoryError, 'Electron IPC error'),
-    }),
+    invokeEffect(
+      errorRegistry as ErrorRegistry<FilesystemError>,
+      FilesystemRepositoryError
+    )('get-directory', path),
   listDirectoryFiles: (path: string) =>
-    Effect.tryPromise({
-      try: () => ipcRenderer.invoke('list-directory-files', path),
-      catch: mapErrorTo(FilesystemRepositoryError, 'Electron IPC error'),
-    }),
+    invokeEffect(
+      errorRegistry as ErrorRegistry<FilesystemError>,
+      FilesystemRepositoryError
+    )('list-directory-files', path),
   requestPermissionForDirectory: (path: string) =>
-    Effect.tryPromise({
-      try: () => ipcRenderer.invoke('request-permission-for-directory', path),
-      catch: mapErrorTo(FilesystemRepositoryError, 'Electron IPC error'),
-    }),
+    invokeEffect(
+      errorRegistry as ErrorRegistry<FilesystemError>,
+      FilesystemRepositoryError
+    )('request-permission-for-directory', path),
   assertWritePermissionForDirectory: (path: string) =>
-    Effect.tryPromise({
-      try: () =>
-        ipcRenderer.invoke('assert-write-permission-for-directory', path),
-      catch: mapErrorTo(FilesystemRepositoryError, 'Electron IPC error'),
-    }),
+    invokeEffect(
+      errorRegistry as ErrorRegistry<FilesystemError>,
+      FilesystemRepositoryError
+    )('assert-write-permission-for-directory', path),
   createNewFile: (suggestedName: string) =>
-    Effect.tryPromise({
-      try: () => ipcRenderer.invoke('create-new-file', suggestedName),
-      catch: mapErrorTo(FilesystemRepositoryError, 'Electron IPC error'),
-    }),
+    invokeEffect(
+      errorRegistry as ErrorRegistry<FilesystemError>,
+      FilesystemRepositoryError
+    )('create-new-file', suggestedName),
   writeFile: (path: string, content: string) =>
-    Effect.tryPromise({
-      try: () => ipcRenderer.invoke('write-file', { path, content }),
-      catch: mapErrorTo(FilesystemRepositoryError, 'Electron IPC error'),
-    }),
+    invokeEffect(
+      errorRegistry as ErrorRegistry<FilesystemError>,
+      FilesystemRepositoryError
+    )('write-file', { path, content }),
   readFile: (path: string) =>
-    Effect.tryPromise({
-      try: () => ipcRenderer.invoke('read-file', path),
-      catch: mapErrorTo(FilesystemRepositoryError, 'Electron IPC error'),
-    }),
+    invokeEffect(
+      errorRegistry as ErrorRegistry<FilesystemError>,
+      FilesystemRepositoryError
+    )('read-file', path),
 } as FilesystemAPI);
 
 contextBridge.exposeInMainWorld('versionControlAPI', {

@@ -14,6 +14,7 @@ import {
 } from 'electron';
 import os from 'os';
 
+import { runPromiseSerializingErrorsForIPC } from '../modules/electron';
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/filesystem/adapters/electron-node-api';
 import { type VersionControlId } from '../modules/version-control';
 import {
@@ -125,8 +126,8 @@ async function createWindow() {
   ipcMain.handle('get-directory', async (_, path: string) =>
     Effect.runPromise(filesystemAPI.getDirectory(path))
   );
-  ipcMain.handle('list-directory-files', (_, path: string) =>
-    Effect.runPromise(filesystemAPI.listDirectoryFiles(path))
+  ipcMain.handle('list-directory-files', async (_, path: string) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.listDirectoryFiles(path))
   );
   ipcMain.handle('request-permission-for-directory', (_, path: string) =>
     Effect.runPromise(filesystemAPI.requestPermissionForDirectory(path))
@@ -182,7 +183,7 @@ async function createWindow() {
         );
       }
 
-      return Effect.runPromise(
+      const proj = await runPromiseSerializingErrorsForIPC(
         openProjectById({
           projectId,
           directoryPath,
@@ -194,6 +195,8 @@ async function createWindow() {
             filesystemAPI.assertWritePermissionForDirectory,
         })
       );
+
+      return proj;
     }
   );
 

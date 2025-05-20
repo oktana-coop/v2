@@ -10,6 +10,7 @@ import { filesystemItemTypes } from '../../constants/filesystem-item-types';
 import {
   AbortError,
   AccessControlError,
+  DataIntegrityError,
   NotFoundError,
   RepositoryError,
 } from '../../errors';
@@ -80,31 +81,32 @@ export const createAdapter = (): Filesystem => ({
     });
   },
   listDirectoryFiles: (directoryPath: string) =>
-    pipe(
-      Effect.tryPromise({
-        try: () =>
-          fs.readdir(directoryPath, {
-            withFileTypes: true,
-          }),
-        catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
-      }),
-      Effect.map((dirEntries) => {
-        const files = dirEntries
-          .filter((entry) => entry.isFile())
-          .map((entry) => {
-            const file: File = {
-              type: filesystemItemTypes.FILE,
-              name: entry.name,
-              path: path.join(directoryPath, entry.name),
-            };
+    Effect.fail(new DataIntegrityError('foo')),
+  // pipe(
+  //   Effect.tryPromise({
+  //     try: () =>
+  //       fs.readdir(directoryPath, {
+  //         withFileTypes: true,
+  //       }),
+  //     catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
+  //   }),
+  //   Effect.map((dirEntries) => {
+  //     const files = dirEntries
+  //       .filter((entry) => entry.isFile())
+  //       .map((entry) => {
+  //         const file: File = {
+  //           type: filesystemItemTypes.FILE,
+  //           name: entry.name,
+  //           path: path.join(directoryPath, entry.name),
+  //         };
 
-            return file;
-          })
-          .filter((file) => !isHiddenFile(file.path!));
+  //         return file;
+  //       })
+  //       .filter((file) => !isHiddenFile(file.path!));
 
-        return files;
-      })
-    ),
+  //     return files;
+  //   })
+  // ),
   requestPermissionForDirectory: (directoryPath: string) =>
     pipe(
       Effect.tryPromise({
