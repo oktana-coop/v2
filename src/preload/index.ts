@@ -1,19 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-import { ErrorRegistry, invokeEffect } from '../modules/electron/ipc-effect';
-import {
-  errorRegistry,
-  type Filesystem as FilesystemAPI,
-  FilesystemError,
-  RepositoryError as FilesystemRepositoryError,
-} from '../modules/filesystem';
+import { type PromisifyEffects } from '../modules/electron/ipc-effect';
+import { type Filesystem as FilesystemAPI } from '../modules/filesystem';
 import type {
   FromMainMessage,
   FromRendererMessage,
   VersionControlId,
 } from '../modules/version-control';
 import type { RunWasiCLIArgs, Wasm as WasmAPI } from '../modules/wasm';
-import { type PromisifyEffects } from '../utils/effect';
 
 contextBridge.exposeInMainWorld('electronAPI', {
   onReceiveProcessId: (callback: (processId: string) => void) =>

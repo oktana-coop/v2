@@ -1,6 +1,6 @@
 import type { IpcRenderer } from 'electron';
 
-import { type IPCResult } from './src/modules/electron/ipc-effect/types';
+import { type PromisifyEffects } from './src/modules/electron/ipc-effect';
 import type { Filesystem as FilesystemAPI } from './src/modules/filesystem';
 import type {
   FromMainMessage,
@@ -8,7 +8,6 @@ import type {
   VersionControlId,
 } from './src/modules/version-control';
 import type { Wasm as WasmAPI } from './src/modules/wasm';
-import { type PromisifyEffects } from './src/utils/effect';
 
 export type ElectronAPI = {
   onReceiveProcessId: (callback: (processId: string) => void) => IpcRenderer;

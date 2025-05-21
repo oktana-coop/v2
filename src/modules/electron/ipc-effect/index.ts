@@ -93,3 +93,5 @@ export const effectifyIPCPromise =
         throw err;
       },
     });
+
+export * from './types';
