@@ -35,6 +35,8 @@ contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
     ),
 });
 
+type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
+
 contextBridge.exposeInMainWorld('filesystemAPI', {
   openDirectory: () => ipcRenderer.invoke('open-directory'),
   getDirectory: (path: string) => ipcRenderer.invoke('get-directory', path),
@@ -47,7 +49,7 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
   writeFile: (path: string, content: string) =>
     ipcRenderer.invoke('write-file', { path, content }),
   readFile: (path: string) => ipcRenderer.invoke('read-file', path),
-} as PromisifyEffects<FilesystemAPI>);
+} as FilesystemPromiseAPI);
 
 contextBridge.exposeInMainWorld('versionControlAPI', {
   openOrCreateProject: ({ directoryPath }: { directoryPath: string }) =>

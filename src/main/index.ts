@@ -3,7 +3,6 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { exec } from 'child_process';
-import * as Effect from 'effect/Effect';
 import {
   app,
   BrowserWindow,

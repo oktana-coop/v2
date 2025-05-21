@@ -3,23 +3,7 @@ import { pipe } from 'effect/Function';
 
 import { type TaggedError } from '../../../utils/effect';
 import { mapErrorTo } from '../../../utils/errors';
-
-type IPCResult<A> =
-  | {
-      result: A;
-    }
-  | { error: SerializableError };
-
-type SerializableError = {
-  message: string;
-  tag: string;
-};
-
-const isErrorResult = <A>(
-  result: IPCResult<A>
-): result is { error: SerializableError } => {
-  return 'error' in result;
-};
+import { type IPCResult, isErrorResult, type SerializableError } from './types';
 
 const isSerializableError = (error: unknown): error is SerializableError => {
   return (
@@ -85,81 +69,27 @@ export const effectifyIPCPromise =
     mapUnknownErrorTo: ErrorClass<E>
   ) =>
   <A>(promise: Promise<IPCResult<A>>): Effect.Effect<A, E, never> =>
-    pipe(
-      Effect.tryPromise({
-        try: async () => {
-          const res = await promise;
+    Effect.tryPromise({
+      try: async () => {
+        const res = await promise;
 
-          if (isErrorResult(res)) {
-            throw res.error;
-          }
+        if (isErrorResult(res)) {
+          throw res.error;
+        }
 
-          return res.result;
-        },
-        catch: (err: unknown) => {
-          if (isSerializableError(err)) {
-            const typedError = deserializeError(
-              err,
-              errorRegistry,
-              mapUnknownErrorTo
-            );
+        return res.result;
+      },
+      catch: (err: unknown) => {
+        if (isSerializableError(err)) {
+          const typedError = deserializeError(
+            err,
+            errorRegistry,
+            mapUnknownErrorTo
+          );
 
-            console.log(typedError);
+          return typedError;
+        }
 
-            return typedError;
-          }
-
-          throw err;
-        },
-      }),
-      Effect.catchAll((err) => {
-        console.log('In invokeEffect error handler', err);
-        return Effect.fail(err);
-      })
-    );
-
-type ExtractEffectArgs<EffectFn> = EffectFn extends (
-  ...args: infer A
-) => Effect.Effect<unknown, unknown, unknown>
-  ? A
-  : never;
-type ExtractEffectSuccess<EffectFn> = EffectFn extends (
-  ...args: unknown[]
-) => Effect.Effect<infer A, unknown, unknown>
-  ? A
-  : never;
-type ExtractEffectError<EffectFn> = EffectFn extends (
-  ...args: unknown[]
-) => Effect.Effect<unknown, infer E, unknown>
-  ? E
-  : never;
-
-/**
- * Wrap a single IPC Promise-returning function back into an Effect,
- * typed with the original Effect's success and error types.
- */
-export function effectifyIPCPromiseFn<
-  EffectFn extends (
-    ...args: unknown[]
-  ) => Effect.Effect<unknown, unknown, unknown>,
-  E extends TaggedError,
->(
-  promiseFn: (
-    ...args: ExtractEffectArgs<EffectFn>
-  ) => Promise<IPCResult<ExtractEffectSuccess<EffectFn>>>,
-  effectFn: EffectFn,
-  errorRegistry: ErrorRegistry<E>,
-  mapUnknownErrorTo: ErrorClass<E>
-): (
-  ...args: ExtractEffectArgs<EffectFn>
-) => Effect.Effect<
-  ExtractEffectSuccess<EffectFn>,
-  ExtractEffectError<EffectFn> & E,
-  never
-> {
-  return (...args: ExtractEffectArgs<EffectFn>) =>
-    pipe(
-      effectifyIPCPromise(errorRegistry, mapUnknownErrorTo)(promiseFn(...args)),
-      Effect.mapError((err) => err as ExtractEffectError<EffectFn> & E)
-    );
-}
+        throw err;
+      },
+    });
