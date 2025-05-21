@@ -3,7 +3,7 @@ import { Effect } from 'effect';
 /**
  * Turns a single `Effect` function into a Promise-returning function.
  */
-type PromisifyEffectFn<F> = F extends (
+type PromisifyEffectFn<EffectFn> = EffectFn extends (
   ...args: infer Args
 ) => Effect.Effect<infer A, unknown, unknown>
   ? (...args: Args) => Promise<A>
@@ -13,7 +13,9 @@ type PromisifyEffectFn<F> = F extends (
  * Recursively transform all methods in a record from `Effect` to `Promise`.
  */
 export type PromisifyEffects<T> = {
-  [K in keyof T]: T[K] extends (...args: unknown[]) => unknown
+  [K in keyof T]: T[K] extends (
+    ...args: infer Args
+  ) => Effect.Effect<infer A, unknown, unknown>
     ? PromisifyEffectFn<T[K]>
     : never;
 };

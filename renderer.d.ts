@@ -8,7 +8,7 @@ import type {
   VersionControlId,
 } from './src/modules/version-control';
 import type { Wasm as WasmAPI } from './src/modules/wasm';
-import { type PromisifiedAPI } from './src/utils/effect';
+import { type PromisifyEffects } from './src/utils/effect';
 
 export type ElectronAPI = {
   onReceiveProcessId: (callback: (processId: string) => void) => IpcRenderer;
@@ -33,7 +33,7 @@ export type VersionControlAPI = {
   }) => Promise<void>;
 };
 
-type FilesystemPromiseAPI = PromisifiedAPI<FilesystemAPI, IPCResult>;
+type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
 
 declare global {
   interface Window {
