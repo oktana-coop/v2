@@ -7,6 +7,7 @@ import type {
   VersionControlId,
 } from './src/modules/version-control';
 import type { Wasm as WasmAPI } from './src/modules/wasm';
+import { type PromisifyEffects } from './src/utils/effect';
 
 export type ElectronAPI = {
   onReceiveProcessId: (callback: (processId: string) => void) => IpcRenderer;
@@ -35,7 +36,7 @@ declare global {
   interface Window {
     electronAPI: ElectronAPI;
     automergeRepoNetworkAdapter: AutomergeRepoNetworkAdapter;
-    filesystemAPI: FilesystemAPI;
+    filesystemAPI: PromisifyEffects<FilesystemAPI>;
     versionControlAPI: VersionControlAPI;
     wasmAPI: WasmAPI;
   }

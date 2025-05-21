@@ -1,18 +1,24 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
-import { ipcRenderer } from 'electron';
 
 import { type TaggedError } from '../../../utils/effect';
 import { mapErrorTo } from '../../../utils/errors';
 
-type IPCResult<A> = {
-  result?: A;
-  error?: SerializableError;
-};
+type IPCResult<A> =
+  | {
+      result: A;
+    }
+  | { error: SerializableError };
 
 type SerializableError = {
   message: string;
   tag: string;
+};
+
+const isErrorResult = <A>(
+  result: IPCResult<A>
+): result is { error: SerializableError } => {
+  return 'error' in result;
 };
 
 const isSerializableError = (error: unknown): error is SerializableError => {
@@ -73,18 +79,18 @@ export const deserializeError = <E extends TaggedError>(
   return error;
 };
 
-export const invokeEffect =
+export const effectifyIPCPromise =
   <E extends TaggedError>(
     errorRegistry: ErrorRegistry<E>,
     mapUnknownErrorTo: ErrorClass<E>
   ) =>
-  <A>(channel: string, ...args: unknown[]): Effect.Effect<A, E, never> =>
+  <A>(promise: Promise<IPCResult<A>>): Effect.Effect<A, E, never> =>
     pipe(
       Effect.tryPromise({
         try: async () => {
-          const res = await ipcRenderer.invoke(channel, ...args);
+          const res = await promise;
 
-          if (res.error) {
+          if (isErrorResult(res)) {
             throw res.error;
           }
 
@@ -111,3 +117,49 @@ export const invokeEffect =
         return Effect.fail(err);
       })
     );
+
+type ExtractEffectArgs<EffectFn> = EffectFn extends (
+  ...args: infer A
+) => Effect.Effect<unknown, unknown, unknown>
+  ? A
+  : never;
+type ExtractEffectSuccess<EffectFn> = EffectFn extends (
+  ...args: unknown[]
+) => Effect.Effect<infer A, unknown, unknown>
+  ? A
+  : never;
+type ExtractEffectError<EffectFn> = EffectFn extends (
+  ...args: unknown[]
+) => Effect.Effect<unknown, infer E, unknown>
+  ? E
+  : never;
+
+/**
+ * Wrap a single IPC Promise-returning function back into an Effect,
+ * typed with the original Effect's success and error types.
+ */
+export function effectifyIPCPromiseFn<
+  EffectFn extends (
+    ...args: unknown[]
+  ) => Effect.Effect<unknown, unknown, unknown>,
+  E extends TaggedError,
+>(
+  promiseFn: (
+    ...args: ExtractEffectArgs<EffectFn>
+  ) => Promise<IPCResult<ExtractEffectSuccess<EffectFn>>>,
+  effectFn: EffectFn,
+  errorRegistry: ErrorRegistry<E>,
+  mapUnknownErrorTo: ErrorClass<E>
+): (
+  ...args: ExtractEffectArgs<EffectFn>
+) => Effect.Effect<
+  ExtractEffectSuccess<EffectFn>,
+  ExtractEffectError<EffectFn> & E,
+  never
+> {
+  return (...args: ExtractEffectArgs<EffectFn>) =>
+    pipe(
+      effectifyIPCPromise(errorRegistry, mapUnknownErrorTo)(promiseFn(...args)),
+      Effect.mapError((err) => err as ExtractEffectError<EffectFn> & E)
+    );
+}

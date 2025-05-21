@@ -13,6 +13,7 @@ import type {
   VersionControlId,
 } from '../modules/version-control';
 import type { RunWasiCLIArgs, Wasm as WasmAPI } from '../modules/wasm';
+import { type PromisifyEffects } from '../utils/effect';
 
 contextBridge.exposeInMainWorld('electronAPI', {
   onReceiveProcessId: (callback: (processId: string) => void) =>
@@ -35,47 +36,18 @@ contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
 });
 
 contextBridge.exposeInMainWorld('filesystemAPI', {
-  openDirectory: () =>
-    invokeEffect(
-      errorRegistry as ErrorRegistry<FilesystemError>,
-      FilesystemRepositoryError
-    )('open-directory'),
-  getDirectory: (path: string) =>
-    invokeEffect(
-      errorRegistry as ErrorRegistry<FilesystemError>,
-      FilesystemRepositoryError
-    )('get-directory', path),
+  openDirectory: () => ipcRenderer.invoke('open-directory'),
+  getDirectory: (path: string) => ipcRenderer.invoke('get-directory', path),
   listDirectoryFiles: (path: string) =>
-    invokeEffect(
-      errorRegistry as ErrorRegistry<FilesystemError>,
-      FilesystemRepositoryError
-    )('list-directory-files', path),
+    ipcRenderer.invoke('list-directory-files', path),
   requestPermissionForDirectory: (path: string) =>
-    invokeEffect(
-      errorRegistry as ErrorRegistry<FilesystemError>,
-      FilesystemRepositoryError
-    )('request-permission-for-directory', path),
-  assertWritePermissionForDirectory: (path: string) =>
-    invokeEffect(
-      errorRegistry as ErrorRegistry<FilesystemError>,
-      FilesystemRepositoryError
-    )('assert-write-permission-for-directory', path),
+    ipcRenderer.invoke('request-permission-for-directory', path),
   createNewFile: (suggestedName: string) =>
-    invokeEffect(
-      errorRegistry as ErrorRegistry<FilesystemError>,
-      FilesystemRepositoryError
-    )('create-new-file', suggestedName),
+    ipcRenderer.invoke('create-new-file', suggestedName),
   writeFile: (path: string, content: string) =>
-    invokeEffect(
-      errorRegistry as ErrorRegistry<FilesystemError>,
-      FilesystemRepositoryError
-    )('write-file', { path, content }),
-  readFile: (path: string) =>
-    invokeEffect(
-      errorRegistry as ErrorRegistry<FilesystemError>,
-      FilesystemRepositoryError
-    )('read-file', path),
-});
+    ipcRenderer.invoke('write-file', { path, content }),
+  readFile: (path: string) => ipcRenderer.invoke('read-file', path),
+} as PromisifyEffects<FilesystemAPI>);
 
 contextBridge.exposeInMainWorld('versionControlAPI', {
   openOrCreateProject: ({ directoryPath }: { directoryPath: string }) =>
