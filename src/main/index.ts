@@ -121,16 +121,18 @@ async function createWindow() {
   update(win);
 
   ipcMain.handle('open-directory', async () =>
-    Effect.runPromise(filesystemAPI.openDirectory())
+    runPromiseSerializingErrorsForIPC(filesystemAPI.openDirectory())
   );
   ipcMain.handle('get-directory', async (_, path: string) =>
-    Effect.runPromise(filesystemAPI.getDirectory(path))
+    runPromiseSerializingErrorsForIPC(filesystemAPI.getDirectory(path))
   );
   ipcMain.handle('list-directory-files', async (_, path: string) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.listDirectoryFiles(path))
   );
   ipcMain.handle('request-permission-for-directory', (_, path: string) =>
-    Effect.runPromise(filesystemAPI.requestPermissionForDirectory(path))
+    runPromiseSerializingErrorsForIPC(
+      filesystemAPI.requestPermissionForDirectory(path)
+    )
   );
   ipcMain.handle('create-new-file', (_, suggestedName: string) =>
     runPromiseSerializingErrorsForIPC(
@@ -140,10 +142,10 @@ async function createWindow() {
   ipcMain.handle(
     'write-file',
     (_, { path, content }: { path: string; content: string }) =>
-      Effect.runPromise(filesystemAPI.writeFile(path, content))
+      runPromiseSerializingErrorsForIPC(filesystemAPI.writeFile(path, content))
   );
   ipcMain.handle('read-file', (_, path: string) =>
-    Effect.runPromise(filesystemAPI.readFile(path))
+    runPromiseSerializingErrorsForIPC(filesystemAPI.readFile(path))
   );
 
   ipcMain.handle(
@@ -155,7 +157,7 @@ async function createWindow() {
         );
       }
 
-      return Effect.runPromise(
+      return runPromiseSerializingErrorsForIPC(
         openOrCreateProject({
           directoryPath,
           rendererProcessId,
@@ -185,7 +187,7 @@ async function createWindow() {
         );
       }
 
-      const proj = await runPromiseSerializingErrorsForIPC(
+      return runPromiseSerializingErrorsForIPC(
         openProjectById({
           projectId,
           directoryPath,
@@ -197,8 +199,6 @@ async function createWindow() {
             filesystemAPI.assertWritePermissionForDirectory,
         })
       );
-
-      return proj;
     }
   );
 
