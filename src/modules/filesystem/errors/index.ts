@@ -19,18 +19,3 @@ export class DataIntegrityError extends Cause.YieldableError {
 export class AccessControlError extends Cause.YieldableError {
   readonly _tag = 'FilesystemAccessControlError';
 }
-
-export const errorRegistry = {
-  FilesystemRepositoryError: RepositoryError,
-  FilesystemNotFoundError: NotFoundError,
-  FilesystemAbortError: AbortError,
-  FileystemDataIntegrityError: DataIntegrityError,
-  FilesystemAccessControlError: AccessControlError,
-} as const;
-
-export type FilesystemError =
-  | RepositoryError
-  | NotFoundError
-  | AbortError
-  | DataIntegrityError
-  | AccessControlError;
