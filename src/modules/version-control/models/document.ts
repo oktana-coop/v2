@@ -179,4 +179,8 @@ export const getSpansString = (document: VersionedDocument) => {
 
 export const convertToStorageFormat = getSpansString;
 
+export const isEmpty = (document: VersionedDocument): boolean => {
+  return document.content === '';
+};
+
 export type DocHandleChangePayload<T> = AutomergeDocHandleChangePayload<T>;
