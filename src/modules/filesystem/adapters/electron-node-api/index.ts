@@ -10,7 +10,6 @@ import { filesystemItemTypes } from '../../constants/filesystem-item-types';
 import {
   AbortError,
   AccessControlError,
-  DataIntegrityError,
   NotFoundError,
   RepositoryError,
 } from '../../errors';
@@ -165,25 +164,23 @@ export const createAdapter = (): Filesystem => ({
       })
     ),
   createNewFile: (suggestedName) => {
-    return Effect.fail(new AbortError('foo'));
+    const initialContent = '';
 
-    // const initialContent = '';
-
-    // return pipe(
-    //   showSaveDialog(suggestedName),
-    //   Effect.tap(({ filePath }) =>
-    //     Effect.tryPromise({
-    //       try: () => fs.writeFile(filePath, initialContent, 'utf8'),
-    //       catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
-    //     })
-    //   ),
-    //   Effect.map(({ filePath }) => ({
-    //     type: filesystemItemTypes.FILE,
-    //     path: filePath,
-    //     name: path.basename(filePath),
-    //     content: initialContent,
-    //   }))
-    // );
+    return pipe(
+      showSaveDialog(suggestedName),
+      Effect.tap(({ filePath }) =>
+        Effect.tryPromise({
+          try: () => fs.writeFile(filePath, initialContent, 'utf8'),
+          catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
+        })
+      ),
+      Effect.map(({ filePath }) => ({
+        type: filesystemItemTypes.FILE,
+        path: filePath,
+        name: path.basename(filePath),
+        content: initialContent,
+      }))
+    );
   },
   writeFile: (filePath: string, content: string) =>
     Effect.tryPromise({

@@ -1,5 +1,4 @@
 import * as Effect from 'effect/Effect';
-import { pipe } from 'effect/Function';
 import { createContext, useEffect, useState } from 'react';
 
 import { Filesystem } from '../ports/filesystem';
@@ -77,16 +76,10 @@ export const FilesystemProvider = ({
   useEffect(() => {
     const getFiles = async (dir: Directory) => {
       if (dir.path) {
-        try {
-          const files = await Effect.runPromise(
-            filesystem.listDirectoryFiles(dir.path)
-          );
-          setDirectoryFiles(files);
-        } catch (error) {
-          console.error('Error listing directory files:', error);
-          console.log(error);
-          console.log(error._tag);
-        }
+        const files = await Effect.runPromise(
+          filesystem.listDirectoryFiles(dir.path)
+        );
+        setDirectoryFiles(files);
       }
     };
 
@@ -126,43 +119,25 @@ export const FilesystemProvider = ({
   };
 
   const handleCreateNewFile = async (suggestedName: string) => {
-    try {
-      const newFile = await Effect.runPromise(
-        directory
-          ? pipe(
-              filesystem.createNewFile(suggestedName, directory),
-              Effect.catchAll((err) => {
-                console.log('In effect error handler', err);
-                return Effect.fail(err);
-              })
-            )
-          : pipe(
-              filesystem.createNewFile(suggestedName),
-              Effect.catchAll((err) => {
-                console.log('In effect error handler', err);
-                return Effect.fail(err);
-              })
-            )
+    const newFile = await Effect.runPromise(
+      directory
+        ? filesystem.createNewFile(suggestedName, directory)
+        : filesystem.createNewFile(suggestedName)
+    );
+
+    // Refresh directory files if a directory is selected
+    if (
+      directory &&
+      directory.permissionState === 'granted' &&
+      directory.path
+    ) {
+      const files = await Effect.runPromise(
+        filesystem.listDirectoryFiles(directory.path)
       );
-
-      // Refresh directory files if a directory is selected
-      if (
-        directory &&
-        directory.permissionState === 'granted' &&
-        directory.path
-      ) {
-        const files = await Effect.runPromise(
-          filesystem.listDirectoryFiles(directory.path)
-        );
-        setDirectoryFiles(files);
-      }
-
-      return newFile;
-    } catch (error) {
-      console.error('Error creating new file:', error);
-      console.log(error._tag);
-      throw error;
+      setDirectoryFiles(files);
     }
+
+    return newFile;
   };
 
   const writeFile = (path: string, content: string) =>
