@@ -15,7 +15,10 @@ import {
   removeExtension,
 } from '../../../../modules/filesystem';
 import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
-import { isValidVersionControlId } from '../../../../modules/version-control';
+import {
+  decodeURLHeads,
+  isValidVersionControlId,
+} from '../../../../modules/version-control';
 import { VersionControlContext } from '../../../../modules/version-control/react';
 import { Button } from '../../components/actions/Button';
 import { CommandPalette } from '../../components/dialogs/command-palette/CommandPalette';
@@ -25,11 +28,13 @@ import { InvalidDocument } from '../../components/document-views/InvalidDocument
 import { PenIcon } from '../../components/icons';
 import { Layout } from '../../components/layout/Layout';
 import { SidebarLayout } from '../../components/layout/SidebarLayout';
+import { StackedResizablePanelsLayout } from '../../components/layout/StackedResizablePanelsLayout';
 import { useKeyBindings } from '../../hooks/useKeyBindings';
-import { DocumentEditor } from './DocumentEditor';
-import { FileExplorer } from './FileExplorer';
+import { DocumentEditor } from './editor/DocumentEditor';
+import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
+import { FileExplorer } from './sidebar/file-explorer/FileExplorer';
 
-export const Editor = () => {
+export const Document = () => {
   return (
     <SelectedFileProvider>
       <SidebarLayoutProvider>
@@ -57,6 +62,8 @@ const EditorIndex = () => {
     setSelectedFileInfo,
     versionedDocumentHandle,
     canCommit,
+    versionedDocumentHistory: commits,
+    onSelectCommit,
   } = useContext(SelectedFileContext);
   const {
     projectId,
@@ -64,7 +71,7 @@ const EditorIndex = () => {
     findDocumentInProject,
   } = useContext(VersionControlContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
-
+  const { changeId } = useParams();
   const [isCommandPaletteOpen, setCommandPaletteOpen] =
     useState<boolean>(false);
 
@@ -88,7 +95,9 @@ const EditorIndex = () => {
     });
 
     setSelectedFileInfo({ documentId: newDocumentId, path: file.path! });
-    navigate(`/edit/${newDocumentId}?path=${encodeURIComponent(file.path!)}`);
+    navigate(
+      `/documents/${newDocumentId}?path=${encodeURIComponent(file.path!)}`
+    );
   };
 
   const handleOpenDirectory = async () => {
@@ -127,7 +136,7 @@ const EditorIndex = () => {
       path: file.path,
     });
     navigate(
-      `/edit/${documentHandle.url}?path=${encodeURIComponent(file.path)}`
+      `/documents/${documentHandle.url}?path=${encodeURIComponent(file.path)}`
     );
   };
 
@@ -238,17 +247,24 @@ const EditorIndex = () => {
         <ProseMirrorProvider>
           <SidebarLayout
             sidebar={
-              <FileExplorer
-                directory={directory}
-                files={directoryFiles}
-                selectedFileInfo={selectedFileInfo}
-                onOpenDirectory={handleOpenDirectory}
-                onRequestPermissionsForCurrentDirectory={
-                  handlePermissionRequest
-                }
-                onFileSelection={handleFileSelection}
-                onCreateDocument={() => openCreateDocumentModal(true)}
-              />
+              <StackedResizablePanelsLayout autoSaveId="editor-panel-group">
+                <FileExplorer
+                  directory={directory}
+                  files={directoryFiles}
+                  selectedFileInfo={selectedFileInfo}
+                  onOpenDirectory={handleOpenDirectory}
+                  onRequestPermissionsForCurrentDirectory={
+                    handlePermissionRequest
+                  }
+                  onFileSelection={handleFileSelection}
+                  onCreateDocument={() => openCreateDocumentModal(true)}
+                />
+                <DocumentHistory
+                  commits={commits}
+                  onCommitClick={onSelectCommit}
+                  selectedCommit={changeId ? decodeURLHeads(changeId) : null}
+                />
+              </StackedResizablePanelsLayout>
             }
           >
             {renderMainPane()}

@@ -14,7 +14,7 @@ export const SidebarLayout = ({
     useContext(SidebarLayoutContext);
 
   return (
-    <PanelGroup autoSaveId="editor-panel-group" direction="horizontal">
+    <PanelGroup autoSaveId="sidebar-layout-panel-group" direction="horizontal">
       <Panel
         ref={sidebarPanelRef}
         collapsible

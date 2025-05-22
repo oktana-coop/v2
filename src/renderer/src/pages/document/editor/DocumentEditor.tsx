@@ -1,11 +1,11 @@
 import { useCallback, useContext, useState } from 'react';
 
-import { SelectedFileContext } from '../../../../modules/editor-state';
-import { ProseMirrorContext } from '../../../../modules/rich-text/react/context';
-import { type VersionedDocumentHandle } from '../../../../modules/version-control';
-import { RichTextEditor } from '../../components/editing/RichTextEditor';
+import { SelectedFileContext } from '../../../../../modules/editor-state';
+import { ProseMirrorContext } from '../../../../../modules/rich-text/react/context';
+import { type VersionedDocumentHandle } from '../../../../../modules/version-control';
+import { RichTextEditor } from '../../../components/editing/RichTextEditor';
+import { CommitDialog } from '../commit/CommitDialog';
 import { ActionsBar } from './ActionsBar';
-import { CommitDialog } from './CommitDialog';
 
 export const DocumentEditor = ({
   versionedDocumentHandle,

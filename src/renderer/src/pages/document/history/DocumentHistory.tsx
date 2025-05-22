@@ -1,10 +1,9 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
-import { SelectedFileContext } from '../../../../modules/editor-state';
-import { SidebarLayoutContext } from '../../../../modules/editor-state/sidebar-layout/context';
-import { FunctionalityConfigContext } from '../../../../modules/personalization/functionality-config';
-import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
+import { SelectedFileContext } from '../../../../../modules/editor-state';
+import { SidebarLayoutContext } from '../../../../../modules/editor-state/sidebar-layout/context';
+import { FunctionalityConfigContext } from '../../../../../modules/personalization/functionality-config';
 import {
   type Change,
   type ChangeWithUrlInfo,
@@ -16,14 +15,12 @@ import {
   UrlHeads,
   type VersionedDocument,
   type VersionedDocumentHandle,
-} from '../../../../modules/version-control';
-import { VersionControlContext } from '../../../../modules/version-control/react';
-import { SidebarLayout } from '../../components/layout/SidebarLayout';
+} from '../../../../../modules/version-control';
+import { VersionControlContext } from '../../../../../modules/version-control/react';
 import { ActionsBar } from './ActionsBar';
-import { ChangeLogSidebar } from './change-log/Sidebar';
 import { type DiffViewProps, ReadOnlyView } from './ReadOnlyView';
 
-export const DocumentsHistory = () => {
+export const DocumentHistory = () => {
   const { changeId } = useParams();
   const {
     versionedDocumentHandle,
@@ -167,10 +164,6 @@ export const DocumentsHistory = () => {
     }
   }, [versionedDocumentHandle]);
 
-  const handleCommitClick = (heads: UrlHeads) => {
-    onSelectCommit(heads);
-  };
-
   const handleDiffCommitSelect = (heads: UrlHeads) => {
     setSearchParams((prev) => {
       const newParams = new URLSearchParams(prev);
@@ -194,52 +187,33 @@ export const DocumentsHistory = () => {
     return setShowDiffInHistoryView(checked);
   };
 
+  if (!doc) {
+    return (
+      // TODO: Use a spinner
+      <div>Loading...</div>
+    );
+  }
+
   return (
-    <ProseMirrorProvider>
-      <SidebarLayout
-        sidebar={
-          <ChangeLogSidebar
-            commits={commits}
-            onCommitClick={handleCommitClick}
-            selectedCommit={changeId ? decodeURLHeads(changeId) : null}
-          />
+    <div className="flex flex-auto flex-col items-stretch overflow-auto outline-none">
+      <ActionsBar
+        isSidebarOpen={isSidebarOpen}
+        onSidebarToggle={toggleSidebar}
+        // TODO: Implement revert functionality
+        onRevertIconClick={() => {}}
+        title={viewTitle}
+        canShowDiff={
+          !selectedCommitIndex || !isInitialChange(selectedCommitIndex, commits)
         }
-      >
-        <>
-          {doc ? (
-            <div className="flex flex-auto flex-col items-stretch overflow-auto outline-none">
-              <ActionsBar
-                isSidebarOpen={isSidebarOpen}
-                onSidebarToggle={toggleSidebar}
-                // TODO: Implement revert functionality
-                onRevertIconClick={() => {}}
-                title={viewTitle}
-                canShowDiff={
-                  !selectedCommitIndex ||
-                  !isInitialChange(selectedCommitIndex, commits)
-                }
-                showDiff={showDiffInHistoryView}
-                onSetShowDiffChecked={handleSetShowDiffInHistoryView}
-                diffWith={getDecodedDiffParam()}
-                history={
-                  selectedCommitIndex
-                    ? commits.slice(selectedCommitIndex + 1)
-                    : commits
-                }
-                onDiffCommitSelect={handleDiffCommitSelect}
-              />
-              {diffProps ? (
-                <ReadOnlyView {...diffProps} />
-              ) : (
-                <ReadOnlyView doc={doc} />
-              )}
-            </div>
-          ) : (
-            // TODO: Use a spinner
-            <div>Loading...</div>
-          )}
-        </>
-      </SidebarLayout>
-    </ProseMirrorProvider>
+        showDiff={showDiffInHistoryView}
+        onSetShowDiffChecked={handleSetShowDiffInHistoryView}
+        diffWith={getDecodedDiffParam()}
+        history={
+          selectedCommitIndex ? commits.slice(selectedCommitIndex + 1) : commits
+        }
+        onDiffCommitSelect={handleDiffCommitSelect}
+      />
+      {diffProps ? <ReadOnlyView {...diffProps} /> : <ReadOnlyView doc={doc} />}
+    </div>
   );
 };

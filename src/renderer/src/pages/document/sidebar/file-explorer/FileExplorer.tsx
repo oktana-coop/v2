@@ -1,15 +1,19 @@
 import { clsx } from 'clsx';
 
-import { type SelectedFileInfo } from '../../../../modules/editor-state';
+import { type SelectedFileInfo } from '../../../../../../modules/editor-state';
 import {
   type Directory,
   type File,
   removeExtension,
-} from '../../../../modules/filesystem';
-import { Button } from '../../components/actions/Button';
-import { IconButton } from '../../components/actions/IconButton';
-import { FileDocumentIcon, FolderIcon, PlusIcon } from '../../components/icons';
-import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
+} from '../../../../../../modules/filesystem';
+import { Button } from '../../../../components/actions/Button';
+import { IconButton } from '../../../../components/actions/IconButton';
+import {
+  FileDocumentIcon,
+  FolderIcon,
+  PlusIcon,
+} from '../../../../components/icons';
+import { SidebarHeading } from '../../../../components/sidebar/SidebarHeading';
 
 export const FileExplorer = ({
   directory,
@@ -41,7 +45,7 @@ export const FileExplorer = ({
       </div>
 
       {directory && directory.permissionState === 'granted' ? (
-        <div className="flex flex-col items-stretch">
+        <div className="flex flex-col items-stretch overflow-auto">
           <div className="mb-1 truncate px-4 text-left font-bold text-black text-opacity-85 dark:text-white dark:text-opacity-85">
             {directory.name}
           </div>

@@ -5,7 +5,7 @@ import { BrowserRouter, HashRouter, Route, Routes } from 'react-router-dom';
 
 import { ElectronContext } from '../../modules/electron';
 import { VersionControlContext } from '../../modules/version-control/react';
-import { Editor } from './pages/editor/index';
+import { Document } from './pages/document/index';
 import { History } from './pages/history/index';
 import { Options } from './pages/options/Options';
 
@@ -26,9 +26,9 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Editor />} />
-        <Route path="/edit" element={<Editor />}>
-          <Route path=":documentId" element={<Editor />} />
+        <Route path="/" element={<Document />} />
+        <Route path="/documents" element={<Document />}>
+          <Route path=":documentId" element={<Document />} />
         </Route>
         <Route path="/history" element={<History />}>
           <Route path=":documentId" element={<History />}>

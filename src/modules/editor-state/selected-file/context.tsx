@@ -5,15 +5,18 @@ import {
   useEffect,
   useState,
 } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { ElectronContext } from '../../electron';
 import { FilesystemContext } from '../../filesystem';
+import { FunctionalityConfigContext } from '../../personalization/functionality-config';
 import {
+  type Change,
   type ChangeWithUrlInfo,
   type Commit,
   convertToStorageFormat,
   type DocHandleChangePayload,
+  encodeURLHeads,
   encodeURLHeadsForChange,
   getDocumentHandleHistory,
   getDocumentHeads,
@@ -45,6 +48,8 @@ type SelectedFileContextType = {
   isCommitDialogOpen: boolean;
   onOpenCommitDialog: () => void;
   onCloseCommitDialog: () => void;
+  selectedCommitIndex: number | null;
+  onSelectCommit: (heads: UrlHeads) => void;
 };
 
 export const SelectedFileContext = createContext<SelectedFileContextType>({
@@ -58,6 +63,8 @@ export const SelectedFileContext = createContext<SelectedFileContextType>({
   isCommitDialogOpen: false,
   onOpenCommitDialog: () => {},
   onCloseCommitDialog: () => {},
+  selectedCommitIndex: null,
+  onSelectCommit: () => {},
 });
 
 export const SelectedFileProvider = ({
@@ -80,6 +87,11 @@ export const SelectedFileProvider = ({
   const [lastCommit, setLastCommit] = useState<Commit | null>(null);
   const [canCommit, setCanCommit] = useState(false);
   const [isCommitDialogOpen, setIsCommitDialogOpen] = useState<boolean>(false);
+  const [selectedCommitIndex, setSelectedCommitIndex] = useState<number | null>(
+    null
+  );
+  const { showDiffInHistoryView } = useContext(FunctionalityConfigContext);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const updateFileSelection = async () => {
@@ -249,6 +261,42 @@ export const SelectedFileProvider = ({
   const handleCloseCommitDialog = useCallback(() => {
     setIsCommitDialogOpen(false);
   }, []);
+
+  const handleSelectCommit = useCallback(
+    (heads: UrlHeads) => {
+      const isInitialChange = (index: number, changes: Change[]) =>
+        index === changes.length - 1;
+
+      const selectedCommitIndex = versionedDocumentHistory.findIndex((commit) =>
+        headsAreSame(commit.heads, heads)
+      );
+
+      const isFirstCommit = isInitialChange(
+        selectedCommitIndex,
+        versionedDocumentHistory
+      );
+
+      const diffCommit = isFirstCommit
+        ? null
+        : versionedDocumentHistory[selectedCommitIndex + 1];
+
+      let newUrl = `/history/${documentId}/${encodeURLHeads(heads)}`;
+      if (diffCommit) {
+        const diffCommitURLEncodedHeads = encodeURLHeadsForChange(diffCommit);
+        newUrl += `?diffWith=${diffCommitURLEncodedHeads}`;
+      }
+
+      if (showDiffInHistoryView && diffCommit) {
+        newUrl += `&showDiff=true`;
+      }
+
+      setSelectedCommitIndex(selectedCommitIndex);
+      navigate(newUrl);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [documentId, versionedDocumentHistory, showDiffInHistoryView]
+  );
+
   return (
     <SelectedFileContext.Provider
       value={{
@@ -262,6 +310,8 @@ export const SelectedFileProvider = ({
         isCommitDialogOpen,
         onOpenCommitDialog: handleOpenCommitDialog,
         onCloseCommitDialog: handleCloseCommitDialog,
+        selectedCommitIndex,
+        onSelectCommit: handleSelectCommit,
       }}
     >
       {children}

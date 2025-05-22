@@ -3,10 +3,7 @@ import { useParams } from 'react-router-dom';
 
 import { SelectedFileProvider } from '../../../../modules/editor-state';
 import { SidebarLayoutProvider } from '../../../../modules/editor-state/sidebar-layout/context';
-import {
-  isValidVersionControlId,
-  type VersionControlId,
-} from '../../../../modules/version-control';
+import { isValidVersionControlId } from '../../../../modules/version-control';
 import { EmptyDocument } from '../../components/document-views/EmptyDocument';
 import { InvalidDocument } from '../../components/document-views/InvalidDocument';
 import { Layout } from '../../components/layout/Layout';
@@ -32,7 +29,7 @@ export const History = () => {
         <SidebarLayoutProvider>
           {documentId ? (
             isValidAutomergeId ? (
-              <DocumentsHistory documentId={documentId as VersionControlId} />
+              <DocumentsHistory />
             ) : (
               <InvalidDocument />
             )
