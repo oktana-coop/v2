@@ -1,3 +1,4 @@
+import * as Effect from 'effect/Effect';
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import { ElectronContext } from '../../electron';
@@ -11,15 +12,12 @@ import {
   createProjectFromFilesystemContent,
   updateProjectFromFilesystemContent,
 } from '../commands';
+import { VersionControlId, VersionedDocumentHandle } from '../models';
 import {
-  VersionControlId,
-  VersionedDocumentHandle,
-  VersionedProject,
-} from '../models';
-import {
-  CreateDocumentArgs,
-  GetDocumentHandleAtCommitArgs,
-  VersionControlRepo,
+  type CreateDocumentArgs,
+  type FindDocumentInProjectArgs,
+  type GetDocumentHandleAtCommitArgs,
+  type VersionControlRepo,
 } from '../ports/version-control-repo';
 
 type BrowserStorageProjectData = {
@@ -29,12 +27,6 @@ type BrowserStorageProjectData = {
 };
 
 const BROWSER_STORAGE_PROJECT_DATA_KEY = 'project';
-
-type FindDocumentInProjectArgs = {
-  projectId: VersionControlId;
-  path: string;
-  name: string;
-};
 
 type VersionControlContextType = {
   isRepoReady: boolean;
@@ -74,8 +66,7 @@ export const VersionControlProvider = ({
   const [isRepoReady, setIsRepoReady] = useState<boolean>(false);
   const [projectId, setProjectId] = useState<VersionControlId | null>(null);
   const { processId, isElectron } = useContext(ElectronContext);
-  const { directory, readFile, listDirectoryFiles } =
-    useContext(FilesystemContext);
+  const { directory, filesystem } = useContext(FilesystemContext);
 
   useEffect(() => {
     const setupVersionControlRepo = async () => {
@@ -134,19 +125,22 @@ export const VersionControlProvider = ({
               directoryPath: directory.path!,
             });
           } else {
-            await updateProjectFromFilesystemContent({
-              createDocument: versionControlRepo.createDocument,
-              listProjectDocuments: versionControlRepo.listProjectDocuments,
-              findDocumentInProject: versionControlRepo.findDocumentInProject,
-              updateDocumentSpans: versionControlRepo.updateDocumentSpans,
-              deleteDocumentFromProject:
-                versionControlRepo.deleteDocumentFromProject,
-              listDirectoryFiles: listDirectoryFiles,
-              readFile: readFile,
-            })({
-              projectId: projId,
-              directoryPath: directory.path!,
-            });
+            await Effect.runPromise(
+              updateProjectFromFilesystemContent({
+                createDocument: versionControlRepo.createDocument,
+                listProjectDocuments: versionControlRepo.listProjectDocuments,
+                findDocumentInProject: versionControlRepo.findDocumentInProject,
+                getDocumentFromHandle: versionControlRepo.getDocumentFromHandle,
+                updateDocumentSpans: versionControlRepo.updateDocumentSpans,
+                deleteDocumentFromProject:
+                  versionControlRepo.deleteDocumentFromProject,
+                listDirectoryFiles: filesystem.listDirectoryFiles,
+                readFile: filesystem.readFile,
+              })({
+                projectId: projId,
+                directoryPath: directory.path!,
+              })
+            );
           }
         } else {
           if (isElectron) {
@@ -155,14 +149,16 @@ export const VersionControlProvider = ({
               directoryPath: directory.path!,
             });
           } else {
-            projId = await createProjectFromFilesystemContent({
-              createProject: versionControlRepo.createProject,
-              createDocument: versionControlRepo.createDocument,
-              listDirectoryFiles: listDirectoryFiles,
-              readFile: readFile,
-            })({
-              directoryPath: directory.path!,
-            });
+            projId = await Effect.runPromise(
+              createProjectFromFilesystemContent({
+                createProject: versionControlRepo.createProject,
+                createDocument: versionControlRepo.createDocument,
+                listDirectoryFiles: filesystem.listDirectoryFiles,
+                readFile: filesystem.readFile,
+              })({
+                directoryPath: directory.path!,
+              })
+            );
           }
 
           localStorage.setItem(
@@ -190,7 +186,7 @@ export const VersionControlProvider = ({
       throw new Error('No repo found when trying to create document');
     }
 
-    return versionControlRepo.createDocument(args);
+    return Effect.runPromise(versionControlRepo.createDocument(args));
   };
 
   const handleGetDocumentHandleAtCommit = async (
@@ -200,7 +196,9 @@ export const VersionControlProvider = ({
       throw new Error('No repo found when trying to get doc handle at commit');
     }
 
-    return versionControlRepo.getDocumentHandleAtCommit(args);
+    return Effect.runPromise(
+      versionControlRepo.getDocumentHandleAtCommit(args)
+    );
   };
 
   const handleFindDocument = async (id: VersionControlId) => {
@@ -208,43 +206,20 @@ export const VersionControlProvider = ({
       throw new Error('No repo found when trying to create document');
     }
 
-    return versionControlRepo.findDocumentById(id);
+    return Effect.runPromise(versionControlRepo.findDocumentById(id));
   };
 
   const handleFindDocumentInProject = async ({
     projectId,
-    path,
-    name,
+    documentPath,
   }: FindDocumentInProjectArgs) => {
     if (!versionControlRepo) {
       throw new Error('No repo found when trying to find file in project');
     }
 
-    const projectHandle = await versionControlRepo.findProjectById(projectId);
-    if (!projectHandle) {
-      throw new Error('No project handle found in repository');
-    }
-
-    const project = (await projectHandle.doc()) as VersionedProject | undefined;
-
-    if (!project) {
-      throw new Error('No project found in repository');
-    }
-
-    const documentMetaData = Object.values(project.documents).find(
-      ({ name: documentName, path: documentPath }) =>
-        documentName === name && documentPath === path
+    return Effect.runPromise(
+      versionControlRepo.findDocumentInProject({ projectId, documentPath })
     );
-
-    if (!documentMetaData) {
-      return null;
-    }
-
-    const document = await versionControlRepo.findDocumentById(
-      documentMetaData.versionControlId
-    );
-
-    return document;
   };
 
   return (

@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { exec } from 'child_process';
+import * as Effect from 'effect/Effect';
 import {
   app,
   BrowserWindow,
@@ -13,6 +14,7 @@ import {
 } from 'electron';
 import os from 'os';
 
+import { runPromiseSerializingErrorsForIPC } from '../modules/electron/ipc-effect';
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/filesystem/adapters/electron-node-api';
 import { type VersionControlId } from '../modules/version-control';
 import {
@@ -118,26 +120,32 @@ async function createWindow() {
   // Apply electron-updater
   update(win);
 
-  ipcMain.handle('open-directory', async () => filesystemAPI.openDirectory());
-  ipcMain.handle('get-directory', async (_, path: string) =>
-    filesystemAPI.getDirectory(path)
+  ipcMain.handle('open-directory', async () =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.openDirectory())
   );
-  ipcMain.handle('list-directory-files', (_, path: string) =>
-    filesystemAPI.listDirectoryFiles(path)
+  ipcMain.handle('get-directory', async (_, path: string) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.getDirectory(path))
+  );
+  ipcMain.handle('list-directory-files', async (_, path: string) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.listDirectoryFiles(path))
   );
   ipcMain.handle('request-permission-for-directory', (_, path: string) =>
-    filesystemAPI.requestPermissionForDirectory(path)
+    runPromiseSerializingErrorsForIPC(
+      filesystemAPI.requestPermissionForDirectory(path)
+    )
   );
   ipcMain.handle('create-new-file', (_, suggestedName: string) =>
-    filesystemAPI.createNewFile(suggestedName)
+    runPromiseSerializingErrorsForIPC(
+      filesystemAPI.createNewFile(suggestedName)
+    )
   );
   ipcMain.handle(
     'write-file',
     (_, { path, content }: { path: string; content: string }) =>
-      filesystemAPI.writeFile(path, content)
+      runPromiseSerializingErrorsForIPC(filesystemAPI.writeFile(path, content))
   );
   ipcMain.handle('read-file', (_, path: string) =>
-    filesystemAPI.readFile(path)
+    runPromiseSerializingErrorsForIPC(filesystemAPI.readFile(path))
   );
 
   ipcMain.handle(
@@ -149,13 +157,18 @@ async function createWindow() {
         );
       }
 
-      return openOrCreateProject({
-        directoryPath,
-        rendererProcessId,
-        browserWindow: win,
-        listDirectoryFiles: filesystemAPI.listDirectoryFiles,
-        readFile: filesystemAPI.readFile,
-      });
+      return Effect.runPromise(
+        openOrCreateProject({
+          directoryPath,
+          rendererProcessId,
+          browserWindow: win,
+          listDirectoryFiles: filesystemAPI.listDirectoryFiles,
+          readFile: filesystemAPI.readFile,
+          writeFile: filesystemAPI.writeFile,
+          assertWritePermissionForDirectory:
+            filesystemAPI.assertWritePermissionForDirectory,
+        })
+      );
     }
   );
 
@@ -174,14 +187,18 @@ async function createWindow() {
         );
       }
 
-      return openProjectById({
-        projectId,
-        directoryPath,
-        rendererProcessId,
-        browserWindow: win,
-        listDirectoryFiles: filesystemAPI.listDirectoryFiles,
-        readFile: filesystemAPI.readFile,
-      });
+      return Effect.runPromise(
+        openProjectById({
+          projectId,
+          directoryPath,
+          rendererProcessId,
+          browserWindow: win,
+          listDirectoryFiles: filesystemAPI.listDirectoryFiles,
+          readFile: filesystemAPI.readFile,
+          assertWritePermissionForDirectory:
+            filesystemAPI.assertWritePermissionForDirectory,
+        })
+      );
     }
   );
 

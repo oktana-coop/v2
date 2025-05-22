@@ -2,7 +2,7 @@ const dbName = 'file_handles';
 const dbVersion = 1;
 const storeName = 'file_handles';
 
-import { IDBFileInfo } from './types';
+import { BrowserStorageFileInfo } from './types';
 
 export const openDB: () => Promise<IDBDatabase> = () => {
   const request = window.indexedDB.open(dbName, dbVersion);
@@ -40,7 +40,7 @@ export const openDB: () => Promise<IDBDatabase> = () => {
 
 // Clears the database and inserts a single file info object.
 export const clearAndInsertOne: (input: {
-  fileInfo: IDBFileInfo;
+  fileInfo: BrowserStorageFileInfo;
   db: IDBDatabase;
 }) => Promise<void> = ({ fileInfo, db }) => {
   const transaction = db.transaction(storeName, 'readwrite');
@@ -56,7 +56,7 @@ export const clearAndInsertOne: (input: {
 };
 
 export const insertOne: (input: {
-  fileInfo: IDBFileInfo;
+  fileInfo: BrowserStorageFileInfo;
   db: IDBDatabase;
 }) => Promise<void> = ({ fileInfo, db }) => {
   const transaction = db.transaction(storeName, 'readwrite');
@@ -83,7 +83,7 @@ export const clearAll: (db: IDBDatabase) => Promise<void> = (db) => {
 };
 
 export const clearAndInsertMany: (input: {
-  files: Array<IDBFileInfo>;
+  files: Array<BrowserStorageFileInfo>;
   db: IDBDatabase;
 }) => Promise<void> = ({ files, db }) => {
   const transaction = db.transaction(storeName, 'readwrite');
@@ -101,8 +101,8 @@ export const clearAndInsertMany: (input: {
 
 export const get: (input: {
   db: IDBDatabase;
-  relativePath: IDBFileInfo['relativePath'];
-}) => Promise<IDBFileInfo | null> = ({ relativePath, db }) => {
+  relativePath: BrowserStorageFileInfo['relativePath'];
+}) => Promise<BrowserStorageFileInfo | null> = ({ relativePath, db }) => {
   const request = db
     .transaction(storeName, 'readwrite')
     .objectStore(storeName)
@@ -110,7 +110,7 @@ export const get: (input: {
 
   return new Promise((resolve, reject) => {
     request.onsuccess = () => {
-      resolve((request.result as IDBFileInfo) ?? null);
+      resolve((request.result as BrowserStorageFileInfo) ?? null);
     };
 
     request.onerror = (err) => reject(err);

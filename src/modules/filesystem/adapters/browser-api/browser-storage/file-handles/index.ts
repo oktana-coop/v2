@@ -5,7 +5,7 @@ import {
   insertOne,
   openDB,
 } from './database';
-import { IDBFileInfo } from './types';
+import { BrowserStorageFileInfo } from './types';
 
 export const persistFileHandle = async ({
   handle,
@@ -15,7 +15,7 @@ export const persistFileHandle = async ({
   relativePath: string;
 }) => {
   const db = await openDB();
-  const fileInfo: IDBFileInfo = { fileHandle: handle, relativePath };
+  const fileInfo: BrowserStorageFileInfo = { fileHandle: handle, relativePath };
   return await insertOne({ fileInfo, db });
 };
 
@@ -35,3 +35,5 @@ export const getFileHandle = async (relativePath: string) => {
   const db = await openDB();
   return get({ relativePath, db });
 };
+
+export * from './types';

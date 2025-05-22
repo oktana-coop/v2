@@ -1,10 +1,15 @@
+import * as Effect from 'effect/Effect';
+
+import { NotFoundError, RepositoryError } from '../errors';
 import type {
   Commit,
   DocumentMetaData,
   Project,
   RichTextDocumentSpan,
   VersionControlId,
+  VersionedDocument,
   VersionedDocumentHandle,
+  VersionedProject,
   VersionedProjectHandle,
 } from '../models';
 
@@ -42,32 +47,54 @@ export type UpdateDocumentSpansArgs = {
 };
 
 export type VersionControlRepo = {
-  createProject: (args: CreateProjectArgs) => Promise<VersionControlId>;
+  createProject: (
+    args: CreateProjectArgs
+  ) => Effect.Effect<VersionControlId, RepositoryError, never>;
   findProjectById: (
     id: VersionControlId
-  ) => Promise<VersionedProjectHandle | null>;
+  ) => Effect.Effect<
+    VersionedProjectHandle,
+    RepositoryError | NotFoundError,
+    never
+  >;
   listProjectDocuments: (
     id: VersionControlId
-  ) => Promise<Array<DocumentMetaData>>;
-  createDocument: ({
-    title,
-    name,
-    path,
-    projectId,
-  }: CreateDocumentArgs) => Promise<VersionControlId>;
-  getDocumentHandleAtCommit: ({
-    documentHandle,
-    heads,
-  }: GetDocumentHandleAtCommitArgs) => VersionedDocumentHandle;
+  ) => Effect.Effect<
+    DocumentMetaData[],
+    RepositoryError | NotFoundError,
+    never
+  >;
+  createDocument: (
+    args: CreateDocumentArgs
+  ) => Effect.Effect<VersionControlId, RepositoryError, never>;
+  getDocumentHandleAtCommit: (
+    args: GetDocumentHandleAtCommitArgs
+  ) => Effect.Effect<VersionedDocumentHandle, RepositoryError, never>;
   findDocumentById: (
     id: VersionControlId
-  ) => Promise<VersionedDocumentHandle | null>;
+  ) => Effect.Effect<
+    VersionedDocumentHandle,
+    RepositoryError | NotFoundError,
+    never
+  >;
   deleteDocumentFromProject: (
     args: DeleteDocumentFromProjectArgs
-  ) => Promise<void>;
+  ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;
   findDocumentInProject: (
     args: FindDocumentInProjectArgs
-  ) => Promise<VersionedDocumentHandle | null>;
+  ) => Effect.Effect<
+    VersionedDocumentHandle,
+    RepositoryError | NotFoundError,
+    never
+  >;
+  getProjectFromHandle: (
+    handle: VersionedProjectHandle
+  ) => Effect.Effect<VersionedProject, RepositoryError | NotFoundError, never>;
+  getDocumentFromHandle: (
+    handle: VersionedDocumentHandle
+  ) => Effect.Effect<VersionedDocument, RepositoryError | NotFoundError, never>;
   // TODO: Think of a better abstraction - this is too Automerge-specific
-  updateDocumentSpans: (args: UpdateDocumentSpansArgs) => Promise<void>;
+  updateDocumentSpans: (
+    args: UpdateDocumentSpansArgs
+  ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;
 };

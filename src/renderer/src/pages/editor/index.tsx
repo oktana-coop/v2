@@ -107,8 +107,7 @@ const EditorIndex = () => {
 
     const documentHandle = await findDocumentInProject({
       projectId,
-      path: file.path!,
-      name: file.name,
+      documentPath: file.path!,
     });
 
     if (!documentHandle) {

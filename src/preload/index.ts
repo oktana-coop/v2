@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-import type { Filesystem as FilesystemAPI } from '../modules/filesystem';
+import { type PromisifyEffects } from '../modules/electron/ipc-effect';
+import { type Filesystem as FilesystemAPI } from '../modules/filesystem';
 import type {
   FromMainMessage,
   FromRendererMessage,
@@ -28,6 +29,8 @@ contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
     ),
 });
 
+type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
+
 contextBridge.exposeInMainWorld('filesystemAPI', {
   openDirectory: () => ipcRenderer.invoke('open-directory'),
   getDirectory: (path: string) => ipcRenderer.invoke('get-directory', path),
@@ -40,7 +43,7 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
   writeFile: (path: string, content: string) =>
     ipcRenderer.invoke('write-file', { path, content }),
   readFile: (path: string) => ipcRenderer.invoke('read-file', path),
-} as FilesystemAPI);
+} as FilesystemPromiseAPI);
 
 contextBridge.exposeInMainWorld('versionControlAPI', {
   openOrCreateProject: ({ directoryPath }: { directoryPath: string }) =>

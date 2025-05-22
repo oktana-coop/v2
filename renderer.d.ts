@@ -1,5 +1,6 @@
 import type { IpcRenderer } from 'electron';
 
+import { type PromisifyEffects } from './src/modules/electron/ipc-effect';
 import type { Filesystem as FilesystemAPI } from './src/modules/filesystem';
 import type {
   FromMainMessage,
@@ -31,11 +32,13 @@ export type VersionControlAPI = {
   }) => Promise<void>;
 };
 
+type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
+
 declare global {
   interface Window {
     electronAPI: ElectronAPI;
     automergeRepoNetworkAdapter: AutomergeRepoNetworkAdapter;
-    filesystemAPI: FilesystemAPI;
+    filesystemAPI: FilesystemPromiseAPI;
     versionControlAPI: VersionControlAPI;
     wasmAPI: WasmAPI;
   }
