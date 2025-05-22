@@ -1,4 +1,10 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
 import { ElectronContext } from '../../electron';
@@ -11,7 +17,9 @@ import {
   encodeURLHeadsForChange,
   getDocumentHandleHistory,
   getDocumentHeads,
+  headsAreSame,
   isContentSameAtHeads,
+  isEmpty,
   isValidVersionControlId,
   type RichTextDocument,
   type UrlHeads,
@@ -33,6 +41,10 @@ type SelectedFileContextType = {
   versionedDocumentHandle: VersionedDocumentHandle | null;
   versionedDocumentHistory: ChangeWithUrlInfo[];
   canCommit: boolean;
+  onCommit: (message: string) => void;
+  isCommitDialogOpen: boolean;
+  onOpenCommitDialog: () => void;
+  onCloseCommitDialog: () => void;
 };
 
 export const SelectedFileContext = createContext<SelectedFileContextType>({
@@ -42,6 +54,10 @@ export const SelectedFileContext = createContext<SelectedFileContextType>({
   versionedDocumentHandle: null,
   versionedDocumentHistory: [],
   canCommit: false,
+  onCommit: () => {},
+  isCommitDialogOpen: false,
+  onOpenCommitDialog: () => {},
+  onCloseCommitDialog: () => {},
 });
 
 export const SelectedFileProvider = ({
@@ -63,6 +79,7 @@ export const SelectedFileProvider = ({
   >([]);
   const [lastCommit, setLastCommit] = useState<Commit | null>(null);
   const [canCommit, setCanCommit] = useState(false);
+  const [isCommitDialogOpen, setIsCommitDialogOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const updateFileSelection = async () => {
@@ -111,14 +128,42 @@ export const SelectedFileProvider = ({
     latestChangeHeads: UrlHeads,
     lastCommitHeads: UrlHeads
   ) => {
-    if (!isContentSameAtHeads(currentDoc, latestChangeHeads, lastCommitHeads)) {
+    if (
+      !headsAreSame(latestChangeHeads, lastCommitHeads) &&
+      !isContentSameAtHeads(currentDoc, latestChangeHeads, lastCommitHeads)
+    ) {
       setCanCommit(true);
     } else {
       setCanCommit(false);
     }
   };
 
+  const checkIfCanCommit = (
+    currentDoc: VersionedDocument,
+    latestChangeHeads: UrlHeads,
+    lastCommitHeads?: UrlHeads
+  ) => {
+    if (lastCommitHeads) {
+      checkIfContentChangedFromLastCommit(
+        currentDoc,
+        latestChangeHeads,
+        lastCommitHeads
+      );
+    } else {
+      if (!isEmpty(currentDoc)) {
+        setCanCommit(true);
+      } else {
+        setCanCommit(false);
+      }
+    }
+  };
+
   useEffect(() => {
+    const updateDocTitle = async (docHandle: VersionedDocumentHandle) => {
+      const doc = await docHandle.doc();
+      document.title = `v2 | "${doc.title}"`;
+    };
+
     const loadHistory = async (docHandle: VersionedDocumentHandle) => {
       const { history, currentDoc, lastCommit, latestChange } =
         await getDocumentHandleHistory(docHandle);
@@ -130,34 +175,30 @@ export const SelectedFileProvider = ({
 
       setVersionedDocumentHistory(historyWithURLInfo);
       setLastCommit(lastCommit);
-      if (lastCommit) {
-        checkIfContentChangedFromLastCommit(
-          currentDoc,
-          latestChange.heads,
-          lastCommit.heads
-        );
-      }
+      checkIfCanCommit(currentDoc, latestChange.heads, lastCommit?.heads);
     };
 
     if (versionedDocumentHandle) {
+      updateDocTitle(versionedDocumentHandle);
       loadHistory(versionedDocumentHandle);
     }
   }, [versionedDocumentHandle]);
 
   useEffect(() => {
-    if (versionedDocumentHandle && lastCommit) {
+    if (versionedDocumentHandle) {
       versionedDocumentHandle.on(
         'change',
-        (args: DocHandleChangePayload<VersionedDocument>) =>
-          checkIfContentChangedFromLastCommit(
+        (args: DocHandleChangePayload<VersionedDocument>) => {
+          checkIfCanCommit(
             args.doc,
             getDocumentHeads(args.doc),
-            lastCommit.heads
-          )
+            lastCommit?.heads
+          );
+        }
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastCommit]);
+  }, [lastCommit, versionedDocumentHandle]);
 
   const clearFileSelection = async () => {
     setSelectedFileInfo(null);
@@ -177,6 +218,37 @@ export const SelectedFileProvider = ({
     });
   };
 
+  const commitChanges = useCallback(
+    (message: string) => {
+      if (!versionedDocumentHandle) return;
+
+      versionedDocumentHandle.change(
+        (doc) => {
+          // this is effectively a no-op, but it triggers a change event
+          // (not) changing the title of the document, as interfering with the
+          // content outside the Prosemirror API will cause loss of formatting
+          // eslint-disable-next-line no-self-assign
+          doc.title = doc.title;
+        },
+        {
+          message,
+          time: new Date().getTime(),
+        }
+      );
+
+      setIsCommitDialogOpen(false);
+      setCanCommit(false);
+    },
+    [versionedDocumentHandle]
+  );
+
+  const handleOpenCommitDialog = useCallback(() => {
+    setIsCommitDialogOpen(true);
+  }, []);
+
+  const handleCloseCommitDialog = useCallback(() => {
+    setIsCommitDialogOpen(false);
+  }, []);
   return (
     <SelectedFileContext.Provider
       value={{
@@ -186,6 +258,10 @@ export const SelectedFileProvider = ({
         clearFileSelection,
         versionedDocumentHistory,
         canCommit,
+        onCommit: commitChanges,
+        isCommitDialogOpen,
+        onOpenCommitDialog: handleOpenCommitDialog,
+        onCloseCommitDialog: handleCloseCommitDialog,
       }}
     >
       {children}
