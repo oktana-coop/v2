@@ -119,7 +119,9 @@
       "@swc/core",
       "cbor-extract",
       "electron",
-      "esbuild"
+      "electron-winstaller",
+      "esbuild",
+      "storybook-addon-remix-react-router"
     ]
   }
 }
