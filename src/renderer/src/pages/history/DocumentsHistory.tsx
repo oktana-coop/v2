@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router';
 
 import { SelectedFileContext } from '../../../../modules/editor-state';
 import { SidebarLayoutContext } from '../../../../modules/editor-state/sidebar-layout/context';

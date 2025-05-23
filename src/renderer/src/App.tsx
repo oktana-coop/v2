@@ -1,7 +1,7 @@
 import './App.css';
 
 import { useContext } from 'react';
-import { BrowserRouter, HashRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Route, Routes } from 'react-router';
 
 import { ElectronContext } from '../../modules/electron';
 import { VersionControlContext } from '../../modules/version-control/react';

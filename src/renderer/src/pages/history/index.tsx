@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 
 import { SelectedFileProvider } from '../../../../modules/editor-state';
 import { SidebarLayoutProvider } from '../../../../modules/editor-state/sidebar-layout/context';

@@ -5,7 +5,7 @@ import {
   useEffect,
   useState,
 } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 
 import { ElectronContext } from '../../electron';
 import { FilesystemContext } from '../../filesystem';
