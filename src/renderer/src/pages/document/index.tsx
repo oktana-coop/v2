@@ -155,7 +155,7 @@ const DocumentIndex = () => {
         <CommandPalette
           open={isCommandPaletteOpen}
           onClose={() => setCommandPaletteOpen(false)}
-          documentsGroupTitle={'Other documents'}
+          documentsGroupTitle={`${selectedFileInfo ? 'Other' : 'Project'}  documents`}
           documents={
             directoryFiles
             .filter((file) => selectedFileInfo?.path !== file.path)
