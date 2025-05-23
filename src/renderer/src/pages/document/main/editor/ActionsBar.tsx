@@ -1,12 +1,12 @@
 import { useRef } from 'react';
 
-import { IconButton } from '../../../components/actions/IconButton';
+import { IconButton } from '../../../../components/actions/IconButton';
 import {
   CheckIcon,
   SidebarIcon,
   SidebarOpenIcon,
   ToolbarToggleIcon,
-} from '../../../components/icons';
+} from '../../../../components/icons';
 
 export const ActionsBar = ({
   isSidebarOpen,

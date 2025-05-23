@@ -1,9 +1,9 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 
-import { SelectedFileContext } from '../../../../../modules/editor-state';
-import { SidebarLayoutContext } from '../../../../../modules/editor-state/sidebar-layout/context';
-import { FunctionalityConfigContext } from '../../../../../modules/personalization/functionality-config';
+import { SelectedFileContext } from '../../../../../../modules/editor-state';
+import { SidebarLayoutContext } from '../../../../../../modules/editor-state/sidebar-layout/context';
+import { FunctionalityConfigContext } from '../../../../../../modules/personalization/functionality-config';
 import {
   type Change,
   type ChangeWithUrlInfo,
@@ -15,18 +15,20 @@ import {
   UrlHeads,
   type VersionedDocument,
   type VersionedDocumentHandle,
-} from '../../../../../modules/version-control';
-import { VersionControlContext } from '../../../../../modules/version-control/react';
+} from '../../../../../../modules/version-control';
+import { VersionControlContext } from '../../../../../../modules/version-control/react';
 import { ActionsBar } from './ActionsBar';
 import { type DiffViewProps, ReadOnlyView } from './ReadOnlyView';
 
-export const DocumentHistory = () => {
-  const { changeId } = useParams();
+export const DocumentHistoricalView = () => {
+  const { changeId, documentId } = useParams();
   const {
     versionedDocumentHandle,
     versionedDocumentHistory: commits,
     selectedCommitIndex,
     onSelectCommit,
+    canCommit,
+    onOpenCommitDialog,
   } = useContext(SelectedFileContext);
   const { getDocumentHandleAtCommit } = useContext(VersionControlContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
@@ -35,6 +37,7 @@ export const DocumentHistory = () => {
   const [diffProps, setDiffProps] = useState<DiffViewProps | null>(null);
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const { showDiffInHistoryView, setShowDiffInHistoryView } = useContext(
     FunctionalityConfigContext
@@ -115,7 +118,8 @@ export const DocumentHistory = () => {
     if (
       versionedDocumentHandle &&
       commits.length > 0 &&
-      selectedCommitIndex !== null
+      selectedCommitIndex !== null &&
+      selectedCommitIndex >= 0
     ) {
       loadDocOrDiff(versionedDocumentHandle, commits, selectedCommitIndex);
     }
@@ -187,6 +191,10 @@ export const DocumentHistory = () => {
     return setShowDiffInHistoryView(checked);
   };
 
+  const handleEditClick = () => {
+    navigate(`/documents/${documentId}`);
+  };
+
   if (!doc) {
     return (
       // TODO: Use a spinner
@@ -212,6 +220,15 @@ export const DocumentHistory = () => {
           selectedCommitIndex ? commits.slice(selectedCommitIndex + 1) : commits
         }
         onDiffCommitSelect={handleDiffCommitSelect}
+        canCommit={canCommit}
+        lastChangeIsCommitAndSelected={Boolean(
+          selectedCommitIndex === 0 && isCommit(commits[selectedCommitIndex])
+        )}
+        uncommittedChangesSelected={Boolean(
+          selectedCommitIndex === 0 && !isCommit(commits[selectedCommitIndex])
+        )}
+        onCommitIconClick={onOpenCommitDialog}
+        onEditIconClick={handleEditClick}
       />
       {diffProps ? <ReadOnlyView {...diffProps} /> : <ReadOnlyView doc={doc} />}
     </div>

@@ -5,20 +5,25 @@ import {
   decodeURLHeads,
   encodeURLHeads,
   type UrlHeads,
-} from '../../../../../modules/version-control';
-import { IconButton } from '../../../components/actions/IconButton';
+} from '../../../../../../modules/version-control';
+import { IconButton } from '../../../../components/actions/IconButton';
 import {
+  CheckIcon,
+  PenIcon,
   RevertIcon,
   SidebarIcon,
   SidebarOpenIcon,
-} from '../../../components/icons';
-import { Checkbox, CheckboxField } from '../../../components/inputs/Checkbox';
-import { Label } from '../../../components/inputs/Fieldset';
+} from '../../../../components/icons';
+import {
+  Checkbox,
+  CheckboxField,
+} from '../../../../components/inputs/Checkbox';
+import { Label } from '../../../../components/inputs/Fieldset';
 import {
   Listbox,
   ListboxLabel,
   ListboxOption,
-} from '../../../components/inputs/Listbox';
+} from '../../../../components/inputs/Listbox';
 
 export const ActionsBar = ({
   title,
@@ -31,6 +36,10 @@ export const ActionsBar = ({
   diffWith,
   history,
   onDiffCommitSelect,
+  lastChangeIsCommitAndSelected,
+  uncommittedChangesSelected,
+  onEditIconClick,
+  onCommitIconClick,
 }: {
   title: string;
   isSidebarOpen: boolean;
@@ -42,6 +51,11 @@ export const ActionsBar = ({
   diffWith: UrlHeads | null;
   history: Array<ChangeWithUrlInfo>;
   onDiffCommitSelect: (heads: UrlHeads) => void;
+  canCommit: boolean;
+  lastChangeIsCommitAndSelected: boolean;
+  uncommittedChangesSelected: boolean;
+  onEditIconClick: () => void;
+  onCommitIconClick: () => void;
 }) => {
   const sidebarButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -59,6 +73,11 @@ export const ActionsBar = ({
   const handleRevertIconClick = (ev: React.MouseEvent) => {
     ev.preventDefault();
     onRevertIconClick();
+  };
+
+  const handleCheckIconClick = (ev: React.MouseEvent) => {
+    ev.preventDefault();
+    onCommitIconClick();
   };
 
   const handleDiffCommitSelect = (heads: string) => {
@@ -104,7 +123,18 @@ export const ActionsBar = ({
           </div>
         )}
 
-        <IconButton onClick={handleRevertIconClick} icon={<RevertIcon />} />
+        <IconButton
+          onClick={
+            uncommittedChangesSelected
+              ? handleCheckIconClick
+              : handleRevertIconClick
+          }
+          icon={uncommittedChangesSelected ? <CheckIcon /> : <RevertIcon />}
+          disabled={lastChangeIsCommitAndSelected}
+          color={uncommittedChangesSelected ? 'purple' : undefined}
+        />
+
+        <IconButton icon={<PenIcon />} onClick={onEditIconClick} />
       </div>
     </div>
   );

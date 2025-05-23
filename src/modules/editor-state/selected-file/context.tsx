@@ -1,3 +1,4 @@
+import debounce from 'debounce';
 import {
   createContext,
   useCallback,
@@ -170,24 +171,24 @@ export const SelectedFileProvider = ({
     }
   };
 
+  const loadHistory = async (docHandle: VersionedDocumentHandle) => {
+    const { history, currentDoc, lastCommit, latestChange } =
+      await getDocumentHandleHistory(docHandle);
+
+    const historyWithURLInfo = history.map((commit) => ({
+      ...commit,
+      urlEncodedHeads: encodeURLHeadsForChange(commit),
+    }));
+
+    setVersionedDocumentHistory(historyWithURLInfo);
+    setLastCommit(lastCommit);
+    checkIfCanCommit(currentDoc, latestChange.heads, lastCommit?.heads);
+  };
+
   useEffect(() => {
     const updateDocTitle = async (docHandle: VersionedDocumentHandle) => {
       const doc = await docHandle.doc();
       document.title = `v2 | "${doc.title}"`;
-    };
-
-    const loadHistory = async (docHandle: VersionedDocumentHandle) => {
-      const { history, currentDoc, lastCommit, latestChange } =
-        await getDocumentHandleHistory(docHandle);
-
-      const historyWithURLInfo = history.map((commit) => ({
-        ...commit,
-        urlEncodedHeads: encodeURLHeadsForChange(commit),
-      }));
-
-      setVersionedDocumentHistory(historyWithURLInfo);
-      setLastCommit(lastCommit);
-      checkIfCanCommit(currentDoc, latestChange.heads, lastCommit?.heads);
     };
 
     if (versionedDocumentHandle) {
@@ -198,16 +199,21 @@ export const SelectedFileProvider = ({
 
   useEffect(() => {
     if (versionedDocumentHandle) {
-      versionedDocumentHandle.on(
-        'change',
-        (args: DocHandleChangePayload<VersionedDocument>) => {
-          checkIfCanCommit(
-            args.doc,
-            getDocumentHeads(args.doc),
-            lastCommit?.heads
-          );
-        }
-      );
+      const handler = (args: DocHandleChangePayload<VersionedDocument>) => {
+        loadHistory(versionedDocumentHandle);
+        checkIfCanCommit(
+          args.doc,
+          getDocumentHeads(args.doc),
+          lastCommit?.heads
+        );
+      };
+
+      const debouncedHandler = debounce(handler, 300);
+      versionedDocumentHandle.on('change', debouncedHandler);
+
+      return () => {
+        versionedDocumentHandle.off('change', debouncedHandler);
+      };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastCommit, versionedDocumentHandle]);
@@ -280,7 +286,7 @@ export const SelectedFileProvider = ({
         ? null
         : versionedDocumentHistory[selectedCommitIndex + 1];
 
-      let newUrl = `/history/${documentId}/${encodeURLHeads(heads)}`;
+      let newUrl = `/documents/${documentId}/changes/${encodeURLHeads(heads)}`;
       if (diffCommit) {
         const diffCommitURLEncodedHeads = encodeURLHeadsForChange(diffCommit);
         newUrl += `?diffWith=${diffCommitURLEncodedHeads}`;
