@@ -1,50 +1,51 @@
 import { useContext, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 
 import {
   SelectedFileContext,
   SelectedFileProvider,
 } from '../../../../modules/editor-state';
-import {
-  SidebarLayoutContext,
-  SidebarLayoutProvider,
-} from '../../../../modules/editor-state/sidebar-layout/context';
+import { SidebarLayoutProvider } from '../../../../modules/editor-state/sidebar-layout/context';
 import {
   type File,
   FilesystemContext,
   removeExtension,
 } from '../../../../modules/filesystem';
 import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
-import { isValidVersionControlId } from '../../../../modules/version-control';
+import { decodeURLHeads } from '../../../../modules/version-control';
 import { VersionControlContext } from '../../../../modules/version-control/react';
 import { Button } from '../../components/actions/Button';
 import { CommandPalette } from '../../components/dialogs/command-palette/CommandPalette';
 import { Modal } from '../../components/dialogs/Modal';
-import { EmptyDocument } from '../../components/document-views/EmptyDocument';
-import { InvalidDocument } from '../../components/document-views/InvalidDocument';
-import { PenIcon } from '../../components/icons';
 import { Layout } from '../../components/layout/Layout';
 import { SidebarLayout } from '../../components/layout/SidebarLayout';
+import { StackedResizablePanelsLayout } from '../../components/layout/StackedResizablePanelsLayout';
 import { useKeyBindings } from '../../hooks/useKeyBindings';
-import { DocumentEditor } from './DocumentEditor';
-import { FileExplorer } from './FileExplorer';
+import { CommitDialog } from './commit/CommitDialog';
+import { DocumentMainViewRouter } from './main/DocumentMainViewRouter';
+import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
+import { FileExplorer } from './sidebar/file-explorer/FileExplorer';
 
-export const Editor = () => {
-  return (
-    <SelectedFileProvider>
-      <SidebarLayoutProvider>
-        <EditorIndex />
-      </SidebarLayoutProvider>
-    </SelectedFileProvider>
-  );
-};
+export const Document = () => (
+  <SelectedFileProvider>
+    <SidebarLayoutProvider>
+      <DocumentIndex />
+    </SidebarLayoutProvider>
+  </SelectedFileProvider>
+);
 
-const EditorIndex = () => {
+export {
+  DocumentEditor,
+  DocumentHistoricalView,
+  DocumentMainViewRouter,
+} from './main';
+
+const DocumentIndex = () => {
   const [newDocTitle, setNewDocTitle] = useState<string>('');
   const [isDocumentCreationModalOpen, openCreateDocumentModal] =
     useState<boolean>(false);
   const navigate = useNavigate();
-  const { documentId: docUrl } = useParams();
+
   const {
     directory,
     directoryFiles,
@@ -55,16 +56,19 @@ const EditorIndex = () => {
   const {
     selectedFileInfo,
     setSelectedFileInfo,
-    versionedDocumentHandle,
+    versionedDocumentHistory: commits,
+    onSelectCommit,
+    onCloseCommitDialog,
+    isCommitDialogOpen,
     canCommit,
+    onCommit,
   } = useContext(SelectedFileContext);
   const {
     projectId,
     createDocument: createVersionedDocument,
     findDocumentInProject,
   } = useContext(VersionControlContext);
-  const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
-
+  const { changeId } = useParams();
   const [isCommandPaletteOpen, setCommandPaletteOpen] =
     useState<boolean>(false);
 
@@ -88,7 +92,9 @@ const EditorIndex = () => {
     });
 
     setSelectedFileInfo({ documentId: newDocumentId, path: file.path! });
-    navigate(`/edit/${newDocumentId}?path=${encodeURIComponent(file.path!)}`);
+    navigate(
+      `/documents/${newDocumentId}?path=${encodeURIComponent(file.path!)}`
+    );
   };
 
   const handleOpenDirectory = async () => {
@@ -127,49 +133,9 @@ const EditorIndex = () => {
       path: file.path,
     });
     navigate(
-      `/edit/${documentHandle.url}?path=${encodeURIComponent(file.path)}`
+      `/documents/${documentHandle.url}?path=${encodeURIComponent(file.path)}`
     );
   };
-
-  function renderMainPane() {
-    if (!docUrl) {
-      return (
-        <EmptyDocument
-          message={
-            directory
-              ? '👈 Pick one document from the list to continue editing. Or create a new one 😉.'
-              : 'Create a new document and explore the world of versioning.'
-          }
-        >
-          <Button
-            onClick={() => openCreateDocumentModal(true)}
-            variant="solid"
-            color="purple"
-          >
-            <PenIcon />
-            Create document
-          </Button>
-        </EmptyDocument>
-      );
-    }
-
-    if (!isValidVersionControlId(docUrl)) {
-      return <InvalidDocument />;
-    }
-
-    return versionedDocumentHandle ? (
-      <DocumentEditor
-        versionedDocumentHandle={versionedDocumentHandle}
-        canCommit={canCommit}
-        isSidebarOpen={isSidebarOpen}
-        onSidebarToggle={toggleSidebar}
-      />
-    ) : (
-      <div className="flex h-full w-full items-center justify-center text-center">
-        Loading...
-      </div>
-    );
-  }
 
   return (
     <Layout>
@@ -214,6 +180,12 @@ const EditorIndex = () => {
             className="w-full rounded-md border border-gray-300 p-2"
           />
         </Modal>
+        <CommitDialog
+          isOpen={isCommitDialogOpen}
+          onCancel={onCloseCommitDialog}
+          canCommit={canCommit}
+          onCommit={(message: string) => onCommit(message)}
+        />
         <CommandPalette
           open={isCommandPaletteOpen}
           onClose={() => setCommandPaletteOpen(false)}
@@ -238,20 +210,29 @@ const EditorIndex = () => {
         <ProseMirrorProvider>
           <SidebarLayout
             sidebar={
-              <FileExplorer
-                directory={directory}
-                files={directoryFiles}
-                selectedFileInfo={selectedFileInfo}
-                onOpenDirectory={handleOpenDirectory}
-                onRequestPermissionsForCurrentDirectory={
-                  handlePermissionRequest
-                }
-                onFileSelection={handleFileSelection}
-                onCreateDocument={() => openCreateDocumentModal(true)}
-              />
+              <StackedResizablePanelsLayout autoSaveId="editor-panel-group">
+                <FileExplorer
+                  directory={directory}
+                  files={directoryFiles}
+                  selectedFileInfo={selectedFileInfo}
+                  onOpenDirectory={handleOpenDirectory}
+                  onRequestPermissionsForCurrentDirectory={
+                    handlePermissionRequest
+                  }
+                  onFileSelection={handleFileSelection}
+                  onCreateDocument={() => openCreateDocumentModal(true)}
+                />
+                <DocumentHistory
+                  commits={commits}
+                  onCommitClick={onSelectCommit}
+                  selectedCommit={changeId ? decodeURLHeads(changeId) : null}
+                />
+              </StackedResizablePanelsLayout>
             }
           >
-            {renderMainPane()}
+            <DocumentMainViewRouter
+              onCreateDocumentButtonClick={() => openCreateDocumentModal(true)}
+            />
           </SidebarLayout>
         </ProseMirrorProvider>
       </div>

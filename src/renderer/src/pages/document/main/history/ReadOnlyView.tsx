@@ -2,18 +2,18 @@ import { EditorState } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { useContext, useEffect, useRef } from 'react';
 
-import { prosemirror } from '../../../../modules/rich-text';
-import { richTextRepresentations } from '../../../../modules/rich-text';
-import { ProseMirrorContext } from '../../../../modules/rich-text/react/context';
+import { prosemirror } from '../../../../../../modules/rich-text';
+import { richTextRepresentations } from '../../../../../../modules/rich-text';
+import { ProseMirrorContext } from '../../../../../../modules/rich-text/react/context';
 import {
   getSpansString,
   type VersionedDocument,
-} from '../../../../modules/version-control';
+} from '../../../../../../modules/version-control';
 import {
   diffDelete,
   diffInsert,
   diffModify,
-} from '../../components/editing/marks';
+} from '../../../../components/editing/marks';
 
 const { automergeSchemaAdapter, diffPlugin } = prosemirror;
 

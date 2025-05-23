@@ -1,48 +1,43 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 
-import { SelectedFileContext } from '../../../../modules/editor-state';
-import { SidebarLayoutContext } from '../../../../modules/editor-state/sidebar-layout/context';
-import { FunctionalityConfigContext } from '../../../../modules/personalization/functionality-config';
-import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
+import { SelectedFileContext } from '../../../../../../modules/editor-state';
+import { SidebarLayoutContext } from '../../../../../../modules/editor-state/sidebar-layout/context';
+import { FunctionalityConfigContext } from '../../../../../../modules/personalization/functionality-config';
 import {
   type Change,
   type ChangeWithUrlInfo,
   decodeURLHeads,
   encodeURLHeads,
-  encodeURLHeadsForChange,
   getDiff,
   headsAreSame,
   isCommit,
   UrlHeads,
-  type VersionControlId,
   type VersionedDocument,
   type VersionedDocumentHandle,
-} from '../../../../modules/version-control';
-import { VersionControlContext } from '../../../../modules/version-control/react';
-import { SidebarLayout } from '../../components/layout/SidebarLayout';
+} from '../../../../../../modules/version-control';
+import { VersionControlContext } from '../../../../../../modules/version-control/react';
 import { ActionsBar } from './ActionsBar';
-import { ChangeLogSidebar } from './change-log/Sidebar';
 import { type DiffViewProps, ReadOnlyView } from './ReadOnlyView';
 
-export const DocumentsHistory = ({
-  documentId,
-}: {
-  documentId: VersionControlId;
-}) => {
-  const { changeId } = useParams();
-  const { versionedDocumentHandle, versionedDocumentHistory: commits } =
-    useContext(SelectedFileContext);
+export const DocumentHistoricalView = () => {
+  const { changeId, documentId } = useParams();
+  const {
+    versionedDocumentHandle,
+    versionedDocumentHistory: commits,
+    selectedCommitIndex,
+    onSelectCommit,
+    canCommit,
+    onOpenCommitDialog,
+  } = useContext(SelectedFileContext);
   const { getDocumentHandleAtCommit } = useContext(VersionControlContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const [doc, setDoc] = React.useState<VersionedDocument | null>();
   const [viewTitle, setViewTitle] = useState<string>('');
   const [diffProps, setDiffProps] = useState<DiffViewProps | null>(null);
-  const [selectedCommitIndex, setSelectedCommitIndex] = useState<number | null>(
-    null
-  );
-  const navigate = useNavigate();
+
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const { showDiffInHistoryView, setShowDiffInHistoryView } = useContext(
     FunctionalityConfigContext
@@ -123,7 +118,8 @@ export const DocumentsHistory = ({
     if (
       versionedDocumentHandle &&
       commits.length > 0 &&
-      selectedCommitIndex !== null
+      selectedCommitIndex !== null &&
+      selectedCommitIndex >= 0
     ) {
       loadDocOrDiff(versionedDocumentHandle, commits, selectedCommitIndex);
     }
@@ -137,35 +133,6 @@ export const DocumentsHistory = ({
     selectedCommitIndex,
   ]);
 
-  const selectCommit = useCallback(
-    (heads: UrlHeads) => {
-      const selectedCommitIndex = commits.findIndex((commit) =>
-        headsAreSame(commit.heads, heads)
-      );
-
-      const isFirstCommit = isInitialChange(selectedCommitIndex, commits);
-
-      const diffCommit = isFirstCommit
-        ? null
-        : commits[selectedCommitIndex + 1];
-
-      let newUrl = `/history/${documentId}/${encodeURLHeads(heads)}`;
-      if (diffCommit) {
-        const diffCommitURLEncodedHeads = encodeURLHeadsForChange(diffCommit);
-        newUrl += `?diffWith=${diffCommitURLEncodedHeads}`;
-      }
-
-      if (showDiffInHistoryView && diffCommit) {
-        newUrl += `&showDiff=true`;
-      }
-
-      setSelectedCommitIndex(selectedCommitIndex);
-      navigate(newUrl);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [documentId, commits, showDiffInHistoryView]
-  );
-
   useEffect(() => {
     if (commits.length > 0) {
       if (changeId) {
@@ -174,11 +141,11 @@ export const DocumentsHistory = ({
           console.error('Invalid url heads for the selected commit:', changeId);
           return;
         }
-        selectCommit(urlHeads);
+        onSelectCommit(urlHeads);
       } else {
         // If no changeId is provided, we select the last commit
         const [lastChange] = commits;
-        selectCommit(lastChange.heads);
+        onSelectCommit(lastChange.heads);
       }
     }
 
@@ -200,10 +167,6 @@ export const DocumentsHistory = ({
       loadDocument(versionedDocumentHandle);
     }
   }, [versionedDocumentHandle]);
-
-  const handleCommitClick = (heads: UrlHeads) => {
-    selectCommit(heads);
-  };
 
   const handleDiffCommitSelect = (heads: UrlHeads) => {
     setSearchParams((prev) => {
@@ -228,52 +191,46 @@ export const DocumentsHistory = ({
     return setShowDiffInHistoryView(checked);
   };
 
+  const handleEditClick = () => {
+    navigate(`/documents/${documentId}`);
+  };
+
+  if (!doc) {
+    return (
+      // TODO: Use a spinner
+      <div>Loading...</div>
+    );
+  }
+
   return (
-    <ProseMirrorProvider>
-      <SidebarLayout
-        sidebar={
-          <ChangeLogSidebar
-            commits={commits}
-            onCommitClick={handleCommitClick}
-            selectedCommit={changeId ? decodeURLHeads(changeId) : null}
-          />
+    <div className="flex flex-auto flex-col items-stretch overflow-auto outline-none">
+      <ActionsBar
+        isSidebarOpen={isSidebarOpen}
+        onSidebarToggle={toggleSidebar}
+        // TODO: Implement revert functionality
+        onRevertIconClick={() => {}}
+        title={viewTitle}
+        canShowDiff={
+          !selectedCommitIndex || !isInitialChange(selectedCommitIndex, commits)
         }
-      >
-        <>
-          {doc ? (
-            <div className="flex flex-auto flex-col items-stretch overflow-auto outline-none">
-              <ActionsBar
-                isSidebarOpen={isSidebarOpen}
-                onSidebarToggle={toggleSidebar}
-                // TODO: Implement revert functionality
-                onRevertIconClick={() => {}}
-                title={viewTitle}
-                canShowDiff={
-                  !selectedCommitIndex ||
-                  !isInitialChange(selectedCommitIndex, commits)
-                }
-                showDiff={showDiffInHistoryView}
-                onSetShowDiffChecked={handleSetShowDiffInHistoryView}
-                diffWith={getDecodedDiffParam()}
-                history={
-                  selectedCommitIndex
-                    ? commits.slice(selectedCommitIndex + 1)
-                    : commits
-                }
-                onDiffCommitSelect={handleDiffCommitSelect}
-              />
-              {diffProps ? (
-                <ReadOnlyView {...diffProps} />
-              ) : (
-                <ReadOnlyView doc={doc} />
-              )}
-            </div>
-          ) : (
-            // TODO: Use a spinner
-            <div>Loading...</div>
-          )}
-        </>
-      </SidebarLayout>
-    </ProseMirrorProvider>
+        showDiff={showDiffInHistoryView}
+        onSetShowDiffChecked={handleSetShowDiffInHistoryView}
+        diffWith={getDecodedDiffParam()}
+        history={
+          selectedCommitIndex ? commits.slice(selectedCommitIndex + 1) : commits
+        }
+        onDiffCommitSelect={handleDiffCommitSelect}
+        canCommit={canCommit}
+        lastChangeIsCommitAndSelected={Boolean(
+          selectedCommitIndex === 0 && isCommit(commits[selectedCommitIndex])
+        )}
+        uncommittedChangesSelected={Boolean(
+          selectedCommitIndex === 0 && !isCommit(commits[selectedCommitIndex])
+        )}
+        onCommitIconClick={onOpenCommitDialog}
+        onEditIconClick={handleEditClick}
+      />
+      {diffProps ? <ReadOnlyView {...diffProps} /> : <ReadOnlyView doc={doc} />}
+    </div>
   );
 };

@@ -23,11 +23,11 @@ export const Default: Story = {
   parameters: {
     reactRouter: reactRouterParameters({
       location: {
-        path: '/edit',
+        path: '/documents',
       },
       routing: reactRouterOutlets([
         {
-          path: '/edit',
+          path: '/documents',
           element: <div />,
         },
         {

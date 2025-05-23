@@ -1,13 +1,23 @@
 import './App.css';
 
 import { useContext } from 'react';
-import { BrowserRouter, HashRouter, Route, Routes } from 'react-router-dom';
+import {
+  BrowserRouter,
+  HashRouter,
+  Navigate,
+  Route,
+  Routes,
+} from 'react-router';
 
 import { ElectronContext } from '../../modules/electron';
 import { VersionControlContext } from '../../modules/version-control/react';
-import { Editor } from './pages/editor/index';
-import { History } from './pages/history/index';
+import {
+  Document,
+  DocumentEditor,
+  DocumentHistoricalView,
+} from './pages/document';
 import { Options } from './pages/options/Options';
+import { ProjectHistory } from './pages/project-history';
 
 function App() {
   const { isRepoReady } = useContext(VersionControlContext);
@@ -26,15 +36,17 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Editor />} />
-        <Route path="/edit" element={<Editor />}>
-          <Route path=":documentId" element={<Editor />} />
-        </Route>
-        <Route path="/history" element={<History />}>
-          <Route path=":documentId" element={<History />}>
-            <Route path=":changeId" element={<History />} />
+        <Route path="/" element={<Navigate to="/documents" replace />} />
+        <Route path="/documents" element={<Document />}>
+          <Route path=":documentId">
+            <Route index element={<DocumentEditor />} />
+            <Route
+              path="changes/:changeId"
+              element={<DocumentHistoricalView />}
+            />
           </Route>
         </Route>
+        <Route path="/history" element={<ProjectHistory />} />
         <Route path="/options" element={<Options />} />
       </Routes>
     </Router>

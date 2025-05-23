@@ -1,3 +1,4 @@
+import debounce from 'debounce';
 import {
   createContext,
   useCallback,
@@ -5,15 +6,18 @@ import {
   useEffect,
   useState,
 } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 
 import { ElectronContext } from '../../electron';
 import { FilesystemContext } from '../../filesystem';
+import { FunctionalityConfigContext } from '../../personalization/functionality-config';
 import {
+  type Change,
   type ChangeWithUrlInfo,
   type Commit,
   convertToStorageFormat,
   type DocHandleChangePayload,
+  encodeURLHeads,
   encodeURLHeadsForChange,
   getDocumentHandleHistory,
   getDocumentHeads,
@@ -45,6 +49,8 @@ type SelectedFileContextType = {
   isCommitDialogOpen: boolean;
   onOpenCommitDialog: () => void;
   onCloseCommitDialog: () => void;
+  selectedCommitIndex: number | null;
+  onSelectCommit: (heads: UrlHeads) => void;
 };
 
 export const SelectedFileContext = createContext<SelectedFileContextType>({
@@ -58,6 +64,8 @@ export const SelectedFileContext = createContext<SelectedFileContextType>({
   isCommitDialogOpen: false,
   onOpenCommitDialog: () => {},
   onCloseCommitDialog: () => {},
+  selectedCommitIndex: null,
+  onSelectCommit: () => {},
 });
 
 export const SelectedFileProvider = ({
@@ -80,6 +88,11 @@ export const SelectedFileProvider = ({
   const [lastCommit, setLastCommit] = useState<Commit | null>(null);
   const [canCommit, setCanCommit] = useState(false);
   const [isCommitDialogOpen, setIsCommitDialogOpen] = useState<boolean>(false);
+  const [selectedCommitIndex, setSelectedCommitIndex] = useState<number | null>(
+    null
+  );
+  const { showDiffInHistoryView } = useContext(FunctionalityConfigContext);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const updateFileSelection = async () => {
@@ -158,24 +171,24 @@ export const SelectedFileProvider = ({
     }
   };
 
+  const loadHistory = async (docHandle: VersionedDocumentHandle) => {
+    const { history, currentDoc, lastCommit, latestChange } =
+      await getDocumentHandleHistory(docHandle);
+
+    const historyWithURLInfo = history.map((commit) => ({
+      ...commit,
+      urlEncodedHeads: encodeURLHeadsForChange(commit),
+    }));
+
+    setVersionedDocumentHistory(historyWithURLInfo);
+    setLastCommit(lastCommit);
+    checkIfCanCommit(currentDoc, latestChange.heads, lastCommit?.heads);
+  };
+
   useEffect(() => {
     const updateDocTitle = async (docHandle: VersionedDocumentHandle) => {
       const doc = await docHandle.doc();
       document.title = `v2 | "${doc.title}"`;
-    };
-
-    const loadHistory = async (docHandle: VersionedDocumentHandle) => {
-      const { history, currentDoc, lastCommit, latestChange } =
-        await getDocumentHandleHistory(docHandle);
-
-      const historyWithURLInfo = history.map((commit) => ({
-        ...commit,
-        urlEncodedHeads: encodeURLHeadsForChange(commit),
-      }));
-
-      setVersionedDocumentHistory(historyWithURLInfo);
-      setLastCommit(lastCommit);
-      checkIfCanCommit(currentDoc, latestChange.heads, lastCommit?.heads);
     };
 
     if (versionedDocumentHandle) {
@@ -186,16 +199,21 @@ export const SelectedFileProvider = ({
 
   useEffect(() => {
     if (versionedDocumentHandle) {
-      versionedDocumentHandle.on(
-        'change',
-        (args: DocHandleChangePayload<VersionedDocument>) => {
-          checkIfCanCommit(
-            args.doc,
-            getDocumentHeads(args.doc),
-            lastCommit?.heads
-          );
-        }
-      );
+      const handler = (args: DocHandleChangePayload<VersionedDocument>) => {
+        loadHistory(versionedDocumentHandle);
+        checkIfCanCommit(
+          args.doc,
+          getDocumentHeads(args.doc),
+          lastCommit?.heads
+        );
+      };
+
+      const debouncedHandler = debounce(handler, 300);
+      versionedDocumentHandle.on('change', debouncedHandler);
+
+      return () => {
+        versionedDocumentHandle.off('change', debouncedHandler);
+      };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastCommit, versionedDocumentHandle]);
@@ -249,6 +267,42 @@ export const SelectedFileProvider = ({
   const handleCloseCommitDialog = useCallback(() => {
     setIsCommitDialogOpen(false);
   }, []);
+
+  const handleSelectCommit = useCallback(
+    (heads: UrlHeads) => {
+      const isInitialChange = (index: number, changes: Change[]) =>
+        index === changes.length - 1;
+
+      const selectedCommitIndex = versionedDocumentHistory.findIndex((commit) =>
+        headsAreSame(commit.heads, heads)
+      );
+
+      const isFirstCommit = isInitialChange(
+        selectedCommitIndex,
+        versionedDocumentHistory
+      );
+
+      const diffCommit = isFirstCommit
+        ? null
+        : versionedDocumentHistory[selectedCommitIndex + 1];
+
+      let newUrl = `/documents/${documentId}/changes/${encodeURLHeads(heads)}`;
+      if (diffCommit) {
+        const diffCommitURLEncodedHeads = encodeURLHeadsForChange(diffCommit);
+        newUrl += `?diffWith=${diffCommitURLEncodedHeads}`;
+      }
+
+      if (showDiffInHistoryView && diffCommit) {
+        newUrl += `&showDiff=true`;
+      }
+
+      setSelectedCommitIndex(selectedCommitIndex);
+      navigate(newUrl);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [documentId, versionedDocumentHistory, showDiffInHistoryView]
+  );
+
   return (
     <SelectedFileContext.Provider
       value={{
@@ -262,6 +316,8 @@ export const SelectedFileProvider = ({
         isCommitDialogOpen,
         onOpenCommitDialog: handleOpenCommitDialog,
         onCloseCommitDialog: handleCloseCommitDialog,
+        selectedCommitIndex,
+        onSelectCommit: handleSelectCommit,
       }}
     >
       {children}
