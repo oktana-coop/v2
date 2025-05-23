@@ -155,8 +155,11 @@ const DocumentIndex = () => {
         <CommandPalette
           open={isCommandPaletteOpen}
           onClose={() => setCommandPaletteOpen(false)}
-          documentsGroupTitle={'Recent documents'}
-          documents={directoryFiles.map((file) => ({
+          documentsGroupTitle={'Other documents'}
+          documents={
+            directoryFiles
+            .filter((file) => selectedFileInfo?.path !== file.path)
+            .map((file) => ({
             title: removeExtension(file.name),
             onDocumentSelection: () => {
               handleFileSelection(file);
