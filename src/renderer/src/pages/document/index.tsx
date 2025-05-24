@@ -62,6 +62,7 @@ const DocumentIndex = () => {
     isCommitDialogOpen,
     canCommit,
     onCommit,
+    onOpenCommitDialog,
   } = useContext(CurrentDocumentContext);
   const { projectId, findDocumentInProject } = useContext(
     VersionControlContext
@@ -137,6 +138,12 @@ const DocumentIndex = () => {
   const closeCreateDocumentModal = () => {
     setCreateDocumentModalOpen(false);
   };
+  const selectedFile = directoryFiles.find(
+    (file) => file.path === selectedFileInfo?.path
+  );
+  const selectedFileName = selectedFile
+    ? removeExtension(selectedFile.name)
+    : undefined;
 
   return (
     <Layout>
@@ -156,16 +163,43 @@ const DocumentIndex = () => {
           open={isCommandPaletteOpen}
           onClose={() => setCommandPaletteOpen(false)}
           documentsGroupTitle={`${selectedFileInfo ? 'Other' : 'Project'}  documents`}
-          documents={
-            directoryFiles
+          contextualSection={
+            selectedFileName
+              ? {
+                  groupTitle: `Current document: ${selectedFileName}`,
+                  actions: [
+                    ...(canCommit
+                      ? [
+                          {
+                            name: 'Commit changes',
+                            shortcut: 'S',
+                            onActionSelection: () => {
+                              console.log('Commit changes action selected');
+                              onOpenCommitDialog();
+                            },
+                          },
+                        ]
+                      : []),
+                    {
+                      name: 'Export document',
+                      shortcut: 'E',
+                      onActionSelection: () => {
+                        console.log('Export document');
+                      },
+                    },
+                  ],
+                }
+              : undefined
+          }
+          documents={directoryFiles
             .filter((file) => selectedFileInfo?.path !== file.path)
             .map((file) => ({
-            title: removeExtension(file.name),
-            onDocumentSelection: () => {
-              handleFileSelection(file);
-              setCommandPaletteOpen(false);
-            },
-          }))}
+              title: removeExtension(file.name),
+              onDocumentSelection: () => {
+                handleFileSelection(file);
+                setCommandPaletteOpen(false);
+              },
+            }))}
           actions={[
             {
               name: 'Create new document',
