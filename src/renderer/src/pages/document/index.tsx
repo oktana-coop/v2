@@ -14,14 +14,13 @@ import {
 import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
 import { decodeURLHeads } from '../../../../modules/version-control';
 import { VersionControlContext } from '../../../../modules/version-control/react';
-import { Button } from '../../components/actions/Button';
 import { CommandPalette } from '../../components/dialogs/command-palette/CommandPalette';
-import { Modal } from '../../components/dialogs/Modal';
 import { Layout } from '../../components/layout/Layout';
 import { SidebarLayout } from '../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../components/layout/StackedResizablePanelsLayout';
 import { useKeyBindings } from '../../hooks/useKeyBindings';
 import { CommitDialog } from './commit/CommitDialog';
+import { CreateDocumentModal } from './create-document/CreateDocumentModal';
 import { DocumentMainViewRouter } from './main/DocumentMainViewRouter';
 import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
 import { FileExplorer } from './sidebar/file-explorer/FileExplorer';
@@ -41,8 +40,7 @@ export {
 } from './main';
 
 const DocumentIndex = () => {
-  const [newDocTitle, setNewDocTitle] = useState<string>('');
-  const [isDocumentCreationModalOpen, openCreateDocumentModal] =
+  const [isDocumentCreationModalOpen, setCreateDocumentModalOpen] =
     useState<boolean>(false);
   const navigate = useNavigate();
 
@@ -74,7 +72,7 @@ const DocumentIndex = () => {
 
   useKeyBindings({
     'ctrl+k': () => setCommandPaletteOpen((state) => !state),
-    'ctrl+d': () => openCreateDocumentModal(true),
+    'ctrl+d': () => openCreateDocumentModal(),
   });
 
   useEffect(() => {
@@ -137,49 +135,22 @@ const DocumentIndex = () => {
     );
   };
 
+  const openCreateDocumentModal = () => {
+    setCreateDocumentModalOpen(true);
+  };
+
+  const closeCreateDocumentModal = () => {
+    setCreateDocumentModalOpen(false);
+  };
+
   return (
     <Layout>
       <div className="flex flex-auto">
-        <Modal
+        <CreateDocumentModal
           isOpen={isDocumentCreationModalOpen}
-          title="Give your document a title"
-          onClose={() => {
-            setNewDocTitle('');
-            openCreateDocumentModal(false);
-          }}
-          secondaryButton={
-            <Button
-              variant="plain"
-              onClick={() => {
-                setNewDocTitle('');
-                openCreateDocumentModal(false);
-              }}
-            >
-              Cancel
-            </Button>
-          }
-          primaryButton={
-            <Button
-              disabled={newDocTitle.length === 0}
-              onClick={async () => {
-                await handleDocumentCreation(newDocTitle);
-                setNewDocTitle('');
-                openCreateDocumentModal(false);
-              }}
-              color="purple"
-            >
-              Create
-            </Button>
-          }
-        >
-          <input
-            type="text"
-            value={newDocTitle}
-            autoFocus={true}
-            onChange={(e) => setNewDocTitle(e.target.value)}
-            className="w-full rounded-md border border-gray-300 p-2"
-          />
-        </Modal>
+          onClose={closeCreateDocumentModal}
+          onCreateDocument={handleDocumentCreation}
+        />
         <CommitDialog
           isOpen={isCommitDialogOpen}
           onCancel={onCloseCommitDialog}
@@ -201,9 +172,7 @@ const DocumentIndex = () => {
             {
               name: 'Create new document',
               shortcut: 'D',
-              onActionSelection: () => {
-                openCreateDocumentModal(true);
-              },
+              onActionSelection: openCreateDocumentModal,
             },
           ]}
         />
@@ -220,7 +189,7 @@ const DocumentIndex = () => {
                     handlePermissionRequest
                   }
                   onFileSelection={handleFileSelection}
-                  onCreateDocument={() => openCreateDocumentModal(true)}
+                  onCreateDocument={openCreateDocumentModal}
                 />
                 <DocumentHistory
                   commits={commits}
@@ -231,7 +200,7 @@ const DocumentIndex = () => {
             }
           >
             <DocumentMainViewRouter
-              onCreateDocumentButtonClick={() => openCreateDocumentModal(true)}
+              onCreateDocumentButtonClick={openCreateDocumentModal}
             />
           </SidebarLayout>
         </ProseMirrorProvider>
