@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { Outlet, useParams } from 'react-router';
 
-import { SelectedFileContext } from '../../../../../modules/editor-state';
+import { CurrentDocumentContext } from '../../../../../modules/editor-state';
 import { FilesystemContext } from '../../../../../modules/filesystem';
 import { isValidVersionControlId } from '../../../../../modules/version-control';
 import { InvalidDocument } from '../../../components/document-views/InvalidDocument';
@@ -16,7 +16,7 @@ export const DocumentMainViewRouter = ({
 }: DocumentMainViewRouterProps) => {
   const { documentId: docUrl } = useParams();
   const { directory } = useContext(FilesystemContext);
-  const { versionedDocumentHandle } = useContext(SelectedFileContext);
+  const { versionedDocumentHandle } = useContext(CurrentDocumentContext);
 
   if (!docUrl) {
     return (

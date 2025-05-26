@@ -2,8 +2,8 @@ import { useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 import {
-  SelectedFileContext,
-  SelectedFileProvider,
+  CurrentDocumentContext,
+  CurrentDocumentProvider,
 } from '../../../../modules/editor-state';
 import { SidebarLayoutProvider } from '../../../../modules/editor-state/sidebar-layout/context';
 import {
@@ -29,11 +29,11 @@ import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
 import { FileExplorer } from './sidebar/file-explorer/FileExplorer';
 
 export const Document = () => (
-  <SelectedFileProvider>
+  <CurrentDocumentProvider>
     <SidebarLayoutProvider>
       <DocumentIndex />
     </SidebarLayoutProvider>
-  </SelectedFileProvider>
+  </CurrentDocumentProvider>
 );
 
 export {
@@ -62,7 +62,7 @@ const DocumentIndex = () => {
     isCommitDialogOpen,
     canCommit,
     onCommit,
-  } = useContext(SelectedFileContext);
+  } = useContext(CurrentDocumentContext);
   const { projectId, findDocumentInProject } = useContext(
     VersionControlContext
   );

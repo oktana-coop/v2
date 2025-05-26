@@ -1,7 +1,7 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
-import { SelectedFileContext } from '../../../../../../modules/editor-state';
+import { CurrentDocumentContext } from '../../../../../../modules/editor-state';
 import { SidebarLayoutContext } from '../../../../../../modules/editor-state/sidebar-layout/context';
 import { FunctionalityConfigContext } from '../../../../../../modules/personalization/functionality-config';
 import {
@@ -29,7 +29,7 @@ export const DocumentHistoricalView = () => {
     onSelectCommit,
     canCommit,
     onOpenCommitDialog,
-  } = useContext(SelectedFileContext);
+  } = useContext(CurrentDocumentContext);
   const { getDocumentHandleAtCommit } = useContext(VersionControlContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const [doc, setDoc] = React.useState<VersionedDocument | null>();

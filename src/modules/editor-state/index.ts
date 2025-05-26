@@ -1,8 +1,8 @@
 export {
-  SelectedFileContext,
-  SelectedFileProvider,
+  CurrentDocumentContext,
+  CurrentDocumentProvider,
   type SelectedFileInfo,
-} from './selected-file/context';
+} from './current-document/context';
 
 export {
   SidebarLayoutContext,

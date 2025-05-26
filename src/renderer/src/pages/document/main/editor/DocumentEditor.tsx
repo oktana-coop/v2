@@ -1,6 +1,6 @@
 import { useCallback, useContext, useState } from 'react';
 
-import { SelectedFileContext } from '../../../../../../modules/editor-state';
+import { CurrentDocumentContext } from '../../../../../../modules/editor-state';
 import { SidebarLayoutContext } from '../../../../../../modules/editor-state/sidebar-layout/context';
 import { ProseMirrorContext } from '../../../../../../modules/rich-text/react/context';
 import { RichTextEditor } from '../../../../components/editing/RichTextEditor';
@@ -9,8 +9,9 @@ import { ActionsBar } from './ActionsBar';
 export const DocumentEditor = () => {
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
   const { view: editorView } = useContext(ProseMirrorContext);
-  const { versionedDocumentHandle, onOpenCommitDialog, canCommit } =
-    useContext(SelectedFileContext);
+  const { versionedDocumentHandle, onOpenCommitDialog, canCommit } = useContext(
+    CurrentDocumentContext
+  );
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
 
   const handleEditorToolbarToggle = useCallback(() => {

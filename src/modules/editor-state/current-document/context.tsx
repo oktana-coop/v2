@@ -38,7 +38,7 @@ export type SelectedFileInfo = {
   path: string | null;
 };
 
-type SelectedFileContextType = {
+type CurrentDocumentContextType = {
   selectedFileInfo: SelectedFileInfo | null;
   setSelectedFileInfo: (file: SelectedFileInfo) => Promise<void>;
   clearFileSelection: () => Promise<void>;
@@ -53,22 +53,24 @@ type SelectedFileContextType = {
   onSelectCommit: (heads: UrlHeads) => void;
 };
 
-export const SelectedFileContext = createContext<SelectedFileContextType>({
-  selectedFileInfo: null,
-  setSelectedFileInfo: async () => {},
-  clearFileSelection: async () => {},
-  versionedDocumentHandle: null,
-  versionedDocumentHistory: [],
-  canCommit: false,
-  onCommit: () => {},
-  isCommitDialogOpen: false,
-  onOpenCommitDialog: () => {},
-  onCloseCommitDialog: () => {},
-  selectedCommitIndex: null,
-  onSelectCommit: () => {},
-});
+export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
+  {
+    selectedFileInfo: null,
+    setSelectedFileInfo: async () => {},
+    clearFileSelection: async () => {},
+    versionedDocumentHandle: null,
+    versionedDocumentHistory: [],
+    canCommit: false,
+    onCommit: () => {},
+    isCommitDialogOpen: false,
+    onOpenCommitDialog: () => {},
+    onCloseCommitDialog: () => {},
+    selectedCommitIndex: null,
+    onSelectCommit: () => {},
+  }
+);
 
-export const SelectedFileProvider = ({
+export const CurrentDocumentProvider = ({
   children,
 }: {
   children: React.ReactNode;
@@ -304,7 +306,7 @@ export const SelectedFileProvider = ({
   );
 
   return (
-    <SelectedFileContext.Provider
+    <CurrentDocumentContext.Provider
       value={{
         selectedFileInfo,
         versionedDocumentHandle,
@@ -321,6 +323,6 @@ export const SelectedFileProvider = ({
       }}
     >
       {children}
-    </SelectedFileContext.Provider>
+    </CurrentDocumentContext.Provider>
   );
 };
