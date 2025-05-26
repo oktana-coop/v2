@@ -180,14 +180,6 @@ const DocumentIndex = () => {
                           },
                         ]
                       : []),
-                    {
-                      name: 'Export document',
-                      shortcut: 'E',
-                      onActionSelection: () => {
-                        // TODO: Implement export functionality next
-                        console.log('Export document is not implemented yet');
-                      },
-                    },
                   ],
                 }
               : undefined
