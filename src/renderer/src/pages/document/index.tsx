@@ -12,7 +12,10 @@ import {
   removeExtension,
 } from '../../../../modules/filesystem';
 import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
-import { decodeURLHeads } from '../../../../modules/version-control';
+import {
+  decodeURLHeads,
+  type VersionControlId,
+} from '../../../../modules/version-control';
 import { VersionControlContext } from '../../../../modules/version-control/react';
 import { CommandPalette } from '../../components/dialogs/command-palette/CommandPalette';
 import { Layout } from '../../components/layout/Layout';
@@ -49,7 +52,6 @@ const DocumentIndex = () => {
     directoryFiles,
     openDirectory,
     requestPermissionForSelectedDirectory,
-    createNewFile,
   } = useContext(FilesystemContext);
   const {
     selectedFileInfo,
@@ -61,11 +63,9 @@ const DocumentIndex = () => {
     canCommit,
     onCommit,
   } = useContext(SelectedFileContext);
-  const {
-    projectId,
-    createDocument: createVersionedDocument,
-    findDocumentInProject,
-  } = useContext(VersionControlContext);
+  const { projectId, findDocumentInProject } = useContext(
+    VersionControlContext
+  );
   const { changeId } = useParams();
   const [isCommandPaletteOpen, setCommandPaletteOpen] =
     useState<boolean>(false);
@@ -79,20 +79,15 @@ const DocumentIndex = () => {
     document.title = 'v2 | Editor';
   }, []);
 
-  const handleDocumentCreation = async (title: string) => {
-    const file = await createNewFile(title);
-    const newDocumentId = await createVersionedDocument({
-      name: file.name,
-      title,
-      path: file.path!,
-      projectId,
-      content: null,
-    });
-
-    setSelectedFileInfo({ documentId: newDocumentId, path: file.path! });
-    navigate(
-      `/documents/${newDocumentId}?path=${encodeURIComponent(file.path!)}`
-    );
+  const handleDocumentCreation = ({
+    documentId,
+    path,
+  }: {
+    documentId: VersionControlId;
+    path: string;
+  }) => {
+    setSelectedFileInfo({ documentId, path });
+    navigate(`/documents/${documentId}?path=${encodeURIComponent(path)}`);
   };
 
   const handleOpenDirectory = async () => {

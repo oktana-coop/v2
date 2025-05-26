@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 
+import { FilesystemContext } from '../../../../../modules/filesystem';
+import { type VersionControlId } from '../../../../../modules/version-control/';
+import { VersionControlContext } from '../../../../../modules/version-control/react';
 import { Button } from '../../../components/actions/Button';
 import { Modal } from '../../../components/dialogs/Modal';
 
@@ -10,9 +13,31 @@ export const CreateDocumentModal = ({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onCreateDocument: (title: string) => Promise<void>;
+  onCreateDocument: (args: {
+    documentId: VersionControlId;
+    path: string;
+  }) => void;
 }) => {
   const [newDocTitle, setNewDocTitle] = useState<string>('');
+  const { createNewFile } = useContext(FilesystemContext);
+  const { projectId, createDocument: createVersionedDocument } = useContext(
+    VersionControlContext
+  );
+
+  const handleDocumentCreation = async (title: string) => {
+    const file = await createNewFile(title);
+    const newDocumentId = await createVersionedDocument({
+      name: file.name,
+      title,
+      path: file.path!,
+      projectId,
+      content: null,
+    });
+
+    setNewDocTitle('');
+    onClose();
+    onCreateDocument({ documentId: newDocumentId, path: file.path! });
+  };
 
   return (
     <Modal
@@ -36,11 +61,7 @@ export const CreateDocumentModal = ({
       primaryButton={
         <Button
           disabled={newDocTitle.length === 0}
-          onClick={async () => {
-            await onCreateDocument(newDocTitle);
-            setNewDocTitle('');
-            onClose();
-          }}
+          onClick={() => handleDocumentCreation(newDocTitle)}
           color="purple"
         >
           Create
