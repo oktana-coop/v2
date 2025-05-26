@@ -11,10 +11,12 @@ import { EmptyDocumentPage } from './empty';
 
 export type DocumentMainViewRouterProps = {
   onCreateDocumentButtonClick: () => void;
+  onOpenDocumentButtonClick: () => void;
 };
 
 export const DocumentMainViewRouter = ({
   onCreateDocumentButtonClick,
+  onOpenDocumentButtonClick,
 }: DocumentMainViewRouterProps) => {
   const { documentId: docUrl } = useParams();
   const { directoryFiles } = useContext(CurrentProjectContext);
@@ -25,6 +27,7 @@ export const DocumentMainViewRouter = ({
       <EmptyDocumentPage
         directoryFiles={directoryFiles}
         onCreateDocumentButtonClick={onCreateDocumentButtonClick}
+        onOpenDocumentButtonClick={onOpenDocumentButtonClick}
       />
     );
   }

@@ -6,9 +6,11 @@ import { FileDocumentIcon, PenIcon } from '../../../../components/icons';
 export const EmptyDocumentPage = ({
   directoryFiles,
   onCreateDocumentButtonClick,
+  onOpenDocumentButtonClick,
 }: {
   directoryFiles: File[];
   onCreateDocumentButtonClick: () => void;
+  onOpenDocumentButtonClick: () => void;
 }) => (
   <EmptyDocument
     message={
@@ -17,7 +19,7 @@ export const EmptyDocumentPage = ({
         : 'Create a new document and explore the world of versioning.'
     }
   >
-    <Button onClick={() => {}} variant="plain" color="purple">
+    <Button onClick={onOpenDocumentButtonClick} variant="plain" color="purple">
       <FileDocumentIcon className="mr-1" />
       Open document
     </Button>

@@ -141,6 +141,8 @@ const DocumentIndex = () => {
     setCreateDocumentModalOpen(false);
   };
 
+  const handleOpenDocument = () => {};
+
   return (
     <Layout>
       <div className="flex flex-auto">
@@ -222,6 +224,7 @@ const DocumentIndex = () => {
           >
             <DocumentMainViewRouter
               onCreateDocumentButtonClick={openCreateDocumentModal}
+              onOpenDocumentButtonClick={handleOpenDocument}
             />
           </SidebarLayout>
         </ProseMirrorProvider>
