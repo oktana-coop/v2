@@ -110,7 +110,11 @@ export const CommandPalette = ({
               if (isDocumentOption(option)) {
                 option.onDocumentSelection();
               } else {
-                option.onActionSelection();
+                // as the Command Palette dialog has a smooth transition out effect (see data-[leave]:duration-200 above)
+                // we trigger the action selection after a short delay
+                // so actions that came after the dialog closing can be executed timely.
+                // specifically, this is useful for other dialogs (like the CommitDialog) to persist their input focus.
+                setTimeout(() => option.onActionSelection(), 250);
               }
             }}
           >
