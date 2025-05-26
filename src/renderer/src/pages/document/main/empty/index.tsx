@@ -1,7 +1,7 @@
 import { type File } from '../../../../../../modules/infrastructure/filesystem';
 import { Button } from '../../../../components/actions/Button';
 import { EmptyDocument } from '../../../../components/document-views/EmptyDocument';
-import { PenIcon } from '../../../../components/icons';
+import { FileDocumentIcon, PenIcon } from '../../../../components/icons';
 
 export const EmptyDocumentPage = ({
   directoryFiles,
@@ -17,12 +17,16 @@ export const EmptyDocumentPage = ({
         : 'Create a new document and explore the world of versioning.'
     }
   >
+    <Button onClick={() => {}} variant="plain" color="purple">
+      <FileDocumentIcon className="mr-1" />
+      Open document
+    </Button>
     <Button
       onClick={onCreateDocumentButtonClick}
-      variant="solid"
+      variant="plain"
       color="purple"
     >
-      <PenIcon />
+      <PenIcon className="mr-1" />
       Create document
     </Button>
   </EmptyDocument>

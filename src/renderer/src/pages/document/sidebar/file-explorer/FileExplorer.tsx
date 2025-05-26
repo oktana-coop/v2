@@ -83,7 +83,7 @@ export const FileExplorer = ({
             variant="solid"
             color="purple"
           >
-            <FolderIcon />
+            <FolderIcon className="mr-1" />
             Open Folder
           </Button>
         </div>
