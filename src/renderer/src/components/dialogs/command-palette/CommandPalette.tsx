@@ -45,6 +45,10 @@ export type CommandPaletteProps = {
   open?: boolean;
   onClose: () => void;
   documentsGroupTitle: string;
+  contextualSection?: {
+    groupTitle: string;
+    actions: Array<ActionOption>;
+  };
   documents?: Array<DocumentOption>;
   actions?: Array<ActionOption>;
 };
@@ -55,6 +59,7 @@ export const CommandPalette = ({
   documentsGroupTitle,
   documents,
   actions,
+  contextualSection,
 }: CommandPaletteProps) => {
   const [query, setQuery] = useState('');
 
@@ -64,6 +69,12 @@ export const CommandPalette = ({
       : (documents || []).filter((document) => {
           return document.title.toLowerCase().includes(query.toLowerCase());
         });
+
+  const filteredContextualActions = contextualSection
+    ? (contextualSection.actions || []).filter((actions) => {
+        return actions.name.toLowerCase().includes(query.toLowerCase());
+      })
+    : [];
 
   const filteredActions =
     query === ''
@@ -99,7 +110,11 @@ export const CommandPalette = ({
               if (isDocumentOption(option)) {
                 option.onDocumentSelection();
               } else {
-                option.onActionSelection();
+                // as the Command Palette dialog has a smooth transition out effect (see data-[leave]:duration-200 above)
+                // we trigger the action selection after a short delay
+                // so actions that came after the dialog closing can be executed timely.
+                // specifically, this is useful for other dialogs (like the CommitDialog) to persist their input focus.
+                setTimeout(() => option.onActionSelection(), 250);
               }
             }}
           >
@@ -120,8 +135,35 @@ export const CommandPalette = ({
             <ComboboxOptions
               static
               as="ul"
-              className="max-h-80 scroll-py-2 divide-y divide-gray-500/10 overflow-y-auto"
+              className="max-h-100 scroll-py-2 divide-y divide-gray-500/10 overflow-y-auto"
             >
+              {contextualSection && filteredContextualActions.length > 0 && (
+                <li className="p-4">
+                  <h2 className="mb-2 mt-4 text-xs font-semibold text-gray-900 dark:text-gray-300">
+                    {contextualSection.groupTitle}
+                  </h2>
+                  <ul className="text-sm text-gray-700 dark:text-gray-400">
+                    {filteredContextualActions.map((action) => (
+                      <ComboboxOption
+                        as="li"
+                        key={action.name}
+                        value={action}
+                        className="group flex cursor-default select-none items-center px-2 py-2 data-[focus]:bg-gray-900/5 data-[focus]:text-gray-900 data-[focus]:outline-none dark:data-[focus]:bg-gray-300/5 dark:data-[focus]:text-gray-100"
+                      >
+                        <span className="flex-auto truncate">
+                          {action.name}
+                        </span>
+                        {action.shortcut && (
+                          <span className="flex-none text-xs font-semibold text-gray-500 dark:text-gray-400">
+                            <kbd className="font-sans">⌘</kbd>
+                            <kbd className="font-sans">{action.shortcut}</kbd>
+                          </span>
+                        )}
+                      </ComboboxOption>
+                    ))}
+                  </ul>
+                </li>
+              )}
               {filteredDocuments.length > 0 && (
                 <li className="p-4">
                   {documentsGroupTitle && (
@@ -174,11 +216,12 @@ export const CommandPalette = ({
                 </li>
               )}
             </ComboboxOptions>
-
             {query !== '' &&
-              [...filteredDocuments, ...filteredActions].length === 0 && (
-                <NoMatchingResults />
-              )}
+              [
+                ...filteredDocuments,
+                ...filteredActions,
+                ...filteredContextualActions,
+              ].length === 0 && <NoMatchingResults />}
           </Combobox>
         </DialogPanel>
       </div>

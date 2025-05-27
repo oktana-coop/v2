@@ -9,7 +9,11 @@ import {
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
 import { ElectronContext } from '../../electron';
-import { FilesystemContext } from '../../filesystem';
+import {
+  FilesystemContext,
+  removeExtension,
+  removePath,
+} from '../../filesystem';
 import { FunctionalityConfigContext } from '../../personalization/functionality-config';
 import {
   type Change,
@@ -40,6 +44,7 @@ export type SelectedFileInfo = {
 
 type CurrentDocumentContextType = {
   selectedFileInfo: SelectedFileInfo | null;
+  selectedFileName: string | null;
   setSelectedFileInfo: (file: SelectedFileInfo) => Promise<void>;
   clearFileSelection: () => Promise<void>;
   versionedDocumentHandle: VersionedDocumentHandle | null;
@@ -56,6 +61,7 @@ type CurrentDocumentContextType = {
 export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
   {
     selectedFileInfo: null,
+    selectedFileName: null,
     setSelectedFileInfo: async () => {},
     clearFileSelection: async () => {},
     versionedDocumentHandle: null,
@@ -78,6 +84,7 @@ export const CurrentDocumentProvider = ({
   const { isElectron } = useContext(ElectronContext);
   const [selectedFileInfo, setSelectedFileInfo] =
     useState<SelectedFileInfo | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [versionedDocumentHandle, setVersionedDocumentHandle] =
     useState<VersionedDocumentHandle | null>(null);
   const { documentId } = useParams();
@@ -137,6 +144,14 @@ export const CurrentDocumentProvider = ({
     updateFileSelection();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documentId]);
+
+  useEffect(() => {
+    if (selectedFileInfo && selectedFileInfo.path) {
+      const fullFileName = removePath(selectedFileInfo.path);
+      const cleanFileName = removeExtension(fullFileName);
+      setSelectedFileName(cleanFileName);
+    }
+  }, [selectedFileInfo]);
 
   const checkIfContentChangedFromLastCommit = (
     currentDoc: VersionedDocument,
@@ -309,6 +324,7 @@ export const CurrentDocumentProvider = ({
     <CurrentDocumentContext.Provider
       value={{
         selectedFileInfo,
+        selectedFileName,
         versionedDocumentHandle,
         setSelectedFileInfo: handleSetSelectedFileInfo,
         clearFileSelection,

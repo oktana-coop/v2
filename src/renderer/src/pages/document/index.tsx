@@ -55,6 +55,7 @@ const DocumentIndex = () => {
   } = useContext(FilesystemContext);
   const {
     selectedFileInfo,
+    selectedFileName,
     setSelectedFileInfo,
     versionedDocumentHistory: commits,
     onSelectCommit,
@@ -62,6 +63,7 @@ const DocumentIndex = () => {
     isCommitDialogOpen,
     canCommit,
     onCommit,
+    onOpenCommitDialog,
   } = useContext(CurrentDocumentContext);
   const { projectId, findDocumentInProject } = useContext(
     VersionControlContext
@@ -155,14 +157,37 @@ const DocumentIndex = () => {
         <CommandPalette
           open={isCommandPaletteOpen}
           onClose={() => setCommandPaletteOpen(false)}
-          documentsGroupTitle={'Recent documents'}
-          documents={directoryFiles.map((file) => ({
-            title: removeExtension(file.name),
-            onDocumentSelection: () => {
-              handleFileSelection(file);
-              setCommandPaletteOpen(false);
-            },
-          }))}
+          documentsGroupTitle={`${selectedFileInfo ? 'Other' : 'Project'}  documents`}
+          contextualSection={
+            selectedFileName
+              ? {
+                  groupTitle: `Current document: ${selectedFileName}`,
+                  actions: [
+                    ...(canCommit
+                      ? [
+                          {
+                            name: 'Commit changes',
+                            shortcut: 'S',
+                            onActionSelection: () => {
+                              console.log('Commit changes action selected');
+                              onOpenCommitDialog();
+                            },
+                          },
+                        ]
+                      : []),
+                  ],
+                }
+              : undefined
+          }
+          documents={directoryFiles
+            .filter((file) => selectedFileInfo?.path !== file.path)
+            .map((file) => ({
+              title: removeExtension(file.name),
+              onDocumentSelection: () => {
+                handleFileSelection(file);
+                setCommandPaletteOpen(false);
+              },
+            }))}
           actions={[
             {
               name: 'Create new document',
