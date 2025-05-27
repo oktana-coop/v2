@@ -55,6 +55,7 @@ const DocumentIndex = () => {
   } = useContext(FilesystemContext);
   const {
     selectedFileInfo,
+    selectedFileName,
     setSelectedFileInfo,
     versionedDocumentHistory: commits,
     onSelectCommit,
@@ -138,12 +139,6 @@ const DocumentIndex = () => {
   const closeCreateDocumentModal = () => {
     setCreateDocumentModalOpen(false);
   };
-  const selectedFile = directoryFiles.find(
-    (file) => file.path === selectedFileInfo?.path
-  );
-  const selectedFileName = selectedFile
-    ? removeExtension(selectedFile.name)
-    : undefined;
 
   return (
     <Layout>
