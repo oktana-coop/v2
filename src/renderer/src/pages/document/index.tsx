@@ -9,6 +9,7 @@ import {
 } from '../../../../modules/editor-state';
 import { SidebarLayoutProvider } from '../../../../modules/editor-state/sidebar-layout/context';
 import { type File, removeExtension } from '../../../../modules/filesystem';
+import { FilesystemContext } from '../../../../modules/filesystem/react';
 import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
 import {
   decodeURLHeads,
@@ -47,13 +48,13 @@ const DocumentIndex = () => {
     useState<boolean>(false);
   const navigate = useNavigate();
 
+  const { projectId } = useContext(CurrentProjectContext);
   const {
-    projectId,
     directory,
     directoryFiles,
     openDirectory,
     requestPermissionForSelectedDirectory,
-  } = useContext(CurrentProjectContext);
+  } = useContext(FilesystemContext);
   const {
     selectedFileInfo,
     selectedFileName,

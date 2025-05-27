@@ -2,7 +2,7 @@ import * as Effect from 'effect/Effect';
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import { ElectronContext } from '../../electron/context';
-import { type Directory, type File } from '../../filesystem';
+import { type Directory } from '../../filesystem';
 import { FilesystemContext } from '../../filesystem/react';
 import {
   createProjectFromFilesystemContent,
@@ -21,10 +21,6 @@ const BROWSER_STORAGE_PROJECT_DATA_KEY = 'project';
 
 export type CurrentProjectContextType = {
   projectId: VersionControlId | null;
-  directory: Directory | null;
-  directoryFiles: Array<File>;
-  openDirectory: () => Promise<Directory | null>;
-  requestPermissionForSelectedDirectory: () => Promise<void>;
   createNewDocument: (
     suggestedName: string
   ) => Promise<{ documentId: VersionControlId; path: string }>;
@@ -32,11 +28,6 @@ export type CurrentProjectContextType = {
 
 export const CurrentProjectContext = createContext<CurrentProjectContextType>({
   projectId: null,
-  directory: null,
-  directoryFiles: [],
-  openDirectory: async () => null,
-  // @ts-expect-error will get overriden below
-  requestPermissionForSelectedDirectory: async () => null,
   // @ts-expect-error will get overriden below
   createNewDocument: () => null,
 });
@@ -49,11 +40,9 @@ export const CurrentProjectProvider = ({
   const { isElectron } = useContext(ElectronContext);
   const { versionControlRepo, createDocument: createVersionedDocument } =
     useContext(VersionControlContext);
-  const { filesystem, requestPermissionForDirectory } =
+  const { filesystem, directory, setDirectory, createNewFile } =
     useContext(FilesystemContext);
   const [projectId, setProjectId] = useState<VersionControlId | null>(null);
-  const [directory, setDirectory] = useState<Directory | null>(null);
-  const [directoryFiles, setDirectoryFiles] = useState<Array<File>>([]);
 
   useEffect(() => {
     const getSelectedDirectory = async () => {
@@ -78,59 +67,8 @@ export const CurrentProjectProvider = ({
     getSelectedDirectory();
   }, []);
 
-  useEffect(() => {
-    const getFiles = async (dir: Directory) => {
-      if (dir.path) {
-        const files = await Effect.runPromise(
-          filesystem.listDirectoryFiles(dir.path)
-        );
-        setDirectoryFiles(files);
-      }
-    };
-
-    if (directory && directory.permissionState === 'granted') {
-      getFiles(directory);
-    }
-  }, [directory, filesystem]);
-
-  const requestPermissionForSelectedDirectory = async () => {
-    if (!directory) {
-      throw new Error(
-        'There is no current directory to request permissions for'
-      );
-    }
-
-    const permissionState = await requestPermissionForDirectory(directory);
-
-    if (directory) {
-      setDirectory({ ...directory, permissionState });
-    }
-  };
-
-  const openDirectory = async () => {
-    const directory = await Effect.runPromise(filesystem.openDirectory());
-    setDirectory(directory);
-    return directory;
-  };
-
   const handleCreateNewDocument = async (suggestedName: string) => {
-    const newFile = await Effect.runPromise(
-      directory
-        ? filesystem.createNewFile(suggestedName, directory)
-        : filesystem.createNewFile(suggestedName)
-    );
-
-    // Refresh directory files if a directory is selected
-    if (
-      directory &&
-      directory.permissionState === 'granted' &&
-      directory.path
-    ) {
-      const files = await Effect.runPromise(
-        filesystem.listDirectoryFiles(directory.path)
-      );
-      setDirectoryFiles(files);
-    }
+    const newFile = await createNewFile(suggestedName);
 
     const newDocumentId = await createVersionedDocument({
       name: newFile.name,
@@ -237,10 +175,6 @@ export const CurrentProjectProvider = ({
     <CurrentProjectContext.Provider
       value={{
         projectId,
-        directory,
-        directoryFiles,
-        openDirectory,
-        requestPermissionForSelectedDirectory,
         createNewDocument: handleCreateNewDocument,
       }}
     >
