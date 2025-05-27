@@ -4,6 +4,8 @@ import { useNavigate, useParams } from 'react-router';
 import {
   CurrentDocumentContext,
   CurrentDocumentProvider,
+  CurrentProjectContext,
+  CurrentProjectProvider,
 } from '../../../../modules/editor-state';
 import { SidebarLayoutProvider } from '../../../../modules/editor-state/sidebar-layout/context';
 import {
@@ -29,11 +31,13 @@ import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
 import { FileExplorer } from './sidebar/file-explorer/FileExplorer';
 
 export const Document = () => (
-  <CurrentDocumentProvider>
-    <SidebarLayoutProvider>
-      <DocumentIndex />
-    </SidebarLayoutProvider>
-  </CurrentDocumentProvider>
+  <CurrentProjectProvider>
+    <CurrentDocumentProvider>
+      <SidebarLayoutProvider>
+        <DocumentIndex />
+      </SidebarLayoutProvider>
+    </CurrentDocumentProvider>
+  </CurrentProjectProvider>
 );
 
 export {
@@ -65,9 +69,8 @@ const DocumentIndex = () => {
     onCommit,
     onOpenCommitDialog,
   } = useContext(CurrentDocumentContext);
-  const { projectId, findDocumentInProject } = useContext(
-    VersionControlContext
-  );
+  const { projectId } = useContext(CurrentProjectContext);
+  const { findDocumentInProject } = useContext(VersionControlContext);
   const { changeId } = useParams();
   const [isCommandPaletteOpen, setCommandPaletteOpen] =
     useState<boolean>(false);
