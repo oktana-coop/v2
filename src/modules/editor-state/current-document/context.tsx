@@ -9,11 +9,8 @@ import {
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
 import { ElectronContext } from '../../electron';
-import {
-  FilesystemContext,
-  removeExtension,
-  removePath,
-} from '../../filesystem';
+import { removeExtension, removePath } from '../../filesystem';
+import { FilesystemContext } from '../../filesystem/react';
 import { FunctionalityConfigContext } from '../../personalization/functionality-config';
 import {
   type Change,

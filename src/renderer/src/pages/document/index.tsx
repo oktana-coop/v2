@@ -8,11 +8,7 @@ import {
   CurrentProjectProvider,
 } from '../../../../modules/editor-state';
 import { SidebarLayoutProvider } from '../../../../modules/editor-state/sidebar-layout/context';
-import {
-  type File,
-  FilesystemContext,
-  removeExtension,
-} from '../../../../modules/filesystem';
+import { type File, removeExtension } from '../../../../modules/filesystem';
 import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
 import {
   decodeURLHeads,
@@ -52,11 +48,12 @@ const DocumentIndex = () => {
   const navigate = useNavigate();
 
   const {
+    projectId,
     directory,
     directoryFiles,
     openDirectory,
     requestPermissionForSelectedDirectory,
-  } = useContext(FilesystemContext);
+  } = useContext(CurrentProjectContext);
   const {
     selectedFileInfo,
     selectedFileName,
@@ -69,7 +66,6 @@ const DocumentIndex = () => {
     onCommit,
     onOpenCommitDialog,
   } = useContext(CurrentDocumentContext);
-  const { projectId } = useContext(CurrentProjectContext);
   const { findDocumentInProject } = useContext(VersionControlContext);
   const { changeId } = useParams();
   const [isCommandPaletteOpen, setCommandPaletteOpen] =

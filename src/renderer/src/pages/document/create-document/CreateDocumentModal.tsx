@@ -1,6 +1,6 @@
 import { useContext, useState } from 'react';
 
-import { FilesystemContext } from '../../../../../modules/filesystem';
+import { CurrentProjectContext } from '../../../../../modules/editor-state';
 import { type VersionControlId } from '../../../../../modules/version-control/';
 import { VersionControlContext } from '../../../../../modules/version-control/react';
 import { Button } from '../../../components/actions/Button';
@@ -19,8 +19,8 @@ export const CreateDocumentModal = ({
   }) => void;
 }) => {
   const [newDocTitle, setNewDocTitle] = useState<string>('');
-  const { createNewFile } = useContext(FilesystemContext);
-  const { projectId, createDocument: createVersionedDocument } = useContext(
+  const { projectId, createNewFile } = useContext(CurrentProjectContext);
+  const { createDocument: createVersionedDocument } = useContext(
     VersionControlContext
   );
 
