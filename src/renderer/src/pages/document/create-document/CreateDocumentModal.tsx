@@ -2,7 +2,6 @@ import { useContext, useState } from 'react';
 
 import { CurrentProjectContext } from '../../../../../modules/editor-state';
 import { type VersionControlId } from '../../../../../modules/version-control/';
-import { VersionControlContext } from '../../../../../modules/version-control/react';
 import { Button } from '../../../components/actions/Button';
 import { Modal } from '../../../components/dialogs/Modal';
 
@@ -19,24 +18,14 @@ export const CreateDocumentModal = ({
   }) => void;
 }) => {
   const [newDocTitle, setNewDocTitle] = useState<string>('');
-  const { projectId, createNewFile } = useContext(CurrentProjectContext);
-  const { createDocument: createVersionedDocument } = useContext(
-    VersionControlContext
-  );
+  const { createNewDocument } = useContext(CurrentProjectContext);
 
   const handleDocumentCreation = async (title: string) => {
-    const file = await createNewFile(title);
-    const newDocumentId = await createVersionedDocument({
-      name: file.name,
-      title,
-      path: file.path!,
-      projectId,
-      content: null,
-    });
+    const { documentId, path } = await createNewDocument(title);
 
     setNewDocTitle('');
     onClose();
-    onCreateDocument({ documentId: newDocumentId, path: file.path! });
+    onCreateDocument({ documentId, path });
   };
 
   return (

@@ -25,7 +25,9 @@ export type CurrentProjectContextType = {
   directoryFiles: Array<File>;
   openDirectory: () => Promise<Directory | null>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
-  createNewFile: (suggestedName: string) => Promise<File>;
+  createNewDocument: (
+    suggestedName: string
+  ) => Promise<{ documentId: VersionControlId; path: string }>;
 };
 
 export const CurrentProjectContext = createContext<CurrentProjectContextType>({
@@ -36,7 +38,7 @@ export const CurrentProjectContext = createContext<CurrentProjectContextType>({
   // @ts-expect-error will get overriden below
   requestPermissionForSelectedDirectory: async () => null,
   // @ts-expect-error will get overriden below
-  createNewFile: () => null,
+  createNewDocument: () => null,
 });
 
 export const CurrentProjectProvider = ({
@@ -45,7 +47,8 @@ export const CurrentProjectProvider = ({
   children: React.ReactNode;
 }) => {
   const { isElectron } = useContext(ElectronContext);
-  const { versionControlRepo } = useContext(VersionControlContext);
+  const { versionControlRepo, createDocument: createVersionedDocument } =
+    useContext(VersionControlContext);
   const { filesystem, requestPermissionForDirectory } =
     useContext(FilesystemContext);
   const [projectId, setProjectId] = useState<VersionControlId | null>(null);
@@ -110,7 +113,7 @@ export const CurrentProjectProvider = ({
     return directory;
   };
 
-  const handleCreateNewFile = async (suggestedName: string) => {
+  const handleCreateNewDocument = async (suggestedName: string) => {
     const newFile = await Effect.runPromise(
       directory
         ? filesystem.createNewFile(suggestedName, directory)
@@ -129,7 +132,15 @@ export const CurrentProjectProvider = ({
       setDirectoryFiles(files);
     }
 
-    return newFile;
+    const newDocumentId = await createVersionedDocument({
+      name: newFile.name,
+      title: suggestedName,
+      path: newFile.path!,
+      projectId,
+      content: null,
+    });
+
+    return { documentId: newDocumentId, path: newFile.path! };
   };
 
   useEffect(() => {
@@ -230,7 +241,7 @@ export const CurrentProjectProvider = ({
         directoryFiles,
         openDirectory,
         requestPermissionForSelectedDirectory,
-        createNewFile: handleCreateNewFile,
+        createNewDocument: handleCreateNewDocument,
       }}
     >
       {children}
