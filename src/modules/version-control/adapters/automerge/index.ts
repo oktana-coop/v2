@@ -10,7 +10,7 @@ import * as Option from 'effect/Option';
 
 import { fromNullable } from '../../../../utils/effect';
 import { mapErrorTo } from '../../../../utils/errors';
-import { versionControlItemTypes } from '../../constants/version-control-item-types';
+import { versionedArtifactTypes } from '../../constants/versioned-artifact-types';
 import { NotFoundError, RepositoryError } from '../../errors';
 import {
   type DocumentMetaData,
@@ -133,7 +133,7 @@ export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
       Effect.try({
         try: () =>
           automergeRepo.create<RichTextDocument>({
-            type: versionControlItemTypes.RICH_TEXT_DOCUMENT,
+            type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
             title,
             content: content ?? '',
           }),

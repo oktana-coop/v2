@@ -8,7 +8,7 @@ import {
 } from '@automerge/automerge-repo/slim';
 
 import { sortKeysAndStrinfigy } from '../../../utils/object';
-import { versionControlItemTypes } from '../constants/version-control-item-types';
+import { versionedArtifactTypes } from '../constants/versioned-artifact-types';
 import {
   type Change,
   type Commit,
@@ -20,7 +20,7 @@ import {
 export type RichTextDocumentSpan = Automerge.Span;
 
 export type RichTextDocument = {
-  type: typeof versionControlItemTypes.RICH_TEXT_DOCUMENT;
+  type: typeof versionedArtifactTypes.RICH_TEXT_DOCUMENT;
   title: string;
   content: string;
 };
