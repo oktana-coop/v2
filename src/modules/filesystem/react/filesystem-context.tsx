@@ -1,5 +1,11 @@
 import * as Effect from 'effect/Effect';
-import { createContext, useContext, useEffect, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
 
 import { ElectronContext } from '../../electron/context';
 import { createAdapter as createBrowserFilesystemAPIAdapter } from '../adapters/browser-api/browser-filesystem-api/adapter';
@@ -64,7 +70,8 @@ export const FilesystemProvider = ({
     if (directory && directory.permissionState === 'granted') {
       getFiles(directory);
     }
-  }, [directory, filesystem]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [directory]);
 
   const openDirectory = async () => {
     const directory = await Effect.runPromise(filesystem.openDirectory());
