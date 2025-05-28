@@ -1,8 +1,11 @@
 import { next as Automerge } from '@automerge/automerge/slim';
 
+import {
+  type VersionedArtifact,
+  type VersionedArtifactHandle,
+  versionedArtifactTypes,
+} from '../../../modules/version-control';
 import { sortKeysAndStrinfigy } from '../../../utils/object';
-import { versionedArtifactTypes } from '../constants/versioned-artifact-types';
-import { VersionedArtifact } from './artifact';
 
 export type RichTextDocumentSpan = Automerge.Span;
 
@@ -14,7 +17,7 @@ export type RichTextDocument = {
 
 export type VersionedDocument = VersionedArtifact<RichTextDocument>;
 
-export type VersionedDocumentHandle = VersionedArtifact<RichTextDocument>;
+export type VersionedDocumentHandle = VersionedArtifactHandle<RichTextDocument>;
 
 export const getSpans: (
   document: VersionedDocument
