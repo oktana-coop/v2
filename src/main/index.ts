@@ -14,7 +14,7 @@ import {
 } from 'electron';
 import os from 'os';
 
-import { runPromiseSerializingErrorsForIPC } from '../modules/electron/ipc-effect';
+import { runPromiseSerializingErrorsForIPC } from '../modules/cross-platform/electron-ipc-effect';
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/filesystem/adapters/electron-node-api';
 import { type VersionControlId } from '../modules/version-control';
 import {

@@ -1,7 +1,7 @@
 import * as Effect from 'effect/Effect';
 import { createContext, useContext, useEffect, useState } from 'react';
 
-import { ElectronContext } from '../../electron';
+import { ElectronContext } from '../../../modules/cross-platform/electron-context';
 import { createAdapter } from '../adapters/automerge';
 import {
   setupForElectron as setupBrowserRepoForElectron,

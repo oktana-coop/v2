@@ -1,7 +1,7 @@
 import * as Effect from 'effect/Effect';
 import { createContext, useContext } from 'react';
 
-import { ElectronContext } from '../../electron/context';
+import { ElectronContext } from '../../../modules/cross-platform/electron-context';
 import { createAdapter as createBrowserFilesystemAPIAdapter } from '../adapters/browser-api/browser-filesystem-api/adapter';
 import { createAdapter as createElectronRendererFilesystemAPIAdapter } from '../adapters/electron-renderer-api';
 import { Filesystem } from '../ports/filesystem';

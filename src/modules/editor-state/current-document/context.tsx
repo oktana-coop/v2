@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
-import { ElectronContext } from '../../electron';
+import { ElectronContext } from '../../../modules/cross-platform';
 import { removeExtension, removePath } from '../../filesystem';
 import { FilesystemContext } from '../../filesystem/react';
 import { FunctionalityConfigContext } from '../../personalization/functionality-config';

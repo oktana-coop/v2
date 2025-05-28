@@ -1,7 +1,7 @@
 import {
   effectifyIPCPromise,
   type ErrorRegistry,
-} from '../../../../modules/electron/ipc-effect';
+} from '../../../../modules/cross-platform/electron-ipc-effect';
 import {
   AbortError as FilesystemAbortError,
   AccessControlError as FilesystemAccessControlError,

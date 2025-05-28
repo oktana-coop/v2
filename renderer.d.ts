@@ -1,6 +1,6 @@
 import type { IpcRenderer } from 'electron';
 
-import { type PromisifyEffects } from './src/modules/electron/ipc-effect';
+import { type PromisifyEffects } from './src/modules/cross-platform/electron-ipc-effect';
 import type { Filesystem as FilesystemAPI } from './src/modules/filesystem';
 import type {
   FromMainMessage,

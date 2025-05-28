@@ -1,7 +1,7 @@
 import * as Effect from 'effect/Effect';
 import { createContext, useContext, useEffect, useState } from 'react';
 
-import { ElectronContext } from '../../electron/context';
+import { ElectronContext } from '../../../modules/cross-platform/electron-context';
 import { type Directory, type File } from '../../filesystem';
 import { FilesystemContext } from '../../filesystem/react';
 import {

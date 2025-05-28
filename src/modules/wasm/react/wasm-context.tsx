@@ -6,7 +6,7 @@ import {
   useState,
 } from 'react';
 
-import { ElectronContext } from '../../electron';
+import { ElectronContext } from '../../../modules/cross-platform/electron-context';
 import {
   createBrowserWasmAdapter,
   createElectronRendererWasmAdapter,

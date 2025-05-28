@@ -9,7 +9,7 @@ import clsx from 'clsx';
 import { MouseEventHandler, useCallback, useContext, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
-import { ElectronContext } from '../../../../modules/electron';
+import { ElectronContext } from '../../../../modules/cross-platform';
 import {
   getLinkAttrsFromDomElement,
   LinkAttrs,
