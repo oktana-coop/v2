@@ -4,3 +4,4 @@ export * from './models/link';
 export { createAdapter as createAutomergePandocAdapter } from './adapters/automerge-pandoc-cli';
 export * as prosemirror from './prosemirror';
 export * from './models';
+export * from './ports';

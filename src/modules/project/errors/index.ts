@@ -1,6 +1,6 @@
 import * as Cause from 'effect/Cause';
 
-export class RepositoryError extends Cause.YieldableError {
+export class StoreError extends Cause.YieldableError {
   readonly _tag = 'VersionedProjectStoreError';
 }
 
