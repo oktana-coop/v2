@@ -1,10 +1,9 @@
 import * as Effect from 'effect/Effect';
 
-import { type VersionedDocumentHandle } from '../../rich-text';
 import { type VersionControlId } from '../../version-control';
 import { NotFoundError, RepositoryError } from '../errors';
 import type {
-  DocumentMetaData,
+  ArtifactMetaData,
   Project,
   VersionedProject,
   VersionedProjectHandle,
@@ -12,7 +11,7 @@ import type {
 
 export type CreateProjectArgs = {
   path: string;
-  documents: Project['documents'];
+  artifacts: Project['artifacts'];
 };
 
 export type CreateDocumentArgs = {
@@ -23,14 +22,21 @@ export type CreateDocumentArgs = {
   projectId: VersionControlId | null;
 };
 
-export type DeleteDocumentFromProjectArgs = {
+export type AddArtifactToProjectArgs = {
+  artifactId: VersionControlId;
+  name: string;
+  path: string;
   projectId: VersionControlId;
-  documentId: VersionControlId;
 };
 
-export type FindDocumentInProjectArgs = {
+export type DeleteArtifactFromProjectArgs = {
   projectId: VersionControlId;
-  documentPath: string;
+  artifactId: VersionControlId;
+};
+
+export type FindArtifactInProjectArgs = {
+  projectId: VersionControlId;
+  artifactPath: string;
 };
 
 export type VersionedProjectStore = {
@@ -44,26 +50,22 @@ export type VersionedProjectStore = {
     RepositoryError | NotFoundError,
     never
   >;
-  listProjectDocuments: (
+  listProjectArtifacts: (
     id: VersionControlId
   ) => Effect.Effect<
-    DocumentMetaData[],
+    ArtifactMetaData[],
     RepositoryError | NotFoundError,
     never
   >;
-  createDocument: (
-    args: CreateDocumentArgs
-  ) => Effect.Effect<VersionControlId, RepositoryError, never>;
-  deleteDocumentFromProject: (
-    args: DeleteDocumentFromProjectArgs
+  addArtifactToProject: (
+    args: AddArtifactToProjectArgs
   ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;
-  findDocumentInProject: (
-    args: FindDocumentInProjectArgs
-  ) => Effect.Effect<
-    VersionedDocumentHandle,
-    RepositoryError | NotFoundError,
-    never
-  >;
+  deleteArtifactFromProject: (
+    args: DeleteArtifactFromProjectArgs
+  ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;
+  findArtifactInProject: (
+    args: FindArtifactInProjectArgs
+  ) => Effect.Effect<VersionControlId, RepositoryError | NotFoundError, never>;
   getProjectFromHandle: (
     handle: VersionedProjectHandle
   ) => Effect.Effect<VersionedProject, RepositoryError | NotFoundError, never>;

@@ -3,6 +3,8 @@ import { pipe } from 'effect/Function';
 
 import {
   convertToStorageFormat,
+  NotFoundError as VersionedDocumentNotFoundError,
+  RepositoryError as VersionedDocumentRepositoryError,
   type VersionedDocumentStore,
 } from '../../../modules/rich-text';
 import { type VersionControlId } from '../../../modules/version-control';
@@ -16,11 +18,13 @@ import {
 } from '../../filesystem';
 import {
   NotFoundError as VersionedProjectNotFoundError,
-  StoreError as VersionedProjectStoreError,
+  RepositoryError as VersionedProjectRepositoryError,
 } from '../errors';
-import { type DocumentMetaData } from '../models';
+import { type ArtifactMetaData } from '../models';
 import type { VersionedProjectStore } from '../ports/versioned-project-store';
 import { createVersionedDocument } from './create-versioned-document';
+import { deleteDocumentFromProject } from './delete-document-from-project';
+import { findDocumentInProject } from './find-document-in-project';
 
 export type UpdateProjectFromFilesystemContentArgs = {
   projectId: VersionControlId;
@@ -28,12 +32,15 @@ export type UpdateProjectFromFilesystemContentArgs = {
 };
 
 export type UpdateProjectFromFilesystemContentDeps = {
-  createDocument: VersionedProjectStore['createDocument'];
-  updateDocumentSpans: VersionedDocumentStore['updateDocumentSpans'];
-  listProjectDocuments: VersionedProjectStore['listProjectDocuments'];
-  findDocumentInProject: VersionedProjectStore['findDocumentInProject'];
+  findDocumentById: VersionedDocumentStore['findDocumentById'];
   getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
-  deleteDocumentFromProject: VersionedProjectStore['deleteDocumentFromProject'];
+  createDocument: VersionedDocumentStore['createDocument'];
+  updateDocumentSpans: VersionedDocumentStore['updateDocumentSpans'];
+  deleteDocument: VersionedDocumentStore['deleteDocument'];
+  addArtifactToProject: VersionedProjectStore['addArtifactToProject'];
+  findArtifactInProject: VersionedProjectStore['findArtifactInProject'];
+  listProjectArtifacts: VersionedProjectStore['listProjectArtifacts'];
+  deleteArtifactFromProject: VersionedProjectStore['deleteArtifactFromProject'];
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readFile: Filesystem['readFile'];
 };
@@ -43,7 +50,7 @@ const documentForFileExistsInProject = ({
   projectDocuments,
 }: {
   file: File;
-  projectDocuments: DocumentMetaData[];
+  projectDocuments: ArtifactMetaData[];
 }): boolean =>
   projectDocuments.some(
     (docMetaData) =>
@@ -56,13 +63,15 @@ const documentForFileExistsInProject = ({
 // The files content is the source of truth.
 const propagateFileChangesToVersionedDocument =
   ({
-    updateDocumentSpans,
-    findDocumentInProject,
+    findDocumentById,
     getDocumentFromHandle,
+    updateDocumentSpans,
+    findArtifactInProject,
     readFile,
   }: {
+    findDocumentById: VersionedDocumentStore['findDocumentById'];
+    findArtifactInProject: VersionedProjectStore['findArtifactInProject'];
     updateDocumentSpans: VersionedDocumentStore['updateDocumentSpans'];
-    findDocumentInProject: VersionedProjectStore['findDocumentInProject'];
     getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
     readFile: Filesystem['readFile'];
   }) =>
@@ -74,15 +83,17 @@ const propagateFileChangesToVersionedDocument =
     file: File;
   }): Effect.Effect<
     void,
-    | VersionedProjectStoreError
+    | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
+    | VersionedDocumentRepositoryError
+    | VersionedDocumentNotFoundError
     | FilesystemAccessControlError
     | FilesystemNotFoundError
     | FilesystemRepositoryError,
     never
   > =>
     pipe(
-      findDocumentInProject({
+      findDocumentInProject({ findDocumentById, findArtifactInProject })({
         documentPath: file.path!,
         projectId,
       }),
@@ -112,22 +123,27 @@ const propagateFileChangesToVersionedDocument =
 
 export const updateProjectFromFilesystemContent =
   ({
+    findDocumentById,
+    getDocumentFromHandle,
     createDocument,
     updateDocumentSpans,
-    listProjectDocuments,
-    findDocumentInProject,
-    getDocumentFromHandle,
-    deleteDocumentFromProject,
+    deleteDocument,
+    listProjectArtifacts,
+    findArtifactInProject,
+    deleteArtifactFromProject,
     listDirectoryFiles,
     readFile,
+    addArtifactToProject,
   }: UpdateProjectFromFilesystemContentDeps) =>
   ({
     projectId,
     directoryPath,
   }: UpdateProjectFromFilesystemContentArgs): Effect.Effect<
     void,
-    | VersionedProjectStoreError
+    | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
+    | VersionedDocumentRepositoryError
+    | VersionedDocumentNotFoundError
     | FilesystemAccessControlError
     | FilesystemDataIntegrityError
     | FilesystemNotFoundError
@@ -135,7 +151,7 @@ export const updateProjectFromFilesystemContent =
     never
   > =>
     Effect.Do.pipe(
-      Effect.bind('projectDocuments', () => listProjectDocuments(projectId)),
+      Effect.bind('projectDocuments', () => listProjectArtifacts(projectId)),
       Effect.bind('directoryFiles', () => listDirectoryFiles(directoryPath)),
       Effect.tap(({ directoryFiles, projectDocuments }) =>
         Effect.forEach(
@@ -143,14 +159,16 @@ export const updateProjectFromFilesystemContent =
           (file) =>
             documentForFileExistsInProject({ file, projectDocuments })
               ? propagateFileChangesToVersionedDocument({
+                  findDocumentById,
+                  findArtifactInProject,
                   updateDocumentSpans,
-                  findDocumentInProject,
                   getDocumentFromHandle,
                   readFile,
                 })({ file, projectId })
               : createVersionedDocument({
                   createDocument,
                   readFile,
+                  addArtifactToProject,
                 })({
                   file,
                   projectId,
@@ -173,6 +191,9 @@ export const updateProjectFromFilesystemContent =
           projectDocumentsToDelete,
           (id) =>
             deleteDocumentFromProject({
+              deleteDocument,
+              deleteArtifactFromProject,
+            })({
               documentId: id,
               projectId,
             }),

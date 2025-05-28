@@ -13,10 +13,7 @@ import type {
 
 export type CreateDocumentArgs = {
   title: string;
-  name: string;
-  path: string;
   content: string | null;
-  projectId: VersionControlId | null;
 };
 
 export type GetDocumentHandleAtCommitArgs = {
@@ -49,5 +46,8 @@ export type VersionedDocumentStore = {
   // TODO: Think of a better abstraction - this is too Automerge-specific
   updateDocumentSpans: (
     args: UpdateDocumentSpansArgs
+  ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;
+  deleteDocument: (
+    args: VersionControlId
   ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;
 };

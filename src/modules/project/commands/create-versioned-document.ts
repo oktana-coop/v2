@@ -1,5 +1,11 @@
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
+import * as Option from 'effect/Option';
 
+import {
+  RepositoryError as VersionedDocumentRepositoryError,
+  type VersionedDocumentStore,
+} from '../../../modules/rich-text';
 import { type VersionControlId } from '../../../modules/version-control';
 import {
   AccessControlError as FilesystemAccessControlError,
@@ -8,8 +14,11 @@ import {
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../filesystem';
-import { StoreError as VersionedProjectStoreError } from '../errors';
-import type { VersionedProjectStore } from '../ports/versioned-project-store';
+import {
+  NotFoundError as VersionedProjectNotFoundError,
+  RepositoryError as VersionedProjectRepositoryError,
+} from '../errors';
+import { type VersionedProjectStore } from '../ports/versioned-project-store';
 
 export type CreateVersionedDocumentArgs = {
   file: File;
@@ -23,18 +32,25 @@ export type CreateVersionedDocumentResult = {
 };
 
 export type CreateVersionedDocumentDeps = {
-  createDocument: VersionControlRepo['createDocument'];
+  createDocument: VersionedDocumentStore['createDocument'];
+  addArtifactToProject: VersionedProjectStore['addArtifactToProject'];
   readFile: Filesystem['readFile'];
 };
 
 export const createVersionedDocument =
-  ({ createDocument, readFile }: CreateVersionedDocumentDeps) =>
+  ({
+    createDocument,
+    readFile,
+    addArtifactToProject,
+  }: CreateVersionedDocumentDeps) =>
   ({
     file,
     projectId,
   }: CreateVersionedDocumentArgs): Effect.Effect<
     CreateVersionedDocumentResult,
-    | VersionedProjectStoreError
+    | VersionedProjectRepositoryError
+    | VersionedProjectNotFoundError
+    | VersionedDocumentRepositoryError
     | FilesystemAccessControlError
     | FilesystemNotFoundError
     | FilesystemRepositoryError,
@@ -44,12 +60,24 @@ export const createVersionedDocument =
       Effect.bind('readFileResult', () => readFile(file.path!)),
       Effect.bind('documentId', ({ readFileResult }) =>
         createDocument({
-          path: readFileResult.path!,
-          name: readFileResult.name,
           title: readFileResult.name,
           content: readFileResult.content ?? null,
-          projectId,
         })
+      ),
+      Effect.tap(({ readFileResult, documentId }) =>
+        pipe(
+          Option.fromNullable(projectId),
+          Option.match({
+            onNone: () => Effect.as(undefined),
+            onSome: (projId) =>
+              addArtifactToProject({
+                artifactId: documentId,
+                name: readFileResult.name,
+                path: readFileResult.path!,
+                projectId: projId,
+              }),
+          })
+        )
       ),
       Effect.map(({ readFileResult, documentId }) => ({
         versionControlId: documentId,

@@ -5,3 +5,4 @@ export { createAdapter as createAutomergePandocAdapter } from './adapters/autome
 export * as prosemirror from './prosemirror';
 export * from './models';
 export * from './ports';
+export * from './errors';

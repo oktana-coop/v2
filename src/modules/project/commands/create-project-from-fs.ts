@@ -1,7 +1,11 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
-import { type VersionedDocumentStore } from '../../../modules/rich-text';
+import {
+  NotFoundError as VersionedDocumentNotFoundError,
+  RepositoryError as VersionedDocumentRepositoryError,
+  type VersionedDocumentStore,
+} from '../../../modules/rich-text';
 import { type VersionControlId } from '../../../modules/version-control';
 import {
   AccessControlError as FilesystemAccessControlError,
@@ -10,8 +14,11 @@ import {
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../filesystem';
-import { StoreError as VersionedProjectStoreError } from '../errors';
-import { type DocumentMetaData } from '../models';
+import {
+  NotFoundError as VersionedProjectNotFoundError,
+  RepositoryError as VersionedProjectRepositoryError,
+} from '../errors';
+import { type ArtifactMetaData } from '../models';
 import { type VersionedProjectStore } from '../ports/versioned-project-store';
 import { createVersionedDocument } from './create-versioned-document';
 
@@ -20,16 +27,18 @@ export type CreateProjectFromFilesystemContentArgs = {
 };
 
 export type CreateProjectFromFilesystemContentDeps = {
-  createProject: VersionedProjectStore['createProject'];
   createDocument: VersionedDocumentStore['createDocument'];
+  createProject: VersionedProjectStore['createProject'];
+  addArtifactToProject: VersionedProjectStore['addArtifactToProject'];
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readFile: Filesystem['readFile'];
 };
 
 export const createProjectFromFilesystemContent =
   ({
-    createProject,
     createDocument,
+    createProject,
+    addArtifactToProject,
     listDirectoryFiles,
     readFile,
   }: CreateProjectFromFilesystemContentDeps) =>
@@ -37,7 +46,10 @@ export const createProjectFromFilesystemContent =
     directoryPath,
   }: CreateProjectFromFilesystemContentArgs): Effect.Effect<
     VersionControlId,
-    | VersionedProjectStoreError
+    | VersionedProjectRepositoryError
+    | VersionedProjectNotFoundError
+    | VersionedDocumentRepositoryError
+    | VersionedDocumentNotFoundError
     | FilesystemAccessControlError
     | FilesystemDataIntegrityError
     | FilesystemNotFoundError
@@ -49,6 +61,7 @@ export const createProjectFromFilesystemContent =
       Effect.flatMap((directoryFiles) =>
         Effect.forEach(directoryFiles, (file) =>
           createVersionedDocument({
+            addArtifactToProject,
             createDocument,
             readFile,
           })({
@@ -60,11 +73,11 @@ export const createProjectFromFilesystemContent =
       Effect.flatMap((documents) =>
         createProject({
           path: directoryPath!,
-          documents: documents.reduce(
+          artifacts: documents.reduce(
             (acc, doc) => {
               return { ...acc, [doc.versionControlId]: doc };
             },
-            {} as Record<VersionControlId, DocumentMetaData>
+            {} as Record<VersionControlId, ArtifactMetaData>
           ),
         })
       )

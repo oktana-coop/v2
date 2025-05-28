@@ -6,7 +6,6 @@ import {
 } from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
-import * as Option from 'effect/Option';
 
 import {
   type VersionControlId,
@@ -48,10 +47,7 @@ export const createAdapter = (automergeRepo: Repo): VersionedDocumentStore => {
 
   const createDocument: VersionedDocumentStore['createDocument'] = ({
     title,
-    name,
-    path,
     content,
-    projectId,
   }) =>
     pipe(
       Effect.try({
@@ -63,24 +59,7 @@ export const createAdapter = (automergeRepo: Repo): VersionedDocumentStore => {
           }),
         catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
       }),
-      Effect.map((handle) => handle.url),
-      Effect.tap((documentId) =>
-        pipe(
-          Option.fromNullable(projectId),
-          Option.match({
-            onNone: () => Effect.as(undefined),
-            onSome: (projId) =>
-              pipe(
-                addDocumentToProject({
-                  documentId,
-                  name,
-                  path,
-                  projectId: projId,
-                })
-              ),
-          })
-        )
-      )
+      Effect.map((handle) => handle.url)
     );
 
   const getDocumentHandleAtCommit: VersionedDocumentStore['getDocumentHandleAtCommit'] =
@@ -135,10 +114,25 @@ export const createAdapter = (automergeRepo: Repo): VersionedDocumentStore => {
       catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
     });
 
+  const deleteDocument: VersionedDocumentStore['deleteDocument'] = (
+    documentId
+  ) =>
+    pipe(
+      findDocumentById(documentId),
+      Effect.tap((documentHandle) =>
+        Effect.try({
+          try: () => documentHandle.delete(),
+          catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+        })
+      )
+    );
+
   return {
+    createDocument,
     getDocumentHandleAtCommit,
     findDocumentById,
     updateDocumentSpans,
     getDocumentFromHandle,
+    deleteDocument,
   };
 };

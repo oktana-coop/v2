@@ -4,7 +4,7 @@ import {
   type VersionedArtifactHandle,
 } from '../../../modules/version-control';
 
-export type DocumentMetaData = {
+export type ArtifactMetaData = {
   versionControlId: VersionControlId;
   name: string;
   // TODO: use relative path to project directory in this model
@@ -13,7 +13,7 @@ export type DocumentMetaData = {
 
 export type Project = {
   path: string;
-  documents: Record<VersionControlId, DocumentMetaData>;
+  artifacts: Record<VersionControlId, ArtifactMetaData>;
 };
 
 export type VersionedProject = VersionedArtifact<Project>;
