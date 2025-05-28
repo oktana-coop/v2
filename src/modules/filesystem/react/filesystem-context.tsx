@@ -1,11 +1,5 @@
 import * as Effect from 'effect/Effect';
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 import { ElectronContext } from '../../electron/context';
 import { createAdapter as createBrowserFilesystemAPIAdapter } from '../adapters/browser-api/browser-filesystem-api/adapter';

@@ -59,15 +59,17 @@ const DocumentIndex = () => {
     selectedFileInfo,
     selectedFileName,
     setSelectedFileInfo,
-    versionedDocumentHistory: commits,
     onSelectCommit,
-    onCloseCommitDialog,
-    isCommitDialogOpen,
+  } = useContext(CurrentDocumentContext);
+  const {
+    findDocumentInProject,
+    versionedDocumentHistory: commits,
     canCommit,
     onCommit,
+    isCommitDialogOpen,
     onOpenCommitDialog,
-  } = useContext(CurrentDocumentContext);
-  const { findDocumentInProject } = useContext(VersionControlContext);
+    onCloseCommitDialog,
+  } = useContext(VersionControlContext);
   const { changeId } = useParams();
   const [isCommandPaletteOpen, setCommandPaletteOpen] =
     useState<boolean>(false);

@@ -22,15 +22,16 @@ import { type DiffViewProps, ReadOnlyView } from './ReadOnlyView';
 
 export const DocumentHistoricalView = () => {
   const { changeId, documentId } = useParams();
+  const { selectedCommitIndex, onSelectCommit } = useContext(
+    CurrentDocumentContext
+  );
   const {
     versionedDocumentHandle,
     versionedDocumentHistory: commits,
-    selectedCommitIndex,
-    onSelectCommit,
+    getDocumentHandleAtCommit,
     canCommit,
     onOpenCommitDialog,
-  } = useContext(CurrentDocumentContext);
-  const { getDocumentHandleAtCommit } = useContext(VersionControlContext);
+  } = useContext(VersionControlContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const [doc, setDoc] = React.useState<VersionedDocument | null>();
   const [viewTitle, setViewTitle] = useState<string>('');
