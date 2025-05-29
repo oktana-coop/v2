@@ -9,11 +9,11 @@ import clsx from 'clsx';
 import { MouseEventHandler, useCallback, useContext, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
-import { ElectronContext } from '../../../../modules/cross-platform';
 import {
   getLinkAttrsFromDomElement,
   LinkAttrs,
-} from '../../../../modules/rich-text';
+} from '../../../../modules/domain/rich-text';
+import { ElectronContext } from '../../../../modules/infrastructure/cross-platform';
 import { Button } from '../actions/Button';
 import { IconButton } from '../actions/IconButton';
 import { CloseIcon } from '../icons';

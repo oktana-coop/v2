@@ -9,7 +9,7 @@ import {
   Routes,
 } from 'react-router';
 
-import { ElectronContext } from '../../modules/cross-platform';
+import { ElectronContext } from '../../modules/infrastructure/cross-platform';
 import {
   Document,
   DocumentEditor,

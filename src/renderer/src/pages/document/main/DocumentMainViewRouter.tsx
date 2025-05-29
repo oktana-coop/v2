@@ -4,8 +4,8 @@ import { Outlet, useParams } from 'react-router';
 import {
   CurrentDocumentContext,
   CurrentProjectContext,
-} from '../../../../../modules/editor-state';
-import { isValidVersionControlId } from '../../../../../modules/version-control';
+} from '../../../../../modules/app-state';
+import { isValidVersionControlId } from '../../../../../modules/infrastructure/version-control';
 import { InvalidDocument } from '../../../components/document-views/InvalidDocument';
 import { EmptyDocumentPage } from './empty';
 

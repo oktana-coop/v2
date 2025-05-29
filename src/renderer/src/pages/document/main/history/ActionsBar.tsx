@@ -5,7 +5,7 @@ import {
   decodeURLHeads,
   encodeURLHeads,
   type UrlHeads,
-} from '../../../../../../modules/version-control';
+} from '../../../../../../modules/infrastructure/version-control';
 import { IconButton } from '../../../../components/actions/IconButton';
 import {
   CheckIcon,

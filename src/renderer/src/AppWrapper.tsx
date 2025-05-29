@@ -1,7 +1,7 @@
-import { InfrastructureAdaptersProvider } from '../../modules/editor-state';
+import { InfrastructureAdaptersProvider } from '../../modules/app-state';
+import { WasmProvider } from '../../modules/infrastructure/wasm/react/wasm-context';
 import { FunctionalityConfigProvider } from '../../modules/personalization/functionality-config';
 import { ThemeProvider } from '../../modules/personalization/theme';
-import { WasmProvider } from '../../modules/wasm/react/wasm-context';
 import App from './App.tsx';
 
 export const AppWrapper = () => {

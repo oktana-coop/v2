@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 
-import { ensureHttpPrefix, LinkAttrs } from '../../../../modules/rich-text';
+import {
+  ensureHttpPrefix,
+  LinkAttrs,
+} from '../../../../modules/domain/rich-text';
 import { Button } from '../actions/Button';
 import { Modal } from '../dialogs/Modal';
 import { CheckIcon } from '../icons/Check';

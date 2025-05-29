@@ -6,14 +6,17 @@ import {
   CurrentDocumentProvider,
   CurrentProjectContext,
   CurrentProjectProvider,
-} from '../../../../modules/editor-state';
-import { SidebarLayoutProvider } from '../../../../modules/editor-state/sidebar-layout/context';
-import { type File, removeExtension } from '../../../../modules/filesystem';
-import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
+  SidebarLayoutProvider,
+} from '../../../../modules/app-state';
+import { ProseMirrorProvider } from '../../../../modules/domain/rich-text/react/context';
+import {
+  type File,
+  removeExtension,
+} from '../../../../modules/infrastructure/filesystem';
 import {
   decodeURLHeads,
   type VersionControlId,
-} from '../../../../modules/version-control';
+} from '../../../../modules/infrastructure/version-control';
 import { CommandPalette } from '../../components/dialogs/command-palette/CommandPalette';
 import { Layout } from '../../components/layout/Layout';
 import { SidebarLayout } from '../../components/layout/SidebarLayout';

@@ -3,7 +3,7 @@ import './index.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
-import { ElectronProvider } from '../../modules/cross-platform';
+import { ElectronProvider } from '../../modules/infrastructure/cross-platform';
 import { AppWrapper } from './AppWrapper';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

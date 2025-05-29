@@ -2,17 +2,17 @@ import clsx from 'clsx';
 import { useContext } from 'react';
 
 import {
-  ThemeContext,
-  themes,
-} from '../../../../../../modules/personalization/theme';
-import {
   type Change,
   type Commit,
   encodeURLHeads,
   headsAreSame,
   isCommit,
   type UncommitedChange,
-} from '../../../../../../modules/version-control';
+} from '../../../../../../modules/infrastructure/version-control';
+import {
+  ThemeContext,
+  themes,
+} from '../../../../../../modules/personalization/theme';
 import { TimelinePoint } from '../../../../components/icons/TimelinePoint';
 
 const Commit = ({

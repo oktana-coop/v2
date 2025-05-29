@@ -1,4 +1,4 @@
-import { type File } from '../../../../../../modules/filesystem';
+import { type File } from '../../../../../../modules/infrastructure/filesystem';
 import { Button } from '../../../../components/actions/Button';
 import { EmptyDocument } from '../../../../components/document-views/EmptyDocument';
 import { PenIcon } from '../../../../components/icons';

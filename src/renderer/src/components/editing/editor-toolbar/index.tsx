@@ -3,7 +3,7 @@ import {
   blockTypes,
   type ContainerBlockType,
   type LeafBlockType,
-} from '../../../../../modules/rich-text';
+} from '../../../../../modules/domain/rich-text';
 import { IconButton } from '../../actions/IconButton';
 import {
   BulletListIcon,

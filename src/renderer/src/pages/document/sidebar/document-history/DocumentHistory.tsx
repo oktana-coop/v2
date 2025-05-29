@@ -1,7 +1,7 @@
 import {
   type Commit,
   type UncommitedChange,
-} from '../../../../../../modules/version-control';
+} from '../../../../../../modules/infrastructure/version-control';
 import { CommitHistoryIcon } from '../../../../components/icons';
 import { SidebarHeading } from '../../../../components/sidebar/SidebarHeading';
 import { ChangeLog } from './ChangeLog';

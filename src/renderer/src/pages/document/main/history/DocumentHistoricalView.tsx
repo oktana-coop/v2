@@ -1,13 +1,14 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
-import { CurrentDocumentContext } from '../../../../../../modules/editor-state';
-import { SidebarLayoutContext } from '../../../../../../modules/editor-state/sidebar-layout/context';
-import { FunctionalityConfigContext } from '../../../../../../modules/personalization/functionality-config';
+import {
+  CurrentDocumentContext,
+  SidebarLayoutContext,
+} from '../../../../../../modules/app-state';
 import {
   type VersionedDocument,
   type VersionedDocumentHandle,
-} from '../../../../../../modules/rich-text';
+} from '../../../../../../modules/domain/rich-text';
 import {
   type Change,
   type ChangeWithUrlInfo,
@@ -17,7 +18,8 @@ import {
   headsAreSame,
   isCommit,
   UrlHeads,
-} from '../../../../../../modules/version-control';
+} from '../../../../../../modules/infrastructure/version-control';
+import { FunctionalityConfigContext } from '../../../../../../modules/personalization/functionality-config';
 import { ActionsBar } from './ActionsBar';
 import { type DiffViewProps, ReadOnlyView } from './ReadOnlyView';
 

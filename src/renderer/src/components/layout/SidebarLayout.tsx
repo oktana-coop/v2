@@ -1,7 +1,7 @@
 import { type ReactNode, useContext } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
-import { SidebarLayoutContext } from '../../../../modules/editor-state/sidebar-layout/context';
+import { SidebarLayoutContext } from '../../../../modules/app-state';
 
 export const SidebarLayout = ({
   sidebar,

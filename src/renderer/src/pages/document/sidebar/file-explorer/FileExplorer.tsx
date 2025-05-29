@@ -1,11 +1,11 @@
 import { clsx } from 'clsx';
 
-import { type SelectedFileInfo } from '../../../../../../modules/editor-state';
+import { type SelectedFileInfo } from '../../../../../../modules/app-state';
 import {
   type Directory,
   type File,
   removeExtension,
-} from '../../../../../../modules/filesystem';
+} from '../../../../../../modules/infrastructure/filesystem';
 import { Button } from '../../../../components/actions/Button';
 import { IconButton } from '../../../../components/actions/IconButton';
 import {

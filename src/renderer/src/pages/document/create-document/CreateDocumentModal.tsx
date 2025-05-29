@@ -1,7 +1,7 @@
 import { useContext, useState } from 'react';
 
-import { CurrentProjectContext } from '../../../../../modules/editor-state';
-import { type VersionControlId } from '../../../../../modules/version-control/';
+import { CurrentProjectContext } from '../../../../../modules/app-state';
+import { type VersionControlId } from '../../../../../modules/infrastructure/version-control/';
 import { Button } from '../../../components/actions/Button';
 import { Modal } from '../../../components/dialogs/Modal';
 
