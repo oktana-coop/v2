@@ -24,6 +24,8 @@ import {
 } from '../../models';
 import { VersionControlRepo } from '../../ports/version-control-repo';
 
+export { Repo as AutomergeRepo } from '@automerge/automerge-repo';
+
 export const createAdapter = (automergeRepo: Repo): VersionControlRepo => {
   const getDocFromHandle: <T>(
     handle: DocHandle<T>

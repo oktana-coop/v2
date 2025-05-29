@@ -20,7 +20,7 @@ import {
 } from '../errors';
 import { type ArtifactMetaData } from '../models';
 import { type VersionedProjectStore } from '../ports/versioned-project-store';
-import { createVersionedDocument } from './create-versioned-document';
+import { createVersionedDocumentFromFile } from './create-versioned-document-from-file';
 
 export type CreateProjectFromFilesystemContentArgs = {
   directoryPath: string;
@@ -60,7 +60,7 @@ export const createProjectFromFilesystemContent =
       listDirectoryFiles(directoryPath),
       Effect.flatMap((directoryFiles) =>
         Effect.forEach(directoryFiles, (file) =>
-          createVersionedDocument({
+          createVersionedDocumentFromFile({
             addArtifactToProject,
             createDocument,
             readFile,

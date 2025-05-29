@@ -2,14 +2,14 @@ import * as Effect from 'effect/Effect';
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import { ElectronContext } from '../../../modules/cross-platform/electron-context';
-import { type Directory, type File } from '../../filesystem';
-import { FilesystemContext } from '../../filesystem/react';
 import {
   createProjectFromFilesystemContent,
+  createVersionedDocument,
   updateProjectFromFilesystemContent,
-  VersionControlId,
-} from '../../version-control';
-import { VersionControlContext } from '../../version-control/react/context';
+} from '../../../modules/project';
+import { type Directory, type File } from '../../filesystem';
+import { VersionControlId } from '../../version-control';
+import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
 type BrowserStorageProjectData = {
   directoryName: Directory['name'];
@@ -47,10 +47,8 @@ export const CurrentProjectProvider = ({
   children: React.ReactNode;
 }) => {
   const { isElectron } = useContext(ElectronContext);
-  const { versionControlRepo, createDocument: createVersionedDocument } =
-    useContext(VersionControlContext);
-  const { filesystem, requestPermissionForDirectory } =
-    useContext(FilesystemContext);
+  const { filesystem, versionedDocumentStore, versionedProjectStore } =
+    useContext(InfrastructureAdaptersContext);
   const [projectId, setProjectId] = useState<VersionControlId | null>(null);
   const [directory, setDirectory] = useState<Directory | null>(null);
   const [directoryFiles, setDirectoryFiles] = useState<Array<File>>([]);
@@ -93,6 +91,16 @@ export const CurrentProjectProvider = ({
     }
   }, [directory, filesystem]);
 
+  const requestPermissionForDirectory = async (dir: Directory) => {
+    if (!dir.path) {
+      throw new Error('The directory does not have a path');
+    }
+
+    return Effect.runPromise(
+      filesystem.requestPermissionForDirectory(dir.path)
+    );
+  };
+
   const requestPermissionForSelectedDirectory = async () => {
     if (!directory) {
       throw new Error(
@@ -133,6 +141,9 @@ export const CurrentProjectProvider = ({
     }
 
     const newDocumentId = await createVersionedDocument({
+      createDocument: versionedDocumentStore.createDocument,
+      addArtifactToProject: versionedProjectStore.addArtifactToProject,
+    })({
       name: newFile.name,
       title: suggestedName,
       path: newFile.path!,
@@ -145,10 +156,6 @@ export const CurrentProjectProvider = ({
 
   useEffect(() => {
     const openOrCreateProject = async () => {
-      if (!versionControlRepo) {
-        return;
-      }
-
       if (directory) {
         // Check if we have a project ID in the browser storage
         const browserStorageBrowserDataValue = localStorage.getItem(
@@ -180,13 +187,20 @@ export const CurrentProjectProvider = ({
           } else {
             await Effect.runPromise(
               updateProjectFromFilesystemContent({
-                createDocument: versionControlRepo.createDocument,
-                listProjectDocuments: versionControlRepo.listProjectDocuments,
-                findDocumentInProject: versionControlRepo.findDocumentInProject,
-                getDocumentFromHandle: versionControlRepo.getDocumentFromHandle,
-                updateDocumentSpans: versionControlRepo.updateDocumentSpans,
-                deleteDocumentFromProject:
-                  versionControlRepo.deleteDocumentFromProject,
+                findDocumentById: versionedDocumentStore.findDocumentById,
+                getDocumentFromHandle:
+                  versionedDocumentStore.getDocumentFromHandle,
+                createDocument: versionedDocumentStore.createDocument,
+                deleteDocument: versionedDocumentStore.deleteDocument,
+                updateDocumentSpans: versionedDocumentStore.updateDocumentSpans,
+                listProjectArtifacts:
+                  versionedProjectStore.listProjectArtifacts,
+                findArtifactInProject:
+                  versionedProjectStore.findArtifactInProject,
+                deleteArtifactFromProject:
+                  versionedProjectStore.deleteArtifactFromProject,
+                addArtifactToProject:
+                  versionedProjectStore.addArtifactToProject,
                 listDirectoryFiles: filesystem.listDirectoryFiles,
                 readFile: filesystem.readFile,
               })({
@@ -204,8 +218,10 @@ export const CurrentProjectProvider = ({
           } else {
             projId = await Effect.runPromise(
               createProjectFromFilesystemContent({
-                createProject: versionControlRepo.createProject,
-                createDocument: versionControlRepo.createDocument,
+                createDocument: versionedDocumentStore.createDocument,
+                createProject: versionedProjectStore.createProject,
+                addArtifactToProject:
+                  versionedProjectStore.addArtifactToProject,
                 listDirectoryFiles: filesystem.listDirectoryFiles,
                 readFile: filesystem.readFile,
               })({

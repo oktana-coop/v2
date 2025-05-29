@@ -13,3 +13,8 @@ export {
   SidebarLayoutContext,
   SidebarLayoutProvider,
 } from './sidebar-layout/context';
+
+export {
+  InfrastructureAdaptersContext,
+  InfrastructureAdaptersProvider,
+} from './infrastructure-adapters/context';

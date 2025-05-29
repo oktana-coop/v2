@@ -22,7 +22,7 @@ import {
 } from '../errors';
 import { type ArtifactMetaData } from '../models';
 import type { VersionedProjectStore } from '../ports/versioned-project-store';
-import { createVersionedDocument } from './create-versioned-document';
+import { createVersionedDocumentFromFile } from './create-versioned-document-from-file';
 import { deleteDocumentFromProject } from './delete-document-from-project';
 import { findDocumentInProject } from './find-document-in-project';
 
@@ -165,7 +165,7 @@ export const updateProjectFromFilesystemContent =
                   getDocumentFromHandle,
                   readFile,
                 })({ file, projectId })
-              : createVersionedDocument({
+              : createVersionedDocumentFromFile({
                   createDocument,
                   readFile,
                   addArtifactToProject,

@@ -1,22 +1,19 @@
-import { FilesystemProvider } from '../../modules/filesystem/react/filesystem-context';
+import { InfrastructureAdaptersProvider } from '../../modules/editor-state';
 import { FunctionalityConfigProvider } from '../../modules/personalization/functionality-config';
 import { ThemeProvider } from '../../modules/personalization/theme';
-import { VersionControlProvider } from '../../modules/version-control/react';
 import { WasmProvider } from '../../modules/wasm';
 import App from './App.tsx';
 
 export const AppWrapper = () => {
   return (
-    <FilesystemProvider>
+    <InfrastructureAdaptersProvider>
       <WasmProvider>
-        <VersionControlProvider>
-          <ThemeProvider>
-            <FunctionalityConfigProvider>
-              <App />
-            </FunctionalityConfigProvider>
-          </ThemeProvider>
-        </VersionControlProvider>
+        <ThemeProvider>
+          <FunctionalityConfigProvider>
+            <App />
+          </FunctionalityConfigProvider>
+        </ThemeProvider>
       </WasmProvider>
-    </FilesystemProvider>
+    </InfrastructureAdaptersProvider>
   );
 };

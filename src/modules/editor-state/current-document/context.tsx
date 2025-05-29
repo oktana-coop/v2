@@ -9,6 +9,13 @@ import {
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
 import { ElectronContext } from '../../../modules/cross-platform';
+import {
+  convertToStorageFormat,
+  isEmpty,
+  type RichTextDocument,
+  type VersionedDocument,
+  type VersionedDocumentHandle,
+} from '../../../modules/rich-text';
 import { removeExtension, removePath } from '../../filesystem';
 import { FilesystemContext } from '../../filesystem/react';
 import { FunctionalityConfigContext } from '../../personalization/functionality-config';
@@ -16,21 +23,16 @@ import {
   type Change,
   type ChangeWithUrlInfo,
   type Commit,
-  convertToStorageFormat,
-  type DocHandleChangePayload,
   encodeURLHeads,
   encodeURLHeadsForChange,
-  getDocumentHandleHistory,
-  getDocumentHeads,
+  getArtifactHandleHistory,
+  getArtifactHeads,
   headsAreSame,
-  isContentSameAtHeads,
-  isEmpty,
+  isArtifactContentSameAtHeads as isContentSameAtHeads,
   isValidVersionControlId,
-  type RichTextDocument,
   type UrlHeads,
   type VersionControlId,
-  VersionedDocument,
-  type VersionedDocumentHandle,
+  type VersionedArtifactHandleChangePayload,
 } from '../../version-control';
 import { VersionControlContext } from '../../version-control/react';
 
@@ -117,7 +119,7 @@ export const CurrentDocumentProvider = ({
         }
 
         const propagateChangesToFile = (
-          changePayload: DocHandleChangePayload<RichTextDocument>
+          changePayload: VersionedArtifactHandleChangePayload<RichTextDocument>
         ) => {
           if (path) {
             writeFile(path, convertToStorageFormat(changePayload.doc));
@@ -186,8 +188,8 @@ export const CurrentDocumentProvider = ({
   };
 
   const loadHistory = async (docHandle: VersionedDocumentHandle) => {
-    const { history, currentDoc, lastCommit, latestChange } =
-      await getDocumentHandleHistory(docHandle);
+    const { history, current, lastCommit, latestChange } =
+      await getArtifactHandleHistory(docHandle);
 
     const historyWithURLInfo = history.map((commit) => ({
       ...commit,
@@ -196,7 +198,7 @@ export const CurrentDocumentProvider = ({
 
     setVersionedDocumentHistory(historyWithURLInfo);
     setLastCommit(lastCommit);
-    checkIfCanCommit(currentDoc, latestChange.heads, lastCommit?.heads);
+    checkIfCanCommit(current, latestChange.heads, lastCommit?.heads);
   };
 
   useEffect(() => {
@@ -213,11 +215,13 @@ export const CurrentDocumentProvider = ({
 
   useEffect(() => {
     if (versionedDocumentHandle) {
-      const handler = (args: DocHandleChangePayload<VersionedDocument>) => {
+      const handler = (
+        args: VersionedArtifactHandleChangePayload<RichTextDocument>
+      ) => {
         loadHistory(versionedDocumentHandle);
         checkIfCanCommit(
           args.doc,
-          getDocumentHeads(args.doc),
+          getArtifactHeads(args.doc),
           lastCommit?.heads
         );
       };
