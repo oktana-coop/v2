@@ -106,7 +106,7 @@ const DocumentIndex = () => {
 
     const documentHandle = await findDocumentInProject({
       projectId,
-      artifactPath: file.path!,
+      documentPath: file.path!,
     });
 
     if (!documentHandle) {

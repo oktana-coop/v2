@@ -2,7 +2,6 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import {
-  NotFoundError as VersionedDocumentNotFoundError,
   RepositoryError as VersionedDocumentRepositoryError,
   type VersionedDocumentStore,
 } from '../../../modules/rich-text';

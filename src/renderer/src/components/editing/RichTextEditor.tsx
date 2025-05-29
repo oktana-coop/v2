@@ -18,6 +18,8 @@ import {
   getHeadingLevel,
   LinkAttrs,
   prosemirror,
+  type VersionedDocument,
+  type VersionedDocumentHandle,
 } from '../../../../modules/rich-text';
 import {
   type BlockType,
@@ -26,11 +28,7 @@ import {
   type LeafBlockType,
 } from '../../../../modules/rich-text/constants/blocks';
 import { ProseMirrorContext } from '../../../../modules/rich-text/react/context';
-import {
-  type VersionedDocument,
-  type VersionedDocumentHandle,
-  type VersionedDocumentPatch,
-} from '../../../../modules/version-control';
+import { type VersionedArtifactPatch } from '../../../../modules/version-control';
 import { EditorToolbar } from './editor-toolbar';
 import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';
@@ -62,7 +60,7 @@ const {
 export type RichTextEditorDiffProps = {
   docBefore: VersionedDocument;
   docAfter: VersionedDocument;
-  patches: Array<VersionedDocumentPatch>;
+  patches: Array<VersionedArtifactPatch>;
 };
 
 type RichTextEditorProps = {

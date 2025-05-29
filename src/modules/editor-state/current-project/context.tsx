@@ -2,12 +2,14 @@ import * as Effect from 'effect/Effect';
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import { ElectronContext } from '../../../modules/cross-platform/electron-context';
+import { type Directory, type File } from '../../../modules/filesystem';
 import {
   createProjectFromFilesystemContent,
   createVersionedDocument,
+  findDocumentInProject,
   updateProjectFromFilesystemContent,
 } from '../../../modules/project';
-import { type Directory, type File } from '../../filesystem';
+import { VersionedDocumentHandle } from '../../../modules/rich-text';
 import { VersionControlId } from '../../version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
@@ -31,7 +33,7 @@ export type CurrentProjectContextType = {
   findDocumentInProject: (args: {
     projectId: VersionControlId;
     documentPath: string;
-  }) => Promise<VersionControlId>;
+  }) => Promise<VersionedDocumentHandle>;
 };
 
 export const CurrentProjectContext = createContext<CurrentProjectContextType>({
@@ -262,9 +264,12 @@ export const CurrentProjectProvider = ({
     documentPath: string;
   }) =>
     Effect.runPromise(
-      versionedProjectStore.findArtifactInProject({
+      findDocumentInProject({
+        findDocumentById: versionedDocumentStore.findDocumentById,
+        findArtifactInProject: versionedProjectStore.findArtifactInProject,
+      })({
         projectId: args.projectId,
-        artifactPath: args.documentPath,
+        documentPath: args.documentPath,
       })
     );
 
