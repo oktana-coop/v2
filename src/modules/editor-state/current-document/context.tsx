@@ -19,7 +19,6 @@ import {
   type VersionedDocumentHandle,
 } from '../../../modules/rich-text';
 import { removeExtension, removePath } from '../../filesystem';
-import { FilesystemContext } from '../../filesystem/react';
 import { FunctionalityConfigContext } from '../../personalization/functionality-config';
 import {
   type Change,
@@ -88,7 +87,9 @@ export const CurrentDocumentProvider = ({
   children: React.ReactNode;
 }) => {
   const { isElectron } = useContext(ElectronContext);
-  const { versionedDocumentStore } = useContext(InfrastructureAdaptersContext);
+  const { filesystem, versionedDocumentStore } = useContext(
+    InfrastructureAdaptersContext
+  );
   const [selectedFileInfo, setSelectedFileInfo] =
     useState<SelectedFileInfo | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
@@ -96,7 +97,6 @@ export const CurrentDocumentProvider = ({
     useState<VersionedDocumentHandle | null>(null);
   const { documentId } = useParams();
   const [searchParams] = useSearchParams();
-  const { writeFile } = useContext(FilesystemContext);
   const [versionedDocumentHistory, setVersionedDocumentHistory] = useState<
     ChangeWithUrlInfo[]
   >([]);
@@ -127,11 +127,15 @@ export const CurrentDocumentProvider = ({
           );
         }
 
-        const propagateChangesToFile = (
+        const propagateChangesToFile = async (
           changePayload: VersionedArtifactHandleChangePayload<RichTextDocument>
         ) => {
           if (path) {
-            writeFile(path, convertToStorageFormat(changePayload.doc));
+            // TODO: Assess if we need to await this effect
+            filesystem.writeFile(
+              path,
+              convertToStorageFormat(changePayload.doc)
+            );
           }
         };
 
