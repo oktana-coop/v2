@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react';
 
-import { WasmContext } from '../../wasm';
+import { WasmContext } from '../../wasm/react/wasm-context';
 import { createAdapter as createAutomergePandocAdapter } from '../adapters/automerge-pandoc-cli';
 import { createAdapter as createPandocDiffAdapter } from '../adapters/pandoc-diff';
 import { richTextRepresentations } from '../constants/representations';

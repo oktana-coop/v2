@@ -21,7 +21,7 @@ import {
   openProjectById,
 } from '../modules/project/commands/node';
 import { type VersionControlId } from '../modules/version-control';
-import { RunWasiCLIArgs } from '../modules/wasm';
+import { type RunWasiCLIArgs } from '../modules/wasm';
 import { createAdapter as createNodeWasmAdapter } from '../modules/wasm/adapters/node-wasm';
 import { update } from './update';
 
