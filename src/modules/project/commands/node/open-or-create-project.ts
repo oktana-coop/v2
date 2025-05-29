@@ -104,11 +104,11 @@ const openProject = ({
         createDocument: versionedDocumentStore.createDocument,
         deleteDocument: versionedDocumentStore.deleteDocument,
         updateDocumentSpans: versionedDocumentStore.updateDocumentSpans,
-        listProjectArtifacts: versionedProjectStore.listProjectArtifacts,
-        findArtifactInProject: versionedProjectStore.findArtifactInProject,
-        deleteArtifactFromProject:
-          versionedProjectStore.deleteArtifactFromProject,
-        addArtifactToProject: versionedProjectStore.addArtifactToProject,
+        listProjectDocuments: versionedProjectStore.listProjectDocuments,
+        findDocumentInProject: versionedProjectStore.findDocumentInProject,
+        deleteDocumentFromProject:
+          versionedProjectStore.deleteDocumentFromProject,
+        addDocumentToProject: versionedProjectStore.addDocumentToProject,
         listDirectoryFiles,
         readFile,
       })({ projectId, directoryPath })
@@ -351,7 +351,7 @@ const createNewProject = ({
       createProjectFromFilesystemContent({
         createDocument: versionedDocumentStore.createDocument,
         createProject: versionedProjectStore.createProject,
-        addArtifactToProject: versionedProjectStore.addArtifactToProject,
+        addDocumentToProject: versionedProjectStore.addDocumentToProject,
         listDirectoryFiles,
         readFile,
       })({ directoryPath })

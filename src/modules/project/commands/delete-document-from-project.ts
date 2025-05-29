@@ -20,13 +20,13 @@ export type DeleteDocumentFromProjectArgs = {
 
 export type DeleteDocumentFromProjectDeps = {
   deleteDocument: VersionedDocumentStore['deleteDocument'];
-  deleteArtifactFromProject: VersionedProjectStore['deleteArtifactFromProject'];
+  deleteDocumentFromProjectStore: VersionedProjectStore['deleteDocumentFromProject'];
 };
 
 export const deleteDocumentFromProject =
   ({
     deleteDocument,
-    deleteArtifactFromProject,
+    deleteDocumentFromProjectStore,
   }: DeleteDocumentFromProjectDeps) =>
   ({
     documentId,
@@ -40,6 +40,6 @@ export const deleteDocumentFromProject =
     never
   > =>
     pipe(
-      deleteArtifactFromProject({ artifactId: documentId, projectId }),
+      deleteDocumentFromProjectStore({ documentId, projectId }),
       Effect.flatMap(() => deleteDocument(documentId))
     );

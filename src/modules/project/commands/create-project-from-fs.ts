@@ -28,7 +28,7 @@ export type CreateProjectFromFilesystemContentArgs = {
 export type CreateProjectFromFilesystemContentDeps = {
   createDocument: VersionedDocumentStore['createDocument'];
   createProject: VersionedProjectStore['createProject'];
-  addArtifactToProject: VersionedProjectStore['addArtifactToProject'];
+  addDocumentToProject: VersionedProjectStore['addDocumentToProject'];
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readFile: Filesystem['readFile'];
 };
@@ -37,7 +37,7 @@ export const createProjectFromFilesystemContent =
   ({
     createDocument,
     createProject,
-    addArtifactToProject,
+    addDocumentToProject,
     listDirectoryFiles,
     readFile,
   }: CreateProjectFromFilesystemContentDeps) =>
@@ -59,7 +59,7 @@ export const createProjectFromFilesystemContent =
       Effect.flatMap((directoryFiles) =>
         Effect.forEach(directoryFiles, (file) =>
           createVersionedDocumentFromFile({
-            addArtifactToProject,
+            addDocumentToProject,
             createDocument,
             readFile,
           })({
@@ -71,7 +71,7 @@ export const createProjectFromFilesystemContent =
       Effect.flatMap((documents) =>
         createProject({
           path: directoryPath!,
-          artifacts: documents.reduce(
+          documents: documents.reduce(
             (acc, doc) => {
               return { ...acc, [doc.versionControlId]: doc };
             },

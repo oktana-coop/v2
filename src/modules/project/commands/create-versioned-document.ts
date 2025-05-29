@@ -23,11 +23,11 @@ export type CreateVersionedDocumentArgs = {
 
 export type CreateVersionedDocumentDeps = {
   createDocument: VersionedDocumentStore['createDocument'];
-  addArtifactToProject: VersionedProjectStore['addArtifactToProject'];
+  addDocumentToProject: VersionedProjectStore['addDocumentToProject'];
 };
 
 export const createVersionedDocument =
-  ({ createDocument, addArtifactToProject }: CreateVersionedDocumentDeps) =>
+  ({ createDocument, addDocumentToProject }: CreateVersionedDocumentDeps) =>
   ({
     title,
     name,
@@ -52,8 +52,8 @@ export const createVersionedDocument =
           Option.match({
             onNone: () => Effect.as(undefined),
             onSome: (projId) =>
-              addArtifactToProject({
-                artifactId: documentId,
+              addDocumentToProject({
+                documentId,
                 name,
                 path,
                 projectId: projId,

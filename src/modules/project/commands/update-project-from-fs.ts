@@ -37,10 +37,10 @@ export type UpdateProjectFromFilesystemContentDeps = {
   createDocument: VersionedDocumentStore['createDocument'];
   updateDocumentSpans: VersionedDocumentStore['updateDocumentSpans'];
   deleteDocument: VersionedDocumentStore['deleteDocument'];
-  addArtifactToProject: VersionedProjectStore['addArtifactToProject'];
-  findArtifactInProject: VersionedProjectStore['findArtifactInProject'];
-  listProjectArtifacts: VersionedProjectStore['listProjectArtifacts'];
-  deleteArtifactFromProject: VersionedProjectStore['deleteArtifactFromProject'];
+  addDocumentToProject: VersionedProjectStore['addDocumentToProject'];
+  findDocumentInProject: VersionedProjectStore['findDocumentInProject'];
+  listProjectDocuments: VersionedProjectStore['listProjectDocuments'];
+  deleteDocumentFromProject: VersionedProjectStore['deleteDocumentFromProject'];
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readFile: Filesystem['readFile'];
 };
@@ -66,11 +66,11 @@ const propagateFileChangesToVersionedDocument =
     findDocumentById,
     getDocumentFromHandle,
     updateDocumentSpans,
-    findArtifactInProject,
+    findDocumentInProject: findDocumentInProjectStore,
     readFile,
   }: {
     findDocumentById: VersionedDocumentStore['findDocumentById'];
-    findArtifactInProject: VersionedProjectStore['findArtifactInProject'];
+    findDocumentInProject: VersionedProjectStore['findDocumentInProject'];
     updateDocumentSpans: VersionedDocumentStore['updateDocumentSpans'];
     getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
     readFile: Filesystem['readFile'];
@@ -93,7 +93,10 @@ const propagateFileChangesToVersionedDocument =
     never
   > =>
     pipe(
-      findDocumentInProject({ findDocumentById, findArtifactInProject })({
+      findDocumentInProject({
+        findDocumentById,
+        findDocumentInProjectStore,
+      })({
         documentPath: file.path!,
         projectId,
       }),
@@ -128,12 +131,12 @@ export const updateProjectFromFilesystemContent =
     createDocument,
     updateDocumentSpans,
     deleteDocument,
-    listProjectArtifacts,
-    findArtifactInProject,
-    deleteArtifactFromProject,
+    listProjectDocuments,
+    findDocumentInProject,
+    deleteDocumentFromProject: deleteDocumentFromProjectStore,
     listDirectoryFiles,
     readFile,
-    addArtifactToProject,
+    addDocumentToProject,
   }: UpdateProjectFromFilesystemContentDeps) =>
   ({
     projectId,
@@ -151,7 +154,7 @@ export const updateProjectFromFilesystemContent =
     never
   > =>
     Effect.Do.pipe(
-      Effect.bind('projectDocuments', () => listProjectArtifacts(projectId)),
+      Effect.bind('projectDocuments', () => listProjectDocuments(projectId)),
       Effect.bind('directoryFiles', () => listDirectoryFiles(directoryPath)),
       Effect.tap(({ directoryFiles, projectDocuments }) =>
         Effect.forEach(
@@ -160,7 +163,7 @@ export const updateProjectFromFilesystemContent =
             documentForFileExistsInProject({ file, projectDocuments })
               ? propagateFileChangesToVersionedDocument({
                   findDocumentById,
-                  findArtifactInProject,
+                  findDocumentInProject,
                   updateDocumentSpans,
                   getDocumentFromHandle,
                   readFile,
@@ -168,7 +171,7 @@ export const updateProjectFromFilesystemContent =
               : createVersionedDocumentFromFile({
                   createDocument,
                   readFile,
-                  addArtifactToProject,
+                  addDocumentToProject,
                 })({
                   file,
                   projectId,
@@ -192,7 +195,7 @@ export const updateProjectFromFilesystemContent =
           (id) =>
             deleteDocumentFromProject({
               deleteDocument,
-              deleteArtifactFromProject,
+              deleteDocumentFromProjectStore,
             })({
               documentId: id,
               projectId,

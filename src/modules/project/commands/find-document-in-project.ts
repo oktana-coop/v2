@@ -21,11 +21,14 @@ export type FindDocumentInProjectArgs = {
 
 export type FindDocumentInProjectDeps = {
   findDocumentById: VersionedDocumentStore['findDocumentById'];
-  findArtifactInProject: VersionedProjectStore['findArtifactInProject'];
+  findDocumentInProjectStore: VersionedProjectStore['findDocumentInProject'];
 };
 
 export const findDocumentInProject =
-  ({ findArtifactInProject, findDocumentById }: FindDocumentInProjectDeps) =>
+  ({
+    findDocumentInProjectStore,
+    findDocumentById,
+  }: FindDocumentInProjectDeps) =>
   ({
     documentPath,
     projectId,
@@ -38,6 +41,6 @@ export const findDocumentInProject =
     never
   > =>
     pipe(
-      findArtifactInProject({ artifactPath: documentPath, projectId }),
+      findDocumentInProjectStore({ documentPath, projectId }),
       Effect.flatMap((artifactId) => findDocumentById(artifactId))
     );

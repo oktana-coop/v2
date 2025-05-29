@@ -11,7 +11,7 @@ import type {
 
 export type CreateProjectArgs = {
   path: string;
-  artifacts: Project['artifacts'];
+  documents: Project['documents'];
 };
 
 export type CreateDocumentArgs = {
@@ -22,21 +22,21 @@ export type CreateDocumentArgs = {
   projectId: VersionControlId | null;
 };
 
-export type AddArtifactToProjectArgs = {
-  artifactId: VersionControlId;
+export type AddDocumentToProjectArgs = {
+  documentId: VersionControlId;
   name: string;
   path: string;
   projectId: VersionControlId;
 };
 
-export type DeleteArtifactFromProjectArgs = {
+export type DeleteDocumentFromProjectArgs = {
   projectId: VersionControlId;
-  artifactId: VersionControlId;
+  documentId: VersionControlId;
 };
 
-export type FindArtifactInProjectArgs = {
+export type FindDocumentInProjectArgs = {
   projectId: VersionControlId;
-  artifactPath: string;
+  documentPath: string;
 };
 
 export type VersionedProjectStore = {
@@ -50,21 +50,21 @@ export type VersionedProjectStore = {
     RepositoryError | NotFoundError,
     never
   >;
-  listProjectArtifacts: (
+  listProjectDocuments: (
     id: VersionControlId
   ) => Effect.Effect<
     ArtifactMetaData[],
     RepositoryError | NotFoundError,
     never
   >;
-  addArtifactToProject: (
-    args: AddArtifactToProjectArgs
+  addDocumentToProject: (
+    args: AddDocumentToProjectArgs
   ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;
-  deleteArtifactFromProject: (
-    args: DeleteArtifactFromProjectArgs
+  deleteDocumentFromProject: (
+    args: DeleteDocumentFromProjectArgs
   ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;
-  findArtifactInProject: (
-    args: FindArtifactInProjectArgs
+  findDocumentInProject: (
+    args: FindDocumentInProjectArgs
   ) => Effect.Effect<VersionControlId, RepositoryError | NotFoundError, never>;
   getProjectFromHandle: (
     handle: VersionedProjectHandle

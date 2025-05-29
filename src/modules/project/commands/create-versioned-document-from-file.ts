@@ -33,7 +33,7 @@ export type CreateVersionedDocumentInFileResult = {
 
 export type CreateVersionedDocumentInFileDeps = {
   createDocument: VersionedDocumentStore['createDocument'];
-  addArtifactToProject: VersionedProjectStore['addArtifactToProject'];
+  addDocumentToProject: VersionedProjectStore['addDocumentToProject'];
   readFile: Filesystem['readFile'];
 };
 
@@ -41,7 +41,7 @@ export const createVersionedDocumentFromFile =
   ({
     createDocument,
     readFile,
-    addArtifactToProject,
+    addDocumentToProject,
   }: CreateVersionedDocumentInFileDeps) =>
   ({
     file,
@@ -70,8 +70,8 @@ export const createVersionedDocumentFromFile =
           Option.match({
             onNone: () => Effect.as(undefined),
             onSome: (projId) =>
-              addArtifactToProject({
-                artifactId: documentId,
+              addDocumentToProject({
+                documentId,
                 name: readFileResult.name,
                 path: readFileResult.path!,
                 projectId: projId,

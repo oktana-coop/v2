@@ -151,7 +151,7 @@ export const CurrentProjectProvider = ({
     const newDocumentId = await Effect.runPromise(
       createVersionedDocument({
         createDocument: versionedDocumentStore.createDocument,
-        addArtifactToProject: versionedProjectStore.addArtifactToProject,
+        addDocumentToProject: versionedProjectStore.addDocumentToProject,
       })({
         name: newFile.name,
         title: suggestedName,
@@ -203,14 +203,14 @@ export const CurrentProjectProvider = ({
                 createDocument: versionedDocumentStore.createDocument,
                 deleteDocument: versionedDocumentStore.deleteDocument,
                 updateDocumentSpans: versionedDocumentStore.updateDocumentSpans,
-                listProjectArtifacts:
-                  versionedProjectStore.listProjectArtifacts,
-                findArtifactInProject:
-                  versionedProjectStore.findArtifactInProject,
-                deleteArtifactFromProject:
-                  versionedProjectStore.deleteArtifactFromProject,
-                addArtifactToProject:
-                  versionedProjectStore.addArtifactToProject,
+                listProjectDocuments:
+                  versionedProjectStore.listProjectDocuments,
+                findDocumentInProject:
+                  versionedProjectStore.findDocumentInProject,
+                deleteDocumentFromProject:
+                  versionedProjectStore.deleteDocumentFromProject,
+                addDocumentToProject:
+                  versionedProjectStore.addDocumentToProject,
                 listDirectoryFiles: filesystem.listDirectoryFiles,
                 readFile: filesystem.readFile,
               })({
@@ -230,8 +230,8 @@ export const CurrentProjectProvider = ({
               createProjectFromFilesystemContent({
                 createDocument: versionedDocumentStore.createDocument,
                 createProject: versionedProjectStore.createProject,
-                addArtifactToProject:
-                  versionedProjectStore.addArtifactToProject,
+                addDocumentToProject:
+                  versionedProjectStore.addDocumentToProject,
                 listDirectoryFiles: filesystem.listDirectoryFiles,
                 readFile: filesystem.readFile,
               })({
@@ -266,7 +266,7 @@ export const CurrentProjectProvider = ({
     Effect.runPromise(
       findDocumentInProject({
         findDocumentById: versionedDocumentStore.findDocumentById,
-        findArtifactInProject: versionedProjectStore.findArtifactInProject,
+        findDocumentInProjectStore: versionedProjectStore.findDocumentInProject,
       })({
         projectId: args.projectId,
         documentPath: args.documentPath,

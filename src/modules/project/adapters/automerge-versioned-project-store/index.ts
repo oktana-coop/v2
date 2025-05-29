@@ -45,7 +45,7 @@ export const createAdapter = (automergeRepo: Repo): VersionedProjectStore => {
         try: () =>
           automergeRepo.create<Project>({
             path,
-            artifacts: {},
+            documents: {},
           }),
         catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
       }),
@@ -69,17 +69,17 @@ export const createAdapter = (automergeRepo: Repo): VersionedProjectStore => {
       })
     );
 
-  const listProjectArtifacts: VersionedProjectStore['listProjectArtifacts'] = (
+  const listProjectDocuments: VersionedProjectStore['listProjectDocuments'] = (
     id: VersionControlId
   ) =>
     pipe(
       findProjectById(id),
       Effect.flatMap(getProjectFromHandle),
-      Effect.map((project) => Object.values(project.artifacts))
+      Effect.map((project) => Object.values(project.documents))
     );
 
-  const addArtifactToProject: VersionedProjectStore['addArtifactToProject'] = ({
-    artifactId,
+  const addDocumentToProject: VersionedProjectStore['addDocumentToProject'] = ({
+    documentId,
     name,
     path,
     projectId,
@@ -88,7 +88,7 @@ export const createAdapter = (automergeRepo: Repo): VersionedProjectStore => {
       findProjectById(projectId),
       Effect.flatMap((projectHandle) => {
         const metaData: ArtifactMetaData = {
-          versionControlId: artifactId,
+          versionControlId: documentId,
           name,
           path,
         };
@@ -96,37 +96,37 @@ export const createAdapter = (automergeRepo: Repo): VersionedProjectStore => {
         return Effect.try({
           try: () =>
             projectHandle.change((project) => {
-              project.artifacts[artifactId] = metaData;
+              project.documents[documentId] = metaData;
             }),
           catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
         });
       })
     );
 
-  const deleteArtifactFromProject: VersionedProjectStore['deleteArtifactFromProject'] =
-    ({ projectId, artifactId }) =>
+  const deleteDocumentFromProject: VersionedProjectStore['deleteDocumentFromProject'] =
+    ({ projectId, documentId }) =>
       pipe(
         findProjectById(projectId),
         Effect.tap((projectHandle) =>
           Effect.try({
             try: () =>
               projectHandle.change((project) => {
-                delete project.artifacts[artifactId];
+                delete project.documents[documentId];
               }),
             catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
           })
         )
       );
 
-  const findArtifactInProject: VersionedProjectStore['findArtifactInProject'] =
-    ({ projectId, artifactPath }) =>
+  const findDocumentInProject: VersionedProjectStore['findDocumentInProject'] =
+    ({ projectId, documentPath }) =>
       pipe(
-        listProjectArtifacts(projectId),
+        listProjectDocuments(projectId),
         Effect.flatMap((projectDocuments) =>
           pipe(
             Option.fromNullable(
               projectDocuments.find(
-                (documentMetaData) => documentMetaData.path === artifactPath
+                (documentMetaData) => documentMetaData.path === documentPath
               )
             ),
             Option.match({
@@ -142,10 +142,10 @@ export const createAdapter = (automergeRepo: Repo): VersionedProjectStore => {
   return {
     createProject,
     findProjectById,
-    listProjectArtifacts,
-    addArtifactToProject,
-    deleteArtifactFromProject,
-    findArtifactInProject,
+    listProjectDocuments,
+    addDocumentToProject,
+    deleteDocumentFromProject,
+    findDocumentInProject,
     getProjectFromHandle,
   };
 };

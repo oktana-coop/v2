@@ -13,7 +13,7 @@ export type ArtifactMetaData = {
 
 export type Project = {
   path: string;
-  artifacts: Record<VersionControlId, ArtifactMetaData>;
+  documents: Record<VersionControlId, ArtifactMetaData>;
 };
 
 export type VersionedProject = VersionedArtifact<Project>;
