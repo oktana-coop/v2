@@ -21,12 +21,6 @@ export type CreateVersionedDocumentArgs = {
   projectId: VersionControlId | null;
 };
 
-export type CreateVersionedDocumentResult = {
-  versionControlId: VersionControlId;
-  path: string;
-  name: string;
-};
-
 export type CreateVersionedDocumentDeps = {
   createDocument: VersionedDocumentStore['createDocument'];
   addArtifactToProject: VersionedProjectStore['addArtifactToProject'];
@@ -41,7 +35,7 @@ export const createVersionedDocument =
     content,
     projectId,
   }: CreateVersionedDocumentArgs): Effect.Effect<
-    CreateVersionedDocumentResult,
+    VersionControlId,
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
     | VersionedDocumentRepositoryError,
@@ -66,10 +60,5 @@ export const createVersionedDocument =
               }),
           })
         )
-      ),
-      Effect.map((documentId) => ({
-        versionControlId: documentId,
-        path,
-        name,
-      }))
+      )
     );

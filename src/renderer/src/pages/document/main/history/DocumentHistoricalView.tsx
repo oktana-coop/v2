@@ -5,6 +5,10 @@ import { CurrentDocumentContext } from '../../../../../../modules/editor-state';
 import { SidebarLayoutContext } from '../../../../../../modules/editor-state/sidebar-layout/context';
 import { FunctionalityConfigContext } from '../../../../../../modules/personalization/functionality-config';
 import {
+  type VersionedDocument,
+  type VersionedDocumentHandle,
+} from '../../../../../../modules/rich-text';
+import {
   type Change,
   type ChangeWithUrlInfo,
   decodeURLHeads,
@@ -13,10 +17,7 @@ import {
   headsAreSame,
   isCommit,
   UrlHeads,
-  type VersionedDocument,
-  type VersionedDocumentHandle,
 } from '../../../../../../modules/version-control';
-import { VersionControlContext } from '../../../../../../modules/version-control/react';
 import { ActionsBar } from './ActionsBar';
 import { type DiffViewProps, ReadOnlyView } from './ReadOnlyView';
 
@@ -29,8 +30,8 @@ export const DocumentHistoricalView = () => {
     onSelectCommit,
     canCommit,
     onOpenCommitDialog,
+    getDocumentHandleAtCommit,
   } = useContext(CurrentDocumentContext);
-  const { getDocumentHandleAtCommit } = useContext(VersionControlContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const [doc, setDoc] = React.useState<VersionedDocument | null>();
   const [viewTitle, setViewTitle] = useState<string>('');

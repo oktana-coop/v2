@@ -1,4 +1,5 @@
 import debounce from 'debounce';
+import * as Effect from 'effect/Effect';
 import {
   createContext,
   useCallback,
@@ -11,6 +12,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { ElectronContext } from '../../../modules/cross-platform';
 import {
   convertToStorageFormat,
+  type GetDocumentHandleAtCommitArgs,
   isEmpty,
   type RichTextDocument,
   type VersionedDocument,
@@ -34,7 +36,7 @@ import {
   type VersionControlId,
   type VersionedArtifactHandleChangePayload,
 } from '../../version-control';
-import { VersionControlContext } from '../../version-control/react';
+import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
 export type SelectedFileInfo = {
   documentId: VersionControlId;
@@ -55,6 +57,9 @@ type CurrentDocumentContextType = {
   onCloseCommitDialog: () => void;
   selectedCommitIndex: number | null;
   onSelectCommit: (heads: UrlHeads) => void;
+  getDocumentHandleAtCommit: (
+    args: GetDocumentHandleAtCommitArgs
+  ) => Promise<VersionedDocumentHandle>;
 };
 
 export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
@@ -72,6 +77,8 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     onCloseCommitDialog: () => {},
     selectedCommitIndex: null,
     onSelectCommit: () => {},
+    // @ts-expect-error will get overriden below
+    getDocumentHandleAtCommit: async () => null,
   }
 );
 
@@ -81,6 +88,7 @@ export const CurrentDocumentProvider = ({
   children: React.ReactNode;
 }) => {
   const { isElectron } = useContext(ElectronContext);
+  const { versionedDocumentStore } = useContext(InfrastructureAdaptersContext);
   const [selectedFileInfo, setSelectedFileInfo] =
     useState<SelectedFileInfo | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
@@ -88,7 +96,6 @@ export const CurrentDocumentProvider = ({
     useState<VersionedDocumentHandle | null>(null);
   const { documentId } = useParams();
   const [searchParams] = useSearchParams();
-  const { findDocument } = useContext(VersionControlContext);
   const { writeFile } = useContext(FilesystemContext);
   const [versionedDocumentHistory, setVersionedDocumentHistory] = useState<
     ChangeWithUrlInfo[]
@@ -111,7 +118,9 @@ export const CurrentDocumentProvider = ({
         const pathParam = searchParams.get('path');
         const path = pathParam ? decodeURIComponent(pathParam) : null;
 
-        const documentHandle = await findDocument(documentId);
+        const documentHandle = await Effect.runPromise(
+          versionedDocumentStore.findDocumentById(documentId)
+        );
         if (!documentHandle) {
           throw new Error(
             'No document handle found in repository for the selected document'
@@ -321,6 +330,11 @@ export const CurrentDocumentProvider = ({
     [documentId, versionedDocumentHistory, showDiffInHistoryView]
   );
 
+  const handleGetDocumentHandleAtCommit = async (
+    args: GetDocumentHandleAtCommitArgs
+  ) =>
+    Effect.runPromise(versionedDocumentStore.getDocumentHandleAtCommit(args));
+
   return (
     <CurrentDocumentContext.Provider
       value={{
@@ -337,6 +351,7 @@ export const CurrentDocumentProvider = ({
         onCloseCommitDialog: handleCloseCommitDialog,
         selectedCommitIndex,
         onSelectCommit: handleSelectCommit,
+        getDocumentHandleAtCommit: handleGetDocumentHandleAtCommit,
       }}
     >
       {children}

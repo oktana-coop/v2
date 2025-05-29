@@ -28,6 +28,10 @@ export type CurrentProjectContextType = {
   createNewDocument: (
     suggestedName: string
   ) => Promise<{ documentId: VersionControlId; path: string }>;
+  findDocumentInProject: (args: {
+    projectId: VersionControlId;
+    documentPath: string;
+  }) => Promise<VersionControlId>;
 };
 
 export const CurrentProjectContext = createContext<CurrentProjectContextType>({
@@ -39,6 +43,8 @@ export const CurrentProjectContext = createContext<CurrentProjectContextType>({
   requestPermissionForSelectedDirectory: async () => null,
   // @ts-expect-error will get overriden below
   createNewDocument: () => null,
+  // @ts-expect-error will get overriden below
+  findDocumentInProject: async () => null,
 });
 
 export const CurrentProjectProvider = ({
@@ -140,16 +146,18 @@ export const CurrentProjectProvider = ({
       setDirectoryFiles(files);
     }
 
-    const newDocumentId = await createVersionedDocument({
-      createDocument: versionedDocumentStore.createDocument,
-      addArtifactToProject: versionedProjectStore.addArtifactToProject,
-    })({
-      name: newFile.name,
-      title: suggestedName,
-      path: newFile.path!,
-      projectId,
-      content: null,
-    });
+    const newDocumentId = await Effect.runPromise(
+      createVersionedDocument({
+        createDocument: versionedDocumentStore.createDocument,
+        addArtifactToProject: versionedProjectStore.addArtifactToProject,
+      })({
+        name: newFile.name,
+        title: suggestedName,
+        path: newFile.path!,
+        projectId,
+        content: null,
+      })
+    );
 
     return { documentId: newDocumentId, path: newFile.path! };
   };
@@ -247,7 +255,18 @@ export const CurrentProjectProvider = ({
     };
 
     openOrCreateProject();
-  }, [directory, isElectron, versionControlRepo]);
+  }, [directory, isElectron]);
+
+  const handleFindDocumentInProject = async (args: {
+    projectId: VersionControlId;
+    documentPath: string;
+  }) =>
+    Effect.runPromise(
+      versionedProjectStore.findArtifactInProject({
+        projectId: args.projectId,
+        artifactPath: args.documentPath,
+      })
+    );
 
   return (
     <CurrentProjectContext.Provider
@@ -258,6 +277,7 @@ export const CurrentProjectProvider = ({
         openDirectory,
         requestPermissionForSelectedDirectory,
         createNewDocument: handleCreateNewDocument,
+        findDocumentInProject: handleFindDocumentInProject,
       }}
     >
       {children}

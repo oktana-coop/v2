@@ -14,7 +14,6 @@ import {
   decodeURLHeads,
   type VersionControlId,
 } from '../../../../modules/version-control';
-import { VersionControlContext } from '../../../../modules/version-control/react';
 import { CommandPalette } from '../../components/dialogs/command-palette/CommandPalette';
 import { Layout } from '../../components/layout/Layout';
 import { SidebarLayout } from '../../components/layout/SidebarLayout';
@@ -53,6 +52,7 @@ const DocumentIndex = () => {
     directoryFiles,
     openDirectory,
     requestPermissionForSelectedDirectory,
+    findDocumentInProject,
   } = useContext(CurrentProjectContext);
   const {
     selectedFileInfo,
@@ -66,7 +66,6 @@ const DocumentIndex = () => {
     onCommit,
     onOpenCommitDialog,
   } = useContext(CurrentDocumentContext);
-  const { findDocumentInProject } = useContext(VersionControlContext);
   const { changeId } = useParams();
   const [isCommandPaletteOpen, setCommandPaletteOpen] =
     useState<boolean>(false);
@@ -107,7 +106,7 @@ const DocumentIndex = () => {
 
     const documentHandle = await findDocumentInProject({
       projectId,
-      documentPath: file.path!,
+      artifactPath: file.path!,
     });
 
     if (!documentHandle) {
