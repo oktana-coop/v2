@@ -1,2 +1,1 @@
-export { setup } from './setup';
-export { openOrCreateProject, openProjectById } from './open-or-create-project';
+export { setup as setupForNode } from './setup';

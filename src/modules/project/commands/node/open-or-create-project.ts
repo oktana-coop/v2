@@ -6,6 +6,16 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import { BrowserWindow } from 'electron';
 
+import {
+  NotFoundError as VersionedDocumentNotFoundError,
+  RepositoryError as VersionedDocumentRepositoryError,
+} from '../../../../modules/rich-text';
+import { createAdapter as createAutomergeVersionedDocumentStoreAdapter } from '../../../../modules/rich-text/adapters/automerge-versioned-document-store';
+import {
+  isValidVersionControlId,
+  type VersionControlId,
+} from '../../../../modules/version-control';
+import { setupForNode as setupAutomergeRepoForNode } from '../../../../modules/version-control/automerge-repo/node';
 import { fromNullable } from '../../../../utils/effect';
 import { mapErrorTo } from '../../../../utils/errors';
 import {
@@ -15,19 +25,17 @@ import {
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../filesystem';
-import { createAdapter as createAutomergeVersionControlAdapter } from '../../adapters/automerge';
+import { createAdapter as createAutomergeVersionedProjectStoreAdapter } from '../../adapters/automerge-versioned-project-store';
 import {
   createProjectFromFilesystemContent,
   updateProjectFromFilesystemContent,
 } from '../../commands';
 import {
-  DataIntegrityError as VersionControlDataIntegrityError,
-  MissingIndexFileError as VersionControlMissingIndexFileError,
-  NotFoundError as VersionControlNotFoundError,
-  RepositoryError as VersionControlRepositoryError,
+  DataIntegrityError as VersionedProjectDataIntegrityError,
+  MissingIndexFileError as VersionedProjectMissingIndexFileError,
+  NotFoundError as VersionedProjectNotFoundError,
+  RepositoryError as VersionedProjectRepositoryError,
 } from '../../errors';
-import { isValidVersionControlId, type VersionControlId } from '../../models';
-import { setup as setupNodeRepo } from './setup';
 
 const setupAutomergeRepo = ({
   directoryPath,
@@ -37,16 +45,16 @@ const setupAutomergeRepo = ({
   directoryPath: string;
   rendererProcessId: string;
   browserWindow: BrowserWindow;
-}): Effect.Effect<Repo, VersionControlRepositoryError, never> =>
+}): Effect.Effect<Repo, VersionedProjectRepositoryError, never> =>
   Effect.tryPromise({
     try: () =>
-      setupNodeRepo({
+      setupAutomergeRepoForNode({
         processId: 'main',
         directoryPath: join(directoryPath, '.v2', 'automerge'),
         renderers: new Map([[rendererProcessId, browserWindow]]),
       }),
     catch: mapErrorTo(
-      VersionControlRepositoryError,
+      VersionedProjectRepositoryError,
       'Error in setting up Automerge repo'
     ),
   });
@@ -71,8 +79,10 @@ const openProject = ({
   | FilesystemDataIntegrityError
   | FilesystemNotFoundError
   | FilesystemRepositoryError
-  | VersionControlRepositoryError
-  | VersionControlNotFoundError,
+  | VersionedProjectRepositoryError
+  | VersionedProjectNotFoundError
+  | VersionedDocumentRepositoryError
+  | VersionedDocumentNotFoundError,
   never
 > =>
   pipe(
@@ -81,17 +91,26 @@ const openProject = ({
       rendererProcessId,
       browserWindow,
     }),
-    Effect.map(createAutomergeVersionControlAdapter),
-    Effect.flatMap((versionControlRepo) =>
+    Effect.map((automergeRepo) => ({
+      versionedProjectStore:
+        createAutomergeVersionedProjectStoreAdapter(automergeRepo),
+      versionedDocumentStore:
+        createAutomergeVersionedDocumentStoreAdapter(automergeRepo),
+    })),
+    Effect.flatMap(({ versionedProjectStore, versionedDocumentStore }) =>
       updateProjectFromFilesystemContent({
-        createDocument: versionControlRepo.createDocument,
-        listProjectDocuments: versionControlRepo.listProjectDocuments,
-        findDocumentInProject: versionControlRepo.findDocumentInProject,
-        getDocumentFromHandle: versionControlRepo.getDocumentFromHandle,
-        deleteDocumentFromProject: versionControlRepo.deleteDocumentFromProject,
-        updateDocumentSpans: versionControlRepo.updateDocumentSpans,
-        listDirectoryFiles: listDirectoryFiles,
-        readFile: readFile,
+        findDocumentById: versionedDocumentStore.findDocumentById,
+        getDocumentFromHandle: versionedDocumentStore.getDocumentFromHandle,
+        createDocument: versionedDocumentStore.createDocument,
+        deleteDocument: versionedDocumentStore.deleteDocument,
+        updateDocumentSpans: versionedDocumentStore.updateDocumentSpans,
+        listProjectArtifacts: versionedProjectStore.listProjectArtifacts,
+        findArtifactInProject: versionedProjectStore.findArtifactInProject,
+        deleteArtifactFromProject:
+          versionedProjectStore.deleteArtifactFromProject,
+        addArtifactToProject: versionedProjectStore.addArtifactToProject,
+        listDirectoryFiles,
+        readFile,
       })({ projectId, directoryPath })
     )
   );
@@ -106,8 +125,8 @@ const readProjectIdFromDirIndexFile = ({
   VersionControlId,
   | FilesystemAccessControlError
   | FilesystemRepositoryError
-  | VersionControlMissingIndexFileError
-  | VersionControlDataIntegrityError,
+  | VersionedProjectMissingIndexFileError
+  | VersionedProjectDataIntegrityError,
   never
 > => {
   const indexFilePath = join(directoryPath, '.v2', 'index.txt');
@@ -116,7 +135,7 @@ const readProjectIdFromDirIndexFile = ({
     readFile(indexFilePath),
     Effect.catchTag('FilesystemNotFoundError', () =>
       Effect.fail(
-        new VersionControlMissingIndexFileError(
+        new VersionedProjectMissingIndexFileError(
           'Index file not found in the specified directory'
         )
       )
@@ -126,7 +145,7 @@ const readProjectIdFromDirIndexFile = ({
       fromNullable(
         content,
         () =>
-          new VersionControlDataIntegrityError(
+          new VersionedProjectDataIntegrityError(
             'Project ID not found in index file'
           )
       )
@@ -135,7 +154,7 @@ const readProjectIdFromDirIndexFile = ({
       isValidVersionControlId(projectId)
         ? Effect.succeed(projectId)
         : Effect.fail(
-            new VersionControlDataIntegrityError(
+            new VersionedProjectDataIntegrityError(
               'Project ID found in index file is invalid Automerge URL'
             )
           )
@@ -163,10 +182,12 @@ const openProjectFromFilesystem = ({
   | FilesystemDataIntegrityError
   | FilesystemNotFoundError
   | FilesystemRepositoryError
-  | VersionControlMissingIndexFileError
-  | VersionControlRepositoryError
-  | VersionControlNotFoundError
-  | VersionControlDataIntegrityError,
+  | VersionedProjectMissingIndexFileError
+  | VersionedProjectRepositoryError
+  | VersionedProjectNotFoundError
+  | VersionedProjectDataIntegrityError
+  | VersionedDocumentRepositoryError
+  | VersionedDocumentNotFoundError,
   never
 > =>
   pipe(
@@ -208,10 +229,12 @@ export const openProjectById = ({
   | FilesystemDataIntegrityError
   | FilesystemNotFoundError
   | FilesystemRepositoryError
-  | VersionControlMissingIndexFileError
-  | VersionControlRepositoryError
-  | VersionControlNotFoundError
-  | VersionControlDataIntegrityError,
+  | VersionedProjectMissingIndexFileError
+  | VersionedProjectRepositoryError
+  | VersionedProjectNotFoundError
+  | VersionedProjectDataIntegrityError
+  | VersionedDocumentRepositoryError
+  | VersionedDocumentNotFoundError,
   never
 > =>
   pipe(
@@ -223,7 +246,7 @@ export const openProjectById = ({
       filesystemProjectId === projectId
         ? Effect.succeed(projectId)
         : Effect.fail(
-            new VersionControlDataIntegrityError(
+            new VersionedProjectDataIntegrityError(
               'The project ID in the filesystem is different than the one the app is trying to open'
             )
           )
@@ -301,8 +324,9 @@ const createNewProject = ({
   | FilesystemDataIntegrityError
   | FilesystemNotFoundError
   | FilesystemRepositoryError
-  | VersionControlRepositoryError
-  | VersionControlNotFoundError,
+  | VersionedProjectRepositoryError
+  | VersionedProjectNotFoundError
+  | VersionedDocumentRepositoryError,
   never
 > =>
   pipe(
@@ -317,13 +341,19 @@ const createNewProject = ({
         browserWindow,
       })
     ),
-    Effect.map(createAutomergeVersionControlAdapter),
-    Effect.flatMap((versionControlRepo) =>
+    Effect.map((automergeRepo) => ({
+      versionedProjectStore:
+        createAutomergeVersionedProjectStoreAdapter(automergeRepo),
+      versionedDocumentStore:
+        createAutomergeVersionedDocumentStoreAdapter(automergeRepo),
+    })),
+    Effect.flatMap(({ versionedDocumentStore, versionedProjectStore }) =>
       createProjectFromFilesystemContent({
-        createProject: versionControlRepo.createProject,
-        createDocument: versionControlRepo.createDocument,
-        listDirectoryFiles: listDirectoryFiles,
-        readFile: readFile,
+        createDocument: versionedDocumentStore.createDocument,
+        createProject: versionedProjectStore.createProject,
+        addArtifactToProject: versionedProjectStore.addArtifactToProject,
+        listDirectoryFiles,
+        readFile,
       })({ directoryPath })
     ),
     Effect.tap((projectId) =>
@@ -353,9 +383,11 @@ export const openOrCreateProject = ({
   | FilesystemDataIntegrityError
   | FilesystemNotFoundError
   | FilesystemRepositoryError
-  | VersionControlRepositoryError
-  | VersionControlNotFoundError
-  | VersionControlDataIntegrityError,
+  | VersionedProjectRepositoryError
+  | VersionedProjectNotFoundError
+  | VersionedProjectDataIntegrityError
+  | VersionedDocumentRepositoryError
+  | VersionedDocumentNotFoundError,
   never
 > =>
   pipe(
@@ -371,7 +403,7 @@ export const openOrCreateProject = ({
       (error) =>
         error instanceof FilesystemNotFoundError ||
         error instanceof FilesystemAccessControlError ||
-        error instanceof VersionControlMissingIndexFileError,
+        error instanceof VersionedProjectMissingIndexFileError,
       // Directory does not exist or can't be accessed.
       // Create a new repo & project
       () =>

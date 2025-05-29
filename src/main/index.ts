@@ -16,11 +16,11 @@ import os from 'os';
 
 import { runPromiseSerializingErrorsForIPC } from '../modules/cross-platform/electron-ipc-effect';
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/filesystem/adapters/electron-node-api';
-import { type VersionControlId } from '../modules/version-control';
 import {
   openOrCreateProject,
   openProjectById,
-} from '../modules/version-control/automerge-repo/node';
+} from '../modules/project/commands/node';
+import { type VersionControlId } from '../modules/version-control';
 import { RunWasiCLIArgs } from '../modules/wasm';
 import { createAdapter as createNodeWasmAdapter } from '../modules/wasm/adapters/node-wasm';
 import { update } from './update';

@@ -49,7 +49,6 @@ export const createProjectFromFilesystemContent =
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
     | VersionedDocumentRepositoryError
-    | VersionedDocumentNotFoundError
     | FilesystemAccessControlError
     | FilesystemDataIntegrityError
     | FilesystemNotFoundError
