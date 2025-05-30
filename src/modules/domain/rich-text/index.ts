@@ -7,3 +7,4 @@ export * as prosemirror from './prosemirror';
 export * from './models';
 export * from './ports';
 export * from './errors';
+export * from './commands';

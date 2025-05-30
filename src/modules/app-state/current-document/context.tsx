@@ -10,11 +10,12 @@ import {
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
 import {
-  convertToStorageFormat,
   type GetDocumentHandleAtCommitArgs,
   type IsContentSameAtHeadsArgs,
   isEmpty,
+  registerLiveUpdates,
   type RichTextDocument,
+  unregisterLiveUpdates,
   type VersionedDocument,
   type VersionedDocumentHandle,
 } from '../../../modules/domain/rich-text';
@@ -120,28 +121,20 @@ export const CurrentDocumentProvider = ({
         const pathParam = searchParams.get('path');
         const path = pathParam ? decodeURIComponent(pathParam) : null;
 
-        const documentHandle = await Effect.runPromise(
-          versionedDocumentStore.findDocumentById(documentId)
-        );
-        if (!documentHandle) {
+        if (!path) {
           throw new Error(
-            'No document handle found in repository for the selected document'
+            'Cannot propagate changes to file since path is not provided'
           );
         }
 
-        const propagateChangesToFile = async (
-          changePayload: VersionedArtifactHandleChangePayload<RichTextDocument>
-        ) => {
-          if (path) {
-            // TODO: Assess if we need to await this effect
-            filesystem.writeFile(
-              path,
-              convertToStorageFormat(changePayload.doc)
-            );
-          }
-        };
-
-        documentHandle.on('change', propagateChangesToFile);
+        const { documentHandle, registeredListener } =
+          await registerLiveUpdates({
+            findDocumentById: versionedDocumentStore.findDocumentById,
+            writeFile: filesystem.writeFile,
+          })({
+            documentId,
+            filePath: path,
+          });
 
         setVersionedDocumentHandle(documentHandle);
         setSelectedFileInfo({
@@ -150,7 +143,7 @@ export const CurrentDocumentProvider = ({
         });
 
         return () => {
-          documentHandle.off('change', propagateChangesToFile);
+          unregisterLiveUpdates({ documentHandle, registeredListener });
         };
       }
     };
