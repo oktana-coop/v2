@@ -19,3 +19,8 @@ export type Project = {
 export type VersionedProject = VersionedArtifact<Project>;
 
 export type VersionedProjectHandle = VersionedArtifactHandle<Project>;
+
+export type SingleDocumentProject = {
+  document: ArtifactMetaData;
+  assets: Record<VersionControlId, ArtifactMetaData>;
+};

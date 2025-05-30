@@ -14,14 +14,6 @@ export type CreateProjectArgs = {
   documents: Project['documents'];
 };
 
-export type CreateDocumentArgs = {
-  title: string;
-  name: string;
-  path: string;
-  content: string | null;
-  projectId: VersionControlId | null;
-};
-
 export type AddDocumentToProjectArgs = {
   documentId: VersionControlId;
   name: string;
