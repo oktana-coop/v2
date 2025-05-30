@@ -7,11 +7,3 @@ export class RepositoryError extends Cause.YieldableError {
 export class NotFoundError extends Cause.YieldableError {
   readonly _tag = 'VersionControlNotFoundError';
 }
-
-export class MissingIndexFileError extends Cause.YieldableError {
-  readonly _tag = 'VersionControlMissingIndexFileError';
-}
-
-export class DataIntegrityError extends Cause.YieldableError {
-  readonly _tag = 'VersionControlDataIntegrityError';
-}

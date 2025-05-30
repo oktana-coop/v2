@@ -12,6 +12,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router';
 import {
   convertToStorageFormat,
   type GetDocumentHandleAtCommitArgs,
+  type IsContentSameAtHeadsArgs,
   isEmpty,
   type RichTextDocument,
   type VersionedDocument,
@@ -28,10 +29,7 @@ import {
   type Commit,
   encodeURLHeads,
   encodeURLHeadsForChange,
-  getArtifactHandleHistory,
-  getArtifactHeads,
   headsAreSame,
-  isArtifactContentSameAtHeads as isContentSameAtHeads,
   isValidVersionControlId,
   type UrlHeads,
   type VersionControlId,
@@ -62,6 +60,7 @@ type CurrentDocumentContextType = {
   getDocumentHandleAtCommit: (
     args: GetDocumentHandleAtCommitArgs
   ) => Promise<VersionedDocumentHandle>;
+  isContentSameAtHeads: (args: IsContentSameAtHeadsArgs) => boolean;
 };
 
 export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
@@ -175,7 +174,11 @@ export const CurrentDocumentProvider = ({
   ) => {
     if (
       !headsAreSame(latestChangeHeads, lastCommitHeads) &&
-      !isContentSameAtHeads(currentDoc, latestChangeHeads, lastCommitHeads)
+      !versionedDocumentStore.isContentSameAtHeads({
+        document: currentDoc,
+        heads1: latestChangeHeads,
+        heads2: lastCommitHeads,
+      })
     ) {
       setCanCommit(true);
     } else {
@@ -205,7 +208,9 @@ export const CurrentDocumentProvider = ({
 
   const loadHistory = async (docHandle: VersionedDocumentHandle) => {
     const { history, current, lastCommit, latestChange } =
-      await getArtifactHandleHistory(docHandle);
+      await Effect.runPromise(
+        versionedDocumentStore.getDocumentHandleHistory(docHandle)
+      );
 
     const historyWithURLInfo = history.map((commit) => ({
       ...commit,
@@ -237,7 +242,7 @@ export const CurrentDocumentProvider = ({
         loadHistory(versionedDocumentHandle);
         checkIfCanCommit(
           args.doc,
-          getArtifactHeads(args.doc),
+          Effect.runSync(versionedDocumentStore.getDocumentHeads(args.doc)),
           lastCommit?.heads
         );
       };
@@ -359,6 +364,7 @@ export const CurrentDocumentProvider = ({
         selectedCommitIndex,
         onSelectCommit: handleSelectCommit,
         getDocumentHandleAtCommit: handleGetDocumentHandleAtCommit,
+        isContentSameAtHeads: versionedDocumentStore.isContentSameAtHeads,
       }}
     >
       {children}

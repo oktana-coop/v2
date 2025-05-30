@@ -1,17 +1,18 @@
-import { type Doc, next as Automerge } from '@automerge/automerge/slim';
-import {
-  type DocHandle,
-  RawString,
-  type Repo,
-} from '@automerge/automerge-repo/slim';
+import { next as Automerge } from '@automerge/automerge/slim';
+import { RawString, type Repo } from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import {
+  getArtifactAtCommit,
+  getArtifactFromHandle,
+  getArtifactHandleAtCommit,
+  getArtifactHandleHistory,
+  getArtifactHeads,
+  isArtifactContentSameAtHeads,
   type VersionControlId,
   versionedArtifactTypes,
 } from '../../../../../modules/infrastructure/version-control';
-import { fromNullable } from '../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../utils/errors';
 import { NotFoundError, RepositoryError } from '../../errors';
 import {
@@ -22,28 +23,22 @@ import {
 import { VersionedDocumentStore } from '../../ports/versioned-document-store';
 
 export const createAdapter = (automergeRepo: Repo): VersionedDocumentStore => {
-  const getDocFromHandle: <T>(
-    handle: DocHandle<T>
-  ) => Effect.Effect<Doc<T>, RepositoryError | NotFoundError, never> = (
-    handle
-  ) =>
-    pipe(
-      Effect.tryPromise({
-        try: async () => await handle.doc(),
-        catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
-      }),
-      Effect.flatMap((doc) =>
-        fromNullable(doc, () => new NotFoundError('Doc not found in handle'))
-      )
-    );
-
   const getDocumentFromHandle: (
     handle: VersionedDocumentHandle
   ) => Effect.Effect<
     VersionedDocument,
     RepositoryError | NotFoundError,
     never
-  > = getDocFromHandle<RichTextDocument>;
+  > = (handle) =>
+    pipe(
+      getArtifactFromHandle<RichTextDocument>(handle),
+      Effect.catchTags({
+        VersionControlRepositoryError: (err) =>
+          Effect.fail(new RepositoryError(err.message)),
+        VersionControlNotFoundError: (err) =>
+          Effect.fail(new NotFoundError(err.message)),
+      })
+    );
 
   const createDocument: VersionedDocumentStore['createDocument'] = ({
     title,
@@ -64,10 +59,23 @@ export const createAdapter = (automergeRepo: Repo): VersionedDocumentStore => {
 
   const getDocumentHandleAtCommit: VersionedDocumentStore['getDocumentHandleAtCommit'] =
     ({ documentHandle, heads }) =>
-      Effect.try({
-        try: () => documentHandle.view(heads),
-        catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
-      });
+      pipe(
+        getArtifactHandleAtCommit({ artifactHandle: documentHandle, heads }),
+        Effect.catchTag('VersionControlRepositoryError', (err) =>
+          Effect.fail(new RepositoryError(err.message))
+        )
+      );
+
+  const getDocumentAtCommit: VersionedDocumentStore['getDocumentAtCommit'] = ({
+    document,
+    heads,
+  }) =>
+    pipe(
+      getArtifactAtCommit({ artifact: document, heads }),
+      Effect.catchTag('VersionControlRepositoryError', (err) =>
+        Effect.fail(new RepositoryError(err.message))
+      )
+    );
 
   const findDocumentById: VersionedDocumentStore['findDocumentById'] = (
     id: VersionControlId
@@ -127,12 +135,35 @@ export const createAdapter = (automergeRepo: Repo): VersionedDocumentStore => {
       )
     );
 
+  const getDocumentHeads: VersionedDocumentStore['getDocumentHeads'] = (
+    document
+  ) =>
+    Effect.try({
+      try: () => getArtifactHeads<RichTextDocument>(document),
+      catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+    });
+
+  const getDocumentHandleHistory: VersionedDocumentStore['getDocumentHandleHistory'] =
+    (handle: VersionedDocumentHandle) =>
+      Effect.tryPromise({
+        try: () => getArtifactHandleHistory<RichTextDocument>(handle),
+        catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+      });
+
+  const isContentSameAtHeads: VersionedDocumentStore['isContentSameAtHeads'] =
+    ({ document, heads1, heads2 }) =>
+      isArtifactContentSameAtHeads<RichTextDocument>(document, heads1, heads2);
+
   return {
     createDocument,
     getDocumentHandleAtCommit,
+    getDocumentAtCommit,
     findDocumentById,
     updateDocumentSpans,
     getDocumentFromHandle,
     deleteDocument,
+    getDocumentHandleHistory,
+    isContentSameAtHeads,
+    getDocumentHeads,
   };
 };

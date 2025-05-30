@@ -14,7 +14,6 @@ import {
   type ChangeWithUrlInfo,
   decodeURLHeads,
   encodeURLHeads,
-  getDiff,
   headsAreSame,
   isCommit,
   UrlHeads,
@@ -33,6 +32,7 @@ export const DocumentHistoricalView = () => {
     canCommit,
     onOpenCommitDialog,
     getDocumentHandleAtCommit,
+    isContentSameAtHeads,
   } = useContext(CurrentDocumentContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const [doc, setDoc] = React.useState<VersionedDocument | null>();
@@ -96,14 +96,17 @@ export const DocumentHistoricalView = () => {
             heads: diffCommit.heads,
           });
           const previousCommitDoc = await diffCommitDocHandle.doc();
-          // TODO: Use heads instead of hashes
-          const diffPatches = await getDiff(
-            currentCommitDocHandle,
-            diffCommit.hash,
-            commits[currentCommitIndex].hash
-          );
+          const isContentBetweenCommitsDifferent = !isContentSameAtHeads({
+            document: currentCommitDoc,
+            heads1: diffCommit.heads,
+            heads2: commits[currentCommitIndex].heads,
+          });
 
-          if (previousCommitDoc && currentCommitDoc && diffPatches) {
+          if (
+            previousCommitDoc &&
+            currentCommitDoc &&
+            isContentBetweenCommitsDifferent
+          ) {
             setDiffProps({
               docBefore: previousCommitDoc,
               docAfter: currentCommitDoc,

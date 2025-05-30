@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 
 import {
-  ChangeWithUrlInfo,
+  type ChangeWithUrlInfo,
   decodeURLHeads,
   encodeURLHeads,
   type UrlHeads,
