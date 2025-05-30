@@ -4,19 +4,19 @@ import { useNavigate, useParams } from 'react-router';
 import {
   CurrentDocumentContext,
   CurrentDocumentProvider,
-} from '../../../../modules/editor-state';
-import { SidebarLayoutProvider } from '../../../../modules/editor-state/sidebar-layout/context';
+  CurrentProjectContext,
+  CurrentProjectProvider,
+  SidebarLayoutProvider,
+} from '../../../../modules/app-state';
+import { ProseMirrorProvider } from '../../../../modules/domain/rich-text/react/context';
 import {
   type File,
-  FilesystemContext,
   removeExtension,
-} from '../../../../modules/filesystem';
-import { ProseMirrorProvider } from '../../../../modules/rich-text/react/context';
+} from '../../../../modules/infrastructure/filesystem';
 import {
   decodeURLHeads,
   type VersionControlId,
-} from '../../../../modules/version-control';
-import { VersionControlContext } from '../../../../modules/version-control/react';
+} from '../../../../modules/infrastructure/version-control';
 import { CommandPalette } from '../../components/dialogs/command-palette/CommandPalette';
 import { Layout } from '../../components/layout/Layout';
 import { SidebarLayout } from '../../components/layout/SidebarLayout';
@@ -29,11 +29,13 @@ import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
 import { FileExplorer } from './sidebar/file-explorer/FileExplorer';
 
 export const Document = () => (
-  <CurrentDocumentProvider>
-    <SidebarLayoutProvider>
-      <DocumentIndex />
-    </SidebarLayoutProvider>
-  </CurrentDocumentProvider>
+  <CurrentProjectProvider>
+    <CurrentDocumentProvider>
+      <SidebarLayoutProvider>
+        <DocumentIndex />
+      </SidebarLayoutProvider>
+    </CurrentDocumentProvider>
+  </CurrentProjectProvider>
 );
 
 export {
@@ -48,11 +50,13 @@ const DocumentIndex = () => {
   const navigate = useNavigate();
 
   const {
+    projectId,
     directory,
     directoryFiles,
     openDirectory,
     requestPermissionForSelectedDirectory,
-  } = useContext(FilesystemContext);
+    findDocumentInProject,
+  } = useContext(CurrentProjectContext);
   const {
     selectedFileInfo,
     selectedFileName,
@@ -65,9 +69,6 @@ const DocumentIndex = () => {
     onCommit,
     onOpenCommitDialog,
   } = useContext(CurrentDocumentContext);
-  const { projectId, findDocumentInProject } = useContext(
-    VersionControlContext
-  );
   const { changeId } = useParams();
   const [isCommandPaletteOpen, setCommandPaletteOpen] =
     useState<boolean>(false);

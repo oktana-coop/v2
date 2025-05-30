@@ -1,22 +1,24 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
-import { CurrentDocumentContext } from '../../../../../../modules/editor-state';
-import { SidebarLayoutContext } from '../../../../../../modules/editor-state/sidebar-layout/context';
-import { FunctionalityConfigContext } from '../../../../../../modules/personalization/functionality-config';
+import {
+  CurrentDocumentContext,
+  SidebarLayoutContext,
+} from '../../../../../../modules/app-state';
+import {
+  type VersionedDocument,
+  type VersionedDocumentHandle,
+} from '../../../../../../modules/domain/rich-text';
 import {
   type Change,
   type ChangeWithUrlInfo,
   decodeURLHeads,
   encodeURLHeads,
-  getDiff,
   headsAreSame,
   isCommit,
   UrlHeads,
-  type VersionedDocument,
-  type VersionedDocumentHandle,
-} from '../../../../../../modules/version-control';
-import { VersionControlContext } from '../../../../../../modules/version-control/react';
+} from '../../../../../../modules/infrastructure/version-control';
+import { FunctionalityConfigContext } from '../../../../../../modules/personalization/functionality-config';
 import { ActionsBar } from './ActionsBar';
 import { type DiffViewProps, ReadOnlyView } from './ReadOnlyView';
 
@@ -29,8 +31,9 @@ export const DocumentHistoricalView = () => {
     onSelectCommit,
     canCommit,
     onOpenCommitDialog,
+    getDocumentHandleAtCommit,
+    isContentSameAtHeads,
   } = useContext(CurrentDocumentContext);
-  const { getDocumentHandleAtCommit } = useContext(VersionControlContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const [doc, setDoc] = React.useState<VersionedDocument | null>();
   const [viewTitle, setViewTitle] = useState<string>('');
@@ -93,14 +96,17 @@ export const DocumentHistoricalView = () => {
             heads: diffCommit.heads,
           });
           const previousCommitDoc = await diffCommitDocHandle.doc();
-          // TODO: Use heads instead of hashes
-          const diffPatches = await getDiff(
-            currentCommitDocHandle,
-            diffCommit.hash,
-            commits[currentCommitIndex].hash
-          );
+          const isContentBetweenCommitsDifferent = !isContentSameAtHeads({
+            document: currentCommitDoc,
+            heads1: diffCommit.heads,
+            heads2: commits[currentCommitIndex].heads,
+          });
 
-          if (previousCommitDoc && currentCommitDoc && diffPatches) {
+          if (
+            previousCommitDoc &&
+            currentCommitDoc &&
+            isContentBetweenCommitsDifferent
+          ) {
             setDiffProps({
               docBefore: previousCommitDoc,
               docAfter: currentCommitDoc,

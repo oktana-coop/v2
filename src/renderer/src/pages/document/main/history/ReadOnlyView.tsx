@@ -2,13 +2,13 @@ import { EditorState } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { useContext, useEffect, useRef } from 'react';
 
-import { prosemirror } from '../../../../../../modules/rich-text';
-import { richTextRepresentations } from '../../../../../../modules/rich-text';
-import { ProseMirrorContext } from '../../../../../../modules/rich-text/react/context';
 import {
   getSpansString,
+  prosemirror,
+  richTextRepresentations,
   type VersionedDocument,
-} from '../../../../../../modules/version-control';
+} from '../../../../../../modules/domain/rich-text';
+import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/react/context';
 import {
   diffDelete,
   diffInsert,

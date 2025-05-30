@@ -15,22 +15,18 @@ import { EditorView } from 'prosemirror-view';
 import { useContext, useEffect, useRef, useState } from 'react';
 
 import {
-  getHeadingLevel,
-  LinkAttrs,
-  prosemirror,
-} from '../../../../modules/rich-text';
-import {
   type BlockType,
   blockTypes,
   type ContainerBlockType,
+  getHeadingLevel,
   type LeafBlockType,
-} from '../../../../modules/rich-text/constants/blocks';
-import { ProseMirrorContext } from '../../../../modules/rich-text/react/context';
-import {
+  LinkAttrs,
+  prosemirror,
   type VersionedDocument,
   type VersionedDocumentHandle,
-  type VersionedDocumentPatch,
-} from '../../../../modules/version-control';
+} from '../../../../modules/domain/rich-text';
+import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/context';
+import { type VersionedArtifactPatch } from '../../../../modules/infrastructure/version-control';
 import { EditorToolbar } from './editor-toolbar';
 import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';
@@ -62,7 +58,7 @@ const {
 export type RichTextEditorDiffProps = {
   docBefore: VersionedDocument;
   docAfter: VersionedDocument;
-  patches: Array<VersionedDocumentPatch>;
+  patches: Array<VersionedArtifactPatch>;
 };
 
 type RichTextEditorProps = {

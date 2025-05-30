@@ -2,7 +2,7 @@ import * as Headless from '@headlessui/react';
 import clsx from 'clsx';
 import type { ReactNode } from 'react';
 
-import { type LeafBlockType } from '../../../../../modules/rich-text';
+import { type LeafBlockType } from '../../../../../modules/domain/rich-text';
 import { ChevronDownIcon } from '../../icons';
 import { IconProps } from '../../icons/types';
 import { Listbox, ListboxLabel, ListboxOption } from '../../inputs/Listbox';

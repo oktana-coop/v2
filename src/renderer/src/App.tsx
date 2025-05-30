@@ -9,8 +9,7 @@ import {
   Routes,
 } from 'react-router';
 
-import { ElectronContext } from '../../modules/electron';
-import { VersionControlContext } from '../../modules/version-control/react';
+import { ElectronContext } from '../../modules/infrastructure/cross-platform';
 import {
   Document,
   DocumentEditor,
@@ -20,18 +19,9 @@ import { Options } from './pages/options/Options';
 import { ProjectHistory } from './pages/project-history';
 
 function App() {
-  const { isRepoReady } = useContext(VersionControlContext);
   const { isElectron } = useContext(ElectronContext);
 
   const Router = isElectron ? HashRouter : BrowserRouter;
-
-  if (!isRepoReady) {
-    return (
-      <div className="flex h-full w-full items-center justify-center text-center">
-        Loading...
-      </div>
-    );
-  }
 
   return (
     <Router>

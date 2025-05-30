@@ -1,37 +1,19 @@
-import { useContext } from 'react';
-
-import { ElectronContext } from '../../modules/electron';
-import {
-  createBrowserFilesystemAPIAdapter,
-  createElectronRendererFilesystemAPIAdapter,
-  FilesystemProvider,
-} from '../../modules/filesystem';
+import { InfrastructureAdaptersProvider } from '../../modules/app-state';
+import { WasmProvider } from '../../modules/infrastructure/wasm/react/wasm-context';
 import { FunctionalityConfigProvider } from '../../modules/personalization/functionality-config';
 import { ThemeProvider } from '../../modules/personalization/theme';
-import { VersionControlProvider } from '../../modules/version-control/react';
-import { WasmProvider } from '../../modules/wasm';
 import App from './App.tsx';
 
 export const AppWrapper = () => {
-  const { isElectron } = useContext(ElectronContext);
-
   return (
-    <FilesystemProvider
-      filesystem={
-        isElectron
-          ? createElectronRendererFilesystemAPIAdapter()
-          : createBrowserFilesystemAPIAdapter()
-      }
-    >
+    <InfrastructureAdaptersProvider>
       <WasmProvider>
-        <VersionControlProvider>
-          <ThemeProvider>
-            <FunctionalityConfigProvider>
-              <App />
-            </FunctionalityConfigProvider>
-          </ThemeProvider>
-        </VersionControlProvider>
+        <ThemeProvider>
+          <FunctionalityConfigProvider>
+            <App />
+          </FunctionalityConfigProvider>
+        </ThemeProvider>
       </WasmProvider>
-    </FilesystemProvider>
+    </InfrastructureAdaptersProvider>
   );
 };

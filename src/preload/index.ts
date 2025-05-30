@@ -1,13 +1,16 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-import { type PromisifyEffects } from '../modules/electron/ipc-effect';
-import { type Filesystem as FilesystemAPI } from '../modules/filesystem';
+import { type PromisifyEffects } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
+import { type Filesystem as FilesystemAPI } from '../modules/infrastructure/filesystem';
 import type {
   FromMainMessage,
   FromRendererMessage,
   VersionControlId,
-} from '../modules/version-control';
-import type { RunWasiCLIArgs, Wasm as WasmAPI } from '../modules/wasm';
+} from '../modules/infrastructure/version-control';
+import type {
+  RunWasiCLIArgs,
+  Wasm as WasmAPI,
+} from '../modules/infrastructure/wasm';
 
 contextBridge.exposeInMainWorld('electronAPI', {
   onReceiveProcessId: (callback: (processId: string) => void) =>

@@ -14,15 +14,15 @@ import {
 } from 'electron';
 import os from 'os';
 
-import { runPromiseSerializingErrorsForIPC } from '../modules/electron/ipc-effect';
-import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/filesystem/adapters/electron-node-api';
-import { type VersionControlId } from '../modules/version-control';
 import {
   openOrCreateProject,
   openProjectById,
-} from '../modules/version-control/automerge-repo/node';
-import { RunWasiCLIArgs } from '../modules/wasm';
-import { createAdapter as createNodeWasmAdapter } from '../modules/wasm/adapters/node-wasm';
+} from '../modules/domain/project/commands/node';
+import { runPromiseSerializingErrorsForIPC } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
+import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/infrastructure/filesystem/adapters/electron-node-api';
+import { type VersionControlId } from '../modules/infrastructure/version-control';
+import { type RunWasiCLIArgs } from '../modules/infrastructure/wasm';
+import { createAdapter as createNodeWasmAdapter } from '../modules/infrastructure/wasm/adapters/node-wasm';
 import { update } from './update';
 
 const filesystemAPI = createElectronNodeFilesystemAPIAdapter();

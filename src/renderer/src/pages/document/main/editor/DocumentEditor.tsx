@@ -1,8 +1,8 @@
 import { useCallback, useContext, useState } from 'react';
 
-import { CurrentDocumentContext } from '../../../../../../modules/editor-state';
-import { SidebarLayoutContext } from '../../../../../../modules/editor-state/sidebar-layout/context';
-import { ProseMirrorContext } from '../../../../../../modules/rich-text/react/context';
+import { CurrentDocumentContext } from '../../../../../../modules/app-state';
+import { SidebarLayoutContext } from '../../../../../../modules/app-state/sidebar-layout/context';
+import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/react/context';
 import { RichTextEditor } from '../../../../components/editing/RichTextEditor';
 import { ActionsBar } from './ActionsBar';
 
