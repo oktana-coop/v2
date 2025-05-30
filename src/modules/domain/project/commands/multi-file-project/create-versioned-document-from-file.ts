@@ -8,17 +8,17 @@ import {
   type Filesystem,
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
-} from '../../../../modules/infrastructure/filesystem';
-import { type VersionControlId } from '../../../../modules/infrastructure/version-control';
+} from '../../../../../modules/infrastructure/filesystem';
+import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
 import {
   RepositoryError as VersionedDocumentRepositoryError,
   type VersionedDocumentStore,
-} from '../../rich-text';
+} from '../../../rich-text';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
-} from '../errors';
-import { type VersionedProjectStore } from '../ports/versioned-project-store';
+} from '../../errors';
+import { type VersionedProjectStore } from '../../ports/versioned-project-store';
 
 export type CreateVersionedDocumentInFileArgs = {
   file: File;

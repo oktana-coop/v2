@@ -2,16 +2,16 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as Option from 'effect/Option';
 
-import { type VersionControlId } from '../../../../modules/infrastructure/version-control';
+import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
 import {
   RepositoryError as VersionedDocumentRepositoryError,
   type VersionedDocumentStore,
-} from '../../rich-text';
+} from '../../../rich-text';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
-} from '../errors';
-import { type VersionedProjectStore } from '../ports/versioned-project-store';
+} from '../../errors';
+import { type VersionedProjectStore } from '../../ports/versioned-project-store';
 
 export type CreateVersionedDocumentArgs = {
   title: string;

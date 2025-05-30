@@ -5,13 +5,13 @@ import {
   NotFoundError as VersionedDocumentNotFoundError,
   RepositoryError as VersionedDocumentRepositoryError,
   type VersionedDocumentStore,
-} from '../../../../modules/domain/rich-text';
-import { type VersionControlId } from '../../../../modules/infrastructure/version-control';
+} from '../../../../../modules/domain/rich-text';
+import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
-} from '../errors';
-import { type VersionedProjectStore } from '../ports/versioned-project-store';
+} from '../../errors';
+import { type VersionedProjectStore } from '../../ports/versioned-project-store';
 
 export type DeleteDocumentFromProjectArgs = {
   documentId: VersionControlId;

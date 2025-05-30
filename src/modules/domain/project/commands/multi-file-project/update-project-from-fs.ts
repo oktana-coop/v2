@@ -6,7 +6,7 @@ import {
   NotFoundError as VersionedDocumentNotFoundError,
   RepositoryError as VersionedDocumentRepositoryError,
   type VersionedDocumentStore,
-} from '../../../../modules/domain/rich-text';
+} from '../../../../../modules/domain/rich-text';
 import {
   AccessControlError as FilesystemAccessControlError,
   DataIntegrityError as FilesystemDataIntegrityError,
@@ -14,14 +14,14 @@ import {
   type Filesystem,
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
-} from '../../../../modules/infrastructure/filesystem';
-import { type VersionControlId } from '../../../../modules/infrastructure/version-control';
+} from '../../../../../modules/infrastructure/filesystem';
+import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
-} from '../errors';
-import { type ArtifactMetaData } from '../models';
-import type { VersionedProjectStore } from '../ports/versioned-project-store';
+} from '../../errors';
+import { type ArtifactMetaData } from '../../models';
+import type { VersionedProjectStore } from '../../ports/versioned-project-store';
 import { createVersionedDocumentFromFile } from './create-versioned-document-from-file';
 import { deleteDocumentFromProject } from './delete-document-from-project';
 import { findDocumentInProject } from './find-document-in-project';

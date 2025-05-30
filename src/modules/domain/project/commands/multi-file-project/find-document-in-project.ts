@@ -6,13 +6,13 @@ import {
   RepositoryError as VersionedDocumentRepositoryError,
   type VersionedDocumentHandle,
   type VersionedDocumentStore,
-} from '../../../../modules/domain/rich-text';
-import { type VersionControlId } from '../../../../modules/infrastructure/version-control';
+} from '../../../../../modules/domain/rich-text';
+import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
-} from '../errors';
-import { type VersionedProjectStore } from '../ports/versioned-project-store';
+} from '../../errors';
+import { type VersionedProjectStore } from '../../ports/versioned-project-store';
 
 export type FindDocumentInProjectArgs = {
   documentPath: string;

@@ -9,33 +9,33 @@ import { BrowserWindow } from 'electron';
 import {
   NotFoundError as VersionedDocumentNotFoundError,
   RepositoryError as VersionedDocumentRepositoryError,
-} from '../../../../../modules/domain/rich-text';
-import { createAdapter as createAutomergeVersionedDocumentStoreAdapter } from '../../../../../modules/domain/rich-text/adapters/automerge-versioned-document-store';
+} from '../../../../../../modules/domain/rich-text';
+import { createAdapter as createAutomergeVersionedDocumentStoreAdapter } from '../../../../../../modules/domain/rich-text/adapters/automerge-versioned-document-store';
 import {
   isValidVersionControlId,
   type VersionControlId,
-} from '../../../../../modules/infrastructure/version-control';
-import { setupForNode as setupAutomergeRepoForNode } from '../../../../../modules/infrastructure/version-control/automerge-repo/node';
-import { fromNullable } from '../../../../../utils/effect';
-import { mapErrorTo } from '../../../../../utils/errors';
+} from '../../../../../../modules/infrastructure/version-control';
+import { setupForNode as setupAutomergeRepoForNode } from '../../../../../../modules/infrastructure/version-control/automerge-repo/node';
+import { fromNullable } from '../../../../../../utils/effect';
+import { mapErrorTo } from '../../../../../../utils/errors';
 import {
   AccessControlError as FilesystemAccessControlError,
   DataIntegrityError as FilesystemDataIntegrityError,
   type Filesystem,
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
-} from '../../../../infrastructure/filesystem';
-import { createAdapter as createAutomergeVersionedProjectStoreAdapter } from '../../adapters/automerge-versioned-project-store';
-import {
-  createProjectFromFilesystemContent,
-  updateProjectFromFilesystemContent,
-} from '../../commands';
+} from '../../../../../infrastructure/filesystem';
+import { createAdapter as createAutomergeVersionedProjectStoreAdapter } from '../../../adapters/automerge-versioned-project-store';
 import {
   DataIntegrityError as VersionedProjectDataIntegrityError,
   MissingIndexFileError as VersionedProjectMissingIndexFileError,
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
-} from '../../errors';
+} from '../../../errors';
+import {
+  createProjectFromFilesystemContent,
+  updateProjectFromFilesystemContent,
+} from '../';
 
 const setupAutomergeRepo = ({
   directoryPath,
