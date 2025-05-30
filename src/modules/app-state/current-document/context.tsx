@@ -52,7 +52,7 @@ type CurrentDocumentContextType = {
   versionedDocumentHandle: VersionedDocumentHandle | null;
   versionedDocumentHistory: ChangeWithUrlInfo[];
   canCommit: boolean;
-  onCommit: (message: string) => void;
+  onCommit: (message: string) => Promise<void>;
   isCommitDialogOpen: boolean;
   onOpenCommitDialog: () => void;
   onCloseCommitDialog: () => void;
@@ -73,7 +73,7 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     versionedDocumentHandle: null,
     versionedDocumentHistory: [],
     canCommit: false,
-    onCommit: () => {},
+    onCommit: async () => {},
     isCommitDialogOpen: false,
     onOpenCommitDialog: () => {},
     onCloseCommitDialog: () => {},
@@ -268,24 +268,15 @@ export const CurrentDocumentProvider = ({
     });
   };
 
-  const commitChanges = useCallback(
-    (message: string) => {
+  const handleCommit = useCallback(
+    async (message: string) => {
       if (!versionedDocumentHandle) return;
-
-      versionedDocumentHandle.change(
-        (doc) => {
-          // this is effectively a no-op, but it triggers a change event
-          // (not) changing the title of the document, as interfering with the
-          // content outside the Prosemirror API will cause loss of formatting
-          // eslint-disable-next-line no-self-assign
-          doc.title = doc.title;
-        },
-        {
+      await Effect.runPromise(
+        versionedDocumentStore.commitChanges({
+          documentHandle: versionedDocumentHandle,
           message,
-          time: new Date().getTime(),
-        }
+        })
       );
-
       setIsCommitDialogOpen(false);
       setCanCommit(false);
     },
@@ -350,7 +341,7 @@ export const CurrentDocumentProvider = ({
         clearFileSelection,
         versionedDocumentHistory,
         canCommit,
-        onCommit: commitChanges,
+        onCommit: handleCommit,
         isCommitDialogOpen,
         onOpenCommitDialog: handleOpenCommitDialog,
         onCloseCommitDialog: handleCloseCommitDialog,

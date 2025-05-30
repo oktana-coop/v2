@@ -154,6 +154,28 @@ export const createAdapter = (automergeRepo: Repo): VersionedDocumentStore => {
     ({ document, heads1, heads2 }) =>
       isArtifactContentSameAtHeads<RichTextDocument>(document, heads1, heads2);
 
+  const commitChanges: VersionedDocumentStore['commitChanges'] = ({
+    documentHandle,
+    message,
+  }) =>
+    Effect.try({
+      try: () =>
+        documentHandle.change(
+          (doc) => {
+            // this is effectively a no-op, but it triggers a change event
+            // (not) changing the title of the document, as interfering with the
+            // content outside the Prosemirror API will cause loss of formatting
+            // eslint-disable-next-line no-self-assign
+            doc.title = doc.title;
+          },
+          {
+            message,
+            time: new Date().getTime(),
+          }
+        ),
+      catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+    });
+
   return {
     createDocument,
     getDocumentHandleAtCommit,
@@ -165,5 +187,6 @@ export const createAdapter = (automergeRepo: Repo): VersionedDocumentStore => {
     getDocumentHandleHistory,
     isContentSameAtHeads,
     getDocumentHeads,
+    commitChanges,
   };
 };

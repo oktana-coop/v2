@@ -45,6 +45,11 @@ export type IsContentSameAtHeadsArgs = {
   heads2: Commit['heads'];
 };
 
+export type CommitChangesArgs = {
+  documentHandle: VersionedDocumentHandle;
+  message: string;
+};
+
 export type VersionedDocumentStore = {
   createDocument: (
     args: CreateDocumentArgs
@@ -79,4 +84,7 @@ export type VersionedDocumentStore = {
     handle: VersionedDocumentHandle
   ) => Effect.Effect<GetDocumentHandleHistoryResponse, RepositoryError, never>;
   isContentSameAtHeads: (args: IsContentSameAtHeadsArgs) => boolean;
+  commitChanges: (
+    args: CommitChangesArgs
+  ) => Effect.Effect<void, RepositoryError, never>;
 };
