@@ -43,6 +43,7 @@ export type Filesystem = {
     suggestedName: string,
     parentDirectory?: Directory
   ) => Effect.Effect<File, AbortError | NotFoundError | RepositoryError, never>;
+  openFile: () => Effect.Effect<File, AbortError | RepositoryError, never>;
   writeFile: (
     path: string,
     content: string

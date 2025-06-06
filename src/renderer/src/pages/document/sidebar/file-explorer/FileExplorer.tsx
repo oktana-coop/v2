@@ -6,10 +6,17 @@ import {
 } from '../../../../../../modules/app-state';
 import { projectTypes } from '../../../../../../modules/domain/project';
 import { IconButton } from '../../../../components/actions/IconButton';
-import { FolderIcon, PlusIcon } from '../../../../components/icons';
+import {
+  FileDocumentIcon,
+  FolderIcon,
+  PlusIcon,
+} from '../../../../components/icons';
 import { SidebarHeading } from '../../../../components/sidebar/SidebarHeading';
 import { useFileSelection as useFileSelectionInMultiDocumentProject } from '../../../../hooks/multi-document-project';
-import { useFileSelection as useFileSelectionInSingleDocumentProject } from '../../../../hooks/single-document-project';
+import {
+  useFileSelection as useFileSelectionInSingleDocumentProject,
+  useOpenDocument,
+} from '../../../../hooks/single-document-project';
 import { FileList } from './FileList';
 import {
   MultiDocumentProjectFileExplorerTitle,
@@ -29,22 +36,35 @@ export const FileExplorer = ({
     useFileSelectionInMultiDocumentProject();
   const handleFileSelectionInSingleDocumentProject =
     useFileSelectionInSingleDocumentProject();
+  const openDocument = useOpenDocument();
 
   const handleFileSelection =
     projectType === projectTypes.MULTI_DOCUMENT_PROJECT
       ? handleFileSelectionInMultiDocumentProject
       : handleFileSelectionInSingleDocumentProject;
 
+  const handleOpenDocument = () => openDocument();
+
   return (
     <div className="flex h-full flex-col items-stretch py-6">
-      <div className="flex items-center justify-between px-4 pb-4">
-        <SidebarHeading icon={FolderIcon} text="File Explorer" />
-        {canCreateDocument() && (
-          <IconButton
-            onClick={onCreateDocument}
-            icon={<PlusIcon size={20} />}
-          ></IconButton>
-        )}
+      <div className="flex items-center px-4 pb-4">
+        <div className="flex-auto">
+          <SidebarHeading icon={FolderIcon} text="File Explorer" />
+        </div>
+        <div className="flex gap-1">
+          {projectType === projectTypes.SINGLE_DOCUMENT_PROJECT && (
+            <IconButton
+              onClick={handleOpenDocument}
+              icon={<FileDocumentIcon size={20} />}
+            />
+          )}
+          {canCreateDocument() && (
+            <IconButton
+              onClick={onCreateDocument}
+              icon={<PlusIcon size={20} />}
+            />
+          )}
+        </div>
       </div>
 
       {canShowFiles() ? (

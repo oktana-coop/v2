@@ -3,7 +3,10 @@ import { pipe } from 'effect/Function';
 
 import { fromNullable } from '../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../utils/errors';
-import { FILE_EXTENSION } from '../../../constants';
+import {
+  FILE_EXTENSION,
+  SINGLE_DOCUMENT_PROJECT_FILE_EXTENSION,
+} from '../../../constants';
 import { filesystemItemTypes } from '../../../constants/filesystem-item-types';
 import {
   AbortError,
@@ -37,6 +40,45 @@ const showDirPicker = (): Effect.Effect<
     },
   });
 
+const showFilePicker = (): Effect.Effect<
+  FileSystemFileHandle,
+  AbortError | RepositoryError,
+  never
+> =>
+  pipe(
+    Effect.tryPromise({
+      try: () =>
+        window.showOpenFilePicker({
+          excludeAcceptAllOption: true,
+          types: [
+            {
+              description: 'v2',
+              accept: {
+                'application/v2': [
+                  `.${SINGLE_DOCUMENT_PROJECT_FILE_EXTENSION}`,
+                ],
+              },
+            },
+          ],
+        }),
+      catch: (err: unknown) => {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          return new AbortError(err.message);
+        }
+
+        return mapErrorTo(RepositoryError, 'Browser filesystem API error')(err);
+      },
+    }),
+    Effect.flatMap((fileHandles) =>
+      fileHandles.length === 1
+        ? Effect.succeed(fileHandles[0])
+        : Effect.fail(
+            new RepositoryError(
+              'Error in file selection. Expected a single file returned.'
+            )
+          )
+    )
+  );
 const showSaveFilePicker = (
   suggestedName: string
 ): Effect.Effect<FileSystemFileHandle, AbortError | RepositoryError, never> =>
@@ -49,7 +91,7 @@ const showSaveFilePicker = (
           {
             description: 'v2',
             accept: {
-              'application/v2': [FILE_EXTENSION],
+              'application/v2': [`.${FILE_EXTENSION}`],
             },
           },
         ],
@@ -237,7 +279,7 @@ export const createAdapter = (): Filesystem => ({
         return Effect.forEach(
           entries.filter(
             (entry): entry is [string, FileSystemFileHandle] =>
-              isFileEntry(entry) && entry[1].name.endsWith(FILE_EXTENSION)
+              isFileEntry(entry) && entry[1].name.endsWith(`.${FILE_EXTENSION}`)
           ),
           ([key, value]) =>
             pipe(
@@ -373,4 +415,21 @@ export const createAdapter = (): Filesystem => ({
       }))
     );
   },
+  openFile: () =>
+    pipe(
+      showFilePicker(),
+      Effect.tap((fileHandle) =>
+        persistFileHandleInStorage({
+          handle: fileHandle,
+          relativePath: fileHandle.name,
+        })
+      ),
+      Effect.map((fileHandle) => ({
+        type: filesystemItemTypes.FILE,
+        name: fileHandle.name,
+        path: fileHandle.name,
+        // TODO: Read content properly
+        content: '',
+      }))
+    ),
 });

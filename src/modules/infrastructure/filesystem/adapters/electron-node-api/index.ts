@@ -6,6 +6,7 @@ import { pipe } from 'effect/Function';
 import { dialog } from 'electron';
 
 import { mapErrorTo } from '../../../../../utils/errors';
+import { SINGLE_DOCUMENT_PROJECT_FILE_EXTENSION } from '../../constants';
 import { filesystemItemTypes } from '../../constants/filesystem-item-types';
 import {
   AbortError,
@@ -31,6 +32,30 @@ const showDirPicker = (): Effect.Effect<
     Effect.tap((result) =>
       result.canceled
         ? Effect.fail(new AbortError('Open directory process cancelled'))
+        : Effect.succeed(undefined)
+    )
+  );
+
+const showFilePicker = (): Effect.Effect<
+  Electron.OpenDialogReturnValue,
+  AbortError,
+  never
+> =>
+  pipe(
+    Effect.promise(() =>
+      dialog.showOpenDialog({
+        properties: ['openFile'],
+        filters: [
+          {
+            name: 'v2 Files',
+            extensions: [SINGLE_DOCUMENT_PROJECT_FILE_EXTENSION],
+          },
+        ],
+      })
+    ),
+    Effect.tap((result) =>
+      result.canceled
+        ? Effect.fail(new AbortError('Open file process cancelled'))
         : Effect.succeed(undefined)
     )
   );
@@ -182,6 +207,22 @@ export const createAdapter = (): Filesystem => ({
       }))
     );
   },
+  openFile: () =>
+    pipe(
+      showFilePicker(),
+      Effect.map((result) => {
+        const filePath = result.filePaths[0];
+        const name = path.basename(filePath);
+
+        return {
+          type: filesystemItemTypes.FILE,
+          name,
+          path: filePath,
+          // TODO: Read file content
+          content: '',
+        };
+      })
+    ),
   writeFile: (filePath: string, content: string) =>
     Effect.tryPromise({
       try: () => fs.writeFile(filePath, content, 'utf8'),

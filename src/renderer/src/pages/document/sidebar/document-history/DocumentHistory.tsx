@@ -19,8 +19,10 @@ export const DocumentHistory = ({
 }: DocumentHistoryPanelProps) => {
   return (
     <div className="flex h-full flex-col items-stretch py-6">
-      <div className="flex items-center justify-between px-4 pb-4">
-        <SidebarHeading icon={CommitHistoryIcon} text="Document History" />
+      <div className="flex items-center px-4 pb-4">
+        <div className="flex-auto">
+          <SidebarHeading icon={CommitHistoryIcon} text="Document History" />
+        </div>
       </div>
       <div className="overflow-auto">
         <ChangeLog

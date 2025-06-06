@@ -139,6 +139,9 @@ async function createWindow() {
       filesystemAPI.createNewFile(suggestedName)
     )
   );
+  ipcMain.handle('open-file', async () =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.openFile())
+  );
   ipcMain.handle(
     'write-file',
     (_, { path, content }: { path: string; content: string }) =>
