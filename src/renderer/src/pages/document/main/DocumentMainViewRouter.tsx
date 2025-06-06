@@ -19,13 +19,13 @@ export const DocumentMainViewRouter = ({
   onOpenDocumentButtonClick,
 }: DocumentMainViewRouterProps) => {
   const { documentId: docUrl } = useParams();
-  const { directoryFiles } = useContext(CurrentProjectContext);
+  const { files } = useContext(CurrentProjectContext);
   const { versionedDocumentHandle } = useContext(CurrentDocumentContext);
 
   if (!docUrl) {
     return (
       <EmptyDocumentPage
-        directoryFiles={directoryFiles}
+        files={files}
         onCreateDocumentButtonClick={onCreateDocumentButtonClick}
         onOpenDocumentButtonClick={onOpenDocumentButtonClick}
       />

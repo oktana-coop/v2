@@ -4,17 +4,17 @@ import { EmptyDocument } from '../../../../components/document-views/EmptyDocume
 import { FileDocumentIcon, PenIcon } from '../../../../components/icons';
 
 export const EmptyDocumentPage = ({
-  directoryFiles,
+  files,
   onCreateDocumentButtonClick,
   onOpenDocumentButtonClick,
 }: {
-  directoryFiles: File[];
+  files: File[];
   onCreateDocumentButtonClick: () => void;
   onOpenDocumentButtonClick: () => void;
 }) => (
   <EmptyDocument
     message={
-      directoryFiles.length > 0
+      files.length > 0
         ? '👈 Pick one document from the list to continue editing. Or create a new one 😉.'
         : 'Create a new document and explore the world of versioning.'
     }

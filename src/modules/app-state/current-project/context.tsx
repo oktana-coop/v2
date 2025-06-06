@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 import { type ProjectType, projectTypes } from '../../domain/project';
 import { type File } from '../../infrastructure/filesystem';
@@ -46,13 +46,20 @@ const ProjectProviderSelector = ({
     <MultiDocumentProjectProvider>{children}</MultiDocumentProjectProvider>
   );
 
-export const CurrentProjectProvider = ({
+// The responsibilities of this provider are to:
+// 1. Pick the correct underlying provider (multi/single-document project)
+// 2. Expose a common interface between the two providers.
+// This way, the components can be more agnostic to what type of project they're using.
+const ProjectInterfaceProvider = ({
   projectType,
   children,
 }: {
   projectType: ProjectType;
   children: React.ReactNode;
 }) => {
+  const [files, setFiles] = useState<Array<File>>([]);
+  const [projectId, setProjectId] = useState<VersionControlId | null>(null);
+
   const {
     projectId: multiDocumentProjectId,
     canCreateDocument: canCreateDocumentInMultiFileProject,
@@ -65,35 +72,57 @@ export const CurrentProjectProvider = ({
     createNewDocument: createNewDocumentInSingleFileProject,
   } = useContext(SingleDocumentProjectContext);
 
+  useEffect(() => {
+    if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
+      setProjectId(multiDocumentProjectId);
+    } else {
+      setProjectId(singleDocumentProjectId);
+    }
+  }, [projectType, multiDocumentProjectId, singleDocumentProjectId]);
+
+  useEffect(() => {
+    if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
+      setFiles(directoryFiles);
+    }
+  }, [projectType, directoryFiles]);
+
+  return (
+    <CurrentProjectContext.Provider
+      value={{
+        projectType,
+        projectId,
+        canCreateDocument:
+          projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+            ? canCreateDocumentInMultiFileProject
+            : () => true,
+        canShowFiles:
+          projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+            ? canShowFilesInMultiFileProject
+            : () => false,
+        createNewDocument:
+          projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+            ? createNewDocumentInMultiFileProject
+            : createNewDocumentInSingleFileProject,
+        files,
+      }}
+    >
+      {children}
+    </CurrentProjectContext.Provider>
+  );
+};
+
+export const CurrentProjectProvider = ({
+  projectType,
+  children,
+}: {
+  projectType: ProjectType;
+  children: React.ReactNode;
+}) => {
   return (
     <ProjectProviderSelector projectType={projectType}>
-      <CurrentProjectContext.Provider
-        value={{
-          projectType,
-          projectId: projectTypes.MULTI_DOCUMENT_PROJECT
-            ? multiDocumentProjectId
-            : singleDocumentProjectId,
-          canCreateDocument:
-            projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-              ? canCreateDocumentInMultiFileProject
-              : () => true,
-          canShowFiles:
-            projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-              ? canShowFilesInMultiFileProject
-              : () => false,
-          createNewDocument:
-            projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-              ? createNewDocumentInMultiFileProject
-              : createNewDocumentInSingleFileProject,
-          files:
-            projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-              ? directoryFiles
-              : // TODO: Replace with recent files in the single document project case
-                [],
-        }}
-      >
+      <ProjectInterfaceProvider projectType={projectType}>
         {children}
-      </CurrentProjectContext.Provider>
+      </ProjectInterfaceProvider>
     </ProjectProviderSelector>
   );
 };
