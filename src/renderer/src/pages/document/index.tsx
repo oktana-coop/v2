@@ -4,25 +4,19 @@ import { useNavigate, useParams } from 'react-router';
 import {
   CurrentDocumentContext,
   CurrentDocumentProvider,
-  CurrentProjectContext,
   CurrentProjectProvider,
   SidebarLayoutProvider,
 } from '../../../../modules/app-state';
 import { projectTypes } from '../../../../modules/domain/project';
 import { ProseMirrorProvider } from '../../../../modules/domain/rich-text/react/context';
 import {
-  type File,
-  removeExtension,
-} from '../../../../modules/infrastructure/filesystem';
-import {
   decodeURLHeads,
   type VersionControlId,
 } from '../../../../modules/infrastructure/version-control';
-import { CommandPalette } from '../../components/dialogs/command-palette/CommandPalette';
 import { Layout } from '../../components/layout/Layout';
 import { SidebarLayout } from '../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../components/layout/StackedResizablePanelsLayout';
-import { useKeyBindings } from '../../hooks/useKeyBindings';
+import { DocumentCommandPalette } from './command-palette';
 import { CommitDialog } from './commit/CommitDialog';
 import { CreateDocumentModal } from './create-document/CreateDocumentModal';
 import { DocumentMainViewRouter } from './main/DocumentMainViewRouter';
@@ -49,18 +43,7 @@ const DocumentIndex = () => {
   const [isDocumentCreationModalOpen, setCreateDocumentModalOpen] =
     useState<boolean>(false);
   const navigate = useNavigate();
-
   const {
-    projectId,
-    directory,
-    directoryFiles,
-    openDirectory,
-    requestPermissionForSelectedDirectory,
-    findDocumentInProject,
-  } = useContext(CurrentProjectContext);
-  const {
-    selectedFileInfo,
-    selectedFileName,
     setSelectedFileInfo,
     versionedDocumentHistory: commits,
     onSelectCommit,
@@ -68,16 +51,8 @@ const DocumentIndex = () => {
     isCommitDialogOpen,
     canCommit,
     onCommit,
-    onOpenCommitDialog,
   } = useContext(CurrentDocumentContext);
   const { changeId } = useParams();
-  const [isCommandPaletteOpen, setCommandPaletteOpen] =
-    useState<boolean>(false);
-
-  useKeyBindings({
-    'ctrl+k': () => setCommandPaletteOpen((state) => !state),
-    'ctrl+d': () => openCreateDocumentModal(),
-  });
 
   useEffect(() => {
     document.title = 'v2 | Editor';
@@ -92,46 +67,6 @@ const DocumentIndex = () => {
   }) => {
     setSelectedFileInfo({ documentId, path });
     navigate(`/documents/${documentId}?path=${encodeURIComponent(path)}`);
-  };
-
-  const handleOpenDirectory = async () => {
-    await openDirectory();
-  };
-
-  const handlePermissionRequest = async () => {
-    await requestPermissionForSelectedDirectory();
-  };
-
-  const handleFileSelection = async (file: File) => {
-    if (!projectId) {
-      // TODO: Handle more gracefully
-      throw new Error('Could not select file because no project ID was found');
-    }
-
-    const documentHandle = await findDocumentInProject({
-      projectId,
-      documentPath: file.path!,
-    });
-
-    if (!documentHandle) {
-      // TODO: Handle more gracefully
-      throw new Error(
-        'Could not select file because the versioned document was not found in project'
-      );
-    }
-
-    if (!file.path) {
-      // TODO: Handle more gracefully
-      throw new Error('Could not select file because the file path is missing');
-    }
-
-    await setSelectedFileInfo({
-      documentId: documentHandle.url,
-      path: file.path,
-    });
-    navigate(
-      `/documents/${documentHandle.url}?path=${encodeURIComponent(file.path)}`
-    );
   };
 
   const openCreateDocumentModal = () => {
@@ -158,63 +93,12 @@ const DocumentIndex = () => {
           canCommit={canCommit}
           onCommit={(message: string) => onCommit(message)}
         />
-        <CommandPalette
-          open={isCommandPaletteOpen}
-          onClose={() => setCommandPaletteOpen(false)}
-          documentsGroupTitle={`${selectedFileInfo ? 'Other' : 'Project'}  documents`}
-          contextualSection={
-            selectedFileName
-              ? {
-                  groupTitle: `Current document: ${selectedFileName}`,
-                  actions: [
-                    ...(canCommit
-                      ? [
-                          {
-                            name: 'Commit changes',
-                            shortcut: 'S',
-                            onActionSelection: () => {
-                              console.log('Commit changes action selected');
-                              onOpenCommitDialog();
-                            },
-                          },
-                        ]
-                      : []),
-                  ],
-                }
-              : undefined
-          }
-          documents={directoryFiles
-            .filter((file) => selectedFileInfo?.path !== file.path)
-            .map((file) => ({
-              title: removeExtension(file.name),
-              onDocumentSelection: () => {
-                handleFileSelection(file);
-                setCommandPaletteOpen(false);
-              },
-            }))}
-          actions={[
-            {
-              name: 'Create new document',
-              shortcut: 'D',
-              onActionSelection: openCreateDocumentModal,
-            },
-          ]}
-        />
+        <DocumentCommandPalette onCreateDocument={openCreateDocumentModal} />
         <ProseMirrorProvider>
           <SidebarLayout
             sidebar={
               <StackedResizablePanelsLayout autoSaveId="editor-panel-group">
-                <FileExplorer
-                  directory={directory}
-                  files={directoryFiles}
-                  selectedFileInfo={selectedFileInfo}
-                  onOpenDirectory={handleOpenDirectory}
-                  onRequestPermissionsForCurrentDirectory={
-                    handlePermissionRequest
-                  }
-                  onFileSelection={handleFileSelection}
-                  onCreateDocument={openCreateDocumentModal}
-                />
+                <FileExplorer onCreateDocument={openCreateDocumentModal} />
                 <DocumentHistory
                   commits={commits}
                   onCommitClick={onSelectCommit}
