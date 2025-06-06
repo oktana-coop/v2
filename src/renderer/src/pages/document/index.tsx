@@ -8,6 +8,7 @@ import {
   CurrentProjectProvider,
   SidebarLayoutProvider,
 } from '../../../../modules/app-state';
+import { projectTypes } from '../../../../modules/domain/project';
 import { ProseMirrorProvider } from '../../../../modules/domain/rich-text/react/context';
 import {
   type File,
@@ -29,7 +30,7 @@ import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
 import { FileExplorer } from './sidebar/file-explorer/FileExplorer';
 
 export const Document = () => (
-  <CurrentProjectProvider>
+  <CurrentProjectProvider projectType={projectTypes.SINGLE_DOCUMENT_PROJECT}>
     <CurrentDocumentProvider>
       <SidebarLayoutProvider>
         <DocumentIndex />

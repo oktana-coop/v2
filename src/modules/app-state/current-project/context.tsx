@@ -5,6 +5,8 @@ import {
   createProjectFromFilesystemContent,
   createVersionedDocument,
   findDocumentInProject,
+  type ProjectType,
+  projectTypes,
   updateProjectFromFilesystemContent,
 } from '../../../modules/domain/project';
 import { VersionedDocumentHandle } from '../../../modules/domain/rich-text';
@@ -53,8 +55,10 @@ export const CurrentProjectContext = createContext<CurrentProjectContextType>({
 });
 
 export const CurrentProjectProvider = ({
+  projectType,
   children,
 }: {
+  projectType: ProjectType;
   children: React.ReactNode;
 }) => {
   const { isElectron } = useContext(ElectronContext);
@@ -259,7 +263,9 @@ export const CurrentProjectProvider = ({
       }
     };
 
-    openOrCreateProject();
+    if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
+      openOrCreateProject();
+    }
   }, [directory, isElectron]);
 
   const handleFindDocumentInProject = async (args: {
