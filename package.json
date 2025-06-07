@@ -40,6 +40,7 @@
     "@headlessui/react": "^2.2.4",
     "@oktana-coop/automerge-prosemirror": "0.0.13-10",
     "@wasmer/wasi": "^1.2.2",
+    "better-sqlite3": "^11.10.0",
     "buffer": "^6.0.3",
     "classnames": "^2.5.1",
     "clsx": "^2.1.1",
