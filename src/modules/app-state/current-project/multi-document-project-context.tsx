@@ -153,7 +153,7 @@ export const MultiDocumentProjectProvider = ({
   };
 
   const handleCreateNewDocument = async (suggestedName: string) => {
-    const { documentId: newDocumentId, path: newFilePath } =
+    const { documentId: newDocumentId, filePath: newFilePath } =
       await Effect.runPromise(
         createVersionedDocument({
           createNewFile: filesystem.createNewFile,

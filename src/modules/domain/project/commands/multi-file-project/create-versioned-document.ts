@@ -35,7 +35,7 @@ export type CreateVersionedDocumentDeps = {
 
 export type CreateVersionedDocumentResult = {
   documentId: VersionControlId;
-  path: string;
+  filePath: string;
 };
 
 export const createVersionedDocument =
@@ -87,6 +87,6 @@ export const createVersionedDocument =
         )
       ),
       Effect.flatMap(({ documentId, newFile }) =>
-        Effect.succeed({ documentId, path: newFile.path! })
+        Effect.succeed({ documentId, filePath: newFile.path! })
       )
     );

@@ -24,6 +24,7 @@ export type CreateDocumentAndProjectDeps = {
 export type CreateSingleDocumentProjectResult = {
   documentId: VersionControlId;
   projectId: VersionControlId;
+  filePath: string;
 };
 
 export const createDocumentAndProject =

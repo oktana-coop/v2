@@ -1,12 +1,7 @@
 import * as Effect from 'effect/Effect';
 import { createContext, useContext, useEffect, useState } from 'react';
 
-import {
-  createProjectFromFilesystemContent,
-  createVersionedDocument,
-  findDocumentInProject,
-  updateProjectFromFilesystemContent,
-} from '../../domain/project';
+import { createDocumentAndProject } from '../../domain/project';
 import { VersionedDocumentHandle } from '../../domain/rich-text';
 import { ElectronContext } from '../../infrastructure/cross-platform/electron-context';
 import { type Directory, type File } from '../../infrastructure/filesystem';
