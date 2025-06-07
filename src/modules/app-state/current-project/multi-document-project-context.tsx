@@ -153,11 +153,19 @@ export const MultiDocumentProjectProvider = ({
   };
 
   const handleCreateNewDocument = async (suggestedName: string) => {
-    const newFile = await Effect.runPromise(
-      directory
-        ? filesystem.createNewFile(suggestedName, directory)
-        : filesystem.createNewFile(suggestedName)
-    );
+    const { documentId: newDocumentId, path: newFilePath } =
+      await Effect.runPromise(
+        createVersionedDocument({
+          createNewFile: filesystem.createNewFile,
+          createDocument: versionedDocumentStore.createDocument,
+          addDocumentToProject: versionedProjectStore.addDocumentToProject,
+        })({
+          suggestedName: suggestedName,
+          projectId,
+          content: null,
+          directory,
+        })
+      );
 
     // Refresh directory files if a directory is selected
     if (
@@ -171,20 +179,7 @@ export const MultiDocumentProjectProvider = ({
       setDirectoryFiles(files);
     }
 
-    const newDocumentId = await Effect.runPromise(
-      createVersionedDocument({
-        createDocument: versionedDocumentStore.createDocument,
-        addDocumentToProject: versionedProjectStore.addDocumentToProject,
-      })({
-        name: newFile.name,
-        title: suggestedName,
-        path: newFile.path!,
-        projectId,
-        content: null,
-      })
-    );
-
-    return { documentId: newDocumentId, path: newFile.path! };
+    return { documentId: newDocumentId, path: newFilePath };
   };
 
   useEffect(() => {
