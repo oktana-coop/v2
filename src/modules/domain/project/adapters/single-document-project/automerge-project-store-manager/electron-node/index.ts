@@ -3,6 +3,7 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import { BrowserWindow } from 'electron';
 
+import { createAdapter as createAutomergeDocumentStoreAdapter } from '../../../../../../../modules/domain/rich-text/adapters/automerge-versioned-document-store';
 import { setupSQLiteRepoForNode } from '../../../../../../../modules/infrastructure/version-control/automerge-repo/node';
 import { mapErrorTo } from '../../../../../../../utils/errors';
 import { RepositoryError as VersionedProjectRepositoryError } from '../../../../errors';
@@ -11,15 +12,19 @@ import {
   type SetupSingleDocumentProjectStoreDeps,
   type SingleDocumentProjectStoreManager,
 } from '../../../../ports';
+import { createAdapter as createAutomergeProjectStoreAdapter } from '../../automerge-project-store';
+
+export type ElectronDeps = {
+  rendererProcessId: string;
+  browserWindow: BrowserWindow;
+};
 
 const setupAutomergeRepo = ({
   filePath,
   rendererProcessId,
   browserWindow,
-}: {
+}: ElectronDeps & {
   filePath: string;
-  rendererProcessId: string;
-  browserWindow: BrowserWindow;
 }): Effect.Effect<Repo, VersionedProjectRepositoryError, never> =>
   Effect.tryPromise({
     try: () =>
@@ -33,11 +38,6 @@ const setupAutomergeRepo = ({
       'Error in setting up Automerge repo'
     ),
   });
-
-export type ElectronDeps = {
-  rendererProcessId: string;
-  browserWindow: BrowserWindow;
-};
 
 export const createAdapter = ({
   rendererProcessId,
@@ -56,7 +56,12 @@ export const createAdapter = ({
               browserWindow,
             })
           ),
-          Effect.as(undefined)
+          Effect.map((automergeRepo) => ({
+            versionedProjectStore:
+              createAutomergeProjectStoreAdapter(automergeRepo),
+            versionedDocumentStore:
+              createAutomergeDocumentStoreAdapter(automergeRepo),
+          }))
         );
 
   return {

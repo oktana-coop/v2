@@ -6,7 +6,9 @@ import {
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
+import { type VersionedDocumentStore } from '../../../rich-text';
 import { RepositoryError as ProjectStoreRepositoryError } from '../../errors';
+import { type SingleDocumentProjectStore } from './single-document-project-store';
 
 export type SetupSingleDocumentProjectStoreDeps = {
   createNewFile: Filesystem['createNewFile'];
@@ -16,13 +18,18 @@ export type SetupSingleDocumentProjectStoreArgs = {
   suggestedName: string;
 };
 
+export type SetupSingleDocumentProjectStoreResult = {
+  versionedProjectStore: SingleDocumentProjectStore;
+  versionedDocumentStore: VersionedDocumentStore;
+};
+
 export type SingleDocumentProjectStoreManager = {
   setupSingleDocumentProjectStore: (
     deps: SetupSingleDocumentProjectStoreDeps
   ) => (
     args: SetupSingleDocumentProjectStoreArgs
   ) => Effect.Effect<
-    void,
+    SetupSingleDocumentProjectStoreResult,
     | FilesystemAbortError
     | FilesystemNotFoundError
     | FilesystemRepositoryError
