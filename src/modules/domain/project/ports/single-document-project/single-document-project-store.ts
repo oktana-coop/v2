@@ -1,8 +1,11 @@
 import * as Effect from 'effect/Effect';
 
-import { type VersionControlId } from '../../../../modules/infrastructure/version-control';
-import { NotFoundError, RepositoryError } from '../errors';
-import { type ArtifactMetaData, type SingleDocumentProject } from '../models';
+import { type VersionControlId } from '../../../../infrastructure/version-control';
+import { NotFoundError, RepositoryError } from '../../errors';
+import {
+  type ArtifactMetaData,
+  type SingleDocumentProject,
+} from '../../models';
 
 export type CreateSingleDocumentProjectArgs = {
   title: string;
@@ -13,6 +16,6 @@ export type CreateSingleDocumentProjectArgs = {
 
 export type SingleDocumentProjectStore = {
   createSingleDocumentProject: (
-    document: ArtifactMetaData
+    path: ArtifactMetaData
   ) => Effect.Effect<VersionControlId, RepositoryError, never>;
 };

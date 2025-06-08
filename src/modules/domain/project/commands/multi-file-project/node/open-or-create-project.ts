@@ -15,7 +15,7 @@ import {
   isValidVersionControlId,
   type VersionControlId,
 } from '../../../../../../modules/infrastructure/version-control';
-import { setupForNode as setupAutomergeRepoForNode } from '../../../../../../modules/infrastructure/version-control/automerge-repo/node';
+import { setupFilesystemRepoForNode } from '../../../../../../modules/infrastructure/version-control/automerge-repo/node';
 import { fromNullable } from '../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../utils/errors';
 import {
@@ -48,7 +48,7 @@ const setupAutomergeRepo = ({
 }): Effect.Effect<Repo, VersionedProjectRepositoryError, never> =>
   Effect.tryPromise({
     try: () =>
-      setupAutomergeRepoForNode({
+      setupFilesystemRepoForNode({
         processId: 'main',
         directoryPath: join(directoryPath, '.v2', 'automerge'),
         renderers: new Map([[rendererProcessId, browserWindow]]),
