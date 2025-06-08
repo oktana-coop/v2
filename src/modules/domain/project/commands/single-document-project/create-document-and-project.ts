@@ -11,8 +11,6 @@ import { type SingleDocumentProjectStore } from '../../ports';
 
 export type CreateDocumentAndProjectArgs = {
   title: string;
-  name: string;
-  path: string;
   content: string | null;
 };
 
@@ -24,7 +22,6 @@ export type CreateDocumentAndProjectDeps = {
 export type CreateSingleDocumentProjectResult = {
   documentId: VersionControlId;
   projectId: VersionControlId;
-  filePath: string;
 };
 
 export const createDocumentAndProject =
@@ -34,8 +31,6 @@ export const createDocumentAndProject =
   }: CreateDocumentAndProjectDeps) =>
   ({
     title,
-    name,
-    path,
     content,
   }: CreateDocumentAndProjectArgs): Effect.Effect<
     CreateSingleDocumentProjectResult,
@@ -51,8 +46,7 @@ export const createDocumentAndProject =
         pipe(
           createSingleDocumentProject({
             versionControlId: documentId,
-            name,
-            path,
+            name: title,
           }),
           Effect.map((projectId) => ({ documentId, projectId }))
         )

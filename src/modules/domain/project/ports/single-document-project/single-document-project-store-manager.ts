@@ -21,6 +21,7 @@ export type SetupSingleDocumentProjectStoreArgs = {
 export type SetupSingleDocumentProjectStoreResult = {
   versionedProjectStore: SingleDocumentProjectStore;
   versionedDocumentStore: VersionedDocumentStore;
+  filePath?: string;
 };
 
 export type SingleDocumentProjectStoreManager = {

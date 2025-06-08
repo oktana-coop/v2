@@ -1,27 +1,16 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-import {
-  createAutomergeProjectStoreAdapter,
-  type VersionedProjectStore,
-} from '../../../modules/domain/project';
-import {
-  createAutomergeDocumentStoreAdapter,
-  type VersionedDocumentStore,
-} from '../../../modules/domain/rich-text';
+import { type SingleDocumentProjectStoreManager } from '../../../modules/domain/project';
 import { ElectronContext } from '../../../modules/infrastructure/cross-platform/electron-context';
 import { type Filesystem } from '../../../modules/infrastructure/filesystem';
 import { createAdapter as createBrowserFilesystemAPIAdapter } from '../../../modules/infrastructure/filesystem/adapters/browser-api';
 import { createAdapter as createElectronRendererFilesystemAPIAdapter } from '../../../modules/infrastructure/filesystem/adapters/electron-renderer-api';
-import { type AutomergeRepo } from '../../../modules/infrastructure/version-control';
-import {
-  setupForElectron as setupBrowserRepoForElectron,
-  setupForWeb as setupBrowserRepoForWeb,
-} from '../../../modules/infrastructure/version-control/automerge-repo/browser';
+import { createAdapter as createBrowserProjectStoreManagerAdapter } from '../../domain/project/adapters/single-document-project/automerge-project-store-manager/browser';
+import { createAdapter as createElectronRendererProjectStoreManagerAdapter } from '../../domain/project/adapters/single-document-project/automerge-project-store-manager/electron-renderer';
 
 type InfrastructureAdaptersContextType = {
   filesystem: Filesystem;
-  versionedProjectStore: VersionedProjectStore;
-  versionedDocumentStore: VersionedDocumentStore;
+  projectStoreManager: SingleDocumentProjectStoreManager;
 };
 
 export const InfrastructureAdaptersContext =
@@ -29,9 +18,7 @@ export const InfrastructureAdaptersContext =
     // @ts-expect-error will get overriden below
     filesystem: null,
     // @ts-expect-error will get overriden below
-    versionedProjectStore: null,
-    // @ts-expect-error will get overriden below
-    versionedDocumentStore: null,
+    projectStoreManager: null,
   });
 
 export const InfrastructureAdaptersProvider = ({
@@ -45,38 +32,28 @@ export const InfrastructureAdaptersProvider = ({
     ? createElectronRendererFilesystemAPIAdapter()
     : createBrowserFilesystemAPIAdapter();
 
-  const [versionedProjectStore, setVersionedProjectStore] =
-    useState<VersionedProjectStore | null>(null);
-  const [versionedDocumentStore, setVersionedDocumentStore] =
-    useState<VersionedDocumentStore | null>(null);
+  const [projectStoreManager, setProjectStoreManager] =
+    useState<SingleDocumentProjectStoreManager | null>(null);
 
   useEffect(() => {
-    const setupVersionControlRepo = async () => {
-      const setupStores = (automergeRepo: AutomergeRepo) => {
-        const versionedProjectStore =
-          createAutomergeProjectStoreAdapter(automergeRepo);
-        const versionedDocumentStore =
-          createAutomergeDocumentStoreAdapter(automergeRepo);
-
-        setVersionedProjectStore(versionedProjectStore);
-        setVersionedDocumentStore(versionedDocumentStore);
-      };
-
+    const setupProjectStoreManager = async () => {
       if (isElectron) {
         if (processId) {
-          const automergeRepo = await setupBrowserRepoForElectron(processId);
-          setupStores(automergeRepo);
+          const storeManager = createElectronRendererProjectStoreManagerAdapter(
+            { processId }
+          );
+          setProjectStoreManager(storeManager);
         }
       } else {
-        const automergeRepo = await setupBrowserRepoForWeb();
-        setupStores(automergeRepo);
+        const storeManager = createBrowserProjectStoreManagerAdapter();
+        setProjectStoreManager(storeManager);
       }
     };
 
-    setupVersionControlRepo();
+    setupProjectStoreManager();
   }, [processId, isElectron]);
 
-  if (!versionedDocumentStore || !versionedProjectStore) {
+  if (!projectStoreManager) {
     // TODO: Replace with skeleton or spinner
     return <div>Loading...</div>;
   }
@@ -85,8 +62,7 @@ export const InfrastructureAdaptersProvider = ({
     <InfrastructureAdaptersContext.Provider
       value={{
         filesystem,
-        versionedProjectStore,
-        versionedDocumentStore,
+        projectStoreManager,
       }}
     >
       {children}

@@ -1,6 +1,5 @@
 import { type Repo } from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
-import { pipe } from 'effect/Function';
 import { BrowserWindow } from 'electron';
 
 import { createAdapter as createAutomergeDocumentStoreAdapter } from '../../../../../../../modules/domain/rich-text/adapters/automerge-versioned-document-store';
@@ -47,20 +46,21 @@ export const createAdapter = ({
 
       ({ createNewFile }: SetupSingleDocumentProjectStoreDeps) =>
       ({ suggestedName }: SetupSingleDocumentProjectStoreArgs) =>
-        pipe(
-          createNewFile(suggestedName),
-          Effect.flatMap((newFile) =>
+        Effect.Do.pipe(
+          Effect.bind('newFile', () => createNewFile(suggestedName)),
+          Effect.bind('automergeRepo', ({ newFile }) =>
             setupAutomergeRepo({
               filePath: newFile.path!,
               rendererProcessId,
               browserWindow,
             })
           ),
-          Effect.map((automergeRepo) => ({
+          Effect.map(({ automergeRepo, newFile }) => ({
             versionedProjectStore:
               createAutomergeProjectStoreAdapter(automergeRepo),
             versionedDocumentStore:
               createAutomergeDocumentStoreAdapter(automergeRepo),
+            filePath: newFile.path!,
           }))
         );
 

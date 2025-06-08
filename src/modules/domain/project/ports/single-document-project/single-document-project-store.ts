@@ -1,21 +1,11 @@
 import * as Effect from 'effect/Effect';
 
 import { type VersionControlId } from '../../../../infrastructure/version-control';
-import { NotFoundError, RepositoryError } from '../../errors';
-import {
-  type ArtifactMetaData,
-  type SingleDocumentProject,
-} from '../../models';
-
-export type CreateSingleDocumentProjectArgs = {
-  title: string;
-  name: string;
-  path: string;
-  content: string | null;
-};
+import { RepositoryError } from '../../errors';
+import { type BaseArtifactMetaData } from '../../models';
 
 export type SingleDocumentProjectStore = {
   createSingleDocumentProject: (
-    path: ArtifactMetaData
+    documentMetaData: BaseArtifactMetaData
   ) => Effect.Effect<VersionControlId, RepositoryError, never>;
 };
