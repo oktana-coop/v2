@@ -1,5 +1,3 @@
-import path from 'node:path';
-
 import {
   type Chunk,
   type StorageAdapterInterface,
@@ -7,10 +5,12 @@ import {
 } from '@automerge/automerge-repo';
 import Database from 'better-sqlite3';
 
-// TODO: Consider versioning to facilitate schema migrations.
 const DEFAULT_TABLE_NAME = 'automerge-repo-data';
+const KEY_PATH_DELIMITER = '/';
+const CURRENT_ADAPTER_SCHEMA_VERSION = 1;
 
-const getKey = (key: StorageKey): string => path.join(...key);
+const getKey = (key: StorageKey): string => key.join(KEY_PATH_DELIMITER);
+const splitKey = (key: string): StorageKey => key.split(KEY_PATH_DELIMITER);
 
 export class SQLite3StorageAdapter implements StorageAdapterInterface {
   private db: Database.Database;
@@ -23,14 +23,68 @@ export class SQLite3StorageAdapter implements StorageAdapterInterface {
   constructor(path: string, tableName = DEFAULT_TABLE_NAME) {
     this.db = new Database(path);
     this.db.pragma('journal_mode = WAL');
+
+    // Restrict table name to a safe pattern since it's user-provided.
+    if (!/^[a-zA-Z0-9_-]+$/.test(tableName)) {
+      throw new Error(`Invalid table name: ${tableName}`);
+    }
+
     this.tableName = tableName;
 
+    this.initializeSchema();
+  }
+
+  private initializeSchema(): void {
+    // Create adapter_schema_version table to track version
     this.db.exec(`
-      CREATE TABLE IF NOT EXISTS ${tableName} (
+      CREATE TABLE IF NOT EXISTS adapter_schema_version (
+        version INTEGER NOT NULL PRIMARY KEY,
+        created_at INTEGER DEFAULT (unixepoch())
+      ) STRICT
+    `);
+
+    const currentVersion = this.getCurrentSchemaVersion();
+
+    if (currentVersion === 0) {
+      // First time setup - create initial schema
+      this.createInitialSchema();
+      this.setSchemaVersion(CURRENT_ADAPTER_SCHEMA_VERSION);
+    } else if (currentVersion !== CURRENT_ADAPTER_SCHEMA_VERSION) {
+      // Schema version mismatch - let the user handle it
+      throw new Error(
+        `Database schema version mismatch. Found version ${currentVersion}, expected ${CURRENT_ADAPTER_SCHEMA_VERSION}. ` +
+          'Manual migration may be required.'
+      );
+    }
+  }
+
+  private createInitialSchema(): void {
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS ${this.tableName} (
         key TEXT PRIMARY KEY,
         value BLOB
       ) STRICT
     `);
+  }
+
+  private getCurrentSchemaVersion(): number {
+    try {
+      const stmt = this.db.prepare(
+        'SELECT version FROM adapter_schema_version ORDER BY version DESC LIMIT 1'
+      );
+      const result = stmt.get() as { version: number } | undefined;
+      return result?.version ?? 0;
+    } catch {
+      // adapter_schema_version table doesn't exist yet
+      return 0;
+    }
+  }
+
+  private setSchemaVersion(version: number): void {
+    const stmt = this.db.prepare(
+      'INSERT OR REPLACE INTO adapter_schema_version (version) VALUES (?)'
+    );
+    stmt.run(version);
   }
 
   async load(keyArray: StorageKey): Promise<Uint8Array | undefined> {
@@ -53,7 +107,7 @@ export class SQLite3StorageAdapter implements StorageAdapterInterface {
 
     const stmt = this.db.prepare(`
       INSERT INTO ${this.tableName} (key, value) VALUES (?, ?)
-      ON CONFLICT(key) DO UPDATE SET val=excluded.value
+      ON CONFLICT(key) DO UPDATE SET value=excluded.value
     `);
     stmt.run(key, binary);
   }
@@ -69,7 +123,7 @@ export class SQLite3StorageAdapter implements StorageAdapterInterface {
     const prefix = getKey(keyPrefix);
 
     const stmt = this.db.prepare(
-      `SELECT key, data FROM ${this.tableName} WHERE key GLOB ?`
+      `SELECT key, value FROM ${this.tableName} WHERE key GLOB ?`
     );
     const rows = stmt.all(`${prefix}*`) as Array<{
       key: string;
@@ -77,7 +131,7 @@ export class SQLite3StorageAdapter implements StorageAdapterInterface {
     }>;
 
     return rows.map((row) => ({
-      key: row.key.split(path.sep),
+      key: splitKey(row.key),
       data: new Uint8Array(row.value),
     }));
   }
@@ -89,5 +143,19 @@ export class SQLite3StorageAdapter implements StorageAdapterInterface {
       `DELETE FROM ${this.tableName} WHERE key GLOB ?`
     );
     stmt.run(`${prefix}*`);
+  }
+
+  /**
+   * Close the database connection
+   */
+  close(): void {
+    this.db.close();
+  }
+
+  /**
+   * Get current schema version
+   */
+  getSchemaVersion(): number {
+    return this.getCurrentSchemaVersion();
   }
 }
