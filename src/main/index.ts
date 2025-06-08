@@ -17,7 +17,7 @@ import os from 'os';
 import {
   openOrCreateProject,
   openProjectById,
-} from '../modules/domain/project/commands/multi-file-project/node';
+} from '../modules/domain/project/commands/multi-document-project/node';
 import { runPromiseSerializingErrorsForIPC } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/infrastructure/filesystem/adapters/electron-node-api';
 import { type VersionControlId } from '../modules/infrastructure/version-control';

@@ -1,2 +1,2 @@
-export * from './multi-file-project';
-export * from './single-file-project';
+export * from './multi-document-project';
+export * from './single-document-project';
