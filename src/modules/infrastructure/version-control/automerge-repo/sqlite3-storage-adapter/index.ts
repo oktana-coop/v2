@@ -16,15 +16,25 @@ export class SQLite3StorageAdapter implements StorageAdapterInterface {
   private db: Database.Database;
   private tableName: string;
 
+  // Constructor overload signatures
+  constructor(path: string, tableName?: string);
+  constructor(db: Database.Database, tableName?: string);
+
   /**
-   * @param path - The path to the file to store data in.
+   * @param pathOrDb - The path to the file to store data in, or an already created database.
    * @param tableName - The table name in the SQLite database. Defaults to "automerge-repo-data".
    */
-  constructor(path: string, tableName = DEFAULT_TABLE_NAME) {
-    this.db = new Database(path);
-    this.db.pragma('journal_mode = WAL');
+  constructor(
+    pathOrDb: string | Database.Database,
+    tableName = DEFAULT_TABLE_NAME
+  ) {
+    if (typeof pathOrDb === 'string') {
+      this.db = new Database(pathOrDb);
+      this.db.pragma('journal_mode = WAL');
+    } else {
+      this.db = pathOrDb;
+    }
 
-    // Restrict table name to a safe pattern since it's user-provided.
     if (!/^[a-zA-Z0-9_-]+$/.test(tableName)) {
       throw new Error(`Invalid table name: ${tableName}`);
     }

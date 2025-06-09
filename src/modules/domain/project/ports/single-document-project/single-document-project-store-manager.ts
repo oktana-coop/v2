@@ -6,8 +6,12 @@ import {
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
-import { type VersionedDocumentStore } from '../../../rich-text';
-import { RepositoryError as ProjectStoreRepositoryError } from '../../errors';
+import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
+import {
+  RepositoryError as VersionedDocumentRepositoryError,
+  type VersionedDocumentStore,
+} from '../../../rich-text';
+import { RepositoryError as VersionedProjectRepositoryError } from '../../errors';
 import { type SingleDocumentProjectStore } from './single-document-project-store';
 
 export type SetupSingleDocumentProjectStoreDeps = {
@@ -21,6 +25,8 @@ export type SetupSingleDocumentProjectStoreArgs = {
 export type SetupSingleDocumentProjectStoreResult = {
   versionedProjectStore: SingleDocumentProjectStore;
   versionedDocumentStore: VersionedDocumentStore;
+  projectId: VersionControlId;
+  documentId: VersionControlId;
   filePath?: string;
 };
 
@@ -43,7 +49,8 @@ export type SingleDocumentProjectStoreManager = {
     | FilesystemAbortError
     | FilesystemNotFoundError
     | FilesystemRepositoryError
-    | ProjectStoreRepositoryError,
+    | VersionedProjectRepositoryError
+    | VersionedDocumentRepositoryError,
     never
   >;
   openSingleDocumentProjectStore: (
@@ -52,7 +59,7 @@ export type SingleDocumentProjectStoreManager = {
     OpenSingleDocumentProjectStoreResult,
     | FilesystemNotFoundError
     | FilesystemRepositoryError
-    | ProjectStoreRepositoryError,
+    | VersionedProjectRepositoryError,
     never
   >;
 };

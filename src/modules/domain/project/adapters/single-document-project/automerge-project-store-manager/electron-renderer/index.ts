@@ -30,6 +30,7 @@ export const createAdapter = ({
   const setupSingleDocumentProjectStore: SingleDocumentProjectStoreManager['setupSingleDocumentProjectStore'] =
     () => () =>
       pipe(
+        // TODO: Clear IndexedDB first.
         setupAutomergeRepo({ processId }),
         Effect.map((automergeRepo) => ({
           versionedProjectStore:
@@ -37,6 +38,7 @@ export const createAdapter = ({
           versionedDocumentStore:
             createAutomergeDocumentStoreAdapter(automergeRepo),
         }))
+        // TODO: Send the IPC messages and get the project, document ID and file path from the main process.
       );
 
   const openSingleDocumentProjectStore: SingleDocumentProjectStoreManager['openSingleDocumentProjectStore'] =

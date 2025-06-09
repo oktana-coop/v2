@@ -3,7 +3,8 @@ import { createContext, useContext, useEffect, useState } from 'react';
 
 import {
   createDocumentAndProject,
-  SingleDocumentProjectStore,
+  type OpenSingleDocumentProjectStoreArgs,
+  type SingleDocumentProjectStore,
 } from '../../domain/project';
 import { VersionedDocumentHandle } from '../../domain/rich-text';
 import { ElectronContext } from '../../infrastructure/cross-platform/electron-context';
@@ -71,6 +72,17 @@ export const SingleDocumentProjectProvider = ({
     setVersionedDocumentStore(documentStore);
 
     return { documentId, path: filePath! };
+  };
+
+  const openDocument = async ({
+    filePath,
+  }: OpenSingleDocumentProjectStoreArgs) => {
+    const {
+      versionedDocumentStore: documentStore,
+      versionedProjectStore: projectStore,
+    } = await Effect.runPromise(
+      projectStoreManager.openSingleDocumentProjectStore({ filePath })
+    );
   };
 
   return (
