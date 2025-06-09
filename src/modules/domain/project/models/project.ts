@@ -27,3 +27,6 @@ export type SingleDocumentProject = {
   document: BaseArtifactMetaData;
   assets: Record<VersionControlId, BaseArtifactMetaData>;
 };
+
+export type SingleDocumentProjectHandle =
+  VersionedArtifactHandle<SingleDocumentProject>;
