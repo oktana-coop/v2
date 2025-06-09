@@ -169,10 +169,7 @@ const DocumentIndex = () => {
                           {
                             name: 'Commit changes',
                             shortcut: 'S',
-                            onActionSelection: () => {
-                              console.log('Commit changes action selected');
-                              onOpenCommitDialog();
-                            },
+                            onActionSelection: () => onOpenCommitDialog(),
                           },
                         ]
                       : []),
