@@ -39,7 +39,20 @@ export const createAdapter = ({
         }))
       );
 
+  const openSingleDocumentProjectStore: SingleDocumentProjectStoreManager['openSingleDocumentProjectStore'] =
+    () =>
+      pipe(
+        setupAutomergeRepo({ processId }),
+        Effect.map((automergeRepo) => ({
+          versionedProjectStore:
+            createAutomergeProjectStoreAdapter(automergeRepo),
+          versionedDocumentStore:
+            createAutomergeDocumentStoreAdapter(automergeRepo),
+        }))
+      );
+
   return {
     setupSingleDocumentProjectStore,
+    openSingleDocumentProjectStore,
   };
 };

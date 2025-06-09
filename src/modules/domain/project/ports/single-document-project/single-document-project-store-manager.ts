@@ -24,6 +24,15 @@ export type SetupSingleDocumentProjectStoreResult = {
   filePath?: string;
 };
 
+export type OpenSingleDocumentProjectStoreArgs = {
+  filePath: string;
+};
+
+export type OpenSingleDocumentProjectStoreResult = {
+  versionedProjectStore: SingleDocumentProjectStore;
+  versionedDocumentStore: VersionedDocumentStore;
+};
+
 export type SingleDocumentProjectStoreManager = {
   setupSingleDocumentProjectStore: (
     deps: SetupSingleDocumentProjectStoreDeps
@@ -32,6 +41,15 @@ export type SingleDocumentProjectStoreManager = {
   ) => Effect.Effect<
     SetupSingleDocumentProjectStoreResult,
     | FilesystemAbortError
+    | FilesystemNotFoundError
+    | FilesystemRepositoryError
+    | ProjectStoreRepositoryError,
+    never
+  >;
+  openSingleDocumentProjectStore: (
+    args: OpenSingleDocumentProjectStoreArgs
+  ) => Effect.Effect<
+    OpenSingleDocumentProjectStoreResult,
     | FilesystemNotFoundError
     | FilesystemRepositoryError
     | ProjectStoreRepositoryError,
