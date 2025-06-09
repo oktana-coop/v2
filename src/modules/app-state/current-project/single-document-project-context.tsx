@@ -12,12 +12,11 @@ import { VersionControlId } from '../../infrastructure/version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
 type BrowserStorageProjectData = {
-  directoryName: Directory['name'];
-  directoryPath: Directory['path'];
-  versionControlId: VersionControlId;
+  projectId: VersionControlId;
+  filePath: string;
 };
 
-const BROWSER_STORAGE_PROJECT_DATA_KEY = 'project';
+const BROWSER_STORAGE_PROJECT_DATA_KEY = 'single-document-project';
 
 export type SingleDocumentProjectContextType = {
   projectId: VersionControlId | null;
@@ -32,6 +31,7 @@ export const SingleDocumentProjectContext =
     projectId: null,
     // @ts-expect-error will get overriden below
     createNewDocument: () => null,
+    versionedProjectStore: null,
   });
 
 export const SingleDocumentProjectProvider = ({
@@ -39,10 +39,8 @@ export const SingleDocumentProjectProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { processId, isElectron } = useContext(ElectronContext);
-  const { filesystem, projectStoreManager } = useContext(
-    InfrastructureAdaptersContext
-  );
+  const { filesystem, projectStoreManager, setVersionedDocumentStore } =
+    useContext(InfrastructureAdaptersContext);
   const [projectId, setProjectId] = useState<VersionControlId | null>(null);
   const [versionedProjectStore, setVersionedProjectStore] =
     useState<SingleDocumentProjectStore | null>(null);
@@ -70,6 +68,7 @@ export const SingleDocumentProjectProvider = ({
 
     setProjectId(projId);
     setVersionedProjectStore(projectStore);
+    setVersionedDocumentStore(documentStore);
 
     return { documentId, path: filePath! };
   };
