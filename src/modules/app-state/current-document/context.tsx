@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
+import { projectTypes } from '../../../modules/domain/project';
 import {
   type GetDocumentHandleAtCommitArgs,
   type IsContentSameAtHeadsArgs,
@@ -38,6 +39,7 @@ import {
   type VersionedArtifactHandleChangePayload,
 } from '../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../personalization/functionality-config';
+import { CurrentProjectContext } from '../current-project/context';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
 export type SelectedFileInfo = {
@@ -112,6 +114,7 @@ export const CurrentDocumentProvider = ({
   );
   const { showDiffInHistoryView } = useContext(FunctionalityConfigContext);
   const navigate = useNavigate();
+  const { projectType } = useContext(CurrentProjectContext);
 
   useEffect(() => {
     const updateFileSelection = async () => {
@@ -119,6 +122,7 @@ export const CurrentDocumentProvider = ({
         clearFileSelection();
         setVersionedDocumentHandle(null);
       } else {
+        console.log(documentId);
         if (!versionedDocumentStore) {
           throw new Error('Versioned document store not ready yet.');
         }
@@ -126,20 +130,19 @@ export const CurrentDocumentProvider = ({
         const pathParam = searchParams.get('path');
         const path = pathParam ? decodeURIComponent(pathParam) : null;
 
+        console.log(path);
+
         if (!path) {
           throw new Error(
             'Cannot propagate changes to file since path is not provided'
           );
         }
 
-        const { documentHandle, registeredListener } =
-          await registerLiveUpdates({
-            findDocumentById: versionedDocumentStore.findDocumentById,
-            writeFile: filesystem.writeFile,
-          })({
-            documentId,
-            filePath: path,
-          });
+        const documentHandle = await Effect.runPromise(
+          versionedDocumentStore.findDocumentById(documentId)
+        );
+
+        console.log(documentHandle);
 
         setVersionedDocumentHandle(documentHandle);
         setSelectedFileInfo({
@@ -147,9 +150,19 @@ export const CurrentDocumentProvider = ({
           path,
         });
 
-        return () => {
-          unregisterLiveUpdates({ documentHandle, registeredListener });
-        };
+        if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
+          const { registeredListener } = await registerLiveUpdates({
+            findDocumentById: versionedDocumentStore.findDocumentById,
+            writeFile: filesystem.writeFile,
+          })({
+            documentHandle,
+            filePath: path,
+          });
+
+          return () => {
+            unregisterLiveUpdates({ documentHandle, registeredListener });
+          };
+        }
       }
     };
 

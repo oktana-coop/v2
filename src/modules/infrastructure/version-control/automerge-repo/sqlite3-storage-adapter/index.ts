@@ -5,7 +5,7 @@ import {
 } from '@automerge/automerge-repo';
 import Database from 'better-sqlite3';
 
-const DEFAULT_TABLE_NAME = 'automerge-repo-data';
+const DEFAULT_TABLE_NAME = 'automerge';
 const KEY_PATH_DELIMITER = '/';
 const CURRENT_ADAPTER_SCHEMA_VERSION = 1;
 
