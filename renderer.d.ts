@@ -1,13 +1,17 @@
 import type { IpcRenderer } from 'electron';
 
 import { type PromisifyEffects } from './src/modules/cross-platform/electron-ipc-effect';
-import type { Filesystem as FilesystemAPI } from './src/modules/filesystem';
+import {
+  type OpenSingleDocumentProjectStoreResult,
+  type SetupSingleDocumentProjectStoreResult,
+} from './src/modules/domain/project';
+import type { Filesystem as FilesystemAPI } from './src/modules/infrastructure/filesystem';
 import type {
   FromMainMessage,
   FromRendererMessage,
   VersionControlId,
-} from './src/modules/version-control';
-import type { Wasm as WasmAPI } from './src/modules/wasm';
+} from './src/modules/infrastructure/version-control';
+import { type Wasm as WasmAPI } from './src/modules/infrastructure/wasm';
 
 export type ElectronAPI = {
   onReceiveProcessId: (callback: (processId: string) => void) => IpcRenderer;
@@ -32,6 +36,22 @@ export type VersionControlAPI = {
   }) => Promise<void>;
 };
 
+export type SingleDocumentProjectAPI = {
+  createSingleDocumentProject: (args: {
+    suggestedName: string;
+  }) => Promise<
+    Pick<
+      SetupSingleDocumentProjectStoreResult,
+      'projectId' | 'documentId' | 'filePath'
+    >
+  >;
+  openSingleDocumentProject: (args: {
+    filePath: string;
+  }) => Promise<
+    Pick<OpenSingleDocumentProjectStoreResult, 'projectId' | 'documentId'>
+  >;
+};
+
 type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
 
 declare global {
@@ -40,6 +60,7 @@ declare global {
     automergeRepoNetworkAdapter: AutomergeRepoNetworkAdapter;
     filesystemAPI: FilesystemPromiseAPI;
     versionControlAPI: VersionControlAPI;
+    singleDocumentProjectAPI: SingleDocumentProjectAPI;
     wasmAPI: WasmAPI;
   }
 }

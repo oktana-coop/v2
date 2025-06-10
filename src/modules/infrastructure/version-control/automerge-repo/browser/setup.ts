@@ -6,12 +6,25 @@ import { IndexedDBStorageAdapter } from '@automerge/automerge-repo-storage-index
 
 import { ElectronIPCRendererProcessAdapter } from '../electron-ipc-network-adapter/renderer';
 
-export const setupForElectron = async (processId: string) => {
+export type IndexedDBArgs = {
+  dbName: string;
+  store: string;
+};
+
+export type SetupForElectronArgs = IndexedDBArgs & {
+  processId: string;
+};
+
+export const setupForElectron = async ({
+  processId,
+  dbName,
+  store,
+}: SetupForElectronArgs) => {
   await Automerge.initializeWasm(wasmUrl);
 
   return new Repo({
     network: [new ElectronIPCRendererProcessAdapter()],
-    storage: new IndexedDBStorageAdapter(),
+    storage: new IndexedDBStorageAdapter(dbName, store),
     peerId: processId as PeerId,
   });
 };

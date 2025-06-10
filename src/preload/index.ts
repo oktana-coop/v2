@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
+import { type SingleDocumentProjectAPI } from '../../renderer';
 import { type PromisifyEffects } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
 import { type Filesystem as FilesystemAPI } from '../modules/infrastructure/filesystem';
 import type {
@@ -60,6 +61,15 @@ contextBridge.exposeInMainWorld('versionControlAPI', {
     directoryPath: string;
   }) => ipcRenderer.invoke('open-project', { projectId, directoryPath }),
 });
+
+contextBridge.exposeInMainWorld('singleDocumentProjectAPI', {
+  createSingleDocumentProject: ({ suggestedName }: { suggestedName: string }) =>
+    ipcRenderer.invoke('create-single-document-project', { suggestedName }),
+  openSingleDocumentProject: ({ filePath }: { filePath: string }) =>
+    ipcRenderer.invoke('open-single-document-project', {
+      filePath,
+    }),
+} as SingleDocumentProjectAPI);
 
 contextBridge.exposeInMainWorld('wasmAPI', {
   runWasiCLI: (args: RunWasiCLIArgs) =>

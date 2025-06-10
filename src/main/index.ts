@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { exec } from 'child_process';
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 import {
   app,
   BrowserWindow,
@@ -15,9 +16,10 @@ import {
 import os from 'os';
 
 import {
+  createAutomergeProjectStoreManagerAdapter,
   openOrCreateProject,
   openProjectById,
-} from '../modules/domain/project/commands/multi-document-project/node';
+} from '../modules/domain/project/node';
 import { runPromiseSerializingErrorsForIPC } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/infrastructure/filesystem/adapters/electron-node-api';
 import { type VersionControlId } from '../modules/infrastructure/version-control';
@@ -106,6 +108,11 @@ async function createWindow() {
   }
 
   const rendererProcessId = String(win.webContents.id);
+
+  const projectStoreManager = createAutomergeProjectStoreManagerAdapter({
+    rendererProcessId,
+    browserWindow: win,
+  });
 
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('renderer-process-id', rendererProcessId);
@@ -203,6 +210,38 @@ async function createWindow() {
         })
       );
     }
+  );
+
+  ipcMain.handle(
+    'create-single-document-project',
+    async (_, { suggestedName }: { suggestedName: string }) =>
+      Effect.runPromise(
+        pipe(
+          projectStoreManager.setupSingleDocumentProjectStore({
+            createNewFile: filesystemAPI.createNewFile,
+          })({ suggestedName }),
+          Effect.map(({ projectId, documentId, filePath }) => ({
+            projectId,
+            documentId,
+            filePath,
+          }))
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'open-single-document-project',
+    async (_, { filePath }: { filePath: string }) =>
+      Effect.runPromise(
+        pipe(
+          projectStoreManager.openSingleDocumentProjectStore({ filePath }),
+          Effect.map(({ projectId, documentId, filePath }) => ({
+            projectId,
+            documentId,
+            filePath,
+          }))
+        )
+      )
   );
 
   ipcMain.on('open-external-link', (_, url: string) => {

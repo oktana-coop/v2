@@ -40,6 +40,9 @@ export type OpenSingleDocumentProjectStoreArgs = {
 export type OpenSingleDocumentProjectStoreResult = {
   versionedProjectStore: SingleDocumentProjectStore;
   versionedDocumentStore: VersionedDocumentStore;
+  projectId: VersionControlId;
+  documentId: VersionControlId;
+  filePath?: string;
 };
 
 export type SingleDocumentProjectStoreManager = {
