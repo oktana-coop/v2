@@ -13,53 +13,7 @@ export type ElectronDeps = {
   processId: string;
 };
 
-const DB_VERSION = 1;
 const STORE_NAME = 'documents';
-
-export const openIndexedDB: (
-  dbName?: string
-) => Effect.Effect<IDBDatabase, VersionedProjectRepositoryError, never> = (
-  dbName = 'automerge'
-) =>
-  Effect.tryPromise({
-    try: () => {
-      const request = window.indexedDB.open(dbName, DB_VERSION);
-
-      return new Promise((resolve, reject) => {
-        request.onerror = (err) => {
-          return reject(err);
-        };
-
-        // In this case the database already exists and we get the reference to it.
-        request.onsuccess = () => {
-          resolve(request.result);
-        };
-
-        // Handle initial DB creation and migrations here.
-        // Then, return the reference to the DB.
-        request.onupgradeneeded = () => {
-          const db = request.result;
-          const objectStore = db.createObjectStore(STORE_NAME);
-
-          objectStore.transaction.oncomplete = () => {
-            return resolve(db);
-          };
-
-          objectStore.transaction.onerror = (err) => {
-            return reject(err);
-          };
-
-          objectStore.transaction.onabort = () => {
-            return reject(new Error('Object store transaction aborted'));
-          };
-        };
-      });
-    },
-    catch: mapErrorTo(
-      VersionedProjectRepositoryError,
-      'Error in opening IndexedDB'
-    ),
-  });
 
 const setupAutomergeRepo = ({
   processId,
