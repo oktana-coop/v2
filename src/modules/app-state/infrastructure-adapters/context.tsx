@@ -6,8 +6,10 @@ import { ElectronContext } from '../../../modules/infrastructure/cross-platform/
 import { type Filesystem } from '../../../modules/infrastructure/filesystem';
 import { createAdapter as createBrowserFilesystemAPIAdapter } from '../../../modules/infrastructure/filesystem/adapters/browser-api';
 import { createAdapter as createElectronRendererFilesystemAPIAdapter } from '../../../modules/infrastructure/filesystem/adapters/electron-renderer-api';
-import { createAdapter as createBrowserProjectStoreManagerAdapter } from '../../domain/project/adapters/single-document-project/automerge-project-store-manager/browser';
-import { createAdapter as createElectronRendererProjectStoreManagerAdapter } from '../../domain/project/adapters/single-document-project/automerge-project-store-manager/electron-renderer';
+import {
+  createBrowserProjectStoreManagerAdapter,
+  createElectronRendererProjectStoreManagerAdapter,
+} from '../../domain/project/browser';
 
 type InfrastructureAdaptersContextType = {
   filesystem: Filesystem;

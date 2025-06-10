@@ -16,7 +16,7 @@ import {
 import os from 'os';
 
 import {
-  createAutomergeProjectStoreManagerAdapter,
+  createNodeProjectStoreManagerAdapter,
   openOrCreateProject,
   openProjectById,
 } from '../modules/domain/project/node';
@@ -109,7 +109,7 @@ async function createWindow() {
 
   const rendererProcessId = String(win.webContents.id);
 
-  const projectStoreManager = createAutomergeProjectStoreManagerAdapter({
+  const projectStoreManager = createNodeProjectStoreManagerAdapter({
     rendererProcessId,
     browserWindow: win,
   });
