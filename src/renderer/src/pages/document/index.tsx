@@ -16,6 +16,7 @@ import {
 import { Layout } from '../../components/layout/Layout';
 import { SidebarLayout } from '../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../components/layout/StackedResizablePanelsLayout';
+import { useOpenDocument } from '../../hooks/single-document-project';
 import { DocumentCommandPalette } from './command-palette';
 import { CommitDialog } from './commit/CommitDialog';
 import { CreateDocumentModal } from './create-document/CreateDocumentModal';
@@ -53,6 +54,7 @@ const DocumentIndex = () => {
     onCommit,
   } = useContext(CurrentDocumentContext);
   const { changeId } = useParams();
+  const openDocument = useOpenDocument();
 
   useEffect(() => {
     document.title = 'v2 | Editor';
@@ -77,7 +79,7 @@ const DocumentIndex = () => {
     setCreateDocumentModalOpen(false);
   };
 
-  const handleOpenDocument = () => {};
+  const handleOpenDocument = () => openDocument();
 
   return (
     <Layout>

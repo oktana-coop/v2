@@ -2,13 +2,9 @@ import * as Effect from 'effect/Effect';
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import {
-  createDocumentAndProject,
   type OpenSingleDocumentProjectStoreArgs,
   type SingleDocumentProjectStore,
 } from '../../domain/project';
-import { VersionedDocumentHandle } from '../../domain/rich-text';
-import { ElectronContext } from '../../infrastructure/cross-platform/electron-context';
-import { type Directory, type File } from '../../infrastructure/filesystem';
 import { VersionControlId } from '../../infrastructure/version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
@@ -25,6 +21,7 @@ export type SingleDocumentProjectContextType = {
   createNewDocument: (
     suggestedName: string
   ) => Promise<{ documentId: VersionControlId; path: string }>;
+  openDocument: () => Promise<{ documentId: VersionControlId; path: string }>;
 };
 
 export const SingleDocumentProjectContext =
@@ -32,6 +29,8 @@ export const SingleDocumentProjectContext =
     projectId: null,
     // @ts-expect-error will get overriden below
     createNewDocument: () => null,
+    // @ts-expect-error will get overriden below
+    openDocument: () => null,
     versionedProjectStore: null,
   });
 
@@ -50,21 +49,13 @@ export const SingleDocumentProjectProvider = ({
     const {
       versionedDocumentStore: documentStore,
       versionedProjectStore: projectStore,
+      projectId: projId,
+      documentId,
       filePath,
     } = await Effect.runPromise(
       projectStoreManager.setupSingleDocumentProjectStore({
         createNewFile: filesystem.createNewFile,
       })({ suggestedName })
-    );
-
-    const { documentId, projectId: projId } = await Effect.runPromise(
-      createDocumentAndProject({
-        createDocument: documentStore.createDocument,
-        createSingleDocumentProject: projectStore.createSingleDocumentProject,
-      })({
-        title: suggestedName,
-        content: null,
-      })
     );
 
     setProjectId(projId);
@@ -74,15 +65,24 @@ export const SingleDocumentProjectProvider = ({
     return { documentId, path: filePath! };
   };
 
-  const openDocument = async ({
-    filePath,
-  }: OpenSingleDocumentProjectStoreArgs) => {
+  const handleOpenDocument = async () => {
     const {
       versionedDocumentStore: documentStore,
       versionedProjectStore: projectStore,
+      projectId: projId,
+      documentId,
+      filePath,
     } = await Effect.runPromise(
-      projectStoreManager.openSingleDocumentProjectStore({ filePath })
+      projectStoreManager.openSingleDocumentProjectStore({
+        openFile: filesystem.openFile,
+      })()
     );
+
+    setProjectId(projId);
+    setVersionedProjectStore(projectStore);
+    setVersionedDocumentStore(documentStore);
+
+    return { documentId, path: filePath! };
   };
 
   return (
@@ -91,6 +91,7 @@ export const SingleDocumentProjectProvider = ({
         projectId,
         versionedProjectStore,
         createNewDocument: handleCreateNewDocument,
+        openDocument: handleOpenDocument,
       }}
     >
       {children}

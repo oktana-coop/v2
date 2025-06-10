@@ -11,6 +11,7 @@ import { mapErrorTo } from '../../../../../../../utils/errors';
 import { createDocumentAndProject } from '../../../../commands/single-document-project';
 import { RepositoryError as VersionedProjectRepositoryError } from '../../../../errors';
 import {
+  type OpenSingleDocumentProjectStoreDeps,
   type SetupSingleDocumentProjectStoreArgs,
   type SetupSingleDocumentProjectStoreDeps,
   type SingleDocumentProjectStoreManager,
@@ -160,43 +161,47 @@ export const createAdapter = ({
         );
 
   const openSingleDocumentProjectStore: SingleDocumentProjectStoreManager['openSingleDocumentProjectStore'] =
-    ({ filePath }) =>
-      Effect.Do.pipe(
-        Effect.bind('db', () => setupSQLiteDatabase(filePath)),
-        Effect.bind('projectId', ({ db }) =>
-          readProjectMetadataFromSQLite({ db })
-        ),
-        Effect.bind('automergeRepo', ({ db }) =>
-          setupAutomergeRepo({
-            rendererProcessId,
-            browserWindow,
-            db,
-          })
-        ),
-        Effect.bind('versionedProjectStore', ({ automergeRepo }) =>
-          Effect.succeed(createAutomergeProjectStoreAdapter(automergeRepo))
-        ),
-        Effect.bind('versionedDocumentStore', ({ automergeRepo }) =>
-          Effect.succeed(createAutomergeDocumentStoreAdapter(automergeRepo))
-        ),
-        Effect.bind('documentId', ({ versionedProjectStore, projectId }) =>
-          versionedProjectStore.findDocumentInProject(projectId)
-        ),
-        Effect.map(
-          ({
-            versionedProjectStore,
-            versionedDocumentStore,
-            projectId,
-            documentId,
-          }) => ({
-            versionedProjectStore,
-            versionedDocumentStore,
-            projectId,
-            documentId,
-            filePath,
-          })
-        )
-      );
+
+      ({ openFile }: OpenSingleDocumentProjectStoreDeps) =>
+      () =>
+        Effect.Do.pipe(
+          Effect.bind('file', () => openFile()),
+          Effect.bind('db', ({ file }) => setupSQLiteDatabase(file.path!)),
+          Effect.bind('projectId', ({ db }) =>
+            readProjectMetadataFromSQLite({ db })
+          ),
+          Effect.bind('automergeRepo', ({ db }) =>
+            setupAutomergeRepo({
+              rendererProcessId,
+              browserWindow,
+              db,
+            })
+          ),
+          Effect.bind('versionedProjectStore', ({ automergeRepo }) =>
+            Effect.succeed(createAutomergeProjectStoreAdapter(automergeRepo))
+          ),
+          Effect.bind('versionedDocumentStore', ({ automergeRepo }) =>
+            Effect.succeed(createAutomergeDocumentStoreAdapter(automergeRepo))
+          ),
+          Effect.bind('documentId', ({ versionedProjectStore, projectId }) =>
+            versionedProjectStore.findDocumentInProject(projectId)
+          ),
+          Effect.map(
+            ({
+              file,
+              versionedProjectStore,
+              versionedDocumentStore,
+              projectId,
+              documentId,
+            }) => ({
+              versionedProjectStore,
+              versionedDocumentStore,
+              projectId,
+              documentId,
+              filePath: file.path!,
+            })
+          )
+        );
 
   return {
     setupSingleDocumentProjectStore,

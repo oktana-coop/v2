@@ -65,10 +65,8 @@ contextBridge.exposeInMainWorld('versionControlAPI', {
 contextBridge.exposeInMainWorld('singleDocumentProjectAPI', {
   createSingleDocumentProject: ({ suggestedName }: { suggestedName: string }) =>
     ipcRenderer.invoke('create-single-document-project', { suggestedName }),
-  openSingleDocumentProject: ({ filePath }: { filePath: string }) =>
-    ipcRenderer.invoke('open-single-document-project', {
-      filePath,
-    }),
+  openSingleDocumentProject: () =>
+    ipcRenderer.invoke('open-single-document-project'),
 } as SingleDocumentProjectAPI);
 
 contextBridge.exposeInMainWorld('wasmAPI', {

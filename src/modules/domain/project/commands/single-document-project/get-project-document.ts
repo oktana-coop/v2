@@ -1,13 +1,13 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
+import { type VersionControlId } from '../../../../infrastructure/version-control';
 import {
   NotFoundError as VersionedDocumentNotFoundError,
   RepositoryError as VersionedDocumentRepositoryError,
   type VersionedDocumentHandle,
   type VersionedDocumentStore,
-} from '../../../../../modules/domain/rich-text';
-import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
+} from '../../../rich-text';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
@@ -23,7 +23,7 @@ export type FindDocumentInProjectDeps = {
   findDocumentInProjectStore: SingleDocumentProjectStore['findDocumentInProject'];
 };
 
-export const findDocumentInProject =
+export const getProjectDocument =
   ({
     findDocumentInProjectStore,
     findDocumentById,

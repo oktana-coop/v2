@@ -33,8 +33,8 @@ export type SetupSingleDocumentProjectStoreResult = {
   filePath?: string;
 };
 
-export type OpenSingleDocumentProjectStoreArgs = {
-  filePath: string;
+export type OpenSingleDocumentProjectStoreDeps = {
+  openFile: Filesystem['openFile'];
 };
 
 export type OpenSingleDocumentProjectStoreResult = {
@@ -60,10 +60,13 @@ export type SingleDocumentProjectStoreManager = {
     never
   >;
   openSingleDocumentProjectStore: (
-    args: OpenSingleDocumentProjectStoreArgs
-  ) => Effect.Effect<
+    deps: OpenSingleDocumentProjectStoreDeps
+  ) => () => Effect.Effect<
     OpenSingleDocumentProjectStoreResult,
-    VersionedProjectRepositoryError | VersionedProjectNotFoundError,
+    | FilesystemAbortError
+    | FilesystemRepositoryError
+    | VersionedProjectRepositoryError
+    | VersionedProjectNotFoundError,
     never
   >;
 };

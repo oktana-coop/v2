@@ -229,19 +229,19 @@ async function createWindow() {
       )
   );
 
-  ipcMain.handle(
-    'open-single-document-project',
-    async (_, { filePath }: { filePath: string }) =>
-      Effect.runPromise(
-        pipe(
-          projectStoreManager.openSingleDocumentProjectStore({ filePath }),
-          Effect.map(({ projectId, documentId, filePath }) => ({
-            projectId,
-            documentId,
-            filePath,
-          }))
-        )
+  ipcMain.handle('open-single-document-project', async () =>
+    Effect.runPromise(
+      pipe(
+        projectStoreManager.openSingleDocumentProjectStore({
+          openFile: filesystemAPI.openFile,
+        })(),
+        Effect.map(({ projectId, documentId, filePath }) => ({
+          projectId,
+          documentId,
+          filePath,
+        }))
       )
+    )
   );
 
   ipcMain.on('open-external-link', (_, url: string) => {

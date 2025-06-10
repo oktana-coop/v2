@@ -74,13 +74,11 @@ export const createAdapter = ({
         );
 
   const openSingleDocumentProjectStore: SingleDocumentProjectStoreManager['openSingleDocumentProjectStore'] =
-    ({ filePath }) =>
+    () => () =>
       pipe(
         Effect.tryPromise({
           try: () =>
-            window.singleDocumentProjectAPI.openSingleDocumentProject({
-              filePath,
-            }),
+            window.singleDocumentProjectAPI.openSingleDocumentProject(),
           catch: mapErrorTo(
             VersionedProjectRepositoryError,
             'Error in setting up Automerge repo'

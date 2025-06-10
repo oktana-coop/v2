@@ -45,9 +45,7 @@ export type SingleDocumentProjectAPI = {
       'projectId' | 'documentId' | 'filePath'
     >
   >;
-  openSingleDocumentProject: (args: {
-    filePath: string;
-  }) => Promise<
+  openSingleDocumentProject: () => Promise<
     Pick<OpenSingleDocumentProjectStoreResult, 'projectId' | 'documentId'>
   >;
 };
