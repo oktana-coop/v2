@@ -3,16 +3,16 @@ import { type DocHandle, type Repo } from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
-import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
-import { fromNullable } from '../../../../../utils/effect';
-import { mapErrorTo } from '../../../../../utils/errors';
-import { NotFoundError, RepositoryError } from '../../errors';
+import { type VersionControlId } from '../../../../../../modules/infrastructure/version-control';
+import { fromNullable } from '../../../../../../utils/effect';
+import { mapErrorTo } from '../../../../../../utils/errors';
+import { NotFoundError, RepositoryError } from '../../../errors';
 import {
   type BaseArtifactMetaData,
   type SingleDocumentProject,
   type SingleDocumentProjectHandle,
-} from '../../models';
-import { type SingleDocumentProjectStore } from '../../ports';
+} from '../../../models';
+import { type SingleDocumentProjectStore } from '../../../ports';
 
 export const createAdapter = (
   automergeRepo: Repo
