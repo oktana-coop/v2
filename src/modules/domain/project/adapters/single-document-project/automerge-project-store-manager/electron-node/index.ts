@@ -163,21 +163,39 @@ export const createAdapter = ({
     ({ filePath }) =>
       Effect.Do.pipe(
         Effect.bind('db', () => setupSQLiteDatabase(filePath)),
-        Effect.bind('projectId', readProjectMetadataFromSQLite({ db })),
-        Effect.bind(
-          'automergeRepo',
+        Effect.bind('projectId', ({ db }) =>
+          readProjectMetadataFromSQLite({ db })
+        ),
+        Effect.bind('automergeRepo', ({ db }) =>
           setupAutomergeRepo({
             rendererProcessId,
             browserWindow,
             db,
           })
         ),
-        Effect.map(({ automergeRepo }) => ({
-          versionedProjectStore:
-            createAutomergeProjectStoreAdapter(automergeRepo),
-          versionedDocumentStore:
-            createAutomergeDocumentStoreAdapter(automergeRepo),
-        }))
+        Effect.bind('versionedProjectStore', ({ automergeRepo }) =>
+          Effect.succeed(createAutomergeProjectStoreAdapter(automergeRepo))
+        ),
+        Effect.bind('versionedDocumentStore', ({ automergeRepo }) =>
+          Effect.succeed(createAutomergeDocumentStoreAdapter(automergeRepo))
+        ),
+        Effect.bind('documentId', ({ versionedProjectStore, projectId }) =>
+          versionedProjectStore.findDocumentInProject(projectId)
+        ),
+        Effect.map(
+          ({
+            versionedProjectStore,
+            versionedDocumentStore,
+            projectId,
+            documentId,
+          }) => ({
+            versionedProjectStore,
+            versionedDocumentStore,
+            projectId,
+            documentId,
+            filePath,
+          })
+        )
       );
 
   return {

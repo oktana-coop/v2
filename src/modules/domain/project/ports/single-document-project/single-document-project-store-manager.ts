@@ -11,7 +11,10 @@ import {
   RepositoryError as VersionedDocumentRepositoryError,
   type VersionedDocumentStore,
 } from '../../../rich-text';
-import { RepositoryError as VersionedProjectRepositoryError } from '../../errors';
+import {
+  NotFoundError as VersionedProjectNotFoundError,
+  RepositoryError as VersionedProjectRepositoryError,
+} from '../../errors';
 import { type SingleDocumentProjectStore } from './single-document-project-store';
 
 export type SetupSingleDocumentProjectStoreDeps = {
@@ -57,9 +60,7 @@ export type SingleDocumentProjectStoreManager = {
     args: OpenSingleDocumentProjectStoreArgs
   ) => Effect.Effect<
     OpenSingleDocumentProjectStoreResult,
-    | FilesystemNotFoundError
-    | FilesystemRepositoryError
-    | VersionedProjectRepositoryError,
+    VersionedProjectRepositoryError | VersionedProjectNotFoundError,
     never
   >;
 };
