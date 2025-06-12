@@ -91,6 +91,11 @@ export const createAdapter = (automergeRepo: Repo): VersionedDocumentStore => {
 
           return mapErrorTo(RepositoryError, 'Automerge repo error')(err);
         },
+      }),
+      Effect.timeoutFail({
+        duration: '5 seconds',
+        onTimeout: () =>
+          new NotFoundError('Timeout in getting document handle'),
       })
     );
 
