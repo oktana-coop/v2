@@ -49,7 +49,6 @@ const setupAutomergeRepo = ({
   Effect.tryPromise({
     try: () =>
       setupFilesystemRepoForNode({
-        processId: 'main',
         directoryPath: join(directoryPath, '.v2', 'automerge'),
         renderers: new Map([[rendererProcessId, browserWindow]]),
       }),

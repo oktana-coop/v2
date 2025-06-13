@@ -119,6 +119,7 @@ export class SQLite3StorageAdapter implements StorageAdapterInterface {
       INSERT INTO ${this.tableName} (key, value) VALUES (?, ?)
       ON CONFLICT(key) DO UPDATE SET value=excluded.value
     `);
+
     stmt.run(key, binary);
   }
 
@@ -140,10 +141,12 @@ export class SQLite3StorageAdapter implements StorageAdapterInterface {
       value: Buffer;
     }>;
 
-    return rows.map((row) => ({
-      key: splitKey(row.key),
-      data: new Uint8Array(row.value),
-    }));
+    return rows.map((row) => {
+      return {
+        key: splitKey(row.key),
+        data: new Uint8Array(row.value),
+      };
+    });
   }
 
   async removeRange(keyPrefix: string[]): Promise<void> {

@@ -7,8 +7,7 @@ import {
 } from './src/modules/domain/project';
 import type { Filesystem as FilesystemAPI } from './src/modules/infrastructure/filesystem';
 import type {
-  FromMainMessage,
-  FromRendererMessage,
+  AutomergeRepoNetworkIPCMessage,
   VersionControlId,
 } from './src/modules/infrastructure/version-control';
 import { type Wasm as WasmAPI } from './src/modules/infrastructure/wasm';
@@ -20,9 +19,9 @@ export type ElectronAPI = {
 };
 
 export type AutomergeRepoNetworkAdapter = {
-  sendRendererProcessMessage: (message: FromRendererMessage) => void;
+  sendRendererProcessMessage: (message: AutomergeRepoNetworkIPCMessage) => void;
   onReceiveMainProcessMessage: (
-    callback: (message: FromMainMessage) => void
+    callback: (message: AutomergeRepoNetworkIPCMessage) => void
   ) => IpcRenderer;
 };
 

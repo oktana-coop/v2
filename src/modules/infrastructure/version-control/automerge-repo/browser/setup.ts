@@ -13,17 +13,19 @@ export type IndexedDBArgs = {
 
 export type SetupForElectronArgs = IndexedDBArgs & {
   processId: string;
+  initiateSync?: boolean;
 };
 
 export const setupForElectron = async ({
   processId,
   dbName,
   store,
+  initiateSync = false,
 }: SetupForElectronArgs) => {
   await Automerge.initializeWasm(wasmUrl);
 
   return new Repo({
-    network: [new ElectronIPCRendererProcessAdapter()],
+    network: [new ElectronIPCRendererProcessAdapter(initiateSync)],
     storage: new IndexedDBStorageAdapter(dbName, store),
     peerId: processId as PeerId,
   });

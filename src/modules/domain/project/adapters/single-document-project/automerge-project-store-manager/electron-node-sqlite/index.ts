@@ -33,9 +33,9 @@ const setupAutomergeRepo = ({
   Effect.tryPromise({
     try: () =>
       setupSQLiteRepoForNode({
-        processId: 'main',
         renderers: new Map([[rendererProcessId, browserWindow]]),
         db,
+        initiateSync: false,
       }),
     catch: mapErrorTo(
       VersionedProjectRepositoryError,

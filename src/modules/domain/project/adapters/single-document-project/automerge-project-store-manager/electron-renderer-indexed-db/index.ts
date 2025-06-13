@@ -24,7 +24,13 @@ const setupAutomergeRepo = ({
   store: string;
 }): Effect.Effect<Repo, VersionedProjectRepositoryError, never> =>
   Effect.tryPromise({
-    try: () => setupBrowserRepoForElectron({ processId, dbName, store }),
+    try: () =>
+      setupBrowserRepoForElectron({
+        processId,
+        dbName,
+        store,
+        initiateSync: true,
+      }),
     catch: mapErrorTo(
       VersionedProjectRepositoryError,
       'Error in setting up Automerge repo'

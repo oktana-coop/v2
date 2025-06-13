@@ -122,15 +122,12 @@ export const CurrentDocumentProvider = ({
         clearFileSelection();
         setVersionedDocumentHandle(null);
       } else {
-        console.log(documentId);
         if (!versionedDocumentStore) {
           throw new Error('Versioned document store not ready yet.');
         }
 
         const pathParam = searchParams.get('path');
         const path = pathParam ? decodeURIComponent(pathParam) : null;
-
-        console.log(path);
 
         if (!path) {
           throw new Error(
@@ -141,8 +138,6 @@ export const CurrentDocumentProvider = ({
         const documentHandle = await Effect.runPromise(
           versionedDocumentStore.findDocumentById(documentId)
         );
-
-        console.log(documentHandle);
 
         setVersionedDocumentHandle(documentHandle);
         setSelectedFileInfo({

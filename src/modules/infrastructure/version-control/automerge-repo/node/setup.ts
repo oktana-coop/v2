@@ -6,12 +6,14 @@ import { NodeFSStorageAdapter } from '@automerge/automerge-repo-storage-nodefs';
 import { type Database } from 'better-sqlite3';
 import { BrowserWindow } from 'electron';
 
+import { MAIN_PROCESS_PEER_ID } from '../electron-ipc-network-adapter/constants';
 import { ElectronIPCMainProcessAdapter } from '../electron-ipc-network-adapter/main';
 import { SQLite3StorageAdapter } from '../sqlite3-storage-adapter';
 
 type ElectronSetupProps = {
-  processId: string;
+  processId?: string;
   renderers: Map<string, BrowserWindow>;
+  initiateSync?: boolean;
 };
 
 export type FilesystemRepoSetupProps = ElectronSetupProps & {
@@ -19,14 +21,15 @@ export type FilesystemRepoSetupProps = ElectronSetupProps & {
 };
 
 export const setupFilesystemRepo = async ({
-  processId,
   renderers,
   directoryPath,
+  processId = MAIN_PROCESS_PEER_ID,
+  initiateSync = true,
 }: FilesystemRepoSetupProps) => {
   await Automerge.initializeWasm(wasmUrl);
 
   return new Repo({
-    network: [new ElectronIPCMainProcessAdapter(renderers)],
+    network: [new ElectronIPCMainProcessAdapter(renderers, initiateSync)],
     storage: new NodeFSStorageAdapter(directoryPath),
     peerId: processId as PeerId,
   });
@@ -37,14 +40,15 @@ export type SQLiteRepoSetupProps = ElectronSetupProps & {
 };
 
 export const setupSQLiteRepo = async ({
-  processId,
   renderers,
   db,
+  processId = MAIN_PROCESS_PEER_ID,
+  initiateSync = true,
 }: SQLiteRepoSetupProps) => {
   await Automerge.initializeWasm(wasmUrl);
 
   return new Repo({
-    network: [new ElectronIPCMainProcessAdapter(renderers)],
+    network: [new ElectronIPCMainProcessAdapter(renderers, initiateSync)],
     storage: new SQLite3StorageAdapter(db),
     peerId: processId as PeerId,
   });

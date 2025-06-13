@@ -4,8 +4,7 @@ import { type SingleDocumentProjectAPI } from '../../renderer';
 import { type PromisifyEffects } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
 import { type Filesystem as FilesystemAPI } from '../modules/infrastructure/filesystem';
 import type {
-  FromMainMessage,
-  FromRendererMessage,
+  IPCMessage as AutomergeRepoNetworkIPCMessage,
   VersionControlId,
 } from '../modules/infrastructure/version-control';
 import type {
@@ -25,9 +24,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
 });
 
 contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
-  sendRendererProcessMessage: (message: FromRendererMessage) =>
+  sendRendererProcessMessage: (message: AutomergeRepoNetworkIPCMessage) =>
     ipcRenderer.send('automerge-repo-renderer-process-message', message),
-  onReceiveMainProcessMessage: (callback: (message: FromMainMessage) => void) =>
+  onReceiveMainProcessMessage: (
+    callback: (message: AutomergeRepoNetworkIPCMessage) => void
+  ) =>
     ipcRenderer.on('automerge-repo-main-process-message', (_, message) =>
       callback(message)
     ),

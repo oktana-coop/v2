@@ -145,9 +145,7 @@ export const MultiDocumentProjectProvider = ({
   };
 
   const openDirectory = async () => {
-    console.log('In open directory');
     const directory = await Effect.runPromise(filesystem.openDirectory());
-    console.log(directory);
     setDirectory(directory);
     return directory;
   };
