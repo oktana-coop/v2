@@ -13,8 +13,10 @@ import { useKeyBindings } from '../../../hooks/useKeyBindings';
 
 export const DocumentCommandPalette = ({
   onCreateDocument,
+  onOpenDocument,
 }: {
   onCreateDocument: () => void;
+  onOpenDocument: () => void;
 }) => {
   const [isCommandPaletteOpen, setCommandPaletteOpen] =
     useState<boolean>(false);
@@ -34,6 +36,14 @@ export const DocumentCommandPalette = ({
     projectType === projectTypes.MULTI_DOCUMENT_PROJECT
       ? handleFileSelectionInMultiDocumentProject
       : handleFileSelectionInSingleDocumentProject;
+
+  const singleDocumentProjectActions = [
+    {
+      name: 'Open document',
+      shortcut: 'O',
+      onActionSelection: onOpenDocument,
+    },
+  ];
 
   return (
     <CommandPalette
@@ -76,6 +86,7 @@ export const DocumentCommandPalette = ({
           shortcut: 'D',
           onActionSelection: onCreateDocument,
         },
+        ...singleDocumentProjectActions,
       ]}
     />
   );

@@ -50,9 +50,10 @@ export const createAdapter = ({
               window.singleDocumentProjectAPI.createSingleDocumentProject({
                 suggestedName,
               }),
+            // TODO: Leverage typed Effect errors returned from the respective node adapter
             catch: mapErrorTo(
               VersionedProjectRepositoryError,
-              'Error in setting up Automerge repo'
+              'Error in creating single-document project'
             ),
           }),
           Effect.flatMap(({ filePath, projectId, documentId }) =>
@@ -85,12 +86,13 @@ export const createAdapter = ({
         Effect.tryPromise({
           try: () =>
             window.singleDocumentProjectAPI.openSingleDocumentProject(),
+          // TODO: Leverage typed Effect errors returned from the respective node adapter
           catch: mapErrorTo(
             VersionedProjectRepositoryError,
-            'Error in setting up Automerge repo'
+            'Error in opening single-document project'
           ),
         }),
-        Effect.flatMap(({ projectId, documentId }) =>
+        Effect.flatMap(({ projectId, documentId, filePath }) =>
           pipe(
             // TODO: Consider a cleaner approach of wiping IndexedDB (or the previous project's DB)
             // before setting up the new one. For now, assuming that we don't want to do this so that performance

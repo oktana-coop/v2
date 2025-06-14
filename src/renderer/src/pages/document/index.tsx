@@ -95,7 +95,10 @@ const DocumentIndex = () => {
           canCommit={canCommit}
           onCommit={(message: string) => onCommit(message)}
         />
-        <DocumentCommandPalette onCreateDocument={openCreateDocumentModal} />
+        <DocumentCommandPalette
+          onCreateDocument={openCreateDocumentModal}
+          onOpenDocument={handleOpenDocument}
+        />
         <ProseMirrorProvider>
           <SidebarLayout
             sidebar={
