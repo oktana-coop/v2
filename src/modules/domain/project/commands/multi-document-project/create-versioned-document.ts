@@ -14,6 +14,7 @@ import {
   RepositoryError as VersionedDocumentRepositoryError,
   type VersionedDocumentStore,
 } from '../../../rich-text';
+import { RICH_TEXT_FILE_EXTENSION } from '../../constants/file-extensions';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
@@ -62,8 +63,15 @@ export const createVersionedDocument =
     Effect.Do.pipe(
       Effect.bind('newFile', () =>
         directory
-          ? createNewFile(suggestedName, directory)
-          : createNewFile(suggestedName)
+          ? createNewFile({
+              suggestedName,
+              parentDirectory: directory,
+              extensions: [RICH_TEXT_FILE_EXTENSION],
+            })
+          : createNewFile({
+              suggestedName,
+              extensions: [RICH_TEXT_FILE_EXTENSION],
+            })
       ),
       Effect.bind('documentId', () =>
         createDocument({

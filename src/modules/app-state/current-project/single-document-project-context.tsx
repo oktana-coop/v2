@@ -1,10 +1,7 @@
 import * as Effect from 'effect/Effect';
 import { createContext, useContext, useEffect, useState } from 'react';
 
-import {
-  type OpenSingleDocumentProjectStoreArgs,
-  type SingleDocumentProjectStore,
-} from '../../domain/project';
+import { type SingleDocumentProjectStore } from '../../domain/project';
 import { VersionControlId } from '../../infrastructure/version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 

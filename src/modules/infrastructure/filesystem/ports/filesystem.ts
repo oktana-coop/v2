@@ -9,6 +9,21 @@ import {
 } from '../errors';
 import type { Directory, File } from '../types';
 
+export type OpenFileArgs = {
+  extensions: Array<string>;
+};
+
+export type CreateNewFileArgs = {
+  suggestedName: string;
+  extensions: Array<string>;
+  parentDirectory?: Directory;
+};
+
+export type ListDirectoryFilesArgs = {
+  path: string;
+  extensions: Array<string>;
+};
+
 export type Filesystem = {
   openDirectory: () => Effect.Effect<
     Directory,
@@ -19,7 +34,7 @@ export type Filesystem = {
     path: string
   ) => Effect.Effect<Directory, NotFoundError | RepositoryError, never>;
   listDirectoryFiles: (
-    path: string
+    args: ListDirectoryFilesArgs
   ) => Effect.Effect<
     Array<File>,
     DataIntegrityError | NotFoundError | RepositoryError,
@@ -40,10 +55,11 @@ export type Filesystem = {
     never
   >;
   createNewFile: (
-    suggestedName: string,
-    parentDirectory?: Directory
+    args: CreateNewFileArgs
   ) => Effect.Effect<File, AbortError | NotFoundError | RepositoryError, never>;
-  openFile: () => Effect.Effect<File, AbortError | RepositoryError, never>;
+  openFile: (
+    args: OpenFileArgs
+  ) => Effect.Effect<File, AbortError | RepositoryError, never>;
   writeFile: (
     path: string,
     content: string

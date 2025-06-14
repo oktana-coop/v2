@@ -1,2 +1,0 @@
-export const FILE_EXTENSION = 'v2';
-export const SINGLE_DOCUMENT_PROJECT_FILE_EXTENSION = 'v2';

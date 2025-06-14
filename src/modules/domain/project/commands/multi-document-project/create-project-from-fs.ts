@@ -13,6 +13,7 @@ import {
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
 import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
+import { RICH_TEXT_FILE_EXTENSION } from '../../constants/file-extensions';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
@@ -55,7 +56,10 @@ export const createProjectFromFilesystemContent =
     never
   > =>
     pipe(
-      listDirectoryFiles(directoryPath),
+      listDirectoryFiles({
+        path: directoryPath,
+        extensions: [RICH_TEXT_FILE_EXTENSION],
+      }),
       Effect.flatMap((directoryFiles) =>
         Effect.forEach(directoryFiles, (file) =>
           createVersionedDocumentFromFile({

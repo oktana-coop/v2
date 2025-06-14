@@ -21,6 +21,11 @@ import {
   openProjectById,
 } from '../modules/domain/project/node';
 import { runPromiseSerializingErrorsForIPC } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
+import {
+  type CreateNewFileArgs,
+  type ListDirectoryFilesArgs,
+  type OpenFileArgs,
+} from '../modules/infrastructure/filesystem';
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/infrastructure/filesystem/adapters/electron-node-api';
 import { type VersionControlId } from '../modules/infrastructure/version-control';
 import { type RunWasiCLIArgs } from '../modules/infrastructure/wasm';
@@ -133,21 +138,21 @@ async function createWindow() {
   ipcMain.handle('get-directory', async (_, path: string) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.getDirectory(path))
   );
-  ipcMain.handle('list-directory-files', async (_, path: string) =>
-    runPromiseSerializingErrorsForIPC(filesystemAPI.listDirectoryFiles(path))
+  ipcMain.handle(
+    'list-directory-files',
+    async (_, args: ListDirectoryFilesArgs) =>
+      runPromiseSerializingErrorsForIPC(filesystemAPI.listDirectoryFiles(args))
   );
   ipcMain.handle('request-permission-for-directory', (_, path: string) =>
     runPromiseSerializingErrorsForIPC(
       filesystemAPI.requestPermissionForDirectory(path)
     )
   );
-  ipcMain.handle('create-new-file', (_, suggestedName: string) =>
-    runPromiseSerializingErrorsForIPC(
-      filesystemAPI.createNewFile(suggestedName)
-    )
+  ipcMain.handle('create-new-file', (_, args: CreateNewFileArgs) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.createNewFile(args))
   );
-  ipcMain.handle('open-file', async () =>
-    runPromiseSerializingErrorsForIPC(filesystemAPI.openFile())
+  ipcMain.handle('open-file', async (_, args: OpenFileArgs) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.openFile(args))
   );
   ipcMain.handle(
     'write-file',

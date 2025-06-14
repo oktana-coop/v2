@@ -9,6 +9,7 @@ import { type VersionControlId } from '../../../../../../../modules/infrastructu
 import { setupSQLiteRepoForNode } from '../../../../../../../modules/infrastructure/version-control/automerge-repo/node';
 import { mapErrorTo } from '../../../../../../../utils/errors';
 import { createDocumentAndProject } from '../../../../commands/single-document-project';
+import { PROJECT_FILE_EXTENSION } from '../../../../constants/file-extensions';
 import { RepositoryError as VersionedProjectRepositoryError } from '../../../../errors';
 import {
   type OpenSingleDocumentProjectStoreDeps,
@@ -118,7 +119,12 @@ export const createAdapter = ({
       ({ createNewFile }: SetupSingleDocumentProjectStoreDeps) =>
       ({ suggestedName }: SetupSingleDocumentProjectStoreArgs) =>
         Effect.Do.pipe(
-          Effect.bind('newFile', () => createNewFile(suggestedName)),
+          Effect.bind('newFile', () =>
+            createNewFile({
+              suggestedName,
+              extensions: [PROJECT_FILE_EXTENSION],
+            })
+          ),
           Effect.bind('db', ({ newFile }) =>
             setupSQLiteDatabase(newFile.path!)
           ),
@@ -165,7 +171,9 @@ export const createAdapter = ({
       ({ openFile }: OpenSingleDocumentProjectStoreDeps) =>
       () =>
         Effect.Do.pipe(
-          Effect.bind('file', () => openFile()),
+          Effect.bind('file', () =>
+            openFile({ extensions: [PROJECT_FILE_EXTENSION] })
+          ),
           Effect.bind('db', ({ file }) => setupSQLiteDatabase(file.path!)),
           Effect.bind('projectId', ({ db }) =>
             readProjectMetadataFromSQLite({ db })

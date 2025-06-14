@@ -16,6 +16,7 @@ import {
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
 import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
+import { RICH_TEXT_FILE_EXTENSION } from '../../constants/file-extensions';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
@@ -155,7 +156,12 @@ export const updateProjectFromFilesystemContent =
   > =>
     Effect.Do.pipe(
       Effect.bind('projectDocuments', () => listProjectDocuments(projectId)),
-      Effect.bind('directoryFiles', () => listDirectoryFiles(directoryPath)),
+      Effect.bind('directoryFiles', () =>
+        listDirectoryFiles({
+          path: directoryPath,
+          extensions: [RICH_TEXT_FILE_EXTENSION],
+        })
+      ),
       Effect.tap(({ directoryFiles, projectDocuments }) =>
         Effect.forEach(
           directoryFiles,

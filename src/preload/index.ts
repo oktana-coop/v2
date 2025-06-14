@@ -2,7 +2,12 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 import { type SingleDocumentProjectAPI } from '../../renderer';
 import { type PromisifyEffects } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
-import { type Filesystem as FilesystemAPI } from '../modules/infrastructure/filesystem';
+import {
+  type CreateNewFileArgs,
+  type Filesystem as FilesystemAPI,
+  type ListDirectoryFilesArgs,
+  type OpenFileArgs,
+} from '../modules/infrastructure/filesystem';
 import type {
   IPCMessage as AutomergeRepoNetworkIPCMessage,
   VersionControlId,
@@ -39,13 +44,14 @@ type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
 contextBridge.exposeInMainWorld('filesystemAPI', {
   openDirectory: () => ipcRenderer.invoke('open-directory'),
   getDirectory: (path: string) => ipcRenderer.invoke('get-directory', path),
-  listDirectoryFiles: (path: string) =>
-    ipcRenderer.invoke('list-directory-files', path),
+  listDirectoryFiles: (args: ListDirectoryFilesArgs) =>
+    ipcRenderer.invoke('list-directory-files', { ...args }),
   requestPermissionForDirectory: (path: string) =>
     ipcRenderer.invoke('request-permission-for-directory', path),
-  createNewFile: (suggestedName: string) =>
-    ipcRenderer.invoke('create-new-file', suggestedName),
-  openFile: () => ipcRenderer.invoke('open-file'),
+  createNewFile: (args: CreateNewFileArgs) =>
+    ipcRenderer.invoke('create-new-file', { ...args }),
+  openFile: (args: OpenFileArgs) =>
+    ipcRenderer.invoke('open-file', { ...args }),
   writeFile: (path: string, content: string) =>
     ipcRenderer.invoke('write-file', { path, content }),
   readFile: (path: string) => ipcRenderer.invoke('read-file', path),

@@ -13,6 +13,7 @@ import {
   findDocumentInProject,
   updateProjectFromFilesystemContent,
 } from '../../domain/project';
+import { RICH_TEXT_FILE_EXTENSION } from '../../domain/project/constants/file-extensions';
 import { VersionedDocumentHandle } from '../../domain/rich-text';
 import { ElectronContext } from '../../infrastructure/cross-platform/electron-context';
 import { type Directory, type File } from '../../infrastructure/filesystem';
@@ -109,7 +110,10 @@ export const MultiDocumentProjectProvider = ({
     const getFiles = async (dir: Directory) => {
       if (dir.path) {
         const files = await Effect.runPromise(
-          filesystem.listDirectoryFiles(dir.path)
+          filesystem.listDirectoryFiles({
+            path: dir.path,
+            extensions: [RICH_TEXT_FILE_EXTENSION],
+          })
         );
         setDirectoryFiles(files);
       }
@@ -172,7 +176,10 @@ export const MultiDocumentProjectProvider = ({
       directory.path
     ) {
       const files = await Effect.runPromise(
-        filesystem.listDirectoryFiles(directory.path)
+        filesystem.listDirectoryFiles({
+          path: directory.path,
+          extensions: [RICH_TEXT_FILE_EXTENSION],
+        })
       );
       setDirectoryFiles(files);
     }

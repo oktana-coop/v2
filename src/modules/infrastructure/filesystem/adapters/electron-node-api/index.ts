@@ -6,7 +6,6 @@ import { pipe } from 'effect/Function';
 import { dialog } from 'electron';
 
 import { mapErrorTo } from '../../../../../utils/errors';
-import { SINGLE_DOCUMENT_PROJECT_FILE_EXTENSION } from '../../constants';
 import { filesystemItemTypes } from '../../constants/filesystem-item-types';
 import {
   AbortError,
@@ -36,11 +35,11 @@ const showDirPicker = (): Effect.Effect<
     )
   );
 
-const showFilePicker = (): Effect.Effect<
-  Electron.OpenDialogReturnValue,
-  AbortError,
-  never
-> =>
+const showFilePicker = ({
+  extensions,
+}: {
+  extensions: string[];
+}): Effect.Effect<Electron.OpenDialogReturnValue, AbortError, never> =>
   pipe(
     Effect.promise(() =>
       dialog.showOpenDialog({
@@ -48,7 +47,7 @@ const showFilePicker = (): Effect.Effect<
         filters: [
           {
             name: 'v2 Files',
-            extensions: [SINGLE_DOCUMENT_PROJECT_FILE_EXTENSION],
+            extensions,
           },
         ],
       })
@@ -60,14 +59,21 @@ const showFilePicker = (): Effect.Effect<
     )
   );
 
-const showSaveDialog = (
-  suggestedName: string
-): Effect.Effect<Electron.SaveDialogReturnValue, AbortError, never> =>
+const showSaveDialog = ({
+  suggestedName,
+  extensions,
+}: {
+  suggestedName: string;
+  extensions: Array<string>;
+}): Effect.Effect<Electron.SaveDialogReturnValue, AbortError, never> =>
   pipe(
     Effect.promise(() =>
       dialog.showSaveDialog({
         defaultPath: suggestedName,
-        filters: [{ name: 'v2 Files', extensions: ['v2'] }],
+        filters: extensions.map((ext) => ({
+          name: `${ext} Files`,
+          extensions: [ext],
+        })),
       })
     ),
     Effect.tap((result) =>
@@ -104,7 +110,7 @@ export const createAdapter = (): Filesystem => ({
       permissionState: 'granted', // TODO: Replace with constant
     });
   },
-  listDirectoryFiles: (directoryPath: string) =>
+  listDirectoryFiles: ({ path: directoryPath }) =>
     pipe(
       Effect.tryPromise({
         try: () =>
@@ -188,11 +194,11 @@ export const createAdapter = (): Filesystem => ({
         },
       })
     ),
-  createNewFile: (suggestedName) => {
+  createNewFile: ({ suggestedName, extensions }) => {
     const initialContent = '';
 
     return pipe(
-      showSaveDialog(suggestedName),
+      showSaveDialog({ suggestedName, extensions }),
       Effect.tap(({ filePath }) =>
         Effect.tryPromise({
           try: () => fs.writeFile(filePath, initialContent, 'utf8'),
@@ -207,9 +213,9 @@ export const createAdapter = (): Filesystem => ({
       }))
     );
   },
-  openFile: () =>
+  openFile: ({ extensions }) =>
     pipe(
-      showFilePicker(),
+      showFilePicker({ extensions }),
       Effect.map((result) => {
         const filePath = result.filePaths[0];
         const name = path.basename(filePath);

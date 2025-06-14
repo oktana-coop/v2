@@ -3,10 +3,6 @@ import { pipe } from 'effect/Function';
 
 import { fromNullable } from '../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../utils/errors';
-import {
-  FILE_EXTENSION,
-  SINGLE_DOCUMENT_PROJECT_FILE_EXTENSION,
-} from '../../../constants';
 import { filesystemItemTypes } from '../../../constants/filesystem-item-types';
 import {
   AbortError,
@@ -40,11 +36,11 @@ const showDirPicker = (): Effect.Effect<
     },
   });
 
-const showFilePicker = (): Effect.Effect<
-  FileSystemFileHandle,
-  AbortError | RepositoryError,
-  never
-> =>
+const showFilePicker = ({
+  extensions,
+}: {
+  extensions: Array<string>;
+}): Effect.Effect<FileSystemFileHandle, AbortError | RepositoryError, never> =>
   pipe(
     Effect.tryPromise({
       try: () =>
@@ -54,9 +50,9 @@ const showFilePicker = (): Effect.Effect<
             {
               description: 'v2',
               accept: {
-                'application/v2': [
-                  `.${SINGLE_DOCUMENT_PROJECT_FILE_EXTENSION}`,
-                ],
+                'application/octet-stream': extensions.map((ext) =>
+                  ext.startsWith('.') ? ext : `.${ext}`
+                ) as `.${string}`[],
               },
             },
           ],
@@ -79,9 +75,13 @@ const showFilePicker = (): Effect.Effect<
           )
     )
   );
-const showSaveFilePicker = (
-  suggestedName: string
-): Effect.Effect<FileSystemFileHandle, AbortError | RepositoryError, never> =>
+const showSaveFilePicker = ({
+  suggestedName,
+  extensions,
+}: {
+  suggestedName: string;
+  extensions: Array<string>;
+}): Effect.Effect<FileSystemFileHandle, AbortError | RepositoryError, never> =>
   Effect.tryPromise({
     try: () =>
       window.showSaveFilePicker({
@@ -91,7 +91,9 @@ const showSaveFilePicker = (
           {
             description: 'v2',
             accept: {
-              'application/v2': [`.${FILE_EXTENSION}`],
+              'application/octet-stream': extensions.map((ext) =>
+                ext.startsWith('.') ? ext : `.${ext}`
+              ) as `.${string}`[],
             },
           },
         ],
@@ -249,7 +251,7 @@ export const createAdapter = (): Filesystem => ({
         permissionState,
       }))
     ),
-  listDirectoryFiles: (path: string) =>
+  listDirectoryFiles: ({ path, extensions }) =>
     Effect.Do.pipe(
       Effect.bind('directoryHandle', () => getDirHandleFromStorage(path)),
       Effect.bind('entries', ({ directoryHandle }) =>
@@ -279,7 +281,8 @@ export const createAdapter = (): Filesystem => ({
         return Effect.forEach(
           entries.filter(
             (entry): entry is [string, FileSystemFileHandle] =>
-              isFileEntry(entry) && entry[1].name.endsWith(`.${FILE_EXTENSION}`)
+              isFileEntry(entry) &&
+              extensions.some((ext) => entry[1].name.endsWith(`.${ext}`))
           ),
           ([key, value]) =>
             pipe(
@@ -372,11 +375,13 @@ export const createAdapter = (): Filesystem => ({
         })
       )
     ),
-  createNewFile: (suggestedName, parentDirectory) => {
+  createNewFile: ({ suggestedName, extensions, parentDirectory }) => {
     const initialContent = '';
 
     return Effect.Do.pipe(
-      Effect.bind('fileHandle', () => showSaveFilePicker(suggestedName)),
+      Effect.bind('fileHandle', () =>
+        showSaveFilePicker({ suggestedName, extensions })
+      ),
       Effect.tap(({ fileHandle }) =>
         Effect.tryPromise({
           try: async () => {
@@ -415,9 +420,9 @@ export const createAdapter = (): Filesystem => ({
       }))
     );
   },
-  openFile: () =>
+  openFile: ({ extensions }) =>
     pipe(
-      showFilePicker(),
+      showFilePicker({ extensions }),
       Effect.tap((fileHandle) =>
         persistFileHandleInStorage({
           handle: fileHandle,
