@@ -2,7 +2,9 @@ import type { IpcRenderer } from 'electron';
 
 import { type PromisifyEffects } from './src/modules/cross-platform/electron-ipc-effect';
 import {
+  type OpenSingleDocumentProjectStoreArgs,
   type OpenSingleDocumentProjectStoreResult,
+  type SetupSingleDocumentProjectStoreArgs,
   type SetupSingleDocumentProjectStoreResult,
 } from './src/modules/domain/project';
 import type { Filesystem as FilesystemAPI } from './src/modules/infrastructure/filesystem';
@@ -36,15 +38,17 @@ export type VersionControlAPI = {
 };
 
 export type SingleDocumentProjectAPI = {
-  createSingleDocumentProject: (args: {
-    suggestedName: string;
-  }) => Promise<
+  createSingleDocumentProject: (
+    args: SetupSingleDocumentProjectStoreArgs
+  ) => Promise<
     Pick<
       SetupSingleDocumentProjectStoreResult,
       'projectId' | 'documentId' | 'file'
     >
   >;
-  openSingleDocumentProject: () => Promise<
+  openSingleDocumentProject: (
+    args: OpenSingleDocumentProjectStoreArgs
+  ) => Promise<
     Pick<
       OpenSingleDocumentProjectStoreResult,
       'projectId' | 'documentId' | 'file'

@@ -3,15 +3,15 @@ import { useNavigate } from 'react-router';
 
 import {
   CurrentDocumentContext,
-  CurrentProjectContext,
   MultiDocumentProjectContext,
 } from '../../../../modules/app-state';
 import { type File } from '../../../../modules/infrastructure/filesystem';
 
 export const useFileSelection = () => {
   const navigate = useNavigate();
-  const { projectId } = useContext(CurrentProjectContext);
-  const { findDocumentInProject } = useContext(MultiDocumentProjectContext);
+  const { projectId, findDocumentInProject } = useContext(
+    MultiDocumentProjectContext
+  );
   const { setSelectedFileInfo } = useContext(CurrentDocumentContext);
 
   return async (file: File) => {

@@ -38,6 +38,10 @@ export type OpenSingleDocumentProjectStoreDeps = {
   openFile: Filesystem['openFile'];
 };
 
+export type OpenSingleDocumentProjectStoreArgs = {
+  fromFile?: File;
+};
+
 export type OpenSingleDocumentProjectStoreResult = {
   versionedProjectStore: SingleDocumentProjectStore;
   versionedDocumentStore: VersionedDocumentStore;
@@ -62,7 +66,9 @@ export type SingleDocumentProjectStoreManager = {
   >;
   openSingleDocumentProjectStore: (
     deps: OpenSingleDocumentProjectStoreDeps
-  ) => () => Effect.Effect<
+  ) => (
+    args: OpenSingleDocumentProjectStoreArgs
+  ) => Effect.Effect<
     OpenSingleDocumentProjectStoreResult,
     | FilesystemAbortError
     | FilesystemRepositoryError

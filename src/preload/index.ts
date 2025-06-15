@@ -1,6 +1,10 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 import { type SingleDocumentProjectAPI } from '../../renderer';
+import {
+  type OpenSingleDocumentProjectStoreArgs,
+  type SetupSingleDocumentProjectStoreArgs,
+} from '../modules/domain/project';
 import { type PromisifyEffects } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
 import {
   type CreateNewFileArgs,
@@ -70,10 +74,10 @@ contextBridge.exposeInMainWorld('versionControlAPI', {
 });
 
 contextBridge.exposeInMainWorld('singleDocumentProjectAPI', {
-  createSingleDocumentProject: ({ suggestedName }: { suggestedName: string }) =>
-    ipcRenderer.invoke('create-single-document-project', { suggestedName }),
-  openSingleDocumentProject: () =>
-    ipcRenderer.invoke('open-single-document-project'),
+  createSingleDocumentProject: (args: SetupSingleDocumentProjectStoreArgs) =>
+    ipcRenderer.invoke('create-single-document-project', { ...args }),
+  openSingleDocumentProject: (args: OpenSingleDocumentProjectStoreArgs) =>
+    ipcRenderer.invoke('open-single-document-project', { ...args }),
 } as SingleDocumentProjectAPI);
 
 contextBridge.exposeInMainWorld('wasmAPI', {

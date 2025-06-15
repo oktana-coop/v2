@@ -12,6 +12,7 @@ import { createDocumentAndProject } from '../../../../commands/single-document-p
 import { PROJECT_FILE_EXTENSION } from '../../../../constants/file-extensions';
 import { RepositoryError as VersionedProjectRepositoryError } from '../../../../errors';
 import {
+  type OpenSingleDocumentProjectStoreArgs,
   type OpenSingleDocumentProjectStoreDeps,
   type SetupSingleDocumentProjectStoreArgs,
   type SetupSingleDocumentProjectStoreDeps,
@@ -169,10 +170,12 @@ export const createAdapter = ({
   const openSingleDocumentProjectStore: SingleDocumentProjectStoreManager['openSingleDocumentProjectStore'] =
 
       ({ openFile }: OpenSingleDocumentProjectStoreDeps) =>
-      () =>
+      ({ fromFile }: OpenSingleDocumentProjectStoreArgs) =>
         Effect.Do.pipe(
           Effect.bind('file', () =>
-            openFile({ extensions: [PROJECT_FILE_EXTENSION] })
+            fromFile
+              ? Effect.succeed(fromFile)
+              : openFile({ extensions: [PROJECT_FILE_EXTENSION] })
           ),
           Effect.bind('db', ({ file }) => setupSQLiteDatabase(file.path!)),
           Effect.bind('projectId', ({ db }) =>

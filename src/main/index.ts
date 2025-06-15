@@ -19,6 +19,8 @@ import {
   createNodeProjectStoreManagerAdapter,
   openOrCreateProject,
   openProjectById,
+  type OpenSingleDocumentProjectStoreArgs,
+  type SetupSingleDocumentProjectStoreArgs,
 } from '../modules/domain/project/node';
 import { runPromiseSerializingErrorsForIPC } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
 import {
@@ -219,7 +221,7 @@ async function createWindow() {
 
   ipcMain.handle(
     'create-single-document-project',
-    async (_, { suggestedName }: { suggestedName: string }) =>
+    async (_, { suggestedName }: SetupSingleDocumentProjectStoreArgs) =>
       Effect.runPromise(
         pipe(
           projectStoreManager.setupSingleDocumentProjectStore({
@@ -234,19 +236,21 @@ async function createWindow() {
       )
   );
 
-  ipcMain.handle('open-single-document-project', async () =>
-    Effect.runPromise(
-      pipe(
-        projectStoreManager.openSingleDocumentProjectStore({
-          openFile: filesystemAPI.openFile,
-        })(),
-        Effect.map(({ projectId, documentId, file }) => ({
-          projectId,
-          documentId,
-          file,
-        }))
+  ipcMain.handle(
+    'open-single-document-project',
+    async (_, { fromFile }: OpenSingleDocumentProjectStoreArgs) =>
+      Effect.runPromise(
+        pipe(
+          projectStoreManager.openSingleDocumentProjectStore({
+            openFile: filesystemAPI.openFile,
+          })({ fromFile }),
+          Effect.map(({ projectId, documentId, file }) => ({
+            projectId,
+            documentId,
+            file,
+          }))
+        )
       )
-    )
   );
 
   ipcMain.on('open-external-link', (_, url: string) => {
