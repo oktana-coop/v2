@@ -4,6 +4,10 @@ import { type ProjectType, projectTypes } from '../../domain/project';
 import { type File } from '../../infrastructure/filesystem';
 import { VersionControlId } from '../../infrastructure/version-control';
 import {
+  RecentProjectsContext,
+  RecentProjectsProvider,
+} from '../recent-projects/context';
+import {
   MultiDocumentProjectContext,
   MultiDocumentProjectProvider,
 } from './multi-document-project-context';
@@ -15,6 +19,7 @@ import {
 export type CurrentProjectContextType = {
   projectType: ProjectType;
   projectId: VersionControlId | null;
+  path: string | null;
   canCreateDocument: () => boolean;
   canShowFiles: () => boolean;
   files: Array<File>;
@@ -26,6 +31,7 @@ export type CurrentProjectContextType = {
 export const CurrentProjectContext = createContext<CurrentProjectContextType>({
   projectType: projectTypes.SINGLE_DOCUMENT_PROJECT,
   projectId: null,
+  path: null,
   canCreateDocument: () => false,
   canShowFiles: () => false,
   files: [],
@@ -41,7 +47,9 @@ const ProjectProviderSelector = ({
   children: React.ReactNode;
 }) =>
   projectType === projectTypes.SINGLE_DOCUMENT_PROJECT ? (
-    <SingleDocumentProjectProvider>{children}</SingleDocumentProjectProvider>
+    <SingleDocumentProjectProvider>
+      <RecentProjectsProvider>{children}</RecentProjectsProvider>
+    </SingleDocumentProjectProvider>
   ) : (
     <MultiDocumentProjectProvider>{children}</MultiDocumentProjectProvider>
   );
@@ -64,13 +72,16 @@ const ProjectInterfaceProvider = ({
     projectId: multiDocumentProjectId,
     canCreateDocument: canCreateDocumentInMultiFileProject,
     canShowFiles: canShowFilesInMultiFileProject,
+    directory: multiDocumentProjectDirectory,
     directoryFiles,
     createNewDocument: createNewDocumentInMultiFileProject,
   } = useContext(MultiDocumentProjectContext);
   const {
     projectId: singleDocumentProjectId,
+    projectFile: singleDocumentProjectFile,
     createNewDocument: createNewDocumentInSingleFileProject,
   } = useContext(SingleDocumentProjectContext);
+  const { recentProjects } = useContext(RecentProjectsContext);
 
   useEffect(() => {
     if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
@@ -83,14 +94,27 @@ const ProjectInterfaceProvider = ({
   useEffect(() => {
     if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
       setFiles(directoryFiles);
+    } else {
+      const recentProjectFiles = recentProjects
+        .filter(
+          (projectInfo) =>
+            projectInfo.projectType === projectTypes.SINGLE_DOCUMENT_PROJECT &&
+            projectInfo.projectFile !== null
+        )
+        .map((projectInfo) => projectInfo.projectFile) as File[];
+      setFiles(recentProjectFiles);
     }
-  }, [projectType, directoryFiles]);
+  }, [projectType, directoryFiles, recentProjects]);
 
   return (
     <CurrentProjectContext.Provider
       value={{
         projectType,
         projectId,
+        path:
+          projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+            ? (multiDocumentProjectDirectory?.path ?? null)
+            : (singleDocumentProjectFile?.path ?? null),
         canCreateDocument:
           projectType === projectTypes.MULTI_DOCUMENT_PROJECT
             ? canCreateDocumentInMultiFileProject
@@ -98,7 +122,7 @@ const ProjectInterfaceProvider = ({
         canShowFiles:
           projectType === projectTypes.MULTI_DOCUMENT_PROJECT
             ? canShowFilesInMultiFileProject
-            : () => false,
+            : () => recentProjects.length > 0,
         createNewDocument:
           projectType === projectTypes.MULTI_DOCUMENT_PROJECT
             ? createNewDocumentInMultiFileProject

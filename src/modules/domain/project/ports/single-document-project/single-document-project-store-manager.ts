@@ -2,6 +2,7 @@ import * as Effect from 'effect/Effect';
 
 import {
   AbortError as FilesystemAbortError,
+  type File,
   type Filesystem,
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
@@ -30,7 +31,7 @@ export type SetupSingleDocumentProjectStoreResult = {
   versionedDocumentStore: VersionedDocumentStore;
   projectId: VersionControlId;
   documentId: VersionControlId;
-  filePath?: string;
+  file: File | null;
 };
 
 export type OpenSingleDocumentProjectStoreDeps = {
@@ -42,7 +43,7 @@ export type OpenSingleDocumentProjectStoreResult = {
   versionedDocumentStore: VersionedDocumentStore;
   projectId: VersionControlId;
   documentId: VersionControlId;
-  filePath?: string;
+  file: File | null;
 };
 
 export type SingleDocumentProjectStoreManager = {

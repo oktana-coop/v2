@@ -56,7 +56,7 @@ export const createAdapter = ({
               'Error in creating single-document project'
             ),
           }),
-          Effect.flatMap(({ filePath, projectId, documentId }) =>
+          Effect.flatMap(({ file, projectId, documentId }) =>
             pipe(
               // TODO: Consider a cleaner approach of wiping IndexedDB (or the previous project's DB)
               // before setting up the new one. For now, assuming that we don't want to do this so that performance
@@ -74,7 +74,7 @@ export const createAdapter = ({
                   createAutomergeDocumentStoreAdapter(automergeRepo),
                 projectId,
                 documentId,
-                filePath,
+                file,
               }))
             )
           )
@@ -92,7 +92,7 @@ export const createAdapter = ({
             'Error in opening single-document project'
           ),
         }),
-        Effect.flatMap(({ projectId, documentId, filePath }) =>
+        Effect.flatMap(({ projectId, documentId, file }) =>
           pipe(
             // TODO: Consider a cleaner approach of wiping IndexedDB (or the previous project's DB)
             // before setting up the new one. For now, assuming that we don't want to do this so that performance
@@ -110,7 +110,7 @@ export const createAdapter = ({
                 createAutomergeDocumentStoreAdapter(automergeRepo),
               projectId,
               documentId,
-              filePath,
+              file,
             }))
           )
         )

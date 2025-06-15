@@ -41,13 +41,13 @@ export type SingleDocumentProjectAPI = {
   }) => Promise<
     Pick<
       SetupSingleDocumentProjectStoreResult,
-      'projectId' | 'documentId' | 'filePath'
+      'projectId' | 'documentId' | 'file'
     >
   >;
   openSingleDocumentProject: () => Promise<
     Pick<
       OpenSingleDocumentProjectStoreResult,
-      'projectId' | 'documentId' | 'filePath'
+      'projectId' | 'documentId' | 'file'
     >
   >;
 };

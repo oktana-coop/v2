@@ -155,7 +155,7 @@ export const createAdapter = ({
                 Effect.map(({ documentId, projectId }) => ({
                   versionedProjectStore,
                   versionedDocumentStore,
-                  filePath: newFile.path!,
+                  file: newFile,
                   projectId,
                   documentId,
                 })),
@@ -206,7 +206,7 @@ export const createAdapter = ({
               versionedDocumentStore,
               projectId,
               documentId,
-              filePath: file.path!,
+              file,
             })
           )
         );

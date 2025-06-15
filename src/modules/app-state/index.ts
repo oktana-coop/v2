@@ -28,3 +28,8 @@ export {
   InfrastructureAdaptersContext,
   InfrastructureAdaptersProvider,
 } from './infrastructure-adapters/context';
+
+export {
+  RecentProjectsContext,
+  RecentProjectsProvider,
+} from './recent-projects/context';

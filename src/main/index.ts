@@ -225,10 +225,10 @@ async function createWindow() {
           projectStoreManager.setupSingleDocumentProjectStore({
             createNewFile: filesystemAPI.createNewFile,
           })({ suggestedName }),
-          Effect.map(({ projectId, documentId, filePath }) => ({
+          Effect.map(({ projectId, documentId, file }) => ({
             projectId,
             documentId,
-            filePath,
+            file,
           }))
         )
       )
@@ -240,10 +240,10 @@ async function createWindow() {
         projectStoreManager.openSingleDocumentProjectStore({
           openFile: filesystemAPI.openFile,
         })(),
-        Effect.map(({ projectId, documentId, filePath }) => ({
+        Effect.map(({ projectId, documentId, file }) => ({
           projectId,
           documentId,
-          filePath,
+          file,
         }))
       )
     )
