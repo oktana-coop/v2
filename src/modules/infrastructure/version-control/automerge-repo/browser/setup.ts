@@ -31,11 +31,11 @@ export const setupForElectron = async ({
   });
 };
 
-export const setupForWeb = async () => {
+export const setupForWeb = async ({ dbName, store }: IndexedDBArgs) => {
   await Automerge.initializeWasm(wasmUrl);
 
   return new Repo({
     network: [],
-    storage: new IndexedDBStorageAdapter(),
+    storage: new IndexedDBStorageAdapter(dbName, store),
   });
 };

@@ -15,3 +15,7 @@ export class MissingIndexFileError extends Cause.YieldableError {
 export class DataIntegrityError extends Cause.YieldableError {
   readonly _tag = 'VersionedProjectDataIntegrityError';
 }
+
+export class ValidationError extends Cause.YieldableError {
+  readonly _tag = 'VersionedProjectValidationError';
+}

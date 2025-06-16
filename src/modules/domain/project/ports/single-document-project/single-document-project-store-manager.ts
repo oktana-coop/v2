@@ -15,6 +15,7 @@ import {
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
+  ValidationError as VersionedProjectValidationError,
 } from '../../errors';
 import { type SingleDocumentProjectStore } from './single-document-project-store';
 
@@ -40,6 +41,7 @@ export type OpenSingleDocumentProjectStoreDeps = {
 
 export type OpenSingleDocumentProjectStoreArgs = {
   fromFile?: File;
+  projectId?: VersionControlId;
 };
 
 export type OpenSingleDocumentProjectStoreResult = {
@@ -73,7 +75,8 @@ export type SingleDocumentProjectStoreManager = {
     | FilesystemAbortError
     | FilesystemRepositoryError
     | VersionedProjectRepositoryError
-    | VersionedProjectNotFoundError,
+    | VersionedProjectNotFoundError
+    | VersionedProjectValidationError,
     never
   >;
 };
