@@ -9,6 +9,7 @@ import { BrowserWindow } from 'electron';
 import {
   NotFoundError as VersionedDocumentNotFoundError,
   RepositoryError as VersionedDocumentRepositoryError,
+  VersionedDocumentStore,
 } from '../../../../../../../modules/domain/rich-text';
 import { createAdapter as createAutomergeDocumentStoreAdapter } from '../../../../../../../modules/domain/rich-text/adapters/automerge-versioned-document-store';
 import {
@@ -35,7 +36,10 @@ import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
 } from '../../../../errors';
-import { type MultiDocumentProjectStoreManager } from '../../../../ports';
+import {
+  MultiDocumentProjectStore,
+  type MultiDocumentProjectStoreManager,
+} from '../../../../ports';
 import { createAdapter as createAutomergeProjectStoreAdapter } from '../../automerge-project-store';
 
 export type ElectronDeps = {
@@ -64,6 +68,11 @@ const setupAutomergeRepo = ({
     ),
   });
 
+type OpenProjectResult = {
+  versionedProjectStore: MultiDocumentProjectStore;
+  versionedDocumentStore: VersionedDocumentStore;
+};
+
 const openProject = ({
   projectId,
   directoryPath,
@@ -79,7 +88,7 @@ const openProject = ({
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readFile: Filesystem['readFile'];
 }): Effect.Effect<
-  void,
+  OpenProjectResult,
   | FilesystemAccessControlError
   | FilesystemDataIntegrityError
   | FilesystemNotFoundError
@@ -101,7 +110,7 @@ const openProject = ({
       versionedDocumentStore:
         createAutomergeDocumentStoreAdapter(automergeRepo),
     })),
-    Effect.flatMap(({ versionedProjectStore, versionedDocumentStore }) =>
+    Effect.tap(({ versionedProjectStore, versionedDocumentStore }) =>
       updateProjectFromFilesystemContent({
         findDocumentById: versionedDocumentStore.findDocumentById,
         getDocumentFromHandle: versionedDocumentStore.getDocumentFromHandle,
@@ -166,6 +175,12 @@ const readProjectIdFromDirIndexFile = ({
   );
 };
 
+type OpenOrCreateProjectFromFilesystemResult = {
+  projectId: VersionControlId;
+  versionedProjectStore: MultiDocumentProjectStore;
+  versionedDocumentStore: VersionedDocumentStore;
+};
+
 const openProjectFromFilesystem = ({
   directoryPath,
   rendererProcessId,
@@ -181,7 +196,7 @@ const openProjectFromFilesystem = ({
   readFile: Filesystem['readFile'];
   assertWritePermissionForDirectory: Filesystem['assertWritePermissionForDirectory'];
 }): Effect.Effect<
-  VersionControlId,
+  OpenOrCreateProjectFromFilesystemResult,
   | FilesystemAccessControlError
   | FilesystemDataIntegrityError
   | FilesystemNotFoundError
@@ -199,15 +214,22 @@ const openProjectFromFilesystem = ({
     Effect.flatMap(() =>
       readProjectIdFromDirIndexFile({ directoryPath, readFile })
     ),
-    Effect.tap((projectId) =>
-      openProject({
-        projectId,
-        directoryPath,
-        rendererProcessId,
-        browserWindow,
-        listDirectoryFiles,
-        readFile,
-      })
+    Effect.flatMap((projectId) =>
+      pipe(
+        openProject({
+          projectId,
+          directoryPath,
+          rendererProcessId,
+          browserWindow,
+          listDirectoryFiles,
+          readFile,
+        }),
+        Effect.map(({ versionedProjectStore, versionedDocumentStore }) => ({
+          projectId,
+          versionedProjectStore,
+          versionedDocumentStore,
+        }))
+      )
     )
   );
 
@@ -267,7 +289,7 @@ const createNewProject = ({
   readFile: Filesystem['readFile'];
   writeFile: Filesystem['writeFile'];
 }): Effect.Effect<
-  VersionControlId,
+  OpenOrCreateProjectFromFilesystemResult,
   | FilesystemAccessControlError
   | FilesystemDataIntegrityError
   | FilesystemNotFoundError
@@ -289,22 +311,33 @@ const createNewProject = ({
         browserWindow,
       })
     ),
-    Effect.map((automergeRepo) => ({
-      versionedProjectStore: createAutomergeProjectStoreAdapter(automergeRepo),
-      versionedDocumentStore:
-        createAutomergeDocumentStoreAdapter(automergeRepo),
-    })),
-    Effect.flatMap(({ versionedDocumentStore, versionedProjectStore }) =>
-      createProjectFromFilesystemContent({
-        createDocument: versionedDocumentStore.createDocument,
-        createProject: versionedProjectStore.createProject,
-        addDocumentToProject: versionedProjectStore.addDocumentToProject,
-        listDirectoryFiles,
-        readFile,
-      })({ directoryPath })
-    ),
-    Effect.tap((projectId) =>
-      writeIndexFile({ rootDirectoryPath: directoryPath, projectId, writeFile })
+    Effect.flatMap((automergeRepo) =>
+      Effect.Do.pipe(
+        Effect.bind('versionedProjectStore', () =>
+          Effect.succeed(createAutomergeProjectStoreAdapter(automergeRepo))
+        ),
+        Effect.bind('versionedDocumentStore', () =>
+          Effect.succeed(createAutomergeDocumentStoreAdapter(automergeRepo))
+        ),
+        Effect.bind(
+          'projectId',
+          ({ versionedProjectStore, versionedDocumentStore }) =>
+            createProjectFromFilesystemContent({
+              createDocument: versionedDocumentStore.createDocument,
+              createProject: versionedProjectStore.createProject,
+              addDocumentToProject: versionedProjectStore.addDocumentToProject,
+              listDirectoryFiles,
+              readFile,
+            })({ directoryPath })
+        ),
+        Effect.tap(({ projectId }) =>
+          writeIndexFile({
+            rootDirectoryPath: directoryPath,
+            projectId,
+            writeFile,
+          })
+        )
+      )
     )
   );
 
@@ -315,37 +348,57 @@ export const createAdapter = ({
   const openOrCreateMultiDocumentProject: MultiDocumentProjectStoreManager['openOrCreateMultiDocumentProject'] =
 
       ({
+        openDirectory,
         listDirectoryFiles,
         readFile,
         writeFile,
         assertWritePermissionForDirectory,
       }) =>
-      ({ directoryPath }) =>
+      () =>
         pipe(
-          openProjectFromFilesystem({
-            directoryPath,
-            rendererProcessId,
-            browserWindow,
-            listDirectoryFiles,
-            readFile,
-            assertWritePermissionForDirectory,
-          }),
-          Effect.catchIf(
-            (error) =>
-              error instanceof FilesystemNotFoundError ||
-              error instanceof FilesystemAccessControlError ||
-              error instanceof VersionedProjectMissingIndexFileError,
-            // Directory does not exist or can't be accessed.
-            // Create a new repo & project
-            () =>
-              createNewProject({
-                directoryPath,
-                rendererProcessId,
-                browserWindow,
-                listDirectoryFiles,
-                readFile,
-                writeFile,
-              })
+          openDirectory(),
+          Effect.flatMap((directory) =>
+            pipe(
+              pipe(
+                openProjectFromFilesystem({
+                  directoryPath: directory.path!,
+                  rendererProcessId,
+                  browserWindow,
+                  listDirectoryFiles,
+                  readFile,
+                  assertWritePermissionForDirectory,
+                }),
+                Effect.catchIf(
+                  (error) =>
+                    error instanceof FilesystemNotFoundError ||
+                    error instanceof FilesystemAccessControlError ||
+                    error instanceof VersionedProjectMissingIndexFileError,
+                  // Directory does not exist or can't be accessed.
+                  // Create a new repo & project
+                  () =>
+                    createNewProject({
+                      directoryPath: directory.path!,
+                      rendererProcessId,
+                      browserWindow,
+                      listDirectoryFiles,
+                      readFile,
+                      writeFile,
+                    })
+                )
+              ),
+              Effect.map(
+                ({
+                  projectId,
+                  versionedProjectStore,
+                  versionedDocumentStore,
+                }) => ({
+                  versionedProjectStore,
+                  versionedDocumentStore,
+                  projectId,
+                  directory,
+                })
+              )
+            )
           )
         );
 

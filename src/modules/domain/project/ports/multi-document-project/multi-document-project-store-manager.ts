@@ -3,10 +3,13 @@ import * as Effect from 'effect/Effect';
 import {
   NotFoundError as VersionedDocumentNotFoundError,
   RepositoryError as VersionedDocumentRepositoryError,
+  VersionedDocumentStore,
 } from '../../../../../modules/domain/rich-text';
 import {
+  AbortError as FilesystemAbortError,
   AccessControlError as FilesystemAccessControlError,
   DataIntegrityError as FilesystemDataIntegrityError,
+  type Directory,
   type Filesystem,
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
@@ -18,8 +21,10 @@ import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
 } from '../../errors';
+import { MultiDocumentProjectStore } from './multi-document-project-store';
 
 export type OpenOrCreateMultiDocumentProjectDeps = {
+  openDirectory: Filesystem['openDirectory'];
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readFile: Filesystem['readFile'];
   writeFile: Filesystem['writeFile'];
@@ -28,6 +33,13 @@ export type OpenOrCreateMultiDocumentProjectDeps = {
 
 export type OpenOrCreateMultiDocumentProjectArgs = {
   directoryPath: string;
+};
+
+export type OpenOrCreateMultiDocumentProjectResult = {
+  versionedProjectStore: MultiDocumentProjectStore;
+  versionedDocumentStore: VersionedDocumentStore;
+  projectId: VersionControlId;
+  directory: Directory;
 };
 
 export type OpenMultiDocumentProjectByIdDeps = {
@@ -41,13 +53,21 @@ export type OpenMultiDocumentProjectByIdArgs = {
   directoryPath: string;
 };
 
+export type OpenMultiDocumentProjectByIdResult = {
+  versionedProjectStore: MultiDocumentProjectStore;
+  versionedDocumentStore: VersionedDocumentStore;
+  projectId: VersionControlId;
+  directory: Directory;
+};
+
 export type MultiDocumentProjectStoreManager = {
   openOrCreateMultiDocumentProject: (
     deps: OpenOrCreateMultiDocumentProjectDeps
   ) => (
     args: OpenOrCreateMultiDocumentProjectArgs
   ) => Effect.Effect<
-    VersionControlId,
+    OpenOrCreateMultiDocumentProjectResult,
+    | FilesystemAbortError
     | FilesystemAccessControlError
     | FilesystemDataIntegrityError
     | FilesystemNotFoundError
@@ -64,7 +84,7 @@ export type MultiDocumentProjectStoreManager = {
   ) => (
     args: OpenMultiDocumentProjectByIdArgs
   ) => Effect.Effect<
-    void,
+    OpenMultiDocumentProjectByIdResult,
     | FilesystemAccessControlError
     | FilesystemDataIntegrityError
     | FilesystemNotFoundError
