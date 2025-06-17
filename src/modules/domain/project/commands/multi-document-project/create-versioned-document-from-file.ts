@@ -18,7 +18,7 @@ import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
 } from '../../errors';
-import { type VersionedProjectStore } from '../../ports/versioned-project-store';
+import { type MultiDocumentProjectStore } from '../../ports/multi-document-project';
 
 export type CreateVersionedDocumentInFileArgs = {
   file: File;
@@ -33,7 +33,7 @@ export type CreateVersionedDocumentInFileResult = {
 
 export type CreateVersionedDocumentInFileDeps = {
   createDocument: VersionedDocumentStore['createDocument'];
-  addDocumentToProject: VersionedProjectStore['addDocumentToProject'];
+  addDocumentToProject: MultiDocumentProjectStore['addDocumentToProject'];
   readFile: Filesystem['readFile'];
 };
 

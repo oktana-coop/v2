@@ -11,7 +11,7 @@ import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
 } from '../../errors';
-import { type VersionedProjectStore } from '../../ports/versioned-project-store';
+import { type MultiDocumentProjectStore } from '../../ports/multi-document-project';
 
 export type DeleteDocumentFromProjectArgs = {
   documentId: VersionControlId;
@@ -20,7 +20,7 @@ export type DeleteDocumentFromProjectArgs = {
 
 export type DeleteDocumentFromProjectDeps = {
   deleteDocument: VersionedDocumentStore['deleteDocument'];
-  deleteDocumentFromProjectStore: VersionedProjectStore['deleteDocumentFromProject'];
+  deleteDocumentFromProjectStore: MultiDocumentProjectStore['deleteDocumentFromProject'];
 };
 
 export const deleteDocumentFromProject =

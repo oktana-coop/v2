@@ -19,7 +19,7 @@ import {
   RepositoryError as VersionedProjectRepositoryError,
 } from '../../errors';
 import { type ArtifactMetaData } from '../../models';
-import { type VersionedProjectStore } from '../../ports/versioned-project-store';
+import { type MultiDocumentProjectStore } from '../../ports/multi-document-project';
 import { createVersionedDocumentFromFile } from './create-versioned-document-from-file';
 
 export type CreateProjectFromFilesystemContentArgs = {
@@ -28,8 +28,8 @@ export type CreateProjectFromFilesystemContentArgs = {
 
 export type CreateProjectFromFilesystemContentDeps = {
   createDocument: VersionedDocumentStore['createDocument'];
-  createProject: VersionedProjectStore['createProject'];
-  addDocumentToProject: VersionedProjectStore['addDocumentToProject'];
+  createProject: MultiDocumentProjectStore['createProject'];
+  addDocumentToProject: MultiDocumentProjectStore['addDocumentToProject'];
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readFile: Filesystem['readFile'];
 };

@@ -1,2 +1,2 @@
-export * from './versioned-project-store';
+export * from './multi-document-project';
 export * from './single-document-project';

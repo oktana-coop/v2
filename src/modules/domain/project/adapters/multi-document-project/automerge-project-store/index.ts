@@ -4,19 +4,21 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as Option from 'effect/Option';
 
-import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
-import { fromNullable } from '../../../../../utils/effect';
-import { mapErrorTo } from '../../../../../utils/errors';
-import { NotFoundError, RepositoryError } from '../../errors';
+import { type VersionControlId } from '../../../../../../modules/infrastructure/version-control';
+import { fromNullable } from '../../../../../../utils/effect';
+import { mapErrorTo } from '../../../../../../utils/errors';
+import { NotFoundError, RepositoryError } from '../../../errors';
 import {
   type ArtifactMetaData,
-  type Project,
-  type VersionedProject,
-  type VersionedProjectHandle,
-} from '../../models';
-import { VersionedProjectStore } from '../../ports/versioned-project-store';
+  type MultiDocumentProject,
+  type VersionedMultiDocumentProject,
+  type VersionedMultiDocumentProjectHandle,
+} from '../../../models';
+import { MultiDocumentProjectStore } from '../../../ports/multi-document-project';
 
-export const createAdapter = (automergeRepo: Repo): VersionedProjectStore => {
+export const createAdapter = (
+  automergeRepo: Repo
+): MultiDocumentProjectStore => {
   const getDocFromHandle: <T>(
     handle: DocHandle<T>
   ) => Effect.Effect<
@@ -35,15 +37,20 @@ export const createAdapter = (automergeRepo: Repo): VersionedProjectStore => {
     );
 
   const getProjectFromHandle: (
-    handle: VersionedProjectHandle
-  ) => Effect.Effect<VersionedProject, RepositoryError | NotFoundError, never> =
-    getDocFromHandle<VersionedProject>;
+    handle: VersionedMultiDocumentProjectHandle
+  ) => Effect.Effect<
+    VersionedMultiDocumentProject,
+    RepositoryError | NotFoundError,
+    never
+  > = getDocFromHandle<VersionedMultiDocumentProject>;
 
-  const createProject: VersionedProjectStore['createProject'] = ({ path }) =>
+  const createProject: MultiDocumentProjectStore['createProject'] = ({
+    path,
+  }) =>
     pipe(
       Effect.try({
         try: () =>
-          automergeRepo.create<Project>({
+          automergeRepo.create<MultiDocumentProject>({
             path,
             documents: {},
           }),
@@ -52,12 +59,12 @@ export const createAdapter = (automergeRepo: Repo): VersionedProjectStore => {
       Effect.map((handle) => handle.url)
     );
 
-  const findProjectById: VersionedProjectStore['findProjectById'] = (
+  const findProjectById: MultiDocumentProjectStore['findProjectById'] = (
     id: VersionControlId
   ) =>
     pipe(
       Effect.tryPromise({
-        try: () => automergeRepo.find<Project>(id),
+        try: () => automergeRepo.find<MultiDocumentProject>(id),
         catch: (err: unknown) => {
           // TODO: This is not-future proof as it depends on the error message. Find a better way.
           if (err instanceof Error && err.message.includes('unavailable')) {
@@ -69,41 +76,36 @@ export const createAdapter = (automergeRepo: Repo): VersionedProjectStore => {
       })
     );
 
-  const listProjectDocuments: VersionedProjectStore['listProjectDocuments'] = (
-    id: VersionControlId
-  ) =>
-    pipe(
-      findProjectById(id),
-      Effect.flatMap(getProjectFromHandle),
-      Effect.map((project) => Object.values(project.documents))
-    );
+  const listProjectDocuments: MultiDocumentProjectStore['listProjectDocuments'] =
+    (id: VersionControlId) =>
+      pipe(
+        findProjectById(id),
+        Effect.flatMap(getProjectFromHandle),
+        Effect.map((project) => Object.values(project.documents))
+      );
 
-  const addDocumentToProject: VersionedProjectStore['addDocumentToProject'] = ({
-    documentId,
-    name,
-    path,
-    projectId,
-  }) =>
-    pipe(
-      findProjectById(projectId),
-      Effect.flatMap((projectHandle) => {
-        const metaData: ArtifactMetaData = {
-          versionControlId: documentId,
-          name,
-          path,
-        };
+  const addDocumentToProject: MultiDocumentProjectStore['addDocumentToProject'] =
+    ({ documentId, name, path, projectId }) =>
+      pipe(
+        findProjectById(projectId),
+        Effect.flatMap((projectHandle) => {
+          const metaData: ArtifactMetaData = {
+            versionControlId: documentId,
+            name,
+            path,
+          };
 
-        return Effect.try({
-          try: () =>
-            projectHandle.change((project) => {
-              project.documents[documentId] = metaData;
-            }),
-          catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
-        });
-      })
-    );
+          return Effect.try({
+            try: () =>
+              projectHandle.change((project) => {
+                project.documents[documentId] = metaData;
+              }),
+            catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+          });
+        })
+      );
 
-  const deleteDocumentFromProject: VersionedProjectStore['deleteDocumentFromProject'] =
+  const deleteDocumentFromProject: MultiDocumentProjectStore['deleteDocumentFromProject'] =
     ({ projectId, documentId }) =>
       pipe(
         findProjectById(projectId),
@@ -118,7 +120,7 @@ export const createAdapter = (automergeRepo: Repo): VersionedProjectStore => {
         )
       );
 
-  const findDocumentInProject: VersionedProjectStore['findDocumentInProject'] =
+  const findDocumentInProject: MultiDocumentProjectStore['findDocumentInProject'] =
     ({ projectId, documentPath }) =>
       pipe(
         listProjectDocuments(projectId),

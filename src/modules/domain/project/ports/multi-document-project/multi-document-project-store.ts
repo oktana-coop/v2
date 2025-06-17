@@ -1,44 +1,44 @@
 import * as Effect from 'effect/Effect';
 
-import { type VersionControlId } from '../../../../modules/infrastructure/version-control';
-import { NotFoundError, RepositoryError } from '../errors';
+import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
+import { NotFoundError, RepositoryError } from '../../errors';
 import type {
   ArtifactMetaData,
-  Project,
-  VersionedProject,
-  VersionedProjectHandle,
-} from '../models';
+  MultiDocumentProject,
+  VersionedMultiDocumentProject,
+  VersionedMultiDocumentProjectHandle,
+} from '../../models';
 
-export type CreateProjectArgs = {
+export type CreateMultiDocumentProjectArgs = {
   path: string;
-  documents: Project['documents'];
+  documents: MultiDocumentProject['documents'];
 };
 
-export type AddDocumentToProjectArgs = {
+export type AddDocumentToMultiDocumentProjectArgs = {
   documentId: VersionControlId;
   name: string;
   path: string;
   projectId: VersionControlId;
 };
 
-export type DeleteDocumentFromProjectArgs = {
+export type DeleteDocumentFromMultiDocumentProjectArgs = {
   projectId: VersionControlId;
   documentId: VersionControlId;
 };
 
-export type FindDocumentInProjectArgs = {
+export type FindDocumentInMultiDocumentProjectArgs = {
   projectId: VersionControlId;
   documentPath: string;
 };
 
-export type VersionedProjectStore = {
+export type MultiDocumentProjectStore = {
   createProject: (
-    args: CreateProjectArgs
+    args: CreateMultiDocumentProjectArgs
   ) => Effect.Effect<VersionControlId, RepositoryError, never>;
   findProjectById: (
     id: VersionControlId
   ) => Effect.Effect<
-    VersionedProjectHandle,
+    VersionedMultiDocumentProjectHandle,
     RepositoryError | NotFoundError,
     never
   >;
@@ -50,15 +50,19 @@ export type VersionedProjectStore = {
     never
   >;
   addDocumentToProject: (
-    args: AddDocumentToProjectArgs
+    args: AddDocumentToMultiDocumentProjectArgs
   ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;
   deleteDocumentFromProject: (
-    args: DeleteDocumentFromProjectArgs
+    args: DeleteDocumentFromMultiDocumentProjectArgs
   ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;
   findDocumentInProject: (
-    args: FindDocumentInProjectArgs
+    args: FindDocumentInMultiDocumentProjectArgs
   ) => Effect.Effect<VersionControlId, RepositoryError | NotFoundError, never>;
   getProjectFromHandle: (
-    handle: VersionedProjectHandle
-  ) => Effect.Effect<VersionedProject, RepositoryError | NotFoundError, never>;
+    handle: VersionedMultiDocumentProjectHandle
+  ) => Effect.Effect<
+    VersionedMultiDocumentProject,
+    RepositoryError | NotFoundError,
+    never
+  >;
 };

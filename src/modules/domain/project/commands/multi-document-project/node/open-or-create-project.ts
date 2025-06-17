@@ -25,7 +25,7 @@ import {
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../infrastructure/filesystem';
-import { createAdapter as createAutomergeVersionedProjectStoreAdapter } from '../../../adapters/automerge-versioned-project-store';
+import { createAdapter as createAutomergeVersionedProjectStoreAdapter } from '../../../adapters/multi-document-project';
 import {
   DataIntegrityError as VersionedProjectDataIntegrityError,
   MissingIndexFileError as VersionedProjectMissingIndexFileError,

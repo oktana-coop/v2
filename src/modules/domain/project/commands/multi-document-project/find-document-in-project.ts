@@ -12,7 +12,7 @@ import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
 } from '../../errors';
-import { type VersionedProjectStore } from '../../ports/versioned-project-store';
+import { type MultiDocumentProjectStore } from '../../ports/multi-document-project';
 
 export type FindDocumentInProjectArgs = {
   documentPath: string;
@@ -21,7 +21,7 @@ export type FindDocumentInProjectArgs = {
 
 export type FindDocumentInProjectDeps = {
   findDocumentById: VersionedDocumentStore['findDocumentById'];
-  findDocumentInProjectStore: VersionedProjectStore['findDocumentInProject'];
+  findDocumentInProjectStore: MultiDocumentProjectStore['findDocumentInProject'];
 };
 
 export const findDocumentInProject =

@@ -14,19 +14,24 @@ export type ArtifactMetaData = BaseArtifactMetaData & {
   path: string;
 };
 
-export type Project = {
+export type MultiDocumentProject = {
   path: string;
   documents: Record<VersionControlId, ArtifactMetaData>;
 };
 
-export type VersionedProject = VersionedArtifact<Project>;
+export type VersionedMultiDocumentProject =
+  VersionedArtifact<MultiDocumentProject>;
 
-export type VersionedProjectHandle = VersionedArtifactHandle<Project>;
+export type VersionedMultiDocumentProjectHandle =
+  VersionedArtifactHandle<MultiDocumentProject>;
 
 export type SingleDocumentProject = {
   document: BaseArtifactMetaData;
   assets: Record<VersionControlId, BaseArtifactMetaData>;
 };
 
-export type SingleDocumentProjectHandle =
+export type VersionedSingleDocumentProject =
+  VersionedArtifact<SingleDocumentProject>;
+
+export type VersionedSignleDocumentProjectHandle =
   VersionedArtifactHandle<SingleDocumentProject>;

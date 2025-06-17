@@ -22,7 +22,7 @@ import {
   RepositoryError as VersionedProjectRepositoryError,
 } from '../../errors';
 import { type ArtifactMetaData } from '../../models';
-import type { VersionedProjectStore } from '../../ports/versioned-project-store';
+import { type MultiDocumentProjectStore } from '../../ports/multi-document-project';
 import { createVersionedDocumentFromFile } from './create-versioned-document-from-file';
 import { deleteDocumentFromProject } from './delete-document-from-project';
 import { findDocumentInProject } from './find-document-in-project';
@@ -38,10 +38,10 @@ export type UpdateProjectFromFilesystemContentDeps = {
   createDocument: VersionedDocumentStore['createDocument'];
   updateDocumentSpans: VersionedDocumentStore['updateDocumentSpans'];
   deleteDocument: VersionedDocumentStore['deleteDocument'];
-  addDocumentToProject: VersionedProjectStore['addDocumentToProject'];
-  findDocumentInProject: VersionedProjectStore['findDocumentInProject'];
-  listProjectDocuments: VersionedProjectStore['listProjectDocuments'];
-  deleteDocumentFromProject: VersionedProjectStore['deleteDocumentFromProject'];
+  addDocumentToProject: MultiDocumentProjectStore['addDocumentToProject'];
+  findDocumentInProject: MultiDocumentProjectStore['findDocumentInProject'];
+  listProjectDocuments: MultiDocumentProjectStore['listProjectDocuments'];
+  deleteDocumentFromProject: MultiDocumentProjectStore['deleteDocumentFromProject'];
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readFile: Filesystem['readFile'];
 };
@@ -71,7 +71,7 @@ const propagateFileChangesToVersionedDocument =
     readFile,
   }: {
     findDocumentById: VersionedDocumentStore['findDocumentById'];
-    findDocumentInProject: VersionedProjectStore['findDocumentInProject'];
+    findDocumentInProject: MultiDocumentProjectStore['findDocumentInProject'];
     updateDocumentSpans: VersionedDocumentStore['updateDocumentSpans'];
     getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
     readFile: Filesystem['readFile'];
