@@ -20,10 +20,12 @@ const BROWSER_STORAGE_RECENT_PROJECTS_KEY = 'recentProjects';
 
 type RecentProjectsContextType = {
   recentProjects: Array<RecentProjectInfo>;
+  recentProjectFiles: Array<File>;
 };
 
 export const RecentProjectsContext = createContext<RecentProjectsContextType>({
   recentProjects: [],
+  recentProjectFiles: [],
 });
 
 const getRecentProjectsFromLocalStorage = () => {
@@ -48,6 +50,18 @@ export const RecentProjectsProvider = ({
     Array<RecentProjectInfo>
   >(getRecentProjectsFromLocalStorage());
   const { projectId, projectFile } = useContext(SingleDocumentProjectContext);
+  const [recentProjectFiles, setRecentProjectFiles] = useState<File[]>([]);
+
+  useEffect(() => {
+    const recentProjectFiles = recentProjects
+      .filter(
+        (projectInfo) =>
+          projectInfo.projectType === projectTypes.SINGLE_DOCUMENT_PROJECT &&
+          projectInfo.projectFile !== null
+      )
+      .map((projectInfo) => projectInfo.projectFile) as File[];
+    setRecentProjectFiles(recentProjectFiles);
+  }, [recentProjects]);
 
   useEffect(() => {
     const getUpdatedRecentProjects = ({
@@ -113,6 +127,7 @@ export const RecentProjectsProvider = ({
     <RecentProjectsContext.Provider
       value={{
         recentProjects,
+        recentProjectFiles,
       }}
     >
       {children}

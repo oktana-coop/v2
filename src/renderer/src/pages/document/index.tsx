@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router';
 import {
   CurrentDocumentContext,
   CurrentDocumentProvider,
+  CurrentProjectContext,
   CurrentProjectProvider,
   SidebarLayoutProvider,
 } from '../../../../modules/app-state';
@@ -22,7 +23,7 @@ import { CommitDialog } from './commit/CommitDialog';
 import { CreateDocumentModal } from './create-document/CreateDocumentModal';
 import { DocumentMainViewRouter } from './main/DocumentMainViewRouter';
 import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
-import { FileExplorer } from './sidebar/file-explorer/FileExplorer';
+import { DirectoryFiles, RecentProjects } from './sidebar/document-list-views';
 
 export const Document = () => (
   <CurrentProjectProvider projectType={projectTypes.SINGLE_DOCUMENT_PROJECT}>
@@ -44,6 +45,7 @@ const DocumentIndex = () => {
   const [isDocumentCreationModalOpen, setCreateDocumentModalOpen] =
     useState<boolean>(false);
   const navigate = useNavigate();
+  const { projectType } = useContext(CurrentProjectContext);
   const {
     setSelectedFileInfo,
     versionedDocumentHistory: commits,
@@ -103,7 +105,12 @@ const DocumentIndex = () => {
           <SidebarLayout
             sidebar={
               <StackedResizablePanelsLayout autoSaveId="editor-panel-group">
-                <FileExplorer onCreateDocument={openCreateDocumentModal} />
+                {projectType === projectTypes.MULTI_DOCUMENT_PROJECT ? (
+                  <DirectoryFiles onCreateDocument={openCreateDocumentModal} />
+                ) : (
+                  <RecentProjects onCreateDocument={openCreateDocumentModal} />
+                )}
+
                 <DocumentHistory
                   commits={commits}
                   onCommitClick={onSelectCommit}
