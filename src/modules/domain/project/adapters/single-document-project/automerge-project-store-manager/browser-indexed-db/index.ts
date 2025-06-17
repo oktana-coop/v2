@@ -118,6 +118,9 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
             pipe(
               // The name of the target (persistent) DB is the project ID.
               Effect.succeed(projectAndDocumentData.projectId),
+              // TODO: Fix this race condition. It seems that some time must pass before the
+              // automerge documents for project and document written into IndexedDB.
+              Effect.tap(() => Effect.sleep('500 millis')),
               Effect.tap((targetDBName) =>
                 copyDataFromSourceToTargetDB({
                   sourceDBName: tempDBName,
