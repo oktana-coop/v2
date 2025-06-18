@@ -21,7 +21,7 @@ import { InfrastructureAdaptersContext } from '../infrastructure-adapters/contex
 type BrowserStorageProjectData = {
   directoryName: Directory['name'];
   directoryPath: Directory['path'];
-  versionControlId: VersionControlId;
+  projectId: VersionControlId;
 };
 
 const BROWSER_STORAGE_PROJECT_DATA_KEY = 'multi-document-project';
@@ -101,8 +101,9 @@ export const MultiDocumentProjectProvider = ({
 
       if (
         browserStorageProjectData?.directoryPath &&
-        browserStorageProjectData?.versionControlId
+        browserStorageProjectData?.projectId
       ) {
+        console.log('opening project');
         const {
           versionedDocumentStore: documentStore,
           versionedProjectStore: projectStore,
@@ -113,12 +114,12 @@ export const MultiDocumentProjectProvider = ({
             readFile: filesystem.readFile,
             getDirectory: filesystem.getDirectory,
           })({
-            projectId: browserStorageProjectData.versionControlId,
+            projectId: browserStorageProjectData.projectId,
             directoryPath: browserStorageProjectData.directoryPath,
           })
         );
 
-        setProjectId(browserStorageProjectData.versionControlId);
+        setProjectId(browserStorageProjectData.projectId);
         setDirectory(directory);
         setVersionedProjectStore(projectStore);
         setVersionedDocumentStore(documentStore);
@@ -197,7 +198,7 @@ export const MultiDocumentProjectProvider = ({
       JSON.stringify({
         directoryName: directory.name,
         directoryPath: directory.path,
-        versionControlId: projId,
+        projectId: projId,
       })
     );
 
