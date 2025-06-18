@@ -24,7 +24,7 @@ type BrowserStorageProjectData = {
   versionControlId: VersionControlId;
 };
 
-const BROWSER_STORAGE_PROJECT_DATA_KEY = 'project';
+const BROWSER_STORAGE_PROJECT_DATA_KEY = 'multi-document-project';
 
 export type MultiDocumentProjectContextType = {
   projectId: VersionControlId | null;
@@ -191,6 +191,15 @@ export const MultiDocumentProjectProvider = ({
     setDirectory(directory);
     setVersionedProjectStore(projectStore);
     setVersionedDocumentStore(documentStore);
+
+    localStorage.setItem(
+      BROWSER_STORAGE_PROJECT_DATA_KEY,
+      JSON.stringify({
+        directoryName: directory.name,
+        directoryPath: directory.path,
+        versionControlId: projId,
+      })
+    );
 
     return directory;
   };

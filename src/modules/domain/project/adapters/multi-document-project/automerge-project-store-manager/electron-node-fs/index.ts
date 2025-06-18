@@ -61,6 +61,7 @@ const setupAutomergeRepo = ({
       setupFilesystemRepoForNode({
         directoryPath: join(directoryPath, '.v2', 'automerge'),
         renderers: new Map([[rendererProcessId, browserWindow]]),
+        initiateSync: false,
       }),
     catch: mapErrorTo(
       VersionedProjectRepositoryError,
