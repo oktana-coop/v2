@@ -16,7 +16,7 @@ type RecentProjectInfo = {
   lastOpenedAt: Date;
 };
 
-const BROWSER_STORAGE_RECENT_PROJECTS_KEY = 'recentProjects';
+const BROWSER_STORAGE_RECENT_PROJECTS_KEY = 'recent-projects';
 
 type RecentProjectsContextType = {
   recentProjects: Array<RecentProjectInfo>;
