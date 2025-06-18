@@ -1,19 +1,25 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-import { type SingleDocumentProjectStoreManager } from '../../../modules/domain/project';
+import {
+  type MultiDocumentProjectStoreManager,
+  type SingleDocumentProjectStoreManager,
+} from '../../../modules/domain/project';
 import { type VersionedDocumentStore } from '../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../modules/infrastructure/cross-platform/electron-context';
 import { type Filesystem } from '../../../modules/infrastructure/filesystem';
 import { createAdapter as createBrowserFilesystemAPIAdapter } from '../../../modules/infrastructure/filesystem/adapters/browser-api';
 import { createAdapter as createElectronRendererFilesystemAPIAdapter } from '../../../modules/infrastructure/filesystem/adapters/electron-renderer-api';
 import {
-  createBrowserProjectStoreManagerAdapter,
-  createElectronRendererProjectStoreManagerAdapter,
+  createBrowserMultiDocumentProjectStoreManagerAdapter,
+  createBrowserSingleDocumentProjectStoreManagerAdapter,
+  createElectronRendererMultiDocumentProjectStoreManagerAdapter,
+  createElectronRendererSingleDocumentProjectStoreManagerAdapter,
 } from '../../domain/project/browser';
 
 type InfrastructureAdaptersContextType = {
   filesystem: Filesystem;
-  projectStoreManager: SingleDocumentProjectStoreManager;
+  singleDocumentProjectStoreManager: SingleDocumentProjectStoreManager;
+  multiDocumentProjectStoreManager: MultiDocumentProjectStoreManager;
   versionedDocumentStore: VersionedDocumentStore | null;
   setVersionedDocumentStore: (documentStore: VersionedDocumentStore) => void;
 };
@@ -23,7 +29,9 @@ export const InfrastructureAdaptersContext =
     // @ts-expect-error will get overriden below
     filesystem: null,
     // @ts-expect-error will get overriden below
-    projectStoreManager: null,
+    singleDocumentProjectStoreManager: null,
+    // @ts-expect-error will get overriden below
+    multiDocumentProjectStoreManager: null,
     versionedDocumentStore: null,
     setVersionedDocumentStore: () => {},
   });
@@ -41,28 +49,45 @@ export const InfrastructureAdaptersProvider = ({
     ? createElectronRendererFilesystemAPIAdapter()
     : createBrowserFilesystemAPIAdapter();
 
-  const [projectStoreManager, setProjectStoreManager] =
-    useState<SingleDocumentProjectStoreManager | null>(null);
+  const [
+    singleDocumentProjectStoreManager,
+    setSingleDocumentProjectStoreManager,
+  ] = useState<SingleDocumentProjectStoreManager | null>(null);
+
+  const [
+    multiDocumentProjectStoreManager,
+    setMultiDocumentProjectStoreManager,
+  ] = useState<MultiDocumentProjectStoreManager | null>(null);
 
   useEffect(() => {
-    const setupProjectStoreManager = async () => {
+    const setupProjectStoreManagers = async () => {
       if (isElectron) {
         if (processId) {
-          const storeManager = createElectronRendererProjectStoreManagerAdapter(
-            { processId }
-          );
-          setProjectStoreManager(storeManager);
+          const singleDocProjectStoreManager =
+            createElectronRendererSingleDocumentProjectStoreManagerAdapter({
+              processId,
+            });
+          const multiDocProjectStoreManager =
+            createElectronRendererMultiDocumentProjectStoreManagerAdapter({
+              processId,
+            });
+          setSingleDocumentProjectStoreManager(singleDocProjectStoreManager);
+          setMultiDocumentProjectStoreManager(multiDocProjectStoreManager);
         }
       } else {
-        const storeManager = createBrowserProjectStoreManagerAdapter();
-        setProjectStoreManager(storeManager);
+        const singleDocProjectStoreManager =
+          createBrowserSingleDocumentProjectStoreManagerAdapter();
+        const multiDocProjectStoreManager =
+          createBrowserMultiDocumentProjectStoreManagerAdapter();
+        setSingleDocumentProjectStoreManager(singleDocProjectStoreManager);
+        setMultiDocumentProjectStoreManager(multiDocProjectStoreManager);
       }
     };
 
-    setupProjectStoreManager();
+    setupProjectStoreManagers();
   }, [processId, isElectron]);
 
-  if (!projectStoreManager) {
+  if (!singleDocumentProjectStoreManager || !multiDocumentProjectStoreManager) {
     // TODO: Replace with skeleton or spinner
     return <div>Loading...</div>;
   }
@@ -75,7 +100,8 @@ export const InfrastructureAdaptersProvider = ({
     <InfrastructureAdaptersContext.Provider
       value={{
         filesystem,
-        projectStoreManager,
+        singleDocumentProjectStoreManager,
+        multiDocumentProjectStoreManager,
         versionedDocumentStore,
         setVersionedDocumentStore: handleSetDocumentStore,
       }}
