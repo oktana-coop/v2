@@ -404,31 +404,41 @@ export const createAdapter = ({
 
   const openMultiDocumentProjectById: MultiDocumentProjectStoreManager['openMultiDocumentProjectById'] =
 
-      ({ listDirectoryFiles, readFile, assertWritePermissionForDirectory }) =>
+      ({ listDirectoryFiles, readFile, getDirectory }) =>
       ({ projectId, directoryPath }) =>
         pipe(
-          assertWritePermissionForDirectory(directoryPath),
-          Effect.flatMap(() =>
-            readProjectIdFromDirIndexFile({ directoryPath, readFile })
-          ),
-          Effect.flatMap((filesystemProjectId) =>
-            filesystemProjectId === projectId
-              ? Effect.succeed(projectId)
-              : Effect.fail(
-                  new VersionedProjectDataIntegrityError(
-                    'The project ID in the filesystem is different than the one the app is trying to open'
-                  )
-                )
-          ),
-          Effect.flatMap((projectId) =>
-            openProject({
-              projectId,
-              directoryPath,
-              rendererProcessId,
-              browserWindow,
-              listDirectoryFiles,
-              readFile,
-            })
+          getDirectory(directoryPath),
+          Effect.flatMap((directory) =>
+            pipe(
+              readProjectIdFromDirIndexFile({ directoryPath, readFile }),
+              Effect.flatMap((filesystemProjectId) =>
+                filesystemProjectId === projectId
+                  ? Effect.succeed(projectId)
+                  : Effect.fail(
+                      new VersionedProjectDataIntegrityError(
+                        'The project ID in the filesystem is different than the one the app is trying to open'
+                      )
+                    )
+              ),
+              Effect.flatMap((projectId) =>
+                openProject({
+                  projectId,
+                  directoryPath,
+                  rendererProcessId,
+                  browserWindow,
+                  listDirectoryFiles,
+                  readFile,
+                })
+              ),
+              Effect.map(
+                ({ versionedProjectStore, versionedDocumentStore }) => ({
+                  versionedProjectStore,
+                  versionedDocumentStore,
+                  projectId,
+                  directory,
+                })
+              )
+            )
           )
         );
 

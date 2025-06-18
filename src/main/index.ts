@@ -16,9 +16,9 @@ import {
 import os from 'os';
 
 import {
-  createNodeProjectStoreManagerAdapter,
-  openOrCreateProject,
-  openProjectById,
+  createNodeMultiDocumentProjectStoreManagerAdapter,
+  createNodeSingleDocumentProjectStoreManagerAdapter,
+  OpenMultiDocumentProjectByIdArgs,
   type OpenSingleDocumentProjectStoreArgs,
   type SetupSingleDocumentProjectStoreArgs,
 } from '../modules/domain/project/node';
@@ -29,7 +29,6 @@ import {
   type OpenFileArgs,
 } from '../modules/infrastructure/filesystem';
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/infrastructure/filesystem/adapters/electron-node-api';
-import { type VersionControlId } from '../modules/infrastructure/version-control';
 import { type RunWasiCLIArgs } from '../modules/infrastructure/wasm';
 import { createAdapter as createNodeWasmAdapter } from '../modules/infrastructure/wasm/adapters/node-wasm';
 import { update } from './update';
@@ -116,10 +115,17 @@ async function createWindow() {
 
   const rendererProcessId = String(win.webContents.id);
 
-  const projectStoreManager = createNodeProjectStoreManagerAdapter({
-    rendererProcessId,
-    browserWindow: win,
-  });
+  const singleDocumentProjectStoreManager =
+    createNodeSingleDocumentProjectStoreManagerAdapter({
+      rendererProcessId,
+      browserWindow: win,
+    });
+
+  const multiDocumentProjectStoreManager =
+    createNodeMultiDocumentProjectStoreManagerAdapter({
+      rendererProcessId,
+      browserWindow: win,
+    });
 
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('renderer-process-id', rendererProcessId);
@@ -166,65 +172,11 @@ async function createWindow() {
   );
 
   ipcMain.handle(
-    'open-or-create-project',
-    async (_, { directoryPath }: { directoryPath: string }) => {
-      if (!win) {
-        throw new Error(
-          'No browser window found when trying to create project'
-        );
-      }
-
-      return Effect.runPromise(
-        openOrCreateProject({
-          directoryPath,
-          rendererProcessId,
-          browserWindow: win,
-          listDirectoryFiles: filesystemAPI.listDirectoryFiles,
-          readFile: filesystemAPI.readFile,
-          writeFile: filesystemAPI.writeFile,
-          assertWritePermissionForDirectory:
-            filesystemAPI.assertWritePermissionForDirectory,
-        })
-      );
-    }
-  );
-
-  ipcMain.handle(
-    'open-project',
-    async (
-      _,
-      {
-        directoryPath,
-        projectId,
-      }: { projectId: VersionControlId; directoryPath: string }
-    ) => {
-      if (!win) {
-        throw new Error(
-          'No browser window found when trying to create project'
-        );
-      }
-
-      return Effect.runPromise(
-        openProjectById({
-          projectId,
-          directoryPath,
-          rendererProcessId,
-          browserWindow: win,
-          listDirectoryFiles: filesystemAPI.listDirectoryFiles,
-          readFile: filesystemAPI.readFile,
-          assertWritePermissionForDirectory:
-            filesystemAPI.assertWritePermissionForDirectory,
-        })
-      );
-    }
-  );
-
-  ipcMain.handle(
     'create-single-document-project',
     async (_, { suggestedName }: SetupSingleDocumentProjectStoreArgs) =>
       Effect.runPromise(
         pipe(
-          projectStoreManager.setupSingleDocumentProjectStore({
+          singleDocumentProjectStoreManager.setupSingleDocumentProjectStore({
             createNewFile: filesystemAPI.createNewFile,
           })({ suggestedName }),
           Effect.map(({ projectId, documentId, file }) => ({
@@ -241,13 +193,50 @@ async function createWindow() {
     async (_, { fromFile }: OpenSingleDocumentProjectStoreArgs) =>
       Effect.runPromise(
         pipe(
-          projectStoreManager.openSingleDocumentProjectStore({
+          singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
             openFile: filesystemAPI.openFile,
           })({ fromFile }),
           Effect.map(({ projectId, documentId, file }) => ({
             projectId,
             documentId,
             file,
+          }))
+        )
+      )
+  );
+
+  ipcMain.handle('open-or-create-multi-document-project', async () =>
+    Effect.runPromise(
+      pipe(
+        multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject({
+          openDirectory: filesystemAPI.openDirectory,
+          listDirectoryFiles: filesystemAPI.listDirectoryFiles,
+          readFile: filesystemAPI.readFile,
+          writeFile: filesystemAPI.writeFile,
+          assertWritePermissionForDirectory:
+            filesystemAPI.assertWritePermissionForDirectory,
+        })(),
+        Effect.map(({ projectId, directory }) => ({
+          projectId,
+          directory,
+        }))
+      )
+    )
+  );
+
+  ipcMain.handle(
+    'open-multi-document-project-by-id',
+    async (_, { projectId, directoryPath }: OpenMultiDocumentProjectByIdArgs) =>
+      Effect.runPromise(
+        pipe(
+          multiDocumentProjectStoreManager.openMultiDocumentProjectById({
+            listDirectoryFiles: filesystemAPI.listDirectoryFiles,
+            readFile: filesystemAPI.readFile,
+            getDirectory: filesystemAPI.getDirectory,
+          })({ projectId, directoryPath }),
+          Effect.map(({ projectId, directory }) => ({
+            projectId,
+            directory,
           }))
         )
       )

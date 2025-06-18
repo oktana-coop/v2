@@ -2,6 +2,9 @@ import type { IpcRenderer } from 'electron';
 
 import { type PromisifyEffects } from './src/modules/cross-platform/electron-ipc-effect';
 import {
+  type OpenMultiDocumentProjectByIdArgs,
+  type OpenMultiDocumentProjectByIdResult,
+  type OpenOrCreateMultiDocumentProjectResult,
   type OpenSingleDocumentProjectStoreArgs,
   type OpenSingleDocumentProjectStoreResult,
   type SetupSingleDocumentProjectStoreArgs,
@@ -27,16 +30,6 @@ export type AutomergeRepoNetworkAdapter = {
   ) => IpcRenderer;
 };
 
-export type VersionControlAPI = {
-  openOrCreateProject: (args: {
-    directoryPath: string;
-  }) => Promise<VersionControlId>;
-  openProject: (args: {
-    projectId: VersionControlId;
-    directoryPath: string;
-  }) => Promise<void>;
-};
-
 export type SingleDocumentProjectAPI = {
   createSingleDocumentProject: (
     args: SetupSingleDocumentProjectStoreArgs
@@ -56,6 +49,15 @@ export type SingleDocumentProjectAPI = {
   >;
 };
 
+export type MultiDocumentProjectAPI = {
+  openOrCreateMultiDocumentProject: () => Promise<
+    Pick<OpenOrCreateMultiDocumentProjectResult, 'projectId' | 'directory'>
+  >;
+  openMultiDocumentProjectById: (
+    args: OpenMultiDocumentProjectByIdArgs
+  ) => Promise<Pick<OpenMultiDocumentProjectByIdResult, 'directory'>>;
+};
+
 type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
 
 declare global {
@@ -65,6 +67,7 @@ declare global {
     filesystemAPI: FilesystemPromiseAPI;
     versionControlAPI: VersionControlAPI;
     singleDocumentProjectAPI: SingleDocumentProjectAPI;
+    multiDocumentProjectAPI: MultiDocumentProjectAPI;
     wasmAPI: WasmAPI;
   }
 }

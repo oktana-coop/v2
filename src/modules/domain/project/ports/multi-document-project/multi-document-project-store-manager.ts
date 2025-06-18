@@ -31,10 +31,6 @@ export type OpenOrCreateMultiDocumentProjectDeps = {
   assertWritePermissionForDirectory: Filesystem['assertWritePermissionForDirectory'];
 };
 
-export type OpenOrCreateMultiDocumentProjectArgs = {
-  directoryPath: string;
-};
-
 export type OpenOrCreateMultiDocumentProjectResult = {
   versionedProjectStore: MultiDocumentProjectStore;
   versionedDocumentStore: VersionedDocumentStore;
@@ -45,7 +41,7 @@ export type OpenOrCreateMultiDocumentProjectResult = {
 export type OpenMultiDocumentProjectByIdDeps = {
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readFile: Filesystem['readFile'];
-  assertWritePermissionForDirectory: Filesystem['assertWritePermissionForDirectory'];
+  getDirectory: Filesystem['getDirectory'];
 };
 
 export type OpenMultiDocumentProjectByIdArgs = {
@@ -63,9 +59,7 @@ export type OpenMultiDocumentProjectByIdResult = {
 export type MultiDocumentProjectStoreManager = {
   openOrCreateMultiDocumentProject: (
     deps: OpenOrCreateMultiDocumentProjectDeps
-  ) => (
-    args: OpenOrCreateMultiDocumentProjectArgs
-  ) => Effect.Effect<
+  ) => () => Effect.Effect<
     OpenOrCreateMultiDocumentProjectResult,
     | FilesystemAbortError
     | FilesystemAccessControlError

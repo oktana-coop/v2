@@ -6,10 +6,7 @@ import { createAdapter as createAutomergeDocumentStoreAdapter } from '../../../.
 import { setupForElectron as setupBrowserRepoForElectron } from '../../../../../../../modules/infrastructure/version-control/automerge-repo/browser';
 import { mapErrorTo } from '../../../../../../../utils/errors';
 import { RepositoryError as VersionedProjectRepositoryError } from '../../../../errors';
-import {
-  type MultiDocumentProjectStoreManager,
-  type OpenSingleDocumentProjectStoreArgs,
-} from '../../../../ports';
+import { type MultiDocumentProjectStoreManager } from '../../../../ports';
 import { createAdapter as createAutomergeProjectStoreAdapter } from '../../automerge-project-store';
 
 export type ElectronDeps = {
@@ -44,13 +41,49 @@ export const createAdapter = ({
   processId,
 }: ElectronDeps): MultiDocumentProjectStoreManager => {
   const openOrCreateMultiDocumentProject: MultiDocumentProjectStoreManager['openOrCreateMultiDocumentProject'] =
+    () => () =>
+      pipe(
+        Effect.tryPromise({
+          try: () =>
+            window.multiDocumentProjectAPI.openOrCreateMultiDocumentProject(),
+          // TODO: Leverage typed Effect errors returned from the respective node adapter
+          catch: mapErrorTo(
+            VersionedProjectRepositoryError,
+            'Error in creating single-document project'
+          ),
+        }),
+        Effect.flatMap(({ projectId, directory }) =>
+          pipe(
+            // TODO: Consider a cleaner approach of wiping IndexedDB (or the previous project's DB)
+            // before setting up the new one. For now, assuming that we don't want to do this so that performance
+            // is better as the user switches between known projects, and IndexedDB is guaranteed to be wiped when
+            // they close the app.
+            setupAutomergeRepo({
+              processId,
+              dbName: projectId,
+              store: STORE_NAME,
+            }),
+            Effect.map((automergeRepo) => ({
+              versionedProjectStore:
+                createAutomergeProjectStoreAdapter(automergeRepo),
+              versionedDocumentStore:
+                createAutomergeDocumentStoreAdapter(automergeRepo),
+              projectId,
+              directory,
+            }))
+          )
+        )
+      );
+
+  const openMultiDocumentProjectById: MultiDocumentProjectStoreManager['openMultiDocumentProjectById'] =
 
       () =>
-      ({ directoryPath }) =>
+      ({ projectId, directoryPath }) =>
         pipe(
           Effect.tryPromise({
             try: () =>
-              window.versionControlAPI.openOrCreateProject({
+              window.multiDocumentProjectAPI.openMultiDocumentProjectById({
+                projectId,
                 directoryPath,
               }),
             // TODO: Leverage typed Effect errors returned from the respective node adapter
@@ -59,7 +92,7 @@ export const createAdapter = ({
               'Error in creating single-document project'
             ),
           }),
-          Effect.flatMap(({ file, projectId, documentId }) =>
+          Effect.flatMap(({ directory }) =>
             pipe(
               // TODO: Consider a cleaner approach of wiping IndexedDB (or the previous project's DB)
               // before setting up the new one. For now, assuming that we don't want to do this so that performance
@@ -81,23 +114,6 @@ export const createAdapter = ({
             )
           )
         );
-
-  const openMultiDocumentProjectById: MultiDocumentProjectStoreManager['openMultiDocumentProjectById'] =
-
-      () =>
-      ({ projectId, directoryPath }) =>
-        Effect.tryPromise({
-          try: () =>
-            window.versionControlAPI.openProject({
-              projectId,
-              directoryPath,
-            }),
-          // TODO: Leverage typed Effect errors returned from the respective node adapter
-          catch: mapErrorTo(
-            VersionedProjectRepositoryError,
-            'Error in creating single-document project'
-          ),
-        });
 
   return {
     openOrCreateMultiDocumentProject,

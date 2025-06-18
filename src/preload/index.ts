@@ -1,7 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-import { type SingleDocumentProjectAPI } from '../../renderer';
 import {
+  MultiDocumentProjectAPI,
+  type SingleDocumentProjectAPI,
+} from '../../renderer';
+import {
+  type OpenMultiDocumentProjectByIdArgs,
   type OpenSingleDocumentProjectStoreArgs,
   type SetupSingleDocumentProjectStoreArgs,
 } from '../modules/domain/project';
@@ -61,24 +65,19 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
   readFile: (path: string) => ipcRenderer.invoke('read-file', path),
 } as FilesystemPromiseAPI);
 
-contextBridge.exposeInMainWorld('versionControlAPI', {
-  openOrCreateProject: ({ directoryPath }: { directoryPath: string }) =>
-    ipcRenderer.invoke('open-or-create-project', { directoryPath }),
-  openProject: ({
-    projectId,
-    directoryPath,
-  }: {
-    projectId: VersionControlId;
-    directoryPath: string;
-  }) => ipcRenderer.invoke('open-project', { projectId, directoryPath }),
-});
-
 contextBridge.exposeInMainWorld('singleDocumentProjectAPI', {
   createSingleDocumentProject: (args: SetupSingleDocumentProjectStoreArgs) =>
     ipcRenderer.invoke('create-single-document-project', { ...args }),
   openSingleDocumentProject: (args: OpenSingleDocumentProjectStoreArgs) =>
     ipcRenderer.invoke('open-single-document-project', { ...args }),
 } as SingleDocumentProjectAPI);
+
+contextBridge.exposeInMainWorld('multiDocumentProjectAPI', {
+  openOrCreateMultiDocumentProject: () =>
+    ipcRenderer.invoke('open-or-create-multi-document-project'),
+  openMultiDocumentProjectById: (args: OpenMultiDocumentProjectByIdArgs) =>
+    ipcRenderer.invoke('open-multi-document-project-by-id', { ...args }),
+} as MultiDocumentProjectAPI);
 
 contextBridge.exposeInMainWorld('wasmAPI', {
   runWasiCLI: (args: RunWasiCLIArgs) =>
