@@ -8,14 +8,12 @@ import {
 } from 'react';
 
 import {
-  createProjectFromFilesystemContent,
   createVersionedDocument,
   findDocumentInProject,
-  updateProjectFromFilesystemContent,
+  type MultiDocumentProjectStore,
 } from '../../domain/project';
 import { RICH_TEXT_FILE_EXTENSION } from '../../domain/project/constants/file-extensions';
 import { VersionedDocumentHandle } from '../../domain/rich-text';
-import { ElectronContext } from '../../infrastructure/cross-platform/electron-context';
 import { type Directory, type File } from '../../infrastructure/filesystem';
 import { VersionControlId } from '../../infrastructure/version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
@@ -32,7 +30,7 @@ export type MultiDocumentProjectContextType = {
   projectId: VersionControlId | null;
   directory: Directory | null;
   directoryFiles: Array<File>;
-  openDirectory: () => Promise<Directory | null>;
+  openDirectory: () => Promise<Directory>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
   createNewDocument: (
     suggestedName: string
@@ -50,6 +48,7 @@ export const MultiDocumentProjectContext =
     projectId: null,
     directory: null,
     directoryFiles: [],
+    // @ts-expect-error will get overriden below
     openDirectory: async () => null,
     // @ts-expect-error will get overriden below
     requestPermissionForSelectedDirectory: async () => null,
@@ -66,12 +65,17 @@ export const MultiDocumentProjectProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { isElectron } = useContext(ElectronContext);
-  const { filesystem, versionedDocumentStore, versionedProjectStore } =
-    useContext(InfrastructureAdaptersContext);
+  const {
+    filesystem,
+    versionedDocumentStore,
+    multiDocumentProjectStoreManager,
+    setVersionedDocumentStore,
+  } = useContext(InfrastructureAdaptersContext);
   const [projectId, setProjectId] = useState<VersionControlId | null>(null);
   const [directory, setDirectory] = useState<Directory | null>(null);
   const [directoryFiles, setDirectoryFiles] = useState<Array<File>>([]);
+  const [versionedProjectStore, setVersionedProjectStore] =
+    useState<MultiDocumentProjectStore | null>(null);
 
   const canCreateDocument = useCallback(
     () => Boolean(directory && directory.permissionState === 'granted'),
@@ -95,11 +99,29 @@ export const MultiDocumentProjectProvider = ({
           ) as BrowserStorageProjectData)
         : null;
 
-      if (browserStorageProjectData?.directoryPath) {
-        const directory = await Effect.runPromise(
-          filesystem.getDirectory(browserStorageProjectData.directoryPath)
+      if (
+        browserStorageProjectData?.directoryPath &&
+        browserStorageProjectData?.versionControlId
+      ) {
+        const {
+          versionedDocumentStore: documentStore,
+          versionedProjectStore: projectStore,
+          directory,
+        } = await Effect.runPromise(
+          multiDocumentProjectStoreManager.openMultiDocumentProjectById({
+            listDirectoryFiles: filesystem.listDirectoryFiles,
+            readFile: filesystem.readFile,
+            getDirectory: filesystem.getDirectory,
+          })({
+            projectId: browserStorageProjectData.versionControlId,
+            directoryPath: browserStorageProjectData.directoryPath,
+          })
         );
+
+        setProjectId(browserStorageProjectData.versionControlId);
         setDirectory(directory);
+        setVersionedProjectStore(projectStore);
+        setVersionedDocumentStore(documentStore);
       }
     };
 
@@ -148,13 +170,38 @@ export const MultiDocumentProjectProvider = ({
     }
   };
 
-  const openDirectory = async () => {
-    const directory = await Effect.runPromise(filesystem.openDirectory());
+  const handleOpenDirectory = async () => {
+    const {
+      versionedDocumentStore: documentStore,
+      versionedProjectStore: projectStore,
+      projectId: projId,
+      directory,
+    } = await Effect.runPromise(
+      multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject({
+        openDirectory: filesystem.openDirectory,
+        listDirectoryFiles: filesystem.listDirectoryFiles,
+        readFile: filesystem.readFile,
+        writeFile: filesystem.writeFile,
+        assertWritePermissionForDirectory:
+          filesystem.assertWritePermissionForDirectory,
+      })()
+    );
+
+    setProjectId(projId);
     setDirectory(directory);
+    setVersionedProjectStore(projectStore);
+    setVersionedDocumentStore(documentStore);
+
     return directory;
   };
 
   const handleCreateNewDocument = async (suggestedName: string) => {
+    if (!versionedDocumentStore || !versionedProjectStore) {
+      throw new Error(
+        'Cannot create document. Document and project store have not been initialized yet.'
+      );
+    }
+
     const { documentId: newDocumentId, filePath: newFilePath } =
       await Effect.runPromise(
         createVersionedDocument({
@@ -187,106 +234,17 @@ export const MultiDocumentProjectProvider = ({
     return { documentId: newDocumentId, path: newFilePath };
   };
 
-  useEffect(() => {
-    const openOrCreateProject = async () => {
-      if (directory) {
-        // Check if we have a project ID in the browser storage
-        const browserStorageBrowserDataValue = localStorage.getItem(
-          BROWSER_STORAGE_PROJECT_DATA_KEY
-        );
-        const browserStorageProjectData = browserStorageBrowserDataValue
-          ? (JSON.parse(
-              browserStorageBrowserDataValue
-            ) as BrowserStorageProjectData)
-          : null;
-
-        // Perform some side effects conditionally and store the (potentially) new
-        // project ID in local storage
-        let projId: VersionControlId;
-        if (
-          browserStorageProjectData?.directoryName === directory.name &&
-          browserStorageProjectData?.directoryPath === directory.path
-        ) {
-          // If we have a project ID and it matches the new directory name & path,
-          // we already have its version control ID. Return it and set it in the state.
-          projId = browserStorageProjectData.versionControlId;
-
-          if (isElectron) {
-            // Delegate opening the project to the main process
-            await window.versionControlAPI.openProject({
-              projectId: projId,
-              directoryPath: directory.path!,
-            });
-          } else {
-            await Effect.runPromise(
-              updateProjectFromFilesystemContent({
-                findDocumentById: versionedDocumentStore.findDocumentById,
-                getDocumentFromHandle:
-                  versionedDocumentStore.getDocumentFromHandle,
-                createDocument: versionedDocumentStore.createDocument,
-                deleteDocument: versionedDocumentStore.deleteDocument,
-                updateDocumentSpans: versionedDocumentStore.updateDocumentSpans,
-                listProjectDocuments:
-                  versionedProjectStore.listProjectDocuments,
-                findDocumentInProject:
-                  versionedProjectStore.findDocumentInProject,
-                deleteDocumentFromProject:
-                  versionedProjectStore.deleteDocumentFromProject,
-                addDocumentToProject:
-                  versionedProjectStore.addDocumentToProject,
-                listDirectoryFiles: filesystem.listDirectoryFiles,
-                readFile: filesystem.readFile,
-              })({
-                projectId: projId,
-                directoryPath: directory.path!,
-              })
-            );
-          }
-        } else {
-          if (isElectron) {
-            // Delegate opening/creating the project to the main process
-            projId = await window.versionControlAPI.openOrCreateProject({
-              directoryPath: directory.path!,
-            });
-          } else {
-            projId = await Effect.runPromise(
-              createProjectFromFilesystemContent({
-                createDocument: versionedDocumentStore.createDocument,
-                createProject: versionedProjectStore.createProject,
-                addDocumentToProject:
-                  versionedProjectStore.addDocumentToProject,
-                listDirectoryFiles: filesystem.listDirectoryFiles,
-                readFile: filesystem.readFile,
-              })({
-                directoryPath: directory.path!,
-              })
-            );
-          }
-
-          localStorage.setItem(
-            BROWSER_STORAGE_PROJECT_DATA_KEY,
-            JSON.stringify({
-              directoryName: directory.name,
-              directoryPath: directory.path,
-              versionControlId: projId,
-            })
-          );
-        }
-
-        setProjectId(projId);
-      } else {
-        setProjectId(null);
-      }
-    };
-
-    openOrCreateProject();
-  }, [directory, isElectron]);
-
   const handleFindDocumentInProject = async (args: {
     projectId: VersionControlId;
     documentPath: string;
-  }) =>
-    Effect.runPromise(
+  }) => {
+    if (!versionedDocumentStore || !versionedProjectStore) {
+      throw new Error(
+        'Cannot create document. Document and project store have not been initialized yet.'
+      );
+    }
+
+    return Effect.runPromise(
       findDocumentInProject({
         findDocumentById: versionedDocumentStore.findDocumentById,
         findDocumentInProjectStore: versionedProjectStore.findDocumentInProject,
@@ -295,6 +253,7 @@ export const MultiDocumentProjectProvider = ({
         documentPath: args.documentPath,
       })
     );
+  };
 
   return (
     <MultiDocumentProjectContext.Provider
@@ -302,7 +261,7 @@ export const MultiDocumentProjectProvider = ({
         projectId,
         directory,
         directoryFiles,
-        openDirectory,
+        openDirectory: handleOpenDirectory,
         requestPermissionForSelectedDirectory,
         createNewDocument: handleCreateNewDocument,
         findDocumentInProject: handleFindDocumentInProject,
