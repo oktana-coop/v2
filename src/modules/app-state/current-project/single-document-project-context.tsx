@@ -41,8 +41,11 @@ export const SingleDocumentProjectProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { filesystem, projectStoreManager, setVersionedDocumentStore } =
-    useContext(InfrastructureAdaptersContext);
+  const {
+    filesystem,
+    singleDocumentProjectStoreManager,
+    setVersionedDocumentStore,
+  } = useContext(InfrastructureAdaptersContext);
   const [projectId, setProjectId] = useState<VersionControlId | null>(null);
   const [projectFile, setProjectFile] = useState<File | null>(null);
   const [versionedProjectStore, setVersionedProjectStore] =
@@ -56,7 +59,7 @@ export const SingleDocumentProjectProvider = ({
       documentId,
       file,
     } = await Effect.runPromise(
-      projectStoreManager.setupSingleDocumentProjectStore({
+      singleDocumentProjectStoreManager.setupSingleDocumentProjectStore({
         createNewFile: filesystem.createNewFile,
       })({ suggestedName })
     );
@@ -78,7 +81,7 @@ export const SingleDocumentProjectProvider = ({
       documentId,
       file,
     } = await Effect.runPromise(
-      projectStoreManager.openSingleDocumentProjectStore({
+      singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
         openFile: filesystem.openFile,
       })({ fromFile })
     );
