@@ -6,12 +6,13 @@ import { type File } from '../../infrastructure/filesystem';
 import { VersionControlId } from '../../infrastructure/version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
-type BrowserStorageProjectData = {
+export type BrowserStorageProjectData = {
   projectId: VersionControlId;
-  filePath: string;
+  documentId: VersionControlId;
+  file: File | null;
 };
 
-const BROWSER_STORAGE_PROJECT_DATA_KEY = 'single-document-project';
+export const BROWSER_STORAGE_PROJECT_DATA_KEY = 'single-document-project';
 
 export type SingleDocumentProjectContextType = {
   projectId: VersionControlId | null;
@@ -51,6 +52,39 @@ export const SingleDocumentProjectProvider = ({
   const [versionedProjectStore, setVersionedProjectStore] =
     useState<SingleDocumentProjectStore | null>(null);
 
+  // useEffect(() => {
+  //   const getSelectedProject = async () => {
+  //     // Check if we have a project ID in the browser storage
+  //     const browserStorageBrowserDataValue = localStorage.getItem(
+  //       BROWSER_STORAGE_PROJECT_DATA_KEY
+  //     );
+  //     const browserStorageProjectData = browserStorageBrowserDataValue
+  //       ? (JSON.parse(
+  //           browserStorageBrowserDataValue
+  //         ) as BrowserStorageProjectData)
+  //       : null;
+
+  //     if (browserStorageProjectData?.projectId) {
+  //       const {
+  //         versionedDocumentStore: documentStore,
+  //         versionedProjectStore: projectStore,
+  //         file,
+  //       } = await Effect.runPromise(
+  //         singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
+  //           openFile: filesystem.openFile,
+  //         })({ projectId: browserStorageProjectData.projectId })
+  //       );
+
+  //       setProjectId(browserStorageProjectData.projectId);
+  //       setProjectFile(file);
+  //       setVersionedProjectStore(projectStore);
+  //       setVersionedDocumentStore(documentStore);
+  //     }
+  //   };
+
+  //   getSelectedProject();
+  // }, []);
+
   const handleCreateNewDocument = async (suggestedName: string) => {
     const {
       versionedDocumentStore: documentStore,
@@ -68,6 +102,16 @@ export const SingleDocumentProjectProvider = ({
     setProjectFile(file);
     setVersionedProjectStore(projectStore);
     setVersionedDocumentStore(documentStore);
+
+    const browserStorageProjectData: BrowserStorageProjectData = {
+      projectId: projId,
+      documentId,
+      file,
+    };
+    localStorage.setItem(
+      BROWSER_STORAGE_PROJECT_DATA_KEY,
+      JSON.stringify(browserStorageProjectData)
+    );
 
     // TODO: Handle browser case, where we won't be getting a file.
     return { documentId, path: file?.path ?? null };
@@ -90,6 +134,16 @@ export const SingleDocumentProjectProvider = ({
     setProjectFile(file);
     setVersionedProjectStore(projectStore);
     setVersionedDocumentStore(documentStore);
+
+    const browserStorageProjectData: BrowserStorageProjectData = {
+      projectId: projId,
+      documentId,
+      file,
+    };
+    localStorage.setItem(
+      BROWSER_STORAGE_PROJECT_DATA_KEY,
+      JSON.stringify(browserStorageProjectData)
+    );
 
     // TODO: Handle browser case, where we won't be getting a file.
     return { documentId, path: file?.path ?? null };

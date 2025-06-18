@@ -103,7 +103,6 @@ export const MultiDocumentProjectProvider = ({
         browserStorageProjectData?.directoryPath &&
         browserStorageProjectData?.projectId
       ) {
-        console.log('opening project');
         const {
           versionedDocumentStore: documentStore,
           versionedProjectStore: projectStore,
