@@ -10,7 +10,7 @@ import { NotFoundError, RepositoryError } from '../../../errors';
 import {
   type BaseArtifactMetaData,
   type SingleDocumentProject,
-  type SingleDocumentProjectHandle,
+  type VersionedSingleDocumentProjectHandle,
 } from '../../../models';
 import { type SingleDocumentProjectStore } from '../../../ports';
 
@@ -64,7 +64,7 @@ export const createAdapter = (
     );
 
   const getProjectFromHandle: (
-    handle: SingleDocumentProjectHandle
+    handle: VersionedSingleDocumentProjectHandle
   ) => Effect.Effect<
     SingleDocumentProject,
     RepositoryError | NotFoundError,

@@ -33,5 +33,5 @@ export type SingleDocumentProject = {
 export type VersionedSingleDocumentProject =
   VersionedArtifact<SingleDocumentProject>;
 
-export type VersionedSignleDocumentProjectHandle =
+export type VersionedSingleDocumentProjectHandle =
   VersionedArtifactHandle<SingleDocumentProject>;
