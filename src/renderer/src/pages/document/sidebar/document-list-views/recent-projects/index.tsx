@@ -1,7 +1,8 @@
-import { useContext } from 'react';
+import { useCallback, useContext } from 'react';
 import { useParams } from 'react-router';
 
 import { RecentProjectsContext } from '../../../../../../../modules/app-state';
+import { type VersionControlId } from '../../../../../../../modules/infrastructure/version-control';
 import { IconButton } from '../../../../../components/actions/IconButton';
 import {
   FileDocumentIcon,
@@ -23,7 +24,7 @@ export const RecentProjects = ({
   const { recentProjects } = useContext(RecentProjectsContext);
   const { documentId: documentIdParam } = useParams();
 
-  const handleDocumentSelection = useDocumentSelectionInSingleDocumentProject();
+  const selectDocument = useDocumentSelectionInSingleDocumentProject();
   const openDocument = useOpenDocument();
   const handleOpenDocument = () => openDocument();
 
@@ -32,6 +33,25 @@ export const RecentProjects = ({
     name: projectInfo.projectName ?? 'Untitled Document',
     isSelected: documentIdParam === projectInfo.documentId,
   }));
+
+  const handleDocumentSelection = useCallback(
+    (id: VersionControlId) => {
+      const projectInfo = recentProjects.find((proj) => proj.documentId === id);
+
+      if (!projectInfo) {
+        throw new Error(
+          `Project with documentId ${id} not found in recent projects`
+        );
+      }
+
+      selectDocument({
+        documentId: id,
+        projectId: projectInfo.projectId,
+        file: projectInfo.projectFile,
+      });
+    },
+    [recentProjects]
+  );
 
   return (
     <div className="flex h-full flex-col items-stretch py-6">

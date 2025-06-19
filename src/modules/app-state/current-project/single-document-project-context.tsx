@@ -23,9 +23,10 @@ export type SingleDocumentProjectContextType = {
   createNewDocument: (
     suggestedName: string
   ) => Promise<{ documentId: VersionControlId; path: string }>;
-  openDocument: (
-    fromFile?: File
-  ) => Promise<{ documentId: VersionControlId; path: string }>;
+  openDocument: (args?: {
+    fromFile?: File;
+    projectId?: VersionControlId;
+  }) => Promise<{ documentId: VersionControlId; path: string }>;
 };
 
 export const SingleDocumentProjectContext =
@@ -125,7 +126,10 @@ export const SingleDocumentProjectProvider = ({
     return { documentId, path: file?.path ?? null };
   };
 
-  const handleOpenDocument = async (fromFile?: File) => {
+  const handleOpenDocument = async (args?: {
+    fromFile?: File;
+    projectId?: VersionControlId;
+  }) => {
     const {
       versionedDocumentStore: documentStore,
       versionedProjectStore: projectStore,
@@ -134,9 +138,13 @@ export const SingleDocumentProjectProvider = ({
       file,
       name: projName,
     } = await Effect.runPromise(
-      singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
-        openFile: filesystem.openFile,
-      })({ fromFile })
+      args
+        ? singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
+            openFile: filesystem.openFile,
+          })({ fromFile: args.fromFile, projectId: args.projectId })
+        : singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
+            openFile: filesystem.openFile,
+          })({})
     );
 
     setProjectId(projId);
