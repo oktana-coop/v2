@@ -251,8 +251,11 @@ export const CurrentDocumentProvider = ({
       window.document.title = `v2 | "${name}"`;
     };
 
-    if (versionedDocumentStore && versionedDocumentHandle && selectedFileName) {
-      updateBrowserTabTitle(selectedFileName);
+    if (versionedDocumentStore && versionedDocumentHandle) {
+      if (selectedFileName) {
+        updateBrowserTabTitle(selectedFileName);
+      }
+
       loadHistory(versionedDocumentStore)(versionedDocumentHandle);
     }
   }, [versionedDocumentHandle, versionedDocumentStore, selectedFileName]);
