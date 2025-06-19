@@ -10,7 +10,7 @@ import { RepositoryError as VersionedProjectRepositoryError } from '../../errors
 import { type SingleDocumentProjectStore } from '../../ports';
 
 export type CreateDocumentAndProjectArgs = {
-  title: string;
+  name?: string;
   content: string | null;
 };
 
@@ -30,7 +30,7 @@ export const createDocumentAndProject =
     createSingleDocumentProject,
   }: CreateDocumentAndProjectDeps) =>
   ({
-    title,
+    name,
     content,
   }: CreateDocumentAndProjectArgs): Effect.Effect<
     CreateSingleDocumentProjectResult,
@@ -39,14 +39,13 @@ export const createDocumentAndProject =
   > =>
     pipe(
       createDocument({
-        title,
         content,
       }),
       Effect.flatMap((documentId) =>
         pipe(
           createSingleDocumentProject({
-            versionControlId: documentId,
-            name: title,
+            documentMetaData: { versionControlId: documentId },
+            name: name ?? null,
           }),
           Effect.map((projectId) => ({ documentId, projectId }))
         )

@@ -7,8 +7,8 @@ import {
 import { projectTypes } from '../../../../../modules/domain/project';
 import { removeExtension } from '../../../../../modules/infrastructure/filesystem';
 import { CommandPalette } from '../../../components/dialogs/command-palette/CommandPalette';
-import { useFileSelection as useFileSelectionInMultiDocumentProject } from '../../../hooks/multi-document-project';
-import { useFileSelection as useFileSelectionInSingleDocumentProject } from '../../../hooks/single-document-project';
+import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../hooks/multi-document-project';
+import { useDocumentSelection as useDocumentSelectionInSingleDocumentProject } from '../../../hooks/single-document-project';
 import { useKeyBindings } from '../../../hooks/useKeyBindings';
 
 export const DocumentCommandPalette = ({
@@ -27,15 +27,15 @@ export const DocumentCommandPalette = ({
     'ctrl+k': () => setCommandPaletteOpen((state) => !state),
     'ctrl+d': () => onCreateDocument(),
   });
-  const handleFileSelectionInMultiDocumentProject =
-    useFileSelectionInMultiDocumentProject();
-  const handleFileSelectionInSingleDocumentProject =
-    useFileSelectionInSingleDocumentProject();
+  const handleDocumentSelectionInMultiDocumentProject =
+    useDocumentSelectionInMultiDocumentProject();
+  const handleDocumentSelectionInSingleDocumentProject =
+    useDocumentSelectionInSingleDocumentProject();
 
-  const handleFileSelection =
+  const handleDocumentSelection =
     projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-      ? handleFileSelectionInMultiDocumentProject
-      : handleFileSelectionInSingleDocumentProject;
+      ? handleDocumentSelectionInMultiDocumentProject
+      : handleDocumentSelectionInSingleDocumentProject;
 
   const singleDocumentProjectActions = [
     {
@@ -76,7 +76,7 @@ export const DocumentCommandPalette = ({
         .map((file) => ({
           title: removeExtension(file.name),
           onDocumentSelection: () => {
-            handleFileSelection(file);
+            handleDocumentSelection(file);
             setCommandPaletteOpen(false);
           },
         }))}

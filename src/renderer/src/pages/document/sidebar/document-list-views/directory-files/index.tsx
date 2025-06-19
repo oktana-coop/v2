@@ -21,7 +21,7 @@ export const DirectoryFiles = ({
   const handleDocumentSelection = useDocumentSelectionInMultiDocumentProject();
 
   const files = directoryFiles.map((file) => ({
-    id: file.path!,
+    id: file.path,
     name: removeExtension(file.name),
     isSelected: selectedFileInfo?.path === file.path,
   }));

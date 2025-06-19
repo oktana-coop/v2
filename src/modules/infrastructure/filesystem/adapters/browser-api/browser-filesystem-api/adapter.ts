@@ -79,7 +79,7 @@ const showSaveFilePicker = ({
   suggestedName,
   extensions,
 }: {
-  suggestedName: string;
+  suggestedName?: string;
   extensions: Array<string>;
 }): Effect.Effect<FileSystemFileHandle, AbortError | RepositoryError, never> =>
   Effect.tryPromise({
@@ -303,7 +303,7 @@ export const createAdapter = (): Filesystem => ({
             clearAllAndInsertManyFileHandles(
               files.map((file) => ({
                 fileHandle: file.handle,
-                relativePath: file.path!,
+                relativePath: file.path,
               }))
             ),
           catch: mapErrorTo(

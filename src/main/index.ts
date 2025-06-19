@@ -173,16 +173,17 @@ async function createWindow() {
 
   ipcMain.handle(
     'create-single-document-project',
-    async (_, { suggestedName }: SetupSingleDocumentProjectStoreArgs) =>
+    async (_, { name }: SetupSingleDocumentProjectStoreArgs) =>
       Effect.runPromise(
         pipe(
           singleDocumentProjectStoreManager.setupSingleDocumentProjectStore({
             createNewFile: filesystemAPI.createNewFile,
-          })({ suggestedName }),
-          Effect.map(({ projectId, documentId, file }) => ({
+          })({ name }),
+          Effect.map(({ projectId, documentId, file, name }) => ({
             projectId,
             documentId,
             file,
+            name,
           }))
         )
       )
@@ -196,10 +197,11 @@ async function createWindow() {
           singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
             openFile: filesystemAPI.openFile,
           })({ fromFile }),
-          Effect.map(({ projectId, documentId, file }) => ({
+          Effect.map(({ projectId, documentId, file, name }) => ({
             projectId,
             documentId,
             file,
+            name,
           }))
         )
       )

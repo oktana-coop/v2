@@ -11,7 +11,6 @@ export type RichTextDocumentSpan = Automerge.Span;
 
 export type RichTextDocument = {
   type: typeof versionedArtifactTypes.RICH_TEXT_DOCUMENT;
-  title: string;
   content: string;
 };
 

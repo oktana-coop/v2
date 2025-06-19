@@ -98,7 +98,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                         versionedProjectStore.addDocumentToProject,
                       listDirectoryFiles,
                       readFile,
-                    })({ directoryPath: directory.path! }),
+                    })({ directoryPath: directory.path }),
                     Effect.map((projectId) => ({
                       versionedProjectStore,
                       versionedDocumentStore,

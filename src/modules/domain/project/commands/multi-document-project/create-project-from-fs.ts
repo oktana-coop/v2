@@ -74,7 +74,7 @@ export const createProjectFromFilesystemContent =
       ),
       Effect.flatMap((documents) =>
         createProject({
-          path: directoryPath!,
+          path: directoryPath,
           documents: documents.reduce(
             (acc, doc) => {
               return { ...acc, [doc.versionControlId]: doc };

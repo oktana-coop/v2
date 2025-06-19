@@ -22,7 +22,6 @@ import {
 import { type MultiDocumentProjectStore } from '../../ports/multi-document-project';
 
 export type CreateVersionedDocumentArgs = {
-  suggestedName: string;
   content: string | null;
   projectId: VersionControlId | null;
   directory: Directory | null;
@@ -46,7 +45,6 @@ export const createVersionedDocument =
     addDocumentToProject,
   }: CreateVersionedDocumentDeps) =>
   ({
-    suggestedName,
     content,
     projectId,
     directory,
@@ -64,18 +62,15 @@ export const createVersionedDocument =
       Effect.bind('newFile', () =>
         directory
           ? createNewFile({
-              suggestedName,
               parentDirectory: directory,
               extensions: [RICH_TEXT_FILE_EXTENSION],
             })
           : createNewFile({
-              suggestedName,
               extensions: [RICH_TEXT_FILE_EXTENSION],
             })
       ),
       Effect.bind('documentId', () =>
         createDocument({
-          title: suggestedName,
           content,
         })
       ),
@@ -88,13 +83,13 @@ export const createVersionedDocument =
               addDocumentToProject({
                 documentId,
                 name: newFile.name,
-                path: newFile.path!,
+                path: newFile.path,
                 projectId: projId,
               }),
           })
         )
       ),
       Effect.flatMap(({ documentId, newFile }) =>
-        Effect.succeed({ documentId, filePath: newFile.path! })
+        Effect.succeed({ documentId, filePath: newFile.path })
       )
     );

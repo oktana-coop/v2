@@ -57,10 +57,9 @@ export const createVersionedDocumentFromFile =
     never
   > =>
     Effect.Do.pipe(
-      Effect.bind('readFileResult', () => readFile(file.path!)),
+      Effect.bind('readFileResult', () => readFile(file.path)),
       Effect.bind('documentId', ({ readFileResult }) =>
         createDocument({
-          title: readFileResult.name,
           content: readFileResult.content ?? null,
         })
       ),
@@ -73,7 +72,7 @@ export const createVersionedDocumentFromFile =
               addDocumentToProject({
                 documentId,
                 name: readFileResult.name,
-                path: readFileResult.path!,
+                path: readFileResult.path,
                 projectId: projId,
               }),
           })
@@ -81,7 +80,7 @@ export const createVersionedDocumentFromFile =
       ),
       Effect.map(({ readFileResult, documentId }) => ({
         versionControlId: documentId,
-        path: readFileResult.path!,
+        path: readFileResult.path,
         name: readFileResult.name,
       }))
     );

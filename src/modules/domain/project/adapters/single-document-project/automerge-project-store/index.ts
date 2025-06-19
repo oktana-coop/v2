@@ -10,7 +10,6 @@ import { NotFoundError, RepositoryError } from '../../../errors';
 import {
   type BaseArtifactMetaData,
   type SingleDocumentProject,
-  type VersionedSingleDocumentProjectHandle,
 } from '../../../models';
 import { type SingleDocumentProjectStore } from '../../../ports';
 
@@ -35,20 +34,23 @@ export const createAdapter = (
     );
 
   const createSingleDocumentProject: SingleDocumentProjectStore['createSingleDocumentProject'] =
-    (documentMetaData) =>
+    ({ documentMetaData, name }) =>
       pipe(
         Effect.try({
           try: () =>
             automergeRepo.create<SingleDocumentProject>({
               document: documentMetaData,
               assets: {},
+              name,
             }),
           catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
         }),
         Effect.map((handle) => handle.url)
       );
 
-  const findProjectById = (id: VersionControlId) =>
+  const findProjectById: SingleDocumentProjectStore['findProjectById'] = (
+    id: VersionControlId
+  ) =>
     pipe(
       Effect.tryPromise({
         try: () => automergeRepo.find<SingleDocumentProject>(id),
@@ -63,13 +65,8 @@ export const createAdapter = (
       })
     );
 
-  const getProjectFromHandle: (
-    handle: VersionedSingleDocumentProjectHandle
-  ) => Effect.Effect<
-    SingleDocumentProject,
-    RepositoryError | NotFoundError,
-    never
-  > = getDocFromHandle<SingleDocumentProject>;
+  const getProjectFromHandle: SingleDocumentProjectStore['getProjectFromHandle'] =
+    getDocFromHandle<SingleDocumentProject>;
 
   const getDocumentFromProject = (
     projectId: VersionControlId
@@ -91,8 +88,20 @@ export const createAdapter = (
         Effect.map((document) => document.versionControlId)
       );
 
+  const getProjectName: SingleDocumentProjectStore['getProjectName'] = (
+    id: VersionControlId
+  ) =>
+    pipe(
+      findProjectById(id),
+      Effect.flatMap(getProjectFromHandle),
+      Effect.map((project) => project.name)
+    );
+
   return {
     createSingleDocumentProject,
     findDocumentInProject,
+    findProjectById,
+    getProjectFromHandle,
+    getProjectName,
   };
 };

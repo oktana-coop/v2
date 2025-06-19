@@ -29,7 +29,7 @@ export const RecentProjects = ({
 
   const items = recentProjects.map((projectInfo) => ({
     id: projectInfo.documentId,
-    name: projectInfo.name,
+    name: projectInfo.projectName ?? 'Untitled Document',
     isSelected: documentIdParam === projectInfo.documentId,
   }));
 

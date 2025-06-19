@@ -10,6 +10,7 @@ import {
 } from '../../../../modules/app-state';
 import { projectTypes } from '../../../../modules/domain/project';
 import { ProseMirrorProvider } from '../../../../modules/domain/rich-text/react/context';
+import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/electron-context';
 import {
   decodeURLHeads,
   type VersionControlId,
@@ -42,10 +43,12 @@ export {
 } from './main';
 
 const DocumentIndex = () => {
+  const { isElectron } = useContext(ElectronContext);
+
   const [isDocumentCreationModalOpen, setCreateDocumentModalOpen] =
     useState<boolean>(false);
   const navigate = useNavigate();
-  const { projectType } = useContext(CurrentProjectContext);
+  const { projectType, createNewDocument } = useContext(CurrentProjectContext);
   const {
     setSelectedFileInfo,
     versionedDocumentHistory: commits,
@@ -59,10 +62,10 @@ const DocumentIndex = () => {
   const openDocument = useOpenDocument();
 
   useEffect(() => {
-    document.title = 'v2 | Editor';
+    window.document.title = 'v2 | Editor';
   }, []);
 
-  const handleDocumentCreation = ({
+  const navigateToDocument = ({
     documentId,
     path,
   }: {
@@ -81,6 +84,15 @@ const DocumentIndex = () => {
     setCreateDocumentModalOpen(false);
   };
 
+  const handleCreateDocument = async () => {
+    if (isElectron) {
+      const { documentId, path } = await createNewDocument();
+      navigateToDocument({ documentId, path });
+    } else {
+      openCreateDocumentModal();
+    }
+  };
+
   const handleOpenDocument = () => openDocument();
 
   return (
@@ -89,7 +101,7 @@ const DocumentIndex = () => {
         <CreateDocumentModal
           isOpen={isDocumentCreationModalOpen}
           onClose={closeCreateDocumentModal}
-          onCreateDocument={handleDocumentCreation}
+          onCreateDocument={navigateToDocument}
         />
         <CommitDialog
           isOpen={isCommitDialogOpen}
@@ -98,7 +110,7 @@ const DocumentIndex = () => {
           onCommit={(message: string) => onCommit(message)}
         />
         <DocumentCommandPalette
-          onCreateDocument={openCreateDocumentModal}
+          onCreateDocument={handleCreateDocument}
           onOpenDocument={handleOpenDocument}
         />
         <ProseMirrorProvider>
@@ -106,9 +118,9 @@ const DocumentIndex = () => {
             sidebar={
               <StackedResizablePanelsLayout autoSaveId="editor-panel-group">
                 {projectType === projectTypes.MULTI_DOCUMENT_PROJECT ? (
-                  <DirectoryFiles onCreateDocument={openCreateDocumentModal} />
+                  <DirectoryFiles onCreateDocument={handleCreateDocument} />
                 ) : (
-                  <RecentProjects onCreateDocument={openCreateDocumentModal} />
+                  <RecentProjects onCreateDocument={handleCreateDocument} />
                 )}
 
                 <DocumentHistory
@@ -120,7 +132,7 @@ const DocumentIndex = () => {
             }
           >
             <DocumentMainViewRouter
-              onCreateDocumentButtonClick={openCreateDocumentModal}
+              onCreateDocumentButtonClick={handleCreateDocument}
               onOpenDocumentButtonClick={handleOpenDocument}
             />
           </SidebarLayout>

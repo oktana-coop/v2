@@ -246,16 +246,15 @@ export const CurrentDocumentProvider = ({
     };
 
   useEffect(() => {
-    const updateDocTitle = async (docHandle: VersionedDocumentHandle) => {
-      const doc = await docHandle.doc();
-      document.title = `v2 | "${doc.title}"`;
+    const updateBrowserTabTitle = async (name: string) => {
+      window.document.title = `v2 | "${name}"`;
     };
 
-    if (versionedDocumentStore && versionedDocumentHandle) {
-      updateDocTitle(versionedDocumentHandle);
+    if (versionedDocumentStore && versionedDocumentHandle && selectedFileName) {
+      updateBrowserTabTitle(selectedFileName);
       loadHistory(versionedDocumentStore)(versionedDocumentHandle);
     }
-  }, [versionedDocumentHandle, versionedDocumentStore]);
+  }, [versionedDocumentHandle, versionedDocumentStore, selectedFileName]);
 
   useEffect(() => {
     if (versionedDocumentStore && versionedDocumentHandle) {

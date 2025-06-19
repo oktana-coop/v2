@@ -24,7 +24,7 @@ export type SetupSingleDocumentProjectStoreDeps = {
 };
 
 export type SetupSingleDocumentProjectStoreArgs = {
-  suggestedName: string;
+  name?: string;
 };
 
 export type SetupSingleDocumentProjectStoreResult = {
@@ -33,6 +33,7 @@ export type SetupSingleDocumentProjectStoreResult = {
   projectId: VersionControlId;
   documentId: VersionControlId;
   file: File | null;
+  name: string | null;
 };
 
 export type OpenSingleDocumentProjectStoreDeps = {
@@ -50,6 +51,7 @@ export type OpenSingleDocumentProjectStoreResult = {
   projectId: VersionControlId;
   documentId: VersionControlId;
   file: File | null;
+  name: string | null;
 };
 
 export type SingleDocumentProjectStoreManager = {
@@ -63,7 +65,8 @@ export type SingleDocumentProjectStoreManager = {
     | FilesystemNotFoundError
     | FilesystemRepositoryError
     | VersionedProjectRepositoryError
-    | VersionedDocumentRepositoryError,
+    | VersionedDocumentRepositoryError
+    | VersionedProjectValidationError,
     never
   >;
   openSingleDocumentProjectStore: (

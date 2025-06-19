@@ -6,11 +6,11 @@ import {
 
 export type BaseArtifactMetaData = {
   versionControlId: VersionControlId;
-  name: string;
 };
 
 export type ArtifactMetaData = BaseArtifactMetaData & {
   // TODO: use relative path to project directory in this model
+  name: string;
   path: string;
 };
 
@@ -28,6 +28,7 @@ export type VersionedMultiDocumentProjectHandle =
 export type SingleDocumentProject = {
   document: BaseArtifactMetaData;
   assets: Record<VersionControlId, BaseArtifactMetaData>;
+  name: string | null;
 };
 
 export type VersionedSingleDocumentProject =

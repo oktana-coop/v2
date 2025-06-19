@@ -1,7 +1,7 @@
 import { filesystemItemTypes } from './constants/filesystem-item-types';
 
 export type FilesystemItem = {
-  path?: string;
+  path: string;
   name: string;
 };
 

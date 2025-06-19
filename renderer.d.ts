@@ -36,7 +36,7 @@ export type SingleDocumentProjectAPI = {
   ) => Promise<
     Pick<
       SetupSingleDocumentProjectStoreResult,
-      'projectId' | 'documentId' | 'file'
+      'projectId' | 'documentId' | 'file' | 'name'
     >
   >;
   openSingleDocumentProject: (
@@ -44,7 +44,7 @@ export type SingleDocumentProjectAPI = {
   ) => Promise<
     Pick<
       OpenSingleDocumentProjectStoreResult,
-      'projectId' | 'documentId' | 'file'
+      'projectId' | 'documentId' | 'file' | 'name'
     >
   >;
 };

@@ -98,7 +98,7 @@ const propagateFileChangesToVersionedDocument =
         findDocumentById,
         findDocumentInProjectStore,
       })({
-        documentPath: file.path!,
+        documentPath: file.path,
         projectId,
       }),
       Effect.flatMap((documentHandle) =>
@@ -106,7 +106,7 @@ const propagateFileChangesToVersionedDocument =
           getDocumentFromHandle(documentHandle),
           Effect.flatMap((document) =>
             pipe(
-              readFile(file.path!),
+              readFile(file.path),
               Effect.flatMap((fileContent) => {
                 if (
                   fileContent.content &&

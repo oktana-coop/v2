@@ -44,44 +44,41 @@ export const createAdapter = ({
   processId,
 }: ElectronDeps): SingleDocumentProjectStoreManager => {
   const setupSingleDocumentProjectStore: SingleDocumentProjectStoreManager['setupSingleDocumentProjectStore'] =
-
-      () =>
-      ({ suggestedName }) =>
-        pipe(
-          Effect.tryPromise({
-            try: () =>
-              window.singleDocumentProjectAPI.createSingleDocumentProject({
-                suggestedName,
-              }),
-            // TODO: Leverage typed Effect errors returned from the respective node adapter
-            catch: mapErrorTo(
-              VersionedProjectRepositoryError,
-              'Error in creating single-document project'
-            ),
-          }),
-          Effect.flatMap(({ file, projectId, documentId }) =>
-            pipe(
-              // TODO: Consider a cleaner approach of wiping IndexedDB (or the previous project's DB)
-              // before setting up the new one. For now, assuming that we don't want to do this so that performance
-              // is better as the user switches between known projects, and IndexedDB is guaranteed to be wiped when
-              // they close the app.
-              setupAutomergeRepo({
-                processId,
-                dbName: projectId,
-                store: STORE_NAME,
-              }),
-              Effect.map((automergeRepo) => ({
-                versionedProjectStore:
-                  createAutomergeProjectStoreAdapter(automergeRepo),
-                versionedDocumentStore:
-                  createAutomergeDocumentStoreAdapter(automergeRepo),
-                projectId,
-                documentId,
-                file,
-              }))
-            )
+    () => () =>
+      pipe(
+        Effect.tryPromise({
+          try: () =>
+            window.singleDocumentProjectAPI.createSingleDocumentProject({}),
+          // TODO: Leverage typed Effect errors returned from the respective node adapter
+          catch: mapErrorTo(
+            VersionedProjectRepositoryError,
+            'Error in creating single-document project'
+          ),
+        }),
+        Effect.flatMap(({ projectId, documentId, file, name }) =>
+          pipe(
+            // TODO: Consider a cleaner approach of wiping IndexedDB (or the previous project's DB)
+            // before setting up the new one. For now, assuming that we don't want to do this so that performance
+            // is better as the user switches between known projects, and IndexedDB is guaranteed to be wiped when
+            // they close the app.
+            setupAutomergeRepo({
+              processId,
+              dbName: projectId,
+              store: STORE_NAME,
+            }),
+            Effect.map((automergeRepo) => ({
+              versionedProjectStore:
+                createAutomergeProjectStoreAdapter(automergeRepo),
+              versionedDocumentStore:
+                createAutomergeDocumentStoreAdapter(automergeRepo),
+              projectId,
+              documentId,
+              file,
+              name,
+            }))
           )
-        );
+        )
+      );
 
   const openSingleDocumentProjectStore: SingleDocumentProjectStoreManager['openSingleDocumentProjectStore'] =
 
@@ -99,7 +96,7 @@ export const createAdapter = ({
               'Error in opening single-document project'
             ),
           }),
-          Effect.flatMap(({ projectId, documentId, file }) =>
+          Effect.flatMap(({ projectId, documentId, file, name }) =>
             pipe(
               // TODO: Consider a cleaner approach of wiping IndexedDB (or the previous project's DB)
               // before setting up the new one. For now, assuming that we don't want to do this so that performance
@@ -118,6 +115,7 @@ export const createAdapter = ({
                 projectId,
                 documentId,
                 file,
+                name,
               }))
             )
           )

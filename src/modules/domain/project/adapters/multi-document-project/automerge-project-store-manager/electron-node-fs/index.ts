@@ -362,7 +362,7 @@ export const createAdapter = ({
             pipe(
               pipe(
                 openProjectFromFilesystem({
-                  directoryPath: directory.path!,
+                  directoryPath: directory.path,
                   rendererProcessId,
                   browserWindow,
                   listDirectoryFiles,
@@ -378,7 +378,7 @@ export const createAdapter = ({
                   // Create a new repo & project
                   () =>
                     createNewProject({
-                      directoryPath: directory.path!,
+                      directoryPath: directory.path,
                       rendererProcessId,
                       browserWindow,
                       listDirectoryFiles,

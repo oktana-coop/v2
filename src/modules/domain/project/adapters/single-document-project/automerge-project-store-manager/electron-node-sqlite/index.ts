@@ -118,17 +118,14 @@ export const createAdapter = ({
   const setupSingleDocumentProjectStore: SingleDocumentProjectStoreManager['setupSingleDocumentProjectStore'] =
 
       ({ createNewFile }: SetupSingleDocumentProjectStoreDeps) =>
-      ({ suggestedName }: SetupSingleDocumentProjectStoreArgs) =>
+      () =>
         Effect.Do.pipe(
           Effect.bind('newFile', () =>
             createNewFile({
-              suggestedName,
               extensions: [PROJECT_FILE_EXTENSION],
             })
           ),
-          Effect.bind('db', ({ newFile }) =>
-            setupSQLiteDatabase(newFile.path!)
-          ),
+          Effect.bind('db', ({ newFile }) => setupSQLiteDatabase(newFile.path)),
           Effect.bind('automergeRepo', ({ db }) =>
             setupAutomergeRepo({
               rendererProcessId,
@@ -150,15 +147,16 @@ export const createAdapter = ({
                   createSingleDocumentProject:
                     versionedProjectStore.createSingleDocumentProject,
                 })({
-                  title: suggestedName,
                   content: null,
                 }),
                 Effect.map(({ documentId, projectId }) => ({
                   versionedProjectStore,
                   versionedDocumentStore,
-                  file: newFile,
                   projectId,
                   documentId,
+                  file: newFile,
+                  // The name is derived by the file name in this case
+                  name: newFile.name,
                 })),
                 Effect.tap(({ projectId }) =>
                   insertProjectMetadataInSQLite({ db, projectId })
@@ -177,7 +175,7 @@ export const createAdapter = ({
               ? Effect.succeed(fromFile)
               : openFile({ extensions: [PROJECT_FILE_EXTENSION] })
           ),
-          Effect.bind('db', ({ file }) => setupSQLiteDatabase(file.path!)),
+          Effect.bind('db', ({ file }) => setupSQLiteDatabase(file.path)),
           Effect.bind('projectId', ({ db }) =>
             readProjectMetadataFromSQLite({ db })
           ),
@@ -210,6 +208,8 @@ export const createAdapter = ({
               projectId,
               documentId,
               file,
+              // The name is derived by the file name in this case
+              name: file.name,
             })
           )
         );

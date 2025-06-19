@@ -13,7 +13,6 @@ import {
 } from '../models';
 
 export type CreateDocumentArgs = {
-  title: string;
   content: string | null;
 };
 

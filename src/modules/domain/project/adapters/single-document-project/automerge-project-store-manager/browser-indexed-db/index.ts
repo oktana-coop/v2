@@ -8,6 +8,7 @@ import { setupForWeb as setupBrowserRepoForWeb } from '../../../../../../../modu
 import { fromNullable } from '../../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../../utils/errors';
 import { createDocumentAndProject } from '../../../../commands/single-document-project';
+import { getProjectName } from '../../../../commands/single-document-project';
 import {
   RepositoryError as VersionedProjectRepositoryError,
   ValidationError as VersionedProjectValidationError,
@@ -76,8 +77,15 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
   const setupSingleDocumentProjectStore: SingleDocumentProjectStoreManager['setupSingleDocumentProjectStore'] =
 
       () =>
-      ({ suggestedName }) =>
+      ({ name }) =>
         Effect.Do.pipe(
+          Effect.bind('projectName', () =>
+            fromNullable(
+              name,
+              () =>
+                new VersionedProjectValidationError('Project name is mandatory')
+            )
+          ),
           Effect.bind('tempDBName', () =>
             Effect.succeed(`temp-automerge-${uuidv4()}`)
           ),
@@ -87,32 +95,35 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
               store: STORE_NAME,
             })
           ),
-          Effect.bind('projectAndDocumentData', ({ tempAutomergeRepo }) =>
-            pipe(
-              Effect.succeed({
-                tempVersionedProjectStore:
-                  createAutomergeProjectStoreAdapter(tempAutomergeRepo),
-                tempVersionedDocumentStore:
-                  createAutomergeDocumentStoreAdapter(tempAutomergeRepo),
-              }),
-              Effect.flatMap(
-                ({ tempVersionedProjectStore, tempVersionedDocumentStore }) =>
-                  pipe(
-                    createDocumentAndProject({
-                      createDocument: tempVersionedDocumentStore.createDocument,
-                      createSingleDocumentProject:
-                        tempVersionedProjectStore.createSingleDocumentProject,
-                    })({
-                      title: suggestedName,
-                      content: null,
-                    }),
-                    Effect.map(({ documentId, projectId }) => ({
-                      projectId,
-                      documentId,
-                    }))
-                  )
+          Effect.bind(
+            'projectAndDocumentData',
+            ({ tempAutomergeRepo, projectName }) =>
+              pipe(
+                Effect.succeed({
+                  tempVersionedProjectStore:
+                    createAutomergeProjectStoreAdapter(tempAutomergeRepo),
+                  tempVersionedDocumentStore:
+                    createAutomergeDocumentStoreAdapter(tempAutomergeRepo),
+                }),
+                Effect.flatMap(
+                  ({ tempVersionedProjectStore, tempVersionedDocumentStore }) =>
+                    pipe(
+                      createDocumentAndProject({
+                        createDocument:
+                          tempVersionedDocumentStore.createDocument,
+                        createSingleDocumentProject:
+                          tempVersionedProjectStore.createSingleDocumentProject,
+                      })({
+                        name: projectName,
+                        content: null,
+                      }),
+                      Effect.map(({ documentId, projectId }) => ({
+                        projectId,
+                        documentId,
+                      }))
+                    )
+                )
               )
-            )
           ),
           Effect.bind('dbName', ({ tempDBName, projectAndDocumentData }) =>
             pipe(
@@ -147,12 +158,14 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
               versionedProjectStore,
               versionedDocumentStore,
               projectAndDocumentData,
+              projectName,
             }) => ({
               versionedProjectStore,
               versionedDocumentStore,
               projectId: projectAndDocumentData.projectId,
               documentId: projectAndDocumentData.documentId,
               file: null,
+              name: projectName,
             })
           )
         );
@@ -183,14 +196,23 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
               })),
               Effect.flatMap(
                 ({ versionedProjectStore, versionedDocumentStore }) =>
-                  pipe(
-                    versionedProjectStore.findDocumentInProject(projectId),
-                    Effect.map((documentId) => ({
+                  Effect.Do.pipe(
+                    Effect.bind('documentId', () =>
+                      versionedProjectStore.findDocumentInProject(projectId)
+                    ),
+                    Effect.bind('projectName', () =>
+                      getProjectName({
+                        getProjectNameFromStore:
+                          versionedProjectStore.getProjectName,
+                      })({ projectId })
+                    ),
+                    Effect.map(({ documentId, projectName }) => ({
                       versionedProjectStore,
                       versionedDocumentStore,
                       projectId,
                       documentId,
                       file: null,
+                      name: projectName,
                     }))
                   )
               )

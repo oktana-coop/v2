@@ -63,7 +63,7 @@ const showSaveDialog = ({
   suggestedName,
   extensions,
 }: {
-  suggestedName: string;
+  suggestedName?: string;
   extensions: Array<string>;
 }): Effect.Effect<Electron.SaveDialogReturnValue, AbortError, never> =>
   pipe(
@@ -131,7 +131,7 @@ export const createAdapter = (): Filesystem => ({
 
             return file;
           })
-          .filter((file) => !isHiddenFile(file.path!));
+          .filter((file) => !isHiddenFile(file.path));
 
         return files;
       })

@@ -19,18 +19,17 @@ type RecentSingleDocumentProjectInfo = RecentProjectInfo & {
   projectType: typeof projectTypes.SINGLE_DOCUMENT_PROJECT;
   documentId: VersionControlId;
   projectFile: File | null;
+  projectName: string | null;
 };
 
 const BROWSER_STORAGE_RECENT_PROJECTS_KEY = 'recent-projects';
 
 type RecentProjectsContextType = {
   recentProjects: Array<RecentSingleDocumentProjectInfo>;
-  recentProjectFiles: Array<File>;
 };
 
 export const RecentProjectsContext = createContext<RecentProjectsContextType>({
   recentProjects: [],
-  recentProjectFiles: [],
 });
 
 const getRecentProjectsFromLocalStorage = () => {
@@ -56,31 +55,21 @@ export const RecentProjectsProvider = ({
   const [recentProjects, setRecentProjects] = useState<
     Array<RecentSingleDocumentProjectInfo>
   >(getRecentProjectsFromLocalStorage());
-  const { projectId, projectFile, documentId } = useContext(
+  const { projectId, documentId, projectFile, projectName } = useContext(
     SingleDocumentProjectContext
   );
-  const [recentProjectFiles, setRecentProjectFiles] = useState<File[]>([]);
-
-  useEffect(() => {
-    const recentProjectFiles = recentProjects
-      .filter(
-        (projectInfo) =>
-          projectInfo.projectType === projectTypes.SINGLE_DOCUMENT_PROJECT &&
-          projectInfo.projectFile !== null
-      )
-      .map((projectInfo) => projectInfo.projectFile) as File[];
-    setRecentProjectFiles(recentProjectFiles);
-  }, [recentProjects]);
 
   useEffect(() => {
     const getUpdatedRecentProjects = ({
       projectId,
       documentId,
       projectFile,
+      projectName,
     }: {
       projectId: VersionControlId;
       documentId: VersionControlId;
       projectFile: File | null;
+      projectName: string | null;
     }) => {
       const existingEntryIndex = recentProjects.findIndex(
         (projectInfo) => projectInfo.projectId === projectId
@@ -95,6 +84,7 @@ export const RecentProjectsProvider = ({
           lastOpenedAt: new Date(),
           documentId,
           projectFile,
+          projectName,
         };
 
         const updatedRecentProjects = [...recentProjects];
@@ -111,6 +101,7 @@ export const RecentProjectsProvider = ({
         lastOpenedAt: new Date(),
         documentId,
         projectFile,
+        projectName,
       };
 
       return [newRecentProject, ...recentProjects];
@@ -121,6 +112,7 @@ export const RecentProjectsProvider = ({
         projectId,
         documentId,
         projectFile,
+        projectName,
       });
 
       setRecentProjects(updatedRecentProjects);
@@ -141,7 +133,6 @@ export const RecentProjectsProvider = ({
     <RecentProjectsContext.Provider
       value={{
         recentProjects,
-        recentProjectFiles,
       }}
     >
       {children}

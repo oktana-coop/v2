@@ -14,7 +14,7 @@ export type OpenFileArgs = {
 };
 
 export type CreateNewFileArgs = {
-  suggestedName: string;
+  suggestedName?: string;
   extensions: Array<string>;
   parentDirectory?: Directory;
 };

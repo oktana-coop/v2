@@ -24,7 +24,7 @@ export type CurrentProjectContextType = {
   canShowFiles: () => boolean;
   files: Array<File>;
   createNewDocument: (
-    suggestedName: string
+    name?: string
   ) => Promise<{ documentId: VersionControlId; path: string }>;
 };
 

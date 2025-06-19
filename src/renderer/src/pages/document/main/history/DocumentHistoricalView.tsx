@@ -33,6 +33,7 @@ export const DocumentHistoricalView = () => {
     onOpenCommitDialog,
     getDocumentHandleAtCommit,
     isContentSameAtHeads,
+    selectedFileName: selectedDocumentFileName,
   } = useContext(CurrentDocumentContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const [doc, setDoc] = React.useState<VersionedDocument | null>();
@@ -162,17 +163,14 @@ export const DocumentHistoricalView = () => {
   }, [commits, changeId]);
 
   useEffect(() => {
-    const loadDocument = async (docHandle: VersionedDocumentHandle) => {
-      const versionedDocument = await docHandle.doc();
-      if (versionedDocument) {
-        document.title = `v2 | "${versionedDocument.title}" version history`;
-      }
+    const updateBrowserTabTitle = async (name: string) => {
+      window.document.title = `v2 | "${name}" history`;
     };
 
-    if (versionedDocumentHandle) {
-      loadDocument(versionedDocumentHandle);
+    if (selectedDocumentFileName) {
+      updateBrowserTabTitle(selectedDocumentFileName);
     }
-  }, [versionedDocumentHandle]);
+  }, [selectedDocumentFileName]);
 
   const handleDiffCommitSelect = (heads: UrlHeads) => {
     setSearchParams((prev) => {

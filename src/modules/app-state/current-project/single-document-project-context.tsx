@@ -18,6 +18,7 @@ export type SingleDocumentProjectContextType = {
   projectId: VersionControlId | null;
   documentId: VersionControlId | null;
   projectFile: File | null;
+  projectName: string | null;
   versionedProjectStore: SingleDocumentProjectStore | null;
   createNewDocument: (
     suggestedName: string
@@ -31,6 +32,7 @@ export const SingleDocumentProjectContext =
   createContext<SingleDocumentProjectContextType>({
     projectId: null,
     projectFile: null,
+    projectName: null,
     // @ts-expect-error will get overriden below
     createNewDocument: () => null,
     // @ts-expect-error will get overriden below
@@ -51,6 +53,7 @@ export const SingleDocumentProjectProvider = ({
   const [projectId, setProjectId] = useState<VersionControlId | null>(null);
   const [documentId, setDocumentId] = useState<VersionControlId | null>(null);
   const [projectFile, setProjectFile] = useState<File | null>(null);
+  const [projectName, setProjectName] = useState<string | null>(null);
   const [versionedProjectStore, setVersionedProjectStore] =
     useState<SingleDocumentProjectStore | null>(null);
 
@@ -87,22 +90,24 @@ export const SingleDocumentProjectProvider = ({
   //   getSelectedProject();
   // }, []);
 
-  const handleCreateNewDocument = async (suggestedName: string) => {
+  const handleCreateNewDocument = async (name?: string) => {
     const {
       versionedDocumentStore: documentStore,
       versionedProjectStore: projectStore,
       projectId: projId,
       documentId,
       file,
+      name: projName,
     } = await Effect.runPromise(
       singleDocumentProjectStoreManager.setupSingleDocumentProjectStore({
         createNewFile: filesystem.createNewFile,
-      })({ suggestedName })
+      })({ name })
     );
 
     setProjectId(projId);
     setDocumentId(documentId);
     setProjectFile(file);
+    setProjectName(projName);
     setVersionedProjectStore(projectStore);
     setVersionedDocumentStore(documentStore);
 
@@ -127,6 +132,7 @@ export const SingleDocumentProjectProvider = ({
       projectId: projId,
       documentId,
       file,
+      name: projName,
     } = await Effect.runPromise(
       singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
         openFile: filesystem.openFile,
@@ -136,6 +142,7 @@ export const SingleDocumentProjectProvider = ({
     setProjectId(projId);
     setDocumentId(documentId);
     setProjectFile(file);
+    setProjectName(projName);
     setVersionedProjectStore(projectStore);
     setVersionedDocumentStore(documentStore);
 
@@ -159,6 +166,7 @@ export const SingleDocumentProjectProvider = ({
         projectId,
         documentId,
         projectFile,
+        projectName,
         versionedProjectStore,
         createNewDocument: handleCreateNewDocument,
         openDocument: handleOpenDocument,
