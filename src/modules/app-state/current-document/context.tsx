@@ -130,26 +130,27 @@ export const CurrentDocumentProvider = ({
           throw new Error('Versioned document store not ready yet.');
         }
 
-        const pathParam = searchParams.get('path');
-        const path = pathParam ? decodeURIComponent(pathParam) : null;
-
-        if (!path) {
-          throw new Error(
-            'Cannot propagate changes to file since path is not provided'
-          );
-        }
-
         const documentHandle = await Effect.runPromise(
           versionedDocumentStore.findDocumentById(documentId)
         );
 
         setVersionedDocumentHandle(documentHandle);
-        setSelectedFileInfo({
-          documentId,
-          path,
-        });
 
         if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
+          const pathParam = searchParams.get('path');
+          const path = pathParam ? decodeURIComponent(pathParam) : null;
+
+          if (!path) {
+            throw new Error(
+              'Cannot propagate changes to file since path is not provided'
+            );
+          }
+
+          setSelectedFileInfo({
+            documentId,
+            path,
+          });
+
           const { registeredListener } = await registerLiveUpdates({
             findDocumentById: versionedDocumentStore.findDocumentById,
             writeFile: filesystem.writeFile,

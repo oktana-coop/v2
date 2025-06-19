@@ -1,5 +1,6 @@
 import * as Effect from 'effect/Effect';
 import { createContext, useContext, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
 
 import { type SingleDocumentProjectStore } from '../../domain/project';
 import { type File } from '../../infrastructure/filesystem';
@@ -22,11 +23,11 @@ export type SingleDocumentProjectContextType = {
   versionedProjectStore: SingleDocumentProjectStore | null;
   createNewDocument: (
     suggestedName: string
-  ) => Promise<{ documentId: VersionControlId; path: string }>;
+  ) => Promise<{ documentId: VersionControlId; path: string | null }>;
   openDocument: (args?: {
     fromFile?: File;
     projectId?: VersionControlId;
-  }) => Promise<{ documentId: VersionControlId; path: string }>;
+  }) => Promise<{ documentId: VersionControlId; path: string | null }>;
 };
 
 export const SingleDocumentProjectContext =
@@ -57,39 +58,49 @@ export const SingleDocumentProjectProvider = ({
   const [projectName, setProjectName] = useState<string | null>(null);
   const [versionedProjectStore, setVersionedProjectStore] =
     useState<SingleDocumentProjectStore | null>(null);
+  const navigate = useNavigate();
 
-  // useEffect(() => {
-  //   const getSelectedProject = async () => {
-  //     // Check if we have a project ID in the browser storage
-  //     const browserStorageBrowserDataValue = localStorage.getItem(
-  //       BROWSER_STORAGE_PROJECT_DATA_KEY
-  //     );
-  //     const browserStorageProjectData = browserStorageBrowserDataValue
-  //       ? (JSON.parse(
-  //           browserStorageBrowserDataValue
-  //         ) as BrowserStorageProjectData)
-  //       : null;
+  useEffect(() => {
+    const getSelectedProject = async () => {
+      // Check if we have a project ID in the browser storage
+      const browserStorageBrowserDataValue = localStorage.getItem(
+        BROWSER_STORAGE_PROJECT_DATA_KEY
+      );
+      const browserStorageProjectData = browserStorageBrowserDataValue
+        ? (JSON.parse(
+            browserStorageBrowserDataValue
+          ) as BrowserStorageProjectData)
+        : null;
 
-  //     if (browserStorageProjectData?.projectId) {
-  //       const {
-  //         versionedDocumentStore: documentStore,
-  //         versionedProjectStore: projectStore,
-  //         file,
-  //       } = await Effect.runPromise(
-  //         singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
-  //           openFile: filesystem.openFile,
-  //         })({ projectId: browserStorageProjectData.projectId })
-  //       );
+      if (browserStorageProjectData?.projectId) {
+        const {
+          versionedDocumentStore: documentStore,
+          versionedProjectStore: projectStore,
+          documentId,
+          file,
+          name: projName,
+        } = await Effect.runPromise(
+          singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
+            openFile: filesystem.openFile,
+          })({
+            fromFile: browserStorageProjectData.file ?? undefined,
+            projectId: browserStorageProjectData.projectId,
+          })
+        );
 
-  //       setProjectId(browserStorageProjectData.projectId);
-  //       setProjectFile(file);
-  //       setVersionedProjectStore(projectStore);
-  //       setVersionedDocumentStore(documentStore);
-  //     }
-  //   };
+        setProjectId(browserStorageProjectData.projectId);
+        setDocumentId(documentId);
+        setProjectFile(file);
+        setProjectName(projName);
+        setVersionedProjectStore(projectStore);
+        setVersionedDocumentStore(documentStore);
 
-  //   getSelectedProject();
-  // }, []);
+        navigate(`/documents/${documentId}`);
+      }
+    };
+
+    getSelectedProject();
+  }, []);
 
   const handleCreateNewDocument = async (name?: string) => {
     const {
@@ -122,7 +133,6 @@ export const SingleDocumentProjectProvider = ({
       JSON.stringify(browserStorageProjectData)
     );
 
-    // TODO: Handle browser case, where we won't be getting a file.
     return { documentId, path: file?.path ?? null };
   };
 
@@ -164,7 +174,6 @@ export const SingleDocumentProjectProvider = ({
       JSON.stringify(browserStorageProjectData)
     );
 
-    // TODO: Handle browser case, where we won't be getting a file.
     return { documentId, path: file?.path ?? null };
   };
 

@@ -25,7 +25,7 @@ export type CurrentProjectContextType = {
   files: Array<File>;
   createNewDocument: (
     name?: string
-  ) => Promise<{ documentId: VersionControlId; path: string }>;
+  ) => Promise<{ documentId: VersionControlId; path: string | null }>;
 };
 
 export const CurrentProjectContext = createContext<CurrentProjectContextType>({

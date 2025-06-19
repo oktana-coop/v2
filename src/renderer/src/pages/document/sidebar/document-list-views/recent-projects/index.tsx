@@ -2,7 +2,7 @@ import { useCallback, useContext } from 'react';
 import { useParams } from 'react-router';
 
 import { RecentProjectsContext } from '../../../../../../../modules/app-state';
-import { type VersionControlId } from '../../../../../../../modules/infrastructure/version-control';
+import { isValidVersionControlId } from '../../../../../../../modules/infrastructure/version-control';
 import { IconButton } from '../../../../../components/actions/IconButton';
 import {
   FileDocumentIcon,
@@ -35,7 +35,11 @@ export const RecentProjects = ({
   }));
 
   const handleDocumentSelection = useCallback(
-    (id: VersionControlId) => {
+    async (id: string) => {
+      if (!isValidVersionControlId(id)) {
+        throw new Error(`Invalid document ID: ${id}`);
+      }
+
       const projectInfo = recentProjects.find((proj) => proj.documentId === id);
 
       if (!projectInfo) {
@@ -44,7 +48,7 @@ export const RecentProjects = ({
         );
       }
 
-      selectDocument({
+      return selectDocument({
         documentId: id,
         projectId: projectInfo.projectId,
         file: projectInfo.projectFile,

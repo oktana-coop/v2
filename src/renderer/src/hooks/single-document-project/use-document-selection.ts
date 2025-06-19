@@ -1,10 +1,7 @@
 import { useContext } from 'react';
 import { useNavigate } from 'react-router';
 
-import {
-  CurrentDocumentContext,
-  SingleDocumentProjectContext,
-} from '../../../../modules/app-state';
+import { SingleDocumentProjectContext } from '../../../../modules/app-state';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/electron-context';
 import { type File } from '../../../../modules/infrastructure/filesystem';
 import { type VersionControlId } from '../../../../modules/infrastructure/version-control';
@@ -14,7 +11,6 @@ export const useDocumentSelection = () => {
 
   const navigate = useNavigate();
   const { openDocument } = useContext(SingleDocumentProjectContext);
-  const { setSelectedFileInfo } = useContext(CurrentDocumentContext);
 
   return async ({
     projectId,
@@ -32,16 +28,11 @@ export const useDocumentSelection = () => {
         );
       }
 
-      const { path } = await openDocument({ fromFile: file });
-
-      await setSelectedFileInfo({
-        documentId,
-        path,
-      });
-      navigate(`/documents/${documentId}?path=${encodeURIComponent(path)}`);
+      await openDocument({ fromFile: file });
     } else {
       await openDocument({ projectId });
-      navigate(`/documents/${documentId}`);
     }
+
+    navigate(`/documents/${documentId}`);
   };
 };

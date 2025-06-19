@@ -70,10 +70,14 @@ const DocumentIndex = () => {
     path,
   }: {
     documentId: VersionControlId;
-    path: string;
+    path: string | null;
   }) => {
     setSelectedFileInfo({ documentId, path });
-    navigate(`/documents/${documentId}?path=${encodeURIComponent(path)}`);
+
+    const newUrl = path
+      ? `/documents/${documentId}?path=${encodeURIComponent(path)}`
+      : `/documents/${documentId}`;
+    navigate(newUrl);
   };
 
   const openCreateDocumentModal = () => {
