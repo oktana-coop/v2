@@ -7,7 +7,7 @@ import {
 } from '../../../../modules/app-state';
 import { type File } from '../../../../modules/infrastructure/filesystem';
 
-export const useFileSelection = () => {
+export const useDocumentSelection = () => {
   const navigate = useNavigate();
   const { openDocument } = useContext(SingleDocumentProjectContext);
   const { setSelectedFileInfo } = useContext(CurrentDocumentContext);

@@ -1,9 +1,7 @@
 import { useContext } from 'react';
+import { useParams } from 'react-router';
 
-import {
-  CurrentDocumentContext,
-  RecentProjectsContext,
-} from '../../../../../../../modules/app-state';
+import { RecentProjectsContext } from '../../../../../../../modules/app-state';
 import { IconButton } from '../../../../../components/actions/IconButton';
 import {
   FileDocumentIcon,
@@ -12,7 +10,7 @@ import {
 } from '../../../../../components/icons';
 import { SidebarHeading } from '../../../../../components/sidebar/SidebarHeading';
 import {
-  useFileSelection as useFileSelectionInSingleDocumentProject,
+  useDocumentSelection as useDocumentSelectionInSingleDocumentProject,
   useOpenDocument,
 } from '../../../../../hooks/single-document-project';
 import { DocumentList } from '../DocumentList';
@@ -22,12 +20,18 @@ export const RecentProjects = ({
 }: {
   onCreateDocument: () => void;
 }) => {
-  const { recentProjectFiles } = useContext(RecentProjectsContext);
-  const { selectedFileInfo } = useContext(CurrentDocumentContext);
+  const { recentProjects } = useContext(RecentProjectsContext);
+  const { documentId: documentIdParam } = useParams();
 
-  const handleFileSelection = useFileSelectionInSingleDocumentProject();
+  const handleDocumentSelection = useDocumentSelectionInSingleDocumentProject();
   const openDocument = useOpenDocument();
   const handleOpenDocument = () => openDocument();
+
+  const items = recentProjects.map((projectInfo) => ({
+    id: projectInfo.documentId,
+    name: projectInfo.name,
+    isSelected: documentIdParam === projectInfo.documentId,
+  }));
 
   return (
     <div className="flex h-full flex-col items-stretch py-6">
@@ -47,16 +51,12 @@ export const RecentProjects = ({
         </div>
       </div>
 
-      {recentProjectFiles.length > 0 ? (
+      {items.length > 0 ? (
         <div className="flex flex-col items-stretch overflow-auto">
           <div className="mb-1 truncate px-4 text-left font-bold text-black text-opacity-85 dark:text-white dark:text-opacity-85">
             Recent Documents
           </div>
-          <DocumentList
-            files={recentProjectFiles}
-            onFileSelection={handleFileSelection}
-            selectedFileInfo={selectedFileInfo}
-          />
+          <DocumentList items={items} onSelectItem={handleDocumentSelection} />
         </div>
       ) : null}
     </div>

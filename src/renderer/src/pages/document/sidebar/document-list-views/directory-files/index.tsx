@@ -2,10 +2,11 @@ import { useContext } from 'react';
 
 import { CurrentDocumentContext } from '../../../../../../../modules/app-state';
 import { MultiDocumentProjectContext } from '../../../../../../../modules/app-state';
+import { removeExtension } from '../../../../../../../modules/infrastructure/filesystem';
 import { IconButton } from '../../../../../components/actions/IconButton';
 import { FolderIcon, PlusIcon } from '../../../../../components/icons';
 import { SidebarHeading } from '../../../../../components/sidebar/SidebarHeading';
-import { useFileSelection as useFileSelectionInMultiDocumentProject } from '../../../../../hooks/multi-document-project';
+import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../../../hooks/multi-document-project';
 import { DocumentList } from '../DocumentList';
 import { NoActiveDirectoryView } from './NoActiveDirectoryView';
 
@@ -14,14 +15,16 @@ export const DirectoryFiles = ({
 }: {
   onCreateDocument: () => void;
 }) => {
-  const {
-    directory,
-    directoryFiles: files,
-    canCreateDocument,
-    canShowFiles,
-  } = useContext(MultiDocumentProjectContext);
+  const { directory, directoryFiles, canCreateDocument, canShowFiles } =
+    useContext(MultiDocumentProjectContext);
   const { selectedFileInfo } = useContext(CurrentDocumentContext);
-  const handleFileSelection = useFileSelectionInMultiDocumentProject();
+  const handleDocumentSelection = useDocumentSelectionInMultiDocumentProject();
+
+  const files = directoryFiles.map((file) => ({
+    id: file.path!,
+    name: removeExtension(file.name),
+    isSelected: selectedFileInfo?.path === file.path,
+  }));
 
   return (
     <div className="flex h-full flex-col items-stretch py-6">
@@ -44,11 +47,7 @@ export const DirectoryFiles = ({
           <div className="mb-1 truncate px-4 text-left font-bold text-black text-opacity-85 dark:text-white dark:text-opacity-85">
             {directory?.name ?? 'Files'}
           </div>
-          <DocumentList
-            files={files}
-            onFileSelection={handleFileSelection}
-            selectedFileInfo={selectedFileInfo}
-          />
+          <DocumentList items={files} onSelectItem={handleDocumentSelection} />
         </div>
       ) : (
         <NoActiveDirectoryView />

@@ -11,15 +11,20 @@ import { SingleDocumentProjectContext } from '../current-project/single-document
 type RecentProjectInfo = {
   projectId: VersionControlId;
   projectType: ProjectType;
-  projectFile: File | null;
   firstOpenedAt: Date;
   lastOpenedAt: Date;
+};
+
+type RecentSingleDocumentProjectInfo = RecentProjectInfo & {
+  projectType: typeof projectTypes.SINGLE_DOCUMENT_PROJECT;
+  documentId: VersionControlId;
+  projectFile: File | null;
 };
 
 const BROWSER_STORAGE_RECENT_PROJECTS_KEY = 'recent-projects';
 
 type RecentProjectsContextType = {
-  recentProjects: Array<RecentProjectInfo>;
+  recentProjects: Array<RecentSingleDocumentProjectInfo>;
   recentProjectFiles: Array<File>;
 };
 
@@ -33,7 +38,9 @@ const getRecentProjectsFromLocalStorage = () => {
     BROWSER_STORAGE_RECENT_PROJECTS_KEY
   );
   if (!recentProjectsItem) return [];
-  const parsed = JSON.parse(recentProjectsItem) as Array<RecentProjectInfo>;
+  const parsed = JSON.parse(
+    recentProjectsItem
+  ) as Array<RecentSingleDocumentProjectInfo>;
   return parsed.map((proj) => ({
     ...proj,
     firstOpenedAt: new Date(proj.firstOpenedAt),
@@ -47,9 +54,11 @@ export const RecentProjectsProvider = ({
   children: React.ReactNode;
 }) => {
   const [recentProjects, setRecentProjects] = useState<
-    Array<RecentProjectInfo>
+    Array<RecentSingleDocumentProjectInfo>
   >(getRecentProjectsFromLocalStorage());
-  const { projectId, projectFile } = useContext(SingleDocumentProjectContext);
+  const { projectId, projectFile, documentId } = useContext(
+    SingleDocumentProjectContext
+  );
   const [recentProjectFiles, setRecentProjectFiles] = useState<File[]>([]);
 
   useEffect(() => {
@@ -66,9 +75,11 @@ export const RecentProjectsProvider = ({
   useEffect(() => {
     const getUpdatedRecentProjects = ({
       projectId,
+      documentId,
       projectFile,
     }: {
       projectId: VersionControlId;
+      documentId: VersionControlId;
       projectFile: File | null;
     }) => {
       const existingEntryIndex = recentProjects.findIndex(
@@ -77,12 +88,13 @@ export const RecentProjectsProvider = ({
 
       // Project found in the list, update its last-opened date and replace the existing element, without re-sorting.
       if (existingEntryIndex >= 0) {
-        const updatedProject: RecentProjectInfo = {
+        const updatedProject: RecentSingleDocumentProjectInfo = {
           projectId,
           projectType: projectTypes.SINGLE_DOCUMENT_PROJECT,
-          projectFile,
           firstOpenedAt: recentProjects[existingEntryIndex].firstOpenedAt,
           lastOpenedAt: new Date(),
+          documentId,
+          projectFile,
         };
 
         const updatedRecentProjects = [...recentProjects];
@@ -92,20 +104,22 @@ export const RecentProjectsProvider = ({
       }
 
       // Project not found in the list, create one and add it.
-      const newRecentProject: RecentProjectInfo = {
+      const newRecentProject: RecentSingleDocumentProjectInfo = {
         projectId,
         projectType: projectTypes.SINGLE_DOCUMENT_PROJECT,
-        projectFile,
         firstOpenedAt: new Date(),
         lastOpenedAt: new Date(),
+        documentId,
+        projectFile,
       };
 
       return [newRecentProject, ...recentProjects];
     };
 
-    if (projectId) {
+    if (projectId && documentId) {
       const updatedRecentProjects = getUpdatedRecentProjects({
         projectId,
+        documentId,
         projectFile,
       });
 
@@ -121,7 +135,7 @@ export const RecentProjectsProvider = ({
         JSON.stringify(sortedByLastOpenedDesc)
       );
     }
-  }, [projectId]);
+  }, [projectId, documentId]);
 
   return (
     <RecentProjectsContext.Provider

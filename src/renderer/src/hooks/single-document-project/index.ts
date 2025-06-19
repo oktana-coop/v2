@@ -1,2 +1,2 @@
-export { useFileSelection } from './use-file-selection';
+export { useDocumentSelection } from './use-document-selection';
 export { useOpenDocument } from './use-open-document';

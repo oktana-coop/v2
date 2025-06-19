@@ -5,16 +5,15 @@ import {
   CurrentDocumentContext,
   MultiDocumentProjectContext,
 } from '../../../../modules/app-state';
-import { type File } from '../../../../modules/infrastructure/filesystem';
 
-export const useFileSelection = () => {
+export const useDocumentSelection = () => {
   const navigate = useNavigate();
   const { projectId, findDocumentInProject } = useContext(
     MultiDocumentProjectContext
   );
   const { setSelectedFileInfo } = useContext(CurrentDocumentContext);
 
-  return async (file: File) => {
+  return async (documentPath: string) => {
     if (!projectId) {
       // TODO: Handle more gracefully
       throw new Error('Could not select file because no project ID was found');
@@ -22,7 +21,7 @@ export const useFileSelection = () => {
 
     const documentHandle = await findDocumentInProject({
       projectId,
-      documentPath: file.path!,
+      documentPath,
     });
 
     if (!documentHandle) {
@@ -32,17 +31,12 @@ export const useFileSelection = () => {
       );
     }
 
-    if (!file.path) {
-      // TODO: Handle more gracefully
-      throw new Error('Could not select file because the file path is missing');
-    }
-
     await setSelectedFileInfo({
       documentId: documentHandle.url,
-      path: file.path,
+      path: documentPath,
     });
     navigate(
-      `/documents/${documentHandle.url}?path=${encodeURIComponent(file.path)}`
+      `/documents/${documentHandle.url}?path=${encodeURIComponent(documentPath)}`
     );
   };
 };

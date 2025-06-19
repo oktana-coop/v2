@@ -1,1 +1,1 @@
-export { useFileSelection } from './use-file-selection';
+export { useDocumentSelection } from './use-document-selection';

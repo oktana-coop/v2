@@ -16,6 +16,7 @@ export const BROWSER_STORAGE_PROJECT_DATA_KEY = 'single-document-project';
 
 export type SingleDocumentProjectContextType = {
   projectId: VersionControlId | null;
+  documentId: VersionControlId | null;
   projectFile: File | null;
   versionedProjectStore: SingleDocumentProjectStore | null;
   createNewDocument: (
@@ -48,6 +49,7 @@ export const SingleDocumentProjectProvider = ({
     setVersionedDocumentStore,
   } = useContext(InfrastructureAdaptersContext);
   const [projectId, setProjectId] = useState<VersionControlId | null>(null);
+  const [documentId, setDocumentId] = useState<VersionControlId | null>(null);
   const [projectFile, setProjectFile] = useState<File | null>(null);
   const [versionedProjectStore, setVersionedProjectStore] =
     useState<SingleDocumentProjectStore | null>(null);
@@ -99,6 +101,7 @@ export const SingleDocumentProjectProvider = ({
     );
 
     setProjectId(projId);
+    setDocumentId(documentId);
     setProjectFile(file);
     setVersionedProjectStore(projectStore);
     setVersionedDocumentStore(documentStore);
@@ -131,6 +134,7 @@ export const SingleDocumentProjectProvider = ({
     );
 
     setProjectId(projId);
+    setDocumentId(documentId);
     setProjectFile(file);
     setVersionedProjectStore(projectStore);
     setVersionedDocumentStore(documentStore);
@@ -153,6 +157,7 @@ export const SingleDocumentProjectProvider = ({
     <SingleDocumentProjectContext.Provider
       value={{
         projectId,
+        documentId,
         projectFile,
         versionedProjectStore,
         createNewDocument: handleCreateNewDocument,
