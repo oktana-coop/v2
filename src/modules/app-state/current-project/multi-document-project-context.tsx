@@ -130,15 +130,13 @@ export const MultiDocumentProjectProvider = ({
 
   useEffect(() => {
     const getFiles = async (dir: Directory) => {
-      if (dir.path) {
-        const files = await Effect.runPromise(
-          filesystem.listDirectoryFiles({
-            path: dir.path,
-            extensions: [RICH_TEXT_FILE_EXTENSION],
-          })
-        );
-        setDirectoryFiles(files);
-      }
+      const files = await Effect.runPromise(
+        filesystem.listDirectoryFiles({
+          path: dir.path,
+          extensions: [RICH_TEXT_FILE_EXTENSION],
+        })
+      );
+      setDirectoryFiles(files);
     };
 
     if (directory && directory.permissionState === 'granted') {
@@ -146,15 +144,8 @@ export const MultiDocumentProjectProvider = ({
     }
   }, [directory, filesystem]);
 
-  const requestPermissionForDirectory = async (dir: Directory) => {
-    if (!dir.path) {
-      throw new Error('The directory does not have a path');
-    }
-
-    return Effect.runPromise(
-      filesystem.requestPermissionForDirectory(dir.path)
-    );
-  };
+  const requestPermissionForDirectory = async (dir: Directory) =>
+    Effect.runPromise(filesystem.requestPermissionForDirectory(dir.path));
 
   const requestPermissionForSelectedDirectory = async () => {
     if (!directory) {
