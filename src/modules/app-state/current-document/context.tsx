@@ -117,7 +117,7 @@ export const CurrentDocumentProvider = ({
   const { projectType } = useContext(CurrentProjectContext);
 
   useEffect(() => {
-    const updateFileSelection = async ({
+    const updateDocumentHandleAndSelectedFile = async ({
       versionedDocumentStore,
     }: {
       versionedDocumentStore: VersionedDocumentStore;
@@ -167,7 +167,7 @@ export const CurrentDocumentProvider = ({
     };
 
     if (versionedDocumentStore) {
-      updateFileSelection({ versionedDocumentStore });
+      updateDocumentHandleAndSelectedFile({ versionedDocumentStore });
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps

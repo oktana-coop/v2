@@ -26,6 +26,7 @@ export const RecentProjects = ({
 
   const selectDocument = useDocumentSelectionInSingleDocumentProject();
   const openDocument = useOpenDocument();
+
   const handleOpenDocument = () => openDocument();
 
   const items = recentProjects.map((projectInfo) => ({
