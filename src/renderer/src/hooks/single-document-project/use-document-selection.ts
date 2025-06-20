@@ -1,18 +1,22 @@
-import { useContext } from 'react';
+import { useCallback, useContext } from 'react';
 import { useNavigate } from 'react-router';
 
-import { SingleDocumentProjectContext } from '../../../../modules/app-state';
+import {
+  RecentProjectsContext,
+  SingleDocumentProjectContext,
+} from '../../../../modules/app-state';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/electron-context';
 import { type File } from '../../../../modules/infrastructure/filesystem';
+import { isValidVersionControlId } from '../../../../modules/infrastructure/version-control';
 import { type VersionControlId } from '../../../../modules/infrastructure/version-control';
 
 export const useDocumentSelection = () => {
-  const { isElectron } = useContext(ElectronContext);
-
   const navigate = useNavigate();
+  const { isElectron } = useContext(ElectronContext);
   const { openDocument } = useContext(SingleDocumentProjectContext);
+  const { recentProjects } = useContext(RecentProjectsContext);
 
-  return async ({
+  const selectDocument = async ({
     projectId,
     documentId,
     file,
@@ -35,4 +39,27 @@ export const useDocumentSelection = () => {
 
     navigate(`/documents/${documentId}`);
   };
+
+  return useCallback(
+    async (id: string) => {
+      if (!isValidVersionControlId(id)) {
+        throw new Error(`Invalid document ID: ${id}`);
+      }
+
+      const projectInfo = recentProjects.find((proj) => proj.documentId === id);
+
+      if (!projectInfo) {
+        throw new Error(
+          `Project with documentId ${id} not found in recent projects`
+        );
+      }
+
+      return selectDocument({
+        documentId: id,
+        projectId: projectInfo.projectId,
+        file: projectInfo.projectFile,
+      });
+    },
+    [recentProjects]
+  );
 };

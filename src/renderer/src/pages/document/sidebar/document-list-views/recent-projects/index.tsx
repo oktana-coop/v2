@@ -1,8 +1,3 @@
-import { useCallback, useContext } from 'react';
-import { useParams } from 'react-router';
-
-import { RecentProjectsContext } from '../../../../../../../modules/app-state';
-import { isValidVersionControlId } from '../../../../../../../modules/infrastructure/version-control';
 import { IconButton } from '../../../../../components/actions/IconButton';
 import {
   FileDocumentIcon,
@@ -14,6 +9,7 @@ import {
   useDocumentSelection as useDocumentSelectionInSingleDocumentProject,
   useOpenDocument,
 } from '../../../../../hooks/single-document-project';
+import { useDocumentList } from '../../../../../hooks/single-document-project/use-document-list';
 import { DocumentList } from '../DocumentList';
 
 export const RecentProjects = ({
@@ -21,42 +17,12 @@ export const RecentProjects = ({
 }: {
   onCreateDocument: () => void;
 }) => {
-  const { recentProjects } = useContext(RecentProjectsContext);
-  const { documentId: documentIdParam } = useParams();
-
   const selectDocument = useDocumentSelectionInSingleDocumentProject();
   const openDocument = useOpenDocument();
-
+  const getRecentSingleDocumentProjects = useDocumentList();
   const handleOpenDocument = () => openDocument();
 
-  const items = recentProjects.map((projectInfo) => ({
-    id: projectInfo.documentId,
-    name: projectInfo.projectName ?? 'Untitled Document',
-    isSelected: documentIdParam === projectInfo.documentId,
-  }));
-
-  const handleDocumentSelection = useCallback(
-    async (id: string) => {
-      if (!isValidVersionControlId(id)) {
-        throw new Error(`Invalid document ID: ${id}`);
-      }
-
-      const projectInfo = recentProjects.find((proj) => proj.documentId === id);
-
-      if (!projectInfo) {
-        throw new Error(
-          `Project with documentId ${id} not found in recent projects`
-        );
-      }
-
-      return selectDocument({
-        documentId: id,
-        projectId: projectInfo.projectId,
-        file: projectInfo.projectFile,
-      });
-    },
-    [recentProjects]
-  );
+  const items = getRecentSingleDocumentProjects();
 
   return (
     <div className="flex h-full flex-col items-stretch py-6">
@@ -81,7 +47,7 @@ export const RecentProjects = ({
           <div className="mb-1 truncate px-4 text-left font-bold text-black text-opacity-85 dark:text-white dark:text-opacity-85">
             Recent Documents
           </div>
-          <DocumentList items={items} onSelectItem={handleDocumentSelection} />
+          <DocumentList items={items} onSelectItem={selectDocument} />
         </div>
       ) : null}
     </div>

@@ -1,12 +1,13 @@
 import { useContext } from 'react';
 
-import { CurrentDocumentContext } from '../../../../../../../modules/app-state';
 import { MultiDocumentProjectContext } from '../../../../../../../modules/app-state';
-import { removeExtension } from '../../../../../../../modules/infrastructure/filesystem';
 import { IconButton } from '../../../../../components/actions/IconButton';
 import { FolderIcon, PlusIcon } from '../../../../../components/icons';
 import { SidebarHeading } from '../../../../../components/sidebar/SidebarHeading';
-import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../../../hooks/multi-document-project';
+import {
+  useDocumentList,
+  useDocumentSelection as useDocumentSelectionInMultiDocumentProject,
+} from '../../../../../hooks/multi-document-project';
 import { DocumentList } from '../DocumentList';
 import { NoActiveDirectoryView } from './NoActiveDirectoryView';
 
@@ -15,16 +16,13 @@ export const DirectoryFiles = ({
 }: {
   onCreateDocument: () => void;
 }) => {
-  const { directory, directoryFiles, canCreateDocument, canShowFiles } =
-    useContext(MultiDocumentProjectContext);
-  const { selectedFileInfo } = useContext(CurrentDocumentContext);
+  const { directory, canCreateDocument, canShowFiles } = useContext(
+    MultiDocumentProjectContext
+  );
   const handleDocumentSelection = useDocumentSelectionInMultiDocumentProject();
+  const getDirectoryFiles = useDocumentList();
 
-  const files = directoryFiles.map((file) => ({
-    id: file.path,
-    name: removeExtension(file.name),
-    isSelected: selectedFileInfo?.path === file.path,
-  }));
+  const files = getDirectoryFiles();
 
   return (
     <div className="flex h-full flex-col items-stretch py-6">
