@@ -22,7 +22,7 @@ export type SingleDocumentProjectContextType = {
   projectName: string | null;
   versionedProjectStore: SingleDocumentProjectStore | null;
   createNewDocument: (
-    suggestedName: string
+    name?: string
   ) => Promise<{ documentId: VersionControlId; path: string | null }>;
   openDocument: (args?: {
     fromFile?: File;
