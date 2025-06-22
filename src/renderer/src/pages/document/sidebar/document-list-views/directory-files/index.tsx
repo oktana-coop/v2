@@ -4,10 +4,8 @@ import { MultiDocumentProjectContext } from '../../../../../../../modules/app-st
 import { IconButton } from '../../../../../components/actions/IconButton';
 import { FolderIcon, PlusIcon } from '../../../../../components/icons';
 import { SidebarHeading } from '../../../../../components/sidebar/SidebarHeading';
-import {
-  useDocumentList,
-  useDocumentSelection as useDocumentSelectionInMultiDocumentProject,
-} from '../../../../../hooks/multi-document-project';
+import { useDocumentList } from '../../../../../hooks';
+import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../../../hooks/multi-document-project';
 import { DocumentList } from '../DocumentList';
 import { NoActiveDirectoryView } from './NoActiveDirectoryView';
 
@@ -20,9 +18,7 @@ export const DirectoryFiles = ({
     MultiDocumentProjectContext
   );
   const handleDocumentSelection = useDocumentSelectionInMultiDocumentProject();
-  const getDirectoryFiles = useDocumentList();
-
-  const files = getDirectoryFiles();
+  const documents = useDocumentList();
 
   return (
     <div className="flex h-full flex-col items-stretch py-6">
@@ -45,7 +41,10 @@ export const DirectoryFiles = ({
           <div className="mb-1 truncate px-4 text-left font-bold text-black text-opacity-85 dark:text-white dark:text-opacity-85">
             {directory?.name ?? 'Files'}
           </div>
-          <DocumentList items={files} onSelectItem={handleDocumentSelection} />
+          <DocumentList
+            items={documents}
+            onSelectItem={handleDocumentSelection}
+          />
         </div>
       ) : (
         <NoActiveDirectoryView />

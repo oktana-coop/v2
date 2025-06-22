@@ -7,17 +7,10 @@ import {
 import { projectTypes } from '../../../../../modules/domain/project';
 import { removeExtension } from '../../../../../modules/infrastructure/filesystem';
 import { CommandPalette } from '../../../components/dialogs/command-palette/CommandPalette';
-import {
-  useCurrentDocumentName as useCurrentDocumentNameInMultiDocumentProject,
-  useDocumentList as useDocumentListInMultiDocumentProject,
-  useDocumentSelection as useDocumentSelectionInMultiDocumentProject,
-} from '../../../hooks/multi-document-project';
-import {
-  useCurrentDocumentName as useCurrentDocumentNameInSingleDocumentProject,
-  useDocumentList as useDocumentListInSingleDocumentProject,
-  useDocumentSelection as useDocumentSelectionInSingleDocumentProject,
-} from '../../../hooks/single-document-project';
-import { useKeyBindings } from '../../../hooks/useKeyBindings';
+import { useDocumentList, useKeyBindings } from '../../../hooks';
+import { useCurrentDocumentName } from '../../../hooks';
+import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../hooks/multi-document-project';
+import { useDocumentSelection as useDocumentSelectionInSingleDocumentProject } from '../../../hooks/single-document-project';
 
 export const DocumentCommandPalette = ({
   onCreateDocument,
@@ -40,28 +33,13 @@ export const DocumentCommandPalette = ({
     useDocumentSelectionInMultiDocumentProject();
   const handleDocumentSelectionInSingleDocumentProject =
     useDocumentSelectionInSingleDocumentProject();
-  const getCurrentDocumentNameInMultiDocumentProject =
-    useCurrentDocumentNameInMultiDocumentProject();
-  const getCurrentDocumentNameInSingleDocumentProject =
-    useCurrentDocumentNameInSingleDocumentProject();
-  const getDocumentListInMultiDocumentProject =
-    useDocumentListInMultiDocumentProject();
-  const getDocumentListInSingleDocumentProject =
-    useDocumentListInSingleDocumentProject();
+  const currentDocumentName = useCurrentDocumentName();
+  const documents = useDocumentList();
 
   const handleDocumentSelection =
     projectType === projectTypes.MULTI_DOCUMENT_PROJECT
       ? handleDocumentSelectionInMultiDocumentProject
       : handleDocumentSelectionInSingleDocumentProject;
-
-  const documentName =
-    projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-      ? getCurrentDocumentNameInMultiDocumentProject()
-      : getCurrentDocumentNameInSingleDocumentProject();
-
-  const documents = projectTypes.MULTI_DOCUMENT_PROJECT
-    ? getDocumentListInMultiDocumentProject()
-    : getDocumentListInSingleDocumentProject();
 
   const singleDocumentProjectActions = [
     {
@@ -71,15 +49,17 @@ export const DocumentCommandPalette = ({
     },
   ];
 
+  console.log(documents);
+
   return (
     <CommandPalette
       open={isCommandPaletteOpen}
       onClose={() => setCommandPaletteOpen(false)}
       documentsGroupTitle={`${selectedFileInfo ? 'Other' : 'Project'}  documents`}
       contextualSection={
-        documentName
+        currentDocumentName
           ? {
-              groupTitle: `Current document: ${documentName}`,
+              groupTitle: `Current document: ${currentDocumentName}`,
               actions: [
                 ...(canCommit
                   ? [

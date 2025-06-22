@@ -5,11 +5,11 @@ import {
   PlusIcon,
 } from '../../../../../components/icons';
 import { SidebarHeading } from '../../../../../components/sidebar/SidebarHeading';
+import { useDocumentList } from '../../../../../hooks';
 import {
   useDocumentSelection as useDocumentSelectionInSingleDocumentProject,
   useOpenDocument,
 } from '../../../../../hooks/single-document-project';
-import { useDocumentList } from '../../../../../hooks/single-document-project/use-document-list';
 import { DocumentList } from '../DocumentList';
 
 export const RecentProjects = ({
@@ -19,10 +19,8 @@ export const RecentProjects = ({
 }) => {
   const selectDocument = useDocumentSelectionInSingleDocumentProject();
   const openDocument = useOpenDocument();
-  const getRecentSingleDocumentProjects = useDocumentList();
+  const items = useDocumentList();
   const handleOpenDocument = () => openDocument();
-
-  const items = getRecentSingleDocumentProjects();
 
   return (
     <div className="flex h-full flex-col items-stretch py-6">

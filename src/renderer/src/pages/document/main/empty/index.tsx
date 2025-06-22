@@ -1,9 +1,7 @@
-import { projectTypes } from '../../../../../../modules/domain/project';
 import { Button } from '../../../../components/actions/Button';
 import { EmptyDocument } from '../../../../components/document-views/EmptyDocument';
 import { FileDocumentIcon, PenIcon } from '../../../../components/icons';
-import { useDocumentList as useDocumentListInMultiDocumentProject } from '../../../../hooks/multi-document-project';
-import { useDocumentList as useDocumentListInSingleDocumentProject } from '../../../../hooks/single-document-project';
+import { useDocumentList } from '../../../../hooks';
 
 export const EmptyDocumentPage = ({
   onCreateDocumentButtonClick,
@@ -12,14 +10,7 @@ export const EmptyDocumentPage = ({
   onCreateDocumentButtonClick: () => void;
   onOpenDocumentButtonClick: () => void;
 }) => {
-  const getDocumentListInMultiDocumentProject =
-    useDocumentListInMultiDocumentProject();
-  const getDocumentListInSingleDocumentProject =
-    useDocumentListInSingleDocumentProject();
-
-  const documents = projectTypes.MULTI_DOCUMENT_PROJECT
-    ? getDocumentListInMultiDocumentProject()
-    : getDocumentListInSingleDocumentProject();
+  const documents = useDocumentList();
 
   return (
     <EmptyDocument

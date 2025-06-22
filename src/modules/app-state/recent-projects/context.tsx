@@ -24,7 +24,7 @@ type RecentSingleDocumentProjectInfo = RecentProjectInfo & {
 
 const BROWSER_STORAGE_RECENT_PROJECTS_KEY = 'recent-projects';
 
-type RecentProjectsContextType = {
+export type RecentProjectsContextType = {
   recentProjects: Array<RecentSingleDocumentProjectInfo>;
 };
 
@@ -128,6 +128,8 @@ export const RecentProjectsProvider = ({
       );
     }
   }, [projectId, documentId]);
+
+  console.log(recentProjects);
 
   return (
     <RecentProjectsContext.Provider

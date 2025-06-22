@@ -47,7 +47,8 @@ export type SelectedFileInfo = {
   path: string | null;
 };
 
-type CurrentDocumentContextType = {
+export type CurrentDocumentContextType = {
+  // TODO: Selected file info (per-document) applies only to multi-document projects, we need to refactor this.
   selectedFileInfo: SelectedFileInfo | null;
   selectedFileName: string | null;
   setSelectedFileInfo: (file: SelectedFileInfo) => Promise<void>;

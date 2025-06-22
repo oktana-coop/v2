@@ -16,7 +16,7 @@ import {
   createElectronRendererSingleDocumentProjectStoreManagerAdapter,
 } from '../../domain/project/browser';
 
-type InfrastructureAdaptersContextType = {
+export type InfrastructureAdaptersContextType = {
   filesystem: Filesystem;
   singleDocumentProjectStoreManager: SingleDocumentProjectStoreManager;
   multiDocumentProjectStoreManager: MultiDocumentProjectStoreManager;
