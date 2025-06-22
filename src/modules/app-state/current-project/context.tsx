@@ -16,7 +16,6 @@ export type CurrentProjectContextType = {
   projectType: ProjectType;
   projectId: VersionControlId | null;
   path: string | null;
-  canCreateDocument: () => boolean;
   createNewDocument: (
     name?: string
   ) => Promise<{ documentId: VersionControlId; path: string | null }>;
@@ -26,7 +25,6 @@ export const CurrentProjectContext = createContext<CurrentProjectContextType>({
   projectType: projectTypes.SINGLE_DOCUMENT_PROJECT,
   projectId: null,
   path: null,
-  canCreateDocument: () => false,
   // @ts-expect-error will get overriden below
   createNewDocument: async () => {},
 });
@@ -61,7 +59,6 @@ const ProjectInterfaceProvider = ({
 
   const {
     projectId: multiDocumentProjectId,
-    canCreateDocument: canCreateDocumentInMultiFileProject,
     directory: multiDocumentProjectDirectory,
     createNewDocument: createNewDocumentInMultiFileProject,
   } = useContext(MultiDocumentProjectContext);
@@ -88,10 +85,6 @@ const ProjectInterfaceProvider = ({
           projectType === projectTypes.MULTI_DOCUMENT_PROJECT
             ? (multiDocumentProjectDirectory?.path ?? null)
             : (singleDocumentProjectFile?.path ?? null),
-        canCreateDocument:
-          projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-            ? canCreateDocumentInMultiFileProject
-            : () => true,
         createNewDocument:
           projectType === projectTypes.MULTI_DOCUMENT_PROJECT
             ? createNewDocumentInMultiFileProject
