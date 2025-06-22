@@ -16,9 +16,6 @@ export type CurrentProjectContextType = {
   projectType: ProjectType;
   projectId: VersionControlId | null;
   path: string | null;
-  createNewDocument: (
-    name?: string
-  ) => Promise<{ documentId: VersionControlId; path: string | null }>;
 };
 
 export const CurrentProjectContext = createContext<CurrentProjectContextType>({
@@ -60,12 +57,10 @@ const ProjectInterfaceProvider = ({
   const {
     projectId: multiDocumentProjectId,
     directory: multiDocumentProjectDirectory,
-    createNewDocument: createNewDocumentInMultiFileProject,
   } = useContext(MultiDocumentProjectContext);
   const {
     projectId: singleDocumentProjectId,
     projectFile: singleDocumentProjectFile,
-    createNewDocument: createNewDocumentInSingleFileProject,
   } = useContext(SingleDocumentProjectContext);
 
   useEffect(() => {
@@ -85,10 +80,6 @@ const ProjectInterfaceProvider = ({
           projectType === projectTypes.MULTI_DOCUMENT_PROJECT
             ? (multiDocumentProjectDirectory?.path ?? null)
             : (singleDocumentProjectFile?.path ?? null),
-        createNewDocument:
-          projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-            ? createNewDocumentInMultiFileProject
-            : createNewDocumentInSingleFileProject,
       }}
     >
       {children}

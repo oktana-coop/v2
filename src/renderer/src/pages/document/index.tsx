@@ -18,6 +18,7 @@ import {
 import { Layout } from '../../components/layout/Layout';
 import { SidebarLayout } from '../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../components/layout/StackedResizablePanelsLayout';
+import { useCreateDocument } from '../../hooks';
 import { useOpenDocument } from '../../hooks/single-document-project';
 import { DocumentCommandPalette } from './command-palette';
 import { CommitDialog } from './commit/CommitDialog';
@@ -48,7 +49,7 @@ const DocumentIndex = () => {
   const [isDocumentCreationModalOpen, setCreateDocumentModalOpen] =
     useState<boolean>(false);
   const navigate = useNavigate();
-  const { projectType, createNewDocument } = useContext(CurrentProjectContext);
+  const { projectType } = useContext(CurrentProjectContext);
   const {
     setSelectedFileInfo,
     versionedDocumentHistory: commits,
@@ -59,6 +60,7 @@ const DocumentIndex = () => {
     onCommit,
   } = useContext(CurrentDocumentContext);
   const { changeId } = useParams();
+  const createNewDocument = useCreateDocument();
   const openDocument = useOpenDocument();
 
   useEffect(() => {

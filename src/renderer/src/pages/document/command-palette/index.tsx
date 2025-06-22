@@ -49,8 +49,6 @@ export const DocumentCommandPalette = ({
     },
   ];
 
-  console.log(documents);
-
   return (
     <CommandPalette
       open={isCommandPaletteOpen}

@@ -120,7 +120,7 @@ export const RecentProjectsProvider = ({
       // Re-sort by last-opened date descending order and save to local storage
       const sortedByLastOpenedDesc = [...updatedRecentProjects].sort(
         (projA, projB) =>
-          projA.lastOpenedAt.getTime() - projB.lastOpenedAt.getTime()
+          projB.lastOpenedAt.getTime() - projA.lastOpenedAt.getTime()
       );
       localStorage.setItem(
         BROWSER_STORAGE_RECENT_PROJECTS_KEY,

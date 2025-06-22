@@ -1,3 +1,6 @@
+import { useContext } from 'react';
+
+import { ElectronContext } from '../../../../../../../modules/infrastructure/cross-platform/electron-context';
 import { IconButton } from '../../../../../components/actions/IconButton';
 import {
   FileDocumentIcon,
@@ -17,6 +20,7 @@ export const RecentProjects = ({
 }: {
   onCreateDocument: () => void;
 }) => {
+  const { isElectron } = useContext(ElectronContext);
   const selectDocument = useDocumentSelectionInSingleDocumentProject();
   const openDocument = useOpenDocument();
   const items = useDocumentList();
@@ -29,10 +33,13 @@ export const RecentProjects = ({
           <SidebarHeading icon={FolderIcon} text="File Explorer" />
         </div>
         <div className="flex gap-1">
-          <IconButton
-            onClick={handleOpenDocument}
-            icon={<FileDocumentIcon size={20} />}
-          />
+          {isElectron && (
+            <IconButton
+              onClick={handleOpenDocument}
+              icon={<FileDocumentIcon size={20} />}
+            />
+          )}
+
           <IconButton
             onClick={onCreateDocument}
             icon={<PlusIcon size={20} />}

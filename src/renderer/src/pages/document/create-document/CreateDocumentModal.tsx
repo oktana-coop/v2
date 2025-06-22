@@ -1,9 +1,9 @@
-import { useContext, useState } from 'react';
+import { useState } from 'react';
 
-import { CurrentProjectContext } from '../../../../../modules/app-state';
 import { type VersionControlId } from '../../../../../modules/infrastructure/version-control/';
 import { Button } from '../../../components/actions/Button';
 import { Modal } from '../../../components/dialogs/Modal';
+import { useCreateDocument } from '../../../hooks';
 
 export const CreateDocumentModal = ({
   isOpen,
@@ -14,11 +14,11 @@ export const CreateDocumentModal = ({
   onClose: () => void;
   onCreateDocument: (args: {
     documentId: VersionControlId;
-    path: string;
+    path: string | null;
   }) => void;
 }) => {
   const [newDocName, setNewDocName] = useState<string>('');
-  const { createNewDocument } = useContext(CurrentProjectContext);
+  const createNewDocument = useCreateDocument();
 
   const handleDocumentCreation = async (title: string) => {
     const { documentId, path } = await createNewDocument(title);
