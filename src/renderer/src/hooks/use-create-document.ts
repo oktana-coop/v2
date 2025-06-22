@@ -1,4 +1,4 @@
-import { useCallback, useContext } from 'react';
+import { useContext } from 'react';
 
 import {
   CurrentProjectContext,
@@ -16,11 +16,7 @@ export const useCreateDocument = () => {
   const { createNewDocument: createNewDocumentInSingleFileProject } =
     useContext(SingleDocumentProjectContext);
 
-  return useCallback(
-    (name?: string) =>
-      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-        ? createNewDocumentInMultiFileProject(name)
-        : createNewDocumentInSingleFileProject(name),
-    [projectType]
-  );
+  return projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+    ? createNewDocumentInMultiFileProject
+    : createNewDocumentInSingleFileProject;
 };

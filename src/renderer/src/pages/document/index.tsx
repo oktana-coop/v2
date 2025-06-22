@@ -28,7 +28,7 @@ import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
 import { DirectoryFiles, RecentProjects } from './sidebar/document-list-views';
 
 export const Document = () => (
-  <CurrentProjectProvider projectType={projectTypes.SINGLE_DOCUMENT_PROJECT}>
+  <CurrentProjectProvider projectType={projectTypes.MULTI_DOCUMENT_PROJECT}>
     <CurrentDocumentProvider>
       <SidebarLayoutProvider>
         <DocumentIndex />
@@ -91,11 +91,11 @@ const DocumentIndex = () => {
   };
 
   const handleCreateDocument = async () => {
-    if (isElectron) {
+    if (!isElectron && projectType === projectTypes.SINGLE_DOCUMENT_PROJECT) {
+      openCreateDocumentModal();
+    } else {
       const { documentId, path } = await createNewDocument();
       navigateToDocument({ documentId, path });
-    } else {
-      openCreateDocumentModal();
     }
   };
 

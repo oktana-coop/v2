@@ -195,7 +195,7 @@ export const MultiDocumentProjectProvider = ({
     return directory;
   };
 
-  const handleCreateNewDocument = async () => {
+  const handleCreateNewDocument = useCallback(async () => {
     if (!versionedDocumentStore || !versionedProjectStore) {
       throw new Error(
         'Cannot create document. Document and project store have not been initialized yet.'
@@ -231,7 +231,7 @@ export const MultiDocumentProjectProvider = ({
     }
 
     return { documentId: newDocumentId, path: newFilePath };
-  };
+  }, [versionedDocumentStore, versionedProjectStore]);
 
   const handleFindDocumentInProject = async (args: {
     projectId: VersionControlId;
