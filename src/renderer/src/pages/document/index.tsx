@@ -29,7 +29,7 @@ import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
 import { DirectoryFiles, RecentProjects } from './sidebar/document-list-views';
 
 export const Document = () => (
-  <CurrentProjectProvider projectType={projectTypes.MULTI_DOCUMENT_PROJECT}>
+  <CurrentProjectProvider projectType={projectTypes.SINGLE_DOCUMENT_PROJECT}>
     <CurrentDocumentProvider>
       <SidebarLayoutProvider>
         <DocumentIndex />
