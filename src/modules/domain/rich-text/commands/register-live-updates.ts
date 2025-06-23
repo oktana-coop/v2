@@ -1,3 +1,5 @@
+import * as Effect from 'effect/Effect';
+
 import { type Filesystem } from '../../../../modules/infrastructure/filesystem';
 import { type VersionedArtifactHandleChangePayload } from '../../../../modules/infrastructure/version-control';
 import {
@@ -40,7 +42,9 @@ export const registerLiveUpdates =
     ) => {
       try {
         // TODO: Assess if we need to await this effect
-        writeFile(filePath, convertToStorageFormat(changePayload.doc));
+        Effect.runPromise(
+          writeFile(filePath, convertToStorageFormat(changePayload.doc))
+        );
       } catch (error) {
         console.error('Error writing file:', error);
       }
