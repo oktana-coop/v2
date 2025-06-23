@@ -19,6 +19,7 @@ import { Layout } from '../../components/layout/Layout';
 import { SidebarLayout } from '../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../components/layout/StackedResizablePanelsLayout';
 import { useCreateDocument } from '../../hooks';
+import { useOpenDirectory } from '../../hooks/multi-document-project';
 import { useOpenDocument } from '../../hooks/single-document-project';
 import { DocumentCommandPalette } from './command-palette';
 import { CommitDialog } from './commit/CommitDialog';
@@ -62,6 +63,7 @@ const DocumentIndex = () => {
   const { changeId } = useParams();
   const { createNewDocument } = useCreateDocument();
   const openDocument = useOpenDocument();
+  const openDirectory = useOpenDirectory();
 
   useEffect(() => {
     window.document.title = 'v2 | Editor';
@@ -100,6 +102,8 @@ const DocumentIndex = () => {
   };
 
   const handleOpenDocument = () => openDocument();
+
+  const handleOpenDirectory = () => openDirectory();
 
   return (
     <Layout>
@@ -140,6 +144,7 @@ const DocumentIndex = () => {
             <DocumentMainViewRouter
               onCreateDocumentButtonClick={handleCreateDocument}
               onOpenDocumentButtonClick={handleOpenDocument}
+              onOpenDirectoryButtonClick={handleOpenDirectory}
             />
           </SidebarLayout>
         </ProseMirrorProvider>

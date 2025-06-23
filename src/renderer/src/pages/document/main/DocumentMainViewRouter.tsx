@@ -9,11 +9,13 @@ import { EmptyDocumentPage } from './empty';
 export type DocumentMainViewRouterProps = {
   onCreateDocumentButtonClick: () => void;
   onOpenDocumentButtonClick: () => void;
+  onOpenDirectoryButtonClick: () => void;
 };
 
 export const DocumentMainViewRouter = ({
   onCreateDocumentButtonClick,
   onOpenDocumentButtonClick,
+  onOpenDirectoryButtonClick,
 }: DocumentMainViewRouterProps) => {
   const { documentId: docUrl } = useParams();
   const { versionedDocumentHandle } = useContext(CurrentDocumentContext);
@@ -23,8 +25,7 @@ export const DocumentMainViewRouter = ({
       <EmptyDocumentPage
         onCreateDocumentButtonClick={onCreateDocumentButtonClick}
         onOpenDocumentButtonClick={onOpenDocumentButtonClick}
-        // TODO: Implement this
-        onOpenFolderButtonClick={() => {}}
+        onOpenDirectoryButtonClick={onOpenDirectoryButtonClick}
       />
     );
   }

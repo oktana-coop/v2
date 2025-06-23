@@ -14,11 +14,11 @@ import { useCreateDocument, useDocumentList } from '../../../../hooks';
 export const EmptyDocumentPage = ({
   onCreateDocumentButtonClick,
   onOpenDocumentButtonClick,
-  onOpenFolderButtonClick,
+  onOpenDirectoryButtonClick,
 }: {
   onCreateDocumentButtonClick: () => void;
   onOpenDocumentButtonClick: () => void;
-  onOpenFolderButtonClick: () => void;
+  onOpenDirectoryButtonClick: () => void;
 }) => {
   const { projectType } = useContext(CurrentProjectContext);
   const { documentList: documents } = useDocumentList();
@@ -39,7 +39,7 @@ export const EmptyDocumentPage = ({
     >
       {projectType === projectTypes.MULTI_DOCUMENT_PROJECT ? (
         <Button
-          onClick={onOpenFolderButtonClick}
+          onClick={onOpenDirectoryButtonClick}
           variant="plain"
           color="purple"
         >
