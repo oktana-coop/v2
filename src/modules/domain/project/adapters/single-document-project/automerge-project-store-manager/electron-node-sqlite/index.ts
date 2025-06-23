@@ -14,7 +14,6 @@ import { RepositoryError as VersionedProjectRepositoryError } from '../../../../
 import {
   type OpenSingleDocumentProjectStoreArgs,
   type OpenSingleDocumentProjectStoreDeps,
-  type SetupSingleDocumentProjectStoreArgs,
   type SetupSingleDocumentProjectStoreDeps,
   type SingleDocumentProjectStoreManager,
 } from '../../../../ports';

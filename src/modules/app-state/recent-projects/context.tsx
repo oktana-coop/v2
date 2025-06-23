@@ -129,8 +129,6 @@ export const RecentProjectsProvider = ({
     }
   }, [projectId, documentId]);
 
-  console.log(recentProjects);
-
   return (
     <RecentProjectsContext.Provider
       value={{

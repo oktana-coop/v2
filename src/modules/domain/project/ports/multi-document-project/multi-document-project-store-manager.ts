@@ -17,7 +17,7 @@ import {
 import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
 import {
   DataIntegrityError as VersionedProjectDataIntegrityError,
-  MissingIndexFileError as VersionedProjectMissingIndexFileError,
+  MissingProjectMetadataError as VersionedProjectMissingProjectMetadataError,
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
 } from '../../errors';
@@ -83,7 +83,7 @@ export type MultiDocumentProjectStoreManager = {
     | FilesystemDataIntegrityError
     | FilesystemNotFoundError
     | FilesystemRepositoryError
-    | VersionedProjectMissingIndexFileError
+    | VersionedProjectMissingProjectMetadataError
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
     | VersionedProjectDataIntegrityError

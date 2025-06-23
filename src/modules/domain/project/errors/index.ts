@@ -8,8 +8,8 @@ export class NotFoundError extends Cause.YieldableError {
   readonly _tag = 'VersionedProjectNotFoundError';
 }
 
-export class MissingIndexFileError extends Cause.YieldableError {
-  readonly _tag = 'VersionedProjectMissingIndexFileError';
+export class MissingProjectMetadataError extends Cause.YieldableError {
+  readonly _tag = 'VersionedProjectMissingProjectMetadataError';
 }
 
 export class DataIntegrityError extends Cause.YieldableError {

@@ -38,8 +38,12 @@ export const registerLiveUpdates =
     const propagateChangesToFile = async (
       changePayload: VersionedArtifactHandleChangePayload<RichTextDocument>
     ) => {
-      // TODO: Assess if we need to await this effect
-      writeFile(filePath, convertToStorageFormat(changePayload.doc));
+      try {
+        // TODO: Assess if we need to await this effect
+        writeFile(filePath, convertToStorageFormat(changePayload.doc));
+      } catch (error) {
+        console.error('Error writing file:', error);
+      }
     };
 
     documentHandle.on('change', propagateChangesToFile);

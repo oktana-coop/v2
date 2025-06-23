@@ -32,7 +32,7 @@ import {
 } from '../../../../commands';
 import {
   DataIntegrityError as VersionedProjectDataIntegrityError,
-  MissingIndexFileError as VersionedProjectMissingIndexFileError,
+  MissingProjectMetadataError as VersionedProjectMissingProjectMetadataError,
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
 } from '../../../../errors';
@@ -139,7 +139,7 @@ const readProjectIdFromDirIndexFile = ({
   VersionControlId,
   | FilesystemAccessControlError
   | FilesystemRepositoryError
-  | VersionedProjectMissingIndexFileError
+  | VersionedProjectMissingProjectMetadataError
   | VersionedProjectDataIntegrityError,
   never
 > => {
@@ -149,7 +149,7 @@ const readProjectIdFromDirIndexFile = ({
     readFile(indexFilePath),
     Effect.catchTag('FilesystemNotFoundError', () =>
       Effect.fail(
-        new VersionedProjectMissingIndexFileError(
+        new VersionedProjectMissingProjectMetadataError(
           'Index file not found in the specified directory'
         )
       )
@@ -202,7 +202,7 @@ const openProjectFromFilesystem = ({
   | FilesystemDataIntegrityError
   | FilesystemNotFoundError
   | FilesystemRepositoryError
-  | VersionedProjectMissingIndexFileError
+  | VersionedProjectMissingProjectMetadataError
   | VersionedProjectRepositoryError
   | VersionedProjectNotFoundError
   | VersionedProjectDataIntegrityError
@@ -373,7 +373,8 @@ export const createAdapter = ({
                   (error) =>
                     error instanceof FilesystemNotFoundError ||
                     error instanceof FilesystemAccessControlError ||
-                    error instanceof VersionedProjectMissingIndexFileError,
+                    error instanceof
+                      VersionedProjectMissingProjectMetadataError,
                   // Directory does not exist or can't be accessed.
                   // Create a new repo & project
                   () =>
