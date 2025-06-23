@@ -166,7 +166,7 @@ export const MultiDocumentProjectProvider = ({
       versionedDocumentStore: documentStore,
       versionedProjectStore: projectStore,
       projectId: projId,
-      directory,
+      directory: dir,
     } = await Effect.runPromise(
       multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject({
         openDirectory: filesystem.openDirectory,
@@ -179,20 +179,20 @@ export const MultiDocumentProjectProvider = ({
     );
 
     setProjectId(projId);
-    setDirectory(directory);
+    setDirectory(dir);
     setVersionedProjectStore(projectStore);
     setVersionedDocumentStore(documentStore);
 
     localStorage.setItem(
       BROWSER_STORAGE_PROJECT_DATA_KEY,
       JSON.stringify({
-        directoryName: directory.name,
-        directoryPath: directory.path,
+        directoryName: dir.name,
+        directoryPath: dir.path,
         projectId: projId,
       })
     );
 
-    return directory;
+    return dir;
   };
 
   const handleCreateNewDocument = useCallback(async () => {
