@@ -60,7 +60,7 @@ const DocumentIndex = () => {
     onCommit,
   } = useContext(CurrentDocumentContext);
   const { changeId } = useParams();
-  const createNewDocument = useCreateDocument();
+  const { createNewDocument } = useCreateDocument();
   const openDocument = useOpenDocument();
 
   useEffect(() => {

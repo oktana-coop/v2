@@ -4,7 +4,7 @@ import { MultiDocumentProjectContext } from '../../../../../../../modules/app-st
 import { IconButton } from '../../../../../components/actions/IconButton';
 import { FolderIcon, PlusIcon } from '../../../../../components/icons';
 import { SidebarHeading } from '../../../../../components/sidebar/SidebarHeading';
-import { useDocumentList } from '../../../../../hooks';
+import { useCreateDocument, useDocumentList } from '../../../../../hooks';
 import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../../../hooks/multi-document-project';
 import { DocumentList } from '../DocumentList';
 import { NoActiveDirectoryView } from './NoActiveDirectoryView';
@@ -14,11 +14,10 @@ export const DirectoryFiles = ({
 }: {
   onCreateDocument: () => void;
 }) => {
-  const { directory, canCreateDocument, canShowFiles } = useContext(
-    MultiDocumentProjectContext
-  );
+  const { directory, canShowFiles } = useContext(MultiDocumentProjectContext);
   const handleDocumentSelection = useDocumentSelectionInMultiDocumentProject();
   const documents = useDocumentList();
+  const { canCreateDocument } = useCreateDocument();
 
   return (
     <div className="flex h-full flex-col items-stretch py-6">
@@ -27,7 +26,7 @@ export const DirectoryFiles = ({
           <SidebarHeading icon={FolderIcon} text="File Explorer" />
         </div>
         <div className="flex gap-1">
-          {canCreateDocument() && (
+          {canCreateDocument && (
             <IconButton
               onClick={onCreateDocument}
               icon={<PlusIcon size={20} />}

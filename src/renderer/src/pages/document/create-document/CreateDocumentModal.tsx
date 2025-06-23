@@ -18,7 +18,7 @@ export const CreateDocumentModal = ({
   }) => void;
 }) => {
   const [newDocName, setNewDocName] = useState<string>('');
-  const createNewDocument = useCreateDocument();
+  const { createNewDocument } = useCreateDocument();
 
   const handleDocumentCreation = async (title: string) => {
     const { documentId, path } = await createNewDocument(title);

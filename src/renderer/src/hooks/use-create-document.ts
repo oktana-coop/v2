@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useEffect, useState } from 'react';
 
 import {
   CurrentProjectContext,
@@ -9,14 +9,30 @@ import { projectTypes } from '../../../modules/domain/project';
 
 export const useCreateDocument = () => {
   const { projectType } = useContext(CurrentProjectContext);
+  const [canCreateDocument, setCanCreateDocument] = useState<boolean>(false);
 
-  const { createNewDocument: createNewDocumentInMultiFileProject } = useContext(
-    MultiDocumentProjectContext
-  );
+  const { createNewDocument: createNewDocumentInMultiFileProject, directory } =
+    useContext(MultiDocumentProjectContext);
   const { createNewDocument: createNewDocumentInSingleFileProject } =
     useContext(SingleDocumentProjectContext);
 
-  return projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-    ? createNewDocumentInMultiFileProject
-    : createNewDocumentInSingleFileProject;
+  const createNewDocument =
+    projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+      ? createNewDocumentInMultiFileProject
+      : createNewDocumentInSingleFileProject;
+
+  useEffect(() => {
+    if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
+      setCanCreateDocument(
+        Boolean(directory && directory.permissionState === 'granted')
+      );
+    } else {
+      setCanCreateDocument(true);
+    }
+  }, [directory, projectType]);
+
+  return {
+    canCreateDocument,
+    createNewDocument,
+  };
 };

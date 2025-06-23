@@ -23,6 +23,8 @@ export const DocumentMainViewRouter = ({
       <EmptyDocumentPage
         onCreateDocumentButtonClick={onCreateDocumentButtonClick}
         onOpenDocumentButtonClick={onOpenDocumentButtonClick}
+        // TODO: Implement this
+        onOpenFolderButtonClick={() => {}}
       />
     );
   }

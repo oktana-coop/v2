@@ -39,7 +39,6 @@ export type MultiDocumentProjectContextType = {
     projectId: VersionControlId;
     documentPath: string;
   }) => Promise<VersionedDocumentHandle>;
-  canCreateDocument: () => boolean;
   canShowFiles: () => boolean;
 };
 
@@ -56,7 +55,6 @@ export const MultiDocumentProjectContext =
     createNewDocument: () => null,
     // @ts-expect-error will get overriden below
     findDocumentInProject: async () => null,
-    canCreateDocument: () => false,
     canShowFiles: () => false,
   });
 
@@ -76,11 +74,6 @@ export const MultiDocumentProjectProvider = ({
   const [directoryFiles, setDirectoryFiles] = useState<Array<File>>([]);
   const [versionedProjectStore, setVersionedProjectStore] =
     useState<MultiDocumentProjectStore | null>(null);
-
-  const canCreateDocument = useCallback(
-    () => Boolean(directory && directory.permissionState === 'granted'),
-    [directory]
-  );
 
   const canShowFiles = useCallback(
     () => Boolean(directory && directory.permissionState === 'granted'),
@@ -264,7 +257,6 @@ export const MultiDocumentProjectProvider = ({
         requestPermissionForSelectedDirectory,
         createNewDocument: handleCreateNewDocument,
         findDocumentInProject: handleFindDocumentInProject,
-        canCreateDocument,
         canShowFiles,
       }}
     >
