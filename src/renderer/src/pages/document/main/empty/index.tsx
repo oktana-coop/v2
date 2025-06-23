@@ -21,7 +21,7 @@ export const EmptyDocumentPage = ({
   onOpenFolderButtonClick: () => void;
 }) => {
   const { projectType } = useContext(CurrentProjectContext);
-  const documents = useDocumentList();
+  const { documentList: documents } = useDocumentList();
   const { canCreateDocument } = useCreateDocument();
 
   const openProjectPrompt =

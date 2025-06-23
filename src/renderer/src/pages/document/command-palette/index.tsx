@@ -34,7 +34,7 @@ export const DocumentCommandPalette = ({
   const handleDocumentSelectionInSingleDocumentProject =
     useDocumentSelectionInSingleDocumentProject();
   const currentDocumentName = useCurrentDocumentName();
-  const documents = useDocumentList();
+  const { documentList: documents } = useDocumentList();
 
   const handleDocumentSelection =
     projectType === projectTypes.MULTI_DOCUMENT_PROJECT

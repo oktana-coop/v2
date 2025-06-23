@@ -50,10 +50,11 @@ const getDocumentListInSingleDocumentProject = (
 export const useDocumentList = () => {
   const { documentId: documentIdParam } = useParams();
   const { projectType } = useContext(CurrentProjectContext);
-  const { directoryFiles } = useContext(MultiDocumentProjectContext);
+  const { directory, directoryFiles } = useContext(MultiDocumentProjectContext);
   const { selectedFileInfo } = useContext(CurrentDocumentContext);
   const { recentProjects } = useContext(RecentProjectsContext);
   const [documentList, setDocumentList] = useState<DocumentListItem[]>([]);
+  const [canShowList, setCanShowList] = useState<boolean>(false);
 
   useEffect(() => {
     const newList =
@@ -66,6 +67,7 @@ export const useDocumentList = () => {
             recentProjects,
             documentIdParam
           );
+
     setDocumentList(newList);
   }, [
     projectType,
@@ -75,5 +77,17 @@ export const useDocumentList = () => {
     selectedFileInfo,
   ]);
 
-  return documentList;
+  useEffect(() => {
+    const canShowDocumentList =
+      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+        ? Boolean(directory && directory.permissionState === 'granted')
+        : true;
+
+    setCanShowList(canShowDocumentList);
+  }, [projectType, directory]);
+
+  return {
+    canShowList,
+    documentList,
+  };
 };

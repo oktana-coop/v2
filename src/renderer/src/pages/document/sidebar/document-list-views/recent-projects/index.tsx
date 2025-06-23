@@ -23,7 +23,7 @@ export const RecentProjects = ({
   const { isElectron } = useContext(ElectronContext);
   const selectDocument = useDocumentSelectionInSingleDocumentProject();
   const openDocument = useOpenDocument();
-  const items = useDocumentList();
+  const { documentList: items } = useDocumentList();
   const handleOpenDocument = () => openDocument();
 
   return (

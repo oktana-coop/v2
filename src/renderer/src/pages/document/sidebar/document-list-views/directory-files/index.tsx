@@ -14,9 +14,9 @@ export const DirectoryFiles = ({
 }: {
   onCreateDocument: () => void;
 }) => {
-  const { directory, canShowFiles } = useContext(MultiDocumentProjectContext);
+  const { directory } = useContext(MultiDocumentProjectContext);
   const handleDocumentSelection = useDocumentSelectionInMultiDocumentProject();
-  const documents = useDocumentList();
+  const { documentList: documents, canShowList } = useDocumentList();
   const { canCreateDocument } = useCreateDocument();
 
   return (
@@ -35,7 +35,7 @@ export const DirectoryFiles = ({
         </div>
       </div>
 
-      {canShowFiles() ? (
+      {canShowList ? (
         <div className="flex flex-col items-stretch overflow-auto">
           <div className="mb-1 truncate px-4 text-left font-bold text-black text-opacity-85 dark:text-white dark:text-opacity-85">
             {directory?.name ?? 'Files'}
