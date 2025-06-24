@@ -22,7 +22,10 @@ import {
   orderedList as orderedListClasses,
   paragraph as paragraphClasses,
 } from '../../../../renderer/src/components/editing/blocks';
-import { link as linkClasses } from '../../../../renderer/src/components/editing/marks';
+import {
+  code as codeClasses,
+  link as linkClasses,
+} from '../../../../renderer/src/components/editing/marks';
 import { getLinkAttrsFromDomElement, type LinkAttrs } from '../models/link';
 
 // basics
@@ -32,7 +35,11 @@ const hrDOM: DOMOutputSpec = ['hr'];
 // marks
 const emDOM: DOMOutputSpec = ['em', 0];
 const strongDOM: DOMOutputSpec = ['strong', 0];
-const codeDOM: DOMOutputSpec = ['code', 0];
+const codeDOM: DOMOutputSpec = [
+  'code',
+  { class: codeClasses, spellcheck: 'false' },
+  0,
+];
 
 // lists
 const liDOM: DOMOutputSpec = ['li', 0];
@@ -382,6 +389,9 @@ const schema: MappedSchemaSpec = {
       parseDOM: [{ tag: 'code' }],
       toDOM() {
         return codeDOM;
+      },
+      automerge: {
+        markName: '__ext__code',
       },
     } as MarkSpec,
   },
