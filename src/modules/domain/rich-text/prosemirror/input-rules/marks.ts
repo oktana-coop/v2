@@ -30,13 +30,15 @@ const markInputRule = (
   });
 };
 
-// Regex patterns for strong and em marks based on (but not identical to)
+// Regex patterns for strong, em and code marks based on (but not identical to)
 // https://discuss.prosemirror.net/t/input-rules-for-wrapping-marks/537/12
 export const strongAsteriskRegexp = /(?:\*\*)([^*]+)(?:\*\*)/;
 export const strongUnderscoreRegexp = /(?:__)([^_]+)(?:__)/;
 // Emphasis marks include negative lookbehind to avoid matching soon-to-be bold text
 export const emAsteriskRegexp = /(?<!\*)(?:\*)([^*]+)(?:\*)/;
 export const emUnderscoreRegexp = /(?<!_)(?:_)([^_]+)(?:_)/;
+
+export const codeBackticksRegexp = /(?<!`)`([^`]+)`(?!`)/;
 
 export const strongAsteriskMarkRule = (schema: Schema) =>
   markInputRule(strongAsteriskRegexp, schema.marks.strong);
@@ -49,3 +51,6 @@ export const emAsteriskMarkRule = (schema: Schema) =>
 
 export const emUnderscorekMarkRule = (schema: Schema) =>
   markInputRule(emUnderscoreRegexp, schema.marks.em);
+
+export const codeBackticksRule = (schema: Schema) =>
+  markInputRule(codeBackticksRegexp, schema.marks.code);

@@ -8,6 +8,7 @@ import {
   orderedListRule,
 } from './blocks';
 import {
+  codeBackticksRule,
   emAsteriskMarkRule,
   emUnderscorekMarkRule,
   strongAsteriskMarkRule,
@@ -25,6 +26,7 @@ export const buildInputRules = (schema: Schema) => {
       strongUnderscoreMarkRule(schema),
       emAsteriskMarkRule(schema),
       emUnderscorekMarkRule(schema),
+      codeBackticksRule(schema),
     ],
   });
 };

@@ -1,4 +1,5 @@
 import {
+  codeBackticksRegexp,
   emAsteriskRegexp,
   emUnderscoreRegexp,
   strongAsteriskRegexp,
@@ -175,6 +176,44 @@ describe('Input Rules', () => {
         const matches = text.match(emUnderscoreRegexp);
         expect(Array.from(matches ?? [])).toEqual(['_em1_', 'em1']);
       });
+    });
+  });
+
+  describe('Code mark regex pattern', () => {
+    it('matches text enclosed in backticks', () => {
+      const text = '`code`';
+      expect(codeBackticksRegexp.test(text)).toBe(true);
+    });
+
+    it('matches text with spaces inside backticks', () => {
+      const text = '` code block `';
+      expect(codeBackticksRegexp.test(text)).toBe(true);
+    });
+
+    it('does not match text without backticks', () => {
+      const text = 'code';
+      expect(codeBackticksRegexp.test(text)).toBe(false);
+    });
+
+    it('does not match empty backticks', () => {
+      const text = '``';
+      expect(codeBackticksRegexp.test(text)).toBe(false);
+    });
+
+    it('does not match three sequential backticks', () => {
+      const text = '```';
+      expect(codeBackticksRegexp.test(text)).toBe(false);
+    });
+
+    it('does not match double backticks', () => {
+      const text = '``code``';
+      expect(codeBackticksRegexp.test(text)).toBe(false);
+    });
+
+    it('matches only the first token enclosed in backticks in a string', () => {
+      const text = ' `code1` and `code2`';
+      const matches = text.match(codeBackticksRegexp);
+      expect(Array.from(matches ?? [])).toEqual(['`code1`', 'code1']);
     });
   });
 });
