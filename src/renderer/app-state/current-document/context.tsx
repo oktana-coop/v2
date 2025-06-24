@@ -38,7 +38,7 @@ import {
   type VersionControlId,
   type VersionedArtifactHandleChangePayload,
 } from '../../../modules/infrastructure/version-control';
-import { FunctionalityConfigContext } from '../../personalization/functionality-config';
+import { FunctionalityConfigContext } from '../../../modules/personalization/functionality-config';
 import { CurrentProjectContext } from '../current-project/context';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 

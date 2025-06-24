@@ -2,10 +2,6 @@ import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
 import {
-  CurrentDocumentContext,
-  SidebarLayoutContext,
-} from '../../../../../../modules/app-state';
-import {
   type VersionedDocument,
   type VersionedDocumentHandle,
 } from '../../../../../../modules/domain/rich-text';
@@ -19,6 +15,10 @@ import {
   UrlHeads,
 } from '../../../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../../../modules/personalization/functionality-config';
+import {
+  CurrentDocumentContext,
+  SidebarLayoutContext,
+} from '../../../../../app-state';
 import { ActionsBar } from './ActionsBar';
 import { type DiffViewProps, ReadOnlyView } from './ReadOnlyView';
 

@@ -1,11 +1,11 @@
 import { useContext, useState } from 'react';
 
+import { projectTypes } from '../../../../../modules/domain/project';
+import { removeExtension } from '../../../../../modules/infrastructure/filesystem';
 import {
   CurrentDocumentContext,
   CurrentProjectContext,
-} from '../../../../../modules/app-state';
-import { projectTypes } from '../../../../../modules/domain/project';
-import { removeExtension } from '../../../../../modules/infrastructure/filesystem';
+} from '../../../../app-state';
 import { CommandPalette } from '../../../components/dialogs/command-palette/CommandPalette';
 import { useDocumentList, useKeyBindings } from '../../../hooks';
 import { useCurrentDocumentName } from '../../../hooks';

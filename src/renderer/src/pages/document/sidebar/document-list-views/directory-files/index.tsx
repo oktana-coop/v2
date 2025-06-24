@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 
-import { MultiDocumentProjectContext } from '../../../../../../../modules/app-state';
+import { MultiDocumentProjectContext } from '../../../../../../app-state';
 import { IconButton } from '../../../../../components/actions/IconButton';
 import { FolderIcon, PlusIcon } from '../../../../../components/icons';
 import { SidebarHeading } from '../../../../../components/sidebar/SidebarHeading';

@@ -1,14 +1,14 @@
 import { useCallback, useContext } from 'react';
 import { useNavigate } from 'react-router';
 
-import {
-  RecentProjectsContext,
-  SingleDocumentProjectContext,
-} from '../../../../modules/app-state';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/electron-context';
 import { type File } from '../../../../modules/infrastructure/filesystem';
 import { isValidVersionControlId } from '../../../../modules/infrastructure/version-control';
 import { type VersionControlId } from '../../../../modules/infrastructure/version-control';
+import {
+  RecentProjectsContext,
+  SingleDocumentProjectContext,
+} from '../../../app-state';
 
 export const useDocumentSelection = () => {
   const navigate = useNavigate();

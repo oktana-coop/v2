@@ -11,11 +11,14 @@ import {
   createVersionedDocument,
   findDocumentInProject,
   type MultiDocumentProjectStore,
-} from '../../domain/project';
-import { RICH_TEXT_FILE_EXTENSION } from '../../domain/project/constants/file-extensions';
-import { VersionedDocumentHandle } from '../../domain/rich-text';
-import { type Directory, type File } from '../../infrastructure/filesystem';
-import { VersionControlId } from '../../infrastructure/version-control';
+} from '../../../modules/domain/project';
+import { RICH_TEXT_FILE_EXTENSION } from '../../../modules/domain/project';
+import { VersionedDocumentHandle } from '../../../modules/domain/rich-text';
+import {
+  type Directory,
+  type File,
+} from '../../../modules/infrastructure/filesystem';
+import { VersionControlId } from '../../../modules/infrastructure/version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
 type BrowserStorageProjectData = {

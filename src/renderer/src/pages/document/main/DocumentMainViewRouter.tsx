@@ -1,8 +1,8 @@
 import { useContext } from 'react';
 import { Outlet, useParams } from 'react-router';
 
-import { CurrentDocumentContext } from '../../../../../modules/app-state';
 import { isValidVersionControlId } from '../../../../../modules/infrastructure/version-control';
+import { CurrentDocumentContext } from '../../../../app-state';
 import { InvalidDocument } from '../../../components/document-views/InvalidDocument';
 import { EmptyDocumentPage } from './empty';
 

@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 
-import { MultiDocumentProjectContext } from '../../../../../../../modules/app-state';
+import { MultiDocumentProjectContext } from '../../../../../../app-state';
 import { Button } from '../../../../../components/actions/Button';
 import { FolderIcon } from '../../../../../components/icons';
 

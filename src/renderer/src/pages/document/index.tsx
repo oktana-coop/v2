@@ -1,13 +1,6 @@
 import { useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
-import {
-  CurrentDocumentContext,
-  CurrentDocumentProvider,
-  CurrentProjectContext,
-  CurrentProjectProvider,
-  SidebarLayoutProvider,
-} from '../../../../modules/app-state';
 import { projectTypes } from '../../../../modules/domain/project';
 import { ProseMirrorProvider } from '../../../../modules/domain/rich-text/react/context';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/electron-context';
@@ -15,6 +8,13 @@ import {
   decodeURLHeads,
   type VersionControlId,
 } from '../../../../modules/infrastructure/version-control';
+import {
+  CurrentDocumentContext,
+  CurrentDocumentProvider,
+  CurrentProjectContext,
+  CurrentProjectProvider,
+  SidebarLayoutProvider,
+} from '../../../app-state';
 import { Layout } from '../../components/layout/Layout';
 import { SidebarLayout } from '../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../components/layout/StackedResizablePanelsLayout';

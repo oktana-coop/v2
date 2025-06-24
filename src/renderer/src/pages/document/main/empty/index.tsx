@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 
-import { CurrentProjectContext } from '../../../../../../modules/app-state';
 import { projectTypes } from '../../../../../../modules/domain/project';
+import { CurrentProjectContext } from '../../../../../app-state';
 import { Button } from '../../../../components/actions/Button';
 import { EmptyDocument } from '../../../../components/document-views/EmptyDocument';
 import {

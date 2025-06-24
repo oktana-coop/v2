@@ -1,6 +1,8 @@
 import { useContext, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 
+import { projectTypes } from '../../../modules/domain/project';
+import { removeExtension } from '../../../modules/infrastructure/filesystem';
 import {
   CurrentDocumentContext,
   CurrentDocumentContextType,
@@ -9,9 +11,7 @@ import {
   MultiDocumentProjectContextType,
   RecentProjectsContext,
   RecentProjectsContextType,
-} from '../../../modules/app-state';
-import { projectTypes } from '../../../modules/domain/project';
-import { removeExtension } from '../../../modules/infrastructure/filesystem';
+} from '../../app-state';
 
 export type DocumentListItem = {
   id: string;

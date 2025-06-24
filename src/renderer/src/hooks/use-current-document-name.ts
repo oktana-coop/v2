@@ -1,11 +1,11 @@
 import { useContext, useEffect, useState } from 'react';
 
+import { projectTypes } from '../../../modules/domain/project';
 import {
   CurrentDocumentContext,
   CurrentProjectContext,
   SingleDocumentProjectContext,
-} from '../../../modules/app-state';
-import { projectTypes } from '../../../modules/domain/project';
+} from '../../app-state';
 
 export const useCurrentDocumentName = () => {
   const { projectType } = useContext(CurrentProjectContext);

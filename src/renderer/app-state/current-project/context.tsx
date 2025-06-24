@@ -1,7 +1,10 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-import { type ProjectType, projectTypes } from '../../domain/project';
-import { VersionControlId } from '../../infrastructure/version-control';
+import {
+  type ProjectType,
+  projectTypes,
+} from '../../../modules/domain/project';
+import { VersionControlId } from '../../../modules/infrastructure/version-control';
 import { RecentProjectsProvider } from '../recent-projects/context';
 import {
   MultiDocumentProjectContext,
