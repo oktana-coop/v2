@@ -391,7 +391,7 @@ const schema: MappedSchemaSpec = {
         return codeDOM;
       },
       automerge: {
-        markName: '__ext__code',
+        markName: 'code',
       },
     } as MarkSpec,
   },
