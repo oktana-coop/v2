@@ -1,10 +1,23 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
+import {
+  MultiDocumentProjectAPI,
+  type SingleDocumentProjectAPI,
+} from '../../renderer';
+import {
+  type OpenMultiDocumentProjectByIdArgs,
+  type OpenSingleDocumentProjectStoreArgs,
+  type SetupSingleDocumentProjectStoreArgs,
+} from '../modules/domain/project';
 import { type PromisifyEffects } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
-import { type Filesystem as FilesystemAPI } from '../modules/infrastructure/filesystem';
+import {
+  type CreateNewFileArgs,
+  type Filesystem as FilesystemAPI,
+  type ListDirectoryFilesArgs,
+  type OpenFileArgs,
+} from '../modules/infrastructure/filesystem';
 import type {
-  FromMainMessage,
-  FromRendererMessage,
+  IPCMessage as AutomergeRepoNetworkIPCMessage,
   VersionControlId,
 } from '../modules/infrastructure/version-control';
 import type {
@@ -24,9 +37,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
 });
 
 contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
-  sendRendererProcessMessage: (message: FromRendererMessage) =>
+  sendRendererProcessMessage: (message: AutomergeRepoNetworkIPCMessage) =>
     ipcRenderer.send('automerge-repo-renderer-process-message', message),
-  onReceiveMainProcessMessage: (callback: (message: FromMainMessage) => void) =>
+  onReceiveMainProcessMessage: (
+    callback: (message: AutomergeRepoNetworkIPCMessage) => void
+  ) =>
     ipcRenderer.on('automerge-repo-main-process-message', (_, message) =>
       callback(message)
     ),
@@ -37,28 +52,32 @@ type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
 contextBridge.exposeInMainWorld('filesystemAPI', {
   openDirectory: () => ipcRenderer.invoke('open-directory'),
   getDirectory: (path: string) => ipcRenderer.invoke('get-directory', path),
-  listDirectoryFiles: (path: string) =>
-    ipcRenderer.invoke('list-directory-files', path),
+  listDirectoryFiles: (args: ListDirectoryFilesArgs) =>
+    ipcRenderer.invoke('list-directory-files', { ...args }),
   requestPermissionForDirectory: (path: string) =>
     ipcRenderer.invoke('request-permission-for-directory', path),
-  createNewFile: (suggestedName: string) =>
-    ipcRenderer.invoke('create-new-file', suggestedName),
+  createNewFile: (args: CreateNewFileArgs) =>
+    ipcRenderer.invoke('create-new-file', { ...args }),
+  openFile: (args: OpenFileArgs) =>
+    ipcRenderer.invoke('open-file', { ...args }),
   writeFile: (path: string, content: string) =>
     ipcRenderer.invoke('write-file', { path, content }),
   readFile: (path: string) => ipcRenderer.invoke('read-file', path),
 } as FilesystemPromiseAPI);
 
-contextBridge.exposeInMainWorld('versionControlAPI', {
-  openOrCreateProject: ({ directoryPath }: { directoryPath: string }) =>
-    ipcRenderer.invoke('open-or-create-project', { directoryPath }),
-  openProject: ({
-    projectId,
-    directoryPath,
-  }: {
-    projectId: VersionControlId;
-    directoryPath: string;
-  }) => ipcRenderer.invoke('open-project', { projectId, directoryPath }),
-});
+contextBridge.exposeInMainWorld('singleDocumentProjectAPI', {
+  createSingleDocumentProject: (args: SetupSingleDocumentProjectStoreArgs) =>
+    ipcRenderer.invoke('create-single-document-project', { ...args }),
+  openSingleDocumentProject: (args: OpenSingleDocumentProjectStoreArgs) =>
+    ipcRenderer.invoke('open-single-document-project', { ...args }),
+} as SingleDocumentProjectAPI);
+
+contextBridge.exposeInMainWorld('multiDocumentProjectAPI', {
+  openOrCreateMultiDocumentProject: () =>
+    ipcRenderer.invoke('open-or-create-multi-document-project'),
+  openMultiDocumentProjectById: (args: OpenMultiDocumentProjectByIdArgs) =>
+    ipcRenderer.invoke('open-multi-document-project-by-id', { ...args }),
+} as MultiDocumentProjectAPI);
 
 contextBridge.exposeInMainWorld('wasmAPI', {
   runWasiCLI: (args: RunWasiCLIArgs) =>

@@ -11,6 +11,11 @@ export default defineConfig(({ mode }) => {
       define: {
         'process.env': env,
       },
+      build: {
+        rollupOptions: {
+          external: ['better-sqlite3'],
+        },
+      },
     },
     preload: {
       build: {

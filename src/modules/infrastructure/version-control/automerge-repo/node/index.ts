@@ -1,1 +1,4 @@
-export { setup as setupForNode } from './setup';
+export {
+  setupFilesystemRepo as setupFilesystemRepoForNode,
+  setupSQLiteRepo as setupSQLiteRepoForNode,
+} from './setup';

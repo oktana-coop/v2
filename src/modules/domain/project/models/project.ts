@@ -4,18 +4,35 @@ import {
   type VersionedArtifactHandle,
 } from '../../../../modules/infrastructure/version-control';
 
-export type ArtifactMetaData = {
+export type BaseArtifactMetaData = {
   versionControlId: VersionControlId;
-  name: string;
+};
+
+export type ArtifactMetaData = BaseArtifactMetaData & {
   // TODO: use relative path to project directory in this model
+  name: string;
   path: string;
 };
 
-export type Project = {
+export type MultiDocumentProject = {
   path: string;
   documents: Record<VersionControlId, ArtifactMetaData>;
 };
 
-export type VersionedProject = VersionedArtifact<Project>;
+export type VersionedMultiDocumentProject =
+  VersionedArtifact<MultiDocumentProject>;
 
-export type VersionedProjectHandle = VersionedArtifactHandle<Project>;
+export type VersionedMultiDocumentProjectHandle =
+  VersionedArtifactHandle<MultiDocumentProject>;
+
+export type SingleDocumentProject = {
+  document: BaseArtifactMetaData;
+  assets: Record<VersionControlId, BaseArtifactMetaData>;
+  name: string | null;
+};
+
+export type VersionedSingleDocumentProject =
+  VersionedArtifact<SingleDocumentProject>;
+
+export type VersionedSingleDocumentProjectHandle =
+  VersionedArtifactHandle<SingleDocumentProject>;

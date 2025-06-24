@@ -1,9 +1,9 @@
-import { useContext, useState } from 'react';
+import { useState } from 'react';
 
-import { CurrentProjectContext } from '../../../../../modules/app-state';
 import { type VersionControlId } from '../../../../../modules/infrastructure/version-control/';
 import { Button } from '../../../components/actions/Button';
 import { Modal } from '../../../components/dialogs/Modal';
+import { useCreateDocument } from '../../../hooks';
 
 export const CreateDocumentModal = ({
   isOpen,
@@ -14,16 +14,16 @@ export const CreateDocumentModal = ({
   onClose: () => void;
   onCreateDocument: (args: {
     documentId: VersionControlId;
-    path: string;
+    path: string | null;
   }) => void;
 }) => {
-  const [newDocTitle, setNewDocTitle] = useState<string>('');
-  const { createNewDocument } = useContext(CurrentProjectContext);
+  const [newDocName, setNewDocName] = useState<string>('');
+  const { createNewDocument } = useCreateDocument();
 
   const handleDocumentCreation = async (title: string) => {
     const { documentId, path } = await createNewDocument(title);
 
-    setNewDocTitle('');
+    setNewDocName('');
     onClose();
     onCreateDocument({ documentId, path });
   };
@@ -33,14 +33,14 @@ export const CreateDocumentModal = ({
       isOpen={isOpen}
       title="Give your document a title"
       onClose={() => {
-        setNewDocTitle('');
+        setNewDocName('');
         onClose();
       }}
       secondaryButton={
         <Button
           variant="plain"
           onClick={() => {
-            setNewDocTitle('');
+            setNewDocName('');
             onClose();
           }}
         >
@@ -49,8 +49,8 @@ export const CreateDocumentModal = ({
       }
       primaryButton={
         <Button
-          disabled={newDocTitle.length === 0}
-          onClick={() => handleDocumentCreation(newDocTitle)}
+          disabled={newDocName.length === 0}
+          onClick={() => handleDocumentCreation(newDocName)}
           color="purple"
         >
           Create
@@ -59,9 +59,9 @@ export const CreateDocumentModal = ({
     >
       <input
         type="text"
-        value={newDocTitle}
+        value={newDocName}
         autoFocus={true}
-        onChange={(e) => setNewDocTitle(e.target.value)}
+        onChange={(e) => setNewDocName(e.target.value)}
         className="w-full rounded-md border border-gray-300 p-2"
       />
     </Modal>

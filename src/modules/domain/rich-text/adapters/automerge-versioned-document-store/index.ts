@@ -41,7 +41,6 @@ export const createAdapter = (automergeRepo: Repo): VersionedDocumentStore => {
     );
 
   const createDocument: VersionedDocumentStore['createDocument'] = ({
-    title,
     content,
   }) =>
     pipe(
@@ -49,7 +48,6 @@ export const createAdapter = (automergeRepo: Repo): VersionedDocumentStore => {
         try: () =>
           automergeRepo.create<RichTextDocument>({
             type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
-            title,
             content: content ?? '',
           }),
         catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
@@ -91,6 +89,11 @@ export const createAdapter = (automergeRepo: Repo): VersionedDocumentStore => {
 
           return mapErrorTo(RepositoryError, 'Automerge repo error')(err);
         },
+      }),
+      Effect.timeoutFail({
+        duration: '5 seconds',
+        onTimeout: () =>
+          new NotFoundError('Timeout in getting document handle'),
       })
     );
 
@@ -166,7 +169,7 @@ export const createAdapter = (automergeRepo: Repo): VersionedDocumentStore => {
             // (not) changing the title of the document, as interfering with the
             // content outside the Prosemirror API will cause loss of formatting
             // eslint-disable-next-line no-self-assign
-            doc.title = doc.title;
+            doc.type = doc.type;
           },
           {
             message,

@@ -8,28 +8,28 @@ import {
   CurrentProjectProvider,
   SidebarLayoutProvider,
 } from '../../../../modules/app-state';
+import { projectTypes } from '../../../../modules/domain/project';
 import { ProseMirrorProvider } from '../../../../modules/domain/rich-text/react/context';
-import {
-  type File,
-  removeExtension,
-} from '../../../../modules/infrastructure/filesystem';
+import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/electron-context';
 import {
   decodeURLHeads,
   type VersionControlId,
 } from '../../../../modules/infrastructure/version-control';
-import { CommandPalette } from '../../components/dialogs/command-palette/CommandPalette';
 import { Layout } from '../../components/layout/Layout';
 import { SidebarLayout } from '../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../components/layout/StackedResizablePanelsLayout';
-import { useKeyBindings } from '../../hooks/useKeyBindings';
+import { useCreateDocument } from '../../hooks';
+import { useOpenDirectory } from '../../hooks/multi-document-project';
+import { useOpenDocument } from '../../hooks/single-document-project';
+import { DocumentCommandPalette } from './command-palette';
 import { CommitDialog } from './commit/CommitDialog';
 import { CreateDocumentModal } from './create-document/CreateDocumentModal';
 import { DocumentMainViewRouter } from './main/DocumentMainViewRouter';
 import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
-import { FileExplorer } from './sidebar/file-explorer/FileExplorer';
+import { DirectoryFiles, RecentProjects } from './sidebar/document-list-views';
 
 export const Document = () => (
-  <CurrentProjectProvider>
+  <CurrentProjectProvider projectType={projectTypes.SINGLE_DOCUMENT_PROJECT}>
     <CurrentDocumentProvider>
       <SidebarLayoutProvider>
         <DocumentIndex />
@@ -45,21 +45,13 @@ export {
 } from './main';
 
 const DocumentIndex = () => {
+  const { isElectron } = useContext(ElectronContext);
+
   const [isDocumentCreationModalOpen, setCreateDocumentModalOpen] =
     useState<boolean>(false);
   const navigate = useNavigate();
-
+  const { projectType } = useContext(CurrentProjectContext);
   const {
-    projectId,
-    directory,
-    directoryFiles,
-    openDirectory,
-    requestPermissionForSelectedDirectory,
-    findDocumentInProject,
-  } = useContext(CurrentProjectContext);
-  const {
-    selectedFileInfo,
-    selectedFileName,
     setSelectedFileInfo,
     versionedDocumentHistory: commits,
     onSelectCommit,
@@ -67,70 +59,29 @@ const DocumentIndex = () => {
     isCommitDialogOpen,
     canCommit,
     onCommit,
-    onOpenCommitDialog,
   } = useContext(CurrentDocumentContext);
   const { changeId } = useParams();
-  const [isCommandPaletteOpen, setCommandPaletteOpen] =
-    useState<boolean>(false);
-
-  useKeyBindings({
-    'ctrl+k': () => setCommandPaletteOpen((state) => !state),
-    'ctrl+d': () => openCreateDocumentModal(),
-  });
+  const { createNewDocument } = useCreateDocument();
+  const openDocument = useOpenDocument();
+  const openDirectory = useOpenDirectory();
 
   useEffect(() => {
-    document.title = 'v2 | Editor';
+    window.document.title = 'v2 | Editor';
   }, []);
 
-  const handleDocumentCreation = ({
+  const navigateToDocument = ({
     documentId,
     path,
   }: {
     documentId: VersionControlId;
-    path: string;
+    path: string | null;
   }) => {
     setSelectedFileInfo({ documentId, path });
-    navigate(`/documents/${documentId}?path=${encodeURIComponent(path)}`);
-  };
 
-  const handleOpenDirectory = async () => {
-    await openDirectory();
-  };
-
-  const handlePermissionRequest = async () => {
-    await requestPermissionForSelectedDirectory();
-  };
-
-  const handleFileSelection = async (file: File) => {
-    if (!projectId) {
-      // TODO: Handle more gracefully
-      throw new Error('Could not select file because no project ID was found');
-    }
-
-    const documentHandle = await findDocumentInProject({
-      projectId,
-      documentPath: file.path!,
-    });
-
-    if (!documentHandle) {
-      // TODO: Handle more gracefully
-      throw new Error(
-        'Could not select file because the versioned document was not found in project'
-      );
-    }
-
-    if (!file.path) {
-      // TODO: Handle more gracefully
-      throw new Error('Could not select file because the file path is missing');
-    }
-
-    await setSelectedFileInfo({
-      documentId: documentHandle.url,
-      path: file.path,
-    });
-    navigate(
-      `/documents/${documentHandle.url}?path=${encodeURIComponent(file.path)}`
-    );
+    const newUrl = path
+      ? `/documents/${documentId}?path=${encodeURIComponent(path)}`
+      : `/documents/${documentId}`;
+    navigate(newUrl);
   };
 
   const openCreateDocumentModal = () => {
@@ -141,13 +92,26 @@ const DocumentIndex = () => {
     setCreateDocumentModalOpen(false);
   };
 
+  const handleCreateDocument = async () => {
+    if (!isElectron && projectType === projectTypes.SINGLE_DOCUMENT_PROJECT) {
+      openCreateDocumentModal();
+    } else {
+      const { documentId, path } = await createNewDocument();
+      navigateToDocument({ documentId, path });
+    }
+  };
+
+  const handleOpenDocument = () => openDocument();
+
+  const handleOpenDirectory = () => openDirectory();
+
   return (
     <Layout>
       <div className="flex flex-auto">
         <CreateDocumentModal
           isOpen={isDocumentCreationModalOpen}
           onClose={closeCreateDocumentModal}
-          onCreateDocument={handleDocumentCreation}
+          onCreateDocument={navigateToDocument}
         />
         <CommitDialog
           isOpen={isCommitDialogOpen}
@@ -155,63 +119,20 @@ const DocumentIndex = () => {
           canCommit={canCommit}
           onCommit={(message: string) => onCommit(message)}
         />
-        <CommandPalette
-          open={isCommandPaletteOpen}
-          onClose={() => setCommandPaletteOpen(false)}
-          documentsGroupTitle={`${selectedFileInfo ? 'Other' : 'Project'}  documents`}
-          contextualSection={
-            selectedFileName
-              ? {
-                  groupTitle: `Current document: ${selectedFileName}`,
-                  actions: [
-                    ...(canCommit
-                      ? [
-                          {
-                            name: 'Commit changes',
-                            shortcut: 'S',
-                            onActionSelection: () => {
-                              console.log('Commit changes action selected');
-                              onOpenCommitDialog();
-                            },
-                          },
-                        ]
-                      : []),
-                  ],
-                }
-              : undefined
-          }
-          documents={directoryFiles
-            .filter((file) => selectedFileInfo?.path !== file.path)
-            .map((file) => ({
-              title: removeExtension(file.name),
-              onDocumentSelection: () => {
-                handleFileSelection(file);
-                setCommandPaletteOpen(false);
-              },
-            }))}
-          actions={[
-            {
-              name: 'Create new document',
-              shortcut: 'D',
-              onActionSelection: openCreateDocumentModal,
-            },
-          ]}
+        <DocumentCommandPalette
+          onCreateDocument={handleCreateDocument}
+          onOpenDocument={handleOpenDocument}
         />
         <ProseMirrorProvider>
           <SidebarLayout
             sidebar={
               <StackedResizablePanelsLayout autoSaveId="editor-panel-group">
-                <FileExplorer
-                  directory={directory}
-                  files={directoryFiles}
-                  selectedFileInfo={selectedFileInfo}
-                  onOpenDirectory={handleOpenDirectory}
-                  onRequestPermissionsForCurrentDirectory={
-                    handlePermissionRequest
-                  }
-                  onFileSelection={handleFileSelection}
-                  onCreateDocument={openCreateDocumentModal}
-                />
+                {projectType === projectTypes.MULTI_DOCUMENT_PROJECT ? (
+                  <DirectoryFiles onCreateDocument={handleCreateDocument} />
+                ) : (
+                  <RecentProjects onCreateDocument={handleCreateDocument} />
+                )}
+
                 <DocumentHistory
                   commits={commits}
                   onCommitClick={onSelectCommit}
@@ -221,7 +142,9 @@ const DocumentIndex = () => {
             }
           >
             <DocumentMainViewRouter
-              onCreateDocumentButtonClick={openCreateDocumentModal}
+              onCreateDocumentButtonClick={handleCreateDocument}
+              onOpenDocumentButtonClick={handleOpenDocument}
+              onOpenDirectoryButtonClick={handleOpenDirectory}
             />
           </SidebarLayout>
         </ProseMirrorProvider>

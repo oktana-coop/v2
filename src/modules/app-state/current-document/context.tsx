@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
+import { projectTypes } from '../../../modules/domain/project';
 import {
   type GetDocumentHandleAtCommitArgs,
   type IsContentSameAtHeadsArgs,
@@ -18,6 +19,7 @@ import {
   unregisterLiveUpdates,
   type VersionedDocument,
   type VersionedDocumentHandle,
+  type VersionedDocumentStore,
 } from '../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../modules/infrastructure/cross-platform';
 import {
@@ -37,6 +39,7 @@ import {
   type VersionedArtifactHandleChangePayload,
 } from '../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../personalization/functionality-config';
+import { CurrentProjectContext } from '../current-project/context';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
 export type SelectedFileInfo = {
@@ -44,7 +47,8 @@ export type SelectedFileInfo = {
   path: string | null;
 };
 
-type CurrentDocumentContextType = {
+export type CurrentDocumentContextType = {
+  // TODO: Selected file info (per-document) applies only to multi-document projects, we need to refactor this.
   selectedFileInfo: SelectedFileInfo | null;
   selectedFileName: string | null;
   setSelectedFileInfo: (file: SelectedFileInfo) => Promise<void>;
@@ -111,46 +115,64 @@ export const CurrentDocumentProvider = ({
   );
   const { showDiffInHistoryView } = useContext(FunctionalityConfigContext);
   const navigate = useNavigate();
+  const { projectType } = useContext(CurrentProjectContext);
 
   useEffect(() => {
-    const updateFileSelection = async () => {
+    const updateDocumentHandleAndSelectedFile = async ({
+      versionedDocumentStore,
+    }: {
+      versionedDocumentStore: VersionedDocumentStore;
+    }) => {
       if (!isValidVersionControlId(documentId)) {
         clearFileSelection();
         setVersionedDocumentHandle(null);
       } else {
-        const pathParam = searchParams.get('path');
-        const path = pathParam ? decodeURIComponent(pathParam) : null;
-
-        if (!path) {
-          throw new Error(
-            'Cannot propagate changes to file since path is not provided'
-          );
+        if (!versionedDocumentStore) {
+          throw new Error('Versioned document store not ready yet.');
         }
 
-        const { documentHandle, registeredListener } =
-          await registerLiveUpdates({
+        const documentHandle = await Effect.runPromise(
+          versionedDocumentStore.findDocumentById(documentId)
+        );
+
+        setVersionedDocumentHandle(documentHandle);
+
+        if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
+          const pathParam = searchParams.get('path');
+          const path = pathParam ? decodeURIComponent(pathParam) : null;
+
+          if (!path) {
+            throw new Error(
+              'Cannot propagate changes to file since path is not provided'
+            );
+          }
+
+          setSelectedFileInfo({
+            documentId,
+            path,
+          });
+
+          const { registeredListener } = await registerLiveUpdates({
             findDocumentById: versionedDocumentStore.findDocumentById,
             writeFile: filesystem.writeFile,
           })({
-            documentId,
+            documentHandle,
             filePath: path,
           });
 
-        setVersionedDocumentHandle(documentHandle);
-        setSelectedFileInfo({
-          documentId,
-          path,
-        });
-
-        return () => {
-          unregisterLiveUpdates({ documentHandle, registeredListener });
-        };
+          return () => {
+            unregisterLiveUpdates({ documentHandle, registeredListener });
+          };
+        }
       }
     };
 
-    updateFileSelection();
+    if (versionedDocumentStore) {
+      updateDocumentHandleAndSelectedFile({ versionedDocumentStore });
+    }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documentId]);
+  }, [documentId, versionedDocumentStore]);
 
   useEffect(() => {
     if (selectedFileInfo && selectedFileInfo.path) {
@@ -160,80 +182,92 @@ export const CurrentDocumentProvider = ({
     }
   }, [selectedFileInfo]);
 
-  const checkIfContentChangedFromLastCommit = (
-    currentDoc: VersionedDocument,
-    latestChangeHeads: UrlHeads,
-    lastCommitHeads: UrlHeads
-  ) => {
-    if (
-      !headsAreSame(latestChangeHeads, lastCommitHeads) &&
-      !versionedDocumentStore.isContentSameAtHeads({
-        document: currentDoc,
-        heads1: latestChangeHeads,
-        heads2: lastCommitHeads,
-      })
-    ) {
-      setCanCommit(true);
-    } else {
-      setCanCommit(false);
-    }
-  };
-
-  const checkIfCanCommit = (
-    currentDoc: VersionedDocument,
-    latestChangeHeads: UrlHeads,
-    lastCommitHeads?: UrlHeads
-  ) => {
-    if (lastCommitHeads) {
-      checkIfContentChangedFromLastCommit(
-        currentDoc,
-        latestChangeHeads,
-        lastCommitHeads
-      );
-    } else {
-      if (!isEmpty(currentDoc)) {
+  const checkIfContentChangedFromLastCommit =
+    (documentStore: VersionedDocumentStore) =>
+    (
+      currentDoc: VersionedDocument,
+      latestChangeHeads: UrlHeads,
+      lastCommitHeads: UrlHeads
+    ) => {
+      if (
+        !headsAreSame(latestChangeHeads, lastCommitHeads) &&
+        !documentStore.isContentSameAtHeads({
+          document: currentDoc,
+          heads1: latestChangeHeads,
+          heads2: lastCommitHeads,
+        })
+      ) {
         setCanCommit(true);
       } else {
         setCanCommit(false);
       }
-    }
-  };
-
-  const loadHistory = async (docHandle: VersionedDocumentHandle) => {
-    const { history, current, lastCommit, latestChange } =
-      await Effect.runPromise(
-        versionedDocumentStore.getDocumentHandleHistory(docHandle)
-      );
-
-    const historyWithURLInfo = history.map((commit) => ({
-      ...commit,
-      urlEncodedHeads: encodeURLHeadsForChange(commit),
-    }));
-
-    setVersionedDocumentHistory(historyWithURLInfo);
-    setLastCommit(lastCommit);
-    checkIfCanCommit(current, latestChange.heads, lastCommit?.heads);
-  };
-
-  useEffect(() => {
-    const updateDocTitle = async (docHandle: VersionedDocumentHandle) => {
-      const doc = await docHandle.doc();
-      document.title = `v2 | "${doc.title}"`;
     };
 
-    if (versionedDocumentHandle) {
-      updateDocTitle(versionedDocumentHandle);
-      loadHistory(versionedDocumentHandle);
-    }
-  }, [versionedDocumentHandle]);
+  const checkIfCanCommit =
+    (documentStore: VersionedDocumentStore) =>
+    (
+      currentDoc: VersionedDocument,
+      latestChangeHeads: UrlHeads,
+      lastCommitHeads?: UrlHeads
+    ) => {
+      if (lastCommitHeads) {
+        checkIfContentChangedFromLastCommit(documentStore)(
+          currentDoc,
+          latestChangeHeads,
+          lastCommitHeads
+        );
+      } else {
+        if (!isEmpty(currentDoc)) {
+          setCanCommit(true);
+        } else {
+          setCanCommit(false);
+        }
+      }
+    };
+
+  const loadHistory =
+    (documentStore: VersionedDocumentStore) =>
+    async (docHandle: VersionedDocumentHandle) => {
+      const { history, current, lastCommit, latestChange } =
+        await Effect.runPromise(
+          documentStore.getDocumentHandleHistory(docHandle)
+        );
+
+      const historyWithURLInfo = history.map((commit) => ({
+        ...commit,
+        urlEncodedHeads: encodeURLHeadsForChange(commit),
+      }));
+
+      setVersionedDocumentHistory(historyWithURLInfo);
+      setLastCommit(lastCommit);
+      checkIfCanCommit(documentStore)(
+        current,
+        latestChange.heads,
+        lastCommit?.heads
+      );
+    };
 
   useEffect(() => {
-    if (versionedDocumentHandle) {
+    const updateBrowserTabTitle = async (name: string) => {
+      window.document.title = `v2 | "${name}"`;
+    };
+
+    if (versionedDocumentStore && versionedDocumentHandle) {
+      if (selectedFileName) {
+        updateBrowserTabTitle(selectedFileName);
+      }
+
+      loadHistory(versionedDocumentStore)(versionedDocumentHandle);
+    }
+  }, [versionedDocumentHandle, versionedDocumentStore, selectedFileName]);
+
+  useEffect(() => {
+    if (versionedDocumentStore && versionedDocumentHandle) {
       const handler = (
         args: VersionedArtifactHandleChangePayload<RichTextDocument>
       ) => {
-        loadHistory(versionedDocumentHandle);
-        checkIfCanCommit(
+        loadHistory(versionedDocumentStore)(versionedDocumentHandle);
+        checkIfCanCommit(versionedDocumentStore)(
           args.doc,
           Effect.runSync(versionedDocumentStore.getDocumentHeads(args.doc)),
           lastCommit?.heads
@@ -248,7 +282,7 @@ export const CurrentDocumentProvider = ({
       };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastCommit, versionedDocumentHandle]);
+  }, [lastCommit, versionedDocumentHandle, versionedDocumentStore]);
 
   const clearFileSelection = async () => {
     setSelectedFileInfo(null);
@@ -270,7 +304,7 @@ export const CurrentDocumentProvider = ({
 
   const handleCommit = useCallback(
     async (message: string) => {
-      if (!versionedDocumentHandle) return;
+      if (!versionedDocumentHandle || !versionedDocumentStore) return;
       await Effect.runPromise(
         versionedDocumentStore.commitChanges({
           documentHandle: versionedDocumentHandle,
@@ -280,7 +314,7 @@ export const CurrentDocumentProvider = ({
       setIsCommitDialogOpen(false);
       setCanCommit(false);
     },
-    [versionedDocumentHandle]
+    [versionedDocumentHandle, versionedDocumentStore]
   );
 
   const handleOpenCommitDialog = useCallback(() => {
@@ -326,10 +360,29 @@ export const CurrentDocumentProvider = ({
     [documentId, versionedDocumentHistory, showDiffInHistoryView]
   );
 
-  const handleGetDocumentHandleAtCommit = async (
-    args: GetDocumentHandleAtCommitArgs
-  ) =>
-    Effect.runPromise(versionedDocumentStore.getDocumentHandleAtCommit(args));
+  const handleGetDocumentHandleAtCommit = useCallback(
+    async (args: GetDocumentHandleAtCommitArgs) => {
+      if (!versionedDocumentStore) {
+        throw new Error('Versioned document store not ready yet.');
+      }
+
+      return Effect.runPromise(
+        versionedDocumentStore.getDocumentHandleAtCommit(args)
+      );
+    },
+    [versionedDocumentStore]
+  );
+
+  const handleIsContentSameAtHeads = useCallback(
+    (args: IsContentSameAtHeadsArgs) => {
+      if (!versionedDocumentStore) {
+        throw new Error('Versioned document store not ready yet.');
+      }
+
+      return versionedDocumentStore.isContentSameAtHeads(args);
+    },
+    [versionedDocumentStore]
+  );
 
   return (
     <CurrentDocumentContext.Provider
@@ -348,7 +401,7 @@ export const CurrentDocumentProvider = ({
         selectedCommitIndex,
         onSelectCommit: handleSelectCommit,
         getDocumentHandleAtCommit: handleGetDocumentHandleAtCommit,
-        isContentSameAtHeads: versionedDocumentStore.isContentSameAtHeads,
+        isContentSameAtHeads: handleIsContentSameAtHeads,
       }}
     >
       {children}

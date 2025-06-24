@@ -1,27 +1,27 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import {
-  createAutomergeProjectStoreAdapter,
-  type VersionedProjectStore,
+  type MultiDocumentProjectStoreManager,
+  type SingleDocumentProjectStoreManager,
 } from '../../../modules/domain/project';
-import {
-  createAutomergeDocumentStoreAdapter,
-  type VersionedDocumentStore,
-} from '../../../modules/domain/rich-text';
+import { type VersionedDocumentStore } from '../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../modules/infrastructure/cross-platform/electron-context';
 import { type Filesystem } from '../../../modules/infrastructure/filesystem';
 import { createAdapter as createBrowserFilesystemAPIAdapter } from '../../../modules/infrastructure/filesystem/adapters/browser-api';
 import { createAdapter as createElectronRendererFilesystemAPIAdapter } from '../../../modules/infrastructure/filesystem/adapters/electron-renderer-api';
-import { type AutomergeRepo } from '../../../modules/infrastructure/version-control';
 import {
-  setupForElectron as setupBrowserRepoForElectron,
-  setupForWeb as setupBrowserRepoForWeb,
-} from '../../../modules/infrastructure/version-control/automerge-repo/browser';
+  createBrowserMultiDocumentProjectStoreManagerAdapter,
+  createBrowserSingleDocumentProjectStoreManagerAdapter,
+  createElectronRendererMultiDocumentProjectStoreManagerAdapter,
+  createElectronRendererSingleDocumentProjectStoreManagerAdapter,
+} from '../../domain/project/browser';
 
-type InfrastructureAdaptersContextType = {
+export type InfrastructureAdaptersContextType = {
   filesystem: Filesystem;
-  versionedProjectStore: VersionedProjectStore;
-  versionedDocumentStore: VersionedDocumentStore;
+  singleDocumentProjectStoreManager: SingleDocumentProjectStoreManager;
+  multiDocumentProjectStoreManager: MultiDocumentProjectStoreManager;
+  versionedDocumentStore: VersionedDocumentStore | null;
+  setVersionedDocumentStore: (documentStore: VersionedDocumentStore) => void;
 };
 
 export const InfrastructureAdaptersContext =
@@ -29,9 +29,11 @@ export const InfrastructureAdaptersContext =
     // @ts-expect-error will get overriden below
     filesystem: null,
     // @ts-expect-error will get overriden below
-    versionedProjectStore: null,
+    singleDocumentProjectStoreManager: null,
     // @ts-expect-error will get overriden below
+    multiDocumentProjectStoreManager: null,
     versionedDocumentStore: null,
+    setVersionedDocumentStore: () => {},
   });
 
 export const InfrastructureAdaptersProvider = ({
@@ -40,53 +42,68 @@ export const InfrastructureAdaptersProvider = ({
   children: React.ReactNode;
 }) => {
   const { processId, isElectron } = useContext(ElectronContext);
+  const [versionedDocumentStore, setVersionedDocumentStore] =
+    useState<VersionedDocumentStore | null>(null);
 
   const filesystem = isElectron
     ? createElectronRendererFilesystemAPIAdapter()
     : createBrowserFilesystemAPIAdapter();
 
-  const [versionedProjectStore, setVersionedProjectStore] =
-    useState<VersionedProjectStore | null>(null);
-  const [versionedDocumentStore, setVersionedDocumentStore] =
-    useState<VersionedDocumentStore | null>(null);
+  const [
+    singleDocumentProjectStoreManager,
+    setSingleDocumentProjectStoreManager,
+  ] = useState<SingleDocumentProjectStoreManager | null>(null);
+
+  const [
+    multiDocumentProjectStoreManager,
+    setMultiDocumentProjectStoreManager,
+  ] = useState<MultiDocumentProjectStoreManager | null>(null);
 
   useEffect(() => {
-    const setupVersionControlRepo = async () => {
-      const setupStores = (automergeRepo: AutomergeRepo) => {
-        const versionedProjectStore =
-          createAutomergeProjectStoreAdapter(automergeRepo);
-        const versionedDocumentStore =
-          createAutomergeDocumentStoreAdapter(automergeRepo);
-
-        setVersionedProjectStore(versionedProjectStore);
-        setVersionedDocumentStore(versionedDocumentStore);
-      };
-
+    const setupProjectStoreManagers = async () => {
       if (isElectron) {
         if (processId) {
-          const automergeRepo = await setupBrowserRepoForElectron(processId);
-          setupStores(automergeRepo);
+          const singleDocProjectStoreManager =
+            createElectronRendererSingleDocumentProjectStoreManagerAdapter({
+              processId,
+            });
+          const multiDocProjectStoreManager =
+            createElectronRendererMultiDocumentProjectStoreManagerAdapter({
+              processId,
+            });
+          setSingleDocumentProjectStoreManager(singleDocProjectStoreManager);
+          setMultiDocumentProjectStoreManager(multiDocProjectStoreManager);
         }
       } else {
-        const automergeRepo = await setupBrowserRepoForWeb();
-        setupStores(automergeRepo);
+        const singleDocProjectStoreManager =
+          createBrowserSingleDocumentProjectStoreManagerAdapter();
+        const multiDocProjectStoreManager =
+          createBrowserMultiDocumentProjectStoreManagerAdapter();
+        setSingleDocumentProjectStoreManager(singleDocProjectStoreManager);
+        setMultiDocumentProjectStoreManager(multiDocProjectStoreManager);
       }
     };
 
-    setupVersionControlRepo();
+    setupProjectStoreManagers();
   }, [processId, isElectron]);
 
-  if (!versionedDocumentStore || !versionedProjectStore) {
+  if (!singleDocumentProjectStoreManager || !multiDocumentProjectStoreManager) {
     // TODO: Replace with skeleton or spinner
     return <div>Loading...</div>;
   }
+
+  const handleSetDocumentStore = (documentStore: VersionedDocumentStore) => {
+    setVersionedDocumentStore(documentStore);
+  };
 
   return (
     <InfrastructureAdaptersContext.Provider
       value={{
         filesystem,
-        versionedProjectStore,
+        singleDocumentProjectStoreManager,
+        multiDocumentProjectStoreManager,
         versionedDocumentStore,
+        setVersionedDocumentStore: handleSetDocumentStore,
       }}
     >
       {children}

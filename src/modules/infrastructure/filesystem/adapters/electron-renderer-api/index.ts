@@ -85,6 +85,14 @@ export const createAdapter = (): Filesystem => ({
       >,
       FilesystemRepositoryError
     )(window.filesystemAPI.createNewFile(...args)),
+  openFile: (...args: Parameters<Filesystem['openFile']>) =>
+    effectifyIPCPromise(
+      {
+        FilesystemAbortError,
+        FilesystemRepositoryError,
+      } as ErrorRegistry<EffectErrorType<ReturnType<Filesystem['openFile']>>>,
+      FilesystemRepositoryError
+    )(window.filesystemAPI.openFile(...args)),
   writeFile: (...args: Parameters<Filesystem['writeFile']>) =>
     effectifyIPCPromise(
       {

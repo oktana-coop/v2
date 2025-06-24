@@ -1,7 +1,7 @@
 import { createContext, useCallback, useRef, useState } from 'react';
 import { ImperativePanelHandle } from 'react-resizable-panels';
 
-type SidebarLayoutContextType = {
+export type SidebarLayoutContextType = {
   isSidebarOpen: boolean;
   sidebarPanelRef: React.MutableRefObject<ImperativePanelHandle | null>;
   toggleSidebar: () => void;

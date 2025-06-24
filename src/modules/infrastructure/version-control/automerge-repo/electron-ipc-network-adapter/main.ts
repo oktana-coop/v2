@@ -6,26 +6,15 @@ import {
 import { BrowserWindow, ipcMain } from 'electron';
 
 import {
-  type FromMainMessage,
-  type FromRendererMessage,
-  isRendererAck,
-  type MainJoinMessage,
+  createInitiatorJoinMessage,
+  createReceiverAckMessage,
+  type IPCMessage,
+  isInitiatorJoinMessage,
+  isReceiverAckMessage,
 } from './messages';
 
-const createMainJoinMessage = (
-  senderId: PeerId,
-  peerMetadata: PeerMetadata,
-  targetId: PeerId
-): MainJoinMessage => {
-  return {
-    type: 'main-join',
-    senderId,
-    peerMetadata,
-    targetId,
-  };
-};
-
 export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
+  isInitiator: boolean;
   renderers: Map<PeerId, BrowserWindow>;
 
   #ready = false;
@@ -49,7 +38,10 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
     }
   }
 
-  constructor(renderers: Map<string, BrowserWindow>) {
+  constructor(
+    renderers: Map<string, BrowserWindow>,
+    isInitiator: boolean = true
+  ) {
     if (renderers.size === 0) {
       throw new Error(
         'At least one renderer is needed to setup the Automerge Electron IPC network main process adapter'
@@ -58,6 +50,7 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
 
     super();
 
+    this.isInitiator = isInitiator;
     this.renderers = renderers as Map<PeerId, BrowserWindow>;
   }
 
@@ -69,11 +62,17 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
       this.receiveMessage(message);
     });
 
-    [...this.renderers.keys()].forEach((rendererId) => {
-      this.send(
-        createMainJoinMessage(peerId, this.peerMetadata ?? {}, rendererId)
-      );
-    });
+    if (this.isInitiator) {
+      [...this.renderers.keys()].forEach((rendererId) => {
+        this.send(
+          createInitiatorJoinMessage(
+            peerId,
+            this.peerMetadata ?? {},
+            rendererId
+          )
+        );
+      });
+    }
   }
 
   disconnect(): void {
@@ -83,7 +82,7 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
     this.#ready = false;
   }
 
-  send(message: FromMainMessage): void {
+  send(message: IPCMessage): void {
     if ('data' in message && message.data?.byteLength === 0)
       throw new Error('Tried to send a zero-length message');
 
@@ -104,18 +103,35 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
     renderer.webContents.send('automerge-repo-main-process-message', message);
   }
 
-  receiveMessage(message: FromRendererMessage) {
+  receiveMessage(message: IPCMessage) {
     if (!this.peerId) {
       throw new Error(
         'No peerId set for the Electron main process network adapter.'
       );
     }
 
-    if (isRendererAck(message)) {
+    if (this.isInitiator && isReceiverAckMessage(message)) {
       const { peerMetadata } = message;
 
       // Let the repo know that we have a new connection.
       this.emit('peer-candidate', { peerId: message.senderId, peerMetadata });
+      this.#forceReady();
+    } else if (!this.isInitiator && isInitiatorJoinMessage(message)) {
+      // Acknowledge message reception by sending a receiver ack message
+      this.send(
+        createReceiverAckMessage(
+          this.peerId!,
+          this.peerMetadata ?? {},
+          message.senderId
+        )
+      );
+
+      // Let the repo know that we have a new connection.
+      this.emit('peer-candidate', {
+        peerId: message.senderId,
+        peerMetadata: this.peerMetadata ?? {},
+      });
+
       this.#forceReady();
     } else {
       this.emit('message', message);
