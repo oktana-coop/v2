@@ -16,6 +16,9 @@ export const toggleStrong = (schema: Schema) =>
 
 export const toggleEm = (schema: Schema) => toggleMarkCommand(schema.marks.em);
 
+export const toggleCode = (schema: Schema) =>
+  toggleMarkCommand(schema.marks.code);
+
 export const addLink =
   (schema: Schema) =>
   (attrs: LinkAttrs): Command => {

@@ -61,9 +61,11 @@ export const EditorToolbar = ({
   strongSelected,
   emSelected,
   selectionIsLink,
+  codeSelected,
   onStrongToggle,
   onEmToggle,
   onLinkToggle,
+  onCodeToggle,
 }: {
   leafBlockType: LeafBlockType;
   containerBlockType: ContainerBlockType | null;
@@ -71,9 +73,11 @@ export const EditorToolbar = ({
   strongSelected: boolean;
   emSelected: boolean;
   selectionIsLink: boolean;
+  codeSelected: boolean;
   onStrongToggle: () => void;
   onEmToggle: () => void;
   onLinkToggle: () => void;
+  onCodeToggle: () => void;
 }) => {
   const handleContainerBlockSelect = (type: ContainerBlockType) => () => {
     onBlockSelect(type);
@@ -121,6 +125,11 @@ export const EditorToolbar = ({
           icon={<LinkIcon />}
           color={selectionIsLink ? 'purple' : undefined}
           onClick={onLinkToggle}
+        />
+        <IconButton
+          icon={<FormatCodeIcon />}
+          color={codeSelected ? 'purple' : undefined}
+          onClick={onCodeToggle}
         />
       </div>
       <div className="flex flex-initial gap-x-1">

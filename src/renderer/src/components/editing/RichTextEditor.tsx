@@ -40,6 +40,7 @@ const {
   isMarkActive,
   toggleEm,
   toggleStrong,
+  toggleCode,
   transactionUpdatesMarks,
   addLink,
   removeLink,
@@ -310,6 +311,13 @@ export const RichTextEditor = ({
     }
   };
 
+  const handleCodeToggle = () => {
+    if (view && schema) {
+      toggleCode(schema)(view.state, view.dispatch);
+      view.focus();
+    }
+  };
+
   const handleSaveLink = (attrs: LinkAttrs) => {
     if (view && schema) {
       if (!isMarkActive(schema.marks.link)(view.state)) {
@@ -369,6 +377,7 @@ export const RichTextEditor = ({
             onStrongToggle={handleStrongToggle}
             onEmToggle={handleEmToggle}
             onLinkToggle={handleLinkToggle}
+            onCodeToggle={handleCodeToggle}
           />
         </div>
       )}
