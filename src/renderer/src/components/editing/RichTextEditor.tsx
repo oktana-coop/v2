@@ -85,6 +85,7 @@ export const RichTextEditor = ({
   const [containerBlockType, setContainerBlockType] =
     useState<ContainerBlockType | null>(null);
   const [strongSelected, setStrongSelected] = useState<boolean>(false);
+  const [codeSelected, setCodeSelected] = useState<boolean>(false);
   const [emSelected, setEmSelected] = useState<boolean>(false);
   const [selectionIsLink, setSelectionIsLink] = useState<boolean>(false);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState<boolean>(false);
@@ -182,6 +183,7 @@ export const RichTextEditor = ({
             setStrongSelected(isMarkActive(schema.marks.strong)(newState));
             setEmSelected(isMarkActive(schema.marks.em)(newState));
             setSelectionIsLink(isMarkActive(schema.marks.link)(newState));
+            setCodeSelected(isMarkActive(schema.marks.code)(newState));
           }
         },
         editable: () => isEditable,
@@ -374,6 +376,7 @@ export const RichTextEditor = ({
             strongSelected={strongSelected}
             emSelected={emSelected}
             selectionIsLink={selectionIsLink}
+            codeSelected={codeSelected}
             onStrongToggle={handleStrongToggle}
             onEmToggle={handleEmToggle}
             onLinkToggle={handleLinkToggle}
