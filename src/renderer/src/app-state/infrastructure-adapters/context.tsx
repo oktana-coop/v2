@@ -3,18 +3,18 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import {
   type MultiDocumentProjectStoreManager,
   type SingleDocumentProjectStoreManager,
-} from '../../../modules/domain/project';
+} from '../../../../modules/domain/project';
 import {
   createBrowserMultiDocumentProjectStoreManagerAdapter,
   createBrowserSingleDocumentProjectStoreManagerAdapter,
   createElectronRendererMultiDocumentProjectStoreManagerAdapter,
   createElectronRendererSingleDocumentProjectStoreManagerAdapter,
-} from '../../../modules/domain/project/browser';
-import { type VersionedDocumentStore } from '../../../modules/domain/rich-text';
-import { ElectronContext } from '../../../modules/infrastructure/cross-platform/electron-context';
-import { type Filesystem } from '../../../modules/infrastructure/filesystem';
-import { createAdapter as createBrowserFilesystemAPIAdapter } from '../../../modules/infrastructure/filesystem/adapters/browser-api';
-import { createAdapter as createElectronRendererFilesystemAPIAdapter } from '../../../modules/infrastructure/filesystem/adapters/electron-renderer-api';
+} from '../../../../modules/domain/project/browser';
+import { type VersionedDocumentStore } from '../../../../modules/domain/rich-text';
+import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/electron-context';
+import { type Filesystem } from '../../../../modules/infrastructure/filesystem';
+import { createAdapter as createBrowserFilesystemAPIAdapter } from '../../../../modules/infrastructure/filesystem/adapters/browser-api';
+import { createAdapter as createElectronRendererFilesystemAPIAdapter } from '../../../../modules/infrastructure/filesystem/adapters/electron-renderer-api';
 
 export type InfrastructureAdaptersContextType = {
   filesystem: Filesystem;

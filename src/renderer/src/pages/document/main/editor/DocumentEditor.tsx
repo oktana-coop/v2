@@ -4,7 +4,7 @@ import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/r
 import {
   CurrentDocumentContext,
   SidebarLayoutContext,
-} from '../../../../../app-state';
+} from '../../../../app-state';
 import { RichTextEditor } from '../../../../components/editing/RichTextEditor';
 import { ActionsBar } from './ActionsBar';
 

@@ -14,7 +14,7 @@ import {
   CurrentProjectContext,
   CurrentProjectProvider,
   SidebarLayoutProvider,
-} from '../../../app-state';
+} from '../../app-state';
 import { Layout } from '../../components/layout/Layout';
 import { SidebarLayout } from '../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../components/layout/StackedResizablePanelsLayout';

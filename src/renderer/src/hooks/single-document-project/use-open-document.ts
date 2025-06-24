@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { useNavigate } from 'react-router';
 
-import { SingleDocumentProjectContext } from '../../../app-state';
+import { SingleDocumentProjectContext } from '../../app-state';
 
 export const useOpenDocument = () => {
   const navigate = useNavigate();

@@ -9,7 +9,7 @@ import {
 } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
-import { projectTypes } from '../../../modules/domain/project';
+import { projectTypes } from '../../../../modules/domain/project';
 import {
   type GetDocumentHandleAtCommitArgs,
   type IsContentSameAtHeadsArgs,
@@ -20,12 +20,12 @@ import {
   type VersionedDocument,
   type VersionedDocumentHandle,
   type VersionedDocumentStore,
-} from '../../../modules/domain/rich-text';
-import { ElectronContext } from '../../../modules/infrastructure/cross-platform';
+} from '../../../../modules/domain/rich-text';
+import { ElectronContext } from '../../../../modules/infrastructure/cross-platform';
 import {
   removeExtension,
   removePath,
-} from '../../../modules/infrastructure/filesystem';
+} from '../../../../modules/infrastructure/filesystem';
 import {
   type Change,
   type ChangeWithUrlInfo,
@@ -37,8 +37,8 @@ import {
   type UrlHeads,
   type VersionControlId,
   type VersionedArtifactHandleChangePayload,
-} from '../../../modules/infrastructure/version-control';
-import { FunctionalityConfigContext } from '../../../modules/personalization/functionality-config';
+} from '../../../../modules/infrastructure/version-control';
+import { FunctionalityConfigContext } from '../../../../modules/personalization/functionality-config';
 import { CurrentProjectContext } from '../current-project/context';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 

@@ -18,7 +18,7 @@ import { FunctionalityConfigContext } from '../../../../../../modules/personaliz
 import {
   CurrentDocumentContext,
   SidebarLayoutContext,
-} from '../../../../../app-state';
+} from '../../../../app-state';
 import { ActionsBar } from './ActionsBar';
 import { type DiffViewProps, ReadOnlyView } from './ReadOnlyView';
 

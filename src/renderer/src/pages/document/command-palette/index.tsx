@@ -5,7 +5,7 @@ import { removeExtension } from '../../../../../modules/infrastructure/filesyste
 import {
   CurrentDocumentContext,
   CurrentProjectContext,
-} from '../../../../app-state';
+} from '../../../app-state';
 import { CommandPalette } from '../../../components/dialogs/command-palette/CommandPalette';
 import { useDocumentList, useKeyBindings } from '../../../hooks';
 import { useCurrentDocumentName } from '../../../hooks';

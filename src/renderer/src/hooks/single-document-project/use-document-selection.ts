@@ -8,7 +8,7 @@ import { type VersionControlId } from '../../../../modules/infrastructure/versio
 import {
   RecentProjectsContext,
   SingleDocumentProjectContext,
-} from '../../../app-state';
+} from '../../app-state';
 
 export const useDocumentSelection = () => {
   const navigate = useNavigate();

@@ -3,9 +3,9 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import {
   type ProjectType,
   projectTypes,
-} from '../../../modules/domain/project';
-import { type File } from '../../../modules/infrastructure/filesystem';
-import { VersionControlId } from '../../../modules/infrastructure/version-control';
+} from '../../../../modules/domain/project';
+import { type File } from '../../../../modules/infrastructure/filesystem';
+import { VersionControlId } from '../../../../modules/infrastructure/version-control';
 import { SingleDocumentProjectContext } from '../current-project/single-document-project-context';
 
 type RecentProjectInfo = {

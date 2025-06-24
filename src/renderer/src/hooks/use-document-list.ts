@@ -11,7 +11,7 @@ import {
   MultiDocumentProjectContextType,
   RecentProjectsContext,
   RecentProjectsContextType,
-} from '../../app-state';
+} from '../app-state';
 
 export type DocumentListItem = {
   id: string;

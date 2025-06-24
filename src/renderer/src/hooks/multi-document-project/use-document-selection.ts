@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router';
 import {
   CurrentDocumentContext,
   MultiDocumentProjectContext,
-} from '../../../app-state';
+} from '../../app-state';
 
 export const useDocumentSelection = () => {
   const navigate = useNavigate();

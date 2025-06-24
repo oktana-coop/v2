@@ -5,7 +5,7 @@ import {
   CurrentProjectContext,
   MultiDocumentProjectContext,
   SingleDocumentProjectContext,
-} from '../../app-state';
+} from '../app-state';
 
 export const useCreateDocument = () => {
   const { projectType } = useContext(CurrentProjectContext);

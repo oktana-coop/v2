@@ -3,8 +3,8 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import {
   type ProjectType,
   projectTypes,
-} from '../../../modules/domain/project';
-import { VersionControlId } from '../../../modules/infrastructure/version-control';
+} from '../../../../modules/domain/project';
+import { VersionControlId } from '../../../../modules/infrastructure/version-control';
 import { RecentProjectsProvider } from '../recent-projects/context';
 import {
   MultiDocumentProjectContext,

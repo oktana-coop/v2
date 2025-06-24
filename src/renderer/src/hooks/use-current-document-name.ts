@@ -5,7 +5,7 @@ import {
   CurrentDocumentContext,
   CurrentProjectContext,
   SingleDocumentProjectContext,
-} from '../../app-state';
+} from '../app-state';
 
 export const useCurrentDocumentName = () => {
   const { projectType } = useContext(CurrentProjectContext);
