@@ -19,6 +19,12 @@ Built on top of [Automerge](https://automerge.org/), [ProseMirror](https://prose
 $ pnpm install
 ```
 
+### Pull Git LFS Artifacts
+
+```sh
+$ git lfs pull
+```
+
 ### Run
 
 ```sh
