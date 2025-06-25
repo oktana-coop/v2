@@ -38,6 +38,7 @@ type ProseMirrorContextType = {
   convertToProseMirror: (
     args: ConvertAutomergeToProseMirrorArgs
   ) => Promise<Node>;
+  parseMarkdown: (schema: Schema) => (input: string) => Promise<Node>;
   representationTransformAdapterReady: boolean;
 };
 
@@ -48,6 +49,8 @@ export const ProseMirrorContext = createContext<ProseMirrorContextType>({
   setSchema: () => {},
   // @ts-expect-error will get overriden below
   proseMirrorDiff: () => null,
+  // @ts-expect-error will get overriden below
+  parseMarkdown: () => null,
   diffAdapterReady: false,
 });
 
@@ -125,6 +128,39 @@ export const ProseMirrorProvider = ({
     return pmDoc;
   };
 
+  const handleParseMarkdown = (schema: Schema) => async (input: string) => {
+    // TODO: Handle adapter readiness with a promise
+    if (!representationTransformAdapter) {
+      throw new Error(
+        'No representation transform adapter found when trying to convert to ProseMirror'
+      );
+    }
+
+    const result = await representationTransformAdapter.transform({
+      from: richTextRepresentations.MARKDOWN,
+      to: richTextRepresentations.PROSEMIRROR,
+      input,
+    });
+
+    type RepresentationTransformPMOutput = {
+      doc: PMNode;
+    };
+
+    let parsedOutput;
+
+    try {
+      parsedOutput = JSON.parse(result) as RepresentationTransformPMOutput;
+    } catch (error) {
+      throw new Error(
+        `Failed to parse output from representation transform adapter: ${error}`
+      );
+    }
+
+    const pmDoc = pmDocFromJSONString(parsedOutput.doc, schema);
+
+    return pmDoc;
+  };
+
   return (
     <ProseMirrorContext.Provider
       value={{
@@ -138,6 +174,7 @@ export const ProseMirrorProvider = ({
         representationTransformAdapterReady: Boolean(
           representationTransformAdapter
         ),
+        parseMarkdown: handleParseMarkdown,
       }}
     >
       {children}

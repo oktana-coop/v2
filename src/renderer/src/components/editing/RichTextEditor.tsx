@@ -54,6 +54,7 @@ const {
   splitListItem,
   liftListItem,
   sinkListItem,
+  pasteMarkdownPlugin,
 } = prosemirror;
 
 export type RichTextEditorDiffProps = {
@@ -78,7 +79,8 @@ export const RichTextEditor = ({
   diffProps,
 }: RichTextEditorProps) => {
   const editorRoot = useRef<HTMLDivElement>(null);
-  const { schema, view, setView, setSchema } = useContext(ProseMirrorContext);
+  const { schema, view, setView, setSchema, parseMarkdown } =
+    useContext(ProseMirrorContext);
   const [leafBlockType, setLeafBlockType] = useState<LeafBlockType | null>(
     null
   );
@@ -132,6 +134,7 @@ export const RichTextEditor = ({
 
       const plugins = [
         buildInputRules(schema),
+        pasteMarkdownPlugin(parseMarkdown(schema)),
         history(),
         keymap({
           'Mod-b': toggleStrong(schema),

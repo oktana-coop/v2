@@ -5,3 +5,4 @@ export * from './commands';
 export * from './blocks';
 export * from './diff';
 export * from './json';
+export * from './markdown';

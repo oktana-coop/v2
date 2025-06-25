@@ -3,6 +3,12 @@ import {
   richTextRepresentations,
 } from '../constants/representations';
 
+export type TransformArgs = {
+  from: RichTextRepresentation;
+  to: RichTextRepresentation;
+  input: string;
+};
+
 export type TransformFromAutomergeArgs = {
   spans: string;
   representation: Omit<
@@ -20,6 +26,7 @@ export type TransformToAutomergeArgs = {
 };
 
 export type RepresentationTransform = {
+  transform: (args: TransformArgs) => Promise<string>;
   transformFromAutomerge: (args: TransformFromAutomergeArgs) => Promise<string>;
   transformToAutomerge: (args: TransformToAutomergeArgs) => Promise<string>;
 };

@@ -42,7 +42,29 @@ export const createAdapter = ({
       return output;
     };
 
+  const transform: RepresentationTransform['transform'] = async ({
+    from,
+    to,
+    input,
+  }) => {
+    const output = await runWasiCLI({
+      type: cliTypes.HS_LIB,
+      args: [
+        'v2-hs-lib',
+        'convert',
+        '--from',
+        representationToCliArg(from),
+        '--to',
+        representationToCliArg(to),
+        input,
+      ],
+    });
+
+    return output;
+  };
+
   return {
+    transform,
     transformFromAutomerge,
     transformToAutomerge,
   };
