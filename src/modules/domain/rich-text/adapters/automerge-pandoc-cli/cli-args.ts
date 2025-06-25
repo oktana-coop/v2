@@ -4,12 +4,11 @@ import {
 } from '../../constants/representations';
 
 export const representationToCliArg = (
-  representation: Omit<
-    RichTextRepresentation,
-    typeof richTextRepresentations.AUTOMERGE
-  >
+  representation: RichTextRepresentation
 ): string => {
   switch (representation) {
+    case richTextRepresentations.AUTOMERGE:
+      return 'automerge';
     case richTextRepresentations.MARKDOWN:
       return 'markdown';
     case richTextRepresentations.HTML:

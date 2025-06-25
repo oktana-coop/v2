@@ -104,9 +104,10 @@ export const ProseMirrorProvider = ({
       );
     }
 
-    const result = await representationTransformAdapter.transformFromAutomerge({
-      representation: richTextRepresentations.PROSEMIRROR,
-      spans: args.spans,
+    const result = await representationTransformAdapter.transform({
+      from: richTextRepresentations.AUTOMERGE,
+      to: richTextRepresentations.PROSEMIRROR,
+      input: args.spans,
     });
 
     type RepresentationTransformPMOutput = {
