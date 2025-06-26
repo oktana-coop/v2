@@ -1,5 +1,5 @@
 import { MarkType, Schema } from 'prosemirror-model';
-import { Plugin, PluginKey } from 'prosemirror-state';
+import { Plugin, PluginKey, Selection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 
 export function markdownMarkPlugin(
@@ -51,7 +51,13 @@ export function markdownMarkPlugin(
 
             // Only remove the mark if the cursor is at the end of the marked text
             if ($from.pos === markEnd) {
-              dispatch(state.tr.removeStoredMark(markType));
+              // Move the selection just after the mark and remove the stored mark
+              const tr = state.tr
+                .setSelection(
+                  Selection.near(state.doc.resolve($from.pos + 1), 1)
+                )
+                .removeStoredMark(markType);
+              dispatch(tr);
               event.preventDefault();
               return true;
             }
