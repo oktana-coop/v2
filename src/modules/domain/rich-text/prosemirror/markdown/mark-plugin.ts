@@ -6,7 +6,7 @@ export function markdownMarkPlugin(
   markType: MarkType,
   options: { delimiter: string; regex?: RegExp }
 ): Plugin {
-  const key = new PluginKey(`markdownMark_${markType.name}`);
+  const key = new PluginKey(`markdown-mark-${markType.name}`);
 
   let regex: RegExp;
   if (options.regex) {
@@ -87,7 +87,7 @@ export function markdownMarkPlugin(
         return false;
       },
     },
-    appendTransaction(transactions, oldState, newState) {
+    appendTransaction(transactions, _, newState) {
       const changed = transactions.some((tr) => tr.docChanged);
       if (!changed) return null;
 
@@ -138,10 +138,14 @@ export const markdownMarkPlugins = (schema: Schema) => [
   markdownMarkPlugin(schema.marks.strong, { delimiter: '__' }),
   markdownMarkPlugin(schema.marks.em, {
     delimiter: '*',
+    // The need for the regex here exists because we need an exception to accomodate for the fact that
+    // there is a relevant ** delimiter for the strong mark.
     regex: /(?<!\*)\*([^*\n]+)\*(?!\*)/,
   }),
   markdownMarkPlugin(schema.marks.em, {
     delimiter: '_',
+    // The need for the regex here exists because we need an exception to accomodate for the fact that
+    // there is a relevant __ delimiter for the strong mark.
     regex: /(?<!_)_([^_\n]+)_(?!_)/,
   }),
 ];
