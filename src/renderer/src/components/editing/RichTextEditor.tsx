@@ -55,6 +55,7 @@ const {
   liftListItem,
   sinkListItem,
   pasteMarkdownPlugin,
+  markdownMarkPlugins,
 } = prosemirror;
 
 export type RichTextEditorDiffProps = {
@@ -134,6 +135,7 @@ export const RichTextEditor = ({
 
       const plugins = [
         buildInputRules(schema),
+        ...markdownMarkPlugins(schema),
         pasteMarkdownPlugin(parseMarkdown(schema)),
         history(),
         keymap({

@@ -22,11 +22,11 @@ export const buildInputRules = (schema: Schema) => {
       codeBlockRule(schema.nodes.code_block),
       bulletListRule(schema.nodes.bullet_list),
       orderedListRule(schema.nodes.ordered_list),
-      strongAsteriskMarkRule(schema),
-      strongUnderscoreMarkRule(schema),
-      emAsteriskMarkRule(schema),
-      emUnderscorekMarkRule(schema),
-      codeBackticksRule(schema),
+      // strongAsteriskMarkRule(schema),
+      // strongUnderscoreMarkRule(schema),
+      // emAsteriskMarkRule(schema),
+      // emUnderscorekMarkRule(schema),
+      // codeBackticksRule(schema),
     ],
   });
 };
