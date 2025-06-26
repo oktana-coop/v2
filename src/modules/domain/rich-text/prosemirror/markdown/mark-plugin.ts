@@ -33,10 +33,28 @@ export function markdownMarkPlugin(
             storedMarks?.some((mark) => mark.type === markType) ||
             activeMarks.some((mark) => mark.type === markType)
           ) {
-            // Remove the mark when right arrow is pressed
-            dispatch(state.tr.removeStoredMark(markType));
-            event.preventDefault();
-            return true;
+            // Find the end of the current mark at the cursor
+            let markEnd = $from.pos;
+            $from.parent.forEach((child, offset) => {
+              if (
+                child.isText &&
+                child.text &&
+                child.marks.some((m) => m.type === markType)
+              ) {
+                const start = $from.start() + offset;
+                const end = start + child.text.length;
+                if ($from.pos >= start && $from.pos <= end) {
+                  markEnd = end;
+                }
+              }
+            });
+
+            // Only remove the mark if the cursor is at the end of the marked text
+            if ($from.pos === markEnd) {
+              dispatch(state.tr.removeStoredMark(markType));
+              event.preventDefault();
+              return true;
+            }
           }
         }
         return false;
