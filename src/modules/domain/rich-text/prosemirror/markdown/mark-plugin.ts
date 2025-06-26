@@ -53,9 +53,7 @@ export function markdownMarkPlugin(
             if ($from.pos === markEnd) {
               // Move the selection just after the mark and remove the stored mark
               const tr = state.tr
-                .setSelection(
-                  Selection.near(state.doc.resolve($from.pos + 1), 1)
-                )
+                .setSelection(Selection.near(state.doc.resolve($from.pos), 1))
                 .removeStoredMark(markType);
               dispatch(tr);
               event.preventDefault();
