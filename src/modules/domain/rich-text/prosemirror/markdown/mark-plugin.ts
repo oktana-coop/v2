@@ -4,11 +4,17 @@ import { EditorView } from 'prosemirror-view';
 
 export function markdownMarkPlugin(
   markType: MarkType,
-  delimiter: string
+  options: { delimiter: string; regex?: RegExp }
 ): Plugin {
   const key = new PluginKey(`markdownMark_${markType.name}`);
-  const escaped = escapeRegExp(delimiter);
-  const regex = new RegExp(`${escaped}([^${escaped}\\n]+)${escaped}`);
+
+  let regex: RegExp;
+  if (options.regex) {
+    regex = options.regex;
+  } else {
+    const escaped = escapeRegExp(options.delimiter);
+    regex = new RegExp(`${escaped}([^${escaped}\\n]+)${escaped}`);
+  }
 
   return new Plugin({
     key,
@@ -63,8 +69,8 @@ export function markdownMarkPlugin(
       const cursorPos = selection.from;
 
       const isTypingInside =
-        cursorPos >= matchStart + delimiter.length &&
-        cursorPos <= matchEnd - delimiter.length;
+        cursorPos >= matchStart + options.delimiter.length &&
+        cursorPos <= matchEnd - options.delimiter.length;
 
       if (!isTypingInside) {
         // If user just typed `**bold**`, remove the stored mark
@@ -81,6 +87,10 @@ function escapeRegExp(str: string): string {
 }
 
 export const markdownMarkPlugins = (schema: Schema) => [
-  markdownMarkPlugin(schema.marks.code, '`'),
-  markdownMarkPlugin(schema.marks.em, '*'),
+  markdownMarkPlugin(schema.marks.code, { delimiter: '`' }),
+  markdownMarkPlugin(schema.marks.strong, { delimiter: '**' }),
+  markdownMarkPlugin(schema.marks.em, {
+    delimiter: '*',
+    regex: /(?<!\*)\*([^*\n]+)\*(?!\*)/,
+  }),
 ];
