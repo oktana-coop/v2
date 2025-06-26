@@ -51,13 +51,36 @@ export function markdownMarkPlugin(
 
             // Only remove the mark if the cursor is at the end of the marked text
             if ($from.pos === markEnd) {
-              // Move the selection just after the mark and remove the stored mark
-              const tr = state.tr
-                .setSelection(Selection.near(state.doc.resolve($from.pos), 1))
-                .removeStoredMark(markType);
-              dispatch(tr);
-              event.preventDefault();
-              return true;
+              // In this case we are at the end of a block. We need to make sure that:
+              // 1. The user can continue typing in this block (break out of the marked span)
+              // 2. Right arrow doesn't get "stuck" in the end of the marked section (e.g. does something on first press and then continues as usual)
+              if ($from.parentOffset === $from.parent.content.size) {
+                let tr = state.tr
+                  // Remove the stored mark first
+                  .removeStoredMark(markType)
+                  // Insert a space at the cursor position
+                  .insertText(' ', $from.pos)
+                  .removeMark($from.pos, $from.pos + 1, markType);
+
+                // Move the selection after the marked text
+                tr = tr.setSelection(
+                  Selection.near(tr.doc.resolve($from.pos + 1), 1)
+                );
+
+                dispatch(tr);
+                event.preventDefault();
+                return true;
+              } else {
+                // Not at end of block: move selection out of mark and remove stored mark
+                const tr = state.tr
+                  .setSelection(
+                    Selection.near(state.doc.resolve($from.pos + 1), 1)
+                  )
+                  .removeStoredMark(markType);
+                dispatch(tr);
+                event.preventDefault();
+                return true;
+              }
             }
           }
         }
