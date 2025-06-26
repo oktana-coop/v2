@@ -113,14 +113,15 @@ export function markdownMarkPlugin(
 
       const cursorPos = selection.from;
 
+      // This part ends the mark when the user types the closing delimiter characters.
       const isTypingInside =
         cursorPos >= matchStart + options.delimiter.length &&
         cursorPos <= matchEnd - options.delimiter.length;
 
       if (!isTypingInside) {
-        // If user just typed `**bold**`, remove the stored mark
         tr.removeStoredMark(markType);
       }
+
       // Otherwise, allow stored mark to continue
       return tr;
     },
@@ -134,8 +135,13 @@ function escapeRegExp(str: string): string {
 export const markdownMarkPlugins = (schema: Schema) => [
   markdownMarkPlugin(schema.marks.code, { delimiter: '`' }),
   markdownMarkPlugin(schema.marks.strong, { delimiter: '**' }),
+  markdownMarkPlugin(schema.marks.strong, { delimiter: '__' }),
   markdownMarkPlugin(schema.marks.em, {
     delimiter: '*',
     regex: /(?<!\*)\*([^*\n]+)\*(?!\*)/,
+  }),
+  markdownMarkPlugin(schema.marks.em, {
+    delimiter: '_',
+    regex: /(?<!_)_([^_\n]+)_(?!_)/,
   }),
 ];
