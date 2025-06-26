@@ -1,10 +1,13 @@
 import { Node, Slice } from 'prosemirror-model';
-import { Plugin } from 'prosemirror-state';
+import { Plugin, PluginKey } from 'prosemirror-state';
+
+export const pluginKey = new PluginKey('paste-markdown');
 
 export const pasteMarkdownPlugin = (
   parseMarkdown: (input: string) => Promise<Node>
 ) => {
   return new Plugin({
+    key: pluginKey,
     props: {
       handlePaste(view, event) {
         const clipboardData = event.clipboardData;

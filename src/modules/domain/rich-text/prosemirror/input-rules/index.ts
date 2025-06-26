@@ -7,13 +7,6 @@ import {
   headingRule,
   orderedListRule,
 } from './blocks';
-import {
-  codeBackticksRule,
-  emAsteriskMarkRule,
-  emUnderscorekMarkRule,
-  strongAsteriskMarkRule,
-  strongUnderscoreMarkRule,
-} from './marks';
 
 export const buildInputRules = (schema: Schema) => {
   return inputRules({
@@ -22,11 +15,6 @@ export const buildInputRules = (schema: Schema) => {
       codeBlockRule(schema.nodes.code_block),
       bulletListRule(schema.nodes.bullet_list),
       orderedListRule(schema.nodes.ordered_list),
-      strongAsteriskMarkRule(schema),
-      strongUnderscoreMarkRule(schema),
-      emAsteriskMarkRule(schema),
-      emUnderscorekMarkRule(schema),
-      codeBackticksRule(schema),
     ],
   });
 };
