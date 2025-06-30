@@ -114,11 +114,27 @@ export const createAdapter = ({
   rendererProcessId,
   browserWindow,
 }: ElectronDeps): SingleDocumentProjectStoreManager => {
+  let currentAutomergeRepo: Repo | null = null;
+
   const setupSingleDocumentProjectStore: SingleDocumentProjectStoreManager['setupSingleDocumentProjectStore'] =
 
       ({ createNewFile }: SetupSingleDocumentProjectStoreDeps) =>
       () =>
         Effect.Do.pipe(
+          Effect.tap(() =>
+            Effect.tryPromise({
+              try: async () => {
+                if (currentAutomergeRepo) {
+                  await currentAutomergeRepo.shutdown();
+                  currentAutomergeRepo = null;
+                }
+              },
+              catch: mapErrorTo(
+                VersionedProjectRepositoryError,
+                'Error in shutting down previous Automerge repo'
+              ),
+            })
+          ),
           Effect.bind('newFile', () =>
             createNewFile({
               extensions: [PROJECT_FILE_EXTENSION],
@@ -139,7 +155,13 @@ export const createAdapter = ({
             Effect.succeed(createAutomergeDocumentStoreAdapter(automergeRepo))
           ),
           Effect.flatMap(
-            ({ newFile, versionedProjectStore, versionedDocumentStore, db }) =>
+            ({
+              newFile,
+              versionedProjectStore,
+              versionedDocumentStore,
+              db,
+              automergeRepo,
+            }) =>
               pipe(
                 createDocumentAndProject({
                   createDocument: versionedDocumentStore.createDocument,
@@ -159,6 +181,11 @@ export const createAdapter = ({
                 })),
                 Effect.tap(({ projectId }) =>
                   insertProjectMetadataInSQLite({ db, projectId })
+                ),
+                Effect.tap(() =>
+                  Effect.sync(() => {
+                    currentAutomergeRepo = automergeRepo;
+                  })
                 )
               )
           )
@@ -173,6 +200,20 @@ export const createAdapter = ({
             fromFile
               ? Effect.succeed(fromFile)
               : openFile({ extensions: [PROJECT_FILE_EXTENSION] })
+          ),
+          Effect.tap(() =>
+            Effect.tryPromise({
+              try: async () => {
+                if (currentAutomergeRepo) {
+                  await currentAutomergeRepo.shutdown();
+                  currentAutomergeRepo = null;
+                }
+              },
+              catch: mapErrorTo(
+                VersionedProjectRepositoryError,
+                'Error in shutting down previous Automerge repo'
+              ),
+            })
           ),
           Effect.bind('db', ({ file }) => setupSQLiteDatabase(file.path)),
           Effect.bind('projectId', ({ db }) =>
@@ -193,6 +234,11 @@ export const createAdapter = ({
           ),
           Effect.bind('documentId', ({ versionedProjectStore, projectId }) =>
             versionedProjectStore.findDocumentInProject(projectId)
+          ),
+          Effect.tap(({ automergeRepo }) =>
+            Effect.sync(() => {
+              currentAutomergeRepo = automergeRepo;
+            })
           ),
           Effect.map(
             ({

@@ -76,9 +76,12 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
   }
 
   disconnect(): void {
-    this.peerId = undefined;
-    this.peerMetadata = undefined;
-    this.renderers.clear();
+    [...this.renderers.keys()].forEach((rendererId) => {
+      this.emit('peer-disconnected', { peerId: rendererId });
+    });
+
+    this.emit('close');
+
     this.#ready = false;
   }
 

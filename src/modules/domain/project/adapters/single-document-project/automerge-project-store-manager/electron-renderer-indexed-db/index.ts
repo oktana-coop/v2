@@ -43,18 +43,34 @@ const setupAutomergeRepo = ({
 export const createAdapter = ({
   processId,
 }: ElectronDeps): SingleDocumentProjectStoreManager => {
+  let currentAutomergeRepo: Repo | null = null;
+
   const setupSingleDocumentProjectStore: SingleDocumentProjectStoreManager['setupSingleDocumentProjectStore'] =
     () => () =>
       pipe(
         Effect.tryPromise({
-          try: () =>
-            window.singleDocumentProjectAPI.createSingleDocumentProject({}),
-          // TODO: Leverage typed Effect errors returned from the respective node adapter
+          try: async () => {
+            if (currentAutomergeRepo) {
+              await currentAutomergeRepo.shutdown();
+              currentAutomergeRepo = null;
+            }
+          },
           catch: mapErrorTo(
             VersionedProjectRepositoryError,
-            'Error in creating single-document project'
+            'Error in shutting down previous Automerge repo'
           ),
         }),
+        Effect.flatMap(() =>
+          Effect.tryPromise({
+            try: () =>
+              window.singleDocumentProjectAPI.createSingleDocumentProject({}),
+            // TODO: Leverage typed Effect errors returned from the respective node adapter
+            catch: mapErrorTo(
+              VersionedProjectRepositoryError,
+              'Error in creating single-document project'
+            ),
+          })
+        ),
         Effect.flatMap(({ projectId, documentId, file, name }) =>
           pipe(
             // TODO: Consider a cleaner approach of wiping IndexedDB (or the previous project's DB)
@@ -66,6 +82,11 @@ export const createAdapter = ({
               dbName: projectId,
               store: STORE_NAME,
             }),
+            Effect.tap((automergeRepo) =>
+              Effect.sync(() => {
+                currentAutomergeRepo = automergeRepo;
+              })
+            ),
             Effect.map((automergeRepo) => ({
               versionedProjectStore:
                 createAutomergeProjectStoreAdapter(automergeRepo),
@@ -86,16 +107,30 @@ export const createAdapter = ({
       ({ fromFile }: OpenSingleDocumentProjectStoreArgs) =>
         pipe(
           Effect.tryPromise({
-            try: () =>
-              window.singleDocumentProjectAPI.openSingleDocumentProject({
-                fromFile,
-              }),
-            // TODO: Leverage typed Effect errors returned from the respective node adapter
+            try: async () => {
+              if (currentAutomergeRepo) {
+                await currentAutomergeRepo.shutdown();
+                currentAutomergeRepo = null;
+              }
+            },
             catch: mapErrorTo(
               VersionedProjectRepositoryError,
-              'Error in opening single-document project'
+              'Error in shutting down previous Automerge repo'
             ),
           }),
+          Effect.flatMap(() =>
+            Effect.tryPromise({
+              try: () =>
+                window.singleDocumentProjectAPI.openSingleDocumentProject({
+                  fromFile,
+                }),
+              // TODO: Leverage typed Effect errors returned from the respective node adapter
+              catch: mapErrorTo(
+                VersionedProjectRepositoryError,
+                'Error in opening single-document project'
+              ),
+            })
+          ),
           Effect.flatMap(({ projectId, documentId, file, name }) =>
             pipe(
               // TODO: Consider a cleaner approach of wiping IndexedDB (or the previous project's DB)
@@ -107,6 +142,11 @@ export const createAdapter = ({
                 dbName: projectId,
                 store: STORE_NAME,
               }),
+              Effect.tap((automergeRepo) =>
+                Effect.sync(() => {
+                  currentAutomergeRepo = automergeRepo;
+                })
+              ),
               Effect.map((automergeRepo) => ({
                 versionedProjectStore:
                   createAutomergeProjectStoreAdapter(automergeRepo),

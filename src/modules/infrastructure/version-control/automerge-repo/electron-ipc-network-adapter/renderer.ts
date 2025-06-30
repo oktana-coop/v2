@@ -65,7 +65,14 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
     }
   }
 
-  disconnect() {}
+  disconnect() {
+    this.#ready = false;
+
+    if (this.remotePeerId) {
+      this.emit('peer-disconnected', { peerId: this.remotePeerId });
+      this.emit('close');
+    }
+  }
 
   send(message: IPCMessage) {
     if ('data' in message && message.data?.byteLength === 0)
@@ -106,6 +113,7 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
 
       // Let the repo know that we have a new connection.
       this.emit('peer-candidate', { peerId: message.senderId, peerMetadata });
+      this.remotePeerId = message.senderId;
       this.#forceReady();
     } else {
       this.emit('message', message);
