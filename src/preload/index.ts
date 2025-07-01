@@ -17,7 +17,8 @@ import {
   type OpenFileArgs,
 } from '../modules/infrastructure/filesystem';
 import type {
-  IPCMessage as AutomergeRepoNetworkIPCMessage,
+  FromMainMessage as AutomergeRepoNetworkFromMainIPCMessage,
+  FromRendererMessage as AutomergeRepoNetworkFromRendererIPCMessage,
   VersionControlId,
 } from '../modules/infrastructure/version-control';
 import type {
@@ -37,14 +38,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
 });
 
 contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
-  sendRendererProcessMessage: (message: AutomergeRepoNetworkIPCMessage) =>
-    ipcRenderer.send('automerge-repo-renderer-process-message', message),
+  sendRendererProcessMessage: (
+    message: AutomergeRepoNetworkFromRendererIPCMessage
+  ) => ipcRenderer.send('automerge-repo-renderer-process-message', message),
   onReceiveMainProcessMessage: (
-    callback: (message: AutomergeRepoNetworkIPCMessage) => void
+    callback: (message: AutomergeRepoNetworkFromMainIPCMessage) => void
   ) => {
     const listener = (
       _: Electron.IpcRendererEvent,
-      message: AutomergeRepoNetworkIPCMessage
+      message: AutomergeRepoNetworkFromMainIPCMessage
     ) => {
       callback(message);
     };

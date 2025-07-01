@@ -25,9 +25,9 @@ export const setupForElectron = async ({
   await Automerge.initializeWasm(wasmUrl);
 
   return new Repo({
-    network: [new ElectronIPCRendererProcessAdapter(initiateSync)],
+    network: [new ElectronIPCRendererProcessAdapter(processId, initiateSync)],
     storage: new IndexedDBStorageAdapter(dbName, store),
-    peerId: processId as PeerId,
+    peerId: dbName as PeerId,
   });
 };
 

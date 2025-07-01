@@ -1,1 +1,1 @@
-export type { IPCMessage } from './messages';
+export type { FromMainMessage, FromRendererMessage } from './messages';

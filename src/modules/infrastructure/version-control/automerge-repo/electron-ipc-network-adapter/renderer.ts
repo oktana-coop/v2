@@ -4,17 +4,19 @@ import {
   type PeerMetadata,
 } from '@automerge/automerge-repo/slim';
 
-import { MAIN_PROCESS_PEER_ID } from './constants';
 import {
-  createInitiatorJoinMessage,
-  createReceiverAckMessage,
-  type IPCMessage,
+  createRendererInitiatorJoinMessage,
+  createRendererReceiverAckMessage,
+  type FromMainMessage,
+  type FromRendererMessage,
   isInitiatorJoinMessage,
   isReceiverAckMessage,
 } from './messages';
+import { type ProcessId } from './types';
 
 export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
   isInitiator: boolean;
+  #processId: ProcessId;
   #ready = false;
   #readyResolver?: () => void;
   #readyPromise: Promise<void> = new Promise<void>((resolve) => {
@@ -42,8 +44,9 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
   // this adapter only connects to one remote client at a time (the main process)
   remotePeerId?: PeerId;
 
-  constructor(isInitiator: boolean = false) {
+  constructor(processId: string, isInitiator: boolean = false) {
     super();
+    this.#processId = processId;
     this.isInitiator = isInitiator;
   }
 
@@ -58,17 +61,17 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
 
     this.#unregisterListener =
       window.automergeRepoNetworkAdapter.onReceiveMainProcessMessage(
-        (message: IPCMessage) => {
+        (message: FromMainMessage) => {
           this.receiveMessage(message);
         }
       );
 
     if (this.isInitiator) {
       this.send(
-        createInitiatorJoinMessage(
+        createRendererInitiatorJoinMessage(
           peerId,
           this.peerMetadata ?? {},
-          MAIN_PROCESS_PEER_ID as PeerId
+          this.#processId
         )
       );
     }
@@ -91,7 +94,7 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
     this.#disconnected = true;
   }
 
-  send(message: IPCMessage) {
+  send(message: FromRendererMessage) {
     if (message.type !== 'sync') {
       console.log(
         `Renderer adapter (disconnected: ${this.#disconnected}) with storage ID ${this.peerMetadata?.storageId} sending message`,
@@ -116,7 +119,7 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
     window.automergeRepoNetworkAdapter.sendRendererProcessMessage(message);
   }
 
-  receiveMessage(message: IPCMessage) {
+  receiveMessage(message: FromMainMessage) {
     if (message.type !== 'sync') {
       console.log(
         `Renderer adapter (disconnected: ${this.#disconnected}) with storage ID ${this.peerMetadata?.storageId} received message`,
@@ -129,13 +132,18 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
       return;
     }
 
-    if (!this.isInitiator && isInitiatorJoinMessage(message)) {
+    if (isInitiatorJoinMessage(message)) {
+      if (this.isInitiator) {
+        throw new Error('Received unexpected initiator message from peer');
+      }
+
       // main process repo is ready, acknowledge by sending a renderer ack message
       this.send(
-        createReceiverAckMessage(
+        createRendererReceiverAckMessage(
           this.peerId!,
           this.peerMetadata ?? {},
-          message.senderId
+          message.senderId,
+          this.#processId
         )
       );
 
@@ -149,7 +157,11 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
       });
 
       this.#forceReady();
-    } else if (this.isInitiator && isReceiverAckMessage(message)) {
+    } else if (isReceiverAckMessage(message)) {
+      if (!this.isInitiator) {
+        throw new Error('Received unexpected receiver ack message from peer');
+      }
+
       const { peerMetadata } = message;
 
       // Let the repo know that we have a new connection.

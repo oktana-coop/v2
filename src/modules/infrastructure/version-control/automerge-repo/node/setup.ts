@@ -23,7 +23,6 @@ export type FilesystemRepoSetupProps = ElectronSetupProps & {
 export const setupFilesystemRepo = async ({
   renderers,
   directoryPath,
-  processId = MAIN_PROCESS_PEER_ID,
   initiateSync = true,
 }: FilesystemRepoSetupProps) => {
   await Automerge.initializeWasm(wasmUrl);
@@ -31,7 +30,7 @@ export const setupFilesystemRepo = async ({
   return new Repo({
     network: [new ElectronIPCMainProcessAdapter(renderers, initiateSync)],
     storage: new NodeFSStorageAdapter(directoryPath),
-    peerId: processId as PeerId,
+    peerId: directoryPath as PeerId,
   });
 };
 
