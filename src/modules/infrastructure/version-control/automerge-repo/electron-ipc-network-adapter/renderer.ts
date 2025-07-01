@@ -20,6 +20,8 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
   #readyPromise: Promise<void> = new Promise<void>((resolve) => {
     this.#readyResolver = resolve;
   });
+  #disconnected = false;
+
   #unregisterListener?: () => void;
 
   isReady() {
@@ -46,6 +48,11 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
   }
 
   connect(peerId: PeerId, peerMetadata?: PeerMetadata) {
+    console.log(
+      `Renderer adapter with storage ID ${peerMetadata?.storageId} connecting`,
+      new Date().toTimeString()
+    );
+
     this.peerId = peerId;
     this.peerMetadata = peerMetadata;
 
@@ -65,10 +72,15 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
         )
       );
     }
+
+    this.#disconnected = false;
   }
 
   disconnect() {
-    this.#ready = false;
+    console.log(
+      `Renderer adapter with storage ID ${this.peerMetadata?.storageId} disconnecting`,
+      new Date().toTimeString()
+    );
 
     if (this.remotePeerId) {
       this.emit('peer-disconnected', { peerId: this.remotePeerId });
@@ -76,9 +88,22 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
     }
 
     this.#unregisterListener?.();
+    this.#disconnected = true;
   }
 
   send(message: IPCMessage) {
+    if (message.type !== 'sync') {
+      console.log(
+        `Renderer adapter (disconnected: ${this.#disconnected}) with storage ID ${this.peerMetadata?.storageId} sending message`,
+        JSON.stringify(message),
+        new Date().toTimeString()
+      );
+    }
+
+    if (this.#disconnected) {
+      return;
+    }
+
     if ('data' in message && message.data?.byteLength === 0)
       throw new Error('Tried to send a zero-length message');
 
@@ -92,6 +117,18 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
   }
 
   receiveMessage(message: IPCMessage) {
+    if (message.type !== 'sync') {
+      console.log(
+        `Renderer adapter (disconnected: ${this.#disconnected}) with storage ID ${this.peerMetadata?.storageId} received message`,
+        JSON.stringify(message),
+        new Date().toTimeString()
+      );
+    }
+
+    if (this.#disconnected) {
+      return;
+    }
+
     if (!this.isInitiator && isInitiatorJoinMessage(message)) {
       // main process repo is ready, acknowledge by sending a renderer ack message
       this.send(

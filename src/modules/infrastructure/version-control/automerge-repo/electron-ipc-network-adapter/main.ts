@@ -23,6 +23,7 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
     this.#readyResolver = resolve;
   });
   #ipcListener?: (event: Electron.IpcMainEvent, message: IPCMessage) => void;
+  #disconnected = false;
 
   isReady() {
     return this.#ready;
@@ -56,6 +57,11 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
   }
 
   connect(peerId: PeerId, peerMetadata?: PeerMetadata) {
+    console.log(
+      `Main adapter with storage ID ${peerMetadata?.storageId} connecting`,
+      new Date().toTimeString()
+    );
+
     this.peerId = peerId;
     this.peerMetadata = peerMetadata;
 
@@ -74,16 +80,21 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
         );
       });
     }
+
+    this.#disconnected = false;
   }
 
   disconnect(): void {
+    console.log(
+      `Main adapter with storage ID ${this.peerMetadata?.storageId} disconnecting`,
+      new Date().toTimeString()
+    );
+
     [...this.renderers.keys()].forEach((rendererId) => {
       this.emit('peer-disconnected', { peerId: rendererId });
     });
 
     this.emit('close');
-
-    this.#ready = false;
 
     if (this.#ipcListener) {
       ipcMain.removeListener(
@@ -91,9 +102,23 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
         this.#ipcListener
       );
     }
+
+    this.#disconnected = true;
   }
 
   send(message: IPCMessage): void {
+    if (message.type !== 'sync') {
+      console.log(
+        `Main adapter (disconnected: ${this.#disconnected}) with storage ID ${this.peerMetadata?.storageId} sending message`,
+        JSON.stringify(message),
+        new Date().toTimeString()
+      );
+    }
+
+    if (this.#disconnected) {
+      return;
+    }
+
     if ('data' in message && message.data?.byteLength === 0)
       throw new Error('Tried to send a zero-length message');
 
@@ -115,6 +140,17 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
   }
 
   receiveMessage(message: IPCMessage) {
+    if (message.type !== 'sync') {
+      console.log(
+        `Main adapter (disconnected: ${this.#disconnected}) with storage ID ${this.peerMetadata?.storageId} received message`,
+        JSON.stringify(message),
+        new Date().toTimeString()
+      );
+      if (this.#disconnected) {
+        return;
+      }
+    }
+
     if (!this.peerId) {
       throw new Error(
         'No peerId set for the Electron main process network adapter.'
