@@ -41,10 +41,24 @@ contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
     ipcRenderer.send('automerge-repo-renderer-process-message', message),
   onReceiveMainProcessMessage: (
     callback: (message: AutomergeRepoNetworkIPCMessage) => void
-  ) =>
-    ipcRenderer.on('automerge-repo-main-process-message', (_, message) =>
-      callback(message)
-    ),
+  ) => {
+    const listener = (
+      _: Electron.IpcRendererEvent,
+      message: AutomergeRepoNetworkIPCMessage
+    ) => {
+      callback(message);
+    };
+
+    ipcRenderer.on('automerge-repo-main-process-message', listener);
+
+    // Return a cleanup/unsubscribe function
+    return () => {
+      ipcRenderer.removeListener(
+        'automerge-repo-main-process-message',
+        listener
+      );
+    };
+  },
 });
 
 type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;

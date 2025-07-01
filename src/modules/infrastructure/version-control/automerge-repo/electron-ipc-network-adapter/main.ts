@@ -22,6 +22,7 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
   #readyPromise: Promise<void> = new Promise<void>((resolve) => {
     this.#readyResolver = resolve;
   });
+  #ipcListener?: (event: Electron.IpcMainEvent, message: IPCMessage) => void;
 
   isReady() {
     return this.#ready;
@@ -58,9 +59,9 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
     this.peerId = peerId;
     this.peerMetadata = peerMetadata;
 
-    ipcMain.on('automerge-repo-renderer-process-message', (_, message) => {
-      this.receiveMessage(message);
-    });
+    this.#ipcListener = (_, message) => this.receiveMessage(message);
+
+    ipcMain.on('automerge-repo-renderer-process-message', this.#ipcListener);
 
     if (this.isInitiator) {
       [...this.renderers.keys()].forEach((rendererId) => {
@@ -83,6 +84,13 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
     this.emit('close');
 
     this.#ready = false;
+
+    if (this.#ipcListener) {
+      ipcMain.removeListener(
+        'automerge-repo-renderer-process-message',
+        this.#ipcListener
+      );
+    }
   }
 
   send(message: IPCMessage): void {

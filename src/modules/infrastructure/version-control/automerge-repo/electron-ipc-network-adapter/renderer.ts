@@ -20,6 +20,7 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
   #readyPromise: Promise<void> = new Promise<void>((resolve) => {
     this.#readyResolver = resolve;
   });
+  #unregisterListener?: () => void;
 
   isReady() {
     return this.#ready;
@@ -48,11 +49,12 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
     this.peerId = peerId;
     this.peerMetadata = peerMetadata;
 
-    window.automergeRepoNetworkAdapter.onReceiveMainProcessMessage(
-      (message: IPCMessage) => {
-        this.receiveMessage(message);
-      }
-    );
+    this.#unregisterListener =
+      window.automergeRepoNetworkAdapter.onReceiveMainProcessMessage(
+        (message: IPCMessage) => {
+          this.receiveMessage(message);
+        }
+      );
 
     if (this.isInitiator) {
       this.send(
@@ -72,6 +74,8 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
       this.emit('peer-disconnected', { peerId: this.remotePeerId });
       this.emit('close');
     }
+
+    this.#unregisterListener?.();
   }
 
   send(message: IPCMessage) {

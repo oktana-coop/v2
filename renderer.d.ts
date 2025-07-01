@@ -23,11 +23,13 @@ export type ElectronAPI = {
   openExternalLink: (url: string) => void;
 };
 
+export type UnregisterListenerFn = () => void;
+
 export type AutomergeRepoNetworkAdapter = {
   sendRendererProcessMessage: (message: AutomergeRepoNetworkIPCMessage) => void;
   onReceiveMainProcessMessage: (
     callback: (message: AutomergeRepoNetworkIPCMessage) => void
-  ) => IpcRenderer;
+  ) => UnregisterListenerFn;
 };
 
 export type SingleDocumentProjectAPI = {
