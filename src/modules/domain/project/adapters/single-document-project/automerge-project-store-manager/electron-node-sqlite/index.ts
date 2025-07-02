@@ -26,16 +26,19 @@ export type ElectronDeps = {
 
 const setupAutomergeRepo = ({
   db,
+  filePath,
   rendererProcessId,
   browserWindow,
 }: ElectronDeps & {
   db: Database.Database;
+  filePath: string;
 }): Effect.Effect<Repo, VersionedProjectRepositoryError, never> =>
   Effect.tryPromise({
     try: () =>
       setupSQLiteRepoForNode({
         renderers: new Map([[rendererProcessId, browserWindow]]),
         db,
+        filePath,
         initiateSync: false,
       }),
     catch: mapErrorTo(
@@ -141,11 +144,12 @@ export const createAdapter = ({
             })
           ),
           Effect.bind('db', ({ newFile }) => setupSQLiteDatabase(newFile.path)),
-          Effect.bind('automergeRepo', ({ db }) =>
+          Effect.bind('automergeRepo', ({ db, newFile }) =>
             setupAutomergeRepo({
               rendererProcessId,
               browserWindow,
               db,
+              filePath: newFile.path,
             })
           ),
           Effect.bind('versionedProjectStore', ({ automergeRepo }) =>

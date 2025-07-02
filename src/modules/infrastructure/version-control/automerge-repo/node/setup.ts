@@ -6,7 +6,6 @@ import { NodeFSStorageAdapter } from '@automerge/automerge-repo-storage-nodefs';
 import { type Database } from 'better-sqlite3';
 import { BrowserWindow } from 'electron';
 
-import { MAIN_PROCESS_PEER_ID } from '../electron-ipc-network-adapter/constants';
 import { ElectronIPCMainProcessAdapter } from '../electron-ipc-network-adapter/main';
 import { SQLite3StorageAdapter } from '../sqlite3-storage-adapter';
 
@@ -36,12 +35,13 @@ export const setupFilesystemRepo = async ({
 
 export type SQLiteRepoSetupProps = ElectronSetupProps & {
   db: Database;
+  filePath: string;
 };
 
 export const setupSQLiteRepo = async ({
   renderers,
   db,
-  processId = MAIN_PROCESS_PEER_ID,
+  filePath,
   initiateSync = true,
 }: SQLiteRepoSetupProps) => {
   await Automerge.initializeWasm(wasmUrl);
@@ -49,6 +49,6 @@ export const setupSQLiteRepo = async ({
   return new Repo({
     network: [new ElectronIPCMainProcessAdapter(renderers, initiateSync)],
     storage: new SQLite3StorageAdapter(db),
-    peerId: processId as PeerId,
+    peerId: filePath as PeerId,
   });
 };
