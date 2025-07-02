@@ -172,7 +172,7 @@ export const CurrentDocumentProvider = ({
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documentId, versionedDocumentStore]);
+  }, [documentId]);
 
   useEffect(() => {
     if (selectedFileInfo && selectedFileInfo.path) {
