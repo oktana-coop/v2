@@ -76,7 +76,7 @@ export const SingleDocumentProjectProvider = ({
         const {
           versionedDocumentStore: documentStore,
           versionedProjectStore: projectStore,
-          documentId,
+          documentId: docId,
           file,
           name: projName,
         } = await Effect.runPromise(
@@ -89,13 +89,13 @@ export const SingleDocumentProjectProvider = ({
         );
 
         setProjectId(browserStorageProjectData.projectId);
-        setDocumentId(documentId);
+        setDocumentId(docId);
         setProjectFile(file);
         setProjectName(projName);
         setVersionedProjectStore(projectStore);
         setVersionedDocumentStore(documentStore);
 
-        navigate(`/documents/${documentId}`);
+        navigate(`/documents/${docId}`);
       }
     };
 
