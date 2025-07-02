@@ -40,6 +40,10 @@ const setupAutomergeRepo = ({
     ),
   });
 
+const openSingleDocumentProjectStoreSemaphore = Effect.runSync(
+  Effect.makeSemaphore(1)
+);
+
 export const createAdapter = ({
   processId,
 }: ElectronDeps): SingleDocumentProjectStoreManager => {
@@ -105,58 +109,62 @@ export const createAdapter = ({
 
       () =>
       ({ fromFile }: OpenSingleDocumentProjectStoreArgs) =>
-        pipe(
-          Effect.tryPromise({
-            try: async () => {
-              if (currentAutomergeRepo) {
-                await currentAutomergeRepo.shutdown();
-                currentAutomergeRepo = null;
-              }
-            },
-            catch: mapErrorTo(
-              VersionedProjectRepositoryError,
-              'Error in shutting down previous Automerge repo'
-            ),
-          }),
-          Effect.flatMap(() =>
+        // The semaphore ensures that a single instance of the pipeline is being run at a given moment.
+        // https://effect.website/docs/concurrency/semaphore/#creating-a-semaphore
+        openSingleDocumentProjectStoreSemaphore.withPermits(1)(
+          pipe(
             Effect.tryPromise({
-              try: () =>
-                window.singleDocumentProjectAPI.openSingleDocumentProject({
-                  fromFile,
-                }),
-              // TODO: Leverage typed Effect errors returned from the respective node adapter
+              try: async () => {
+                if (currentAutomergeRepo) {
+                  await currentAutomergeRepo.shutdown();
+                  currentAutomergeRepo = null;
+                }
+              },
               catch: mapErrorTo(
                 VersionedProjectRepositoryError,
-                'Error in opening single-document project'
+                'Error in shutting down previous Automerge repo'
               ),
-            })
-          ),
-          Effect.flatMap(({ projectId, documentId, file, name }) =>
-            pipe(
-              // TODO: Consider a cleaner approach of wiping IndexedDB (or the previous project's DB)
-              // before setting up the new one. For now, assuming that we don't want to do this so that performance
-              // is better as the user switches between known projects, and IndexedDB is guaranteed to be wiped when
-              // they close the app.
-              setupAutomergeRepo({
-                processId,
-                dbName: projectId,
-                store: STORE_NAME,
-              }),
-              Effect.tap((automergeRepo) =>
-                Effect.sync(() => {
-                  currentAutomergeRepo = automergeRepo;
-                })
-              ),
-              Effect.map((automergeRepo) => ({
-                versionedProjectStore:
-                  createAutomergeProjectStoreAdapter(automergeRepo),
-                versionedDocumentStore:
-                  createAutomergeDocumentStoreAdapter(automergeRepo),
-                projectId,
-                documentId,
-                file,
-                name,
-              }))
+            }),
+            Effect.flatMap(() =>
+              Effect.tryPromise({
+                try: () =>
+                  window.singleDocumentProjectAPI.openSingleDocumentProject({
+                    fromFile,
+                  }),
+                // TODO: Leverage typed Effect errors returned from the respective node adapter
+                catch: mapErrorTo(
+                  VersionedProjectRepositoryError,
+                  'Error in opening single-document project'
+                ),
+              })
+            ),
+            Effect.flatMap(({ projectId, documentId, file, name }) =>
+              pipe(
+                // TODO: Consider a cleaner approach of wiping IndexedDB (or the previous project's DB)
+                // before setting up the new one. For now, assuming that we don't want to do this so that performance
+                // is better as the user switches between known projects, and IndexedDB is guaranteed to be wiped when
+                // they close the app.
+                setupAutomergeRepo({
+                  processId,
+                  dbName: projectId,
+                  store: STORE_NAME,
+                }),
+                Effect.tap((automergeRepo) =>
+                  Effect.sync(() => {
+                    currentAutomergeRepo = automergeRepo;
+                  })
+                ),
+                Effect.map((automergeRepo) => ({
+                  versionedProjectStore:
+                    createAutomergeProjectStoreAdapter(automergeRepo),
+                  versionedDocumentStore:
+                    createAutomergeDocumentStoreAdapter(automergeRepo),
+                  projectId,
+                  documentId,
+                  file,
+                  name,
+                }))
+              )
             )
           )
         );

@@ -27,7 +27,6 @@ export const setupForElectron = async ({
   return new Repo({
     network: [new ElectronIPCRendererProcessAdapter(processId, initiateSync)],
     storage: new IndexedDBStorageAdapter(dbName, store),
-    peerId: dbName as PeerId,
   });
 };
 
