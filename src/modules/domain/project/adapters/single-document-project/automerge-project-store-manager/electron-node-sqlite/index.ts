@@ -223,11 +223,12 @@ export const createAdapter = ({
           Effect.bind('projectId', ({ db }) =>
             readProjectMetadataFromSQLite({ db })
           ),
-          Effect.bind('automergeRepo', ({ db }) =>
+          Effect.bind('automergeRepo', ({ db, file }) =>
             setupAutomergeRepo({
               rendererProcessId,
               browserWindow,
               db,
+              filePath: file.path,
             })
           ),
           Effect.bind('versionedProjectStore', ({ automergeRepo }) =>
