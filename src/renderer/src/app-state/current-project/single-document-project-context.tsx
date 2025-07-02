@@ -107,7 +107,7 @@ export const SingleDocumentProjectProvider = ({
       versionedDocumentStore: documentStore,
       versionedProjectStore: projectStore,
       projectId: projId,
-      documentId,
+      documentId: docId,
       file,
       name: projName,
     } = await Effect.runPromise(
@@ -117,7 +117,7 @@ export const SingleDocumentProjectProvider = ({
     );
 
     setProjectId(projId);
-    setDocumentId(documentId);
+    setDocumentId(docId);
     setProjectFile(file);
     setProjectName(projName);
     setVersionedProjectStore(projectStore);
@@ -125,7 +125,7 @@ export const SingleDocumentProjectProvider = ({
 
     const browserStorageProjectData: BrowserStorageProjectData = {
       projectId: projId,
-      documentId,
+      documentId: docId,
       file,
     };
     localStorage.setItem(
@@ -133,7 +133,7 @@ export const SingleDocumentProjectProvider = ({
       JSON.stringify(browserStorageProjectData)
     );
 
-    return { documentId, path: file?.path ?? null };
+    return { documentId: docId, path: file?.path ?? null };
   };
 
   const handleOpenDocument = async (args?: {
@@ -144,7 +144,7 @@ export const SingleDocumentProjectProvider = ({
       versionedDocumentStore: documentStore,
       versionedProjectStore: projectStore,
       projectId: projId,
-      documentId,
+      documentId: docId,
       file,
       name: projName,
     } = await Effect.runPromise(
@@ -158,7 +158,7 @@ export const SingleDocumentProjectProvider = ({
     );
 
     setProjectId(projId);
-    setDocumentId(documentId);
+    setDocumentId(docId);
     setProjectFile(file);
     setProjectName(projName);
     setVersionedProjectStore(projectStore);
@@ -166,7 +166,7 @@ export const SingleDocumentProjectProvider = ({
 
     const browserStorageProjectData: BrowserStorageProjectData = {
       projectId: projId,
-      documentId,
+      documentId: docId,
       file,
     };
     localStorage.setItem(
@@ -174,7 +174,7 @@ export const SingleDocumentProjectProvider = ({
       JSON.stringify(browserStorageProjectData)
     );
 
-    return { documentId, path: file?.path ?? null };
+    return { documentId: docId, path: file?.path ?? null };
   };
 
   return (
