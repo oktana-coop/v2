@@ -100,9 +100,19 @@ export const SingleDocumentProjectProvider = ({
     };
 
     getSelectedProject();
+
+    return () => {
+      if (versionedProjectStore) {
+        versionedProjectStore.disconnect();
+      }
+    };
   }, []);
 
   const handleCreateNewDocument = async (name?: string) => {
+    if (versionedProjectStore) {
+      await Effect.runPromise(versionedProjectStore.disconnect());
+    }
+
     const {
       versionedDocumentStore: documentStore,
       versionedProjectStore: projectStore,
@@ -140,6 +150,10 @@ export const SingleDocumentProjectProvider = ({
     fromFile?: File;
     projectId?: VersionControlId;
   }) => {
+    if (versionedProjectStore) {
+      await Effect.runPromise(versionedProjectStore.disconnect());
+    }
+
     const {
       versionedDocumentStore: documentStore,
       versionedProjectStore: projectStore,

@@ -86,4 +86,5 @@ export type VersionedDocumentStore = {
   commitChanges: (
     args: CommitChangesArgs
   ) => Effect.Effect<void, RepositoryError, never>;
+  disconnect: () => Effect.Effect<void, RepositoryError, never>;
 };

@@ -179,6 +179,15 @@ export const createAdapter = (automergeRepo: Repo): VersionedDocumentStore => {
       catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
     });
 
+  const disconnect: VersionedDocumentStore['disconnect'] = () =>
+    Effect.tryPromise({
+      try: () => automergeRepo.shutdown(),
+      catch: mapErrorTo(
+        RepositoryError,
+        'Error in disconnecting from the project store'
+      ),
+    });
+
   return {
     createDocument,
     getDocumentHandleAtCommit,
@@ -191,5 +200,6 @@ export const createAdapter = (automergeRepo: Repo): VersionedDocumentStore => {
     isContentSameAtHeads,
     getDocumentHeads,
     commitChanges,
+    disconnect,
   };
 };

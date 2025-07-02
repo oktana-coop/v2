@@ -1,3 +1,4 @@
+import * as Effect from 'effect/Effect';
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import {
@@ -92,7 +93,12 @@ export const InfrastructureAdaptersProvider = ({
     return <div>Loading...</div>;
   }
 
-  const handleSetDocumentStore = (documentStore: VersionedDocumentStore) => {
+  const handleSetDocumentStore = async (
+    documentStore: VersionedDocumentStore
+  ) => {
+    if (versionedDocumentStore) {
+      await Effect.runPromise(versionedDocumentStore.disconnect());
+    }
     setVersionedDocumentStore(documentStore);
   };
 
