@@ -68,7 +68,9 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
   connect(peerId: PeerId, peerMetadata?: PeerMetadata) {
     console.log(
       `Main adapter with storage ID ${peerMetadata?.storageId} connecting`,
-      new Date().toTimeString()
+      new Date().toLocaleTimeString(undefined, { hour12: false }) +
+        '.' +
+        String(new Date().getMilliseconds()).padStart(3, '0')
     );
 
     this.peerId = peerId;
@@ -88,7 +90,9 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
   disconnect(): void {
     console.log(
       `Main adapter with storage ID ${this.peerMetadata?.storageId} disconnecting`,
-      new Date().toTimeString()
+      new Date().toLocaleTimeString(undefined, { hour12: false }) +
+        '.' +
+        String(new Date().getMilliseconds()).padStart(3, '0')
     );
 
     [...this.#renderersByPeerId.keys()].forEach((peerId) => {
@@ -118,7 +122,9 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
       console.log(
         `Main adapter (disconnected: ${this.#disconnected}) with storage ID ${this.peerMetadata?.storageId} sending message`,
         JSON.stringify(message),
-        new Date().toTimeString()
+        new Date().toLocaleTimeString(undefined, { hour12: false }) +
+          '.' +
+          String(new Date().getMilliseconds()).padStart(3, '0')
       );
     }
 
@@ -155,7 +161,9 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
       console.log(
         `Main adapter (disconnected: ${this.#disconnected}) with storage ID ${this.peerMetadata?.storageId} received message`,
         JSON.stringify(message),
-        new Date().toTimeString()
+        new Date().toLocaleTimeString(undefined, { hour12: false }) +
+          '.' +
+          String(new Date().getMilliseconds()).padStart(3, '0')
       );
       if (this.#disconnected) {
         return;

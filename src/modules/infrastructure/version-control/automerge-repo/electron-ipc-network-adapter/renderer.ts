@@ -53,7 +53,9 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
   connect(peerId: PeerId, peerMetadata?: PeerMetadata) {
     console.log(
       `Renderer adapter with storage ID ${peerMetadata?.storageId} connecting`,
-      new Date().toTimeString()
+      new Date().toLocaleTimeString(undefined, { hour12: false }) +
+        '.' +
+        String(new Date().getMilliseconds()).padStart(3, '0')
     );
 
     this.peerId = peerId;
@@ -82,7 +84,9 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
   disconnect() {
     console.log(
       `Renderer adapter with storage ID ${this.peerMetadata?.storageId} disconnecting`,
-      new Date().toTimeString()
+      new Date().toLocaleTimeString(undefined, { hour12: false }) +
+        '.' +
+        String(new Date().getMilliseconds()).padStart(3, '0')
     );
 
     if (this.remotePeerId) {
@@ -99,7 +103,9 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
       console.log(
         `Renderer adapter (disconnected: ${this.#disconnected}) with storage ID ${this.peerMetadata?.storageId} sending message`,
         JSON.stringify(message),
-        new Date().toTimeString()
+        new Date().toLocaleTimeString(undefined, { hour12: false }) +
+          '.' +
+          String(new Date().getMilliseconds()).padStart(3, '0')
       );
     }
 
@@ -124,7 +130,9 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
       console.log(
         `Renderer adapter (disconnected: ${this.#disconnected}) with storage ID ${this.peerMetadata?.storageId} received message`,
         JSON.stringify(message),
-        new Date().toTimeString()
+        new Date().toLocaleTimeString(undefined, { hour12: false }) +
+          '.' +
+          String(new Date().getMilliseconds()).padStart(3, '0')
       );
     }
 
