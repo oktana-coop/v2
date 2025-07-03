@@ -113,6 +113,10 @@ const readProjectMetadataFromSQLite = ({
       ),
   });
 
+const openSingleDocumentProjectStoreSemaphore = Effect.runSync(
+  Effect.makeSemaphore(1)
+);
+
 export const createAdapter = ({
   rendererProcessId,
   browserWindow,
@@ -199,68 +203,70 @@ export const createAdapter = ({
 
       ({ openFile }: OpenSingleDocumentProjectStoreDeps) =>
       ({ fromFile }: OpenSingleDocumentProjectStoreArgs) =>
-        Effect.Do.pipe(
-          Effect.bind('file', () =>
-            fromFile
-              ? Effect.succeed(fromFile)
-              : openFile({ extensions: [PROJECT_FILE_EXTENSION] })
-          ),
-          Effect.tap(() =>
-            Effect.tryPromise({
-              try: async () => {
-                if (currentAutomergeRepo) {
-                  await currentAutomergeRepo.shutdown();
-                  currentAutomergeRepo = null;
-                }
-              },
-              catch: mapErrorTo(
-                VersionedProjectRepositoryError,
-                'Error in shutting down previous Automerge repo'
-              ),
-            })
-          ),
-          Effect.bind('db', ({ file }) => setupSQLiteDatabase(file.path)),
-          Effect.bind('projectId', ({ db }) =>
-            readProjectMetadataFromSQLite({ db })
-          ),
-          Effect.bind('automergeRepo', ({ db, file }) =>
-            setupAutomergeRepo({
-              rendererProcessId,
-              browserWindow,
-              db,
-              filePath: file.path,
-            })
-          ),
-          Effect.bind('versionedProjectStore', ({ automergeRepo }) =>
-            Effect.succeed(createAutomergeProjectStoreAdapter(automergeRepo))
-          ),
-          Effect.bind('versionedDocumentStore', ({ automergeRepo }) =>
-            Effect.succeed(createAutomergeDocumentStoreAdapter(automergeRepo))
-          ),
-          Effect.bind('documentId', ({ versionedProjectStore, projectId }) =>
-            versionedProjectStore.findDocumentInProject(projectId)
-          ),
-          Effect.tap(({ automergeRepo }) =>
-            Effect.sync(() => {
-              currentAutomergeRepo = automergeRepo;
-            })
-          ),
-          Effect.map(
-            ({
-              file,
-              versionedProjectStore,
-              versionedDocumentStore,
-              projectId,
-              documentId,
-            }) => ({
-              versionedProjectStore,
-              versionedDocumentStore,
-              projectId,
-              documentId,
-              file,
-              // The name is derived by the file name in this case
-              name: file.name,
-            })
+        openSingleDocumentProjectStoreSemaphore.withPermits(1)(
+          Effect.Do.pipe(
+            Effect.bind('file', () =>
+              fromFile
+                ? Effect.succeed(fromFile)
+                : openFile({ extensions: [PROJECT_FILE_EXTENSION] })
+            ),
+            Effect.tap(() =>
+              Effect.tryPromise({
+                try: async () => {
+                  if (currentAutomergeRepo) {
+                    await currentAutomergeRepo.shutdown();
+                    currentAutomergeRepo = null;
+                  }
+                },
+                catch: mapErrorTo(
+                  VersionedProjectRepositoryError,
+                  'Error in shutting down previous Automerge repo'
+                ),
+              })
+            ),
+            Effect.bind('db', ({ file }) => setupSQLiteDatabase(file.path)),
+            Effect.bind('projectId', ({ db }) =>
+              readProjectMetadataFromSQLite({ db })
+            ),
+            Effect.bind('automergeRepo', ({ db, file }) =>
+              setupAutomergeRepo({
+                rendererProcessId,
+                browserWindow,
+                db,
+                filePath: file.path,
+              })
+            ),
+            Effect.bind('versionedProjectStore', ({ automergeRepo }) =>
+              Effect.succeed(createAutomergeProjectStoreAdapter(automergeRepo))
+            ),
+            Effect.bind('versionedDocumentStore', ({ automergeRepo }) =>
+              Effect.succeed(createAutomergeDocumentStoreAdapter(automergeRepo))
+            ),
+            Effect.bind('documentId', ({ versionedProjectStore, projectId }) =>
+              versionedProjectStore.findDocumentInProject(projectId)
+            ),
+            Effect.tap(({ automergeRepo }) =>
+              Effect.sync(() => {
+                currentAutomergeRepo = automergeRepo;
+              })
+            ),
+            Effect.map(
+              ({
+                file,
+                versionedProjectStore,
+                versionedDocumentStore,
+                projectId,
+                documentId,
+              }) => ({
+                versionedProjectStore,
+                versionedDocumentStore,
+                projectId,
+                documentId,
+                file,
+                // The name is derived by the file name in this case
+                name: file.name,
+              })
+            )
           )
         );
 
