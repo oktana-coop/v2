@@ -41,7 +41,6 @@ export type SQLiteRepoSetupProps = ElectronSetupProps & {
 export const setupSQLiteRepo = async ({
   renderers,
   db,
-  filePath,
   initiateSync = true,
 }: SQLiteRepoSetupProps) => {
   await Automerge.initializeWasm(wasmUrl);
@@ -49,6 +48,5 @@ export const setupSQLiteRepo = async ({
   return new Repo({
     network: [new ElectronIPCMainProcessAdapter(renderers, initiateSync)],
     storage: new SQLite3StorageAdapter(db),
-    peerId: filePath as PeerId,
   });
 };
