@@ -27,7 +27,8 @@
       "jest",
       "@testing-library/jest-dom",
       "@types/wicg-file-system-access"
-    ]
+    ],
+    "sourceMap": true
   },
   "include": ["src", "./jest.setup.ts", "./renderer.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]

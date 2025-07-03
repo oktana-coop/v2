@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => {
         rollupOptions: {
           external: ['better-sqlite3'],
         },
+        sourcemap: true,
       },
     },
     preload: {
