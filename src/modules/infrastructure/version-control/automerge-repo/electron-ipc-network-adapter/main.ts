@@ -204,26 +204,32 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
       });
 
       this.#forceReady();
-    } else if (isRendererReceiverAckMessage(message)) {
-      if (!this.isInitiator) {
-        throw new Error('Received unexpected receiver ack message from peer');
-      }
-
-      const rendererBrowserWindow = this.#renderers.get(message.processId);
-
-      if (!rendererBrowserWindow) {
-        throw new Error('Received IPC message from unknown renderer process');
-      }
-
-      this.#renderersByPeerId.set(message.senderId, rendererBrowserWindow);
-
-      const { peerMetadata } = message;
-
-      // Let the repo know that we have a new connection.
-      this.emit('peer-candidate', { peerId: message.senderId, peerMetadata });
-      this.#forceReady();
     } else {
-      this.emit('message', message);
+      if (message.targetId !== this.peerId) {
+        return;
+      }
+
+      if (isRendererReceiverAckMessage(message)) {
+        if (!this.isInitiator) {
+          throw new Error('Received unexpected receiver ack message from peer');
+        }
+
+        const rendererBrowserWindow = this.#renderers.get(message.processId);
+
+        if (!rendererBrowserWindow) {
+          throw new Error('Received IPC message from unknown renderer process');
+        }
+
+        this.#renderersByPeerId.set(message.senderId, rendererBrowserWindow);
+
+        const { peerMetadata } = message;
+
+        // Let the repo know that we have a new connection.
+        this.emit('peer-candidate', { peerId: message.senderId, peerMetadata });
+        this.#forceReady();
+      } else {
+        this.emit('message', message);
+      }
     }
   }
 }

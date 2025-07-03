@@ -145,6 +145,10 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
         throw new Error('Received unexpected initiator message from peer');
       }
 
+      if (this.remotePeerId) {
+        return;
+      }
+
       // main process repo is ready, acknowledge by sending a renderer ack message
       this.send(
         createRendererReceiverAckMessage(
@@ -166,6 +170,10 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
 
       this.#forceReady();
     } else {
+      if (message.targetId !== this.peerId) {
+        return;
+      }
+
       if (isReceiverAckMessage(message)) {
         if (!this.isInitiator) {
           throw new Error('Received unexpected receiver ack message from peer');
