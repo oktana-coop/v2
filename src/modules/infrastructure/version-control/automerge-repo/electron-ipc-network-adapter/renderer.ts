@@ -15,7 +15,7 @@ import {
 import { type ProcessId } from './types';
 
 export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
-  isInitiator: boolean;
+  #isInitiator: boolean;
   #debug: boolean;
   #processId: ProcessId;
   #ready = false;
@@ -52,7 +52,7 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
   ) {
     super();
     this.#processId = processId;
-    this.isInitiator = isInitiator;
+    this.#isInitiator = isInitiator;
     this.#debug = debug;
   }
 
@@ -76,7 +76,7 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
         }
       );
 
-    if (this.isInitiator) {
+    if (this.#isInitiator) {
       this.send(
         createRendererInitiatorJoinMessage(
           peerId,
@@ -151,7 +151,7 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
     }
 
     if (isInitiatorJoinMessage(message)) {
-      if (this.isInitiator) {
+      if (this.#isInitiator) {
         throw new Error('Received unexpected initiator message from peer');
       }
 
@@ -185,7 +185,7 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
       }
 
       if (isReceiverAckMessage(message)) {
-        if (!this.isInitiator) {
+        if (!this.#isInitiator) {
           throw new Error('Received unexpected receiver ack message from peer');
         }
 

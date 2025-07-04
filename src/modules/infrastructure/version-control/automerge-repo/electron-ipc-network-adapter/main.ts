@@ -18,7 +18,7 @@ import {
 import { ProcessId } from './types';
 
 export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
-  isInitiator: boolean;
+  #isInitiator: boolean;
   #debug: boolean;
   #renderers: Map<ProcessId, BrowserWindow>;
   #renderersByPeerId: Map<PeerId, BrowserWindow>;
@@ -62,7 +62,7 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
 
     super();
 
-    this.isInitiator = isInitiator;
+    this.#isInitiator = isInitiator;
     this.#debug = debug;
     this.#renderers = renderers;
     this.#renderersByPeerId = new Map();
@@ -85,7 +85,7 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
 
     ipcMain.on('automerge-repo-renderer-process-message', this.#ipcListener);
 
-    if (this.isInitiator) {
+    if (this.#isInitiator) {
       this.send(createInitiatorJoinMessage(peerId, this.peerMetadata ?? {}));
     }
 
@@ -185,7 +185,7 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
     }
 
     if (isRendererInitiatorJoinMessage(message)) {
-      if (this.isInitiator) {
+      if (this.#isInitiator) {
         throw new Error('Received unexpected initiator message from peer');
       }
 
@@ -218,7 +218,7 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
       }
 
       if (isRendererReceiverAckMessage(message)) {
-        if (!this.isInitiator) {
+        if (!this.#isInitiator) {
           throw new Error('Received unexpected receiver ack message from peer');
         }
 
