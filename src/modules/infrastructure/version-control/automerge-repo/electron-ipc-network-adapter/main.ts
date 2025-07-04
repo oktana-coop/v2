@@ -19,6 +19,7 @@ import { ProcessId } from './types';
 
 export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
   isInitiator: boolean;
+  #debug: boolean;
   #renderers: Map<ProcessId, BrowserWindow>;
   #renderersByPeerId: Map<PeerId, BrowserWindow>;
 
@@ -50,7 +51,8 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
 
   constructor(
     renderers: Map<string, BrowserWindow>,
-    isInitiator: boolean = true
+    isInitiator: boolean = true,
+    debug: boolean = false
   ) {
     if (renderers.size === 0) {
       throw new Error(
@@ -61,17 +63,20 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
     super();
 
     this.isInitiator = isInitiator;
+    this.#debug = debug;
     this.#renderers = renderers;
     this.#renderersByPeerId = new Map();
   }
 
   connect(peerId: PeerId, peerMetadata?: PeerMetadata) {
-    console.log(
-      `Main adapter with peer ID ${peerId} connecting`,
-      new Date().toLocaleTimeString(undefined, { hour12: false }) +
-        '.' +
-        String(new Date().getMilliseconds()).padStart(3, '0')
-    );
+    if (this.#debug) {
+      console.log(
+        `Main adapter with peer ID ${peerId} connecting`,
+        new Date().toLocaleTimeString(undefined, { hour12: false }) +
+          '.' +
+          String(new Date().getMilliseconds()).padStart(3, '0')
+      );
+    }
 
     this.peerId = peerId;
     this.peerMetadata = peerMetadata;
@@ -88,12 +93,14 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
   }
 
   disconnect(): void {
-    console.log(
-      `Main adapter with peer ID ${this.peerId} disconnecting`,
-      new Date().toLocaleTimeString(undefined, { hour12: false }) +
-        '.' +
-        String(new Date().getMilliseconds()).padStart(3, '0')
-    );
+    if (this.#debug) {
+      console.log(
+        `Main adapter with peer ID ${this.peerId} disconnecting`,
+        new Date().toLocaleTimeString(undefined, { hour12: false }) +
+          '.' +
+          String(new Date().getMilliseconds()).padStart(3, '0')
+      );
+    }
 
     [...this.#renderersByPeerId.keys()].forEach((peerId) => {
       this.emit('peer-disconnected', { peerId });
@@ -118,7 +125,7 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
   }
 
   send(message: FromMainMessage): void {
-    if (message.type !== 'sync') {
+    if (this.#debug && message.type !== 'sync') {
       console.log(
         `Main adapter with peer ID ${this.peerId} (disconnected: ${this.#disconnected}) sending message`,
         JSON.stringify(message),
@@ -157,7 +164,7 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
   }
 
   receiveMessage(message: FromRendererMessage) {
-    if (message.type !== 'sync') {
+    if (this.#debug && message.type !== 'sync') {
       console.log(
         `Main adapter with peer ID ${this.peerId} (disconnected: ${this.#disconnected}) received message`,
         JSON.stringify(message),
@@ -165,9 +172,10 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
           '.' +
           String(new Date().getMilliseconds()).padStart(3, '0')
       );
-      if (this.#disconnected) {
-        return;
-      }
+    }
+
+    if (this.#disconnected) {
+      return;
     }
 
     if (!this.peerId) {

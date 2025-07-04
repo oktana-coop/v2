@@ -16,6 +16,7 @@ import { type ProcessId } from './types';
 
 export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
   isInitiator: boolean;
+  #debug: boolean;
   #processId: ProcessId;
   #ready = false;
   #readyResolver?: () => void;
@@ -44,19 +45,26 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
   // this adapter only connects to one remote client at a time (the main process)
   remotePeerId?: PeerId;
 
-  constructor(processId: string, isInitiator: boolean = false) {
+  constructor(
+    processId: string,
+    isInitiator: boolean = false,
+    debug: boolean = false
+  ) {
     super();
     this.#processId = processId;
     this.isInitiator = isInitiator;
+    this.#debug = debug;
   }
 
   connect(peerId: PeerId, peerMetadata?: PeerMetadata) {
-    console.log(
-      `Renderer adapter with peer ID ${peerId} connecting`,
-      new Date().toLocaleTimeString(undefined, { hour12: false }) +
-        '.' +
-        String(new Date().getMilliseconds()).padStart(3, '0')
-    );
+    if (this.#debug) {
+      console.log(
+        `Renderer adapter with peer ID ${peerId} connecting`,
+        new Date().toLocaleTimeString(undefined, { hour12: false }) +
+          '.' +
+          String(new Date().getMilliseconds()).padStart(3, '0')
+      );
+    }
 
     this.peerId = peerId;
     this.peerMetadata = peerMetadata;
@@ -82,12 +90,14 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
   }
 
   disconnect() {
-    console.log(
-      `Renderer adapter with peer ID ${this.peerId} disconnecting`,
-      new Date().toLocaleTimeString(undefined, { hour12: false }) +
-        '.' +
-        String(new Date().getMilliseconds()).padStart(3, '0')
-    );
+    if (this.#debug) {
+      console.log(
+        `Renderer adapter with peer ID ${this.peerId} disconnecting`,
+        new Date().toLocaleTimeString(undefined, { hour12: false }) +
+          '.' +
+          String(new Date().getMilliseconds()).padStart(3, '0')
+      );
+    }
 
     if (this.remotePeerId) {
       this.emit('peer-disconnected', { peerId: this.remotePeerId });
@@ -99,7 +109,7 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
   }
 
   send(message: FromRendererMessage) {
-    if (message.type !== 'sync') {
+    if (this.#debug && message.type !== 'sync') {
       console.log(
         `Renderer adapter (disconnected: ${this.#disconnected}) with peer ID ${this.peerId} sending message`,
         JSON.stringify(message),
@@ -126,7 +136,7 @@ export class ElectronIPCRendererProcessAdapter extends NetworkAdapter {
   }
 
   receiveMessage(message: FromMainMessage) {
-    if (message.type !== 'sync') {
+    if (this.#debug && message.type !== 'sync') {
       console.log(
         `Renderer adapter with peer ID ${this.peerId} (disconnected: ${this.#disconnected}) received message`,
         JSON.stringify(message),
