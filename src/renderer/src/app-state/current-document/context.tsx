@@ -149,6 +149,9 @@ export const CurrentDocumentProvider = ({
 
     if (
       versionedDocumentStore &&
+      // This is a very important safeguard. We don't want to ask the document from a document store that belongs to another project
+      // due to how Automerge repo syncing works at the moment. If this happens, the repo registers interest in the wrong document
+      // and can potentially get it if we are not careful when switching projects. Change with caution.
       versionedDocumentStore.projectId === projectId
     ) {
       updateDocumentHandleAndSelectedFile({ versionedDocumentStore });
