@@ -119,6 +119,9 @@ export const SingleDocumentProjectProvider = ({
   const handleCreateNewDocument = async (name?: string) => {
     if (versionedProjectStore) {
       await Effect.runPromise(versionedProjectStore.disconnect());
+
+      setVersionedProjectStore(null);
+      setVersionedDocumentStore(null);
     }
 
     const {
@@ -160,6 +163,9 @@ export const SingleDocumentProjectProvider = ({
   }) => {
     if (versionedProjectStore) {
       await Effect.runPromise(versionedProjectStore.disconnect());
+
+      setVersionedProjectStore(null);
+      setVersionedDocumentStore(null);
     }
 
     const {
