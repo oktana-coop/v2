@@ -17,7 +17,8 @@ import {
   type OpenFileArgs,
 } from '../modules/infrastructure/filesystem';
 import type {
-  IPCMessage as AutomergeRepoNetworkIPCMessage,
+  FromMainMessage as AutomergeRepoNetworkFromMainIPCMessage,
+  FromRendererMessage as AutomergeRepoNetworkFromRendererIPCMessage,
   VersionControlId,
 } from '../modules/infrastructure/version-control';
 import type {
@@ -37,14 +38,29 @@ contextBridge.exposeInMainWorld('electronAPI', {
 });
 
 contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
-  sendRendererProcessMessage: (message: AutomergeRepoNetworkIPCMessage) =>
-    ipcRenderer.send('automerge-repo-renderer-process-message', message),
+  sendRendererProcessMessage: (
+    message: AutomergeRepoNetworkFromRendererIPCMessage
+  ) => ipcRenderer.send('automerge-repo-renderer-process-message', message),
   onReceiveMainProcessMessage: (
-    callback: (message: AutomergeRepoNetworkIPCMessage) => void
-  ) =>
-    ipcRenderer.on('automerge-repo-main-process-message', (_, message) =>
-      callback(message)
-    ),
+    callback: (message: AutomergeRepoNetworkFromMainIPCMessage) => void
+  ) => {
+    const listener = (
+      _: Electron.IpcRendererEvent,
+      message: AutomergeRepoNetworkFromMainIPCMessage
+    ) => {
+      callback(message);
+    };
+
+    ipcRenderer.on('automerge-repo-main-process-message', listener);
+
+    // Return a cleanup/unsubscribe function
+    return () => {
+      ipcRenderer.removeListener(
+        'automerge-repo-main-process-message',
+        listener
+      );
+    };
+  },
 });
 
 type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;

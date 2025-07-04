@@ -11,9 +11,9 @@ import {
 
 import { ElectronContext } from '../../modules/infrastructure/cross-platform';
 import {
-  Document,
   DocumentEditor,
   DocumentHistoricalView,
+  Project,
 } from './pages/document';
 import { Options } from './pages/options/Options';
 import { ProjectHistory } from './pages/project-history';
@@ -26,9 +26,9 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Navigate to="/documents" replace />} />
-        <Route path="/documents" element={<Document />}>
-          <Route path=":documentId">
+        <Route path="/" element={<Navigate to="/projects" replace />} />
+        <Route path="/projects" element={<Project />}>
+          <Route path=":projectId/documents/:documentId">
             <Route index element={<DocumentEditor />} />
             <Route
               path="changes/:changeId"

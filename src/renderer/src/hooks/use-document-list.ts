@@ -4,8 +4,6 @@ import { useParams } from 'react-router';
 import { projectTypes } from '../../../modules/domain/project';
 import { removeExtension } from '../../../modules/infrastructure/filesystem';
 import {
-  CurrentDocumentContext,
-  CurrentDocumentContextType,
   CurrentProjectContext,
   MultiDocumentProjectContext,
   MultiDocumentProjectContextType,
@@ -21,7 +19,7 @@ export type DocumentListItem = {
 
 const getDocumentListInMultiDocumentProject = (
   directoryFiles: MultiDocumentProjectContextType['directoryFiles'],
-  selectedFileInfo: CurrentDocumentContextType['selectedFileInfo']
+  selectedFileInfo: MultiDocumentProjectContextType['selectedFileInfo']
 ): DocumentListItem[] =>
   directoryFiles.map((file) => {
     const documentListItem: DocumentListItem = {
@@ -50,8 +48,9 @@ const getDocumentListInSingleDocumentProject = (
 export const useDocumentList = () => {
   const { documentId: documentIdParam } = useParams();
   const { projectType } = useContext(CurrentProjectContext);
-  const { directory, directoryFiles } = useContext(MultiDocumentProjectContext);
-  const { selectedFileInfo } = useContext(CurrentDocumentContext);
+  const { directory, directoryFiles, selectedFileInfo } = useContext(
+    MultiDocumentProjectContext
+  );
   const { recentProjects } = useContext(RecentProjectsContext);
   const [documentList, setDocumentList] = useState<DocumentListItem[]>([]);
   const [canShowList, setCanShowList] = useState<boolean>(false);

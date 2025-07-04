@@ -1,13 +1,10 @@
 import { useContext, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useParams } from 'react-router';
 
 import { projectTypes } from '../../../../modules/domain/project';
 import { ProseMirrorProvider } from '../../../../modules/domain/rich-text/react/context';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/electron-context';
-import {
-  decodeURLHeads,
-  type VersionControlId,
-} from '../../../../modules/infrastructure/version-control';
+import { decodeURLHeads } from '../../../../modules/infrastructure/version-control';
 import {
   CurrentDocumentContext,
   CurrentDocumentProvider,
@@ -18,7 +15,7 @@ import {
 import { Layout } from '../../components/layout/Layout';
 import { SidebarLayout } from '../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../components/layout/StackedResizablePanelsLayout';
-import { useCreateDocument } from '../../hooks';
+import { useCreateDocument, useNavigateToDocument } from '../../hooks';
 import { useOpenDirectory } from '../../hooks/multi-document-project';
 import { useOpenDocument } from '../../hooks/single-document-project';
 import { DocumentCommandPalette } from './command-palette';
@@ -28,7 +25,7 @@ import { DocumentMainViewRouter } from './main/DocumentMainViewRouter';
 import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
 import { DirectoryFiles, RecentProjects } from './sidebar/document-list-views';
 
-export const Document = () => (
+export const Project = () => (
   <CurrentProjectProvider projectType={projectTypes.SINGLE_DOCUMENT_PROJECT}>
     <CurrentDocumentProvider>
       <SidebarLayoutProvider>
@@ -49,10 +46,8 @@ const DocumentIndex = () => {
 
   const [isDocumentCreationModalOpen, setCreateDocumentModalOpen] =
     useState<boolean>(false);
-  const navigate = useNavigate();
   const { projectType } = useContext(CurrentProjectContext);
   const {
-    setSelectedFileInfo,
     versionedDocumentHistory: commits,
     onSelectCommit,
     onCloseCommitDialog,
@@ -69,20 +64,7 @@ const DocumentIndex = () => {
     window.document.title = 'v2 | Editor';
   }, []);
 
-  const navigateToDocument = ({
-    documentId,
-    path,
-  }: {
-    documentId: VersionControlId;
-    path: string | null;
-  }) => {
-    setSelectedFileInfo({ documentId, path });
-
-    const newUrl = path
-      ? `/documents/${documentId}?path=${encodeURIComponent(path)}`
-      : `/documents/${documentId}`;
-    navigate(newUrl);
-  };
+  const navigateToDocument = useNavigateToDocument();
 
   const openCreateDocumentModal = () => {
     setCreateDocumentModalOpen(true);
@@ -96,8 +78,8 @@ const DocumentIndex = () => {
     if (!isElectron && projectType === projectTypes.SINGLE_DOCUMENT_PROJECT) {
       openCreateDocumentModal();
     } else {
-      const { documentId, path } = await createNewDocument();
-      navigateToDocument({ documentId, path });
+      const { projectId, documentId, path } = await createNewDocument();
+      navigateToDocument({ projectId, documentId, path });
     }
   };
 

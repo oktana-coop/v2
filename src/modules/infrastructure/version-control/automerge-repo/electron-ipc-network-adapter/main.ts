@@ -8,20 +8,31 @@ import { BrowserWindow, ipcMain } from 'electron';
 import {
   createInitiatorJoinMessage,
   createReceiverAckMessage,
-  type IPCMessage,
+  type FromMainMessage,
+  type FromRendererMessage,
+  type InitiatorJoinMessage,
   isInitiatorJoinMessage,
-  isReceiverAckMessage,
+  isRendererInitiatorJoinMessage,
+  isRendererReceiverAckMessage,
 } from './messages';
+import { ProcessId } from './types';
 
 export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
-  isInitiator: boolean;
-  renderers: Map<PeerId, BrowserWindow>;
+  #isInitiator: boolean;
+  #debug: boolean;
+  #renderers: Map<ProcessId, BrowserWindow>;
+  #renderersByPeerId: Map<PeerId, BrowserWindow>;
 
   #ready = false;
   #readyResolver?: () => void;
   #readyPromise: Promise<void> = new Promise<void>((resolve) => {
     this.#readyResolver = resolve;
   });
+  #ipcListener?: (
+    event: Electron.IpcMainEvent,
+    message: FromRendererMessage
+  ) => void;
+  #disconnected = false;
 
   isReady() {
     return this.#ready;
@@ -40,7 +51,8 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
 
   constructor(
     renderers: Map<string, BrowserWindow>,
-    isInitiator: boolean = true
+    isInitiator: boolean = true,
+    debug: boolean = false
   ) {
     if (renderers.size === 0) {
       throw new Error(
@@ -50,39 +62,83 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
 
     super();
 
-    this.isInitiator = isInitiator;
-    this.renderers = renderers as Map<PeerId, BrowserWindow>;
+    this.#isInitiator = isInitiator;
+    this.#debug = debug;
+    this.#renderers = renderers;
+    this.#renderersByPeerId = new Map();
   }
 
   connect(peerId: PeerId, peerMetadata?: PeerMetadata) {
+    if (this.#debug) {
+      console.log(
+        `Main adapter with peer ID ${peerId} connecting`,
+        new Date().toLocaleTimeString(undefined, { hour12: false }) +
+          '.' +
+          String(new Date().getMilliseconds()).padStart(3, '0')
+      );
+    }
+
     this.peerId = peerId;
     this.peerMetadata = peerMetadata;
 
-    ipcMain.on('automerge-repo-renderer-process-message', (_, message) => {
-      this.receiveMessage(message);
-    });
+    this.#ipcListener = (_, message) => this.receiveMessage(message);
 
-    if (this.isInitiator) {
-      [...this.renderers.keys()].forEach((rendererId) => {
-        this.send(
-          createInitiatorJoinMessage(
-            peerId,
-            this.peerMetadata ?? {},
-            rendererId
-          )
-        );
-      });
+    ipcMain.on('automerge-repo-renderer-process-message', this.#ipcListener);
+
+    if (this.#isInitiator) {
+      this.send(createInitiatorJoinMessage(peerId, this.peerMetadata ?? {}));
     }
+
+    this.#disconnected = false;
   }
 
   disconnect(): void {
-    this.peerId = undefined;
-    this.peerMetadata = undefined;
-    this.renderers.clear();
-    this.#ready = false;
+    if (this.#debug) {
+      console.log(
+        `Main adapter with peer ID ${this.peerId} disconnecting`,
+        new Date().toLocaleTimeString(undefined, { hour12: false }) +
+          '.' +
+          String(new Date().getMilliseconds()).padStart(3, '0')
+      );
+    }
+
+    [...this.#renderersByPeerId.keys()].forEach((peerId) => {
+      this.emit('peer-disconnected', { peerId });
+    });
+
+    this.emit('close');
+
+    if (this.#ipcListener) {
+      ipcMain.removeListener(
+        'automerge-repo-renderer-process-message',
+        this.#ipcListener
+      );
+    }
+
+    this.#disconnected = true;
   }
 
-  send(message: IPCMessage): void {
+  #broadcastToRenderers(message: InitiatorJoinMessage): void {
+    [...this.#renderers.values()].forEach((renderer) => {
+      renderer.webContents.send('automerge-repo-main-process-message', message);
+    });
+  }
+
+  send(message: FromMainMessage): void {
+    if (this.#debug && message.type !== 'sync') {
+      console.log(
+        `Main adapter with peer ID ${this.peerId} (disconnected: ${this.#disconnected}) sending message`,
+        JSON.stringify(message),
+        new Date().toLocaleTimeString(undefined, { hour12: false }) +
+          '.' +
+          String(new Date().getMilliseconds()).padStart(3, '0')
+      );
+    }
+
+    if (this.#disconnected) {
+      return;
+    }
+
     if ('data' in message && message.data?.byteLength === 0)
       throw new Error('Tried to send a zero-length message');
 
@@ -94,30 +150,53 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
       );
     }
 
-    const renderer = this.renderers.get(message.targetId);
+    if (isInitiatorJoinMessage(message)) {
+      this.#broadcastToRenderers(message);
+    } else {
+      const renderer = this.#renderersByPeerId.get(message.targetId);
 
-    if (!renderer) {
+      if (!renderer) {
+        return;
+      }
+
+      renderer.webContents.send('automerge-repo-main-process-message', message);
+    }
+  }
+
+  receiveMessage(message: FromRendererMessage) {
+    if (this.#debug && message.type !== 'sync') {
+      console.log(
+        `Main adapter with peer ID ${this.peerId} (disconnected: ${this.#disconnected}) received message`,
+        JSON.stringify(message),
+        new Date().toLocaleTimeString(undefined, { hour12: false }) +
+          '.' +
+          String(new Date().getMilliseconds()).padStart(3, '0')
+      );
+    }
+
+    if (this.#disconnected) {
       return;
     }
 
-    renderer.webContents.send('automerge-repo-main-process-message', message);
-  }
-
-  receiveMessage(message: IPCMessage) {
     if (!this.peerId) {
       throw new Error(
         'No peerId set for the Electron main process network adapter.'
       );
     }
 
-    if (this.isInitiator && isReceiverAckMessage(message)) {
-      const { peerMetadata } = message;
+    if (isRendererInitiatorJoinMessage(message)) {
+      if (this.#isInitiator) {
+        throw new Error('Received unexpected initiator message from peer');
+      }
 
-      // Let the repo know that we have a new connection.
-      this.emit('peer-candidate', { peerId: message.senderId, peerMetadata });
-      this.#forceReady();
-    } else if (!this.isInitiator && isInitiatorJoinMessage(message)) {
-      // Acknowledge message reception by sending a receiver ack message
+      const rendererBrowserWindow = this.#renderers.get(message.processId);
+
+      if (!rendererBrowserWindow) {
+        throw new Error('Received IPC message from unknown renderer process');
+      }
+
+      this.#renderersByPeerId.set(message.senderId, rendererBrowserWindow);
+
       this.send(
         createReceiverAckMessage(
           this.peerId!,
@@ -134,7 +213,31 @@ export class ElectronIPCMainProcessAdapter extends NetworkAdapter {
 
       this.#forceReady();
     } else {
-      this.emit('message', message);
+      if (message.targetId !== this.peerId) {
+        return;
+      }
+
+      if (isRendererReceiverAckMessage(message)) {
+        if (!this.#isInitiator) {
+          throw new Error('Received unexpected receiver ack message from peer');
+        }
+
+        const rendererBrowserWindow = this.#renderers.get(message.processId);
+
+        if (!rendererBrowserWindow) {
+          throw new Error('Received IPC message from unknown renderer process');
+        }
+
+        this.#renderersByPeerId.set(message.senderId, rendererBrowserWindow);
+
+        const { peerMetadata } = message;
+
+        // Let the repo know that we have a new connection.
+        this.emit('peer-candidate', { peerId: message.senderId, peerMetadata });
+        this.#forceReady();
+      } else {
+        this.emit('message', message);
+      }
     }
   }
 }

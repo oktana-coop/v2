@@ -15,7 +15,7 @@ import {
 } from '../../../../errors';
 import { type SingleDocumentProjectStoreManager } from '../../../../ports';
 import { createAdapter as createAutomergeProjectStoreAdapter } from '../../automerge-project-store';
-import { clone, openDB } from './db';
+import { clone, deleteDB, openDB } from './db';
 
 const STORE_NAME = 'documents';
 
@@ -42,7 +42,11 @@ const copyDataFromSourceToTargetDB = ({
   sourceDBName: string;
   targetDBName: string;
   store: string;
-}): Effect.Effect<void, VersionedProjectRepositoryError, never> =>
+}): Effect.Effect<
+  { sourceDB: IDBDatabase; targetDB: IDBDatabase },
+  VersionedProjectRepositoryError,
+  never
+> =>
   Effect.Do.pipe(
     Effect.bind('sourceDB', () =>
       Effect.tryPromise({
@@ -62,7 +66,7 @@ const copyDataFromSourceToTargetDB = ({
         ),
       })
     ),
-    Effect.flatMap(({ sourceDB, targetDB }) =>
+    Effect.tap(({ sourceDB, targetDB }) =>
       Effect.tryPromise({
         try: () => clone({ sourceDB, targetDB, storeName: store }),
         catch: mapErrorTo(
@@ -125,21 +129,48 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                 )
               )
           ),
-          Effect.bind('dbName', ({ tempDBName, projectAndDocumentData }) =>
-            pipe(
-              // The name of the target (persistent) DB is the project ID.
-              Effect.succeed(projectAndDocumentData.projectId),
-              // TODO: Fix this race condition. It seems that some time must pass before the
-              // automerge documents for project and document written into IndexedDB.
-              Effect.tap(() => Effect.sleep('500 millis')),
-              Effect.tap((targetDBName) =>
-                copyDataFromSourceToTargetDB({
-                  sourceDBName: tempDBName,
-                  targetDBName,
-                  store: STORE_NAME,
-                })
+          Effect.bind(
+            'dbName',
+            ({ tempAutomergeRepo, tempDBName, projectAndDocumentData }) =>
+              pipe(
+                // The name of the target (persistent) DB is the project ID.
+                Effect.succeed(projectAndDocumentData.projectId),
+                // TODO: Fix this race condition. It seems that some time must pass before the
+                // automerge documents for project and document written into IndexedDB.
+                Effect.tap(() => Effect.sleep('500 millis')),
+                Effect.tap((targetDBName) =>
+                  pipe(
+                    copyDataFromSourceToTargetDB({
+                      sourceDBName: tempDBName,
+                      targetDBName,
+                      store: STORE_NAME,
+                    }),
+                    Effect.tap(({ sourceDB }) =>
+                      pipe(
+                        Effect.tryPromise({
+                          try: () => tempAutomergeRepo.shutdown(),
+                          catch: mapErrorTo(
+                            VersionedProjectRepositoryError,
+                            'Error in shutting down automerge repo'
+                          ),
+                        }),
+                        Effect.tap(() =>
+                          Effect.tryPromise({
+                            try: async () => {
+                              sourceDB.close();
+                              return deleteDB(tempDBName);
+                            },
+                            catch: mapErrorTo(
+                              VersionedProjectRepositoryError,
+                              'Error in deleting temporary IndexedDB database'
+                            ),
+                          })
+                        )
+                      )
+                    )
+                  )
+                )
               )
-            )
           ),
           Effect.bind('automergeRepo', ({ dbName }) =>
             setupAutomergeRepo({
@@ -150,8 +181,15 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
           Effect.bind('versionedProjectStore', ({ automergeRepo }) =>
             Effect.succeed(createAutomergeProjectStoreAdapter(automergeRepo))
           ),
-          Effect.bind('versionedDocumentStore', ({ automergeRepo }) =>
-            Effect.succeed(createAutomergeDocumentStoreAdapter(automergeRepo))
+          Effect.bind(
+            'versionedDocumentStore',
+            ({ automergeRepo, projectAndDocumentData }) =>
+              Effect.succeed(
+                createAutomergeDocumentStoreAdapter(
+                  automergeRepo,
+                  projectAndDocumentData.projectId
+                )
+              )
           ),
           Effect.map(
             ({
@@ -191,8 +229,10 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
               Effect.map((automergeRepo) => ({
                 versionedProjectStore:
                   createAutomergeProjectStoreAdapter(automergeRepo),
-                versionedDocumentStore:
-                  createAutomergeDocumentStoreAdapter(automergeRepo),
+                versionedDocumentStore: createAutomergeDocumentStoreAdapter(
+                  automergeRepo,
+                  projectId
+                ),
               })),
               Effect.flatMap(
                 ({ versionedProjectStore, versionedDocumentStore }) =>

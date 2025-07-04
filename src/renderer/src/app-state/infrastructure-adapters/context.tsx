@@ -1,3 +1,4 @@
+import * as Effect from 'effect/Effect';
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import {
@@ -21,7 +22,9 @@ export type InfrastructureAdaptersContextType = {
   singleDocumentProjectStoreManager: SingleDocumentProjectStoreManager;
   multiDocumentProjectStoreManager: MultiDocumentProjectStoreManager;
   versionedDocumentStore: VersionedDocumentStore | null;
-  setVersionedDocumentStore: (documentStore: VersionedDocumentStore) => void;
+  setVersionedDocumentStore: (
+    documentStore: VersionedDocumentStore | null
+  ) => void;
 };
 
 export const InfrastructureAdaptersContext =
@@ -92,7 +95,12 @@ export const InfrastructureAdaptersProvider = ({
     return <div>Loading...</div>;
   }
 
-  const handleSetDocumentStore = (documentStore: VersionedDocumentStore) => {
+  const handleSetDocumentStore = async (
+    documentStore: VersionedDocumentStore | null
+  ) => {
+    if (versionedDocumentStore) {
+      await Effect.runPromise(versionedDocumentStore.disconnect());
+    }
     setVersionedDocumentStore(documentStore);
   };
 

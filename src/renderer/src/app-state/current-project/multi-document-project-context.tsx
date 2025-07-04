@@ -14,9 +14,14 @@ import {
 } from '../../../../modules/domain/project';
 import { RICH_TEXT_FILE_EXTENSION } from '../../../../modules/domain/project';
 import { VersionedDocumentHandle } from '../../../../modules/domain/rich-text';
+import { ElectronContext } from '../../../../modules/infrastructure/cross-platform';
 import {
   type Directory,
   type File,
+} from '../../../../modules/infrastructure/filesystem';
+import {
+  removeExtension,
+  removePath,
 } from '../../../../modules/infrastructure/filesystem';
 import { VersionControlId } from '../../../../modules/infrastructure/version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
@@ -29,19 +34,30 @@ type BrowserStorageProjectData = {
 
 const BROWSER_STORAGE_PROJECT_DATA_KEY = 'multi-document-project';
 
+export type SelectedFileInfo = {
+  documentId: VersionControlId;
+  path: string | null;
+};
+
 export type MultiDocumentProjectContextType = {
   projectId: VersionControlId | null;
   directory: Directory | null;
   directoryFiles: Array<File>;
   openDirectory: () => Promise<Directory>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
-  createNewDocument: (
-    name?: string
-  ) => Promise<{ documentId: VersionControlId; path: string }>;
+  createNewDocument: (name?: string) => Promise<{
+    projectId: VersionControlId;
+    documentId: VersionControlId;
+    path: string;
+  }>;
   findDocumentInProject: (args: {
     projectId: VersionControlId;
     documentPath: string;
   }) => Promise<VersionedDocumentHandle>;
+  selectedFileInfo: SelectedFileInfo | null;
+  selectedFileName: string | null;
+  setSelectedFileInfo: (file: SelectedFileInfo) => void;
+  clearFileSelection: () => Promise<void>;
 };
 
 export const MultiDocumentProjectContext =
@@ -57,6 +73,10 @@ export const MultiDocumentProjectContext =
     createNewDocument: () => null,
     // @ts-expect-error will get overriden below
     findDocumentInProject: async () => null,
+    selectedFileInfo: null,
+    selectedFileName: null,
+    setSelectedFileInfo: async () => {},
+    clearFileSelection: async () => {},
   });
 
 export const MultiDocumentProjectProvider = ({
@@ -64,6 +84,7 @@ export const MultiDocumentProjectProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
+  const { isElectron } = useContext(ElectronContext);
   const {
     filesystem,
     versionedDocumentStore,
@@ -75,6 +96,9 @@ export const MultiDocumentProjectProvider = ({
   const [directoryFiles, setDirectoryFiles] = useState<Array<File>>([]);
   const [versionedProjectStore, setVersionedProjectStore] =
     useState<MultiDocumentProjectStore | null>(null);
+  const [selectedFileInfo, setSelectedFileInfo] =
+    useState<SelectedFileInfo | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
   useEffect(() => {
     const getSelectedDirectory = async () => {
@@ -185,7 +209,7 @@ export const MultiDocumentProjectProvider = ({
   };
 
   const handleCreateNewDocument = useCallback(async () => {
-    if (!versionedDocumentStore || !versionedProjectStore) {
+    if (!versionedDocumentStore || !versionedProjectStore || !projectId) {
       throw new Error(
         'Cannot create document. Document and project store have not been initialized yet.'
       );
@@ -219,7 +243,7 @@ export const MultiDocumentProjectProvider = ({
       setDirectoryFiles(files);
     }
 
-    return { documentId: newDocumentId, path: newFilePath };
+    return { projectId, documentId: newDocumentId, path: newFilePath };
   }, [versionedDocumentStore, versionedProjectStore]);
 
   const handleFindDocumentInProject = async (args: {
@@ -243,6 +267,32 @@ export const MultiDocumentProjectProvider = ({
     );
   };
 
+  const clearFileSelection = async () => {
+    setSelectedFileInfo(null);
+  };
+
+  const handleSetSelectedFileInfo = async ({
+    documentId,
+    path,
+  }: SelectedFileInfo) => {
+    if (isElectron) {
+      window.electronAPI.sendCurrentDocumentId(documentId);
+    }
+
+    setSelectedFileInfo({
+      documentId,
+      path: path,
+    });
+  };
+
+  useEffect(() => {
+    if (selectedFileInfo && selectedFileInfo.path) {
+      const fullFileName = removePath(selectedFileInfo.path);
+      const cleanFileName = removeExtension(fullFileName);
+      setSelectedFileName(cleanFileName);
+    }
+  }, [selectedFileInfo]);
+
   return (
     <MultiDocumentProjectContext.Provider
       value={{
@@ -253,6 +303,10 @@ export const MultiDocumentProjectProvider = ({
         requestPermissionForSelectedDirectory,
         createNewDocument: handleCreateNewDocument,
         findDocumentInProject: handleFindDocumentInProject,
+        selectedFileInfo,
+        selectedFileName,
+        setSelectedFileInfo: handleSetSelectedFileInfo,
+        clearFileSelection,
       }}
     >
       {children}

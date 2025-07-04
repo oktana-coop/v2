@@ -1,7 +1,7 @@
 // Note the ?url suffix
 import wasmUrl from '@automerge/automerge/automerge.wasm?url';
 import { next as Automerge } from '@automerge/automerge/slim';
-import { PeerId, Repo } from '@automerge/automerge-repo/slim';
+import { Repo } from '@automerge/automerge-repo/slim';
 import { IndexedDBStorageAdapter } from '@automerge/automerge-repo-storage-indexeddb';
 
 import { ElectronIPCRendererProcessAdapter } from '../electron-ipc-network-adapter/renderer';
@@ -25,9 +25,8 @@ export const setupForElectron = async ({
   await Automerge.initializeWasm(wasmUrl);
 
   return new Repo({
-    network: [new ElectronIPCRendererProcessAdapter(initiateSync)],
+    network: [new ElectronIPCRendererProcessAdapter(processId, initiateSync)],
     storage: new IndexedDBStorageAdapter(dbName, store),
-    peerId: processId as PeerId,
   });
 };
 

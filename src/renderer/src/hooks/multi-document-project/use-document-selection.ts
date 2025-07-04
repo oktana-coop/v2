@@ -1,17 +1,13 @@
 import { useContext } from 'react';
-import { useNavigate } from 'react-router';
 
-import {
-  CurrentDocumentContext,
-  MultiDocumentProjectContext,
-} from '../../app-state';
+import { MultiDocumentProjectContext } from '../../app-state';
+import { useNavigateToDocument } from '../use-navigate-to-document';
 
 export const useDocumentSelection = () => {
-  const navigate = useNavigate();
   const { projectId, findDocumentInProject } = useContext(
     MultiDocumentProjectContext
   );
-  const { setSelectedFileInfo } = useContext(CurrentDocumentContext);
+  const navigateToDocument = useNavigateToDocument();
 
   return async (documentPath: string) => {
     if (!projectId) {
@@ -31,12 +27,10 @@ export const useDocumentSelection = () => {
       );
     }
 
-    await setSelectedFileInfo({
+    navigateToDocument({
+      projectId,
       documentId: documentHandle.url,
       path: documentPath,
     });
-    navigate(
-      `/documents/${documentHandle.url}?path=${encodeURIComponent(documentPath)}`
-    );
   };
 };

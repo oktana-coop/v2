@@ -37,4 +37,5 @@ export type SingleDocumentProjectStore = {
   getProjectName: (
     projectId: VersionControlId
   ) => Effect.Effect<string | null, RepositoryError | NotFoundError, never>;
+  disconnect: () => Effect.Effect<void, RepositoryError, never>;
 };

@@ -97,11 +97,21 @@ export const createAdapter = (
       Effect.map((project) => project.name)
     );
 
+  const disconnect: SingleDocumentProjectStore['disconnect'] = () =>
+    Effect.tryPromise({
+      try: () => automergeRepo.shutdown(),
+      catch: mapErrorTo(
+        RepositoryError,
+        'Error in disconnecting from the project store'
+      ),
+    });
+
   return {
     createSingleDocumentProject,
     findDocumentInProject,
     findProjectById,
     getProjectFromHandle,
     getProjectName,
+    disconnect,
   };
 };

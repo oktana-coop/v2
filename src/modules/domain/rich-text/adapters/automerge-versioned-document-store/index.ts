@@ -22,7 +22,18 @@ import {
 } from '../../models';
 import { VersionedDocumentStore } from '../../ports/versioned-document-store';
 
-export const createAdapter = (automergeRepo: Repo): VersionedDocumentStore => {
+export const createAdapter = (
+  automergeRepo: Repo,
+  projId?: string
+): VersionedDocumentStore => {
+  // This is not an ideal model but we want to be able to tell that the document store we are searching in is the desired one.
+  // Without this we are risking registering interest in documents from other repositories (and therefore polluting our stores)
+  let projectId: string | null = projId ?? null;
+  const setProjectId: VersionedDocumentStore['setProjectId'] = (id) =>
+    Effect.sync(() => {
+      projectId = id;
+    });
+
   const getDocumentFromHandle: (
     handle: VersionedDocumentHandle
   ) => Effect.Effect<
@@ -179,7 +190,18 @@ export const createAdapter = (automergeRepo: Repo): VersionedDocumentStore => {
       catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
     });
 
+  const disconnect: VersionedDocumentStore['disconnect'] = () =>
+    Effect.tryPromise({
+      try: () => automergeRepo.shutdown(),
+      catch: mapErrorTo(
+        RepositoryError,
+        'Error in disconnecting from the project store'
+      ),
+    });
+
   return {
+    projectId,
+    setProjectId,
     createDocument,
     getDocumentHandleAtCommit,
     getDocumentAtCommit,
@@ -191,5 +213,6 @@ export const createAdapter = (automergeRepo: Repo): VersionedDocumentStore => {
     isContentSameAtHeads,
     getDocumentHeads,
     commitChanges,
+    disconnect,
   };
 };

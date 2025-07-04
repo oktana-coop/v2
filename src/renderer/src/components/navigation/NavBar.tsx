@@ -17,7 +17,7 @@ type NavItem = {
 const navigation: NavItem[] = [
   {
     name: 'Edit',
-    href: '/documents',
+    href: '/projects',
     icon: PenIcon,
     current: true,
   },
@@ -64,7 +64,7 @@ export function NavBar() {
       className="flex h-full w-12 flex-none flex-col items-center gap-y-5 overflow-y-auto border-r border-gray-300 bg-transparent py-4 dark:border-neutral-600"
       data-testid="nav-bar"
     >
-      <NavLink to="/documents">
+      <NavLink to="/projects">
         <Logo />
       </NavLink>
 

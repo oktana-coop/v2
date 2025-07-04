@@ -13,6 +13,7 @@ export const CreateDocumentModal = ({
   isOpen: boolean;
   onClose: () => void;
   onCreateDocument: (args: {
+    projectId: VersionControlId;
     documentId: VersionControlId;
     path: string | null;
   }) => void;
@@ -21,11 +22,11 @@ export const CreateDocumentModal = ({
   const { createNewDocument } = useCreateDocument();
 
   const handleDocumentCreation = async (title: string) => {
-    const { documentId, path } = await createNewDocument(title);
+    const { projectId, documentId, path } = await createNewDocument(title);
 
     setNewDocName('');
     onClose();
-    onCreateDocument({ documentId, path });
+    onCreateDocument({ projectId, documentId, path });
   };
 
   return (

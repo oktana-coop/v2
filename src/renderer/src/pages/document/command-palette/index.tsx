@@ -22,9 +22,7 @@ export const DocumentCommandPalette = ({
   const [isCommandPaletteOpen, setCommandPaletteOpen] =
     useState<boolean>(false);
   const { projectType } = useContext(CurrentProjectContext);
-  const { selectedFileInfo, canCommit, onOpenCommitDialog } = useContext(
-    CurrentDocumentContext
-  );
+  const { canCommit, onOpenCommitDialog } = useContext(CurrentDocumentContext);
   useKeyBindings({
     'ctrl+k': () => setCommandPaletteOpen((state) => !state),
     'ctrl+d': () => onCreateDocument(),
@@ -53,7 +51,7 @@ export const DocumentCommandPalette = ({
     <CommandPalette
       open={isCommandPaletteOpen}
       onClose={() => setCommandPaletteOpen(false)}
-      documentsGroupTitle={`${selectedFileInfo ? 'Other' : 'Project'}  documents`}
+      documentsGroupTitle={`${projectType === projectTypes.SINGLE_DOCUMENT_PROJECT ? 'Other' : 'Project'}  documents`}
       contextualSection={
         currentDocumentName
           ? {
