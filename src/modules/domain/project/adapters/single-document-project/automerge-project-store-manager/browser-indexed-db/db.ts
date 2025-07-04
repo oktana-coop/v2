@@ -96,3 +96,25 @@ export const clone: (input: {
   const sourceData = await getAll({ db: sourceDB, storeName });
   await insertMany({ db: targetDB, storeName, data: sourceData });
 };
+
+export const deleteDB = (dbName: string): Promise<void> => {
+  const request = window.indexedDB.deleteDatabase(dbName);
+
+  return new Promise((resolve, reject) => {
+    request.onerror = (err) => {
+      return reject(err);
+    };
+
+    // In this case the database already exists and we get the reference to it.
+    request.onsuccess = () => {
+      return resolve();
+    };
+
+    request.onblocked = () => {
+      console.warn(
+        `Deletion of IndexedDB "${dbName}" is blocked by open connections.`
+      );
+      return resolve();
+    };
+  });
+};
