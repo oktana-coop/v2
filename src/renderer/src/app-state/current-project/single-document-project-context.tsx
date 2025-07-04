@@ -108,12 +108,6 @@ export const SingleDocumentProjectProvider = ({
     };
 
     getSelectedProject();
-
-    return () => {
-      if (versionedProjectStore) {
-        versionedProjectStore.disconnect();
-      }
-    };
   }, []);
 
   const handleCreateNewDocument = async (name?: string) => {
