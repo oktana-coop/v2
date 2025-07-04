@@ -37,7 +37,7 @@ export const useDocumentSelection = () => {
       await openDocument({ projectId });
     }
 
-    navigateToDocument({ documentId, path: file?.path ?? null });
+    navigateToDocument({ projectId, documentId, path: file?.path ?? null });
   };
 
   return useCallback(

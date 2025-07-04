@@ -45,9 +45,11 @@ export type MultiDocumentProjectContextType = {
   directoryFiles: Array<File>;
   openDirectory: () => Promise<Directory>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
-  createNewDocument: (
-    name?: string
-  ) => Promise<{ documentId: VersionControlId; path: string }>;
+  createNewDocument: (name?: string) => Promise<{
+    projectId: VersionControlId;
+    documentId: VersionControlId;
+    path: string;
+  }>;
   findDocumentInProject: (args: {
     projectId: VersionControlId;
     documentPath: string;
@@ -207,7 +209,7 @@ export const MultiDocumentProjectProvider = ({
   };
 
   const handleCreateNewDocument = useCallback(async () => {
-    if (!versionedDocumentStore || !versionedProjectStore) {
+    if (!versionedDocumentStore || !versionedProjectStore || !projectId) {
       throw new Error(
         'Cannot create document. Document and project store have not been initialized yet.'
       );
@@ -241,7 +243,7 @@ export const MultiDocumentProjectProvider = ({
       setDirectoryFiles(files);
     }
 
-    return { documentId: newDocumentId, path: newFilePath };
+    return { projectId, documentId: newDocumentId, path: newFilePath };
   }, [versionedDocumentStore, versionedProjectStore]);
 
   const handleFindDocumentInProject = async (args: {

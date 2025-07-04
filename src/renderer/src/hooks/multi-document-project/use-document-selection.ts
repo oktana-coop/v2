@@ -28,6 +28,7 @@ export const useDocumentSelection = () => {
     }
 
     navigateToDocument({
+      projectId,
       documentId: documentHandle.url,
       path: documentPath,
     });

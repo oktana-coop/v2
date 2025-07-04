@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useParams } from 'react-router';
 
 import { projectTypes } from '../../../../modules/domain/project';
 import { ProseMirrorProvider } from '../../../../modules/domain/rich-text/react/context';
@@ -25,7 +25,7 @@ import { DocumentMainViewRouter } from './main/DocumentMainViewRouter';
 import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
 import { DirectoryFiles, RecentProjects } from './sidebar/document-list-views';
 
-export const Document = () => (
+export const Project = () => (
   <CurrentProjectProvider projectType={projectTypes.SINGLE_DOCUMENT_PROJECT}>
     <CurrentDocumentProvider>
       <SidebarLayoutProvider>
@@ -78,8 +78,8 @@ const DocumentIndex = () => {
     if (!isElectron && projectType === projectTypes.SINGLE_DOCUMENT_PROJECT) {
       openCreateDocumentModal();
     } else {
-      const { documentId, path } = await createNewDocument();
-      navigateToDocument({ documentId, path });
+      const { projectId, documentId, path } = await createNewDocument();
+      navigateToDocument({ projectId, documentId, path });
     }
   };
 

@@ -190,6 +190,9 @@ export const createAdapter = ({
                 Effect.tap(({ projectId }) =>
                   insertProjectMetadataInSQLite({ db, projectId })
                 ),
+                Effect.tap(({ versionedDocumentStore, projectId }) =>
+                  versionedDocumentStore.setProjectId(projectId)
+                ),
                 Effect.tap(() =>
                   Effect.sync(() => {
                     currentAutomergeRepo = automergeRepo;
@@ -249,6 +252,9 @@ export const createAdapter = ({
               Effect.sync(() => {
                 currentAutomergeRepo = automergeRepo;
               })
+            ),
+            Effect.tap(({ versionedDocumentStore, projectId }) =>
+              versionedDocumentStore.setProjectId(projectId)
             ),
             Effect.map(
               ({

@@ -15,9 +15,11 @@ export const useNavigateToDocument = () => {
   const { setSelectedFileInfo } = useContext(MultiDocumentProjectContext);
 
   return ({
+    projectId,
     documentId,
     path,
   }: {
+    projectId: VersionControlId;
     documentId: VersionControlId;
     path: string | null;
   }) => {
@@ -26,8 +28,8 @@ export const useNavigateToDocument = () => {
     }
 
     const newUrl = path
-      ? `/documents/${documentId}?path=${encodeURIComponent(path)}`
-      : `/documents/${documentId}`;
+      ? `/projects/${projectId}/documents/${documentId}?path=${encodeURIComponent(path)}`
+      : `/projects/${projectId}/documents/${documentId}`;
 
     navigate(newUrl);
   };

@@ -1,14 +1,14 @@
 import { useContext } from 'react';
-import { useNavigate } from 'react-router';
 
 import { SingleDocumentProjectContext } from '../../app-state';
+import { useNavigateToDocument } from '../use-navigate-to-document';
 
 export const useOpenDocument = () => {
-  const navigate = useNavigate();
+  const navigateToDocument = useNavigateToDocument();
   const { openDocument } = useContext(SingleDocumentProjectContext);
 
   return async () => {
-    const { documentId } = await openDocument();
-    navigate(`/documents/${documentId}`);
+    const { projectId, documentId, path } = await openDocument();
+    navigateToDocument({ projectId, documentId, path });
   };
 };

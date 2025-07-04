@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
 
 import {
   type VersionedDocument,
@@ -12,6 +12,7 @@ import {
   encodeURLHeads,
   headsAreSame,
   isCommit,
+  isValidVersionControlId,
   UrlHeads,
 } from '../../../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../../../modules/personalization/functionality-config';
@@ -19,12 +20,15 @@ import {
   CurrentDocumentContext,
   SidebarLayoutContext,
 } from '../../../../app-state';
-import { useCurrentDocumentName } from '../../../../hooks';
+import {
+  useCurrentDocumentName,
+  useNavigateToDocument,
+} from '../../../../hooks';
 import { ActionsBar } from './ActionsBar';
 import { type DiffViewProps, ReadOnlyView } from './ReadOnlyView';
 
 export const DocumentHistoricalView = () => {
-  const { changeId, documentId } = useParams();
+  const { changeId, documentId, projectId } = useParams();
   const {
     versionedDocumentHandle,
     versionedDocumentHistory: commits,
@@ -41,7 +45,7 @@ export const DocumentHistoricalView = () => {
   const [diffProps, setDiffProps] = useState<DiffViewProps | null>(null);
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const navigateToDocument = useNavigateToDocument();
   const currentDocumentName = useCurrentDocumentName();
 
   const { showDiffInHistoryView, setShowDiffInHistoryView } = useContext(
@@ -197,7 +201,12 @@ export const DocumentHistoricalView = () => {
   };
 
   const handleEditClick = () => {
-    navigate(`/documents/${documentId}`);
+    if (
+      isValidVersionControlId(projectId) &&
+      isValidVersionControlId(documentId)
+    ) {
+      navigateToDocument({ projectId, documentId, path: null });
+    }
   };
 
   if (!doc) {

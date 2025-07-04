@@ -50,6 +50,11 @@ export type CommitChangesArgs = {
 };
 
 export type VersionedDocumentStore = {
+  // This is not an ideal model but we want to be able to tell that the document store we are searching in is the desired one.
+  // Without this we are risking registering interest in documents from other repositories (and therefore polluting our stores).
+  // TODO: Remove this when we have a good solution with data integrity when switching automerge repos.
+  projectId: string | null;
+  setProjectId: (id: string) => Effect.Effect<void, never, never>;
   createDocument: (
     args: CreateDocumentArgs
   ) => Effect.Effect<VersionControlId, RepositoryError, never>;

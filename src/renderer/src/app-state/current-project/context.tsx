@@ -1,30 +1,19 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext } from 'react';
 
 import {
   type ProjectType,
   projectTypes,
 } from '../../../../modules/domain/project';
-import { VersionControlId } from '../../../../modules/infrastructure/version-control';
 import { RecentProjectsProvider } from '../recent-projects/context';
-import {
-  MultiDocumentProjectContext,
-  MultiDocumentProjectProvider,
-} from './multi-document-project-context';
-import {
-  SingleDocumentProjectContext,
-  SingleDocumentProjectProvider,
-} from './single-document-project-context';
+import { MultiDocumentProjectProvider } from './multi-document-project-context';
+import { SingleDocumentProjectProvider } from './single-document-project-context';
 
 export type CurrentProjectContextType = {
   projectType: ProjectType;
-  projectId: VersionControlId | null;
-  path: string | null;
 };
 
 export const CurrentProjectContext = createContext<CurrentProjectContextType>({
   projectType: projectTypes.SINGLE_DOCUMENT_PROJECT,
-  projectId: null,
-  path: null,
   // @ts-expect-error will get overriden below
   createNewDocument: async () => {},
 });
@@ -55,34 +44,10 @@ const ProjectInterfaceProvider = ({
   projectType: ProjectType;
   children: React.ReactNode;
 }) => {
-  const [projectId, setProjectId] = useState<VersionControlId | null>(null);
-
-  const {
-    projectId: multiDocumentProjectId,
-    directory: multiDocumentProjectDirectory,
-  } = useContext(MultiDocumentProjectContext);
-  const {
-    projectId: singleDocumentProjectId,
-    projectFile: singleDocumentProjectFile,
-  } = useContext(SingleDocumentProjectContext);
-
-  useEffect(() => {
-    if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
-      setProjectId(multiDocumentProjectId);
-    } else {
-      setProjectId(singleDocumentProjectId);
-    }
-  }, [projectType, multiDocumentProjectId, singleDocumentProjectId]);
-
   return (
     <CurrentProjectContext.Provider
       value={{
         projectType,
-        projectId,
-        path:
-          projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-            ? (multiDocumentProjectDirectory?.path ?? null)
-            : (singleDocumentProjectFile?.path ?? null),
       }}
     >
       {children}

@@ -21,13 +21,19 @@ export type SingleDocumentProjectContextType = {
   projectFile: File | null;
   projectName: string | null;
   versionedProjectStore: SingleDocumentProjectStore | null;
-  createNewDocument: (
-    name?: string
-  ) => Promise<{ documentId: VersionControlId; path: string | null }>;
+  createNewDocument: (name?: string) => Promise<{
+    projectId: VersionControlId;
+    documentId: VersionControlId;
+    path: string | null;
+  }>;
   openDocument: (args?: {
     fromFile?: File;
     projectId?: VersionControlId;
-  }) => Promise<{ documentId: VersionControlId; path: string | null }>;
+  }) => Promise<{
+    projectId: VersionControlId;
+    documentId: VersionControlId;
+    path: string | null;
+  }>;
 };
 
 export const SingleDocumentProjectContext =
@@ -95,7 +101,9 @@ export const SingleDocumentProjectProvider = ({
         setProjectFile(file);
         setProjectName(projName);
 
-        navigate(`/documents/${docId}`);
+        navigate(
+          `/projects/${browserStorageProjectData.projectId}/documents/${docId}`
+        );
       }
     };
 
@@ -143,7 +151,7 @@ export const SingleDocumentProjectProvider = ({
       JSON.stringify(browserStorageProjectData)
     );
 
-    return { documentId: docId, path: file?.path ?? null };
+    return { projectId: projId, documentId: docId, path: file?.path ?? null };
   };
 
   const handleOpenDocument = async (args?: {
@@ -188,7 +196,7 @@ export const SingleDocumentProjectProvider = ({
       JSON.stringify(browserStorageProjectData)
     );
 
-    return { documentId: docId, path: file?.path ?? null };
+    return { projectId: projId, documentId: docId, path: file?.path ?? null };
   };
 
   return (

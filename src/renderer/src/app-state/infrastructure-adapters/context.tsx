@@ -22,7 +22,9 @@ export type InfrastructureAdaptersContextType = {
   singleDocumentProjectStoreManager: SingleDocumentProjectStoreManager;
   multiDocumentProjectStoreManager: MultiDocumentProjectStoreManager;
   versionedDocumentStore: VersionedDocumentStore | null;
-  setVersionedDocumentStore: (documentStore: VersionedDocumentStore) => void;
+  setVersionedDocumentStore: (
+    documentStore: VersionedDocumentStore | null
+  ) => void;
 };
 
 export const InfrastructureAdaptersContext =
@@ -94,7 +96,7 @@ export const InfrastructureAdaptersProvider = ({
   }
 
   const handleSetDocumentStore = async (
-    documentStore: VersionedDocumentStore
+    documentStore: VersionedDocumentStore | null
   ) => {
     if (versionedDocumentStore) {
       await Effect.runPromise(versionedDocumentStore.disconnect());

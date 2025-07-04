@@ -2,7 +2,6 @@ export {
   CurrentDocumentContext,
   type CurrentDocumentContextType,
   CurrentDocumentProvider,
-  type SelectedFileInfo,
 } from './current-document/context';
 
 export {
@@ -15,6 +14,7 @@ export {
   MultiDocumentProjectContext,
   type MultiDocumentProjectContextType,
   MultiDocumentProjectProvider,
+  type SelectedFileInfo,
 } from './current-project/multi-document-project-context';
 
 export {

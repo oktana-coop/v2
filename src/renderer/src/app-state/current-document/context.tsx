@@ -84,7 +84,7 @@ export const CurrentDocumentProvider = ({
   const { projectType } = useContext(CurrentProjectContext);
   const [versionedDocumentHandle, setVersionedDocumentHandle] =
     useState<VersionedDocumentHandle | null>(null);
-  const { documentId } = useParams();
+  const { projectId, documentId } = useParams();
   const [searchParams] = useSearchParams();
   const [versionedDocumentHistory, setVersionedDocumentHistory] = useState<
     ChangeWithUrlInfo[]
@@ -105,16 +105,12 @@ export const CurrentDocumentProvider = ({
     const updateDocumentHandleAndSelectedFile = async ({
       versionedDocumentStore,
     }: {
-      versionedDocumentStore: VersionedDocumentStore | null;
+      versionedDocumentStore: VersionedDocumentStore;
     }) => {
       if (!isValidVersionControlId(documentId)) {
         clearFileSelection();
         setVersionedDocumentHandle(null);
       } else {
-        if (!versionedDocumentStore) {
-          throw new Error('Versioned document store not ready yet.');
-        }
-
         const documentHandle = await Effect.runPromise(
           versionedDocumentStore.findDocumentById(documentId)
         );
@@ -151,10 +147,15 @@ export const CurrentDocumentProvider = ({
       }
     };
 
-    updateDocumentHandleAndSelectedFile({ versionedDocumentStore });
+    if (
+      versionedDocumentStore &&
+      versionedDocumentStore.projectId === projectId
+    ) {
+      updateDocumentHandleAndSelectedFile({ versionedDocumentStore });
+    }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documentId]);
+  }, [documentId, projectId, versionedDocumentStore]);
 
   const checkIfContentChangedFromLastCommit =
     (documentStore: VersionedDocumentStore) =>
@@ -291,7 +292,7 @@ export const CurrentDocumentProvider = ({
         ? null
         : versionedDocumentHistory[selectedCommitIndex + 1];
 
-      let newUrl = `/documents/${documentId}/changes/${encodeURLHeads(heads)}`;
+      let newUrl = `/projects/${projectId}/documents/${documentId}/changes/${encodeURLHeads(heads)}`;
       if (diffCommit) {
         const diffCommitURLEncodedHeads = encodeURLHeadsForChange(diffCommit);
         newUrl += `?diffWith=${diffCommitURLEncodedHeads}`;
