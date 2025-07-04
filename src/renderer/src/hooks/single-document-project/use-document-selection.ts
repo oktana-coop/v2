@@ -1,5 +1,4 @@
 import { useCallback, useContext } from 'react';
-import { useNavigate } from 'react-router';
 
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/electron-context';
 import { type File } from '../../../../modules/infrastructure/filesystem';
@@ -9,9 +8,10 @@ import {
   RecentProjectsContext,
   SingleDocumentProjectContext,
 } from '../../app-state';
+import { useNavigateToDocument } from '../use-navigate-to-document';
 
 export const useDocumentSelection = () => {
-  const navigate = useNavigate();
+  const navigateToDocument = useNavigateToDocument();
   const { isElectron } = useContext(ElectronContext);
   const { openDocument } = useContext(SingleDocumentProjectContext);
   const { recentProjects } = useContext(RecentProjectsContext);
@@ -37,7 +37,7 @@ export const useDocumentSelection = () => {
       await openDocument({ projectId });
     }
 
-    navigate(`/documents/${documentId}`);
+    navigateToDocument({ documentId, path: file?.path ?? null });
   };
 
   return useCallback(

@@ -21,11 +21,6 @@ import {
   type VersionedDocumentHandle,
   type VersionedDocumentStore,
 } from '../../../../modules/domain/rich-text';
-import { ElectronContext } from '../../../../modules/infrastructure/cross-platform';
-import {
-  removeExtension,
-  removePath,
-} from '../../../../modules/infrastructure/filesystem';
 import {
   type Change,
   type ChangeWithUrlInfo,
@@ -33,27 +28,20 @@ import {
   encodeURLHeads,
   encodeURLHeadsForChange,
   headsAreSame,
-  isValidVersionControlId,
   type UrlHeads,
-  type VersionControlId,
   type VersionedArtifactHandleChangePayload,
 } from '../../../../modules/infrastructure/version-control';
+import { isValidVersionControlId } from '../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../modules/personalization/functionality-config';
-import { CurrentProjectContext } from '../current-project/context';
-import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
-
-export type SelectedFileInfo = {
-  documentId: VersionControlId;
-  path: string | null;
-};
+import {
+  CurrentProjectContext,
+  InfrastructureAdaptersContext,
+  MultiDocumentProjectContext,
+} from '../';
 
 export type CurrentDocumentContextType = {
-  // TODO: Selected file info (per-document) applies only to multi-document projects, we need to refactor this.
-  selectedFileInfo: SelectedFileInfo | null;
-  selectedFileName: string | null;
-  setSelectedFileInfo: (file: SelectedFileInfo) => Promise<void>;
-  clearFileSelection: () => Promise<void>;
   versionedDocumentHandle: VersionedDocumentHandle | null;
+  setVersionedDocumentHandle: (handle: VersionedDocumentHandle | null) => void;
   versionedDocumentHistory: ChangeWithUrlInfo[];
   canCommit: boolean;
   onCommit: (message: string) => Promise<void>;
@@ -70,11 +58,8 @@ export type CurrentDocumentContextType = {
 
 export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
   {
-    selectedFileInfo: null,
-    selectedFileName: null,
-    setSelectedFileInfo: async () => {},
-    clearFileSelection: async () => {},
     versionedDocumentHandle: null,
+    setVersionedDocumentHandle: () => {},
     versionedDocumentHistory: [],
     canCommit: false,
     onCommit: async () => {},
@@ -93,13 +78,10 @@ export const CurrentDocumentProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { isElectron } = useContext(ElectronContext);
   const { filesystem, versionedDocumentStore } = useContext(
     InfrastructureAdaptersContext
   );
-  const [selectedFileInfo, setSelectedFileInfo] =
-    useState<SelectedFileInfo | null>(null);
-  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const { projectType } = useContext(CurrentProjectContext);
   const [versionedDocumentHandle, setVersionedDocumentHandle] =
     useState<VersionedDocumentHandle | null>(null);
   const { documentId } = useParams();
@@ -115,13 +97,15 @@ export const CurrentDocumentProvider = ({
   );
   const { showDiffInHistoryView } = useContext(FunctionalityConfigContext);
   const navigate = useNavigate();
-  const { projectType } = useContext(CurrentProjectContext);
+  const { setSelectedFileInfo, clearFileSelection } = useContext(
+    MultiDocumentProjectContext
+  );
 
   useEffect(() => {
     const updateDocumentHandleAndSelectedFile = async ({
       versionedDocumentStore,
     }: {
-      versionedDocumentStore: VersionedDocumentStore;
+      versionedDocumentStore: VersionedDocumentStore | null;
     }) => {
       if (!isValidVersionControlId(documentId)) {
         clearFileSelection();
@@ -167,20 +151,10 @@ export const CurrentDocumentProvider = ({
       }
     };
 
-    if (versionedDocumentStore) {
-      updateDocumentHandleAndSelectedFile({ versionedDocumentStore });
-    }
+    updateDocumentHandleAndSelectedFile({ versionedDocumentStore });
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documentId]);
-
-  useEffect(() => {
-    if (selectedFileInfo && selectedFileInfo.path) {
-      const fullFileName = removePath(selectedFileInfo.path);
-      const cleanFileName = removeExtension(fullFileName);
-      setSelectedFileName(cleanFileName);
-    }
-  }, [selectedFileInfo]);
 
   const checkIfContentChangedFromLastCommit =
     (documentStore: VersionedDocumentStore) =>
@@ -248,18 +222,10 @@ export const CurrentDocumentProvider = ({
     };
 
   useEffect(() => {
-    const updateBrowserTabTitle = async (name: string) => {
-      window.document.title = `v2 | "${name}"`;
-    };
-
     if (versionedDocumentStore && versionedDocumentHandle) {
-      if (selectedFileName) {
-        updateBrowserTabTitle(selectedFileName);
-      }
-
       loadHistory(versionedDocumentStore)(versionedDocumentHandle);
     }
-  }, [versionedDocumentHandle, versionedDocumentStore, selectedFileName]);
+  }, [versionedDocumentHandle]);
 
   useEffect(() => {
     if (versionedDocumentStore && versionedDocumentHandle) {
@@ -283,24 +249,6 @@ export const CurrentDocumentProvider = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastCommit, versionedDocumentHandle, versionedDocumentStore]);
-
-  const clearFileSelection = async () => {
-    setSelectedFileInfo(null);
-  };
-
-  const handleSetSelectedFileInfo = async ({
-    documentId,
-    path,
-  }: SelectedFileInfo) => {
-    if (isElectron) {
-      window.electronAPI.sendCurrentDocumentId(documentId);
-    }
-
-    setSelectedFileInfo({
-      documentId,
-      path: path,
-    });
-  };
 
   const handleCommit = useCallback(
     async (message: string) => {
@@ -384,14 +332,22 @@ export const CurrentDocumentProvider = ({
     [versionedDocumentStore]
   );
 
+  const handleSetVersionedDocumentHandle = useCallback(
+    (newHandle: VersionedDocumentHandle | null) => {
+      if (!versionedDocumentStore) {
+        throw new Error('Versioned document store not ready yet.');
+      }
+
+      return setVersionedDocumentHandle(newHandle);
+    },
+    [versionedDocumentStore]
+  );
+
   return (
     <CurrentDocumentContext.Provider
       value={{
-        selectedFileInfo,
-        selectedFileName,
         versionedDocumentHandle,
-        setSelectedFileInfo: handleSetSelectedFileInfo,
-        clearFileSelection,
+        setVersionedDocumentHandle: handleSetVersionedDocumentHandle,
         versionedDocumentHistory,
         canCommit,
         onCommit: handleCommit,

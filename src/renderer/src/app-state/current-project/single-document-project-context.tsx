@@ -88,12 +88,12 @@ export const SingleDocumentProjectProvider = ({
           })
         );
 
+        setVersionedProjectStore(projectStore);
+        setVersionedDocumentStore(documentStore);
         setProjectId(browserStorageProjectData.projectId);
         setDocumentId(docId);
         setProjectFile(file);
         setProjectName(projName);
-        setVersionedProjectStore(projectStore);
-        setVersionedDocumentStore(documentStore);
 
         navigate(`/documents/${docId}`);
       }
@@ -126,12 +126,12 @@ export const SingleDocumentProjectProvider = ({
       })({ name })
     );
 
+    setVersionedProjectStore(projectStore);
+    setVersionedDocumentStore(documentStore);
     setProjectId(projId);
     setDocumentId(docId);
     setProjectFile(file);
     setProjectName(projName);
-    setVersionedProjectStore(projectStore);
-    setVersionedDocumentStore(documentStore);
 
     const browserStorageProjectData: BrowserStorageProjectData = {
       projectId: projId,
@@ -171,12 +171,12 @@ export const SingleDocumentProjectProvider = ({
           })({})
     );
 
+    setVersionedProjectStore(projectStore);
+    setVersionedDocumentStore(documentStore);
     setProjectId(projId);
     setDocumentId(docId);
     setProjectFile(file);
     setProjectName(projName);
-    setVersionedProjectStore(projectStore);
-    setVersionedDocumentStore(documentStore);
 
     const browserStorageProjectData: BrowserStorageProjectData = {
       projectId: projId,

@@ -19,6 +19,7 @@ import {
   CurrentDocumentContext,
   SidebarLayoutContext,
 } from '../../../../app-state';
+import { useCurrentDocumentName } from '../../../../hooks';
 import { ActionsBar } from './ActionsBar';
 import { type DiffViewProps, ReadOnlyView } from './ReadOnlyView';
 
@@ -33,7 +34,6 @@ export const DocumentHistoricalView = () => {
     onOpenCommitDialog,
     getDocumentHandleAtCommit,
     isContentSameAtHeads,
-    selectedFileName: selectedDocumentFileName,
   } = useContext(CurrentDocumentContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const [doc, setDoc] = React.useState<VersionedDocument | null>();
@@ -42,6 +42,7 @@ export const DocumentHistoricalView = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const currentDocumentName = useCurrentDocumentName();
 
   const { showDiffInHistoryView, setShowDiffInHistoryView } = useContext(
     FunctionalityConfigContext
@@ -167,10 +168,10 @@ export const DocumentHistoricalView = () => {
       window.document.title = `v2 | "${name}" history`;
     };
 
-    if (selectedDocumentFileName) {
-      updateBrowserTabTitle(selectedDocumentFileName);
+    if (currentDocumentName) {
+      updateBrowserTabTitle(currentDocumentName);
     }
-  }, [selectedDocumentFileName]);
+  }, [currentDocumentName]);
 
   const handleDiffCommitSelect = (heads: UrlHeads) => {
     setSearchParams((prev) => {
