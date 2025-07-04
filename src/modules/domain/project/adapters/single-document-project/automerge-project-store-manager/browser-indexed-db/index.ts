@@ -150,8 +150,15 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
           Effect.bind('versionedProjectStore', ({ automergeRepo }) =>
             Effect.succeed(createAutomergeProjectStoreAdapter(automergeRepo))
           ),
-          Effect.bind('versionedDocumentStore', ({ automergeRepo }) =>
-            Effect.succeed(createAutomergeDocumentStoreAdapter(automergeRepo))
+          Effect.bind(
+            'versionedDocumentStore',
+            ({ automergeRepo, projectAndDocumentData }) =>
+              Effect.succeed(
+                createAutomergeDocumentStoreAdapter(
+                  automergeRepo,
+                  projectAndDocumentData.projectId
+                )
+              )
           ),
           Effect.map(
             ({
@@ -191,8 +198,10 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
               Effect.map((automergeRepo) => ({
                 versionedProjectStore:
                   createAutomergeProjectStoreAdapter(automergeRepo),
-                versionedDocumentStore:
-                  createAutomergeDocumentStoreAdapter(automergeRepo),
+                versionedDocumentStore: createAutomergeDocumentStoreAdapter(
+                  automergeRepo,
+                  projectId
+                ),
               })),
               Effect.flatMap(
                 ({ versionedProjectStore, versionedDocumentStore }) =>

@@ -108,8 +108,10 @@ const openProject = ({
     }),
     Effect.map((automergeRepo) => ({
       versionedProjectStore: createAutomergeProjectStoreAdapter(automergeRepo),
-      versionedDocumentStore:
-        createAutomergeDocumentStoreAdapter(automergeRepo),
+      versionedDocumentStore: createAutomergeDocumentStoreAdapter(
+        automergeRepo,
+        projectId
+      ),
     })),
     Effect.tap(({ versionedProjectStore, versionedDocumentStore }) =>
       updateProjectFromFilesystemContent({
@@ -337,6 +339,9 @@ const createNewProject = ({
             projectId,
             writeFile,
           })
+        ),
+        Effect.tap(({ versionedDocumentStore, projectId }) =>
+          versionedDocumentStore.setProjectId(projectId)
         )
       )
     )
