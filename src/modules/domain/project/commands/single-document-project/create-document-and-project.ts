@@ -44,7 +44,7 @@ export const createDocumentAndProject =
       Effect.flatMap((documentId) =>
         pipe(
           createSingleDocumentProject({
-            documentMetaData: { versionControlId: documentId },
+            documentMetaData: { id: documentId },
             name: name ?? null,
           }),
           Effect.map((projectId) => ({ documentId, projectId }))

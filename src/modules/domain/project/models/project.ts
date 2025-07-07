@@ -5,7 +5,7 @@ import {
 } from '../../../../modules/infrastructure/version-control';
 
 export type BaseArtifactMetaData = {
-  versionControlId: VersionControlId;
+  id: VersionControlId;
 };
 
 export type ArtifactMetaData = BaseArtifactMetaData & {

@@ -77,7 +77,7 @@ export const createProjectFromFilesystemContent =
           path: directoryPath,
           documents: documents.reduce(
             (acc, doc) => {
-              return { ...acc, [doc.versionControlId]: doc };
+              return { ...acc, [doc.id]: doc };
             },
             {} as Record<VersionControlId, ArtifactMetaData>
           ),

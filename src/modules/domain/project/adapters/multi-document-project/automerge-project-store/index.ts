@@ -90,7 +90,7 @@ export const createAdapter = (
         findProjectById(projectId),
         Effect.flatMap((projectHandle) => {
           const metaData: ArtifactMetaData = {
-            versionControlId: documentId,
+            id: documentId,
             name,
             path,
           };
@@ -134,8 +134,7 @@ export const createAdapter = (
             Option.match({
               onNone: () =>
                 Effect.fail(new NotFoundError('Document not found in project')),
-              onSome: (documentMetaData) =>
-                Effect.succeed(documentMetaData.versionControlId),
+              onSome: (documentMetaData) => Effect.succeed(documentMetaData.id),
             })
           )
         )
