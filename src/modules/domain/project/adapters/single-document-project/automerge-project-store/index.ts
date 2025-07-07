@@ -3,7 +3,10 @@ import { type DocHandle, type Repo } from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
-import { type VersionControlId } from '../../../../../../modules/infrastructure/version-control';
+import {
+  type VersionControlId,
+  versionedArtifactTypes,
+} from '../../../../../../modules/infrastructure/version-control';
 import { fromNullable } from '../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../utils/errors';
 import { NotFoundError, RepositoryError } from '../../../errors';
@@ -39,8 +42,8 @@ export const createAdapter = (
         Effect.try({
           try: () =>
             automergeRepo.create<SingleDocumentProject>({
+              type: versionedArtifactTypes.SINGLE_DOCUMENT_PROJECT,
               document: documentMetaData,
-              assets: {},
               name,
             }),
           catch: mapErrorTo(RepositoryError, 'Automerge repo error'),

@@ -4,7 +4,10 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as Option from 'effect/Option';
 
-import { type VersionControlId } from '../../../../../../modules/infrastructure/version-control';
+import {
+  type VersionControlId,
+  versionedArtifactTypes,
+} from '../../../../../../modules/infrastructure/version-control';
 import { fromNullable } from '../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../utils/errors';
 import { NotFoundError, RepositoryError } from '../../../errors';
@@ -51,6 +54,7 @@ export const createAdapter = (
       Effect.try({
         try: () =>
           automergeRepo.create<MultiDocumentProject>({
+            type: versionedArtifactTypes.MULTI_DOCUMENT_PROJECT,
             path,
             documents: {},
           }),
