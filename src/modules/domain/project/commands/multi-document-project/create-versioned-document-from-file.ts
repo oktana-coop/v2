@@ -26,7 +26,7 @@ export type CreateVersionedDocumentInFileArgs = {
 };
 
 export type CreateVersionedDocumentInFileResult = {
-  versionControlId: VersionControlId;
+  id: VersionControlId;
   path: string;
   name: string;
 };
@@ -79,7 +79,7 @@ export const createVersionedDocumentFromFile =
         )
       ),
       Effect.map(({ readFileResult, documentId }) => ({
-        versionControlId: documentId,
+        id: documentId,
         path: readFileResult.path,
         name: readFileResult.name,
       }))

@@ -85,7 +85,7 @@ export const createAdapter = (
     (projectId) =>
       pipe(
         getDocumentFromProject(projectId),
-        Effect.map((document) => document.versionControlId)
+        Effect.map((document) => document.id)
       );
 
   const getProjectName: SingleDocumentProjectStore['getProjectName'] = (

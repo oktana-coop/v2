@@ -194,7 +194,7 @@ export const updateProjectFromFilesystemContent =
                   (file) => documentMetaData.path === file.path
                 )
             )
-            .map((documentMetaData) => documentMetaData.versionControlId);
+            .map((documentMetaData) => documentMetaData.id);
 
         return Effect.forEach(
           projectDocumentsToDelete,
