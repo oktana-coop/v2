@@ -6,6 +6,7 @@ const HEADING_2 = 'HEADING_2';
 const HEADING_3 = 'HEADING_3';
 const HEADING_4 = 'HEADING_4';
 const CODE_BLOCK = 'CODE_BLOCK';
+const BLOCKQUOTE = 'BLOCKQUOTE';
 const BULLET_LIST = 'BULLET_LIST';
 const ORDERED_LIST = 'ORDERED_LIST';
 
@@ -25,6 +26,7 @@ export const leafBlockTypes = {
 export const containerBlockTypes = {
   BULLET_LIST,
   ORDERED_LIST,
+  BLOCKQUOTE,
 } as const;
 
 export const blockTypes = {

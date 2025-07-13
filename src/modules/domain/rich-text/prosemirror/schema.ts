@@ -13,6 +13,7 @@ import {
 } from 'prosemirror-model';
 
 import {
+  blockquote as blockquoteClasses,
   bulletList as bulletListClasses,
   codeBlock as codeBlockClasses,
   heading1 as heading1Classes,
@@ -29,7 +30,11 @@ import {
 import { getLinkAttrsFromDomElement, type LinkAttrs } from '../models/link';
 
 // basics
-const blockquoteDOM: DOMOutputSpec = ['blockquote', 0];
+const blockquoteDOM: DOMOutputSpec = [
+  'blockquote',
+  { class: blockquoteClasses },
+  0,
+];
 const hrDOM: DOMOutputSpec = ['hr'];
 
 // marks

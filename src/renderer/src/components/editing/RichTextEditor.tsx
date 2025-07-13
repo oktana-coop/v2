@@ -265,6 +265,13 @@ export const RichTextEditor = ({
             view
           );
           break;
+        case blockTypes.BLOCKQUOTE:
+          wrapInList(view.state.schema.nodes.blockquote)(
+            view.state,
+            view.dispatch,
+            view
+          );
+          break;
         case blockTypes.BULLET_LIST:
           wrapInList(view.state.schema.nodes.bullet_list)(
             view.state,

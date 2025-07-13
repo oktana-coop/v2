@@ -17,6 +17,10 @@ export const codeBlockRule = (nodeType: NodeType) => {
   return textblockTypeInputRule(/^```(?:\s*)$/, nodeType, () => ({}));
 };
 
+export const blockquoteRule = (nodeType: NodeType) => {
+  return wrappingInputRule(/^>\s$/, nodeType);
+};
+
 // Given a list node type, returns an input rule that turns a bullet
 // (dash, plush, or asterisk) at the start of a textblock into a bullet list.
 // Based on https://github.com/ProseMirror/prosemirror-example-setup/blob/master/src/inputrules.ts

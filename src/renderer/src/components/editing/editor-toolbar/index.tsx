@@ -14,6 +14,7 @@ import {
   FormatHeading3Icon,
   FormatHeading4Icon,
   FormatItalicIcon,
+  FormatQuoteIcon,
   FormatTextIcon,
   ImageIcon,
   LinkIcon,
@@ -126,6 +127,14 @@ export const EditorToolbar = ({
           color={selectionIsLink ? 'purple' : undefined}
           onClick={onLinkToggle}
         />
+        <IconButton
+          icon={<FormatQuoteIcon />}
+          color={
+            containerBlockType === blockTypes.BLOCKQUOTE ? 'purple' : undefined
+          }
+          onClick={handleContainerBlockSelect(blockTypes.BLOCKQUOTE)}
+        />
+
         <IconButton
           icon={<FormatCodeIcon />}
           color={codeSelected ? 'purple' : undefined}
