@@ -134,7 +134,6 @@ export const EditorToolbar = ({
           }
           onClick={handleContainerBlockSelect(blockTypes.BLOCKQUOTE)}
         />
-
         <IconButton
           icon={<FormatCodeIcon />}
           color={codeSelected ? 'purple' : undefined}

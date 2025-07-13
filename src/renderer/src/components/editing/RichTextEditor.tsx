@@ -266,7 +266,7 @@ export const RichTextEditor = ({
           );
           break;
         case blockTypes.BLOCKQUOTE:
-          wrapInList(view.state.schema.nodes.blockquote)(
+          setProsemirrorBlockType(view.state.schema.nodes.blockquote)(
             view.state,
             view.dispatch,
             view

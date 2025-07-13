@@ -18,11 +18,11 @@ export const FormatQuoteIcon = ({
     >
       <g transform={`scale(${scale})`}>
         <path
-          d="M3 7.5C3 6.12 4.12 5 5.5 5S8 6.12 8 7.5 6.88 10 5.5 10c-.37 0-.71-.09-1.02-.24L3 11.5V7.5z"
+          d="M9.13456 9H12.1346L10 14.6075H7L9.13456 9Z"
           fill={color ?? 'currentColor'}
         />
         <path
-          d="M13 7.5C13 6.12 14.12 5 15.5 5S18 6.12 18 7.5 16.88 10 15.5 10c-.37 0-.71-.09-1.02-.24L13 11.5V7.5z"
+          d="M14.1346 9H17.1346L15 14.6075H12L14.1346 9Z"
           fill={color ?? 'currentColor'}
         />
       </g>

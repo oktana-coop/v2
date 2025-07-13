@@ -12,7 +12,7 @@ export const codeBlock =
   'block text-sm leading-5 p-4 font-mono bg-black/5 dark:bg-white/10 mb-4';
 
 export const blockquote =
-  'block text-base/loose pl-4 border-l-4 border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800/50 mb-4 italic';
+  'block text-base/loose pl-4 border-l-4 border-black/10 dark:border-white/20 mb-4';
 
 export const bulletList = 'list-disc pl-6 mb-4';
 
