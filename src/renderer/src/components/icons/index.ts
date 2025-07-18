@@ -9,6 +9,7 @@ export { FolderIcon } from './Folder';
 export { FormatBoldIcon } from './FormatBold';
 export { FormatCodeIcon } from './FormatCode';
 export { FormatItalicIcon } from './FormatItalic';
+export { FormatQuoteIcon } from './FormatQuote';
 export { FormatHeadingIcon } from './FormatHeading';
 export { FormatHeading1Icon } from './FormatHeading1';
 export { FormatHeading2Icon } from './FormatHeading2';

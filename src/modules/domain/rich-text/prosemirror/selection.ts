@@ -57,7 +57,8 @@ export const getCurrentContainerBlockType = (
         return blockTypes.BULLET_LIST;
       case 'ordered_list':
         return blockTypes.ORDERED_LIST;
-      // TODO: add blockquote
+      case 'blockquote':
+        return blockTypes.BLOCKQUOTE;
       default:
         return findContainerBlockType(depth - 1); // Recursive case
     }

@@ -14,6 +14,7 @@ import {
   FormatHeading3Icon,
   FormatHeading4Icon,
   FormatItalicIcon,
+  FormatQuoteIcon,
   FormatTextIcon,
   ImageIcon,
   LinkIcon,
@@ -108,6 +109,13 @@ export const EditorToolbar = ({
               : undefined
           }
           onClick={handleContainerBlockSelect(blockTypes.ORDERED_LIST)}
+        />
+        <IconButton
+          icon={<FormatQuoteIcon />}
+          color={
+            containerBlockType === blockTypes.BLOCKQUOTE ? 'purple' : undefined
+          }
+          onClick={handleContainerBlockSelect(blockTypes.BLOCKQUOTE)}
         />
       </div>
       <div className="flex flex-initial gap-x-1">

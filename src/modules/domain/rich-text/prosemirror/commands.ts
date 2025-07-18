@@ -104,3 +104,5 @@ export const transactionUpdatesMarks = (transaction: Transaction): boolean => {
     (step) => step instanceof AddMarkStep || step instanceof RemoveMarkStep
   );
 };
+
+export { wrapIn } from 'prosemirror-commands';
