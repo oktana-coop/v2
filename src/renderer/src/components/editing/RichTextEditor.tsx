@@ -1,7 +1,4 @@
-import {
-  diffPlugin as createAutomergeDiffPlugin,
-  init,
-} from '@oktana-coop/automerge-prosemirror';
+import { init } from '@oktana-coop/automerge-prosemirror';
 import { clsx } from 'clsx';
 import {
   baseKeymap,
@@ -22,15 +19,12 @@ import {
   type LeafBlockType,
   LinkAttrs,
   prosemirror,
-  type VersionedDocument,
   type VersionedDocumentHandle,
 } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/context';
-import { type VersionedArtifactPatch } from '../../../../modules/infrastructure/version-control';
 import { EditorToolbar } from './editor-toolbar';
 import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';
-import { diffDelete, diffInsert, diffModify } from './marks';
 
 const {
   automergeSchemaAdapter,
@@ -59,18 +53,11 @@ const {
   markdownMarkPlugins,
 } = prosemirror;
 
-export type RichTextEditorDiffProps = {
-  docBefore: VersionedDocument;
-  docAfter: VersionedDocument;
-  patches: Array<VersionedArtifactPatch>;
-};
-
 type RichTextEditorProps = {
   docHandle: VersionedDocumentHandle;
   onSave: () => void;
   isEditable?: boolean;
   isToolbarOpen?: boolean;
-  diffProps?: RichTextEditorDiffProps;
 };
 
 export const RichTextEditor = ({
@@ -78,7 +65,6 @@ export const RichTextEditor = ({
   onSave,
   isEditable = true,
   isToolbarOpen = false,
-  diffProps,
 }: RichTextEditorProps) => {
   const editorRoot = useRef<HTMLDivElement>(null);
   const { schema, view, setView, setSchema, parseMarkdown } =
@@ -160,13 +146,8 @@ export const RichTextEditor = ({
         linkSelectionPlugin,
         selectionChangePlugin(onSelectionChange(schema)),
         ensureTrailingParagraphPlugin(schema),
+        automergeSyncPlugin,
       ];
-
-      // We don't want any changes to the actual automerge document/handle if diff mode is on.
-      // This is why the sync plugin is not added in this case.
-      if (!diffProps) {
-        plugins.push(automergeSyncPlugin);
-      }
 
       const editorConfig = {
         schema,
@@ -194,28 +175,6 @@ export const RichTextEditor = ({
         },
         editable: () => isEditable,
       });
-
-      if (diffProps) {
-        // Add the diff plugin and update the editor's state if diff mode is on
-        view.updateState(
-          view.state.reconfigure({
-            plugins: view.state.plugins.concat(
-              createAutomergeDiffPlugin({
-                adapter: automergeSchemaAdapter,
-                docBefore: diffProps.docBefore,
-                docAfter: diffProps.docAfter,
-                patches: diffProps.patches,
-                path: ['content'],
-                decorationClasses: {
-                  insert: diffInsert,
-                  modify: diffModify,
-                  delete: diffDelete,
-                },
-              })
-            ),
-          })
-        );
-      }
 
       setView(view);
       setSchema(schema);
