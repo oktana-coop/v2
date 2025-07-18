@@ -110,6 +110,13 @@ export const EditorToolbar = ({
           }
           onClick={handleContainerBlockSelect(blockTypes.ORDERED_LIST)}
         />
+        <IconButton
+          icon={<FormatQuoteIcon />}
+          color={
+            containerBlockType === blockTypes.BLOCKQUOTE ? 'purple' : undefined
+          }
+          onClick={handleContainerBlockSelect(blockTypes.BLOCKQUOTE)}
+        />
       </div>
       <div className="flex flex-initial gap-x-1">
         <IconButton
@@ -126,13 +133,6 @@ export const EditorToolbar = ({
           icon={<LinkIcon />}
           color={selectionIsLink ? 'purple' : undefined}
           onClick={onLinkToggle}
-        />
-        <IconButton
-          icon={<FormatQuoteIcon />}
-          color={
-            containerBlockType === blockTypes.BLOCKQUOTE ? 'purple' : undefined
-          }
-          onClick={handleContainerBlockSelect(blockTypes.BLOCKQUOTE)}
         />
         <IconButton
           icon={<FormatCodeIcon />}

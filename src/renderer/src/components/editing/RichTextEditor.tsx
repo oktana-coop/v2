@@ -51,6 +51,7 @@ const {
   findLinkAtSelection,
   ensureTrailingParagraphPlugin,
   wrapInList,
+  wrapIn,
   splitListItem,
   liftListItem,
   sinkListItem,
@@ -266,7 +267,7 @@ export const RichTextEditor = ({
           );
           break;
         case blockTypes.BLOCKQUOTE:
-          setProsemirrorBlockType(view.state.schema.nodes.blockquote)(
+          wrapIn(view.state.schema.nodes.blockquote)(
             view.state,
             view.dispatch,
             view
