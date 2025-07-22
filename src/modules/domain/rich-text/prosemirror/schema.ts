@@ -20,9 +20,11 @@ import {
   heading2 as heading2Classes,
   heading3 as heading3Classes,
   heading4 as heading4Classes,
+  noteContent as noteContentClasses,
   orderedList as orderedListClasses,
   paragraph as paragraphClasses,
 } from '../../../../renderer/src/components/editing/blocks';
+import { noteRef as noteRefClasses } from '../../../../renderer/src/components/editing/inlines';
 import {
   code as codeClasses,
   link as linkClasses,
@@ -282,6 +284,45 @@ const schema: MappedSchemaSpec = {
         return ['aside', 0];
       },
     },
+
+    note_ref: {
+      group: 'inline',
+      inline: true,
+      atom: true,
+      selectable: true,
+      parseDOM: [
+        {
+          tag: 'span.note-ref',
+        },
+      ],
+      toDOM() {
+        return ['span', { class: `note-ref ${noteRefClasses}` }, 0];
+      },
+      automerge: {
+        block: '__ext__note_ref',
+        isEmbed: true,
+      },
+    } as NodeSpec,
+
+    note_content: {
+      group: 'block',
+      content: 'block+',
+      defining: true,
+      parseDOM: [
+        {
+          tag: 'div.note-content',
+        },
+      ],
+      toDOM() {
+        return [
+          'div',
+          {
+            class: `note-content ${noteContentClasses}`,
+          },
+          0,
+        ];
+      },
+    } as NodeSpec,
   },
   marks: {
     /// A link. Has `href` and `title` attributes. `title`
