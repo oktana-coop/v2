@@ -28,6 +28,9 @@
     ],
     "directories": {
       "output": "bin"
+    },
+    "mac": {
+      "icon": "public/macos-dock-icon.png"
     }
   },
   "dependencies": {
