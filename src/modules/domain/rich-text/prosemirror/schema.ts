@@ -322,6 +322,9 @@ const schema: MappedSchemaSpec = {
           0,
         ];
       },
+      automerge: {
+        block: '__ext__note_content',
+      },
     } as NodeSpec,
   },
   marks: {
