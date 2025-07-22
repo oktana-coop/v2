@@ -289,7 +289,6 @@ const schema: MappedSchemaSpec = {
       group: 'inline',
       inline: true,
       atom: true,
-      selectable: true,
       attrs: {
         id: { default: null },
       },

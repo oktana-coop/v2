@@ -59,11 +59,14 @@ export const insertNote: Command = (state, dispatch) => {
     const ref = schema.nodes.note_ref.create();
     tr.insert(from, ref);
 
+    // Insert a space after the note_ref
+    tr.insertText(' ', from + ref.nodeSize);
+
     // Balance notes (this will add the corresponding content block)
     balanceNotes(tr);
 
-    // Move cursor after the note reference
-    tr.setSelection(TextSelection.create(tr.doc, from + ref.nodeSize));
+    // Move cursor after the space
+    tr.setSelection(TextSelection.create(tr.doc, from + ref.nodeSize + 1));
     dispatch(tr);
   }
 
