@@ -290,6 +290,9 @@ const schema: MappedSchemaSpec = {
       inline: true,
       atom: true,
       selectable: true,
+      attrs: {
+        id: { default: null },
+      },
       parseDOM: [
         {
           tag: 'span.note-ref',
@@ -302,7 +305,7 @@ const schema: MappedSchemaSpec = {
         return [
           'span',
           { class: `note-ref ${noteRefClasses}`, 'data-id': node.attrs.id },
-          String(node.attrs.id),
+          node.attrs.id ? String(node.attrs.id) : '',
         ];
       },
       automerge: {
@@ -315,6 +318,9 @@ const schema: MappedSchemaSpec = {
       group: 'block',
       content: 'block+',
       defining: true,
+      attrs: {
+        id: { default: null },
+      },
       parseDOM: [
         {
           tag: 'div.note-content',

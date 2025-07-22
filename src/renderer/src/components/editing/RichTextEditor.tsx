@@ -53,6 +53,7 @@ const {
   markdownMarkPlugins,
   insertNote,
   notesPlugin,
+  numberNotes,
 } = prosemirror;
 
 type RichTextEditorProps = {
@@ -178,6 +179,7 @@ export const RichTextEditor = ({
         },
         editable: () => isEditable,
       });
+      numberNotes(state, view.dispatch, view);
 
       setView(view);
       setSchema(schema);

@@ -1,10 +1,54 @@
 import {
   type Command,
+  type EditorState,
   TextSelection,
   type Transaction,
 } from 'prosemirror-state';
 
 import { getNotes } from './state';
+
+export const createNoteNumberingTransaction = (
+  state: EditorState
+): Transaction => {
+  const { doc } = state;
+  let tr = state.tr;
+  const { refs, contentBlocks } = getNotes(doc);
+
+  for (let i = 0; i < Math.min(refs.length, contentBlocks.length); i++) {
+    const ref = refs[i];
+    const content = contentBlocks[i];
+    const id = i + 1;
+
+    if (ref.node.attrs.id !== id) {
+      tr = tr.setNodeMarkup(ref.pos, undefined, {
+        ...ref.node.attrs,
+        id,
+      });
+    }
+
+    if (content.node.attrs.id !== id) {
+      tr = tr.setNodeMarkup(content.pos, undefined, {
+        ...content.node.attrs,
+        id,
+      });
+    }
+  }
+
+  return tr;
+};
+
+export const numberNotes: Command = (state, dispatch) => {
+  const tr = createNoteNumberingTransaction(state);
+
+  if (tr.steps.length) {
+    if (dispatch) {
+      dispatch(tr);
+    }
+    return true;
+  }
+
+  return false;
+};
 
 export const insertNote: Command = (state, dispatch) => {
   const { selection, schema } = state;
