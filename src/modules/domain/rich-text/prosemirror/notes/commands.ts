@@ -4,7 +4,7 @@ import {
   type Transaction,
 } from 'prosemirror-state';
 
-import { getNoteContentBlocks, getNoteRefs } from './state';
+import { getNotes } from './state';
 
 export const insertNote: Command = (state, dispatch) => {
   const { selection, schema } = state;
@@ -50,8 +50,7 @@ export const deleteNote = (pos: number): Command => {
 };
 
 export const balanceNotes = (tr: Transaction) => {
-  const refs = getNoteRefs(tr.doc);
-  const contentBlocks = getNoteContentBlocks(tr.doc);
+  const { refs, contentBlocks } = getNotes(tr.doc);
 
   // If we have more refs than content blocks, add missing content blocks
   if (refs.length > contentBlocks.length) {

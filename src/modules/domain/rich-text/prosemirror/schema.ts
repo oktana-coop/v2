@@ -293,10 +293,17 @@ const schema: MappedSchemaSpec = {
       parseDOM: [
         {
           tag: 'span.note-ref',
+          getAttrs: (dom) => ({
+            id: dom.getAttribute('data-id'),
+          }),
         },
       ],
-      toDOM() {
-        return ['span', { class: `note-ref ${noteRefClasses}` }, 0];
+      toDOM(node) {
+        return [
+          'span',
+          { class: `note-ref ${noteRefClasses}`, 'data-id': node.attrs.id },
+          String(node.attrs.id),
+        ];
       },
       automerge: {
         block: '__ext__note_ref',
@@ -311,13 +318,17 @@ const schema: MappedSchemaSpec = {
       parseDOM: [
         {
           tag: 'div.note-content',
+          getAttrs: (dom) => ({
+            id: dom.getAttribute('data-id'),
+          }),
         },
       ],
-      toDOM() {
+      toDOM(node) {
         return [
           'div',
           {
             class: `note-content ${noteContentClasses}`,
+            'data-id': node.attrs.id,
           },
           0,
         ];

@@ -1,21 +1,28 @@
 import { Node } from 'prosemirror-model';
 
-export const getNoteRefs = (doc: Node) => {
-  const refs: Array<{ node: Node; pos: number }> = [];
+export const getNotes = (
+  doc: Node
+): {
+  refs: Array<{ node: Node; pos: number }>;
+  contentBlocks: Array<{ node: Node; pos: number }>;
+} => {
+  const notes = {
+    refs: [] as Array<{ node: Node; pos: number }>,
+    contentBlocks: [] as Array<{ node: Node; pos: number }>,
+  };
+
   doc.descendants((node, pos) => {
     if (node.type.name === 'note_ref') {
-      refs.push({ node, pos });
+      notes.refs.push({ node, pos });
+    } else if (node.type.name === 'note_content') {
+      notes.contentBlocks.push({ node, pos });
     }
-  });
-  return refs;
-};
 
-export const getNoteContentBlocks = (doc: Node) => {
-  const contentBlocks: Array<{ node: Node; pos: number }> = [];
-  doc.descendants((node, pos) => {
-    if (node.type.name === 'note_content') {
-      contentBlocks.push({ node, pos });
-    }
+    return true;
   });
-  return contentBlocks;
+
+  return {
+    refs: notes.refs.sort((a, b) => a.pos - b.pos),
+    contentBlocks: notes.contentBlocks.sort((a, b) => a.pos - b.pos),
+  };
 };
