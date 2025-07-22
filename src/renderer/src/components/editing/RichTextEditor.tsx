@@ -51,6 +51,8 @@ const {
   sinkListItem,
   pasteMarkdownPlugin,
   markdownMarkPlugins,
+  insertNote,
+  notesPlugin,
 } = prosemirror;
 
 type RichTextEditorProps = {
@@ -124,6 +126,7 @@ export const RichTextEditor = ({
         buildInputRules(schema),
         ...markdownMarkPlugins(schema),
         pasteMarkdownPlugin(parseMarkdown(schema)),
+        notesPlugin(),
         history(),
         keymap({
           'Mod-b': toggleStrong(schema),
@@ -328,6 +331,13 @@ export const RichTextEditor = ({
     view?.focus();
   };
 
+  const handleNoteClick = () => {
+    if (view && schema) {
+      insertNote(view.state, view.dispatch);
+      view.focus();
+    }
+  };
+
   return (
     <>
       <div className="flex flex-auto overflow-auto p-4 outline-none">
@@ -353,6 +363,7 @@ export const RichTextEditor = ({
             onEmToggle={handleEmToggle}
             onLinkToggle={handleLinkToggle}
             onCodeToggle={handleCodeToggle}
+            onNoteClick={handleNoteClick}
           />
         </div>
       )}
