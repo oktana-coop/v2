@@ -3,7 +3,7 @@ import './App.css';
 import { useContext } from 'react';
 import {
   BrowserRouter,
-  HashRouter,
+  MemoryRouter,
   Navigate,
   Route,
   Routes,
@@ -21,7 +21,7 @@ import { ProjectHistory } from './pages/project-history';
 function App() {
   const { isElectron } = useContext(ElectronContext);
 
-  const Router = isElectron ? HashRouter : BrowserRouter;
+  const Router = isElectron ? MemoryRouter : BrowserRouter;
 
   return (
     <Router>

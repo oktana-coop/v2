@@ -37,12 +37,12 @@ export const notesPlugin = () =>
               // +2 to be before the content of the first paragraph of the note (which is a div itself)
               content.pos + 2,
               () => {
-                const span = document.createElement('span');
-                span.textContent = `${id}: `;
-                span.className = noteContentNumbering;
-                span.style.userSelect = 'none';
-                span.style.pointerEvents = 'none';
-                return span;
+                const link = document.createElement('a');
+                link.textContent = `${id}: `;
+                link.className = noteContentNumbering;
+                link.href = `#note-${id}-ref`;
+                link.style.textDecoration = 'none';
+                return link;
               },
               { side: -1 }
             );
