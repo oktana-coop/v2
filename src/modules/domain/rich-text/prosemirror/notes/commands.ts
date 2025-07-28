@@ -37,6 +37,29 @@ export const createNoteNumberingTransaction = (
   return tr;
 };
 
+export const ensureTrailingSpaceAfterContentBlockNumbers = (
+  tr: Transaction
+): Transaction => {
+  const { contentBlocks } = getNotes(tr.doc);
+
+  contentBlocks.forEach(({ node, pos }) => {
+    const isEmpty = node.textContent.trim() === '';
+    if (isEmpty) {
+      const firstPara = node.firstChild;
+      if (
+        firstPara &&
+        firstPara.type.name === 'paragraph' &&
+        firstPara.childCount === 0
+      ) {
+        const insertPos = pos + 2; // pos + 1 = open tag of note_content, +1 = open tag of paragraph
+        tr.insertText(' ', insertPos);
+      }
+    }
+  });
+
+  return tr;
+};
+
 export const numberNotes: Command = (state, dispatch) => {
   const tr = createNoteNumberingTransaction(state);
 

@@ -2,7 +2,11 @@ import { Plugin, PluginKey } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
 
 import { noteContentNumbering } from '../../../../../renderer/src/components/editing/inlines';
-import { createNoteNumberingTransaction, deleteNote } from './commands';
+import {
+  createNoteNumberingTransaction,
+  deleteNote,
+  ensureTrailingSpaceAfterContentBlockNumbers,
+} from './commands';
 import { getNotes } from './state';
 
 const pluginKey = new PluginKey('note-numbering');
@@ -20,24 +24,9 @@ export const notesPlugin = () =>
       const hasDocChanges = transactions.some((tr) => tr.docChanged);
       if (!hasDocChanges) return null;
 
-      let tr = createNoteNumberingTransaction(newState);
-
-      const { contentBlocks } = getNotes(newState.doc);
-
-      contentBlocks.forEach(({ node, pos }) => {
-        const isEmpty = node.textContent.trim() === '';
-        if (isEmpty) {
-          const firstPara = node.firstChild;
-          if (
-            firstPara &&
-            firstPara.type.name === 'paragraph' &&
-            firstPara.childCount === 0
-          ) {
-            const insertPos = pos + 2; // pos + 1 = open tag of note_content, +1 = open tag of paragraph
-            tr = tr.insertText(' ', insertPos);
-          }
-        }
-      });
+      const tr = ensureTrailingSpaceAfterContentBlockNumbers(
+        createNoteNumberingTransaction(newState)
+      );
 
       return tr.steps.length ? tr : null;
     },
