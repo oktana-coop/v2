@@ -75,6 +75,33 @@ export const notesPlugin = () =>
           ) {
             return deleteNote(nodePos)(view.state, view.dispatch);
           }
+
+          // Additional logic: if the last node is a text node with just a non-breaking space,
+          // and Backspace is pressed at the end, delete the note before it
+          const $parent = $pos.parent;
+          if (
+            event.key === 'Backspace' &&
+            $parent.type.name === 'paragraph' &&
+            $parent.childCount > 1 &&
+            $parent.lastChild &&
+            $parent.lastChild.type.name === 'text' &&
+            $parent.lastChild.text === '\u00A0' &&
+            $pos.pos === $pos.end()
+          ) {
+            // Find the node before the last (should be the note_ref)
+            const beforeLast = $parent.child($parent.childCount - 2);
+            if (beforeLast && beforeLast.type.name === 'note_ref') {
+              // Calculate its position robustly
+              let offset = 0;
+              for (let i = 0; i < $parent.childCount - 2; i++) {
+                offset += $parent.child(i).nodeSize;
+              }
+              const noteBeforePos = $pos.start() + offset;
+              deleteNote(noteBeforePos)(view.state, view.dispatch);
+              // Returning false to also proceed with the default behavior (deleting the trailing space)
+              return false;
+            }
+          }
         }
 
         return false;

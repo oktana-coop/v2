@@ -70,7 +70,7 @@ export const insertNote: Command = (state, dispatch) => {
     tr.insert(from, refNode);
 
     // Insert a space after the note_ref
-    tr.insertText(' ', from + refNode.nodeSize);
+    tr.insertText('\u00A0', from + refNode.nodeSize);
 
     const { contentBlocks } = getNotes(tr.doc);
 

@@ -44,6 +44,7 @@ const {
   getSelectedText,
   findLinkAtSelection,
   ensureTrailingParagraphPlugin,
+  ensureTrailingSpaceAfterAtomPlugin,
   wrapInList,
   wrapIn,
   splitListItem,
@@ -150,6 +151,7 @@ export const RichTextEditor = ({
         linkSelectionPlugin,
         selectionChangePlugin(onSelectionChange(schema)),
         ensureTrailingParagraphPlugin(schema),
+        ensureTrailingSpaceAfterAtomPlugin(),
         automergeSyncPlugin,
       ];
 
