@@ -2,7 +2,7 @@ import { Plugin, PluginKey } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
 
 import { noteContentNumbering } from '../../../../../renderer/src/components/editing/inlines';
-import { createNoteNumberingTransaction } from './commands';
+import { createNoteNumberingTransaction, deleteNote } from './commands';
 import { getNotes } from './state';
 
 const pluginKey = new PluginKey('note-numbering');
@@ -50,6 +50,34 @@ export const notesPlugin = () =>
           }
         }
         return DecorationSet.create(state.doc, decorations);
+      },
+      handleKeyDown(view, event) {
+        if (event.key === 'Delete' || event.key === 'Backspace') {
+          const { selection, doc } = view.state;
+          const { from } = selection;
+          const $pos = doc.resolve(from);
+
+          let node = null;
+          let nodePos = null;
+
+          if (event.key === 'Backspace' && $pos.nodeBefore) {
+            node = $pos.nodeBefore;
+            nodePos = from - (node ? node.nodeSize : 1);
+          } else if (event.key === 'Delete' && $pos.nodeAfter) {
+            node = $pos.nodeAfter;
+            nodePos = from;
+          }
+
+          if (
+            node &&
+            nodePos &&
+            (node.type.name === 'note_ref' || node.type.name === 'note_content')
+          ) {
+            return deleteNote(nodePos)(view.state, view.dispatch);
+          }
+        }
+
+        return false;
       },
     },
   });
