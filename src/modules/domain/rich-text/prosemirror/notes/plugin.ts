@@ -20,7 +20,25 @@ export const notesPlugin = () =>
       const hasDocChanges = transactions.some((tr) => tr.docChanged);
       if (!hasDocChanges) return null;
 
-      const tr = createNoteNumberingTransaction(newState);
+      let tr = createNoteNumberingTransaction(newState);
+
+      const { contentBlocks } = getNotes(newState.doc);
+
+      contentBlocks.forEach(({ node, pos }) => {
+        const isEmpty = node.textContent.trim() === '';
+        if (isEmpty) {
+          const firstPara = node.firstChild;
+          if (
+            firstPara &&
+            firstPara.type.name === 'paragraph' &&
+            firstPara.childCount === 0
+          ) {
+            const insertPos = pos + 2; // pos + 1 = open tag of note_content, +1 = open tag of paragraph
+            tr = tr.insertText(' ', insertPos);
+          }
+        }
+      });
+
       return tr.steps.length ? tr : null;
     },
     props: {
@@ -74,6 +92,24 @@ export const notesPlugin = () =>
             (node.type.name === 'note_ref' || node.type.name === 'note_content')
           ) {
             return deleteNote(nodePos)(view.state, view.dispatch);
+          }
+
+          for (let depth = $pos.depth; depth >= 0; depth--) {
+            const nodeAtDepth = $pos.node(depth);
+            if (nodeAtDepth.type.name === 'note_content') {
+              const noteContentPos = $pos.before(depth);
+
+              // Check if the note_content is effectively empty
+              const isEmpty =
+                nodeAtDepth.content.size === 0 ||
+                nodeAtDepth.textContent.trim() === '';
+
+              if (isEmpty) {
+                return deleteNote(noteContentPos)(view.state, view.dispatch);
+              }
+
+              break; // Don't keep walking up once we find a note_content
+            }
           }
 
           // Additional logic: if the last node is a text node with just a non-breaking space,
