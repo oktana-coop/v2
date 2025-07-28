@@ -56,7 +56,7 @@ export const notesPlugin = () =>
               content.pos + 2,
               () => {
                 const link = document.createElement('a');
-                link.textContent = `${id}: `;
+                link.textContent = `${id}:\u00A0`;
                 link.className = noteContentNumbering;
                 link.href = `#note-${id}-ref`;
                 link.style.textDecoration = 'none';
