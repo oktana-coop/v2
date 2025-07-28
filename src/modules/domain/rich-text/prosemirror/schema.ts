@@ -304,7 +304,8 @@ const schema: MappedSchemaSpec = {
       ],
       toDOM(node) {
         if (!node.attrs.id) {
-          return undefined;
+          // Return a placeholder element when no ID is present
+          return ['span', { class: `note-ref ${noteRefClasses}` }, 0];
         }
 
         return [
@@ -341,7 +342,8 @@ const schema: MappedSchemaSpec = {
       ],
       toDOM(node) {
         if (!node.attrs.id) {
-          return undefined;
+          // Return a placeholder element when no ID is present
+          return ['div', { class: `note-content ${noteContentClasses}` }, 0];
         }
 
         return [
