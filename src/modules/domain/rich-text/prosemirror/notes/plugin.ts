@@ -5,6 +5,7 @@ import { noteContentNumbering } from '../../../../../renderer/src/components/edi
 import {
   createNoteNumberingTransaction,
   deleteNote,
+  deleteNoteRef,
   ensureTrailingSpaceAfterContentBlockNumbers,
 } from './commands';
 import { getNotes } from './state';
@@ -95,6 +96,19 @@ export const notesPlugin = () =>
 
               if (isEmpty) {
                 return deleteNote(noteContentPos)(view.state, view.dispatch);
+              }
+
+              // Check if the user is deleting the first character of the note_content, in which case the content block
+              // will be deleted and the non-empty content will be merged into the previous node.
+              // In this case, we also want to delete the corresponding note_ref.
+              if (
+                $pos.parent.type.name === 'paragraph' &&
+                $pos.parentOffset === 0
+              ) {
+                const idToDelete = nodeAtDepth.attrs.id;
+                deleteNoteRef(idToDelete)(view.state, view.dispatch);
+                // Returning false to also proceed with the default behavior (deleting the content block)
+                return false;
               }
 
               break; // Don't keep walking up once we find a note_content

@@ -199,3 +199,27 @@ export const deleteNote = (pos: number): Command => {
     return false;
   };
 };
+
+export const deleteNoteRef = (id: string): Command => {
+  return (state, dispatch) => {
+    const { refs } = getNotes(state.doc);
+    const ref = refs.find((r) => r.node.attrs.id === id);
+
+    if (ref) {
+      if (dispatch) {
+        const tr = state.tr;
+
+        tr.delete(ref.pos, ref.pos + ref.node.nodeSize).delete(
+          ref.pos,
+          ref.pos + ref.node.nodeSize
+        );
+
+        dispatch(tr);
+      }
+
+      return true;
+    }
+
+    return false;
+  };
+};
