@@ -92,7 +92,8 @@ export const insertNote: Command = (state, dispatch) => {
     const refNode = schema.nodes.note_ref.create({ id: newId });
     tr.insert(from, refNode);
 
-    // Insert a space after the note_ref
+    // Insert a non-breaking space after the note_ref. This results in a better user experience
+    // as it allows the user to continue typing and avoids ProseMirror rendering separator elements.
     tr.insertText('\u00A0', from + refNode.nodeSize);
 
     const { contentBlocks } = getNotes(tr.doc);

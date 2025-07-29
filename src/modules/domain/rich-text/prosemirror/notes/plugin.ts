@@ -18,7 +18,8 @@ export const notesPlugin = () =>
     state: {
       init: () => ({}),
       apply(_, prev) {
-        return prev; // stateless
+        // This plugin is stateless, so we just return the previous state
+        return prev;
       },
     },
     appendTransaction(transactions, _, newState) {
@@ -34,30 +35,19 @@ export const notesPlugin = () =>
     props: {
       decorations(state) {
         const { contentBlocks } = getNotes(state.doc);
-        const decorations = [];
 
-        for (let i = 0; i < contentBlocks.length; i++) {
-          const content = contentBlocks[i];
-          const id = content.node.attrs.id;
-
-          if (id) {
-            const deco = Decoration.widget(
+        const backlinkDecorations = contentBlocks
+          .filter((content) => Boolean(content.node.attrs.id))
+          .map((content) => {
+            const id = content.node.attrs.id as string;
+            return createBacklinkDecoration(
+              id,
               // +2 to be before the content of the first paragraph of the note (which is a div itself)
-              content.pos + 2,
-              () => {
-                const link = document.createElement('a');
-                link.textContent = `${id}:\u00A0`;
-                link.className = noteContentNumbering;
-                link.href = `#note-${id}-ref`;
-                link.style.textDecoration = 'none';
-                return link;
-              },
-              { side: -1 }
+              content.pos + 2
             );
-            decorations.push(deco);
-          }
-        }
-        return DecorationSet.create(state.doc, decorations);
+          });
+
+        return DecorationSet.create(state.doc, backlinkDecorations);
       },
       handleKeyDown(view, event) {
         if (event.key === 'Delete' || event.key === 'Backspace') {
@@ -147,3 +137,17 @@ export const notesPlugin = () =>
       },
     },
   });
+
+const createBacklinkDecoration = (id: string, pos: number) =>
+  Decoration.widget(
+    pos,
+    () => {
+      const link = document.createElement('a');
+      link.textContent = `${id}:\u00A0`;
+      link.className = noteContentNumbering;
+      link.href = `#note-${id}-ref`;
+      link.style.textDecoration = 'none';
+      return link;
+    },
+    { side: -1 }
+  );
