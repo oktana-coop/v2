@@ -1,6 +1,36 @@
+import { type Node, type ResolvedPos } from 'prosemirror-model';
 import { EditorView } from 'prosemirror-view';
 
 import { deleteNote, deleteNoteRef } from './commands';
+
+const getNodeToDelete = ({
+  resolvedPos,
+  event,
+}: {
+  resolvedPos: ResolvedPos;
+  event: KeyboardEvent;
+}): { node: Node; pos: number } | null => {
+  if (event.key === 'Backspace' && resolvedPos.nodeBefore) {
+    return {
+      node: resolvedPos.nodeBefore,
+      pos:
+        resolvedPos.pos -
+        (resolvedPos.nodeBefore ? resolvedPos.nodeBefore.nodeSize : 1),
+    };
+  }
+
+  if (event.key === 'Delete' && resolvedPos.nodeAfter) {
+    return {
+      node: resolvedPos.nodeAfter,
+      pos: resolvedPos.pos,
+    };
+  }
+
+  return null;
+};
+
+export const isNoteRefOrContent = (node: Node): boolean =>
+  node.type.name === 'note_ref' || node.type.name === 'note_content';
 
 export const handleBackspaceOrDelete = (
   view: EditorView,
@@ -12,23 +42,10 @@ export const handleBackspaceOrDelete = (
   } = view.state;
   const $pos = doc.resolve(from);
 
-  let node = null;
-  let nodePos = null;
+  const nodeToDelete = getNodeToDelete({ resolvedPos: $pos, event });
 
-  if (event.key === 'Backspace' && $pos.nodeBefore) {
-    node = $pos.nodeBefore;
-    nodePos = from - (node ? node.nodeSize : 1);
-  } else if (event.key === 'Delete' && $pos.nodeAfter) {
-    node = $pos.nodeAfter;
-    nodePos = from;
-  }
-
-  if (
-    node &&
-    nodePos &&
-    (node.type.name === 'note_ref' || node.type.name === 'note_content')
-  ) {
-    return deleteNote(nodePos)(view.state, view.dispatch);
+  if (nodeToDelete && isNoteRefOrContent(nodeToDelete.node)) {
+    return deleteNote(nodeToDelete.pos)(view.state, view.dispatch);
   }
 
   for (let depth = $pos.depth; depth >= 0; depth--) {
