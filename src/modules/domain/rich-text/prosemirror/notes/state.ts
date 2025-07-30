@@ -1,14 +1,19 @@
 import { Node } from 'prosemirror-model';
 
+export type NodeWithPos = {
+  node: Node;
+  pos: number;
+};
+
 export const getNotes = (
   doc: Node
 ): {
-  refs: Array<{ node: Node; pos: number }>;
-  contentBlocks: Array<{ node: Node; pos: number }>;
+  refs: Array<NodeWithPos>;
+  contentBlocks: Array<NodeWithPos>;
 } => {
   const notes = {
-    refs: [] as Array<{ node: Node; pos: number }>,
-    contentBlocks: [] as Array<{ node: Node; pos: number }>,
+    refs: [] as Array<NodeWithPos>,
+    contentBlocks: [] as Array<NodeWithPos>,
   };
 
   doc.descendants((node, pos) => {

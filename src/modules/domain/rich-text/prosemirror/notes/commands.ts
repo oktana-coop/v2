@@ -1,3 +1,4 @@
+import { type Node, type Schema } from 'prosemirror-model';
 import {
   type Command,
   type EditorState,
@@ -5,7 +6,7 @@ import {
   type Transaction,
 } from 'prosemirror-state';
 
-import { getNotes } from './state';
+import { getNotes, type NodeWithPos } from './state';
 
 export const createNoteNumberingTransaction = (
   state: EditorState
@@ -73,14 +74,77 @@ export const numberNotes: Command = (state, dispatch) => {
   return false;
 };
 
+const findNoteRefInsertIndex = ({
+  refs,
+  selectionStart,
+}: {
+  refs: Array<NodeWithPos>;
+  selectionStart: number;
+}): number => {
+  const insertIndex = refs.findIndex((ref) => ref.pos >= selectionStart);
+
+  if (insertIndex !== -1) {
+    return insertIndex;
+  }
+
+  return refs.length;
+};
+
+const findNoteContentBlockInsertIndex = ({
+  contentBlocks,
+  newNoteIndex,
+  doc,
+}: {
+  contentBlocks: Array<NodeWithPos>;
+  newNoteIndex: number;
+  doc: Node;
+}): number => {
+  if (contentBlocks.length > 0) {
+    if (newNoteIndex === 0) {
+      // Insert before the first content block
+      return contentBlocks[0].pos;
+    } else {
+      // Insert after the previous content block
+      const prevContent = contentBlocks[newNoteIndex - 1];
+      return prevContent.pos + prevContent.node.nodeSize;
+    }
+  }
+
+  // default to end of the document
+  return doc.content.size;
+};
+
+const createNoteBlockWithPlaceholder =
+  (placeholderText: string) =>
+  (schema: Schema) =>
+  ({ noteId, doc }: { noteId: number; doc: Node }): Node => {
+    const contentParagraph = schema.nodes.paragraph.create(
+      {},
+      schema.text(placeholderText)
+    );
+
+    const noteContent = doc.type.schema.nodes.note_content.create(
+      {
+        id: noteId,
+      },
+      contentParagraph
+    );
+
+    return noteContent;
+  };
+
 export const insertNote: Command = (state, dispatch) => {
-  const { selection, schema, doc } = state;
-  const { from } = selection;
+  const {
+    selection: { from },
+    schema,
+    doc,
+  } = state;
   const { refs } = getNotes(doc);
 
-  // Find the index where the new ref will be inserted
-  let insertIndex = refs.findIndex((ref) => ref.pos >= from);
-  if (insertIndex === -1) insertIndex = refs.length;
+  const insertIndex = findNoteRefInsertIndex({
+    refs,
+    selectionStart: from,
+  });
 
   // The new id will be insertIndex + 1 (since notes are 1-based)
   const newId = insertIndex + 1;
@@ -97,36 +161,24 @@ export const insertNote: Command = (state, dispatch) => {
     tr.insertText('\u00A0', from + refNode.nodeSize);
 
     const { contentBlocks } = getNotes(tr.doc);
+    const contentBlockInsertPos = findNoteContentBlockInsertIndex({
+      contentBlocks,
+      newNoteIndex: insertIndex,
+      doc: tr.doc,
+    });
 
-    // Find the position to insert the content block
-    let contentInsertPos = tr.doc.content.size; // default to end
-    if (contentBlocks.length > 0) {
-      if (insertIndex === 0) {
-        // Insert before the first content block
-        contentInsertPos = contentBlocks[0].pos;
-      } else {
-        // Insert after the previous content block
-        const prevContent = contentBlocks[insertIndex - 1];
-        contentInsertPos = prevContent.pos + prevContent.node.nodeSize;
-      }
-    }
-
-    // Insert the note_content block
-    const placeholderText = tr.doc.type.schema.nodes.paragraph.create(
-      {},
-      tr.doc.type.schema.text('footnote text')
-    );
-    const noteContent = tr.doc.type.schema.nodes.note_content.create(
+    const noteContent = createNoteBlockWithPlaceholder('footnote text')(schema)(
       {
-        id: newId,
-      },
-      placeholderText
+        noteId: newId,
+        doc: tr.doc,
+      }
     );
 
-    tr.insert(contentInsertPos, noteContent);
+    tr.insert(contentBlockInsertPos, noteContent);
 
-    // Move cursor after the space
+    // Move cursor after the space that follows the note ref
     tr.setSelection(TextSelection.create(tr.doc, from + refNode.nodeSize + 1));
+
     dispatch(tr);
   }
 
