@@ -29,8 +29,23 @@ const getNodeToDelete = ({
   return null;
 };
 
-export const isNoteRefOrContent = (node: Node): boolean =>
+const isNoteRefOrContent = (node: Node): boolean =>
   node.type.name === 'note_ref' || node.type.name === 'note_content';
+
+const findNoteContentBlockAtDepth = ({
+  resolvedPos,
+  depth,
+}: {
+  resolvedPos: ResolvedPos;
+  depth: number;
+}): Node | null => {
+  const nodeAtDepth = resolvedPos.node(depth);
+  if (nodeAtDepth.type.name === 'note_content') {
+    return nodeAtDepth;
+  }
+
+  return null;
+};
 
 export const handleBackspaceOrDelete = (
   view: EditorView,
@@ -49,20 +64,25 @@ export const handleBackspaceOrDelete = (
   }
 
   for (let depth = $pos.depth; depth >= 0; depth--) {
-    const nodeAtDepth = $pos.node(depth);
-    if (nodeAtDepth.type.name === 'note_content') {
+    const noteContentBlock = findNoteContentBlockAtDepth({
+      resolvedPos: $pos,
+      depth,
+    });
+
+    if (noteContentBlock) {
       const noteContentPos = $pos.before(depth);
 
       // Check if the note_content is effectively empty
       const isEmpty =
-        nodeAtDepth.content.size === 0 || nodeAtDepth.textContent.trim() === '';
+        noteContentBlock.content.size === 0 ||
+        noteContentBlock.textContent.trim() === '';
 
       if (isEmpty) {
         return deleteNote(noteContentPos)(view.state, view.dispatch);
       }
 
       const isAtStartOfFirstBlockInNoteContent =
-        $pos.parentOffset === 0 && $pos.parent === nodeAtDepth.firstChild;
+        $pos.parentOffset === 0 && $pos.parent === noteContentBlock.firstChild;
 
       // Check if the user is deleting the first character of the note_content, in which case the content block
       // will be deleted and the non-empty content will be merged into the previous node.
@@ -71,7 +91,7 @@ export const handleBackspaceOrDelete = (
         $pos.parent.type.name === 'paragraph' &&
         isAtStartOfFirstBlockInNoteContent
       ) {
-        const idToDelete = nodeAtDepth.attrs.id;
+        const idToDelete = noteContentBlock.attrs.id;
         deleteNoteRef(idToDelete)(view.state, view.dispatch);
         // Returning false to also proceed with the default behavior (deleting the content block)
         return false;
