@@ -47,6 +47,51 @@ const findNoteContentBlockAtDepth = ({
   return null;
 };
 
+const isNodeEmpty = (node: Node): boolean =>
+  node.content.size === 0 || node.textContent.trim() === '';
+
+const isAtStartOfFirstParagraphInNoteContent = ({
+  resolvedPos,
+  noteContentBlock,
+}: {
+  resolvedPos: ResolvedPos;
+  noteContentBlock: Node;
+}): boolean => {
+  const isAtStartOfFirstBlockInNoteContent =
+    resolvedPos.parentOffset === 0 &&
+    resolvedPos.parent === noteContentBlock.firstChild;
+
+  return (
+    resolvedPos.parent.type.name === 'paragraph' &&
+    isAtStartOfFirstBlockInNoteContent
+  );
+};
+
+const selectionIsTrailingNonBreakingSpacePrecededByNoteRef = ({
+  resolvedPos,
+}: {
+  resolvedPos: ResolvedPos;
+}): boolean => {
+  const parentNode = resolvedPos.parent;
+
+  if (
+    parentNode.type.name === 'paragraph' &&
+    parentNode.childCount > 1 &&
+    parentNode.lastChild &&
+    parentNode.lastChild.type.name === 'text' &&
+    parentNode.lastChild.text === '\u00A0' &&
+    resolvedPos.pos === resolvedPos.end()
+  ) {
+    // Find the node before the last (should be the note_ref)
+    const beforeLast = parentNode.child(parentNode.childCount - 2);
+    if (beforeLast && beforeLast.type.name === 'note_ref') {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 export const handleBackspaceOrDelete = (
   view: EditorView,
   event: KeyboardEvent
@@ -72,24 +117,18 @@ export const handleBackspaceOrDelete = (
     if (noteContentBlock) {
       const noteContentPos = $pos.before(depth);
 
-      // Check if the note_content is effectively empty
-      const isEmpty =
-        noteContentBlock.content.size === 0 ||
-        noteContentBlock.textContent.trim() === '';
-
-      if (isEmpty) {
+      if (isNodeEmpty(noteContentBlock)) {
         return deleteNote(noteContentPos)(view.state, view.dispatch);
       }
-
-      const isAtStartOfFirstBlockInNoteContent =
-        $pos.parentOffset === 0 && $pos.parent === noteContentBlock.firstChild;
 
       // Check if the user is deleting the first character of the note_content, in which case the content block
       // will be deleted and the non-empty content will be merged into the previous node.
       // In this case, we also want to delete the corresponding note_ref.
       if (
-        $pos.parent.type.name === 'paragraph' &&
-        isAtStartOfFirstBlockInNoteContent
+        isAtStartOfFirstParagraphInNoteContent({
+          resolvedPos: $pos,
+          noteContentBlock,
+        })
       ) {
         const idToDelete = noteContentBlock.attrs.id;
         deleteNoteRef(idToDelete)(view.state, view.dispatch);
@@ -101,31 +140,17 @@ export const handleBackspaceOrDelete = (
     }
   }
 
-  // Additional logic: if the last node is a text node with just a non-breaking space,
-  // and Backspace is pressed at the end, delete the note before it
-  const $parent = $pos.parent;
   if (
-    event.key === 'Backspace' &&
-    $parent.type.name === 'paragraph' &&
-    $parent.childCount > 1 &&
-    $parent.lastChild &&
-    $parent.lastChild.type.name === 'text' &&
-    $parent.lastChild.text === '\u00A0' &&
-    $pos.pos === $pos.end()
+    selectionIsTrailingNonBreakingSpacePrecededByNoteRef({ resolvedPos: $pos })
   ) {
-    // Find the node before the last (should be the note_ref)
-    const beforeLast = $parent.child($parent.childCount - 2);
-    if (beforeLast && beforeLast.type.name === 'note_ref') {
-      // Calculate its position robustly
-      let offset = 0;
-      for (let i = 0; i < $parent.childCount - 2; i++) {
-        offset += $parent.child(i).nodeSize;
-      }
-      const noteBeforePos = $pos.start() + offset;
-      deleteNote(noteBeforePos)(view.state, view.dispatch);
-      // Returning false to also proceed with the default behavior (deleting the trailing space)
-      return false;
+    let offset = 0;
+    for (let i = 0; i < $pos.parent.childCount - 2; i++) {
+      offset += $pos.parent.child(i).nodeSize;
     }
+    const noteBeforePos = $pos.start() + offset;
+    deleteNote(noteBeforePos)(view.state, view.dispatch);
+    // Returning false to also proceed with the default behavior (deleting the trailing space)
+    return false;
   }
 
   return false;
