@@ -88,12 +88,16 @@ export const notesPlugin = () =>
                 return deleteNote(noteContentPos)(view.state, view.dispatch);
               }
 
+              const isAtStartOfFirstBlockInNoteContent =
+                $pos.parentOffset === 0 &&
+                $pos.parent === nodeAtDepth.firstChild;
+
               // Check if the user is deleting the first character of the note_content, in which case the content block
               // will be deleted and the non-empty content will be merged into the previous node.
               // In this case, we also want to delete the corresponding note_ref.
               if (
                 $pos.parent.type.name === 'paragraph' &&
-                $pos.parentOffset === 0
+                isAtStartOfFirstBlockInNoteContent
               ) {
                 const idToDelete = nodeAtDepth.attrs.id;
                 deleteNoteRef(idToDelete)(view.state, view.dispatch);
