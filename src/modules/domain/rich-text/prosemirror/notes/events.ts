@@ -131,9 +131,7 @@ export const handleBackspaceOrDelete = (
         })
       ) {
         const idToDelete = noteContentBlock.attrs.id;
-        deleteNoteRef(idToDelete)(view.state, view.dispatch);
-        // Returning false to also proceed with the default behavior (deleting the content block)
-        return false;
+        return deleteNoteRef(idToDelete)(view.state, view.dispatch);
       }
 
       break; // Don't keep walking up once we find a note_content
@@ -148,9 +146,7 @@ export const handleBackspaceOrDelete = (
       offset += $pos.parent.child(i).nodeSize;
     }
     const noteBeforePos = $pos.start() + offset;
-    deleteNote(noteBeforePos)(view.state, view.dispatch);
-    // Returning false to also proceed with the default behavior (deleting the trailing space)
-    return false;
+    return deleteNote(noteBeforePos)(view.state, view.dispatch);
   }
 
   return false;

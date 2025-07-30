@@ -1,17 +1,19 @@
+import { baseKeymap } from 'prosemirror-commands';
 import { Plugin, PluginKey } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
 
 import { noteContentNumbering } from '../../../../../renderer/src/components/editing/inlines';
 import {
   createNoteNumberingTransaction,
-  deleteNote,
-  deleteNoteRef,
   ensureTrailingSpaceAfterContentBlockNumbers,
 } from './commands';
 import { handleBackspaceOrDelete } from './events';
 import { getNotes } from './state';
 
 const pluginKey = new PluginKey('note-numbering');
+
+const defaultBackspace = baseKeymap.Backspace;
+const defaultDelete = baseKeymap.Delete;
 
 export const notesPlugin = () =>
   new Plugin({
@@ -52,7 +54,16 @@ export const notesPlugin = () =>
       },
       handleKeyDown(view, event) {
         if (event.key === 'Delete' || event.key === 'Backspace') {
-          return handleBackspaceOrDelete(view, event);
+          const handled = handleBackspaceOrDelete(view, event);
+
+          // If the event was handled, we also run the default command for Backspace or Delete
+          // This ensures that the default behavior (like deleting the selection) still occurs
+          // and that we follow good ProseMirror practices by returning true when doing something in the custom command
+          if (handled) {
+            const runDefault =
+              event.key === 'Backspace' ? defaultBackspace : defaultDelete;
+            return runDefault(view.state, view.dispatch);
+          }
         }
 
         return false;
