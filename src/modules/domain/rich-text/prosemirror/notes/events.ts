@@ -1,6 +1,9 @@
 import { type Node, type ResolvedPos } from 'prosemirror-model';
+import { type Command } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 
+import { deleteCharBeforeCursor } from '../deletion';
+import { composeCommands } from '../utils/compose-commands';
 import { deleteNote, deleteNoteRef } from './commands';
 
 const getNodeToDelete = ({
@@ -95,7 +98,7 @@ const selectionIsTrailingNonBreakingSpacePrecededByNoteRef = ({
 export const handleBackspaceOrDelete = (
   view: EditorView,
   event: KeyboardEvent
-): boolean | void => {
+): Command | null => {
   const {
     selection: { from },
     doc,
@@ -105,7 +108,7 @@ export const handleBackspaceOrDelete = (
   const nodeToDelete = getNodeToDelete({ resolvedPos: $pos, event });
 
   if (nodeToDelete && isNoteRefOrContent(nodeToDelete.node)) {
-    return deleteNote(nodeToDelete.pos)(view.state, view.dispatch);
+    return deleteNote(nodeToDelete.pos);
   }
 
   for (let depth = $pos.depth; depth >= 0; depth--) {
@@ -118,7 +121,7 @@ export const handleBackspaceOrDelete = (
       const noteContentPos = $pos.before(depth);
 
       if (isNodeEmpty(noteContentBlock)) {
-        return deleteNote(noteContentPos)(view.state, view.dispatch);
+        return deleteNote(noteContentPos);
       }
 
       // Check if the user is deleting the first character of the note_content, in which case the content block
@@ -131,7 +134,7 @@ export const handleBackspaceOrDelete = (
         })
       ) {
         const idToDelete = noteContentBlock.attrs.id;
-        return deleteNoteRef(idToDelete)(view.state, view.dispatch);
+        return deleteNoteRef(idToDelete);
       }
 
       break; // Don't keep walking up once we find a note_content
@@ -139,6 +142,7 @@ export const handleBackspaceOrDelete = (
   }
 
   if (
+    event.key === 'Backspace' &&
     selectionIsTrailingNonBreakingSpacePrecededByNoteRef({ resolvedPos: $pos })
   ) {
     let offset = 0;
@@ -146,8 +150,8 @@ export const handleBackspaceOrDelete = (
       offset += $pos.parent.child(i).nodeSize;
     }
     const noteBeforePos = $pos.start() + offset;
-    return deleteNote(noteBeforePos)(view.state, view.dispatch);
+    return composeCommands([deleteNote(noteBeforePos), deleteCharBeforeCursor]);
   }
 
-  return false;
+  return null;
 };
