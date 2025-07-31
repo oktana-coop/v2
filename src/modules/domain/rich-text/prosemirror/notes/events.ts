@@ -15,23 +15,60 @@ import { getNotes } from './state';
 const defaultBackspace = baseKeymap.Backspace;
 const defaultDelete = baseKeymap.Delete;
 
-const getFullySelectedNoteContentBlocksAndRefs = (state: EditorState) => {
+type NodeWithPos = { pos: number; node: Node };
+
+export const getNoteNodesFullyIncludedInSelection = (
+  state: EditorState
+): {
+  refsWithoutContent: { ref: NodeWithPos; contentBlock: NodeWithPos }[];
+  contentBlocksWithoutRef: { ref: NodeWithPos; contentBlock: NodeWithPos }[];
+} => {
   const { from, to } = state.selection;
   const { refs, contentBlocks } = getNotes(state.doc);
 
-  const fullySelectedContentBlocks = contentBlocks.filter(({ pos, node }) => {
-    const nodeStart = pos;
-    const nodeEnd = pos + node.content.size;
-    return from <= nodeStart && to >= nodeEnd;
-  });
-
-  const correspondingRefs = refs.filter((ref) =>
-    fullySelectedContentBlocks.some(
-      (block) => block.node.attrs.id === ref.node.attrs.id
-    )
+  const selectedRefMap = new Map(
+    refs
+      .filter(({ pos, node }) => from <= pos && to >= pos + node.nodeSize)
+      .map(({ pos, node }) => [String(node.attrs.id), { pos, node }])
   );
 
-  return { contentBlocks: fullySelectedContentBlocks, refs: correspondingRefs };
+  const selectedContentMap = new Map(
+    contentBlocks
+      .filter(({ pos, node }) => from <= pos && to >= pos + node.content.size)
+      .map(({ pos, node }) => [String(node.attrs.id), { pos, node }])
+  );
+
+  const allNoteIds = new Set([
+    ...refs.map(({ node }) => String(node.attrs.id)),
+    ...contentBlocks.map(({ node }) => String(node.attrs.id)),
+  ]);
+
+  const refMap = new Map(
+    refs.map(({ pos, node }) => [String(node.attrs.id), { pos, node }])
+  );
+
+  const contentMap = new Map(
+    contentBlocks.map(({ pos, node }) => [String(node.attrs.id), { pos, node }])
+  );
+
+  const refsWithoutContent = Array.from(allNoteIds)
+    .filter((id) => selectedRefMap.has(id) && !selectedContentMap.has(id))
+    .map((id) => ({
+      ref: selectedRefMap.get(id)!,
+      contentBlock: contentMap.get(id)!,
+    }));
+
+  const contentBlocksWithoutRef = Array.from(allNoteIds)
+    .filter((id) => selectedContentMap.has(id) && !selectedRefMap.has(id))
+    .map((id) => ({
+      ref: refMap.get(id)!,
+      contentBlock: selectedContentMap.get(id)!,
+    }));
+
+  return {
+    refsWithoutContent,
+    contentBlocksWithoutRef,
+  };
 };
 
 const getNodeToDelete = ({
@@ -141,12 +178,17 @@ export const handleBackspaceOrDelete = (
   // Handle potentially fully selected note content blocks getting deleted.
   // In this case, we delete the note refs as well.
   if (!view.state.selection.empty) {
-    const { contentBlocks: fullySelectedContentBlocks, refs: refsToDelete } =
-      getFullySelectedNoteContentBlocksAndRefs(view.state);
+    const { contentBlocksWithoutRef, refsWithoutContent } =
+      getNoteNodesFullyIncludedInSelection(view.state);
 
-    if (fullySelectedContentBlocks.length > 0) {
+    if (refsWithoutContent.length > 0 || contentBlocksWithoutRef.length > 0) {
       return composeCommands([
-        ...refsToDelete
+        ...refsWithoutContent
+          .map(({ ref }) => ref)
+          .sort((a, b) => b.pos - a.pos)
+          .map((ref) => deleteNote(ref.pos)),
+        ...contentBlocksWithoutRef
+          .map(({ ref }) => ref)
           .sort((a, b) => b.pos - a.pos)
           .map((ref) => deleteNoteRef(ref.node.attrs.id)),
         defaultCommand,
