@@ -1,9 +1,20 @@
 import { Command, EditorState, Transaction } from 'prosemirror-state';
+import type { ValueOf } from 'type-fest';
 
-type ComposeMode = 'lastResult' | 'anySuccess' | 'allSuccess';
+export const LAST_RESULT = 'LAST_RESULT';
+export const ANY_SUCCESS = 'ANY_SUCCESS';
+export const ALL_SUCCESS = 'ALL_SUCCESS';
+
+export const composeModes = {
+  LAST_RESULT,
+  ANY_SUCCESS,
+  ALL_SUCCESS,
+} as const;
+
+export type ComposeMode = ValueOf<typeof composeModes>;
 
 type ComposeOptions = {
-  readonly mode: ComposeMode;
+  mode: ComposeMode;
 };
 
 /**
@@ -15,6 +26,8 @@ const executeCommand = (
 ): { success: boolean; transaction?: Transaction } => {
   let capturedTransaction: Transaction | undefined = undefined;
 
+  // We just want the transaction steps, so we mock the dispatch function
+  // to capture the transaction without actually applying it.
   const mockDispatch = (tr: Transaction): void => {
     capturedTransaction = tr;
   };
@@ -33,76 +46,77 @@ const applyCommandSteps = (
   baseTr: Transaction,
   commandTr: Transaction
 ): Transaction => {
-  let result = baseTr;
+  let tr = baseTr;
 
   // Copy all transformation steps
   commandTr.steps.forEach((step) => {
-    result = result.step(step);
+    tr = tr.step(step);
   });
 
   // Update selection if it changed
   if (!commandTr.selection.eq(baseTr.selection)) {
-    result = result.setSelection(commandTr.selection);
+    tr = tr.setSelection(commandTr.selection);
   }
 
-  return result;
+  return tr;
 };
 
 /**
- * Reduces commands into a single transaction, tracking results for different success modes
+ * Reduces commands into a single transaction, also collecting results
+ * for each command execution.
  */
 const reduceCommands = (
-  commands: readonly Command[],
+  commands: Command[],
   initialState: EditorState,
   baseTr: Transaction
-): { transaction: Transaction; results: readonly boolean[] } => {
-  const results: boolean[] = [];
+): { transaction: Transaction; results: boolean[] } => {
+  const compositeTrAndResult = commands.reduce<{
+    state: EditorState;
+    transaction: Transaction;
+    results: boolean[];
+  }>(
+    (acc, command) => {
+      const result = executeCommand(command, acc.state);
 
-  const executeStep = (
-    acc: { state: EditorState; transaction: Transaction },
-    command: Command
-  ): { state: EditorState; transaction: Transaction } => {
-    const result = executeCommand(command, acc.state);
-    results.push(result.success);
+      if (result.success) {
+        const mergedTr = applyCommandSteps(
+          acc.transaction,
+          result.transaction!
+        );
+        const newState = acc.state.apply(result.transaction!);
 
-    if (result.success) {
-      const mergedTr = applyCommandSteps(acc.transaction, result.transaction!);
-      const newState = acc.state.apply(result.transaction!);
+        return {
+          state: newState,
+          transaction: mergedTr,
+          results: [...acc.results, true],
+        };
+      }
 
-      return {
-        state: newState,
-        transaction: mergedTr,
-      };
+      return { ...acc, results: [...acc.results, false] };
+    },
+    {
+      state: initialState,
+      transaction: baseTr,
+      results: [],
     }
-
-    // Command failed, continue with unchanged accumulator
-    return acc;
-  };
-
-  const finalResult = commands.reduce(executeStep, {
-    state: initialState,
-    transaction: baseTr,
-  });
+  );
 
   return {
-    transaction: finalResult.transaction,
-    results,
+    transaction: compositeTrAndResult.transaction,
+    results: compositeTrAndResult.results,
   };
 };
 
 /**
  * Determines the boolean result based on the compose mode and command results
  */
-const getComposeResult = (
-  results: readonly boolean[],
-  mode: ComposeMode
-): boolean => {
+const getComposeResult = (results: boolean[], mode: ComposeMode): boolean => {
   switch (mode) {
-    case 'lastResult':
+    case LAST_RESULT:
       return results.length > 0 ? results[results.length - 1] : true;
-    case 'anySuccess':
+    case ANY_SUCCESS:
       return results.some((result) => result);
-    case 'allSuccess':
+    case ALL_SUCCESS:
       return results.every((result) => result);
   }
 };
@@ -120,8 +134,8 @@ const getComposeResult = (
  */
 export const composeCommands =
   (
-    commands: readonly Command[],
-    options: ComposeOptions = { mode: 'anySuccess' }
+    commands: Command[],
+    options: ComposeOptions = { mode: ANY_SUCCESS }
   ): Command =>
   (state: EditorState, dispatch?: (tr: Transaction) => void): boolean => {
     if (commands.length === 0) {
@@ -136,7 +150,5 @@ export const composeCommands =
     }
 
     // Return result based on the specified mode
-    const result = getComposeResult(results, options.mode);
-
-    return result;
+    return getComposeResult(results, options.mode);
   };

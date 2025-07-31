@@ -1,4 +1,4 @@
-import { Command } from 'prosemirror-state';
+import { type Command } from 'prosemirror-state';
 
 export const deleteCharBeforeCursor: Command = (state, dispatch) => {
   const { selection } = state;

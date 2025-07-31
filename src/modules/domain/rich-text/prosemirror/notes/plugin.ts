@@ -3,7 +3,7 @@ import { Plugin, PluginKey } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
 
 import { noteContentNumbering } from '../../../../../renderer/src/components/editing/inlines';
-import { composeCommands } from '../utils/compose-commands';
+import { ANY_SUCCESS, composeCommands } from '../utils/compose-commands';
 import {
   createNoteNumberingTransaction,
   ensureTrailingSpaceAfterContentBlockNumbers,
@@ -61,7 +61,7 @@ export const notesPlugin = () =>
 
           if (customCommand) {
             return composeCommands([customCommand, defaultCommand], {
-              mode: 'anySuccess',
+              mode: ANY_SUCCESS,
             })(view.state, view.dispatch);
           }
 
