@@ -1,6 +1,6 @@
 import { baseKeymap } from 'prosemirror-commands';
 import { type Node, type ResolvedPos } from 'prosemirror-model';
-import { type Command } from 'prosemirror-state';
+import { type Command, type Selection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 
 import { deleteCharBeforeCursor } from '../deletion';
@@ -57,20 +57,23 @@ const findNoteContentBlockAtDepth = ({
 const isNodeEmpty = (node: Node): boolean =>
   node.content.size === 0 || node.textContent.trim() === '';
 
-const isAtStartOfFirstParagraphInNoteContent = ({
+const cursorIsAtStartOfFirstParagraphInNoteContent = ({
   resolvedPos,
   noteContentBlock,
+  selection,
 }: {
   resolvedPos: ResolvedPos;
   noteContentBlock: Node;
+  selection: Selection;
 }): boolean => {
-  const isAtStartOfFirstBlockInNoteContent =
+  const cursorIsAtStartOfFirstBlockInNoteContent =
+    selection.empty &&
     resolvedPos.parentOffset === 0 &&
     resolvedPos.parent === noteContentBlock.firstChild;
 
   return (
     resolvedPos.parent.type.name === 'paragraph' &&
-    isAtStartOfFirstBlockInNoteContent
+    cursorIsAtStartOfFirstBlockInNoteContent
   );
 };
 
@@ -135,9 +138,10 @@ export const handleBackspaceOrDelete = (
       // will be deleted and the non-empty content will be merged into the previous node.
       // In this case, we also want to delete the corresponding note_ref.
       if (
-        isAtStartOfFirstParagraphInNoteContent({
+        cursorIsAtStartOfFirstParagraphInNoteContent({
           resolvedPos: $pos,
           noteContentBlock,
+          selection: view.state.selection,
         })
       ) {
         const idToDelete = noteContentBlock.attrs.id;
