@@ -1,9 +1,7 @@
-import { baseKeymap } from 'prosemirror-commands';
 import { Plugin, PluginKey } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
 
 import { noteContentNumbering } from '../../../../../renderer/src/components/editing/inlines';
-import { ANY_SUCCESS, composeCommands } from '../utils/compose-commands';
 import {
   createNoteNumberingTransaction,
   ensureTrailingSpaceAfterContentBlockNumbers,
@@ -12,9 +10,6 @@ import { handleBackspaceOrDelete } from './events';
 import { getNotes } from './state';
 
 const pluginKey = new PluginKey('note-numbering');
-
-const defaultBackspace = baseKeymap.Backspace;
-const defaultDelete = baseKeymap.Delete;
 
 export const notesPlugin = () =>
   new Plugin({
@@ -55,17 +50,10 @@ export const notesPlugin = () =>
       },
       handleKeyDown(view, event) {
         if (event.key === 'Delete' || event.key === 'Backspace') {
-          const customCommand = handleBackspaceOrDelete(view, event);
-          const defaultCommand =
-            event.key === 'Backspace' ? defaultBackspace : defaultDelete;
-
-          if (customCommand) {
-            return composeCommands([customCommand, defaultCommand], {
-              mode: ANY_SUCCESS,
-            })(view.state, view.dispatch);
-          }
-
-          return defaultCommand(view.state, view.dispatch);
+          return handleBackspaceOrDelete(view, event)(
+            view.state,
+            view.dispatch
+          );
         }
 
         return false;

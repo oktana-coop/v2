@@ -1,3 +1,4 @@
+import { baseKeymap } from 'prosemirror-commands';
 import { type Node, type ResolvedPos } from 'prosemirror-model';
 import { type Command } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
@@ -5,6 +6,9 @@ import { EditorView } from 'prosemirror-view';
 import { deleteCharBeforeCursor } from '../deletion';
 import { composeCommands } from '../utils/compose-commands';
 import { deleteNote, deleteNoteRef } from './commands';
+
+const defaultBackspace = baseKeymap.Backspace;
+const defaultDelete = baseKeymap.Delete;
 
 const getNodeToDelete = ({
   resolvedPos,
@@ -98,7 +102,10 @@ const selectionIsTrailingNonBreakingSpacePrecededByNoteRef = ({
 export const handleBackspaceOrDelete = (
   view: EditorView,
   event: KeyboardEvent
-): Command | null => {
+): Command => {
+  const defaultCommand =
+    event.key === 'Backspace' ? defaultBackspace : defaultDelete;
+
   const {
     selection: { from },
     doc,
@@ -134,7 +141,7 @@ export const handleBackspaceOrDelete = (
         })
       ) {
         const idToDelete = noteContentBlock.attrs.id;
-        return deleteNoteRef(idToDelete);
+        return composeCommands([deleteNoteRef(idToDelete), defaultCommand]);
       }
 
       break; // Don't keep walking up once we find a note_content
@@ -153,5 +160,5 @@ export const handleBackspaceOrDelete = (
     return composeCommands([deleteNote(noteBeforePos), deleteCharBeforeCursor]);
   }
 
-  return null;
+  return defaultCommand;
 };
