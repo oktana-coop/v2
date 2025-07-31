@@ -1,14 +1,38 @@
 import { baseKeymap } from 'prosemirror-commands';
 import { type Node, type ResolvedPos } from 'prosemirror-model';
-import { type Command, type Selection } from 'prosemirror-state';
+import {
+  type Command,
+  type EditorState,
+  type Selection,
+} from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 
 import { deleteCharBeforeCursor } from '../deletion';
 import { composeCommands } from '../utils/compose-commands';
 import { deleteNote, deleteNoteRef } from './commands';
+import { getNotes } from './state';
 
 const defaultBackspace = baseKeymap.Backspace;
 const defaultDelete = baseKeymap.Delete;
+
+const getFullySelectedNoteContentBlocksAndRefs = (state: EditorState) => {
+  const { from, to } = state.selection;
+  const { refs, contentBlocks } = getNotes(state.doc);
+
+  const fullySelectedContentBlocks = contentBlocks.filter(({ pos, node }) => {
+    const nodeStart = pos;
+    const nodeEnd = pos + node.content.size;
+    return from <= nodeStart && to >= nodeEnd;
+  });
+
+  const correspondingRefs = refs.filter((ref) =>
+    fullySelectedContentBlocks.some(
+      (block) => block.node.attrs.id === ref.node.attrs.id
+    )
+  );
+
+  return { contentBlocks: fullySelectedContentBlocks, refs: correspondingRefs };
+};
 
 const getNodeToDelete = ({
   resolvedPos,
@@ -113,6 +137,24 @@ export const handleBackspaceOrDelete = (
     selection: { from },
     doc,
   } = view.state;
+
+  // Handle potentially fully selected note content blocks getting deleted.
+  // In this case, we delete the note refs as well.
+  if (!view.state.selection.empty) {
+    const { contentBlocks: fullySelectedContentBlocks, refs: refsToDelete } =
+      getFullySelectedNoteContentBlocksAndRefs(view.state);
+
+    if (fullySelectedContentBlocks.length > 0) {
+      return composeCommands([
+        ...refsToDelete
+          .sort((a, b) => b.pos - a.pos)
+          .map((ref) => deleteNoteRef(ref.node.attrs.id)),
+        defaultCommand,
+      ]);
+    }
+  }
+
+  // Then, we handle the case where the user is deleting a single note ref or content block.
   const $pos = doc.resolve(from);
 
   const nodeToDelete = getNodeToDelete({ resolvedPos: $pos, event });
