@@ -175,8 +175,9 @@ export const handleBackspaceOrDelete = (
     doc,
   } = view.state;
 
-  // Handle potentially fully selected note content blocks getting deleted.
-  // In this case, we delete the note refs as well.
+  // Handle potentially fully selected note content blocks or refs getting deleted,
+  // with their counterparts not included in the selection.
+  // In this case, we also want to delete the corresponding note_ref or content block.
   if (!view.state.selection.empty) {
     const { contentBlocksWithoutRef, refsWithoutContent } =
       getNoteNodesFullyIncludedInSelection(view.state);
