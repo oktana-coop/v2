@@ -1,4 +1,4 @@
-import { init } from '@oktana-coop/automerge-prosemirror';
+import { init } from '@automerge/prosemirror';
 import { clsx } from 'clsx';
 import {
   baseKeymap,
