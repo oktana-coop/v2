@@ -1,9 +1,9 @@
-import { next as Automerge } from '@automerge/automerge/slim';
+import * as Automerge from '@automerge/automerge/slim';
 import {
   MappedNodeSpec,
   MappedSchemaSpec,
   SchemaAdapter,
-} from '@oktana-coop/automerge-prosemirror';
+} from '@automerge/prosemirror';
 import {
   DOMOutputSpec,
   Mark,
