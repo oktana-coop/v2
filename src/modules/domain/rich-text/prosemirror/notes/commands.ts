@@ -18,7 +18,7 @@ export const createNoteNumberingTransaction = (
   for (let i = 0; i < Math.min(refs.length, contentBlocks.length); i++) {
     const ref = refs[i];
     const content = contentBlocks[i];
-    const id = i + 1;
+    const id = String(i + 1);
 
     if (ref.node.attrs.id !== id) {
       tr = tr.setNodeMarkup(ref.pos, undefined, {
@@ -117,7 +117,7 @@ const findNoteContentBlockInsertIndex = ({
 const createNoteBlockWithPlaceholder =
   (placeholderText: string) =>
   (schema: Schema) =>
-  ({ noteId, doc }: { noteId: number; doc: Node }): Node => {
+  ({ noteId, doc }: { noteId: string; doc: Node }): Node => {
     const contentParagraph = schema.nodes.paragraph.create(
       {},
       schema.text(placeholderText)
@@ -147,7 +147,7 @@ export const insertNote: Command = (state, dispatch) => {
   });
 
   // The new id will be insertIndex + 1 (since notes are 1-based)
-  const newId = insertIndex + 1;
+  const newId = String(insertIndex + 1);
 
   if (dispatch) {
     const tr = state.tr;

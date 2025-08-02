@@ -31,6 +31,13 @@ import {
 } from '../../../../renderer/src/components/editing/marks';
 import { getLinkAttrsFromDomElement, type LinkAttrs } from '../models/link';
 
+export type BlockMarker = {
+  type: Automerge.RawString;
+  parents: Automerge.RawString[];
+  attrs: { [key: string]: Automerge.MaterializeValue };
+  isEmbed?: boolean;
+};
+
 // basics
 const blockquoteDOM: DOMOutputSpec = [
   'blockquote',
@@ -297,7 +304,7 @@ const schema: MappedSchemaSpec = {
         {
           tag: 'a.note-ref',
           getAttrs: (dom) => ({
-            id: dom.getAttribute('data-id'),
+            id: dom.getAttribute('data-id') ?? null,
             href: dom.getAttribute('href') || '',
           }),
         },
@@ -322,6 +329,14 @@ const schema: MappedSchemaSpec = {
       automerge: {
         block: '__ext__note_ref',
         isEmbed: true,
+        attrParsers: {
+          fromAutomerge: (block: BlockMarker) => ({
+            id: block.attrs.id ? String(block.attrs.id) : null,
+          }),
+          fromProsemirror: (node: Node) => ({
+            id: node.attrs.id ? String(node.attrs.id) : null,
+          }),
+        },
       },
     } as NodeSpec,
 
@@ -336,7 +351,7 @@ const schema: MappedSchemaSpec = {
         {
           tag: 'div.note-content',
           getAttrs: (dom) => ({
-            id: dom.getAttribute('data-id'),
+            id: dom.getAttribute('data-id') ?? null,
           }),
         },
       ],
@@ -358,6 +373,14 @@ const schema: MappedSchemaSpec = {
       },
       automerge: {
         block: '__ext__note_content',
+        attrParsers: {
+          fromAutomerge: (block: BlockMarker) => ({
+            id: block.attrs.id ? String(block.attrs.id) : null,
+          }),
+          fromProsemirror: (node: Node) => ({
+            id: node.attrs.id ? String(node.attrs.id) : null,
+          }),
+        },
       },
     } as NodeSpec,
   },
