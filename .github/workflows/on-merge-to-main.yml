@@ -1,0 +1,22 @@
+name: On merge to main
+on:
+  push:
+    branches: ['versioning']
+concurrency:
+  group: new-version-deployment
+jobs:
+  dry-versioning:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+      - name: Bump version
+        uses: anothrNick/github-tag-action@1.73.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_PREFIX: v
+          PRERELEASE: true
+  
