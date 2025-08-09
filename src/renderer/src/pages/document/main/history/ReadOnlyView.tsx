@@ -15,7 +15,8 @@ import {
   diffModify,
 } from '../../../../components/editing/marks';
 
-const { automergeSchemaAdapter, diffPlugin } = prosemirror;
+const { automergeSchemaAdapter, diffPlugin, notesPlugin, numberNotes } =
+  prosemirror;
 
 export type DiffViewProps = {
   docBefore: VersionedDocument;
@@ -102,9 +103,10 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
       const state = EditorState.create({
         schema,
         doc: pmDoc,
-        plugins: [diffPlugin({ decorations })],
+        plugins: [diffPlugin({ decorations }), notesPlugin()],
       });
 
+      numberNotes(state, viewRef.current.dispatch, viewRef.current);
       viewRef.current.updateState(state);
     };
 
@@ -135,8 +137,10 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
       const state = EditorState.create({
         schema,
         doc: pmDoc,
+        plugins: [notesPlugin()],
       });
 
+      numberNotes(state, viewRef.current.dispatch, viewRef.current);
       viewRef.current.updateState(state);
     };
 
