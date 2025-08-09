@@ -3,7 +3,7 @@ on:
   push:
     branches: ['versioning']
 concurrency:
-  group: new-version-deployment
+  group: deploying-new-version
 jobs:
   versioning:
     runs-on: ubuntu-22.04
