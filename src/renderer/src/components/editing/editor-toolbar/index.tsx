@@ -20,6 +20,7 @@ import {
   LinkIcon,
   OrderedListIcon,
 } from '../../icons';
+import { NoteIcon } from '../../icons/Note';
 import { BlockSelect } from './BlockSelect';
 
 const blockOptions = [
@@ -67,6 +68,7 @@ export const EditorToolbar = ({
   onEmToggle,
   onLinkToggle,
   onCodeToggle,
+  onNoteClick,
 }: {
   leafBlockType: LeafBlockType;
   containerBlockType: ContainerBlockType | null;
@@ -79,6 +81,7 @@ export const EditorToolbar = ({
   onEmToggle: () => void;
   onLinkToggle: () => void;
   onCodeToggle: () => void;
+  onNoteClick: () => void;
 }) => {
   const handleContainerBlockSelect = (type: ContainerBlockType) => () => {
     onBlockSelect(type);
@@ -142,6 +145,7 @@ export const EditorToolbar = ({
       </div>
       <div className="flex flex-initial gap-x-1">
         <IconButton icon={<ImageIcon />} />
+        <IconButton icon={<NoteIcon />} onClick={onNoteClick} />
       </div>
     </div>
   );

@@ -20,14 +20,23 @@ import {
   heading2 as heading2Classes,
   heading3 as heading3Classes,
   heading4 as heading4Classes,
+  noteContent as noteContentClasses,
   orderedList as orderedListClasses,
   paragraph as paragraphClasses,
 } from '../../../../renderer/src/components/editing/blocks';
+import { noteRef as noteRefClasses } from '../../../../renderer/src/components/editing/inlines';
 import {
   code as codeClasses,
   link as linkClasses,
 } from '../../../../renderer/src/components/editing/marks';
 import { getLinkAttrsFromDomElement, type LinkAttrs } from '../models/link';
+
+export type BlockMarker = {
+  type: Automerge.RawString;
+  parents: Automerge.RawString[];
+  attrs: { [key: string]: Automerge.MaterializeValue };
+  isEmbed?: boolean;
+};
 
 // basics
 const blockquoteDOM: DOMOutputSpec = [
@@ -282,6 +291,98 @@ const schema: MappedSchemaSpec = {
         return ['aside', 0];
       },
     },
+
+    note_ref: {
+      group: 'inline',
+      inline: true,
+      atom: true,
+      attrs: {
+        id: { default: null },
+        href: { default: null },
+      },
+      parseDOM: [
+        {
+          tag: 'a.note-ref',
+          getAttrs: (dom) => ({
+            id: dom.getAttribute('data-id') ?? null,
+            href: dom.getAttribute('href') || '',
+          }),
+        },
+      ],
+      toDOM(node) {
+        if (!node.attrs.id) {
+          // Return a placeholder element when no ID is present
+          return ['span', { class: `note-ref ${noteRefClasses}` }, 0];
+        }
+
+        return [
+          'a',
+          {
+            class: `note-ref ${noteRefClasses}`,
+            id: `note-${node.attrs.id}-ref`,
+            'data-id': node.attrs.id,
+            href: `#note-${node.attrs.id}`,
+          },
+          String(node.attrs.id),
+        ];
+      },
+      automerge: {
+        block: '__ext__note_ref',
+        isEmbed: true,
+        attrParsers: {
+          fromAutomerge: (block: BlockMarker) => ({
+            id: block.attrs.id ? String(block.attrs.id) : null,
+          }),
+          fromProsemirror: (node: Node) => ({
+            id: node.attrs.id ? String(node.attrs.id) : null,
+          }),
+        },
+      },
+    } as NodeSpec,
+
+    note_content: {
+      group: 'block',
+      content: 'block+',
+      defining: true,
+      attrs: {
+        id: { default: null },
+      },
+      parseDOM: [
+        {
+          tag: 'div.note-content',
+          getAttrs: (dom) => ({
+            id: dom.getAttribute('data-id') ?? null,
+          }),
+        },
+      ],
+      toDOM(node) {
+        if (!node.attrs.id) {
+          // Return a placeholder element when no ID is present
+          return ['div', { class: `note-content ${noteContentClasses}` }, 0];
+        }
+
+        return [
+          'div',
+          {
+            class: `note-content ${noteContentClasses}`,
+            'data-id': node.attrs.id,
+            id: `note-${node.attrs.id}`,
+          },
+          0,
+        ];
+      },
+      automerge: {
+        block: '__ext__note_content',
+        attrParsers: {
+          fromAutomerge: (block: BlockMarker) => ({
+            id: block.attrs.id ? String(block.attrs.id) : null,
+          }),
+          fromProsemirror: (node: Node) => ({
+            id: node.attrs.id ? String(node.attrs.id) : null,
+          }),
+        },
+      },
+    } as NodeSpec,
   },
   marks: {
     /// A link. Has `href` and `title` attributes. `title`

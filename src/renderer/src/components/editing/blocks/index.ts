@@ -17,3 +17,5 @@ export const blockquote =
 export const bulletList = 'list-disc pl-6 mb-4';
 
 export const orderedList = 'list-decimal pl-6 mb-4';
+
+export const noteContent = 'block text-sm mb-4';

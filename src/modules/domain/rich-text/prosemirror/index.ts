@@ -6,3 +6,4 @@ export * from './blocks';
 export * from './diff';
 export * from './json';
 export * from './markdown';
+export * from './notes';
