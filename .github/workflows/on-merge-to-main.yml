@@ -5,7 +5,7 @@ on:
 concurrency:
   group: new-version-deployment
 jobs:
-  dry-versioning:
+  versioning:
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -18,5 +18,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_PREFIX: v
-          PRERELEASE: true
-  
