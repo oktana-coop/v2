@@ -29,19 +29,26 @@ export const DocumentEditor = () => {
   }
 
   return (
-    <div className="relative flex flex-auto flex-col items-stretch overflow-hidden">
-      <ActionsBar
-        isSidebarOpen={isSidebarOpen}
-        onSidebarToggle={toggleSidebar}
-        onEditorToolbarToggle={handleEditorToolbarToggle}
-        canCommit={canCommit}
-        onCheckIconClick={onOpenCommitDialog}
-      />
-      <RichTextEditor
-        docHandle={versionedDocumentHandle}
-        onSave={onOpenCommitDialog}
-        isToolbarOpen={isEditorToolbarOpen}
-      />
+    <div className="relative flex flex-auto flex-col items-center overflow-hidden">
+      <div className="w-full">
+        <ActionsBar
+          isSidebarOpen={isSidebarOpen}
+          onSidebarToggle={toggleSidebar}
+          onEditorToolbarToggle={handleEditorToolbarToggle}
+          canCommit={canCommit}
+          onCheckIconClick={onOpenCommitDialog}
+        />
+      </div>
+
+      <div className="flex w-full flex-auto flex-col items-center overflow-auto">
+        <div className="flex w-full max-w-6xl flex-col">
+          <RichTextEditor
+            docHandle={versionedDocumentHandle}
+            onSave={onOpenCommitDialog}
+            isToolbarOpen={isEditorToolbarOpen}
+          />
+        </div>
+      </div>
     </div>
   );
 };
