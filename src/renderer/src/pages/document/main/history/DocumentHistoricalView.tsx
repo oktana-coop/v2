@@ -217,34 +217,48 @@ export const DocumentHistoricalView = () => {
   }
 
   return (
-    <div className="flex flex-auto flex-col items-stretch overflow-auto outline-none">
-      <ActionsBar
-        isSidebarOpen={isSidebarOpen}
-        onSidebarToggle={toggleSidebar}
-        // TODO: Implement revert functionality
-        onRevertIconClick={() => {}}
-        title={viewTitle}
-        canShowDiff={
-          !selectedCommitIndex || !isInitialChange(selectedCommitIndex, commits)
-        }
-        showDiff={showDiffInHistoryView}
-        onSetShowDiffChecked={handleSetShowDiffInHistoryView}
-        diffWith={getDecodedDiffParam()}
-        history={
-          selectedCommitIndex ? commits.slice(selectedCommitIndex + 1) : commits
-        }
-        onDiffCommitSelect={handleDiffCommitSelect}
-        canCommit={canCommit}
-        lastChangeIsCommitAndSelected={Boolean(
-          selectedCommitIndex === 0 && isCommit(commits[selectedCommitIndex])
-        )}
-        uncommittedChangesSelected={Boolean(
-          selectedCommitIndex === 0 && !isCommit(commits[selectedCommitIndex])
-        )}
-        onCommitIconClick={onOpenCommitDialog}
-        onEditIconClick={handleEditClick}
-      />
-      {diffProps ? <ReadOnlyView {...diffProps} /> : <ReadOnlyView doc={doc} />}
+    <div className="flex flex-auto flex-col items-center">
+      <div className="w-full">
+        <ActionsBar
+          isSidebarOpen={isSidebarOpen}
+          onSidebarToggle={toggleSidebar}
+          // TODO: Implement revert functionality
+          onRevertIconClick={() => {}}
+          title={viewTitle}
+          canShowDiff={
+            !selectedCommitIndex ||
+            !isInitialChange(selectedCommitIndex, commits)
+          }
+          showDiff={showDiffInHistoryView}
+          onSetShowDiffChecked={handleSetShowDiffInHistoryView}
+          diffWith={getDecodedDiffParam()}
+          history={
+            selectedCommitIndex
+              ? commits.slice(selectedCommitIndex + 1)
+              : commits
+          }
+          onDiffCommitSelect={handleDiffCommitSelect}
+          canCommit={canCommit}
+          lastChangeIsCommitAndSelected={Boolean(
+            selectedCommitIndex === 0 && isCommit(commits[selectedCommitIndex])
+          )}
+          uncommittedChangesSelected={Boolean(
+            selectedCommitIndex === 0 && !isCommit(commits[selectedCommitIndex])
+          )}
+          onCommitIconClick={onOpenCommitDialog}
+          onEditIconClick={handleEditClick}
+        />
+      </div>
+
+      <div className="flex w-full flex-auto flex-col items-center overflow-auto">
+        <div className="flex w-full max-w-6xl flex-col">
+          {diffProps ? (
+            <ReadOnlyView {...diffProps} />
+          ) : (
+            <ReadOnlyView doc={doc} />
+          )}
+        </div>
+      </div>
     </div>
   );
 };
