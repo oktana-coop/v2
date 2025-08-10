@@ -89,3 +89,24 @@ To extract and inspect the `asar` file contents (example for Linux build), in a 
 ```sh
 pnpx @electron/asar extract bin/linux-unpacked/resources/app.asar test
 ```
+
+## Versioning 
+
+`v2` leverages [Semantic Versioning](https://semver.org/) as part of its Continuous Integration stategy. 
+
+Semantic version, in a nutshell, is the `vMAJOR.MINOR.PATCH` (f.e. `v0.1.1`) found in most applications and websites nowadays, where 
+
+* MAJOR version when you make incompatible API changes
+* MINOR version when you add functionality in a backward compatible manner
+* PATCH version when you make backward compatible bug fixes
+
+Additionally, pre-release tags indicate alpha or beta software versions (as `v0.2.0-alpha` or `v5.9-beta.3`.)
+
+### Versioning in CI/CD Workflows
+
+When a pull request is merged into `main`, a new semantic tag is automatically created and pushed to the repository.
+By default, this is a **patch** update from the previous version (`v0.1.1` → `v0.1.2`).
+
+You can override this by including one of the following in the commit message:
+`#major`, `#minor`, or `#patch`.
+For details, see [bumping in github-tag-action](https://github.com/anothrNick/github-tag-action?tab=readme-ov-file#bumping).
