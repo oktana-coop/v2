@@ -251,7 +251,7 @@ export const DocumentHistoricalView = () => {
       </div>
 
       <div className="flex w-full flex-auto flex-col items-center overflow-auto">
-        <div className="flex w-full max-w-6xl flex-col">
+        <div className="flex w-full max-w-3xl flex-col">
           {diffProps ? (
             <ReadOnlyView {...diffProps} />
           ) : (
