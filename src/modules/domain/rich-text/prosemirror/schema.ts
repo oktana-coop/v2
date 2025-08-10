@@ -32,8 +32,8 @@ import {
 import { getLinkAttrsFromDomElement, type LinkAttrs } from '../models/link';
 
 export type BlockMarker = {
-  type: Automerge.RawString;
-  parents: Automerge.RawString[];
+  type: Automerge.ImmutableString;
+  parents: Automerge.ImmutableString[];
   attrs: { [key: string]: Automerge.MaterializeValue };
   isEmbed?: boolean;
 };
