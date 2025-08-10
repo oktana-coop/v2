@@ -5,6 +5,7 @@ import {
 import { CommitHistoryIcon } from '../../../../components/icons';
 import { SidebarHeading } from '../../../../components/sidebar/SidebarHeading';
 import { ChangeLog } from './ChangeLog';
+import { EmptyView } from './EmptyView';
 
 export type DocumentHistoryPanelProps = {
   commits: (Commit | UncommitedChange)[];
@@ -24,12 +25,16 @@ export const DocumentHistory = ({
           <SidebarHeading icon={CommitHistoryIcon} text="Document History" />
         </div>
       </div>
-      <div className="overflow-auto">
-        <ChangeLog
-          changes={commits}
-          onClick={onCommitClick}
-          selectedCommit={selectedCommit}
-        />
+      <div className="flex h-full flex-col items-stretch overflow-auto">
+        {commits.length > 0 ? (
+          <ChangeLog
+            changes={commits}
+            onClick={onCommitClick}
+            selectedCommit={selectedCommit}
+          />
+        ) : (
+          <EmptyView />
+        )}
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ import {
   useOpenDocument,
 } from '../../../../../hooks/single-document-project';
 import { DocumentList } from '../DocumentList';
+import { EmptyView } from './EmptyView';
 
 export const RecentProjects = ({
   onCreateDocument,
@@ -54,7 +55,12 @@ export const RecentProjects = ({
           </div>
           <DocumentList items={items} onSelectItem={selectDocument} />
         </div>
-      ) : null}
+      ) : (
+        <EmptyView
+          onCreateDocumentButtonClick={onCreateDocument}
+          onOpenDocumentButtonClick={handleOpenDocument}
+        />
+      )}
     </div>
   );
 };
