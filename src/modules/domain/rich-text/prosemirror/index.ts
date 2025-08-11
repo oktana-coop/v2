@@ -7,3 +7,4 @@ export * from './diff';
 export * from './json';
 export * from './markdown';
 export * from './notes';
+export * from './links';

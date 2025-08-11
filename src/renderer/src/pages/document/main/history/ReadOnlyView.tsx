@@ -9,14 +9,20 @@ import {
   type VersionedDocument,
 } from '../../../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/react/context';
+import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform';
 import {
   diffDelete,
   diffInsert,
   diffModify,
 } from '../../../../components/editing/marks';
 
-const { automergeSchemaAdapter, diffPlugin, notesPlugin, numberNotes } =
-  prosemirror;
+const {
+  automergeSchemaAdapter,
+  diffPlugin,
+  notesPlugin,
+  numberNotes,
+  openExternalLinkPlugin,
+} = prosemirror;
 
 export type DiffViewProps = {
   docBefore: VersionedDocument;
@@ -45,6 +51,7 @@ const isSingleDocViewProps = (
 type ReadOnlyViewProps = DiffViewProps | SingleDocViewProps;
 
 export const ReadOnlyView = (props: ReadOnlyViewProps) => {
+  const { openExternalLink } = useContext(ElectronContext);
   const editorRoot = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const {
@@ -103,7 +110,11 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
       const state = EditorState.create({
         schema,
         doc: pmDoc,
-        plugins: [diffPlugin({ decorations }), notesPlugin()],
+        plugins: [
+          openExternalLinkPlugin(openExternalLink),
+          diffPlugin({ decorations }),
+          notesPlugin(),
+        ],
       });
 
       numberNotes(state, viewRef.current.dispatch, viewRef.current);
@@ -137,7 +148,7 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
       const state = EditorState.create({
         schema,
         doc: pmDoc,
-        plugins: [notesPlugin()],
+        plugins: [openExternalLinkPlugin(openExternalLink), notesPlugin()],
       });
 
       numberNotes(state, viewRef.current.dispatch, viewRef.current);
