@@ -16,7 +16,6 @@ import {
   Project,
 } from './pages/document';
 import { Options } from './pages/options/Options';
-import { ProjectHistory } from './pages/project-history';
 
 function App() {
   const { isElectron } = useContext(ElectronContext);
@@ -36,7 +35,6 @@ function App() {
             />
           </Route>
         </Route>
-        <Route path="/history" element={<ProjectHistory />} />
         <Route path="/options" element={<Options />} />
       </Routes>
     </Router>

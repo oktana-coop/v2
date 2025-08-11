@@ -31,10 +31,6 @@ export const Default: Story = {
           element: <div />,
         },
         {
-          path: '/history',
-          element: <div />,
-        },
-        {
           path: '/options',
           element: <div />,
         },

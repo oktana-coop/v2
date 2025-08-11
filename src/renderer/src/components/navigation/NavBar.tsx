@@ -2,7 +2,7 @@ import { clsx } from 'clsx';
 import { NavLink } from 'react-router';
 
 import { Logo } from '../brand/Logo';
-import { BranchIcon, OptionsIcon, PenIcon } from '../icons';
+import { OptionsIcon, PenIcon } from '../icons';
 import { IconProps } from '../icons/types';
 
 const ICON_SIZE = 32;
@@ -20,12 +20,6 @@ const navigation: NavItem[] = [
     href: '/projects',
     icon: PenIcon,
     current: true,
-  },
-  {
-    name: 'History',
-    href: '/history',
-    icon: BranchIcon,
-    current: false,
   },
   {
     name: 'Options',
