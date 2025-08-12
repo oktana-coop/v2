@@ -99,9 +99,14 @@ export type CurrentDocumentContextType = {
   versionedDocumentHistory: ChangeWithUrlInfo[];
   canCommit: boolean;
   onCommit: (message: string) => Promise<void>;
+  onRestoreCommit: (args: { message: string; commit: Commit }) => Promise<void>;
   isCommitDialogOpen: boolean;
+  commitToRestore: Commit | null;
+  isRestoreCommitDialogOpen: boolean;
   onOpenCommitDialog: () => void;
   onCloseCommitDialog: () => void;
+  onOpenRestoreCommitDialog: (commit: Commit) => void;
+  onCloseRestoreCommitDialog: () => void;
   selectedCommitIndex: number | null;
   onSelectCommit: (heads: UrlHeads) => void;
   getDocumentHandleAtCommit: (
@@ -123,9 +128,14 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     versionedDocumentHistory: [],
     canCommit: false,
     onCommit: async () => {},
+    onRestoreCommit: async () => {},
     isCommitDialogOpen: false,
+    isRestoreCommitDialogOpen: false,
+    commitToRestore: null,
     onOpenCommitDialog: () => {},
     onCloseCommitDialog: () => {},
+    onOpenRestoreCommitDialog: () => {},
+    onCloseRestoreCommitDialog: () => {},
     selectedCommitIndex: null,
     onSelectCommit: () => {},
     // @ts-expect-error will get overriden below
@@ -155,6 +165,9 @@ export const CurrentDocumentProvider = ({
   const [lastCommit, setLastCommit] = useState<Commit | null>(null);
   const [canCommit, setCanCommit] = useState(false);
   const [isCommitDialogOpen, setIsCommitDialogOpen] = useState<boolean>(false);
+  const [isRestoreCommitDialogOpen, setIsRestoreCommitDialogOpen] =
+    useState<boolean>(false);
+  const [commitToRestore, setCommitToRestore] = useState<Commit | null>(null);
   const [selectedCommitIndex, setSelectedCommitIndex] = useState<number | null>(
     null
   );
@@ -181,6 +194,9 @@ export const CurrentDocumentProvider = ({
         const documentHandle = await Effect.runPromise(
           versionedDocumentStore.findDocumentById(documentId)
         );
+
+        const doc = await documentHandle.doc();
+        console.log('doc content', doc.content);
 
         setVersionedDocumentHandle(documentHandle);
 
@@ -291,6 +307,8 @@ export const CurrentDocumentProvider = ({
         urlEncodedHeads: encodeURLHeadsForChange(commit),
       }));
 
+      console.log(historyWithURLInfo);
+
       setVersionedDocumentHistory(historyWithURLInfo);
       setLastCommit(lastCommit);
       checkIfCanCommit(documentStore)(
@@ -344,12 +362,40 @@ export const CurrentDocumentProvider = ({
     [versionedDocumentHandle, versionedDocumentStore]
   );
 
+  const handleRestoreCommit = useCallback(
+    async ({ message, commit }: { message: string; commit: Commit }) => {
+      if (!versionedDocumentHandle || !versionedDocumentStore) return;
+      const restoreCommitHeads = await Effect.runPromise(
+        versionedDocumentStore.restoreCommit({
+          documentHandle: versionedDocumentHandle,
+          message,
+          commit,
+        })
+      );
+
+      setIsRestoreCommitDialogOpen(false);
+      setCanCommit(false);
+      handleSelectCommit(restoreCommitHeads);
+    },
+    [versionedDocumentHandle, versionedDocumentStore]
+  );
+
   const handleOpenCommitDialog = useCallback(() => {
     setIsCommitDialogOpen(true);
   }, []);
 
   const handleCloseCommitDialog = useCallback(() => {
     setIsCommitDialogOpen(false);
+  }, []);
+
+  const handleOpenRestoreCommitDialog = useCallback((commit: Commit) => {
+    setIsRestoreCommitDialogOpen(true);
+    setCommitToRestore(commit);
+  }, []);
+
+  const handleCloseRestoreCommitDialog = useCallback(() => {
+    setIsRestoreCommitDialogOpen(false);
+    setCommitToRestore(null);
   }, []);
 
   const handleSelectCommit = useCallback(
@@ -494,9 +540,14 @@ export const CurrentDocumentProvider = ({
         versionedDocumentHistory,
         canCommit,
         onCommit: handleCommit,
+        onRestoreCommit: handleRestoreCommit,
         isCommitDialogOpen,
+        commitToRestore,
+        isRestoreCommitDialogOpen,
         onOpenCommitDialog: handleOpenCommitDialog,
         onCloseCommitDialog: handleCloseCommitDialog,
+        onOpenRestoreCommitDialog: handleOpenRestoreCommitDialog,
+        onCloseRestoreCommitDialog: handleCloseRestoreCommitDialog,
         selectedCommitIndex,
         onSelectCommit: handleSelectCommit,
         getDocumentHandleAtCommit: handleGetDocumentHandleAtCommit,

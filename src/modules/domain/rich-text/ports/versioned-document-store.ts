@@ -49,6 +49,12 @@ export type CommitChangesArgs = {
   message: string;
 };
 
+export type RestoreCommitArgs = {
+  documentHandle: VersionedDocumentHandle;
+  commit: Commit;
+  message?: string;
+};
+
 export type VersionedDocumentStore = {
   // This is not an ideal model but we want to be able to tell that the document store we are searching in is the desired one.
   // Without this we are risking registering interest in documents from other repositories (and therefore polluting our stores).
@@ -100,5 +106,8 @@ export type VersionedDocumentStore = {
   importDocumentFromBinary: (
     data: Uint8Array
   ) => Effect.Effect<VersionedDocument, RepositoryError, never>;
+  restoreCommit: (
+    args: RestoreCommitArgs
+  ) => Effect.Effect<Commit['heads'], RepositoryError, never>;
   disconnect: () => Effect.Effect<void, RepositoryError, never>;
 };

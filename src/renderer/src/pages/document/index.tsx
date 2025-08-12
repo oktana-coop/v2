@@ -20,6 +20,7 @@ import { useOpenDirectory } from '../../hooks/multi-document-project';
 import { useOpenDocument } from '../../hooks/single-document-project';
 import { DocumentCommandPalette } from './command-palette';
 import { CommitDialog } from './commit/CommitDialog';
+import { RestoreCommitDialog } from './commit/RestoreCommitDialog';
 import { CreateDocumentModal } from './create-document/CreateDocumentModal';
 import { DocumentMainViewRouter } from './main/DocumentMainViewRouter';
 import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
@@ -52,8 +53,11 @@ const DocumentIndex = () => {
     onSelectCommit,
     onCloseCommitDialog,
     isCommitDialogOpen,
+    isRestoreCommitDialogOpen,
     canCommit,
     onCommit,
+    onCloseRestoreCommitDialog,
+    onRestoreCommit,
   } = useContext(CurrentDocumentContext);
   const { changeId } = useParams();
   const { createNewDocument } = useCreateDocument();
@@ -100,6 +104,11 @@ const DocumentIndex = () => {
           onCancel={onCloseCommitDialog}
           canCommit={canCommit}
           onCommit={(message: string) => onCommit(message)}
+        />
+        <RestoreCommitDialog
+          isOpen={isRestoreCommitDialogOpen}
+          onCancel={onCloseRestoreCommitDialog}
+          onRestoreCommit={(args) => onRestoreCommit(args)}
         />
         <DocumentCommandPalette
           onCreateDocument={handleCreateDocument}
