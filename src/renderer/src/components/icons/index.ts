@@ -32,6 +32,7 @@ export { OrderedListIcon } from './OrderedList';
 export { PenIcon } from './Pen';
 export { PlusIcon } from './Plus';
 export { PushIcon } from './Push';
+export { RestoreCommitIcon } from './RestoreCommit';
 export { RevertIcon } from './Revert';
 export { SidebarIcon } from './Sidebar';
 export { SidebarOpenIcon } from './SidebarOpen';

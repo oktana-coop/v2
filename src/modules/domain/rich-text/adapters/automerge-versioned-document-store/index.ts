@@ -15,6 +15,7 @@ import {
   type VersionControlId,
   versionedArtifactTypes,
 } from '../../../../../modules/infrastructure/version-control';
+import { fromNullable } from '../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../utils/errors';
 import { NotFoundError, RepositoryError } from '../../errors';
 import {
@@ -213,6 +214,38 @@ export const createAdapter = (
         catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
       });
 
+  const restoreCommit: VersionedDocumentStore['restoreCommit'] = ({
+    documentHandle,
+    commit,
+    message,
+  }) =>
+    pipe(
+      Effect.try({
+        try: () =>
+          documentHandle.changeAt(
+            commit.heads,
+            (doc) => {
+              // this is effectively a no-op, but it triggers a change event
+              // (not) changing the title of the document, as interfering with the
+              // content outside the Prosemirror API will cause loss of formatting
+              // eslint-disable-next-line no-self-assign
+              doc.type = doc.type;
+            },
+            {
+              message: message ?? `Restore ${commit.message}`,
+              time: new Date().getTime(),
+            }
+          ),
+        catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+      }),
+      Effect.flatMap((heads) =>
+        fromNullable(
+          heads,
+          () => new RepositoryError('No heads returned from restore commit')
+        )
+      )
+    );
+
   const disconnect: VersionedDocumentStore['disconnect'] = () =>
     Effect.tryPromise({
       try: () => automergeRepo.shutdown(),
@@ -239,6 +272,7 @@ export const createAdapter = (
     exportDocumentHandleToBinary,
     exportDocumentToBinary,
     importDocumentFromBinary,
+    restoreCommit,
     disconnect,
   };
 };
