@@ -20,6 +20,7 @@ import {
 import { type RepresentationTransform } from '../ports/representation-transform';
 import { pmDocFromJSONString } from '../prosemirror';
 import { type PMNode } from '../prosemirror/hs-lib';
+import { RepresentationTransformContext } from './representation-transform-context';
 
 type ConvertAutomergeToProseMirrorArgs = {
   schema: Schema;
@@ -63,16 +64,13 @@ export const ProseMirrorProvider = ({
   const [schema, setSchema] = useState<Schema | null>(null);
   const [view, setView] = useState<EditorView | null>(null);
   const [diffAdapter, setDiffAdapter] = useState<Diff | null>(null);
-  const [representationTransformAdapter, setRepresentationTransformAdapter] =
-    useState<RepresentationTransform | null>(null);
+  const { adapter: representationTransformAdapter } = useContext(
+    RepresentationTransformContext
+  );
 
   useEffect(() => {
     const pandocDiffAdapter = createPandocDiffAdapter({ runWasiCLI });
     setDiffAdapter(pandocDiffAdapter);
-    const automergePandocAdapter = createAutomergePandocAdapter({
-      runWasiCLI,
-    });
-    setRepresentationTransformAdapter(automergePandocAdapter);
   }, [runWasiCLI]);
 
   const handleSetSchema = useCallback((schema: Schema) => {

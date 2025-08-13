@@ -1,6 +1,6 @@
 import { useCallback, useContext, useState } from 'react';
 
-import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/react/context';
+import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import {
   CurrentDocumentContext,
   SidebarLayoutContext,

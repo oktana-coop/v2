@@ -21,7 +21,7 @@ import {
   prosemirror,
   type VersionedDocumentHandle,
 } from '../../../../modules/domain/rich-text';
-import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/context';
+import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
 import { EditorToolbar } from './editor-toolbar';
 import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';

@@ -8,7 +8,7 @@ import {
   richTextRepresentations,
   type VersionedDocument,
 } from '../../../../../../modules/domain/rich-text';
-import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/react/context';
+import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform';
 import {
   diffDelete,

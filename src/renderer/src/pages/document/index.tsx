@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 
 import { projectTypes } from '../../../../modules/domain/project';
-import { ProseMirrorProvider } from '../../../../modules/domain/rich-text/react/context';
+import { ProseMirrorProvider } from '../../../../modules/domain/rich-text/react/prosemirror-context';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/electron-context';
 import { decodeURLHeads } from '../../../../modules/infrastructure/version-control';
 import {

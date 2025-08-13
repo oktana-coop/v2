@@ -22,7 +22,9 @@ export const DocumentCommandPalette = ({
   const [isCommandPaletteOpen, setCommandPaletteOpen] =
     useState<boolean>(false);
   const { projectType } = useContext(CurrentProjectContext);
-  const { canCommit, onOpenCommitDialog } = useContext(CurrentDocumentContext);
+  const { canCommit, onOpenCommitDialog, onExportToMarkdown } = useContext(
+    CurrentDocumentContext
+  );
   useKeyBindings({
     'ctrl+k': () => setCommandPaletteOpen((state) => !state),
     'ctrl+d': () => onCreateDocument(),
@@ -87,6 +89,11 @@ export const DocumentCommandPalette = ({
           name: 'Create new document',
           shortcut: 'D',
           onActionSelection: onCreateDocument,
+        },
+        {
+          name: 'Export to Markdown',
+          shortcut: 'M',
+          onActionSelection: onExportToMarkdown,
         },
         ...singleDocumentProjectActions,
       ]}
