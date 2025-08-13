@@ -1,4 +1,4 @@
-import { next as Automerge } from '@automerge/automerge/slim';
+import { DecodedChange, next as Automerge } from '@automerge/automerge/slim';
 import {
   decodeHeads,
   encodeHeads,
@@ -20,7 +20,7 @@ import {
   type VersionedArtifactHandle,
 } from '../models';
 
-export type GetArtifactHandleHistoryResponse<ArtifactType> = {
+export type ArtifactHistoryInfo<ArtifactType> = {
   history: Change[];
   current: VersionedArtifact<ArtifactType>;
   latestChange: Change;
@@ -76,18 +76,49 @@ export const getArtifactAtCommit: <ArtifactType>(args: {
     catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
   });
 
-export const getArtifactHandleHistory = async <ArtifactType>(
-  artifactHandle: VersionedArtifactHandle<ArtifactType>,
+export const getChangeMetadata =
+  <ArtifactType>(artifact: VersionedArtifact<ArtifactType>) =>
+  (heads: UrlHeads): DecodedChange | undefined =>
+    Automerge.inspectChange(artifact, decodeHeads(heads)[0]) ?? undefined;
+
+export const getArtifactHeadsHistory = <ArtifactType>(
+  artifact: VersionedArtifact<ArtifactType>
+): UrlHeads[] =>
+  Automerge.topoHistoryTraversal(artifact).map((h) =>
+    encodeHeads([h])
+  ) as UrlHeads[];
+
+export const getArtifactHistory = async <ArtifactType>(
+  artifact: VersionedArtifact<ArtifactType>,
   contentEqFn: ArtifactContentEqFn<ArtifactType> = isArtifactContentSameAtHeads
-): Promise<GetArtifactHandleHistoryResponse<ArtifactType>> => {
-  const history = artifactHandle.history() || [];
-  const changes = history
+): Promise<ArtifactHistoryInfo<ArtifactType>> => {
+  const headsHistory = getArtifactHeadsHistory(artifact);
+
+  return mapHeadsToHistoryInfo({
+    headsHistory,
+    artifact,
+    metadataExtractor: getChangeMetadata(artifact),
+    contentEqFn,
+  });
+};
+
+export const mapHeadsToHistoryInfo = <ArtifactType>({
+  headsHistory,
+  artifact,
+  metadataExtractor,
+  contentEqFn = isArtifactContentSameAtHeads,
+}: {
+  headsHistory: UrlHeads[];
+  artifact: VersionedArtifact<ArtifactType>;
+  metadataExtractor: (heads: UrlHeads) => DecodedChange | undefined;
+  contentEqFn: ArtifactContentEqFn<ArtifactType>;
+}): ArtifactHistoryInfo<ArtifactType> => {
+  const changes = headsHistory
     .map((heads) => {
-      const [head] = heads;
       // TODO: .metadata is "hidden", and prone to changes or even removal
       // but was the only way to construct the commit graph
       // (history of changes with messages & time)
-      const changeMetadata = artifactHandle.metadata(head);
+      const changeMetadata = metadataExtractor(heads);
       return changeMetadata
         ? {
             ...changeMetadata,
@@ -115,20 +146,18 @@ export const getArtifactHandleHistory = async <ArtifactType>(
   const orderedCommits = commits.reverse();
   const [lastCommit] = orderedCommits;
 
-  const currentArtifact = await artifactHandle.doc();
-
   if (lastCommit) {
     return headsAreSame(latestChange.heads, lastCommit.heads) ||
-      contentEqFn(currentArtifact, latestChange.heads, lastCommit.heads)
+      contentEqFn(artifact, latestChange.heads, lastCommit.heads)
       ? {
           history: orderedCommits,
-          current: currentArtifact,
+          current: artifact,
           latestChange,
           lastCommit,
         }
       : {
           history: [latestChange, ...orderedCommits],
-          current: currentArtifact,
+          current: artifact,
           latestChange,
           lastCommit,
         };
@@ -136,10 +165,28 @@ export const getArtifactHandleHistory = async <ArtifactType>(
 
   return {
     history: [latestChange],
-    current: currentArtifact,
+    current: artifact,
     latestChange,
     lastCommit: null,
   };
+};
+
+export const getArtifactHandleHistory = async <ArtifactType>(
+  artifactHandle: VersionedArtifactHandle<ArtifactType>,
+  contentEqFn: ArtifactContentEqFn<ArtifactType> = isArtifactContentSameAtHeads
+): Promise<ArtifactHistoryInfo<ArtifactType>> => {
+  const currentArtifact = await artifactHandle.doc();
+  const headsHistory = artifactHandle.history() || [];
+
+  const metadataExtractor = (heads: UrlHeads) =>
+    artifactHandle.metadata(heads[0]);
+
+  return mapHeadsToHistoryInfo({
+    headsHistory,
+    artifact: currentArtifact,
+    metadataExtractor,
+    contentEqFn,
+  });
 };
 
 export const isArtifactContentSameAtHeads = <ArtifactType>(
@@ -158,3 +205,11 @@ export const isArtifactContentSameAtHeads = <ArtifactType>(
 export const getArtifactHeads = <ArtifactType>(
   artifact: VersionedArtifact<ArtifactType>
 ): UrlHeads => encodeHeads(Automerge.getHeads(artifact));
+
+export const exportToBinary = <ArtifactType>(
+  artifact: VersionedArtifact<ArtifactType>
+): Uint8Array => Automerge.save(artifact);
+
+export const importFromBinary = <ArtifactType>(
+  data: Uint8Array
+): VersionedArtifact<ArtifactType> => Automerge.load(data);
