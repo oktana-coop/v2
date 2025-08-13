@@ -15,3 +15,11 @@ export const richTextRepresentations = {
 } as const;
 
 export type RichTextRepresentation = ValueOf<typeof richTextRepresentations>;
+
+export const richTextRepresentationExtensions = {
+  AUTOMERGE: 'automerge',
+  PANDOC: 'txt',
+  MARKDOWN: 'md',
+  HTML: 'html',
+  PROSEMIRROR: 'json',
+};

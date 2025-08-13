@@ -17,6 +17,7 @@ import {
   isEmpty,
   registerLiveUpdates,
   type RichTextDocument,
+  RichTextRepresentation,
   richTextRepresentations,
   unregisterLiveUpdates,
   type VersionedDocument,
@@ -106,7 +107,7 @@ export type CurrentDocumentContextType = {
     args: GetDocumentHandleAtCommitArgs
   ) => Promise<VersionedDocumentHandle>;
   isContentSameAtHeads: (args: IsContentSameAtHeadsArgs) => boolean;
-  onExportToMarkdown: () => Promise<void>;
+  getExportText: (representation: RichTextRepresentation) => Promise<string>;
 };
 
 export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
@@ -123,7 +124,7 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     onSelectCommit: () => {},
     // @ts-expect-error will get overriden below
     getDocumentHandleAtCommit: async () => null,
-    onExportToMarkdown: async () => {},
+    getExportText: async () => '',
   }
 );
 
@@ -413,7 +414,9 @@ export const CurrentDocumentProvider = ({
     [versionedDocumentStore]
   );
 
-  const handleExportToMarkdown = async () => {
+  const exportToTextRepresentation = async (
+    representation: RichTextRepresentation
+  ) => {
     if (!versionedDocumentStore) {
       throw new Error('Versioned document store not ready yet.');
     }
@@ -434,18 +437,13 @@ export const CurrentDocumentProvider = ({
       versionedDocumentStore.getDocumentFromHandle(versionedDocumentHandle)
     );
 
-    const mdString = await representationTransformAdapter.transform({
+    const str = await representationTransformAdapter.transform({
       from: richTextRepresentations.AUTOMERGE,
-      to: richTextRepresentations.MARKDOWN,
+      to: representation,
       input: getSpansString(document),
     });
 
-    await Effect.runPromise(
-      filesystem.createNewFile({
-        extensions: ['md'],
-        content: mdString,
-      })
-    );
+    return str;
   };
 
   return (
@@ -463,7 +461,7 @@ export const CurrentDocumentProvider = ({
         onSelectCommit: handleSelectCommit,
         getDocumentHandleAtCommit: handleGetDocumentHandleAtCommit,
         isContentSameAtHeads: handleIsContentSameAtHeads,
-        onExportToMarkdown: handleExportToMarkdown,
+        getExportText: exportToTextRepresentation,
       }}
     >
       {children}
