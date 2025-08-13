@@ -12,15 +12,18 @@ import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { projectTypes } from '../../../../modules/domain/project';
 import {
   type GetDocumentHandleAtCommitArgs,
+  getSpansString,
   type IsContentSameAtHeadsArgs,
   isEmpty,
   registerLiveUpdates,
   type RichTextDocument,
+  richTextRepresentations,
   unregisterLiveUpdates,
   type VersionedDocument,
   type VersionedDocumentHandle,
   type VersionedDocumentStore,
 } from '../../../../modules/domain/rich-text';
+import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
 import {
   type ArtifactHistoryInfo,
   type Change,
@@ -103,6 +106,7 @@ export type CurrentDocumentContextType = {
     args: GetDocumentHandleAtCommitArgs
   ) => Promise<VersionedDocumentHandle>;
   isContentSameAtHeads: (args: IsContentSameAtHeadsArgs) => boolean;
+  onExportToMarkdown: () => Promise<void>;
 };
 
 export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
@@ -119,6 +123,7 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     onSelectCommit: () => {},
     // @ts-expect-error will get overriden below
     getDocumentHandleAtCommit: async () => null,
+    onExportToMarkdown: async () => {},
   }
 );
 
@@ -148,6 +153,9 @@ export const CurrentDocumentProvider = ({
   const navigate = useNavigate();
   const { setSelectedFileInfo, clearFileSelection } = useContext(
     MultiDocumentProjectContext
+  );
+  const { adapter: representationTransformAdapter } = useContext(
+    RepresentationTransformContext
   );
   const loadHistoryFromWorker = createLoadHistoryFromWorker();
 
@@ -405,6 +413,51 @@ export const CurrentDocumentProvider = ({
     [versionedDocumentStore]
   );
 
+  const handleExportToMarkdown = async () => {
+    if (!versionedDocumentStore) {
+      throw new Error('Versioned document store not ready yet.');
+    }
+
+    if (!representationTransformAdapter) {
+      throw new Error(
+        'No representation transform adapter found when trying to convert to Markdown'
+      );
+    }
+
+    if (!versionedDocumentHandle) {
+      throw new Error(
+        'No versioned document handle found when trying to export to Markdown'
+      );
+    }
+
+    const document = await Effect.runPromise(
+      versionedDocumentStore.getDocumentFromHandle(versionedDocumentHandle)
+    );
+
+    const mdString = await representationTransformAdapter.transform({
+      from: richTextRepresentations.AUTOMERGE,
+      to: richTextRepresentations.MARKDOWN,
+      input: getSpansString(document),
+    });
+
+    // Create and download the markdown file
+    // TODO: Find a cleaner solution
+    const blob = new Blob([mdString], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+
+    const link = window.document.createElement('a');
+    link.href = url;
+    link.download = `document-${new Date().toISOString().slice(0, 10)}.md`;
+
+    // Append to body, click, and remove
+    window.document.body.appendChild(link);
+    link.click();
+    window.document.body.removeChild(link);
+
+    // Clean up the URL object
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <CurrentDocumentContext.Provider
       value={{
@@ -420,6 +473,7 @@ export const CurrentDocumentProvider = ({
         onSelectCommit: handleSelectCommit,
         getDocumentHandleAtCommit: handleGetDocumentHandleAtCommit,
         isContentSameAtHeads: handleIsContentSameAtHeads,
+        onExportToMarkdown: handleExportToMarkdown,
       }}
     >
       {children}
