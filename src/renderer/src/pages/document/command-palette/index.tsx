@@ -73,6 +73,20 @@ export const DocumentCommandPalette = ({
                       },
                     ]
                   : []),
+                {
+                  name: 'Export to Markdown',
+                  shortcut: 'M',
+                  onActionSelection: exportTo(richTextRepresentations.MARKDOWN),
+                },
+                {
+                  name: 'Export to HTML',
+                  shortcut: 'H',
+                  onActionSelection: exportTo(richTextRepresentations.HTML),
+                },
+                {
+                  name: 'Export to Pandoc',
+                  onActionSelection: exportTo(richTextRepresentations.PANDOC),
+                },
               ],
             }
           : undefined
@@ -91,11 +105,6 @@ export const DocumentCommandPalette = ({
           name: 'Create new document',
           shortcut: 'D',
           onActionSelection: onCreateDocument,
-        },
-        {
-          name: 'Export to Markdown',
-          shortcut: 'M',
-          onActionSelection: exportTo(richTextRepresentations.MARKDOWN),
         },
         ...singleDocumentProjectActions,
       ]}
