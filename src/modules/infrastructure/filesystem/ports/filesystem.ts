@@ -17,6 +17,7 @@ export type CreateNewFileArgs = {
   suggestedName?: string;
   extensions: Array<string>;
   parentDirectory?: Directory;
+  content?: string | Uint8Array;
 };
 
 export type ListDirectoryFilesArgs = {

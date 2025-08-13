@@ -194,14 +194,13 @@ export const createAdapter = (): Filesystem => ({
         },
       })
     ),
-  createNewFile: ({ suggestedName, extensions }) => {
-    const initialContent = '';
-
-    return pipe(
+  createNewFile: ({ suggestedName, extensions, content = '' }) =>
+    pipe(
       showSaveDialog({ suggestedName, extensions }),
       Effect.tap(({ filePath }) =>
         Effect.tryPromise({
-          try: () => fs.writeFile(filePath, initialContent, 'utf8'),
+          // Node ignores the encoding if the data is binary
+          try: () => fs.writeFile(filePath, content, 'utf8'),
           catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
         })
       ),
@@ -209,10 +208,9 @@ export const createAdapter = (): Filesystem => ({
         type: filesystemItemTypes.FILE,
         path: filePath,
         name: path.basename(filePath),
-        content: initialContent,
+        content,
       }))
-    );
-  },
+    ),
   openFile: ({ extensions }) =>
     pipe(
       showFilePicker({ extensions }),

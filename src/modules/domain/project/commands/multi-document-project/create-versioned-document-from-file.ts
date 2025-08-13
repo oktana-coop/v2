@@ -4,8 +4,11 @@ import * as Option from 'effect/Option';
 
 import {
   AccessControlError as FilesystemAccessControlError,
+  DataIntegrityError as FilesystemDataIntegrityError,
+  DataIntegrityError as VersionedProjectDataIntegrityError,
   type File,
   type Filesystem,
+  isTextFile,
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
@@ -50,14 +53,29 @@ export const createVersionedDocumentFromFile =
     CreateVersionedDocumentInFileResult,
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
+    | VersionedProjectDataIntegrityError
     | VersionedDocumentRepositoryError
     | FilesystemAccessControlError
     | FilesystemNotFoundError
-    | FilesystemRepositoryError,
+    | FilesystemRepositoryError
+    | FilesystemDataIntegrityError,
     never
   > =>
     Effect.Do.pipe(
-      Effect.bind('readFileResult', () => readFile(file.path)),
+      Effect.bind('readFileResult', () =>
+        pipe(
+          readFile(file.path),
+          Effect.flatMap((file) =>
+            isTextFile(file)
+              ? Effect.succeed(file)
+              : Effect.fail(
+                  new FilesystemDataIntegrityError(
+                    'Expected a text file but got a binary'
+                  )
+                )
+          )
+        )
+      ),
       Effect.bind('documentId', ({ readFileResult }) =>
         createDocument({
           content: readFileResult.content ?? null,

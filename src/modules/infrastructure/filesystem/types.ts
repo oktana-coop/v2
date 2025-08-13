@@ -12,5 +12,19 @@ export type Directory = FilesystemItem & {
 
 export type File = FilesystemItem & {
   type: typeof filesystemItemTypes.FILE;
-  content?: string;
+  content?: string | Uint8Array;
 };
+
+export type TextFile = File & {
+  content: string;
+};
+
+export type BinaryFile = File & {
+  content: Uint8Array;
+};
+
+export const isTextFile = (file: File): file is TextFile =>
+  typeof file.content === 'string';
+
+export const isBinaryFile = (file: File): file is BinaryFile =>
+  file.content instanceof Uint8Array;
