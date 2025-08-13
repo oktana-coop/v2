@@ -91,5 +91,14 @@ export type VersionedDocumentStore = {
   commitChanges: (
     args: CommitChangesArgs
   ) => Effect.Effect<void, RepositoryError, never>;
+  exportDocumentHandleToBinary: (
+    documentHandle: VersionedDocumentHandle
+  ) => Effect.Effect<Uint8Array, RepositoryError | NotFoundError, never>;
+  exportDocumentToBinary: (
+    document: VersionedDocument
+  ) => Effect.Effect<Uint8Array, RepositoryError, never>;
+  importDocumentFromBinary: (
+    data: Uint8Array
+  ) => Effect.Effect<VersionedDocument, RepositoryError, never>;
   disconnect: () => Effect.Effect<void, RepositoryError, never>;
 };
