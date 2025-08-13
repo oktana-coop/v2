@@ -375,10 +375,13 @@ export const createAdapter = (): Filesystem => ({
         })
       )
     ),
-  createNewFile: ({ suggestedName, extensions, parentDirectory }) => {
-    const initialContent = '';
-
-    return Effect.Do.pipe(
+  createNewFile: ({
+    suggestedName,
+    extensions,
+    parentDirectory,
+    content = '',
+  }) =>
+    Effect.Do.pipe(
       Effect.bind('fileHandle', () =>
         showSaveFilePicker({ suggestedName, extensions })
       ),
@@ -388,7 +391,7 @@ export const createAdapter = (): Filesystem => ({
             const writable = await fileHandle.createWritable();
 
             // Write initial content to the file
-            await writable.write(initialContent);
+            await writable.write(content);
             await writable.close();
           },
           catch: mapErrorTo(RepositoryError, 'Browser filesystem API error'),
@@ -416,10 +419,9 @@ export const createAdapter = (): Filesystem => ({
         type: filesystemItemTypes.FILE,
         path: relativePath,
         name: fileHandle.name,
-        content: initialContent,
+        content,
       }))
-    );
-  },
+    ),
   openFile: ({ extensions }) =>
     pipe(
       showFilePicker({ extensions }),

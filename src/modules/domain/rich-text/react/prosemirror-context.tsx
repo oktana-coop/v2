@@ -9,7 +9,6 @@ import {
 } from 'react';
 
 import { WasmContext } from '../../../../modules/infrastructure/wasm/react/wasm-context';
-import { createAdapter as createAutomergePandocAdapter } from '../adapters/automerge-pandoc-cli';
 import { createAdapter as createPandocDiffAdapter } from '../adapters/pandoc-diff';
 import { richTextRepresentations } from '../constants/representations';
 import {
@@ -17,7 +16,6 @@ import {
   type ProseMirrorDiffArgs,
   type ProseMirrorDiffResult,
 } from '../ports/diff';
-import { type RepresentationTransform } from '../ports/representation-transform';
 import { pmDocFromJSONString } from '../prosemirror';
 import { type PMNode } from '../prosemirror/hs-lib';
 import { RepresentationTransformContext } from './representation-transform-context';

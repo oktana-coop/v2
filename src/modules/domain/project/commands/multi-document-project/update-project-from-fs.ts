@@ -12,6 +12,7 @@ import {
   DataIntegrityError as FilesystemDataIntegrityError,
   type File,
   type Filesystem,
+  isTextFile,
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
@@ -90,7 +91,8 @@ const propagateFileChangesToVersionedDocument =
     | VersionedDocumentNotFoundError
     | FilesystemAccessControlError
     | FilesystemNotFoundError
-    | FilesystemRepositoryError,
+    | FilesystemRepositoryError
+    | FilesystemDataIntegrityError,
     never
   > =>
     pipe(
@@ -107,6 +109,15 @@ const propagateFileChangesToVersionedDocument =
           Effect.flatMap((document) =>
             pipe(
               readFile(file.path),
+              Effect.flatMap((file) =>
+                isTextFile(file)
+                  ? Effect.succeed(file)
+                  : Effect.fail(
+                      new FilesystemDataIntegrityError(
+                        'Expected a text file but got a binary'
+                      )
+                    )
+              ),
               Effect.flatMap((fileContent) => {
                 if (
                   fileContent.content &&
