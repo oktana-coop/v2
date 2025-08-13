@@ -1,6 +1,7 @@
 import { useContext, useState } from 'react';
 
 import { projectTypes } from '../../../../../modules/domain/project';
+import { richTextRepresentations } from '../../../../../modules/domain/rich-text';
 import { removeExtension } from '../../../../../modules/infrastructure/filesystem';
 import {
   CurrentDocumentContext,
@@ -11,6 +12,7 @@ import { useDocumentList, useKeyBindings } from '../../../hooks';
 import { useCurrentDocumentName } from '../../../hooks';
 import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../hooks/multi-document-project';
 import { useDocumentSelection as useDocumentSelectionInSingleDocumentProject } from '../../../hooks/single-document-project';
+import { useTextExport } from '../../../hooks/use-text-export';
 
 export const DocumentCommandPalette = ({
   onCreateDocument,
@@ -22,9 +24,7 @@ export const DocumentCommandPalette = ({
   const [isCommandPaletteOpen, setCommandPaletteOpen] =
     useState<boolean>(false);
   const { projectType } = useContext(CurrentProjectContext);
-  const { canCommit, onOpenCommitDialog, onExportToMarkdown } = useContext(
-    CurrentDocumentContext
-  );
+  const { canCommit, onOpenCommitDialog } = useContext(CurrentDocumentContext);
   useKeyBindings({
     'ctrl+k': () => setCommandPaletteOpen((state) => !state),
     'ctrl+d': () => onCreateDocument(),
@@ -40,6 +40,8 @@ export const DocumentCommandPalette = ({
     projectType === projectTypes.MULTI_DOCUMENT_PROJECT
       ? handleDocumentSelectionInMultiDocumentProject
       : handleDocumentSelectionInSingleDocumentProject;
+
+  const { exportTo } = useTextExport();
 
   const singleDocumentProjectActions = [
     {
@@ -93,7 +95,7 @@ export const DocumentCommandPalette = ({
         {
           name: 'Export to Markdown',
           shortcut: 'M',
-          onActionSelection: onExportToMarkdown,
+          onActionSelection: exportTo(richTextRepresentations.MARKDOWN),
         },
         ...singleDocumentProjectActions,
       ]}
