@@ -22,6 +22,7 @@ import {
   type VersionedDocumentStore,
 } from '../../../../modules/domain/rich-text';
 import {
+  type ArtifactHistoryInfo,
   type Change,
   type ChangeWithUrlInfo,
   type Commit,
@@ -38,6 +39,54 @@ import {
   InfrastructureAdaptersContext,
   MultiDocumentProjectContext,
 } from '../';
+import {
+  isSuccessResult,
+  type LoadHistoryMessage,
+  type LoadHistoryResult,
+} from './history-worker/types';
+
+// Using a web worker because loading history is an expensive operation
+const worker = new Worker(
+  new URL('./history-worker/index.ts', import.meta.url),
+  { type: 'module' }
+);
+
+const createLoadHistoryFromWorker = () => {
+  // Assign a unique ID to each message sent to the worker and include it in the worker's response.
+  // This way, the worker's response is matched to the correct promise.
+  let messageId = 0; // Unique ID for each message
+
+  return (
+    documentData: Uint8Array
+  ): Promise<ArtifactHistoryInfo<RichTextDocument>> =>
+    new Promise((resolve, reject) => {
+      const currentMessageId = messageId++;
+
+      const handleMessage = (event: MessageEvent) => {
+        const result = event.data as LoadHistoryResult;
+
+        if (result.messageId === currentMessageId) {
+          worker.removeEventListener('message', handleMessage); // Clean up listener
+          if (isSuccessResult(result)) {
+            resolve(result.historyInfo);
+          } else {
+            reject(new Error(result.errorMessage));
+          }
+        }
+      };
+
+      // Listen for messages from the worker
+      worker.addEventListener('message', handleMessage);
+
+      const message: LoadHistoryMessage = {
+        messageId: currentMessageId,
+        documentData,
+      };
+
+      // Post a message to the worker to start the WASI CLI execution
+      worker.postMessage(message);
+    });
+};
 
 export type CurrentDocumentContextType = {
   versionedDocumentHandle: VersionedDocumentHandle | null;
@@ -100,6 +149,7 @@ export const CurrentDocumentProvider = ({
   const { setSelectedFileInfo, clearFileSelection } = useContext(
     MultiDocumentProjectContext
   );
+  const loadHistoryFromWorker = createLoadHistoryFromWorker();
 
   useEffect(() => {
     const updateDocumentHandleAndSelectedFile = async ({
@@ -206,10 +256,18 @@ export const CurrentDocumentProvider = ({
   const loadHistory =
     (documentStore: VersionedDocumentStore) =>
     async (docHandle: VersionedDocumentHandle) => {
-      const { history, current, lastCommit, latestChange } =
-        await Effect.runPromise(
-          documentStore.getDocumentHandleHistory(docHandle)
-        );
+      // Unfortunately we can't get it from the history results since some non-serializeable
+      // properties of the Automerge document are lost in the messages with the worker.
+      const current = await Effect.runPromise(
+        documentStore.getDocumentFromHandle(docHandle)
+      );
+
+      const documentData = await Effect.runPromise(
+        documentStore.exportDocumentToBinary(current)
+      );
+
+      const { history, lastCommit, latestChange } =
+        await loadHistoryFromWorker(documentData);
 
       const historyWithURLInfo = history.map((commit) => ({
         ...commit,

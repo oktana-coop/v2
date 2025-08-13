@@ -4,11 +4,13 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import {
+  exportToBinary,
   getArtifactAtCommit,
   getArtifactFromHandle,
   getArtifactHandleAtCommit,
   getArtifactHandleHistory,
   getArtifactHeads,
+  importFromBinary,
   isArtifactContentSameAtHeads,
   type VersionControlId,
   versionedArtifactTypes,
@@ -190,6 +192,27 @@ export const createAdapter = (
       catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
     });
 
+  const exportDocumentToBinary: VersionedDocumentStore['exportDocumentToBinary'] =
+    (document) =>
+      Effect.try({
+        try: () => exportToBinary<RichTextDocument>(document),
+        catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+      });
+
+  const exportDocumentHandleToBinary: VersionedDocumentStore['exportDocumentHandleToBinary'] =
+    (documentHandle) =>
+      pipe(
+        getDocumentFromHandle(documentHandle),
+        Effect.flatMap(exportDocumentToBinary)
+      );
+
+  const importDocumentFromBinary: VersionedDocumentStore['importDocumentFromBinary'] =
+    (data) =>
+      Effect.try({
+        try: () => importFromBinary<RichTextDocument>(data),
+        catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+      });
+
   const disconnect: VersionedDocumentStore['disconnect'] = () =>
     Effect.tryPromise({
       try: () => automergeRepo.shutdown(),
@@ -213,6 +236,9 @@ export const createAdapter = (
     isContentSameAtHeads,
     getDocumentHeads,
     commitChanges,
+    exportDocumentHandleToBinary,
+    exportDocumentToBinary,
+    importDocumentFromBinary,
     disconnect,
   };
 };
