@@ -440,22 +440,12 @@ export const CurrentDocumentProvider = ({
       input: getSpansString(document),
     });
 
-    // Create and download the markdown file
-    // TODO: Find a cleaner solution
-    const blob = new Blob([mdString], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-
-    const link = window.document.createElement('a');
-    link.href = url;
-    link.download = `document-${new Date().toISOString().slice(0, 10)}.md`;
-
-    // Append to body, click, and remove
-    window.document.body.appendChild(link);
-    link.click();
-    window.document.body.removeChild(link);
-
-    // Clean up the URL object
-    URL.revokeObjectURL(url);
+    await Effect.runPromise(
+      filesystem.createNewFile({
+        extensions: ['md'],
+        content: mdString,
+      })
+    );
   };
 
   return (
