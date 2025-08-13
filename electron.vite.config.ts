@@ -35,6 +35,16 @@ export default defineConfig(({ mode }) => {
         'process.env': env,
       },
       plugins: [topLevelAwait(), wasm(), react()],
+      build: {
+        rollupOptions: {
+          output: {
+            format: 'es',
+          },
+        },
+      },
+      worker: {
+        format: 'es',
+      },
     },
   };
 });
