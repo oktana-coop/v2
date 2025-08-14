@@ -1,11 +1,22 @@
-import { type RichTextRepresentation } from '../constants/representations';
+import {
+  type BinaryRichTextRepresentation,
+  type RichTextRepresentation,
+  type TextRichTextRepresentation,
+} from '../constants/representations';
 
-export type TransformArgs = {
+export type TransformToTextArgs = {
   from: RichTextRepresentation;
-  to: RichTextRepresentation;
+  to: TextRichTextRepresentation;
+  input: string;
+};
+
+export type TransformToBinaryArgs = {
+  from: RichTextRepresentation;
+  to: BinaryRichTextRepresentation;
   input: string;
 };
 
 export type RepresentationTransform = {
-  transform: (args: TransformArgs) => Promise<string>;
+  transformToText: (args: TransformToTextArgs) => Promise<string>;
+  transformToBinary: (args: TransformToBinaryArgs) => Promise<Uint8Array>;
 };

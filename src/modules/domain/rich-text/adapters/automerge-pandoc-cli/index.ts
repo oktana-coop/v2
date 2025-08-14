@@ -6,20 +6,22 @@ import { type RepresentationTransform } from '../../ports/representation-transfo
 import { representationToCliArg } from './cli-args';
 
 export const createAdapter = ({
-  runWasiCLI,
+  runWasiCLIOutputingText,
+  runWasiCLIOutputingBinary,
 }: {
-  runWasiCLI: Wasm['runWasiCLI'];
+  runWasiCLIOutputingText: Wasm['runWasiCLIOutputingText'];
+  runWasiCLIOutputingBinary: Wasm['runWasiCLIOutputingBinary'];
 }): RepresentationTransform => {
-  const transform: RepresentationTransform['transform'] = async ({
+  const transformToText: RepresentationTransform['transformToText'] = async ({
     from,
     to,
     input,
   }) => {
-    const output = await runWasiCLI({
+    const output = await runWasiCLIOutputingText({
       type: cliTypes.HS_LIB,
       args: [
         'v2-hs-lib',
-        'convert',
+        'convertToText',
         '--from',
         representationToCliArg(from),
         '--to',
@@ -31,7 +33,26 @@ export const createAdapter = ({
     return output;
   };
 
+  const transformToBinary: RepresentationTransform['transformToBinary'] =
+    async ({ from, to, input }) => {
+      const output = await runWasiCLIOutputingBinary({
+        type: cliTypes.HS_LIB,
+        args: [
+          'v2-hs-lib',
+          'convertToBinary',
+          '--from',
+          representationToCliArg(from),
+          '--to',
+          representationToCliArg(to),
+          input,
+        ],
+      });
+
+      return output;
+    };
+
   return {
-    transform,
+    transformToText,
+    transformToBinary,
   };
 };

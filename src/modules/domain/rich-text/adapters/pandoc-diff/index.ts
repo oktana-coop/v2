@@ -88,9 +88,9 @@ const toWidgetDeleteDecoration =
   };
 
 export const createAdapter = ({
-  runWasiCLI,
+  runWasiCLIOutputingText,
 }: {
-  runWasiCLI: Wasm['runWasiCLI'];
+  runWasiCLIOutputingText: Wasm['runWasiCLIOutputingText'];
 }): Diff => {
   const proseMirrorDiff: Diff['proseMirrorDiff'] = async ({
     representation,
@@ -99,7 +99,7 @@ export const createAdapter = ({
     docBefore,
     docAfter,
   }) => {
-    const output = await runWasiCLI({
+    const output = await runWasiCLIOutputingText({
       type: cliTypes.HS_LIB,
       args: [
         'v2-hs-lib',

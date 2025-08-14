@@ -96,6 +96,8 @@ contextBridge.exposeInMainWorld('multiDocumentProjectAPI', {
 } as MultiDocumentProjectAPI);
 
 contextBridge.exposeInMainWorld('wasmAPI', {
-  runWasiCLI: (args: RunWasiCLIArgs) =>
-    ipcRenderer.invoke('run-wasi-cli', args),
+  runWasiCLIOutputingText: (args: RunWasiCLIArgs) =>
+    ipcRenderer.invoke('run-wasi-cli-outputing-text', args),
+  runWasiCLIOutputingBinary: (args: RunWasiCLIArgs) =>
+    ipcRenderer.invoke('run-wasi-cli-outputing-binary', args),
 } as WasmAPI);

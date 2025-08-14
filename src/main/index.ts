@@ -260,8 +260,12 @@ async function createWindow() {
     }
   });
 
-  ipcMain.handle('run-wasi-cli', (_, args: RunWasiCLIArgs) =>
-    wasmAPI.runWasiCLI(args)
+  ipcMain.handle('run-wasi-cli-outputing-text', (_, args: RunWasiCLIArgs) =>
+    wasmAPI.runWasiCLIOutputingText(args)
+  );
+
+  ipcMain.handle('run-wasi-cli-outputing-binary', (_, args: RunWasiCLIArgs) =>
+    wasmAPI.runWasiCLIOutputingBinary(args)
   );
 }
 

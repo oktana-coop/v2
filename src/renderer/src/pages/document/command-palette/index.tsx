@@ -12,7 +12,7 @@ import { useDocumentList, useKeyBindings } from '../../../hooks';
 import { useCurrentDocumentName } from '../../../hooks';
 import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../hooks/multi-document-project';
 import { useDocumentSelection as useDocumentSelectionInSingleDocumentProject } from '../../../hooks/single-document-project';
-import { useTextExport } from '../../../hooks/use-text-export';
+import { useExport } from '../../../hooks/use-export';
 
 export const DocumentCommandPalette = ({
   onCreateDocument,
@@ -41,7 +41,7 @@ export const DocumentCommandPalette = ({
       ? handleDocumentSelectionInMultiDocumentProject
       : handleDocumentSelectionInSingleDocumentProject;
 
-  const { exportTo } = useTextExport();
+  const { exportToText, exportToBinary } = useExport();
 
   const singleDocumentProjectActions = [
     {
@@ -76,16 +76,27 @@ export const DocumentCommandPalette = ({
                 {
                   name: 'Export to Markdown',
                   shortcut: 'M',
-                  onActionSelection: exportTo(richTextRepresentations.MARKDOWN),
+                  onActionSelection: exportToText(
+                    richTextRepresentations.MARKDOWN
+                  ),
                 },
                 {
                   name: 'Export to HTML',
                   shortcut: 'H',
-                  onActionSelection: exportTo(richTextRepresentations.HTML),
+                  onActionSelection: exportToText(richTextRepresentations.HTML),
+                },
+                {
+                  name: 'Export to Docx (Microsoft Word)',
+                  shortcut: 'W',
+                  onActionSelection: exportToBinary(
+                    richTextRepresentations.DOCX
+                  ),
                 },
                 {
                   name: 'Export to Pandoc',
-                  onActionSelection: exportTo(richTextRepresentations.PANDOC),
+                  onActionSelection: exportToText(
+                    richTextRepresentations.PANDOC
+                  ),
                 },
               ],
             }

@@ -15,6 +15,8 @@ export const representationToCliArg = (
       return 'html';
     case richTextRepresentations.PROSEMIRROR:
       return 'prosemirror';
+    case richTextRepresentations.DOCX:
+      return 'docx';
     case richTextRepresentations.PANDOC:
     default:
       return 'pandoc';

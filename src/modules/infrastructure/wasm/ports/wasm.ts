@@ -6,5 +6,6 @@ export type RunWasiCLIArgs = {
 };
 
 export type Wasm = {
-  runWasiCLI: (args: RunWasiCLIArgs) => Promise<string>;
+  runWasiCLIOutputingText: (args: RunWasiCLIArgs) => Promise<string>;
+  runWasiCLIOutputingBinary: (args: RunWasiCLIArgs) => Promise<Uint8Array>;
 };

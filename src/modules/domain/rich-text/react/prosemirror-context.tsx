@@ -58,7 +58,7 @@ export const ProseMirrorProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { runWasiCLI } = useContext(WasmContext);
+  const { runWasiCLIOutputingText } = useContext(WasmContext);
   const [schema, setSchema] = useState<Schema | null>(null);
   const [view, setView] = useState<EditorView | null>(null);
   const [diffAdapter, setDiffAdapter] = useState<Diff | null>(null);
@@ -67,9 +67,11 @@ export const ProseMirrorProvider = ({
   );
 
   useEffect(() => {
-    const pandocDiffAdapter = createPandocDiffAdapter({ runWasiCLI });
+    const pandocDiffAdapter = createPandocDiffAdapter({
+      runWasiCLIOutputingText,
+    });
     setDiffAdapter(pandocDiffAdapter);
-  }, [runWasiCLI]);
+  }, [runWasiCLIOutputingText]);
 
   const handleSetSchema = useCallback((schema: Schema) => {
     setSchema(schema);
@@ -100,7 +102,7 @@ export const ProseMirrorProvider = ({
       );
     }
 
-    const result = await representationTransformAdapter.transform({
+    const result = await representationTransformAdapter.transformToText({
       from: richTextRepresentations.AUTOMERGE,
       to: richTextRepresentations.PROSEMIRROR,
       input: args.spans,
@@ -133,7 +135,7 @@ export const ProseMirrorProvider = ({
       );
     }
 
-    const result = await representationTransformAdapter.transform({
+    const result = await representationTransformAdapter.transformToText({
       from: richTextRepresentations.MARKDOWN,
       to: richTextRepresentations.PROSEMIRROR,
       input,

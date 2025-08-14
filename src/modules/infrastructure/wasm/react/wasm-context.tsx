@@ -15,7 +15,9 @@ export type WasmContextType = Wasm;
 
 export const WasmContext = createContext<WasmContextType>({
   // @ts-expect-error will get overriden below
-  runWasiCLI: () => {},
+  runWasiCLIOutputingText: () => {},
+  // @ts-expect-error will get overriden below
+  runWasiCLIOutputingBinary: () => {},
 });
 
 export const WasmProvider = ({ children }: { children: React.ReactNode }) => {
@@ -41,7 +43,7 @@ export const WasmProvider = ({ children }: { children: React.ReactNode }) => {
     loadWasmModules();
   }, [isElectron]);
 
-  const handleRunWasiCLI = useCallback(
+  const handleRunWasiCLIOutputingText = useCallback(
     async (args: RunWasiCLIArgs) => {
       if (!wasm) {
         throw new Error(
@@ -49,7 +51,20 @@ export const WasmProvider = ({ children }: { children: React.ReactNode }) => {
         );
       }
 
-      return wasm.runWasiCLI(args);
+      return wasm.runWasiCLIOutputingText(args);
+    },
+    [wasm]
+  );
+
+  const handleRunWasiCLIOutputingBinary = useCallback(
+    async (args: RunWasiCLIArgs) => {
+      if (!wasm) {
+        throw new Error(
+          'WASM modules have not finished loading before trying to run the CLI'
+        );
+      }
+
+      return wasm.runWasiCLIOutputingBinary(args);
     },
     [wasm]
   );
@@ -62,7 +77,12 @@ export const WasmProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <WasmContext.Provider value={{ runWasiCLI: handleRunWasiCLI }}>
+    <WasmContext.Provider
+      value={{
+        runWasiCLIOutputingText: handleRunWasiCLIOutputingText,
+        runWasiCLIOutputingBinary: handleRunWasiCLIOutputingBinary,
+      }}
+    >
       {children}
     </WasmContext.Provider>
   );
