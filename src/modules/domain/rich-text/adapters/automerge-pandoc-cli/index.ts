@@ -6,20 +6,20 @@ import { type RepresentationTransform } from '../../ports/representation-transfo
 import { representationToCliArg } from './cli-args';
 
 export const createAdapter = ({
-  runWasiCLI,
+  runWasiCLIOutputingText,
 }: {
-  runWasiCLI: Wasm['runWasiCLI'];
+  runWasiCLIOutputingText: Wasm['runWasiCLIOutputingText'];
 }): RepresentationTransform => {
   const transform: RepresentationTransform['transform'] = async ({
     from,
     to,
     input,
   }) => {
-    const output = await runWasiCLI({
+    const output = await runWasiCLIOutputingText({
       type: cliTypes.HS_LIB,
       args: [
         'v2-hs-lib',
-        'convert',
+        'convertToText',
         '--from',
         representationToCliArg(from),
         '--to',

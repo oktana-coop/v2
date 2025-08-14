@@ -44,36 +44,49 @@ export const createAdapter = async (): Promise<Wasm> => {
   // Load all WASM modules during adapter creation
   const wasmCLIModules = await loadWasmCLIModules();
 
+  const runWasiCLI = async ({
+    type,
+    args,
+  }: RunWasiCLIArgs): Promise<Buffer<ArrayBufferLike>> => {
+    // Create a temporary file to capture WASI output.
+    // This is needed because the WASI constructor takes a file descriptor, not a stream.
+    const tempFileName = `wasi-output-${uuidv4()}.tmp`;
+    const tempFilePath = join(tmpdir(), tempFileName);
+    const tempFileHandle = await open(tempFilePath, 'w+');
+
+    const wasi = new WASI({
+      version: 'preview1',
+      args,
+      env: {},
+      stdout: tempFileHandle.fd,
+    });
+
+    const instance = await WebAssembly.instantiate(wasmCLIModules[type], {
+      wasi_snapshot_preview1: wasi.wasiImport,
+    });
+
+    wasi.start(instance);
+
+    await tempFileHandle.close();
+
+    const buffer = await readFile(tempFilePath);
+
+    // Clean up: delete the temporary file
+    await unlink(tempFilePath).catch(console.error);
+
+    return buffer;
+  };
+
+  const runWasiCLIOutputingText: Wasm['runWasiCLIOutputingText'] = async (
+    args
+  ) => {
+    const binaryResult = await runWasiCLI(args);
+    const output = new TextDecoder().decode(binaryResult);
+    return output;
+  };
+
   return {
-    runWasiCLI: async ({ type, args }: RunWasiCLIArgs) => {
-      // Create a temporary file to capture WASI output.
-      // This is needed because the WASI constructor takes a file descriptor, not a stream.
-      const tempFileName = `wasi-output-${uuidv4()}.tmp`;
-      const tempFilePath = join(tmpdir(), tempFileName);
-      const tempFileHandle = await open(tempFilePath, 'w+');
-
-      const wasi = new WASI({
-        version: 'preview1',
-        args,
-        env: {},
-        stdout: tempFileHandle.fd,
-      });
-
-      const instance = await WebAssembly.instantiate(wasmCLIModules[type], {
-        wasi_snapshot_preview1: wasi.wasiImport,
-      });
-
-      wasi.start(instance);
-
-      await tempFileHandle.close();
-
-      const buffer = await readFile(tempFilePath);
-      const output = new TextDecoder().decode(buffer);
-
-      // Clean up: delete the temporary file
-      await unlink(tempFilePath).catch(console.error);
-
-      return output;
-    },
+    runWasiCLIOutputingText,
+    runWasiCLIOutputingBinary: runWasiCLI,
   };
 };

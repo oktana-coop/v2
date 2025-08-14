@@ -1,7 +1,14 @@
+import { cliOutputTypes } from '../../constants';
 import { cliTypes, type WasmCLIType } from '../../constants/cli-types';
 import hsLib from '../../files/v2-hs-lib.wasm?url';
 import type { RunWasiCLIArgs, Wasm } from '../../ports/wasm';
-import type { RunWasiCLIMessage } from './wasi-cli-worker/types';
+import {
+  isSuccessBinaryResult,
+  isSuccessTextResult,
+  type RunWasiCLIBinaryResult,
+  type RunWasiCLIMessage,
+  type RunWasiCLITextResult,
+} from './wasi-cli-worker/types';
 
 // Using a web worker because the WASM file has a big size and
 // we don't want to block the main thread when initializing it.
@@ -46,36 +53,78 @@ export const createAdapter = async (): Promise<Wasm> => {
   // This way, the worker's response is matched to the correct promise.
   let messageId = 0; // Unique ID for each message
 
-  return {
-    runWasiCLI: async ({ type, args }: RunWasiCLIArgs) => {
-      return new Promise((resolve, reject) => {
-        const currentMessageId = messageId++;
+  const runWasiCLIOutputingText: Wasm['runWasiCLIOutputingText'] = async ({
+    type,
+    args,
+  }: RunWasiCLIArgs) => {
+    return new Promise((resolve, reject) => {
+      const currentMessageId = messageId++;
 
-        const handleMessage = (event: MessageEvent) => {
-          const { messageId, success, output, error } = event.data;
+      const handleMessage = (event: MessageEvent) => {
+        const result = event.data as RunWasiCLITextResult;
 
-          if (messageId === currentMessageId) {
-            worker.removeEventListener('message', handleMessage); // Clean up listener
-            if (success) {
-              resolve(output);
-            } else {
-              reject(new Error(error));
-            }
+        if (result.messageId === currentMessageId) {
+          worker.removeEventListener('message', handleMessage); // Clean up listener
+          if (isSuccessTextResult(result)) {
+            resolve(result.output);
+          } else {
+            reject(new Error(result.errorMessage));
           }
-        };
+        }
+      };
 
-        // Listen for messages from the worker
-        worker.addEventListener('message', handleMessage);
+      // Listen for messages from the worker
+      worker.addEventListener('message', handleMessage);
 
-        const message: RunWasiCLIMessage = {
-          messageId: currentMessageId,
-          wasmModule: wasmCLIModules[type],
-          args,
-        };
+      const message: RunWasiCLIMessage = {
+        messageId: currentMessageId,
+        wasmModule: wasmCLIModules[type],
+        args,
+        outputType: cliOutputTypes.TEXT,
+      };
 
-        // Post a message to the worker to start the WASI CLI execution
-        worker.postMessage(message);
-      });
-    },
+      // Post a message to the worker to start the WASI CLI execution
+      worker.postMessage(message);
+    });
+  };
+
+  const runWasiCLIOutputingBinary: Wasm['runWasiCLIOutputingBinary'] = async ({
+    type,
+    args,
+  }: RunWasiCLIArgs) => {
+    return new Promise((resolve, reject) => {
+      const currentMessageId = messageId++;
+
+      const handleMessage = (event: MessageEvent) => {
+        const result = event.data as RunWasiCLIBinaryResult;
+
+        if (result.messageId === currentMessageId) {
+          worker.removeEventListener('message', handleMessage); // Clean up listener
+          if (isSuccessBinaryResult(result)) {
+            resolve(result.output);
+          } else {
+            reject(new Error(result.errorMessage));
+          }
+        }
+      };
+
+      // Listen for messages from the worker
+      worker.addEventListener('message', handleMessage);
+
+      const message: RunWasiCLIMessage = {
+        messageId: currentMessageId,
+        wasmModule: wasmCLIModules[type],
+        args,
+        outputType: cliOutputTypes.TEXT,
+      };
+
+      // Post a message to the worker to start the WASI CLI execution
+      worker.postMessage(message);
+    });
+  };
+
+  return {
+    runWasiCLIOutputingText,
+    runWasiCLIOutputingBinary,
   };
 };

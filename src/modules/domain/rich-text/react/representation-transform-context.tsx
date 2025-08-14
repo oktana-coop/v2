@@ -18,17 +18,17 @@ export const RepresentationTransformProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { runWasiCLI } = useContext(WasmContext);
+  const { runWasiCLIOutputingText } = useContext(WasmContext);
 
   const [adapter, setAdapter] = useState<RepresentationTransform | null>(null);
 
   useEffect(() => {
     const automergePandocAdapter = createAutomergePandocAdapter({
-      runWasiCLI,
+      runWasiCLIOutputingText,
     });
 
     setAdapter(automergePandocAdapter);
-  }, [runWasiCLI]);
+  }, [runWasiCLIOutputingText]);
 
   return (
     <RepresentationTransformContext.Provider
