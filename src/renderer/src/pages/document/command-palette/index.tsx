@@ -93,6 +93,12 @@ export const DocumentCommandPalette = ({
                   ),
                 },
                 {
+                  name: 'Export to PDF',
+                  onActionSelection: exportToBinary(
+                    richTextRepresentations.PDF
+                  ),
+                },
+                {
                   name: 'Export to Pandoc',
                   onActionSelection: exportToText(
                     richTextRepresentations.PANDOC
