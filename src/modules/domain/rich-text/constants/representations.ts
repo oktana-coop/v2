@@ -7,15 +7,27 @@ const HTML = 'HTML';
 const PROSEMIRROR = 'PROSEMIRROR';
 const DOCX = 'DOCX';
 
-export const richTextRepresentations = {
+export const textRichTextRepresentations = {
   AUTOMERGE,
   PANDOC,
   MARKDOWN,
   HTML,
   PROSEMIRROR,
-  DOCX,
 } as const;
 
+export const binaryRichTextRepresentations = { DOCX } as const;
+
+export const richTextRepresentations = {
+  ...textRichTextRepresentations,
+  ...binaryRichTextRepresentations,
+} as const;
+
+export type TextRichTextRepresentation = ValueOf<
+  typeof textRichTextRepresentations
+>;
+export type BinaryRichTextRepresentation = ValueOf<
+  typeof binaryRichTextRepresentations
+>;
 export type RichTextRepresentation = ValueOf<typeof richTextRepresentations>;
 
 export const richTextRepresentationExtensions = {

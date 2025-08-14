@@ -11,14 +11,15 @@ import { useNavigate, useParams, useSearchParams } from 'react-router';
 
 import { projectTypes } from '../../../../modules/domain/project';
 import {
+  type BinaryRichTextRepresentation,
   type GetDocumentHandleAtCommitArgs,
   getSpansString,
   type IsContentSameAtHeadsArgs,
   isEmpty,
   registerLiveUpdates,
   type RichTextDocument,
-  RichTextRepresentation,
   richTextRepresentations,
+  type TextRichTextRepresentation,
   unregisterLiveUpdates,
   type VersionedDocument,
   type VersionedDocumentHandle,
@@ -107,9 +108,11 @@ export type CurrentDocumentContextType = {
     args: GetDocumentHandleAtCommitArgs
   ) => Promise<VersionedDocumentHandle>;
   isContentSameAtHeads: (args: IsContentSameAtHeadsArgs) => boolean;
-  getExportText: (representation: RichTextRepresentation) => Promise<string>;
+  getExportText: (
+    representation: TextRichTextRepresentation
+  ) => Promise<string>;
   getExportBinaryData: (
-    representation: RichTextRepresentation
+    representation: BinaryRichTextRepresentation
   ) => Promise<Uint8Array>;
 };
 
@@ -420,7 +423,7 @@ export const CurrentDocumentProvider = ({
   );
 
   const exportToTextRepresentation = async (
-    representation: RichTextRepresentation
+    representation: TextRichTextRepresentation
   ) => {
     if (!versionedDocumentStore) {
       throw new Error('Versioned document store not ready yet.');
@@ -452,7 +455,7 @@ export const CurrentDocumentProvider = ({
   };
 
   const exportToBinaryRepresentation = async (
-    representation: RichTextRepresentation
+    representation: BinaryRichTextRepresentation
   ) => {
     if (!versionedDocumentStore) {
       throw new Error('Versioned document store not ready yet.');

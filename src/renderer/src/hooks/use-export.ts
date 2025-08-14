@@ -2,8 +2,9 @@ import * as Effect from 'effect/Effect';
 import { useContext } from 'react';
 
 import {
-  RichTextRepresentation,
+  type BinaryRichTextRepresentation,
   richTextRepresentationExtensions,
+  type TextRichTextRepresentation,
 } from '../../../modules/domain/rich-text';
 import { removeExtension } from '../../../modules/infrastructure/filesystem';
 import {
@@ -19,22 +20,23 @@ export const useExport = () => {
   );
   const { filesystem } = useContext(InfrastructureAdaptersContext);
 
-  const exportToText = (representation: RichTextRepresentation) => async () => {
-    const exportText = await getExportText(representation);
+  const exportToText =
+    (representation: TextRichTextRepresentation) => async () => {
+      const exportText = await getExportText(representation);
 
-    await Effect.runPromise(
-      filesystem.createNewFile({
-        suggestedName: currentDocumentName
-          ? removeExtension(currentDocumentName)
-          : undefined,
-        extensions: [richTextRepresentationExtensions[representation]],
-        content: exportText,
-      })
-    );
-  };
+      await Effect.runPromise(
+        filesystem.createNewFile({
+          suggestedName: currentDocumentName
+            ? removeExtension(currentDocumentName)
+            : undefined,
+          extensions: [richTextRepresentationExtensions[representation]],
+          content: exportText,
+        })
+      );
+    };
 
   const exportToBinary =
-    (representation: RichTextRepresentation) => async () => {
+    (representation: BinaryRichTextRepresentation) => async () => {
       const exportText = await getExportBinaryData(representation);
 
       await Effect.runPromise(
