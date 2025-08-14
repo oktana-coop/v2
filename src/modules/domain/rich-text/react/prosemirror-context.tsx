@@ -102,7 +102,7 @@ export const ProseMirrorProvider = ({
       );
     }
 
-    const result = await representationTransformAdapter.transform({
+    const result = await representationTransformAdapter.transformToText({
       from: richTextRepresentations.AUTOMERGE,
       to: richTextRepresentations.PROSEMIRROR,
       input: args.spans,
@@ -135,7 +135,7 @@ export const ProseMirrorProvider = ({
       );
     }
 
-    const result = await representationTransformAdapter.transform({
+    const result = await representationTransformAdapter.transformToText({
       from: richTextRepresentations.MARKDOWN,
       to: richTextRepresentations.PROSEMIRROR,
       input,

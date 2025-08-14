@@ -18,13 +18,15 @@ export const RepresentationTransformProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { runWasiCLIOutputingText } = useContext(WasmContext);
+  const { runWasiCLIOutputingText, runWasiCLIOutputingBinary } =
+    useContext(WasmContext);
 
   const [adapter, setAdapter] = useState<RepresentationTransform | null>(null);
 
   useEffect(() => {
     const automergePandocAdapter = createAutomergePandocAdapter({
       runWasiCLIOutputingText,
+      runWasiCLIOutputingBinary,
     });
 
     setAdapter(automergePandocAdapter);

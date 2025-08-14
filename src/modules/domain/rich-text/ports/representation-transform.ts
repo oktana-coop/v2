@@ -7,5 +7,6 @@ export type TransformArgs = {
 };
 
 export type RepresentationTransform = {
-  transform: (args: TransformArgs) => Promise<string>;
+  transformToText: (args: TransformArgs) => Promise<string>;
+  transformToBinary: (args: TransformArgs) => Promise<Uint8Array>;
 };

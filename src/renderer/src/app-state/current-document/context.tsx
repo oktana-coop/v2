@@ -108,6 +108,9 @@ export type CurrentDocumentContextType = {
   ) => Promise<VersionedDocumentHandle>;
   isContentSameAtHeads: (args: IsContentSameAtHeadsArgs) => boolean;
   getExportText: (representation: RichTextRepresentation) => Promise<string>;
+  getExportBinaryData: (
+    representation: RichTextRepresentation
+  ) => Promise<Uint8Array>;
 };
 
 export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
@@ -125,6 +128,8 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     // @ts-expect-error will get overriden below
     getDocumentHandleAtCommit: async () => null,
     getExportText: async () => '',
+    // @ts-expect-error will get overriden below
+    getExportBinaryData: async () => null,
   }
 );
 
@@ -437,7 +442,39 @@ export const CurrentDocumentProvider = ({
       versionedDocumentStore.getDocumentFromHandle(versionedDocumentHandle)
     );
 
-    const str = await representationTransformAdapter.transform({
+    const str = await representationTransformAdapter.transformToText({
+      from: richTextRepresentations.AUTOMERGE,
+      to: representation,
+      input: getSpansString(document),
+    });
+
+    return str;
+  };
+
+  const exportToBinaryRepresentation = async (
+    representation: RichTextRepresentation
+  ) => {
+    if (!versionedDocumentStore) {
+      throw new Error('Versioned document store not ready yet.');
+    }
+
+    if (!representationTransformAdapter) {
+      throw new Error(
+        'No representation transform adapter found when trying to convert to Markdown'
+      );
+    }
+
+    if (!versionedDocumentHandle) {
+      throw new Error(
+        'No versioned document handle found when trying to export to Markdown'
+      );
+    }
+
+    const document = await Effect.runPromise(
+      versionedDocumentStore.getDocumentFromHandle(versionedDocumentHandle)
+    );
+
+    const str = await representationTransformAdapter.transformToBinary({
       from: richTextRepresentations.AUTOMERGE,
       to: representation,
       input: getSpansString(document),
@@ -462,6 +499,7 @@ export const CurrentDocumentProvider = ({
         getDocumentHandleAtCommit: handleGetDocumentHandleAtCommit,
         isContentSameAtHeads: handleIsContentSameAtHeads,
         getExportText: exportToTextRepresentation,
+        getExportBinaryData: exportToBinaryRepresentation,
       }}
     >
       {children}

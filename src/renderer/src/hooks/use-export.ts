@@ -12,12 +12,14 @@ import {
 } from '../app-state';
 import { useCurrentDocumentName } from './use-current-document-name';
 
-export const useTextExport = () => {
+export const useExport = () => {
   const currentDocumentName = useCurrentDocumentName();
-  const { getExportText } = useContext(CurrentDocumentContext);
+  const { getExportText, getExportBinaryData } = useContext(
+    CurrentDocumentContext
+  );
   const { filesystem } = useContext(InfrastructureAdaptersContext);
 
-  const exportTo = (representation: RichTextRepresentation) => async () => {
+  const exportToText = (representation: RichTextRepresentation) => async () => {
     const exportText = await getExportText(representation);
 
     await Effect.runPromise(
@@ -31,7 +33,23 @@ export const useTextExport = () => {
     );
   };
 
+  const exportToBinary =
+    (representation: RichTextRepresentation) => async () => {
+      const exportText = await getExportBinaryData(representation);
+
+      await Effect.runPromise(
+        filesystem.createNewFile({
+          suggestedName: currentDocumentName
+            ? removeExtension(currentDocumentName)
+            : undefined,
+          extensions: [richTextRepresentationExtensions[representation]],
+          content: exportText,
+        })
+      );
+    };
+
   return {
-    exportTo,
+    exportToText,
+    exportToBinary,
   };
 };
