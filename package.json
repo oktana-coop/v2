@@ -32,7 +32,8 @@
     "files": [
       "dist/**/*",
       "package.json",
-      "!**/*.map"
+      "!**/*.map",
+      "!**/node_modules/@swc/**"
     ],
     "mac": {
       "icon": "public/macos-dock-icon.png"
