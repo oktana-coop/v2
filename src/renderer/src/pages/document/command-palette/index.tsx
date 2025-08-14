@@ -86,16 +86,10 @@ export const DocumentCommandPalette = ({
                   onActionSelection: exportToText(richTextRepresentations.HTML),
                 },
                 {
-                  name: 'Export to Microsoft Word (Docx)',
+                  name: 'Export to Docx (Microsoft Word)',
                   shortcut: 'W',
                   onActionSelection: exportToBinary(
                     richTextRepresentations.DOCX
-                  ),
-                },
-                {
-                  name: 'Export to PDF',
-                  onActionSelection: exportToBinary(
-                    richTextRepresentations.PDF
                   ),
                 },
                 {
