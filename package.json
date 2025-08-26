@@ -30,7 +30,15 @@
       "output": "bin"
     },
     "mac": {
-      "icon": "public/macos-dock-icon.png"
+      "icon": "public/macos-dock-icon.png",
+      "fileAssociations": [
+        {
+          "ext": "v2",
+          "name": "v2",
+          "role": "Editor",
+          "icon": "public/v2.icns"
+        }
+      ]
     }
   },
   "dependencies": {
