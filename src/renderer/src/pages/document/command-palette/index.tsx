@@ -41,7 +41,7 @@ export const DocumentCommandPalette = ({
       ? handleDocumentSelectionInMultiDocumentProject
       : handleDocumentSelectionInSingleDocumentProject;
 
-  const { exportToText, exportToBinary } = useExport();
+  const { exportToText, exportToBinary, exportToPDF } = useExport();
 
   const singleDocumentProjectActions = [
     {
@@ -91,6 +91,11 @@ export const DocumentCommandPalette = ({
                   onActionSelection: exportToBinary(
                     richTextRepresentations.DOCX
                   ),
+                },
+                {
+                  name: 'Export to PDF',
+                  shortcut: 'P',
+                  onActionSelection: exportToPDF,
                 },
                 {
                   name: 'Export to Pandoc',

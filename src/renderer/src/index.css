@@ -15,7 +15,7 @@ body {
 
 /* Override paragraph styles in prosemirror lists */
 .ProseMirror li p {
-  margin-bottom: 0.25rem;
+  margin: 0;
 }
 
 /* A separator and a trailing break appear after the diff deletion widgets if we don't do this. */
