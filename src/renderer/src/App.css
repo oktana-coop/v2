@@ -17,3 +17,7 @@
   overflow-x: hidden;
   text-align: left;
 }
+
+.editor {
+  margin-bottom: 50vh;
+}
