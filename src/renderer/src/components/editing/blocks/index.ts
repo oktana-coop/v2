@@ -14,8 +14,8 @@ export const codeBlock =
 export const blockquote =
   'block text-base/loose pl-4 border-l-4 border-black/10 dark:border-white/20 mb-4';
 
-export const bulletList = 'list-disc list-outside pl-5 mb-4';
+export const bulletList = 'list-disc pl-6 mb-4';
 
-export const orderedList = 'list-decimal list-outside pl-5 mb-4';
+export const orderedList = 'list-decimal pl-6 mb-4';
 
 export const noteContent = 'block text-sm mb-4';

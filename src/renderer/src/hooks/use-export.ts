@@ -4,6 +4,7 @@ import { useContext } from 'react';
 
 import {
   type BinaryRichTextRepresentation,
+  binaryRichTextRepresentations,
   richTextRepresentationExtensions,
   type TextRichTextRepresentation,
 } from '../../../modules/domain/rich-text';
@@ -116,8 +117,10 @@ export const useExport = () => {
       }
     `;
 
-    // Prepend the style to the cloned element
     clonedElement.insertBefore(style, clonedElement.firstChild);
+
+    // HACK: Certain elements (like lists and code blocks) are rendered with a wrong
+    // alignment, text shows lower than expected. The line below seems to fix it.
     // https://github.com/eKoopmans/html2pdf.js/issues/624#issuecomment-1570024244
     clonedElement.insertAdjacentHTML(
       'beforeend',
@@ -149,13 +152,16 @@ export const useExport = () => {
     const arrayBuffer = await pdfBlob.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
 
-    // Use the same filesystem dialog as other exports
+    const suggestedName = currentDocumentName
+      ? removeExtension(currentDocumentName)
+      : 'document';
+
     await Effect.runPromise(
       filesystem.createNewFile({
-        suggestedName: currentDocumentName
-          ? removeExtension(currentDocumentName)
-          : 'document',
-        extensions: ['pdf'],
+        suggestedName,
+        extensions: [
+          richTextRepresentationExtensions[binaryRichTextRepresentations.PDF],
+        ],
         content: uint8Array,
       })
     );

@@ -6,6 +6,7 @@ const MARKDOWN = 'MARKDOWN';
 const HTML = 'HTML';
 const PROSEMIRROR = 'PROSEMIRROR';
 const DOCX = 'DOCX';
+const PDF = 'PDF';
 
 export const textRichTextRepresentations = {
   AUTOMERGE,
@@ -15,7 +16,7 @@ export const textRichTextRepresentations = {
   PROSEMIRROR,
 } as const;
 
-export const binaryRichTextRepresentations = { DOCX } as const;
+export const binaryRichTextRepresentations = { DOCX, PDF } as const;
 
 export const richTextRepresentations = {
   ...textRichTextRepresentations,
@@ -37,4 +38,5 @@ export const richTextRepresentationExtensions = {
   HTML: 'html',
   PROSEMIRROR: 'json',
   DOCX: 'docx',
+  PDF: 'pdf',
 };
