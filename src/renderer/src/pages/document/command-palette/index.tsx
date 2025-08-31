@@ -79,8 +79,9 @@ export const DocumentCommandPalette = ({
                 {
                   name: 'Export to Markdown',
                   shortcut: 'M',
-                  onActionSelection: () =>
-                    exportToText(richTextRepresentations.MARKDOWN),
+                  onActionSelection: exportToText(
+                    richTextRepresentations.MARKDOWN
+                  ),
                 },
                 {
                   name: 'Export to HTML',
