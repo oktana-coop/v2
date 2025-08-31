@@ -22,13 +22,19 @@
   },
   "build": {
     "appId": "dev.oktana.v2",
-    "files": [
-      "dist/**/*",
-      "package.json"
-    ],
+    "compression": "normal",
     "directories": {
       "output": "bin"
     },
+    "electronLanguages": [
+      "en-US"
+    ],
+    "files": [
+      "dist/**/*",
+      "package.json",
+      "!**/*.map",
+      "!**/node_modules/@swc/**"
+    ],
     "mac": {
       "icon": "public/macos-dock-icon.png",
       "fileAssociations": [
