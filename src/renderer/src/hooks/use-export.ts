@@ -6,6 +6,7 @@ import {
   type BinaryRichTextRepresentation,
   binaryRichTextRepresentations,
   richTextRepresentationExtensions,
+  richTextRepresentations,
   type TextRichTextRepresentation,
 } from '../../../modules/domain/rich-text';
 import { removeExtension } from '../../../modules/infrastructure/filesystem';
@@ -53,6 +54,83 @@ export const useExport = () => {
     };
 
   const exportToPDF = async () => {
+    async function printPagedHTML(htmlString: string) {
+      const fullHTML = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <script src="https://unpkg.com/pagedjs/dist/paged.polyfill.js"></script>
+        <style>
+          @page { size: A4; margin: 2cm; }
+          body { font-family: Arial, sans-serif; }
+        </style>
+      </head>
+      <body>
+        ${htmlString}
+      </body>
+    </html>
+  `;
+
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'absolute';
+      iframe.style.left = '-9999px';
+      iframe.style.width = '210mm';
+      iframe.style.height = '297mm';
+      iframe.srcdoc = fullHTML;
+
+      document.body.appendChild(iframe);
+
+      return new Promise<void>((resolve, reject) => {
+        iframe.onload = () => {
+          try {
+            // Wait for PagedJS to process
+            const checkPagedJS = () => {
+              if (iframe.contentWindow && iframe.contentDocument) {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+
+                const cleanup = () => {
+                  document.body.removeChild(iframe);
+                  resolve();
+                };
+
+                iframe.contentWindow.addEventListener('afterprint', cleanup, {
+                  once: true,
+                });
+              } else {
+                reject(new Error('Cannot access iframe content'));
+              }
+            };
+
+            // Small delay to let PagedJS initialize
+            if (iframe.contentDocument?.readyState === 'complete') {
+              checkPagedJS();
+            } else {
+              iframe.contentDocument?.addEventListener(
+                'readystatechange',
+                () => {
+                  if (iframe.contentDocument?.readyState === 'complete') {
+                    checkPagedJS();
+                  }
+                }
+              );
+            }
+          } catch (error) {
+            reject(error);
+          }
+        };
+
+        iframe.onerror = () => reject(new Error('Iframe failed to load'));
+      });
+    }
+
+    const html = await getExportText(richTextRepresentations.HTML);
+
+    await printPagedHTML(html);
+  };
+
+  const exportToPDFOld = async () => {
     const originalElement = document.getElementById('editor');
     if (!originalElement) {
       throw new Error('Editor element not found for PDF export');
