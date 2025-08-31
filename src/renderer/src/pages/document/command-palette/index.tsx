@@ -25,10 +25,14 @@ export const DocumentCommandPalette = ({
     useState<boolean>(false);
   const { projectType } = useContext(CurrentProjectContext);
   const { canCommit, onOpenCommitDialog } = useContext(CurrentDocumentContext);
+
+  // here we register the key bindings that are not
+  // already covered by the command palette
+  // as the command palette is registering its actions with shortcuts
   useKeyBindings({
     'ctrl+k': () => setCommandPaletteOpen((state) => !state),
-    'ctrl+d': () => onCreateDocument(),
   });
+
   const handleDocumentSelectionInMultiDocumentProject =
     useDocumentSelectionInMultiDocumentProject();
   const handleDocumentSelectionInSingleDocumentProject =
@@ -67,7 +71,6 @@ export const DocumentCommandPalette = ({
                         name: 'Commit changes',
                         shortcut: 'S',
                         onActionSelection: () => {
-                          console.log('Commit changes action selected');
                           onOpenCommitDialog();
                         },
                       },
@@ -76,9 +79,9 @@ export const DocumentCommandPalette = ({
                 {
                   name: 'Export to Markdown',
                   shortcut: 'M',
-                  onActionSelection: exportToText(
-                    richTextRepresentations.MARKDOWN
-                  ),
+                  onActionSelection: () => {
+                    exportToText(richTextRepresentations.MARKDOWN);
+                  },
                 },
                 {
                   name: 'Export to HTML',

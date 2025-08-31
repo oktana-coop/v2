@@ -11,6 +11,8 @@ import {
 import { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
+import { useKeyBindings } from '../../../hooks';
+
 const NoMatchingResults = () => {
   return (
     <div className="px-6 py-14 text-center sm:px-14">
@@ -58,10 +60,19 @@ export const CommandPalette = ({
   onClose,
   documentsGroupTitle,
   documents,
-  actions,
+  actions = [],
   contextualSection,
 }: CommandPaletteProps) => {
   const [query, setQuery] = useState('');
+
+  const actionsKeyBindings = actions
+    .filter((action) => action.shortcut)
+    .map((action) => ({
+      [`ctrl+${action.shortcut!.toLowerCase()}`]: action.onActionSelection,
+    }))
+    .reduce((acc, curr) => ({ ...acc, ...curr }), {});
+
+  useKeyBindings(actionsKeyBindings);
 
   const filteredDocuments =
     query === ''
