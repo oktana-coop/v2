@@ -71,6 +71,7 @@ export const RichTextEditor = ({
   isToolbarOpen = false,
 }: RichTextEditorProps) => {
   const editorRoot = useRef<HTMLDivElement>(null);
+  const editorViewRef = useRef<EditorView | null>(null);
   const { schema, view, setView, setSchema, parseMarkdown } =
     useContext(ProseMirrorContext);
   const [leafBlockType, setLeafBlockType] = useState<LeafBlockType | null>(
@@ -181,6 +182,9 @@ export const RichTextEditor = ({
         },
         editable: () => isEditable,
       });
+
+      editorViewRef.current = view;
+
       numberNotes(state, view.dispatch, view);
 
       setView(view);
@@ -344,8 +348,11 @@ export const RichTextEditor = ({
 
   return (
     <>
-      <div className="flex flex-auto p-4 outline-none">
-        <div className="flex-auto" id="editor" ref={editorRoot} />
+      <div
+        className="flex flex-auto p-4 outline-none"
+        onClick={() => editorViewRef.current?.focus()}
+      >
+        <div className="editor flex-auto" id="editor" ref={editorRoot} />
       </div>
 
       {isEditable && leafBlockType && (
