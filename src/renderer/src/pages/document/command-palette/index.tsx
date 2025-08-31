@@ -28,7 +28,7 @@ export const DocumentCommandPalette = ({
 
   // here we register the key bindings that are not
   // already covered by the command palette
-  // as the command palette is registering its actions with shortcuts
+  // as the command palette is registering any actions having shortcuts
   useKeyBindings({
     'ctrl+k': () => setCommandPaletteOpen((state) => !state),
   });
@@ -65,23 +65,22 @@ export const DocumentCommandPalette = ({
           ? {
               groupTitle: `Current document: ${currentDocumentName}`,
               actions: [
-                ...(canCommit
-                  ? [
-                      {
-                        name: 'Commit changes',
-                        shortcut: 'S',
-                        onActionSelection: () => {
-                          onOpenCommitDialog();
-                        },
-                      },
-                    ]
-                  : []),
+                {
+                  name: 'Commit changes',
+                  shortcut: 'S',
+                  onActionSelection: () => {
+                    if (canCommit) {
+                      return onOpenCommitDialog();
+                    }
+                    // TODO: display a toast notification sort of type
+                    alert('All saved! No changes to commit!');
+                  },
+                },
                 {
                   name: 'Export to Markdown',
                   shortcut: 'M',
-                  onActionSelection: () => {
-                    exportToText(richTextRepresentations.MARKDOWN);
-                  },
+                  onActionSelection: () =>
+                    exportToText(richTextRepresentations.MARKDOWN),
                 },
                 {
                   name: 'Export to HTML',

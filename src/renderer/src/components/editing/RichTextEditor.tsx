@@ -134,10 +134,6 @@ export const RichTextEditor = ({
         keymap({
           'Mod-b': toggleStrong(schema),
           'Mod-i': toggleEm(schema),
-          'Mod-s': () => {
-            onSave();
-            return true;
-          },
           'Mod-z': undo,
           'Mod-y': redo,
           'Shift-Mod-z': redo,
