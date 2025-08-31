@@ -64,26 +64,14 @@ export const CommandPalette = ({
   contextualSection,
 }: CommandPaletteProps) => {
   const [query, setQuery] = useState('');
-
-  const actionsKeyBindings = actions
+  const allActions = [...actions, ...(contextualSection?.actions || [])];
+  const actionsKeyBindings = allActions
     .filter((action) => action.shortcut)
     .map((action) => ({
       [`ctrl+${action.shortcut!.toLowerCase()}`]: action.onActionSelection,
     }))
     .reduce((acc, curr) => ({ ...acc, ...curr }), {});
-  const contextualActionsKeyBindings = contextualSection
-    ? contextualSection.actions
-        .filter((action) => action.shortcut)
-        .map((action) => ({
-          [`ctrl+${action.shortcut!.toLowerCase()}`]: action.onActionSelection,
-        }))
-        .reduce((acc, curr) => ({ ...acc, ...curr }), {})
-    : {};
-
-  useKeyBindings({
-    ...actionsKeyBindings,
-    ...contextualActionsKeyBindings,
-  });
+  useKeyBindings(actionsKeyBindings);
 
   const filteredDocuments =
     query === ''
