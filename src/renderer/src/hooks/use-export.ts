@@ -1,5 +1,7 @@
 import * as Effect from 'effect/Effect';
 import html2pdf from 'html2pdf.js';
+// @ts-expect-error No types available in pagedjs
+import { Previewer } from 'pagedjs';
 import { useContext } from 'react';
 
 import {
@@ -55,78 +57,46 @@ export const useExport = () => {
 
   const exportToPDF = async () => {
     async function printPagedHTML(htmlString: string) {
-      const fullHTML = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <script src="https://unpkg.com/pagedjs/dist/paged.polyfill.js"></script>
-        <style>
-          @page { size: A4; margin: 2cm; }
-          body { font-family: Arial, sans-serif; }
-        </style>
-      </head>
-      <body>
-        ${htmlString}
-      </body>
-    </html>
-  `;
-
       const iframe = document.createElement('iframe');
       iframe.style.position = 'absolute';
       iframe.style.left = '-9999px';
-      iframe.style.width = '210mm';
-      iframe.style.height = '297mm';
-      iframe.srcdoc = fullHTML;
-
       document.body.appendChild(iframe);
 
-      return new Promise<void>((resolve, reject) => {
-        iframe.onload = () => {
-          try {
-            // Wait for PagedJS to process
-            const checkPagedJS = () => {
-              if (iframe.contentWindow && iframe.contentDocument) {
-                iframe.contentWindow.focus();
-                iframe.contentWindow.print();
-
-                const cleanup = () => {
-                  document.body.removeChild(iframe);
-                  resolve();
-                };
-
-                iframe.contentWindow.addEventListener('afterprint', cleanup, {
-                  once: true,
-                });
-              } else {
-                reject(new Error('Cannot access iframe content'));
-              }
-            };
-
-            // Small delay to let PagedJS initialize
-            if (iframe.contentDocument?.readyState === 'complete') {
-              checkPagedJS();
-            } else {
-              iframe.contentDocument?.addEventListener(
-                'readystatechange',
-                () => {
-                  if (iframe.contentDocument?.readyState === 'complete') {
-                    checkPagedJS();
-                  }
+      const iframeDoc = iframe.contentDocument;
+      if (iframeDoc) {
+        iframeDoc.documentElement.innerHTML = `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8">
+              <style>
+                @page {
+                  size: A4;
+                  margin: 2cm;
                 }
-              );
-            }
-          } catch (error) {
-            reject(error);
-          }
-        };
+              </style>
+            </head>
+            <body></body>
+          </html>
+        `;
+      }
 
-        iframe.onerror = () => reject(new Error('Iframe failed to load'));
-      });
+      const container = document.createElement('div');
+      container.innerHTML = htmlString;
+
+      const previewer = new Previewer();
+      const flow = await previewer.preview(
+        htmlString,
+        [],
+        iframe.contentDocument?.body ?? undefined
+      );
+      console.log('Pagination done:', flow.total, 'pages');
+
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
     }
 
     const html = await getExportText(richTextRepresentations.HTML);
-
     await printPagedHTML(html);
   };
 
