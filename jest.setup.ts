@@ -5,6 +5,7 @@ import '@testing-library/jest-dom';
 import { TextDecoder, TextEncoder } from 'node:util';
 
 if (typeof global.TextEncoder === 'undefined') {
+  // @ts-expect-error TextEncoder type mismatch
   global.TextEncoder = TextEncoder;
 }
 if (typeof global.TextDecoder === 'undefined') {

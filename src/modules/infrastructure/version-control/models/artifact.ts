@@ -1,4 +1,4 @@
-import { next as Automerge } from '@automerge/automerge/slim';
+import * as Automerge from '@automerge/automerge/slim';
 import {
   type DocHandle as AutomergeDocHandle,
   type DocHandleChangePayload as AutomergeDocHandleChangePayload,
