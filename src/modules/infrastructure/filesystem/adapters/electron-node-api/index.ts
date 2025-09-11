@@ -65,11 +65,28 @@ const showSaveDialog = ({
 }: {
   suggestedName?: string;
   extensions: Array<string>;
-}): Effect.Effect<Electron.SaveDialogReturnValue, AbortError, never> =>
-  pipe(
+}): Effect.Effect<Electron.SaveDialogReturnValue, AbortError, never> => {
+  const getDefaultPath = ({
+    name,
+    exts,
+  }: {
+    name?: string;
+    exts: Array<string>;
+  }): string => {
+    const baseName = name && name.trim().length > 0 ? name : 'untitled';
+
+    const ext = exts && exts.length > 0 ? exts[0] : '';
+    return ext && !baseName.endsWith(`.${ext}`)
+      ? `${baseName}.${ext}`
+      : baseName;
+  };
+
+  return pipe(
     Effect.promise(() =>
       dialog.showSaveDialog({
-        defaultPath: suggestedName,
+        // TODO: Replace with suggestedName or `untitled` when
+        // https://github.com/electron/electron/issues/48295 is fixed
+        defaultPath: getDefaultPath({ name: suggestedName, exts: extensions }),
         filters: extensions.map((ext) => ({
           name: `${ext} Files`,
           extensions: [ext],
@@ -82,6 +99,7 @@ const showSaveDialog = ({
         : Effect.succeed(undefined)
     )
   );
+};
 
 export const createAdapter = (): Filesystem => ({
   openDirectory: () =>
