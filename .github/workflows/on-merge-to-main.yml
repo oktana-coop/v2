@@ -50,6 +50,8 @@ jobs:
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install
+        env:
+          OKTANA_NPM_TOKEN: ${{ secrets.OKTANA_NPM_TOKEN }}
       - name: Build Electron app
         run: pnpm run build
       - name: Package Electron app
