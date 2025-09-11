@@ -1,6 +1,6 @@
 # v2
 
-v2 is a local-first rich-text editor with versioning capabilities.
+[v2](https://v2editor.com/) is a local-first rich-text editor with versioning capabilities.
 
 Built on top of [Automerge](https://automerge.org/), [ProseMirror](https://prosemirror.net/) and integrated with the [Pandoc](https://pandoc.org/) ecosystem.
 
@@ -90,15 +90,15 @@ To extract and inspect the `asar` file contents (example for Linux build), in a 
 pnpx @electron/asar extract bin/linux-unpacked/resources/app.asar test
 ```
 
-## Versioning 
+## Versioning
 
-`v2` leverages [Semantic Versioning](https://semver.org/) as part of its Continuous Integration stategy. 
+`v2` leverages [Semantic Versioning](https://semver.org/) as part of its Continuous Integration stategy.
 
-Semantic version, in a nutshell, is the `vMAJOR.MINOR.PATCH` (f.e. `v0.1.1`) found in most applications and websites nowadays, where 
+Semantic version, in a nutshell, is the `vMAJOR.MINOR.PATCH` (f.e. `v0.1.1`) found in most applications and websites nowadays, where
 
-* MAJOR version when you make incompatible API changes
-* MINOR version when you add functionality in a backward compatible manner
-* PATCH version when you make backward compatible bug fixes
+- MAJOR version when you make incompatible API changes
+- MINOR version when you add functionality in a backward compatible manner
+- PATCH version when you make backward compatible bug fixes
 
 Additionally, pre-release tags indicate alpha or beta software versions (as `v0.2.0-alpha` or `v5.9-beta.3`.)
 
