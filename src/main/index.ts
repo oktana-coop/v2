@@ -84,7 +84,7 @@ async function createWindow() {
     const macOSDockIcon = nativeImage.createFromPath(
       join(process.env.VITE_PUBLIC as string, 'macos-dock-icon.png')
     );
-    app.dock.setIcon(macOSDockIcon);
+    app.dock?.setIcon(macOSDockIcon);
   }
 
   const wasmAPI = await createNodeWasmAdapter();
