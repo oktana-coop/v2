@@ -82,5 +82,6 @@ jobs:
           name: Release ${{ needs.versioning.outputs.new_tag }}
           files: |
             ./artifacts/**/*
+          draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
