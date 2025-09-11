@@ -33,7 +33,7 @@ concurrency:
   group: deploying-new-version
 jobs:
   versioning:
-    if: github.event.pull_request.merged == true
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true }}
     runs-on: ubuntu-22.04
     permissions:
       contents: write
