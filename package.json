@@ -7,7 +7,10 @@
   "packageManager": "pnpm@10.15.0",
   "scripts": {
     "app:dir": "electron-builder --dir",
-    "app:dist": "electron-builder",
+    "package": "electron-builder",
+    "package:mac": "electron-builder --mac",
+    "package:win": "electron-builder --win",
+    "package:linux": "electron-builder --linux",
     "build": "electron-vite build --outDir=dist",
     "compile": "tsc",
     "dev": "electron-vite dev -w --outDir=dist",
@@ -43,6 +46,49 @@
           "name": "v2",
           "role": "Editor",
           "icon": "public/v2.icns"
+        }
+      ],
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
         }
       ]
     }
