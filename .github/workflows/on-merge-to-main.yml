@@ -49,7 +49,7 @@ jobs:
           node-version: 23
           cache: 'pnpm'
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile --shamefully-hoist
         env:
           OKTANA_NPM_TOKEN: ${{ secrets.OKTANA_NPM_TOKEN }}
       - name: Build Electron app
