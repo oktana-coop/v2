@@ -4,7 +4,7 @@ on:
     types:
       - closed
     branches:
-      - main
+      - test-release
 concurrency:
   group: deploying-new-version
 jobs:
