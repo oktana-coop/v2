@@ -1,10 +1,21 @@
-name: On merge to main
+name: Tag, Build and Release
 on:
   pull_request:
     types:
       - closed
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type'
+        required: false
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 concurrency:
   group: deploying-new-version
 jobs:
@@ -13,14 +24,17 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       contents: write
+    outputs:
+      new_tag: ${{ steps.tag.outputs.new_tag }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          ref: ${{ github.event.pull_request.merge_commit_sha || github.ref }}
           fetch-depth: '0'
       - name: Bump version and push tag
+        id: tag
         uses: anothrNick/github-tag-action@1.73.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_PREFIX: v
-          DEFAULT_BUMP: patch
+          DEFAULT_BUMP: ${{ github.event.inputs.bump_type || 'patch' }}
