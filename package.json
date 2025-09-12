@@ -45,6 +45,7 @@
       "!**/node_modules/@swc/**"
     ],
     "mac": {
+      "identity": null,
       "icon": "public/macos-dock-icon.png",
       "fileAssociations": [
         {
