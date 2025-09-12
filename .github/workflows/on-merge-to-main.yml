@@ -84,12 +84,35 @@ jobs:
         run: pnpm run package
         env:
           OKTANA_NPM_TOKEN: ${{ secrets.OKTANA_NPM_TOKEN }}
-      - name: Upload build artifacts
+
+      # OS-specific uploads
+      - name: Upload macOS artifacts
+        if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.os }}-build-${{ needs.versioning.outputs.new_tag }}
-          path: bin/
-          retention-days: 30
+          name: macos-build-${{ needs.versioning.outputs.new_tag }}
+          path: |
+            bin/*.dmg
+            bin/*.zip
+
+      - name: Upload Windows artifacts
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build-${{ needs.versioning.outputs.new_tag }}
+          path: |
+            bin/*.exe
+            bin/*.zip
+
+      - name: Upload Linux artifacts
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build-${{ needs.versioning.outputs.new_tag }}
+          path: |
+            bin/*.AppImage
+            bin/*.deb
+            bin/*.tar.gz
 
   release:
     needs: [versioning, build]
@@ -106,14 +129,24 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: ./artifacts
+      - name: Organize artifacts by OS
+        run: |
+          mkdir -p ./release-assets/macos
+          mkdir -p ./release-assets/windows
+          mkdir -p ./release-assets/linux
+
+          cp ./artifacts/macos-build-*/* ./release-assets/macos/ || true
+          cp ./artifacts/windows-build-*/* ./release-assets/windows/ || true
+          cp ./artifacts/linux-build-*/* ./release-assets/linux/ || true
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.versioning.outputs.new_tag }}
           name: Release ${{ needs.versioning.outputs.new_tag }}
           files: |
-            ./artifacts/**/*
+            ./release-assets/macos/*
+            ./release-assets/windows/*
+            ./release-assets/linux/*
           draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_RELEASE_UPLOAD_CONCURRENCY: 1
