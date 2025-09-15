@@ -33,7 +33,8 @@
     "appId": "dev.oktana.v2",
     "compression": "normal",
     "directories": {
-      "output": "bin"
+      "output": "bin",
+      "buildResources": "public"
     },
     "electronLanguages": [
       "en-US"
