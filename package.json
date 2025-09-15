@@ -54,7 +54,7 @@
           "ext": "v2",
           "name": "v2",
           "role": "Editor",
-          "icon": "public/icon.icns"
+          "icon": "public/v2.icns"
         }
       ],
       "target": [
