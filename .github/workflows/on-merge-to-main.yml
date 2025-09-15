@@ -64,6 +64,7 @@ jobs:
       - name: Check out Git repository
         uses: actions/checkout@v4
         with:
+          lfs: true
           ref: ${{ needs.versioning.outputs.new_tag }}
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
