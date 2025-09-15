@@ -95,8 +95,6 @@ jobs:
           path: |
             bin/*.dmg
             bin/*.zip
-            bin/*.yml
-            bin/*.yaml
 
       - name: Upload Windows artifacts
         if: matrix.os == 'windows-latest'

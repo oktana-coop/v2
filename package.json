@@ -1,5 +1,6 @@
 {
   "name": "v2",
+  "productName": "v2",
   "private": true,
   "description": "A local-first rich text editor with Git-style version control, true privacy, and complete control over your data.",
   "author": {
@@ -60,12 +61,14 @@
         {
           "target": "dmg",
           "arch": [
+            "x64",
             "arm64"
           ]
         },
         {
           "target": "zip",
           "arch": [
+            "x64",
             "arm64"
           ]
         }
