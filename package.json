@@ -54,7 +54,7 @@
           "ext": "v2",
           "name": "v2",
           "role": "Editor",
-          "icon": "public/v2.icns"
+          "icon": "public/icon.icns"
         }
       ],
       "target": [
@@ -86,6 +86,7 @@
       ]
     },
     "linux": {
+      "icon": "public/icons/icon",
       "target": [
         {
           "target": "AppImage",
