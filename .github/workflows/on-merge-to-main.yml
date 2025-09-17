@@ -106,8 +106,11 @@ jobs:
       - name: Staple macOS notarization tickets
         if: matrix.os == 'macos-latest'
         run: |
-          xcrun stapler staple "bin/*.dmg"
-          xcrun stapler validate "bin/*.dmg"
+          for f in bin/*.dmg; do
+            echo "Stapling $f..."
+            xcrun stapler staple "$f"
+            xcrun stapler validate "$f"
+          done
 
       - name: Upload Windows artifacts
         if: matrix.os == 'windows-latest'
