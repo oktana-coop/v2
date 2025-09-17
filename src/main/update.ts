@@ -10,6 +10,11 @@ import type {
 const { autoUpdater } = createRequire(import.meta.url)('electron-updater');
 
 export function update(win: Electron.BrowserWindow) {
+  if (process.platform === 'linux') {
+    // Skip auto-update on Linux, handled via package manager instead
+    return;
+  }
+
   // When set to false, the update download will be triggered through the API
   autoUpdater.autoDownload = false;
   autoUpdater.disableWebInstaller = false;
