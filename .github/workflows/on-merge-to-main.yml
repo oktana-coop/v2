@@ -101,17 +101,6 @@ jobs:
             bin/*.dmg
             bin/*.zip
 
-      # Stapling makes .dmg files usable offline (without Apple servers)
-      # https://developer.apple.com/documentation/security/customizing-the-notarization-workflow#Staple-the-ticket-to-your-distribution
-      - name: Staple macOS notarization tickets
-        if: matrix.os == 'macos-latest'
-        run: |
-          for f in bin/*.dmg; do
-            echo "Stapling $f..."
-            xcrun stapler staple "$f"
-            xcrun stapler validate "$f"
-          done
-
       - name: Upload Windows artifacts
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
