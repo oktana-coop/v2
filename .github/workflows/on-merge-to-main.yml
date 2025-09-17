@@ -92,7 +92,7 @@ jobs:
         env:
           OKTANA_NPM_TOKEN: ${{ secrets.OKTANA_NPM_TOKEN }}
       - name: Build Electron app
-        run: pnpm run build
+        run: pnpm run build && exit 1
         env:
           OKTANA_NPM_TOKEN: ${{ secrets.OKTANA_NPM_TOKEN }}
       - name: Package Electron app
@@ -177,8 +177,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  cleanup:
-    if: failure()
+  revert_version_bump_on_failure:
+    if: failure() && needs.versioning.outputs.new_tag
     needs: [versioning, build, release]
     runs-on: ubuntu-latest
     permissions:
