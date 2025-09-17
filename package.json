@@ -72,7 +72,12 @@
             "arm64"
           ]
         }
-      ]
+      ],
+      "category": "public.app-category.productivity",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "public/macos-notarization/entitlements.mac.plist",
+      "entitlementsInherit": "public/macos-notarization/entitlements.mac.plist"
     },
     "win": {
       "target": [

@@ -85,6 +85,11 @@ jobs:
         run: pnpm run package
         env:
           OKTANA_NPM_TOKEN: ${{ secrets.OKTANA_NPM_TOKEN }}
+          # Required to code-sign and notarize the macOS app
+          CSC_IDENTITY_AUTO_DISCOVERY: true
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
 
       # OS-specific uploads
       - name: Upload macOS artifacts
@@ -95,6 +100,14 @@ jobs:
           path: |
             bin/*.dmg
             bin/*.zip
+
+      # Stapling makes .dmg files usable offline (without Apple servers)
+      # https://developer.apple.com/documentation/security/customizing-the-notarization-workflow#Staple-the-ticket-to-your-distribution
+      - name: Staple macOS notarization tickets
+        if: matrix.os == 'macos-latest'
+        run: |
+          xcrun stapler staple "bin/*.dmg"
+          xcrun stapler validate "bin/*.dmg"
 
       - name: Upload Windows artifacts
         if: matrix.os == 'windows-latest'
