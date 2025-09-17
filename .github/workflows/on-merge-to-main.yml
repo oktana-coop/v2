@@ -114,6 +114,7 @@ jobs:
           path: |
             bin/*.AppImage
             bin/*.deb
+            bin/*.rpm
             bin/*.tar.gz
       - name: Make AppImage executable
         if: matrix.os == 'ubuntu-latest'
