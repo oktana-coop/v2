@@ -45,7 +45,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_PREFIX: v
-          DEFAULT_BUMP: ${{ github.event.inputs.bump_type || 'patch' }}
+          DEFAULT_BUMP: ${{ github.event.inputs.default_version_bump || 'patch' }}
 
   build:
     needs: versioning
@@ -152,6 +152,7 @@ jobs:
             ./release-assets/macos/*
             ./release-assets/windows/*
             ./release-assets/linux/*
-          draft: true
+          draft: ${{ github.event.inputs.release_type == 'draft' }}
+          prerelease: ${{ github.event.inputs.prerelease }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
