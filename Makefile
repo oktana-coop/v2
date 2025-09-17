@@ -27,6 +27,9 @@ compile:
 build: install compile
 	pnpm run build
 
+package: build
+	pnpm run package
+
 storybook: install
 	pnpm run storybook
 
