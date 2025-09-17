@@ -7,8 +7,21 @@ on:
       - main
   workflow_dispatch:
     inputs:
-      bump_type:
-        description: 'Version bump type'
+      release_type:
+        description: 'Release type'
+        required: false
+        default: 'draft'
+        type: choice
+        options:
+          - draft
+          - production
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        default: false
+        type: boolean
+      default_version_bump:
+        description: 'Default version bump'
         required: false
         default: 'patch'
         type: choice
@@ -37,4 +50,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_PREFIX: v
-          DEFAULT_BUMP: ${{ github.event.inputs.bump_type || 'patch' }}
+          DEFAULT_BUMP: ${{ github.event.inputs.default_version_bump || 'patch' }}
