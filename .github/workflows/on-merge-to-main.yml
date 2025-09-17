@@ -187,18 +187,25 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ needs.versioning.outputs.new_tag }}
       - name: Revert version bump and delete tag
         run: |
           VERSION_WITH_V="${{ needs.versioning.outputs.new_tag }}"
           # strip leading 'v'
           VERSION="${VERSION_WITH_V#v}"
+          BRANCH="${{ github.ref_name }}"
           echo "Build failed, reverting version bump v$VERSION"
 
           # Delete remote tag
           git push origin :v$VERSION || true
 
-          # Revert version bump commit
-          git revert --no-edit -m "chore(release): revert failed bump v$VERSION" HEAD || true
-          git push origin $BRANCH
+          # Revert bump commit if it matches expected message
+          if git log -1 --pretty=%B | grep -q "chore: bump package.json version to $VERSION"; then
+            git revert --no-edit HEAD
+            git commit --amend -m "chore(release): revert failed bump $VERSION_WITH_V"
+            git push --force-with-lease origin $BRANCH
+          else
+            echo "No version bump commit found, skipping revert"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
