@@ -51,7 +51,9 @@ jobs:
       - name: Commit version bump to package.json
         if: steps.tag.outputs.new_tag
         run: |
-          NEW_VERSION="${{ steps.tag.outputs.new_tag#v }}"
+          NEW_VERSION_WITH_V="${{ steps.tag.outputs.new_tag }}"
+          # strip leading 'v'
+          NEW_VERSION="${NEW_VERSION_WITH_V#v}"
           BRANCH="${{ github.ref_name }}"
           echo "Syncing package.json and lockfile to version $NEW_VERSION on branch $BRANCH"
 
@@ -187,7 +189,9 @@ jobs:
           fetch-depth: 0
       - name: Revert version bump and delete tag
         run: |
-          VERSION="${{ needs.versioning.outputs.new_tag#v }}"
+          VERSION_WITH_V="${{ steps.tag.outputs.new_tag }}"
+          # strip leading 'v'
+          VERSION="${VERSION_WITH_V#v}"
           echo "Build failed, reverting version bump v$VERSION"
 
           # Delete remote tag
