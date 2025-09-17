@@ -176,6 +176,7 @@ jobs:
             ./release-assets/macos/*
             ./release-assets/windows/*
             ./release-assets/linux/*
+          generate_release_notes: true
           draft: ${{ github.event.inputs.release_type == 'draft' }}
           prerelease: ${{ github.event.inputs.prerelease }}
         env:
