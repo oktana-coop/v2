@@ -46,6 +46,23 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_PREFIX: v
           DEFAULT_BUMP: ${{ github.event.inputs.default_version_bump || 'patch' }}
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Commit version bump to package.json
+        if: steps.tag.outputs.new_tag
+        run: |
+          NEW_VERSION="${{ steps.tag.outputs.new_tag#v }}"
+          BRANCH="${{ github.ref_name }}"
+          echo "Syncing package.json and lockfile to version $NEW_VERSION on branch $BRANCH"
+
+          # Update package.json and lockfile without creating a new tag
+          pnpm version $NEW_VERSION --no-git-tag-version
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json pnpm-lock.yaml
+          git commit -m "chore: bump package.json version to $NEW_VERSION" --no-verify
+          git push origin $BRANCH
 
   build:
     needs: versioning
@@ -155,5 +172,29 @@ jobs:
             ./release-assets/linux/*
           draft: ${{ github.event.inputs.release_type == 'draft' }}
           prerelease: ${{ github.event.inputs.prerelease }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  cleanup:
+    if: failure()
+    needs: [versioning, build, release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Revert version bump and delete tag
+        run: |
+          VERSION="${{ needs.versioning.outputs.new_tag#v }}"
+          echo "Build failed, reverting version bump v$VERSION"
+
+          # Delete remote tag
+          git push origin :v$VERSION || true
+
+          # Revert version bump commit
+          git revert --no-edit -m "chore(release): revert failed bump v$VERSION" HEAD || true
+          git push origin $BRANCH
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
