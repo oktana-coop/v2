@@ -34,7 +34,7 @@ jobs:
       contents: write
     outputs:
       new_tag: ${{ steps.tag.outputs.new_tag }}
-      bump_commit_sha: ${{ steps.bump.outputs.bump_sha }}
+      bump_commit_sha: ${{ steps.commit.outputs.bump_commit_sha }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -50,6 +50,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
       - name: Commit version bump to package.json
+        id: commit
         if: steps.tag.outputs.new_tag
         run: |
           NEW_VERSION_WITH_V="${{ steps.tag.outputs.new_tag }}"
