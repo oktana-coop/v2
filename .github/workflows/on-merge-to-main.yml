@@ -34,6 +34,7 @@ jobs:
       contents: write
     outputs:
       new_tag: ${{ steps.tag.outputs.new_tag }}
+      bump_commit_sha: ${{ steps.bump.outputs.bump_sha }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -65,6 +66,8 @@ jobs:
           git add package.json pnpm-lock.yaml
           git commit -m "chore: bump package.json version to $NEW_VERSION" --no-verify
           git push origin $BRANCH
+
+          echo "bump_commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
   build:
     needs: versioning
@@ -190,6 +193,7 @@ jobs:
           ref: ${{ needs.versioning.outputs.new_tag }}
       - name: Revert version bump and delete tag
         run: |
+          BUMP_COMMIT_SHA="${{ needs.versioning.outputs.bump_commit_sha }}"
           VERSION_WITH_V="${{ needs.versioning.outputs.new_tag }}"
           # strip leading 'v'
           VERSION="${VERSION_WITH_V#v}"
@@ -199,13 +203,13 @@ jobs:
           # Delete remote tag
           git push origin :v$VERSION || true
 
-          # Revert bump commit if it matches expected message
-          if git log -1 --pretty=%B | grep -q "chore: bump package.json version to $VERSION"; then
-            git revert --no-edit HEAD
+          # Revert the version bump commit
+          if git cat-file -e $BUMP_COMMIT_SHA^{commit}; then
+            git revert --no-edit $BUMP_COMMIT_SHA
             git commit --amend -m "chore(release): revert failed bump $VERSION_WITH_V"
             git push --force-with-lease origin $BRANCH
           else
-            echo "No version bump commit found, skipping revert"
+            echo "Commit $BUMP_COMMIT_SHA not found, skipping revert"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
