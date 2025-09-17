@@ -114,6 +114,9 @@ jobs:
             bin/*.AppImage
             bin/*.deb
             bin/*.tar.gz
+      - name: Make AppImage executable
+        if: matrix.os == 'ubuntu-latest'
+        run: chmod +x ./bin/*.AppImage
 
   release:
     needs: [versioning, build]
