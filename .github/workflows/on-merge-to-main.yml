@@ -191,7 +191,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ needs.versioning.outputs.new_tag }}
+          ref: ${{ github.ref_name }}
       - name: Revert version bump and delete tag
         run: |
           BUMP_COMMIT_SHA="${{ needs.versioning.outputs.bump_commit_sha }}"
@@ -200,6 +200,9 @@ jobs:
           VERSION="${VERSION_WITH_V#v}"
           BRANCH="${{ github.ref_name }}"
           echo "Build failed, reverting version bump v$VERSION"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           # Delete remote tag
           git push origin :v$VERSION || true
