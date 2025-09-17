@@ -65,7 +65,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package.json pnpm-lock.yaml
-          git commit -m "chore: bump package.json version to $NEW_VERSION" --no-verify
+          git commit -m "chore: bump package.json version to $NEW_VERSION_WITH_V" --no-verify
           git push origin $BRANCH
 
           echo "bump_commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
@@ -210,7 +210,7 @@ jobs:
           # Revert the version bump commit
           if git cat-file -e $BUMP_COMMIT_SHA^{commit}; then
             git revert --no-edit $BUMP_COMMIT_SHA
-            git commit --amend -m "chore(release): revert failed bump $VERSION_WITH_V"
+            git commit --amend -m "chore: revert failed version bump $VERSION_WITH_V"
             git push --force-with-lease origin $BRANCH
           else
             echo "Commit $BUMP_COMMIT_SHA not found, skipping revert"
