@@ -119,6 +119,7 @@ jobs:
           path: |
             bin/*.dmg
             bin/*.zip
+            bin/latest-mac.yml
 
       - name: Upload Windows artifacts
         if: matrix.os == 'windows-latest'
@@ -128,6 +129,7 @@ jobs:
           path: |
             bin/*.exe
             bin/*.zip
+            bin/latest.yml
 
       - name: Upload Linux artifacts
         if: matrix.os == 'ubuntu-latest'
@@ -139,6 +141,7 @@ jobs:
             bin/*.deb
             bin/*.rpm
             bin/*.tar.gz
+            bin/latest-linux.yml
       - name: Make AppImage executable
         if: matrix.os == 'ubuntu-latest'
         run: chmod +x ./bin/*.AppImage
