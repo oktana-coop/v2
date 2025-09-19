@@ -55,6 +55,7 @@ const {
   insertNote,
   notesPlugin,
   numberNotes,
+  placeholderPlugin,
 } = prosemirror;
 
 type RichTextEditorProps = {
@@ -127,6 +128,7 @@ export const RichTextEditor = ({
 
       const plugins = [
         buildInputRules(schema),
+        placeholderPlugin('Start writing...'),
         ...markdownMarkPlugins(schema),
         pasteMarkdownPlugin(parseMarkdown(schema)),
         notesPlugin(),
