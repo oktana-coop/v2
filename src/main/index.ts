@@ -1,5 +1,5 @@
 import { release } from 'node:os';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { exec } from 'child_process';
@@ -15,6 +15,7 @@ import {
 } from 'electron';
 import os from 'os';
 
+import { PROJECT_FILE_EXTENSION } from '../modules/domain/project';
 import {
   createNodeMultiDocumentProjectStoreManagerAdapter,
   createNodeSingleDocumentProjectStoreManagerAdapter,
@@ -25,6 +26,8 @@ import {
 import { runPromiseSerializingErrorsForIPC } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
 import {
   type CreateNewFileArgs,
+  type File,
+  filesystemItemTypes,
   type ListDirectoryFilesArgs,
   type OpenFileArgs,
 } from '../modules/infrastructure/filesystem';
@@ -70,6 +73,68 @@ if (!app.requestSingleInstanceLock()) {
 // process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true'
 
 let win: BrowserWindow | null = null;
+let fileWaitingToBeOpened: File | null = null;
+
+const openFileFromOs = ({
+  window,
+  file,
+}: {
+  window: BrowserWindow;
+  file: File;
+}) => {
+  window.webContents.send('open-file-from-os', file);
+};
+
+const openFileOrQueue = (file: File) => {
+  if (win && win.webContents && !win.webContents.isDestroyed()) {
+    openFileFromOs({ window: win, file });
+  } else {
+    fileWaitingToBeOpened = file;
+  }
+};
+
+const getFileFromPath = (filePath: string): File => {
+  const name = basename(filePath);
+
+  const file: File = {
+    type: filesystemItemTypes.FILE,
+    name,
+    path: filePath,
+  };
+
+  return file;
+};
+
+// macOS: when user double-clicks a file
+app.on('open-file', (event, filePath) => {
+  event.preventDefault();
+  const file = getFileFromPath(filePath);
+  openFileOrQueue(file);
+});
+
+const openFileFromOsArgs = ({
+  window,
+  argv,
+}: {
+  window: BrowserWindow;
+  argv: string[];
+}) => {
+  const filePath = argv[argv.length - 1];
+  if (filePath && filePath.endsWith(`.${PROJECT_FILE_EXTENSION}`)) {
+    const file = getFileFromPath(filePath);
+    openFileFromOs({ window, file });
+  }
+};
+
+// Windows/Linux: check process.argv for a file path when app starts
+if (process.platform !== 'darwin' && process.argv.length > 1) {
+  const filePath = process.argv[1];
+  if (filePath && filePath.endsWith(`.${PROJECT_FILE_EXTENSION}`)) {
+    const file = getFileFromPath(filePath);
+    openFileOrQueue(file);
+  }
+}
+
 // Here, you can also use other preload
 const preload = join(__dirname, '../preload/index.js');
 const url = process.env.VITE_DEV_SERVER_URL;
@@ -129,6 +194,12 @@ async function createWindow() {
 
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('renderer-process-id', rendererProcessId);
+
+    // If there was a file waiting to be opened, open it now
+    if (fileWaitingToBeOpened && win) {
+      openFileFromOs({ window: win, file: fileWaitingToBeOpened });
+      fileWaitingToBeOpened = null;
+    }
   });
 
   // Make all links open with the browser, not with the application
@@ -283,11 +354,16 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-app.on('second-instance', () => {
+app.on('second-instance', (_, argv) => {
   if (win) {
     // Focus on the main window if the user tried to open another
     if (win.isMinimized()) win.restore();
     win.focus();
+
+    // Handle opening a file from the OS when the app is open in Windows and Linux
+    if (process.platform !== 'darwin' && argv.length > 1) {
+      openFileFromOsArgs({ window: win, argv });
+    }
   }
 });
 

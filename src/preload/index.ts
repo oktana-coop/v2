@@ -1,7 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 import {
-  MultiDocumentProjectAPI,
+  type MultiDocumentProjectAPI,
+  type OsEventsAPI,
   type SingleDocumentProjectAPI,
 } from '../../renderer';
 import {
@@ -12,6 +13,7 @@ import {
 import { type PromisifyEffects } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
 import {
   type CreateNewFileArgs,
+  type File,
   type Filesystem as FilesystemAPI,
   type ListDirectoryFilesArgs,
   type OpenFileArgs,
@@ -101,3 +103,18 @@ contextBridge.exposeInMainWorld('wasmAPI', {
   runWasiCLIOutputingBinary: (args: RunWasiCLIArgs) =>
     ipcRenderer.invoke('run-wasi-cli-outputing-binary', args),
 } as WasmAPI);
+
+contextBridge.exposeInMainWorld('osEventsAPI', {
+  onOpenFileFromFilesystem: (callback) => {
+    const listener = (_: Electron.IpcRendererEvent, file: File) => {
+      callback(file);
+    };
+
+    ipcRenderer.on('open-file-from-os', listener);
+
+    // Return a cleanup/unsubscribe function
+    return () => {
+      ipcRenderer.removeListener('open-file-from-os', listener);
+    };
+  },
+} as OsEventsAPI);

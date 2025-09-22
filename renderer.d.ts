@@ -10,7 +10,10 @@ import {
   type SetupSingleDocumentProjectStoreArgs,
   type SetupSingleDocumentProjectStoreResult,
 } from './src/modules/domain/project';
-import type { Filesystem as FilesystemAPI } from './src/modules/infrastructure/filesystem';
+import type {
+  type File,
+  Filesystem as FilesystemAPI,
+} from './src/modules/infrastructure/filesystem';
 import type {
   FromMainMessage as AutomergeRepoNetworkFromMainIPCMessage,
   FromRendererMessage as AutomergeRepoNetworkFromRendererIPCMessage,
@@ -65,6 +68,10 @@ export type MultiDocumentProjectAPI = {
 
 type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
 
+export type OsEventsAPI = {
+  onOpenFileFromFilesystem: (callback: (file: File) => void) => () => void;
+};
+
 declare global {
   interface Window {
     electronAPI: ElectronAPI;
@@ -74,5 +81,6 @@ declare global {
     singleDocumentProjectAPI: SingleDocumentProjectAPI;
     multiDocumentProjectAPI: MultiDocumentProjectAPI;
     wasmAPI: WasmAPI;
+    osEventsAPI: OsEventsAPI;
   }
 }

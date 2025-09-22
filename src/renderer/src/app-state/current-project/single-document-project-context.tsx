@@ -48,6 +48,21 @@ export const SingleDocumentProjectContext =
     versionedProjectStore: null,
   });
 
+const getFileToBeOpenedFromSessionStorage = (): File | null => {
+  const fileToBeOpened = sessionStorage.getItem('fileToBeOpened');
+
+  if (fileToBeOpened) {
+    try {
+      const parsedFile = JSON.parse(fileToBeOpened) as File;
+      return parsedFile;
+    } catch {
+      console.error('Error parsing file to be opened from session storage');
+    }
+  }
+
+  return null;
+};
+
 export const SingleDocumentProjectProvider = ({
   children,
 }: {
@@ -64,51 +79,77 @@ export const SingleDocumentProjectProvider = ({
   const [projectName, setProjectName] = useState<string | null>(null);
   const [versionedProjectStore, setVersionedProjectStore] =
     useState<SingleDocumentProjectStore | null>(null);
+  const [fileToBeOpened, setFileToBeOpened] = useState<File | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const getSelectedProject = async () => {
-      // Check if we have a project ID in the browser storage
-      const browserStorageBrowserDataValue = localStorage.getItem(
-        BROWSER_STORAGE_PROJECT_DATA_KEY
-      );
-      const browserStorageProjectData = browserStorageBrowserDataValue
-        ? (JSON.parse(
-            browserStorageBrowserDataValue
-          ) as BrowserStorageProjectData)
-        : null;
+    setFileToBeOpened(getFileToBeOpenedFromSessionStorage());
 
-      if (browserStorageProjectData?.projectId) {
-        const {
-          versionedDocumentStore: documentStore,
-          versionedProjectStore: projectStore,
-          documentId: docId,
-          file,
-          name: projName,
-        } = await Effect.runPromise(
-          singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
-            openFile: filesystem.openFile,
-          })({
-            fromFile: browserStorageProjectData.file ?? undefined,
-            projectId: browserStorageProjectData.projectId,
-          })
-        );
-
-        setVersionedProjectStore(projectStore);
-        setVersionedDocumentStore(documentStore);
-        setProjectId(browserStorageProjectData.projectId);
-        setDocumentId(docId);
-        setProjectFile(file);
-        setProjectName(projName);
-
-        navigate(
-          `/projects/${browserStorageProjectData.projectId}/documents/${docId}`
-        );
+    const unsubscribe = window.osEventsAPI.onOpenFileFromFilesystem(
+      (file: File) => {
+        setFileToBeOpened(file);
       }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const openAndSelectFileFromOsEvent = async (file: File) => {
+      const openedDocument = await handleOpenDocument({ fromFile: file });
+      navigate(
+        `/projects/${openedDocument.projectId}/documents/${openedDocument.documentId}`
+      );
     };
 
-    getSelectedProject();
-  }, []);
+    if (fileToBeOpened) {
+      openAndSelectFileFromOsEvent(fileToBeOpened);
+    } else {
+      openRecentProjectFromBrowserStorage();
+    }
+  }, [fileToBeOpened]);
+
+  const openRecentProjectFromBrowserStorage = async () => {
+    // Check if we have a project ID in the browser storage
+    const browserStorageBrowserDataValue = localStorage.getItem(
+      BROWSER_STORAGE_PROJECT_DATA_KEY
+    );
+    const browserStorageProjectData = browserStorageBrowserDataValue
+      ? (JSON.parse(
+          browserStorageBrowserDataValue
+        ) as BrowserStorageProjectData)
+      : null;
+
+    if (browserStorageProjectData?.projectId) {
+      const {
+        versionedDocumentStore: documentStore,
+        versionedProjectStore: projectStore,
+        documentId: docId,
+        file,
+        name: projName,
+      } = await Effect.runPromise(
+        singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
+          openFile: filesystem.openFile,
+        })({
+          fromFile: browserStorageProjectData.file ?? undefined,
+          projectId: browserStorageProjectData.projectId,
+        })
+      );
+
+      setVersionedProjectStore(projectStore);
+      setVersionedDocumentStore(documentStore);
+      setProjectId(browserStorageProjectData.projectId);
+      setDocumentId(docId);
+      setProjectFile(file);
+      setProjectName(projName);
+
+      navigate(
+        `/projects/${browserStorageProjectData.projectId}/documents/${docId}`
+      );
+    }
+  };
 
   const handleCreateNewDocument = async (name?: string) => {
     if (versionedProjectStore) {
