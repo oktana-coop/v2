@@ -32,12 +32,13 @@ function isDocumentOption(
   return false;
 }
 
-type DocumentOption = {
+export type DocumentOption = {
   id?: string;
   title: string;
   onDocumentSelection: () => void;
 };
-type ActionOption = {
+
+export type ActionOption = {
   name: string;
   shortcut?: string;
   onActionSelection: () => void;
