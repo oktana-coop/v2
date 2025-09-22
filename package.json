@@ -90,7 +90,18 @@
             "ia32"
           ]
         }
-      ]
+      ],
+      "fileAssociations": [
+        {
+          "ext": "v2",
+          "name": "v2",
+          "description": "v2 Document",
+          "icon": "public/icon.ico"
+        }
+      ],
+      "nsis": {
+        "perMachine": true
+      }
     },
     "linux": {
       "icon": "public/icons/icon",
@@ -115,6 +126,12 @@
             "x64",
             "arm64"
           ]
+        }
+      ],
+      "fileAssociations": [
+        {
+          "ext": "v2",
+          "name": "v2"
         }
       ]
     },
