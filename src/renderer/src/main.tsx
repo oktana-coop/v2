@@ -10,7 +10,7 @@ import { AppWrapper } from './AppWrapper';
 // Listen for files opened from the OS and store them in session storage
 // to be picked up by the relevant project context
 // This is necessary because the context may not be mounted yet when the event is received
-window.osEventsAPI.onOpenFileFromFilesystem((file: File) => {
+window.osEventsAPI?.onOpenFileFromFilesystem((file: File) => {
   sessionStorage.setItem('fileToBeOpened', JSON.stringify(file));
 });
 

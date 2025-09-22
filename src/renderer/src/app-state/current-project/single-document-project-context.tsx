@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { type SingleDocumentProjectStore } from '../../../../modules/domain/project';
+import { isElectron } from '../../../../modules/infrastructure/cross-platform/utils';
 import { type File } from '../../../../modules/infrastructure/filesystem';
 import { VersionControlId } from '../../../../modules/infrastructure/version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
@@ -83,6 +84,10 @@ export const SingleDocumentProjectProvider = ({
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!isElectron()) {
+      return;
+    }
+
     setFileToBeOpened(getFileToBeOpenedFromSessionStorage());
 
     const unsubscribe = window.osEventsAPI.onOpenFileFromFilesystem(
