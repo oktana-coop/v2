@@ -8,7 +8,7 @@
     "email": "team@oktana.dev",
     "url": "https://oktana.dev"
   },
-  "version": "0.4.0",
+  "version": "0.3.48",
   "type": "module",
   "main": "./dist/main/index.js",
   "packageManager": "pnpm@10.15.0",
