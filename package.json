@@ -98,10 +98,7 @@
           "description": "v2 Document",
           "icon": "public/icon.ico"
         }
-      ],
-      "nsis": {
-        "perMachine": true
-      }
+      ]
     },
     "linux": {
       "icon": "public/icons/icon",
@@ -141,7 +138,10 @@
         "owner": "oktana-coop",
         "repo": "v2"
       }
-    ]
+    ],
+    "nsis": {
+      "perMachine": true
+    }
   },
   "dependencies": {
     "@automerge/automerge": "^2.2.9",
