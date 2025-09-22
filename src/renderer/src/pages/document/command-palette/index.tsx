@@ -2,17 +2,25 @@ import { useContext, useState } from 'react';
 
 import { projectTypes } from '../../../../../modules/domain/project';
 import { richTextRepresentations } from '../../../../../modules/domain/rich-text';
+import { ElectronContext } from '../../../../../modules/infrastructure/cross-platform';
 import { removeExtension } from '../../../../../modules/infrastructure/filesystem';
 import {
   CurrentDocumentContext,
   CurrentProjectContext,
 } from '../../../app-state';
-import { CommandPalette } from '../../../components/dialogs/command-palette/CommandPalette';
-import { useDocumentList, useKeyBindings } from '../../../hooks';
-import { useCurrentDocumentName } from '../../../hooks';
+import {
+  type ActionOption,
+  CommandPalette,
+} from '../../../components/dialogs/command-palette/CommandPalette';
+import {
+  useClearWebStorage,
+  useCurrentDocumentName,
+  useDocumentList,
+  useExport,
+  useKeyBindings,
+} from '../../../hooks';
 import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../hooks/multi-document-project';
 import { useDocumentSelection as useDocumentSelectionInSingleDocumentProject } from '../../../hooks/single-document-project';
-import { useExport } from '../../../hooks/use-export';
 
 export const DocumentCommandPalette = ({
   onCreateDocument,
@@ -25,6 +33,7 @@ export const DocumentCommandPalette = ({
     useState<boolean>(false);
   const { projectType } = useContext(CurrentProjectContext);
   const { canCommit, onOpenCommitDialog } = useContext(CurrentDocumentContext);
+  const { isElectron } = useContext(ElectronContext);
 
   // here we register the key bindings that are not
   // already covered by the command palette
@@ -39,6 +48,7 @@ export const DocumentCommandPalette = ({
     useDocumentSelectionInSingleDocumentProject();
   const currentDocumentName = useCurrentDocumentName();
   const { documentList: documents } = useDocumentList();
+  const clearWebStorage = useClearWebStorage();
 
   const handleDocumentSelection =
     projectType === projectTypes.MULTI_DOCUMENT_PROJECT
@@ -53,6 +63,25 @@ export const DocumentCommandPalette = ({
       shortcut: 'O',
       onActionSelection: onOpenDocument,
     },
+  ];
+
+  const electronSpecificActions: ActionOption[] = [
+    {
+      name: 'Clear application data',
+      onActionSelection: clearWebStorage,
+    },
+  ];
+
+  const browserSpecificActions: ActionOption[] = [];
+
+  const generalActions = [
+    {
+      name: 'Create new document',
+      shortcut: 'D',
+      onActionSelection: onCreateDocument,
+    },
+    ...singleDocumentProjectActions,
+    ...(isElectron ? electronSpecificActions : browserSpecificActions),
   ];
 
   return (
@@ -114,14 +143,7 @@ export const DocumentCommandPalette = ({
             setCommandPaletteOpen(false);
           },
         }))}
-      actions={[
-        {
-          name: 'Create new document',
-          shortcut: 'D',
-          onActionSelection: onCreateDocument,
-        },
-        ...singleDocumentProjectActions,
-      ]}
+      actions={generalActions}
     />
   );
 };

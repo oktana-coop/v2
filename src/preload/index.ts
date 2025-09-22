@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 import {
+  type ElectronAPI,
   type MultiDocumentProjectAPI,
   type OsEventsAPI,
   type SingleDocumentProjectAPI,
@@ -37,7 +38,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.send('current-document-id', id),
   openExternalLink: (url: string) =>
     ipcRenderer.send('open-external-link', url),
-});
+  clearWebStorage: () => ipcRenderer.invoke('clear-web-storage'),
+} as ElectronAPI);
 
 contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
   sendRendererProcessMessage: (
