@@ -21,11 +21,20 @@ import type {
 } from './src/modules/infrastructure/version-control';
 import { type Wasm as WasmAPI } from './src/modules/infrastructure/wasm';
 
+export type UpdateInfo = {
+  update: boolean;
+  version: string;
+  newVersion?: string;
+};
+
 export type ElectronAPI = {
   onReceiveProcessId: (callback: (processId: string) => void) => IpcRenderer;
   sendCurrentDocumentId: (id: VersionControlId) => void;
   openExternalLink: (url: string) => void;
   clearWebStorage: () => Promise<void>;
+  onUpdateAvailable: (
+    callback: (updateInfo: UpdateInfo) => void
+  ) => IpcRenderer;
 };
 
 export type UnregisterListenerFn = () => void;

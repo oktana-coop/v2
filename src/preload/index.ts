@@ -39,6 +39,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openExternalLink: (url: string) =>
     ipcRenderer.send('open-external-link', url),
   clearWebStorage: () => ipcRenderer.invoke('clear-web-storage'),
+  onUpdateAvailable: (callback) =>
+    ipcRenderer.on('update-can-available', (_, updateInfo) =>
+      callback(updateInfo)
+    ),
 } as ElectronAPI);
 
 contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
