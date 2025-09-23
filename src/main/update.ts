@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 
 import { app, ipcMain } from 'electron';
+import electronLogger from 'electron-log/main';
 import type {
   ProgressInfo,
   UpdateDownloadedEvent,
@@ -10,6 +11,9 @@ import type {
 const { autoUpdater } = createRequire(import.meta.url)('electron-updater');
 
 export function update(win: Electron.BrowserWindow) {
+  autoUpdater.logger = electronLogger;
+  // autoUpdater.forceDevUpdateConfig = true;
+
   if (process.platform === 'linux') {
     // Skip auto-update on Linux, handled via package manager instead
     return;
