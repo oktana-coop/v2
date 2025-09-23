@@ -1,19 +1,16 @@
-import { createRequire } from 'node:module';
-
 import { app, ipcMain } from 'electron';
 import electronLogger from 'electron-log/main';
-import type {
-  ProgressInfo,
-  UpdateDownloadedEvent,
-  UpdateInfo,
+import {
+  autoUpdater,
+  type ProgressInfo,
+  type UpdateDownloadedEvent,
+  type UpdateInfo,
 } from 'electron-updater';
 
-const { autoUpdater } = createRequire(import.meta.url)('electron-updater');
+autoUpdater.forceDevUpdateConfig = true;
+autoUpdater.logger = electronLogger;
 
-export function update(win: Electron.BrowserWindow) {
-  autoUpdater.logger = electronLogger;
-  // autoUpdater.forceDevUpdateConfig = true;
-
+export const update = (win: Electron.BrowserWindow) => {
   if (process.platform === 'linux') {
     // Skip auto-update on Linux, handled via package manager instead
     return;
@@ -44,20 +41,7 @@ export function update(win: Electron.BrowserWindow) {
   });
 
   // Checking for updates
-  ipcMain.handle('check-update', async () => {
-    if (!app.isPackaged) {
-      const error = new Error(
-        'The update feature is only available after the package.'
-      );
-      return { message: error.message, error };
-    }
-
-    try {
-      return await autoUpdater.checkForUpdatesAndNotify();
-    } catch (error) {
-      return { message: 'Network error', error };
-    }
-  });
+  ipcMain.handle('check-update', checkForUpdates);
 
   // Start downloading and feedback on progress
   ipcMain.handle('start-download', (event: Electron.IpcMainInvokeEvent) => {
@@ -82,16 +66,31 @@ export function update(win: Electron.BrowserWindow) {
   ipcMain.handle('quit-and-install', () => {
     autoUpdater.quitAndInstall(false, true);
   });
-}
+};
 
-function startDownload(
+const startDownload = (
   callback: (error: Error | null, info: ProgressInfo | null) => void,
   complete: (event: UpdateDownloadedEvent) => void
-) {
+) => {
   autoUpdater.on('download-progress', (info: ProgressInfo) =>
     callback(null, info)
   );
   autoUpdater.on('error', (error: Error) => callback(error, null));
   autoUpdater.on('update-downloaded', complete);
   autoUpdater.downloadUpdate();
-}
+};
+
+export const checkForUpdates = async () => {
+  if (!app.isPackaged && !autoUpdater.forceDevUpdateConfig) {
+    const error = new Error(
+      'The update feature is only available after the package.'
+    );
+    return { message: error.message, error };
+  }
+
+  try {
+    return await autoUpdater.checkForUpdatesAndNotify();
+  } catch (error) {
+    return { message: 'Network error', error };
+  }
+};
