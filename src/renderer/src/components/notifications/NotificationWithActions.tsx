@@ -40,16 +40,13 @@ export const NotificationWithActions = ({
             </div>
             <div className="ml-3 w-0 flex-1 pt-0.5">
               <p className="text-left text-sm font-medium text-gray-900 dark:text-white">
-                Update Available
+                {title}
               </p>
               {messageElement ?? (
                 <p className="mt-1 text-left text-sm text-gray-500 dark:text-gray-400">
                   {message}
                 </p>
               )}
-              <p className="mt-1 text-left text-sm text-gray-500 dark:text-gray-400">
-                {title}
-              </p>
               <div className="mt-3 flex gap-5">
                 <button
                   type="button"

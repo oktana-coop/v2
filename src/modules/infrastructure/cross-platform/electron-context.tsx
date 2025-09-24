@@ -8,6 +8,7 @@ type ElectronContextType = {
   isElectron: boolean;
   openExternalLink: (url: string) => void;
   updateState: UpdateState | null;
+  dismissUpdateNotification: () => void;
 };
 
 export const ElectronContext = createContext<ElectronContextType>({
@@ -15,6 +16,7 @@ export const ElectronContext = createContext<ElectronContextType>({
   isElectron: isElectron(),
   openExternalLink: () => {},
   updateState: null,
+  dismissUpdateNotification: () => {},
 });
 
 export const ElectronProvider = ({
@@ -60,6 +62,10 @@ export const ElectronProvider = ({
     }
   };
 
+  const handleDismissUpdateNotification = () => {
+    setUpdateState(null);
+  };
+
   return (
     <ElectronContext.Provider
       value={{
@@ -67,6 +73,7 @@ export const ElectronProvider = ({
         isElectron: isElectron(),
         openExternalLink: handleOpenExternalLink,
         updateState,
+        dismissUpdateNotification: handleDismissUpdateNotification,
       }}
     >
       {children}

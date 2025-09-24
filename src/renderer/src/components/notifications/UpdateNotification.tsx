@@ -8,7 +8,8 @@ import { UpdateIcon } from '../icons';
 import { NotificationWithActions } from './NotificationWithActions';
 
 export const UpdateNotification = () => {
-  const { updateState } = useContext(ElectronContext);
+  const { updateState, dismissUpdateNotification } =
+    useContext(ElectronContext);
 
   if (!updateState) {
     return null;
@@ -18,9 +19,9 @@ export const UpdateNotification = () => {
     return (
       <NotificationWithActions
         show={true}
-        onClose={() => {}}
+        onClose={dismissUpdateNotification}
         onMainActionClick={() => {}}
-        onSecondaryActionClick={() => {}}
+        onSecondaryActionClick={dismissUpdateNotification}
         icon={UpdateIcon}
         title="Update Available"
         message="A new version of the app is available."
