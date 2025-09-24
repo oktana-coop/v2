@@ -13,6 +13,10 @@ import {
 } from '../modules/domain/project';
 import { type PromisifyEffects } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
 import {
+  type UpdateAvailableState,
+  type UpdateNotAvailableState,
+} from '../modules/infrastructure/cross-platform/update';
+import {
   type CreateNewFileArgs,
   type File,
   type Filesystem as FilesystemAPI,
@@ -28,6 +32,7 @@ import type {
   RunWasiCLIArgs,
   Wasm as WasmAPI,
 } from '../modules/infrastructure/wasm';
+import { registerIpcListener } from './utils';
 
 contextBridge.exposeInMainWorld('electronAPI', {
   onReceiveProcessId: (callback: (processId: string) => void) =>
@@ -40,8 +45,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.send('open-external-link', url),
   clearWebStorage: () => ipcRenderer.invoke('clear-web-storage'),
   onUpdateAvailable: (callback) =>
-    ipcRenderer.on('update-can-available', (_, updateInfo) =>
-      callback(updateInfo)
+    registerIpcListener<UpdateAvailableState>('update-available', callback),
+  onUpdateNotAvailable: (callback) =>
+    registerIpcListener<UpdateNotAvailableState>(
+      'update-not-available',
+      callback
     ),
 } as ElectronAPI);
 
@@ -51,24 +59,11 @@ contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
   ) => ipcRenderer.send('automerge-repo-renderer-process-message', message),
   onReceiveMainProcessMessage: (
     callback: (message: AutomergeRepoNetworkFromMainIPCMessage) => void
-  ) => {
-    const listener = (
-      _: Electron.IpcRendererEvent,
-      message: AutomergeRepoNetworkFromMainIPCMessage
-    ) => {
-      callback(message);
-    };
-
-    ipcRenderer.on('automerge-repo-main-process-message', listener);
-
-    // Return a cleanup/unsubscribe function
-    return () => {
-      ipcRenderer.removeListener(
-        'automerge-repo-main-process-message',
-        listener
-      );
-    };
-  },
+  ) =>
+    registerIpcListener<AutomergeRepoNetworkFromMainIPCMessage>(
+      'automerge-repo-main-process-message',
+      callback
+    ),
 });
 
 type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
@@ -111,16 +106,6 @@ contextBridge.exposeInMainWorld('wasmAPI', {
 } as WasmAPI);
 
 contextBridge.exposeInMainWorld('osEventsAPI', {
-  onOpenFileFromFilesystem: (callback) => {
-    const listener = (_: Electron.IpcRendererEvent, file: File) => {
-      callback(file);
-    };
-
-    ipcRenderer.on('open-file-from-os', listener);
-
-    // Return a cleanup/unsubscribe function
-    return () => {
-      ipcRenderer.removeListener('open-file-from-os', listener);
-    };
-  },
+  onOpenFileFromFilesystem: (callback) =>
+    registerIpcListener<File>('open-file-from-os', callback),
 } as OsEventsAPI);

@@ -7,6 +7,11 @@ import {
   type UpdateInfo,
 } from 'electron-updater';
 
+import {
+  type UpdateAvailableState,
+  type UpdateNotAvailableState,
+} from '../modules/infrastructure/cross-platform/update';
+
 autoUpdater.forceDevUpdateConfig = true;
 autoUpdater.logger = electronLogger;
 
@@ -23,21 +28,26 @@ export const update = (win: Electron.BrowserWindow) => {
 
   // start check
   autoUpdater.on('checking-for-update', function () {});
+
   // update available
   autoUpdater.on('update-available', (arg: UpdateInfo) => {
-    win.webContents.send('update-can-available', {
-      update: true,
+    const updateState: UpdateAvailableState = {
+      status: 'update-available',
       version: app.getVersion(),
-      newVersion: arg?.version,
-    });
+      newVersion: arg.version,
+    };
+
+    win.webContents.send('update-available', updateState);
   });
+
   // update not available
-  autoUpdater.on('update-not-available', (arg: UpdateInfo) => {
-    win.webContents.send('update-can-available', {
-      update: false,
+  autoUpdater.on('update-not-available', () => {
+    const updateState: UpdateNotAvailableState = {
+      status: 'update-not-available',
       version: app.getVersion(),
-      newVersion: arg?.version,
-    });
+    };
+
+    win.webContents.send('update-not-available', updateState);
   });
 
   // Checking for updates

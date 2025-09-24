@@ -10,6 +10,10 @@ import {
   type SetupSingleDocumentProjectStoreArgs,
   type SetupSingleDocumentProjectStoreResult,
 } from './src/modules/domain/project';
+import {
+  type UpdateAvailableState,
+  type UpdateNotAvailableState,
+} from './src/modules/infrastructure/cross-platform/update';
 import type {
   type File,
   Filesystem as FilesystemAPI,
@@ -21,20 +25,17 @@ import type {
 } from './src/modules/infrastructure/version-control';
 import { type Wasm as WasmAPI } from './src/modules/infrastructure/wasm';
 
-export type UpdateInfo = {
-  update: boolean;
-  version: string;
-  newVersion?: string;
-};
-
 export type ElectronAPI = {
   onReceiveProcessId: (callback: (processId: string) => void) => IpcRenderer;
   sendCurrentDocumentId: (id: VersionControlId) => void;
   openExternalLink: (url: string) => void;
   clearWebStorage: () => Promise<void>;
   onUpdateAvailable: (
-    callback: (updateInfo: UpdateInfo) => void
-  ) => IpcRenderer;
+    callback: (updateInfo: UpdateAvailableState) => void
+  ) => () => void;
+  onUpdateNotAvailable: (
+    callback: (updateInfo: UpdateNotAvailableState) => void
+  ) => () => void;
 };
 
 export type UnregisterListenerFn = () => void;

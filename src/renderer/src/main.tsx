@@ -14,10 +14,6 @@ window.osEventsAPI?.onOpenFileFromFilesystem((file: File) => {
   sessionStorage.setItem('fileToBeOpened', JSON.stringify(file));
 });
 
-window.electronAPI?.onUpdateAvailable((updateInfo) => {
-  console.log('Update available:', updateInfo);
-});
-
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ElectronProvider>
