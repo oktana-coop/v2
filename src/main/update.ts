@@ -1,15 +1,25 @@
-import { createRequire } from 'node:module';
-
 import { app, ipcMain } from 'electron';
-import type {
-  ProgressInfo,
-  UpdateDownloadedEvent,
-  UpdateInfo,
+import electronLogger from 'electron-log/main';
+import {
+  autoUpdater,
+  type ProgressInfo,
+  type UpdateDownloadedEvent,
+  type UpdateInfo,
 } from 'electron-updater';
 
-const { autoUpdater } = createRequire(import.meta.url)('electron-updater');
+import {
+  type CheckingForUpdateState,
+  type DownloadingUpdateState,
+  type UpdateAvailableState,
+  type UpdateDownloadedState,
+  type UpdateErrorState,
+  type UpdateNotAvailableState,
+} from '../modules/infrastructure/cross-platform/update';
 
-export function update(win: Electron.BrowserWindow) {
+autoUpdater.forceDevUpdateConfig = true;
+autoUpdater.logger = electronLogger;
+
+export const update = (win: Electron.BrowserWindow) => {
   if (process.platform === 'linux') {
     // Skip auto-update on Linux, handled via package manager instead
     return;
@@ -21,73 +31,98 @@ export function update(win: Electron.BrowserWindow) {
   autoUpdater.allowDowngrade = false;
 
   // start check
-  autoUpdater.on('checking-for-update', function () {});
+  autoUpdater.on('checking-for-update', function () {
+    const updateState: CheckingForUpdateState = {
+      status: 'checking-for-update',
+    };
+
+    win.webContents.send('update-state', updateState);
+  });
+
   // update available
   autoUpdater.on('update-available', (arg: UpdateInfo) => {
-    win.webContents.send('update-can-available', {
-      update: true,
+    const updateState: UpdateAvailableState = {
+      status: 'update-available',
       version: app.getVersion(),
-      newVersion: arg?.version,
-    });
+      newVersion: arg.version,
+    };
+
+    win.webContents.send('update-state', updateState);
   });
+
   // update not available
-  autoUpdater.on('update-not-available', (arg: UpdateInfo) => {
-    win.webContents.send('update-can-available', {
-      update: false,
+  autoUpdater.on('update-not-available', () => {
+    const updateState: UpdateNotAvailableState = {
+      status: 'update-not-available',
       version: app.getVersion(),
-      newVersion: arg?.version,
-    });
+    };
+
+    win.webContents.send('update-state', updateState);
   });
 
   // Checking for updates
-  ipcMain.handle('check-update', async () => {
-    if (!app.isPackaged) {
-      const error = new Error(
-        'The update feature is only available after the package.'
-      );
-      return { message: error.message, error };
-    }
-
-    try {
-      return await autoUpdater.checkForUpdatesAndNotify();
-    } catch (error) {
-      return { message: 'Network error', error };
-    }
-  });
+  ipcMain.handle('check-for-update', checkForUpdates);
 
   // Start downloading and feedback on progress
-  ipcMain.handle('start-download', (event: Electron.IpcMainInvokeEvent) => {
+  ipcMain.handle('download-update', (event: Electron.IpcMainInvokeEvent) => {
+    console.log('Start downloading update...');
     startDownload(
       (error, progressInfo) => {
         if (error) {
-          // feedback download error message
-          event.sender.send('update-error', { message: error.message, error });
+          const updateState: UpdateErrorState = {
+            status: 'update-error',
+            message: error.message,
+          };
+
+          event.sender.send('update-state', updateState);
         } else {
-          // feedback update progress message
-          event.sender.send('download-progress', progressInfo);
+          const updateState: DownloadingUpdateState = {
+            status: 'downloading-update',
+            progress: progressInfo ? progressInfo.percent / 100 : 0,
+          };
+
+          event.sender.send('update-state', updateState);
         }
       },
       () => {
-        // feedback update downloaded message
-        event.sender.send('update-downloaded');
+        const updateState: UpdateDownloadedState = {
+          status: 'update-downloaded',
+        };
+
+        event.sender.send('update-state', updateState);
       }
     );
   });
 
   // Install now
-  ipcMain.handle('quit-and-install', () => {
+  ipcMain.handle('restart-to-install-update', () => {
     autoUpdater.quitAndInstall(false, true);
   });
-}
+};
 
-function startDownload(
+const startDownload = (
   callback: (error: Error | null, info: ProgressInfo | null) => void,
   complete: (event: UpdateDownloadedEvent) => void
-) {
+) => {
   autoUpdater.on('download-progress', (info: ProgressInfo) =>
     callback(null, info)
   );
   autoUpdater.on('error', (error: Error) => callback(error, null));
   autoUpdater.on('update-downloaded', complete);
   autoUpdater.downloadUpdate();
-}
+};
+
+export const checkForUpdates = async () => {
+  if (!app.isPackaged && !autoUpdater.forceDevUpdateConfig) {
+    const error = new Error(
+      'The update feature is only available after the package.'
+    );
+    return { message: error.message, error };
+  }
+
+  try {
+    return await autoUpdater.checkForUpdatesAndNotify();
+  } catch (error) {
+    return { message: 'Network error', error };
+  }
+};

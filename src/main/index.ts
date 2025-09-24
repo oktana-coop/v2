@@ -9,6 +9,7 @@ import {
   app,
   BrowserWindow,
   ipcMain,
+  Menu,
   nativeImage,
   session,
   shell,
@@ -34,6 +35,7 @@ import {
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/infrastructure/filesystem/adapters/electron-node-api';
 import { type RunWasiCLIArgs } from '../modules/infrastructure/wasm';
 import { createAdapter as createNodeWasmAdapter } from '../modules/infrastructure/wasm/adapters/node-wasm';
+import { buildMenu } from './menu';
 import { update } from './update';
 
 const filesystemAPI = createElectronNodeFilesystemAPIAdapter();
@@ -340,7 +342,12 @@ async function createWindow() {
   );
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  const menu = buildMenu();
+  Menu.setApplicationMenu(menu);
+
+  createWindow();
+});
 
 app.on('before-quit', async () => {
   const defaultSession = session.defaultSession;
