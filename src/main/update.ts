@@ -61,7 +61,7 @@ export const update = (win: Electron.BrowserWindow) => {
   });
 
   // Checking for updates
-  ipcMain.handle('check-update', checkForUpdates);
+  ipcMain.handle('check-for-update', checkForUpdates);
 
   // Start downloading and feedback on progress
   ipcMain.handle('download-update', (event: Electron.IpcMainInvokeEvent) => {

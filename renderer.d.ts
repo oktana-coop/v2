@@ -27,6 +27,7 @@ export type ElectronAPI = {
   sendCurrentDocumentId: (id: VersionControlId) => void;
   openExternalLink: (url: string) => void;
   clearWebStorage: () => Promise<void>;
+  checkForUpdate: () => Promise<void>;
   onUpdateStateChange: (
     callback: (updateState: UpdateState) => void
   ) => () => void;

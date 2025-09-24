@@ -8,6 +8,7 @@ type ElectronContextType = {
   isElectron: boolean;
   openExternalLink: (url: string) => void;
   updateState: UpdateState | null;
+  checkForUpdate: () => void;
   downloadUpdate: () => void;
   dismissUpdateNotification: () => void;
   restartToInstallUpdate: () => void;
@@ -18,6 +19,7 @@ export const ElectronContext = createContext<ElectronContextType>({
   isElectron: isElectron(),
   openExternalLink: () => {},
   updateState: null,
+  checkForUpdate: () => {},
   downloadUpdate: () => {},
   dismissUpdateNotification: () => {},
   restartToInstallUpdate: () => {},
@@ -62,6 +64,12 @@ export const ElectronProvider = ({
     setUpdateState(null);
   };
 
+  const handleCheckForUpdate = () => {
+    if (isElectron()) {
+      window.electronAPI.checkForUpdate();
+    }
+  };
+
   const handleDownloadUpdate = () => {
     if (isElectron()) {
       window.electronAPI.downloadUpdate();
@@ -81,6 +89,7 @@ export const ElectronProvider = ({
         isElectron: isElectron(),
         openExternalLink: handleOpenExternalLink,
         updateState,
+        checkForUpdate: handleCheckForUpdate,
         downloadUpdate: handleDownloadUpdate,
         dismissUpdateNotification: handleDismissUpdateNotification,
         restartToInstallUpdate: () => handleRestartToInstallUpdate(),

@@ -33,7 +33,7 @@ export const DocumentCommandPalette = ({
     useState<boolean>(false);
   const { projectType } = useContext(CurrentProjectContext);
   const { canCommit, onOpenCommitDialog } = useContext(CurrentDocumentContext);
-  const { isElectron } = useContext(ElectronContext);
+  const { isElectron, checkForUpdate } = useContext(ElectronContext);
 
   // here we register the key bindings that are not
   // already covered by the command palette
@@ -66,6 +66,10 @@ export const DocumentCommandPalette = ({
   ];
 
   const electronSpecificActions: ActionOption[] = [
+    {
+      name: 'Check for updates',
+      onActionSelection: checkForUpdate,
+    },
     {
       name: 'Clear application data',
       onActionSelection: clearWebStorage,

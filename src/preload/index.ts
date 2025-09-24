@@ -41,6 +41,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openExternalLink: (url: string) =>
     ipcRenderer.send('open-external-link', url),
   clearWebStorage: () => ipcRenderer.invoke('clear-web-storage'),
+  checkForUpdate: () => ipcRenderer.invoke('check-for-update'),
   onUpdateStateChange: (callback) =>
     registerIpcListener<UpdateState>('update-state', callback),
   downloadUpdate: () => ipcRenderer.invoke('download-update'),
