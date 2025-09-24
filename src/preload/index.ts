@@ -13,6 +13,8 @@ import {
 } from '../modules/domain/project';
 import { type PromisifyEffects } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
 import {
+  type CheckingForUpdateState,
+  type DownloadingUpdateState,
   type UpdateAvailableState,
   type UpdateNotAvailableState,
 } from '../modules/infrastructure/cross-platform/update';
@@ -44,6 +46,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openExternalLink: (url: string) =>
     ipcRenderer.send('open-external-link', url),
   clearWebStorage: () => ipcRenderer.invoke('clear-web-storage'),
+  onCheckingForUpdate: (callback) =>
+    registerIpcListener<CheckingForUpdateState>(
+      'checking-for-update',
+      callback
+    ),
   onUpdateAvailable: (callback) =>
     registerIpcListener<UpdateAvailableState>('update-available', callback),
   onUpdateNotAvailable: (callback) =>
@@ -51,6 +58,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
       'update-not-available',
       callback
     ),
+  downloadUpdate: () => ipcRenderer.invoke('download-update'),
+  onDownloadUpdateProgress: (callback) =>
+    registerIpcListener<DownloadingUpdateState>('downloading-update', callback),
 } as ElectronAPI);
 
 contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {

@@ -13,6 +13,7 @@ export type NotificationWithActionsProps = {
   message?: string;
   messageElement?: React.ReactNode;
   mainActionLabel: string;
+  mainActionDisabled?: boolean;
   secondaryActionLabel?: string;
 };
 
@@ -26,6 +27,7 @@ export const NotificationWithActions = ({
   message,
   messageElement,
   mainActionLabel,
+  mainActionDisabled = false,
   secondaryActionLabel,
 }: NotificationWithActionsProps) => {
   const Icon = icon ?? InfoIcon;
@@ -52,16 +54,19 @@ export const NotificationWithActions = ({
                   type="button"
                   className="text-sm font-medium text-purple-600 hover:text-purple-500 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-purple-500 dark:text-purple-300 dark:hover:text-purple-200 dark:focus:outline-purple-300"
                   onClick={onMainActionClick}
+                  disabled={mainActionDisabled}
                 >
                   {mainActionLabel}
                 </button>
-                <button
-                  type="button"
-                  className="text-sm font-medium text-gray-700 hover:text-gray-500 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-purple-500 dark:text-gray-300 dark:hover:text-white dark:focus:outline-purple-300"
-                  onClick={onSecondaryActionClick}
-                >
-                  {secondaryActionLabel}
-                </button>
+                {secondaryActionLabel && (
+                  <button
+                    type="button"
+                    className="text-sm font-medium text-gray-700 hover:text-gray-500 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-purple-500 dark:text-gray-300 dark:hover:text-white dark:focus:outline-purple-300"
+                    onClick={onSecondaryActionClick}
+                  >
+                    {secondaryActionLabel}
+                  </button>
+                )}
               </div>
             </div>
             <div className="ml-4 flex shrink-0">

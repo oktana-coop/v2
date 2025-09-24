@@ -8,6 +8,7 @@ type ElectronContextType = {
   isElectron: boolean;
   openExternalLink: (url: string) => void;
   updateState: UpdateState | null;
+  downloadUpdate: () => void;
   dismissUpdateNotification: () => void;
 };
 
@@ -16,6 +17,7 @@ export const ElectronContext = createContext<ElectronContextType>({
   isElectron: isElectron(),
   openExternalLink: () => {},
   updateState: null,
+  downloadUpdate: () => {},
   dismissUpdateNotification: () => {},
 });
 
@@ -46,9 +48,16 @@ export const ElectronProvider = ({
         setUpdateState(updateNotAvailableState);
       });
 
+    const unsubscribeFromDownloadUpdateProgress =
+      window.electronAPI?.onDownloadUpdateProgress((downloadingUpdateState) => {
+        console.log('Downloading update:', downloadingUpdateState);
+        setUpdateState(downloadingUpdateState);
+      });
+
     return () => {
       unsubscribeFromUpdateAvailable();
       unsubscribeFromUpdateNotAvailable();
+      unsubscribeFromDownloadUpdateProgress();
     };
   }, []);
 
@@ -66,6 +75,12 @@ export const ElectronProvider = ({
     setUpdateState(null);
   };
 
+  const handleDownloadUpdate = () => {
+    if (isElectron()) {
+      window.electronAPI.downloadUpdate();
+    }
+  };
+
   return (
     <ElectronContext.Provider
       value={{
@@ -73,6 +88,7 @@ export const ElectronProvider = ({
         isElectron: isElectron(),
         openExternalLink: handleOpenExternalLink,
         updateState,
+        downloadUpdate: handleDownloadUpdate,
         dismissUpdateNotification: handleDismissUpdateNotification,
       }}
     >

@@ -8,6 +8,8 @@ import {
 } from 'electron-updater';
 
 import {
+  type CheckingForUpdateState,
+  DownloadingUpdateState,
   type UpdateAvailableState,
   type UpdateNotAvailableState,
 } from '../modules/infrastructure/cross-platform/update';
@@ -27,7 +29,13 @@ export const update = (win: Electron.BrowserWindow) => {
   autoUpdater.allowDowngrade = false;
 
   // start check
-  autoUpdater.on('checking-for-update', function () {});
+  autoUpdater.on('checking-for-update', function () {
+    const updateState: CheckingForUpdateState = {
+      status: 'checking-for-update',
+    };
+
+    win.webContents.send('checking-for-update', updateState);
+  });
 
   // update available
   autoUpdater.on('update-available', (arg: UpdateInfo) => {
@@ -54,15 +62,21 @@ export const update = (win: Electron.BrowserWindow) => {
   ipcMain.handle('check-update', checkForUpdates);
 
   // Start downloading and feedback on progress
-  ipcMain.handle('start-download', (event: Electron.IpcMainInvokeEvent) => {
+  ipcMain.handle('download-update', (event: Electron.IpcMainInvokeEvent) => {
+    console.log('Start downloading update...');
     startDownload(
       (error, progressInfo) => {
         if (error) {
           // feedback download error message
           event.sender.send('update-error', { message: error.message, error });
         } else {
+          const updateState: DownloadingUpdateState = {
+            status: 'downloading-update',
+            progress: progressInfo ? progressInfo.percent / 100 : 0,
+          };
+
           // feedback update progress message
-          event.sender.send('download-progress', progressInfo);
+          event.sender.send('downloading-update', updateState);
         }
       },
       () => {

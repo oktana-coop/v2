@@ -15,8 +15,8 @@ export type UpdateNotAvailableState = {
 
 export type DownloadingUpdateState = {
   status: 'downloading-update';
-  version: string;
-  newVersion: string;
+  // version: string;
+  // newVersion: string;
   progress: number; // Progress percentage (0-100)
 };
 
