@@ -14,16 +14,6 @@ export const UpdateNotification = () => {
     restartToInstallUpdate,
   } = useContext(ElectronContext);
 
-  return (
-    <SimpleNotification
-      show={true}
-      onClose={dismissUpdateNotification}
-      icon={UpdateIcon}
-      title="Downloading Update..."
-      messageElement={<ProgressBar percentage={0.35} classes="mt-3" />}
-    />
-  );
-
   switch (updateState?.status) {
     case 'update-not-available':
       return (
