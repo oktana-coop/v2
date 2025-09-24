@@ -14,6 +14,7 @@ import {
   type CheckingForUpdateState,
   type DownloadingUpdateState,
   type UpdateAvailableState,
+  type UpdateDownloadedState,
   type UpdateNotAvailableState,
 } from './src/modules/infrastructure/cross-platform/update';
 import type {
@@ -45,6 +46,10 @@ export type ElectronAPI = {
   onDownloadUpdateProgress: (
     callback: (updateState: DownloadingUpdateState) => void
   ) => () => void;
+  onDownloadCompleted: (
+    callback: (updateState: UpdateDownloadedState) => void
+  ) => () => void;
+  restartToInstallUpdate: () => Promise<void>;
 };
 
 export type UnregisterListenerFn = () => void;

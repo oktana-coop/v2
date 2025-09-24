@@ -22,8 +22,8 @@ export type DownloadingUpdateState = {
 
 export type UpdateDownloadedState = {
   status: 'update-downloaded';
-  version: string;
-  newVersion: string;
+  // version: string;
+  // newVersion: string;
 };
 
 export type UpdateState =

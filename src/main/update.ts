@@ -11,6 +11,7 @@ import {
   type CheckingForUpdateState,
   DownloadingUpdateState,
   type UpdateAvailableState,
+  UpdateDownloadedState,
   type UpdateNotAvailableState,
 } from '../modules/infrastructure/cross-platform/update';
 
@@ -80,14 +81,18 @@ export const update = (win: Electron.BrowserWindow) => {
         }
       },
       () => {
+        const updateState: UpdateDownloadedState = {
+          status: 'update-downloaded',
+        };
+
         // feedback update downloaded message
-        event.sender.send('update-downloaded');
+        event.sender.send('update-downloaded', updateState);
       }
     );
   });
 
   // Install now
-  ipcMain.handle('quit-and-install', () => {
+  ipcMain.handle('restart-to-install-update', () => {
     autoUpdater.quitAndInstall(false, true);
   });
 };

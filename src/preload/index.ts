@@ -16,6 +16,7 @@ import {
   type CheckingForUpdateState,
   type DownloadingUpdateState,
   type UpdateAvailableState,
+  type UpdateDownloadedState,
   type UpdateNotAvailableState,
 } from '../modules/infrastructure/cross-platform/update';
 import {
@@ -61,6 +62,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   downloadUpdate: () => ipcRenderer.invoke('download-update'),
   onDownloadUpdateProgress: (callback) =>
     registerIpcListener<DownloadingUpdateState>('downloading-update', callback),
+  onDownloadCompleted: (callback) =>
+    registerIpcListener<UpdateDownloadedState>('update-downloaded', callback),
+  restartToInstallUpdate: () => ipcRenderer.invoke('restart-to-install-update'),
 } as ElectronAPI);
 
 contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {

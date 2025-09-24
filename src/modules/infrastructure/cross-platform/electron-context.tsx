@@ -10,6 +10,7 @@ type ElectronContextType = {
   updateState: UpdateState | null;
   downloadUpdate: () => void;
   dismissUpdateNotification: () => void;
+  restartToInstallUpdate: () => void;
 };
 
 export const ElectronContext = createContext<ElectronContextType>({
@@ -19,6 +20,7 @@ export const ElectronContext = createContext<ElectronContextType>({
   updateState: null,
   downloadUpdate: () => {},
   dismissUpdateNotification: () => {},
+  restartToInstallUpdate: () => {},
 });
 
 export const ElectronProvider = ({
@@ -38,26 +40,29 @@ export const ElectronProvider = ({
 
     const unsubscribeFromUpdateAvailable =
       window.electronAPI?.onUpdateAvailable((updateAvailableState) => {
-        console.log('Update available:', updateAvailableState);
         setUpdateState(updateAvailableState);
       });
 
     const unsubscribeFromUpdateNotAvailable =
       window.electronAPI?.onUpdateNotAvailable((updateNotAvailableState) => {
-        console.log('Update not available:', updateNotAvailableState);
         setUpdateState(updateNotAvailableState);
       });
 
     const unsubscribeFromDownloadUpdateProgress =
       window.electronAPI?.onDownloadUpdateProgress((downloadingUpdateState) => {
-        console.log('Downloading update:', downloadingUpdateState);
         setUpdateState(downloadingUpdateState);
+      });
+
+    const unsubscribeFromDownloadCompleted =
+      window.electronAPI?.onDownloadCompleted((downloadCompletedState) => {
+        setUpdateState(downloadCompletedState);
       });
 
     return () => {
       unsubscribeFromUpdateAvailable();
       unsubscribeFromUpdateNotAvailable();
       unsubscribeFromDownloadUpdateProgress();
+      unsubscribeFromDownloadCompleted();
     };
   }, []);
 
@@ -81,6 +86,12 @@ export const ElectronProvider = ({
     }
   };
 
+  const handleRestartToInstallUpdate = () => {
+    if (isElectron()) {
+      window.electronAPI.restartToInstallUpdate();
+    }
+  };
+
   return (
     <ElectronContext.Provider
       value={{
@@ -90,6 +101,7 @@ export const ElectronProvider = ({
         updateState,
         downloadUpdate: handleDownloadUpdate,
         dismissUpdateNotification: handleDismissUpdateNotification,
+        restartToInstallUpdate: () => handleRestartToInstallUpdate(),
       }}
     >
       {children}
