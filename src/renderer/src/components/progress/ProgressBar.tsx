@@ -10,7 +10,7 @@ export const ProgressBar = ({
 
   return (
     <div
-      className={`overflow-hidden bg-gray-200 dark:bg-white/10 ${classes ?? ''}`}
+      className={`overflow-hidden rounded-full bg-gray-200 dark:bg-white/10 ${classes ?? ''}`}
     >
       <div
         style={{ width: `${perc * 100}%` }}
