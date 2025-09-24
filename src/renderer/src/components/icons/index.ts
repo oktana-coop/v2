@@ -4,6 +4,7 @@ export { CheckIcon } from './Check';
 export { ChevronDownIcon } from './ChevronDown';
 export { CloseIcon } from './Close';
 export { CommitHistoryIcon } from './CommitHistory';
+export { ErrorIcon } from './Error';
 export { FileDocumentIcon } from './FileDocument';
 export { FolderIcon } from './Folder';
 export { FormatBoldIcon } from './FormatBold';

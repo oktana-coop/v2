@@ -38,31 +38,13 @@ export const ElectronProvider = ({
       });
     }
 
-    const unsubscribeFromUpdateAvailable =
-      window.electronAPI?.onUpdateAvailable((updateAvailableState) => {
-        setUpdateState(updateAvailableState);
-      });
-
-    const unsubscribeFromUpdateNotAvailable =
-      window.electronAPI?.onUpdateNotAvailable((updateNotAvailableState) => {
-        setUpdateState(updateNotAvailableState);
-      });
-
-    const unsubscribeFromDownloadUpdateProgress =
-      window.electronAPI?.onDownloadUpdateProgress((downloadingUpdateState) => {
-        setUpdateState(downloadingUpdateState);
-      });
-
-    const unsubscribeFromDownloadCompleted =
-      window.electronAPI?.onDownloadCompleted((downloadCompletedState) => {
-        setUpdateState(downloadCompletedState);
+    const unsubscribeFromUpdateStateChange =
+      window.electronAPI?.onUpdateStateChange((updateState) => {
+        setUpdateState(updateState);
       });
 
     return () => {
-      unsubscribeFromUpdateAvailable();
-      unsubscribeFromUpdateNotAvailable();
-      unsubscribeFromDownloadUpdateProgress();
-      unsubscribeFromDownloadCompleted();
+      unsubscribeFromUpdateStateChange();
     };
   }, []);
 

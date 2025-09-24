@@ -12,13 +12,7 @@ import {
   type SetupSingleDocumentProjectStoreArgs,
 } from '../modules/domain/project';
 import { type PromisifyEffects } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
-import {
-  type CheckingForUpdateState,
-  type DownloadingUpdateState,
-  type UpdateAvailableState,
-  type UpdateDownloadedState,
-  type UpdateNotAvailableState,
-} from '../modules/infrastructure/cross-platform/update';
+import { type UpdateState } from '../modules/infrastructure/cross-platform/update';
 import {
   type CreateNewFileArgs,
   type File,
@@ -47,23 +41,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openExternalLink: (url: string) =>
     ipcRenderer.send('open-external-link', url),
   clearWebStorage: () => ipcRenderer.invoke('clear-web-storage'),
-  onCheckingForUpdate: (callback) =>
-    registerIpcListener<CheckingForUpdateState>(
-      'checking-for-update',
-      callback
-    ),
-  onUpdateAvailable: (callback) =>
-    registerIpcListener<UpdateAvailableState>('update-available', callback),
-  onUpdateNotAvailable: (callback) =>
-    registerIpcListener<UpdateNotAvailableState>(
-      'update-not-available',
-      callback
-    ),
+  onUpdateStateChange: (callback) =>
+    registerIpcListener<UpdateState>('update-state', callback),
   downloadUpdate: () => ipcRenderer.invoke('download-update'),
-  onDownloadUpdateProgress: (callback) =>
-    registerIpcListener<DownloadingUpdateState>('downloading-update', callback),
-  onDownloadCompleted: (callback) =>
-    registerIpcListener<UpdateDownloadedState>('update-downloaded', callback),
   restartToInstallUpdate: () => ipcRenderer.invoke('restart-to-install-update'),
 } as ElectronAPI);
 

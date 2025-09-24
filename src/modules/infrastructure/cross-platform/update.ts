@@ -15,15 +15,16 @@ export type UpdateNotAvailableState = {
 
 export type DownloadingUpdateState = {
   status: 'downloading-update';
-  // version: string;
-  // newVersion: string;
   progress: number; // Progress percentage (0-100)
 };
 
 export type UpdateDownloadedState = {
   status: 'update-downloaded';
-  // version: string;
-  // newVersion: string;
+};
+
+export type UpdateErrorState = {
+  status: 'update-error';
+  message: string;
 };
 
 export type UpdateState =
@@ -31,7 +32,8 @@ export type UpdateState =
   | UpdateAvailableState
   | UpdateNotAvailableState
   | DownloadingUpdateState
-  | UpdateDownloadedState;
+  | UpdateDownloadedState
+  | UpdateErrorState;
 
 export const isCheckingForUpdateState = (
   state: UpdateState
@@ -52,3 +54,7 @@ export const isDownloadingUpdateState = (
 export const isUpdateDownloadedState = (
   state: UpdateState
 ): state is UpdateDownloadedState => state.status === 'update-downloaded';
+
+export const isUpdateErrorState = (
+  state: UpdateState
+): state is UpdateErrorState => state.status === 'update-error';

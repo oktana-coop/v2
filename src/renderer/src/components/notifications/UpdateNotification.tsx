@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform';
-import { UpdateIcon } from '../icons';
+import { ErrorIcon, UpdateIcon } from '../icons';
 import { ProgressBar } from '../progress/ProgressBar';
 import { NotificationWithActions } from './NotificationWithActions';
 import { SimpleNotification } from './SimpleNotification';
@@ -63,6 +63,17 @@ export const UpdateNotification = () => {
           message="A new version has been downloaded and is ready to install."
           mainActionLabel="Restart & Install"
           secondaryActionLabel="Dismiss"
+        />
+      );
+    case 'update-error':
+      return (
+        <SimpleNotification
+          show={true}
+          onClose={dismissUpdateNotification}
+          icon={ErrorIcon}
+          iconClasses="text-red-400"
+          title="Update Error"
+          message="An error occured while preparing the update."
         />
       );
     default:

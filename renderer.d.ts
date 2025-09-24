@@ -10,13 +10,7 @@ import {
   type SetupSingleDocumentProjectStoreArgs,
   type SetupSingleDocumentProjectStoreResult,
 } from './src/modules/domain/project';
-import {
-  type CheckingForUpdateState,
-  type DownloadingUpdateState,
-  type UpdateAvailableState,
-  type UpdateDownloadedState,
-  type UpdateNotAvailableState,
-} from './src/modules/infrastructure/cross-platform/update';
+import { type UpdateState } from './src/modules/infrastructure/cross-platform/update';
 import type {
   type File,
   Filesystem as FilesystemAPI,
@@ -33,22 +27,10 @@ export type ElectronAPI = {
   sendCurrentDocumentId: (id: VersionControlId) => void;
   openExternalLink: (url: string) => void;
   clearWebStorage: () => Promise<void>;
-  onCheckingForUpdate: (
-    callback: (updateState: CheckingForUpdateState) => void
-  ) => () => void;
-  onUpdateAvailable: (
-    callback: (updateState: UpdateAvailableState) => void
-  ) => () => void;
-  onUpdateNotAvailable: (
-    callback: (updateState: UpdateNotAvailableState) => void
+  onUpdateStateChange: (
+    callback: (updateState: UpdateState) => void
   ) => () => void;
   downloadUpdate: () => Promise<void>;
-  onDownloadUpdateProgress: (
-    callback: (updateState: DownloadingUpdateState) => void
-  ) => () => void;
-  onDownloadCompleted: (
-    callback: (updateState: UpdateDownloadedState) => void
-  ) => () => void;
   restartToInstallUpdate: () => Promise<void>;
 };
 

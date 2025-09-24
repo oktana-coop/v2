@@ -8,6 +8,7 @@ export type SimpleNotificationProps = {
   onClose: () => void;
   title: string;
   icon?: React.ComponentType<IconProps>;
+  iconClasses?: string;
   message?: string;
   messageElement?: React.ReactNode;
 };
@@ -17,6 +18,7 @@ export const SimpleNotification = ({
   onClose,
   title,
   icon,
+  iconClasses,
   message,
   messageElement,
 }: SimpleNotificationProps) => {
@@ -28,7 +30,10 @@ export const SimpleNotification = ({
         <div className="p-4">
           <div className="flex items-start">
             <div className="shrink-0">
-              <Icon aria-hidden="true" className="size-6 text-gray-400" />
+              <Icon
+                aria-hidden="true"
+                className={`size-6 text-gray-400 ${iconClasses ?? ''}`}
+              />
             </div>
             <div className="ml-3 w-0 flex-1 pt-0.5">
               <p className="text-left text-sm font-medium text-gray-900 dark:text-white">

@@ -9,9 +9,10 @@ import {
 
 import {
   type CheckingForUpdateState,
-  DownloadingUpdateState,
+  type DownloadingUpdateState,
   type UpdateAvailableState,
-  UpdateDownloadedState,
+  type UpdateDownloadedState,
+  type UpdateErrorState,
   type UpdateNotAvailableState,
 } from '../modules/infrastructure/cross-platform/update';
 
@@ -35,7 +36,7 @@ export const update = (win: Electron.BrowserWindow) => {
       status: 'checking-for-update',
     };
 
-    win.webContents.send('checking-for-update', updateState);
+    win.webContents.send('update-state', updateState);
   });
 
   // update available
@@ -46,7 +47,7 @@ export const update = (win: Electron.BrowserWindow) => {
       newVersion: arg.version,
     };
 
-    win.webContents.send('update-available', updateState);
+    win.webContents.send('update-state', updateState);
   });
 
   // update not available
@@ -56,7 +57,7 @@ export const update = (win: Electron.BrowserWindow) => {
       version: app.getVersion(),
     };
 
-    win.webContents.send('update-not-available', updateState);
+    win.webContents.send('update-state', updateState);
   });
 
   // Checking for updates
@@ -68,16 +69,19 @@ export const update = (win: Electron.BrowserWindow) => {
     startDownload(
       (error, progressInfo) => {
         if (error) {
-          // feedback download error message
-          event.sender.send('update-error', { message: error.message, error });
+          const updateState: UpdateErrorState = {
+            status: 'update-error',
+            message: error.message,
+          };
+
+          event.sender.send('update-state', updateState);
         } else {
           const updateState: DownloadingUpdateState = {
             status: 'downloading-update',
             progress: progressInfo ? progressInfo.percent / 100 : 0,
           };
 
-          // feedback update progress message
-          event.sender.send('downloading-update', updateState);
+          event.sender.send('update-state', updateState);
         }
       },
       () => {
@@ -85,8 +89,7 @@ export const update = (win: Electron.BrowserWindow) => {
           status: 'update-downloaded',
         };
 
-        // feedback update downloaded message
-        event.sender.send('update-downloaded', updateState);
+        event.sender.send('update-state', updateState);
       }
     );
   });
