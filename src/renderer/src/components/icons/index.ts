@@ -23,6 +23,7 @@ export { FormatUnderlineIcon } from './FormatUnderline';
 export { FormatTextIcon } from './FormatText';
 export { HomeIcon } from './Home';
 export { ImageIcon } from './Image';
+export { InfoIcon } from './Info';
 export { LinkIcon } from './Link';
 export { MoonIcon } from './Moon';
 export { OptionsIcon } from './Options';
