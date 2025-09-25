@@ -46,7 +46,7 @@ export const ElectronProvider = ({
       });
 
     return () => {
-      unsubscribeFromUpdateStateChange();
+      unsubscribeFromUpdateStateChange?.();
     };
   }, []);
 

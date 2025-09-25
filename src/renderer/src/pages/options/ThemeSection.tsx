@@ -3,21 +3,26 @@ import { useContext } from 'react';
 import {
   ThemeContext,
   themes,
-} from '../../../../modules/personalization/theme';
+} from '../../../../modules/personalization/browser';
 import { MoonIcon, SunIcon } from '../../components/icons';
 import { Label } from '../../components/inputs/Fieldset';
 import { Radio, RadioField, RadioGroup } from '../../components/inputs/Radio';
 import { SectionHeader } from './SectionHeader';
 
 export const ThemeSection = () => {
-  const { theme, setTheme } = useContext(ThemeContext);
+  const { theme, resolvedTheme, setTheme } = useContext(ThemeContext);
+
   return (
     <div>
       <SectionHeader
-        icon={theme === themes.dark ? MoonIcon : SunIcon}
+        icon={resolvedTheme === themes.dark ? MoonIcon : SunIcon}
         heading="Theme"
       />
       <RadioGroup name="theme" value={theme} onChange={setTheme}>
+        <RadioField>
+          <Radio value={themes.system} color="purple" />
+          <Label>System</Label>
+        </RadioField>
         <RadioField>
           <Radio value={themes.light} color="purple" />
           <Label>Light</Label>

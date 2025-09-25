@@ -15,7 +15,7 @@ import {
   isValidVersionControlId,
   UrlHeads,
 } from '../../../../../../modules/infrastructure/version-control';
-import { FunctionalityConfigContext } from '../../../../../../modules/personalization/functionality-config';
+import { FunctionalityConfigContext } from '../../../../../../modules/personalization/browser';
 import {
   CurrentDocumentContext,
   SidebarLayoutContext,

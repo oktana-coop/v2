@@ -4,6 +4,7 @@ import {
   type ElectronAPI,
   type MultiDocumentProjectAPI,
   type OsEventsAPI,
+  type PersonalizationAPI,
   type SingleDocumentProjectAPI,
 } from '../../renderer';
 import {
@@ -29,6 +30,7 @@ import type {
   RunWasiCLIArgs,
   Wasm as WasmAPI,
 } from '../modules/infrastructure/wasm';
+import { type ResolvedTheme } from '../modules/personalization/theme';
 import { registerIpcListener } from './utils';
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -47,6 +49,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   downloadUpdate: () => ipcRenderer.invoke('download-update'),
   restartToInstallUpdate: () => ipcRenderer.invoke('restart-to-install-update'),
 } as ElectronAPI);
+
+contextBridge.exposeInMainWorld('personalizationAPI', {
+  setTheme: (theme) => ipcRenderer.send('set-theme', theme),
+  getTheme: () => ipcRenderer.invoke('get-theme'),
+  getSystemTheme: () => ipcRenderer.invoke('get-system-theme'),
+  onSystemThemeUpdate: (callback) =>
+    registerIpcListener<ResolvedTheme>('system-theme-update', callback),
+} as PersonalizationAPI);
 
 contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
   sendRendererProcessMessage: (
