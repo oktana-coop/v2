@@ -99,6 +99,7 @@ jobs:
         run: pnpm run build
         env:
           OKTANA_NPM_TOKEN: ${{ secrets.OKTANA_NPM_TOKEN }}
+          NODE_OPTIONS: '--max-old-space-size=4096'
       - name: Package Electron app
         run: pnpm run package
         env:
