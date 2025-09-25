@@ -1,5 +1,9 @@
 import { next as Automerge } from '@automerge/automerge/slim';
-import { RawString, type Repo } from '@automerge/automerge-repo/slim';
+import {
+  decodeHeads,
+  RawString,
+  type Repo,
+} from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
@@ -15,7 +19,6 @@ import {
   type VersionControlId,
   versionedArtifactTypes,
 } from '../../../../../modules/infrastructure/version-control';
-import { fromNullable } from '../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../utils/errors';
 import { NotFoundError, RepositoryError } from '../../errors';
 import {
@@ -222,14 +225,15 @@ export const createAdapter = (
     pipe(
       Effect.try({
         try: () =>
-          documentHandle.changeAt(
-            commit.heads,
+          documentHandle.change(
             (doc) => {
-              // this is effectively a no-op, but it triggers a change event
-              // (not) changing the title of the document, as interfering with the
-              // content outside the Prosemirror API will cause loss of formatting
-              // eslint-disable-next-line no-self-assign
-              doc.type = doc.type;
+              const diffPatches = Automerge.diff(
+                doc,
+                Automerge.getHeads(doc),
+                decodeHeads(commit.heads)
+              );
+
+              Automerge.applyPatches(doc, diffPatches);
             },
             {
               message: message ?? `Restore ${commit.message}`,
@@ -238,11 +242,11 @@ export const createAdapter = (
           ),
         catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
       }),
-      Effect.flatMap((heads) =>
-        fromNullable(
-          heads,
-          () => new RepositoryError('No heads returned from restore commit')
-        )
+      Effect.flatMap(() =>
+        Effect.try({
+          try: () => documentHandle.heads(),
+          catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+        })
       )
     );
 
