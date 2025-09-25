@@ -144,12 +144,12 @@
     }
   },
   "dependencies": {
-    "@automerge/automerge": "^3.1.1",
-    "@automerge/automerge-repo": "^2.2.0",
-    "@automerge/automerge-repo-network-websocket": "^2.2.0",
-    "@automerge/automerge-repo-react-hooks": "^2.2.0",
-    "@automerge/automerge-repo-storage-indexeddb": "^2.2.0",
-    "@automerge/automerge-repo-storage-nodefs": "^2.2.0",
+    "@automerge/automerge": "^3.1.2",
+    "@automerge/automerge-repo": "^2.3.1",
+    "@automerge/automerge-repo-network-websocket": "^2.3.1",
+    "@automerge/automerge-repo-react-hooks": "^2.3.1",
+    "@automerge/automerge-repo-storage-indexeddb": "^2.3.1",
+    "@automerge/automerge-repo-storage-nodefs": "^2.3.1",
     "@automerge/prosemirror": "^0.1.0",
     "@floating-ui/react": "^0.27.8",
     "@headlessui/react": "^2.2.4",

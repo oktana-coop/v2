@@ -9,22 +9,22 @@ importers:
   .:
     dependencies:
       '@automerge/automerge':
-        specifier: ^3.1.1
+        specifier: ^3.1.2
         version: 3.1.2
       '@automerge/automerge-repo':
-        specifier: ^2.2.0
+        specifier: ^2.3.1
         version: 2.3.1
       '@automerge/automerge-repo-network-websocket':
-        specifier: ^2.2.0
+        specifier: ^2.3.1
         version: 2.3.1
       '@automerge/automerge-repo-react-hooks':
-        specifier: ^2.2.0
+        specifier: ^2.3.1
         version: 2.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@automerge/automerge-repo-storage-indexeddb':
-        specifier: ^2.2.0
+        specifier: ^2.3.1
         version: 2.3.1
       '@automerge/automerge-repo-storage-nodefs':
-        specifier: ^2.2.0
+        specifier: ^2.3.1
         version: 2.3.1
       '@automerge/prosemirror':
         specifier: ^0.1.0
