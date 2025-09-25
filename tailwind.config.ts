@@ -1,3 +1,4 @@
+import tailwindScrollbar from 'tailwind-scrollbar';
 import type { Config } from 'tailwindcss';
 
 export default {
@@ -39,6 +40,6 @@ export default {
       sans: ['Montserrat', 'sans-serif'],
     },
   },
-  plugins: [],
+  plugins: [tailwindScrollbar],
   darkMode: 'selector',
 } as Config;
