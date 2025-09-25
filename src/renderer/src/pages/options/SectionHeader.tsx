@@ -11,6 +11,6 @@ export const SectionHeader = ({ icon: Icon, heading }: SectionHeaderProps) => (
     {Icon && (
       <Icon className="text-black text-opacity-90 dark:text-white dark:text-opacity-90" />
     )}
-    <Heading2>{heading}</Heading2>
+    <Heading2 className="mb-0">{heading}</Heading2>
   </div>
 );

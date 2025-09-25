@@ -12,7 +12,7 @@ import {
 import {
   ThemeContext,
   themes,
-} from '../../../../../../modules/personalization/theme';
+} from '../../../../../../modules/personalization/browser';
 import { TimelinePoint } from '../../../../components/icons/TimelinePoint';
 
 const Commit = ({
@@ -28,7 +28,7 @@ const Commit = ({
   isFirst?: boolean;
   isLast?: boolean;
 }) => {
-  const { theme } = useContext(ThemeContext);
+  const { resolvedTheme } = useContext(ThemeContext);
   const themeStyles = isSelected ? 'font-bold' : '';
   return (
     <div
@@ -39,7 +39,7 @@ const Commit = ({
         <div className="h-full w-14 flex-shrink-0">
           <TimelinePoint
             circleSize={7.5}
-            color={theme === themes.light ? '#9352FF' : '#C8B1FF'}
+            color={resolvedTheme === themes.light ? '#9352FF' : '#C8B1FF'}
             hasTopStem={!isFirst}
             hasBottomStem={!isLast}
           />
@@ -64,7 +64,7 @@ const UncommittedChange = ({
   isFirst?: boolean;
   isLast?: boolean;
 }) => {
-  const { theme } = useContext(ThemeContext);
+  const { resolvedTheme } = useContext(ThemeContext);
 
   return (
     <div
@@ -75,7 +75,7 @@ const UncommittedChange = ({
       <div className="flex flex-row items-center">
         <div className="h-full w-14 flex-shrink-0">
           <TimelinePoint
-            color={theme === themes.light ? '#2C2C2C' : '#fff'}
+            color={resolvedTheme === themes.light ? '#2C2C2C' : '#fff'}
             circleSize={12.5}
             circleStrokeSize={5}
             circleFillColor="transparent"

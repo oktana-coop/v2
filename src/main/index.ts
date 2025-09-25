@@ -36,8 +36,11 @@ import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modu
 import { type RunWasiCLIArgs } from '../modules/infrastructure/wasm';
 import { createAdapter as createNodeWasmAdapter } from '../modules/infrastructure/wasm/adapters/node-wasm';
 import { buildMenu } from './menu';
+import { initializeStore } from './store';
+import { registerThemeIPCHandlers, setSavedOrDefaultTheme } from './theme';
 import { update } from './update';
 
+const store = initializeStore();
 const filesystemAPI = createElectronNodeFilesystemAPIAdapter();
 
 globalThis.__filename = fileURLToPath(import.meta.url);
@@ -340,11 +343,15 @@ async function createWindow() {
   ipcMain.handle('run-wasi-cli-outputing-binary', (_, args: RunWasiCLIArgs) =>
     wasmAPI.runWasiCLIOutputingBinary(args)
   );
+
+  registerThemeIPCHandlers({ store, win });
 }
 
 app.whenReady().then(() => {
   const menu = buildMenu();
   Menu.setApplicationMenu(menu);
+
+  setSavedOrDefaultTheme(store);
 
   createWindow();
 });

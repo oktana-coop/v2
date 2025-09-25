@@ -21,6 +21,12 @@ import type {
   VersionControlId,
 } from './src/modules/infrastructure/version-control';
 import { type Wasm as WasmAPI } from './src/modules/infrastructure/wasm';
+import {
+  type ResolvedTheme,
+  type Theme,
+} from './src/modules/personalization/theme';
+
+export type UnregisterListenerFn = () => void;
 
 export type ElectronAPI = {
   onReceiveProcessId: (callback: (processId: string) => void) => IpcRenderer;
@@ -35,7 +41,12 @@ export type ElectronAPI = {
   restartToInstallUpdate: () => Promise<void>;
 };
 
-export type UnregisterListenerFn = () => void;
+export type PersonalizationAPI = {
+  setTheme: (theme: Theme) => Promise<void>;
+  getTheme: () => Promise<Theme>;
+  getSystemTheme: () => Promise<Exclude<Theme, 'system'>>;
+  onSystemThemeUpdate: (callback: (theme: ResolvedTheme) => void) => () => void;
+};
 
 export type AutomergeRepoNetworkAdapter = {
   sendRendererProcessMessage: (
@@ -83,6 +94,7 @@ export type OsEventsAPI = {
 declare global {
   interface Window {
     electronAPI: ElectronAPI;
+    personalizationAPI: PersonalizationAPI;
     automergeRepoNetworkAdapter: AutomergeRepoNetworkAdapter;
     filesystemAPI: FilesystemPromiseAPI;
     versionControlAPI: VersionControlAPI;
