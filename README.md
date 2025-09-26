@@ -102,11 +102,10 @@ Semantic version, in a nutshell, is the `vMAJOR.MINOR.PATCH` (f.e. `v0.1.1`) fou
 
 Additionally, pre-release tags indicate alpha or beta software versions (as `v0.2.0-alpha` or `v5.9-beta.3`.)
 
-### Versioning in CI/CD Workflows
+### Release Workflow and Versioning
 
-When a pull request is merged into `main`, a new semantic tag is automatically created and pushed to the repository.
-By default, this is a **patch** update from the previous version (`v0.1.1` → `v0.1.2`).
+When the release worfklow is run in CI/CD (against any branch), a new semantic tag and version bump commit are automatically created and pushed to the repository (in the specified brach). Also, a new draft release is created, which can then be published from the GitHub UI.
 
-You can override this by including one of the following in the commit message:
-`#major`, `#minor`, or `#patch`.
-For details, see [bumping in github-tag-action](https://github.com/anothrNick/github-tag-action?tab=readme-ov-file#bumping).
+If for any case the release workflow fails, the version bump and the commit are reverted automatically (in a conditional cleanup step of the worfklow itself).
+
+By default, the release worfklow performs a **patch** update from the previous version (`v0.1.1` → `v0.1.2`), but this default is an option for the maintainer who runs the release worfklow. You can override this by including one of the following in the commit message: `#major`, `#minor`, or `#patch`. For details, see [bumping in github-tag-action](https://github.com/anothrNick/github-tag-action?tab=readme-ov-file#bumping).
