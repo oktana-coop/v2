@@ -66,12 +66,36 @@ This will build the app under the `dist` directory. To run the built production 
 pnpm run start
 ```
 
-## Release
+## Release and Versioning
+
+`v2` leverages [Semantic Versioning](https://semver.org/) as part of its Continuous Integration stategy.
+
+Semantic version, in a nutshell, is the `vMAJOR.MINOR.PATCH` (f.e. `v0.1.1`) found in most applications and websites nowadays, where
+
+- MAJOR version when you make incompatible API changes
+- MINOR version when you add functionality in a backward compatible manner
+- PATCH version when you make backward compatible bug fixes
+
+Additionally, pre-release tags indicate alpha or beta software versions (as `v0.2.0-alpha` or `v5.9-beta.3`.)
+
+### Release Workflow (GitHub CI)
+
+There is a release workflow available in GitHub CI, which:
+
+1. Creates a tag and a version bump commit
+2. Builds the app and creates executables for various operating systems
+3. Creates a new draft release with the executables as artifacts
+
+If for any case the release workflow fails, the version bump and the commit are reverted automatically (in a conditional cleanup step of the worfklow itself).
+
+By default, the release worfklow performs a **patch** update from the previous version (`v0.1.1` → `v0.1.2`), but this default is an option for the maintainer who runs the release worfklow. You can override this by including one of the following in the commit message: `#major`, `#minor`, or `#patch`. For details, see [bumping in github-tag-action](https://github.com/anothrNick/github-tag-action?tab=readme-ov-file#bumping).
+
+### Package the app for your OS (locally)
 
 To create artifacts for various operating systems, first build the app as shown above. Then run:
 
 ```sh
-pnpm run app:dist
+pnpm run package
 ```
 
 This will produce the artifacts in the `bin` directory.
@@ -89,23 +113,3 @@ To extract and inspect the `asar` file contents (example for Linux build), in a 
 ```sh
 pnpx @electron/asar extract bin/linux-unpacked/resources/app.asar test
 ```
-
-## Versioning
-
-`v2` leverages [Semantic Versioning](https://semver.org/) as part of its Continuous Integration stategy.
-
-Semantic version, in a nutshell, is the `vMAJOR.MINOR.PATCH` (f.e. `v0.1.1`) found in most applications and websites nowadays, where
-
-- MAJOR version when you make incompatible API changes
-- MINOR version when you add functionality in a backward compatible manner
-- PATCH version when you make backward compatible bug fixes
-
-Additionally, pre-release tags indicate alpha or beta software versions (as `v0.2.0-alpha` or `v5.9-beta.3`.)
-
-### Release Workflow and Versioning
-
-When the release worfklow is run in CI/CD (against any branch), a new semantic tag and version bump commit are automatically created and pushed to the repository (in the specified brach). Also, a new draft release is created, which can then be published from the GitHub UI.
-
-If for any case the release workflow fails, the version bump and the commit are reverted automatically (in a conditional cleanup step of the worfklow itself).
-
-By default, the release worfklow performs a **patch** update from the previous version (`v0.1.1` → `v0.1.2`), but this default is an option for the maintainer who runs the release worfklow. You can override this by including one of the following in the commit message: `#major`, `#minor`, or `#patch`. For details, see [bumping in github-tag-action](https://github.com/anothrNick/github-tag-action?tab=readme-ov-file#bumping).
