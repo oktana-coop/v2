@@ -1,10 +1,11 @@
-import { useContext, useState } from 'react';
+import { useContext } from 'react';
 
 import { projectTypes } from '../../../../../modules/domain/project';
 import { richTextRepresentations } from '../../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../../modules/infrastructure/cross-platform';
 import { removeExtension } from '../../../../../modules/infrastructure/filesystem';
 import {
+  CommandPaletteContext,
   CurrentDocumentContext,
   CurrentProjectContext,
 } from '../../../app-state';
@@ -17,7 +18,6 @@ import {
   useCurrentDocumentName,
   useDocumentList,
   useExport,
-  useKeyBindings,
 } from '../../../hooks';
 import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../hooks/multi-document-project';
 import { useDocumentSelection as useDocumentSelectionInSingleDocumentProject } from '../../../hooks/single-document-project';
@@ -29,18 +29,12 @@ export const DocumentCommandPalette = ({
   onCreateDocument: () => void;
   onOpenDocument: () => void;
 }) => {
-  const [isCommandPaletteOpen, setCommandPaletteOpen] =
-    useState<boolean>(false);
+  const { isOpen: isCommandPaletteOpen, closeCommandPalette } = useContext(
+    CommandPaletteContext
+  );
   const { projectType } = useContext(CurrentProjectContext);
   const { canCommit, onOpenCommitDialog } = useContext(CurrentDocumentContext);
   const { isElectron, checkForUpdate } = useContext(ElectronContext);
-
-  // here we register the key bindings that are not
-  // already covered by the command palette
-  // as the command palette is registering any actions having shortcuts
-  useKeyBindings({
-    'ctrl+k': () => setCommandPaletteOpen((state) => !state),
-  });
 
   const handleDocumentSelectionInMultiDocumentProject =
     useDocumentSelectionInMultiDocumentProject();
@@ -91,7 +85,7 @@ export const DocumentCommandPalette = ({
   return (
     <CommandPalette
       open={isCommandPaletteOpen}
-      onClose={() => setCommandPaletteOpen(false)}
+      onClose={closeCommandPalette}
       documentsGroupTitle={`${projectType === projectTypes.SINGLE_DOCUMENT_PROJECT ? 'Other' : 'Project'}  documents`}
       contextualSection={
         currentDocumentName
@@ -144,7 +138,7 @@ export const DocumentCommandPalette = ({
           title: removeExtension(doc.name),
           onDocumentSelection: () => {
             handleDocumentSelection(doc.id);
-            setCommandPaletteOpen(false);
+            closeCommandPalette();
           },
         }))}
       actions={generalActions}

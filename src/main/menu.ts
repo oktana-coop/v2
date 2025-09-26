@@ -1,6 +1,19 @@
-import { app, Menu, type MenuItemConstructorOptions, shell } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  Menu,
+  type MenuItemConstructorOptions,
+  shell,
+} from 'electron';
 
 import { checkForUpdates } from './update';
+
+const sendIPCMessageToFocusedWindow = (message: string) => {
+  const focused = BrowserWindow.getFocusedWindow();
+  if (focused && !focused.isDestroyed()) {
+    focused.webContents.send(message);
+  }
+};
 
 export const buildMenu = () => {
   const isMac = process.platform === 'darwin';
@@ -21,6 +34,24 @@ export const buildMenu = () => {
     { role: 'quit' },
   ];
 
+  const viewMenuSubmenu: MenuItemConstructorOptions[] = [
+    {
+      label: 'Command Palette',
+      accelerator: isMac ? 'Cmd+K' : 'Ctrl+K',
+      click: () => sendIPCMessageToFocusedWindow('toggle-command-palette'),
+    },
+    { type: 'separator' },
+    { role: 'reload' },
+    { role: 'forceReload' },
+    { role: 'toggleDevTools' },
+    { type: 'separator' },
+    { role: 'resetZoom' },
+    { role: 'zoomIn' },
+    { role: 'zoomOut' },
+    { type: 'separator' },
+    { role: 'togglefullscreen' },
+  ];
+
   const template: MenuItemConstructorOptions[] = [
     ...(isMac
       ? [
@@ -32,7 +63,10 @@ export const buildMenu = () => {
       : []),
     { role: 'fileMenu' },
     { role: 'editMenu' },
-    { role: 'viewMenu' },
+    {
+      label: 'View',
+      submenu: viewMenuSubmenu,
+    },
     { role: 'windowMenu' },
     {
       role: 'help',

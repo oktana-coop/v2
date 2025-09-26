@@ -47,7 +47,7 @@ export type ActionOption = {
 export type CommandPaletteProps = {
   open?: boolean;
   onClose: () => void;
-  documentsGroupTitle: string;
+  documentsGroupTitle?: string;
   contextualSection?: {
     groupTitle: string;
     actions: Array<ActionOption>;

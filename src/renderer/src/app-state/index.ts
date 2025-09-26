@@ -24,6 +24,12 @@ export {
 } from './current-project/single-document-project-context';
 
 export {
+  CommandPaletteContext,
+  type CommandPaletteContextType,
+  CommandPaletteStateProvider,
+} from './command-palette/context';
+
+export {
   SidebarLayoutContext,
   type SidebarLayoutContextType,
   SidebarLayoutProvider,
