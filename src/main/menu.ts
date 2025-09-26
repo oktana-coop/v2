@@ -35,6 +35,12 @@ export const buildMenu = () => {
   ];
 
   const viewMenuSubmenu: MenuItemConstructorOptions[] = [
+    {
+      label: 'Command Palette',
+      accelerator: isMac ? 'Cmd+K' : 'Ctrl+K',
+      click: () => sendIPCMessageToFocusedWindow('open-command-palette'),
+    },
+    { type: 'separator' },
     { role: 'reload' },
     { role: 'forceReload' },
     { role: 'toggleDevTools' },
@@ -44,37 +50,6 @@ export const buildMenu = () => {
     { role: 'zoomOut' },
     { type: 'separator' },
     { role: 'togglefullscreen' },
-  ];
-
-  const editMenuSubmenu: MenuItemConstructorOptions[] = [
-    {
-      label: 'Command Palette',
-      accelerator: isMac ? 'Cmd+K' : 'Ctrl+K',
-      click: () => sendIPCMessageToFocusedWindow('open-command-palette'),
-    },
-    { type: 'separator' },
-    { role: 'undo' },
-    { role: 'redo' },
-    { type: 'separator' },
-    { role: 'cut' },
-    { role: 'copy' },
-    { role: 'paste' },
-    ...(isMac
-      ? ([
-          { role: 'pasteAndMatchStyle' },
-          { role: 'delete' },
-          { role: 'selectAll' },
-          { type: 'separator' },
-          {
-            label: 'Speech',
-            submenu: [{ role: 'startSpeaking' }, { role: 'stopSpeaking' }],
-          },
-        ] as MenuItemConstructorOptions[])
-      : ([
-          { role: 'delete' },
-          { type: 'separator' },
-          { role: 'selectAll' },
-        ] as MenuItemConstructorOptions[])),
   ];
 
   const template: MenuItemConstructorOptions[] = [
@@ -90,7 +65,7 @@ export const buildMenu = () => {
     { role: 'editMenu' },
     {
       label: 'View',
-      submenu: editMenuSubmenu,
+      submenu: viewMenuSubmenu,
     },
     { role: 'windowMenu' },
     {

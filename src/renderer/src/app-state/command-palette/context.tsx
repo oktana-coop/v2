@@ -41,7 +41,7 @@ export const CommandPaletteStateProvider = ({
   };
 
   const handleCloseCommandPalette = () => {
-    setIsOpen(true);
+    setIsOpen(false);
   };
 
   return (
