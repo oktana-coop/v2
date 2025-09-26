@@ -76,7 +76,7 @@ export const Tooltip = function Tooltip({
         <div
           ref={refs.setFloating}
           style={floatingStyles}
-          className={`z-50 max-w-xs whitespace-nowrap break-words border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm font-medium text-white shadow-lg ${className} `}
+          className={`z-50 max-w-xs whitespace-nowrap break-words border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm font-medium text-white shadow-lg ${className}`}
           {...getFloatingProps()}
         >
           {text}
