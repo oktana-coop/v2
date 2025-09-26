@@ -5,7 +5,10 @@ import {
   ThemeProvider,
 } from '../../modules/personalization/browser';
 import App from './App.tsx';
-import { InfrastructureAdaptersProvider } from './app-state';
+import {
+  CommandPaletteStateProvider,
+  InfrastructureAdaptersProvider,
+} from './app-state';
 
 export const AppWrapper = () => {
   return (
@@ -14,7 +17,9 @@ export const AppWrapper = () => {
         <RepresentationTransformProvider>
           <ThemeProvider>
             <FunctionalityConfigProvider>
-              <App />
+              <CommandPaletteStateProvider>
+                <App />
+              </CommandPaletteStateProvider>
             </FunctionalityConfigProvider>
           </ThemeProvider>
         </RepresentationTransformProvider>

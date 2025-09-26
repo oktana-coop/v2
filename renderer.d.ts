@@ -39,6 +39,7 @@ export type ElectronAPI = {
   ) => () => void;
   downloadUpdate: () => Promise<void>;
   restartToInstallUpdate: () => Promise<void>;
+  onOpenCommandPalette: (callback: () => void) => () => void;
 };
 
 export type PersonalizationAPI = {
