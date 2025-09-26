@@ -34,9 +34,21 @@ export const buildMenu = () => {
     { role: 'quit' },
   ];
 
+  const viewMenuSubmenu: MenuItemConstructorOptions[] = [
+    { role: 'reload' },
+    { role: 'forceReload' },
+    { role: 'toggleDevTools' },
+    { type: 'separator' },
+    { role: 'resetZoom' },
+    { role: 'zoomIn' },
+    { role: 'zoomOut' },
+    { type: 'separator' },
+    { role: 'togglefullscreen' },
+  ];
+
   const editMenuSubmenu: MenuItemConstructorOptions[] = [
     {
-      label: 'Command Palette…',
+      label: 'Command Palette',
       accelerator: isMac ? 'Cmd+K' : 'Ctrl+K',
       click: () => sendIPCMessageToFocusedWindow('open-command-palette'),
     },
@@ -75,11 +87,11 @@ export const buildMenu = () => {
         ]
       : []),
     { role: 'fileMenu' },
+    { role: 'editMenu' },
     {
-      label: 'Edit',
+      label: 'View',
       submenu: editMenuSubmenu,
     },
-    { role: 'viewMenu' },
     { role: 'windowMenu' },
     {
       role: 'help',
