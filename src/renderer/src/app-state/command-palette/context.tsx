@@ -23,7 +23,7 @@ export const CommandPaletteStateProvider = ({
 
   useEffect(() => {
     const unsubscribeFromCommandPaletteOpenEvent =
-      window.electronAPI?.onOpenCommandPalette(() => {
+      window.electronAPI?.onToggleCommandPalette(() => {
         setIsOpen((state) => !state);
       });
 

@@ -38,7 +38,7 @@ export const buildMenu = () => {
     {
       label: 'Command Palette',
       accelerator: isMac ? 'Cmd+K' : 'Ctrl+K',
-      click: () => sendIPCMessageToFocusedWindow('open-command-palette'),
+      click: () => sendIPCMessageToFocusedWindow('toggle-command-palette'),
     },
     { type: 'separator' },
     { role: 'reload' },

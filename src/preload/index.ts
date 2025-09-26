@@ -48,8 +48,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     registerIpcListener<UpdateState>('update-state', callback),
   downloadUpdate: () => ipcRenderer.invoke('download-update'),
   restartToInstallUpdate: () => ipcRenderer.invoke('restart-to-install-update'),
-  onOpenCommandPalette: (callback) =>
-    registerIpcListener<void>('open-command-palette', callback),
+  onToggleCommandPalette: (callback) =>
+    registerIpcListener<void>('toggle-command-palette', callback),
 } as ElectronAPI);
 
 contextBridge.exposeInMainWorld('personalizationAPI', {
