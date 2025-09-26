@@ -103,6 +103,7 @@ export const EditorToolbar = ({
             containerBlockType === blockTypes.BULLET_LIST ? 'purple' : undefined
           }
           onClick={handleContainerBlockSelect(blockTypes.BULLET_LIST)}
+          tooltip="Bullet List"
         />
         <IconButton
           icon={<OrderedListIcon />}
@@ -112,6 +113,7 @@ export const EditorToolbar = ({
               : undefined
           }
           onClick={handleContainerBlockSelect(blockTypes.ORDERED_LIST)}
+          tooltip="Ordered List"
         />
         <IconButton
           icon={<FormatQuoteIcon />}
@@ -119,6 +121,7 @@ export const EditorToolbar = ({
             containerBlockType === blockTypes.BLOCKQUOTE ? 'purple' : undefined
           }
           onClick={handleContainerBlockSelect(blockTypes.BLOCKQUOTE)}
+          tooltip="Quote"
         />
       </div>
       <div className="flex flex-initial gap-x-1">
@@ -126,26 +129,34 @@ export const EditorToolbar = ({
           icon={<FormatBoldIcon />}
           color={strongSelected ? 'purple' : undefined}
           onClick={onStrongToggle}
+          tooltip="Bold"
         />
         <IconButton
           icon={<FormatItalicIcon />}
           color={emSelected ? 'purple' : undefined}
           onClick={onEmToggle}
+          tooltip="Italics"
         />
         <IconButton
           icon={<LinkIcon />}
           color={selectionIsLink ? 'purple' : undefined}
           onClick={onLinkToggle}
+          tooltip="Link"
         />
         <IconButton
           icon={<FormatCodeIcon />}
           color={codeSelected ? 'purple' : undefined}
           onClick={onCodeToggle}
+          tooltip="Inline Code"
         />
       </div>
       <div className="flex flex-initial gap-x-1">
-        <IconButton icon={<ImageIcon />} />
-        <IconButton icon={<NoteIcon />} onClick={onNoteClick} />
+        <IconButton icon={<ImageIcon />} tooltip="Image" />
+        <IconButton
+          icon={<NoteIcon />}
+          onClick={onNoteClick}
+          tooltip="Footnote"
+        />
       </div>
     </div>
   );
