@@ -61,6 +61,7 @@ export const ActionsBar = ({
           icon={<CheckIcon />}
           color="purple"
           disabled={!canCommit}
+          tooltip="Commit Changes"
         />
       </div>
     </div>

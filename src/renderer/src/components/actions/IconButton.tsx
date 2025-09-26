@@ -1,6 +1,8 @@
+// IconButton.tsx
 import { type ButtonProps as HeadlessButtonProps } from '@headlessui/react';
 import { forwardRef, type ReactNode } from 'react';
 
+import { Tooltip } from '../accessibility/Tooltip';
 import { Button, type ButtonColor } from './Button';
 
 export type IconButtonProps = {
@@ -8,13 +10,14 @@ export type IconButtonProps = {
   color?: ButtonColor;
   onClick?: HeadlessButtonProps['onClick'];
   disabled?: boolean;
+  tooltip?: string;
 };
 
 export const IconButton = forwardRef(function IconButton(
-  { icon, color, onClick, disabled }: IconButtonProps,
+  { icon, color, onClick, disabled, tooltip }: IconButtonProps,
   ref: React.ForwardedRef<HTMLElement>
 ) {
-  return (
+  const button = (
     <Button
       variant="plain"
       color={color}
@@ -25,5 +28,15 @@ export const IconButton = forwardRef(function IconButton(
     >
       {icon}
     </Button>
+  );
+
+  if (!tooltip) {
+    return button;
+  }
+
+  return (
+    <Tooltip text={tooltip} disabled={disabled}>
+      {button}
+    </Tooltip>
   );
 });

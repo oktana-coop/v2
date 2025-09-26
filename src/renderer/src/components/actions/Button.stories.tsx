@@ -76,3 +76,13 @@ export const Disabled: Story = {
 export const IconButton: Story = {
   render: () => <IconButtonComponent icon={<CheckIcon />} color="purple" />,
 };
+
+export const IconButtonWithTooltip: Story = {
+  render: () => (
+    <IconButtonComponent
+      icon={<CheckIcon />}
+      color="purple"
+      tooltip="Tooltip"
+    />
+  ),
+};

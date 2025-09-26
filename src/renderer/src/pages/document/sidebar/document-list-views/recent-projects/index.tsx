@@ -38,12 +38,14 @@ export const RecentProjects = ({
             <IconButton
               onClick={handleOpenDocument}
               icon={<FileDocumentIcon size={20} />}
+              tooltip="Open Document"
             />
           )}
 
           <IconButton
             onClick={onCreateDocument}
             icon={<PlusIcon size={20} />}
+            tooltip="New Document"
           />
         </div>
       </div>

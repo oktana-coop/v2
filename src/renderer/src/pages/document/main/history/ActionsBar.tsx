@@ -132,9 +132,18 @@ export const ActionsBar = ({
           icon={uncommittedChangesSelected ? <CheckIcon /> : <RevertIcon />}
           disabled={lastChangeIsCommitAndSelected}
           color={uncommittedChangesSelected ? 'purple' : undefined}
+          tooltip={
+            uncommittedChangesSelected
+              ? 'Commit Changes'
+              : 'Revert to this State'
+          }
         />
 
-        <IconButton icon={<PenIcon />} onClick={onEditIconClick} />
+        <IconButton
+          icon={<PenIcon />}
+          onClick={onEditIconClick}
+          tooltip="Edit Document"
+        />
       </div>
     </div>
   );
