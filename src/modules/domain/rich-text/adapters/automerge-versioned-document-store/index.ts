@@ -12,7 +12,6 @@ import {
   getArtifactHeads,
   importFromBinary,
   isArtifactContentSameAtHeads,
-  type VersionControlId,
   versionedArtifactTypes,
 } from '../../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../../utils/errors';
@@ -94,8 +93,29 @@ export const createAdapter = (
       )
     );
 
+  const findDocumentById: VersionedDocumentStore['findDocumentById'] = (id) =>
+    pipe(
+      Effect.tryPromise({
+        try: () => automergeRepo.find<RichTextDocument>(id),
+        catch: (err: unknown) => {
+          // TODO: This is not-future proof as it depends on the error message. Find a better way.
+          if (err instanceof Error && err.message.includes('unavailable')) {
+            return new NotFoundError(err.message);
+          }
+
+          return mapErrorTo(RepositoryError, 'Automerge repo error')(err);
+        },
+      }),
+      Effect.flatMap(getDocumentFromHandle),
+      Effect.timeoutFail({
+        duration: '7 seconds',
+        onTimeout: () =>
+          new NotFoundError('Timeout in getting document handle'),
+      })
+    );
+
   const findDocumentHandleById: VersionedDocumentStore['findDocumentHandleById'] =
-    (id: VersionControlId) =>
+    (id) =>
       pipe(
         Effect.tryPromise({
           try: () => automergeRepo.find<RichTextDocument>(id),
@@ -253,6 +273,7 @@ export const createAdapter = (
     createDocument,
     getDocumentHandleAtCommit,
     getDocumentAtCommit,
+    findDocumentById,
     findDocumentHandleById,
     getRichTextDocumentContent,
     updateRichTextDocumentContent,
