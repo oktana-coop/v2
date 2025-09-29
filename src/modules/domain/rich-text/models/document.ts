@@ -6,11 +6,13 @@ import {
   versionedArtifactTypes,
 } from '../../../../modules/infrastructure/version-control';
 import { sortKeysAndStrinfigy } from '../../../../utils/object';
+import { type TextRichTextRepresentation } from '../constants';
 
 export type RichTextDocumentSpan = Automerge.Span;
 
 export type RichTextDocument = {
   type: typeof versionedArtifactTypes.RICH_TEXT_DOCUMENT;
+  representation: TextRichTextRepresentation;
   content: string;
 };
 

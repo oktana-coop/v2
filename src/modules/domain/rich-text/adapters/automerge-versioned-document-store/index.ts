@@ -16,6 +16,7 @@ import {
   versionedArtifactTypes,
 } from '../../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../../utils/errors';
+import { richTextRepresentations } from '../../constants';
 import { NotFoundError, RepositoryError } from '../../errors';
 import {
   type RichTextDocument,
@@ -61,6 +62,7 @@ export const createAdapter = (
         try: () =>
           automergeRepo.create<RichTextDocument>({
             type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
+            representation: richTextRepresentations.AUTOMERGE,
             content: content ?? '',
           }),
         catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
