@@ -5,9 +5,9 @@ import {
   type Commit,
   type VersionControlId,
 } from '../../../../modules/infrastructure/version-control';
+import { RichTextRepresentation } from '../constants';
 import { NotFoundError, RepositoryError } from '../errors';
 import {
-  type RichTextDocumentSpan,
   type VersionedDocument,
   type VersionedDocumentHandle,
 } from '../models';
@@ -26,9 +26,10 @@ export type GetDocumentAtCommitArgs = {
   heads: Commit['heads'];
 };
 
-export type UpdateDocumentSpansArgs = {
+export type UpdateRichTextDocumentContentArgs = {
   documentHandle: VersionedDocumentHandle;
-  spans: Array<RichTextDocumentSpan>;
+  representation: RichTextRepresentation;
+  content: string;
 };
 
 export type GetDocumentHandleHistoryResponse = {
@@ -74,10 +75,12 @@ export type VersionedDocumentStore = {
   getDocumentFromHandle: (
     handle: VersionedDocumentHandle
   ) => Effect.Effect<VersionedDocument, RepositoryError | NotFoundError, never>;
-  // TODO: Think of a better abstraction - this is too Automerge-specific
-  updateDocumentSpans: (
-    args: UpdateDocumentSpansArgs
-  ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;
+  getRichTextDocumentContent: (
+    document: VersionedDocument
+  ) => Effect.Effect<string, RepositoryError | NotFoundError, never>;
+  updateRichTextDocumentContent: (
+    args: UpdateRichTextDocumentContentArgs
+  ) => Effect.Effect<void, RepositoryError, never>;
   deleteDocument: (
     args: VersionControlId
   ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;

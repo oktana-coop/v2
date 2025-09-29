@@ -3,10 +3,9 @@ import { EditorView } from 'prosemirror-view';
 import { useContext, useEffect, useRef } from 'react';
 
 import {
-  getSpansString,
   prosemirror,
+  type RichTextDocument,
   richTextRepresentations,
-  type VersionedDocument,
 } from '../../../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform';
@@ -25,12 +24,12 @@ const {
 } = prosemirror;
 
 export type DiffViewProps = {
-  docBefore: VersionedDocument;
-  docAfter: VersionedDocument;
+  docBefore: RichTextDocument;
+  docAfter: RichTextDocument;
 };
 
 export type SingleDocViewProps = {
-  doc: VersionedDocument;
+  doc: RichTextDocument;
 };
 
 const isDiffViewProps = (
@@ -91,8 +90,7 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
       if (!viewRef.current || !isDiffViewProps(props)) return;
 
       const { schema } = automergeSchemaAdapter;
-      const spansBefore = getSpansString(props.docBefore);
-      const spansAfter = getSpansString(props.docAfter);
+
       const { pmDocAfter: pmDoc, decorations } = await proseMirrorDiff({
         representation: richTextRepresentations.AUTOMERGE,
         proseMirrorSchema: schema,
@@ -101,8 +99,8 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
           modify: diffModify,
           delete: diffDelete,
         },
-        docBefore: spansBefore,
-        docAfter: spansAfter,
+        docBefore: props.docBefore.content,
+        docAfter: props.docAfter.content,
       });
 
       if (destroyed) return;
@@ -140,7 +138,7 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
       const { schema } = automergeSchemaAdapter;
       const pmDoc = await convertToProseMirror({
         schema: schema,
-        spans: getSpansString(props.doc),
+        document: props.doc,
       });
 
       if (destroyed) return;

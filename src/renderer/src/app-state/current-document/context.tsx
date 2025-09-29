@@ -13,7 +13,6 @@ import { projectTypes } from '../../../../modules/domain/project';
 import {
   type BinaryRichTextRepresentation,
   type GetDocumentHandleAtCommitArgs,
-  getSpansString,
   type IsContentSameAtHeadsArgs,
   isEmpty,
   registerLiveUpdates,
@@ -200,6 +199,8 @@ export const CurrentDocumentProvider = ({
           });
 
           const { registeredListener } = await registerLiveUpdates({
+            getRichTextDocumentContent:
+              versionedDocumentStore.getRichTextDocumentContent,
             findDocumentById: versionedDocumentStore.findDocumentById,
             writeFile: filesystem.writeFile,
           })({
@@ -445,10 +446,14 @@ export const CurrentDocumentProvider = ({
       versionedDocumentStore.getDocumentFromHandle(versionedDocumentHandle)
     );
 
+    const documentContent = await Effect.runPromise(
+      versionedDocumentStore.getRichTextDocumentContent(document)
+    );
+
     const str = await representationTransformAdapter.transformToText({
       from: richTextRepresentations.AUTOMERGE,
       to: representation,
-      input: getSpansString(document),
+      input: documentContent,
     });
 
     return str;
@@ -477,10 +482,14 @@ export const CurrentDocumentProvider = ({
       versionedDocumentStore.getDocumentFromHandle(versionedDocumentHandle)
     );
 
+    const documentContent = await Effect.runPromise(
+      versionedDocumentStore.getRichTextDocumentContent(document)
+    );
+
     const str = await representationTransformAdapter.transformToBinary({
       from: richTextRepresentations.AUTOMERGE,
       to: representation,
-      input: getSpansString(document),
+      input: documentContent,
     });
 
     return str;

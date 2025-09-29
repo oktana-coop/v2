@@ -119,7 +119,10 @@ const openProject = ({
         getDocumentFromHandle: versionedDocumentStore.getDocumentFromHandle,
         createDocument: versionedDocumentStore.createDocument,
         deleteDocument: versionedDocumentStore.deleteDocument,
-        updateDocumentSpans: versionedDocumentStore.updateDocumentSpans,
+        getRichTextDocumentContent:
+          versionedDocumentStore.getRichTextDocumentContent,
+        updateRichTextDocumentContent:
+          versionedDocumentStore.updateRichTextDocumentContent,
         listProjectDocuments: versionedProjectStore.listProjectDocuments,
         findDocumentInProject: versionedProjectStore.findDocumentInProject,
         deleteDocumentFromProject:

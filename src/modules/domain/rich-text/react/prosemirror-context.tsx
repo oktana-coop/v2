@@ -11,6 +11,7 @@ import {
 import { WasmContext } from '../../../../modules/infrastructure/wasm/react/wasm-context';
 import { createAdapter as createPandocDiffAdapter } from '../adapters/pandoc-diff';
 import { richTextRepresentations } from '../constants/representations';
+import { RichTextDocument } from '../models';
 import {
   type Diff,
   type ProseMirrorDiffArgs,
@@ -22,7 +23,7 @@ import { RepresentationTransformContext } from './representation-transform-conte
 
 type ConvertAutomergeToProseMirrorArgs = {
   schema: Schema;
-  spans: string;
+  document: RichTextDocument;
 };
 
 type ProseMirrorContextType = {
@@ -103,9 +104,9 @@ export const ProseMirrorProvider = ({
     }
 
     const result = await representationTransformAdapter.transformToText({
-      from: richTextRepresentations.AUTOMERGE,
+      from: args.document.representation,
       to: richTextRepresentations.PROSEMIRROR,
-      input: args.spans,
+      input: args.document.content,
     });
 
     type RepresentationTransformPMOutput = {

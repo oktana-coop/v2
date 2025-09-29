@@ -23,6 +23,10 @@ import {
   type VersionedDocument,
   type VersionedDocumentHandle,
 } from '../../models';
+import {
+  getSpansString,
+  type RichTextDocumentSpan,
+} from '../../models/document/automerge';
 import { VersionedDocumentStore } from '../../ports/versioned-document-store';
 
 export const createAdapter = (
@@ -112,33 +116,53 @@ export const createAdapter = (
       })
     );
 
-  const updateDocumentSpans: VersionedDocumentStore['updateDocumentSpans'] = ({
-    documentHandle,
-    spans,
-  }) =>
-    Effect.try({
-      try: () =>
-        documentHandle.change((doc) => {
-          Automerge.updateSpans(
-            doc,
-            ['content'],
-            spans.map((span) =>
-              span.type === 'block'
-                ? // Manually create the raw string for block types
-                  {
-                    ...span,
-                    value: {
-                      ...span.value,
-                      type: new RawString(span.value.type as string),
-                    },
-                  }
-                : // Inline span as-is
-                  span
-            )
-          );
-        }),
-      catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
-    });
+  const getRichTextDocumentContent: VersionedDocumentStore['getRichTextDocumentContent'] =
+    (document) =>
+      document.representation === richTextRepresentations.AUTOMERGE
+        ? Effect.try({
+            try: () => getSpansString(document),
+            catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+          })
+        : Effect.succeed(document.content);
+
+  const updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'] =
+    ({ documentHandle, representation, content }) =>
+      representation === richTextRepresentations.AUTOMERGE
+        ? Effect.try({
+            try: () => {
+              const newSpans = JSON.parse(
+                content
+              ) as Array<RichTextDocumentSpan>;
+
+              return documentHandle.change((doc) => {
+                Automerge.updateSpans(
+                  doc,
+                  ['content'],
+                  newSpans.map((span) =>
+                    span.type === 'block'
+                      ? // Manually create the raw string for block types
+                        {
+                          ...span,
+                          value: {
+                            ...span.value,
+                            type: new RawString(span.value.type as string),
+                          },
+                        }
+                      : // Inline span as-is
+                        span
+                  )
+                );
+              });
+            },
+            catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+          })
+        : Effect.try({
+            try: () =>
+              documentHandle.change((doc) => {
+                doc.content = content;
+              }),
+            catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+          });
 
   const deleteDocument: VersionedDocumentStore['deleteDocument'] = (
     documentId
@@ -231,7 +255,8 @@ export const createAdapter = (
     getDocumentHandleAtCommit,
     getDocumentAtCommit,
     findDocumentById,
-    updateDocumentSpans,
+    getRichTextDocumentContent,
+    updateRichTextDocumentContent,
     getDocumentFromHandle,
     deleteDocument,
     getDocumentHandleHistory,

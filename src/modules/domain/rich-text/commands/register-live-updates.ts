@@ -1,12 +1,9 @@
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 
 import { type Filesystem } from '../../../../modules/infrastructure/filesystem';
 import { type VersionedArtifactHandleChangePayload } from '../../../../modules/infrastructure/version-control';
-import {
-  convertToStorageFormat,
-  type RichTextDocument,
-  type VersionedDocumentHandle,
-} from '../models';
+import { type RichTextDocument, type VersionedDocumentHandle } from '../models';
 import { type VersionedDocumentStore } from '../ports';
 
 export type RegisterLiveUpdateArgs = {
@@ -15,6 +12,7 @@ export type RegisterLiveUpdateArgs = {
 };
 
 export type RegisterLiveUpdatesDeps = {
+  getRichTextDocumentContent: VersionedDocumentStore['getRichTextDocumentContent'];
   findDocumentById: VersionedDocumentStore['findDocumentById'];
   writeFile: Filesystem['writeFile'];
 };
@@ -26,7 +24,7 @@ export type RegisterLiveUpdatesResponse = {
 };
 
 export const registerLiveUpdates =
-  ({ writeFile }: RegisterLiveUpdatesDeps) =>
+  ({ writeFile, getRichTextDocumentContent }: RegisterLiveUpdatesDeps) =>
   async ({
     documentHandle,
     filePath,
@@ -43,7 +41,10 @@ export const registerLiveUpdates =
       try {
         // TODO: Assess if we need to await this effect
         Effect.runPromise(
-          writeFile(filePath, convertToStorageFormat(changePayload.doc))
+          pipe(
+            getRichTextDocumentContent(changePayload.doc),
+            Effect.flatMap((newContent) => writeFile(filePath, newContent))
+          )
         );
       } catch (error) {
         console.error('Error writing file:', error);

@@ -2,9 +2,9 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import {
-  convertToStorageFormat,
   NotFoundError as VersionedDocumentNotFoundError,
   RepositoryError as VersionedDocumentRepositoryError,
+  richTextRepresentations,
   type VersionedDocumentStore,
 } from '../../../../../modules/domain/rich-text';
 import {
@@ -37,7 +37,8 @@ export type UpdateProjectFromFilesystemContentDeps = {
   findDocumentById: VersionedDocumentStore['findDocumentById'];
   getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
   createDocument: VersionedDocumentStore['createDocument'];
-  updateDocumentSpans: VersionedDocumentStore['updateDocumentSpans'];
+  getRichTextDocumentContent: VersionedDocumentStore['getRichTextDocumentContent'];
+  updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'];
   deleteDocument: VersionedDocumentStore['deleteDocument'];
   addDocumentToProject: MultiDocumentProjectStore['addDocumentToProject'];
   findDocumentInProject: MultiDocumentProjectStore['findDocumentInProject'];
@@ -67,13 +68,15 @@ const propagateFileChangesToVersionedDocument =
   ({
     findDocumentById,
     getDocumentFromHandle,
-    updateDocumentSpans,
+    getRichTextDocumentContent,
+    updateRichTextDocumentContent,
     findDocumentInProject: findDocumentInProjectStore,
     readFile,
   }: {
     findDocumentById: VersionedDocumentStore['findDocumentById'];
     findDocumentInProject: MultiDocumentProjectStore['findDocumentInProject'];
-    updateDocumentSpans: VersionedDocumentStore['updateDocumentSpans'];
+    getRichTextDocumentContent: VersionedDocumentStore['getRichTextDocumentContent'];
+    updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'];
     getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
     readFile: Filesystem['readFile'];
   }) =>
@@ -118,18 +121,21 @@ const propagateFileChangesToVersionedDocument =
                       )
                     )
               ),
-              Effect.flatMap((fileContent) => {
-                if (
-                  fileContent.content &&
-                  fileContent.content !== convertToStorageFormat(document)
-                ) {
-                  return updateDocumentSpans({
-                    documentHandle,
-                    spans: JSON.parse(fileContent.content),
-                  });
-                }
-                return Effect.succeed(undefined);
-              })
+              Effect.flatMap((fileContent) =>
+                pipe(
+                  getRichTextDocumentContent(document),
+                  Effect.flatMap((documentRichTextContent) =>
+                    fileContent.content &&
+                    fileContent.content !== documentRichTextContent
+                      ? updateRichTextDocumentContent({
+                          documentHandle,
+                          representation: richTextRepresentations.AUTOMERGE,
+                          content: fileContent.content,
+                        })
+                      : Effect.succeed(undefined)
+                  )
+                )
+              )
             )
           )
         )
@@ -141,7 +147,8 @@ export const updateProjectFromFilesystemContent =
     findDocumentById,
     getDocumentFromHandle,
     createDocument,
-    updateDocumentSpans,
+    getRichTextDocumentContent,
+    updateRichTextDocumentContent,
     deleteDocument,
     listProjectDocuments,
     findDocumentInProject,
@@ -181,7 +188,8 @@ export const updateProjectFromFilesystemContent =
               ? propagateFileChangesToVersionedDocument({
                   findDocumentById,
                   findDocumentInProject,
-                  updateDocumentSpans,
+                  getRichTextDocumentContent,
+                  updateRichTextDocumentContent,
                   getDocumentFromHandle,
                   readFile,
                 })({ file, projectId })
