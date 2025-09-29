@@ -7,7 +7,7 @@ const pluginKey = new PluginKey('pm-sync');
 
 type SyncPluginArgs = {
   onPMDocChange: (doc: Node) => void;
-  docHandle?: VersionedDocumentHandle;
+  docHandle: VersionedDocumentHandle | null;
 };
 
 export const syncPlugin = ({ onPMDocChange, docHandle }: SyncPluginArgs) =>

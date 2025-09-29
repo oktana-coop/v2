@@ -62,7 +62,7 @@ const {
 
 type RichTextEditorProps = {
   doc: RichTextDocument;
-  docHandle?: VersionedDocumentHandle;
+  docHandle: VersionedDocumentHandle | null;
   onSave: () => void;
   isEditable?: boolean;
   isToolbarOpen?: boolean;
@@ -123,7 +123,10 @@ export const RichTextEditor = ({
   useEffect(() => {
     const setupEditorAndView = async (schema: Schema) => {
       const plugins = [
-        syncPlugin({ onPMDocChange: () => {}, docHandle }),
+        syncPlugin({
+          onPMDocChange: () => {},
+          docHandle,
+        }),
         buildInputRules(schema),
         placeholderPlugin('Start writing...'),
         ...markdownMarkPlugins(schema),

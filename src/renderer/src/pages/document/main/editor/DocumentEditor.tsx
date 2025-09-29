@@ -24,7 +24,7 @@ export const DocumentEditor = () => {
     editorView?.focus();
   }, [editorView, isEditorToolbarOpen]);
 
-  if (!versionedDocumentHandle || !versionedDocument) {
+  if (!versionedDocument) {
     return (
       // TODO: Use a spinner
       <div>Loading...</div>
