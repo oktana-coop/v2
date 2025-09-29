@@ -9,3 +9,4 @@ export * from './markdown';
 export * from './notes';
 export * from './links';
 export * from './placeholder';
+export * from './sync';

@@ -94,7 +94,7 @@ const createLoadHistoryFromWorker = () => {
 
 export type CurrentDocumentContextType = {
   versionedDocumentHandle: VersionedDocumentHandle | null;
-  setVersionedDocumentHandle: (handle: VersionedDocumentHandle | null) => void;
+  versionedDocument: VersionedDocument | null;
   versionedDocumentHistory: ChangeWithUrlInfo[];
   canCommit: boolean;
   onCommit: (message: string) => Promise<void>;
@@ -118,7 +118,7 @@ export type CurrentDocumentContextType = {
 export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
   {
     versionedDocumentHandle: null,
-    setVersionedDocumentHandle: () => {},
+    versionedDocument: null,
     versionedDocumentHistory: [],
     canCommit: false,
     onCommit: async () => {},
@@ -146,6 +146,8 @@ export const CurrentDocumentProvider = ({
   const { projectType } = useContext(CurrentProjectContext);
   const [versionedDocumentHandle, setVersionedDocumentHandle] =
     useState<VersionedDocumentHandle | null>(null);
+  const [versionedDocument, setVersionedDocument] =
+    useState<VersionedDocument | null>(null);
   const { projectId, documentId } = useParams();
   const [searchParams] = useSearchParams();
   const [versionedDocumentHistory, setVersionedDocumentHistory] = useState<
@@ -176,12 +178,18 @@ export const CurrentDocumentProvider = ({
       if (!isValidVersionControlId(documentId)) {
         clearFileSelection();
         setVersionedDocumentHandle(null);
+        setVersionedDocument(null);
       } else {
         const documentHandle = await Effect.runPromise(
           versionedDocumentStore.findDocumentById(documentId)
         );
 
+        const document = await Effect.runPromise(
+          versionedDocumentStore.getDocumentFromHandle(documentHandle)
+        );
+
         setVersionedDocumentHandle(documentHandle);
+        setVersionedDocument(document);
 
         if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
           const pathParam = searchParams.get('path');
@@ -412,17 +420,6 @@ export const CurrentDocumentProvider = ({
     [versionedDocumentStore]
   );
 
-  const handleSetVersionedDocumentHandle = useCallback(
-    (newHandle: VersionedDocumentHandle | null) => {
-      if (!versionedDocumentStore) {
-        throw new Error('Versioned document store not ready yet.');
-      }
-
-      return setVersionedDocumentHandle(newHandle);
-    },
-    [versionedDocumentStore]
-  );
-
   const exportToTextRepresentation = async (
     representation: TextRichTextRepresentation
   ) => {
@@ -499,7 +496,7 @@ export const CurrentDocumentProvider = ({
     <CurrentDocumentContext.Provider
       value={{
         versionedDocumentHandle,
-        setVersionedDocumentHandle: handleSetVersionedDocumentHandle,
+        versionedDocument,
         versionedDocumentHistory,
         canCommit,
         onCommit: handleCommit,

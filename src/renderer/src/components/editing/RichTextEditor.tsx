@@ -1,4 +1,3 @@
-import { init } from '@oktana-coop/automerge-prosemirror';
 import { clsx } from 'clsx';
 import {
   baseKeymap,
@@ -19,6 +18,8 @@ import {
   type LeafBlockType,
   LinkAttrs,
   prosemirror,
+  type RichTextDocument,
+  richTextRepresentations,
   type VersionedDocumentHandle,
 } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
@@ -27,7 +28,6 @@ import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';
 
 const {
-  automergeSchemaAdapter,
   buildInputRules,
   getCurrentLeafBlockType,
   getCurrentContainerBlockType,
@@ -56,10 +56,13 @@ const {
   notesPlugin,
   numberNotes,
   placeholderPlugin,
+  syncPlugin,
+  pmDocFromJSONString,
 } = prosemirror;
 
 type RichTextEditorProps = {
-  docHandle: VersionedDocumentHandle;
+  doc: RichTextDocument;
+  docHandle?: VersionedDocumentHandle;
   onSave: () => void;
   isEditable?: boolean;
   isToolbarOpen?: boolean;
@@ -67,13 +70,14 @@ type RichTextEditorProps = {
 
 export const RichTextEditor = ({
   docHandle,
+  doc,
   onSave,
   isEditable = true,
   isToolbarOpen = false,
 }: RichTextEditorProps) => {
   const editorRoot = useRef<HTMLDivElement>(null);
   const editorViewRef = useRef<EditorView | null>(null);
-  const { schema, view, setView, setSchema, parseMarkdown } =
+  const { schema, view, setView, parseMarkdown, convertToProseMirror } =
     useContext(ProseMirrorContext);
   const [leafBlockType, setLeafBlockType] = useState<LeafBlockType | null>(
     null
@@ -117,16 +121,9 @@ export const RichTextEditor = ({
     };
 
   useEffect(() => {
-    if (docHandle) {
-      const {
-        schema,
-        pmDoc,
-        plugin: automergeSyncPlugin,
-      } = init(docHandle, ['content'], {
-        schemaAdapter: automergeSchemaAdapter,
-      });
-
+    const setupEditorAndView = async (schema: Schema) => {
       const plugins = [
+        syncPlugin({ onPMDocChange: () => {}, docHandle }),
         buildInputRules(schema),
         placeholderPlugin('Start writing...'),
         ...markdownMarkPlugins(schema),
@@ -151,8 +148,15 @@ export const RichTextEditor = ({
         selectionChangePlugin(onSelectionChange(schema)),
         ensureTrailingParagraphPlugin(schema),
         ensureTrailingSpaceAfterAtomPlugin(),
-        automergeSyncPlugin,
       ];
+
+      const pmDoc =
+        doc.representation !== richTextRepresentations.PROSEMIRROR
+          ? await convertToProseMirror({
+              schema: schema,
+              document: doc,
+            })
+          : pmDocFromJSONString(doc.content, schema);
 
       const editorConfig = {
         schema,
@@ -186,19 +190,22 @@ export const RichTextEditor = ({
       numberNotes(state, view.dispatch, view);
 
       setView(view);
-      setSchema(schema);
 
       if (isEditable) {
         view.focus();
         setLeafBlockType(getCurrentLeafBlockType(state));
         setContainerBlockType(getCurrentContainerBlockType(state));
       }
+    };
 
-      return () => {
-        view.destroy();
-      };
+    if (schema) {
+      setupEditorAndView(schema);
     }
-  }, [docHandle, onSave, isEditable, setSchema, setView]);
+
+    return () => {
+      view?.destroy();
+    };
+  }, [doc, docHandle, onSave, isEditable, schema, setView]);
 
   const handleBlockSelect = (type: BlockType) => {
     if (view) {

@@ -11,9 +11,12 @@ import { ActionsBar } from './ActionsBar';
 export const DocumentEditor = () => {
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
   const { view: editorView } = useContext(ProseMirrorContext);
-  const { versionedDocumentHandle, onOpenCommitDialog, canCommit } = useContext(
-    CurrentDocumentContext
-  );
+  const {
+    versionedDocument,
+    versionedDocumentHandle,
+    onOpenCommitDialog,
+    canCommit,
+  } = useContext(CurrentDocumentContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
 
   const handleEditorToolbarToggle = useCallback(() => {
@@ -21,7 +24,7 @@ export const DocumentEditor = () => {
     editorView?.focus();
   }, [editorView, isEditorToolbarOpen]);
 
-  if (!versionedDocumentHandle) {
+  if (!versionedDocumentHandle || !versionedDocument) {
     return (
       // TODO: Use a spinner
       <div>Loading...</div>
@@ -43,6 +46,7 @@ export const DocumentEditor = () => {
       <div className="flex w-full flex-auto flex-col items-center overflow-auto">
         <div className="flex w-full max-w-3xl flex-col">
           <RichTextEditor
+            doc={versionedDocument}
             docHandle={versionedDocumentHandle}
             onSave={onOpenCommitDialog}
             isToolbarOpen={isEditorToolbarOpen}
