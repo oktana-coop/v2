@@ -12,7 +12,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { projectTypes } from '../../../../modules/domain/project';
 import {
   type BinaryRichTextRepresentation,
-  type GetDocumentHandleAtCommitArgs,
+  type GetDocumentAtCommitArgs,
   type IsContentSameAtHeadsArgs,
   isEmpty,
   registerLiveUpdates,
@@ -103,9 +103,9 @@ export type CurrentDocumentContextType = {
   onCloseCommitDialog: () => void;
   selectedCommitIndex: number | null;
   onSelectCommit: (heads: UrlHeads) => void;
-  getDocumentHandleAtCommit: (
-    args: GetDocumentHandleAtCommitArgs
-  ) => Promise<VersionedDocumentHandle>;
+  getDocumentAtCommit: (
+    args: GetDocumentAtCommitArgs
+  ) => Promise<VersionedDocument>;
   isContentSameAtHeads: (args: IsContentSameAtHeadsArgs) => boolean;
   getExportText: (
     representation: TextRichTextRepresentation
@@ -128,7 +128,7 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     selectedCommitIndex: null,
     onSelectCommit: () => {},
     // @ts-expect-error will get overriden below
-    getDocumentHandleAtCommit: async () => null,
+    getDocumentAtCommit: async () => null,
     getExportText: async () => '',
     // @ts-expect-error will get overriden below
     getExportBinaryData: async () => null,
@@ -396,14 +396,14 @@ export const CurrentDocumentProvider = ({
     [documentId, versionedDocumentHistory, showDiffInHistoryView]
   );
 
-  const handleGetDocumentHandleAtCommit = useCallback(
-    async (args: GetDocumentHandleAtCommitArgs) => {
+  const handleGetDocumentAtCommit = useCallback(
+    async (args: GetDocumentAtCommitArgs) => {
       if (!versionedDocumentStore) {
         throw new Error('Versioned document store not ready yet.');
       }
 
       return Effect.runPromise(
-        versionedDocumentStore.getDocumentHandleAtCommit(args)
+        versionedDocumentStore.getDocumentAtCommit(args)
       );
     },
     [versionedDocumentStore]
@@ -505,7 +505,7 @@ export const CurrentDocumentProvider = ({
         onCloseCommitDialog: handleCloseCommitDialog,
         selectedCommitIndex,
         onSelectCommit: handleSelectCommit,
-        getDocumentHandleAtCommit: handleGetDocumentHandleAtCommit,
+        getDocumentAtCommit: handleGetDocumentAtCommit,
         isContentSameAtHeads: handleIsContentSameAtHeads,
         getExportText: exportToTextRepresentation,
         getExportBinaryData: exportToBinaryRepresentation,
