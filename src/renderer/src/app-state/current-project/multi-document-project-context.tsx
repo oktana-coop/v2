@@ -258,7 +258,7 @@ export const MultiDocumentProjectProvider = ({
 
     return Effect.runPromise(
       findDocumentInProject({
-        findDocumentById: versionedDocumentStore.findDocumentById,
+        findDocumentHandleById: versionedDocumentStore.findDocumentHandleById,
         findDocumentInProjectStore: versionedProjectStore.findDocumentInProject,
       })({
         projectId: args.projectId,

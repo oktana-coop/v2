@@ -10,18 +10,23 @@ import {
   getArtifactHandleAtCommit,
   getArtifactHandleHistory,
   getArtifactHeads,
+  getArtifactHistory,
   importFromBinary,
   isArtifactContentSameAtHeads,
-  type VersionControlId,
   versionedArtifactTypes,
 } from '../../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../../utils/errors';
+import { richTextRepresentations } from '../../constants';
 import { NotFoundError, RepositoryError } from '../../errors';
 import {
   type RichTextDocument,
   type VersionedDocument,
   type VersionedDocumentHandle,
 } from '../../models';
+import {
+  getSpansString,
+  type RichTextDocumentSpan,
+} from '../../models/document/automerge';
 import { VersionedDocumentStore } from '../../ports/versioned-document-store';
 
 export const createAdapter = (
@@ -61,6 +66,7 @@ export const createAdapter = (
         try: () =>
           automergeRepo.create<RichTextDocument>({
             type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
+            representation: richTextRepresentations.AUTOMERGE,
             content: content ?? '',
           }),
         catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
@@ -88,9 +94,7 @@ export const createAdapter = (
       )
     );
 
-  const findDocumentById: VersionedDocumentStore['findDocumentById'] = (
-    id: VersionControlId
-  ) =>
+  const findDocumentById: VersionedDocumentStore['findDocumentById'] = (id) =>
     pipe(
       Effect.tryPromise({
         try: () => automergeRepo.find<RichTextDocument>(id),
@@ -103,46 +107,88 @@ export const createAdapter = (
           return mapErrorTo(RepositoryError, 'Automerge repo error')(err);
         },
       }),
+      Effect.flatMap(getDocumentFromHandle),
       Effect.timeoutFail({
-        duration: '5 seconds',
+        duration: '7 seconds',
         onTimeout: () =>
           new NotFoundError('Timeout in getting document handle'),
       })
     );
 
-  const updateDocumentSpans: VersionedDocumentStore['updateDocumentSpans'] = ({
-    documentHandle,
-    spans,
-  }) =>
-    Effect.try({
-      try: () =>
-        documentHandle.change((doc) => {
-          Automerge.updateSpans(
-            doc,
-            ['content'],
-            spans.map((span) =>
-              span.type === 'block'
-                ? // Manually create the raw string for block types
-                  {
-                    ...span,
-                    value: {
-                      ...span.value,
-                      type: new RawString(span.value.type as string),
-                    },
-                  }
-                : // Inline span as-is
-                  span
-            )
-          );
+  const findDocumentHandleById: VersionedDocumentStore['findDocumentHandleById'] =
+    (id) =>
+      pipe(
+        Effect.tryPromise({
+          try: () => automergeRepo.find<RichTextDocument>(id),
+          catch: (err: unknown) => {
+            // TODO: This is not-future proof as it depends on the error message. Find a better way.
+            if (err instanceof Error && err.message.includes('unavailable')) {
+              return new NotFoundError(err.message);
+            }
+
+            return mapErrorTo(RepositoryError, 'Automerge repo error')(err);
+          },
         }),
-      catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
-    });
+        Effect.timeoutFail({
+          duration: '5 seconds',
+          onTimeout: () =>
+            new NotFoundError('Timeout in getting document handle'),
+        })
+      );
+
+  const getRichTextDocumentContent: VersionedDocumentStore['getRichTextDocumentContent'] =
+    (document) =>
+      document.representation === richTextRepresentations.AUTOMERGE
+        ? Effect.try({
+            try: () => getSpansString(document),
+            catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+          })
+        : Effect.succeed(document.content);
+
+  const updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'] =
+    ({ documentHandle, representation, content }) =>
+      representation === richTextRepresentations.AUTOMERGE
+        ? Effect.try({
+            try: () => {
+              const newSpans = JSON.parse(
+                content
+              ) as Array<RichTextDocumentSpan>;
+
+              return documentHandle.change((doc) => {
+                Automerge.updateSpans(
+                  doc,
+                  ['content'],
+                  newSpans.map((span) =>
+                    span.type === 'block'
+                      ? // Manually create the raw string for block types
+                        {
+                          ...span,
+                          value: {
+                            ...span.value,
+                            type: new RawString(span.value.type as string),
+                          },
+                        }
+                      : // Inline span as-is
+                        span
+                  )
+                );
+              });
+            },
+            catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+          })
+        : Effect.try({
+            try: () =>
+              documentHandle.change((doc) => {
+                doc.content = content;
+              }),
+            catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+          });
 
   const deleteDocument: VersionedDocumentStore['deleteDocument'] = (
     documentId
   ) =>
     pipe(
-      findDocumentById(documentId),
+      findDocumentHandleById(documentId),
       Effect.tap((documentHandle) =>
         Effect.try({
           try: () => documentHandle.delete(),
@@ -156,6 +202,14 @@ export const createAdapter = (
   ) =>
     Effect.try({
       try: () => getArtifactHeads<RichTextDocument>(document),
+      catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+    });
+
+  const getDocumentHistory: VersionedDocumentStore['getDocumentHistory'] = (
+    document: VersionedDocument
+  ) =>
+    Effect.tryPromise({
+      try: () => getArtifactHistory<RichTextDocument>(document),
       catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
     });
 
@@ -229,9 +283,12 @@ export const createAdapter = (
     getDocumentHandleAtCommit,
     getDocumentAtCommit,
     findDocumentById,
-    updateDocumentSpans,
+    findDocumentHandleById,
+    getRichTextDocumentContent,
+    updateRichTextDocumentContent,
     getDocumentFromHandle,
     deleteDocument,
+    getDocumentHistory,
     getDocumentHandleHistory,
     isContentSameAtHeads,
     getDocumentHeads,

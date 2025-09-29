@@ -18,7 +18,7 @@ export const DocumentMainViewRouter = ({
   onOpenDirectoryButtonClick,
 }: DocumentMainViewRouterProps) => {
   const { documentId: docUrl } = useParams();
-  const { versionedDocumentHandle } = useContext(CurrentDocumentContext);
+  const { versionedDocument } = useContext(CurrentDocumentContext);
 
   if (!docUrl) {
     return (
@@ -34,7 +34,7 @@ export const DocumentMainViewRouter = ({
     return <InvalidDocument />;
   }
 
-  if (!versionedDocumentHandle) {
+  if (!versionedDocument) {
     return (
       <div className="flex h-full w-full items-center justify-center text-center">
         Loading...

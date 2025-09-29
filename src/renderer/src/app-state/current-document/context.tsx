@@ -12,15 +12,13 @@ import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { projectTypes } from '../../../../modules/domain/project';
 import {
   type BinaryRichTextRepresentation,
-  type GetDocumentHandleAtCommitArgs,
-  getSpansString,
+  type GetDocumentAtCommitArgs,
   type IsContentSameAtHeadsArgs,
   isEmpty,
-  registerLiveUpdates,
+  processDocumentChange,
   type RichTextDocument,
   richTextRepresentations,
   type TextRichTextRepresentation,
-  unregisterLiveUpdates,
   type VersionedDocument,
   type VersionedDocumentHandle,
   type VersionedDocumentStore,
@@ -95,7 +93,8 @@ const createLoadHistoryFromWorker = () => {
 
 export type CurrentDocumentContextType = {
   versionedDocumentHandle: VersionedDocumentHandle | null;
-  setVersionedDocumentHandle: (handle: VersionedDocumentHandle | null) => void;
+  versionedDocument: VersionedDocument | null;
+  updateRichTextDocumentContent: (doc: RichTextDocument) => Promise<void>;
   versionedDocumentHistory: ChangeWithUrlInfo[];
   canCommit: boolean;
   onCommit: (message: string) => Promise<void>;
@@ -104,9 +103,9 @@ export type CurrentDocumentContextType = {
   onCloseCommitDialog: () => void;
   selectedCommitIndex: number | null;
   onSelectCommit: (heads: UrlHeads) => void;
-  getDocumentHandleAtCommit: (
-    args: GetDocumentHandleAtCommitArgs
-  ) => Promise<VersionedDocumentHandle>;
+  getDocumentAtCommit: (
+    args: GetDocumentAtCommitArgs
+  ) => Promise<VersionedDocument>;
   isContentSameAtHeads: (args: IsContentSameAtHeadsArgs) => boolean;
   getExportText: (
     representation: TextRichTextRepresentation
@@ -119,7 +118,8 @@ export type CurrentDocumentContextType = {
 export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
   {
     versionedDocumentHandle: null,
-    setVersionedDocumentHandle: () => {},
+    versionedDocument: null,
+    updateRichTextDocumentContent: async () => {},
     versionedDocumentHistory: [],
     canCommit: false,
     onCommit: async () => {},
@@ -129,7 +129,7 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     selectedCommitIndex: null,
     onSelectCommit: () => {},
     // @ts-expect-error will get overriden below
-    getDocumentHandleAtCommit: async () => null,
+    getDocumentAtCommit: async () => null,
     getExportText: async () => '',
     // @ts-expect-error will get overriden below
     getExportBinaryData: async () => null,
@@ -147,6 +147,8 @@ export const CurrentDocumentProvider = ({
   const { projectType } = useContext(CurrentProjectContext);
   const [versionedDocumentHandle, setVersionedDocumentHandle] =
     useState<VersionedDocumentHandle | null>(null);
+  const [versionedDocument, setVersionedDocument] =
+    useState<VersionedDocument | null>(null);
   const { projectId, documentId } = useParams();
   const [searchParams] = useSearchParams();
   const [versionedDocumentHistory, setVersionedDocumentHistory] = useState<
@@ -160,9 +162,8 @@ export const CurrentDocumentProvider = ({
   );
   const { showDiffInHistoryView } = useContext(FunctionalityConfigContext);
   const navigate = useNavigate();
-  const { setSelectedFileInfo, clearFileSelection } = useContext(
-    MultiDocumentProjectContext
-  );
+  const { selectedFileInfo, setSelectedFileInfo, clearFileSelection } =
+    useContext(MultiDocumentProjectContext);
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
   );
@@ -177,12 +178,18 @@ export const CurrentDocumentProvider = ({
       if (!isValidVersionControlId(documentId)) {
         clearFileSelection();
         setVersionedDocumentHandle(null);
+        setVersionedDocument(null);
       } else {
         const documentHandle = await Effect.runPromise(
-          versionedDocumentStore.findDocumentById(documentId)
+          versionedDocumentStore.findDocumentHandleById(documentId)
+        );
+
+        const document = await Effect.runPromise(
+          versionedDocumentStore.getDocumentFromHandle(documentHandle)
         );
 
         setVersionedDocumentHandle(documentHandle);
+        setVersionedDocument(document);
 
         if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
           const pathParam = searchParams.get('path');
@@ -198,18 +205,6 @@ export const CurrentDocumentProvider = ({
             documentId,
             path,
           });
-
-          const { registeredListener } = await registerLiveUpdates({
-            findDocumentById: versionedDocumentStore.findDocumentById,
-            writeFile: filesystem.writeFile,
-          })({
-            documentHandle,
-            filePath: path,
-          });
-
-          return () => {
-            unregisterLiveUpdates({ documentHandle, registeredListener });
-          };
         }
       }
     };
@@ -387,14 +382,14 @@ export const CurrentDocumentProvider = ({
     [documentId, versionedDocumentHistory, showDiffInHistoryView]
   );
 
-  const handleGetDocumentHandleAtCommit = useCallback(
-    async (args: GetDocumentHandleAtCommitArgs) => {
+  const handleGetDocumentAtCommit = useCallback(
+    async (args: GetDocumentAtCommitArgs) => {
       if (!versionedDocumentStore) {
         throw new Error('Versioned document store not ready yet.');
       }
 
       return Effect.runPromise(
-        versionedDocumentStore.getDocumentHandleAtCommit(args)
+        versionedDocumentStore.getDocumentAtCommit(args)
       );
     },
     [versionedDocumentStore]
@@ -411,16 +406,35 @@ export const CurrentDocumentProvider = ({
     [versionedDocumentStore]
   );
 
-  const handleSetVersionedDocumentHandle = useCallback(
-    (newHandle: VersionedDocumentHandle | null) => {
-      if (!versionedDocumentStore) {
-        throw new Error('Versioned document store not ready yet.');
-      }
+  const handleUpdateRichTextDocumentContent = async (doc: RichTextDocument) => {
+    if (!versionedDocumentStore) {
+      throw new Error('Versioned document store not ready yet.');
+    }
 
-      return setVersionedDocumentHandle(newHandle);
-    },
-    [versionedDocumentStore]
-  );
+    if (!versionedDocumentHandle) {
+      throw new Error('Versioned document handle not ready yet.');
+    }
+
+    if (!representationTransformAdapter) {
+      throw new Error(
+        'No representation transform adapter found when trying to convert to Automerge'
+      );
+    }
+
+    await Effect.runPromise(
+      processDocumentChange({
+        transformToText: representationTransformAdapter.transformToText,
+        updateRichTextDocumentContent:
+          versionedDocumentStore.updateRichTextDocumentContent,
+        writeFile: filesystem.writeFile,
+      })({
+        document: doc,
+        documentHandle: versionedDocumentHandle,
+        filePath: selectedFileInfo?.path ?? null,
+        projectType,
+      })
+    );
+  };
 
   const exportToTextRepresentation = async (
     representation: TextRichTextRepresentation
@@ -445,10 +459,14 @@ export const CurrentDocumentProvider = ({
       versionedDocumentStore.getDocumentFromHandle(versionedDocumentHandle)
     );
 
+    const documentContent = await Effect.runPromise(
+      versionedDocumentStore.getRichTextDocumentContent(document)
+    );
+
     const str = await representationTransformAdapter.transformToText({
       from: richTextRepresentations.AUTOMERGE,
       to: representation,
-      input: getSpansString(document),
+      input: documentContent,
     });
 
     return str;
@@ -477,10 +495,14 @@ export const CurrentDocumentProvider = ({
       versionedDocumentStore.getDocumentFromHandle(versionedDocumentHandle)
     );
 
+    const documentContent = await Effect.runPromise(
+      versionedDocumentStore.getRichTextDocumentContent(document)
+    );
+
     const str = await representationTransformAdapter.transformToBinary({
       from: richTextRepresentations.AUTOMERGE,
       to: representation,
-      input: getSpansString(document),
+      input: documentContent,
     });
 
     return str;
@@ -490,7 +512,8 @@ export const CurrentDocumentProvider = ({
     <CurrentDocumentContext.Provider
       value={{
         versionedDocumentHandle,
-        setVersionedDocumentHandle: handleSetVersionedDocumentHandle,
+        versionedDocument,
+        updateRichTextDocumentContent: handleUpdateRichTextDocumentContent,
         versionedDocumentHistory,
         canCommit,
         onCommit: handleCommit,
@@ -499,7 +522,7 @@ export const CurrentDocumentProvider = ({
         onCloseCommitDialog: handleCloseCommitDialog,
         selectedCommitIndex,
         onSelectCommit: handleSelectCommit,
-        getDocumentHandleAtCommit: handleGetDocumentHandleAtCommit,
+        getDocumentAtCommit: handleGetDocumentAtCommit,
         isContentSameAtHeads: handleIsContentSameAtHeads,
         getExportText: exportToTextRepresentation,
         getExportBinaryData: exportToBinaryRepresentation,

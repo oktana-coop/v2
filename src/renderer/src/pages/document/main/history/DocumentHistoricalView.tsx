@@ -1,10 +1,7 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router';
 
-import {
-  type VersionedDocument,
-  type VersionedDocumentHandle,
-} from '../../../../../../modules/domain/rich-text';
+import { type VersionedDocument } from '../../../../../../modules/domain/rich-text';
 import {
   type Change,
   type ChangeWithUrlInfo,
@@ -30,13 +27,13 @@ import { type DiffViewProps, ReadOnlyView } from './ReadOnlyView';
 export const DocumentHistoricalView = () => {
   const { changeId, documentId, projectId } = useParams();
   const {
-    versionedDocumentHandle,
+    versionedDocument,
     versionedDocumentHistory: commits,
     selectedCommitIndex,
     onSelectCommit,
     canCommit,
     onOpenCommitDialog,
-    getDocumentHandleAtCommit,
+    getDocumentAtCommit,
     isContentSameAtHeads,
   } = useContext(CurrentDocumentContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
@@ -76,15 +73,14 @@ export const DocumentHistoricalView = () => {
 
   useEffect(() => {
     const loadDocOrDiff = async (
-      docHandle: VersionedDocumentHandle,
+      document: VersionedDocument,
       commits: ChangeWithUrlInfo[],
       currentCommitIndex: number
     ) => {
-      const currentCommitDocHandle = await getDocumentHandleAtCommit({
-        documentHandle: docHandle,
+      const currentCommitDoc = await getDocumentAtCommit({
+        document,
         heads: commits[currentCommitIndex].heads,
       });
-      const currentCommitDoc = await currentCommitDocHandle.doc();
 
       const isFirstCommit = isInitialChange(currentCommitIndex, commits);
 
@@ -97,11 +93,10 @@ export const DocumentHistoricalView = () => {
           commits.find((commit) => headsAreSame(commit.heads, diffWith));
 
         if (diffCommit) {
-          const diffCommitDocHandle = await getDocumentHandleAtCommit({
-            documentHandle: docHandle,
+          const previousCommitDoc = await getDocumentAtCommit({
+            document,
             heads: diffCommit.heads,
           });
-          const previousCommitDoc = await diffCommitDocHandle.doc();
           const isContentBetweenCommitsDifferent = !isContentSameAtHeads({
             document: currentCommitDoc,
             heads1: diffCommit.heads,
@@ -128,16 +123,16 @@ export const DocumentHistoricalView = () => {
     };
 
     if (
-      versionedDocumentHandle &&
+      versionedDocument &&
       commits.length > 0 &&
       selectedCommitIndex !== null &&
       selectedCommitIndex >= 0
     ) {
-      loadDocOrDiff(versionedDocumentHandle, commits, selectedCommitIndex);
+      loadDocOrDiff(versionedDocument, commits, selectedCommitIndex);
     }
   }, [
-    getDocumentHandleAtCommit,
-    versionedDocumentHandle,
+    getDocumentAtCommit,
+    versionedDocument,
     commits,
     showDiffInHistoryView,
     searchParams,

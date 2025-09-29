@@ -115,11 +115,14 @@ const openProject = ({
     })),
     Effect.tap(({ versionedProjectStore, versionedDocumentStore }) =>
       updateProjectFromFilesystemContent({
-        findDocumentById: versionedDocumentStore.findDocumentById,
+        findDocumentHandleById: versionedDocumentStore.findDocumentHandleById,
         getDocumentFromHandle: versionedDocumentStore.getDocumentFromHandle,
         createDocument: versionedDocumentStore.createDocument,
         deleteDocument: versionedDocumentStore.deleteDocument,
-        updateDocumentSpans: versionedDocumentStore.updateDocumentSpans,
+        getRichTextDocumentContent:
+          versionedDocumentStore.getRichTextDocumentContent,
+        updateRichTextDocumentContent:
+          versionedDocumentStore.updateRichTextDocumentContent,
         listProjectDocuments: versionedProjectStore.listProjectDocuments,
         findDocumentInProject: versionedProjectStore.findDocumentInProject,
         deleteDocumentFromProject:

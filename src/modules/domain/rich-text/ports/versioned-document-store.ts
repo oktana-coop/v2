@@ -5,9 +5,9 @@ import {
   type Commit,
   type VersionControlId,
 } from '../../../../modules/infrastructure/version-control';
+import { RichTextRepresentation } from '../constants';
 import { NotFoundError, RepositoryError } from '../errors';
 import {
-  type RichTextDocumentSpan,
   type VersionedDocument,
   type VersionedDocumentHandle,
 } from '../models';
@@ -26,9 +26,17 @@ export type GetDocumentAtCommitArgs = {
   heads: Commit['heads'];
 };
 
-export type UpdateDocumentSpansArgs = {
+export type UpdateRichTextDocumentContentArgs = {
   documentHandle: VersionedDocumentHandle;
-  spans: Array<RichTextDocumentSpan>;
+  representation: RichTextRepresentation;
+  content: string;
+};
+
+export type GetDocumentHistoryResponse = {
+  history: Change[];
+  current: VersionedDocument;
+  latestChange: Change;
+  lastCommit: Commit | null;
 };
 
 export type GetDocumentHandleHistoryResponse = {
@@ -58,13 +66,43 @@ export type VersionedDocumentStore = {
   createDocument: (
     args: CreateDocumentArgs
   ) => Effect.Effect<VersionControlId, RepositoryError, never>;
-  getDocumentHandleAtCommit: (
-    args: GetDocumentHandleAtCommitArgs
-  ) => Effect.Effect<VersionedDocumentHandle, RepositoryError, never>;
   getDocumentAtCommit: (
     args: GetDocumentAtCommitArgs
   ) => Effect.Effect<VersionedDocument, RepositoryError, never>;
   findDocumentById: (
+    id: VersionControlId
+  ) => Effect.Effect<VersionedDocument, RepositoryError | NotFoundError, never>;
+  getRichTextDocumentContent: (
+    document: VersionedDocument
+  ) => Effect.Effect<string, RepositoryError | NotFoundError, never>;
+  updateRichTextDocumentContent: (
+    args: UpdateRichTextDocumentContentArgs
+  ) => Effect.Effect<void, RepositoryError, never>;
+  deleteDocument: (
+    args: VersionControlId
+  ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;
+  getDocumentHeads: (
+    document: VersionedDocument
+  ) => Effect.Effect<Commit['heads'], RepositoryError, never>;
+  getDocumentHistory: (
+    document: VersionedDocument
+  ) => Effect.Effect<GetDocumentHistoryResponse, RepositoryError, never>;
+  isContentSameAtHeads: (args: IsContentSameAtHeadsArgs) => boolean;
+  commitChanges: (
+    args: CommitChangesArgs
+  ) => Effect.Effect<void, RepositoryError, never>;
+  exportDocumentToBinary: (
+    document: VersionedDocument
+  ) => Effect.Effect<Uint8Array, RepositoryError, never>;
+  importDocumentFromBinary: (
+    data: Uint8Array
+  ) => Effect.Effect<VersionedDocument, RepositoryError, never>;
+  disconnect: () => Effect.Effect<void, RepositoryError, never>;
+  // TODO: Extract to a `RealtimeVersionedDocumentStore`
+  getDocumentHandleAtCommit: (
+    args: GetDocumentHandleAtCommitArgs
+  ) => Effect.Effect<VersionedDocumentHandle, RepositoryError, never>;
+  findDocumentHandleById: (
     id: VersionControlId
   ) => Effect.Effect<
     VersionedDocumentHandle,
@@ -74,31 +112,10 @@ export type VersionedDocumentStore = {
   getDocumentFromHandle: (
     handle: VersionedDocumentHandle
   ) => Effect.Effect<VersionedDocument, RepositoryError | NotFoundError, never>;
-  // TODO: Think of a better abstraction - this is too Automerge-specific
-  updateDocumentSpans: (
-    args: UpdateDocumentSpansArgs
-  ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;
-  deleteDocument: (
-    args: VersionControlId
-  ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;
-  getDocumentHeads: (
-    document: VersionedDocument
-  ) => Effect.Effect<Commit['heads'], RepositoryError, never>;
   getDocumentHandleHistory: (
     handle: VersionedDocumentHandle
   ) => Effect.Effect<GetDocumentHandleHistoryResponse, RepositoryError, never>;
-  isContentSameAtHeads: (args: IsContentSameAtHeadsArgs) => boolean;
-  commitChanges: (
-    args: CommitChangesArgs
-  ) => Effect.Effect<void, RepositoryError, never>;
   exportDocumentHandleToBinary: (
     documentHandle: VersionedDocumentHandle
   ) => Effect.Effect<Uint8Array, RepositoryError | NotFoundError, never>;
-  exportDocumentToBinary: (
-    document: VersionedDocument
-  ) => Effect.Effect<Uint8Array, RepositoryError, never>;
-  importDocumentFromBinary: (
-    data: Uint8Array
-  ) => Effect.Effect<VersionedDocument, RepositoryError, never>;
-  disconnect: () => Effect.Effect<void, RepositoryError, never>;
 };

@@ -11,18 +11,19 @@ import {
 import { WasmContext } from '../../../../modules/infrastructure/wasm/react/wasm-context';
 import { createAdapter as createPandocDiffAdapter } from '../adapters/pandoc-diff';
 import { richTextRepresentations } from '../constants/representations';
+import { RichTextDocument } from '../models';
 import {
   type Diff,
   type ProseMirrorDiffArgs,
   type ProseMirrorDiffResult,
 } from '../ports/diff';
-import { pmDocFromJSONString } from '../prosemirror';
+import { automergeSchemaAdapter, pmDocFromJSONString } from '../prosemirror';
 import { type PMNode } from '../prosemirror/hs-lib';
 import { RepresentationTransformContext } from './representation-transform-context';
 
 type ConvertAutomergeToProseMirrorArgs = {
   schema: Schema;
-  spans: string;
+  document: RichTextDocument;
 };
 
 type ProseMirrorContextType = {
@@ -59,7 +60,9 @@ export const ProseMirrorProvider = ({
   children: React.ReactNode;
 }) => {
   const { runWasiCLIOutputingText } = useContext(WasmContext);
-  const [schema, setSchema] = useState<Schema | null>(null);
+  const [schema, setSchema] = useState<Schema | null>(
+    automergeSchemaAdapter.schema
+  );
   const [view, setView] = useState<EditorView | null>(null);
   const [diffAdapter, setDiffAdapter] = useState<Diff | null>(null);
   const { adapter: representationTransformAdapter } = useContext(
@@ -103,9 +106,9 @@ export const ProseMirrorProvider = ({
     }
 
     const result = await representationTransformAdapter.transformToText({
-      from: richTextRepresentations.AUTOMERGE,
+      from: args.document.representation,
       to: richTextRepresentations.PROSEMIRROR,
-      input: args.spans,
+      input: args.document.content,
     });
 
     type RepresentationTransformPMOutput = {

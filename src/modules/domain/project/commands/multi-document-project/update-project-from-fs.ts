@@ -2,9 +2,9 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import {
-  convertToStorageFormat,
   NotFoundError as VersionedDocumentNotFoundError,
   RepositoryError as VersionedDocumentRepositoryError,
+  richTextRepresentations,
   type VersionedDocumentStore,
 } from '../../../../../modules/domain/rich-text';
 import {
@@ -34,10 +34,11 @@ export type UpdateProjectFromFilesystemContentArgs = {
 };
 
 export type UpdateProjectFromFilesystemContentDeps = {
-  findDocumentById: VersionedDocumentStore['findDocumentById'];
+  findDocumentHandleById: VersionedDocumentStore['findDocumentHandleById'];
   getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
   createDocument: VersionedDocumentStore['createDocument'];
-  updateDocumentSpans: VersionedDocumentStore['updateDocumentSpans'];
+  getRichTextDocumentContent: VersionedDocumentStore['getRichTextDocumentContent'];
+  updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'];
   deleteDocument: VersionedDocumentStore['deleteDocument'];
   addDocumentToProject: MultiDocumentProjectStore['addDocumentToProject'];
   findDocumentInProject: MultiDocumentProjectStore['findDocumentInProject'];
@@ -65,15 +66,17 @@ const documentForFileExistsInProject = ({
 // The files content is the source of truth.
 const propagateFileChangesToVersionedDocument =
   ({
-    findDocumentById,
+    findDocumentHandleById,
     getDocumentFromHandle,
-    updateDocumentSpans,
+    getRichTextDocumentContent,
+    updateRichTextDocumentContent,
     findDocumentInProject: findDocumentInProjectStore,
     readFile,
   }: {
-    findDocumentById: VersionedDocumentStore['findDocumentById'];
+    findDocumentHandleById: VersionedDocumentStore['findDocumentHandleById'];
     findDocumentInProject: MultiDocumentProjectStore['findDocumentInProject'];
-    updateDocumentSpans: VersionedDocumentStore['updateDocumentSpans'];
+    getRichTextDocumentContent: VersionedDocumentStore['getRichTextDocumentContent'];
+    updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'];
     getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
     readFile: Filesystem['readFile'];
   }) =>
@@ -97,7 +100,7 @@ const propagateFileChangesToVersionedDocument =
   > =>
     pipe(
       findDocumentInProject({
-        findDocumentById,
+        findDocumentHandleById,
         findDocumentInProjectStore,
       })({
         documentPath: file.path,
@@ -118,18 +121,21 @@ const propagateFileChangesToVersionedDocument =
                       )
                     )
               ),
-              Effect.flatMap((fileContent) => {
-                if (
-                  fileContent.content &&
-                  fileContent.content !== convertToStorageFormat(document)
-                ) {
-                  return updateDocumentSpans({
-                    documentHandle,
-                    spans: JSON.parse(fileContent.content),
-                  });
-                }
-                return Effect.succeed(undefined);
-              })
+              Effect.flatMap((fileContent) =>
+                pipe(
+                  getRichTextDocumentContent(document),
+                  Effect.flatMap((documentRichTextContent) =>
+                    fileContent.content &&
+                    fileContent.content !== documentRichTextContent
+                      ? updateRichTextDocumentContent({
+                          documentHandle,
+                          representation: richTextRepresentations.AUTOMERGE,
+                          content: fileContent.content,
+                        })
+                      : Effect.succeed(undefined)
+                  )
+                )
+              )
             )
           )
         )
@@ -138,10 +144,11 @@ const propagateFileChangesToVersionedDocument =
 
 export const updateProjectFromFilesystemContent =
   ({
-    findDocumentById,
+    findDocumentHandleById,
     getDocumentFromHandle,
     createDocument,
-    updateDocumentSpans,
+    getRichTextDocumentContent,
+    updateRichTextDocumentContent,
     deleteDocument,
     listProjectDocuments,
     findDocumentInProject,
@@ -179,9 +186,10 @@ export const updateProjectFromFilesystemContent =
           (file) =>
             documentForFileExistsInProject({ file, projectDocuments })
               ? propagateFileChangesToVersionedDocument({
-                  findDocumentById,
+                  findDocumentHandleById,
                   findDocumentInProject,
-                  updateDocumentSpans,
+                  getRichTextDocumentContent,
+                  updateRichTextDocumentContent,
                   getDocumentFromHandle,
                   readFile,
                 })({ file, projectId })

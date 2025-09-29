@@ -226,11 +226,12 @@ const createNewProject = ({
 
 const openExistingProject = ({
   directoryPath,
-  findDocumentById,
+  findDocumentHandleById,
   getDocumentFromHandle,
   createDocument,
   deleteDocument,
-  updateDocumentSpans,
+  getRichTextDocumentContent,
+  updateRichTextDocumentContent,
   listProjectDocuments,
   findDocumentInProject,
   deleteDocumentFromProject,
@@ -240,11 +241,12 @@ const openExistingProject = ({
   db,
 }: {
   directoryPath: string;
-  findDocumentById: VersionedDocumentStore['findDocumentById'];
+  findDocumentHandleById: VersionedDocumentStore['findDocumentHandleById'];
   getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
   createDocument: VersionedDocumentStore['createDocument'];
   deleteDocument: VersionedDocumentStore['deleteDocument'];
-  updateDocumentSpans: VersionedDocumentStore['updateDocumentSpans'];
+  getRichTextDocumentContent: VersionedDocumentStore['getRichTextDocumentContent'];
+  updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'];
   listProjectDocuments: MultiDocumentProjectStore['listProjectDocuments'];
   findDocumentInProject: MultiDocumentProjectStore['findDocumentInProject'];
   deleteDocumentFromProject: MultiDocumentProjectStore['deleteDocumentFromProject'];
@@ -273,11 +275,12 @@ const openExistingProject = ({
     }),
     Effect.tap((projectId) =>
       updateProjectFromFilesystemContent({
-        findDocumentById,
+        findDocumentHandleById,
         getDocumentFromHandle,
         createDocument,
         deleteDocument,
-        updateDocumentSpans,
+        getRichTextDocumentContent,
+        updateRichTextDocumentContent,
         listProjectDocuments,
         findDocumentInProject,
         deleteDocumentFromProject,
@@ -291,11 +294,12 @@ const openExistingProject = ({
 const validateIdAndOpenProject = ({
   projectId,
   directoryPath,
-  findDocumentById,
+  findDocumentHandleById,
   getDocumentFromHandle,
   createDocument,
   deleteDocument,
-  updateDocumentSpans,
+  getRichTextDocumentContent,
+  updateRichTextDocumentContent,
   listProjectDocuments,
   findDocumentInProject,
   deleteDocumentFromProject,
@@ -306,11 +310,12 @@ const validateIdAndOpenProject = ({
 }: {
   projectId: VersionControlId;
   directoryPath: string;
-  findDocumentById: VersionedDocumentStore['findDocumentById'];
+  findDocumentHandleById: VersionedDocumentStore['findDocumentHandleById'];
   getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
   createDocument: VersionedDocumentStore['createDocument'];
   deleteDocument: VersionedDocumentStore['deleteDocument'];
-  updateDocumentSpans: VersionedDocumentStore['updateDocumentSpans'];
+  getRichTextDocumentContent: VersionedDocumentStore['getRichTextDocumentContent'];
+  updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'];
   listProjectDocuments: MultiDocumentProjectStore['listProjectDocuments'];
   findDocumentInProject: MultiDocumentProjectStore['findDocumentInProject'];
   deleteDocumentFromProject: MultiDocumentProjectStore['deleteDocumentFromProject'];
@@ -348,11 +353,12 @@ const validateIdAndOpenProject = ({
     ),
     Effect.tap((projectId) =>
       updateProjectFromFilesystemContent({
-        findDocumentById,
+        findDocumentHandleById,
         getDocumentFromHandle,
         createDocument,
         deleteDocument,
-        updateDocumentSpans,
+        getRichTextDocumentContent,
+        updateRichTextDocumentContent,
         listProjectDocuments,
         findDocumentInProject,
         deleteDocumentFromProject,
@@ -393,13 +399,16 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
               pipe(
                 openExistingProject({
                   directoryPath: directory.path,
-                  findDocumentById: versionedDocumentStore.findDocumentById,
+                  findDocumentHandleById:
+                    versionedDocumentStore.findDocumentHandleById,
                   getDocumentFromHandle:
                     versionedDocumentStore.getDocumentFromHandle,
                   createDocument: versionedDocumentStore.createDocument,
                   deleteDocument: versionedDocumentStore.deleteDocument,
-                  updateDocumentSpans:
-                    versionedDocumentStore.updateDocumentSpans,
+                  getRichTextDocumentContent:
+                    versionedDocumentStore.getRichTextDocumentContent,
+                  updateRichTextDocumentContent:
+                    versionedDocumentStore.updateRichTextDocumentContent,
                   listProjectDocuments:
                     versionedProjectStore.listProjectDocuments,
                   findDocumentInProject:
@@ -475,14 +484,16 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                       validateIdAndOpenProject({
                         projectId,
                         directoryPath,
-                        findDocumentById:
-                          versionedDocumentStore.findDocumentById,
+                        findDocumentHandleById:
+                          versionedDocumentStore.findDocumentHandleById,
                         getDocumentFromHandle:
                           versionedDocumentStore.getDocumentFromHandle,
                         createDocument: versionedDocumentStore.createDocument,
                         deleteDocument: versionedDocumentStore.deleteDocument,
-                        updateDocumentSpans:
-                          versionedDocumentStore.updateDocumentSpans,
+                        getRichTextDocumentContent:
+                          versionedDocumentStore.getRichTextDocumentContent,
+                        updateRichTextDocumentContent:
+                          versionedDocumentStore.updateRichTextDocumentContent,
                         listProjectDocuments:
                           versionedProjectStore.listProjectDocuments,
                         findDocumentInProject:
