@@ -94,27 +94,26 @@ export const createAdapter = (
       )
     );
 
-  const findDocumentById: VersionedDocumentStore['findDocumentById'] = (
-    id: VersionControlId
-  ) =>
-    pipe(
-      Effect.tryPromise({
-        try: () => automergeRepo.find<RichTextDocument>(id),
-        catch: (err: unknown) => {
-          // TODO: This is not-future proof as it depends on the error message. Find a better way.
-          if (err instanceof Error && err.message.includes('unavailable')) {
-            return new NotFoundError(err.message);
-          }
+  const findDocumentHandleById: VersionedDocumentStore['findDocumentHandleById'] =
+    (id: VersionControlId) =>
+      pipe(
+        Effect.tryPromise({
+          try: () => automergeRepo.find<RichTextDocument>(id),
+          catch: (err: unknown) => {
+            // TODO: This is not-future proof as it depends on the error message. Find a better way.
+            if (err instanceof Error && err.message.includes('unavailable')) {
+              return new NotFoundError(err.message);
+            }
 
-          return mapErrorTo(RepositoryError, 'Automerge repo error')(err);
-        },
-      }),
-      Effect.timeoutFail({
-        duration: '5 seconds',
-        onTimeout: () =>
-          new NotFoundError('Timeout in getting document handle'),
-      })
-    );
+            return mapErrorTo(RepositoryError, 'Automerge repo error')(err);
+          },
+        }),
+        Effect.timeoutFail({
+          duration: '5 seconds',
+          onTimeout: () =>
+            new NotFoundError('Timeout in getting document handle'),
+        })
+      );
 
   const getRichTextDocumentContent: VersionedDocumentStore['getRichTextDocumentContent'] =
     (document) =>
@@ -168,7 +167,7 @@ export const createAdapter = (
     documentId
   ) =>
     pipe(
-      findDocumentById(documentId),
+      findDocumentHandleById(documentId),
       Effect.tap((documentHandle) =>
         Effect.try({
           try: () => documentHandle.delete(),
@@ -254,7 +253,7 @@ export const createAdapter = (
     createDocument,
     getDocumentHandleAtCommit,
     getDocumentAtCommit,
-    findDocumentById,
+    findDocumentHandleById,
     getRichTextDocumentContent,
     updateRichTextDocumentContent,
     getDocumentFromHandle,

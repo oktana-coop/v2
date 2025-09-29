@@ -34,7 +34,7 @@ export type UpdateProjectFromFilesystemContentArgs = {
 };
 
 export type UpdateProjectFromFilesystemContentDeps = {
-  findDocumentById: VersionedDocumentStore['findDocumentById'];
+  findDocumentHandleById: VersionedDocumentStore['findDocumentHandleById'];
   getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
   createDocument: VersionedDocumentStore['createDocument'];
   getRichTextDocumentContent: VersionedDocumentStore['getRichTextDocumentContent'];
@@ -66,14 +66,14 @@ const documentForFileExistsInProject = ({
 // The files content is the source of truth.
 const propagateFileChangesToVersionedDocument =
   ({
-    findDocumentById,
+    findDocumentHandleById,
     getDocumentFromHandle,
     getRichTextDocumentContent,
     updateRichTextDocumentContent,
     findDocumentInProject: findDocumentInProjectStore,
     readFile,
   }: {
-    findDocumentById: VersionedDocumentStore['findDocumentById'];
+    findDocumentHandleById: VersionedDocumentStore['findDocumentHandleById'];
     findDocumentInProject: MultiDocumentProjectStore['findDocumentInProject'];
     getRichTextDocumentContent: VersionedDocumentStore['getRichTextDocumentContent'];
     updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'];
@@ -100,7 +100,7 @@ const propagateFileChangesToVersionedDocument =
   > =>
     pipe(
       findDocumentInProject({
-        findDocumentById,
+        findDocumentHandleById,
         findDocumentInProjectStore,
       })({
         documentPath: file.path,
@@ -144,7 +144,7 @@ const propagateFileChangesToVersionedDocument =
 
 export const updateProjectFromFilesystemContent =
   ({
-    findDocumentById,
+    findDocumentHandleById,
     getDocumentFromHandle,
     createDocument,
     getRichTextDocumentContent,
@@ -186,7 +186,7 @@ export const updateProjectFromFilesystemContent =
           (file) =>
             documentForFileExistsInProject({ file, projectDocuments })
               ? propagateFileChangesToVersionedDocument({
-                  findDocumentById,
+                  findDocumentHandleById,
                   findDocumentInProject,
                   getRichTextDocumentContent,
                   updateRichTextDocumentContent,

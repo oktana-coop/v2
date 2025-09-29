@@ -13,7 +13,7 @@ export type RegisterLiveUpdateArgs = {
 
 export type RegisterLiveUpdatesDeps = {
   getRichTextDocumentContent: VersionedDocumentStore['getRichTextDocumentContent'];
-  findDocumentById: VersionedDocumentStore['findDocumentById'];
+  findDocumentHandleById: VersionedDocumentStore['findDocumentHandleById'];
   writeFile: Filesystem['writeFile'];
 };
 

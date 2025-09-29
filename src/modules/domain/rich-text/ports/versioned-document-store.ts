@@ -65,7 +65,7 @@ export type VersionedDocumentStore = {
   getDocumentAtCommit: (
     args: GetDocumentAtCommitArgs
   ) => Effect.Effect<VersionedDocument, RepositoryError, never>;
-  findDocumentById: (
+  findDocumentHandleById: (
     id: VersionControlId
   ) => Effect.Effect<
     VersionedDocumentHandle,

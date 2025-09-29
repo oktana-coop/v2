@@ -20,14 +20,14 @@ export type FindDocumentInProjectArgs = {
 };
 
 export type FindDocumentInProjectDeps = {
-  findDocumentById: VersionedDocumentStore['findDocumentById'];
+  findDocumentHandleById: VersionedDocumentStore['findDocumentHandleById'];
   findDocumentInProjectStore: MultiDocumentProjectStore['findDocumentInProject'];
 };
 
 export const findDocumentInProject =
   ({
     findDocumentInProjectStore,
-    findDocumentById,
+    findDocumentHandleById,
   }: FindDocumentInProjectDeps) =>
   ({
     documentPath,
@@ -42,5 +42,5 @@ export const findDocumentInProject =
   > =>
     pipe(
       findDocumentInProjectStore({ documentPath, projectId }),
-      Effect.flatMap((artifactId) => findDocumentById(artifactId))
+      Effect.flatMap((artifactId) => findDocumentHandleById(artifactId))
     );

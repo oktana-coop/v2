@@ -181,7 +181,7 @@ export const CurrentDocumentProvider = ({
         setVersionedDocument(null);
       } else {
         const documentHandle = await Effect.runPromise(
-          versionedDocumentStore.findDocumentById(documentId)
+          versionedDocumentStore.findDocumentHandleById(documentId)
         );
 
         const document = await Effect.runPromise(
@@ -209,7 +209,8 @@ export const CurrentDocumentProvider = ({
           const { registeredListener } = await registerLiveUpdates({
             getRichTextDocumentContent:
               versionedDocumentStore.getRichTextDocumentContent,
-            findDocumentById: versionedDocumentStore.findDocumentById,
+            findDocumentHandleById:
+              versionedDocumentStore.findDocumentHandleById,
             writeFile: filesystem.writeFile,
           })({
             documentHandle,
