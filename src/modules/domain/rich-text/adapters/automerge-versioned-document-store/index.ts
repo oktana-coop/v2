@@ -10,6 +10,7 @@ import {
   getArtifactHandleAtCommit,
   getArtifactHandleHistory,
   getArtifactHeads,
+  getArtifactHistory,
   importFromBinary,
   isArtifactContentSameAtHeads,
   versionedArtifactTypes,
@@ -204,6 +205,14 @@ export const createAdapter = (
       catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
     });
 
+  const getDocumentHistory: VersionedDocumentStore['getDocumentHistory'] = (
+    document: VersionedDocument
+  ) =>
+    Effect.tryPromise({
+      try: () => getArtifactHistory<RichTextDocument>(document),
+      catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+    });
+
   const getDocumentHandleHistory: VersionedDocumentStore['getDocumentHandleHistory'] =
     (handle: VersionedDocumentHandle) =>
       Effect.tryPromise({
@@ -279,6 +288,7 @@ export const createAdapter = (
     updateRichTextDocumentContent,
     getDocumentFromHandle,
     deleteDocument,
+    getDocumentHistory,
     getDocumentHandleHistory,
     isContentSameAtHeads,
     getDocumentHeads,

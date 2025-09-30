@@ -32,6 +32,13 @@ export type UpdateRichTextDocumentContentArgs = {
   content: string;
 };
 
+export type GetDocumentHistoryResponse = {
+  history: Change[];
+  current: VersionedDocument;
+  latestChange: Change;
+  lastCommit: Commit | null;
+};
+
 export type GetDocumentHandleHistoryResponse = {
   history: Change[];
   current: VersionedDocument;
@@ -59,24 +66,11 @@ export type VersionedDocumentStore = {
   createDocument: (
     args: CreateDocumentArgs
   ) => Effect.Effect<VersionControlId, RepositoryError, never>;
-  getDocumentHandleAtCommit: (
-    args: GetDocumentHandleAtCommitArgs
-  ) => Effect.Effect<VersionedDocumentHandle, RepositoryError, never>;
   getDocumentAtCommit: (
     args: GetDocumentAtCommitArgs
   ) => Effect.Effect<VersionedDocument, RepositoryError, never>;
   findDocumentById: (
     id: VersionControlId
-  ) => Effect.Effect<VersionedDocument, RepositoryError | NotFoundError, never>;
-  findDocumentHandleById: (
-    id: VersionControlId
-  ) => Effect.Effect<
-    VersionedDocumentHandle,
-    RepositoryError | NotFoundError,
-    never
-  >;
-  getDocumentFromHandle: (
-    handle: VersionedDocumentHandle
   ) => Effect.Effect<VersionedDocument, RepositoryError | NotFoundError, never>;
   getRichTextDocumentContent: (
     document: VersionedDocument
@@ -90,16 +84,13 @@ export type VersionedDocumentStore = {
   getDocumentHeads: (
     document: VersionedDocument
   ) => Effect.Effect<Commit['heads'], RepositoryError, never>;
-  getDocumentHandleHistory: (
-    handle: VersionedDocumentHandle
-  ) => Effect.Effect<GetDocumentHandleHistoryResponse, RepositoryError, never>;
+  getDocumentHistory: (
+    document: VersionedDocument
+  ) => Effect.Effect<GetDocumentHistoryResponse, RepositoryError, never>;
   isContentSameAtHeads: (args: IsContentSameAtHeadsArgs) => boolean;
   commitChanges: (
     args: CommitChangesArgs
   ) => Effect.Effect<void, RepositoryError, never>;
-  exportDocumentHandleToBinary: (
-    documentHandle: VersionedDocumentHandle
-  ) => Effect.Effect<Uint8Array, RepositoryError | NotFoundError, never>;
   exportDocumentToBinary: (
     document: VersionedDocument
   ) => Effect.Effect<Uint8Array, RepositoryError, never>;
@@ -107,4 +98,24 @@ export type VersionedDocumentStore = {
     data: Uint8Array
   ) => Effect.Effect<VersionedDocument, RepositoryError, never>;
   disconnect: () => Effect.Effect<void, RepositoryError, never>;
+  // TODO: Extract to a `RealtimeVersionedDocumentStore`
+  getDocumentHandleAtCommit: (
+    args: GetDocumentHandleAtCommitArgs
+  ) => Effect.Effect<VersionedDocumentHandle, RepositoryError, never>;
+  findDocumentHandleById: (
+    id: VersionControlId
+  ) => Effect.Effect<
+    VersionedDocumentHandle,
+    RepositoryError | NotFoundError,
+    never
+  >;
+  getDocumentFromHandle: (
+    handle: VersionedDocumentHandle
+  ) => Effect.Effect<VersionedDocument, RepositoryError | NotFoundError, never>;
+  getDocumentHandleHistory: (
+    handle: VersionedDocumentHandle
+  ) => Effect.Effect<GetDocumentHandleHistoryResponse, RepositoryError, never>;
+  exportDocumentHandleToBinary: (
+    documentHandle: VersionedDocumentHandle
+  ) => Effect.Effect<Uint8Array, RepositoryError | NotFoundError, never>;
 };
