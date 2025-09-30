@@ -81,6 +81,7 @@
       "entitlementsInherit": "public/macos-notarization/entitlements.mac.plist"
     },
     "win": {
+      "artifactName": "${productName}-Setup-${version}.${ext}",
       "target": [
         {
           "target": "nsis",
