@@ -1,5 +1,9 @@
 import { next as Automerge } from '@automerge/automerge/slim';
+import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 
+import { mapErrorTo } from '../../../../../utils/errors';
+import { MigrationError } from '../../errors';
 import { type VersionedArtifact } from '../../models';
 
 export type ArtifactWithSchemaVersion = {
@@ -20,44 +24,60 @@ export const needsMigration = (
   targetVersion: number
 ): boolean => getCurrentVersion(artifact) < targetVersion;
 
-export const migrate = <ArtifactType extends ArtifactWithSchemaVersion>(
-  artifact: VersionedArtifact<ArtifactType>,
-  migrations: readonly Migration[],
-  targetVersion: number
-): VersionedArtifact<ArtifactType> => {
-  const currentVersion = getCurrentVersion(artifact);
+export const migrate =
+  (migrations: readonly Migration[]) =>
+  <ArtifactType extends ArtifactWithSchemaVersion>(
+    artifact: VersionedArtifact<ArtifactType>,
+    targetVersion: number
+  ): Effect.Effect<VersionedArtifact<ArtifactType>, MigrationError, never> =>
+    pipe(
+      Effect.sync(() => getCurrentVersion(artifact)),
+      Effect.tap((currentVersion) =>
+        currentVersion >= targetVersion
+          ? Effect.fail(
+              new MigrationError(
+                `Current version (${currentVersion}) is greater than target version (${targetVersion})`
+              )
+            )
+          : Effect.succeed(undefined)
+      ),
+      Effect.flatMap((currentVersion) => {
+        const migrationsToApply: Migration[] = [];
 
-  if (currentVersion > targetVersion) {
-    throw new Error(
-      `Current version (${currentVersion}) is greater than target version (${targetVersion})`
+        for (let v = currentVersion; v < targetVersion; v++) {
+          const migration = migrations.find((m) => m.version === v);
+          if (!migration) {
+            return Effect.fail(
+              new MigrationError(
+                `Missing migration from version ${v} to ${v + 1}`
+              )
+            );
+          }
+          migrationsToApply.push(migration);
+        }
+
+        return Effect.try({
+          try: () =>
+            migrationsToApply.reduce(
+              (currentArtifact, migration) =>
+                Automerge.change(currentArtifact, (a) => {
+                  migration.up(a);
+                }),
+              artifact
+            ),
+          catch: mapErrorTo(
+            MigrationError,
+            'Error in applying migration to the automerge document'
+          ),
+        });
+      })
     );
-  }
-
-  const migrationsToApply: Migration[] = [];
-  for (let v = currentVersion; v < targetVersion; v++) {
-    const migration = migrations.find((m) => m.version === v);
-    if (!migration) {
-      throw new Error(`Missing migration from version ${v} to ${v + 1}`);
-    }
-    migrationsToApply.push(migration);
-  }
-
-  return migrationsToApply.reduce(
-    (currentArtifact, migration) =>
-      Automerge.change(currentArtifact, (a) => {
-        migration.up(a);
-      }),
-    artifact
-  );
-};
 
 export const migrateIfNeeded = <ArtifactType extends ArtifactWithSchemaVersion>(
   artifact: VersionedArtifact<ArtifactType>,
   migrations: readonly Migration[],
   targetVersion: number
-): VersionedArtifact<ArtifactType> => {
-  if (!needsMigration(artifact, targetVersion)) {
-    return artifact;
-  }
-  return migrate(artifact, migrations, targetVersion);
-};
+): Effect.Effect<VersionedArtifact<ArtifactType>, MigrationError, never> =>
+  needsMigration(artifact, targetVersion)
+    ? migrate(migrations)(artifact, targetVersion)
+    : Effect.succeed(artifact);

@@ -7,3 +7,7 @@ export class RepositoryError extends Cause.YieldableError {
 export class NotFoundError extends Cause.YieldableError {
   readonly _tag = 'VersionControlNotFoundError';
 }
+
+export class MigrationError extends Cause.YieldableError {
+  readonly _tag = 'VersionControlMigrationError';
+}
