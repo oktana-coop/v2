@@ -17,7 +17,7 @@ export type Migration = {
 
 export const getCurrentVersion = (
   artifact: ArtifactWithSchemaVersion
-): number => artifact.schemaVersion ?? 1;
+): number => artifact.schemaVersion ?? 0;
 
 export const needsMigration = (
   artifact: ArtifactWithSchemaVersion,
