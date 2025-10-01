@@ -1,4 +1,3 @@
-import { next as Automerge } from '@automerge/automerge/slim';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
@@ -11,8 +10,13 @@ export type ArtifactWithSchemaVersion = {
 };
 
 export type Migration = {
-  readonly version: number;
-  readonly up: (artifact: ArtifactWithSchemaVersion) => void;
+  version: number;
+  up: <
+    InputType extends ArtifactWithSchemaVersion,
+    ResultType extends ArtifactWithSchemaVersion,
+  >(
+    artifact: VersionedArtifact<InputType>
+  ) => VersionedArtifact<ResultType>;
 };
 
 export const getCurrentVersion = (
@@ -60,10 +64,7 @@ export const migrate =
         return Effect.try({
           try: () =>
             migrationsToApply.reduce(
-              (currentArtifact, migration) =>
-                Automerge.change(currentArtifact, (a) => {
-                  migration.up(a);
-                }),
+              (currentArtifact, migration) => migration.up(currentArtifact),
               artifact
             ),
           catch: mapErrorTo(

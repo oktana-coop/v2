@@ -7,7 +7,7 @@ import { type TextRichTextRepresentation } from '../../constants';
 
 export type RichTextDocument = {
   type: typeof versionedArtifactTypes.RICH_TEXT_DOCUMENT;
-  schemaVersion: string;
+  schemaVersion: number;
   representation: TextRichTextRepresentation;
   content: string;
 };
