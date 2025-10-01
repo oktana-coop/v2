@@ -23,7 +23,6 @@ import {
   type VersionedDocumentHandle,
 } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
-import { versionedArtifactTypes } from '../../../../modules/infrastructure/version-control';
 import { EditorToolbar } from './editor-toolbar';
 import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';
@@ -158,7 +157,8 @@ export const RichTextEditor = ({
           const pmJSONStr = pmDocToJSONString(pmDoc);
 
           onDocChange({
-            type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
+            type: doc.type,
+            schemaVersion: doc.schemaVersion,
             representation: richTextRepresentations.PROSEMIRROR,
             content: pmJSONStr,
           });

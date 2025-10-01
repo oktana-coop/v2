@@ -13,12 +13,14 @@ import {
   getArtifactHistory,
   importFromBinary,
   isArtifactContentSameAtHeads,
+  migrateIfNeeded,
   versionedArtifactTypes,
 } from '../../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../../utils/errors';
 import { richTextRepresentations } from '../../constants';
 import { NotFoundError, RepositoryError } from '../../errors';
 import {
+  CURRENT_SCHEMA_VERSION,
   type RichTextDocument,
   type VersionedDocument,
   type VersionedDocumentHandle,
@@ -28,6 +30,7 @@ import {
   type RichTextDocumentSpan,
 } from '../../models/document/automerge';
 import { VersionedDocumentStore } from '../../ports/versioned-document-store';
+import { migrations } from './migrations';
 
 export const createAdapter = (
   automergeRepo: Repo,
@@ -66,7 +69,7 @@ export const createAdapter = (
         try: () =>
           automergeRepo.create<RichTextDocument>({
             type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
-            schemaVersion: '1',
+            schemaVersion: CURRENT_SCHEMA_VERSION,
             representation: richTextRepresentations.AUTOMERGE,
             content: content ?? '',
           }),
@@ -109,8 +112,11 @@ export const createAdapter = (
         },
       }),
       Effect.flatMap(getDocumentFromHandle),
+      Effect.flatMap((document) =>
+        migrateIfNeeded(migrations)(document, CURRENT_SCHEMA_VERSION)
+      ),
       Effect.timeoutFail({
-        duration: '7 seconds',
+        duration: '8 seconds',
         onTimeout: () =>
           new NotFoundError('Timeout in getting document handle'),
       })

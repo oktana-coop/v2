@@ -7,7 +7,10 @@ import {
   type VersionedDocumentHandle,
   type VersionedDocumentStore,
 } from '../../../../../modules/domain/rich-text';
-import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
+import {
+  MigrationError,
+  type VersionControlId,
+} from '../../../../../modules/infrastructure/version-control';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
@@ -37,10 +40,13 @@ export const findDocumentInProject =
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
     | VersionedDocumentRepositoryError
-    | VersionedDocumentNotFoundError,
+    | VersionedDocumentNotFoundError
+    | MigrationError,
     never
   > =>
     pipe(
       findDocumentInProjectStore({ documentPath, projectId }),
+      // TODO: Return the document instead of the docHandle
+      // This will also handle migrating the document if needed
       Effect.flatMap((artifactId) => findDocumentHandleById(artifactId))
     );

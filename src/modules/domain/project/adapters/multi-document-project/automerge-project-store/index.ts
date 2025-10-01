@@ -5,6 +5,7 @@ import { pipe } from 'effect/Function';
 import * as Option from 'effect/Option';
 
 import {
+  migrateIfNeeded,
   type VersionControlId,
   versionedArtifactTypes,
 } from '../../../../../../modules/infrastructure/version-control';
@@ -17,7 +18,9 @@ import {
   type VersionedMultiDocumentProject,
   type VersionedMultiDocumentProjectHandle,
 } from '../../../models';
+import { CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION } from '../../../models';
 import { MultiDocumentProjectStore } from '../../../ports/multi-document-project';
+import { migrations } from './migrations';
 
 export const createAdapter = (
   automergeRepo: Repo
@@ -55,7 +58,7 @@ export const createAdapter = (
         try: () =>
           automergeRepo.create<MultiDocumentProject>({
             type: versionedArtifactTypes.MULTI_DOCUMENT_PROJECT,
-            schemaVersion: '1',
+            schemaVersion: CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION,
             path,
             documents: {},
           }),
@@ -64,20 +67,32 @@ export const createAdapter = (
       Effect.map((handle) => handle.url)
     );
 
-  const findProjectById: MultiDocumentProjectStore['findProjectById'] = (
-    id: VersionControlId
-  ) =>
-    pipe(
-      Effect.tryPromise({
-        try: () => automergeRepo.find<MultiDocumentProject>(id),
-        catch: (err: unknown) => {
-          // TODO: This is not-future proof as it depends on the error message. Find a better way.
-          if (err instanceof Error && err.message.includes('unavailable')) {
-            return new NotFoundError(err.message);
-          }
+  const findProjectHandleById = (id: VersionControlId) =>
+    Effect.tryPromise({
+      try: () => automergeRepo.find<MultiDocumentProject>(id),
+      catch: (err: unknown) => {
+        // TODO: This is not-future proof as it depends on the error message. Find a better way.
+        if (err instanceof Error && err.message.includes('unavailable')) {
+          return new NotFoundError(err.message);
+        }
 
-          return mapErrorTo(RepositoryError, 'Automerge repo error')(err);
-        },
+        return mapErrorTo(RepositoryError, 'Automerge repo error')(err);
+      },
+    });
+
+  const findProjectById: MultiDocumentProjectStore['findProjectById'] = (id) =>
+    pipe(
+      findProjectHandleById(id),
+      Effect.flatMap(getProjectFromHandle),
+      Effect.flatMap((project) =>
+        migrateIfNeeded(migrations)(
+          project,
+          CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION
+        )
+      ),
+      Effect.timeoutFail({
+        duration: '5 seconds',
+        onTimeout: () => new NotFoundError('Timeout in finding project'),
       })
     );
 
@@ -85,14 +100,13 @@ export const createAdapter = (
     (id: VersionControlId) =>
       pipe(
         findProjectById(id),
-        Effect.flatMap(getProjectFromHandle),
         Effect.map((project) => Object.values(project.documents))
       );
 
   const addDocumentToProject: MultiDocumentProjectStore['addDocumentToProject'] =
     ({ documentId, name, path, projectId }) =>
       pipe(
-        findProjectById(projectId),
+        findProjectHandleById(projectId),
         Effect.flatMap((projectHandle) => {
           const metaData: ArtifactMetaData = {
             id: documentId,
@@ -113,7 +127,7 @@ export const createAdapter = (
   const deleteDocumentFromProject: MultiDocumentProjectStore['deleteDocumentFromProject'] =
     ({ projectId, documentId }) =>
       pipe(
-        findProjectById(projectId),
+        findProjectHandleById(projectId),
         Effect.tap((projectHandle) =>
           Effect.try({
             try: () =>

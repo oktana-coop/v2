@@ -1,6 +1,9 @@
 import * as Effect from 'effect/Effect';
 
-import { type VersionControlId } from '../../../../infrastructure/version-control';
+import {
+  MigrationError,
+  type VersionControlId,
+} from '../../../../infrastructure/version-control';
 import { NotFoundError, RepositoryError } from '../../errors';
 import {
   type BaseArtifactMetaData,
@@ -19,12 +22,16 @@ export type SingleDocumentProjectStore = {
   ) => Effect.Effect<VersionControlId, RepositoryError, never>;
   findDocumentInProject: (
     projectId: VersionControlId
-  ) => Effect.Effect<VersionControlId, RepositoryError | NotFoundError, never>;
+  ) => Effect.Effect<
+    VersionControlId,
+    RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
   findProjectById: (
     projectId: VersionControlId
   ) => Effect.Effect<
-    VersionedSingleDocumentProjectHandle,
-    RepositoryError | NotFoundError,
+    VersionedSingleDocumentProject,
+    RepositoryError | NotFoundError | MigrationError,
     never
   >;
   getProjectFromHandle: (
@@ -36,6 +43,10 @@ export type SingleDocumentProjectStore = {
   >;
   getProjectName: (
     projectId: VersionControlId
-  ) => Effect.Effect<string | null, RepositoryError | NotFoundError, never>;
+  ) => Effect.Effect<
+    string | null,
+    RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
   disconnect: () => Effect.Effect<void, RepositoryError, never>;
 };

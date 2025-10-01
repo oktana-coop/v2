@@ -4,6 +4,8 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import {
+  migrateIfNeeded,
+  MigrationError,
   type VersionControlId,
   versionedArtifactTypes,
 } from '../../../../../../modules/infrastructure/version-control';
@@ -14,7 +16,9 @@ import {
   type BaseArtifactMetaData,
   type SingleDocumentProject,
 } from '../../../models';
+import { CURRENT_SINGLE_DOCUMENT_PROJECT_SCHEMA_VERSION } from '../../../models';
 import { type SingleDocumentProjectStore } from '../../../ports';
+import { migrations } from './migrations';
 
 export const createAdapter = (
   automergeRepo: Repo
@@ -43,7 +47,7 @@ export const createAdapter = (
           try: () =>
             automergeRepo.create<SingleDocumentProject>({
               type: versionedArtifactTypes.SINGLE_DOCUMENT_PROJECT,
-              schemaVersion: '1',
+              schemaVersion: CURRENT_SINGLE_DOCUMENT_PROJECT_SCHEMA_VERSION,
               document: documentMetaData,
               name,
             }),
@@ -52,20 +56,32 @@ export const createAdapter = (
         Effect.map((handle) => handle.url)
       );
 
-  const findProjectById: SingleDocumentProjectStore['findProjectById'] = (
-    id: VersionControlId
-  ) =>
-    pipe(
-      Effect.tryPromise({
-        try: () => automergeRepo.find<SingleDocumentProject>(id),
-        catch: (err: unknown) => {
-          // TODO: This is not-future proof as it depends on the error message. Find a better way.
-          if (err instanceof Error && err.message.includes('unavailable')) {
-            return new NotFoundError(err.message);
-          }
+  const findProjectHandleById = (id: VersionControlId) =>
+    Effect.tryPromise({
+      try: () => automergeRepo.find<SingleDocumentProject>(id),
+      catch: (err: unknown) => {
+        // TODO: This is not-future proof as it depends on the error message. Find a better way.
+        if (err instanceof Error && err.message.includes('unavailable')) {
+          return new NotFoundError(err.message);
+        }
 
-          return mapErrorTo(RepositoryError, 'Automerge repo error')(err);
-        },
+        return mapErrorTo(RepositoryError, 'Automerge repo error')(err);
+      },
+    });
+
+  const findProjectById: SingleDocumentProjectStore['findProjectById'] = (id) =>
+    pipe(
+      findProjectHandleById(id),
+      Effect.flatMap(getProjectFromHandle),
+      Effect.flatMap((project) =>
+        migrateIfNeeded(migrations)(
+          project,
+          CURRENT_SINGLE_DOCUMENT_PROJECT_SCHEMA_VERSION
+        )
+      ),
+      Effect.timeoutFail({
+        duration: '5 seconds',
+        onTimeout: () => new NotFoundError('Timeout in finding project'),
       })
     );
 
@@ -76,12 +92,11 @@ export const createAdapter = (
     projectId: VersionControlId
   ): Effect.Effect<
     BaseArtifactMetaData,
-    NotFoundError | RepositoryError,
+    NotFoundError | RepositoryError | MigrationError,
     never
   > =>
     pipe(
       findProjectById(projectId),
-      Effect.flatMap(getProjectFromHandle),
       Effect.map((project) => project.document)
     );
 
@@ -97,7 +112,6 @@ export const createAdapter = (
   ) =>
     pipe(
       findProjectById(id),
-      Effect.flatMap(getProjectFromHandle),
       Effect.map((project) => project.name)
     );
 
@@ -112,8 +126,8 @@ export const createAdapter = (
 
   return {
     createSingleDocumentProject,
-    findDocumentInProject,
     findProjectById,
+    findDocumentInProject,
     getProjectFromHandle,
     getProjectName,
     disconnect,

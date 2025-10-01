@@ -1,7 +1,10 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
-import { type VersionControlId } from '../../../../infrastructure/version-control';
+import {
+  MigrationError,
+  type VersionControlId,
+} from '../../../../infrastructure/version-control';
 import {
   NotFoundError as VersionedDocumentNotFoundError,
   RepositoryError as VersionedDocumentRepositoryError,
@@ -35,7 +38,8 @@ export const getProjectDocument =
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
     | VersionedDocumentRepositoryError
-    | VersionedDocumentNotFoundError,
+    | VersionedDocumentNotFoundError
+    | MigrationError,
     never
   > =>
     pipe(

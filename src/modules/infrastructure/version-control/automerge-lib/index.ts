@@ -214,3 +214,5 @@ export const importFromBinary = <ArtifactType>(
   data: Uint8Array
 ): VersionedArtifact<ArtifactType> =>
   Automerge.load(data, { allowMissingChanges: false });
+
+export * from './migrations';
