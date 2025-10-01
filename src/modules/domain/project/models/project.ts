@@ -16,6 +16,7 @@ export type ArtifactMetaData = BaseArtifactMetaData & {
 
 export type MultiDocumentProject = {
   type: typeof versionedArtifactTypes.MULTI_DOCUMENT_PROJECT;
+  schemaVersion: string;
   path: string;
   documents: Record<VersionControlId, ArtifactMetaData>;
 };
@@ -28,6 +29,7 @@ export type VersionedMultiDocumentProjectHandle =
 
 export type SingleDocumentProject = {
   type: typeof versionedArtifactTypes.SINGLE_DOCUMENT_PROJECT;
+  schemaVersion: string;
   document: BaseArtifactMetaData;
   name: string | null;
 };

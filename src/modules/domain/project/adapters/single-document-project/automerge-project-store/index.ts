@@ -43,6 +43,7 @@ export const createAdapter = (
           try: () =>
             automergeRepo.create<SingleDocumentProject>({
               type: versionedArtifactTypes.SINGLE_DOCUMENT_PROJECT,
+              schemaVersion: '1',
               document: documentMetaData,
               name,
             }),

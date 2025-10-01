@@ -66,6 +66,7 @@ export const createAdapter = (
         try: () =>
           automergeRepo.create<RichTextDocument>({
             type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
+            schemaVersion: '1',
             representation: richTextRepresentations.AUTOMERGE,
             content: content ?? '',
           }),
