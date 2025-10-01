@@ -14,6 +14,7 @@ export const DocumentEditor = () => {
   const {
     versionedDocument,
     versionedDocumentHandle,
+    updateRichTextDocumentContent,
     onOpenCommitDialog,
     canCommit,
   } = useContext(CurrentDocumentContext);
@@ -50,6 +51,7 @@ export const DocumentEditor = () => {
             docHandle={versionedDocumentHandle}
             onSave={onOpenCommitDialog}
             isToolbarOpen={isEditorToolbarOpen}
+            onDocChange={updateRichTextDocumentContent}
           />
         </div>
       </div>

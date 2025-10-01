@@ -95,6 +95,7 @@ const createLoadHistoryFromWorker = () => {
 export type CurrentDocumentContextType = {
   versionedDocumentHandle: VersionedDocumentHandle | null;
   versionedDocument: VersionedDocument | null;
+  updateRichTextDocumentContent: (doc: RichTextDocument) => void;
   versionedDocumentHistory: ChangeWithUrlInfo[];
   canCommit: boolean;
   onCommit: (message: string) => Promise<void>;
@@ -119,6 +120,7 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
   {
     versionedDocumentHandle: null,
     versionedDocument: null,
+    updateRichTextDocumentContent: () => {},
     versionedDocumentHistory: [],
     canCommit: false,
     onCommit: async () => {},
@@ -421,6 +423,37 @@ export const CurrentDocumentProvider = ({
     [versionedDocumentStore]
   );
 
+  const handleUpdateRichTextDocumentContent = async (doc: RichTextDocument) => {
+    if (!versionedDocumentStore) {
+      throw new Error('Versioned document store not ready yet.');
+    }
+
+    if (!versionedDocumentHandle) {
+      throw new Error('Versioned document handle not ready yet.');
+    }
+
+    if (!representationTransformAdapter) {
+      throw new Error(
+        'No representation transform adapter found when trying to convert to Automerge'
+      );
+    }
+
+    const automergeSpansStr =
+      await representationTransformAdapter.transformToText({
+        from: doc.representation,
+        to: richTextRepresentations.AUTOMERGE,
+        input: doc.content,
+      });
+
+    await Effect.runPromise(
+      versionedDocumentStore.updateRichTextDocumentContent({
+        documentHandle: versionedDocumentHandle,
+        representation: richTextRepresentations.AUTOMERGE,
+        content: automergeSpansStr,
+      })
+    );
+  };
+
   const exportToTextRepresentation = async (
     representation: TextRichTextRepresentation
   ) => {
@@ -498,6 +531,7 @@ export const CurrentDocumentProvider = ({
       value={{
         versionedDocumentHandle,
         versionedDocument,
+        updateRichTextDocumentContent: handleUpdateRichTextDocumentContent,
         versionedDocumentHistory,
         canCommit,
         onCommit: handleCommit,

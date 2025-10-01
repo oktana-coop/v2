@@ -5,7 +5,7 @@ import {
 } from 'prosemirror-commands';
 import { history, redo, undo } from 'prosemirror-history';
 import { keymap } from 'prosemirror-keymap';
-import { Schema } from 'prosemirror-model';
+import { type Node, type Schema } from 'prosemirror-model';
 import { EditorState, Selection, Transaction } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { useContext, useEffect, useRef, useState } from 'react';
@@ -23,6 +23,7 @@ import {
   type VersionedDocumentHandle,
 } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
+import { versionedArtifactTypes } from '../../../../modules/infrastructure/version-control';
 import { EditorToolbar } from './editor-toolbar';
 import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';
@@ -58,12 +59,14 @@ const {
   placeholderPlugin,
   syncPlugin,
   pmDocFromJSONString,
+  pmDocToJSONString,
 } = prosemirror;
 
 type RichTextEditorProps = {
   doc: RichTextDocument;
   docHandle: VersionedDocumentHandle | null;
   onSave: () => void;
+  onDocChange?: (doc: RichTextDocument) => void;
   isEditable?: boolean;
   isToolbarOpen?: boolean;
 };
@@ -72,6 +75,7 @@ export const RichTextEditor = ({
   docHandle,
   doc,
   onSave,
+  onDocChange,
   isEditable = true,
   isToolbarOpen = false,
 }: RichTextEditorProps) => {
@@ -123,10 +127,6 @@ export const RichTextEditor = ({
   useEffect(() => {
     const setupEditorAndView = async (schema: Schema) => {
       const plugins = [
-        syncPlugin({
-          onPMDocChange: () => {},
-          docHandle,
-        }),
         buildInputRules(schema),
         placeholderPlugin('Start writing...'),
         ...markdownMarkPlugins(schema),
@@ -152,6 +152,25 @@ export const RichTextEditor = ({
         ensureTrailingParagraphPlugin(schema),
         ensureTrailingSpaceAfterAtomPlugin(),
       ];
+
+      if (isEditable && onDocChange) {
+        const handlePMDocChange = (pmDoc: Node) => {
+          const pmJSONStr = pmDocToJSONString(pmDoc);
+
+          onDocChange({
+            type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
+            representation: richTextRepresentations.PROSEMIRROR,
+            content: pmJSONStr,
+          });
+        };
+
+        plugins.push(
+          syncPlugin({
+            onPMDocChange: handlePMDocChange,
+            docHandle,
+          })
+        );
+      }
 
       const pmDoc =
         doc.representation !== richTextRepresentations.PROSEMIRROR
