@@ -16,7 +16,10 @@ import {
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
-import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
+import {
+  MigrationError,
+  type VersionControlId,
+} from '../../../../../modules/infrastructure/version-control';
 import { RICH_TEXT_FILE_EXTENSION } from '../../constants/file-extensions';
 import {
   NotFoundError as VersionedProjectNotFoundError,
@@ -95,7 +98,8 @@ const propagateFileChangesToVersionedDocument =
     | FilesystemAccessControlError
     | FilesystemNotFoundError
     | FilesystemRepositoryError
-    | FilesystemDataIntegrityError,
+    | FilesystemDataIntegrityError
+    | MigrationError,
     never
   > =>
     pipe(
@@ -169,7 +173,8 @@ export const updateProjectFromFilesystemContent =
     | FilesystemAccessControlError
     | FilesystemDataIntegrityError
     | FilesystemNotFoundError
-    | FilesystemRepositoryError,
+    | FilesystemRepositoryError
+    | MigrationError,
     never
   > =>
     Effect.Do.pipe(

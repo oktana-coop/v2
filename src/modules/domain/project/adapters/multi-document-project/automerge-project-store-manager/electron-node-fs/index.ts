@@ -21,6 +21,7 @@ import {
 } from '../../../../../../../modules/infrastructure/filesystem';
 import {
   isValidVersionControlId,
+  MigrationError,
   type VersionControlId,
 } from '../../../../../../../modules/infrastructure/version-control';
 import { setupFilesystemRepoForNode } from '../../../../../../../modules/infrastructure/version-control/automerge-repo/node';
@@ -97,7 +98,8 @@ const openProject = ({
   | VersionedProjectRepositoryError
   | VersionedProjectNotFoundError
   | VersionedDocumentRepositoryError
-  | VersionedDocumentNotFoundError,
+  | VersionedDocumentNotFoundError
+  | MigrationError,
   never
 > =>
   pipe(
@@ -212,7 +214,8 @@ const openProjectFromFilesystem = ({
   | VersionedProjectNotFoundError
   | VersionedProjectDataIntegrityError
   | VersionedDocumentRepositoryError
-  | VersionedDocumentNotFoundError,
+  | VersionedDocumentNotFoundError
+  | MigrationError,
   never
 > =>
   pipe(

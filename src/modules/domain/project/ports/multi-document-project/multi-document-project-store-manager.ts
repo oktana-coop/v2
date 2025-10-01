@@ -14,7 +14,10 @@ import {
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
-import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
+import {
+  MigrationError,
+  type VersionControlId,
+} from '../../../../../modules/infrastructure/version-control';
 import {
   DataIntegrityError as VersionedProjectDataIntegrityError,
   MissingProjectMetadataError as VersionedProjectMissingProjectMetadataError,
@@ -70,7 +73,8 @@ export type MultiDocumentProjectStoreManager = {
     | VersionedProjectNotFoundError
     | VersionedProjectDataIntegrityError
     | VersionedDocumentRepositoryError
-    | VersionedDocumentNotFoundError,
+    | VersionedDocumentNotFoundError
+    | MigrationError,
     never
   >;
   openMultiDocumentProjectById: (
@@ -88,7 +92,8 @@ export type MultiDocumentProjectStoreManager = {
     | VersionedProjectNotFoundError
     | VersionedProjectDataIntegrityError
     | VersionedDocumentRepositoryError
-    | VersionedDocumentNotFoundError,
+    | VersionedDocumentNotFoundError
+    | MigrationError,
     never
   >;
 };

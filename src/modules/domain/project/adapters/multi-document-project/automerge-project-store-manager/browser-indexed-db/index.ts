@@ -17,6 +17,7 @@ import {
 } from '../../../../../../../modules/infrastructure/filesystem';
 import {
   isValidVersionControlId,
+  MigrationError,
   type VersionControlId,
 } from '../../../../../../../modules/infrastructure/version-control';
 import { setupForWeb as setupBrowserRepoForWeb } from '../../../../../../../modules/infrastructure/version-control/automerge-repo/browser';
@@ -265,7 +266,8 @@ const openExistingProject = ({
   | VersionedProjectNotFoundError
   | VersionedProjectDataIntegrityError
   | VersionedDocumentRepositoryError
-  | VersionedDocumentNotFoundError,
+  | VersionedDocumentNotFoundError
+  | MigrationError,
   never
 > =>
   pipe(
@@ -334,7 +336,8 @@ const validateIdAndOpenProject = ({
   | VersionedProjectNotFoundError
   | VersionedProjectDataIntegrityError
   | VersionedDocumentRepositoryError
-  | VersionedDocumentNotFoundError,
+  | VersionedDocumentNotFoundError
+  | MigrationError,
   never
 > =>
   pipe(

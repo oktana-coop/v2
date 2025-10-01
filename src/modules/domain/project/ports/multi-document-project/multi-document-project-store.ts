@@ -1,6 +1,9 @@
 import * as Effect from 'effect/Effect';
 
-import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
+import {
+  MigrationError,
+  type VersionControlId,
+} from '../../../../../modules/infrastructure/version-control';
 import { NotFoundError, RepositoryError } from '../../errors';
 import type {
   ArtifactMetaData,
@@ -38,15 +41,15 @@ export type MultiDocumentProjectStore = {
   findProjectById: (
     id: VersionControlId
   ) => Effect.Effect<
-    VersionedMultiDocumentProjectHandle,
-    RepositoryError | NotFoundError,
+    VersionedMultiDocumentProject,
+    RepositoryError | NotFoundError | MigrationError,
     never
   >;
   listProjectDocuments: (
     id: VersionControlId
   ) => Effect.Effect<
     ArtifactMetaData[],
-    RepositoryError | NotFoundError,
+    RepositoryError | NotFoundError | MigrationError,
     never
   >;
   addDocumentToProject: (
@@ -57,7 +60,11 @@ export type MultiDocumentProjectStore = {
   ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;
   findDocumentInProject: (
     args: FindDocumentInMultiDocumentProjectArgs
-  ) => Effect.Effect<VersionControlId, RepositoryError | NotFoundError, never>;
+  ) => Effect.Effect<
+    VersionControlId,
+    RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
   getProjectFromHandle: (
     handle: VersionedMultiDocumentProjectHandle
   ) => Effect.Effect<
