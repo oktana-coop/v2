@@ -15,11 +15,10 @@ import {
   type GetDocumentAtCommitArgs,
   type IsContentSameAtHeadsArgs,
   isEmpty,
-  registerLiveUpdates,
+  processDocumentChange,
   type RichTextDocument,
   richTextRepresentations,
   type TextRichTextRepresentation,
-  unregisterLiveUpdates,
   type VersionedDocument,
   type VersionedDocumentHandle,
   type VersionedDocumentStore,
@@ -95,7 +94,7 @@ const createLoadHistoryFromWorker = () => {
 export type CurrentDocumentContextType = {
   versionedDocumentHandle: VersionedDocumentHandle | null;
   versionedDocument: VersionedDocument | null;
-  updateRichTextDocumentContent: (doc: RichTextDocument) => void;
+  updateRichTextDocumentContent: (doc: RichTextDocument) => Promise<void>;
   versionedDocumentHistory: ChangeWithUrlInfo[];
   canCommit: boolean;
   onCommit: (message: string) => Promise<void>;
@@ -120,7 +119,7 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
   {
     versionedDocumentHandle: null,
     versionedDocument: null,
-    updateRichTextDocumentContent: () => {},
+    updateRichTextDocumentContent: async () => {},
     versionedDocumentHistory: [],
     canCommit: false,
     onCommit: async () => {},
@@ -163,9 +162,8 @@ export const CurrentDocumentProvider = ({
   );
   const { showDiffInHistoryView } = useContext(FunctionalityConfigContext);
   const navigate = useNavigate();
-  const { setSelectedFileInfo, clearFileSelection } = useContext(
-    MultiDocumentProjectContext
-  );
+  const { selectedFileInfo, setSelectedFileInfo, clearFileSelection } =
+    useContext(MultiDocumentProjectContext);
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
   );
@@ -207,21 +205,6 @@ export const CurrentDocumentProvider = ({
             documentId,
             path,
           });
-
-          const { registeredListener } = await registerLiveUpdates({
-            getRichTextDocumentContent:
-              versionedDocumentStore.getRichTextDocumentContent,
-            findDocumentHandleById:
-              versionedDocumentStore.findDocumentHandleById,
-            writeFile: filesystem.writeFile,
-          })({
-            documentHandle,
-            filePath: path,
-          });
-
-          return () => {
-            unregisterLiveUpdates({ documentHandle, registeredListener });
-          };
         }
       }
     };
@@ -438,18 +421,17 @@ export const CurrentDocumentProvider = ({
       );
     }
 
-    const automergeSpansStr =
-      await representationTransformAdapter.transformToText({
-        from: doc.representation,
-        to: richTextRepresentations.AUTOMERGE,
-        input: doc.content,
-      });
-
     await Effect.runPromise(
-      versionedDocumentStore.updateRichTextDocumentContent({
+      processDocumentChange({
+        transformToText: representationTransformAdapter.transformToText,
+        updateRichTextDocumentContent:
+          versionedDocumentStore.updateRichTextDocumentContent,
+        writeFile: filesystem.writeFile,
+      })({
+        document: doc,
         documentHandle: versionedDocumentHandle,
-        representation: richTextRepresentations.AUTOMERGE,
-        content: automergeSpansStr,
+        filePath: selectedFileInfo?.path ?? null,
+        projectType,
       })
     );
   };

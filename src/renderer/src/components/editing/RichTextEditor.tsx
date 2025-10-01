@@ -66,7 +66,7 @@ type RichTextEditorProps = {
   doc: RichTextDocument;
   docHandle: VersionedDocumentHandle | null;
   onSave: () => void;
-  onDocChange?: (doc: RichTextDocument) => void;
+  onDocChange?: (doc: RichTextDocument) => Promise<void>;
   isEditable?: boolean;
   isToolbarOpen?: boolean;
 };

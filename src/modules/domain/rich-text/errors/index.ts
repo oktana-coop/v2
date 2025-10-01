@@ -7,3 +7,11 @@ export class RepositoryError extends Cause.YieldableError {
 export class NotFoundError extends Cause.YieldableError {
   readonly _tag = 'VersionedDocumentNotFoundError';
 }
+
+export class RepresentationTransformError extends Cause.YieldableError {
+  readonly _tag = 'VersionedDocumentRepresentationTransformError';
+}
+
+export class ValidationError extends Cause.YieldableError {
+  readonly _tag = 'VersionedDocumentValidationError';
+}
