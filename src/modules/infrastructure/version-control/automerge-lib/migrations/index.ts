@@ -41,6 +41,7 @@ export const migrate =
             )
           : Effect.succeed(undefined)
       ),
+      // TODO: Make this more EffectTS-idiomatic
       Effect.flatMap((currentVersion) => {
         const migrationsToApply: Migration[] = [];
 
