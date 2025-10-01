@@ -1,7 +1,10 @@
 import * as Effect from 'effect/Effect';
 
 import { type File } from '../../../../../modules/infrastructure/filesystem';
-import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
+import {
+  MigrationError,
+  type VersionControlId,
+} from '../../../../../modules/infrastructure/version-control';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
@@ -24,7 +27,9 @@ export const getProjectName =
     projectFile,
   }: GetProjectNameArgs): Effect.Effect<
     string | null,
-    VersionedProjectRepositoryError | VersionedProjectNotFoundError,
+    | VersionedProjectRepositoryError
+    | VersionedProjectNotFoundError
+    | MigrationError,
     never
   > =>
     projectFile

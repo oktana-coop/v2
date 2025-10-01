@@ -7,7 +7,10 @@ import {
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
-import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
+import {
+  MigrationError,
+  type VersionControlId,
+} from '../../../../../modules/infrastructure/version-control';
 import {
   RepositoryError as VersionedDocumentRepositoryError,
   type VersionedDocumentStore,
@@ -79,7 +82,8 @@ export type SingleDocumentProjectStoreManager = {
     | FilesystemRepositoryError
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
-    | VersionedProjectValidationError,
+    | VersionedProjectValidationError
+    | MigrationError,
     never
   >;
 };
