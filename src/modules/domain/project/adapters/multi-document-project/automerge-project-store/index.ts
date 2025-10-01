@@ -55,6 +55,7 @@ export const createAdapter = (
         try: () =>
           automergeRepo.create<MultiDocumentProject>({
             type: versionedArtifactTypes.MULTI_DOCUMENT_PROJECT,
+            schemaVersion: '1',
             path,
             documents: {},
           }),
