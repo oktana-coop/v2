@@ -5,6 +5,8 @@ import {
 } from '../../../../../modules/infrastructure/version-control';
 import { type TextRichTextRepresentation } from '../../constants';
 
+export const CURRENT_SCHEMA_VERSION = 1;
+
 export type RichTextDocument = {
   type: typeof versionedArtifactTypes.RICH_TEXT_DOCUMENT;
   schemaVersion: number;

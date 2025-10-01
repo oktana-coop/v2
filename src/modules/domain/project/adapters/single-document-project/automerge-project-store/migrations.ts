@@ -14,6 +14,7 @@ type UnversionedSingleDocumentProject = Omit<
 export const migrations: Migration[] = [
   {
     version: 0,
+    // @ts-expect-error TODO: Fix TS complaining this is not compliant to the generic type
     up: (
       artifact: UnversionedSingleDocumentProject
     ): VersionedSingleDocumentProject =>

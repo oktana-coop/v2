@@ -5,6 +5,9 @@ import {
   versionedArtifactTypes,
 } from '../../../../modules/infrastructure/version-control';
 
+export const CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION = 1;
+export const CURRENT_SINGLE_DOCUMENT_PROJECT_SCHEMA_VERSION = 1;
+
 export type BaseArtifactMetaData = {
   id: VersionControlId;
 };

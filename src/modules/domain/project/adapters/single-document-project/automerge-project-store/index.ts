@@ -14,6 +14,7 @@ import {
   type BaseArtifactMetaData,
   type SingleDocumentProject,
 } from '../../../models';
+import { CURRENT_SINGLE_DOCUMENT_PROJECT_SCHEMA_VERSION } from '../../../models';
 import { type SingleDocumentProjectStore } from '../../../ports';
 
 export const createAdapter = (
@@ -43,7 +44,7 @@ export const createAdapter = (
           try: () =>
             automergeRepo.create<SingleDocumentProject>({
               type: versionedArtifactTypes.SINGLE_DOCUMENT_PROJECT,
-              schemaVersion: '1',
+              schemaVersion: CURRENT_SINGLE_DOCUMENT_PROJECT_SCHEMA_VERSION,
               document: documentMetaData,
               name,
             }),
