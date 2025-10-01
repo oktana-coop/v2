@@ -75,11 +75,12 @@ export const migrate =
       })
     );
 
-export const migrateIfNeeded = <ArtifactType extends ArtifactWithSchemaVersion>(
-  artifact: VersionedArtifact<ArtifactType>,
-  migrations: readonly Migration[],
-  targetVersion: number
-): Effect.Effect<VersionedArtifact<ArtifactType>, MigrationError, never> =>
-  needsMigration(artifact, targetVersion)
-    ? migrate(migrations)(artifact, targetVersion)
-    : Effect.succeed(artifact);
+export const migrateIfNeeded =
+  (migrations: readonly Migration[]) =>
+  <ArtifactType extends ArtifactWithSchemaVersion>(
+    artifact: VersionedArtifact<ArtifactType>,
+    targetVersion: number
+  ): Effect.Effect<VersionedArtifact<ArtifactType>, MigrationError, never> =>
+    needsMigration(artifact, targetVersion)
+      ? migrate(migrations)(artifact, targetVersion)
+      : Effect.succeed(artifact);

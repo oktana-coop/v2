@@ -3,6 +3,7 @@ import * as Effect from 'effect/Effect';
 import {
   type Change,
   type Commit,
+  type MigrationError,
   type VersionControlId,
 } from '../../../../modules/infrastructure/version-control';
 import { RichTextRepresentation } from '../constants';
@@ -71,7 +72,11 @@ export type VersionedDocumentStore = {
   ) => Effect.Effect<VersionedDocument, RepositoryError, never>;
   findDocumentById: (
     id: VersionControlId
-  ) => Effect.Effect<VersionedDocument, RepositoryError | NotFoundError, never>;
+  ) => Effect.Effect<
+    VersionedDocument,
+    RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
   getRichTextDocumentContent: (
     document: VersionedDocument
   ) => Effect.Effect<string, RepositoryError | NotFoundError, never>;
