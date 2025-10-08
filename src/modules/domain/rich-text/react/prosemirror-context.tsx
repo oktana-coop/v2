@@ -30,7 +30,7 @@ type ProseMirrorContextType = {
   schema: Schema | null;
   setSchema: (schema: Schema) => void;
   view: EditorView | null;
-  setView: (view: EditorView) => void;
+  setView: (view: EditorView | null) => void;
   proseMirrorDiff: (
     args: ProseMirrorDiffArgs
   ) => Promise<ProseMirrorDiffResult>;
@@ -80,7 +80,7 @@ export const ProseMirrorProvider = ({
     setSchema(schema);
   }, []);
 
-  const handleSetView = useCallback((view: EditorView) => {
+  const handleSetView = useCallback((view: EditorView | null) => {
     setView(view);
   }, []);
 
