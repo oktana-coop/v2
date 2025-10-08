@@ -105,6 +105,24 @@ export const ProseMirrorProvider = ({
       );
     }
 
+    // If the document content is empty, return a minimal ProseMirror document
+    // consisting of the root `doc` node with a single empty `paragraph` child.
+    if (!args.document.content) {
+      const emptyParagraphDoc = {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [],
+          },
+        ],
+      };
+
+      const pmDoc = pmDocFromJSONString(emptyParagraphDoc, args.schema);
+
+      return pmDoc;
+    }
+
     const result = await representationTransformAdapter.transformToText({
       from: args.document.representation,
       to: richTextRepresentations.PROSEMIRROR,
