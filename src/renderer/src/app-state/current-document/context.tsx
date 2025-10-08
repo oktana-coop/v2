@@ -113,6 +113,7 @@ export type CurrentDocumentContextType = {
   getExportBinaryData: (
     representation: BinaryRichTextRepresentation
   ) => Promise<Uint8Array>;
+  getDocumentRichTextContent: (document: VersionedDocument) => Promise<string>;
 };
 
 export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
@@ -133,6 +134,7 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     getExportText: async () => '',
     // @ts-expect-error will get overriden below
     getExportBinaryData: async () => null,
+    getDocumentRichTextContent: async () => '',
   }
 );
 
@@ -188,15 +190,11 @@ export const CurrentDocumentProvider = ({
           versionedDocumentStore.getDocumentFromHandle(documentHandle)
         );
 
-        const documentContent = await Effect.runPromise(
-          versionedDocumentStore.getRichTextDocumentContent(document)
-        );
-
         setVersionedDocumentHandle(documentHandle);
 
         // TODO: This is needed to get the Automerge spans which then are used to transform to ProseMirror and other representations.
         // But it's not clean. We must find a better way to return the proper document model when getting it from the handle (or the repo in general).
-        setVersionedDocument({ ...document, content: documentContent });
+        setVersionedDocument(document);
 
         if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
           const pathParam = searchParams.get('path');
@@ -515,6 +513,18 @@ export const CurrentDocumentProvider = ({
     return str;
   };
 
+  const handleGetDocumentRichTextContent = async (
+    document: VersionedDocument
+  ) => {
+    if (!versionedDocumentStore) {
+      throw new Error('Versioned document store not ready yet.');
+    }
+
+    return Effect.runPromise(
+      versionedDocumentStore.getRichTextDocumentContent(document)
+    );
+  };
+
   return (
     <CurrentDocumentContext.Provider
       value={{
@@ -533,6 +543,7 @@ export const CurrentDocumentProvider = ({
         isContentSameAtHeads: handleIsContentSameAtHeads,
         getExportText: exportToTextRepresentation,
         getExportBinaryData: exportToBinaryRepresentation,
+        getDocumentRichTextContent: handleGetDocumentRichTextContent,
       }}
     >
       {children}
