@@ -188,8 +188,15 @@ export const CurrentDocumentProvider = ({
           versionedDocumentStore.getDocumentFromHandle(documentHandle)
         );
 
+        const documentContent = await Effect.runPromise(
+          versionedDocumentStore.getRichTextDocumentContent(document)
+        );
+
         setVersionedDocumentHandle(documentHandle);
-        setVersionedDocument(document);
+
+        // TODO: This is needed to get the Automerge spans which then are used to transform to ProseMirror and other representations.
+        // But it's not clean. We must find a better way to return the proper document model when getting it from the handle (or the repo in general).
+        setVersionedDocument({ ...document, content: documentContent });
 
         if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
           const pathParam = searchParams.get('path');
