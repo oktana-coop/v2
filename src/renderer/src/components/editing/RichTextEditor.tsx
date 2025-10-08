@@ -180,6 +180,10 @@ export const RichTextEditor = ({
             })
           : pmDocFromJSONString(doc.content, schema);
 
+      // After awaiting async conversion, ensure another effect didn't create
+      // the view in the meantime (avoid duplicate EditorView creation).
+      if (editorViewRef.current || view) return;
+
       const editorConfig = {
         schema,
         plugins,
@@ -187,11 +191,11 @@ export const RichTextEditor = ({
       };
 
       const state = EditorState.create(editorConfig);
-      const view = new EditorView(editorRoot.current, {
+      const editorView = new EditorView(editorRoot.current, {
         state,
         dispatchTransaction: (tx: Transaction) => {
-          const newState = view.state.apply(tx);
-          view.updateState(newState);
+          const newState = editorView.state.apply(tx);
+          editorView.updateState(newState);
 
           // React state updates
           setLeafBlockType(getCurrentLeafBlockType(newState));
@@ -207,25 +211,36 @@ export const RichTextEditor = ({
         editable: () => isEditable,
       });
 
-      editorViewRef.current = view;
+      editorViewRef.current = editorView;
 
-      numberNotes(state, view.dispatch, view);
+      numberNotes(state, editorView.dispatch, editorView);
 
-      setView(view);
+      // Announce the view to the shared context only after creation.
+      setView(editorView);
 
       if (isEditable) {
-        view.focus();
+        editorViewRef.current?.focus();
         setLeafBlockType(getCurrentLeafBlockType(state));
         setContainerBlockType(getCurrentContainerBlockType(state));
       }
     };
 
-    if (schema) {
+    if (schema && !editorViewRef.current) {
       setupEditorAndView(schema);
     }
 
     return () => {
-      view?.destroy();
+      // If this component created the view (editorViewRef), destroy it and
+      // clear the context view so other components won't reuse the destroyed
+      // instance.
+      if (editorViewRef.current) {
+        editorViewRef.current.destroy();
+        // If the context still holds the same view, clear it.
+        if (view === editorViewRef.current) {
+          setView(null);
+        }
+        editorViewRef.current = null;
+      }
     };
   }, [doc, docHandle, onSave, isEditable, schema, setView]);
 
