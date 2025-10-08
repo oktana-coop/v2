@@ -9,6 +9,7 @@ import {
 } from '../../../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform';
+import { CurrentDocumentContext } from '../../../../app-state';
 import {
   diffDelete,
   diffInsert,
@@ -59,6 +60,7 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
     convertToProseMirror,
     representationTransformAdapterReady,
   } = useContext(ProseMirrorContext);
+  const { getDocumentRichTextContent } = useContext(CurrentDocumentContext);
 
   // This effect is used to create the ProseMirror view once.
   // Then, every time the document or diff changes, we update the state of the view.
@@ -91,6 +93,9 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
 
       const { schema } = automergeSchemaAdapter;
 
+      const contentBefore = await getDocumentRichTextContent(props.docBefore);
+      const contentAfter = await getDocumentRichTextContent(props.docAfter);
+
       const { pmDocAfter: pmDoc, decorations } = await proseMirrorDiff({
         representation: richTextRepresentations.AUTOMERGE,
         proseMirrorSchema: schema,
@@ -99,8 +104,8 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
           modify: diffModify,
           delete: diffDelete,
         },
-        docBefore: props.docBefore.content,
-        docAfter: props.docAfter.content,
+        docBefore: contentBefore,
+        docAfter: contentAfter,
       });
 
       if (destroyed) return;
@@ -135,10 +140,12 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
     const versionedDocToProseMirror = async () => {
       if (!viewRef.current || !isSingleDocViewProps(props)) return;
 
+      const richTextContent = await getDocumentRichTextContent(props.doc);
       const { schema } = automergeSchemaAdapter;
+
       const pmDoc = await convertToProseMirror({
         schema: schema,
-        document: props.doc,
+        document: { ...props.doc, content: richTextContent },
       });
 
       if (destroyed) return;
