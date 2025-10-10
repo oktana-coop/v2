@@ -116,11 +116,19 @@ export type VersionedDocumentStore = {
   >;
   getDocumentFromHandle: (
     handle: VersionedDocumentHandle
-  ) => Effect.Effect<VersionedDocument, RepositoryError | NotFoundError, never>;
+  ) => Effect.Effect<
+    VersionedDocument,
+    RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
   getDocumentHandleHistory: (
     handle: VersionedDocumentHandle
   ) => Effect.Effect<GetDocumentHandleHistoryResponse, RepositoryError, never>;
   exportDocumentHandleToBinary: (
     documentHandle: VersionedDocumentHandle
-  ) => Effect.Effect<Uint8Array, RepositoryError | NotFoundError, never>;
+  ) => Effect.Effect<
+    Uint8Array,
+    RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
 };
