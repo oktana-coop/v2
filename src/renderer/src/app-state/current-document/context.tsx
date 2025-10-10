@@ -191,9 +191,6 @@ export const CurrentDocumentProvider = ({
         );
 
         setVersionedDocumentHandle(documentHandle);
-
-        // TODO: This is needed to get the Automerge spans which then are used to transform to ProseMirror and other representations.
-        // But it's not clean. We must find a better way to return the proper document model when getting it from the handle (or the repo in general).
         setVersionedDocument(document);
 
         if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
@@ -513,17 +510,18 @@ export const CurrentDocumentProvider = ({
     return str;
   };
 
-  const handleGetDocumentRichTextContent = async (
-    document: VersionedDocument
-  ) => {
-    if (!versionedDocumentStore) {
-      throw new Error('Versioned document store not ready yet.');
-    }
+  const handleGetDocumentRichTextContent = useCallback(
+    async (document: VersionedDocument) => {
+      if (!versionedDocumentStore) {
+        throw new Error('Versioned document store not ready yet.');
+      }
 
-    return Effect.runPromise(
-      versionedDocumentStore.getRichTextDocumentContent(document)
-    );
-  };
+      return Effect.runPromise(
+        versionedDocumentStore.getRichTextDocumentContent(document)
+      );
+    },
+    [versionedDocumentStore]
+  );
 
   return (
     <CurrentDocumentContext.Provider
