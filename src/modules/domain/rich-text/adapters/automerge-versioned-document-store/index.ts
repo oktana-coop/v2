@@ -14,6 +14,7 @@ import {
   importFromBinary,
   isArtifactContentSameAtHeads,
   migrateIfNeeded,
+  MigrationError,
   versionedArtifactTypes,
 } from '../../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../../utils/errors';
@@ -48,11 +49,14 @@ export const createAdapter = (
     handle: VersionedDocumentHandle
   ) => Effect.Effect<
     VersionedDocument,
-    RepositoryError | NotFoundError,
+    RepositoryError | NotFoundError | MigrationError,
     never
   > = (handle) =>
     pipe(
       getArtifactFromHandle<RichTextDocument>(handle),
+      Effect.tap((document) =>
+        migrateIfNeeded(migrations)(document, CURRENT_SCHEMA_VERSION)
+      ),
       Effect.catchTags({
         VersionControlRepositoryError: (err) =>
           Effect.fail(new RepositoryError(err.message)),
@@ -112,9 +116,6 @@ export const createAdapter = (
         },
       }),
       Effect.flatMap(getDocumentFromHandle),
-      Effect.flatMap((document) =>
-        migrateIfNeeded(migrations)(document, CURRENT_SCHEMA_VERSION)
-      ),
       Effect.timeoutFail({
         duration: '8 seconds',
         onTimeout: () =>
