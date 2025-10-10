@@ -189,7 +189,7 @@ export const RichTextEditor = ({
 
       // After awaiting async conversion, ensure another effect didn't create
       // the view in the meantime (avoid duplicate EditorView creation).
-      if (editorViewRef.current || view) return;
+      if (editorViewRef.current) return;
 
       const editorConfig = {
         schema,
