@@ -16,13 +16,8 @@ import {
   diffModify,
 } from '../../../../components/editing/marks';
 
-const {
-  automergeSchemaAdapter,
-  diffPlugin,
-  notesPlugin,
-  numberNotes,
-  openExternalLinkPlugin,
-} = prosemirror;
+const { schema, diffPlugin, notesPlugin, numberNotes, openExternalLinkPlugin } =
+  prosemirror;
 
 export type DiffViewProps = {
   docBefore: RichTextDocument;
@@ -67,7 +62,6 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
   useEffect(() => {
     if (!editorRoot.current || viewRef.current) return;
 
-    const { schema } = automergeSchemaAdapter;
     const state = EditorState.create({
       schema,
     });
@@ -90,8 +84,6 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
 
     const produceAndShowDiff = async () => {
       if (!viewRef.current || !isDiffViewProps(props)) return;
-
-      const { schema } = automergeSchemaAdapter;
 
       const contentBefore = await getDocumentRichTextContent(props.docBefore);
       const contentAfter = await getDocumentRichTextContent(props.docAfter);
@@ -141,7 +133,6 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
       if (!viewRef.current || !isSingleDocViewProps(props)) return;
 
       const richTextContent = await getDocumentRichTextContent(props.doc);
-      const { schema } = automergeSchemaAdapter;
 
       const pmDoc = await convertToProseMirror({
         schema: schema,

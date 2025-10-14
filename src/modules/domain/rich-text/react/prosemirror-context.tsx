@@ -17,7 +17,7 @@ import {
   type ProseMirrorDiffArgs,
   type ProseMirrorDiffResult,
 } from '../ports/diff';
-import { automergeSchemaAdapter, pmDocFromJSONString } from '../prosemirror';
+import { pmDocFromJSONString } from '../prosemirror';
 import { type PMNode } from '../prosemirror/hs-lib';
 import { RepresentationTransformContext } from './representation-transform-context';
 
@@ -27,8 +27,6 @@ type ConvertAutomergeToProseMirrorArgs = {
 };
 
 type ProseMirrorContextType = {
-  schema: Schema | null;
-  setSchema: (schema: Schema) => void;
   view: EditorView | null;
   setView: (view: EditorView | null) => void;
   proseMirrorDiff: (
@@ -44,9 +42,7 @@ type ProseMirrorContextType = {
 
 export const ProseMirrorContext = createContext<ProseMirrorContextType>({
   view: null,
-  schema: null,
   setView: () => {},
-  setSchema: () => {},
   // @ts-expect-error will get overriden below
   proseMirrorDiff: () => null,
   // @ts-expect-error will get overriden below
@@ -60,9 +56,6 @@ export const ProseMirrorProvider = ({
   children: React.ReactNode;
 }) => {
   const { runWasiCLIOutputingText } = useContext(WasmContext);
-  const [schema, setSchema] = useState<Schema | null>(
-    automergeSchemaAdapter.schema
-  );
   const [view, setView] = useState<EditorView | null>(null);
   const [diffAdapter, setDiffAdapter] = useState<Diff | null>(null);
   const { adapter: representationTransformAdapter } = useContext(
@@ -75,10 +68,6 @@ export const ProseMirrorProvider = ({
     });
     setDiffAdapter(pandocDiffAdapter);
   }, [runWasiCLIOutputingText]);
-
-  const handleSetSchema = useCallback((schema: Schema) => {
-    setSchema(schema);
-  }, []);
 
   const handleSetView = useCallback((view: EditorView | null) => {
     setView(view);
@@ -184,8 +173,6 @@ export const ProseMirrorProvider = ({
   return (
     <ProseMirrorContext.Provider
       value={{
-        schema,
-        setSchema: handleSetSchema,
         view,
         setView: handleSetView,
         proseMirrorDiff: produceProseMirrorDiff,

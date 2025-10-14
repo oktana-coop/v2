@@ -154,7 +154,6 @@
     "@automerge/automerge-repo-storage-nodefs": "^2.0.7",
     "@floating-ui/react": "^0.27.8",
     "@headlessui/react": "^2.2.4",
-    "@oktana-coop/automerge-prosemirror": "0.0.13-13",
     "@wasmer/wasi": "^1.2.2",
     "better-sqlite3": "^11.10.0",
     "buffer": "^6.0.3",

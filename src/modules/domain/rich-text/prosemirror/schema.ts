@@ -1,16 +1,4 @@
-import { next as Automerge } from '@automerge/automerge/slim';
-import {
-  MappedNodeSpec,
-  MappedSchemaSpec,
-  SchemaAdapter,
-} from '@oktana-coop/automerge-prosemirror';
-import {
-  DOMOutputSpec,
-  Mark,
-  MarkSpec,
-  Node,
-  NodeSpec,
-} from 'prosemirror-model';
+import { type DOMOutputSpec, Schema, type SchemaSpec } from 'prosemirror-model';
 
 import {
   blockquote as blockquoteClasses,
@@ -29,14 +17,7 @@ import {
   code as codeClasses,
   link as linkClasses,
 } from '../../../../renderer/src/components/editing/marks';
-import { getLinkAttrsFromDomElement, type LinkAttrs } from '../models/link';
-
-export type BlockMarker = {
-  type: Automerge.RawString;
-  parents: Automerge.RawString[];
-  attrs: { [key: string]: Automerge.MaterializeValue };
-  isEmbed?: boolean;
-};
+import { getLinkAttrsFromDomElement } from '../models/link';
 
 // basics
 const blockquoteDOM: DOMOutputSpec = [
@@ -72,32 +53,25 @@ const getHeadingLevelClasses = (level: number) => {
   }
 };
 
-// Note: This schema is based on the automerge-prosemirror basic schema
-const schema: MappedSchemaSpec = {
+const schemaSpec: SchemaSpec = {
   nodes: {
     /// NodeSpec The top level document node.
     doc: {
       content: 'block+',
-    } as NodeSpec,
+    },
 
     /// A plain paragraph textblock. Represented in the DOM
     /// as a `<p>` element.
     paragraph: {
-      automerge: {
-        block: 'paragraph',
-      },
       content: 'inline*',
       group: 'block',
       parseDOM: [{ tag: 'p' }],
       toDOM() {
         return ['p', { class: paragraphClasses }, 0];
       },
-    } as NodeSpec,
+    },
 
     unknownBlock: {
-      automerge: {
-        unknownBlock: true,
-      },
       group: 'block',
       content: 'block+',
       parseDOM: [{ tag: 'div', attrs: { 'data-unknown-block': 'true' } }],
@@ -108,9 +82,6 @@ const schema: MappedSchemaSpec = {
 
     /// A blockquote (`<blockquote>`) wrapping one or more blocks.
     blockquote: {
-      automerge: {
-        block: 'blockquote',
-      },
       content: 'block+',
       group: 'block',
       defining: true,
@@ -118,7 +89,7 @@ const schema: MappedSchemaSpec = {
       toDOM() {
         return blockquoteDOM;
       },
-    } as NodeSpec,
+    },
 
     /// A horizontal rule (`<hr>`).
     horizontal_rule: {
@@ -127,19 +98,12 @@ const schema: MappedSchemaSpec = {
       toDOM() {
         return hrDOM;
       },
-    } as NodeSpec,
+    },
 
     /// A heading textblock, with a `level` attribute that
     /// should hold the number 1 to 6. Parsed and serialized as `<h1>` to
     /// `<h6>` elements.
     heading: {
-      automerge: {
-        block: 'heading',
-        attrParsers: {
-          fromAutomerge: (block) => ({ level: block.attrs.level }),
-          fromProsemirror: (node) => ({ level: node.attrs.level }),
-        },
-      },
       attrs: { level: { default: 1 } },
       content: 'inline*',
       group: 'block',
@@ -161,9 +125,6 @@ const schema: MappedSchemaSpec = {
     /// nodes by default. Represented as a `<pre>` element with a
     /// `<code>` element inside of it.
     code_block: {
-      automerge: {
-        block: 'code-block',
-      },
       content: 'text*',
       marks: '',
       group: 'block',
@@ -176,33 +137,17 @@ const schema: MappedSchemaSpec = {
           ['code', { class: codeBlockClasses, spellcheck: 'false' }, 0],
         ];
       },
-    } as NodeSpec,
+    },
 
     /// The text node.
     text: {
       group: 'inline',
-    } as NodeSpec,
+    },
 
     /// An inline image (`<img>`) node. Supports `src`,
     /// `alt`, and `href` attributes. The latter two default to the empty
     /// string.
     image: {
-      automerge: {
-        block: 'image',
-        isEmbed: true,
-        attrParsers: {
-          fromAutomerge: (block) => ({
-            src: block.attrs.src?.toString() || null,
-            alt: block.attrs.alt,
-            title: block.attrs.title,
-          }),
-          fromProsemirror: (node: Node) => ({
-            src: new Automerge.RawString(node.attrs.src),
-            alt: node.attrs.alt,
-            title: node.attrs.title,
-          }),
-        },
-      },
       inline: true,
       attrs: {
         src: {},
@@ -227,7 +172,7 @@ const schema: MappedSchemaSpec = {
         const { src, alt, title } = node.attrs;
         return ['img', { src, alt, title }];
       },
-    } as MappedNodeSpec,
+    },
 
     ordered_list: {
       group: 'block',
@@ -250,7 +195,7 @@ const schema: MappedSchemaSpec = {
           ? ['ol', { class: orderedListClasses }, 0]
           : ['ol', { class: orderedListClasses, start: node.attrs.order }, 0];
       },
-    } as NodeSpec,
+    },
 
     bullet_list: {
       content: 'list_item+',
@@ -263,14 +208,6 @@ const schema: MappedSchemaSpec = {
 
     /// A list item (`<li>`) spec.
     list_item: {
-      automerge: {
-        block: {
-          within: {
-            ordered_list: 'ordered-list-item',
-            bullet_list: 'unordered-list-item',
-          },
-        },
-      },
       content: 'paragraph block*',
       parseDOM: [{ tag: 'li' }],
       toDOM() {
@@ -280,9 +217,6 @@ const schema: MappedSchemaSpec = {
     },
 
     aside: {
-      automerge: {
-        block: 'aside',
-      },
       content: 'block+',
       group: 'block',
       defining: true,
@@ -326,19 +260,7 @@ const schema: MappedSchemaSpec = {
           String(node.attrs.id),
         ];
       },
-      automerge: {
-        block: '__ext__note_ref',
-        isEmbed: true,
-        attrParsers: {
-          fromAutomerge: (block: BlockMarker) => ({
-            id: block.attrs.id ? String(block.attrs.id) : null,
-          }),
-          fromProsemirror: (node: Node) => ({
-            id: node.attrs.id ? String(node.attrs.id) : null,
-          }),
-        },
-      },
-    } as NodeSpec,
+    },
 
     note_content: {
       group: 'block',
@@ -371,18 +293,7 @@ const schema: MappedSchemaSpec = {
           0,
         ];
       },
-      automerge: {
-        block: '__ext__note_content',
-        attrParsers: {
-          fromAutomerge: (block: BlockMarker) => ({
-            id: block.attrs.id ? String(block.attrs.id) : null,
-          }),
-          fromProsemirror: (node: Node) => ({
-            id: node.attrs.id ? String(node.attrs.id) : null,
-          }),
-        },
-      },
-    } as NodeSpec,
+    },
   },
   marks: {
     /// A link. Has `href` and `title` attributes. `title`
@@ -412,39 +323,7 @@ const schema: MappedSchemaSpec = {
           0,
         ];
       },
-      automerge: {
-        markName: 'link',
-        parsers: {
-          fromAutomerge: (mark: Automerge.MarkValue) => {
-            if (typeof mark === 'string') {
-              // TODO: Move to link model
-              try {
-                const value = JSON.parse(mark);
-                const linkAttrs: LinkAttrs = {
-                  href: value.href || '',
-                  title: value.title || '',
-                };
-                return linkAttrs;
-              } catch {
-                console.warn('failed to parse link mark as JSON');
-              }
-            }
-
-            const linkAttrs: LinkAttrs = {
-              href: '',
-              title: '',
-            };
-            return linkAttrs;
-          },
-          fromProsemirror: (mark: Mark) =>
-            JSON.stringify({
-              href: mark.attrs.href,
-              title: mark.attrs.title,
-            }),
-        },
-      },
     },
-
     /// An emphasis mark. Rendered as an `<em>` element. Has parse rules
     /// that also match `<i>` and `font-style: italic`.
     em: {
@@ -457,11 +336,7 @@ const schema: MappedSchemaSpec = {
       toDOM() {
         return emDOM;
       },
-      automerge: {
-        markName: 'em',
-      },
-    } as MarkSpec,
-
+    },
     /// A strong mark. Rendered as `<strong>`, parse rules also match
     /// `<b>` and `font-weight: bold`.
     strong: {
@@ -485,10 +360,7 @@ const schema: MappedSchemaSpec = {
       toDOM() {
         return strongDOM;
       },
-      automerge: {
-        markName: 'strong',
-      },
-    } as MarkSpec,
+    },
 
     /// Code font mark. Represented as a `<code>` element.
     code: {
@@ -496,11 +368,8 @@ const schema: MappedSchemaSpec = {
       toDOM() {
         return codeDOM;
       },
-      automerge: {
-        markName: 'code',
-      },
-    } as MarkSpec,
+    },
   },
 };
 
-export const automergeSchemaAdapter = new SchemaAdapter(schema);
+export const schema = new Schema(schemaSpec);

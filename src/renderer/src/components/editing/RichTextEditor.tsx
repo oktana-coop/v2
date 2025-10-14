@@ -29,6 +29,7 @@ import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';
 
 const {
+  schema,
   buildInputRules,
   getCurrentLeafBlockType,
   getCurrentContainerBlockType,
@@ -82,7 +83,7 @@ export const RichTextEditor = ({
   const editorRoot = useRef<HTMLDivElement>(null);
   const editorViewRef = useRef<EditorView | null>(null);
   const { getDocumentRichTextContent } = useContext(CurrentDocumentContext);
-  const { schema, view, setView, parseMarkdown, convertToProseMirror } =
+  const { view, setView, parseMarkdown, convertToProseMirror } =
     useContext(ProseMirrorContext);
   const [leafBlockType, setLeafBlockType] = useState<LeafBlockType | null>(
     null
