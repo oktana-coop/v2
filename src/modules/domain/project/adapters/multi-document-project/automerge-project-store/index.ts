@@ -68,28 +68,37 @@ export const createAdapter = (
     );
 
   const findProjectHandleById = (id: VersionControlId) =>
-    Effect.tryPromise({
-      try: () => automergeRepo.find<MultiDocumentProject>(id),
-      catch: (err: unknown) => {
-        // TODO: This is not-future proof as it depends on the error message. Find a better way.
-        if (err instanceof Error && err.message.includes('unavailable')) {
-          return new NotFoundError(err.message);
-        }
+    pipe(
+      Effect.tryPromise({
+        try: () => automergeRepo.find<MultiDocumentProject>(id),
+        catch: (err: unknown) => {
+          // TODO: This is not-future proof as it depends on the error message. Find a better way.
+          if (err instanceof Error && err.message.includes('unavailable')) {
+            return new NotFoundError(err.message);
+          }
 
-        return mapErrorTo(RepositoryError, 'Automerge repo error')(err);
-      },
-    });
-
+          return mapErrorTo(RepositoryError, 'Automerge repo error')(err);
+        },
+      }),
+      Effect.tap((handle) =>
+        pipe(
+          migrateIfNeeded(migrations)(
+            handle,
+            CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION
+          ),
+          Effect.catchTag('VersionControlRepositoryError', () =>
+            Effect.fail(new RepositoryError('Automerge repo error'))
+          ),
+          Effect.catchTag('VersionControlNotFoundError', () =>
+            Effect.fail(new NotFoundError('Not found'))
+          )
+        )
+      )
+    );
   const findProjectById: MultiDocumentProjectStore['findProjectById'] = (id) =>
     pipe(
       findProjectHandleById(id),
       Effect.flatMap(getProjectFromHandle),
-      Effect.flatMap((project) =>
-        migrateIfNeeded(migrations)(
-          project,
-          CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION
-        )
-      ),
       Effect.timeoutFail({
         duration: '5 seconds',
         onTimeout: () => new NotFoundError('Timeout in finding project'),

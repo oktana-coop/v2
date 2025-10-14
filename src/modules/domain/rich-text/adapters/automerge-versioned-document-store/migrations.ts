@@ -1,20 +1,30 @@
-import { next as Automerge } from '@automerge/automerge/slim';
-
-import { Migration } from '../../../../infrastructure/version-control/automerge-lib';
+import {
+  type HandleMigration,
+  type VersionedArtifactHandle,
+} from '../../../../infrastructure/version-control';
 import { richTextRepresentations } from '../../constants';
-import { type RichTextDocument, VersionedDocument } from '../../models';
+import {
+  type RichTextDocument,
+  VersionedDocument,
+  type VersionedDocumentHandle,
+} from '../../models';
 
 type UnversionedRichTextDocument = Omit<VersionedDocument, 'schemaVersion'>;
 
-export const migrations: Migration[] = [
+export const migrations: HandleMigration[] = [
   {
     version: 0,
     // @ts-expect-error TODO: Fix TS complaining this is not compliant to the generic type
-    up: (artifact: UnversionedRichTextDocument): VersionedDocument =>
-      Automerge.change(artifact, (a) => {
+    up: (
+      artifactHandle: VersionedArtifactHandle<UnversionedRichTextDocument>
+    ): VersionedDocumentHandle => {
+      artifactHandle.change((a) => {
         (a as RichTextDocument).schemaVersion = 1;
         (a as RichTextDocument).representation =
           richTextRepresentations.AUTOMERGE;
-      }) as VersionedDocument,
+      });
+
+      return artifactHandle as VersionedDocumentHandle;
+    },
   },
 ];

@@ -85,7 +85,11 @@ export type VersionedDocumentStore = {
   ) => Effect.Effect<void, RepositoryError, never>;
   deleteDocument: (
     args: VersionControlId
-  ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;
+  ) => Effect.Effect<
+    void,
+    MigrationError | RepositoryError | NotFoundError,
+    never
+  >;
   getDocumentHeads: (
     document: VersionedDocument
   ) => Effect.Effect<Commit['heads'], RepositoryError, never>;
@@ -111,7 +115,7 @@ export type VersionedDocumentStore = {
     id: VersionControlId
   ) => Effect.Effect<
     VersionedDocumentHandle,
-    RepositoryError | NotFoundError,
+    MigrationError | RepositoryError | NotFoundError,
     never
   >;
   getDocumentFromHandle: (

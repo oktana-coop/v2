@@ -54,9 +54,6 @@ export const createAdapter = (
   > = (handle) =>
     pipe(
       getArtifactFromHandle<RichTextDocument>(handle),
-      Effect.tap((document) =>
-        migrateIfNeeded(migrations)(document, CURRENT_SCHEMA_VERSION)
-      ),
       Effect.catchTags({
         VersionControlRepositoryError: (err) =>
           Effect.fail(new RepositoryError(err.message)),
@@ -104,17 +101,7 @@ export const createAdapter = (
 
   const findDocumentById: VersionedDocumentStore['findDocumentById'] = (id) =>
     pipe(
-      Effect.tryPromise({
-        try: () => automergeRepo.find<RichTextDocument>(id),
-        catch: (err: unknown) => {
-          // TODO: This is not-future proof as it depends on the error message. Find a better way.
-          if (err instanceof Error && err.message.includes('unavailable')) {
-            return new NotFoundError(err.message);
-          }
-
-          return mapErrorTo(RepositoryError, 'Automerge repo error')(err);
-        },
-      }),
+      findDocumentHandleById(id),
       Effect.flatMap(getDocumentFromHandle),
       Effect.timeoutFail({
         duration: '8 seconds',
@@ -137,16 +124,25 @@ export const createAdapter = (
             return mapErrorTo(RepositoryError, 'Automerge repo error')(err);
           },
         }),
-        Effect.timeoutFail({
-          duration: '5 seconds',
-          onTimeout: () =>
-            new NotFoundError('Timeout in getting document handle'),
-        })
+        Effect.tap((handle) =>
+          pipe(
+            migrateIfNeeded(migrations)(handle, CURRENT_SCHEMA_VERSION),
+            Effect.catchTag('VersionControlRepositoryError', () =>
+              Effect.fail(new RepositoryError('Automerge repo error'))
+            ),
+            Effect.catchTag('VersionControlNotFoundError', () =>
+              Effect.fail(new NotFoundError('Not found'))
+            )
+          )
+        )
       );
 
   const getRichTextDocumentContent: VersionedDocumentStore['getRichTextDocumentContent'] =
     (document) =>
-      document.representation === richTextRepresentations.AUTOMERGE
+      document.representation === richTextRepresentations.AUTOMERGE ||
+      // There are some old document versions without the representataion set. So the TS type is not completely accurate for all historical versions of a document.
+      // But we should be able to remove this check really soon (don't expect many people to have v2 versions < 0.6.6)
+      !document.representation
         ? Effect.try({
             try: () => getSpansString(document),
             catch: mapErrorTo(RepositoryError, 'Automerge repo error'),

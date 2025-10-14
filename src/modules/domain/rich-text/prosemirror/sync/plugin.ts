@@ -10,14 +10,10 @@ type SyncPluginArgs = {
   docHandle: VersionedDocumentHandle | null;
 };
 
-export const syncPlugin = ({ onPMDocChange, docHandle }: SyncPluginArgs) =>
+export const syncPlugin = ({ onPMDocChange }: SyncPluginArgs) =>
   new Plugin({
     key: pluginKey,
     view() {
-      if (docHandle) {
-        console.log('Automerge doc changed. Need to apply patches to PM doc.');
-      }
-
       return {
         // React to local ProseMirror changes
         update(view, prevState) {

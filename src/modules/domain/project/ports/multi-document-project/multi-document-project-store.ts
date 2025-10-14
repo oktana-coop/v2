@@ -54,10 +54,18 @@ export type MultiDocumentProjectStore = {
   >;
   addDocumentToProject: (
     args: AddDocumentToMultiDocumentProjectArgs
-  ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;
+  ) => Effect.Effect<
+    void,
+    MigrationError | RepositoryError | NotFoundError,
+    never
+  >;
   deleteDocumentFromProject: (
     args: DeleteDocumentFromMultiDocumentProjectArgs
-  ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;
+  ) => Effect.Effect<
+    void,
+    MigrationError | RepositoryError | NotFoundError,
+    never
+  >;
   findDocumentInProject: (
     args: FindDocumentInMultiDocumentProjectArgs
   ) => Effect.Effect<

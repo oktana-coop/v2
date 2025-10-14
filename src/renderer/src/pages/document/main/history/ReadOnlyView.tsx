@@ -145,7 +145,14 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
 
       const pmDoc = await convertToProseMirror({
         schema: schema,
-        document: { ...props.doc, content: richTextContent },
+        document: {
+          ...props.doc,
+          // There are some old document versions without the representataion set. So the TS type is not completely accurate for all historical versions of a document.
+          // But we should be able to remove this check really soon (don't expect many people to have v2 versions < 0.6.6)
+          representation:
+            props.doc.representation ?? richTextRepresentations.AUTOMERGE,
+          content: richTextContent,
+        },
       });
 
       if (destroyed) return;
