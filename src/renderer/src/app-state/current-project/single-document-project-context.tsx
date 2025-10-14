@@ -1,6 +1,12 @@
 import * as Effect from 'effect/Effect';
-import { createContext, useContext, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
+import { useNavigate, useParams } from 'react-router';
 
 import { type SingleDocumentProjectStore } from '../../../../modules/domain/project';
 import { isElectron } from '../../../../modules/infrastructure/cross-platform/utils';
@@ -82,6 +88,7 @@ export const SingleDocumentProjectProvider = ({
     useState<SingleDocumentProjectStore | null>(null);
   const [fileToBeOpened, setFileToBeOpened] = useState<File | null>(null);
   const navigate = useNavigate();
+  const { projectId: projectIdInPath } = useParams();
 
   useEffect(() => {
     if (!isElectron()) {
@@ -197,53 +204,63 @@ export const SingleDocumentProjectProvider = ({
     return { projectId: projId, documentId: docId, path: file?.path ?? null };
   };
 
-  const handleOpenDocument = async (args?: {
-    fromFile?: File;
-    projectId?: VersionControlId;
-  }) => {
-    if (versionedProjectStore) {
-      await Effect.runPromise(versionedProjectStore.disconnect());
+  const handleOpenDocument = useCallback(
+    async (args?: { fromFile?: File; projectId?: VersionControlId }) => {
+      // Check if document (and project) is already opened
+      if (
+        projectId &&
+        documentId &&
+        projectIdInPath &&
+        projectId === projectIdInPath
+      ) {
+        return { projectId, documentId, path: projectFile?.path ?? null };
+      }
 
-      setVersionedProjectStore(null);
-      setVersionedDocumentStore(null);
-    }
+      if (versionedProjectStore) {
+        await Effect.runPromise(versionedProjectStore.disconnect());
 
-    const {
-      versionedDocumentStore: documentStore,
-      versionedProjectStore: projectStore,
-      projectId: projId,
-      documentId: docId,
-      file,
-      name: projName,
-    } = await Effect.runPromise(
-      args
-        ? singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
-            openFile: filesystem.openFile,
-          })({ fromFile: args.fromFile, projectId: args.projectId })
-        : singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
-            openFile: filesystem.openFile,
-          })({})
-    );
+        setVersionedProjectStore(null);
+        setVersionedDocumentStore(null);
+      }
 
-    setVersionedProjectStore(projectStore);
-    setVersionedDocumentStore(documentStore);
-    setProjectId(projId);
-    setDocumentId(docId);
-    setProjectFile(file);
-    setProjectName(projName);
+      const {
+        versionedDocumentStore: documentStore,
+        versionedProjectStore: projectStore,
+        projectId: projId,
+        documentId: docId,
+        file,
+        name: projName,
+      } = await Effect.runPromise(
+        args
+          ? singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
+              openFile: filesystem.openFile,
+            })({ fromFile: args.fromFile, projectId: args.projectId })
+          : singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
+              openFile: filesystem.openFile,
+            })({})
+      );
 
-    const browserStorageProjectData: BrowserStorageProjectData = {
-      projectId: projId,
-      documentId: docId,
-      file,
-    };
-    localStorage.setItem(
-      BROWSER_STORAGE_PROJECT_DATA_KEY,
-      JSON.stringify(browserStorageProjectData)
-    );
+      setVersionedProjectStore(projectStore);
+      setVersionedDocumentStore(documentStore);
+      setProjectId(projId);
+      setDocumentId(docId);
+      setProjectFile(file);
+      setProjectName(projName);
 
-    return { projectId: projId, documentId: docId, path: file?.path ?? null };
-  };
+      const browserStorageProjectData: BrowserStorageProjectData = {
+        projectId: projId,
+        documentId: docId,
+        file,
+      };
+      localStorage.setItem(
+        BROWSER_STORAGE_PROJECT_DATA_KEY,
+        JSON.stringify(browserStorageProjectData)
+      );
+
+      return { projectId: projId, documentId: docId, path: file?.path ?? null };
+    },
+    [projectIdInPath]
+  );
 
   return (
     <SingleDocumentProjectContext.Provider
