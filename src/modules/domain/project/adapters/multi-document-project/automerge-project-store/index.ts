@@ -85,10 +85,10 @@ export const createAdapter = (
       findProjectHandleById(id),
       Effect.flatMap(getProjectFromHandle),
       Effect.flatMap((project) =>
-        migrateIfNeeded(migrations)(
-          project,
-          CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION
-        )
+        migrateIfNeeded(automergeRepo)(migrations)({
+          artifact: project,
+          targetVersion: CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION,
+        })
       ),
       Effect.timeoutFail({
         duration: '5 seconds',

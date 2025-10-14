@@ -15,6 +15,7 @@ import { NotFoundError, RepositoryError } from '../../../errors';
 import {
   type BaseArtifactMetaData,
   type SingleDocumentProject,
+  type VersionedSingleDocumentProjectHandle,
 } from '../../../models';
 import { CURRENT_SINGLE_DOCUMENT_PROJECT_SCHEMA_VERSION } from '../../../models';
 import { type SingleDocumentProjectStore } from '../../../ports';
@@ -72,13 +73,13 @@ export const createAdapter = (
   const findProjectById: SingleDocumentProjectStore['findProjectById'] = (id) =>
     pipe(
       findProjectHandleById(id),
-      Effect.flatMap(getProjectFromHandle),
-      Effect.flatMap((project) =>
-        migrateIfNeeded(migrations)(
-          project,
-          CURRENT_SINGLE_DOCUMENT_PROJECT_SCHEMA_VERSION
-        )
+      Effect.tap((docHandle) =>
+        Effect.tryPromise({
+          try: () => docHandle.whenReady(),
+          catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+        })
       ),
+      Effect.flatMap(getProjectFromHandle),
       Effect.timeoutFail({
         duration: '5 seconds',
         onTimeout: () => new NotFoundError('Timeout in finding project'),
@@ -86,7 +87,19 @@ export const createAdapter = (
     );
 
   const getProjectFromHandle: SingleDocumentProjectStore['getProjectFromHandle'] =
-    getDocFromHandle<SingleDocumentProject>;
+    (handle: VersionedSingleDocumentProjectHandle) =>
+      pipe(
+        getDocFromHandle<SingleDocumentProject>(handle),
+        Effect.flatMap((project) =>
+          migrateIfNeeded(automergeRepo)(migrations)({
+            artifact: project,
+            targetVersion: CURRENT_SINGLE_DOCUMENT_PROJECT_SCHEMA_VERSION,
+          })
+        ),
+        Effect.tap((project) => {
+          console.log(project);
+        })
+      );
 
   const getDocumentFromProject = (
     projectId: VersionControlId

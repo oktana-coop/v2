@@ -267,20 +267,27 @@ async function createWindow() {
 
   ipcMain.handle(
     'open-single-document-project',
-    async (_, { fromFile }: OpenSingleDocumentProjectStoreArgs) =>
-      Effect.runPromise(
-        pipe(
-          singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
-            openFile: filesystemAPI.openFile,
-          })({ fromFile }),
-          Effect.map(({ projectId, documentId, file, name }) => ({
-            projectId,
-            documentId,
-            file,
-            name,
-          }))
-        )
-      )
+    async (_, { fromFile }: OpenSingleDocumentProjectStoreArgs) => {
+      console.log('in open-single-document-project handler');
+      try {
+        return Effect.runPromise(
+          pipe(
+            singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
+              openFile: filesystemAPI.openFile,
+            })({ fromFile }),
+            Effect.map(({ projectId, documentId, file, name }) => ({
+              projectId,
+              documentId,
+              file,
+              name,
+            }))
+          )
+        );
+      } catch (err) {
+        console.log(err);
+        throw err;
+      }
+    }
   );
 
   ipcMain.handle('open-or-create-multi-document-project', async () =>

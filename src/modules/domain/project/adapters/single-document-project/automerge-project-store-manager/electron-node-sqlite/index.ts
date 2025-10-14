@@ -208,6 +208,9 @@ export const createAdapter = ({
       ({ fromFile }: OpenSingleDocumentProjectStoreArgs) =>
         openSingleDocumentProjectStoreSemaphore.withPermits(1)(
           Effect.Do.pipe(
+            Effect.tap(() => {
+              console.log('pipeline start');
+            }),
             Effect.bind('file', () =>
               fromFile
                 ? Effect.succeed(fromFile)
@@ -245,9 +248,15 @@ export const createAdapter = ({
             Effect.bind('versionedDocumentStore', ({ automergeRepo }) =>
               Effect.succeed(createAutomergeDocumentStoreAdapter(automergeRepo))
             ),
+            Effect.tap(() => {
+              console.log('finding document in project');
+            }),
             Effect.bind('documentId', ({ versionedProjectStore, projectId }) =>
               versionedProjectStore.findDocumentInProject(projectId)
             ),
+            Effect.tap(({ documentId }) => {
+              console.log('found document', documentId);
+            }),
             Effect.tap(({ automergeRepo }) =>
               Effect.sync(() => {
                 currentAutomergeRepo = automergeRepo;
@@ -272,7 +281,10 @@ export const createAdapter = ({
                 // The name is derived by the file name in this case
                 name: file.name,
               })
-            )
+            ),
+            Effect.tap(() => {
+              console.log('pipeline end');
+            })
           )
         );
 

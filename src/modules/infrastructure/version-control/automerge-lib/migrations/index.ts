@@ -1,3 +1,4 @@
+import { type Repo } from '@automerge/automerge-repo';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
@@ -75,12 +76,37 @@ export const migrate =
       })
     );
 
+export type MigrateIfNeededArgs<ArtifactType> = {
+  artifact: VersionedArtifact<ArtifactType>;
+  targetVersion: number;
+};
+
 export const migrateIfNeeded =
+  (automergeRepo: Repo) =>
   (migrations: readonly Migration[]) =>
-  <ArtifactType extends ArtifactWithSchemaVersion>(
-    artifact: VersionedArtifact<ArtifactType>,
-    targetVersion: number
-  ): Effect.Effect<VersionedArtifact<ArtifactType>, MigrationError, never> =>
-    needsMigration(artifact, targetVersion)
-      ? migrate(migrations)(artifact, targetVersion)
+  <ArtifactType extends ArtifactWithSchemaVersion>({
+    artifact,
+    targetVersion,
+  }: MigrateIfNeededArgs<ArtifactType>): Effect.Effect<
+    VersionedArtifact<ArtifactType>,
+    MigrationError,
+    never
+  > => {
+    console.log(artifact, targetVersion);
+    console.log(needsMigration(artifact, targetVersion));
+
+    return needsMigration(artifact, targetVersion)
+      ? pipe(
+          migrate(migrations)(artifact, targetVersion),
+          Effect.tap(() =>
+            Effect.tryPromise({
+              try: () => automergeRepo.flush(),
+              catch: mapErrorTo(
+                MigrationError,
+                'Error in flushing migrated documents to the automerge repo'
+              ),
+            })
+          )
+        )
       : Effect.succeed(artifact);
+  };

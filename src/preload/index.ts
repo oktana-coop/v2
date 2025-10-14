@@ -94,8 +94,10 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
 contextBridge.exposeInMainWorld('singleDocumentProjectAPI', {
   createSingleDocumentProject: (args: SetupSingleDocumentProjectStoreArgs) =>
     ipcRenderer.invoke('create-single-document-project', { ...args }),
-  openSingleDocumentProject: (args: OpenSingleDocumentProjectStoreArgs) =>
-    ipcRenderer.invoke('open-single-document-project', { ...args }),
+  openSingleDocumentProject: (args: OpenSingleDocumentProjectStoreArgs) => {
+    console.log('preload script openSingleDocumentProject');
+    return ipcRenderer.invoke('open-single-document-project', { ...args });
+  },
 } as SingleDocumentProjectAPI);
 
 contextBridge.exposeInMainWorld('multiDocumentProjectAPI', {

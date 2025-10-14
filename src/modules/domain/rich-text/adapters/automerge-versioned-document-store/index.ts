@@ -54,8 +54,11 @@ export const createAdapter = (
   > = (handle) =>
     pipe(
       getArtifactFromHandle<RichTextDocument>(handle),
-      Effect.tap((document) =>
-        migrateIfNeeded(migrations)(document, CURRENT_SCHEMA_VERSION)
+      Effect.flatMap((document) =>
+        migrateIfNeeded(automergeRepo)(migrations)({
+          artifact: document,
+          targetVersion: CURRENT_SCHEMA_VERSION,
+        })
       ),
       Effect.catchTags({
         VersionControlRepositoryError: (err) =>

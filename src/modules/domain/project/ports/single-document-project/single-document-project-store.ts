@@ -38,7 +38,7 @@ export type SingleDocumentProjectStore = {
     handle: VersionedSingleDocumentProjectHandle
   ) => Effect.Effect<
     VersionedSingleDocumentProject,
-    RepositoryError | NotFoundError,
+    RepositoryError | NotFoundError | MigrationError,
     never
   >;
   getProjectName: (
