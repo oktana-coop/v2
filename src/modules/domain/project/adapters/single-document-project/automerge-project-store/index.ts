@@ -1,4 +1,4 @@
-import { next as Automerge } from '@automerge/automerge/slim';
+import * as Automerge from '@automerge/automerge/slim';
 import { type DocHandle, type Repo } from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';

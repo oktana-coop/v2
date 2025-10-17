@@ -1,9 +1,9 @@
-import { next as Automerge } from '@automerge/automerge/slim';
+import * as Automerge from '@automerge/automerge/slim';
 import {
   MappedNodeSpec,
   MappedSchemaSpec,
   SchemaAdapter,
-} from '@oktana-coop/automerge-prosemirror';
+} from '@automerge/prosemirror';
 import {
   DOMOutputSpec,
   Mark,
@@ -32,8 +32,8 @@ import {
 import { getLinkAttrsFromDomElement, type LinkAttrs } from '../models/link';
 
 export type BlockMarker = {
-  type: Automerge.RawString;
-  parents: Automerge.RawString[];
+  type: Automerge.ImmutableString;
+  parents: Automerge.ImmutableString[];
   attrs: { [key: string]: Automerge.MaterializeValue };
   isEmbed?: boolean;
 };

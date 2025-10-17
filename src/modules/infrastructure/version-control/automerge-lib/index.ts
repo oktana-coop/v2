@@ -1,4 +1,4 @@
-import { DecodedChange, next as Automerge } from '@automerge/automerge/slim';
+import * as Automerge from '@automerge/automerge/slim';
 import {
   decodeHeads,
   encodeHeads,
@@ -78,7 +78,7 @@ export const getArtifactAtCommit: <ArtifactType>(args: {
 
 export const getChangeMetadata =
   <ArtifactType>(artifact: VersionedArtifact<ArtifactType>) =>
-  (heads: UrlHeads): DecodedChange | undefined =>
+  (heads: UrlHeads): Automerge.DecodedChange | undefined =>
     Automerge.inspectChange(artifact, decodeHeads(heads)[0]) ?? undefined;
 
 export const getArtifactHeadsHistory = <ArtifactType>(
@@ -110,7 +110,7 @@ export const mapHeadsToHistoryInfo = <ArtifactType>({
 }: {
   headsHistory: UrlHeads[];
   artifact: VersionedArtifact<ArtifactType>;
-  metadataExtractor: (heads: UrlHeads) => DecodedChange | undefined;
+  metadataExtractor: (heads: UrlHeads) => Automerge.DecodedChange | undefined;
   contentEqFn: ArtifactContentEqFn<ArtifactType>;
 }): ArtifactHistoryInfo<ArtifactType> => {
   const changes = headsHistory
