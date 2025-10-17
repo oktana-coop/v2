@@ -208,6 +208,7 @@ export const SingleDocumentProjectProvider = ({
     async (args?: { fromFile?: File; projectId?: VersionControlId }) => {
       // Check if document (and project) is already opened
       if (
+        args?.projectId &&
         projectId &&
         documentId &&
         projectIdInPath &&
