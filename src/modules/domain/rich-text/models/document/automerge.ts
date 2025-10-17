@@ -1,4 +1,4 @@
-import { next as Automerge } from '@automerge/automerge/slim';
+import * as Automerge from '@automerge/automerge/slim';
 
 import { sortKeysAndStrinfigy } from '../../../../../utils/object';
 import { type VersionedDocument } from '../document';

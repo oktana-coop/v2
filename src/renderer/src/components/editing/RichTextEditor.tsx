@@ -1,4 +1,5 @@
 import { clsx } from 'clsx';
+import debounce from 'debounce';
 import {
   baseKeymap,
   setBlockType as setProsemirrorBlockType,
@@ -156,7 +157,7 @@ export const RichTextEditor = ({
       ];
 
       if (isEditable && onDocChange) {
-        const handlePMDocChange = (pmDoc: Node) => {
+        const handlePMDocChange = debounce((pmDoc: Node) => {
           const pmJSONStr = pmDocToJSONString(pmDoc);
 
           onDocChange({
@@ -165,7 +166,7 @@ export const RichTextEditor = ({
             representation: richTextRepresentations.PROSEMIRROR,
             content: pmJSONStr,
           });
-        };
+        }, 300);
 
         plugins.push(
           syncPlugin({

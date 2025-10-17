@@ -1,6 +1,6 @@
 // Note the ?url suffix
 import wasmUrl from '@automerge/automerge/automerge.wasm?url';
-import { next as Automerge } from '@automerge/automerge/slim';
+import * as Automerge from '@automerge/automerge/slim';
 import { PeerId, Repo } from '@automerge/automerge-repo/slim';
 import { NodeFSStorageAdapter } from '@automerge/automerge-repo-storage-nodefs';
 import { type Database } from 'better-sqlite3';

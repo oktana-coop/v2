@@ -1,4 +1,4 @@
-import { next as Automerge } from '@automerge/automerge/slim';
+import * as Automerge from '@automerge/automerge/slim';
 import { type UrlHeads } from '@automerge/automerge-repo/slim';
 import deepEqual from 'fast-deep-equal';
 

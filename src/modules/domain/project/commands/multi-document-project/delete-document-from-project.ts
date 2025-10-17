@@ -6,7 +6,10 @@ import {
   RepositoryError as VersionedDocumentRepositoryError,
   type VersionedDocumentStore,
 } from '../../../../../modules/domain/rich-text';
-import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
+import {
+  MigrationError,
+  type VersionControlId,
+} from '../../../../../modules/infrastructure/version-control';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
@@ -36,7 +39,8 @@ export const deleteDocumentFromProject =
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
     | VersionedDocumentRepositoryError
-    | VersionedDocumentNotFoundError,
+    | VersionedDocumentNotFoundError
+    | MigrationError,
     never
   > =>
     pipe(
