@@ -1,4 +1,3 @@
-import debounce from 'debounce';
 import * as Effect from 'effect/Effect';
 import {
   createContext,
@@ -33,7 +32,6 @@ import {
   encodeURLHeadsForChange,
   headsAreSame,
   type UrlHeads,
-  type VersionedArtifactHandleChangePayload,
 } from '../../../../modules/infrastructure/version-control';
 import { isValidVersionControlId } from '../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../modules/personalization/browser';
@@ -94,7 +92,7 @@ const createLoadHistoryFromWorker = () => {
 export type CurrentDocumentContextType = {
   versionedDocumentHandle: VersionedDocumentHandle | null;
   versionedDocument: VersionedDocument | null;
-  updateRichTextDocumentContent: (doc: RichTextDocument) => Promise<void>;
+  onDocumentContentChange: (doc: RichTextDocument) => Promise<void>;
   versionedDocumentHistory: ChangeWithUrlInfo[];
   canCommit: boolean;
   onCommit: (message: string) => Promise<void>;
@@ -120,7 +118,7 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
   {
     versionedDocumentHandle: null,
     versionedDocument: null,
-    updateRichTextDocumentContent: async () => {},
+    onDocumentContentChange: async () => {},
     versionedDocumentHistory: [],
     canCommit: false,
     onCommit: async () => {},
@@ -269,15 +267,9 @@ export const CurrentDocumentProvider = ({
 
   const loadHistory =
     (documentStore: VersionedDocumentStore) =>
-    async (docHandle: VersionedDocumentHandle) => {
-      // Unfortunately we can't get it from the history results since some non-serializeable
-      // properties of the Automerge document are lost in the messages with the worker.
-      const current = await Effect.runPromise(
-        documentStore.getDocumentFromHandle(docHandle)
-      );
-
+    async (doc: VersionedDocument) => {
       const documentData = await Effect.runPromise(
-        documentStore.exportDocumentToBinary(current)
+        documentStore.exportDocumentToBinary(doc)
       );
 
       const { history, lastCommit, latestChange } =
@@ -291,40 +283,17 @@ export const CurrentDocumentProvider = ({
       setVersionedDocumentHistory(historyWithURLInfo);
       setLastCommit(lastCommit);
       checkIfCanCommit(documentStore)(
-        current,
+        doc,
         latestChange.heads,
         lastCommit?.heads
       );
     };
 
   useEffect(() => {
-    if (versionedDocumentStore && versionedDocumentHandle) {
-      loadHistory(versionedDocumentStore)(versionedDocumentHandle);
+    if (versionedDocumentStore && versionedDocument) {
+      loadHistory(versionedDocumentStore)(versionedDocument);
     }
-  }, [versionedDocumentHandle]);
-
-  useEffect(() => {
-    if (versionedDocumentStore && versionedDocumentHandle) {
-      const handler = (
-        args: VersionedArtifactHandleChangePayload<RichTextDocument>
-      ) => {
-        loadHistory(versionedDocumentStore)(versionedDocumentHandle);
-        checkIfCanCommit(versionedDocumentStore)(
-          args.doc,
-          Effect.runSync(versionedDocumentStore.getDocumentHeads(args.doc)),
-          lastCommit?.heads
-        );
-      };
-
-      const debouncedHandler = debounce(handler, 300);
-      versionedDocumentHandle.on('change', debouncedHandler);
-
-      return () => {
-        versionedDocumentHandle.off('change', debouncedHandler);
-      };
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastCommit, versionedDocumentHandle, versionedDocumentStore]);
+  }, [versionedDocument]);
 
   const handleCommit = useCallback(
     async (message: string) => {
@@ -408,13 +377,17 @@ export const CurrentDocumentProvider = ({
     [versionedDocumentStore]
   );
 
-  const handleUpdateRichTextDocumentContent = async (doc: RichTextDocument) => {
+  const handleDocumentContentChange = async (doc: RichTextDocument) => {
     if (!versionedDocumentStore) {
       throw new Error('Versioned document store not ready yet.');
     }
 
     if (!versionedDocumentHandle) {
       throw new Error('Versioned document handle not ready yet.');
+    }
+
+    if (!versionedDocument) {
+      throw new Error('Versioned document not set yet.');
     }
 
     if (!representationTransformAdapter) {
@@ -435,6 +408,15 @@ export const CurrentDocumentProvider = ({
         filePath: selectedFileInfo?.path ?? null,
         projectType,
       })
+    );
+
+    loadHistory(versionedDocumentStore)(versionedDocument);
+    checkIfCanCommit(versionedDocumentStore)(
+      versionedDocument,
+      Effect.runSync(
+        versionedDocumentStore.getDocumentHeads(versionedDocument)
+      ),
+      lastCommit?.heads
     );
   };
 
@@ -528,7 +510,7 @@ export const CurrentDocumentProvider = ({
       value={{
         versionedDocumentHandle,
         versionedDocument,
-        updateRichTextDocumentContent: handleUpdateRichTextDocumentContent,
+        onDocumentContentChange: handleDocumentContentChange,
         versionedDocumentHistory,
         canCommit,
         onCommit: handleCommit,
