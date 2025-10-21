@@ -1,1 +1,1 @@
-export { setupForWeb, setupForElectron } from './setup';
+export { setupForWeb, setupForElectron, setupForWorker } from './setup';

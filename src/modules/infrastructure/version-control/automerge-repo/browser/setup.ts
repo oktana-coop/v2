@@ -38,3 +38,11 @@ export const setupForWeb = async ({ dbName, store }: IndexedDBArgs) => {
     storage: new IndexedDBStorageAdapter(dbName, store),
   });
 };
+
+export const setupForWorker = async () => {
+  await Automerge.initializeWasm(wasmUrl);
+
+  return new Repo({
+    network: [],
+  });
+};
