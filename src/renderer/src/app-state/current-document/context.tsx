@@ -40,54 +40,9 @@ import {
   InfrastructureAdaptersContext,
   MultiDocumentProjectContext,
 } from '../';
-import {
-  isSuccessResult,
-  type LoadHistoryMessage,
-  type LoadHistoryResult,
-} from './history-worker/types';
+import { createWorkerClient } from './history-worker/client';
 
-// Using a web worker because loading history is an expensive operation
-const worker = new Worker(
-  new URL('./history-worker/index.ts', import.meta.url),
-  { type: 'module' }
-);
-
-const createLoadHistoryFromWorker = () => {
-  // Assign a unique ID to each message sent to the worker and include it in the worker's response.
-  // This way, the worker's response is matched to the correct promise.
-  let messageId = 0; // Unique ID for each message
-
-  return (
-    documentData: Uint8Array
-  ): Promise<ArtifactHistoryInfo<RichTextDocument>> =>
-    new Promise((resolve, reject) => {
-      const currentMessageId = messageId++;
-
-      const handleMessage = (event: MessageEvent) => {
-        const result = event.data as LoadHistoryResult;
-
-        if (result.messageId === currentMessageId) {
-          worker.removeEventListener('message', handleMessage); // Clean up listener
-          if (isSuccessResult(result)) {
-            resolve(result.historyInfo);
-          } else {
-            reject(new Error(result.errorMessage));
-          }
-        }
-      };
-
-      // Listen for messages from the worker
-      worker.addEventListener('message', handleMessage);
-
-      const message: LoadHistoryMessage = {
-        messageId: currentMessageId,
-        documentData,
-      };
-
-      // Post a message to the worker to start the WASI CLI execution
-      worker.postMessage(message);
-    });
-};
+const useWebWorker = true;
 
 export type CurrentDocumentContextType = {
   versionedDocumentHandle: VersionedDocumentHandle | null;
@@ -167,7 +122,7 @@ export const CurrentDocumentProvider = ({
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
   );
-  const loadHistoryFromWorker = createLoadHistoryFromWorker();
+  const loadHistoryFromWorker = useWebWorker ? createWorkerClient() : undefined;
 
   useEffect(() => {
     const updateDocumentHandleAndSelectedFile = async ({
@@ -268,14 +223,21 @@ export const CurrentDocumentProvider = ({
   const loadHistory =
     (documentStore: VersionedDocumentStore) =>
     async (doc: VersionedDocument) => {
-      const documentData = await Effect.runPromise(
-        documentStore.exportDocumentToBinary(doc)
-      );
+      let historyInfo: ArtifactHistoryInfo<RichTextDocument>;
 
-      const { history, lastCommit, latestChange } =
-        await loadHistoryFromWorker(documentData);
+      if (useWebWorker && loadHistoryFromWorker) {
+        const documentData = await Effect.runPromise(
+          documentStore.exportDocumentToBinary(doc)
+        );
 
-      const historyWithURLInfo = history.map((commit) => ({
+        historyInfo = await loadHistoryFromWorker(documentData);
+      } else {
+        historyInfo = await Effect.runPromise(
+          documentStore.getDocumentHistory(doc)
+        );
+      }
+
+      const historyWithURLInfo = historyInfo.history.map((commit) => ({
         ...commit,
         urlEncodedHeads: encodeURLHeadsForChange(commit),
       }));
@@ -284,7 +246,7 @@ export const CurrentDocumentProvider = ({
       setLastCommit(lastCommit);
       checkIfCanCommit(documentStore)(
         doc,
-        latestChange.heads,
+        historyInfo.latestChange.heads,
         lastCommit?.heads
       );
     };
