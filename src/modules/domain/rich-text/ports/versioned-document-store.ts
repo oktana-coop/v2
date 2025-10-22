@@ -23,12 +23,12 @@ export type GetDocumentHandleAtCommitArgs = {
 };
 
 export type GetDocumentAtCommitArgs = {
-  document: VersionedDocument;
+  documentId: VersionControlId;
   heads: Commit['heads'];
 };
 
 export type UpdateRichTextDocumentContentArgs = {
-  documentHandle: VersionedDocumentHandle;
+  documentId: VersionControlId;
   representation: RichTextRepresentation;
   content: string;
 };
@@ -48,13 +48,13 @@ export type GetDocumentHandleHistoryResponse = {
 };
 
 export type IsContentSameAtHeadsArgs = {
-  document: VersionedDocument;
+  documentId: VersionControlId;
   heads1: Commit['heads'];
   heads2: Commit['heads'];
 };
 
 export type CommitChangesArgs = {
-  documentHandle: VersionedDocumentHandle;
+  documentId: VersionControlId;
   message: string;
 };
 
@@ -69,7 +69,11 @@ export type VersionedDocumentStore = {
   ) => Effect.Effect<VersionControlId, RepositoryError, never>;
   getDocumentAtCommit: (
     args: GetDocumentAtCommitArgs
-  ) => Effect.Effect<VersionedDocument, RepositoryError, never>;
+  ) => Effect.Effect<
+    VersionedDocument,
+    RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
   findDocumentById: (
     id: VersionControlId
   ) => Effect.Effect<
@@ -82,7 +86,11 @@ export type VersionedDocumentStore = {
   ) => Effect.Effect<string, RepositoryError | NotFoundError, never>;
   updateRichTextDocumentContent: (
     args: UpdateRichTextDocumentContentArgs
-  ) => Effect.Effect<void, RepositoryError, never>;
+  ) => Effect.Effect<
+    void,
+    RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
   deleteDocument: (
     args: VersionControlId
   ) => Effect.Effect<
@@ -91,15 +99,33 @@ export type VersionedDocumentStore = {
     never
   >;
   getDocumentHeads: (
-    document: VersionedDocument
-  ) => Effect.Effect<Commit['heads'], RepositoryError, never>;
+    documentId: VersionControlId
+  ) => Effect.Effect<
+    Commit['heads'],
+    RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
   getDocumentHistory: (
-    document: VersionedDocument
-  ) => Effect.Effect<GetDocumentHistoryResponse, RepositoryError, never>;
-  isContentSameAtHeads: (args: IsContentSameAtHeadsArgs) => boolean;
+    documentId: VersionControlId
+  ) => Effect.Effect<
+    GetDocumentHistoryResponse,
+    RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  isContentSameAtHeads: (
+    args: IsContentSameAtHeadsArgs
+  ) => Effect.Effect<
+    boolean,
+    RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
   commitChanges: (
     args: CommitChangesArgs
-  ) => Effect.Effect<void, RepositoryError, never>;
+  ) => Effect.Effect<
+    void,
+    RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
   exportDocumentToBinary: (
     document: VersionedDocument
   ) => Effect.Effect<Uint8Array, RepositoryError, never>;

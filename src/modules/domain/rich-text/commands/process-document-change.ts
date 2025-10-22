@@ -10,21 +10,26 @@ import {
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../infrastructure/filesystem';
+import {
+  MigrationError,
+  type VersionControlId,
+} from '../../../infrastructure/version-control';
 import { richTextRepresentations } from '../constants';
 import {
+  NotFoundError,
   RepositoryError,
   RepresentationTransformError,
   ValidationError,
 } from '../errors';
-import { type RichTextDocument, VersionedDocumentHandle } from '../models';
+import { type RichTextDocument } from '../models';
 import {
   type RepresentationTransform,
   type VersionedDocumentStore,
 } from '../ports';
 
 export type ProcessDocumentChangeArgs = {
-  document: RichTextDocument;
-  documentHandle: VersionedDocumentHandle;
+  documentId: VersionControlId;
+  updatedDocument: RichTextDocument;
   filePath: string | null;
   projectType: ProjectType;
 };
@@ -42,15 +47,16 @@ export const processDocumentChange =
     writeFile,
   }: ProcessDocumentChangeDeps) =>
   ({
-    document,
-    // TODO: Remove dependency to doc handle
-    documentHandle,
+    documentId,
+    updatedDocument,
     filePath,
     projectType,
   }: ProcessDocumentChangeArgs): Effect.Effect<
     void,
     | RepresentationTransformError
     | RepositoryError
+    | NotFoundError
+    | MigrationError
     | ValidationError
     | FilesystemAccessControlError
     | FilesystemNotFoundError
@@ -61,9 +67,9 @@ export const processDocumentChange =
       Effect.tryPromise({
         try: async () =>
           transformToText({
-            from: document.representation,
+            from: updatedDocument.representation,
             to: richTextRepresentations.AUTOMERGE,
-            input: document.content,
+            input: updatedDocument.content,
           }),
         catch: mapErrorTo(
           RepresentationTransformError,
@@ -72,7 +78,7 @@ export const processDocumentChange =
       }),
       Effect.tap((automergeSpansStr) =>
         updateRichTextDocumentContent({
-          documentHandle,
+          documentId,
           representation: richTextRepresentations.AUTOMERGE,
           content: automergeSpansStr,
         })

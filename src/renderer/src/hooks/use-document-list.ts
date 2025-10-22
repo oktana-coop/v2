@@ -1,8 +1,8 @@
 import { useContext, useEffect, useState } from 'react';
-import { useParams } from 'react-router';
 
 import { projectTypes } from '../../../modules/domain/project';
 import { removeExtension } from '../../../modules/infrastructure/filesystem';
+import { VersionControlId } from '../../../modules/infrastructure/version-control';
 import {
   CurrentProjectContext,
   MultiDocumentProjectContext,
@@ -10,6 +10,7 @@ import {
   RecentProjectsContext,
   RecentProjectsContextType,
 } from '../app-state';
+import { useCurrentDocumentId } from './use-current-document-id';
 
 export type DocumentListItem = {
   id: string;
@@ -33,20 +34,19 @@ const getDocumentListInMultiDocumentProject = (
 
 const getDocumentListInSingleDocumentProject = (
   recentProjects: RecentProjectsContextType['recentProjects'],
-  documentIdParam: string | undefined
+  documentId: VersionControlId | null
 ): DocumentListItem[] =>
   recentProjects.map((projectInfo) => {
     const documentListItem: DocumentListItem = {
       id: projectInfo.documentId,
       name: projectInfo.projectName ?? 'Untitled Document',
-      isSelected: documentIdParam === projectInfo.documentId,
+      isSelected: documentId === projectInfo.documentId,
     };
 
     return documentListItem;
   });
 
 export const useDocumentList = () => {
-  const { documentId: documentIdParam } = useParams();
   const { projectType } = useContext(CurrentProjectContext);
   const { directory, directoryFiles, selectedFileInfo } = useContext(
     MultiDocumentProjectContext
@@ -54,6 +54,7 @@ export const useDocumentList = () => {
   const { recentProjects } = useContext(RecentProjectsContext);
   const [documentList, setDocumentList] = useState<DocumentListItem[]>([]);
   const [canShowList, setCanShowList] = useState<boolean>(false);
+  const documentId = useCurrentDocumentId();
 
   useEffect(() => {
     const newList =
@@ -62,16 +63,13 @@ export const useDocumentList = () => {
             directoryFiles,
             selectedFileInfo
           )
-        : getDocumentListInSingleDocumentProject(
-            recentProjects,
-            documentIdParam
-          );
+        : getDocumentListInSingleDocumentProject(recentProjects, documentId);
 
     setDocumentList(newList);
   }, [
+    documentId,
     projectType,
     recentProjects,
-    documentIdParam,
     directoryFiles,
     selectedFileInfo,
   ]);

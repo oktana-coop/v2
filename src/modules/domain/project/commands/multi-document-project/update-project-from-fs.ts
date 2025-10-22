@@ -112,33 +112,31 @@ const propagateFileChangesToVersionedDocument =
       }),
       Effect.flatMap((documentHandle) =>
         pipe(
-          getDocumentFromHandle(documentHandle),
-          Effect.flatMap((document) =>
-            pipe(
-              readFile(file.path),
-              Effect.flatMap((file) =>
-                isTextFile(file)
-                  ? Effect.succeed(file)
-                  : Effect.fail(
-                      new FilesystemDataIntegrityError(
-                        'Expected a text file but got a binary'
-                      )
-                    )
-              ),
-              Effect.flatMap((fileContent) =>
-                pipe(
-                  getRichTextDocumentContent(document),
-                  Effect.flatMap((documentRichTextContent) =>
-                    fileContent.content &&
-                    fileContent.content !== documentRichTextContent
-                      ? updateRichTextDocumentContent({
-                          documentHandle,
-                          representation: richTextRepresentations.AUTOMERGE,
-                          content: fileContent.content,
-                        })
-                      : Effect.succeed(undefined)
+          readFile(file.path),
+          Effect.flatMap((file) =>
+            isTextFile(file)
+              ? Effect.succeed(file)
+              : Effect.fail(
+                  new FilesystemDataIntegrityError(
+                    'Expected a text file but got a binary'
                   )
                 )
+          ),
+          Effect.flatMap((fileContent) =>
+            pipe(
+              getDocumentFromHandle(documentHandle),
+              Effect.flatMap((document) =>
+                getRichTextDocumentContent(document)
+              ),
+              Effect.flatMap((documentRichTextContent) =>
+                fileContent.content &&
+                fileContent.content !== documentRichTextContent
+                  ? updateRichTextDocumentContent({
+                      documentId: documentHandle.url,
+                      representation: richTextRepresentations.AUTOMERGE,
+                      content: fileContent.content,
+                    })
+                  : Effect.succeed(undefined)
               )
             )
           )

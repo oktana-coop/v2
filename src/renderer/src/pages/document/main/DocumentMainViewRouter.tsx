@@ -1,9 +1,8 @@
 import { useContext } from 'react';
-import { Outlet, useParams } from 'react-router';
+import { Outlet } from 'react-router';
 
-import { isValidVersionControlId } from '../../../../../modules/infrastructure/version-control';
 import { CurrentDocumentContext } from '../../../app-state';
-import { InvalidDocument } from '../../../components/document-views/InvalidDocument';
+import { useCurrentDocumentId } from '../../../hooks';
 import { EmptyDocumentPage } from './empty';
 
 export type DocumentMainViewRouterProps = {
@@ -17,10 +16,10 @@ export const DocumentMainViewRouter = ({
   onOpenDocumentButtonClick,
   onOpenDirectoryButtonClick,
 }: DocumentMainViewRouterProps) => {
-  const { documentId: docUrl } = useParams();
+  const documentId = useCurrentDocumentId();
   const { versionedDocument } = useContext(CurrentDocumentContext);
 
-  if (!docUrl) {
+  if (!documentId) {
     return (
       <EmptyDocumentPage
         onCreateDocumentButtonClick={onCreateDocumentButtonClick}
@@ -28,10 +27,6 @@ export const DocumentMainViewRouter = ({
         onOpenDirectoryButtonClick={onOpenDirectoryButtonClick}
       />
     );
-  }
-
-  if (!isValidVersionControlId(docUrl)) {
-    return <InvalidDocument />;
   }
 
   if (!versionedDocument) {

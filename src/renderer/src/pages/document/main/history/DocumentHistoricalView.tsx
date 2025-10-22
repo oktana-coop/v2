@@ -11,6 +11,7 @@ import {
   isCommit,
   isValidVersionControlId,
   UrlHeads,
+  type VersionControlId,
 } from '../../../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../../../modules/personalization/browser';
 import {
@@ -18,6 +19,7 @@ import {
   SidebarLayoutContext,
 } from '../../../../app-state';
 import {
+  useCurrentDocumentId,
   useCurrentDocumentName,
   useNavigateToDocument,
 } from '../../../../hooks';
@@ -25,9 +27,9 @@ import { ActionsBar } from './ActionsBar';
 import { type DiffViewProps, ReadOnlyView } from './ReadOnlyView';
 
 export const DocumentHistoricalView = () => {
-  const { changeId, documentId, projectId } = useParams();
+  const { changeId, projectId } = useParams();
+  const documentId = useCurrentDocumentId();
   const {
-    versionedDocument,
     versionedDocumentHistory: commits,
     selectedCommitIndex,
     onSelectCommit,
@@ -73,12 +75,12 @@ export const DocumentHistoricalView = () => {
 
   useEffect(() => {
     const loadDocOrDiff = async (
-      document: VersionedDocument,
+      documentId: VersionControlId,
       commits: ChangeWithUrlInfo[],
       currentCommitIndex: number
     ) => {
       const currentCommitDoc = await getDocumentAtCommit({
-        document,
+        documentId,
         heads: commits[currentCommitIndex].heads,
       });
 
@@ -94,14 +96,16 @@ export const DocumentHistoricalView = () => {
 
         if (diffCommit) {
           const previousCommitDoc = await getDocumentAtCommit({
-            document,
+            documentId,
             heads: diffCommit.heads,
           });
-          const isContentBetweenCommitsDifferent = !isContentSameAtHeads({
-            document: currentCommitDoc,
-            heads1: diffCommit.heads,
-            heads2: commits[currentCommitIndex].heads,
-          });
+          const isContentBetweenCommitsDifferent = !(await isContentSameAtHeads(
+            {
+              documentId,
+              heads1: diffCommit.heads,
+              heads2: commits[currentCommitIndex].heads,
+            }
+          ));
 
           if (
             previousCommitDoc &&
@@ -123,21 +127,21 @@ export const DocumentHistoricalView = () => {
     };
 
     if (
-      versionedDocument &&
+      documentId &&
       commits.length > 0 &&
       selectedCommitIndex !== null &&
       selectedCommitIndex >= 0
     ) {
-      loadDocOrDiff(versionedDocument, commits, selectedCommitIndex);
+      loadDocOrDiff(documentId, commits, selectedCommitIndex);
     }
   }, [
-    getDocumentAtCommit,
-    versionedDocument,
+    documentId,
     commits,
     showDiffInHistoryView,
-    searchParams,
-    getDecodedDiffParam,
     selectedCommitIndex,
+    getDocumentAtCommit,
+    getDecodedDiffParam,
+    isContentSameAtHeads,
   ]);
 
   useEffect(() => {
@@ -196,11 +200,12 @@ export const DocumentHistoricalView = () => {
   };
 
   const handleEditClick = () => {
-    if (
-      isValidVersionControlId(projectId) &&
-      isValidVersionControlId(documentId)
-    ) {
-      navigateToDocument({ projectId, documentId, path: null });
+    if (isValidVersionControlId(projectId) && documentId) {
+      navigateToDocument({
+        projectId,
+        documentId,
+        path: null,
+      });
     }
   };
 

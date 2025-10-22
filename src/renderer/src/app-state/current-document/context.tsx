@@ -32,9 +32,10 @@ import {
   encodeURLHeadsForChange,
   headsAreSame,
   type UrlHeads,
+  VersionControlId,
 } from '../../../../modules/infrastructure/version-control';
-import { isValidVersionControlId } from '../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../modules/personalization/browser';
+import { useCurrentDocumentId } from '../../hooks/use-current-document-id';
 import {
   CurrentProjectContext,
   InfrastructureAdaptersContext,
@@ -45,6 +46,7 @@ import { createWorkerClient } from './history-worker/client';
 const useWebWorker = true;
 
 export type CurrentDocumentContextType = {
+  versionedDocumentId: VersionControlId | null;
   versionedDocumentHandle: VersionedDocumentHandle | null;
   versionedDocument: VersionedDocument | null;
   onDocumentContentChange: (doc: RichTextDocument) => Promise<void>;
@@ -59,7 +61,7 @@ export type CurrentDocumentContextType = {
   getDocumentAtCommit: (
     args: GetDocumentAtCommitArgs
   ) => Promise<VersionedDocument>;
-  isContentSameAtHeads: (args: IsContentSameAtHeadsArgs) => boolean;
+  isContentSameAtHeads: (args: IsContentSameAtHeadsArgs) => Promise<boolean>;
   getExportText: (
     representation: TextRichTextRepresentation
   ) => Promise<string>;
@@ -71,6 +73,7 @@ export type CurrentDocumentContextType = {
 
 export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
   {
+    versionedDocumentId: null,
     versionedDocumentHandle: null,
     versionedDocument: null,
     onDocumentContentChange: async () => {},
@@ -104,7 +107,8 @@ export const CurrentDocumentProvider = ({
     useState<VersionedDocumentHandle | null>(null);
   const [versionedDocument, setVersionedDocument] =
     useState<VersionedDocument | null>(null);
-  const { projectId, documentId } = useParams();
+  const { projectId } = useParams();
+  const documentId = useCurrentDocumentId();
   const [searchParams] = useSearchParams();
   const [versionedDocumentHistory, setVersionedDocumentHistory] = useState<
     ChangeWithUrlInfo[]
@@ -130,7 +134,7 @@ export const CurrentDocumentProvider = ({
     }: {
       versionedDocumentStore: VersionedDocumentStore;
     }) => {
-      if (!isValidVersionControlId(documentId)) {
+      if (!documentId) {
         clearFileSelection();
         setVersionedDocumentHandle(null);
         setVersionedDocument(null);
@@ -172,6 +176,9 @@ export const CurrentDocumentProvider = ({
       versionedDocumentStore.projectId === projectId
     ) {
       updateDocumentHandleAndSelectedFile({ versionedDocumentStore });
+    } else {
+      setVersionedDocumentHandle(null);
+      setVersionedDocument(null);
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -179,20 +186,25 @@ export const CurrentDocumentProvider = ({
 
   const checkIfContentChangedFromLastCommit =
     (documentStore: VersionedDocumentStore) =>
-    (
-      currentDoc: VersionedDocument,
+    async (
+      documentId: VersionControlId,
       latestChangeHeads: UrlHeads,
       lastCommitHeads: UrlHeads
     ) => {
-      if (
-        !headsAreSame(latestChangeHeads, lastCommitHeads) &&
-        !documentStore.isContentSameAtHeads({
-          document: currentDoc,
-          heads1: latestChangeHeads,
-          heads2: lastCommitHeads,
-        })
-      ) {
-        setCanCommit(true);
+      if (!headsAreSame(latestChangeHeads, lastCommitHeads)) {
+        const isContentSame = await Effect.runPromise(
+          documentStore.isContentSameAtHeads({
+            documentId,
+            heads1: latestChangeHeads,
+            heads2: lastCommitHeads,
+          })
+        );
+
+        if (!isContentSame) {
+          setCanCommit(true);
+        } else {
+          setCanCommit(false);
+        }
       } else {
         setCanCommit(false);
       }
@@ -200,19 +212,25 @@ export const CurrentDocumentProvider = ({
 
   const checkIfCanCommit =
     (documentStore: VersionedDocumentStore) =>
-    (
-      currentDoc: VersionedDocument,
-      latestChangeHeads: UrlHeads,
-      lastCommitHeads?: UrlHeads
-    ) => {
+    async ({
+      docId,
+      doc,
+      latestChangeHeads,
+      lastCommitHeads,
+    }: {
+      docId: VersionControlId;
+      doc: VersionedDocument;
+      latestChangeHeads: UrlHeads;
+      lastCommitHeads?: UrlHeads;
+    }) => {
       if (lastCommitHeads) {
-        checkIfContentChangedFromLastCommit(documentStore)(
-          currentDoc,
+        return checkIfContentChangedFromLastCommit(documentStore)(
+          docId,
           latestChangeHeads,
           lastCommitHeads
         );
       } else {
-        if (!isEmpty(currentDoc)) {
+        if (!isEmpty(doc)) {
           setCanCommit(true);
         } else {
           setCanCommit(false);
@@ -222,7 +240,13 @@ export const CurrentDocumentProvider = ({
 
   const loadHistory =
     (documentStore: VersionedDocumentStore) =>
-    async (doc: VersionedDocument) => {
+    async ({
+      docId,
+      doc,
+    }: {
+      docId: VersionControlId;
+      doc: VersionedDocument;
+    }) => {
       let historyInfo: ArtifactHistoryInfo<RichTextDocument>;
 
       if (useWebWorker && loadHistoryFromWorker) {
@@ -233,7 +257,7 @@ export const CurrentDocumentProvider = ({
         historyInfo = await loadHistoryFromWorker(documentData);
       } else {
         historyInfo = await Effect.runPromise(
-          documentStore.getDocumentHistory(doc)
+          documentStore.getDocumentHistory(docId)
         );
       }
 
@@ -244,32 +268,36 @@ export const CurrentDocumentProvider = ({
 
       setVersionedDocumentHistory(historyWithURLInfo);
       setLastCommit(lastCommit);
-      checkIfCanCommit(documentStore)(
+      await checkIfCanCommit(documentStore)({
+        docId,
         doc,
-        historyInfo.latestChange.heads,
-        lastCommit?.heads
-      );
+        latestChangeHeads: historyInfo.latestChange.heads,
+        lastCommitHeads: lastCommit?.heads,
+      });
     };
 
   useEffect(() => {
-    if (versionedDocumentStore && versionedDocument) {
-      loadHistory(versionedDocumentStore)(versionedDocument);
+    if (versionedDocumentStore && documentId && versionedDocument) {
+      loadHistory(versionedDocumentStore)({
+        doc: versionedDocument,
+        docId: documentId,
+      });
     }
   }, [versionedDocument]);
 
   const handleCommit = useCallback(
     async (message: string) => {
-      if (!versionedDocumentHandle || !versionedDocumentStore) return;
+      if (!documentId || !versionedDocumentStore) return;
       await Effect.runPromise(
         versionedDocumentStore.commitChanges({
-          documentHandle: versionedDocumentHandle,
+          documentId,
           message,
         })
       );
       setIsCommitDialogOpen(false);
       setCanCommit(false);
     },
-    [versionedDocumentHandle, versionedDocumentStore]
+    [documentId, versionedDocumentStore]
   );
 
   const handleOpenCommitDialog = useCallback(() => {
@@ -317,159 +345,216 @@ export const CurrentDocumentProvider = ({
 
   const handleGetDocumentAtCommit = useCallback(
     async (args: GetDocumentAtCommitArgs) => {
-      if (!versionedDocumentStore) {
-        throw new Error('Versioned document store not ready yet.');
+      if (
+        !versionedDocumentStore ||
+        versionedDocumentStore.projectId !== projectId
+      ) {
+        throw new Error(
+          'Versioned document store not ready yet or mismatched project.'
+        );
       }
 
       return Effect.runPromise(
         versionedDocumentStore.getDocumentAtCommit(args)
       );
     },
-    [versionedDocumentStore]
+    [versionedDocumentStore, projectId]
   );
 
   const handleIsContentSameAtHeads = useCallback(
     (args: IsContentSameAtHeadsArgs) => {
-      if (!versionedDocumentStore) {
-        throw new Error('Versioned document store not ready yet.');
+      if (
+        !versionedDocumentStore ||
+        versionedDocumentStore.projectId !== projectId
+      ) {
+        throw new Error(
+          'Versioned document store not ready yet or mismatched project.'
+        );
       }
 
-      return versionedDocumentStore.isContentSameAtHeads(args);
+      return Effect.runPromise(
+        versionedDocumentStore.isContentSameAtHeads(args)
+      );
     },
-    [versionedDocumentStore]
+    [versionedDocumentStore, projectId]
   );
 
-  const handleDocumentContentChange = async (doc: RichTextDocument) => {
-    if (!versionedDocumentStore) {
-      throw new Error('Versioned document store not ready yet.');
-    }
+  const handleDocumentContentChange = useCallback(
+    async (doc: RichTextDocument) => {
+      if (
+        !versionedDocumentStore ||
+        versionedDocumentStore.projectId !== projectId
+      ) {
+        throw new Error(
+          'Versioned document store not ready yet or mismatched project.'
+        );
+      }
 
-    if (!versionedDocumentHandle) {
-      throw new Error('Versioned document handle not ready yet.');
-    }
+      if (!documentId) {
+        throw new Error('Versioned document id not set yet.');
+      }
 
-    if (!versionedDocument) {
-      throw new Error('Versioned document not set yet.');
-    }
+      if (!versionedDocument) {
+        throw new Error('Versioned document not set yet.');
+      }
 
-    if (!representationTransformAdapter) {
-      throw new Error(
-        'No representation transform adapter found when trying to convert to Automerge'
+      if (!representationTransformAdapter) {
+        throw new Error(
+          'No representation transform adapter found when trying to convert to Automerge'
+        );
+      }
+
+      await Effect.runPromise(
+        processDocumentChange({
+          transformToText: representationTransformAdapter.transformToText,
+          updateRichTextDocumentContent:
+            versionedDocumentStore.updateRichTextDocumentContent,
+          writeFile: filesystem.writeFile,
+        })({
+          documentId,
+          updatedDocument: doc,
+          filePath: selectedFileInfo?.path ?? null,
+          projectType,
+        })
       );
-    }
 
-    await Effect.runPromise(
-      processDocumentChange({
-        transformToText: representationTransformAdapter.transformToText,
-        updateRichTextDocumentContent:
-          versionedDocumentStore.updateRichTextDocumentContent,
-        writeFile: filesystem.writeFile,
-      })({
-        document: doc,
-        documentHandle: versionedDocumentHandle,
-        filePath: selectedFileInfo?.path ?? null,
-        projectType,
-      })
-    );
+      loadHistory(versionedDocumentStore)({
+        docId: documentId,
+        doc: versionedDocument,
+      });
 
-    loadHistory(versionedDocumentStore)(versionedDocument);
-    checkIfCanCommit(versionedDocumentStore)(
+      const latestChangeHeads = await Effect.runPromise(
+        versionedDocumentStore.getDocumentHeads(documentId)
+      );
+
+      await checkIfCanCommit(versionedDocumentStore)({
+        docId: documentId,
+        doc: versionedDocument,
+        latestChangeHeads,
+        lastCommitHeads: lastCommit?.heads,
+      });
+    },
+    [
+      versionedDocumentStore,
+      projectId,
+      documentId,
+      representationTransformAdapter,
+      filesystem,
+      selectedFileInfo,
+      projectType,
       versionedDocument,
-      Effect.runSync(
-        versionedDocumentStore.getDocumentHeads(versionedDocument)
-      ),
-      lastCommit?.heads
-    );
-  };
+      lastCommit,
+    ]
+  );
 
-  const exportToTextRepresentation = async (
-    representation: TextRichTextRepresentation
-  ) => {
-    if (!versionedDocumentStore) {
-      throw new Error('Versioned document store not ready yet.');
-    }
+  const exportToTextRepresentation = useCallback(
+    async (representation: TextRichTextRepresentation) => {
+      if (
+        !versionedDocumentStore ||
+        versionedDocumentStore.projectId !== projectId
+      ) {
+        throw new Error(
+          'Versioned document store not ready yet or mismatched project.'
+        );
+      }
 
-    if (!representationTransformAdapter) {
-      throw new Error(
-        'No representation transform adapter found when trying to convert to Markdown'
+      if (!representationTransformAdapter) {
+        throw new Error(
+          'No representation transform adapter found when trying to convert to Markdown'
+        );
+      }
+
+      if (!versionedDocument) {
+        throw new Error(
+          'Document ID not set when trying to export to Markdown'
+        );
+      }
+
+      const documentContent = await Effect.runPromise(
+        versionedDocumentStore.getRichTextDocumentContent(versionedDocument)
       );
-    }
 
-    if (!versionedDocumentHandle) {
-      throw new Error(
-        'No versioned document handle found when trying to export to Markdown'
+      const str = await representationTransformAdapter.transformToText({
+        from: richTextRepresentations.AUTOMERGE,
+        to: representation,
+        input: documentContent,
+      });
+
+      return str;
+    },
+    [
+      versionedDocumentStore,
+      projectId,
+      representationTransformAdapter,
+      versionedDocument,
+    ]
+  );
+
+  const exportToBinaryRepresentation = useCallback(
+    async (representation: BinaryRichTextRepresentation) => {
+      if (
+        !versionedDocumentStore ||
+        versionedDocumentStore.projectId !== projectId
+      ) {
+        throw new Error(
+          'Versioned document store not ready yet or mismatched project.'
+        );
+      }
+
+      if (!representationTransformAdapter) {
+        throw new Error(
+          'No representation transform adapter found when trying to convert to Markdown'
+        );
+      }
+
+      if (!versionedDocument) {
+        throw new Error(
+          'Document ID not set when trying to export to Markdown'
+        );
+      }
+
+      const documentContent = await Effect.runPromise(
+        versionedDocumentStore.getRichTextDocumentContent(versionedDocument)
       );
-    }
 
-    const document = await Effect.runPromise(
-      versionedDocumentStore.getDocumentFromHandle(versionedDocumentHandle)
-    );
+      const str = await representationTransformAdapter.transformToBinary({
+        from: richTextRepresentations.AUTOMERGE,
+        to: representation,
+        input: documentContent,
+      });
 
-    const documentContent = await Effect.runPromise(
-      versionedDocumentStore.getRichTextDocumentContent(document)
-    );
-
-    const str = await representationTransformAdapter.transformToText({
-      from: richTextRepresentations.AUTOMERGE,
-      to: representation,
-      input: documentContent,
-    });
-
-    return str;
-  };
-
-  const exportToBinaryRepresentation = async (
-    representation: BinaryRichTextRepresentation
-  ) => {
-    if (!versionedDocumentStore) {
-      throw new Error('Versioned document store not ready yet.');
-    }
-
-    if (!representationTransformAdapter) {
-      throw new Error(
-        'No representation transform adapter found when trying to convert to Markdown'
-      );
-    }
-
-    if (!versionedDocumentHandle) {
-      throw new Error(
-        'No versioned document handle found when trying to export to Markdown'
-      );
-    }
-
-    const document = await Effect.runPromise(
-      versionedDocumentStore.getDocumentFromHandle(versionedDocumentHandle)
-    );
-
-    const documentContent = await Effect.runPromise(
-      versionedDocumentStore.getRichTextDocumentContent(document)
-    );
-
-    const str = await representationTransformAdapter.transformToBinary({
-      from: richTextRepresentations.AUTOMERGE,
-      to: representation,
-      input: documentContent,
-    });
-
-    return str;
-  };
+      return str;
+    },
+    [
+      versionedDocumentStore,
+      projectId,
+      representationTransformAdapter,
+      versionedDocument,
+    ]
+  );
 
   const handleGetDocumentRichTextContent = useCallback(
     async (document: VersionedDocument) => {
-      if (!versionedDocumentStore) {
-        throw new Error('Versioned document store not ready yet.');
+      if (
+        !versionedDocumentStore ||
+        versionedDocumentStore.projectId !== projectId
+      ) {
+        throw new Error(
+          'Versioned document store not ready yet or mismatched project.'
+        );
       }
 
       return Effect.runPromise(
         versionedDocumentStore.getRichTextDocumentContent(document)
       );
     },
-    [versionedDocumentStore]
+    [versionedDocumentStore, projectId]
   );
 
   return (
     <CurrentDocumentContext.Provider
       value={{
+        versionedDocumentId: documentId,
         versionedDocumentHandle,
         versionedDocument,
         onDocumentContentChange: handleDocumentContentChange,

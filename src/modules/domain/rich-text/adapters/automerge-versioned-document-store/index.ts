@@ -15,6 +15,7 @@ import {
   isArtifactContentSameAtHeads,
   migrateIfNeeded,
   MigrationError,
+  type VersionControlId,
   versionedArtifactTypes,
 } from '../../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../../utils/errors';
@@ -89,11 +90,14 @@ export const createAdapter = (
       );
 
   const getDocumentAtCommit: VersionedDocumentStore['getDocumentAtCommit'] = ({
-    document,
+    documentId,
     heads,
   }) =>
     pipe(
-      getArtifactAtCommit({ artifact: document, heads }),
+      findDocumentById(documentId),
+      Effect.flatMap((document) =>
+        getArtifactAtCommit({ artifact: document, heads })
+      ),
       Effect.catchTag('VersionControlRepositoryError', (err) =>
         Effect.fail(new RepositoryError(err.message))
       )
@@ -150,43 +154,48 @@ export const createAdapter = (
         : Effect.succeed(document.content);
 
   const updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'] =
-    ({ documentHandle, representation, content }) =>
-      representation === richTextRepresentations.AUTOMERGE
-        ? Effect.try({
-            try: () => {
-              const newSpans = JSON.parse(
-                content
-              ) as Array<RichTextDocumentSpan>;
+    ({ documentId, representation, content }) =>
+      pipe(
+        findDocumentHandleById(documentId),
+        Effect.flatMap((documentHandle) =>
+          representation === richTextRepresentations.AUTOMERGE
+            ? Effect.try({
+                try: () => {
+                  const newSpans = JSON.parse(
+                    content
+                  ) as Array<RichTextDocumentSpan>;
 
-              return documentHandle.change((doc) => {
-                Automerge.updateSpans(
-                  doc,
-                  ['content'],
-                  newSpans.map((span) =>
-                    span.type === 'block'
-                      ? // Manually create the raw string for block types
-                        {
-                          ...span,
-                          value: {
-                            ...span.value,
-                            type: new RawString(span.value.type as string),
-                          },
-                        }
-                      : // Inline span as-is
-                        span
-                  )
-                );
-              });
-            },
-            catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
-          })
-        : Effect.try({
-            try: () =>
-              documentHandle.change((doc) => {
-                doc.content = content;
-              }),
-            catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
-          });
+                  return documentHandle.change((doc) => {
+                    Automerge.updateSpans(
+                      doc,
+                      ['content'],
+                      newSpans.map((span) =>
+                        span.type === 'block'
+                          ? // Manually create the raw string for block types
+                            {
+                              ...span,
+                              value: {
+                                ...span.value,
+                                type: new RawString(span.value.type as string),
+                              },
+                            }
+                          : // Inline span as-is
+                            span
+                      )
+                    );
+                  });
+                },
+                catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+              })
+            : Effect.try({
+                try: () =>
+                  documentHandle.change((doc) => {
+                    doc.content = content;
+                  }),
+                catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+              })
+        )
+      );
 
   const deleteDocument: VersionedDocumentStore['deleteDocument'] = (
     documentId
@@ -202,20 +211,30 @@ export const createAdapter = (
     );
 
   const getDocumentHeads: VersionedDocumentStore['getDocumentHeads'] = (
-    document
+    documentId
   ) =>
-    Effect.try({
-      try: () => getArtifactHeads<RichTextDocument>(document),
-      catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
-    });
+    pipe(
+      findDocumentById(documentId),
+      Effect.flatMap((document) =>
+        Effect.try({
+          try: () => getArtifactHeads<RichTextDocument>(document),
+          catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+        })
+      )
+    );
 
   const getDocumentHistory: VersionedDocumentStore['getDocumentHistory'] = (
-    document: VersionedDocument
+    documentId: VersionControlId
   ) =>
-    Effect.tryPromise({
-      try: () => getArtifactHistory<RichTextDocument>(document),
-      catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
-    });
+    pipe(
+      findDocumentById(documentId),
+      Effect.flatMap((document) =>
+        Effect.tryPromise({
+          try: () => getArtifactHistory<RichTextDocument>(document),
+          catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+        })
+      )
+    );
 
   const getDocumentHandleHistory: VersionedDocumentStore['getDocumentHandleHistory'] =
     (handle: VersionedDocumentHandle) =>
@@ -225,30 +244,44 @@ export const createAdapter = (
       });
 
   const isContentSameAtHeads: VersionedDocumentStore['isContentSameAtHeads'] =
-    ({ document, heads1, heads2 }) =>
-      isArtifactContentSameAtHeads<RichTextDocument>(document, heads1, heads2);
+    ({ documentId, heads1, heads2 }) =>
+      pipe(
+        findDocumentById(documentId),
+        Effect.map((document) =>
+          isArtifactContentSameAtHeads<RichTextDocument>(
+            document,
+            heads1,
+            heads2
+          )
+        )
+      );
 
   const commitChanges: VersionedDocumentStore['commitChanges'] = ({
-    documentHandle,
+    documentId,
     message,
   }) =>
-    Effect.try({
-      try: () =>
-        documentHandle.change(
-          (doc) => {
-            // this is effectively a no-op, but it triggers a change event
-            // (not) changing the title of the document, as interfering with the
-            // content outside the Prosemirror API will cause loss of formatting
-            // eslint-disable-next-line no-self-assign
-            doc.type = doc.type;
-          },
-          {
-            message,
-            time: new Date().getTime(),
-          }
-        ),
-      catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
-    });
+    pipe(
+      findDocumentHandleById(documentId),
+      Effect.flatMap((documentHandle) =>
+        Effect.try({
+          try: () =>
+            documentHandle.change(
+              (doc) => {
+                // this is effectively a no-op, but it triggers a change event
+                // (not) changing the title of the document, as interfering with the
+                // content outside the Prosemirror API will cause loss of formatting
+                // eslint-disable-next-line no-self-assign
+                doc.type = doc.type;
+              },
+              {
+                message,
+                time: new Date().getTime(),
+              }
+            ),
+          catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+        })
+      )
+    );
 
   const exportDocumentToBinary: VersionedDocumentStore['exportDocumentToBinary'] =
     (document) =>
