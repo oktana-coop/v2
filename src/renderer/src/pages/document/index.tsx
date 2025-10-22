@@ -10,6 +10,7 @@ import {
   CurrentDocumentProvider,
   CurrentProjectContext,
   CurrentProjectProvider,
+  InfrastructureAdaptersContext,
   SidebarLayoutProvider,
 } from '../../app-state';
 import { Layout } from '../../components/layout/Layout';

@@ -2,7 +2,8 @@ import { useContext } from 'react';
 import { Outlet } from 'react-router';
 
 import { CurrentDocumentContext } from '../../../app-state';
-import { useCurrentDocumentId } from '../../../hooks';
+import { LoadingText } from '../../../components/progress/LoadingText';
+import { useCurrentDocumentId, useLoadingProject } from '../../../hooks';
 import { EmptyDocumentPage } from './empty';
 
 export type DocumentMainViewRouterProps = {
@@ -18,6 +19,7 @@ export const DocumentMainViewRouter = ({
 }: DocumentMainViewRouterProps) => {
   const documentId = useCurrentDocumentId();
   const { versionedDocument } = useContext(CurrentDocumentContext);
+  const loading = useLoadingProject();
 
   if (!documentId) {
     return (
@@ -29,12 +31,8 @@ export const DocumentMainViewRouter = ({
     );
   }
 
-  if (!versionedDocument) {
-    return (
-      <div className="flex h-full w-full items-center justify-center text-center">
-        Loading...
-      </div>
-    );
+  if (loading || !versionedDocument) {
+    return <LoadingText />;
   }
 
   // Render nested routes

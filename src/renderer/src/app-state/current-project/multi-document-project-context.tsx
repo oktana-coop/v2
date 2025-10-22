@@ -40,6 +40,7 @@ export type SelectedFileInfo = {
 };
 
 export type MultiDocumentProjectContextType = {
+  loading: boolean;
   projectId: VersionControlId | null;
   directory: Directory | null;
   directoryFiles: Array<File>;
@@ -62,6 +63,7 @@ export type MultiDocumentProjectContextType = {
 
 export const MultiDocumentProjectContext =
   createContext<MultiDocumentProjectContextType>({
+    loading: false,
     projectId: null,
     directory: null,
     directoryFiles: [],
@@ -91,6 +93,7 @@ export const MultiDocumentProjectProvider = ({
     multiDocumentProjectStoreManager,
     setVersionedDocumentStore,
   } = useContext(InfrastructureAdaptersContext);
+  const [loading, setLoading] = useState<boolean>(false);
   const [projectId, setProjectId] = useState<VersionControlId | null>(null);
   const [directory, setDirectory] = useState<Directory | null>(null);
   const [directoryFiles, setDirectoryFiles] = useState<Array<File>>([]);
@@ -116,6 +119,8 @@ export const MultiDocumentProjectProvider = ({
         browserStorageProjectData?.directoryPath &&
         browserStorageProjectData?.projectId
       ) {
+        setLoading(true);
+
         const {
           versionedDocumentStore: documentStore,
           versionedProjectStore: projectStore,
@@ -135,6 +140,8 @@ export const MultiDocumentProjectProvider = ({
         setDirectory(directory);
         setVersionedProjectStore(projectStore);
         setVersionedDocumentStore(documentStore);
+
+        setLoading(false);
       }
     };
 
@@ -175,6 +182,8 @@ export const MultiDocumentProjectProvider = ({
   };
 
   const handleOpenDirectory = async () => {
+    setLoading(true);
+
     const {
       versionedDocumentStore: documentStore,
       versionedProjectStore: projectStore,
@@ -204,6 +213,8 @@ export const MultiDocumentProjectProvider = ({
         projectId: projId,
       })
     );
+
+    setLoading(false);
 
     return dir;
   };
@@ -296,6 +307,7 @@ export const MultiDocumentProjectProvider = ({
   return (
     <MultiDocumentProjectContext.Provider
       value={{
+        loading,
         projectId,
         directory,
         directoryFiles,

@@ -3,6 +3,7 @@ export * from './use-current-document-id';
 export * from './use-current-document-name';
 export * from './use-document-list';
 export * from './use-key-bindings';
+export * from './use-loading-project';
 export * from './use-navigate-to-document';
 export * from './use-export';
 export * from './use-clear-web-storage';

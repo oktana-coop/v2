@@ -1,9 +1,14 @@
+import { useContext } from 'react';
+
 import {
   type Commit,
   type UncommitedChange,
 } from '../../../../../../modules/infrastructure/version-control';
+import { CurrentDocumentContext } from '../../../../app-state';
 import { CommitHistoryIcon } from '../../../../components/icons';
+import { LoadingText } from '../../../../components/progress/LoadingText';
 import { SidebarHeading } from '../../../../components/sidebar/SidebarHeading';
+import { useLoadingProject } from '../../../../hooks';
 import { ChangeLog } from './ChangeLog';
 import { EmptyView } from './EmptyView';
 
@@ -18,6 +23,13 @@ export const DocumentHistory = ({
   onCommitClick,
   selectedCommit,
 }: DocumentHistoryPanelProps) => {
+  const loadingProject = useLoadingProject();
+  const { loadingHistory } = useContext(CurrentDocumentContext);
+
+  if (loadingProject || loadingHistory) {
+    return <LoadingText />;
+  }
+
   return (
     <div className="flex h-full flex-col items-stretch py-6">
       <div className="flex items-center px-4 pb-4">

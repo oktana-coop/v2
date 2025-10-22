@@ -50,6 +50,7 @@ export type CurrentDocumentContextType = {
   versionedDocumentHandle: VersionedDocumentHandle | null;
   versionedDocument: VersionedDocument | null;
   onDocumentContentChange: (doc: RichTextDocument) => Promise<void>;
+  loadingHistory: boolean;
   versionedDocumentHistory: ChangeWithUrlInfo[];
   canCommit: boolean;
   onCommit: (message: string) => Promise<void>;
@@ -77,6 +78,7 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     versionedDocumentHandle: null,
     versionedDocument: null,
     onDocumentContentChange: async () => {},
+    loadingHistory: false,
     versionedDocumentHistory: [],
     canCommit: false,
     onCommit: async () => {},
@@ -110,6 +112,7 @@ export const CurrentDocumentProvider = ({
   const { projectId } = useParams();
   const documentId = useCurrentDocumentId();
   const [searchParams] = useSearchParams();
+  const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
   const [versionedDocumentHistory, setVersionedDocumentHistory] = useState<
     ChangeWithUrlInfo[]
   >([]);
@@ -149,6 +152,7 @@ export const CurrentDocumentProvider = ({
 
         setVersionedDocumentHandle(documentHandle);
         setVersionedDocument(document);
+        setLoadingHistory(true);
 
         if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
           const pathParam = searchParams.get('path');
@@ -268,6 +272,7 @@ export const CurrentDocumentProvider = ({
 
       setVersionedDocumentHistory(historyWithURLInfo);
       setLastCommit(lastCommit);
+      setLoadingHistory(false);
       await checkIfCanCommit(documentStore)({
         docId,
         doc,
@@ -558,6 +563,7 @@ export const CurrentDocumentProvider = ({
         versionedDocumentHandle,
         versionedDocument,
         onDocumentContentChange: handleDocumentContentChange,
+        loadingHistory,
         versionedDocumentHistory,
         canCommit,
         onCommit: handleCommit,

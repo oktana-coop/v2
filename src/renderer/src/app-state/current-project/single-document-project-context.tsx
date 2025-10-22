@@ -23,6 +23,7 @@ export type BrowserStorageProjectData = {
 export const BROWSER_STORAGE_PROJECT_DATA_KEY = 'single-document-project';
 
 export type SingleDocumentProjectContextType = {
+  loading: boolean;
   projectId: VersionControlId | null;
   documentId: VersionControlId | null;
   projectFile: File | null;
@@ -45,6 +46,7 @@ export type SingleDocumentProjectContextType = {
 
 export const SingleDocumentProjectContext =
   createContext<SingleDocumentProjectContextType>({
+    loading: false,
     projectId: null,
     projectFile: null,
     projectName: null,
@@ -80,6 +82,7 @@ export const SingleDocumentProjectProvider = ({
     singleDocumentProjectStoreManager,
     setVersionedDocumentStore,
   } = useContext(InfrastructureAdaptersContext);
+  const [loading, setLoading] = useState<boolean>(false);
   const [projectId, setProjectId] = useState<VersionControlId | null>(null);
   const [documentId, setDocumentId] = useState<VersionControlId | null>(null);
   const [projectFile, setProjectFile] = useState<File | null>(null);
@@ -111,6 +114,7 @@ export const SingleDocumentProjectProvider = ({
   useEffect(() => {
     const openAndSelectFileFromOsEvent = async (file: File) => {
       const openedDocument = await handleOpenDocument({ fromFile: file });
+      setLoading(false);
       navigate(
         `/projects/${openedDocument.projectId}/documents/${openedDocument.documentId}`
       );
@@ -124,6 +128,7 @@ export const SingleDocumentProjectProvider = ({
   }, [fileToBeOpened]);
 
   const openRecentProjectFromBrowserStorage = async () => {
+    setLoading(true);
     // Check if we have a project ID in the browser storage
     const browserStorageBrowserDataValue = localStorage.getItem(
       BROWSER_STORAGE_PROJECT_DATA_KEY
@@ -161,6 +166,8 @@ export const SingleDocumentProjectProvider = ({
         `/projects/${browserStorageProjectData.projectId}/documents/${docId}`
       );
     }
+
+    setLoading(false);
   };
 
   const handleCreateNewDocument = async (name?: string) => {
@@ -217,6 +224,8 @@ export const SingleDocumentProjectProvider = ({
         return { projectId, documentId, path: projectFile?.path ?? null };
       }
 
+      setLoading(true);
+
       if (versionedProjectStore) {
         await Effect.runPromise(versionedProjectStore.disconnect());
 
@@ -258,6 +267,8 @@ export const SingleDocumentProjectProvider = ({
         JSON.stringify(browserStorageProjectData)
       );
 
+      setLoading(false);
+
       return { projectId: projId, documentId: docId, path: file?.path ?? null };
     },
     [projectIdInPath]
@@ -266,6 +277,7 @@ export const SingleDocumentProjectProvider = ({
   return (
     <SingleDocumentProjectContext.Provider
       value={{
+        loading,
         projectId,
         documentId,
         projectFile,
