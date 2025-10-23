@@ -231,7 +231,6 @@ const openExistingProject = ({
   getDocumentFromHandle,
   createDocument,
   deleteDocument,
-  getRichTextDocumentContent,
   updateRichTextDocumentContent,
   listProjectDocuments,
   findDocumentInProject,
@@ -246,7 +245,6 @@ const openExistingProject = ({
   getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
   createDocument: VersionedDocumentStore['createDocument'];
   deleteDocument: VersionedDocumentStore['deleteDocument'];
-  getRichTextDocumentContent: VersionedDocumentStore['getRichTextDocumentContent'];
   updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'];
   listProjectDocuments: MultiDocumentProjectStore['listProjectDocuments'];
   findDocumentInProject: MultiDocumentProjectStore['findDocumentInProject'];
@@ -281,7 +279,6 @@ const openExistingProject = ({
         getDocumentFromHandle,
         createDocument,
         deleteDocument,
-        getRichTextDocumentContent,
         updateRichTextDocumentContent,
         listProjectDocuments,
         findDocumentInProject,
@@ -300,7 +297,6 @@ const validateIdAndOpenProject = ({
   getDocumentFromHandle,
   createDocument,
   deleteDocument,
-  getRichTextDocumentContent,
   updateRichTextDocumentContent,
   listProjectDocuments,
   findDocumentInProject,
@@ -316,7 +312,6 @@ const validateIdAndOpenProject = ({
   getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
   createDocument: VersionedDocumentStore['createDocument'];
   deleteDocument: VersionedDocumentStore['deleteDocument'];
-  getRichTextDocumentContent: VersionedDocumentStore['getRichTextDocumentContent'];
   updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'];
   listProjectDocuments: MultiDocumentProjectStore['listProjectDocuments'];
   findDocumentInProject: MultiDocumentProjectStore['findDocumentInProject'];
@@ -360,7 +355,6 @@ const validateIdAndOpenProject = ({
         getDocumentFromHandle,
         createDocument,
         deleteDocument,
-        getRichTextDocumentContent,
         updateRichTextDocumentContent,
         listProjectDocuments,
         findDocumentInProject,
@@ -408,8 +402,6 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                     versionedDocumentStore.getDocumentFromHandle,
                   createDocument: versionedDocumentStore.createDocument,
                   deleteDocument: versionedDocumentStore.deleteDocument,
-                  getRichTextDocumentContent:
-                    versionedDocumentStore.getRichTextDocumentContent,
                   updateRichTextDocumentContent:
                     versionedDocumentStore.updateRichTextDocumentContent,
                   listProjectDocuments:
@@ -493,8 +485,6 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                           versionedDocumentStore.getDocumentFromHandle,
                         createDocument: versionedDocumentStore.createDocument,
                         deleteDocument: versionedDocumentStore.deleteDocument,
-                        getRichTextDocumentContent:
-                          versionedDocumentStore.getRichTextDocumentContent,
                         updateRichTextDocumentContent:
                           versionedDocumentStore.updateRichTextDocumentContent,
                         listProjectDocuments:

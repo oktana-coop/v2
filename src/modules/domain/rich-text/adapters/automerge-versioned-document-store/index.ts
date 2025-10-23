@@ -27,10 +27,7 @@ import {
   type VersionedDocument,
   type VersionedDocumentHandle,
 } from '../../models';
-import {
-  getSpansString,
-  type RichTextDocumentSpan,
-} from '../../models/document/automerge';
+import { type RichTextDocumentSpan } from '../../models/document/automerge';
 import { VersionedDocumentStore } from '../../ports/versioned-document-store';
 import { migrations } from './migrations';
 
@@ -140,18 +137,6 @@ export const createAdapter = (
           )
         )
       );
-
-  const getRichTextDocumentContent: VersionedDocumentStore['getRichTextDocumentContent'] =
-    (document) =>
-      document.representation === richTextRepresentations.AUTOMERGE ||
-      // There are some old document versions without the representataion set. So the TS type is not completely accurate for all historical versions of a document.
-      // But we should be able to remove this check really soon (don't expect many people to have v2 versions < 0.6.6)
-      !document.representation
-        ? Effect.try({
-            try: () => getSpansString(document),
-            catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
-          })
-        : Effect.succeed(document.content);
 
   const updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'] =
     ({ documentId, representation, content }) =>
@@ -321,7 +306,6 @@ export const createAdapter = (
     getDocumentAtCommit,
     findDocumentById,
     findDocumentHandleById,
-    getRichTextDocumentContent,
     updateRichTextDocumentContent,
     getDocumentFromHandle,
     deleteDocument,

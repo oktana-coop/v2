@@ -12,6 +12,7 @@ import { projectTypes } from '../../../../modules/domain/project';
 import {
   type BinaryRichTextRepresentation,
   type GetDocumentAtCommitArgs,
+  getDocumentRichTextContent,
   type IsContentSameAtHeadsArgs,
   isEmpty,
   processDocumentChange,
@@ -69,7 +70,6 @@ export type CurrentDocumentContextType = {
   getExportBinaryData: (
     representation: BinaryRichTextRepresentation
   ) => Promise<Uint8Array>;
-  getDocumentRichTextContent: (document: VersionedDocument) => Promise<string>;
 };
 
 export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
@@ -92,7 +92,6 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     getExportText: async () => '',
     // @ts-expect-error will get overriden below
     getExportBinaryData: async () => null,
-    getDocumentRichTextContent: async () => '',
   }
 );
 
@@ -475,9 +474,7 @@ export const CurrentDocumentProvider = ({
         );
       }
 
-      const documentContent = await Effect.runPromise(
-        versionedDocumentStore.getRichTextDocumentContent(versionedDocument)
-      );
+      const documentContent = getDocumentRichTextContent(versionedDocument);
 
       const str = await representationTransformAdapter.transformToText({
         from: richTextRepresentations.AUTOMERGE,
@@ -518,9 +515,7 @@ export const CurrentDocumentProvider = ({
         );
       }
 
-      const documentContent = await Effect.runPromise(
-        versionedDocumentStore.getRichTextDocumentContent(versionedDocument)
-      );
+      const documentContent = getDocumentRichTextContent(versionedDocument);
 
       const str = await representationTransformAdapter.transformToBinary({
         from: richTextRepresentations.AUTOMERGE,
@@ -536,24 +531,6 @@ export const CurrentDocumentProvider = ({
       representationTransformAdapter,
       versionedDocument,
     ]
-  );
-
-  const handleGetDocumentRichTextContent = useCallback(
-    async (document: VersionedDocument) => {
-      if (
-        !versionedDocumentStore ||
-        versionedDocumentStore.projectId !== projectId
-      ) {
-        throw new Error(
-          'Versioned document store not ready yet or mismatched project.'
-        );
-      }
-
-      return Effect.runPromise(
-        versionedDocumentStore.getRichTextDocumentContent(document)
-      );
-    },
-    [versionedDocumentStore, projectId]
   );
 
   return (
@@ -576,7 +553,6 @@ export const CurrentDocumentProvider = ({
         isContentSameAtHeads: handleIsContentSameAtHeads,
         getExportText: exportToTextRepresentation,
         getExportBinaryData: exportToBinaryRepresentation,
-        getDocumentRichTextContent: handleGetDocumentRichTextContent,
       }}
     >
       {children}

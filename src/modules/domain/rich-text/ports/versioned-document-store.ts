@@ -81,9 +81,6 @@ export type VersionedDocumentStore = {
     RepositoryError | NotFoundError | MigrationError,
     never
   >;
-  getRichTextDocumentContent: (
-    document: VersionedDocument
-  ) => Effect.Effect<string, RepositoryError | NotFoundError, never>;
   updateRichTextDocumentContent: (
     args: UpdateRichTextDocumentContentArgs
   ) => Effect.Effect<

@@ -3,13 +3,13 @@ import { EditorView } from 'prosemirror-view';
 import { useContext, useEffect, useRef } from 'react';
 
 import {
+  getDocumentRichTextContent,
   prosemirror,
   type RichTextDocument,
   richTextRepresentations,
 } from '../../../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform';
-import { CurrentDocumentContext } from '../../../../app-state';
 import {
   diffDelete,
   diffInsert,
@@ -55,7 +55,6 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
     convertToProseMirror,
     representationTransformAdapterReady,
   } = useContext(ProseMirrorContext);
-  const { getDocumentRichTextContent } = useContext(CurrentDocumentContext);
 
   // This effect is used to create the ProseMirror view once.
   // Then, every time the document or diff changes, we update the state of the view.
@@ -85,8 +84,8 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
     const produceAndShowDiff = async () => {
       if (!viewRef.current || !isDiffViewProps(props)) return;
 
-      const contentBefore = await getDocumentRichTextContent(props.docBefore);
-      const contentAfter = await getDocumentRichTextContent(props.docAfter);
+      const contentBefore = getDocumentRichTextContent(props.docBefore);
+      const contentAfter = getDocumentRichTextContent(props.docAfter);
 
       const { pmDocAfter: pmDoc, decorations } = await proseMirrorDiff({
         representation: richTextRepresentations.AUTOMERGE,
@@ -132,7 +131,7 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
     const versionedDocToProseMirror = async () => {
       if (!viewRef.current || !isSingleDocViewProps(props)) return;
 
-      const richTextContent = await getDocumentRichTextContent(props.doc);
+      const richTextContent = getDocumentRichTextContent(props.doc);
 
       const pmDoc = await convertToProseMirror({
         schema: schema,

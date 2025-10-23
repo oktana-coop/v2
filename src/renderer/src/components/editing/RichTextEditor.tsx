@@ -15,6 +15,7 @@ import {
   type BlockType,
   blockTypes,
   type ContainerBlockType,
+  getDocumentRichTextContent,
   getHeadingLevel,
   type LeafBlockType,
   LinkAttrs,
@@ -24,7 +25,6 @@ import {
   type VersionedDocumentHandle,
 } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
-import { CurrentDocumentContext } from '../../app-state';
 import { EditorToolbar } from './editor-toolbar';
 import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';
@@ -83,7 +83,6 @@ export const RichTextEditor = ({
 }: RichTextEditorProps) => {
   const editorRoot = useRef<HTMLDivElement>(null);
   const editorViewRef = useRef<EditorView | null>(null);
-  const { getDocumentRichTextContent } = useContext(CurrentDocumentContext);
   const { view, setView, parseMarkdown, convertToProseMirror } =
     useContext(ProseMirrorContext);
   const [leafBlockType, setLeafBlockType] = useState<LeafBlockType | null>(
@@ -176,7 +175,7 @@ export const RichTextEditor = ({
         );
       }
 
-      const richTextContent = await getDocumentRichTextContent(doc);
+      const richTextContent = getDocumentRichTextContent(doc);
 
       const pmDoc =
         doc.representation !== richTextRepresentations.PROSEMIRROR

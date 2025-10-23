@@ -1,7 +1,7 @@
 import * as Automerge from '@automerge/automerge/slim';
 
 import { sortKeysAndStrinfigy } from '../../../../../utils/object';
-import { type VersionedDocument } from '../document';
+import { type VersionedDocument } from './types';
 
 export type RichTextDocumentSpan = Automerge.Span;
 

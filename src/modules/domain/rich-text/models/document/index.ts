@@ -1,23 +1,20 @@
-import {
-  type VersionedArtifact,
-  type VersionedArtifactHandle,
-  versionedArtifactTypes,
-} from '../../../../../modules/infrastructure/version-control';
-import { type TextRichTextRepresentation } from '../../constants';
-
-export const CURRENT_SCHEMA_VERSION = 1;
-
-export type RichTextDocument = {
-  type: typeof versionedArtifactTypes.RICH_TEXT_DOCUMENT;
-  schemaVersion: number;
-  representation: TextRichTextRepresentation;
-  content: string;
-};
-
-export type VersionedDocument = VersionedArtifact<RichTextDocument>;
-
-export type VersionedDocumentHandle = VersionedArtifactHandle<RichTextDocument>;
+import { richTextRepresentations } from '../../constants';
+import { getSpansString } from './automerge';
+import { type RichTextDocument, type VersionedDocument } from './types';
 
 export const isEmpty = (document: VersionedDocument): boolean => {
   return document.content === '';
 };
+
+export const getDocumentRichTextContent = (
+  document: RichTextDocument
+): string => {
+  return document.representation === richTextRepresentations.AUTOMERGE ||
+    // There are some old document versions without the representataion set. So the TS type is not completely accurate for all historical versions of a document.
+    // But we should be able to remove this check really soon (don't expect many people to have v2 versions < 0.6.6)
+    !document.representation
+    ? getSpansString(document)
+    : document.content;
+};
+
+export * from './types';
