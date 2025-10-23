@@ -9,6 +9,9 @@ export const useOpenDocument = () => {
 
   return async () => {
     const { projectId, documentId, path } = await openDocument();
-    navigateToDocument({ projectId, documentId, path });
+
+    if (projectId && documentId) {
+      navigateToDocument({ projectId, documentId, path });
+    }
   };
 };

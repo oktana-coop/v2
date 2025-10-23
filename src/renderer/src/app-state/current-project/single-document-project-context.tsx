@@ -38,8 +38,8 @@ export type SingleDocumentProjectContextType = {
     fromFile?: File;
     projectId?: VersionControlId;
   }) => Promise<{
-    projectId: VersionControlId;
-    documentId: VersionControlId;
+    projectId: VersionControlId | null;
+    documentId: VersionControlId | null;
     path: string | null;
   }>;
 };
@@ -212,10 +212,15 @@ export const SingleDocumentProjectProvider = ({
   };
 
   const handleOpenDocument = useCallback(
-    async (args?: { fromFile?: File; projectId?: VersionControlId }) => {
+    async (args?: {
+      fromFile?: File;
+      projectId?: VersionControlId;
+      forceOpen?: boolean;
+    }) => {
       try {
         // Check if document (and project) is already opened
         if (
+          !args?.forceOpen &&
           args?.projectId &&
           projectId &&
           documentId &&
@@ -283,8 +288,13 @@ export const SingleDocumentProjectProvider = ({
           projectIdInPath &&
           projectId === projectIdInPath
         ) {
-          handleOpenDocument({ projectId });
-          return { projectId, documentId, path: projectFile?.path ?? null };
+          return handleOpenDocument({
+            projectId,
+            fromFile: projectFile ?? undefined,
+            forceOpen: true,
+          });
+        } else {
+          return { projectId: null, documentId: null, path: null };
         }
       }
     },
