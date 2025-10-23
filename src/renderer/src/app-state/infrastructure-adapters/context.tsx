@@ -16,6 +16,7 @@ import { ElectronContext } from '../../../../modules/infrastructure/cross-platfo
 import { type Filesystem } from '../../../../modules/infrastructure/filesystem';
 import { createAdapter as createBrowserFilesystemAPIAdapter } from '../../../../modules/infrastructure/filesystem/adapters/browser-api';
 import { createAdapter as createElectronRendererFilesystemAPIAdapter } from '../../../../modules/infrastructure/filesystem/adapters/electron-renderer-api';
+import { LoadingText } from '../../components/progress/LoadingText';
 
 export type InfrastructureAdaptersContextType = {
   filesystem: Filesystem;
@@ -92,7 +93,7 @@ export const InfrastructureAdaptersProvider = ({
 
   if (!singleDocumentProjectStoreManager || !multiDocumentProjectStoreManager) {
     // TODO: Replace with skeleton or spinner
-    return <div>Loading...</div>;
+    return <LoadingText />;
   }
 
   const handleSetDocumentStore = async (

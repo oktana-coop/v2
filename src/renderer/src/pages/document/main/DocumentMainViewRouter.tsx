@@ -1,8 +1,5 @@
-import { useContext } from 'react';
 import { Outlet } from 'react-router';
 
-import { CurrentDocumentContext } from '../../../app-state';
-import { LoadingText } from '../../../components/progress/LoadingText';
 import { useCurrentDocumentId } from '../../../hooks';
 import { EmptyDocumentPage } from './empty';
 
@@ -18,7 +15,6 @@ export const DocumentMainViewRouter = ({
   onOpenDirectoryButtonClick,
 }: DocumentMainViewRouterProps) => {
   const documentId = useCurrentDocumentId();
-  const { versionedDocument } = useContext(CurrentDocumentContext);
 
   if (!documentId) {
     return (
@@ -28,10 +24,6 @@ export const DocumentMainViewRouter = ({
         onOpenDirectoryButtonClick={onOpenDirectoryButtonClick}
       />
     );
-  }
-
-  if (!versionedDocument) {
-    return <LoadingText />;
   }
 
   // Render nested routes

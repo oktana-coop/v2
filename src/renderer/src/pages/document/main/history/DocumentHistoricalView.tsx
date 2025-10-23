@@ -18,6 +18,7 @@ import {
   CurrentDocumentContext,
   SidebarLayoutContext,
 } from '../../../../app-state';
+import { LongTextSkeleton } from '../../../../components/progress/skeletons/LongText';
 import {
   useCurrentDocumentId,
   useCurrentDocumentName,
@@ -39,7 +40,7 @@ export const DocumentHistoricalView = () => {
     isContentSameAtHeads,
   } = useContext(CurrentDocumentContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
-  const [doc, setDoc] = React.useState<VersionedDocument | null>();
+  const [doc, setDoc] = React.useState<VersionedDocument | null>(null);
   const [viewTitle, setViewTitle] = useState<string>('');
   const [diffProps, setDiffProps] = useState<DiffViewProps | null>(null);
 
@@ -207,13 +208,6 @@ export const DocumentHistoricalView = () => {
     }
   };
 
-  if (!doc) {
-    return (
-      // TODO: Use a spinner
-      <div>Loading...</div>
-    );
-  }
-
   return (
     <div className="flex flex-auto flex-col items-center">
       <div className="w-full">
@@ -250,13 +244,27 @@ export const DocumentHistoricalView = () => {
 
       <div className="flex w-full flex-auto flex-col items-center overflow-auto">
         <div className="flex w-full max-w-3xl flex-col">
-          {diffProps ? (
-            <ReadOnlyView {...diffProps} />
-          ) : (
-            <ReadOnlyView doc={doc} />
-          )}
+          <MainContent diffProps={diffProps} doc={doc} />
         </div>
       </div>
     </div>
   );
+};
+
+const MainContent = ({
+  diffProps,
+  doc,
+}: {
+  diffProps: DiffViewProps | null;
+  doc: VersionedDocument | null;
+}) => {
+  if (!doc) {
+    return <LongTextSkeleton />;
+  }
+
+  if (diffProps) {
+    return <ReadOnlyView {...diffProps} />;
+  }
+
+  <ReadOnlyView doc={doc} />;
 };

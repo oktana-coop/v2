@@ -6,6 +6,7 @@ import {
   SidebarLayoutContext,
 } from '../../../../app-state';
 import { RichTextEditor } from '../../../../components/editing/RichTextEditor';
+import { LongTextSkeleton } from '../../../../components/progress/skeletons/LongText';
 import { ActionsBar } from './ActionsBar';
 
 export const DocumentEditor = () => {
@@ -25,13 +26,6 @@ export const DocumentEditor = () => {
     editorView?.focus();
   }, [editorView, isEditorToolbarOpen]);
 
-  if (!versionedDocument) {
-    return (
-      // TODO: Use a spinner
-      <div>Loading...</div>
-    );
-  }
-
   return (
     <div className="relative flex flex-auto flex-col items-center overflow-hidden">
       <div className="w-full">
@@ -46,13 +40,17 @@ export const DocumentEditor = () => {
 
       <div className="flex w-full flex-auto flex-col items-center overflow-auto">
         <div className="flex w-full max-w-3xl flex-col">
-          <RichTextEditor
-            doc={versionedDocument}
-            docHandle={versionedDocumentHandle}
-            onSave={onOpenCommitDialog}
-            isToolbarOpen={isEditorToolbarOpen}
-            onDocChange={onDocumentContentChange}
-          />
+          {versionedDocument ? (
+            <RichTextEditor
+              doc={versionedDocument}
+              docHandle={versionedDocumentHandle}
+              onSave={onOpenCommitDialog}
+              isToolbarOpen={isEditorToolbarOpen}
+              onDocChange={onDocumentContentChange}
+            />
+          ) : (
+            <LongTextSkeleton />
+          )}
         </div>
       </div>
     </div>
