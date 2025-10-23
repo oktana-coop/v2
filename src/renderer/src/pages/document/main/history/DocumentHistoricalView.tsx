@@ -139,9 +139,7 @@ export const DocumentHistoricalView = () => {
     commits,
     showDiffInHistoryView,
     selectedCommitIndex,
-    getDocumentAtCommit,
     getDecodedDiffParam,
-    isContentSameAtHeads,
   ]);
 
   useEffect(() => {

@@ -73,16 +73,19 @@ export const ProseMirrorProvider = ({
     setView(view);
   }, []);
 
-  const produceProseMirrorDiff = async (args: ProseMirrorDiffArgs) => {
-    // TODO: Handle adapter readiness with a promise
-    if (!diffAdapter) {
-      throw new Error(
-        'No diff adapter found when trying to produce the ProseMirror diff'
-      );
-    }
+  const produceProseMirrorDiff = useCallback(
+    async (args: ProseMirrorDiffArgs) => {
+      // TODO: Handle adapter readiness with a promise
+      if (!diffAdapter) {
+        throw new Error(
+          'No diff adapter found when trying to produce the ProseMirror diff'
+        );
+      }
 
-    return diffAdapter.proseMirrorDiff(args);
-  };
+      return diffAdapter.proseMirrorDiff(args);
+    },
+    [diffAdapter]
+  );
 
   const handleConvertToProseMirror = async (
     args: ConvertAutomergeToProseMirrorArgs
