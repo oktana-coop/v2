@@ -3,7 +3,7 @@ import { Outlet } from 'react-router';
 
 import { CurrentDocumentContext } from '../../../app-state';
 import { LoadingText } from '../../../components/progress/LoadingText';
-import { useCurrentDocumentId, useLoadingProject } from '../../../hooks';
+import { useCurrentDocumentId } from '../../../hooks';
 import { EmptyDocumentPage } from './empty';
 
 export type DocumentMainViewRouterProps = {
@@ -19,7 +19,6 @@ export const DocumentMainViewRouter = ({
 }: DocumentMainViewRouterProps) => {
   const documentId = useCurrentDocumentId();
   const { versionedDocument } = useContext(CurrentDocumentContext);
-  const loading = useLoadingProject();
 
   if (!documentId) {
     return (
@@ -31,7 +30,7 @@ export const DocumentMainViewRouter = ({
     );
   }
 
-  if (loading || !versionedDocument) {
+  if (!versionedDocument) {
     return <LoadingText />;
   }
 

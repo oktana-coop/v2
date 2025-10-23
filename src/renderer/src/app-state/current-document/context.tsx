@@ -179,9 +179,6 @@ export const CurrentDocumentProvider = ({
       versionedDocumentStore.projectId === projectId
     ) {
       updateDocumentHandleAndSelectedFile({ versionedDocumentStore });
-    } else {
-      setVersionedDocumentHandle(null);
-      setVersionedDocument(null);
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps

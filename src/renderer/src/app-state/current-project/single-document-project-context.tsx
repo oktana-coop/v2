@@ -213,63 +213,80 @@ export const SingleDocumentProjectProvider = ({
 
   const handleOpenDocument = useCallback(
     async (args?: { fromFile?: File; projectId?: VersionControlId }) => {
-      // Check if document (and project) is already opened
-      if (
-        args?.projectId &&
-        projectId &&
-        documentId &&
-        projectIdInPath &&
-        projectId === projectIdInPath
-      ) {
-        return { projectId, documentId, path: projectFile?.path ?? null };
+      try {
+        // Check if document (and project) is already opened
+        if (
+          args?.projectId &&
+          projectId &&
+          documentId &&
+          projectIdInPath &&
+          projectId === projectIdInPath
+        ) {
+          return { projectId, documentId, path: projectFile?.path ?? null };
+        }
+
+        setLoading(true);
+
+        if (versionedProjectStore) {
+          await Effect.runPromise(versionedProjectStore.disconnect());
+
+          setVersionedProjectStore(null);
+          setVersionedDocumentStore(null);
+        }
+
+        const {
+          versionedDocumentStore: documentStore,
+          versionedProjectStore: projectStore,
+          projectId: projId,
+          documentId: docId,
+          file,
+          name: projName,
+        } = await Effect.runPromise(
+          args
+            ? singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
+                openFile: filesystem.openFile,
+              })({ fromFile: args.fromFile, projectId: args.projectId })
+            : singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
+                openFile: filesystem.openFile,
+              })({})
+        );
+
+        setVersionedProjectStore(projectStore);
+        setVersionedDocumentStore(documentStore);
+        setProjectId(projId);
+        setDocumentId(docId);
+        setProjectFile(file);
+        setProjectName(projName);
+
+        const browserStorageProjectData: BrowserStorageProjectData = {
+          projectId: projId,
+          documentId: docId,
+          file,
+        };
+        localStorage.setItem(
+          BROWSER_STORAGE_PROJECT_DATA_KEY,
+          JSON.stringify(browserStorageProjectData)
+        );
+
+        setLoading(false);
+
+        return {
+          projectId: projId,
+          documentId: docId,
+          path: file?.path ?? null,
+        };
+      } catch {
+        // Restore previous state if opening failed
+        if (
+          projectId &&
+          documentId &&
+          projectIdInPath &&
+          projectId === projectIdInPath
+        ) {
+          handleOpenDocument({ projectId });
+          return { projectId, documentId, path: projectFile?.path ?? null };
+        }
       }
-
-      setLoading(true);
-
-      if (versionedProjectStore) {
-        await Effect.runPromise(versionedProjectStore.disconnect());
-
-        setVersionedProjectStore(null);
-        setVersionedDocumentStore(null);
-      }
-
-      const {
-        versionedDocumentStore: documentStore,
-        versionedProjectStore: projectStore,
-        projectId: projId,
-        documentId: docId,
-        file,
-        name: projName,
-      } = await Effect.runPromise(
-        args
-          ? singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
-              openFile: filesystem.openFile,
-            })({ fromFile: args.fromFile, projectId: args.projectId })
-          : singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
-              openFile: filesystem.openFile,
-            })({})
-      );
-
-      setVersionedProjectStore(projectStore);
-      setVersionedDocumentStore(documentStore);
-      setProjectId(projId);
-      setDocumentId(docId);
-      setProjectFile(file);
-      setProjectName(projName);
-
-      const browserStorageProjectData: BrowserStorageProjectData = {
-        projectId: projId,
-        documentId: docId,
-        file,
-      };
-      localStorage.setItem(
-        BROWSER_STORAGE_PROJECT_DATA_KEY,
-        JSON.stringify(browserStorageProjectData)
-      );
-
-      setLoading(false);
-
-      return { projectId: projId, documentId: docId, path: file?.path ?? null };
     },
     [projectIdInPath]
   );
