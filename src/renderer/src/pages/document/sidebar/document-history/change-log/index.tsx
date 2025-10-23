@@ -8,12 +8,12 @@ import {
   headsAreSame,
   isCommit,
   type UncommitedChange,
-} from '../../../../../../modules/infrastructure/version-control';
+} from '../../../../../../../modules/infrastructure/version-control';
 import {
   ThemeContext,
   themes,
-} from '../../../../../../modules/personalization/browser';
-import { TimelinePoint } from '../../../../components/icons/TimelinePoint';
+} from '../../../../../../../modules/personalization/browser';
+import { TimelinePoint } from '../../../../../components/icons/TimelinePoint';
 
 const Commit = ({
   commit,
@@ -132,3 +132,5 @@ export const ChangeLog = ({
     </>
   );
 };
+
+export { ChangeLogSkeleton } from './ChangeLogSkeleton';

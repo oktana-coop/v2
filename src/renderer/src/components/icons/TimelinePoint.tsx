@@ -10,7 +10,7 @@ type Props = {
 };
 
 export const TimelinePoint = ({
-  color = 'black',
+  color = 'currentColor',
   circleSize = 10,
   circleFillColor,
   circleStrokeColor,

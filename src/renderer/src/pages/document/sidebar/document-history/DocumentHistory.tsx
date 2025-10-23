@@ -6,9 +6,8 @@ import {
 } from '../../../../../../modules/infrastructure/version-control';
 import { CurrentDocumentContext } from '../../../../app-state';
 import { CommitHistoryIcon } from '../../../../components/icons';
-import { LoadingText } from '../../../../components/progress/LoadingText';
 import { SidebarHeading } from '../../../../components/sidebar/SidebarHeading';
-import { ChangeLog } from './ChangeLog';
+import { ChangeLog, ChangeLogSkeleton } from './change-log';
 import { EmptyView } from './EmptyView';
 
 export type DocumentHistoryPanelProps = {
@@ -17,7 +16,7 @@ export type DocumentHistoryPanelProps = {
   selectedCommit: Commit['heads'] | null;
 };
 
-export const DocumentHistory = ({
+const DocumentHistoryContent = ({
   commits,
   onCommitClick,
   selectedCommit,
@@ -25,9 +24,27 @@ export const DocumentHistory = ({
   const { loadingHistory } = useContext(CurrentDocumentContext);
 
   if (loadingHistory) {
-    return <LoadingText />;
+    return <ChangeLogSkeleton />;
   }
 
+  if (commits.length === 0) {
+    return <EmptyView />;
+  }
+
+  return (
+    <ChangeLog
+      changes={commits}
+      onClick={onCommitClick}
+      selectedCommit={selectedCommit}
+    />
+  );
+};
+
+export const DocumentHistory = ({
+  commits,
+  onCommitClick,
+  selectedCommit,
+}: DocumentHistoryPanelProps) => {
   return (
     <div className="flex h-full flex-col items-stretch py-6">
       <div className="flex items-center px-4 pb-4">
@@ -36,15 +53,11 @@ export const DocumentHistory = ({
         </div>
       </div>
       <div className="flex h-full flex-col items-stretch overflow-auto">
-        {commits.length > 0 ? (
-          <ChangeLog
-            changes={commits}
-            onClick={onCommitClick}
-            selectedCommit={selectedCommit}
-          />
-        ) : (
-          <EmptyView />
-        )}
+        <DocumentHistoryContent
+          commits={commits}
+          onCommitClick={onCommitClick}
+          selectedCommit={selectedCommit}
+        />
       </div>
     </div>
   );
