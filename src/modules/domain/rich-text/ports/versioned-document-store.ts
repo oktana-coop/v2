@@ -27,6 +27,11 @@ export type GetDocumentAtCommitArgs = {
   heads: Commit['heads'];
 };
 
+export type FindDocumentByIdResponse = {
+  document: VersionedDocument;
+  documentHandle: VersionedDocumentHandle | null;
+};
+
 export type UpdateRichTextDocumentContentArgs = {
   documentId: VersionControlId;
   representation: RichTextRepresentation;
@@ -77,7 +82,7 @@ export type VersionedDocumentStore = {
   findDocumentById: (
     id: VersionControlId
   ) => Effect.Effect<
-    VersionedDocument,
+    FindDocumentByIdResponse,
     RepositoryError | NotFoundError | MigrationError,
     never
   >;

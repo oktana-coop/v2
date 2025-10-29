@@ -92,7 +92,7 @@ export const createAdapter = (
   }) =>
     pipe(
       findDocumentById(documentId),
-      Effect.flatMap((document) =>
+      Effect.flatMap(({ document }) =>
         getArtifactAtCommit({ artifact: document, heads })
       ),
       Effect.catchTag('VersionControlRepositoryError', (err) =>
@@ -103,7 +103,15 @@ export const createAdapter = (
   const findDocumentById: VersionedDocumentStore['findDocumentById'] = (id) =>
     pipe(
       findDocumentHandleById(id),
-      Effect.flatMap(getDocumentFromHandle),
+      Effect.flatMap((documentHandle) =>
+        pipe(
+          getDocumentFromHandle(documentHandle),
+          Effect.map((document) => ({
+            document,
+            documentHandle,
+          }))
+        )
+      ),
       Effect.timeoutFail({
         duration: '8 seconds',
         onTimeout: () =>
@@ -200,7 +208,7 @@ export const createAdapter = (
   ) =>
     pipe(
       findDocumentById(documentId),
-      Effect.flatMap((document) =>
+      Effect.flatMap(({ document }) =>
         Effect.try({
           try: () => getArtifactHeads<RichTextDocument>(document),
           catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
@@ -213,7 +221,7 @@ export const createAdapter = (
   ) =>
     pipe(
       findDocumentById(documentId),
-      Effect.flatMap((document) =>
+      Effect.flatMap(({ document }) =>
         Effect.tryPromise({
           try: () => getArtifactHistory<RichTextDocument>(document),
           catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
@@ -232,7 +240,7 @@ export const createAdapter = (
     ({ documentId, heads1, heads2 }) =>
       pipe(
         findDocumentById(documentId),
-        Effect.map((document) =>
+        Effect.map(({ document }) =>
           isArtifactContentSameAtHeads<RichTextDocument>(
             document,
             heads1,

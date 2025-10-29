@@ -141,12 +141,8 @@ export const CurrentDocumentProvider = ({
         setVersionedDocumentHandle(null);
         setVersionedDocument(null);
       } else {
-        const documentHandle = await Effect.runPromise(
-          versionedDocumentStore.findDocumentHandleById(documentId)
-        );
-
-        const document = await Effect.runPromise(
-          versionedDocumentStore.getDocumentFromHandle(documentHandle)
+        const { document, documentHandle } = await Effect.runPromise(
+          versionedDocumentStore.findDocumentById(documentId)
         );
 
         setVersionedDocumentHandle(documentHandle);
