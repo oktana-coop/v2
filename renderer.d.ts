@@ -18,7 +18,7 @@ import {
 import {
   type FromMainMessage as AutomergeRepoNetworkFromMainIPCMessage,
   type FromRendererMessage as AutomergeRepoNetworkFromRendererIPCMessage,
-  type ResolvedDocumentId,
+  type ResolvedArtifactId,
 } from './src/modules/infrastructure/version-control';
 import { type Wasm as WasmAPI } from './src/modules/infrastructure/wasm';
 import {
@@ -30,7 +30,7 @@ export type UnregisterListenerFn = () => void;
 
 export type ElectronAPI = {
   onReceiveProcessId: (callback: (processId: string) => void) => IpcRenderer;
-  sendCurrentDocumentId: (id: ResolvedDocumentId) => void;
+  sendCurrentDocumentId: (id: ResolvedArtifactId) => void;
   openExternalLink: (url: string) => void;
   clearWebStorage: () => Promise<void>;
   checkForUpdate: () => Promise<void>;
