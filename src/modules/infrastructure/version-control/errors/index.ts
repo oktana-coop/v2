@@ -11,3 +11,7 @@ export class NotFoundError extends Cause.YieldableError {
 export class MigrationError extends Cause.YieldableError {
   readonly _tag = 'VersionControlMigrationError';
 }
+
+export class ValidationError extends Cause.YieldableError {
+  readonly _tag = 'VersionControlValidationError';
+}

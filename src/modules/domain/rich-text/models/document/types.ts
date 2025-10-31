@@ -1,4 +1,5 @@
 import {
+  type ResolvedArtifact,
   type VersionedArtifact,
   type VersionedArtifactHandle,
   versionedArtifactTypes,
@@ -15,5 +16,7 @@ export type RichTextDocument = {
 };
 
 export type VersionedDocument = VersionedArtifact<RichTextDocument>;
+
+export type ResolvedDocument = ResolvedArtifact<RichTextDocument>;
 
 export type VersionedDocumentHandle = VersionedArtifactHandle<RichTextDocument>;
