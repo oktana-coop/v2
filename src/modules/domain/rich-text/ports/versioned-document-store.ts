@@ -9,6 +9,7 @@ import {
 import { RichTextRepresentation } from '../constants';
 import { NotFoundError, RepositoryError } from '../errors';
 import {
+  type ResolvedDocument,
   type VersionedDocument,
   type VersionedDocumentHandle,
 } from '../models';
@@ -25,11 +26,6 @@ export type GetDocumentHandleAtCommitArgs = {
 export type GetDocumentAtCommitArgs = {
   documentId: VersionControlId;
   heads: Commit['heads'];
-};
-
-export type FindDocumentByIdResponse = {
-  document: VersionedDocument;
-  documentHandle: VersionedDocumentHandle | null;
 };
 
 export type UpdateRichTextDocumentContentArgs = {
@@ -82,7 +78,7 @@ export type VersionedDocumentStore = {
   findDocumentById: (
     id: VersionControlId
   ) => Effect.Effect<
-    FindDocumentByIdResponse,
+    ResolvedDocument,
     RepositoryError | NotFoundError | MigrationError,
     never
   >;

@@ -92,7 +92,7 @@ export const createAdapter = (
   }) =>
     pipe(
       findDocumentById(documentId),
-      Effect.flatMap(({ document }) =>
+      Effect.flatMap(({ artifact: document }) =>
         getArtifactAtCommit({ artifact: document, heads })
       ),
       Effect.catchTag('VersionControlRepositoryError', (err) =>
@@ -107,8 +107,9 @@ export const createAdapter = (
         pipe(
           getDocumentFromHandle(documentHandle),
           Effect.map((document) => ({
-            document,
-            documentHandle,
+            id: documentHandle.url,
+            artifact: document,
+            handle: documentHandle,
           }))
         )
       ),
@@ -208,7 +209,7 @@ export const createAdapter = (
   ) =>
     pipe(
       findDocumentById(documentId),
-      Effect.flatMap(({ document }) =>
+      Effect.flatMap(({ artifact: document }) =>
         Effect.try({
           try: () => getArtifactHeads<RichTextDocument>(document),
           catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
@@ -221,7 +222,7 @@ export const createAdapter = (
   ) =>
     pipe(
       findDocumentById(documentId),
-      Effect.flatMap(({ document }) =>
+      Effect.flatMap(({ artifact: document }) =>
         Effect.tryPromise({
           try: () => getArtifactHistory<RichTextDocument>(document),
           catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
@@ -240,7 +241,7 @@ export const createAdapter = (
     ({ documentId, heads1, heads2 }) =>
       pipe(
         findDocumentById(documentId),
-        Effect.map(({ document }) =>
+        Effect.map(({ artifact: document }) =>
           isArtifactContentSameAtHeads<RichTextDocument>(
             document,
             heads1,
