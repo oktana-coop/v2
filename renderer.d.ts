@@ -11,14 +11,14 @@ import {
   type SetupSingleDocumentProjectStoreResult,
 } from './src/modules/domain/project';
 import { type UpdateState } from './src/modules/infrastructure/cross-platform/update';
-import type {
+import {
   type File,
-  Filesystem as FilesystemAPI,
+  type Filesystem as FilesystemAPI,
 } from './src/modules/infrastructure/filesystem';
-import type {
-  FromMainMessage as AutomergeRepoNetworkFromMainIPCMessage,
-  FromRendererMessage as AutomergeRepoNetworkFromRendererIPCMessage,
-  VersionControlId,
+import {
+  type FromMainMessage as AutomergeRepoNetworkFromMainIPCMessage,
+  type FromRendererMessage as AutomergeRepoNetworkFromRendererIPCMessage,
+  type ResolvedDocumentId,
 } from './src/modules/infrastructure/version-control';
 import { type Wasm as WasmAPI } from './src/modules/infrastructure/wasm';
 import {
@@ -30,7 +30,7 @@ export type UnregisterListenerFn = () => void;
 
 export type ElectronAPI = {
   onReceiveProcessId: (callback: (processId: string) => void) => IpcRenderer;
-  sendCurrentDocumentId: (id: VersionControlId) => void;
+  sendCurrentDocumentId: (id: ResolvedDocumentId) => void;
   openExternalLink: (url: string) => void;
   clearWebStorage: () => Promise<void>;
   checkForUpdate: () => Promise<void>;

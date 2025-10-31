@@ -9,6 +9,7 @@ import { BrowserWindow } from 'electron';
 import {
   NotFoundError as VersionedDocumentNotFoundError,
   RepositoryError as VersionedDocumentRepositoryError,
+  ValidationError as VersionedDocumentValidationError,
   VersionedDocumentStore,
 } from '../../../../../../../modules/domain/rich-text';
 import { createAdapter as createAutomergeDocumentStoreAdapter } from '../../../../../../../modules/domain/rich-text/adapters/automerge-versioned-document-store';
@@ -19,11 +20,7 @@ import {
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../../../modules/infrastructure/filesystem';
-import {
-  isValidVersionControlId,
-  MigrationError,
-  type VersionControlId,
-} from '../../../../../../../modules/infrastructure/version-control';
+import { MigrationError } from '../../../../../../../modules/infrastructure/version-control';
 import { setupFilesystemRepoForNode } from '../../../../../../../modules/infrastructure/version-control/automerge-repo/node';
 import { fromNullable } from '../../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../../utils/errors';
@@ -36,7 +33,9 @@ import {
   MissingProjectMetadataError as VersionedProjectMissingProjectMetadataError,
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
+  ValidationError as VersionedProjectValidationError,
 } from '../../../../errors';
+import { isAutomergeUrl, type ProjectId } from '../../../../models';
 import {
   MultiDocumentProjectStore,
   type MultiDocumentProjectStoreManager,
@@ -83,7 +82,7 @@ const openProject = ({
   listDirectoryFiles,
   readFile,
 }: {
-  projectId: VersionControlId;
+  projectId: ProjectId;
   directoryPath: string;
   rendererProcessId: string;
   browserWindow: BrowserWindow;
@@ -97,8 +96,10 @@ const openProject = ({
   | FilesystemRepositoryError
   | VersionedProjectRepositoryError
   | VersionedProjectNotFoundError
+  | VersionedProjectValidationError
   | VersionedDocumentRepositoryError
   | VersionedDocumentNotFoundError
+  | VersionedDocumentValidationError
   | MigrationError,
   never
 > =>
@@ -141,7 +142,7 @@ const readProjectIdFromDirIndexFile = ({
   directoryPath: string;
   readFile: Filesystem['readFile'];
 }): Effect.Effect<
-  VersionControlId,
+  ProjectId,
   | FilesystemAccessControlError
   | FilesystemRepositoryError
   | VersionedProjectMissingProjectMetadataError
@@ -170,7 +171,7 @@ const readProjectIdFromDirIndexFile = ({
       )
     ),
     Effect.flatMap((projectId) =>
-      isValidVersionControlId(projectId)
+      typeof projectId === 'string' && isAutomergeUrl(projectId)
         ? Effect.succeed(projectId)
         : Effect.fail(
             new VersionedProjectDataIntegrityError(
@@ -182,7 +183,7 @@ const readProjectIdFromDirIndexFile = ({
 };
 
 type OpenOrCreateProjectFromFilesystemResult = {
-  projectId: VersionControlId;
+  projectId: ProjectId;
   versionedProjectStore: MultiDocumentProjectStore;
   versionedDocumentStore: VersionedDocumentStore;
 };
@@ -211,8 +212,10 @@ const openProjectFromFilesystem = ({
   | VersionedProjectRepositoryError
   | VersionedProjectNotFoundError
   | VersionedProjectDataIntegrityError
+  | VersionedProjectValidationError
   | VersionedDocumentRepositoryError
   | VersionedDocumentNotFoundError
+  | VersionedDocumentValidationError
   | MigrationError,
   never
 > =>
@@ -268,7 +271,7 @@ const writeIndexFile = ({
   writeFile,
 }: {
   rootDirectoryPath: string;
-  projectId: VersionControlId;
+  projectId: ProjectId;
   writeFile: Filesystem['writeFile'];
 }): Effect.Effect<
   void,
@@ -303,7 +306,9 @@ const createNewProject = ({
   | FilesystemRepositoryError
   | VersionedProjectRepositoryError
   | VersionedProjectNotFoundError
-  | VersionedDocumentRepositoryError,
+  | VersionedProjectValidationError
+  | VersionedDocumentRepositoryError
+  | VersionedDocumentValidationError,
   never
 > =>
   pipe(

@@ -6,15 +6,20 @@ import * as Option from 'effect/Option';
 
 import {
   migrateIfNeeded,
-  type VersionControlId,
   versionedArtifactTypes,
 } from '../../../../../../modules/infrastructure/version-control';
 import { fromNullable } from '../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../utils/errors';
-import { NotFoundError, RepositoryError } from '../../../errors';
+import {
+  NotFoundError,
+  RepositoryError,
+  ValidationError,
+} from '../../../errors';
 import {
   type ArtifactMetaData,
+  isAutomergeUrl,
   type MultiDocumentProject,
+  type ProjectId,
   type VersionedMultiDocumentProject,
   type VersionedMultiDocumentProjectHandle,
 } from '../../../models';
@@ -67,19 +72,26 @@ export const createAdapter = (
       Effect.map((handle) => handle.url)
     );
 
-  const findProjectHandleById = (id: VersionControlId) =>
+  const findProjectHandleById = (id: ProjectId) =>
     pipe(
-      Effect.tryPromise({
-        try: () => automergeRepo.find<MultiDocumentProject>(id),
-        catch: (err: unknown) => {
-          // TODO: This is not-future proof as it depends on the error message. Find a better way.
-          if (err instanceof Error && err.message.includes('unavailable')) {
-            return new NotFoundError(err.message);
-          }
+      Effect.succeed(id),
+      Effect.filterOrFail(
+        isAutomergeUrl,
+        (val) => new ValidationError(`Invalid project id: ${val}`)
+      ),
+      Effect.flatMap((automergeUrl) =>
+        Effect.tryPromise({
+          try: () => automergeRepo.find<MultiDocumentProject>(automergeUrl),
+          catch: (err: unknown) => {
+            // TODO: This is not-future proof as it depends on the error message. Find a better way.
+            if (err instanceof Error && err.message.includes('unavailable')) {
+              return new NotFoundError(err.message);
+            }
 
-          return mapErrorTo(RepositoryError, 'Automerge repo error')(err);
-        },
-      }),
+            return mapErrorTo(RepositoryError, 'Automerge repo error')(err);
+          },
+        })
+      ),
       Effect.tap((handle) =>
         pipe(
           migrateIfNeeded(migrations)(
@@ -106,7 +118,7 @@ export const createAdapter = (
     );
 
   const listProjectDocuments: MultiDocumentProjectStore['listProjectDocuments'] =
-    (id: VersionControlId) =>
+    (id) =>
       pipe(
         findProjectById(id),
         Effect.map((project) => Object.values(project.documents))

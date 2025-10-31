@@ -1,9 +1,7 @@
 import { isGitBlobRef, isValidResolvedArtifactId } from './index';
 import { createGitBlobRef, parseGitBlobRef } from './utils';
 
-jest.mock('@automerge/automerge-repo');
-
-describe('VersionControlId', () => {
+describe('ResolvedArtifactId', () => {
   it('validates Git blob references with commit SHAs', () => {
     const validRefs = [
       '/blob/4a1d2e3f/README.md', // Short SHA (8 chars)

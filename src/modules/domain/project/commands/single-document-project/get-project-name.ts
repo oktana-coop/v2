@@ -1,18 +1,17 @@
 import * as Effect from 'effect/Effect';
 
 import { type File } from '../../../../../modules/infrastructure/filesystem';
-import {
-  MigrationError,
-  type VersionControlId,
-} from '../../../../../modules/infrastructure/version-control';
+import { MigrationError } from '../../../../../modules/infrastructure/version-control';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
+  ValidationError as VersionedProjectValidationError,
 } from '../../errors';
+import { type ProjectId } from '../../models';
 import { type SingleDocumentProjectStore } from '../../ports/single-document-project';
 
 export type GetProjectNameArgs = {
-  projectId: VersionControlId;
+  projectId: ProjectId;
   projectFile?: File;
 };
 
@@ -27,6 +26,7 @@ export const getProjectName =
     projectFile,
   }: GetProjectNameArgs): Effect.Effect<
     string | null,
+    | VersionedProjectValidationError
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
     | MigrationError,

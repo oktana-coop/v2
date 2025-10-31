@@ -32,8 +32,8 @@ import {
   encodeURLHeads,
   encodeURLHeadsForChange,
   headsAreSame,
+  type ResolvedArtifactId,
   type UrlHeads,
-  VersionControlId,
 } from '../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../modules/personalization/browser';
 import { useCurrentDocumentId } from '../../hooks/use-current-document-id';
@@ -47,7 +47,7 @@ import { createWorkerClient } from './history-worker/client';
 const useWebWorker = true;
 
 export type CurrentDocumentContextType = {
-  versionedDocumentId: VersionControlId | null;
+  versionedDocumentId: ResolvedArtifactId | null;
   versionedDocumentHandle: VersionedDocumentHandle | null;
   versionedDocument: VersionedDocument | null;
   onDocumentContentChange: (doc: RichTextDocument) => Promise<void>;
@@ -184,7 +184,7 @@ export const CurrentDocumentProvider = ({
   const checkIfContentChangedFromLastCommit =
     (documentStore: VersionedDocumentStore) =>
     async (
-      documentId: VersionControlId,
+      documentId: ResolvedArtifactId,
       latestChangeHeads: UrlHeads,
       lastCommitHeads: UrlHeads
     ) => {
@@ -215,7 +215,7 @@ export const CurrentDocumentProvider = ({
       latestChangeHeads,
       lastCommitHeads,
     }: {
-      docId: VersionControlId;
+      docId: ResolvedArtifactId;
       doc: VersionedDocument;
       latestChangeHeads: UrlHeads;
       lastCommitHeads?: UrlHeads;
@@ -241,7 +241,7 @@ export const CurrentDocumentProvider = ({
       docId,
       doc,
     }: {
-      docId: VersionControlId;
+      docId: ResolvedArtifactId;
       doc: VersionedDocument;
     }) => {
       let historyInfo: ArtifactHistoryInfo<RichTextDocument>;

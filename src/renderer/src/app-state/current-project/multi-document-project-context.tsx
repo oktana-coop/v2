@@ -12,7 +12,10 @@ import {
   findDocumentInProject,
   type MultiDocumentProjectStore,
 } from '../../../../modules/domain/project';
-import { RICH_TEXT_FILE_EXTENSION } from '../../../../modules/domain/project';
+import {
+  type ProjectId,
+  RICH_TEXT_FILE_EXTENSION,
+} from '../../../../modules/domain/project';
 import { VersionedDocumentHandle } from '../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform';
 import {
@@ -23,36 +26,36 @@ import {
   removeExtension,
   removePath,
 } from '../../../../modules/infrastructure/filesystem';
-import { VersionControlId } from '../../../../modules/infrastructure/version-control';
+import { type ResolvedArtifactId } from '../../../../modules/infrastructure/version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
 type BrowserStorageProjectData = {
   directoryName: Directory['name'];
   directoryPath: Directory['path'];
-  projectId: VersionControlId;
+  projectId: ProjectId;
 };
 
 const BROWSER_STORAGE_PROJECT_DATA_KEY = 'multi-document-project';
 
 export type SelectedFileInfo = {
-  documentId: VersionControlId;
+  documentId: ResolvedArtifactId;
   path: string | null;
 };
 
 export type MultiDocumentProjectContextType = {
   loading: boolean;
-  projectId: VersionControlId | null;
+  projectId: ProjectId | null;
   directory: Directory | null;
   directoryFiles: Array<File>;
   openDirectory: () => Promise<Directory>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
   createNewDocument: (name?: string) => Promise<{
-    projectId: VersionControlId;
-    documentId: VersionControlId;
+    projectId: ProjectId;
+    documentId: ResolvedArtifactId;
     path: string;
   }>;
   findDocumentInProject: (args: {
-    projectId: VersionControlId;
+    projectId: ProjectId;
     documentPath: string;
   }) => Promise<VersionedDocumentHandle>;
   selectedFileInfo: SelectedFileInfo | null;
@@ -94,7 +97,7 @@ export const MultiDocumentProjectProvider = ({
     setVersionedDocumentStore,
   } = useContext(InfrastructureAdaptersContext);
   const [loading, setLoading] = useState<boolean>(false);
-  const [projectId, setProjectId] = useState<VersionControlId | null>(null);
+  const [projectId, setProjectId] = useState<ProjectId | null>(null);
   const [directory, setDirectory] = useState<Directory | null>(null);
   const [directoryFiles, setDirectoryFiles] = useState<Array<File>>([]);
   const [versionedProjectStore, setVersionedProjectStore] =
@@ -258,7 +261,7 @@ export const MultiDocumentProjectProvider = ({
   }, [versionedDocumentStore, versionedProjectStore]);
 
   const handleFindDocumentInProject = async (args: {
-    projectId: VersionControlId;
+    projectId: ProjectId;
     documentPath: string;
   }) => {
     if (!versionedDocumentStore || !versionedProjectStore) {

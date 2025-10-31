@@ -4,21 +4,24 @@ import { pipe } from 'effect/Function';
 import {
   NotFoundError as VersionedDocumentNotFoundError,
   RepositoryError as VersionedDocumentRepositoryError,
+  ValidationError as VersionedDocumentValidationError,
   type VersionedDocumentStore,
 } from '../../../../../modules/domain/rich-text';
 import {
   MigrationError,
-  type VersionControlId,
+  type ResolvedArtifactId,
 } from '../../../../../modules/infrastructure/version-control';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
+  ValidationError as VersionedProjectValidationError,
 } from '../../errors';
+import { type ProjectId } from '../../models';
 import { type MultiDocumentProjectStore } from '../../ports/multi-document-project';
 
 export type DeleteDocumentFromProjectArgs = {
-  documentId: VersionControlId;
-  projectId: VersionControlId;
+  documentId: ResolvedArtifactId;
+  projectId: ProjectId;
 };
 
 export type DeleteDocumentFromProjectDeps = {
@@ -38,8 +41,10 @@ export const deleteDocumentFromProject =
     void,
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
+    | VersionedProjectValidationError
     | VersionedDocumentRepositoryError
     | VersionedDocumentNotFoundError
+    | VersionedDocumentValidationError
     | MigrationError,
     never
   > =>

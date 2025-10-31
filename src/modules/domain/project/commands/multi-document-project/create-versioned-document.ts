@@ -2,7 +2,6 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as Option from 'effect/Option';
 
-import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
 import {
   AbortError as FilesystemAbortError,
   type Directory,
@@ -10,6 +9,7 @@ import {
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../infrastructure/filesystem';
+import { type ResolvedArtifactId } from '../../../../infrastructure/version-control';
 import {
   RepositoryError as VersionedDocumentRepositoryError,
   type VersionedDocumentStore,
@@ -18,12 +18,14 @@ import { RICH_TEXT_FILE_EXTENSION } from '../../constants/file-extensions';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
+  ValidationError as VersionedProjectValidationError,
 } from '../../errors';
+import { type ProjectId } from '../../models';
 import { type MultiDocumentProjectStore } from '../../ports/multi-document-project';
 
 export type CreateVersionedDocumentArgs = {
   content: string | null;
-  projectId: VersionControlId | null;
+  projectId: ProjectId | null;
   directory: Directory | null;
 };
 
@@ -34,7 +36,7 @@ export type CreateVersionedDocumentDeps = {
 };
 
 export type CreateVersionedDocumentResult = {
-  documentId: VersionControlId;
+  documentId: ResolvedArtifactId;
   filePath: string;
 };
 
@@ -55,7 +57,8 @@ export const createVersionedDocument =
     | FilesystemRepositoryError
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
-    | VersionedDocumentRepositoryError,
+    | VersionedDocumentRepositoryError
+    | VersionedProjectValidationError,
     never
   > =>
     Effect.Do.pipe(

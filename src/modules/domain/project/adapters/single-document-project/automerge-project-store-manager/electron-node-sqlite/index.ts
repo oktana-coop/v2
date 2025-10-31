@@ -5,12 +5,12 @@ import { pipe } from 'effect/Function';
 import { BrowserWindow } from 'electron';
 
 import { createAdapter as createAutomergeDocumentStoreAdapter } from '../../../../../../../modules/domain/rich-text/adapters/automerge-versioned-document-store';
-import { type VersionControlId } from '../../../../../../../modules/infrastructure/version-control';
 import { setupSQLiteRepoForNode } from '../../../../../../../modules/infrastructure/version-control/automerge-repo/node';
 import { mapErrorTo } from '../../../../../../../utils/errors';
 import { createDocumentAndProject } from '../../../../commands/single-document-project';
 import { PROJECT_FILE_EXTENSION } from '../../../../constants/file-extensions';
 import { RepositoryError as VersionedProjectRepositoryError } from '../../../../errors';
+import { type ProjectId } from '../../../../models';
 import {
   type OpenSingleDocumentProjectStoreArgs,
   type OpenSingleDocumentProjectStoreDeps,
@@ -67,7 +67,7 @@ const insertProjectMetadataInSQLite = ({
   projectId,
 }: {
   db: Database.Database;
-  projectId: VersionControlId;
+  projectId: ProjectId;
 }): Effect.Effect<void, VersionedProjectRepositoryError, never> =>
   Effect.try({
     try: () => {
@@ -93,7 +93,7 @@ const readProjectMetadataFromSQLite = ({
   db,
 }: {
   db: Database.Database;
-}): Effect.Effect<VersionControlId, VersionedProjectRepositoryError, never> =>
+}): Effect.Effect<ProjectId, VersionedProjectRepositoryError, never> =>
   Effect.try({
     try: () => {
       const row = db
@@ -104,7 +104,7 @@ const readProjectMetadataFromSQLite = ({
         throw new Error('No project metadata found in database');
       }
 
-      return row.id as VersionControlId;
+      return row.id as ProjectId;
     },
     catch: (err) =>
       new VersionedProjectRepositoryError(

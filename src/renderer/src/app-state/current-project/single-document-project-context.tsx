@@ -8,15 +8,18 @@ import {
 } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
-import { type SingleDocumentProjectStore } from '../../../../modules/domain/project';
+import {
+  type ProjectId,
+  type SingleDocumentProjectStore,
+} from '../../../../modules/domain/project';
 import { isElectron } from '../../../../modules/infrastructure/cross-platform/utils';
 import { type File } from '../../../../modules/infrastructure/filesystem';
-import { VersionControlId } from '../../../../modules/infrastructure/version-control';
+import { type ResolvedArtifactId } from '../../../../modules/infrastructure/version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
 export type BrowserStorageProjectData = {
-  projectId: VersionControlId;
-  documentId: VersionControlId;
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
   file: File | null;
 };
 
@@ -24,22 +27,19 @@ export const BROWSER_STORAGE_PROJECT_DATA_KEY = 'single-document-project';
 
 export type SingleDocumentProjectContextType = {
   loading: boolean;
-  projectId: VersionControlId | null;
-  documentId: VersionControlId | null;
+  projectId: ProjectId | null;
+  documentId: ResolvedArtifactId | null;
   projectFile: File | null;
   projectName: string | null;
   versionedProjectStore: SingleDocumentProjectStore | null;
   createNewDocument: (name?: string) => Promise<{
-    projectId: VersionControlId;
-    documentId: VersionControlId;
+    projectId: ProjectId;
+    documentId: ResolvedArtifactId;
     path: string | null;
   }>;
-  openDocument: (args?: {
-    fromFile?: File;
-    projectId?: VersionControlId;
-  }) => Promise<{
-    projectId: VersionControlId | null;
-    documentId: VersionControlId | null;
+  openDocument: (args?: { fromFile?: File; projectId?: ProjectId }) => Promise<{
+    projectId: ProjectId | null;
+    documentId: ResolvedArtifactId | null;
     path: string | null;
   }>;
 };
@@ -83,8 +83,8 @@ export const SingleDocumentProjectProvider = ({
     setVersionedDocumentStore,
   } = useContext(InfrastructureAdaptersContext);
   const [loading, setLoading] = useState<boolean>(false);
-  const [projectId, setProjectId] = useState<VersionControlId | null>(null);
-  const [documentId, setDocumentId] = useState<VersionControlId | null>(null);
+  const [projectId, setProjectId] = useState<ProjectId | null>(null);
+  const [documentId, setDocumentId] = useState<ResolvedArtifactId | null>(null);
   const [projectFile, setProjectFile] = useState<File | null>(null);
   const [projectName, setProjectName] = useState<string | null>(null);
   const [versionedProjectStore, setVersionedProjectStore] =
@@ -214,7 +214,7 @@ export const SingleDocumentProjectProvider = ({
   const handleOpenDocument = useCallback(
     async (args?: {
       fromFile?: File;
-      projectId?: VersionControlId;
+      projectId?: ProjectId;
       forceOpen?: boolean;
     }) => {
       try {

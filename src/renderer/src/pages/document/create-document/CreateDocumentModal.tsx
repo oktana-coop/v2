@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
-import { type VersionControlId } from '../../../../../modules/infrastructure/version-control/';
+import { type ProjectId } from '../../../../../modules/domain/project';
+import { type ResolvedArtifactId } from '../../../../../modules/infrastructure/version-control/';
 import { Button } from '../../../components/actions/Button';
 import { Modal } from '../../../components/dialogs/Modal';
 import { useCreateDocument } from '../../../hooks';
@@ -13,8 +14,8 @@ export const CreateDocumentModal = ({
   isOpen: boolean;
   onClose: () => void;
   onCreateDocument: (args: {
-    projectId: VersionControlId;
-    documentId: VersionControlId;
+    projectId: ProjectId;
+    documentId: ResolvedArtifactId;
     path: string | null;
   }) => void;
 }) => {

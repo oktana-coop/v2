@@ -5,6 +5,7 @@ import { pipe } from 'effect/Function';
 import {
   NotFoundError as VersionedDocumentNotFoundError,
   RepositoryError as VersionedDocumentRepositoryError,
+  ValidationError as VersionedDocumentValidationError,
   type VersionedDocumentStore,
 } from '../../../../../../../modules/domain/rich-text';
 import { createAdapter as createAutomergeDocumentStoreAdapter } from '../../../../../../../modules/domain/rich-text/adapters/automerge-versioned-document-store';
@@ -15,11 +16,7 @@ import {
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../../../modules/infrastructure/filesystem';
-import {
-  isValidVersionControlId,
-  MigrationError,
-  type VersionControlId,
-} from '../../../../../../../modules/infrastructure/version-control';
+import { MigrationError } from '../../../../../../../modules/infrastructure/version-control';
 import { setupForWeb as setupBrowserRepoForWeb } from '../../../../../../../modules/infrastructure/version-control/automerge-repo/browser';
 import { fromNullable } from '../../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../../utils/errors';
@@ -32,7 +29,9 @@ import {
   MissingProjectMetadataError as VersionedProjectMissingProjectMetadataError,
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
+  ValidationError as VersionedProjectValidationError,
 } from '../../../../errors';
+import { isAutomergeUrl, type ProjectId } from '../../../../models';
 import {
   type MultiDocumentProjectStore,
   type MultiDocumentProjectStoreManager,
@@ -70,7 +69,7 @@ const setupAutomergeRepoAndStores = ({
 }: {
   dbName: string;
   storeName: string;
-  projectId?: VersionControlId;
+  projectId?: ProjectId;
 }): Effect.Effect<
   {
     versionedProjectStore: MultiDocumentProjectStore;
@@ -117,7 +116,7 @@ const writeProjectMetadataToIDB = ({
 }: {
   db: IDBDatabase;
   storeName: string;
-  projectId: VersionControlId;
+  projectId: ProjectId;
 }): Effect.Effect<void, VersionedProjectRepositoryError, never> =>
   Effect.tryPromise({
     try: () =>
@@ -142,7 +141,7 @@ const getProjectMetadataFromIDB = ({
   db: IDBDatabase;
   storeName: string;
 }): Effect.Effect<
-  VersionControlId,
+  ProjectId,
   | VersionedProjectRepositoryError
   | VersionedProjectMissingProjectMetadataError
   | VersionedProjectDataIntegrityError,
@@ -171,7 +170,7 @@ const getProjectMetadataFromIDB = ({
       )
     ),
     Effect.flatMap((projId) =>
-      isValidVersionControlId(projId)
+      isAutomergeUrl(projId)
         ? Effect.succeed(projId)
         : Effect.fail(
             new VersionedProjectDataIntegrityError(
@@ -198,14 +197,16 @@ const createNewProject = ({
   readFile: Filesystem['readFile'];
   db: IDBDatabase;
 }): Effect.Effect<
-  VersionControlId,
+  ProjectId,
   | FilesystemAccessControlError
   | FilesystemDataIntegrityError
   | FilesystemNotFoundError
   | FilesystemRepositoryError
   | VersionedProjectRepositoryError
   | VersionedProjectNotFoundError
-  | VersionedDocumentRepositoryError,
+  | VersionedProjectValidationError
+  | VersionedDocumentRepositoryError
+  | VersionedDocumentValidationError,
   never
 > =>
   pipe(
@@ -254,7 +255,7 @@ const openExistingProject = ({
   readFile: Filesystem['readFile'];
   db: IDBDatabase;
 }): Effect.Effect<
-  VersionControlId,
+  ProjectId,
   | FilesystemAccessControlError
   | FilesystemDataIntegrityError
   | FilesystemNotFoundError
@@ -263,8 +264,10 @@ const openExistingProject = ({
   | VersionedProjectRepositoryError
   | VersionedProjectNotFoundError
   | VersionedProjectDataIntegrityError
+  | VersionedProjectValidationError
   | VersionedDocumentRepositoryError
   | VersionedDocumentNotFoundError
+  | VersionedDocumentValidationError
   | MigrationError,
   never
 > =>
@@ -306,7 +309,7 @@ const validateIdAndOpenProject = ({
   readFile,
   db,
 }: {
-  projectId: VersionControlId;
+  projectId: ProjectId;
   directoryPath: string;
   findDocumentHandleById: VersionedDocumentStore['findDocumentHandleById'];
   getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
@@ -321,7 +324,7 @@ const validateIdAndOpenProject = ({
   readFile: Filesystem['readFile'];
   db: IDBDatabase;
 }): Effect.Effect<
-  VersionControlId,
+  ProjectId,
   | FilesystemAccessControlError
   | FilesystemDataIntegrityError
   | FilesystemNotFoundError
@@ -330,8 +333,10 @@ const validateIdAndOpenProject = ({
   | VersionedProjectRepositoryError
   | VersionedProjectNotFoundError
   | VersionedProjectDataIntegrityError
+  | VersionedProjectValidationError
   | VersionedDocumentRepositoryError
   | VersionedDocumentNotFoundError
+  | VersionedDocumentValidationError
   | MigrationError,
   never
 > =>

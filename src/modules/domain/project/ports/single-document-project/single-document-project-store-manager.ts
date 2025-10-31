@@ -9,7 +9,7 @@ import {
 } from '../../../../../modules/infrastructure/filesystem';
 import {
   MigrationError,
-  type VersionControlId,
+  type ResolvedArtifactId,
 } from '../../../../../modules/infrastructure/version-control';
 import {
   RepositoryError as VersionedDocumentRepositoryError,
@@ -20,6 +20,7 @@ import {
   RepositoryError as VersionedProjectRepositoryError,
   ValidationError as VersionedProjectValidationError,
 } from '../../errors';
+import { type ProjectId } from '../../models';
 import { type SingleDocumentProjectStore } from './single-document-project-store';
 
 export type SetupSingleDocumentProjectStoreDeps = {
@@ -33,8 +34,8 @@ export type SetupSingleDocumentProjectStoreArgs = {
 export type SetupSingleDocumentProjectStoreResult = {
   versionedProjectStore: SingleDocumentProjectStore;
   versionedDocumentStore: VersionedDocumentStore;
-  projectId: VersionControlId;
-  documentId: VersionControlId;
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
   file: File | null;
   name: string | null;
 };
@@ -45,14 +46,14 @@ export type OpenSingleDocumentProjectStoreDeps = {
 
 export type OpenSingleDocumentProjectStoreArgs = {
   fromFile?: File;
-  projectId?: VersionControlId;
+  projectId?: ProjectId;
 };
 
 export type OpenSingleDocumentProjectStoreResult = {
   versionedProjectStore: SingleDocumentProjectStore;
   versionedDocumentStore: VersionedDocumentStore;
-  projectId: VersionControlId;
-  documentId: VersionControlId;
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
   file: File | null;
   name: string | null;
 };

@@ -1,12 +1,13 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
-import { type VersionControlId } from '../../../../infrastructure/version-control';
+import { type ResolvedArtifactId } from '../../../../infrastructure/version-control';
 import {
   RepositoryError as VersionedDocumentRepositoryError,
   type VersionedDocumentStore,
 } from '../../../rich-text';
 import { RepositoryError as VersionedProjectRepositoryError } from '../../errors';
+import { ProjectId } from '../../models';
 import { type SingleDocumentProjectStore } from '../../ports';
 
 export type CreateDocumentAndProjectArgs = {
@@ -20,8 +21,8 @@ export type CreateDocumentAndProjectDeps = {
 };
 
 export type CreateSingleDocumentProjectResult = {
-  documentId: VersionControlId;
-  projectId: VersionControlId;
+  documentId: ResolvedArtifactId;
+  projectId: ProjectId;
 };
 
 export const createDocumentAndProject =

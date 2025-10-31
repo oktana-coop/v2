@@ -2,12 +2,13 @@ import * as Effect from 'effect/Effect';
 
 import {
   MigrationError,
-  type VersionControlId,
+  type ResolvedArtifactId,
 } from '../../../../../modules/infrastructure/version-control';
-import { NotFoundError, RepositoryError } from '../../errors';
+import { NotFoundError, RepositoryError, ValidationError } from '../../errors';
 import type {
   ArtifactMetaData,
   MultiDocumentProject,
+  ProjectId,
   VersionedMultiDocumentProject,
   VersionedMultiDocumentProjectHandle,
 } from '../../models';
@@ -18,59 +19,59 @@ export type CreateMultiDocumentProjectArgs = {
 };
 
 export type AddDocumentToMultiDocumentProjectArgs = {
-  documentId: VersionControlId;
+  documentId: ResolvedArtifactId;
   name: string;
   path: string;
-  projectId: VersionControlId;
+  projectId: ProjectId;
 };
 
 export type DeleteDocumentFromMultiDocumentProjectArgs = {
-  projectId: VersionControlId;
-  documentId: VersionControlId;
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
 };
 
 export type FindDocumentInMultiDocumentProjectArgs = {
-  projectId: VersionControlId;
+  projectId: ProjectId;
   documentPath: string;
 };
 
 export type MultiDocumentProjectStore = {
   createProject: (
     args: CreateMultiDocumentProjectArgs
-  ) => Effect.Effect<VersionControlId, RepositoryError, never>;
+  ) => Effect.Effect<ProjectId, RepositoryError, never>;
   findProjectById: (
-    id: VersionControlId
+    id: ProjectId
   ) => Effect.Effect<
     VersionedMultiDocumentProject,
-    RepositoryError | NotFoundError | MigrationError,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
   listProjectDocuments: (
-    id: VersionControlId
+    id: ProjectId
   ) => Effect.Effect<
     ArtifactMetaData[],
-    RepositoryError | NotFoundError | MigrationError,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
   addDocumentToProject: (
     args: AddDocumentToMultiDocumentProjectArgs
   ) => Effect.Effect<
     void,
-    MigrationError | RepositoryError | NotFoundError,
+    ValidationError | MigrationError | RepositoryError | NotFoundError,
     never
   >;
   deleteDocumentFromProject: (
     args: DeleteDocumentFromMultiDocumentProjectArgs
   ) => Effect.Effect<
     void,
-    MigrationError | RepositoryError | NotFoundError,
+    ValidationError | MigrationError | RepositoryError | NotFoundError,
     never
   >;
   findDocumentInProject: (
     args: FindDocumentInMultiDocumentProjectArgs
   ) => Effect.Effect<
-    VersionControlId,
-    RepositoryError | NotFoundError | MigrationError,
+    ResolvedArtifactId,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
   getProjectFromHandle: (

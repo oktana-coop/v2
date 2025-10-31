@@ -1,6 +1,7 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router';
 
+import { isValidProjectId } from '../../../../../../modules/domain/project';
 import { type VersionedDocument } from '../../../../../../modules/domain/rich-text';
 import {
   type Change,
@@ -9,9 +10,8 @@ import {
   encodeURLHeads,
   headsAreSame,
   isCommit,
-  isValidVersionControlId,
+  type ResolvedArtifactId,
   UrlHeads,
-  type VersionControlId,
 } from '../../../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../../../modules/personalization/browser';
 import {
@@ -76,7 +76,7 @@ export const DocumentHistoricalView = () => {
 
   useEffect(() => {
     const loadDocOrDiff = async (
-      documentId: VersionControlId,
+      documentId: ResolvedArtifactId,
       commits: ChangeWithUrlInfo[],
       currentCommitIndex: number
     ) => {
@@ -199,7 +199,7 @@ export const DocumentHistoricalView = () => {
   };
 
   const handleEditClick = () => {
-    if (isValidVersionControlId(projectId) && documentId) {
+    if (isValidProjectId(projectId) && documentId) {
       navigateToDocument({
         projectId,
         documentId,

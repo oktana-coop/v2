@@ -4,10 +4,10 @@ import {
   type Change,
   type Commit,
   type MigrationError,
-  type VersionControlId,
+  type ResolvedArtifactId,
 } from '../../../../modules/infrastructure/version-control';
 import { RichTextRepresentation } from '../constants';
-import { NotFoundError, RepositoryError } from '../errors';
+import { NotFoundError, RepositoryError, ValidationError } from '../errors';
 import {
   type ResolvedDocument,
   type VersionedDocument,
@@ -24,12 +24,12 @@ export type GetDocumentHandleAtCommitArgs = {
 };
 
 export type GetDocumentAtCommitArgs = {
-  documentId: VersionControlId;
+  documentId: ResolvedArtifactId;
   heads: Commit['heads'];
 };
 
 export type UpdateRichTextDocumentContentArgs = {
-  documentId: VersionControlId;
+  documentId: ResolvedArtifactId;
   representation: RichTextRepresentation;
   content: string;
 };
@@ -49,13 +49,13 @@ export type GetDocumentHandleHistoryResponse = {
 };
 
 export type IsContentSameAtHeadsArgs = {
-  documentId: VersionControlId;
+  documentId: ResolvedArtifactId;
   heads1: Commit['heads'];
   heads2: Commit['heads'];
 };
 
 export type CommitChangesArgs = {
-  documentId: VersionControlId;
+  documentId: ResolvedArtifactId;
   message: string;
 };
 
@@ -67,61 +67,61 @@ export type VersionedDocumentStore = {
   setProjectId: (id: string) => Effect.Effect<void, never, never>;
   createDocument: (
     args: CreateDocumentArgs
-  ) => Effect.Effect<VersionControlId, RepositoryError, never>;
+  ) => Effect.Effect<ResolvedArtifactId, RepositoryError, never>;
   getDocumentAtCommit: (
     args: GetDocumentAtCommitArgs
   ) => Effect.Effect<
     VersionedDocument,
-    RepositoryError | NotFoundError | MigrationError,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
   findDocumentById: (
-    id: VersionControlId
+    id: ResolvedArtifactId
   ) => Effect.Effect<
     ResolvedDocument,
-    RepositoryError | NotFoundError | MigrationError,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
   updateRichTextDocumentContent: (
     args: UpdateRichTextDocumentContentArgs
   ) => Effect.Effect<
     void,
-    RepositoryError | NotFoundError | MigrationError,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
   deleteDocument: (
-    args: VersionControlId
+    args: ResolvedArtifactId
   ) => Effect.Effect<
     void,
-    MigrationError | RepositoryError | NotFoundError,
+    ValidationError | MigrationError | RepositoryError | NotFoundError,
     never
   >;
   getDocumentHeads: (
-    documentId: VersionControlId
+    documentId: ResolvedArtifactId
   ) => Effect.Effect<
     Commit['heads'],
-    RepositoryError | NotFoundError | MigrationError,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
   getDocumentHistory: (
-    documentId: VersionControlId
+    documentId: ResolvedArtifactId
   ) => Effect.Effect<
     GetDocumentHistoryResponse,
-    RepositoryError | NotFoundError | MigrationError,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
   isContentSameAtHeads: (
     args: IsContentSameAtHeadsArgs
   ) => Effect.Effect<
     boolean,
-    RepositoryError | NotFoundError | MigrationError,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
   commitChanges: (
     args: CommitChangesArgs
   ) => Effect.Effect<
     void,
-    RepositoryError | NotFoundError | MigrationError,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
   exportDocumentToBinary: (
@@ -136,10 +136,10 @@ export type VersionedDocumentStore = {
     args: GetDocumentHandleAtCommitArgs
   ) => Effect.Effect<VersionedDocumentHandle, RepositoryError, never>;
   findDocumentHandleById: (
-    id: VersionControlId
+    id: ResolvedArtifactId
   ) => Effect.Effect<
     VersionedDocumentHandle,
-    MigrationError | RepositoryError | NotFoundError,
+    ValidationError | MigrationError | RepositoryError | NotFoundError,
     never
   >;
   getDocumentFromHandle: (

@@ -100,3 +100,5 @@ export const isValidResolvedArtifactId = (
 ): val is ResolvedArtifactId => {
   return resolvedArtifactIdSchema.safeParse(val).success;
 };
+
+export { type AutomergeUrl } from '@automerge/automerge-repo/slim';

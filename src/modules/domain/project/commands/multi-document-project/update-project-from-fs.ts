@@ -6,6 +6,7 @@ import {
   NotFoundError as VersionedDocumentNotFoundError,
   RepositoryError as VersionedDocumentRepositoryError,
   richTextRepresentations,
+  ValidationError as VersionedDocumentValidationError,
   type VersionedDocumentStore,
 } from '../../../../../modules/domain/rich-text';
 import {
@@ -19,22 +20,23 @@ import {
 } from '../../../../../modules/infrastructure/filesystem';
 import {
   MigrationError,
-  type VersionControlId,
+  type ResolvedArtifactId,
 } from '../../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../../utils/errors';
 import { RICH_TEXT_FILE_EXTENSION } from '../../constants/file-extensions';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
+  ValidationError as VersionedProjectValidationError,
 } from '../../errors';
-import { type ArtifactMetaData } from '../../models';
+import { type ArtifactMetaData, type ProjectId } from '../../models';
 import { type MultiDocumentProjectStore } from '../../ports/multi-document-project';
 import { createVersionedDocumentFromFile } from './create-versioned-document-from-file';
 import { deleteDocumentFromProject } from './delete-document-from-project';
 import { findDocumentInProject } from './find-document-in-project';
 
 export type UpdateProjectFromFilesystemContentArgs = {
-  projectId: VersionControlId;
+  projectId: ProjectId;
   directoryPath: string;
 };
 
@@ -86,14 +88,16 @@ const propagateFileChangesToVersionedDocument =
     projectId,
     file,
   }: {
-    projectId: VersionControlId;
+    projectId: ProjectId;
     file: File;
   }): Effect.Effect<
     void,
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
+    | VersionedProjectValidationError
     | VersionedDocumentRepositoryError
     | VersionedDocumentNotFoundError
+    | VersionedDocumentValidationError
     | FilesystemAccessControlError
     | FilesystemNotFoundError
     | FilesystemRepositoryError
@@ -171,8 +175,10 @@ export const updateProjectFromFilesystemContent =
     void,
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
+    | VersionedProjectValidationError
     | VersionedDocumentRepositoryError
     | VersionedDocumentNotFoundError
+    | VersionedDocumentValidationError
     | FilesystemAccessControlError
     | FilesystemDataIntegrityError
     | FilesystemNotFoundError
@@ -212,7 +218,7 @@ export const updateProjectFromFilesystemContent =
         )
       ),
       Effect.tap(({ directoryFiles, projectDocuments }) => {
-        const projectDocumentsToDelete: Array<VersionControlId> =
+        const projectDocumentsToDelete: Array<ResolvedArtifactId> =
           projectDocuments
             .filter(
               (documentMetaData) =>

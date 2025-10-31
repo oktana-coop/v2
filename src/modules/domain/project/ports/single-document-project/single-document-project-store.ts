@@ -2,11 +2,12 @@ import * as Effect from 'effect/Effect';
 
 import {
   MigrationError,
-  type VersionControlId,
+  type ResolvedArtifactId,
 } from '../../../../infrastructure/version-control';
-import { NotFoundError, RepositoryError } from '../../errors';
+import { NotFoundError, RepositoryError, ValidationError } from '../../errors';
 import {
   type BaseArtifactMetaData,
+  type ProjectId,
   type VersionedSingleDocumentProject,
   type VersionedSingleDocumentProjectHandle,
 } from '../../models';
@@ -19,19 +20,19 @@ export type CreateSingleDocumentProjectArgs = {
 export type SingleDocumentProjectStore = {
   createSingleDocumentProject: (
     args: CreateSingleDocumentProjectArgs
-  ) => Effect.Effect<VersionControlId, RepositoryError, never>;
+  ) => Effect.Effect<ProjectId, RepositoryError, never>;
   findDocumentInProject: (
-    projectId: VersionControlId
+    projectId: ProjectId
   ) => Effect.Effect<
-    VersionControlId,
-    RepositoryError | NotFoundError | MigrationError,
+    ResolvedArtifactId,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
   findProjectById: (
-    projectId: VersionControlId
+    projectId: ProjectId
   ) => Effect.Effect<
     VersionedSingleDocumentProject,
-    RepositoryError | NotFoundError | MigrationError,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
   getProjectFromHandle: (
@@ -42,10 +43,10 @@ export type SingleDocumentProjectStore = {
     never
   >;
   getProjectName: (
-    projectId: VersionControlId
+    projectId: ProjectId
   ) => Effect.Effect<
     string | null,
-    RepositoryError | NotFoundError | MigrationError,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
   disconnect: () => Effect.Effect<void, RepositoryError, never>;

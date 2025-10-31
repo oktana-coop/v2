@@ -12,8 +12,11 @@ export type VersionedArtifact<ArtifactType> = {
   readonly [P in keyof ArtifactType]: ArtifactType[P];
 };
 
-export type ResolvedArtifact<ArtifactType> = {
-  id: ResolvedArtifactId;
+export type ResolvedArtifact<
+  ArtifactId extends ResolvedArtifactId,
+  ArtifactType,
+> = {
+  id: ArtifactId;
   artifact: VersionedArtifact<ArtifactType>;
   handle: VersionedArtifactHandle<ArtifactType> | null;
 };

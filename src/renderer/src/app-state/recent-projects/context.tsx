@@ -1,15 +1,16 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import {
+  type ProjectId,
   type ProjectType,
   projectTypes,
 } from '../../../../modules/domain/project';
 import { type File } from '../../../../modules/infrastructure/filesystem';
-import { VersionControlId } from '../../../../modules/infrastructure/version-control';
+import { type ResolvedArtifactId } from '../../../../modules/infrastructure/version-control';
 import { SingleDocumentProjectContext } from '../current-project/single-document-project-context';
 
 type RecentProjectInfo = {
-  projectId: VersionControlId;
+  projectId: ProjectId;
   projectType: ProjectType;
   firstOpenedAt: Date;
   lastOpenedAt: Date;
@@ -17,7 +18,7 @@ type RecentProjectInfo = {
 
 type RecentSingleDocumentProjectInfo = RecentProjectInfo & {
   projectType: typeof projectTypes.SINGLE_DOCUMENT_PROJECT;
-  documentId: VersionControlId;
+  documentId: ResolvedArtifactId;
   projectFile: File | null;
   projectName: string | null;
 };
@@ -66,8 +67,8 @@ export const RecentProjectsProvider = ({
       projectFile,
       projectName,
     }: {
-      projectId: VersionControlId;
-      documentId: VersionControlId;
+      projectId: ProjectId;
+      documentId: ResolvedArtifactId;
       projectFile: File | null;
       projectName: string | null;
     }) => {

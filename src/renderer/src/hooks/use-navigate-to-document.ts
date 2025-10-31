@@ -1,8 +1,8 @@
 import { useContext } from 'react';
 import { useNavigate } from 'react-router';
 
-import { projectTypes } from '../../../modules/domain/project';
-import { type VersionControlId } from '../../../modules/infrastructure/version-control';
+import { type ProjectId, projectTypes } from '../../../modules/domain/project';
+import { type ResolvedArtifactId } from '../../../modules/infrastructure/version-control';
 import {
   CurrentProjectContext,
   MultiDocumentProjectContext,
@@ -19,8 +19,8 @@ export const useNavigateToDocument = () => {
     documentId,
     path,
   }: {
-    projectId: VersionControlId;
-    documentId: VersionControlId;
+    projectId: ProjectId;
+    documentId: ResolvedArtifactId;
     path: string | null;
   }) => {
     if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {

@@ -13,14 +13,15 @@ import {
   getArtifactHistory,
   importFromBinary,
   isArtifactContentSameAtHeads,
+  isAutomergeUrl,
   migrateIfNeeded,
   MigrationError,
-  type VersionControlId,
+  type ResolvedArtifactId,
   versionedArtifactTypes,
 } from '../../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../../utils/errors';
 import { richTextRepresentations } from '../../constants';
-import { NotFoundError, RepositoryError } from '../../errors';
+import { NotFoundError, RepositoryError, ValidationError } from '../../errors';
 import {
   CURRENT_SCHEMA_VERSION,
   type RichTextDocument,
@@ -74,7 +75,7 @@ export const createAdapter = (
           }),
         catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
       }),
-      Effect.map((handle) => handle.url)
+      Effect.map((handle) => handle.url as ResolvedArtifactId)
     );
 
   const getDocumentHandleAtCommit: VersionedDocumentStore['getDocumentHandleAtCommit'] =
@@ -107,7 +108,7 @@ export const createAdapter = (
         pipe(
           getDocumentFromHandle(documentHandle),
           Effect.map((document) => ({
-            id: documentHandle.url,
+            id: documentHandle.url as ResolvedArtifactId,
             artifact: document,
             handle: documentHandle,
           }))
@@ -123,17 +124,24 @@ export const createAdapter = (
   const findDocumentHandleById: VersionedDocumentStore['findDocumentHandleById'] =
     (id) =>
       pipe(
-        Effect.tryPromise({
-          try: () => automergeRepo.find<RichTextDocument>(id),
-          catch: (err: unknown) => {
-            // TODO: This is not-future proof as it depends on the error message. Find a better way.
-            if (err instanceof Error && err.message.includes('unavailable')) {
-              return new NotFoundError(err.message);
-            }
+        Effect.succeed(id),
+        Effect.filterOrFail(
+          isAutomergeUrl,
+          (val) => new ValidationError(`Invalid document id: ${val}`)
+        ),
+        Effect.flatMap((automergeUrl) =>
+          Effect.tryPromise({
+            try: () => automergeRepo.find<RichTextDocument>(automergeUrl),
+            catch: (err: unknown) => {
+              // TODO: This is not-future proof as it depends on the error message. Find a better way.
+              if (err instanceof Error && err.message.includes('unavailable')) {
+                return new NotFoundError(err.message);
+              }
 
-            return mapErrorTo(RepositoryError, 'Automerge repo error')(err);
-          },
-        }),
+              return mapErrorTo(RepositoryError, 'Automerge repo error')(err);
+            },
+          })
+        ),
         Effect.tap((handle) =>
           pipe(
             migrateIfNeeded(migrations)(handle, CURRENT_SCHEMA_VERSION),
@@ -218,7 +226,7 @@ export const createAdapter = (
     );
 
   const getDocumentHistory: VersionedDocumentStore['getDocumentHistory'] = (
-    documentId: VersionControlId
+    documentId: ResolvedArtifactId
   ) =>
     pipe(
       findDocumentById(documentId),

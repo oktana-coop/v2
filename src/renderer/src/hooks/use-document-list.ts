@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from 'react';
 
 import { projectTypes } from '../../../modules/domain/project';
 import { removeExtension } from '../../../modules/infrastructure/filesystem';
-import { VersionControlId } from '../../../modules/infrastructure/version-control';
+import { type ResolvedArtifactId } from '../../../modules/infrastructure/version-control';
 import {
   CurrentProjectContext,
   MultiDocumentProjectContext,
@@ -34,7 +34,7 @@ const getDocumentListInMultiDocumentProject = (
 
 const getDocumentListInSingleDocumentProject = (
   recentProjects: RecentProjectsContextType['recentProjects'],
-  documentId: VersionControlId | null
+  documentId: ResolvedArtifactId | null
 ): DocumentListItem[] =>
   recentProjects.map((projectInfo) => {
     const documentListItem: DocumentListItem = {

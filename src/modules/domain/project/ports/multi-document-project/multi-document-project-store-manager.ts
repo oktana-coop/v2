@@ -3,6 +3,7 @@ import * as Effect from 'effect/Effect';
 import {
   NotFoundError as VersionedDocumentNotFoundError,
   RepositoryError as VersionedDocumentRepositoryError,
+  ValidationError as VersionedDocumentValidationError,
   VersionedDocumentStore,
 } from '../../../../../modules/domain/rich-text';
 import {
@@ -14,16 +15,15 @@ import {
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
-import {
-  MigrationError,
-  type VersionControlId,
-} from '../../../../../modules/infrastructure/version-control';
+import { MigrationError } from '../../../../../modules/infrastructure/version-control';
 import {
   DataIntegrityError as VersionedProjectDataIntegrityError,
   MissingProjectMetadataError as VersionedProjectMissingProjectMetadataError,
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
+  ValidationError as VersionedProjectValidationError,
 } from '../../errors';
+import { type ProjectId } from '../../models';
 import { MultiDocumentProjectStore } from './multi-document-project-store';
 
 export type OpenOrCreateMultiDocumentProjectDeps = {
@@ -37,7 +37,7 @@ export type OpenOrCreateMultiDocumentProjectDeps = {
 export type OpenOrCreateMultiDocumentProjectResult = {
   versionedProjectStore: MultiDocumentProjectStore;
   versionedDocumentStore: VersionedDocumentStore;
-  projectId: VersionControlId;
+  projectId: ProjectId;
   directory: Directory;
 };
 
@@ -48,14 +48,14 @@ export type OpenMultiDocumentProjectByIdDeps = {
 };
 
 export type OpenMultiDocumentProjectByIdArgs = {
-  projectId: VersionControlId;
+  projectId: ProjectId;
   directoryPath: string;
 };
 
 export type OpenMultiDocumentProjectByIdResult = {
   versionedProjectStore: MultiDocumentProjectStore;
   versionedDocumentStore: VersionedDocumentStore;
-  projectId: VersionControlId;
+  projectId: ProjectId;
   directory: Directory;
 };
 
@@ -72,8 +72,10 @@ export type MultiDocumentProjectStoreManager = {
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
     | VersionedProjectDataIntegrityError
+    | VersionedProjectValidationError
     | VersionedDocumentRepositoryError
     | VersionedDocumentNotFoundError
+    | VersionedDocumentValidationError
     | MigrationError,
     never
   >;
@@ -91,8 +93,10 @@ export type MultiDocumentProjectStoreManager = {
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
     | VersionedProjectDataIntegrityError
+    | VersionedProjectValidationError
     | VersionedDocumentRepositoryError
     | VersionedDocumentNotFoundError
+    | VersionedDocumentValidationError
     | MigrationError,
     never
   >;

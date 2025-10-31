@@ -12,7 +12,7 @@ import {
 } from '../../../infrastructure/filesystem';
 import {
   MigrationError,
-  type VersionControlId,
+  type ResolvedArtifactId,
 } from '../../../infrastructure/version-control';
 import { richTextRepresentations } from '../constants';
 import {
@@ -28,7 +28,7 @@ import {
 } from '../ports';
 
 export type ProcessDocumentChangeArgs = {
-  documentId: VersionControlId;
+  documentId: ResolvedArtifactId;
   updatedDocument: RichTextDocument;
   filePath: string | null;
   projectType: ProjectType;

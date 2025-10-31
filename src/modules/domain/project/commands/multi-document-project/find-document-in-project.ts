@@ -4,22 +4,22 @@ import { pipe } from 'effect/Function';
 import {
   NotFoundError as VersionedDocumentNotFoundError,
   RepositoryError as VersionedDocumentRepositoryError,
+  ValidationError as VersionedDocumentValidationError,
   type VersionedDocumentHandle,
   type VersionedDocumentStore,
 } from '../../../../../modules/domain/rich-text';
-import {
-  MigrationError,
-  type VersionControlId,
-} from '../../../../../modules/infrastructure/version-control';
+import { MigrationError } from '../../../../../modules/infrastructure/version-control';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
+  ValidationError as VersionedProjectValidationError,
 } from '../../errors';
+import { type ProjectId } from '../../models';
 import { type MultiDocumentProjectStore } from '../../ports/multi-document-project';
 
 export type FindDocumentInProjectArgs = {
   documentPath: string;
-  projectId: VersionControlId;
+  projectId: ProjectId;
 };
 
 export type FindDocumentInProjectDeps = {
@@ -39,8 +39,10 @@ export const findDocumentInProject =
     VersionedDocumentHandle,
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
+    | VersionedProjectValidationError
     | VersionedDocumentRepositoryError
     | VersionedDocumentNotFoundError
+    | VersionedDocumentValidationError
     | MigrationError,
     never
   > =>

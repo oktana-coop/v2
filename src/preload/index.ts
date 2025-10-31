@@ -24,7 +24,7 @@ import {
 import type {
   FromMainMessage as AutomergeRepoNetworkFromMainIPCMessage,
   FromRendererMessage as AutomergeRepoNetworkFromRendererIPCMessage,
-  VersionControlId,
+  ResolvedArtifactId,
 } from '../modules/infrastructure/version-control';
 import type {
   RunWasiCLIArgs,
@@ -38,7 +38,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('renderer-process-id', (_, processId) =>
       callback(processId)
     ),
-  sendCurrentDocumentId: (id: VersionControlId) =>
+  sendCurrentDocumentId: (id: ResolvedArtifactId) =>
     ipcRenderer.send('current-document-id', id),
   openExternalLink: (url: string) =>
     ipcRenderer.send('open-external-link', url),
