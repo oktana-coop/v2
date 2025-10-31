@@ -266,5 +266,5 @@ const MainContent = ({
     return <ReadOnlyView {...diffProps} />;
   }
 
-  <ReadOnlyView doc={doc} />;
+  return <ReadOnlyView doc={doc} />;
 };
