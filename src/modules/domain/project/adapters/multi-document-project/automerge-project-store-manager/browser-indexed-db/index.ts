@@ -228,7 +228,7 @@ const createNewProject = ({
 
 const openExistingProject = ({
   directoryPath,
-  findDocumentHandleById,
+  findDocumentById,
   getDocumentFromHandle,
   createDocument,
   deleteDocument,
@@ -242,7 +242,7 @@ const openExistingProject = ({
   db,
 }: {
   directoryPath: string;
-  findDocumentHandleById: VersionedDocumentStore['findDocumentHandleById'];
+  findDocumentById: VersionedDocumentStore['findDocumentById'];
   getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
   createDocument: VersionedDocumentStore['createDocument'];
   deleteDocument: VersionedDocumentStore['deleteDocument'];
@@ -278,7 +278,7 @@ const openExistingProject = ({
     }),
     Effect.tap((projectId) =>
       updateProjectFromFilesystemContent({
-        findDocumentHandleById,
+        findDocumentById,
         getDocumentFromHandle,
         createDocument,
         deleteDocument,
@@ -296,7 +296,7 @@ const openExistingProject = ({
 const validateIdAndOpenProject = ({
   projectId,
   directoryPath,
-  findDocumentHandleById,
+  findDocumentById,
   getDocumentFromHandle,
   createDocument,
   deleteDocument,
@@ -311,7 +311,7 @@ const validateIdAndOpenProject = ({
 }: {
   projectId: ProjectId;
   directoryPath: string;
-  findDocumentHandleById: VersionedDocumentStore['findDocumentHandleById'];
+  findDocumentById: VersionedDocumentStore['findDocumentById'];
   getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
   createDocument: VersionedDocumentStore['createDocument'];
   deleteDocument: VersionedDocumentStore['deleteDocument'];
@@ -356,7 +356,7 @@ const validateIdAndOpenProject = ({
     ),
     Effect.tap((projectId) =>
       updateProjectFromFilesystemContent({
-        findDocumentHandleById,
+        findDocumentById,
         getDocumentFromHandle,
         createDocument,
         deleteDocument,
@@ -401,8 +401,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
               pipe(
                 openExistingProject({
                   directoryPath: directory.path,
-                  findDocumentHandleById:
-                    versionedDocumentStore.findDocumentHandleById,
+                  findDocumentById: versionedDocumentStore.findDocumentById,
                   getDocumentFromHandle:
                     versionedDocumentStore.getDocumentFromHandle,
                   createDocument: versionedDocumentStore.createDocument,
@@ -484,8 +483,8 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                       validateIdAndOpenProject({
                         projectId,
                         directoryPath,
-                        findDocumentHandleById:
-                          versionedDocumentStore.findDocumentHandleById,
+                        findDocumentById:
+                          versionedDocumentStore.findDocumentById,
                         getDocumentFromHandle:
                           versionedDocumentStore.getDocumentFromHandle,
                         createDocument: versionedDocumentStore.createDocument,

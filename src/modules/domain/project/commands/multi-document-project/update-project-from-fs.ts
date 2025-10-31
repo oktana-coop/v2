@@ -41,7 +41,7 @@ export type UpdateProjectFromFilesystemContentArgs = {
 };
 
 export type UpdateProjectFromFilesystemContentDeps = {
-  findDocumentHandleById: VersionedDocumentStore['findDocumentHandleById'];
+  findDocumentById: VersionedDocumentStore['findDocumentById'];
   getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
   createDocument: VersionedDocumentStore['createDocument'];
   updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'];
@@ -72,16 +72,14 @@ const documentForFileExistsInProject = ({
 // The files content is the source of truth.
 const propagateFileChangesToVersionedDocument =
   ({
-    findDocumentHandleById,
-    getDocumentFromHandle,
+    findDocumentById,
     updateRichTextDocumentContent,
     findDocumentInProject: findDocumentInProjectStore,
     readFile,
   }: {
-    findDocumentHandleById: VersionedDocumentStore['findDocumentHandleById'];
+    findDocumentById: VersionedDocumentStore['findDocumentById'];
     findDocumentInProject: MultiDocumentProjectStore['findDocumentInProject'];
     updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'];
-    getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
     readFile: Filesystem['readFile'];
   }) =>
   ({
@@ -107,13 +105,13 @@ const propagateFileChangesToVersionedDocument =
   > =>
     pipe(
       findDocumentInProject({
-        findDocumentHandleById,
+        findDocumentById,
         findDocumentInProjectStore,
       })({
         documentPath: file.path,
         projectId,
       }),
-      Effect.flatMap((documentHandle) =>
+      Effect.flatMap(({ id: documentId, artifact: document }) =>
         pipe(
           readFile(file.path),
           Effect.flatMap((file) =>
@@ -127,22 +125,19 @@ const propagateFileChangesToVersionedDocument =
           ),
           Effect.flatMap((fileContent) =>
             pipe(
-              getDocumentFromHandle(documentHandle),
-              Effect.flatMap((document) =>
-                Effect.try({
-                  try: () => getDocumentRichTextContent(document),
-                  catch: (err) =>
-                    mapErrorTo(
-                      VersionedDocumentRepositoryError,
-                      'Automerge Error'
-                    )(err),
-                })
-              ),
+              Effect.try({
+                try: () => getDocumentRichTextContent(document),
+                catch: (err) =>
+                  mapErrorTo(
+                    VersionedDocumentRepositoryError,
+                    'Automerge Error'
+                  )(err),
+              }),
               Effect.flatMap((documentRichTextContent) =>
                 fileContent.content &&
                 fileContent.content !== documentRichTextContent
                   ? updateRichTextDocumentContent({
-                      documentId: documentHandle.url,
+                      documentId,
                       representation: richTextRepresentations.AUTOMERGE,
                       content: fileContent.content,
                     })
@@ -156,8 +151,7 @@ const propagateFileChangesToVersionedDocument =
 
 export const updateProjectFromFilesystemContent =
   ({
-    findDocumentHandleById,
-    getDocumentFromHandle,
+    findDocumentById,
     createDocument,
     updateRichTextDocumentContent,
     deleteDocument,
@@ -200,10 +194,9 @@ export const updateProjectFromFilesystemContent =
           (file) =>
             documentForFileExistsInProject({ file, projectDocuments })
               ? propagateFileChangesToVersionedDocument({
-                  findDocumentHandleById,
+                  findDocumentById,
                   findDocumentInProject,
                   updateRichTextDocumentContent,
-                  getDocumentFromHandle,
                   readFile,
                 })({ file, projectId })
               : createVersionedDocumentFromFile({

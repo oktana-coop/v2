@@ -16,7 +16,7 @@ import {
   type ProjectId,
   RICH_TEXT_FILE_EXTENSION,
 } from '../../../../modules/domain/project';
-import { VersionedDocumentHandle } from '../../../../modules/domain/rich-text';
+import { type ResolvedDocument } from '../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform';
 import {
   type Directory,
@@ -57,7 +57,7 @@ export type MultiDocumentProjectContextType = {
   findDocumentInProject: (args: {
     projectId: ProjectId;
     documentPath: string;
-  }) => Promise<VersionedDocumentHandle>;
+  }) => Promise<ResolvedDocument>;
   selectedFileInfo: SelectedFileInfo | null;
   selectedFileName: string | null;
   setSelectedFileInfo: (file: SelectedFileInfo) => void;
@@ -272,7 +272,7 @@ export const MultiDocumentProjectProvider = ({
 
     return Effect.runPromise(
       findDocumentInProject({
-        findDocumentHandleById: versionedDocumentStore.findDocumentHandleById,
+        findDocumentById: versionedDocumentStore.findDocumentById,
         findDocumentInProjectStore: versionedProjectStore.findDocumentInProject,
       })({
         projectId: args.projectId,
