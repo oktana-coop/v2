@@ -9,7 +9,6 @@ import {
   type BaseArtifactMetaData,
   type ProjectId,
   type VersionedSingleDocumentProject,
-  type VersionedSingleDocumentProjectHandle,
 } from '../../models';
 
 export type CreateSingleDocumentProjectArgs = {
@@ -33,13 +32,6 @@ export type SingleDocumentProjectStore = {
   ) => Effect.Effect<
     VersionedSingleDocumentProject,
     ValidationError | RepositoryError | NotFoundError | MigrationError,
-    never
-  >;
-  getProjectFromHandle: (
-    handle: VersionedSingleDocumentProjectHandle
-  ) => Effect.Effect<
-    VersionedSingleDocumentProject,
-    RepositoryError | NotFoundError,
     never
   >;
   getProjectName: (

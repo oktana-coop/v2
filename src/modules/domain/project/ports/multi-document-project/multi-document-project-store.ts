@@ -10,7 +10,6 @@ import type {
   MultiDocumentProject,
   ProjectId,
   VersionedMultiDocumentProject,
-  VersionedMultiDocumentProjectHandle,
 } from '../../models';
 
 export type CreateMultiDocumentProjectArgs = {
@@ -72,13 +71,6 @@ export type MultiDocumentProjectStore = {
   ) => Effect.Effect<
     ResolvedArtifactId,
     ValidationError | RepositoryError | NotFoundError | MigrationError,
-    never
-  >;
-  getProjectFromHandle: (
-    handle: VersionedMultiDocumentProjectHandle
-  ) => Effect.Effect<
-    VersionedMultiDocumentProject,
-    RepositoryError | NotFoundError,
     never
   >;
 };

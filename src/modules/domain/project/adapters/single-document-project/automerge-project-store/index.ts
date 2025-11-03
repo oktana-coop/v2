@@ -18,6 +18,8 @@ import {
 import {
   type BaseArtifactMetaData,
   type SingleDocumentProject,
+  type VersionedSingleDocumentProject,
+  type VersionedSingleDocumentProjectHandle,
 } from '../../../models';
 import {
   CURRENT_SINGLE_DOCUMENT_PROJECT_SCHEMA_VERSION,
@@ -109,8 +111,13 @@ export const createAdapter = (
       })
     );
 
-  const getProjectFromHandle: SingleDocumentProjectStore['getProjectFromHandle'] =
-    getDocFromHandle<SingleDocumentProject>;
+  const getProjectFromHandle: (
+    handle: VersionedSingleDocumentProjectHandle
+  ) => Effect.Effect<
+    VersionedSingleDocumentProject,
+    RepositoryError | NotFoundError,
+    never
+  > = getDocFromHandle<SingleDocumentProject>;
 
   const getDocumentFromProject = (
     projectId: ProjectId
@@ -150,7 +157,6 @@ export const createAdapter = (
     createSingleDocumentProject,
     findProjectById,
     findDocumentInProject,
-    getProjectFromHandle,
     getProjectName,
     disconnect,
   };

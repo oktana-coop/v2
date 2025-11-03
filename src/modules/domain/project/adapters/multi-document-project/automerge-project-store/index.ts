@@ -187,6 +187,5 @@ export const createAdapter = (
     addDocumentToProject,
     deleteDocumentFromProject,
     findDocumentInProject,
-    getProjectFromHandle,
   };
 };
