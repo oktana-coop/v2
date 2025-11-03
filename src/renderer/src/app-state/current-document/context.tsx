@@ -264,13 +264,13 @@ export const CurrentDocumentProvider = ({
       }));
 
       setVersionedDocumentHistory(historyWithURLInfo);
-      setLastCommit(lastCommit);
+      setLastCommit(historyInfo.lastCommit);
       setLoadingHistory(false);
       await checkIfCanCommit(documentStore)({
         docId,
         doc,
         latestChangeHeads: historyInfo.latestChange.heads,
-        lastCommitHeads: lastCommit?.heads,
+        lastCommitHeads: historyInfo.lastCommit?.heads,
       });
     };
 
