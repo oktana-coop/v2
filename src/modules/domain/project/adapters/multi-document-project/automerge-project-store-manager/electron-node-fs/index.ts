@@ -35,7 +35,7 @@ import {
   RepositoryError as VersionedProjectRepositoryError,
   ValidationError as VersionedProjectValidationError,
 } from '../../../../errors';
-import { isAutomergeUrl, type ProjectId } from '../../../../models';
+import { parseAutomergeUrl, type ProjectId } from '../../../../models';
 import {
   MultiDocumentProjectStore,
   type MultiDocumentProjectStoreManager,
@@ -171,13 +171,19 @@ const readProjectIdFromDirIndexFile = ({
       )
     ),
     Effect.flatMap((projectId) =>
-      typeof projectId === 'string' && isAutomergeUrl(projectId)
-        ? Effect.succeed(projectId)
-        : Effect.fail(
-            new VersionedProjectDataIntegrityError(
-              'Project ID found in index file is invalid Automerge URL'
-            )
-          )
+      Effect.try({
+        try: () => {
+          if (typeof projectId !== 'string') {
+            throw new Error('Expected a string project id');
+          }
+
+          return parseAutomergeUrl(projectId);
+        },
+        catch: mapErrorTo(
+          VersionedProjectDataIntegrityError,
+          'Project ID found in index file is invalid Automerge URL'
+        ),
+      })
     )
   );
 };

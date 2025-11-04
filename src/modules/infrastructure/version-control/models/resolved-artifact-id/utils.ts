@@ -1,4 +1,8 @@
-import { GIT_SHA_REGEX, type GitBlobRef, gitBlobRefSchema } from './index';
+import {
+  GIT_SHA_REGEX,
+  type GitBlobRef,
+  gitBlobRefSchema,
+} from './git-blob-ref';
 
 export const parseGitBlobRef = (
   ref: GitBlobRef
@@ -17,7 +21,13 @@ export const parseGitBlobRef = (
   };
 };
 
-export const createGitBlobRef = (ref: string, path: string): GitBlobRef => {
+export const createGitBlobRef = ({
+  ref,
+  path,
+}: {
+  ref: string;
+  path: string;
+}): GitBlobRef => {
   // Ensure path doesn't start with /
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
   const blobRef = `/blob/${ref}/${cleanPath}`;

@@ -14,7 +14,7 @@ import type {
 
 export type CreateMultiDocumentProjectArgs = {
   path: string;
-  documents: MultiDocumentProject['documents'];
+  documents?: MultiDocumentProject['documents'];
 };
 
 export type AddDocumentToMultiDocumentProjectArgs = {
@@ -37,7 +37,7 @@ export type FindDocumentInMultiDocumentProjectArgs = {
 export type MultiDocumentProjectStore = {
   createProject: (
     args: CreateMultiDocumentProjectArgs
-  ) => Effect.Effect<ProjectId, RepositoryError, never>;
+  ) => Effect.Effect<ProjectId, ValidationError | RepositoryError, never>;
   findProjectById: (
     id: ProjectId
   ) => Effect.Effect<

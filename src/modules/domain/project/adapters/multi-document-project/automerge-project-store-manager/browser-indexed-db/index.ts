@@ -31,7 +31,7 @@ import {
   RepositoryError as VersionedProjectRepositoryError,
   ValidationError as VersionedProjectValidationError,
 } from '../../../../errors';
-import { isAutomergeUrl, type ProjectId } from '../../../../models';
+import { parseAutomergeUrl, type ProjectId } from '../../../../models';
 import {
   type MultiDocumentProjectStore,
   type MultiDocumentProjectStoreManager,
@@ -170,13 +170,13 @@ const getProjectMetadataFromIDB = ({
       )
     ),
     Effect.flatMap((projId) =>
-      isAutomergeUrl(projId)
-        ? Effect.succeed(projId)
-        : Effect.fail(
-            new VersionedProjectDataIntegrityError(
-              'Malformed project ID found in IndexedDB'
-            )
-          )
+      Effect.try({
+        try: () => parseAutomergeUrl(projId),
+        catch: mapErrorTo(
+          VersionedProjectDataIntegrityError,
+          'Malformed project ID found in IndexedDB'
+        ),
+      })
     )
   );
 

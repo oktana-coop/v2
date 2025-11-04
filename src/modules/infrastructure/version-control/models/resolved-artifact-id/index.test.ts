@@ -59,7 +59,7 @@ describe('ResolvedArtifactId', () => {
   });
 
   it('uses type guards correctly', () => {
-    const gitRef = createGitBlobRef('main', 'src/index.ts');
+    const gitRef = createGitBlobRef({ ref: 'main', path: 'src/index.ts' });
     expect(isGitBlobRef(gitRef)).toBe(true);
 
     // Type guard narrows the type
@@ -72,7 +72,10 @@ describe('ResolvedArtifactId', () => {
   });
 
   it('parses Git blob references and identifies commit SHAs', () => {
-    const commitRef = createGitBlobRef('4a1d2e3f', 'docs/README.md');
+    const commitRef = createGitBlobRef({
+      ref: '4a1d2e3f',
+      path: 'docs/README.md',
+    });
     const parsed = parseGitBlobRef(commitRef);
 
     expect(parsed.ref).toBe('4a1d2e3f');
@@ -81,7 +84,7 @@ describe('ResolvedArtifactId', () => {
   });
 
   it('parses Git blob references and identifies branches/tags', () => {
-    const branchRef = createGitBlobRef('main', 'src/index.ts');
+    const branchRef = createGitBlobRef({ ref: 'main', path: 'src/index.ts' });
     const parsed = parseGitBlobRef(branchRef);
 
     expect(parsed.ref).toBe('main');
@@ -90,7 +93,10 @@ describe('ResolvedArtifactId', () => {
   });
 
   it('handles paths with multiple segments', () => {
-    const ref = createGitBlobRef('main', 'src/components/Button/index.tsx');
+    const ref = createGitBlobRef({
+      ref: 'main',
+      path: 'src/components/Button/index.tsx',
+    });
     const parsed = parseGitBlobRef(ref);
 
     expect(parsed.path).toBe('src/components/Button/index.tsx');
@@ -99,18 +105,26 @@ describe('ResolvedArtifactId', () => {
   it('validates refs according to Git naming rules', () => {
     // Valid refs
     expect(
-      isValidResolvedArtifactId(createGitBlobRef('feature-123', 'f.txt'))
+      isValidResolvedArtifactId(
+        createGitBlobRef({ ref: 'feature-123', path: 'f.txt' })
+      )
     ).toBe(true);
-    expect(isValidResolvedArtifactId(createGitBlobRef('v1.0.0', 'f.txt'))).toBe(
-      true
-    );
     expect(
-      isValidResolvedArtifactId(createGitBlobRef('feat/new', 'f.txt'))
+      isValidResolvedArtifactId(
+        createGitBlobRef({ ref: 'v1.0.0', path: 'f.txt' })
+      )
+    ).toBe(true);
+    expect(
+      isValidResolvedArtifactId(
+        createGitBlobRef({ ref: 'feat/new', path: 'f.txt' })
+      )
     ).toBe(true);
 
     // Invalid refs should throw
-    expect(() => createGitBlobRef('.hidden', 'f.txt')).toThrow();
-    expect(() => createGitBlobRef('branch..name', 'f.txt')).toThrow();
-    expect(() => createGitBlobRef('branch*', 'f.txt')).toThrow();
+    expect(() => createGitBlobRef({ ref: '.hidden', path: 'f.txt' })).toThrow();
+    expect(() =>
+      createGitBlobRef({ ref: 'branch..name', path: 'f.txt' })
+    ).toThrow();
+    expect(() => createGitBlobRef({ ref: 'branch*', path: 'f.txt' })).toThrow();
   });
 });
