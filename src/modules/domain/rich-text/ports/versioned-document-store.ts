@@ -16,6 +16,7 @@ import {
 
 export type CreateDocumentArgs = {
   content: string | null;
+  id?: ResolvedArtifactId;
 };
 
 export type GetDocumentHandleAtCommitArgs = {
@@ -67,7 +68,11 @@ export type VersionedDocumentStore = {
   setProjectId: (id: string) => Effect.Effect<void, never, never>;
   createDocument: (
     args: CreateDocumentArgs
-  ) => Effect.Effect<ResolvedArtifactId, RepositoryError, never>;
+  ) => Effect.Effect<
+    ResolvedArtifactId,
+    ValidationError | RepositoryError,
+    never
+  >;
   getDocumentAtCommit: (
     args: GetDocumentAtCommitArgs
   ) => Effect.Effect<
@@ -131,7 +136,9 @@ export type VersionedDocumentStore = {
     data: Uint8Array
   ) => Effect.Effect<VersionedDocument, RepositoryError, never>;
   disconnect: () => Effect.Effect<void, RepositoryError, never>;
-  // TODO: Extract to a `RealtimeVersionedDocumentStore`
+};
+
+export type RealtimeVersionedDocumentStore = VersionedDocumentStore & {
   getDocumentHandleAtCommit: (
     args: GetDocumentHandleAtCommitArgs
   ) => Effect.Effect<VersionedDocumentHandle, RepositoryError, never>;

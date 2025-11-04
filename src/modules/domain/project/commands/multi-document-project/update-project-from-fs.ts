@@ -42,7 +42,6 @@ export type UpdateProjectFromFilesystemContentArgs = {
 
 export type UpdateProjectFromFilesystemContentDeps = {
   findDocumentById: VersionedDocumentStore['findDocumentById'];
-  getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
   createDocument: VersionedDocumentStore['createDocument'];
   updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'];
   deleteDocument: VersionedDocumentStore['deleteDocument'];

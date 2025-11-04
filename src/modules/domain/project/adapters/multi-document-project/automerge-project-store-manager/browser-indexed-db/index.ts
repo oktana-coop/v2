@@ -4,6 +4,7 @@ import { pipe } from 'effect/Function';
 
 import {
   NotFoundError as VersionedDocumentNotFoundError,
+  type RealtimeVersionedDocumentStore,
   RepositoryError as VersionedDocumentRepositoryError,
   ValidationError as VersionedDocumentValidationError,
   type VersionedDocumentStore,
@@ -73,7 +74,7 @@ const setupAutomergeRepoAndStores = ({
 }): Effect.Effect<
   {
     versionedProjectStore: MultiDocumentProjectStore;
-    versionedDocumentStore: VersionedDocumentStore;
+    versionedDocumentStore: RealtimeVersionedDocumentStore;
   },
   VersionedProjectRepositoryError,
   never
@@ -229,7 +230,6 @@ const createNewProject = ({
 const openExistingProject = ({
   directoryPath,
   findDocumentById,
-  getDocumentFromHandle,
   createDocument,
   deleteDocument,
   updateRichTextDocumentContent,
@@ -243,7 +243,6 @@ const openExistingProject = ({
 }: {
   directoryPath: string;
   findDocumentById: VersionedDocumentStore['findDocumentById'];
-  getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
   createDocument: VersionedDocumentStore['createDocument'];
   deleteDocument: VersionedDocumentStore['deleteDocument'];
   updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'];
@@ -279,7 +278,6 @@ const openExistingProject = ({
     Effect.tap((projectId) =>
       updateProjectFromFilesystemContent({
         findDocumentById,
-        getDocumentFromHandle,
         createDocument,
         deleteDocument,
         updateRichTextDocumentContent,
@@ -297,7 +295,6 @@ const validateIdAndOpenProject = ({
   projectId,
   directoryPath,
   findDocumentById,
-  getDocumentFromHandle,
   createDocument,
   deleteDocument,
   updateRichTextDocumentContent,
@@ -312,7 +309,6 @@ const validateIdAndOpenProject = ({
   projectId: ProjectId;
   directoryPath: string;
   findDocumentById: VersionedDocumentStore['findDocumentById'];
-  getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
   createDocument: VersionedDocumentStore['createDocument'];
   deleteDocument: VersionedDocumentStore['deleteDocument'];
   updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'];
@@ -357,7 +353,6 @@ const validateIdAndOpenProject = ({
     Effect.tap((projectId) =>
       updateProjectFromFilesystemContent({
         findDocumentById,
-        getDocumentFromHandle,
         createDocument,
         deleteDocument,
         updateRichTextDocumentContent,
@@ -402,8 +397,6 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                 openExistingProject({
                   directoryPath: directory.path,
                   findDocumentById: versionedDocumentStore.findDocumentById,
-                  getDocumentFromHandle:
-                    versionedDocumentStore.getDocumentFromHandle,
                   createDocument: versionedDocumentStore.createDocument,
                   deleteDocument: versionedDocumentStore.deleteDocument,
                   updateRichTextDocumentContent:
@@ -485,8 +478,6 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                         directoryPath,
                         findDocumentById:
                           versionedDocumentStore.findDocumentById,
-                        getDocumentFromHandle:
-                          versionedDocumentStore.getDocumentFromHandle,
                         createDocument: versionedDocumentStore.createDocument,
                         deleteDocument: versionedDocumentStore.deleteDocument,
                         updateRichTextDocumentContent:

@@ -29,13 +29,16 @@ import {
   type VersionedDocumentHandle,
 } from '../../models';
 import { type RichTextDocumentSpan } from '../../models/document/automerge';
-import { VersionedDocumentStore } from '../../ports/versioned-document-store';
+import {
+  type RealtimeVersionedDocumentStore,
+  type VersionedDocumentStore,
+} from '../../ports/versioned-document-store';
 import { migrations } from './migrations';
 
 export const createAdapter = (
   automergeRepo: Repo,
   projId?: string
-): VersionedDocumentStore => {
+): RealtimeVersionedDocumentStore => {
   // This is not an ideal model but we want to be able to tell that the document store we are searching in is the desired one.
   // Without this we are risking registering interest in documents from other repositories (and therefore polluting our stores)
   let projectId: string | null = projId ?? null;
@@ -78,7 +81,7 @@ export const createAdapter = (
       Effect.map((handle) => handle.url as ResolvedArtifactId)
     );
 
-  const getDocumentHandleAtCommit: VersionedDocumentStore['getDocumentHandleAtCommit'] =
+  const getDocumentHandleAtCommit: RealtimeVersionedDocumentStore['getDocumentHandleAtCommit'] =
     ({ documentHandle, heads }) =>
       pipe(
         getArtifactHandleAtCommit({ artifactHandle: documentHandle, heads }),
@@ -121,7 +124,7 @@ export const createAdapter = (
       })
     );
 
-  const findDocumentHandleById: VersionedDocumentStore['findDocumentHandleById'] =
+  const findDocumentHandleById: RealtimeVersionedDocumentStore['findDocumentHandleById'] =
     (id) =>
       pipe(
         Effect.succeed(id),
@@ -238,7 +241,7 @@ export const createAdapter = (
       )
     );
 
-  const getDocumentHandleHistory: VersionedDocumentStore['getDocumentHandleHistory'] =
+  const getDocumentHandleHistory: RealtimeVersionedDocumentStore['getDocumentHandleHistory'] =
     (handle: VersionedDocumentHandle) =>
       Effect.tryPromise({
         try: () => getArtifactHandleHistory<RichTextDocument>(handle),
@@ -292,7 +295,7 @@ export const createAdapter = (
         catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
       });
 
-  const exportDocumentHandleToBinary: VersionedDocumentStore['exportDocumentHandleToBinary'] =
+  const exportDocumentHandleToBinary: RealtimeVersionedDocumentStore['exportDocumentHandleToBinary'] =
     (documentHandle) =>
       pipe(
         getDocumentFromHandle(documentHandle),

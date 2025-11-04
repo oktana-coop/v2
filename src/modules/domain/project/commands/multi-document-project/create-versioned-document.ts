@@ -12,6 +12,7 @@ import {
 import { type ResolvedArtifactId } from '../../../../infrastructure/version-control';
 import {
   RepositoryError as VersionedDocumentRepositoryError,
+  ValidationError as VersionedDocumentValidationError,
   type VersionedDocumentStore,
 } from '../../../rich-text';
 import { RICH_TEXT_FILE_EXTENSION } from '../../constants/file-extensions';
@@ -58,6 +59,7 @@ export const createVersionedDocument =
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
     | VersionedDocumentRepositoryError
+    | VersionedDocumentValidationError
     | VersionedProjectValidationError,
     never
   > =>

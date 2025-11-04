@@ -4,6 +4,7 @@ import { pipe } from 'effect/Function';
 import { type ResolvedArtifactId } from '../../../../infrastructure/version-control';
 import {
   RepositoryError as VersionedDocumentRepositoryError,
+  ValidationError as VersionedDocumentValidationError,
   type VersionedDocumentStore,
 } from '../../../rich-text';
 import { RepositoryError as VersionedProjectRepositoryError } from '../../errors';
@@ -35,7 +36,9 @@ export const createDocumentAndProject =
     content,
   }: CreateDocumentAndProjectArgs): Effect.Effect<
     CreateSingleDocumentProjectResult,
-    VersionedProjectRepositoryError | VersionedDocumentRepositoryError,
+    | VersionedProjectRepositoryError
+    | VersionedDocumentRepositoryError
+    | VersionedDocumentValidationError,
     never
   > =>
     pipe(

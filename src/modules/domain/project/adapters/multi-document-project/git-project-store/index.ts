@@ -6,6 +6,7 @@ import git, { type PromiseFsClient as NodeLikeFsApi } from 'isomorphic-git';
 import { removePath } from '../../../../../../modules/infrastructure/filesystem';
 import {
   createGitBlobRef,
+  DEFAULT_BRANCH,
   isGitBlobRef,
   type ResolvedArtifactId,
   versionedArtifactTypes,
@@ -23,8 +24,6 @@ import {
   parseProjectDirPath,
 } from '../../../models';
 import { MultiDocumentProjectStore } from '../../../ports/multi-document-project';
-
-const DEFAULT_BRANCH = 'main';
 
 export const createAdapter = ({
   fs,

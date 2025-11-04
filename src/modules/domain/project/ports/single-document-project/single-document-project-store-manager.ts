@@ -13,6 +13,7 @@ import {
 } from '../../../../../modules/infrastructure/version-control';
 import {
   RepositoryError as VersionedDocumentRepositoryError,
+  ValidationError as VersionedDocumentValidationError,
   type VersionedDocumentStore,
 } from '../../../rich-text';
 import {
@@ -70,6 +71,7 @@ export type SingleDocumentProjectStoreManager = {
     | FilesystemRepositoryError
     | VersionedProjectRepositoryError
     | VersionedDocumentRepositoryError
+    | VersionedDocumentValidationError
     | VersionedProjectValidationError,
     never
   >;
