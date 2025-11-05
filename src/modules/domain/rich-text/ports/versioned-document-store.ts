@@ -73,17 +73,17 @@ export type VersionedDocumentStore = {
     ValidationError | RepositoryError,
     never
   >;
-  getDocumentAtCommit: (
-    args: GetDocumentAtCommitArgs
-  ) => Effect.Effect<
-    VersionedDocument,
-    ValidationError | RepositoryError | NotFoundError | MigrationError,
-    never
-  >;
   findDocumentById: (
     id: ResolvedArtifactId
   ) => Effect.Effect<
     ResolvedDocument,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  getDocumentHeads: (
+    documentId: ResolvedArtifactId
+  ) => Effect.Effect<
+    Commit['heads'],
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
@@ -101,10 +101,10 @@ export type VersionedDocumentStore = {
     ValidationError | MigrationError | RepositoryError | NotFoundError,
     never
   >;
-  getDocumentHeads: (
-    documentId: ResolvedArtifactId
+  commitChanges: (
+    args: CommitChangesArgs
   ) => Effect.Effect<
-    Commit['heads'],
+    void,
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
@@ -115,17 +115,17 @@ export type VersionedDocumentStore = {
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
+  getDocumentAtCommit: (
+    args: GetDocumentAtCommitArgs
+  ) => Effect.Effect<
+    VersionedDocument,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
   isContentSameAtHeads: (
     args: IsContentSameAtHeadsArgs
   ) => Effect.Effect<
     boolean,
-    ValidationError | RepositoryError | NotFoundError | MigrationError,
-    never
-  >;
-  commitChanges: (
-    args: CommitChangesArgs
-  ) => Effect.Effect<
-    void,
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
