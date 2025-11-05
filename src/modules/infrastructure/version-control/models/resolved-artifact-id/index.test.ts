@@ -1,5 +1,5 @@
 import { isGitBlobRef, isValidResolvedArtifactId } from './index';
-import { createGitBlobRef, parseGitBlobRef } from './utils';
+import { createGitBlobRef, decomposeGitBlobRef } from './utils';
 
 describe('ResolvedArtifactId', () => {
   it('validates Git blob references with commit SHAs', () => {
@@ -64,10 +64,10 @@ describe('ResolvedArtifactId', () => {
 
     // Type guard narrows the type
     if (isGitBlobRef(gitRef)) {
-      const parsed = parseGitBlobRef(gitRef);
-      expect(parsed.ref).toBe('main');
-      expect(parsed.path).toBe('src/index.ts');
-      expect(parsed.refType).toBe('branch-or-tag');
+      const decomposed = decomposeGitBlobRef(gitRef);
+      expect(decomposed.ref).toBe('main');
+      expect(decomposed.path).toBe('src/index.ts');
+      expect(decomposed.refType).toBe('branch-or-tag');
     }
   });
 
@@ -76,20 +76,20 @@ describe('ResolvedArtifactId', () => {
       ref: '4a1d2e3f',
       path: 'docs/README.md',
     });
-    const parsed = parseGitBlobRef(commitRef);
+    const decomposed = decomposeGitBlobRef(commitRef);
 
-    expect(parsed.ref).toBe('4a1d2e3f');
-    expect(parsed.path).toBe('docs/README.md');
-    expect(parsed.refType).toBe('commit');
+    expect(decomposed.ref).toBe('4a1d2e3f');
+    expect(decomposed.path).toBe('docs/README.md');
+    expect(decomposed.refType).toBe('commit');
   });
 
   it('parses Git blob references and identifies branches/tags', () => {
     const branchRef = createGitBlobRef({ ref: 'main', path: 'src/index.ts' });
-    const parsed = parseGitBlobRef(branchRef);
+    const decomposed = decomposeGitBlobRef(branchRef);
 
-    expect(parsed.ref).toBe('main');
-    expect(parsed.path).toBe('src/index.ts');
-    expect(parsed.refType).toBe('branch-or-tag');
+    expect(decomposed.ref).toBe('main');
+    expect(decomposed.path).toBe('src/index.ts');
+    expect(decomposed.refType).toBe('branch-or-tag');
   });
 
   it('handles paths with multiple segments', () => {
@@ -97,9 +97,9 @@ describe('ResolvedArtifactId', () => {
       ref: 'main',
       path: 'src/components/Button/index.tsx',
     });
-    const parsed = parseGitBlobRef(ref);
+    const decomposed = decomposeGitBlobRef(ref);
 
-    expect(parsed.path).toBe('src/components/Button/index.tsx');
+    expect(decomposed.path).toBe('src/components/Button/index.tsx');
   });
 
   it('validates refs according to Git naming rules', () => {

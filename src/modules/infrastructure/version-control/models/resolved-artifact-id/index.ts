@@ -39,4 +39,4 @@ export const isValidResolvedArtifactId = (
 };
 
 export { type AutomergeUrl } from '@automerge/automerge-repo/slim';
-export { createGitBlobRef } from './utils';
+export * from './utils';

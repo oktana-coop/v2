@@ -4,7 +4,7 @@ import {
   gitBlobRefSchema,
 } from './git-blob-ref';
 
-export const parseGitBlobRef = (
+export const decomposeGitBlobRef = (
   ref: GitBlobRef
 ): {
   ref: string;
