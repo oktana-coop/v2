@@ -14,11 +14,20 @@ import {
   type Change,
   type Commit,
   headsAreSame,
-  isCommittedChange,
   type UncommitedChange,
   type VersionedArtifact,
   type VersionedArtifactHandle,
 } from '../models';
+
+export type CommittedChange = Automerge.DecodedChange & {
+  message: string;
+};
+
+export const isCommittedChange = (
+  change: Automerge.DecodedChange
+): change is CommittedChange => {
+  return Boolean(change.message);
+};
 
 export type ArtifactHistoryInfo<ArtifactType> = {
   history: Change[];
