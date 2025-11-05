@@ -5,7 +5,6 @@ import deepEqual from 'fast-deep-equal';
 // Commit is a special type of an (automerge) change that
 // strictly has a message and a time
 export type Commit = {
-  hash: string;
   heads: UrlHeads;
   message: string;
   time: Date;

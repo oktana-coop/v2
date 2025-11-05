@@ -130,14 +130,11 @@ export const mapHeadsToHistoryInfo = <ArtifactType>({
 
   const [latestChangeMeta] = changes.slice(-1);
   const latestChange = {
-    hash: latestChangeMeta.hash,
     heads: latestChangeMeta.heads,
     time: new Date(latestChangeMeta.time),
   } as UncommitedChange;
 
   const commits = changes.filter(isCommittedChange).map((change) => ({
-    hash: change.hash,
-    // TODO: cannot see why hash & heads are different things!
     heads: change.heads,
     message: change.message,
     time: new Date(change.time),
