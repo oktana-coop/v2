@@ -13,7 +13,7 @@ import { NotFoundError, RepositoryError } from '../errors';
 import {
   type Change,
   type Commit,
-  headsAreSame,
+  commitIdsAreSame,
   type UncommitedChange,
   type VersionedArtifact,
   type VersionedArtifactHandle,
@@ -139,12 +139,12 @@ export const mapHeadsToHistoryInfo = <ArtifactType>({
 
   const [latestChangeMeta] = changes.slice(-1);
   const latestChange = {
-    heads: latestChangeMeta.heads,
+    id: latestChangeMeta.heads,
     time: new Date(latestChangeMeta.time),
   } as UncommitedChange;
 
   const commits = changes.filter(isCommittedChange).map((change) => ({
-    heads: change.heads,
+    id: change.heads,
     message: change.message,
     time: new Date(change.time),
   })) as Array<Commit>;
@@ -153,8 +153,12 @@ export const mapHeadsToHistoryInfo = <ArtifactType>({
   const [lastCommit] = orderedCommits;
 
   if (lastCommit) {
-    return headsAreSame(latestChange.heads, lastCommit.heads) ||
-      contentEqFn(artifact, latestChange.heads, lastCommit.heads)
+    return commitIdsAreSame(latestChange.id, lastCommit.id) ||
+      contentEqFn(
+        artifact,
+        latestChange.id as UrlHeads,
+        lastCommit.id as UrlHeads
+      )
       ? {
           history: orderedCommits,
           current: artifact,

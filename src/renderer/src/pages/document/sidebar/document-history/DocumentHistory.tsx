@@ -12,8 +12,8 @@ import { EmptyView } from './EmptyView';
 
 export type DocumentHistoryPanelProps = {
   commits: (Commit | UncommitedChange)[];
-  onCommitClick: (heads: Commit['heads']) => void;
-  selectedCommit: Commit['heads'] | null;
+  onCommitClick: (commitId: Commit['id']) => void;
+  selectedCommit: Commit['id'] | null;
 };
 
 const DocumentHistoryContent = ({

@@ -6,12 +6,12 @@ import { type VersionedDocument } from '../../../../../../modules/domain/rich-te
 import {
   type Change,
   type ChangeWithUrlInfo,
-  decodeURLHeads,
-  encodeURLHeads,
-  headsAreSame,
+  CommitId,
+  commitIdsAreSame,
+  decodeUrlEncodedCommitId,
   isCommit,
   type ResolvedArtifactId,
-  UrlHeads,
+  urlEncodeCommitId,
 } from '../../../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../../../modules/personalization/browser';
 import {
@@ -37,7 +37,7 @@ export const DocumentHistoricalView = () => {
     canCommit,
     onOpenCommitDialog,
     getDocumentAtCommit,
-    isContentSameAtHeads,
+    isContentSameAtCommits,
   } = useContext(CurrentDocumentContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const [doc, setDoc] = React.useState<VersionedDocument | null>(null);
@@ -66,9 +66,9 @@ export const DocumentHistoricalView = () => {
   const getDecodedDiffParam = useCallback(() => {
     const diffWithParam = searchParams.get('diffWith');
     if (diffWithParam) {
-      const decodedHeads = decodeURLHeads(diffWithParam);
-      if (decodedHeads) {
-        return decodedHeads;
+      const decodedCommitId = decodeUrlEncodedCommitId(diffWithParam);
+      if (decodedCommitId) {
+        return decodedCommitId;
       }
     }
     return null;
@@ -82,7 +82,7 @@ export const DocumentHistoricalView = () => {
     ) => {
       const currentCommitDoc = await getDocumentAtCommit({
         documentId,
-        heads: commits[currentCommitIndex].heads,
+        commitId: commits[currentCommitIndex].id,
       });
 
       const isFirstCommit = isInitialChange(currentCommitIndex, commits);
@@ -93,20 +93,19 @@ export const DocumentHistoricalView = () => {
         const diffWith = getDecodedDiffParam();
         const diffCommit =
           diffWith &&
-          commits.find((commit) => headsAreSame(commit.heads, diffWith));
+          commits.find((commit) => commitIdsAreSame(commit.id, diffWith));
 
         if (diffCommit) {
           const previousCommitDoc = await getDocumentAtCommit({
             documentId,
-            heads: diffCommit.heads,
+            commitId: diffCommit.id,
           });
-          const isContentBetweenCommitsDifferent = !(await isContentSameAtHeads(
-            {
+          const isContentBetweenCommitsDifferent =
+            !(await isContentSameAtCommits({
               documentId,
-              heads1: diffCommit.heads,
-              heads2: commits[currentCommitIndex].heads,
-            }
-          ));
+              commit1: diffCommit.id,
+              commit2: commits[currentCommitIndex].id,
+            }));
 
           if (
             previousCommitDoc &&
@@ -146,16 +145,16 @@ export const DocumentHistoricalView = () => {
   useEffect(() => {
     if (commits.length > 0) {
       if (changeId) {
-        const urlHeads = decodeURLHeads(changeId);
-        if (!urlHeads) {
-          console.error('Invalid url heads for the selected commit:', changeId);
+        const decodedChangeId = decodeUrlEncodedCommitId(changeId);
+        if (!decodedChangeId) {
+          console.error('Invalid commit ID for the selected commit:', changeId);
           return;
         }
-        onSelectCommit(urlHeads);
+        onSelectCommit(decodedChangeId);
       } else {
         // If no changeId is provided, we select the last commit
         const [lastChange] = commits;
-        onSelectCommit(lastChange.heads);
+        onSelectCommit(lastChange.id);
       }
     }
 
@@ -175,11 +174,11 @@ export const DocumentHistoricalView = () => {
     }
   }, [currentDocumentName]);
 
-  const handleDiffCommitSelect = (heads: UrlHeads) => {
+  const handleDiffCommitSelect = (id: CommitId) => {
     setSearchParams((prev) => {
       const newParams = new URLSearchParams(prev);
-      const encodedHeads = encodeURLHeads(heads);
-      newParams.set('diffWith', encodedHeads);
+      const encodedCommitId = urlEncodeCommitId(id);
+      newParams.set('diffWith', encodedCommitId);
       return newParams;
     });
   };

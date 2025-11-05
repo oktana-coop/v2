@@ -13,7 +13,7 @@ import {
   type BinaryRichTextRepresentation,
   type GetDocumentAtCommitArgs,
   getDocumentRichTextContent,
-  type IsContentSameAtHeadsArgs,
+  type IsContentSameAtCommitsArgs,
   isEmpty,
   processDocumentChange,
   type RichTextDocument,
@@ -29,11 +29,11 @@ import {
   type Change,
   type ChangeWithUrlInfo,
   type Commit,
-  encodeURLHeads,
-  encodeURLHeadsForChange,
-  headsAreSame,
+  type CommitId,
+  commitIdsAreSame,
   type ResolvedArtifactId,
-  type UrlHeads,
+  urlEncodeCommitId,
+  urlEncodeCommitIdForChange,
 } from '../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../modules/personalization/browser';
 import { useCurrentDocumentId } from '../../hooks/use-current-document-id';
@@ -59,11 +59,13 @@ export type CurrentDocumentContextType = {
   onOpenCommitDialog: () => void;
   onCloseCommitDialog: () => void;
   selectedCommitIndex: number | null;
-  onSelectCommit: (heads: UrlHeads) => void;
+  onSelectCommit: (commitId: CommitId) => void;
   getDocumentAtCommit: (
     args: GetDocumentAtCommitArgs
   ) => Promise<VersionedDocument>;
-  isContentSameAtHeads: (args: IsContentSameAtHeadsArgs) => Promise<boolean>;
+  isContentSameAtCommits: (
+    args: IsContentSameAtCommitsArgs
+  ) => Promise<boolean>;
   getExportText: (
     representation: TextRichTextRepresentation
   ) => Promise<string>;
@@ -185,15 +187,15 @@ export const CurrentDocumentProvider = ({
     (documentStore: VersionedDocumentStore) =>
     async (
       documentId: ResolvedArtifactId,
-      latestChangeHeads: UrlHeads,
-      lastCommitHeads: UrlHeads
+      latestChangeId: CommitId,
+      lastCommitId: CommitId
     ) => {
-      if (!headsAreSame(latestChangeHeads, lastCommitHeads)) {
+      if (!commitIdsAreSame(latestChangeId, lastCommitId)) {
         const isContentSame = await Effect.runPromise(
-          documentStore.isContentSameAtHeads({
+          documentStore.isContentSameAtCommits({
             documentId,
-            heads1: latestChangeHeads,
-            heads2: lastCommitHeads,
+            commit1: latestChangeId,
+            commit2: lastCommitId,
           })
         );
 
@@ -212,19 +214,19 @@ export const CurrentDocumentProvider = ({
     async ({
       docId,
       doc,
-      latestChangeHeads,
-      lastCommitHeads,
+      latestChangeId,
+      lastCommitId,
     }: {
       docId: ResolvedArtifactId;
       doc: VersionedDocument;
-      latestChangeHeads: UrlHeads;
-      lastCommitHeads?: UrlHeads;
+      latestChangeId: CommitId;
+      lastCommitId?: CommitId;
     }) => {
-      if (lastCommitHeads) {
+      if (lastCommitId) {
         return checkIfContentChangedFromLastCommit(documentStore)(
           docId,
-          latestChangeHeads,
-          lastCommitHeads
+          latestChangeId,
+          lastCommitId
         );
       } else {
         if (!isEmpty(doc)) {
@@ -260,7 +262,7 @@ export const CurrentDocumentProvider = ({
 
       const historyWithURLInfo = historyInfo.history.map((commit) => ({
         ...commit,
-        urlEncodedHeads: encodeURLHeadsForChange(commit),
+        urlEncodedCommitId: urlEncodeCommitIdForChange(commit),
       }));
 
       setVersionedDocumentHistory(historyWithURLInfo);
@@ -269,8 +271,8 @@ export const CurrentDocumentProvider = ({
       await checkIfCanCommit(documentStore)({
         docId,
         doc,
-        latestChangeHeads: historyInfo.latestChange.heads,
-        lastCommitHeads: historyInfo.lastCommit?.heads,
+        latestChangeId: historyInfo.latestChange.id,
+        lastCommitId: historyInfo.lastCommit?.id,
       });
     };
 
@@ -307,12 +309,12 @@ export const CurrentDocumentProvider = ({
   }, []);
 
   const handleSelectCommit = useCallback(
-    (heads: UrlHeads) => {
+    (commitId: CommitId) => {
       const isInitialChange = (index: number, changes: Change[]) =>
         index === changes.length - 1;
 
       const selectedCommitIndex = versionedDocumentHistory.findIndex((commit) =>
-        headsAreSame(commit.heads, heads)
+        commitIdsAreSame(commit.id, commitId)
       );
 
       const isFirstCommit = isInitialChange(
@@ -324,10 +326,10 @@ export const CurrentDocumentProvider = ({
         ? null
         : versionedDocumentHistory[selectedCommitIndex + 1];
 
-      let newUrl = `/projects/${projectId}/documents/${documentId}/changes/${encodeURLHeads(heads)}`;
+      let newUrl = `/projects/${projectId}/documents/${documentId}/changes/${urlEncodeCommitId(commitId)}`;
       if (diffCommit) {
-        const diffCommitURLEncodedHeads = encodeURLHeadsForChange(diffCommit);
-        newUrl += `?diffWith=${diffCommitURLEncodedHeads}`;
+        const diffCommitURLEncodedId = urlEncodeCommitIdForChange(diffCommit);
+        newUrl += `?diffWith=${diffCommitURLEncodedId}`;
       }
 
       if (showDiffInHistoryView && diffCommit) {
@@ -359,8 +361,8 @@ export const CurrentDocumentProvider = ({
     [versionedDocumentStore, projectId]
   );
 
-  const handleIsContentSameAtHeads = useCallback(
-    (args: IsContentSameAtHeadsArgs) => {
+  const handleIsContentSameAtCommits = useCallback(
+    (args: IsContentSameAtCommitsArgs) => {
       if (
         !versionedDocumentStore ||
         versionedDocumentStore.projectId !== projectId
@@ -371,7 +373,7 @@ export const CurrentDocumentProvider = ({
       }
 
       return Effect.runPromise(
-        versionedDocumentStore.isContentSameAtHeads(args)
+        versionedDocumentStore.isContentSameAtCommits(args)
       );
     },
     [versionedDocumentStore, projectId]
@@ -421,15 +423,15 @@ export const CurrentDocumentProvider = ({
         doc: versionedDocument,
       });
 
-      const latestChangeHeads = await Effect.runPromise(
+      const latestChangeId = await Effect.runPromise(
         versionedDocumentStore.getDocumentHeads(documentId)
       );
 
       await checkIfCanCommit(versionedDocumentStore)({
         docId: documentId,
         doc: versionedDocument,
-        latestChangeHeads,
-        lastCommitHeads: lastCommit?.heads,
+        latestChangeId,
+        lastCommitId: lastCommit?.id,
       });
     },
     [
@@ -544,7 +546,7 @@ export const CurrentDocumentProvider = ({
         selectedCommitIndex,
         onSelectCommit: handleSelectCommit,
         getDocumentAtCommit: handleGetDocumentAtCommit,
-        isContentSameAtHeads: handleIsContentSameAtHeads,
+        isContentSameAtCommits: handleIsContentSameAtCommits,
         getExportText: exportToTextRepresentation,
         getExportBinaryData: exportToBinaryRepresentation,
       }}

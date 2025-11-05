@@ -2,9 +2,9 @@ import { useRef } from 'react';
 
 import {
   type ChangeWithUrlInfo,
-  decodeURLHeads,
-  encodeURLHeads,
-  type UrlHeads,
+  type CommitId,
+  decodeUrlEncodedCommitId,
+  urlEncodeCommitId,
 } from '../../../../../../modules/infrastructure/version-control';
 import { IconButton } from '../../../../components/actions/IconButton';
 import {
@@ -48,9 +48,9 @@ export const ActionsBar = ({
   canShowDiff: boolean;
   showDiff: boolean;
   onSetShowDiffChecked: (value: boolean) => void;
-  diffWith: UrlHeads | null;
+  diffWith: CommitId | null;
   history: Array<ChangeWithUrlInfo>;
-  onDiffCommitSelect: (heads: UrlHeads) => void;
+  onDiffCommitSelect: (commitId: CommitId) => void;
   canCommit: boolean;
   lastChangeIsCommitAndSelected: boolean;
   uncommittedChangesSelected: boolean;
@@ -80,10 +80,10 @@ export const ActionsBar = ({
     onCommitIconClick();
   };
 
-  const handleDiffCommitSelect = (heads: string) => {
-    const decodedHeads = decodeURLHeads(heads);
-    if (decodedHeads) {
-      onDiffCommitSelect(decodedHeads);
+  const handleDiffCommitSelect = (commitId: string) => {
+    const decodedCommitId = decodeUrlEncodedCommitId(commitId);
+    if (decodedCommitId) {
+      onDiffCommitSelect(decodedCommitId);
     }
   };
 
@@ -110,12 +110,15 @@ export const ActionsBar = ({
 
             <Listbox
               name="diff commits"
-              value={diffWith ? encodeURLHeads(diffWith) : null}
+              value={diffWith ? urlEncodeCommitId(diffWith) : null}
               onChange={handleDiffCommitSelect}
               disabled={!showDiff}
             >
-              {history.map(({ message, urlEncodedHeads }) => (
-                <ListboxOption key={urlEncodedHeads} value={urlEncodedHeads}>
+              {history.map(({ message, urlEncodedCommitId }) => (
+                <ListboxOption
+                  key={urlEncodedCommitId}
+                  value={urlEncodedCommitId}
+                >
                   <ListboxLabel>{message}</ListboxLabel>
                 </ListboxOption>
               ))}

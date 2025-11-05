@@ -4,7 +4,7 @@ import { useParams } from 'react-router';
 import { projectTypes } from '../../../../modules/domain/project';
 import { ProseMirrorProvider } from '../../../../modules/domain/rich-text/react/prosemirror-context';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/electron-context';
-import { decodeURLHeads } from '../../../../modules/infrastructure/version-control';
+import { decodeUrlEncodedCommitId } from '../../../../modules/infrastructure/version-control';
 import {
   CurrentDocumentContext,
   CurrentDocumentProvider,
@@ -118,7 +118,9 @@ const DocumentIndex = () => {
                 <DocumentHistory
                   commits={commits}
                   onCommitClick={onSelectCommit}
-                  selectedCommit={changeId ? decodeURLHeads(changeId) : null}
+                  selectedCommit={
+                    changeId ? decodeUrlEncodedCommitId(changeId) : null
+                  }
                 />
               </StackedResizablePanelsLayout>
             }

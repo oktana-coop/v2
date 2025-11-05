@@ -14,6 +14,7 @@ import {
   importFromBinary,
   isArtifactContentSameAtHeads,
   isAutomergeUrl,
+  isAutomergeUrlHeads,
   migrateIfNeeded,
   MigrationError,
   type ResolvedArtifactId,
@@ -82,9 +83,19 @@ export const createAdapter = (
     );
 
   const getDocumentHandleAtCommit: RealtimeVersionedDocumentStore['getDocumentHandleAtCommit'] =
-    ({ documentHandle, heads }) =>
+    ({ documentHandle, commitId }) =>
       pipe(
-        getArtifactHandleAtCommit({ artifactHandle: documentHandle, heads }),
+        Effect.succeed(commitId),
+        Effect.filterOrFail(
+          isAutomergeUrlHeads,
+          (val) => new ValidationError(`Invalid commit id: ${val}`)
+        ),
+        Effect.flatMap((commitHeads) =>
+          getArtifactHandleAtCommit({
+            artifactHandle: documentHandle,
+            heads: commitHeads,
+          })
+        ),
         Effect.catchTag('VersionControlRepositoryError', (err) =>
           Effect.fail(new RepositoryError(err.message))
         )
@@ -92,12 +103,24 @@ export const createAdapter = (
 
   const getDocumentAtCommit: VersionedDocumentStore['getDocumentAtCommit'] = ({
     documentId,
-    heads,
+    commitId,
   }) =>
-    pipe(
-      findDocumentById(documentId),
-      Effect.flatMap(({ artifact: document }) =>
-        getArtifactAtCommit({ artifact: document, heads })
+    Effect.Do.pipe(
+      Effect.bind('resolvedDocument', () => findDocumentById(documentId)),
+      Effect.bind('commitHeads', () =>
+        pipe(
+          Effect.succeed(commitId),
+          Effect.filterOrFail(
+            isAutomergeUrlHeads,
+            (val) => new ValidationError(`Invalid commit id: ${val}`)
+          )
+        )
+      ),
+      Effect.flatMap(({ resolvedDocument, commitHeads }) =>
+        getArtifactAtCommit({
+          artifact: resolvedDocument.artifact,
+          heads: commitHeads,
+        })
       ),
       Effect.catchTag('VersionControlRepositoryError', (err) =>
         Effect.fail(new RepositoryError(err.message))
@@ -248,15 +271,33 @@ export const createAdapter = (
         catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
       });
 
-  const isContentSameAtHeads: VersionedDocumentStore['isContentSameAtHeads'] =
-    ({ documentId, heads1, heads2 }) =>
-      pipe(
-        findDocumentById(documentId),
-        Effect.map(({ artifact: document }) =>
+  const isContentSameAtCommits: VersionedDocumentStore['isContentSameAtCommits'] =
+    ({ documentId, commit1, commit2 }) =>
+      Effect.Do.pipe(
+        Effect.bind('resolvedDocument', () => findDocumentById(documentId)),
+        Effect.bind('commitHeads1', () =>
+          pipe(
+            Effect.succeed(commit1),
+            Effect.filterOrFail(
+              isAutomergeUrlHeads,
+              (val) => new ValidationError(`Invalid commit id: ${val}`)
+            )
+          )
+        ),
+        Effect.bind('commitHeads2', () =>
+          pipe(
+            Effect.succeed(commit2),
+            Effect.filterOrFail(
+              isAutomergeUrlHeads,
+              (val) => new ValidationError(`Invalid commit id: ${val}`)
+            )
+          )
+        ),
+        Effect.map(({ resolvedDocument, commitHeads1, commitHeads2 }) =>
           isArtifactContentSameAtHeads<RichTextDocument>(
-            document,
-            heads1,
-            heads2
+            resolvedDocument.artifact,
+            commitHeads1,
+            commitHeads2
           )
         )
       );
@@ -331,7 +372,7 @@ export const createAdapter = (
     deleteDocument,
     getDocumentHistory,
     getDocumentHandleHistory,
-    isContentSameAtHeads,
+    isContentSameAtCommits,
     getDocumentHeads,
     commitChanges,
     exportDocumentHandleToBinary,
