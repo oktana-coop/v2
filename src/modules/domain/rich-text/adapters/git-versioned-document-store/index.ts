@@ -5,6 +5,7 @@ import git, { type PromiseFsClient as NodeLikeFsApi } from 'isomorphic-git';
 import {
   type ChangeId,
   decomposeGitBlobRef,
+  type GitBlobRef,
   type GitCommitHash,
   isGitBlobRef,
   parseGitCommitHash,
@@ -40,15 +41,11 @@ export const createAdapter = ({
       () => new RepositoryError('Project ID not set in the document repo')
     );
 
-  const createDocument: VersionedDocumentStore['createDocument'] = ({ id }) =>
+  const validateDocumentId: (
+    id: ResolvedArtifactId
+  ) => Effect.Effect<GitBlobRef, ValidationError, never> = (id) =>
     pipe(
-      fromNullable(
-        id,
-        () =>
-          new ValidationError(
-            'Id is required when creating a document in the Git repo'
-          )
-      ),
+      Effect.succeed(id),
       Effect.filterOrFail(
         isGitBlobRef,
         (val) => new ValidationError(`Invalid document id: ${val}`)
@@ -59,15 +56,23 @@ export const createAdapter = ({
     id: ResolvedArtifactId
   ) => Effect.Effect<string, ValidationError, never> = (id) =>
     pipe(
-      Effect.succeed(id),
-      Effect.filterOrFail(
-        isGitBlobRef,
-        (val) => new ValidationError(`Invalid document id: ${val}`)
-      ),
+      validateDocumentId(id),
       Effect.map((gitBlobRef) => {
         const { path: documentPath } = decomposeGitBlobRef(gitBlobRef);
         return documentPath;
       })
+    );
+
+  const createDocument: VersionedDocumentStore['createDocument'] = ({ id }) =>
+    pipe(
+      fromNullable(
+        id,
+        () =>
+          new ValidationError(
+            'Id is required when creating a document in the Git repo'
+          )
+      ),
+      Effect.flatMap(validateDocumentId)
     );
 
   const findDocumentById: VersionedDocumentStore['findDocumentById'] = (id) =>
@@ -221,6 +226,14 @@ export const createAdapter = ({
         )
       );
     };
+
+  // This is a no-op in the Git repo since we don't need to explicitly tell Git to track changes to a document in the project repo
+  const updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'] =
+    () => Effect.succeed(undefined);
+
+  // This is a no-op in the Git document repo since the relevant operation in the project repo (deleting a document from a project) does it.
+  const deleteDocument: VersionedDocumentStore['deleteDocument'] = () =>
+    Effect.succeed(undefined);
 
   return {
     projectId,
