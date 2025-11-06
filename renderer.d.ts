@@ -10,6 +10,7 @@ import {
   type SetupSingleDocumentProjectStoreArgs,
   type SetupSingleDocumentProjectStoreResult,
 } from './src/modules/domain/project';
+import { type MultiDocumentProjectStore } from './src/modules/domain/project';
 import { type UpdateState } from './src/modules/infrastructure/cross-platform/update';
 import {
   type File,
@@ -88,6 +89,9 @@ export type MultiDocumentProjectStoreManagerAPI = {
 
 type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
 
+type MultiDocumentProjectStorePromiseAPI =
+  PromisifyEffects<MultiDocumentProjectStore>;
+
 export type OsEventsAPI = {
   onOpenFileFromFilesystem: (callback: (file: File) => void) => () => void;
 };
@@ -99,6 +103,7 @@ declare global {
     automergeRepoNetworkAdapter: AutomergeRepoNetworkAdapter;
     filesystemAPI: FilesystemPromiseAPI;
     versionControlAPI: VersionControlAPI;
+    multiDocumentProjectStoreAPI: MultiDocumentProjectStorePromiseAPI;
     singleDocumentProjectStoreManagerAPI: SingleDocumentProjectStoreManagerAPI;
     multiDocumentProjectStoreManagerAPI: MultiDocumentProjectStoreManagerAPI;
     wasmAPI: WasmAPI;

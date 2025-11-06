@@ -7,11 +7,7 @@ import {
   type PersonalizationAPI,
   type SingleDocumentProjectStoreManagerAPI,
 } from '../../renderer';
-import {
-  type OpenMultiDocumentProjectByIdArgs,
-  type OpenSingleDocumentProjectStoreArgs,
-  type SetupSingleDocumentProjectStoreArgs,
-} from '../modules/domain/project';
+import { type MultiDocumentProjectStore } from '../modules/domain/project';
 import { type PromisifyEffects } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
 import { type UpdateState } from '../modules/infrastructure/cross-platform/update';
 import {
@@ -91,17 +87,33 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
   readFile: (path: string) => ipcRenderer.invoke('read-file', path),
 } as FilesystemPromiseAPI);
 
+type MultiDocumentProjectStorePromiseAPI =
+  PromisifyEffects<MultiDocumentProjectStore>;
+
+contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
+  createProject: () => ipcRenderer.invoke('create-project'),
+  findProjectById: (id) => ipcRenderer.invoke('find-project-by-id', id),
+  listProjectDocuments: (id) =>
+    ipcRenderer.invoke('list-project-documents', id),
+  addDocumentToProject: (args) =>
+    ipcRenderer.invoke('add-document-to-project', { ...args }),
+  deleteDocumentFromProject: (args) =>
+    ipcRenderer.invoke('delete-document-from-project', { ...args }),
+  findDocumentInProject: (args) =>
+    ipcRenderer.invoke('find-document-in-project', { ...args }),
+} as MultiDocumentProjectStorePromiseAPI);
+
 contextBridge.exposeInMainWorld('singleDocumentProjectStoreManagerAPI', {
-  createSingleDocumentProject: (args: SetupSingleDocumentProjectStoreArgs) =>
+  createSingleDocumentProject: (args) =>
     ipcRenderer.invoke('create-single-document-project', { ...args }),
-  openSingleDocumentProject: (args: OpenSingleDocumentProjectStoreArgs) =>
+  openSingleDocumentProject: (args) =>
     ipcRenderer.invoke('open-single-document-project', { ...args }),
 } as SingleDocumentProjectStoreManagerAPI);
 
 contextBridge.exposeInMainWorld('multiDocumentProjectStoreManagerAPI', {
   openOrCreateMultiDocumentProject: () =>
     ipcRenderer.invoke('open-or-create-multi-document-project'),
-  openMultiDocumentProjectById: (args: OpenMultiDocumentProjectByIdArgs) =>
+  openMultiDocumentProjectById: (args) =>
     ipcRenderer.invoke('open-multi-document-project-by-id', { ...args }),
 } as MultiDocumentProjectStoreManagerAPI);
 
