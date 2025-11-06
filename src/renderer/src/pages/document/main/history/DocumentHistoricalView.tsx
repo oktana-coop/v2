@@ -37,7 +37,7 @@ export const DocumentHistoricalView = () => {
     canCommit,
     onOpenCommitDialog,
     getDocumentAtChange,
-    isContentSameAtCommits,
+    isContentSameAtChanges,
   } = useContext(CurrentDocumentContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const [doc, setDoc] = React.useState<VersionedDocument | null>(null);
@@ -101,10 +101,10 @@ export const DocumentHistoricalView = () => {
             changeId: diffCommit.id,
           });
           const isContentBetweenCommitsDifferent =
-            !(await isContentSameAtCommits({
+            !(await isContentSameAtChanges({
               documentId,
-              commit1: diffCommit.id,
-              commit2: changes[currentChangeIndex].id,
+              change1: diffCommit.id,
+              change2: changes[currentChangeIndex].id,
             }));
 
           if (

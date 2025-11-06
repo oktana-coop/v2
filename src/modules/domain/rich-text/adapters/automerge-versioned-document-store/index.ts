@@ -270,13 +270,13 @@ export const createAdapter = (
         catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
       });
 
-  const isContentSameAtCommits: VersionedDocumentStore['isContentSameAtCommits'] =
-    ({ documentId, commit1, commit2 }) =>
+  const isContentSameAtChanges: VersionedDocumentStore['isContentSameAtChanges'] =
+    ({ documentId, change1, change2 }) =>
       Effect.Do.pipe(
         Effect.bind('resolvedDocument', () => findDocumentById(documentId)),
         Effect.bind('commitHeads1', () =>
           pipe(
-            Effect.succeed(commit1),
+            Effect.succeed(change1),
             Effect.filterOrFail(
               isAutomergeUrlHeads,
               (val) => new ValidationError(`Invalid commit id: ${val}`)
@@ -285,7 +285,7 @@ export const createAdapter = (
         ),
         Effect.bind('commitHeads2', () =>
           pipe(
-            Effect.succeed(commit2),
+            Effect.succeed(change2),
             Effect.filterOrFail(
               isAutomergeUrlHeads,
               (val) => new ValidationError(`Invalid commit id: ${val}`)
@@ -371,7 +371,7 @@ export const createAdapter = (
     deleteDocument,
     getDocumentHistory,
     getDocumentHandleHistory,
-    isContentSameAtCommits,
+    isContentSameAtChanges,
     getDocumentLastChangeId,
     commitChanges,
     exportDocumentHandleToBinary,

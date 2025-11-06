@@ -453,7 +453,7 @@ export const createAdapter = ({
     commitChanges,
     getDocumentHistory,
     getDocumentAtChange,
-    isContentSameAtHeads,
+    isContentSameAtChanges,
     exportDocumentToBinary,
     importDocumentFromBinary,
     disconnect,

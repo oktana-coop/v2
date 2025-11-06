@@ -49,10 +49,10 @@ export type GetDocumentHandleHistoryResponse = {
   lastCommit: Commit | null;
 };
 
-export type IsContentSameAtCommitsArgs = {
+export type IsContentSameAtChangesArgs = {
   documentId: ResolvedArtifactId;
-  commit1: Change['id'];
-  commit2: Change['id'];
+  change1: Change['id'];
+  change2: Change['id'];
 };
 
 export type CommitChangesArgs = {
@@ -122,8 +122,8 @@ export type VersionedDocumentStore = {
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
-  isContentSameAtCommits: (
-    args: IsContentSameAtCommitsArgs
+  isContentSameAtChanges: (
+    args: IsContentSameAtChangesArgs
   ) => Effect.Effect<
     boolean,
     ValidationError | RepositoryError | NotFoundError | MigrationError,

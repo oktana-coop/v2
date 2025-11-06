@@ -13,7 +13,7 @@ import {
   type BinaryRichTextRepresentation,
   type GetDocumentAtChangeArgs,
   getDocumentRichTextContent,
-  type IsContentSameAtCommitsArgs,
+  type IsContentSameAtChangesArgs,
   isEmpty,
   processDocumentChange,
   type RichTextDocument,
@@ -63,8 +63,8 @@ export type CurrentDocumentContextType = {
   getDocumentAtChange: (
     args: GetDocumentAtChangeArgs
   ) => Promise<VersionedDocument>;
-  isContentSameAtCommits: (
-    args: IsContentSameAtCommitsArgs
+  isContentSameAtChanges: (
+    args: IsContentSameAtChangesArgs
   ) => Promise<boolean>;
   getExportText: (
     representation: TextRichTextRepresentation
@@ -192,10 +192,10 @@ export const CurrentDocumentProvider = ({
     ) => {
       if (!changeIdsAreSame(latestChangeId, lastCommitId)) {
         const isContentSame = await Effect.runPromise(
-          documentStore.isContentSameAtCommits({
+          documentStore.isContentSameAtChanges({
             documentId,
-            commit1: latestChangeId,
-            commit2: lastCommitId,
+            change1: latestChangeId,
+            change2: lastCommitId,
           })
         );
 
@@ -361,8 +361,8 @@ export const CurrentDocumentProvider = ({
     [versionedDocumentStore, projectId]
   );
 
-  const handleIsContentSameAtCommits = useCallback(
-    (args: IsContentSameAtCommitsArgs) => {
+  const handleIsContentSameAtChanges = useCallback(
+    (args: IsContentSameAtChangesArgs) => {
       if (
         !versionedDocumentStore ||
         versionedDocumentStore.projectId !== projectId
@@ -373,7 +373,7 @@ export const CurrentDocumentProvider = ({
       }
 
       return Effect.runPromise(
-        versionedDocumentStore.isContentSameAtCommits(args)
+        versionedDocumentStore.isContentSameAtChanges(args)
       );
     },
     [versionedDocumentStore, projectId]
@@ -546,7 +546,7 @@ export const CurrentDocumentProvider = ({
         selectedCommitIndex,
         onSelectChange: handleSelectChange,
         getDocumentAtChange: handleGetDocumentAtChange,
-        isContentSameAtCommits: handleIsContentSameAtCommits,
+        isContentSameAtChanges: handleIsContentSameAtChanges,
         getExportText: exportToTextRepresentation,
         getExportBinaryData: exportToBinaryRepresentation,
       }}
