@@ -10,6 +10,9 @@ import {
   type GitBlobRef,
   type GitCommitHash,
   isGitBlobRef,
+  isGitCommitHash,
+  isUncommittedChangeId,
+  MigrationError,
   parseGitCommitHash,
   type ResolvedArtifactId,
   type UncommitedChange,
@@ -19,7 +22,11 @@ import {
 import { fromNullable } from '../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../utils/errors';
 import { NotFoundError, RepositoryError, ValidationError } from '../../errors';
-import { CURRENT_SCHEMA_VERSION, type ResolvedDocument } from '../../models';
+import {
+  CURRENT_SCHEMA_VERSION,
+  type ResolvedDocument,
+  type RichTextDocument,
+} from '../../models';
 import { type VersionedDocumentStore } from '../../ports/versioned-document-store';
 import { isNodeError } from './utils';
 
@@ -348,11 +355,91 @@ export const createAdapter = ({
             history,
             latestChange,
             lastCommit,
-            current: document,
+            current: document.artifact,
           }))
         )
       )
     );
+  };
+
+  const getDocumentAtChange: VersionedDocumentStore['getDocumentAtChange'] = ({
+    documentId,
+    changeId,
+  }) => {
+    const getDocumentFromFs: (
+      documentId: ResolvedArtifactId
+    ) => Effect.Effect<
+      RichTextDocument,
+      ValidationError | RepositoryError | NotFoundError | MigrationError,
+      never
+    > = (documentId) =>
+      pipe(
+        findDocumentById(documentId),
+        Effect.map((resolvedDocument) => resolvedDocument.artifact)
+      );
+
+    const getDocumentAtCommit: (args: {
+      projectDir: string;
+      documentPath: string;
+      commitHash: GitCommitHash;
+    }) => Effect.Effect<RichTextDocument, RepositoryError, never> = ({
+      projectDir,
+      documentPath,
+      commitHash,
+    }) =>
+      pipe(
+        Effect.tryPromise({
+          try: () => git.resolveRef({ fs, dir: projectDir, ref: commitHash }),
+          catch: mapErrorTo(RepositoryError, 'Git repo error'),
+        }),
+        Effect.flatMap((commitOid) =>
+          pipe(
+            Effect.tryPromise({
+              try: () =>
+                git.readBlob({
+                  fs,
+                  dir: projectDir,
+                  oid: commitOid,
+                  filepath: documentPath,
+                }),
+              catch: mapErrorTo(RepositoryError, 'Git repo error'),
+            }),
+            Effect.flatMap(({ blob }) =>
+              Effect.try({
+                try: () => Buffer.from(blob).toString('utf8'),
+                catch: mapErrorTo(RepositoryError, 'Git repo error'),
+              })
+            )
+          )
+        ),
+        Effect.map((content) => ({
+          type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
+          schemaVersion: CURRENT_SCHEMA_VERSION,
+          representation: 'AUTOMERGE',
+          content,
+        }))
+      );
+
+    return isUncommittedChangeId(changeId)
+      ? getDocumentFromFs(documentId)
+      : Effect.Do.pipe(
+          Effect.bind('projectDir', () => getProjectDir()),
+          Effect.bind('documentPath', () =>
+            extractDocumentPathFromId(documentId)
+          ),
+          Effect.flatMap(({ projectDir, documentPath }) =>
+            pipe(
+              Effect.succeed(changeId),
+              Effect.filterOrFail(
+                isGitCommitHash,
+                (val) => new ValidationError(`Invalid commit hash: ${val}`)
+              ),
+              Effect.flatMap((commitHash) =>
+                getDocumentAtCommit({ projectDir, documentPath, commitHash })
+              )
+            )
+          )
+        );
   };
 
   return {
