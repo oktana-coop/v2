@@ -3,15 +3,20 @@ import { pipe } from 'effect/Function';
 import git, { type PromiseFsClient as NodeLikeFsApi } from 'isomorphic-git';
 
 import {
+  type ChangeId,
   decomposeGitBlobRef,
+  type GitCommitHash,
   isGitBlobRef,
+  parseGitCommitHash,
+  type ResolvedArtifactId,
+  UNCOMMITTED_CHANGE_ID,
   versionedArtifactTypes,
 } from '../../../../../modules/infrastructure/version-control';
 import { fromNullable } from '../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../utils/errors';
 import { NotFoundError, RepositoryError, ValidationError } from '../../errors';
-import { CURRENT_SCHEMA_VERSION, ResolvedDocument } from '../../models';
-import { VersionedDocumentStore } from '../../ports/versioned-document-store';
+import { CURRENT_SCHEMA_VERSION, type ResolvedDocument } from '../../models';
+import { type VersionedDocumentStore } from '../../ports/versioned-document-store';
 import { isNodeError } from './utils';
 
 export const createAdapter = ({
@@ -29,6 +34,12 @@ export const createAdapter = ({
       projectId = id;
     });
 
+  const getProjectDir = (): Effect.Effect<string, RepositoryError, never> =>
+    fromNullable(
+      projectId,
+      () => new RepositoryError('Project ID not set in the document repo')
+    );
+
   const createDocument: VersionedDocumentStore['createDocument'] = ({ id }) =>
     pipe(
       fromNullable(
@@ -44,7 +55,9 @@ export const createAdapter = ({
       )
     );
 
-  const findDocumentById: VersionedDocumentStore['findDocumentById'] = (id) =>
+  const extractDocumentPathFromId: (
+    id: ResolvedArtifactId
+  ) => Effect.Effect<string, ValidationError, never> = (id) =>
     pipe(
       Effect.succeed(id),
       Effect.filterOrFail(
@@ -54,7 +67,12 @@ export const createAdapter = ({
       Effect.map((gitBlobRef) => {
         const { path: documentPath } = decomposeGitBlobRef(gitBlobRef);
         return documentPath;
-      }),
+      })
+    );
+
+  const findDocumentById: VersionedDocumentStore['findDocumentById'] = (id) =>
+    pipe(
+      extractDocumentPathFromId(id),
       // Unfortunately, due to the fact that we are not using our FileSystem port
       // (isomorphic-git comes with its own API), we are repeating file-reading logic here.
       Effect.flatMap((documentPath) =>
@@ -103,6 +121,106 @@ export const createAdapter = ({
           }) as ResolvedDocument
       )
     );
+
+  const getDocumentLastChangeId: VersionedDocumentStore['getDocumentLastChangeId'] =
+    (documentId) => {
+      const isDocumentModified: (args: {
+        projectDir: string;
+        documentPath: string;
+      }) => Effect.Effect<boolean, RepositoryError | NotFoundError, never> = ({
+        projectDir,
+        documentPath,
+      }) =>
+        pipe(
+          Effect.tryPromise({
+            try: () =>
+              git.status({
+                fs,
+                dir: projectDir,
+                filepath: documentPath,
+              }),
+            catch: mapErrorTo(RepositoryError, 'Git repo error'),
+          }),
+          Effect.flatMap((fileChangedStatus) => {
+            if (
+              fileChangedStatus === 'ignored' ||
+              fileChangedStatus === 'absent'
+            ) {
+              return Effect.fail(
+                new NotFoundError('Document is ignored or absent')
+              );
+            }
+
+            if (fileChangedStatus === 'unmodified') {
+              return Effect.succeed(false);
+            }
+
+            return Effect.succeed(true);
+          })
+        );
+
+      const getLastModificationCommitId: (args: {
+        projectDir: string;
+        documentPath: string;
+      }) => Effect.Effect<GitCommitHash, RepositoryError, never> = ({
+        projectDir,
+        documentPath,
+      }) =>
+        pipe(
+          Effect.tryPromise({
+            try: () =>
+              git.log({
+                fs,
+                dir: projectDir,
+                // get only the latest commit affecting the file
+                depth: 1,
+                filepath: documentPath,
+              }),
+            catch: mapErrorTo(RepositoryError, 'Git repo error'),
+          }),
+          Effect.flatMap((commits) =>
+            commits.length > 0
+              ? Effect.try({
+                  try: () => parseGitCommitHash(commits[0].oid),
+                  catch: mapErrorTo(RepositoryError, 'Git repo error'),
+                })
+              : Effect.fail(
+                  // TODO: Consider returning a NotFoundError
+                  // But since we know there is some kind of modification, we must get a commit that modified the document.
+                  new RepositoryError(
+                    'Could not find the last commit that modified the document'
+                  )
+                )
+          )
+        );
+
+      const getChangeId: (
+        modified: boolean
+      ) => (args: {
+        projectDir: string;
+        documentPath: string;
+      }) => Effect.Effect<ChangeId, RepositoryError, never> =
+        (modified) =>
+        ({ projectDir, documentPath }) =>
+          modified
+            ? Effect.succeed(UNCOMMITTED_CHANGE_ID)
+            : getLastModificationCommitId({ documentPath, projectDir });
+
+      return Effect.Do.pipe(
+        Effect.bind('documentPath', () =>
+          extractDocumentPathFromId(documentId)
+        ),
+        Effect.bind('projectDir', () => getProjectDir()),
+        Effect.flatMap(({ documentPath, projectDir }) =>
+          pipe(
+            isDocumentModified({ projectDir, documentPath }),
+            Effect.flatMap((modified) =>
+              getChangeId(modified)({ projectDir, documentPath })
+            )
+          )
+        )
+      );
+    };
 
   return {
     projectId,

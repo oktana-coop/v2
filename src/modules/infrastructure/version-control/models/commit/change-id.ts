@@ -2,7 +2,7 @@ import { type UrlHeads as AutomergeUrlHeads } from '@automerge/automerge-repo/sl
 import deepEqual from 'fast-deep-equal';
 import { z } from 'zod';
 
-const UNCOMMITTED_CHANGE_ID = 'uncommitted';
+export const UNCOMMITTED_CHANGE_ID = 'uncommitted';
 
 export const gitCommitHashSchema = z
   .string()
@@ -18,6 +18,9 @@ export type UncommittedChangeId = z.infer<typeof uncommittedChangeIdSchema>;
 export type CommitId = AutomergeUrlHeads | GitCommitHash;
 
 export type ChangeId = CommitId | UncommittedChangeId;
+
+export const parseGitCommitHash = (input: string): GitCommitHash =>
+  gitCommitHashSchema.parse(input);
 
 export const isGitCommitHash = (id: ChangeId): id is GitCommitHash =>
   !Array.isArray(id) &&
