@@ -248,7 +248,11 @@ export const CurrentDocumentProvider = ({
     }) => {
       let historyInfo: ArtifactHistoryInfo<RichTextDocument>;
 
-      if (useWebWorker && loadHistoryFromWorker) {
+      if (
+        useWebWorker &&
+        loadHistoryFromWorker &&
+        documentStore.exportDocumentToBinary
+      ) {
         const documentData = await Effect.runPromise(
           documentStore.exportDocumentToBinary(doc)
         );

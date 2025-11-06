@@ -129,10 +129,10 @@ export type VersionedDocumentStore = {
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
-  exportDocumentToBinary: (
+  exportDocumentToBinary?: (
     document: VersionedDocument
   ) => Effect.Effect<Uint8Array, RepositoryError, never>;
-  importDocumentFromBinary: (
+  importDocumentFromBinary?: (
     data: Uint8Array
   ) => Effect.Effect<VersionedDocument, RepositoryError, never>;
   disconnect: () => Effect.Effect<void, RepositoryError, never>;

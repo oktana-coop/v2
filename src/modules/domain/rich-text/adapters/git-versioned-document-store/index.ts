@@ -542,6 +542,10 @@ export const createAdapter = ({
       );
     };
 
+  // This is a no-op in the Git document repo.
+  const disconnect: VersionedDocumentStore['disconnect'] = () =>
+    Effect.succeed(undefined);
+
   return {
     projectId,
     setProjectId,
@@ -554,8 +558,6 @@ export const createAdapter = ({
     getDocumentHistory,
     getDocumentAtChange,
     isContentSameAtChanges,
-    exportDocumentToBinary,
-    importDocumentFromBinary,
     disconnect,
   };
 };
