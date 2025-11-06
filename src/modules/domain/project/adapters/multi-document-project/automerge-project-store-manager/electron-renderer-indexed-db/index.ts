@@ -45,7 +45,7 @@ export const createAdapter = ({
       pipe(
         Effect.tryPromise({
           try: () =>
-            window.multiDocumentProjectAPI.openOrCreateMultiDocumentProject(),
+            window.multiDocumentProjectStoreManagerAPI.openOrCreateMultiDocumentProject(),
           // TODO: Leverage typed Effect errors returned from the respective node adapter
           catch: mapErrorTo(
             VersionedProjectRepositoryError,
@@ -84,10 +84,12 @@ export const createAdapter = ({
         pipe(
           Effect.tryPromise({
             try: () =>
-              window.multiDocumentProjectAPI.openMultiDocumentProjectById({
-                projectId,
-                directoryPath,
-              }),
+              window.multiDocumentProjectStoreManagerAPI.openMultiDocumentProjectById(
+                {
+                  projectId,
+                  directoryPath,
+                }
+              ),
             // TODO: Leverage typed Effect errors returned from the respective node adapter
             catch: mapErrorTo(
               VersionedProjectRepositoryError,

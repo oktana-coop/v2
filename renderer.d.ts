@@ -58,7 +58,7 @@ export type AutomergeRepoNetworkAdapter = {
   ) => UnregisterListenerFn;
 };
 
-export type SingleDocumentProjectAPI = {
+export type SingleDocumentProjectStoreManagerAPI = {
   createSingleDocumentProject: (
     args: SetupSingleDocumentProjectStoreArgs
   ) => Promise<
@@ -77,7 +77,7 @@ export type SingleDocumentProjectAPI = {
   >;
 };
 
-export type MultiDocumentProjectAPI = {
+export type MultiDocumentProjectStoreManagerAPI = {
   openOrCreateMultiDocumentProject: () => Promise<
     Pick<OpenOrCreateMultiDocumentProjectResult, 'projectId' | 'directory'>
   >;
@@ -99,8 +99,8 @@ declare global {
     automergeRepoNetworkAdapter: AutomergeRepoNetworkAdapter;
     filesystemAPI: FilesystemPromiseAPI;
     versionControlAPI: VersionControlAPI;
-    singleDocumentProjectAPI: SingleDocumentProjectAPI;
-    multiDocumentProjectAPI: MultiDocumentProjectAPI;
+    singleDocumentProjectStoreManagerAPI: SingleDocumentProjectStoreManagerAPI;
+    multiDocumentProjectStoreManagerAPI: MultiDocumentProjectStoreManagerAPI;
     wasmAPI: WasmAPI;
     osEventsAPI: OsEventsAPI;
   }

@@ -67,7 +67,9 @@ export const createAdapter = ({
         Effect.flatMap(() =>
           Effect.tryPromise({
             try: () =>
-              window.singleDocumentProjectAPI.createSingleDocumentProject({}),
+              window.singleDocumentProjectStoreManagerAPI.createSingleDocumentProject(
+                {}
+              ),
             // TODO: Leverage typed Effect errors returned from the respective node adapter
             catch: mapErrorTo(
               VersionedProjectRepositoryError,
@@ -130,9 +132,11 @@ export const createAdapter = ({
             Effect.flatMap(() =>
               Effect.tryPromise({
                 try: () =>
-                  window.singleDocumentProjectAPI.openSingleDocumentProject({
-                    fromFile,
-                  }),
+                  window.singleDocumentProjectStoreManagerAPI.openSingleDocumentProject(
+                    {
+                      fromFile,
+                    }
+                  ),
                 // TODO: Leverage typed Effect errors returned from the respective node adapter
                 catch: mapErrorTo(
                   VersionedProjectRepositoryError,

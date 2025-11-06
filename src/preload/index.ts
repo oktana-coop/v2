@@ -2,10 +2,10 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 import {
   type ElectronAPI,
-  type MultiDocumentProjectAPI,
+  type MultiDocumentProjectStoreManagerAPI,
   type OsEventsAPI,
   type PersonalizationAPI,
-  type SingleDocumentProjectAPI,
+  type SingleDocumentProjectStoreManagerAPI,
 } from '../../renderer';
 import {
   type OpenMultiDocumentProjectByIdArgs,
@@ -91,19 +91,19 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
   readFile: (path: string) => ipcRenderer.invoke('read-file', path),
 } as FilesystemPromiseAPI);
 
-contextBridge.exposeInMainWorld('singleDocumentProjectAPI', {
+contextBridge.exposeInMainWorld('singleDocumentProjectStoreManagerAPI', {
   createSingleDocumentProject: (args: SetupSingleDocumentProjectStoreArgs) =>
     ipcRenderer.invoke('create-single-document-project', { ...args }),
   openSingleDocumentProject: (args: OpenSingleDocumentProjectStoreArgs) =>
     ipcRenderer.invoke('open-single-document-project', { ...args }),
-} as SingleDocumentProjectAPI);
+} as SingleDocumentProjectStoreManagerAPI);
 
-contextBridge.exposeInMainWorld('multiDocumentProjectAPI', {
+contextBridge.exposeInMainWorld('multiDocumentProjectStoreManagerAPI', {
   openOrCreateMultiDocumentProject: () =>
     ipcRenderer.invoke('open-or-create-multi-document-project'),
   openMultiDocumentProjectById: (args: OpenMultiDocumentProjectByIdArgs) =>
     ipcRenderer.invoke('open-multi-document-project-by-id', { ...args }),
-} as MultiDocumentProjectAPI);
+} as MultiDocumentProjectStoreManagerAPI);
 
 contextBridge.exposeInMainWorld('wasmAPI', {
   runWasiCLIOutputingText: (args: RunWasiCLIArgs) =>
