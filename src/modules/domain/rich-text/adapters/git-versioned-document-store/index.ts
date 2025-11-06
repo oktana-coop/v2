@@ -235,6 +235,34 @@ export const createAdapter = ({
   const deleteDocument: VersionedDocumentStore['deleteDocument'] = () =>
     Effect.succeed(undefined);
 
+  const commitChanges: VersionedDocumentStore['commitChanges'] = ({
+    documentId,
+    message,
+  }) =>
+    Effect.Do.pipe(
+      Effect.bind('documentPath', () => extractDocumentPathFromId(documentId)),
+      Effect.bind('projectDir', () => getProjectDir()),
+      Effect.flatMap(({ documentPath, projectDir }) =>
+        pipe(
+          Effect.tryPromise({
+            try: () => git.add({ fs, dir: projectDir, filepath: documentPath }),
+            catch: mapErrorTo(RepositoryError, 'Git repo error'),
+          }),
+          Effect.flatMap(() =>
+            Effect.tryPromise({
+              try: () =>
+                git.commit({
+                  fs,
+                  dir: projectDir,
+                  message,
+                }),
+              catch: mapErrorTo(RepositoryError, 'Git repo error'),
+            })
+          )
+        )
+      )
+    );
+
   return {
     projectId,
     setProjectId,
