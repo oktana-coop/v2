@@ -3,11 +3,11 @@ import { useContext } from 'react';
 
 import {
   type Change,
+  changeIdsAreSame,
   type Commit,
-  commitIdsAreSame,
   isCommit,
   type UncommitedChange,
-  urlEncodeCommitId,
+  urlEncodeChangeId,
 } from '../../../../../../../modules/infrastructure/version-control';
 import {
   ThemeContext,
@@ -53,13 +53,13 @@ const Commit = ({
 };
 
 const UncommittedChange = ({
-  commit,
+  change,
   onClick,
   isSelected = false,
   isLast = false,
 }: {
-  commit: UncommitedChange;
-  onClick: (commitId: Commit['id']) => void;
+  change: UncommitedChange;
+  onClick: (changeId: UncommitedChange['id']) => void;
   isSelected?: boolean;
   isFirst?: boolean;
   isLast?: boolean;
@@ -69,8 +69,8 @@ const UncommittedChange = ({
   return (
     <div
       className="cursor-pointer text-left"
-      key={urlEncodeCommitId(commit.id)}
-      onClick={() => onClick(commit.id)}
+      key={urlEncodeChangeId(change.id)}
+      onClick={() => onClick(change.id)}
     >
       <div className="flex flex-row items-center">
         <div className="h-full w-14 flex-shrink-0">
@@ -96,33 +96,33 @@ const UncommittedChange = ({
 export const ChangeLog = ({
   changes,
   onClick,
-  selectedCommit,
+  selectedChange,
 }: {
   changes: Array<Change>;
-  onClick: (commitId: Commit['id']) => void;
-  selectedCommit: Commit['id'] | null;
+  onClick: (changeId: Change['id']) => void;
+  selectedChange: Change['id'] | null;
 }) => {
   return (
     <>
-      {changes.map((commit, index) => {
-        return isCommit(commit) ? (
+      {changes.map((change, index) => {
+        return isCommit(change) ? (
           <Commit
-            key={urlEncodeCommitId(commit.id)}
-            commit={commit}
+            key={urlEncodeChangeId(change.id)}
+            commit={change}
             onClick={onClick}
             isSelected={Boolean(
-              selectedCommit && commitIdsAreSame(selectedCommit, commit.id)
+              selectedChange && changeIdsAreSame(selectedChange, change.id)
             )}
             isFirst={index === 0}
             isLast={changes.length - 1 === index}
           />
         ) : (
           <UncommittedChange
-            key={urlEncodeCommitId(commit.id)}
-            commit={commit}
+            key={urlEncodeChangeId(change.id)}
+            change={change}
             onClick={onClick}
             isSelected={Boolean(
-              selectedCommit && commitIdsAreSame(selectedCommit, commit.id)
+              selectedChange && changeIdsAreSame(selectedChange, change.id)
             )}
             isFirst={index === 0}
             isLast={changes.length === 1}

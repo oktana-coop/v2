@@ -3,8 +3,9 @@ import { useRef } from 'react';
 import {
   type ChangeWithUrlInfo,
   type CommitId,
-  decodeUrlEncodedCommitId,
-  urlEncodeCommitId,
+  decodeUrlEncodedChangeId,
+  isCommitWithUrlInfo,
+  urlEncodeChangeId,
 } from '../../../../../../modules/infrastructure/version-control';
 import { IconButton } from '../../../../components/actions/IconButton';
 import {
@@ -81,9 +82,9 @@ export const ActionsBar = ({
   };
 
   const handleDiffCommitSelect = (commitId: string) => {
-    const decodedCommitId = decodeUrlEncodedCommitId(commitId);
-    if (decodedCommitId) {
-      onDiffCommitSelect(decodedCommitId);
+    const decodedChangeId = decodeUrlEncodedChangeId(commitId);
+    if (decodedChangeId) {
+      onDiffCommitSelect(decodedChangeId);
     }
   };
 
@@ -110,18 +111,20 @@ export const ActionsBar = ({
 
             <Listbox
               name="diff commits"
-              value={diffWith ? urlEncodeCommitId(diffWith) : null}
+              value={diffWith ? urlEncodeChangeId(diffWith) : null}
               onChange={handleDiffCommitSelect}
               disabled={!showDiff}
             >
-              {history.map(({ message, urlEncodedCommitId }) => (
-                <ListboxOption
-                  key={urlEncodedCommitId}
-                  value={urlEncodedCommitId}
-                >
-                  <ListboxLabel>{message}</ListboxLabel>
-                </ListboxOption>
-              ))}
+              {history
+                .filter(isCommitWithUrlInfo)
+                .map(({ message, urlEncodedChangeId }) => (
+                  <ListboxOption
+                    key={urlEncodedChangeId}
+                    value={urlEncodedChangeId}
+                  >
+                    <ListboxLabel>{message}</ListboxLabel>
+                  </ListboxOption>
+                ))}
             </Listbox>
           </div>
         )}

@@ -4,7 +4,7 @@ import { useParams } from 'react-router';
 import { projectTypes } from '../../../../modules/domain/project';
 import { ProseMirrorProvider } from '../../../../modules/domain/rich-text/react/prosemirror-context';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/electron-context';
-import { decodeUrlEncodedCommitId } from '../../../../modules/infrastructure/version-control';
+import { decodeUrlEncodedChangeId } from '../../../../modules/infrastructure/version-control';
 import {
   CurrentDocumentContext,
   CurrentDocumentProvider,
@@ -48,8 +48,8 @@ const DocumentIndex = () => {
     useState<boolean>(false);
   const { projectType } = useContext(CurrentProjectContext);
   const {
-    versionedDocumentHistory: commits,
-    onSelectCommit,
+    versionedDocumentHistory: changes,
+    onSelectChange,
     onCloseCommitDialog,
     isCommitDialogOpen,
     canCommit,
@@ -116,10 +116,10 @@ const DocumentIndex = () => {
                 )}
 
                 <DocumentHistory
-                  commits={commits}
-                  onCommitClick={onSelectCommit}
-                  selectedCommit={
-                    changeId ? decodeUrlEncodedCommitId(changeId) : null
+                  changes={changes}
+                  onChangeClick={onSelectChange}
+                  selectedChange={
+                    changeId ? decodeUrlEncodedChangeId(changeId) : null
                   }
                 />
               </StackedResizablePanelsLayout>

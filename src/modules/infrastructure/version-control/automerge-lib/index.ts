@@ -12,8 +12,8 @@ import { mapErrorTo } from '../../../../utils/errors';
 import { NotFoundError, RepositoryError } from '../errors';
 import {
   type Change,
+  changeIdsAreSame,
   type Commit,
-  commitIdsAreSame,
   type UncommitedChange,
   type VersionedArtifact,
   type VersionedArtifactHandle,
@@ -153,7 +153,7 @@ export const mapHeadsToHistoryInfo = <ArtifactType>({
   const [lastCommit] = orderedCommits;
 
   if (lastCommit) {
-    return commitIdsAreSame(latestChange.id, lastCommit.id) ||
+    return changeIdsAreSame(latestChange.id, lastCommit.id) ||
       contentEqFn(
         artifact,
         latestChange.id as UrlHeads,

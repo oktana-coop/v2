@@ -114,7 +114,7 @@ export const createAdapter = ({
     deleteDocument,
     commitChanges,
     getDocumentHistory,
-    getDocumentAtCommit,
+    getDocumentAtChange,
     isContentSameAtHeads,
     exportDocumentToBinary,
     importDocumentFromBinary,

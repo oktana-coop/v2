@@ -2,6 +2,8 @@ import { type UrlHeads as AutomergeUrlHeads } from '@automerge/automerge-repo/sl
 import deepEqual from 'fast-deep-equal';
 import { z } from 'zod';
 
+const UNCOMMITTED_CHANGE_ID = 'uncommitted';
+
 export const gitCommitHashSchema = z
   .string()
   .regex(/^[0-9a-f]{7,40}$/, 'Invalid git commit hash')
@@ -9,15 +11,23 @@ export const gitCommitHashSchema = z
 
 export type GitCommitHash = z.infer<typeof gitCommitHashSchema>;
 
+export const uncommittedChangeIdSchema = z.literal(UNCOMMITTED_CHANGE_ID);
+
+export type UncommittedChangeId = z.infer<typeof uncommittedChangeIdSchema>;
+
 export type CommitId = AutomergeUrlHeads | GitCommitHash;
 
-export const isGitCommitHash = (id: CommitId): id is GitCommitHash =>
-  !Array.isArray(id) && gitCommitHashSchema.safeParse(id).success;
+export type ChangeId = CommitId | UncommittedChangeId;
 
-export const isAutomergeUrlHeads = (id: CommitId): id is AutomergeUrlHeads =>
+export const isGitCommitHash = (id: ChangeId): id is GitCommitHash =>
+  !Array.isArray(id) &&
+  !isUncommittedChangeId(id) &&
+  gitCommitHashSchema.safeParse(id).success;
+
+export const isAutomergeUrlHeads = (id: ChangeId): id is AutomergeUrlHeads =>
   Array.isArray(id);
 
-export const urlEncodeCommitId = (id: CommitId): string => {
+export const urlEncodeChangeId = (id: ChangeId): string => {
   if (isAutomergeUrlHeads(id)) {
     return encodeURLHeads(id);
   }
@@ -25,7 +35,11 @@ export const urlEncodeCommitId = (id: CommitId): string => {
   return encodeURIComponent(id);
 };
 
-export const decodeUrlEncodedCommitId = (
+export const isUncommittedChangeId = (
+  id: ChangeId
+): id is UncommittedChangeId => id === UNCOMMITTED_CHANGE_ID;
+
+export const decodeUrlEncodedChangeId = (
   urlEncodedCommitId: string
 ): CommitId | null => {
   try {
@@ -40,7 +54,11 @@ export const decodeUrlEncodedCommitId = (
 export const encodeURLHeads = (heads: AutomergeUrlHeads): string =>
   encodeURIComponent(JSON.stringify(heads));
 
-export const commitIdsAreSame = (a: CommitId, b: CommitId): boolean => {
+export const changeIdsAreSame = (a: ChangeId, b: ChangeId): boolean => {
+  if (isUncommittedChangeId(a) && isUncommittedChangeId(b)) {
+    return true;
+  }
+
   if (isGitCommitHash(a) && isGitCommitHash(b)) {
     return a === b;
   }

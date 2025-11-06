@@ -11,7 +11,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { projectTypes } from '../../../../modules/domain/project';
 import {
   type BinaryRichTextRepresentation,
-  type GetDocumentAtCommitArgs,
+  type GetDocumentAtChangeArgs,
   getDocumentRichTextContent,
   type IsContentSameAtCommitsArgs,
   isEmpty,
@@ -27,13 +27,13 @@ import { RepresentationTransformContext } from '../../../../modules/domain/rich-
 import {
   type ArtifactHistoryInfo,
   type Change,
+  type ChangeId,
+  changeIdsAreSame,
   type ChangeWithUrlInfo,
   type Commit,
-  type CommitId,
-  commitIdsAreSame,
   type ResolvedArtifactId,
-  urlEncodeCommitId,
-  urlEncodeCommitIdForChange,
+  urlEncodeChangeId,
+  urlEncodeChangeIdForChange,
 } from '../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../modules/personalization/browser';
 import { useCurrentDocumentId } from '../../hooks/use-current-document-id';
@@ -59,9 +59,9 @@ export type CurrentDocumentContextType = {
   onOpenCommitDialog: () => void;
   onCloseCommitDialog: () => void;
   selectedCommitIndex: number | null;
-  onSelectCommit: (commitId: CommitId) => void;
-  getDocumentAtCommit: (
-    args: GetDocumentAtCommitArgs
+  onSelectChange: (commitId: ChangeId) => void;
+  getDocumentAtChange: (
+    args: GetDocumentAtChangeArgs
   ) => Promise<VersionedDocument>;
   isContentSameAtCommits: (
     args: IsContentSameAtCommitsArgs
@@ -88,9 +88,9 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     onOpenCommitDialog: () => {},
     onCloseCommitDialog: () => {},
     selectedCommitIndex: null,
-    onSelectCommit: () => {},
+    onSelectChange: () => {},
     // @ts-expect-error will get overriden below
-    getDocumentAtCommit: async () => null,
+    getDocumentAtChange: async () => null,
     getExportText: async () => '',
     // @ts-expect-error will get overriden below
     getExportBinaryData: async () => null,
@@ -187,10 +187,10 @@ export const CurrentDocumentProvider = ({
     (documentStore: VersionedDocumentStore) =>
     async (
       documentId: ResolvedArtifactId,
-      latestChangeId: CommitId,
-      lastCommitId: CommitId
+      latestChangeId: ChangeId,
+      lastCommitId: ChangeId
     ) => {
-      if (!commitIdsAreSame(latestChangeId, lastCommitId)) {
+      if (!changeIdsAreSame(latestChangeId, lastCommitId)) {
         const isContentSame = await Effect.runPromise(
           documentStore.isContentSameAtCommits({
             documentId,
@@ -219,8 +219,8 @@ export const CurrentDocumentProvider = ({
     }: {
       docId: ResolvedArtifactId;
       doc: VersionedDocument;
-      latestChangeId: CommitId;
-      lastCommitId?: CommitId;
+      latestChangeId: ChangeId;
+      lastCommitId?: ChangeId;
     }) => {
       if (lastCommitId) {
         return checkIfContentChangedFromLastCommit(documentStore)(
@@ -262,7 +262,7 @@ export const CurrentDocumentProvider = ({
 
       const historyWithURLInfo = historyInfo.history.map((commit) => ({
         ...commit,
-        urlEncodedCommitId: urlEncodeCommitIdForChange(commit),
+        urlEncodedChangeId: urlEncodeChangeIdForChange(commit),
       }));
 
       setVersionedDocumentHistory(historyWithURLInfo);
@@ -308,13 +308,13 @@ export const CurrentDocumentProvider = ({
     setIsCommitDialogOpen(false);
   }, []);
 
-  const handleSelectCommit = useCallback(
-    (commitId: CommitId) => {
+  const handleSelectChange = useCallback(
+    (changeId: ChangeId) => {
       const isInitialChange = (index: number, changes: Change[]) =>
         index === changes.length - 1;
 
       const selectedCommitIndex = versionedDocumentHistory.findIndex((commit) =>
-        commitIdsAreSame(commit.id, commitId)
+        changeIdsAreSame(commit.id, changeId)
       );
 
       const isFirstCommit = isInitialChange(
@@ -326,10 +326,10 @@ export const CurrentDocumentProvider = ({
         ? null
         : versionedDocumentHistory[selectedCommitIndex + 1];
 
-      let newUrl = `/projects/${projectId}/documents/${documentId}/changes/${urlEncodeCommitId(commitId)}`;
+      let newUrl = `/projects/${projectId}/documents/${documentId}/changes/${urlEncodeChangeId(changeId)}`;
       if (diffCommit) {
-        const diffCommitURLEncodedId = urlEncodeCommitIdForChange(diffCommit);
-        newUrl += `?diffWith=${diffCommitURLEncodedId}`;
+        const diffChangeURLEncodedId = urlEncodeChangeIdForChange(diffCommit);
+        newUrl += `?diffWith=${diffChangeURLEncodedId}`;
       }
 
       if (showDiffInHistoryView && diffCommit) {
@@ -343,8 +343,8 @@ export const CurrentDocumentProvider = ({
     [documentId, versionedDocumentHistory, showDiffInHistoryView]
   );
 
-  const handleGetDocumentAtCommit = useCallback(
-    async (args: GetDocumentAtCommitArgs) => {
+  const handleGetDocumentAtChange = useCallback(
+    async (args: GetDocumentAtChangeArgs) => {
       if (
         !versionedDocumentStore ||
         versionedDocumentStore.projectId !== projectId
@@ -355,7 +355,7 @@ export const CurrentDocumentProvider = ({
       }
 
       return Effect.runPromise(
-        versionedDocumentStore.getDocumentAtCommit(args)
+        versionedDocumentStore.getDocumentAtChange(args)
       );
     },
     [versionedDocumentStore, projectId]
@@ -544,8 +544,8 @@ export const CurrentDocumentProvider = ({
         onOpenCommitDialog: handleOpenCommitDialog,
         onCloseCommitDialog: handleCloseCommitDialog,
         selectedCommitIndex,
-        onSelectCommit: handleSelectCommit,
-        getDocumentAtCommit: handleGetDocumentAtCommit,
+        onSelectChange: handleSelectChange,
+        getDocumentAtChange: handleGetDocumentAtChange,
         isContentSameAtCommits: handleIsContentSameAtCommits,
         getExportText: exportToTextRepresentation,
         getExportBinaryData: exportToBinaryRepresentation,

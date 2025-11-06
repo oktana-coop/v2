@@ -1,2 +1,2 @@
-export * from './commit-id';
+export * from './change-id';
 export * from './commit';

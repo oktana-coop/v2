@@ -19,14 +19,14 @@ export type CreateDocumentArgs = {
   id?: ResolvedArtifactId;
 };
 
-export type GetDocumentHandleAtCommitArgs = {
+export type GetDocumentHandleAtChangeArgs = {
   documentHandle: VersionedDocumentHandle;
-  commitId: Commit['id'];
+  changeId: Change['id'];
 };
 
-export type GetDocumentAtCommitArgs = {
+export type GetDocumentAtChangeArgs = {
   documentId: ResolvedArtifactId;
-  commitId: Commit['id'];
+  changeId: Change['id'];
 };
 
 export type UpdateRichTextDocumentContentArgs = {
@@ -51,8 +51,8 @@ export type GetDocumentHandleHistoryResponse = {
 
 export type IsContentSameAtCommitsArgs = {
   documentId: ResolvedArtifactId;
-  commit1: Commit['id'];
-  commit2: Commit['id'];
+  commit1: Change['id'];
+  commit2: Change['id'];
 };
 
 export type CommitChangesArgs = {
@@ -115,8 +115,8 @@ export type VersionedDocumentStore = {
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
-  getDocumentAtCommit: (
-    args: GetDocumentAtCommitArgs
+  getDocumentAtChange: (
+    args: GetDocumentAtChangeArgs
   ) => Effect.Effect<
     VersionedDocument,
     ValidationError | RepositoryError | NotFoundError | MigrationError,
@@ -139,8 +139,8 @@ export type VersionedDocumentStore = {
 };
 
 export type RealtimeVersionedDocumentStore = VersionedDocumentStore & {
-  getDocumentHandleAtCommit: (
-    args: GetDocumentHandleAtCommitArgs
+  getDocumentHandleAtChange: (
+    args: GetDocumentHandleAtChangeArgs
   ) => Effect.Effect<
     VersionedDocumentHandle,
     ValidationError | RepositoryError,

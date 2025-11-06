@@ -1,4 +1,4 @@
-import { type CommitId, urlEncodeCommitId } from './commit-id';
+import { type ChangeId, type CommitId, urlEncodeChangeId } from './change-id';
 
 // Commit is a special type of an (automerge) change that
 // strictly has a message and a time
@@ -8,23 +8,27 @@ export type Commit = {
   time: Date;
 };
 
-export type UncommitedChange = Omit<Commit, 'message'> & {
-  message: undefined;
+export type UncommitedChange = {
+  id: ChangeId;
+  time?: Date;
 };
 
 export type Change = Commit | UncommitedChange;
 
 export type ChangeWithUrlInfo = Change & {
-  urlEncodedCommitId: string;
+  urlEncodedChangeId: string;
 };
 
-// this is a TS type guard to check if a change is a commit
-export const isCommit = (
-  change: Commit | UncommitedChange
-): change is Commit => {
-  // we make the rules!
-  return Boolean(change.message);
+export type CommitWithUrlInfo = Commit & {
+  urlEncodedChangeId: string;
 };
 
-export const urlEncodeCommitIdForChange = (change: Commit | UncommitedChange) =>
-  urlEncodeCommitId(change.id);
+export const isCommitWithUrlInfo = (
+  change: ChangeWithUrlInfo
+): change is CommitWithUrlInfo => 'message' in change;
+
+export const isCommit = (change: Commit | UncommitedChange): change is Commit =>
+  'message' in change;
+
+export const urlEncodeChangeIdForChange = (change: Commit | UncommitedChange) =>
+  urlEncodeChangeId(change.id);

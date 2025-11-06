@@ -1,9 +1,6 @@
 import { useContext } from 'react';
 
-import {
-  type Commit,
-  type UncommitedChange,
-} from '../../../../../../modules/infrastructure/version-control';
+import { type Change } from '../../../../../../modules/infrastructure/version-control';
 import { CurrentDocumentContext } from '../../../../app-state';
 import { CommitHistoryIcon } from '../../../../components/icons';
 import { SidebarHeading } from '../../../../components/sidebar/SidebarHeading';
@@ -11,15 +8,15 @@ import { ChangeLog, ChangeLogSkeleton } from './change-log';
 import { EmptyView } from './EmptyView';
 
 export type DocumentHistoryPanelProps = {
-  commits: (Commit | UncommitedChange)[];
-  onCommitClick: (commitId: Commit['id']) => void;
-  selectedCommit: Commit['id'] | null;
+  changes: Change[];
+  onChangeClick: (changeId: Change['id']) => void;
+  selectedChange: Change['id'] | null;
 };
 
 const DocumentHistoryContent = ({
-  commits,
-  onCommitClick,
-  selectedCommit,
+  changes,
+  onChangeClick,
+  selectedChange,
 }: DocumentHistoryPanelProps) => {
   const { loadingHistory } = useContext(CurrentDocumentContext);
 
@@ -27,23 +24,23 @@ const DocumentHistoryContent = ({
     return <ChangeLogSkeleton />;
   }
 
-  if (commits.length === 0) {
+  if (changes.length === 0) {
     return <EmptyView />;
   }
 
   return (
     <ChangeLog
-      changes={commits}
-      onClick={onCommitClick}
-      selectedCommit={selectedCommit}
+      changes={changes}
+      onClick={onChangeClick}
+      selectedChange={selectedChange}
     />
   );
 };
 
 export const DocumentHistory = ({
-  commits,
-  onCommitClick,
-  selectedCommit,
+  changes,
+  onChangeClick,
+  selectedChange,
 }: DocumentHistoryPanelProps) => {
   return (
     <div className="flex h-full flex-col items-stretch py-6">
@@ -54,9 +51,9 @@ export const DocumentHistory = ({
       </div>
       <div className="flex h-full flex-col items-stretch overflow-auto">
         <DocumentHistoryContent
-          commits={commits}
-          onCommitClick={onCommitClick}
-          selectedCommit={selectedCommit}
+          changes={changes}
+          onChangeClick={onChangeClick}
+          selectedChange={selectedChange}
         />
       </div>
     </div>

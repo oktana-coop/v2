@@ -5,13 +5,13 @@ import { isValidProjectId } from '../../../../../../modules/domain/project';
 import { type VersionedDocument } from '../../../../../../modules/domain/rich-text';
 import {
   type Change,
+  changeIdsAreSame,
   type ChangeWithUrlInfo,
-  CommitId,
-  commitIdsAreSame,
-  decodeUrlEncodedCommitId,
+  type CommitId,
+  decodeUrlEncodedChangeId,
   isCommit,
   type ResolvedArtifactId,
-  urlEncodeCommitId,
+  urlEncodeChangeId,
 } from '../../../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../../../modules/personalization/browser';
 import {
@@ -33,10 +33,10 @@ export const DocumentHistoricalView = () => {
   const {
     versionedDocumentHistory: commits,
     selectedCommitIndex,
-    onSelectCommit,
+    onSelectChange,
     canCommit,
     onOpenCommitDialog,
-    getDocumentAtCommit,
+    getDocumentAtChange,
     isContentSameAtCommits,
   } = useContext(CurrentDocumentContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
@@ -66,9 +66,9 @@ export const DocumentHistoricalView = () => {
   const getDecodedDiffParam = useCallback(() => {
     const diffWithParam = searchParams.get('diffWith');
     if (diffWithParam) {
-      const decodedCommitId = decodeUrlEncodedCommitId(diffWithParam);
-      if (decodedCommitId) {
-        return decodedCommitId;
+      const decodedChangeId = decodeUrlEncodedChangeId(diffWithParam);
+      if (decodedChangeId) {
+        return decodedChangeId;
       }
     }
     return null;
@@ -77,15 +77,15 @@ export const DocumentHistoricalView = () => {
   useEffect(() => {
     const loadDocOrDiff = async (
       documentId: ResolvedArtifactId,
-      commits: ChangeWithUrlInfo[],
-      currentCommitIndex: number
+      changes: ChangeWithUrlInfo[],
+      currentChangeIndex: number
     ) => {
-      const currentCommitDoc = await getDocumentAtCommit({
+      const currentChangeDoc = await getDocumentAtChange({
         documentId,
-        commitId: commits[currentCommitIndex].id,
+        changeId: changes[currentChangeIndex].id,
       });
 
-      const isFirstCommit = isInitialChange(currentCommitIndex, commits);
+      const isFirstCommit = isInitialChange(currentChangeIndex, commits);
 
       if (!showDiffInHistoryView || isFirstCommit) {
         setDiffProps(null);
@@ -93,28 +93,28 @@ export const DocumentHistoricalView = () => {
         const diffWith = getDecodedDiffParam();
         const diffCommit =
           diffWith &&
-          commits.find((commit) => commitIdsAreSame(commit.id, diffWith));
+          changes.find((commit) => changeIdsAreSame(commit.id, diffWith));
 
         if (diffCommit) {
-          const previousCommitDoc = await getDocumentAtCommit({
+          const previousCommitDoc = await getDocumentAtChange({
             documentId,
-            commitId: diffCommit.id,
+            changeId: diffCommit.id,
           });
           const isContentBetweenCommitsDifferent =
             !(await isContentSameAtCommits({
               documentId,
               commit1: diffCommit.id,
-              commit2: commits[currentCommitIndex].id,
+              commit2: changes[currentChangeIndex].id,
             }));
 
           if (
             previousCommitDoc &&
-            currentCommitDoc &&
+            currentChangeDoc &&
             isContentBetweenCommitsDifferent
           ) {
             setDiffProps({
               docBefore: previousCommitDoc,
-              docAfter: currentCommitDoc,
+              docAfter: currentChangeDoc,
             });
           }
         } else {
@@ -122,8 +122,8 @@ export const DocumentHistoricalView = () => {
         }
       }
 
-      setDoc(currentCommitDoc);
-      updateViewTitle(commits[currentCommitIndex]);
+      setDoc(currentChangeDoc);
+      updateViewTitle(commits[currentChangeIndex]);
     };
 
     if (
@@ -145,16 +145,16 @@ export const DocumentHistoricalView = () => {
   useEffect(() => {
     if (commits.length > 0) {
       if (changeId) {
-        const decodedChangeId = decodeUrlEncodedCommitId(changeId);
+        const decodedChangeId = decodeUrlEncodedChangeId(changeId);
         if (!decodedChangeId) {
           console.error('Invalid commit ID for the selected commit:', changeId);
           return;
         }
-        onSelectCommit(decodedChangeId);
+        onSelectChange(decodedChangeId);
       } else {
         // If no changeId is provided, we select the last commit
         const [lastChange] = commits;
-        onSelectCommit(lastChange.id);
+        onSelectChange(lastChange.id);
       }
     }
 
@@ -177,7 +177,7 @@ export const DocumentHistoricalView = () => {
   const handleDiffCommitSelect = (id: CommitId) => {
     setSearchParams((prev) => {
       const newParams = new URLSearchParams(prev);
-      const encodedCommitId = urlEncodeCommitId(id);
+      const encodedCommitId = urlEncodeChangeId(id);
       newParams.set('diffWith', encodedCommitId);
       return newParams;
     });

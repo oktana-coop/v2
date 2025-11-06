@@ -82,10 +82,10 @@ export const createAdapter = (
       Effect.map((handle) => handle.url as ResolvedArtifactId)
     );
 
-  const getDocumentHandleAtCommit: RealtimeVersionedDocumentStore['getDocumentHandleAtCommit'] =
-    ({ documentHandle, commitId }) =>
+  const getDocumentHandleAtChange: RealtimeVersionedDocumentStore['getDocumentHandleAtChange'] =
+    ({ documentHandle, changeId }) =>
       pipe(
-        Effect.succeed(commitId),
+        Effect.succeed(changeId),
         Effect.filterOrFail(
           isAutomergeUrlHeads,
           (val) => new ValidationError(`Invalid commit id: ${val}`)
@@ -101,15 +101,15 @@ export const createAdapter = (
         )
       );
 
-  const getDocumentAtCommit: VersionedDocumentStore['getDocumentAtCommit'] = ({
+  const getDocumentAtChange: VersionedDocumentStore['getDocumentAtChange'] = ({
     documentId,
-    commitId,
+    changeId,
   }) =>
     Effect.Do.pipe(
       Effect.bind('resolvedDocument', () => findDocumentById(documentId)),
       Effect.bind('commitHeads', () =>
         pipe(
-          Effect.succeed(commitId),
+          Effect.succeed(changeId),
           Effect.filterOrFail(
             isAutomergeUrlHeads,
             (val) => new ValidationError(`Invalid commit id: ${val}`)
@@ -363,8 +363,8 @@ export const createAdapter = (
     projectId,
     setProjectId,
     createDocument,
-    getDocumentHandleAtCommit,
-    getDocumentAtCommit,
+    getDocumentHandleAtChange,
+    getDocumentAtChange,
     findDocumentById,
     findDocumentHandleById,
     updateRichTextDocumentContent,
