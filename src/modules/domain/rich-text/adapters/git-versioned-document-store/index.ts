@@ -3,13 +3,16 @@ import { pipe } from 'effect/Function';
 import git, { type PromiseFsClient as NodeLikeFsApi } from 'isomorphic-git';
 
 import {
+  type Change,
   type ChangeId,
+  type Commit,
   decomposeGitBlobRef,
   type GitBlobRef,
   type GitCommitHash,
   isGitBlobRef,
   parseGitCommitHash,
   type ResolvedArtifactId,
+  type UncommitedChange,
   UNCOMMITTED_CHANGE_ID,
   versionedArtifactTypes,
 } from '../../../../../modules/infrastructure/version-control';
@@ -127,43 +130,40 @@ export const createAdapter = ({
       )
     );
 
+  const isDocumentModified: (args: {
+    projectDir: string;
+    documentPath: string;
+  }) => Effect.Effect<boolean, RepositoryError | NotFoundError, never> = ({
+    projectDir,
+    documentPath,
+  }) =>
+    pipe(
+      Effect.tryPromise({
+        try: () =>
+          git.status({
+            fs,
+            dir: projectDir,
+            filepath: documentPath,
+          }),
+        catch: mapErrorTo(RepositoryError, 'Git repo error'),
+      }),
+      Effect.flatMap((fileChangedStatus) => {
+        if (fileChangedStatus === 'ignored' || fileChangedStatus === 'absent') {
+          return Effect.fail(
+            new NotFoundError('Document is ignored or absent')
+          );
+        }
+
+        if (fileChangedStatus === 'unmodified') {
+          return Effect.succeed(false);
+        }
+
+        return Effect.succeed(true);
+      })
+    );
+
   const getDocumentLastChangeId: VersionedDocumentStore['getDocumentLastChangeId'] =
     (documentId) => {
-      const isDocumentModified: (args: {
-        projectDir: string;
-        documentPath: string;
-      }) => Effect.Effect<boolean, RepositoryError | NotFoundError, never> = ({
-        projectDir,
-        documentPath,
-      }) =>
-        pipe(
-          Effect.tryPromise({
-            try: () =>
-              git.status({
-                fs,
-                dir: projectDir,
-                filepath: documentPath,
-              }),
-            catch: mapErrorTo(RepositoryError, 'Git repo error'),
-          }),
-          Effect.flatMap((fileChangedStatus) => {
-            if (
-              fileChangedStatus === 'ignored' ||
-              fileChangedStatus === 'absent'
-            ) {
-              return Effect.fail(
-                new NotFoundError('Document is ignored or absent')
-              );
-            }
-
-            if (fileChangedStatus === 'unmodified') {
-              return Effect.succeed(false);
-            }
-
-            return Effect.succeed(true);
-          })
-        );
-
       const getLastModificationCommitId: (args: {
         projectDir: string;
         documentPath: string;
@@ -262,6 +262,98 @@ export const createAdapter = ({
         )
       )
     );
+
+  const getDocumentHistory: VersionedDocumentStore['getDocumentHistory'] = (
+    documentId
+  ) => {
+    const getDocumentCommitHistory: (args: {
+      projectDir: string;
+      documentPath: string;
+    }) => Effect.Effect<Commit[], RepositoryError | NotFoundError, never> = ({
+      projectDir,
+      documentPath,
+    }) =>
+      pipe(
+        Effect.tryPromise({
+          try: () =>
+            git.log({
+              fs,
+              dir: projectDir,
+              filepath: documentPath,
+            }),
+          catch: mapErrorTo(RepositoryError, 'Git repo error'),
+        }),
+        Effect.map((gitLog) =>
+          gitLog.map(
+            (commitInfo) =>
+              ({
+                // TODO: Handle parsing errors
+                id: parseGitCommitHash(commitInfo.oid),
+                message: commitInfo.commit.message,
+                time: new Date(commitInfo.commit.author.timestamp * 1000),
+              }) as Commit
+          )
+        )
+      );
+
+    const getDocumentChangeHistory: (args: {
+      modified: boolean;
+      commitHistory: Commit[];
+    }) => Effect.Effect<
+      { history: Change[]; latestChange: Change; lastCommit: Commit | null },
+      RepositoryError | NotFoundError,
+      never
+    > = ({ modified, commitHistory }) => {
+      const lastCommit = commitHistory.length > 0 ? commitHistory[0] : null;
+
+      if (modified) {
+        const uncommittedChange: UncommitedChange = {
+          id: UNCOMMITTED_CHANGE_ID,
+        };
+
+        return Effect.succeed({
+          history: [uncommittedChange, ...commitHistory],
+          latestChange: uncommittedChange,
+          lastCommit,
+        });
+      }
+
+      return Effect.succeed({
+        history: commitHistory,
+        // TODO: Handle more gracefully
+        latestChange: lastCommit!,
+        lastCommit,
+      });
+    };
+
+    return Effect.Do.pipe(
+      Effect.bind('projectDir', () => getProjectDir()),
+      Effect.bind('documentPath', () => extractDocumentPathFromId(documentId)),
+      Effect.bind('document', () => findDocumentById(documentId)),
+      Effect.flatMap(({ projectDir, documentPath, document }) =>
+        Effect.Do.pipe(
+          Effect.bind('documentCommitHistory', () =>
+            getDocumentCommitHistory({ documentPath, projectDir })
+          ),
+          Effect.bind('isModified', () =>
+            isDocumentModified({ projectDir, documentPath })
+          ),
+          Effect.flatMap(({ documentCommitHistory, isModified }) =>
+            getDocumentChangeHistory({
+              modified: isModified,
+              commitHistory: documentCommitHistory,
+            })
+          ),
+          Effect.map(({ history, latestChange, lastCommit }) => ({
+            history,
+            latestChange,
+            lastCommit,
+            current: document,
+          }))
+        )
+      )
+    );
+  };
 
   return {
     projectId,
