@@ -362,22 +362,22 @@ export const createAdapter = ({
     );
   };
 
+  const getDocumentFromFs: (
+    documentId: ResolvedArtifactId
+  ) => Effect.Effect<
+    RichTextDocument,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  > = (documentId) =>
+    pipe(
+      findDocumentById(documentId),
+      Effect.map((resolvedDocument) => resolvedDocument.artifact)
+    );
+
   const getDocumentAtChange: VersionedDocumentStore['getDocumentAtChange'] = ({
     documentId,
     changeId,
   }) => {
-    const getDocumentFromFs: (
-      documentId: ResolvedArtifactId
-    ) => Effect.Effect<
-      RichTextDocument,
-      ValidationError | RepositoryError | NotFoundError | MigrationError,
-      never
-    > = (documentId) =>
-      pipe(
-        findDocumentById(documentId),
-        Effect.map((resolvedDocument) => resolvedDocument.artifact)
-      );
-
     const getDocumentAtCommit: (args: {
       projectDir: string;
       documentPath: string;
@@ -441,6 +441,106 @@ export const createAdapter = ({
           )
         );
   };
+
+  const getUncommittedDocumentStateHash: (
+    documentId: ResolvedArtifactId
+  ) => Effect.Effect<
+    string,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  > = (documentId) =>
+    pipe(
+      getDocumentFromFs(documentId),
+      Effect.flatMap(({ content }) =>
+        Effect.tryPromise({
+          try: () =>
+            git.hashBlob({
+              object: content,
+            }),
+          catch: mapErrorTo(RepositoryError, 'Git repo error'),
+        })
+      ),
+      Effect.map((hashBlobResult) => hashBlobResult.oid)
+    );
+
+  const getDocumentHashAtCommit: (args: {
+    projectDir: string;
+    documentPath: string;
+    commitHash: GitCommitHash;
+  }) => Effect.Effect<string, RepositoryError, never> = ({
+    projectDir,
+    documentPath,
+    commitHash,
+  }) =>
+    pipe(
+      Effect.tryPromise({
+        try: () => git.resolveRef({ fs, dir: projectDir, ref: commitHash }),
+        catch: mapErrorTo(RepositoryError, 'Git repo error'),
+      }),
+      Effect.flatMap((commitOid) =>
+        Effect.tryPromise({
+          try: () =>
+            git.readBlob({
+              fs,
+              dir: projectDir,
+              oid: commitOid,
+              filepath: documentPath,
+            }),
+          catch: mapErrorTo(RepositoryError, 'Git repo error'),
+        })
+      ),
+      Effect.map((readBlobResult) => readBlobResult.oid)
+    );
+
+  const getDocumentHashAtChange: (args: {
+    documentId: ResolvedArtifactId;
+    changeId: Change['id'];
+  }) => Effect.Effect<
+    string,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  > = ({ documentId, changeId }) =>
+    isUncommittedChangeId(changeId)
+      ? getUncommittedDocumentStateHash(documentId)
+      : Effect.Do.pipe(
+          Effect.bind('documentPath', () =>
+            extractDocumentPathFromId(documentId)
+          ),
+          Effect.bind('projectDir', () => getProjectDir()),
+          Effect.bind('commitHash', () =>
+            pipe(
+              Effect.succeed(changeId),
+              Effect.filterOrFail(
+                isGitCommitHash,
+                (val) => new ValidationError(`Invalid commit hash: ${val}`)
+              )
+            )
+          ),
+          Effect.flatMap(({ documentPath, projectDir, commitHash }) =>
+            getDocumentHashAtCommit({
+              projectDir,
+              documentPath,
+              commitHash,
+            })
+          )
+        );
+
+  const isContentSameAtChanges: VersionedDocumentStore['isContentSameAtChanges'] =
+    ({ documentId, change1, change2 }) => {
+      if (isUncommittedChangeId(change1) && isUncommittedChangeId(change2)) {
+        return Effect.succeed(true);
+      }
+
+      return Effect.Do.pipe(
+        Effect.bind('hash1', () =>
+          getDocumentHashAtChange({ documentId, changeId: change1 })
+        ),
+        Effect.bind('hash2', () =>
+          getDocumentHashAtChange({ documentId, changeId: change2 })
+        ),
+        Effect.map(({ hash1, hash2 }) => hash1 === hash2)
+      );
+    };
 
   return {
     projectId,
