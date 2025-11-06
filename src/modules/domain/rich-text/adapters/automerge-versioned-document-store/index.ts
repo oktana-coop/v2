@@ -238,18 +238,17 @@ export const createAdapter = (
       )
     );
 
-  const getDocumentHeads: VersionedDocumentStore['getDocumentHeads'] = (
-    documentId
-  ) =>
-    pipe(
-      findDocumentById(documentId),
-      Effect.flatMap(({ artifact: document }) =>
-        Effect.try({
-          try: () => getArtifactHeads<RichTextDocument>(document),
-          catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
-        })
-      )
-    );
+  const getDocumentLastChangeId: VersionedDocumentStore['getDocumentLastChangeId'] =
+    (documentId) =>
+      pipe(
+        findDocumentById(documentId),
+        Effect.flatMap(({ artifact: document }) =>
+          Effect.try({
+            try: () => getArtifactHeads<RichTextDocument>(document),
+            catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+          })
+        )
+      );
 
   const getDocumentHistory: VersionedDocumentStore['getDocumentHistory'] = (
     documentId: ResolvedArtifactId
@@ -373,7 +372,7 @@ export const createAdapter = (
     getDocumentHistory,
     getDocumentHandleHistory,
     isContentSameAtCommits,
-    getDocumentHeads,
+    getDocumentLastChangeId,
     commitChanges,
     exportDocumentHandleToBinary,
     exportDocumentToBinary,

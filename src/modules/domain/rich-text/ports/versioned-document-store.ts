@@ -80,10 +80,10 @@ export type VersionedDocumentStore = {
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
-  getDocumentHeads: (
+  getDocumentLastChangeId: (
     documentId: ResolvedArtifactId
   ) => Effect.Effect<
-    Commit['id'],
+    Change['id'],
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;

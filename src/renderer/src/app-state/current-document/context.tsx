@@ -424,7 +424,7 @@ export const CurrentDocumentProvider = ({
       });
 
       const latestChangeId = await Effect.runPromise(
-        versionedDocumentStore.getDocumentHeads(documentId)
+        versionedDocumentStore.getDocumentLastChangeId(documentId)
       );
 
       await checkIfCanCommit(versionedDocumentStore)({

@@ -109,7 +109,7 @@ export const createAdapter = ({
     setProjectId,
     createDocument,
     findDocumentById,
-    getDocumentHeads,
+    getDocumentLastChangeId,
     updateRichTextDocumentContent,
     deleteDocument,
     commitChanges,
