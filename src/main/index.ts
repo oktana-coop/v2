@@ -39,6 +39,7 @@ import { buildMenu } from './menu';
 import { initializeStore } from './store';
 import { registerThemeIPCHandlers, setSavedOrDefaultTheme } from './theme';
 import { update } from './update';
+import { setVersionedStores } from './versioned-stores';
 
 const store = initializeStore();
 const filesystemAPI = createElectronNodeFilesystemAPIAdapter();
@@ -255,6 +256,13 @@ async function createWindow() {
           singleDocumentProjectStoreManager.setupSingleDocumentProjectStore({
             createNewFile: filesystemAPI.createNewFile,
           })({ name }),
+          Effect.tap(
+            ({ projectId, versionedProjectStore, versionedDocumentStore }) =>
+              setVersionedStores(projectId, {
+                versionedProjectStore,
+                versionedDocumentStore,
+              })
+          ),
           Effect.map(({ projectId, documentId, file, name }) => ({
             projectId,
             documentId,
@@ -273,6 +281,13 @@ async function createWindow() {
           singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
             openFile: filesystemAPI.openFile,
           })({ fromFile }),
+          Effect.tap(
+            ({ projectId, versionedProjectStore, versionedDocumentStore }) =>
+              setVersionedStores(projectId, {
+                versionedProjectStore,
+                versionedDocumentStore,
+              })
+          ),
           Effect.map(({ projectId, documentId, file, name }) => ({
             projectId,
             documentId,
@@ -294,6 +309,13 @@ async function createWindow() {
           assertWritePermissionForDirectory:
             filesystemAPI.assertWritePermissionForDirectory,
         })(),
+        Effect.tap(
+          ({ projectId, versionedProjectStore, versionedDocumentStore }) =>
+            setVersionedStores(projectId, {
+              versionedProjectStore,
+              versionedDocumentStore,
+            })
+        ),
         Effect.map(({ projectId, directory }) => ({
           projectId,
           directory,
@@ -312,6 +334,13 @@ async function createWindow() {
             readFile: filesystemAPI.readFile,
             getDirectory: filesystemAPI.getDirectory,
           })({ projectId, directoryPath }),
+          Effect.tap(
+            ({ projectId, versionedProjectStore, versionedDocumentStore }) =>
+              setVersionedStores(projectId, {
+                versionedProjectStore,
+                versionedDocumentStore,
+              })
+          ),
           Effect.map(({ projectId, directory }) => ({
             projectId,
             directory,
