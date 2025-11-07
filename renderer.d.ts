@@ -1,6 +1,5 @@
 import type { IpcRenderer } from 'electron';
 
-import { type PromisifyEffects } from './src/modules/cross-platform/electron-ipc-effect';
 import {
   type MultiDocumentProjectStore,
   type OpenMultiDocumentProjectByIdArgs,
@@ -12,6 +11,7 @@ import {
   type SetupSingleDocumentProjectStoreResult,
 } from './src/modules/domain/project';
 import { type VersionedDocumentStore } from './src/modules/domain/rich-text';
+import { type PromisifyEffects } from './src/modules/infrastructure/cross-platform/electron-ipc-effect';
 import { type UpdateState } from './src/modules/infrastructure/cross-platform/update';
 import {
   type File,
@@ -88,12 +88,12 @@ export type MultiDocumentProjectStoreManagerAPI = {
   ) => Promise<Pick<OpenMultiDocumentProjectByIdResult, 'directory'>>;
 };
 
-type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
+export type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
 
-type MultiDocumentProjectStorePromiseAPI =
+export type MultiDocumentProjectStorePromiseAPI =
   PromisifyEffects<MultiDocumentProjectStore>;
 
-type VersionedDocumentStorePromiseAPI =
+export type VersionedDocumentStorePromiseAPI =
   PromisifyEffects<VersionedDocumentStore>;
 
 export type OsEventsAPI = {
