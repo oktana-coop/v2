@@ -8,6 +8,7 @@ import {
   type SingleDocumentProjectStoreManagerAPI,
 } from '../../renderer';
 import { type MultiDocumentProjectStore } from '../modules/domain/project';
+import { type VersionedDocumentStore } from '../modules/domain/rich-text';
 import { type PromisifyEffects } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
 import { type UpdateState } from '../modules/infrastructure/cross-platform/update';
 import {
@@ -86,6 +87,27 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
     ipcRenderer.invoke('write-file', { path, content }),
   readFile: (path: string) => ipcRenderer.invoke('read-file', path),
 } as FilesystemPromiseAPI);
+
+type VersionedDocumentStorePromiseAPI =
+  PromisifyEffects<VersionedDocumentStore>;
+
+contextBridge.exposeInMainWorld('versionedDocumentStoreAPI', {
+  setProjectId: (id) => ipcRenderer.invoke('set-project-id', id),
+  createDocument: (args) => ipcRenderer.invoke('create-document', { ...args }),
+  findDocumentById: (id) => ipcRenderer.invoke('find-document-by-id', id),
+  getDocumentLastChangeId: (id) =>
+    ipcRenderer.invoke('get-document-last-change-id', id),
+  updateRichTextDocumentContent: (args) =>
+    ipcRenderer.invoke('update-rich-text-document-content', { ...args }),
+  deleteDocument: (id) => ipcRenderer.invoke('delete-document', id),
+  commitChanges: (args) => ipcRenderer.invoke('commit-changes', { ...args }),
+  getDocumentHistory: (id) => ipcRenderer.invoke('get-document-history', id),
+  getDocumentAtChange: (args) =>
+    ipcRenderer.invoke('get-document-at-change', { ...args }),
+  isContentSameAtChanges: (args) =>
+    ipcRenderer.invoke('is-content-same-at-changes', { ...args }),
+  disconnect: () => ipcRenderer.invoke('disconnect'),
+} as VersionedDocumentStorePromiseAPI);
 
 type MultiDocumentProjectStorePromiseAPI =
   PromisifyEffects<MultiDocumentProjectStore>;

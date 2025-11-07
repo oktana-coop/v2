@@ -66,7 +66,7 @@ export const deserializeError = <E extends TaggedError>(
 export const effectifyIPCPromise =
   <E extends TaggedError>(
     errorRegistry: ErrorRegistry<E>,
-    mapUnknownErrorTo: ErrorClass<E>
+    mapUnknownErrorTo?: ErrorClass<E>
   ) =>
   <A>(promise: Promise<IPCResult<A>>): Effect.Effect<A, E, never> =>
     Effect.tryPromise({
@@ -80,7 +80,7 @@ export const effectifyIPCPromise =
         return res.result;
       },
       catch: (err: unknown) => {
-        if (isSerializableError(err)) {
+        if (isSerializableError(err) && mapUnknownErrorTo) {
           const typedError = deserializeError(
             err,
             errorRegistry,

@@ -95,7 +95,7 @@ export type VersionedDocumentStore = {
     never
   >;
   deleteDocument: (
-    args: ResolvedArtifactId
+    id: ResolvedArtifactId
   ) => Effect.Effect<
     void,
     ValidationError | MigrationError | RepositoryError | NotFoundError,

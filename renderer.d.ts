@@ -2,6 +2,7 @@ import type { IpcRenderer } from 'electron';
 
 import { type PromisifyEffects } from './src/modules/cross-platform/electron-ipc-effect';
 import {
+  type MultiDocumentProjectStore,
   type OpenMultiDocumentProjectByIdArgs,
   type OpenMultiDocumentProjectByIdResult,
   type OpenOrCreateMultiDocumentProjectResult,
@@ -10,7 +11,7 @@ import {
   type SetupSingleDocumentProjectStoreArgs,
   type SetupSingleDocumentProjectStoreResult,
 } from './src/modules/domain/project';
-import { type MultiDocumentProjectStore } from './src/modules/domain/project';
+import { type VersionedDocumentStore } from './src/modules/domain/rich-text';
 import { type UpdateState } from './src/modules/infrastructure/cross-platform/update';
 import {
   type File,
@@ -92,6 +93,9 @@ type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
 type MultiDocumentProjectStorePromiseAPI =
   PromisifyEffects<MultiDocumentProjectStore>;
 
+type VersionedDocumentStorePromiseAPI =
+  PromisifyEffects<VersionedDocumentStore>;
+
 export type OsEventsAPI = {
   onOpenFileFromFilesystem: (callback: (file: File) => void) => () => void;
 };
@@ -102,7 +106,7 @@ declare global {
     personalizationAPI: PersonalizationAPI;
     automergeRepoNetworkAdapter: AutomergeRepoNetworkAdapter;
     filesystemAPI: FilesystemPromiseAPI;
-    versionControlAPI: VersionControlAPI;
+    versionedDocumentStoreAPI: VersionedDocumentStorePromiseAPI;
     multiDocumentProjectStoreAPI: MultiDocumentProjectStorePromiseAPI;
     singleDocumentProjectStoreManagerAPI: SingleDocumentProjectStoreManagerAPI;
     multiDocumentProjectStoreManagerAPI: MultiDocumentProjectStoreManagerAPI;
