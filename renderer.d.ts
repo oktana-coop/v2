@@ -11,7 +11,10 @@ import {
   type SetupSingleDocumentProjectStoreResult,
 } from './src/modules/domain/project';
 import { type VersionedDocumentStore } from './src/modules/domain/rich-text';
-import { type PromisifyEffects } from './src/modules/infrastructure/cross-platform/electron-ipc-effect';
+import {
+  type AppendParam,
+  type PromisifyEffects,
+} from './src/modules/infrastructure/cross-platform/electron-ipc-effect';
 import { type UpdateState } from './src/modules/infrastructure/cross-platform/update';
 import {
   type File,
@@ -93,8 +96,39 @@ export type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
 export type MultiDocumentProjectStorePromiseAPI =
   PromisifyEffects<MultiDocumentProjectStore>;
 
+type VersionedDocumentStoreIPCAPI = VersionedDocumentStore & {
+  createDocument: AppendParam<VersionedDocumentStore['createDocument'], string>;
+  findDocumentById: AppendParam<
+    VersionedDocumentStore['findDocumentById'],
+    string
+  >;
+  getDocumentLastChangeId: AppendParam<
+    VersionedDocumentStore['getDocumentLastChangeId'],
+    string
+  >;
+  updateRichTextDocumentContent: AppendParam<
+    VersionedDocumentStore['updateRichTextDocumentContent'],
+    string
+  >;
+  deleteDocument: AppendParam<VersionedDocumentStore['deleteDocument'], string>;
+  commitChanges: AppendParam<VersionedDocumentStore['commitChanges'], string>;
+  getDocumentHistory: AppendParam<
+    VersionedDocumentStore['getDocumentHistory'],
+    string
+  >;
+  getDocumentAtChange: AppendParam<
+    VersionedDocumentStore['getDocumentAtChange'],
+    string
+  >;
+  isContentSameAtChanges: AppendParam<
+    VersionedDocumentStore['isContentSameAtChanges'],
+    string
+  >;
+  disconnect: AppendParam<VersionedDocumentStore['disconnect'], string>;
+};
+
 export type VersionedDocumentStorePromiseAPI =
-  PromisifyEffects<VersionedDocumentStore>;
+  PromisifyEffects<VersionedDocumentStoreIPCAPI>;
 
 export type OsEventsAPI = {
   onOpenFileFromFilesystem: (callback: (file: File) => void) => () => void;

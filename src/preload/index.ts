@@ -88,40 +88,73 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
 contextBridge.exposeInMainWorld('versionedDocumentStoreAPI', {
   setProjectId: (id) =>
     ipcRenderer.invoke('versioned-document-store:set-project-id', id),
-  createDocument: (args) =>
-    ipcRenderer.invoke('versioned-document-store:create-document', { ...args }),
-  findDocumentById: (id) =>
-    ipcRenderer.invoke('versioned-document-store:find-document-by-id', id),
-  getDocumentLastChangeId: (id) =>
+  createDocument: (args, projectId) =>
+    ipcRenderer.invoke(
+      'versioned-document-store:create-document',
+      { ...args },
+      projectId
+    ),
+  findDocumentById: (id, projectId) =>
+    ipcRenderer.invoke(
+      'versioned-document-store:find-document-by-id',
+      id,
+      projectId
+    ),
+  getDocumentLastChangeId: (id, projectId) =>
     ipcRenderer.invoke(
       'versioned-document-store:get-document-last-change-id',
-      id
+      id,
+      projectId
     ),
-  updateRichTextDocumentContent: (args) =>
+  updateRichTextDocumentContent: (args, projectId) =>
     ipcRenderer.invoke(
       'versioned-document-store:update-rich-text-document-content',
-      { ...args }
+      { ...args },
+      projectId
     ),
-  deleteDocument: (id) =>
-    ipcRenderer.invoke('versioned-document-store:delete-document', id),
-  commitChanges: (args) =>
-    ipcRenderer.invoke('versioned-document-store:commit-changes', { ...args }),
-  getDocumentHistory: (id) =>
-    ipcRenderer.invoke('versioned-document-store:get-document-history', id),
-  getDocumentAtChange: (args) =>
-    ipcRenderer.invoke('versioned-document-store:get-document-at-change', {
-      ...args,
-    }),
-  isContentSameAtChanges: (args) =>
-    ipcRenderer.invoke('versioned-document-store:is-content-same-at-changes', {
-      ...args,
-    }),
-  disconnect: () => ipcRenderer.invoke('versioned-document-store:disconnect'),
+  deleteDocument: (id, projectId) =>
+    ipcRenderer.invoke(
+      'versioned-document-store:delete-document',
+      id,
+      projectId
+    ),
+  commitChanges: (args, projectId) =>
+    ipcRenderer.invoke(
+      'versioned-document-store:commit-changes',
+      { ...args },
+      projectId
+    ),
+  getDocumentHistory: (id, projectId) =>
+    ipcRenderer.invoke(
+      'versioned-document-store:get-document-history',
+      id,
+      projectId
+    ),
+  getDocumentAtChange: (args, projectId) =>
+    ipcRenderer.invoke(
+      'versioned-document-store:get-document-at-change',
+      {
+        ...args,
+      },
+      projectId
+    ),
+  isContentSameAtChanges: (args, projectId) =>
+    ipcRenderer.invoke(
+      'versioned-document-store:is-content-same-at-changes',
+      {
+        ...args,
+      },
+      projectId
+    ),
+  disconnect: (projectId) =>
+    ipcRenderer.invoke('versioned-document-store:disconnect', projectId),
 } as VersionedDocumentStorePromiseAPI);
 
 contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
-  createProject: () =>
-    ipcRenderer.invoke('multi-document-project-store:create-project'),
+  createProject: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:create-project', {
+      ...args,
+    }),
   findProjectById: (id) =>
     ipcRenderer.invoke('multi-document-project-store:find-project-by-id', id),
   listProjectDocuments: (id) =>

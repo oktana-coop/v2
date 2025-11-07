@@ -24,3 +24,7 @@ export const isErrorResult = <A>(
 ): result is { error: SerializableError } => {
   return 'error' in result;
 };
+
+export type AppendParam<F, P> = F extends (...args: infer A) => infer R
+  ? (...args: [...A, P]) => R
+  : never;
