@@ -49,7 +49,7 @@ export const createAdapter = ({
           // TODO: Leverage typed Effect errors returned from the respective node adapter
           catch: mapErrorTo(
             VersionedProjectRepositoryError,
-            'Error in creating single-document project'
+            'Error in creating multi-document project'
           ),
         }),
         Effect.flatMap(({ projectId, directory }) =>
@@ -93,7 +93,7 @@ export const createAdapter = ({
             // TODO: Leverage typed Effect errors returned from the respective node adapter
             catch: mapErrorTo(
               VersionedProjectRepositoryError,
-              'Error in creating single-document project'
+              'Error in creating multi-document project'
             ),
           }),
           Effect.flatMap(({ directory }) =>

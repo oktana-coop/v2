@@ -32,10 +32,10 @@ import { isNodeError } from './utils';
 
 export const createAdapter = ({
   fs,
-  projId,
+  projectId: projId,
 }: {
   fs: NodeLikeFsApi;
-  projId?: string;
+  projectId?: string;
 }): VersionedDocumentStore => {
   // This is not an ideal model but we want to be able to tell that the document store we are searching in is the desired one.
   // Without this we are risking registering interest in documents from other repositories (and therefore polluting our stores)
