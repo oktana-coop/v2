@@ -282,7 +282,8 @@ export const createAdapter = (): Filesystem => ({
           entries.filter(
             (entry): entry is [string, FileSystemFileHandle] =>
               isFileEntry(entry) &&
-              extensions.some((ext) => entry[1].name.endsWith(`.${ext}`))
+              (extensions === undefined ||
+                extensions.some((ext) => entry[1].name.endsWith(`.${ext}`)))
           ),
           ([key, value]) =>
             pipe(
@@ -438,5 +439,13 @@ export const createAdapter = (): Filesystem => ({
         // TODO: Read content properly
         content: '',
       }))
+    ),
+  getRelativePath: ({ path, relativeTo }) =>
+    Effect.Do.pipe(
+      Effect.bind('fileHandle', () => getFileHandleFromStorage(path)),
+      Effect.bind('directoryHandle', () => getDirHandleFromStorage(relativeTo)),
+      Effect.flatMap(({ fileHandle, directoryHandle }) =>
+        getFileRelativePath(fileHandle, directoryHandle)
+      )
     ),
 });

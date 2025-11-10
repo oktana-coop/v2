@@ -18,12 +18,12 @@ const automergeUrlSchema = z.custom<AutomergeUrl>(
   }
 );
 
-export const projectidSchema = z.union([automergeUrlSchema, projectPathSchema]);
+export const projectIdSchema = z.union([automergeUrlSchema, projectPathSchema]);
 
-export type ProjectId = z.infer<typeof projectidSchema>;
+export type ProjectId = z.infer<typeof projectIdSchema>;
 
 export const isValidProjectId = (val: unknown): val is ProjectId => {
-  return projectidSchema.safeParse(val).success;
+  return projectIdSchema.safeParse(val).success;
 };
 
 export const isAutomergeUrl = (id: ProjectId): id is AutomergeUrl => {
@@ -38,3 +38,25 @@ export const parseProjectDirPath = (path: string) =>
   projectPathSchema.parse(path);
 
 export const parseAutomergeUrl = (id: string) => automergeUrlSchema.parse(id);
+
+export const parseProjectId = (input: string) => projectIdSchema.parse(input);
+
+export const urlEncodeProjectId = (id: ProjectId) => {
+  if (isAutomergeUrl(id)) {
+    return id;
+  }
+
+  return encodeURIComponent(id);
+};
+
+export const decodeUrlEncodedProjectId = (
+  urlEncodedProjectId: string
+): ProjectId | null => {
+  try {
+    const parsedId = parseProjectId(decodeURIComponent(urlEncodedProjectId));
+    return parsedId;
+  } catch (e) {
+    console.error('Failed to decode URL heads:', e);
+    return null;
+  }
+};

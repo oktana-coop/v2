@@ -32,6 +32,7 @@ export type CreateVersionedDocumentArgs = {
 
 export type CreateVersionedDocumentDeps = {
   createNewFile: Filesystem['createNewFile'];
+  getRelativePath: Filesystem['getRelativePath'];
   createDocument: VersionedDocumentStore['createDocument'];
   addDocumentToProject: MultiDocumentProjectStore['addDocumentToProject'];
 };
@@ -44,6 +45,7 @@ export type CreateVersionedDocumentResult = {
 export const createVersionedDocument =
   ({
     createNewFile,
+    getRelativePath,
     createDocument,
     addDocumentToProject,
   }: CreateVersionedDocumentDeps) =>
@@ -75,10 +77,20 @@ export const createVersionedDocument =
             })
       ),
       Effect.bind('documentId', ({ newFile }) =>
-        createDocument({
-          content,
-          filePath: newFile.path,
-        })
+        pipe(
+          directory
+            ? getRelativePath({
+                path: newFile.path,
+                relativeTo: directory.path,
+              })
+            : Effect.succeed(newFile.path),
+          Effect.flatMap((filePath) =>
+            createDocument({
+              content,
+              filePath,
+            })
+          )
+        )
       ),
       Effect.tap(({ documentId, newFile }) =>
         pipe(

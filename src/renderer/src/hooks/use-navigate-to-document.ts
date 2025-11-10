@@ -1,8 +1,15 @@
 import { useContext } from 'react';
 import { useNavigate } from 'react-router';
 
-import { type ProjectId, projectTypes } from '../../../modules/domain/project';
-import { type ResolvedArtifactId } from '../../../modules/infrastructure/version-control';
+import {
+  type ProjectId,
+  projectTypes,
+  urlEncodeProjectId,
+} from '../../../modules/domain/project';
+import {
+  type ResolvedArtifactId,
+  urlEncodeArtifactId,
+} from '../../../modules/infrastructure/version-control';
 import {
   CurrentProjectContext,
   MultiDocumentProjectContext,
@@ -28,8 +35,8 @@ export const useNavigateToDocument = () => {
     }
 
     const newUrl = path
-      ? `/projects/${projectId}/documents/${documentId}?path=${encodeURIComponent(path)}`
-      : `/projects/${projectId}/documents/${documentId}`;
+      ? `/projects/${urlEncodeProjectId(projectId)}/documents/${urlEncodeArtifactId(documentId)}?path=${encodeURIComponent(path)}`
+      : `/projects/${urlEncodeProjectId(projectId)}/documents/${urlEncodeArtifactId(documentId)}`;
 
     navigate(newUrl);
   };

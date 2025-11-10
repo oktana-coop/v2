@@ -369,10 +369,10 @@ const validateIdAndOpenProject = ({
 export const createAdapter = (): MultiDocumentProjectStoreManager => {
   const openOrCreateMultiDocumentProject: MultiDocumentProjectStoreManager['openOrCreateMultiDocumentProject'] =
 
-      ({ openDirectory, listDirectoryFiles, readFile }) =>
+      ({ filesystem }) =>
       () =>
         Effect.Do.pipe(
-          Effect.bind('directory', () => openDirectory()),
+          Effect.bind('directory', () => filesystem.openDirectory()),
           Effect.bind('db', ({ directory }) =>
             openIDB({
               dbName: directory.path,
@@ -409,8 +409,8 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                     versionedProjectStore.deleteDocumentFromProject,
                   addDocumentToProject:
                     versionedProjectStore.addDocumentToProject,
-                  listDirectoryFiles,
-                  readFile,
+                  listDirectoryFiles: filesystem.listDirectoryFiles,
+                  readFile: filesystem.readFile,
                   db,
                 }),
                 Effect.catchIf(
@@ -427,8 +427,8 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                       createProject: versionedProjectStore.createProject,
                       addDocumentToProject:
                         versionedProjectStore.addDocumentToProject,
-                      listDirectoryFiles,
-                      readFile,
+                      listDirectoryFiles: filesystem.listDirectoryFiles,
+                      readFile: filesystem.readFile,
                       db,
                     })
                 )
@@ -453,10 +453,10 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
 
   const openMultiDocumentProjectById: MultiDocumentProjectStoreManager['openMultiDocumentProjectById'] =
 
-      ({ listDirectoryFiles, readFile, getDirectory }) =>
+      ({ filesystem }) =>
       ({ projectId, directoryPath }) =>
         pipe(
-          getDirectory(directoryPath),
+          filesystem.getDirectory(directoryPath),
           Effect.flatMap((directory) =>
             pipe(
               setupAutomergeRepoAndStores({
@@ -490,8 +490,8 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                           versionedProjectStore.deleteDocumentFromProject,
                         addDocumentToProject:
                           versionedProjectStore.addDocumentToProject,
-                        listDirectoryFiles,
-                        readFile,
+                        listDirectoryFiles: filesystem.listDirectoryFiles,
+                        readFile: filesystem.readFile,
                         db,
                       })
                     ),

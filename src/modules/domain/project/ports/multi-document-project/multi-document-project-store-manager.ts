@@ -27,11 +27,7 @@ import { type ProjectId } from '../../models';
 import { MultiDocumentProjectStore } from './multi-document-project-store';
 
 export type OpenOrCreateMultiDocumentProjectDeps = {
-  openDirectory: Filesystem['openDirectory'];
-  listDirectoryFiles: Filesystem['listDirectoryFiles'];
-  readFile: Filesystem['readFile'];
-  writeFile: Filesystem['writeFile'];
-  assertWritePermissionForDirectory: Filesystem['assertWritePermissionForDirectory'];
+  filesystem: Filesystem;
 };
 
 export type OpenOrCreateMultiDocumentProjectResult = {
@@ -42,9 +38,7 @@ export type OpenOrCreateMultiDocumentProjectResult = {
 };
 
 export type OpenMultiDocumentProjectByIdDeps = {
-  listDirectoryFiles: Filesystem['listDirectoryFiles'];
-  readFile: Filesystem['readFile'];
-  getDirectory: Filesystem['getDirectory'];
+  filesystem: Filesystem;
 };
 
 export type OpenMultiDocumentProjectByIdArgs = {

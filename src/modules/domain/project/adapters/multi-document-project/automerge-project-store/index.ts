@@ -173,7 +173,11 @@ export const createAdapter = (
             ),
             Option.match({
               onNone: () =>
-                Effect.fail(new NotFoundError('Document not found in project')),
+                Effect.fail(
+                  new NotFoundError(
+                    `Document with path ${documentPath} not found in project`
+                  )
+                ),
               onSome: (documentMetaData) => Effect.succeed(documentMetaData.id),
             })
           )

@@ -113,12 +113,7 @@ const registerStoreManagerEvents = ({
     Effect.runPromise(
       pipe(
         multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject({
-          openDirectory: filesystem.openDirectory,
-          listDirectoryFiles: filesystem.listDirectoryFiles,
-          readFile: filesystem.readFile,
-          writeFile: filesystem.writeFile,
-          assertWritePermissionForDirectory:
-            filesystem.assertWritePermissionForDirectory,
+          filesystem,
         })(),
         Effect.tap(
           ({ projectId, versionedProjectStore, versionedDocumentStore }) =>
@@ -141,9 +136,7 @@ const registerStoreManagerEvents = ({
       Effect.runPromise(
         pipe(
           multiDocumentProjectStoreManager.openMultiDocumentProjectById({
-            listDirectoryFiles: filesystem.listDirectoryFiles,
-            readFile: filesystem.readFile,
-            getDirectory: filesystem.getDirectory,
+            filesystem,
           })({ projectId, directoryPath }),
           Effect.tap(
             ({ projectId, versionedProjectStore, versionedDocumentStore }) =>

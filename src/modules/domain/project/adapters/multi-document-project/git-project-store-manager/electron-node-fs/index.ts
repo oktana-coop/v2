@@ -9,12 +9,17 @@ import { createAdapter as createMultiDocumentProjectStoreAdapter } from '../../g
 export const createAdapter = (): MultiDocumentProjectStoreManager => {
   const openOrCreateMultiDocumentProject: MultiDocumentProjectStoreManager['openOrCreateMultiDocumentProject'] =
 
-      ({ openDirectory }) =>
+      ({ filesystem }) =>
       () =>
         Effect.Do.pipe(
-          Effect.bind('directory', () => openDirectory()),
+          Effect.bind('directory', () => filesystem.openDirectory()),
           Effect.bind('versionedProjectStore', () =>
-            Effect.succeed(createMultiDocumentProjectStoreAdapter({ fs }))
+            Effect.succeed(
+              createMultiDocumentProjectStoreAdapter({
+                isoGitFs: fs,
+                filesystem,
+              })
+            )
           ),
           Effect.bind('projectId', ({ directory, versionedProjectStore }) =>
             versionedProjectStore.createProject({ path: directory.path })
@@ -22,7 +27,8 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
           Effect.map(({ directory, versionedProjectStore, projectId }) => ({
             versionedProjectStore,
             versionedDocumentStore: createVersionedDocumentStoreAdapter({
-              fs,
+              isoGitFs: fs,
+              filesystem,
               projectId,
             }),
             projectId,
@@ -32,17 +38,25 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
 
   const openMultiDocumentProjectById: MultiDocumentProjectStoreManager['openMultiDocumentProjectById'] =
 
-      ({ getDirectory }) =>
+      ({ filesystem }) =>
       ({ projectId, directoryPath }) =>
         Effect.Do.pipe(
-          Effect.bind('directory', () => getDirectory(directoryPath)),
+          Effect.bind('directory', () =>
+            filesystem.getDirectory(directoryPath)
+          ),
           Effect.bind('versionedProjectStore', () =>
-            Effect.succeed(createMultiDocumentProjectStoreAdapter({ fs }))
+            Effect.succeed(
+              createMultiDocumentProjectStoreAdapter({
+                isoGitFs: fs,
+                filesystem,
+              })
+            )
           ),
           Effect.map(({ directory, versionedProjectStore }) => ({
             versionedProjectStore,
             versionedDocumentStore: createVersionedDocumentStoreAdapter({
-              fs,
+              isoGitFs: fs,
+              filesystem,
               projectId,
             }),
             projectId,

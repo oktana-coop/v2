@@ -24,6 +24,7 @@ import {
 } from '../../../../../modules/infrastructure/version-control';
 import { fromNullable } from '../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../utils/errors';
+import { type Filesystem } from '../../../../infrastructure/filesystem';
 import { NotFoundError, RepositoryError, ValidationError } from '../../errors';
 import {
   CURRENT_SCHEMA_VERSION,
@@ -31,13 +32,18 @@ import {
   type RichTextDocument,
 } from '../../models';
 import { type VersionedDocumentStore } from '../../ports/versioned-document-store';
-import { isNodeError } from './utils';
 
 export const createAdapter = ({
-  fs,
+  isoGitFs,
+  filesystem,
   projectId: projId,
 }: {
-  fs: NodeLikeFsApi;
+  // We have 2 filesystem APIs because isomorphic-git works well in both browser in Node.js
+  // with its own implemented fs APIs, which more or less comply to the Node.js API.
+  // In cases where we interact with the filesystem outside isomorphic-git (e.g. for listing files or normailizing paths),
+  // we are using our own Filesystem API.
+  isoGitFs: NodeLikeFsApi;
+  filesystem: Filesystem;
   projectId?: string;
 }): VersionedDocumentStore => {
   // This is not an ideal model but we want to be able to tell that the document store we are searching in is the desired one.
@@ -101,44 +107,29 @@ export const createAdapter = ({
     );
 
   const findDocumentById: VersionedDocumentStore['findDocumentById'] = (id) =>
-    pipe(
-      extractDocumentPathFromId(id),
-      // Unfortunately, due to the fact that we are not using our FileSystem port
-      // (isomorphic-git comes with its own API), we are repeating file-reading logic here.
-      Effect.flatMap((documentPath) =>
-        Effect.tryPromise({
-          try: async () => {
-            const fileContent = await fs.promises.readFile(
-              documentPath,
-              'utf8'
-            );
-
-            if (typeof fileContent !== 'string') {
-              throw new RepositoryError('Expected text file content');
-            }
-
-            return fileContent;
-          },
-          catch: (err) => {
-            if (isNodeError(err)) {
-              switch (err.code) {
-                case 'ENOENT':
-                  return new NotFoundError(
-                    `File in path ${documentPath} does not exist`
-                  );
-                default:
-                  return new RepositoryError(err.message);
-              }
-            }
-
-            return new RepositoryError(
-              `Error reading file with path ${documentPath}`
-            );
-          },
-        })
+    Effect.Do.pipe(
+      Effect.bind('relativeDocumentPath', () => extractDocumentPathFromId(id)),
+      Effect.bind('projectDir', () => getProjectDir()),
+      Effect.bind('documentPath', ({ relativeDocumentPath, projectDir }) =>
+        Effect.succeed([projectDir, relativeDocumentPath].join('/'))
+      ),
+      Effect.flatMap(({ documentPath }) =>
+        pipe(
+          filesystem.readFile(documentPath),
+          Effect.catchTag('FilesystemNotFoundError', () =>
+            Effect.fail(
+              new NotFoundError(
+                'Index file not found in the specified directory'
+              )
+            )
+          ),
+          Effect.catchAll(() =>
+            Effect.fail(new RepositoryError('Git repo error'))
+          )
+        )
       ),
       Effect.map(
-        (content) =>
+        ({ content }) =>
           ({
             id,
             artifact: {
@@ -163,7 +154,7 @@ export const createAdapter = ({
       Effect.tryPromise({
         try: () =>
           git.status({
-            fs,
+            fs: isoGitFs,
             dir: projectDir,
             filepath: documentPath,
           }),
@@ -197,7 +188,7 @@ export const createAdapter = ({
           Effect.tryPromise({
             try: () =>
               git.log({
-                fs,
+                fs: isoGitFs,
                 dir: projectDir,
                 // get only the latest commit affecting the file
                 depth: 1,
@@ -267,14 +258,19 @@ export const createAdapter = ({
       Effect.flatMap(({ documentPath, projectDir }) =>
         pipe(
           Effect.tryPromise({
-            try: () => git.add({ fs, dir: projectDir, filepath: documentPath }),
+            try: () =>
+              git.add({
+                fs: isoGitFs,
+                dir: projectDir,
+                filepath: documentPath,
+              }),
             catch: mapErrorTo(RepositoryError, 'Git repo error'),
           }),
           Effect.flatMap(() =>
             Effect.tryPromise({
               try: () =>
                 git.commit({
-                  fs,
+                  fs: isoGitFs,
                   dir: projectDir,
                   author: {
                     name: DEFAULT_AUTHOR_NAME,
@@ -302,7 +298,7 @@ export const createAdapter = ({
         Effect.tryPromise({
           try: () =>
             git.log({
-              fs,
+              fs: isoGitFs,
               dir: projectDir,
               filepath: documentPath,
             }),
@@ -407,7 +403,8 @@ export const createAdapter = ({
     }) =>
       pipe(
         Effect.tryPromise({
-          try: () => git.resolveRef({ fs, dir: projectDir, ref: commitHash }),
+          try: () =>
+            git.resolveRef({ fs: isoGitFs, dir: projectDir, ref: commitHash }),
           catch: mapErrorTo(RepositoryError, 'Git repo error'),
         }),
         Effect.flatMap((commitOid) =>
@@ -415,7 +412,7 @@ export const createAdapter = ({
             Effect.tryPromise({
               try: () =>
                 git.readBlob({
-                  fs,
+                  fs: isoGitFs,
                   dir: projectDir,
                   oid: commitOid,
                   filepath: documentPath,
@@ -492,14 +489,15 @@ export const createAdapter = ({
   }) =>
     pipe(
       Effect.tryPromise({
-        try: () => git.resolveRef({ fs, dir: projectDir, ref: commitHash }),
+        try: () =>
+          git.resolveRef({ fs: isoGitFs, dir: projectDir, ref: commitHash }),
         catch: mapErrorTo(RepositoryError, 'Git repo error'),
       }),
       Effect.flatMap((commitOid) =>
         Effect.tryPromise({
           try: () =>
             git.readBlob({
-              fs,
+              fs: isoGitFs,
               dir: projectDir,
               oid: commitOid,
               filepath: documentPath,

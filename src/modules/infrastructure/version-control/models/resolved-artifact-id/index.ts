@@ -32,10 +32,35 @@ export const isAutomergeUrl = (id: ResolvedArtifactId): id is AutomergeUrl => {
   return typeof id === 'string' && isValidAutomergeUrl(id);
 };
 
+export const parseResolvedArtifactId = (input: string) =>
+  resolvedArtifactIdSchema.parse(input);
+
 export const isValidResolvedArtifactId = (
   val: unknown
 ): val is ResolvedArtifactId => {
   return resolvedArtifactIdSchema.safeParse(val).success;
+};
+
+export const urlEncodeArtifactId = (id: ResolvedArtifactId) => {
+  if (isAutomergeUrl(id)) {
+    return id;
+  }
+
+  return encodeURIComponent(id);
+};
+
+export const decodeUrlEncodedArtifactId = (
+  urlEncodedArtifactId: string
+): ResolvedArtifactId | null => {
+  try {
+    const parsedId = parseResolvedArtifactId(
+      decodeURIComponent(urlEncodedArtifactId)
+    );
+    return parsedId;
+  } catch (e) {
+    console.error('Failed to decode URL heads:', e);
+    return null;
+  }
 };
 
 export { type AutomergeUrl } from '@automerge/automerge-repo/slim';

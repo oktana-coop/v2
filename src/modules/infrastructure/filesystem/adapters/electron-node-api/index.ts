@@ -282,4 +282,12 @@ export const createAdapter = (): Filesystem => ({
         content,
       }))
     ),
+  getRelativePath: ({ path: descendantPath, relativeTo }) =>
+    Effect.try({
+      try: () => path.relative(relativeTo, descendantPath),
+      catch: mapErrorTo(
+        RepositoryError,
+        'Could not resolve path relative to directory'
+      ),
+    }),
 });

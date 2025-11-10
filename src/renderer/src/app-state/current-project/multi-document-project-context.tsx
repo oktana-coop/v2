@@ -130,9 +130,7 @@ export const MultiDocumentProjectProvider = ({
           directory,
         } = await Effect.runPromise(
           multiDocumentProjectStoreManager.openMultiDocumentProjectById({
-            listDirectoryFiles: filesystem.listDirectoryFiles,
-            readFile: filesystem.readFile,
-            getDirectory: filesystem.getDirectory,
+            filesystem,
           })({
             projectId: browserStorageProjectData.projectId,
             directoryPath: browserStorageProjectData.directoryPath,
@@ -194,12 +192,7 @@ export const MultiDocumentProjectProvider = ({
       directory: dir,
     } = await Effect.runPromise(
       multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject({
-        openDirectory: filesystem.openDirectory,
-        listDirectoryFiles: filesystem.listDirectoryFiles,
-        readFile: filesystem.readFile,
-        writeFile: filesystem.writeFile,
-        assertWritePermissionForDirectory:
-          filesystem.assertWritePermissionForDirectory,
+        filesystem,
       })()
     );
 
@@ -233,6 +226,7 @@ export const MultiDocumentProjectProvider = ({
       await Effect.runPromise(
         createVersionedDocument({
           createNewFile: filesystem.createNewFile,
+          getRelativePath: filesystem.getRelativePath,
           createDocument: versionedDocumentStore.createDocument,
           addDocumentToProject: versionedProjectStore.addDocumentToProject,
         })({

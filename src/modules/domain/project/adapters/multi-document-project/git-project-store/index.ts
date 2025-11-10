@@ -3,7 +3,10 @@ import { pipe } from 'effect/Function';
 import * as Option from 'effect/Option';
 import git, { type PromiseFsClient as NodeLikeFsApi } from 'isomorphic-git';
 
-import { removePath } from '../../../../../../modules/infrastructure/filesystem';
+import {
+  type Filesystem,
+  removePath,
+} from '../../../../../../modules/infrastructure/filesystem';
 import {
   createGitBlobRef,
   DEFAULT_AUTHOR_NAME,
@@ -23,13 +26,20 @@ import {
   CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION,
   isProjectDirPath,
   parseProjectDirPath,
+  type ProjectId,
 } from '../../../models';
 import { MultiDocumentProjectStore } from '../../../ports/multi-document-project';
 
 export const createAdapter = ({
-  fs,
+  isoGitFs,
+  filesystem,
 }: {
-  fs: NodeLikeFsApi;
+  // We have 2 filesystem APIs because isomorphic-git works well in both browser in Node.js
+  // with its own implemented fs APIs, which more or less comply to the Node.js API.
+  // In cases where we interact with the filesystem outside isomorphic-git (e.g. for listing files or normailizing paths),
+  // we are using our own Filesystem API.
+  isoGitFs: NodeLikeFsApi;
+  filesystem: Filesystem;
 }): MultiDocumentProjectStore => {
   const createProject: MultiDocumentProjectStore['createProject'] = ({
     path,
@@ -42,13 +52,17 @@ export const createAdapter = ({
       Effect.tap((projectPath) =>
         Effect.try({
           try: () =>
-            git.init({ fs, dir: projectPath, defaultBranch: DEFAULT_BRANCH }),
+            git.init({
+              fs: isoGitFs,
+              dir: projectPath,
+              defaultBranch: DEFAULT_BRANCH,
+            }),
           catch: mapErrorTo(RepositoryError, 'Git repo error'),
         })
       )
     );
 
-  const findProjectById: MultiDocumentProjectStore['findProjectById'] = (id) =>
+  const getDirectoryFiles = (id: ProjectId) =>
     pipe(
       Effect.succeed(id),
       Effect.filterOrFail(
@@ -56,23 +70,48 @@ export const createAdapter = ({
         (val) => new ValidationError(`Invalid project id: ${val}`)
       ),
       Effect.flatMap((projectPath) =>
-        Effect.tryPromise({
-          // Note: This lists files in Git's staging area.
-          try: () => git.listFiles({ fs, dir: projectPath }),
-          catch: mapErrorTo(RepositoryError, 'Git repo error'),
-        })
-      ),
+        pipe(
+          filesystem.listDirectoryFiles({ path: projectPath }),
+          Effect.flatMap((files) =>
+            Effect.forEach(files, (file) =>
+              pipe(
+                filesystem.getRelativePath({
+                  path: file.path,
+                  relativeTo: projectPath,
+                }),
+                Effect.flatMap((relativePath) =>
+                  Effect.succeed({
+                    ...file,
+                    path: relativePath,
+                  })
+                )
+              )
+            )
+          ),
+          Effect.catchAll(() =>
+            Effect.fail(new RepositoryError('Git repo error'))
+          )
+        )
+      )
+    );
+
+  const findProjectById: MultiDocumentProjectStore['findProjectById'] = (id) =>
+    pipe(
+      getDirectoryFiles(id),
       Effect.map((files) =>
         files.reduce<Record<ResolvedArtifactId, ArtifactMetaData>>(
-          (acc, path) => {
+          (acc, file) => {
             // TODO: Make branch a param
             // TODO: Handle errors returned by createGitBlobRef
-            const documentId = createGitBlobRef({ ref: DEFAULT_BRANCH, path });
+            const documentId = createGitBlobRef({
+              ref: DEFAULT_BRANCH,
+              path: file.path,
+            });
 
             acc[documentId] = {
               id: documentId,
-              name: removePath(path),
-              path,
+              name: file.name,
+              path: file.path,
             };
 
             return acc;
@@ -122,14 +161,18 @@ export const createAdapter = ({
           pipe(
             Effect.tryPromise({
               try: () =>
-                git.add({ fs, dir: projectPath, filepath: documentName }),
+                git.add({
+                  fs: isoGitFs,
+                  dir: projectPath,
+                  filepath: documentName,
+                }),
               catch: mapErrorTo(RepositoryError, 'Git repo error'),
             }),
             Effect.flatMap(() =>
               Effect.tryPromise({
                 try: () =>
                   git.commit({
-                    fs,
+                    fs: isoGitFs,
                     dir: projectPath,
                     author: {
                       name: DEFAULT_AUTHOR_NAME,
@@ -170,14 +213,18 @@ export const createAdapter = ({
           pipe(
             Effect.tryPromise({
               try: () =>
-                git.remove({ fs, dir: projectPath, filepath: documentName }),
+                git.remove({
+                  fs: isoGitFs,
+                  dir: projectPath,
+                  filepath: documentName,
+                }),
               catch: mapErrorTo(RepositoryError, 'Git repo error'),
             }),
             Effect.flatMap(() =>
               Effect.tryPromise({
                 try: () =>
                   git.commit({
-                    fs,
+                    fs: isoGitFs,
                     dir: projectPath,
                     author: {
                       name: DEFAULT_AUTHOR_NAME,
@@ -195,8 +242,10 @@ export const createAdapter = ({
     ({ projectId, documentPath }) =>
       pipe(
         listProjectDocuments(projectId),
-        Effect.flatMap((projectDocuments) =>
-          pipe(
+        Effect.flatMap((projectDocuments) => {
+          console.log(projectDocuments);
+          console.log(documentPath);
+          return pipe(
             Option.fromNullable(
               projectDocuments.find(
                 (documentMetaData) => documentMetaData.path === documentPath
@@ -204,11 +253,15 @@ export const createAdapter = ({
             ),
             Option.match({
               onNone: () =>
-                Effect.fail(new NotFoundError('Document not found in project')),
+                Effect.fail(
+                  new NotFoundError(
+                    `Document with path ${documentPath} not found in project`
+                  )
+                ),
               onSome: (documentMetaData) => Effect.succeed(documentMetaData.id),
             })
-          )
-        )
+          );
+        })
       );
 
   return {

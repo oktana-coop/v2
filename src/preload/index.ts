@@ -83,6 +83,8 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
   writeFile: (path: string, content: string) =>
     ipcRenderer.invoke('write-file', { path, content }),
   readFile: (path: string) => ipcRenderer.invoke('read-file', path),
+  getRelativePath: (args) =>
+    ipcRenderer.invoke('get-relative-path', { ...args }),
 } as FilesystemPromiseAPI);
 
 contextBridge.exposeInMainWorld('versionedDocumentStoreAPI', {

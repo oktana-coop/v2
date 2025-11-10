@@ -24,6 +24,7 @@ import {
   type CreateNewFileArgs,
   type File,
   filesystemItemTypes,
+  GetRelativePathArgs,
   type ListDirectoryFilesArgs,
   type OpenFileArgs,
 } from '../modules/infrastructure/filesystem';
@@ -188,10 +189,7 @@ async function createWindow() {
     });
 
   const multiDocumentProjectStoreManager =
-    createNodeMultiDocumentProjectStoreManagerAdapter({
-      rendererProcessId,
-      browserWindow: win,
-    });
+    createNodeMultiDocumentProjectStoreManagerAdapter();
 
   registerVersionedStoresEvents({
     singleDocumentProjectStoreManager,
@@ -247,6 +245,9 @@ async function createWindow() {
   );
   ipcMain.handle('read-file', (_, path: string) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.readFile(path))
+  );
+  ipcMain.handle('get-relative-path', (_, args: GetRelativePathArgs) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.getRelativePath(args))
   );
 
   ipcMain.on('open-external-link', (_, url: string) => {

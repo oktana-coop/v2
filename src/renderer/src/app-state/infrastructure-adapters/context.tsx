@@ -72,9 +72,7 @@ export const InfrastructureAdaptersProvider = ({
               processId,
             });
           const multiDocProjectStoreManager =
-            createElectronRendererMultiDocumentProjectStoreManagerAdapter({
-              processId,
-            });
+            createElectronRendererMultiDocumentProjectStoreManagerAdapter();
           setSingleDocumentProjectStoreManager(singleDocProjectStoreManager);
           setMultiDocumentProjectStoreManager(multiDocProjectStoreManager);
         }

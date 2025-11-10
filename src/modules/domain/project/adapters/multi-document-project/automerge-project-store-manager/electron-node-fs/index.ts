@@ -367,16 +367,10 @@ export const createAdapter = ({
 }: ElectronDeps): MultiDocumentProjectStoreManager => {
   const openOrCreateMultiDocumentProject: MultiDocumentProjectStoreManager['openOrCreateMultiDocumentProject'] =
 
-      ({
-        openDirectory,
-        listDirectoryFiles,
-        readFile,
-        writeFile,
-        assertWritePermissionForDirectory,
-      }) =>
+      ({ filesystem }) =>
       () =>
         pipe(
-          openDirectory(),
+          filesystem.openDirectory(),
           Effect.flatMap((directory) =>
             pipe(
               pipe(
@@ -384,9 +378,10 @@ export const createAdapter = ({
                   directoryPath: directory.path,
                   rendererProcessId,
                   browserWindow,
-                  listDirectoryFiles,
-                  readFile,
-                  assertWritePermissionForDirectory,
+                  listDirectoryFiles: filesystem.listDirectoryFiles,
+                  readFile: filesystem.readFile,
+                  assertWritePermissionForDirectory:
+                    filesystem.assertWritePermissionForDirectory,
                 }),
                 Effect.catchIf(
                   (error) =>
@@ -401,9 +396,9 @@ export const createAdapter = ({
                       directoryPath: directory.path,
                       rendererProcessId,
                       browserWindow,
-                      listDirectoryFiles,
-                      readFile,
-                      writeFile,
+                      listDirectoryFiles: filesystem.listDirectoryFiles,
+                      readFile: filesystem.readFile,
+                      writeFile: filesystem.writeFile,
                     })
                 )
               ),
@@ -425,13 +420,16 @@ export const createAdapter = ({
 
   const openMultiDocumentProjectById: MultiDocumentProjectStoreManager['openMultiDocumentProjectById'] =
 
-      ({ listDirectoryFiles, readFile, getDirectory }) =>
+      ({ filesystem }) =>
       ({ projectId, directoryPath }) =>
         pipe(
-          getDirectory(directoryPath),
+          filesystem.getDirectory(directoryPath),
           Effect.flatMap((directory) =>
             pipe(
-              readProjectIdFromDirIndexFile({ directoryPath, readFile }),
+              readProjectIdFromDirIndexFile({
+                directoryPath,
+                readFile: filesystem.readFile,
+              }),
               Effect.flatMap((filesystemProjectId) =>
                 filesystemProjectId === projectId
                   ? Effect.succeed(projectId)
@@ -447,8 +445,8 @@ export const createAdapter = ({
                   directoryPath,
                   rendererProcessId,
                   browserWindow,
-                  listDirectoryFiles,
-                  readFile,
+                  listDirectoryFiles: filesystem.listDirectoryFiles,
+                  readFile: filesystem.readFile,
                 })
               ),
               Effect.map(
