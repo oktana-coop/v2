@@ -159,8 +159,6 @@ const registerStoreManagerEvents = ({
         )
       )
   );
-
-  registerVersionedDocumentStoreEvents();
 };
 
 const registerMultiDocumentProjectStoreEvents = () => {
