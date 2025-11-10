@@ -6,6 +6,7 @@ import git, { type PromiseFsClient as NodeLikeFsApi } from 'isomorphic-git';
 import { removePath } from '../../../../../../modules/infrastructure/filesystem';
 import {
   createGitBlobRef,
+  DEFAULT_AUTHOR_NAME,
   DEFAULT_BRANCH,
   isGitBlobRef,
   type ResolvedArtifactId,
@@ -130,6 +131,9 @@ export const createAdapter = ({
                   git.commit({
                     fs,
                     dir: projectPath,
+                    author: {
+                      name: DEFAULT_AUTHOR_NAME,
+                    },
                     message: `Added ${documentName}`,
                   }),
                 catch: mapErrorTo(RepositoryError, 'Git repo error'),
@@ -175,6 +179,9 @@ export const createAdapter = ({
                   git.commit({
                     fs,
                     dir: projectPath,
+                    author: {
+                      name: DEFAULT_AUTHOR_NAME,
+                    },
                     message: `Removed ${documentName}`,
                   }),
                 catch: mapErrorTo(RepositoryError, 'Git repo error'),

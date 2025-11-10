@@ -8,6 +8,7 @@ import {
   type Commit,
   createGitBlobRef,
   decomposeGitBlobRef,
+  DEFAULT_AUTHOR_NAME,
   DEFAULT_BRANCH,
   type GitBlobRef,
   type GitCommitHash,
@@ -275,6 +276,9 @@ export const createAdapter = ({
                 git.commit({
                   fs,
                   dir: projectDir,
+                  author: {
+                    name: DEFAULT_AUTHOR_NAME,
+                  },
                   message,
                 }),
               catch: mapErrorTo(RepositoryError, 'Git repo error'),
