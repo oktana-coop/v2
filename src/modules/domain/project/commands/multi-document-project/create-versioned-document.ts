@@ -74,9 +74,10 @@ export const createVersionedDocument =
               extensions: [RICH_TEXT_FILE_EXTENSION],
             })
       ),
-      Effect.bind('documentId', () =>
+      Effect.bind('documentId', ({ newFile }) =>
         createDocument({
           content,
+          filePath: newFile.path,
         })
       ),
       Effect.tap(({ documentId, newFile }) =>

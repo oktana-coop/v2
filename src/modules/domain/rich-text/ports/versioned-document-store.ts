@@ -16,7 +16,7 @@ import {
 
 export type CreateDocumentArgs = {
   content: string | null;
-  id?: ResolvedArtifactId;
+  filePath?: string;
 };
 
 export type GetDocumentHandleAtChangeArgs = {

@@ -6,7 +6,9 @@ import {
   type Change,
   type ChangeId,
   type Commit,
+  createGitBlobRef,
   decomposeGitBlobRef,
+  DEFAULT_BRANCH,
   type GitBlobRef,
   type GitCommitHash,
   isGitBlobRef,
@@ -73,16 +75,28 @@ export const createAdapter = ({
       })
     );
 
-  const createDocument: VersionedDocumentStore['createDocument'] = ({ id }) =>
+  const createDocument: VersionedDocumentStore['createDocument'] = ({
+    filePath,
+  }) =>
     pipe(
       fromNullable(
-        id,
+        filePath,
         () =>
           new ValidationError(
-            'Id is required when creating a document in the Git repo'
+            'File path is required when creating a document in the Git repo'
           )
       ),
-      Effect.flatMap(validateDocumentId)
+      Effect.flatMap((path) =>
+        Effect.try({
+          try: () => {
+            // TODO: Make branch a param
+            // TODO: Handle errors returned by createGitBlobRef
+            const documentId = createGitBlobRef({ ref: DEFAULT_BRANCH, path });
+            return documentId;
+          },
+          catch: mapErrorTo(RepositoryError, 'Git repo error'),
+        })
+      )
     );
 
   const findDocumentById: VersionedDocumentStore['findDocumentById'] = (id) =>
