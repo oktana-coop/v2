@@ -88,7 +88,7 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
       const contentAfter = getDocumentRichTextContent(props.docAfter);
 
       const { pmDocAfter: pmDoc, decorations } = await proseMirrorDiff({
-        representation: richTextRepresentations.AUTOMERGE,
+        representation: props.docAfter.representation,
         proseMirrorSchema: schema,
         decorationClasses: {
           insert: diffInsert,

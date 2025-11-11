@@ -25,6 +25,7 @@ import {
 import { fromNullable } from '../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../utils/errors';
 import { type Filesystem } from '../../../../infrastructure/filesystem';
+import { PRIMARY_RICH_TEXT_REPRESENTATION } from '../../constants';
 import { NotFoundError, RepositoryError, ValidationError } from '../../errors';
 import {
   CURRENT_SCHEMA_VERSION,
@@ -135,7 +136,7 @@ export const createAdapter = ({
             artifact: {
               type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
               schemaVersion: CURRENT_SCHEMA_VERSION,
-              representation: 'AUTOMERGE',
+              representation: PRIMARY_RICH_TEXT_REPRESENTATION,
               content,
             },
             handle: null,
@@ -430,7 +431,7 @@ export const createAdapter = ({
         Effect.map((content) => ({
           type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
           schemaVersion: CURRENT_SCHEMA_VERSION,
-          representation: 'AUTOMERGE',
+          representation: PRIMARY_RICH_TEXT_REPRESENTATION,
           content,
         }))
       );

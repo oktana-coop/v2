@@ -11,11 +11,12 @@ import {
 } from '../../../../infrastructure/filesystem';
 import { type ResolvedArtifactId } from '../../../../infrastructure/version-control';
 import {
+  PRIMARY_RICH_TEXT_REPRESENTATION,
   RepositoryError as VersionedDocumentRepositoryError,
+  richTextRepresentationExtensions,
   ValidationError as VersionedDocumentValidationError,
   type VersionedDocumentStore,
 } from '../../../rich-text';
-import { RICH_TEXT_FILE_EXTENSION } from '../../constants/file-extensions';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
@@ -70,10 +71,18 @@ export const createVersionedDocument =
         directory
           ? createNewFile({
               parentDirectory: directory,
-              extensions: [RICH_TEXT_FILE_EXTENSION],
+              extensions: [
+                richTextRepresentationExtensions[
+                  PRIMARY_RICH_TEXT_REPRESENTATION
+                ],
+              ],
             })
           : createNewFile({
-              extensions: [RICH_TEXT_FILE_EXTENSION],
+              extensions: [
+                richTextRepresentationExtensions[
+                  PRIMARY_RICH_TEXT_REPRESENTATION
+                ],
+              ],
             })
       ),
       Effect.bind('documentId', ({ newFile }) =>

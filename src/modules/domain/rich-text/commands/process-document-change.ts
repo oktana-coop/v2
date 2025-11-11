@@ -14,7 +14,7 @@ import {
   MigrationError,
   type ResolvedArtifactId,
 } from '../../../infrastructure/version-control';
-import { richTextRepresentations } from '../constants';
+import { PRIMARY_RICH_TEXT_REPRESENTATION } from '../constants';
 import {
   NotFoundError,
   RepositoryError,
@@ -68,7 +68,7 @@ export const processDocumentChange =
         try: async () =>
           transformToText({
             from: updatedDocument.representation,
-            to: richTextRepresentations.AUTOMERGE,
+            to: PRIMARY_RICH_TEXT_REPRESENTATION,
             input: updatedDocument.content,
           }),
         catch: mapErrorTo(
@@ -76,14 +76,14 @@ export const processDocumentChange =
           'Rich text representation transformation error'
         ),
       }),
-      Effect.tap((automergeSpansStr) =>
+      Effect.tap((textContent) =>
         updateRichTextDocumentContent({
           documentId,
-          representation: richTextRepresentations.AUTOMERGE,
-          content: automergeSpansStr,
+          representation: PRIMARY_RICH_TEXT_REPRESENTATION,
+          content: textContent,
         })
       ),
-      Effect.flatMap((automergeSpansStr) =>
+      Effect.flatMap((textContent) =>
         projectType === projectTypes.MULTI_DOCUMENT_PROJECT
           ? pipe(
               fromNullable(
@@ -93,7 +93,7 @@ export const processDocumentChange =
                     'File path not provided; cannot write to document file'
                   )
               ),
-              Effect.flatMap((path) => writeFile(path, automergeSpansStr))
+              Effect.flatMap((path) => writeFile(path, textContent))
             )
           : Effect.succeed(undefined)
       )

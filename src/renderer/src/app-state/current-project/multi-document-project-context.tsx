@@ -12,11 +12,12 @@ import {
   findDocumentInProject,
   type MultiDocumentProjectStore,
 } from '../../../../modules/domain/project';
+import { type ProjectId } from '../../../../modules/domain/project';
 import {
-  type ProjectId,
-  RICH_TEXT_FILE_EXTENSION,
-} from '../../../../modules/domain/project';
-import { type ResolvedDocument } from '../../../../modules/domain/rich-text';
+  PRIMARY_RICH_TEXT_REPRESENTATION,
+  type ResolvedDocument,
+  richTextRepresentationExtensions,
+} from '../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform';
 import {
   type Directory,
@@ -154,7 +155,9 @@ export const MultiDocumentProjectProvider = ({
       const files = await Effect.runPromise(
         filesystem.listDirectoryFiles({
           path: dir.path,
-          extensions: [RICH_TEXT_FILE_EXTENSION],
+          extensions: [
+            richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
+          ],
           useRelativePath: true,
         })
       );
@@ -246,7 +249,9 @@ export const MultiDocumentProjectProvider = ({
       const files = await Effect.runPromise(
         filesystem.listDirectoryFiles({
           path: directory.path,
-          extensions: [RICH_TEXT_FILE_EXTENSION],
+          extensions: [
+            richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
+          ],
           useRelativePath: true,
         })
       );

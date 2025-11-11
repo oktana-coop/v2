@@ -17,7 +17,6 @@ import {
   isEmpty,
   processDocumentChange,
   type RichTextDocument,
-  richTextRepresentations,
   type TextRichTextRepresentation,
   type VersionedDocument,
   type VersionedDocumentHandle,
@@ -477,7 +476,7 @@ export const CurrentDocumentProvider = ({
       const documentContent = getDocumentRichTextContent(versionedDocument);
 
       const str = await representationTransformAdapter.transformToText({
-        from: richTextRepresentations.AUTOMERGE,
+        from: versionedDocument.representation,
         to: representation,
         input: documentContent,
       });
@@ -518,7 +517,7 @@ export const CurrentDocumentProvider = ({
       const documentContent = getDocumentRichTextContent(versionedDocument);
 
       const str = await representationTransformAdapter.transformToBinary({
-        from: richTextRepresentations.AUTOMERGE,
+        from: versionedDocument.representation,
         to: representation,
         input: documentContent,
       });

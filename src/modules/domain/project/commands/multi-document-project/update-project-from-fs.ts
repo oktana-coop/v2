@@ -4,8 +4,9 @@ import { pipe } from 'effect/Function';
 import {
   getDocumentRichTextContent,
   NotFoundError as VersionedDocumentNotFoundError,
+  PRIMARY_RICH_TEXT_REPRESENTATION,
   RepositoryError as VersionedDocumentRepositoryError,
-  richTextRepresentations,
+  richTextRepresentationExtensions,
   ValidationError as VersionedDocumentValidationError,
   type VersionedDocumentStore,
 } from '../../../../../modules/domain/rich-text';
@@ -23,7 +24,6 @@ import {
   type ResolvedArtifactId,
 } from '../../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../../utils/errors';
-import { RICH_TEXT_FILE_EXTENSION } from '../../constants/file-extensions';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
@@ -137,7 +137,7 @@ const propagateFileChangesToVersionedDocument =
                 fileContent.content !== documentRichTextContent
                   ? updateRichTextDocumentContent({
                       documentId,
-                      representation: richTextRepresentations.AUTOMERGE,
+                      representation: PRIMARY_RICH_TEXT_REPRESENTATION,
                       content: fileContent.content,
                     })
                   : Effect.succeed(undefined)
@@ -184,7 +184,9 @@ export const updateProjectFromFilesystemContent =
       Effect.bind('directoryFiles', () =>
         listDirectoryFiles({
           path: directoryPath,
-          extensions: [RICH_TEXT_FILE_EXTENSION],
+          extensions: [
+            richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
+          ],
           useRelativePath: true,
         })
       ),

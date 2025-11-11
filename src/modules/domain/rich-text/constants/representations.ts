@@ -32,7 +32,7 @@ export type BinaryRichTextRepresentation = ValueOf<
 export type RichTextRepresentation = ValueOf<typeof richTextRepresentations>;
 
 export const richTextRepresentationExtensions = {
-  AUTOMERGE: 'automerge',
+  AUTOMERGE: 'json',
   PANDOC: 'txt',
   MARKDOWN: 'md',
   HTML: 'html',
@@ -40,3 +40,6 @@ export const richTextRepresentationExtensions = {
   DOCX: 'docx',
   PDF: 'pdf',
 };
+
+export const PRIMARY_RICH_TEXT_REPRESENTATION =
+  richTextRepresentations.MARKDOWN;

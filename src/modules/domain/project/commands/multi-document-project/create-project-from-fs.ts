@@ -2,7 +2,9 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import {
+  PRIMARY_RICH_TEXT_REPRESENTATION,
   RepositoryError as VersionedDocumentRepositoryError,
+  richTextRepresentationExtensions,
   ValidationError as VersionedDocumentValidationError,
   type VersionedDocumentStore,
 } from '../../../../../modules/domain/rich-text';
@@ -14,7 +16,6 @@ import {
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
 import { type ResolvedArtifactId } from '../../../../../modules/infrastructure/version-control';
-import { RICH_TEXT_FILE_EXTENSION } from '../../constants/file-extensions';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
@@ -62,7 +63,9 @@ export const createProjectFromFilesystemContent =
     pipe(
       listDirectoryFiles({
         path: directoryPath,
-        extensions: [RICH_TEXT_FILE_EXTENSION],
+        extensions: [
+          richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
+        ],
       }),
       Effect.flatMap((directoryFiles) =>
         Effect.forEach(directoryFiles, (file) =>
