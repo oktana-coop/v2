@@ -1,4 +1,5 @@
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 import {
   createContext,
   useCallback,
@@ -124,8 +125,12 @@ export const CurrentDocumentProvider = ({
   );
   const { showDiffInHistoryView } = useContext(FunctionalityConfigContext);
   const navigate = useNavigate();
-  const { selectedFileInfo, setSelectedFileInfo, clearFileSelection } =
-    useContext(MultiDocumentProjectContext);
+  const {
+    selectedFileInfo,
+    setSelectedFileInfo,
+    clearFileSelection,
+    directory,
+  } = useContext(MultiDocumentProjectContext);
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
   );
@@ -407,19 +412,47 @@ export const CurrentDocumentProvider = ({
         );
       }
 
-      await Effect.runPromise(
-        processDocumentChange({
-          transformToText: representationTransformAdapter.transformToText,
-          updateRichTextDocumentContent:
-            versionedDocumentStore.updateRichTextDocumentContent,
-          writeFile: filesystem.writeFile,
-        })({
-          documentId,
-          updatedDocument: doc,
-          filePath: selectedFileInfo?.path ?? null,
-          projectType,
-        })
-      );
+      if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
+        if (!directory || !selectedFileInfo?.path) {
+          throw new Error('Cannot update file in multi-doc project');
+        }
+
+        await Effect.runPromise(
+          pipe(
+            filesystem.getAbsolutePath({
+              path: selectedFileInfo.path,
+              dirPath: directory.path,
+            }),
+            Effect.flatMap((absoluteFilePath) =>
+              processDocumentChange({
+                transformToText: representationTransformAdapter.transformToText,
+                updateRichTextDocumentContent:
+                  versionedDocumentStore.updateRichTextDocumentContent,
+                writeFile: filesystem.writeFile,
+              })({
+                documentId,
+                updatedDocument: doc,
+                filePath: absoluteFilePath,
+                projectType,
+              })
+            )
+          )
+        );
+      } else {
+        await Effect.runPromise(
+          processDocumentChange({
+            transformToText: representationTransformAdapter.transformToText,
+            updateRichTextDocumentContent:
+              versionedDocumentStore.updateRichTextDocumentContent,
+            writeFile: filesystem.writeFile,
+          })({
+            documentId,
+            updatedDocument: doc,
+            filePath: null,
+            projectType,
+          })
+        );
+      }
 
       loadHistory(versionedDocumentStore)({
         docId: documentId,
@@ -444,6 +477,7 @@ export const CurrentDocumentProvider = ({
       representationTransformAdapter,
       filesystem,
       selectedFileInfo,
+      directory,
       projectType,
       versionedDocument,
       lastCommit,
