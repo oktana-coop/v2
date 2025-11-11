@@ -251,7 +251,7 @@ export const createAdapter = (): Filesystem => ({
         permissionState,
       }))
     ),
-  listDirectoryFiles: ({ path, extensions }) =>
+  listDirectoryFiles: ({ path, extensions, useRelativePath }) =>
     Effect.Do.pipe(
       Effect.bind('directoryHandle', () => getDirHandleFromStorage(path)),
       Effect.bind('entries', ({ directoryHandle }) =>
@@ -286,15 +286,22 @@ export const createAdapter = (): Filesystem => ({
                 extensions.some((ext) => entry[1].name.endsWith(`.${ext}`)))
           ),
           ([key, value]) =>
-            pipe(
-              getFileRelativePath(value, directoryHandle),
-              Effect.map((relativePath) => ({
-                type: filesystemItemTypes.FILE,
-                name: key,
-                path: relativePath,
-                handle: value,
-              }))
-            ),
+            useRelativePath
+              ? pipe(
+                  getFileRelativePath(value, directoryHandle),
+                  Effect.map((relativePath) => ({
+                    type: filesystemItemTypes.FILE,
+                    name: key,
+                    path: relativePath,
+                    handle: value,
+                  }))
+                )
+              : Effect.succeed({
+                  type: filesystemItemTypes.FILE,
+                  name: key,
+                  path: value.name,
+                  handle: value,
+                }),
           { concurrency: 10 }
         );
       }),

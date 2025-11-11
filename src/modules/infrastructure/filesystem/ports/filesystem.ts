@@ -23,6 +23,7 @@ export type CreateNewFileArgs = {
 export type ListDirectoryFilesArgs = {
   path: string;
   extensions?: Array<string>;
+  useRelativePath?: boolean;
 };
 
 export type GetRelativePathArgs = {

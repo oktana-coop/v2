@@ -128,7 +128,7 @@ export const createAdapter = (): Filesystem => ({
       permissionState: 'granted', // TODO: Replace with constant
     });
   },
-  listDirectoryFiles: ({ path: directoryPath }) =>
+  listDirectoryFiles: ({ path: directoryPath, useRelativePath }) =>
     pipe(
       Effect.tryPromise({
         try: () =>
@@ -144,7 +144,9 @@ export const createAdapter = (): Filesystem => ({
             const file: File = {
               type: filesystemItemTypes.FILE,
               name: entry.name,
-              path: path.join(directoryPath, entry.name),
+              path: useRelativePath
+                ? entry.name
+                : path.join(directoryPath, entry.name),
             };
 
             return file;

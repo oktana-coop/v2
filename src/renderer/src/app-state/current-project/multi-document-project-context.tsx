@@ -155,6 +155,7 @@ export const MultiDocumentProjectProvider = ({
         filesystem.listDirectoryFiles({
           path: dir.path,
           extensions: [RICH_TEXT_FILE_EXTENSION],
+          useRelativePath: true,
         })
       );
       setDirectoryFiles(files);

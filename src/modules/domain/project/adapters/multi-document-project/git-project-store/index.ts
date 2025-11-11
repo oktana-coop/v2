@@ -71,23 +71,10 @@ export const createAdapter = ({
       ),
       Effect.flatMap((projectPath) =>
         pipe(
-          filesystem.listDirectoryFiles({ path: projectPath }),
-          Effect.flatMap((files) =>
-            Effect.forEach(files, (file) =>
-              pipe(
-                filesystem.getRelativePath({
-                  path: file.path,
-                  relativeTo: projectPath,
-                }),
-                Effect.flatMap((relativePath) =>
-                  Effect.succeed({
-                    ...file,
-                    path: relativePath,
-                  })
-                )
-              )
-            )
-          ),
+          filesystem.listDirectoryFiles({
+            path: projectPath,
+            useRelativePath: true,
+          }),
           Effect.catchAll(() =>
             Effect.fail(new RepositoryError('Git repo error'))
           )
