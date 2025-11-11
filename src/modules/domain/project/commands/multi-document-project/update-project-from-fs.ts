@@ -185,6 +185,7 @@ export const updateProjectFromFilesystemContent =
         listDirectoryFiles({
           path: directoryPath,
           extensions: [RICH_TEXT_FILE_EXTENSION],
+          useRelativePath: true,
         })
       ),
       Effect.tap(({ directoryFiles, projectDocuments }) =>
