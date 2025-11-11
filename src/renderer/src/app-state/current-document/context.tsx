@@ -9,7 +9,11 @@ import {
 } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
-import { projectTypes } from '../../../../modules/domain/project';
+import {
+  isValidProjectId,
+  projectTypes,
+  urlEncodeProjectId,
+} from '../../../../modules/domain/project';
 import {
   type BinaryRichTextRepresentation,
   type GetDocumentAtChangeArgs,
@@ -32,6 +36,7 @@ import {
   type ChangeWithUrlInfo,
   type Commit,
   type ResolvedArtifactId,
+  urlEncodeArtifactId,
   urlEncodeChangeId,
   urlEncodeChangeIdForChange,
 } from '../../../../modules/infrastructure/version-control';
@@ -318,6 +323,12 @@ export const CurrentDocumentProvider = ({
 
   const handleSelectChange = useCallback(
     (changeId: ChangeId) => {
+      if (!projectId || !isValidProjectId(projectId) || !documentId) {
+        throw new Error(
+          'Cannot select a change since projectId or documentId are not set yet.'
+        );
+      }
+
       const isInitialChange = (index: number, changes: Change[]) =>
         index === changes.length - 1;
 
@@ -334,7 +345,7 @@ export const CurrentDocumentProvider = ({
         ? null
         : versionedDocumentHistory[selectedCommitIndex + 1];
 
-      let newUrl = `/projects/${projectId}/documents/${documentId}/changes/${urlEncodeChangeId(changeId)}`;
+      let newUrl = `/projects/${urlEncodeProjectId(projectId)}/documents/${urlEncodeArtifactId(documentId)}/changes/${urlEncodeChangeId(changeId)}`;
       if (diffCommit) {
         const diffChangeURLEncodedId = urlEncodeChangeIdForChange(diffCommit);
         newUrl += `?diffWith=${diffChangeURLEncodedId}`;

@@ -229,10 +229,8 @@ export const createAdapter = ({
     ({ projectId, documentPath }) =>
       pipe(
         listProjectDocuments(projectId),
-        Effect.flatMap((projectDocuments) => {
-          console.log(projectDocuments);
-          console.log(documentPath);
-          return pipe(
+        Effect.flatMap((projectDocuments) =>
+          pipe(
             Option.fromNullable(
               projectDocuments.find(
                 (documentMetaData) => documentMetaData.path === documentPath
@@ -247,8 +245,8 @@ export const createAdapter = ({
                 ),
               onSome: (documentMetaData) => Effect.succeed(documentMetaData.id),
             })
-          );
-        })
+          )
+        )
       );
 
   return {

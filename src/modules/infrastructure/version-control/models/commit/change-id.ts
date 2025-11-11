@@ -11,14 +11,6 @@ export const gitCommitHashSchema = z
 
 export type GitCommitHash = z.infer<typeof gitCommitHashSchema>;
 
-export const uncommittedChangeIdSchema = z.literal(UNCOMMITTED_CHANGE_ID);
-
-export type UncommittedChangeId = z.infer<typeof uncommittedChangeIdSchema>;
-
-export type CommitId = AutomergeUrlHeads | GitCommitHash;
-
-export type ChangeId = CommitId | UncommittedChangeId;
-
 export const parseGitCommitHash = (input: string): GitCommitHash =>
   gitCommitHashSchema.parse(input);
 
@@ -27,8 +19,39 @@ export const isGitCommitHash = (id: ChangeId): id is GitCommitHash =>
   !isUncommittedChangeId(id) &&
   gitCommitHashSchema.safeParse(id).success;
 
+export const uncommittedChangeIdSchema = z.literal(UNCOMMITTED_CHANGE_ID);
+
+export type UncommittedChangeId = z.infer<typeof uncommittedChangeIdSchema>;
+
+export const automergeUrlHeadsSchema = z
+  .array(z.string())
+  .transform((val) => val as AutomergeUrlHeads);
+
+export const parseAutomergeUrlHeads = (input: string[]): AutomergeUrlHeads =>
+  automergeUrlHeadsSchema.parse(input);
+
 export const isAutomergeUrlHeads = (id: ChangeId): id is AutomergeUrlHeads =>
   Array.isArray(id);
+
+export const commitIdSchema = z.union([
+  gitCommitHashSchema,
+  automergeUrlHeadsSchema,
+]);
+
+export const parseCommitId = (input: string | string[]): CommitId =>
+  commitIdSchema.parse(input);
+
+export type CommitId = z.infer<typeof commitIdSchema>;
+
+export const changeIdSchema = z.union([
+  commitIdSchema,
+  uncommittedChangeIdSchema,
+]);
+
+export type ChangeId = z.infer<typeof changeIdSchema>;
+
+export const parseChangeId = (input: string | string[]): ChangeId =>
+  changeIdSchema.parse(input);
 
 export const urlEncodeChangeId = (id: ChangeId): string => {
   if (isAutomergeUrlHeads(id)) {
@@ -44,14 +67,42 @@ export const isUncommittedChangeId = (
 
 export const decodeUrlEncodedChangeId = (
   urlEncodedCommitId: string
-): CommitId | null => {
+): ChangeId => {
+  const decodedParam = decodeURIComponent(urlEncodedCommitId);
+
   try {
-    const parsedHeads = JSON.parse(decodeURIComponent(urlEncodedCommitId));
-    return parsedHeads;
-  } catch (e) {
-    console.error('Failed to decode URL heads:', e);
-    return null;
+    const parsedHeads = JSON.parse(decodedParam);
+
+    if (Array.isArray(parsedHeads)) {
+      return parseAutomergeUrlHeads(parsedHeads);
+    }
+  } catch {
+    // Could not parse the decoded params as JSON, try to parse it as a generic change ID.
+    return parseChangeId(decodedParam);
   }
+
+  // Could not parse the decoded params as JSON, try to parse it as a generic change ID.
+  return parseChangeId(decodedParam);
+};
+
+export const decodeUrlEncodedCommitId = (
+  urlEncodedCommitId: string
+): CommitId => {
+  const decodedParam = decodeURIComponent(urlEncodedCommitId);
+
+  try {
+    const parsedHeads = JSON.parse(decodedParam);
+
+    if (Array.isArray(parsedHeads)) {
+      return parseAutomergeUrlHeads(parsedHeads);
+    }
+  } catch {
+    // Could not parse the decoded params as JSON, try to parse it as a generic change ID.
+    return parseCommitId(decodedParam);
+  }
+
+  // Could not parse the decoded params as JSON, try to parse it as a generic change ID.
+  return parseCommitId(decodedParam);
 };
 
 export const encodeURLHeads = (heads: AutomergeUrlHeads): string =>

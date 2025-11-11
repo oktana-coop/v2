@@ -9,6 +9,7 @@ import {
   type ChangeWithUrlInfo,
   type CommitId,
   decodeUrlEncodedChangeId,
+  decodeUrlEncodedCommitId,
   isCommit,
   type ResolvedArtifactId,
   urlEncodeChangeId,
@@ -66,9 +67,9 @@ export const DocumentHistoricalView = () => {
   const getDecodedDiffParam = useCallback(() => {
     const diffWithParam = searchParams.get('diffWith');
     if (diffWithParam) {
-      const decodedChangeId = decodeUrlEncodedChangeId(diffWithParam);
-      if (decodedChangeId) {
-        return decodedChangeId;
+      const decodedCommitId = decodeUrlEncodedCommitId(diffWithParam);
+      if (decodedCommitId) {
+        return decodedCommitId;
       }
     }
     return null;

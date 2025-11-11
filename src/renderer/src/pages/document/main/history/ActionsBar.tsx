@@ -3,7 +3,7 @@ import { useRef } from 'react';
 import {
   type ChangeWithUrlInfo,
   type CommitId,
-  decodeUrlEncodedChangeId,
+  decodeUrlEncodedCommitId,
   isCommitWithUrlInfo,
   urlEncodeChangeId,
 } from '../../../../../../modules/infrastructure/version-control';
@@ -82,7 +82,7 @@ export const ActionsBar = ({
   };
 
   const handleDiffCommitSelect = (commitId: string) => {
-    const decodedChangeId = decodeUrlEncodedChangeId(commitId);
+    const decodedChangeId = decodeUrlEncodedCommitId(commitId);
     if (decodedChangeId) {
       onDiffCommitSelect(decodedChangeId);
     }
