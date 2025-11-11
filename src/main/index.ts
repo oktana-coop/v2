@@ -24,6 +24,7 @@ import {
   type CreateNewFileArgs,
   type File,
   filesystemItemTypes,
+  GetAbsolutePathArgs,
   GetRelativePathArgs,
   type ListDirectoryFilesArgs,
   type OpenFileArgs,
@@ -248,6 +249,9 @@ async function createWindow() {
   );
   ipcMain.handle('get-relative-path', (_, args: GetRelativePathArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.getRelativePath(args))
+  );
+  ipcMain.handle('get-absolute-path', (_, args: GetAbsolutePathArgs) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.getAbsolutePath(args))
   );
 
   ipcMain.on('open-external-link', (_, url: string) => {

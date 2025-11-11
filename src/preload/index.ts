@@ -85,6 +85,8 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
   readFile: (path: string) => ipcRenderer.invoke('read-file', path),
   getRelativePath: (args) =>
     ipcRenderer.invoke('get-relative-path', { ...args }),
+  getAbsolutePath: (args) =>
+    ipcRenderer.invoke('get-absolute-path', { ...args }),
 } as FilesystemPromiseAPI);
 
 contextBridge.exposeInMainWorld('versionedDocumentStoreAPI', {

@@ -120,4 +120,13 @@ export const createAdapter = (): Filesystem => ({
       >,
       FilesystemRepositoryError
     )(window.filesystemAPI.getRelativePath(...args)),
+  getAbsolutePath: (...args: Parameters<Filesystem['getAbsolutePath']>) =>
+    effectifyIPCPromise(
+      {
+        FilesystemRepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<Filesystem['getAbsolutePath']>>
+      >,
+      FilesystemRepositoryError
+    )(window.filesystemAPI.getAbsolutePath(...args)),
 });

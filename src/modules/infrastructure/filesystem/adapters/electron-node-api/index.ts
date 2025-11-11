@@ -292,4 +292,12 @@ export const createAdapter = (): Filesystem => ({
         'Could not resolve path relative to directory'
       ),
     }),
+  getAbsolutePath: ({ path: descendantPath, dirPath }) =>
+    Effect.try({
+      try: () => path.join(dirPath, descendantPath),
+      catch: mapErrorTo(
+        RepositoryError,
+        'Could not join directory path with relative path'
+      ),
+    }),
 });

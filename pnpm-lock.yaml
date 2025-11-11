@@ -71,6 +71,9 @@ importers:
       isomorphic-git:
         specifier: ^1.34.2
         version: 1.34.2
+      path-browserify:
+        specifier: ^1.0.1
+        version: 1.0.1
       prosemirror-commands:
         specifier: ^1.7.1
         version: 1.7.1

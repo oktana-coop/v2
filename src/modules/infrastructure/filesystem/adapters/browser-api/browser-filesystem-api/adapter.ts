@@ -1,5 +1,7 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
+// Assuming `path` resolves to `path-browserify` using the build system.
+import path from 'path';
 
 import { fromNullable } from '../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../utils/errors';
@@ -447,12 +449,20 @@ export const createAdapter = (): Filesystem => ({
         content: '',
       }))
     ),
-  getRelativePath: ({ path, relativeTo }) =>
-    Effect.Do.pipe(
-      Effect.bind('fileHandle', () => getFileHandleFromStorage(path)),
-      Effect.bind('directoryHandle', () => getDirHandleFromStorage(relativeTo)),
-      Effect.flatMap(({ fileHandle, directoryHandle }) =>
-        getFileRelativePath(fileHandle, directoryHandle)
-      )
-    ),
+  getRelativePath: ({ path: descendantPath, relativeTo }) =>
+    Effect.try({
+      try: () => path.relative(relativeTo, descendantPath),
+      catch: mapErrorTo(
+        RepositoryError,
+        'Could not resolve path relative to directory'
+      ),
+    }),
+  getAbsolutePath: ({ path: descendantPath, dirPath }) =>
+    Effect.try({
+      try: () => path.join(dirPath, descendantPath),
+      catch: mapErrorTo(
+        RepositoryError,
+        'Could not join directory path with relative path'
+      ),
+    }),
 });

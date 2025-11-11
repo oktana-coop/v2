@@ -31,6 +31,11 @@ export type GetRelativePathArgs = {
   relativeTo: string;
 };
 
+export type GetAbsolutePathArgs = {
+  path: string;
+  dirPath: string;
+};
+
 export type Filesystem = {
   openDirectory: () => Effect.Effect<
     Directory,
@@ -84,5 +89,8 @@ export type Filesystem = {
   >;
   getRelativePath: (
     args: GetRelativePathArgs
-  ) => Effect.Effect<string, NotFoundError | RepositoryError, never>;
+  ) => Effect.Effect<string, RepositoryError, never>;
+  getAbsolutePath: (
+    args: GetAbsolutePathArgs
+  ) => Effect.Effect<string, RepositoryError, never>;
 };
