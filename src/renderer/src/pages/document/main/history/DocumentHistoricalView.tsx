@@ -10,7 +10,9 @@ import {
   type CommitId,
   decodeUrlEncodedChangeId,
   decodeUrlEncodedCommitId,
+  decomposeGitBlobRef,
   isCommit,
+  isGitBlobRef,
   type ResolvedArtifactId,
   urlEncodeChangeId,
 } from '../../../../../../modules/infrastructure/version-control';
@@ -81,50 +83,54 @@ export const DocumentHistoricalView = () => {
       changes: ChangeWithUrlInfo[],
       currentChangeIndex: number
     ) => {
-      const currentChangeDoc = await getDocumentAtChange({
-        documentId,
-        changeId: changes[currentChangeIndex].id,
-      });
+      try {
+        const currentChangeDoc = await getDocumentAtChange({
+          documentId,
+          changeId: changes[currentChangeIndex].id,
+        });
 
-      const isFirstCommit = isInitialChange(currentChangeIndex, commits);
+        const isFirstCommit = isInitialChange(currentChangeIndex, commits);
 
-      if (!showDiffInHistoryView || isFirstCommit) {
-        setDiffProps(null);
-      } else {
-        const diffWith = getDecodedDiffParam();
-        const diffCommit =
-          diffWith &&
-          changes.find((commit) => changeIdsAreSame(commit.id, diffWith));
-
-        if (diffCommit) {
-          const previousCommitDoc = await getDocumentAtChange({
-            documentId,
-            changeId: diffCommit.id,
-          });
-          const isContentBetweenCommitsDifferent =
-            !(await isContentSameAtChanges({
-              documentId,
-              change1: diffCommit.id,
-              change2: changes[currentChangeIndex].id,
-            }));
-
-          if (
-            previousCommitDoc &&
-            currentChangeDoc &&
-            isContentBetweenCommitsDifferent
-          ) {
-            setDiffProps({
-              docBefore: previousCommitDoc,
-              docAfter: currentChangeDoc,
-            });
-          }
-        } else {
+        if (!showDiffInHistoryView || isFirstCommit) {
           setDiffProps(null);
-        }
-      }
+        } else {
+          const diffWith = getDecodedDiffParam();
+          const diffCommit =
+            diffWith &&
+            changes.find((commit) => changeIdsAreSame(commit.id, diffWith));
 
-      setDoc(currentChangeDoc);
-      updateViewTitle(commits[currentChangeIndex]);
+          if (diffCommit) {
+            const previousCommitDoc = await getDocumentAtChange({
+              documentId,
+              changeId: diffCommit.id,
+            });
+            const isContentBetweenCommitsDifferent =
+              !(await isContentSameAtChanges({
+                documentId,
+                change1: diffCommit.id,
+                change2: changes[currentChangeIndex].id,
+              }));
+
+            if (
+              previousCommitDoc &&
+              currentChangeDoc &&
+              isContentBetweenCommitsDifferent
+            ) {
+              setDiffProps({
+                docBefore: previousCommitDoc,
+                docAfter: currentChangeDoc,
+              });
+            }
+          } else {
+            setDiffProps(null);
+          }
+        }
+
+        setDoc(currentChangeDoc);
+        updateViewTitle(commits[currentChangeIndex]);
+      } catch (err) {
+        console.error(err);
+      }
     };
 
     if (
@@ -200,10 +206,18 @@ export const DocumentHistoricalView = () => {
 
   const handleEditClick = () => {
     if (isValidProjectId(projectId) && documentId) {
+      let path: string | null;
+      if (isGitBlobRef(documentId)) {
+        const decomposedBlobRef = decomposeGitBlobRef(documentId);
+        path = decomposedBlobRef.path;
+      } else {
+        path = null;
+      }
+
       navigateToDocument({
         projectId,
         documentId,
-        path: null,
+        path,
       });
     }
   };

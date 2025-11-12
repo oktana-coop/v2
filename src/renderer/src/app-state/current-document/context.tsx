@@ -35,6 +35,8 @@ import {
   changeIdsAreSame,
   type ChangeWithUrlInfo,
   type Commit,
+  decomposeGitBlobRef,
+  isGitBlobRef,
   type ResolvedArtifactId,
   urlEncodeArtifactId,
   urlEncodeChangeId,
@@ -161,9 +163,19 @@ export const CurrentDocumentProvider = ({
         setVersionedDocument(document);
         setLoadingHistory(true);
 
+        // TODO: Clean this up. The ID in the Automerge case is not the file path, so we need to get it from somewhere else.
+        // This is why we use the path query param, which must be set.
+        // But this introduces potential race conditions (e.g. documentId and searchParams getting out-of-sync)
         if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
-          const pathParam = searchParams.get('path');
-          const path = pathParam ? decodeURIComponent(pathParam) : null;
+          let path: string | null;
+
+          if (isGitBlobRef(documentId)) {
+            const decomposedBlobRef = decomposeGitBlobRef(documentId);
+            path = decomposedBlobRef.path;
+          } else {
+            const pathParam = searchParams.get('path');
+            path = pathParam ? decodeURIComponent(pathParam) : null;
+          }
 
           if (!path) {
             throw new Error(
