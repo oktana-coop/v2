@@ -298,7 +298,7 @@ export const CurrentDocumentProvider = ({
       setLoadingHistory(false);
       await checkIfCanCommit(documentStore)({
         docId,
-        doc,
+        doc: historyInfo.current,
         latestChangeId: historyInfo.latestChange.id,
         lastCommitId: historyInfo.lastCommit?.id,
       });
@@ -322,10 +322,17 @@ export const CurrentDocumentProvider = ({
           message,
         })
       );
+
       setIsCommitDialogOpen(false);
-      setCanCommit(false);
+
+      if (versionedDocument) {
+        await loadHistory(versionedDocumentStore)({
+          doc: versionedDocument,
+          docId: documentId,
+        });
+      }
     },
-    [documentId, versionedDocumentStore]
+    [documentId, versionedDocument, versionedDocumentStore]
   );
 
   const handleOpenCommitDialog = useCallback(() => {
@@ -480,20 +487,9 @@ export const CurrentDocumentProvider = ({
         );
       }
 
-      loadHistory(versionedDocumentStore)({
+      await loadHistory(versionedDocumentStore)({
         docId: documentId,
         doc: versionedDocument,
-      });
-
-      const latestChangeId = await Effect.runPromise(
-        versionedDocumentStore.getDocumentLastChangeId(documentId)
-      );
-
-      await checkIfCanCommit(versionedDocumentStore)({
-        docId: documentId,
-        doc: versionedDocument,
-        latestChangeId,
-        lastCommitId: lastCommit?.id,
       });
     },
     [
