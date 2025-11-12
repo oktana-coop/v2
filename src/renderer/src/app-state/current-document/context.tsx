@@ -154,6 +154,9 @@ export const CurrentDocumentProvider = ({
         setVersionedDocumentHandle(null);
         setVersionedDocument(null);
       } else {
+        setVersionedDocumentHandle(null);
+        setVersionedDocument(null);
+
         const { artifact: document, handle: documentHandle } =
           await Effect.runPromise(
             versionedDocumentStore.findDocumentById(documentId)
