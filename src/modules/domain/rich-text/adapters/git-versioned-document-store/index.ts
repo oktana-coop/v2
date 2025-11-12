@@ -1,6 +1,9 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
-import git, { type PromiseFsClient as NodeLikeFsApi } from 'isomorphic-git';
+import git, {
+  Errors,
+  type PromiseFsClient as NodeLikeFsApi,
+} from 'isomorphic-git';
 
 import {
   type Change,
@@ -303,8 +306,17 @@ export const createAdapter = ({
               dir: projectDir,
               filepath: documentPath,
             }),
-          catch: mapErrorTo(RepositoryError, 'Git repo error'),
+          catch: (err) => {
+            if (err instanceof Errors.NotFoundError) {
+              return new NotFoundError('No commit found');
+            }
+
+            return new RepositoryError('Git repo error');
+          },
         }),
+        Effect.catchTag('VersionedDocumentNotFoundError', () =>
+          Effect.succeed([])
+        ),
         Effect.map((gitLog) =>
           gitLog.map(
             (commitInfo) =>

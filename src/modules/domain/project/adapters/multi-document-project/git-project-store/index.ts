@@ -121,57 +121,10 @@ export const createAdapter = ({
         Effect.map((project) => Object.values(project.documents))
       );
 
+  // This is a no-op in the Git repo.
+  // The new doc will be committed when we commit the first set of changes to it.
   const addDocumentToProject: MultiDocumentProjectStore['addDocumentToProject'] =
-    ({ documentId, projectId }) =>
-      Effect.Do.pipe(
-        Effect.bind('projectPath', () =>
-          pipe(
-            Effect.succeed(projectId),
-            Effect.filterOrFail(
-              isProjectDirPath,
-              (val) => new ValidationError(`Invalid project id: ${val}`)
-            )
-          )
-        ),
-        Effect.bind('documentName', () =>
-          pipe(
-            Effect.succeed(documentId),
-            Effect.filterOrFail(
-              isGitBlobRef,
-              (val) => new ValidationError(`Invalid document id: ${val}`)
-            ),
-            // TODO: This won't work well for documents inside sub-folders.
-            Effect.map((documentGitBlobRef) => removePath(documentGitBlobRef))
-          )
-        ),
-        Effect.flatMap(({ projectPath, documentName }) =>
-          pipe(
-            Effect.tryPromise({
-              try: () =>
-                git.add({
-                  fs: isoGitFs,
-                  dir: projectPath,
-                  filepath: documentName,
-                }),
-              catch: mapErrorTo(RepositoryError, 'Git repo error'),
-            }),
-            Effect.flatMap(() =>
-              Effect.tryPromise({
-                try: () =>
-                  git.commit({
-                    fs: isoGitFs,
-                    dir: projectPath,
-                    author: {
-                      name: DEFAULT_AUTHOR_NAME,
-                    },
-                    message: `Added ${documentName}`,
-                  }),
-                catch: mapErrorTo(RepositoryError, 'Git repo error'),
-              })
-            )
-          )
-        )
-      );
+    () => Effect.succeed(undefined);
 
   const deleteDocumentFromProject: MultiDocumentProjectStore['deleteDocumentFromProject'] =
     ({ projectId, documentId }) =>
