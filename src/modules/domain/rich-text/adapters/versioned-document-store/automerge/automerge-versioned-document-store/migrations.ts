@@ -1,13 +1,13 @@
 import {
   type HandleMigration,
   type VersionedArtifactHandle,
-} from '../../../../infrastructure/version-control';
-import { richTextRepresentations } from '../../constants';
+} from '../../../../../../infrastructure/version-control';
+import { richTextRepresentations } from '../../../../constants';
 import {
   type RichTextDocument,
   VersionedDocument,
   type VersionedDocumentHandle,
-} from '../../models';
+} from '../../../../models';
 
 type UnversionedRichTextDocument = Omit<VersionedDocument, 'schemaVersion'>;
 

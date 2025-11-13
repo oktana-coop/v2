@@ -24,18 +24,22 @@ import {
   type UncommitedChange,
   UNCOMMITTED_CHANGE_ID,
   versionedArtifactTypes,
-} from '../../../../../modules/infrastructure/version-control';
-import { fromNullable } from '../../../../../utils/effect';
-import { mapErrorTo } from '../../../../../utils/errors';
-import { type Filesystem } from '../../../../infrastructure/filesystem';
-import { PRIMARY_RICH_TEXT_REPRESENTATION } from '../../constants';
-import { NotFoundError, RepositoryError, ValidationError } from '../../errors';
+} from '../../../../../../../modules/infrastructure/version-control';
+import { fromNullable } from '../../../../../../../utils/effect';
+import { mapErrorTo } from '../../../../../../../utils/errors';
+import { type Filesystem } from '../../../../../../infrastructure/filesystem';
+import { PRIMARY_RICH_TEXT_REPRESENTATION } from '../../../../constants';
+import {
+  NotFoundError,
+  RepositoryError,
+  ValidationError,
+} from '../../../../errors';
 import {
   CURRENT_SCHEMA_VERSION,
   type ResolvedDocument,
   type RichTextDocument,
-} from '../../models';
-import { type VersionedDocumentStore } from '../../ports/versioned-document-store';
+} from '../../../../models';
+import { type VersionedDocumentStore } from '../../../../ports/versioned-document-store';
 
 export const createAdapter = ({
   isoGitFs,

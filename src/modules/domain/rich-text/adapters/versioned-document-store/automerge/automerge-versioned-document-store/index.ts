@@ -19,21 +19,25 @@ import {
   MigrationError,
   type ResolvedArtifactId,
   versionedArtifactTypes,
-} from '../../../../../modules/infrastructure/version-control';
-import { mapErrorTo } from '../../../../../utils/errors';
-import { richTextRepresentations } from '../../constants';
-import { NotFoundError, RepositoryError, ValidationError } from '../../errors';
+} from '../../../../../../../modules/infrastructure/version-control';
+import { mapErrorTo } from '../../../../../../../utils/errors';
+import { richTextRepresentations } from '../../../../constants';
+import {
+  NotFoundError,
+  RepositoryError,
+  ValidationError,
+} from '../../../../errors';
 import {
   CURRENT_SCHEMA_VERSION,
   type RichTextDocument,
   type VersionedDocument,
   type VersionedDocumentHandle,
-} from '../../models';
-import { type RichTextDocumentSpan } from '../../models/document/automerge';
+} from '../../../../models';
+import { type RichTextDocumentSpan } from '../../../../models/document/automerge';
 import {
   type RealtimeVersionedDocumentStore,
   type VersionedDocumentStore,
-} from '../../ports/versioned-document-store';
+} from '../../../../ports/versioned-document-store';
 import { migrations } from './migrations';
 
 export const createAdapter = (

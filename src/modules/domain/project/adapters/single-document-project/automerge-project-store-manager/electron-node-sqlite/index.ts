@@ -4,7 +4,7 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import { BrowserWindow } from 'electron';
 
-import { createAdapter as createAutomergeDocumentStoreAdapter } from '../../../../../../../modules/domain/rich-text/adapters/automerge-versioned-document-store';
+import { createAdapter as createAutomergeDocumentStoreAdapter } from '../../../../../../../modules/domain/rich-text/adapters/versioned-document-store/automerge/automerge-versioned-document-store';
 import { setupSQLiteRepoForNode } from '../../../../../../../modules/infrastructure/version-control/automerge-repo/node';
 import { mapErrorTo } from '../../../../../../../utils/errors';
 import { createDocumentAndProject } from '../../../../commands/single-document-project';

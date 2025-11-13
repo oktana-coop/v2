@@ -9,7 +9,7 @@ import {
   ValidationError as VersionedDocumentValidationError,
   type VersionedDocumentStore,
 } from '../../../../../../../../modules/domain/rich-text';
-import { createAdapter as createAutomergeDocumentStoreAdapter } from '../../../../../../../../modules/domain/rich-text/adapters/automerge-versioned-document-store';
+import { createAdapter as createAutomergeDocumentStoreAdapter } from '../../../../../../../../modules/domain/rich-text/adapters/versioned-document-store/automerge/automerge-versioned-document-store';
 import {
   AccessControlError as FilesystemAccessControlError,
   DataIntegrityError as FilesystemDataIntegrityError,

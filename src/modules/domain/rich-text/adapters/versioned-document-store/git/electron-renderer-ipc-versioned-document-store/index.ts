@@ -3,11 +3,15 @@ import * as Effect from 'effect/Effect';
 import {
   effectifyIPCPromise,
   type ErrorRegistry,
-} from '../../../../../modules/infrastructure/cross-platform/electron-ipc-effect';
-import { MigrationError } from '../../../../../modules/infrastructure/version-control';
-import { type EffectErrorType } from '../../../../../utils/effect';
-import { NotFoundError, RepositoryError, ValidationError } from '../../errors';
-import { type VersionedDocumentStore } from '../../ports';
+} from '../../../../../../../modules/infrastructure/cross-platform/electron-ipc-effect';
+import { MigrationError } from '../../../../../../../modules/infrastructure/version-control';
+import { type EffectErrorType } from '../../../../../../../utils/effect';
+import {
+  NotFoundError,
+  RepositoryError,
+  ValidationError,
+} from '../../../../errors';
+import { type VersionedDocumentStore } from '../../../../ports';
 
 // This adapter just calls the relevant exposed functions from the preload script
 // to send the messages to the main Electron process which will do the heavy lifting.

@@ -1,7 +1,7 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
-import { createAdapter as createVersionedDocumentStoreAdapter } from '../../../../../../../../modules/domain/rich-text/adapters/electron-renderer-ipc-versioned-document-store';
+import { createAdapter as createVersionedDocumentStoreAdapter } from '../../../../../../../../modules/domain/rich-text/adapters/versioned-document-store/git/electron-renderer-ipc-versioned-document-store';
 import { mapErrorTo } from '../../../../../../../../utils/errors';
 import { RepositoryError as VersionedProjectRepositoryError } from '../../../../../errors';
 import { type MultiDocumentProjectStoreManager } from '../../../../../ports';
