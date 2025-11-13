@@ -126,9 +126,7 @@ export const createAdapter = ({
           filesystem.readFile(documentPath),
           Effect.catchTag('FilesystemNotFoundError', () =>
             Effect.fail(
-              new NotFoundError(
-                'Index file not found in the specified directory'
-              )
+              new NotFoundError(`File with path ${documentPath} not found`)
             )
           ),
           Effect.catchAll(() =>
