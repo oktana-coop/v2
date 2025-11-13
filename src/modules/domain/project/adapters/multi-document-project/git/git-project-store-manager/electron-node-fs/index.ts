@@ -2,8 +2,8 @@ import fs from 'node:fs';
 
 import * as Effect from 'effect/Effect';
 
-import { createAdapter as createVersionedDocumentStoreAdapter } from '../../../../../../../modules/domain/rich-text/adapters/git-versioned-document-store';
-import { type MultiDocumentProjectStoreManager } from '../../../../ports';
+import { createAdapter as createVersionedDocumentStoreAdapter } from '../../../../../../../../modules/domain/rich-text/adapters/git-versioned-document-store';
+import { type MultiDocumentProjectStoreManager } from '../../../../../ports';
 import { createAdapter as createMultiDocumentProjectStoreAdapter } from '../../git-project-store';
 
 export const createAdapter = (): MultiDocumentProjectStoreManager => {

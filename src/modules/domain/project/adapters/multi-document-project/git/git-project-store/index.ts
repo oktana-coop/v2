@@ -6,7 +6,7 @@ import git, { type PromiseFsClient as NodeLikeFsApi } from 'isomorphic-git';
 import {
   type Filesystem,
   removePath,
-} from '../../../../../../modules/infrastructure/filesystem';
+} from '../../../../../../../modules/infrastructure/filesystem';
 import {
   createGitBlobRef,
   DEFAULT_AUTHOR_NAME,
@@ -14,21 +14,21 @@ import {
   isGitBlobRef,
   type ResolvedArtifactId,
   versionedArtifactTypes,
-} from '../../../../../../modules/infrastructure/version-control';
-import { mapErrorTo } from '../../../../../../utils/errors';
+} from '../../../../../../../modules/infrastructure/version-control';
+import { mapErrorTo } from '../../../../../../../utils/errors';
 import {
   NotFoundError,
   RepositoryError,
   ValidationError,
-} from '../../../errors';
+} from '../../../../errors';
 import {
   type ArtifactMetaData,
   CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION,
   isProjectDirPath,
   parseProjectDirPath,
   type ProjectId,
-} from '../../../models';
-import { MultiDocumentProjectStore } from '../../../ports/multi-document-project';
+} from '../../../../models';
+import { MultiDocumentProjectStore } from '../../../../ports/multi-document-project';
 
 export const createAdapter = ({
   isoGitFs,

@@ -7,14 +7,14 @@ import * as Option from 'effect/Option';
 import {
   migrateIfNeeded,
   versionedArtifactTypes,
-} from '../../../../../../modules/infrastructure/version-control';
-import { fromNullable } from '../../../../../../utils/effect';
-import { mapErrorTo } from '../../../../../../utils/errors';
+} from '../../../../../../../modules/infrastructure/version-control';
+import { fromNullable } from '../../../../../../../utils/effect';
+import { mapErrorTo } from '../../../../../../../utils/errors';
 import {
   NotFoundError,
   RepositoryError,
   ValidationError,
-} from '../../../errors';
+} from '../../../../errors';
 import {
   type ArtifactMetaData,
   isAutomergeUrl,
@@ -22,9 +22,9 @@ import {
   type ProjectId,
   type VersionedMultiDocumentProject,
   type VersionedMultiDocumentProjectHandle,
-} from '../../../models';
-import { CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION } from '../../../models';
-import { MultiDocumentProjectStore } from '../../../ports/multi-document-project';
+} from '../../../../models';
+import { CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION } from '../../../../models';
+import { MultiDocumentProjectStore } from '../../../../ports/multi-document-project';
 import { migrations } from './migrations';
 
 export const createAdapter = (

@@ -1,10 +1,10 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
-import { createAdapter as createVersionedDocumentStoreAdapter } from '../../../../../../../modules/domain/rich-text/adapters/electron-renderer-ipc-versioned-document-store';
-import { mapErrorTo } from '../../../../../../../utils/errors';
-import { RepositoryError as VersionedProjectRepositoryError } from '../../../../errors';
-import { type MultiDocumentProjectStoreManager } from '../../../../ports';
+import { createAdapter as createVersionedDocumentStoreAdapter } from '../../../../../../../../modules/domain/rich-text/adapters/electron-renderer-ipc-versioned-document-store';
+import { mapErrorTo } from '../../../../../../../../utils/errors';
+import { RepositoryError as VersionedProjectRepositoryError } from '../../../../../errors';
+import { type MultiDocumentProjectStoreManager } from '../../../../../ports';
 import { createAdapter as createMultiDocumentProjectStoreAdapter } from '../../electron-renderer-ipc-project-store';
 
 export const createAdapter = (): MultiDocumentProjectStoreManager => {

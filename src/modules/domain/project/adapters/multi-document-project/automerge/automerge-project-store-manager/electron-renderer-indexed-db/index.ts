@@ -2,11 +2,11 @@ import { type Repo } from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
-import { createAdapter as createAutomergeDocumentStoreAdapter } from '../../../../../../../modules/domain/rich-text/adapters/automerge-versioned-document-store';
-import { setupForElectron as setupBrowserRepoForElectron } from '../../../../../../../modules/infrastructure/version-control/automerge-repo/browser';
-import { mapErrorTo } from '../../../../../../../utils/errors';
-import { RepositoryError as VersionedProjectRepositoryError } from '../../../../errors';
-import { type MultiDocumentProjectStoreManager } from '../../../../ports';
+import { createAdapter as createAutomergeDocumentStoreAdapter } from '../../../../../../../../modules/domain/rich-text/adapters/automerge-versioned-document-store';
+import { setupForElectron as setupBrowserRepoForElectron } from '../../../../../../../../modules/infrastructure/version-control/automerge-repo/browser';
+import { mapErrorTo } from '../../../../../../../../utils/errors';
+import { RepositoryError as VersionedProjectRepositoryError } from '../../../../../errors';
+import { type MultiDocumentProjectStoreManager } from '../../../../../ports';
 import { createAdapter as createAutomergeProjectStoreAdapter } from '../../automerge-project-store';
 
 export type ElectronDeps = {

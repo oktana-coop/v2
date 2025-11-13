@@ -11,35 +11,35 @@ import {
   RepositoryError as VersionedDocumentRepositoryError,
   ValidationError as VersionedDocumentValidationError,
   VersionedDocumentStore,
-} from '../../../../../../../modules/domain/rich-text';
-import { createAdapter as createAutomergeDocumentStoreAdapter } from '../../../../../../../modules/domain/rich-text/adapters/automerge-versioned-document-store';
+} from '../../../../../../../../modules/domain/rich-text';
+import { createAdapter as createAutomergeDocumentStoreAdapter } from '../../../../../../../../modules/domain/rich-text/adapters/automerge-versioned-document-store';
 import {
   AccessControlError as FilesystemAccessControlError,
   DataIntegrityError as FilesystemDataIntegrityError,
   type Filesystem,
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
-} from '../../../../../../../modules/infrastructure/filesystem';
-import { MigrationError } from '../../../../../../../modules/infrastructure/version-control';
-import { setupFilesystemRepoForNode } from '../../../../../../../modules/infrastructure/version-control/automerge-repo/node';
-import { fromNullable } from '../../../../../../../utils/effect';
-import { mapErrorTo } from '../../../../../../../utils/errors';
+} from '../../../../../../../../modules/infrastructure/filesystem';
+import { MigrationError } from '../../../../../../../../modules/infrastructure/version-control';
+import { setupFilesystemRepoForNode } from '../../../../../../../../modules/infrastructure/version-control/automerge-repo/node';
+import { fromNullable } from '../../../../../../../../utils/effect';
+import { mapErrorTo } from '../../../../../../../../utils/errors';
 import {
   createProjectFromFilesystemContent,
   updateProjectFromFilesystemContent,
-} from '../../../../commands';
+} from '../../../../../commands';
 import {
   DataIntegrityError as VersionedProjectDataIntegrityError,
   MissingProjectMetadataError as VersionedProjectMissingProjectMetadataError,
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
   ValidationError as VersionedProjectValidationError,
-} from '../../../../errors';
-import { parseAutomergeUrl, type ProjectId } from '../../../../models';
+} from '../../../../../errors';
+import { parseAutomergeUrl, type ProjectId } from '../../../../../models';
 import {
   MultiDocumentProjectStore,
   type MultiDocumentProjectStoreManager,
-} from '../../../../ports';
+} from '../../../../../ports';
 import { createAdapter as createAutomergeProjectStoreAdapter } from '../../automerge-project-store';
 
 export type ElectronDeps = {

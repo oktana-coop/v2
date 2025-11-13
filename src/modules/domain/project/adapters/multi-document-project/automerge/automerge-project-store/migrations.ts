@@ -1,12 +1,12 @@
 import {
   type HandleMigration,
   type VersionedArtifactHandle,
-} from '../../../../../infrastructure/version-control';
+} from '../../../../../../infrastructure/version-control';
 import {
   type MultiDocumentProject,
   type VersionedMultiDocumentProject,
   type VersionedMultiDocumentProjectHandle,
-} from '../../../models';
+} from '../../../../models';
 
 type UnversionedMultiDocumentProject = Omit<
   VersionedMultiDocumentProject,
