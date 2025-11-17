@@ -25,7 +25,7 @@ import { type ProjectId } from '../../models';
 import { type SingleDocumentProjectStore } from './single-document-project-store';
 
 export type SetupSingleDocumentProjectStoreDeps = {
-  createNewFile: Filesystem['createNewFile'];
+  filesystem: Filesystem;
 };
 
 export type SetupSingleDocumentProjectStoreArgs = {
@@ -42,7 +42,7 @@ export type SetupSingleDocumentProjectStoreResult = {
 };
 
 export type OpenSingleDocumentProjectStoreDeps = {
-  openFile: Filesystem['openFile'];
+  filesystem: Filesystem;
 };
 
 export type OpenSingleDocumentProjectStoreArgs = {

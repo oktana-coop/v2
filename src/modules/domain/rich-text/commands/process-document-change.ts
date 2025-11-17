@@ -44,7 +44,6 @@ export const processDocumentChange =
   ({
     transformToText,
     updateRichTextDocumentContent,
-    writeFile,
   }: ProcessDocumentChangeDeps) =>
   ({
     documentId,
@@ -63,27 +62,22 @@ export const processDocumentChange =
     | FilesystemRepositoryError,
     never
   > =>
-    pipe(
-      Effect.tryPromise({
-        try: async () =>
-          transformToText({
-            from: updatedDocument.representation,
-            to: PRIMARY_RICH_TEXT_REPRESENTATION,
-            input: updatedDocument.content,
-          }),
-        catch: mapErrorTo(
-          RepresentationTransformError,
-          'Rich text representation transformation error'
-        ),
-      }),
-      Effect.tap((textContent) =>
-        updateRichTextDocumentContent({
-          documentId,
-          representation: PRIMARY_RICH_TEXT_REPRESENTATION,
-          content: textContent,
+    Effect.Do.pipe(
+      Effect.bind('textContent', () =>
+        Effect.tryPromise({
+          try: async () =>
+            transformToText({
+              from: updatedDocument.representation,
+              to: PRIMARY_RICH_TEXT_REPRESENTATION,
+              input: updatedDocument.content,
+            }),
+          catch: mapErrorTo(
+            RepresentationTransformError,
+            'Rich text representation transformation error'
+          ),
         })
       ),
-      Effect.flatMap((textContent) =>
+      Effect.bind('writeToFileWithPath', () =>
         projectType === projectTypes.MULTI_DOCUMENT_PROJECT
           ? pipe(
               fromNullable(
@@ -92,9 +86,16 @@ export const processDocumentChange =
                   new ValidationError(
                     'File path not provided; cannot write to document file'
                   )
-              ),
-              Effect.flatMap((path) => writeFile(path, textContent))
+              )
             )
           : Effect.succeed(undefined)
+      ),
+      Effect.tap(({ textContent, writeToFileWithPath }) =>
+        updateRichTextDocumentContent({
+          documentId,
+          representation: PRIMARY_RICH_TEXT_REPRESENTATION,
+          content: textContent,
+          writeToFileWithPath,
+        })
       )
     );

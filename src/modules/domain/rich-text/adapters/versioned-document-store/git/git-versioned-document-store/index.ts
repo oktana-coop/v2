@@ -246,9 +246,21 @@ export const createAdapter = ({
       );
     };
 
-  // This is a no-op in the Git repo since we don't need to explicitly tell Git to track changes to a document in the project repo
   const updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'] =
-    () => Effect.succeed(undefined);
+    ({ content, writeToFileWithPath }) =>
+      pipe(
+        fromNullable(
+          writeToFileWithPath,
+          () =>
+            new ValidationError(
+              'File path not provided; cannot write to document file'
+            )
+        ),
+        Effect.flatMap((path) => filesystem.writeFile(path, content)),
+        Effect.catchAll(() =>
+          Effect.fail(new RepositoryError('Git repo error'))
+        )
+      );
 
   // This is a no-op in the Git document repo since the relevant operation in the project repo (deleting a document from a project) does it.
   const deleteDocument: VersionedDocumentStore['deleteDocument'] = () =>

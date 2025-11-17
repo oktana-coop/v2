@@ -79,15 +79,13 @@ const openProject = ({
   directoryPath,
   rendererProcessId,
   browserWindow,
-  listDirectoryFiles,
-  readFile,
+  filesystem,
 }: {
   projectId: ProjectId;
   directoryPath: string;
   rendererProcessId: string;
   browserWindow: BrowserWindow;
-  listDirectoryFiles: Filesystem['listDirectoryFiles'];
-  readFile: Filesystem['readFile'];
+  filesystem: Filesystem;
 }): Effect.Effect<
   OpenProjectResult,
   | FilesystemAccessControlError
@@ -111,10 +109,11 @@ const openProject = ({
     }),
     Effect.map((automergeRepo) => ({
       versionedProjectStore: createAutomergeProjectStoreAdapter(automergeRepo),
-      versionedDocumentStore: createAutomergeDocumentStoreAdapter(
+      versionedDocumentStore: createAutomergeDocumentStoreAdapter({
         automergeRepo,
-        projectId
-      ),
+        projectId,
+        filesystem,
+      }),
     })),
     Effect.tap(({ versionedProjectStore, versionedDocumentStore }) =>
       updateProjectFromFilesystemContent({
@@ -128,8 +127,8 @@ const openProject = ({
         deleteDocumentFromProject:
           versionedProjectStore.deleteDocumentFromProject,
         addDocumentToProject: versionedProjectStore.addDocumentToProject,
-        listDirectoryFiles,
-        readFile,
+        listDirectoryFiles: filesystem.listDirectoryFiles,
+        readFile: filesystem.readFile,
       })({ projectId, directoryPath })
     )
   );
@@ -197,16 +196,12 @@ const openProjectFromFilesystem = ({
   directoryPath,
   rendererProcessId,
   browserWindow,
-  listDirectoryFiles,
-  readFile,
-  assertWritePermissionForDirectory,
+  filesystem,
 }: {
   directoryPath: string;
   rendererProcessId: string;
   browserWindow: BrowserWindow;
-  listDirectoryFiles: Filesystem['listDirectoryFiles'];
-  readFile: Filesystem['readFile'];
-  assertWritePermissionForDirectory: Filesystem['assertWritePermissionForDirectory'];
+  filesystem: Filesystem;
 }): Effect.Effect<
   OpenOrCreateProjectFromFilesystemResult,
   | FilesystemAccessControlError
@@ -225,9 +220,12 @@ const openProjectFromFilesystem = ({
   never
 > =>
   pipe(
-    assertWritePermissionForDirectory(directoryPath),
+    filesystem.assertWritePermissionForDirectory(directoryPath),
     Effect.flatMap(() =>
-      readProjectIdFromDirIndexFile({ directoryPath, readFile })
+      readProjectIdFromDirIndexFile({
+        directoryPath,
+        readFile: filesystem.readFile,
+      })
     ),
     Effect.flatMap((projectId) =>
       pipe(
@@ -236,8 +234,7 @@ const openProjectFromFilesystem = ({
           directoryPath,
           rendererProcessId,
           browserWindow,
-          listDirectoryFiles,
-          readFile,
+          filesystem,
         }),
         Effect.map(({ versionedProjectStore, versionedDocumentStore }) => ({
           projectId,
@@ -293,16 +290,12 @@ const createNewProject = ({
   directoryPath,
   rendererProcessId,
   browserWindow,
-  listDirectoryFiles,
-  readFile,
-  writeFile,
+  filesystem,
 }: {
   directoryPath: string;
   rendererProcessId: string;
   browserWindow: BrowserWindow;
-  listDirectoryFiles: Filesystem['listDirectoryFiles'];
-  readFile: Filesystem['readFile'];
-  writeFile: Filesystem['writeFile'];
+  filesystem: Filesystem;
 }): Effect.Effect<
   OpenOrCreateProjectFromFilesystemResult,
   | FilesystemAccessControlError
@@ -334,7 +327,9 @@ const createNewProject = ({
           Effect.succeed(createAutomergeProjectStoreAdapter(automergeRepo))
         ),
         Effect.bind('versionedDocumentStore', () =>
-          Effect.succeed(createAutomergeDocumentStoreAdapter(automergeRepo))
+          Effect.succeed(
+            createAutomergeDocumentStoreAdapter({ automergeRepo, filesystem })
+          )
         ),
         Effect.bind(
           'projectId',
@@ -343,15 +338,15 @@ const createNewProject = ({
               createDocument: versionedDocumentStore.createDocument,
               createProject: versionedProjectStore.createProject,
               addDocumentToProject: versionedProjectStore.addDocumentToProject,
-              listDirectoryFiles,
-              readFile,
+              listDirectoryFiles: filesystem.listDirectoryFiles,
+              readFile: filesystem.readFile,
             })({ directoryPath })
         ),
         Effect.tap(({ projectId }) =>
           writeIndexFile({
             rootDirectoryPath: directoryPath,
             projectId,
-            writeFile,
+            writeFile: filesystem.writeFile,
           })
         ),
         Effect.tap(({ versionedDocumentStore, projectId }) =>
@@ -378,10 +373,7 @@ export const createAdapter = ({
                   directoryPath: directory.path,
                   rendererProcessId,
                   browserWindow,
-                  listDirectoryFiles: filesystem.listDirectoryFiles,
-                  readFile: filesystem.readFile,
-                  assertWritePermissionForDirectory:
-                    filesystem.assertWritePermissionForDirectory,
+                  filesystem,
                 }),
                 Effect.catchIf(
                   (error) =>
@@ -396,9 +388,7 @@ export const createAdapter = ({
                       directoryPath: directory.path,
                       rendererProcessId,
                       browserWindow,
-                      listDirectoryFiles: filesystem.listDirectoryFiles,
-                      readFile: filesystem.readFile,
-                      writeFile: filesystem.writeFile,
+                      filesystem,
                     })
                 )
               ),
@@ -445,8 +435,7 @@ export const createAdapter = ({
                   directoryPath,
                   rendererProcessId,
                   browserWindow,
-                  listDirectoryFiles: filesystem.listDirectoryFiles,
-                  readFile: filesystem.readFile,
+                  filesystem,
                 })
               ),
               Effect.map(

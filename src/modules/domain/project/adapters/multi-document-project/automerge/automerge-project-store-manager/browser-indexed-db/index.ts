@@ -64,10 +64,12 @@ const setupAutomergeRepo = ({
   });
 
 const setupAutomergeRepoAndStores = ({
+  filesystem,
   dbName,
   storeName,
   projectId,
 }: {
+  filesystem: Filesystem;
   dbName: string;
   storeName: string;
   projectId?: ProjectId;
@@ -86,10 +88,11 @@ const setupAutomergeRepoAndStores = ({
     }),
     Effect.map((automergeRepo) => ({
       versionedProjectStore: createAutomergeProjectStoreAdapter(automergeRepo),
-      versionedDocumentStore: createAutomergeDocumentStoreAdapter(
+      versionedDocumentStore: createAutomergeDocumentStoreAdapter({
         automergeRepo,
-        projectId
-      ),
+        projectId,
+        filesystem,
+      }),
     }))
   );
 
@@ -382,6 +385,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
           ),
           Effect.bind('storeData', ({ directory }) =>
             setupAutomergeRepoAndStores({
+              filesystem,
               dbName: directory.path,
               storeName: AUTOMERGE_DOCUMENTS_STORE_NAME,
             })
@@ -460,6 +464,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
           Effect.flatMap((directory) =>
             pipe(
               setupAutomergeRepoAndStores({
+                filesystem,
                 dbName: directoryPath,
                 storeName: AUTOMERGE_DOCUMENTS_STORE_NAME,
                 projectId,

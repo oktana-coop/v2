@@ -125,7 +125,7 @@ export const createAdapter = ({
 
   const setupSingleDocumentProjectStore: SingleDocumentProjectStoreManager['setupSingleDocumentProjectStore'] =
 
-      ({ createNewFile }: SetupSingleDocumentProjectStoreDeps) =>
+      ({ filesystem }: SetupSingleDocumentProjectStoreDeps) =>
       () =>
         Effect.Do.pipe(
           Effect.tap(() =>
@@ -143,7 +143,7 @@ export const createAdapter = ({
             })
           ),
           Effect.bind('newFile', () =>
-            createNewFile({
+            filesystem.createNewFile({
               extensions: [PROJECT_FILE_EXTENSION],
             })
           ),
@@ -160,7 +160,9 @@ export const createAdapter = ({
             Effect.succeed(createAutomergeProjectStoreAdapter(automergeRepo))
           ),
           Effect.bind('versionedDocumentStore', ({ automergeRepo }) =>
-            Effect.succeed(createAutomergeDocumentStoreAdapter(automergeRepo))
+            Effect.succeed(
+              createAutomergeDocumentStoreAdapter({ automergeRepo, filesystem })
+            )
           ),
           Effect.flatMap(
             ({
@@ -204,14 +206,14 @@ export const createAdapter = ({
 
   const openSingleDocumentProjectStore: SingleDocumentProjectStoreManager['openSingleDocumentProjectStore'] =
 
-      ({ openFile }: OpenSingleDocumentProjectStoreDeps) =>
+      ({ filesystem }: OpenSingleDocumentProjectStoreDeps) =>
       ({ fromFile }: OpenSingleDocumentProjectStoreArgs) =>
         openSingleDocumentProjectStoreSemaphore.withPermits(1)(
           Effect.Do.pipe(
             Effect.bind('file', () =>
               fromFile
                 ? Effect.succeed(fromFile)
-                : openFile({ extensions: [PROJECT_FILE_EXTENSION] })
+                : filesystem.openFile({ extensions: [PROJECT_FILE_EXTENSION] })
             ),
             Effect.tap(() =>
               Effect.tryPromise({
@@ -243,7 +245,12 @@ export const createAdapter = ({
               Effect.succeed(createAutomergeProjectStoreAdapter(automergeRepo))
             ),
             Effect.bind('versionedDocumentStore', ({ automergeRepo }) =>
-              Effect.succeed(createAutomergeDocumentStoreAdapter(automergeRepo))
+              Effect.succeed(
+                createAutomergeDocumentStoreAdapter({
+                  automergeRepo,
+                  filesystem,
+                })
+              )
             ),
             Effect.bind('documentId', ({ versionedProjectStore, projectId }) =>
               versionedProjectStore.findDocumentInProject(projectId)

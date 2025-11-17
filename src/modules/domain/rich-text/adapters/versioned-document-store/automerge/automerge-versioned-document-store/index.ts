@@ -20,7 +20,9 @@ import {
   type ResolvedArtifactId,
   versionedArtifactTypes,
 } from '../../../../../../../modules/infrastructure/version-control';
+import { fromNullable } from '../../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../../utils/errors';
+import { type Filesystem } from '../../../../../../infrastructure/filesystem';
 import { richTextRepresentations } from '../../../../constants';
 import {
   NotFoundError,
@@ -40,10 +42,15 @@ import {
 } from '../../../../ports/versioned-document-store';
 import { migrations } from './migrations';
 
-export const createAdapter = (
-  automergeRepo: Repo,
-  projId?: string
-): RealtimeVersionedDocumentStore => {
+export const createAdapter = ({
+  automergeRepo,
+  projectId: projId,
+  filesystem,
+}: {
+  automergeRepo: Repo;
+  projectId?: string;
+  filesystem?: Filesystem;
+}): RealtimeVersionedDocumentStore => {
   // This is not an ideal model but we want to be able to tell that the document store we are searching in is the desired one.
   // Without this we are risking registering interest in documents from other repositories (and therefore polluting our stores)
   let projectId: string | null = projId ?? null;
@@ -186,7 +193,7 @@ export const createAdapter = (
       );
 
   const updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'] =
-    ({ documentId, representation, content }) =>
+    ({ documentId, representation, content, writeToFileWithPath }) =>
       pipe(
         findDocumentHandleById(documentId),
         Effect.flatMap((documentHandle) =>
@@ -226,6 +233,22 @@ export const createAdapter = (
                   }),
                 catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
               })
+        ),
+        Effect.tap(() =>
+          writeToFileWithPath
+            ? pipe(
+                fromNullable(
+                  filesystem,
+                  () => new RepositoryError('Missing filesystem config')
+                ),
+                Effect.flatMap((filesystem) =>
+                  filesystem.writeFile(writeToFileWithPath, content)
+                ),
+                Effect.catchAll(() =>
+                  Effect.fail(new RepositoryError('Automerge repo error'))
+                )
+              )
+            : Effect.succeed(undefined)
         )
       );
 

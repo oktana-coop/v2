@@ -107,7 +107,9 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                   tempVersionedProjectStore:
                     createAutomergeProjectStoreAdapter(tempAutomergeRepo),
                   tempVersionedDocumentStore:
-                    createAutomergeDocumentStoreAdapter(tempAutomergeRepo),
+                    createAutomergeDocumentStoreAdapter({
+                      automergeRepo: tempAutomergeRepo,
+                    }),
                 }),
                 Effect.flatMap(
                   ({ tempVersionedProjectStore, tempVersionedDocumentStore }) =>
@@ -185,10 +187,10 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
             'versionedDocumentStore',
             ({ automergeRepo, projectAndDocumentData }) =>
               Effect.succeed(
-                createAutomergeDocumentStoreAdapter(
+                createAutomergeDocumentStoreAdapter({
                   automergeRepo,
-                  projectAndDocumentData.projectId
-                )
+                  projectId: projectAndDocumentData.projectId,
+                })
               )
           ),
           Effect.map(
@@ -229,10 +231,10 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
               Effect.map((automergeRepo) => ({
                 versionedProjectStore:
                   createAutomergeProjectStoreAdapter(automergeRepo),
-                versionedDocumentStore: createAutomergeDocumentStoreAdapter(
+                versionedDocumentStore: createAutomergeDocumentStoreAdapter({
                   automergeRepo,
-                  projectId
-                ),
+                  projectId,
+                }),
               })),
               Effect.flatMap(
                 ({ versionedProjectStore, versionedDocumentStore }) =>

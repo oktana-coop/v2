@@ -33,6 +33,7 @@ export type UpdateRichTextDocumentContentArgs = {
   documentId: ResolvedArtifactId;
   representation: RichTextRepresentation;
   content: string;
+  writeToFileWithPath?: string;
 };
 
 export type GetDocumentHistoryResponse = {

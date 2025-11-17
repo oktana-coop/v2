@@ -65,7 +65,7 @@ const registerStoreManagerEvents = ({
       Effect.runPromise(
         pipe(
           singleDocumentProjectStoreManager.setupSingleDocumentProjectStore({
-            createNewFile: filesystem.createNewFile,
+            filesystem,
           })({ name }),
           Effect.tap(
             ({ projectId, versionedProjectStore, versionedDocumentStore }) =>
@@ -90,7 +90,7 @@ const registerStoreManagerEvents = ({
       Effect.runPromise(
         pipe(
           singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
-            openFile: filesystem.openFile,
+            filesystem,
           })({ fromFile }),
           Effect.tap(
             ({ projectId, versionedProjectStore, versionedDocumentStore }) =>

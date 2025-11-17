@@ -66,10 +66,10 @@ export const createAdapter = ({
             Effect.map((automergeRepo) => ({
               versionedProjectStore:
                 createAutomergeProjectStoreAdapter(automergeRepo),
-              versionedDocumentStore: createAutomergeDocumentStoreAdapter(
+              versionedDocumentStore: createAutomergeDocumentStoreAdapter({
                 automergeRepo,
-                projectId
-              ),
+                projectId,
+              }),
               projectId,
               directory,
             }))
@@ -110,10 +110,10 @@ export const createAdapter = ({
               Effect.map((automergeRepo) => ({
                 versionedProjectStore:
                   createAutomergeProjectStoreAdapter(automergeRepo),
-                versionedDocumentStore: createAutomergeDocumentStoreAdapter(
+                versionedDocumentStore: createAutomergeDocumentStoreAdapter({
                   automergeRepo,
-                  projectId
-                ),
+                  projectId,
+                }),
                 projectId,
                 directory,
               }))

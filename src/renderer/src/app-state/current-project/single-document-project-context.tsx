@@ -148,7 +148,7 @@ export const SingleDocumentProjectProvider = ({
         name: projName,
       } = await Effect.runPromise(
         singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
-          openFile: filesystem.openFile,
+          filesystem,
         })({
           fromFile: browserStorageProjectData.file ?? undefined,
           projectId: browserStorageProjectData.projectId,
@@ -187,7 +187,7 @@ export const SingleDocumentProjectProvider = ({
       name: projName,
     } = await Effect.runPromise(
       singleDocumentProjectStoreManager.setupSingleDocumentProjectStore({
-        createNewFile: filesystem.createNewFile,
+        filesystem,
       })({ name })
     );
 
@@ -249,10 +249,10 @@ export const SingleDocumentProjectProvider = ({
         } = await Effect.runPromise(
           args
             ? singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
-                openFile: filesystem.openFile,
+                filesystem,
               })({ fromFile: args.fromFile, projectId: args.projectId })
             : singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
-                openFile: filesystem.openFile,
+                filesystem,
               })({})
         );
 
