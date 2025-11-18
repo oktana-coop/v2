@@ -24,8 +24,8 @@ import {
 import {
   type ArtifactMetaData,
   CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION,
-  isProjectDirPath,
-  parseProjectDirPath,
+  isProjectFsPath,
+  parseProjectFsPath,
   type ProjectId,
 } from '../../../../models';
 import { MultiDocumentProjectStore } from '../../../../ports/multi-document-project';
@@ -46,7 +46,7 @@ export const createAdapter = ({
   }) =>
     pipe(
       Effect.try({
-        try: () => parseProjectDirPath(path),
+        try: () => parseProjectFsPath(path),
         catch: mapErrorTo(ValidationError, 'Invalid project path'),
       }),
       Effect.tap((projectPath) =>
@@ -66,7 +66,7 @@ export const createAdapter = ({
     pipe(
       Effect.succeed(id),
       Effect.filterOrFail(
-        isProjectDirPath,
+        isProjectFsPath,
         (val) => new ValidationError(`Invalid project id: ${val}`)
       ),
       Effect.flatMap((projectPath) =>
@@ -133,7 +133,7 @@ export const createAdapter = ({
           pipe(
             Effect.succeed(projectId),
             Effect.filterOrFail(
-              isProjectDirPath,
+              isProjectFsPath,
               (val) => new ValidationError(`Invalid project id: ${val}`)
             )
           )

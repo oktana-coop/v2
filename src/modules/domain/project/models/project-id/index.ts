@@ -4,9 +4,9 @@ import {
 } from '@automerge/automerge-repo/slim';
 import { z } from 'zod';
 
-const projectPathSchema = z.string().min(1).max(255).brand('dirPath');
+const projectFsPathSchema = z.string().min(1).max(255).brand('projectFsPath');
 
-export type ProjectDirPath = z.infer<typeof projectPathSchema>;
+export type ProjectFsPath = z.infer<typeof projectFsPathSchema>;
 
 // Automerge URL schema
 const automergeUrlSchema = z.custom<AutomergeUrl>(
@@ -18,7 +18,10 @@ const automergeUrlSchema = z.custom<AutomergeUrl>(
   }
 );
 
-export const projectIdSchema = z.union([automergeUrlSchema, projectPathSchema]);
+export const projectIdSchema = z.union([
+  automergeUrlSchema,
+  projectFsPathSchema,
+]);
 
 export type ProjectId = z.infer<typeof projectIdSchema>;
 
@@ -30,12 +33,12 @@ export const isAutomergeUrl = (id: ProjectId): id is AutomergeUrl => {
   return typeof id === 'string' && isValidAutomergeUrl(id);
 };
 
-export const isProjectDirPath = (id: ProjectId): id is ProjectDirPath => {
+export const isProjectFsPath = (id: ProjectId): id is ProjectFsPath => {
   return typeof id === 'string' && !isValidAutomergeUrl(id);
 };
 
-export const parseProjectDirPath = (path: string) =>
-  projectPathSchema.parse(path);
+export const parseProjectFsPath = (path: string) =>
+  projectFsPathSchema.parse(path);
 
 export const parseAutomergeUrl = (id: string) => automergeUrlSchema.parse(id);
 
