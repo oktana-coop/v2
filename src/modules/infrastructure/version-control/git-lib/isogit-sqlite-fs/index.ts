@@ -1,9 +1,10 @@
-import { type Mode, type ObjectEncodingOptions, type OpenMode } from 'node:fs';
-import { posix, sep } from 'node:path';
-
 import Database from 'better-sqlite3';
-import { type PromiseFsClient as NodeLikeFsApi } from 'isomorphic-git';
+import { type PromiseFsClient as IsoGitPromiseClient } from 'isomorphic-git';
 
+import {
+  createAdapter as createNodeLikeFsSQLiteAdapter,
+  type NodeLikeFsApi,
+} from '../../../../../modules/infrastructure/filesystem/adapters/sqlite-fs/node-like-sqlite-fs';
 import {
   type VersionControlSystem,
   versionControlSystems,
@@ -16,18 +17,10 @@ type AdapterInfo = {
   schemaVersion: number;
 };
 
-type DBFile = { path: string; content: Buffer; mode: number; mtime: number };
-
-type Stats = {
-  isFile(): boolean;
-  isDirectory(): boolean;
-  isSymbolicLink(): boolean;
-  mode: number;
-  mtimeMs: number;
-};
-
-export class SQLite3Fs implements NodeLikeFsApi {
+export class SQLite3Fs implements IsoGitPromiseClient {
   private db: Database.Database;
+  private nodeLikeFsSQLiteAdapter: NodeLikeFsApi;
+  promises: IsoGitPromiseClient['promises'];
 
   constructor(pathOrDb: string | Database.Database) {
     if (typeof pathOrDb === 'string') {
@@ -37,10 +30,26 @@ export class SQLite3Fs implements NodeLikeFsApi {
       this.db = pathOrDb;
     }
 
-    this.initializeSchema();
+    this.getAdapterInfoAndRunPotentialMigrations();
+
+    // When we setup this low-level adapter, we also create the initial schema with the files table if it doesn't exist.
+    // We reuse this adapter's methods in our high-level filesystem API implementation for SQLite,
+    // so it lives in the filesystem module and we import it from there.
+    this.nodeLikeFsSQLiteAdapter = createNodeLikeFsSQLiteAdapter(this.db);
+    this.promises = {
+      readFile: this.nodeLikeFsSQLiteAdapter.readFile,
+      writeFile: this.nodeLikeFsSQLiteAdapter.writeFile,
+      unlink: this.nodeLikeFsSQLiteAdapter.unlink,
+      readdir: this.nodeLikeFsSQLiteAdapter.readdir,
+      mkdir: this.nodeLikeFsSQLiteAdapter.mkdir,
+      rmdir: this.nodeLikeFsSQLiteAdapter.rmdir,
+      stat: this.nodeLikeFsSQLiteAdapter.stat,
+      lstat: this.nodeLikeFsSQLiteAdapter.lstat,
+      chmod: this.nodeLikeFsSQLiteAdapter.chmod,
+    };
   }
 
-  private initializeSchema() {
+  private getAdapterInfoAndRunPotentialMigrations() {
     // Create typed adapter_info table with integer timestamps
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS adapter_info (
@@ -56,7 +65,6 @@ export class SQLite3Fs implements NodeLikeFsApi {
 
     if (!info) {
       // New DB
-      this.createInitialSchema();
       this.setAdapterInfo();
       return;
     }
@@ -130,328 +138,4 @@ export class SQLite3Fs implements NodeLikeFsApi {
       )
       .run(targetVersion);
   }
-
-  private createInitialSchema(): void {
-    this.db.exec(`
-      -- Single table for all files (working directory AND .git directory)
-      CREATE TABLE IF NOT EXISTS files (
-        path TEXT PRIMARY KEY,
-        content BLOB NOT NULL,
-        mode INTEGER NOT NULL DEFAULT 0o100644,
-        mtime INTEGER NOT NULL DEFAULT (unixepoch())
-      ) STRICT
-
-      -- Index for efficient directory listings
-      CREATE INDEX IF NOT EXISTS idx_path ON files(path);
-    `);
-  }
-
-  // Normalize paths to POSIX format for cross-platform compatibility
-  // Git always uses forward slashes internally, even on Windows
-  // This ensures the same .db file works on any OS
-  private normalizePath(filepath: string): string {
-    const posixPath = filepath.split(sep).join(posix.sep);
-    const normalized = posix.normalize(posixPath);
-
-    // Remove leading/trailing slashes for consistency
-    const cleaned = normalized.replace(/^\/+|\/+$/g, '');
-
-    // Return '.' for root
-    return cleaned === '' ? '.' : cleaned;
-  }
-
-  readFile: NodeLikeFsApi['promises']['readFile'] = async (
-    // Type taken from isomorphic-git's `write` wrapper.
-    // isomorphic-git uses string file paths.
-    filepath: string,
-    // Type taken from the respective method in Node.js.
-    // isomorphic-git uses a generic object here, so it's good to narrow it down.
-    options?:
-      | {
-          encoding?: null | undefined;
-          flag?: string | undefined;
-        }
-      | null
-      | string
-  ): Promise<string | Buffer> => {
-    const normalized = this.normalizePath(filepath);
-    const stmt = this.db.prepare('SELECT * FROM files WHERE path = ?');
-    const row = stmt.get(normalized) as DBFile | undefined;
-
-    if (!row) {
-      const err: NodeJS.ErrnoException = new Error(
-        `ENOENT: no such file or directory, open '${filepath}'`
-      );
-      err.code = 'ENOENT';
-      throw err;
-    }
-
-    const encoding = typeof options === 'string' ? options : options?.encoding;
-
-    if (encoding === 'utf8' || encoding === 'utf-8') {
-      return row.content.toString('utf8');
-    }
-
-    return Buffer.from(row.content);
-  };
-
-  writeFile: NodeLikeFsApi['promises']['writeFile'] = async (
-    // Type taken from isomorphic-git's `write` wrapper.
-    // isomorphic-git uses string file paths.
-    filepath: string,
-    // Type taken from isomorphic-git's `write` wrapper.
-    data: Buffer | Uint8Array | string,
-    // Type taken from the respective method in Node.js
-    // isomorphic-git uses a generic object here, so it's good to narrow it down.
-    options?:
-      | (ObjectEncodingOptions & {
-          mode?: Mode | undefined;
-          flag?: OpenMode | undefined;
-          flush?: boolean | undefined;
-        })
-      | BufferEncoding
-      | null
-  ): Promise<void> => {
-    const normalized = this.normalizePath(filepath);
-
-    const bufferFromData = (
-      d: Buffer | Uint8Array | string
-    ): Buffer<ArrayBufferLike> => {
-      if (typeof d === 'string') {
-        if (typeof options === 'string' && Buffer.isEncoding(options)) {
-          return Buffer.from(d, options);
-        }
-
-        if (typeof options === 'object') {
-          return Buffer.from(d, options?.encoding ?? 'utf8');
-        }
-
-        // Fallback to utf8
-        return Buffer.from(d, 'utf8');
-      } else if (d instanceof Uint8Array) {
-        return Buffer.from(d);
-      }
-
-      // Already a Buffer
-      return d;
-    };
-
-    const buffer = bufferFromData(data);
-    const mode =
-      typeof options === 'object' ? (options?.mode ?? 0o100644) : 0o100644;
-    const mtime = Date.now();
-
-    const stmt = this.db.prepare(`
-        INSERT OR REPLACE INTO files (path, content, mode, mtime) 
-        VALUES (?, ?, ?, ?)
-      `);
-
-    stmt.run(normalized, buffer, mode, mtime);
-  };
-
-  unlink: NodeLikeFsApi['promises']['unlink'] = async (filepath: string) => {
-    const normalized = this.normalizePath(filepath);
-
-    const stmt = this.db.prepare('DELETE FROM files WHERE path = ?');
-    const result = stmt.run(normalized);
-
-    if (result.changes === 0) {
-      const err: NodeJS.ErrnoException = new Error(
-        `ENOENT: no such file or directory, unlink '${filepath}'`
-      );
-      err.code = 'ENOENT';
-      throw err;
-    }
-  };
-
-  private async findFile(filepath: string): Promise<DBFile | undefined> {
-    return this.db
-      .prepare(`SELECT 1 FROM files WHERE path = ?`)
-      .get(filepath) as DBFile | undefined;
-  }
-
-  readdir: NodeLikeFsApi['promises']['readdir'] = async (dirpath: string) => {
-    const normalizedDir = this.normalizePath(dirpath);
-
-    // Check if the path exists but corresponds to a file
-    const fileCheck = await this.findFile(normalizedDir);
-    if (fileCheck) {
-      const err: NodeJS.ErrnoException = new Error(
-        `ENOTDIR: not a directory, scandir '${normalizedDir}'`
-      );
-      err.code = 'ENOTDIR';
-      throw err;
-    }
-
-    // Get all descendants
-    const likePattern = normalizedDir === '.' ? '%' : `${normalizedDir}/%`;
-    const rows = this.db
-      .prepare(`SELECT path FROM files WHERE path LIKE ?`)
-      .all(likePattern) as DBFile[];
-
-    // If no rows found, the directory does not exist
-    if (rows.length === 0) {
-      const err: NodeJS.ErrnoException = new Error(
-        `ENOENT: no such file or directory, scandir '${normalizedDir}'`
-      );
-      err.code = 'ENOENT';
-      throw err;
-    }
-
-    // We'll use this to slice the part and remove the dir path. In case of the root directory (.) we don't need to slice anything.
-    const prefixLen = normalizedDir === '.' ? 0 : normalizedDir.length + 1;
-
-    const directChildrenSet = new Set(
-      rows
-        .map(
-          (row) =>
-            row.path
-              // This is essentially the relative path of the file to the directory
-              .slice(prefixLen)
-              // The first segment of the relative path corresponds to an immediate child
-              // (keep in mind that we are also handling files in sub-directories here)
-              .split('/')[0]
-        )
-        .filter((segment) => segment.length > 0)
-    );
-
-    return Array.from(directChildrenSet);
-  };
-
-  // SQLite doesn't need explicit directory creation. Directories are implicit from file paths.
-  // This is a no-op but required by isomorphic-git.
-  mkdir: NodeLikeFsApi['promises']['mkdir'] = async () => {};
-
-  rmdir: NodeLikeFsApi['promises']['rmdir'] = async (dirpath: string) => {
-    const normalizedDir = this.normalizePath(dirpath);
-
-    // Check if the path exists but corresponds to a file
-    const fileCheck = await this.findFile(normalizedDir);
-    if (fileCheck) {
-      const err: NodeJS.ErrnoException = new Error(
-        `ENOTDIR: not a directory, scandir '${normalizedDir}'`
-      );
-      err.code = 'ENOTDIR';
-      throw err;
-    }
-
-    // Delete all descendants
-    const likePattern = normalizedDir === '.' ? '%' : `${normalizedDir}/%`;
-    const result = this.db
-      .prepare(`DELETE path FROM files WHERE path LIKE ?`)
-      .run(likePattern);
-
-    if (result.changes === 0) {
-      const err: NodeJS.ErrnoException = new Error(
-        `ENOENT: no such file or directory, unlink '${normalizedDir}'`
-      );
-      err.code = 'ENOENT';
-      throw err;
-    }
-  };
-
-  stat: NodeLikeFsApi['promises']['stat'] = async (filepath: string) => {
-    const normalized = this.normalizePath(filepath);
-
-    const fileRow = await this.findFile(normalized);
-
-    if (fileRow) {
-      const stats: Stats = {
-        isFile: () => true,
-        isDirectory: () => false,
-        isSymbolicLink: () => false,
-        mtimeMs: fileRow.mtime,
-        mode: fileRow.mode,
-      };
-
-      return stats;
-    }
-
-    // No file was found. Check for descendants to see if the path corresponds to a directory.
-    const likePattern = normalized === '.' ? '%' : `${normalized}/%`;
-    const dirExists = this.db
-      .prepare(`SELECT path FROM files WHERE path LIKE ? LIMIT 1`)
-      .get(likePattern) as DBFile | undefined;
-
-    if (dirExists) {
-      const now = Date.now();
-
-      const stats: Stats = {
-        isFile: () => false,
-        isDirectory: () => true,
-        isSymbolicLink: () => false,
-        // TODO: This is not accurate but not sure if it's worth calculating in our use case
-        mtimeMs: now,
-        // standard Unix/Git directory mode
-        mode: 0o040755,
-      };
-
-      return stats;
-    }
-
-    const err: NodeJS.ErrnoException = new Error(
-      `ENOENT: no such file or directory, unlink '${normalized}'`
-    );
-    err.code = 'ENOENT';
-    throw err;
-  };
-
-  lstat: NodeLikeFsApi['promises']['lstat'] = async (filepath: string) => {
-    // Same as stat since we don't support symlinks in this implementation
-    return this.stat(filepath);
-  };
-
-  chmod: NodeLikeFsApi['promises']['chmod'] = async (
-    filepath: string,
-    mode: Mode
-  ) => {
-    const normalized = this.normalizePath(filepath);
-    const normalizedMode = typeof mode === 'string' ? parseInt(mode, 8) : mode;
-
-    const result = this.db
-      .prepare(
-        `
-          UPDATE files SET mode = ?
-          WHERE path = ?
-        `
-      )
-      .run(normalizedMode, normalized);
-
-    if (result.changes === 1) {
-      // File existed & mode updated
-      return;
-    }
-
-    // No file was found. Check for descendants to see if the path corresponds to a directory.
-    const likePattern = normalized === '.' ? '%' : `${normalized}/%`;
-    const dirExists = this.db
-      .prepare(`SELECT path FROM files WHERE path LIKE ? LIMIT 1`)
-      .get(likePattern) as DBFile | undefined;
-
-    if (dirExists) {
-      // We do nothing in the case of directories.
-      // This is OS-specific in real filesystems (Node does nothing on Windows but does something meaningful in POSIX).
-      // TODO: Consider a stricter behavior here (e.g. throwing an ENOTSUP error).
-      return;
-    }
-
-    // Nothing found/updated - throw ENOENT error.
-    const err: NodeJS.ErrnoException = new Error(
-      `ENOENT: no such file or directory, unlink '${normalized}'`
-    );
-    err.code = 'ENOENT';
-    throw err;
-  };
-
-  promises = {
-    readFile: this.readFile,
-    writeFile: this.writeFile,
-    unlink: this.unlink,
-    readdir: this.readdir,
-    mkdir: this.mkdir,
-    rmdir: this.rmdir,
-    stat: this.stat,
-    lstat: this.lstat,
-    chmod: this.chmod,
-  };
 }
