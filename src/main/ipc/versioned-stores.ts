@@ -5,6 +5,7 @@ import { ipcMain } from 'electron';
 import {
   type AddDocumentToMultiDocumentProjectArgs,
   type CreateMultiDocumentProjectArgs,
+  type CreateSingleDocumentProjectArgs,
   type DeleteDocumentFromMultiDocumentProjectArgs,
   type FindDocumentInMultiDocumentProjectArgs,
   type MultiDocumentProjectStoreManager,
@@ -28,6 +29,7 @@ import { type ResolvedArtifactId } from '../../modules/infrastructure/version-co
 import {
   getVersionedStores,
   isMultiDocumentProjectVersionedStores,
+  isSingleDocumentProjectVersionedStores,
   setVersionedStores,
   validateProjectIdAndGetVersionedStores,
 } from '../versioned-stores';
@@ -46,6 +48,7 @@ export const registerVersionedStoresEvents = ({
     multiDocumentProjectStoreManager,
     filesystem,
   });
+  registerSingleDocumentProjectStoreEvents();
   registerMultiDocumentProjectStoreEvents();
   registerVersionedDocumentStoreEvents();
 };
@@ -149,6 +152,108 @@ const registerStoreManagerEvents = ({
             projectId,
             directory,
           }))
+        )
+      )
+  );
+};
+
+const registerSingleDocumentProjectStoreEvents = () => {
+  ipcMain.handle(
+    'single-document-project-store:create-single-document-project',
+    async (_, args: CreateSingleDocumentProjectArgs, projectId: string) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.createSingleDocumentProject(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:find-document-in-project',
+    async (_, id: ProjectId) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(id),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.findDocumentInProject(id)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:find-project-by-id',
+    async (_, id: ProjectId) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(id),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.findProjectById(id)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:get-project-name',
+    async (_, id: ProjectId) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(id),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.getProjectName(id)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:disconnect',
+    async (_, projectId: string) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.disconnect()
+          )
         )
       )
   );

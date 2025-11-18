@@ -8,6 +8,7 @@ import {
   type OsEventsAPI,
   type PersonalizationAPI,
   type SingleDocumentProjectStoreManagerAPI,
+  type SingleDocumentProjectStorePromiseAPI,
   type VersionedDocumentStorePromiseAPI,
 } from '../../renderer';
 import { type UpdateState } from '../modules/infrastructure/cross-platform/update';
@@ -153,6 +154,28 @@ contextBridge.exposeInMainWorld('versionedDocumentStoreAPI', {
   disconnect: (projectId) =>
     ipcRenderer.invoke('versioned-document-store:disconnect', projectId),
 } as VersionedDocumentStorePromiseAPI);
+
+contextBridge.exposeInMainWorld('singleDocumentProjectStoreAPI', {
+  createSingleDocumentProject: (args, projectId) =>
+    ipcRenderer.invoke(
+      'single-document-project-store:create-single-document-project',
+      {
+        ...args,
+      },
+      projectId
+    ),
+  findDocumentInProject: (id) =>
+    ipcRenderer.invoke(
+      'single-document-project-store:find-document-in-project',
+      id
+    ),
+  findProjectById: (id) =>
+    ipcRenderer.invoke('single-document-project-store:find-project-by-id', id),
+  getProjectName: (id) =>
+    ipcRenderer.invoke('single-document-project-store:get-project-name', id),
+  disconnect: (projectId) =>
+    ipcRenderer.invoke('single-document-project-store:disconnect', projectId),
+} as SingleDocumentProjectStorePromiseAPI);
 
 contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
   createProject: (args) =>

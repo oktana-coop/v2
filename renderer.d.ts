@@ -9,6 +9,7 @@ import {
   type OpenSingleDocumentProjectStoreResult,
   type SetupSingleDocumentProjectStoreArgs,
   type SetupSingleDocumentProjectStoreResult,
+  type SingleDocumentProjectStore,
 } from './src/modules/domain/project';
 import { type VersionedDocumentStore } from './src/modules/domain/rich-text';
 import {
@@ -96,6 +97,17 @@ export type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
 export type MultiDocumentProjectStorePromiseAPI =
   PromisifyEffects<MultiDocumentProjectStore>;
 
+export type SingleDocumentProjectStoreIPCAPI = SingleDocumentProjectStore & {
+  createSingleDocumentProject: AppendParam<
+    SingleDocumentProjectStore['createSingleDocumentProject'],
+    string
+  >;
+  disconnect: AppendParam<SingleDocumentProjectStore['disconnect'], string>;
+};
+
+export type SingleDocumentProjectStorePromiseAPI =
+  PromisifyEffects<SingleDocumentProjectStoreIPCAPI>;
+
 type VersionedDocumentStoreIPCAPI = VersionedDocumentStore & {
   createDocument: AppendParam<VersionedDocumentStore['createDocument'], string>;
   findDocumentById: AppendParam<
@@ -141,6 +153,7 @@ declare global {
     automergeRepoNetworkAdapter: AutomergeRepoNetworkAdapter;
     filesystemAPI: FilesystemPromiseAPI;
     versionedDocumentStoreAPI: VersionedDocumentStorePromiseAPI;
+    singleDocumentProjectStoreAPI: SingleDocumentProjectStorePromiseAPI;
     multiDocumentProjectStoreAPI: MultiDocumentProjectStorePromiseAPI;
     singleDocumentProjectStoreManagerAPI: SingleDocumentProjectStoreManagerAPI;
     multiDocumentProjectStoreManagerAPI: MultiDocumentProjectStoreManagerAPI;
