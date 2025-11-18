@@ -1,9 +1,5 @@
-import fs, {
-  type Mode,
-  type ObjectEncodingOptions,
-  type OpenMode,
-} from 'node:fs';
-import path from 'node:path';
+import { type Mode, type ObjectEncodingOptions, type OpenMode } from 'node:fs';
+import { posix, sep } from 'node:path';
 
 import Database from 'better-sqlite3';
 import { type PromiseFsClient as NodeLikeFsApi } from 'isomorphic-git';
@@ -21,6 +17,14 @@ type AdapterInfo = {
 };
 
 type DBFile = { path: string; content: Buffer; mode: number; mtime: number };
+
+type Stats = {
+  isFile(): boolean;
+  isDirectory(): boolean;
+  isSymbolicLink(): boolean;
+  mode: number;
+  mtimeMs: number;
+};
 
 export class SQLite3Fs implements NodeLikeFsApi {
   private db: Database.Database;
@@ -146,8 +150,8 @@ export class SQLite3Fs implements NodeLikeFsApi {
   // Git always uses forward slashes internally, even on Windows
   // This ensures the same .db file works on any OS
   private normalizePath(filepath: string): string {
-    const posixPath = filepath.split(path.sep).join(path.posix.sep);
-    const normalized = path.posix.normalize(posixPath);
+    const posixPath = filepath.split(sep).join(posix.sep);
+    const normalized = posix.normalize(posixPath);
 
     // Remove leading/trailing slashes for consistency
     const cleaned = normalized.replace(/^\/+|\/+$/g, '');
@@ -266,8 +270,8 @@ export class SQLite3Fs implements NodeLikeFsApi {
       .get(filepath) as DBFile | undefined;
   }
 
-  readdir: NodeLikeFsApi['promises']['readdir'] = async (dirPath: string) => {
-    const normalizedDir = this.normalizePath(dirPath);
+  readdir: NodeLikeFsApi['promises']['readdir'] = async (dirpath: string) => {
+    const normalizedDir = this.normalizePath(dirpath);
 
     // Check if the path exists but corresponds to a file
     const fileCheck = await this.findFile(normalizedDir);
@@ -318,8 +322,8 @@ export class SQLite3Fs implements NodeLikeFsApi {
   // This is a no-op but required by isomorphic-git.
   mkdir: NodeLikeFsApi['promises']['mkdir'] = async () => {};
 
-  rmdir: NodeLikeFsApi['promises']['rmdir'] = async (dirPath: string) => {
-    const normalizedDir = this.normalizePath(dirPath);
+  rmdir: NodeLikeFsApi['promises']['rmdir'] = async (dirpath: string) => {
+    const normalizedDir = this.normalizePath(dirpath);
 
     // Check if the path exists but corresponds to a file
     const fileCheck = await this.findFile(normalizedDir);
@@ -344,5 +348,110 @@ export class SQLite3Fs implements NodeLikeFsApi {
       err.code = 'ENOENT';
       throw err;
     }
+  };
+
+  stat: NodeLikeFsApi['promises']['stat'] = async (filepath: string) => {
+    const normalized = this.normalizePath(filepath);
+
+    const fileRow = await this.findFile(normalized);
+
+    if (fileRow) {
+      const stats: Stats = {
+        isFile: () => true,
+        isDirectory: () => false,
+        isSymbolicLink: () => false,
+        mtimeMs: fileRow.mtime,
+        mode: fileRow.mode,
+      };
+
+      return stats;
+    }
+
+    // No file was found. Check for descendants to see if the path corresponds to a directory.
+    const likePattern = normalized === '.' ? '%' : `${normalized}/%`;
+    const dirExists = this.db
+      .prepare(`SELECT path FROM files WHERE path LIKE ? LIMIT 1`)
+      .get(likePattern) as DBFile | undefined;
+
+    if (dirExists) {
+      const now = Date.now();
+
+      const stats: Stats = {
+        isFile: () => false,
+        isDirectory: () => true,
+        isSymbolicLink: () => false,
+        // TODO: This is not accurate but not sure if it's worth calculating in our use case
+        mtimeMs: now,
+        // standard Unix/Git directory mode
+        mode: 0o040755,
+      };
+
+      return stats;
+    }
+
+    const err: NodeJS.ErrnoException = new Error(
+      `ENOENT: no such file or directory, unlink '${normalized}'`
+    );
+    err.code = 'ENOENT';
+    throw err;
+  };
+
+  lstat: NodeLikeFsApi['promises']['lstat'] = async (filepath: string) => {
+    // Same as stat since we don't support symlinks in this implementation
+    return this.stat(filepath);
+  };
+
+  chmod: NodeLikeFsApi['promises']['chmod'] = async (
+    filepath: string,
+    mode: Mode
+  ) => {
+    const normalized = this.normalizePath(filepath);
+    const normalizedMode = typeof mode === 'string' ? parseInt(mode, 8) : mode;
+
+    const result = this.db
+      .prepare(
+        `
+          UPDATE files SET mode = ?
+          WHERE path = ?
+        `
+      )
+      .run(normalizedMode, normalized);
+
+    if (result.changes === 1) {
+      // File existed & mode updated
+      return;
+    }
+
+    // No file was found. Check for descendants to see if the path corresponds to a directory.
+    const likePattern = normalized === '.' ? '%' : `${normalized}/%`;
+    const dirExists = this.db
+      .prepare(`SELECT path FROM files WHERE path LIKE ? LIMIT 1`)
+      .get(likePattern) as DBFile | undefined;
+
+    if (dirExists) {
+      // We do nothing in the case of directories.
+      // This is OS-specific in real filesystems (Node does nothing on Windows but does something meaningful in POSIX).
+      // TODO: Consider a stricter behavior here (e.g. throwing an ENOTSUP error).
+      return;
+    }
+
+    // Nothing found/updated - throw ENOENT error.
+    const err: NodeJS.ErrnoException = new Error(
+      `ENOENT: no such file or directory, unlink '${normalized}'`
+    );
+    err.code = 'ENOENT';
+    throw err;
+  };
+
+  promises = {
+    readFile: this.readFile,
+    writeFile: this.writeFile,
+    unlink: this.unlink,
+    readdir: this.readdir,
+    mkdir: this.mkdir,
+    rmdir: this.rmdir,
+    stat: this.stat,
+    lstat: this.lstat,
+    chmod: this.chmod,
   };
 }
