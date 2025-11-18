@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { type PromiseFsClient as IsoGitPromiseClient } from 'isomorphic-git';
+import { type PromiseFsClient as IsoGitFsApi } from 'isomorphic-git';
 
 import {
   createAdapter as createNodeLikeFsSQLiteAdapter,
@@ -17,10 +17,10 @@ type AdapterInfo = {
   schemaVersion: number;
 };
 
-export class SQLite3Fs implements IsoGitPromiseClient {
+export class SQLite3Fs implements IsoGitFsApi {
   private db: Database.Database;
   private nodeLikeFsSQLiteAdapter: NodeLikeFsApi;
-  promises: IsoGitPromiseClient['promises'];
+  promises: IsoGitFsApi['promises'];
 
   constructor(pathOrDb: string | Database.Database) {
     if (typeof pathOrDb === 'string') {

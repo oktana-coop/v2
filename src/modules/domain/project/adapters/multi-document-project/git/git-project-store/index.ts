@@ -1,7 +1,7 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as Option from 'effect/Option';
-import git, { type PromiseFsClient as NodeLikeFsApi } from 'isomorphic-git';
+import git, { type PromiseFsClient as IsoGitFsApi } from 'isomorphic-git';
 
 import {
   type Filesystem,
@@ -38,7 +38,7 @@ export const createAdapter = ({
   // with its own implemented fs APIs, which more or less comply to the Node.js API.
   // In cases where we interact with the filesystem outside isomorphic-git (e.g. for listing files or normailizing paths),
   // we are using our own Filesystem API.
-  isoGitFs: NodeLikeFsApi;
+  isoGitFs: IsoGitFsApi;
   filesystem: Filesystem;
 }): MultiDocumentProjectStore => {
   const createProject: MultiDocumentProjectStore['createProject'] = ({
