@@ -7,26 +7,26 @@ import {
   migrateIfNeeded,
   MigrationError,
   versionedArtifactTypes,
-} from '../../../../../../modules/infrastructure/version-control';
-import { fromNullable } from '../../../../../../utils/effect';
-import { mapErrorTo } from '../../../../../../utils/errors';
+} from '../../../../../../../modules/infrastructure/version-control';
+import { fromNullable } from '../../../../../../../utils/effect';
+import { mapErrorTo } from '../../../../../../../utils/errors';
 import {
   NotFoundError,
   RepositoryError,
   ValidationError,
-} from '../../../errors';
+} from '../../../../errors';
 import {
   type BaseArtifactMetaData,
   type SingleDocumentProject,
   type VersionedSingleDocumentProject,
   type VersionedSingleDocumentProjectHandle,
-} from '../../../models';
+} from '../../../../models';
 import {
   CURRENT_SINGLE_DOCUMENT_PROJECT_SCHEMA_VERSION,
   isAutomergeUrl,
   type ProjectId,
-} from '../../../models';
-import { type SingleDocumentProjectStore } from '../../../ports';
+} from '../../../../models';
+import { type SingleDocumentProjectStore } from '../../../../ports';
 import { migrations } from './migrations';
 
 export const createAdapter = (

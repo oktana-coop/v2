@@ -4,19 +4,19 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import { BrowserWindow } from 'electron';
 
-import { createAdapter as createAutomergeDocumentStoreAdapter } from '../../../../../../../modules/domain/rich-text/adapters/versioned-document-store/automerge/automerge-versioned-document-store';
-import { setupSQLiteRepoForNode } from '../../../../../../../modules/infrastructure/version-control/automerge-repo/node';
-import { mapErrorTo } from '../../../../../../../utils/errors';
-import { createDocumentAndProject } from '../../../../commands/single-document-project';
-import { PROJECT_FILE_EXTENSION } from '../../../../constants/file-extensions';
-import { RepositoryError as VersionedProjectRepositoryError } from '../../../../errors';
-import { type ProjectId } from '../../../../models';
+import { createAdapter as createAutomergeDocumentStoreAdapter } from '../../../../../../../../modules/domain/rich-text/adapters/versioned-document-store/automerge/automerge-versioned-document-store';
+import { setupSQLiteRepoForNode } from '../../../../../../../../modules/infrastructure/version-control/automerge-repo/node';
+import { mapErrorTo } from '../../../../../../../../utils/errors';
+import { createDocumentAndProject } from '../../../../../commands/single-document-project';
+import { PROJECT_FILE_EXTENSION } from '../../../../../constants/file-extensions';
+import { RepositoryError as VersionedProjectRepositoryError } from '../../../../../errors';
+import { type ProjectId } from '../../../../../models';
 import {
   type OpenSingleDocumentProjectStoreArgs,
   type OpenSingleDocumentProjectStoreDeps,
   type SetupSingleDocumentProjectStoreDeps,
   type SingleDocumentProjectStoreManager,
-} from '../../../../ports';
+} from '../../../../../ports';
 import { createAdapter as createAutomergeProjectStoreAdapter } from '../../automerge-project-store';
 
 export type ElectronDeps = {

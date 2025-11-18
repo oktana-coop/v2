@@ -3,17 +3,17 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import { v4 as uuidv4 } from 'uuid';
 
-import { createAdapter as createAutomergeDocumentStoreAdapter } from '../../../../../../../modules/domain/rich-text/adapters/versioned-document-store/automerge/automerge-versioned-document-store';
-import { setupForWeb as setupBrowserRepoForWeb } from '../../../../../../../modules/infrastructure/version-control/automerge-repo/browser';
-import { fromNullable } from '../../../../../../../utils/effect';
-import { mapErrorTo } from '../../../../../../../utils/errors';
-import { createDocumentAndProject } from '../../../../commands/single-document-project';
-import { getProjectName } from '../../../../commands/single-document-project';
+import { createAdapter as createAutomergeDocumentStoreAdapter } from '../../../../../../../../modules/domain/rich-text/adapters/versioned-document-store/automerge/automerge-versioned-document-store';
+import { setupForWeb as setupBrowserRepoForWeb } from '../../../../../../../../modules/infrastructure/version-control/automerge-repo/browser';
+import { fromNullable } from '../../../../../../../../utils/effect';
+import { mapErrorTo } from '../../../../../../../../utils/errors';
+import { createDocumentAndProject } from '../../../../../commands/single-document-project';
+import { getProjectName } from '../../../../../commands/single-document-project';
 import {
   RepositoryError as VersionedProjectRepositoryError,
   ValidationError as VersionedProjectValidationError,
-} from '../../../../errors';
-import { type SingleDocumentProjectStoreManager } from '../../../../ports';
+} from '../../../../../errors';
+import { type SingleDocumentProjectStoreManager } from '../../../../../ports';
 import { createAdapter as createAutomergeProjectStoreAdapter } from '../../automerge-project-store';
 import { clone, deleteDB, openDB } from './db';
 
