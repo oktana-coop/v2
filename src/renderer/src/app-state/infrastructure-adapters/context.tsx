@@ -68,9 +68,7 @@ export const InfrastructureAdaptersProvider = ({
       if (isElectron) {
         if (processId) {
           const singleDocProjectStoreManager =
-            createElectronRendererSingleDocumentProjectStoreManagerAdapter({
-              processId,
-            });
+            createElectronRendererSingleDocumentProjectStoreManagerAdapter();
           const multiDocProjectStoreManager =
             createElectronRendererMultiDocumentProjectStoreManagerAdapter();
           setSingleDocumentProjectStoreManager(singleDocProjectStoreManager);

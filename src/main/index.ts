@@ -184,10 +184,7 @@ async function createWindow() {
   const rendererProcessId = String(win.webContents.id);
 
   const singleDocumentProjectStoreManager =
-    createNodeSingleDocumentProjectStoreManagerAdapter({
-      rendererProcessId,
-      browserWindow: win,
-    });
+    createNodeSingleDocumentProjectStoreManagerAdapter();
 
   const multiDocumentProjectStoreManager =
     createNodeMultiDocumentProjectStoreManagerAdapter();
