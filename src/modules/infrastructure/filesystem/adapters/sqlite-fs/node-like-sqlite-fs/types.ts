@@ -6,7 +6,13 @@ export type Stats = {
   isDirectory(): boolean;
   isSymbolicLink(): boolean;
   mode: number;
+  ctimeMs: number;
   mtimeMs: number;
+  dev: number;
+  ino: number;
+  uid: number;
+  gid: number;
+  size: number;
 };
 
 export type NodeLikeFsApi = {

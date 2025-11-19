@@ -22,6 +22,10 @@ import {
 import { DOCUMENT_INTERNAL_PATH } from '../../document-internal-path';
 import { createAdapter as createSingleDocumentProjectStoreAdapter } from '../../git-project-store';
 
+// This will passed as the workdir in the SQLite virtual filesystem.
+// We use the current directory ('.') so that all paths stay relative.
+const INTERNAL_PROJECT_DIR = '.';
+
 const setupSQLiteDatabase = (
   filePath: string
 ): Effect.Effect<Database.Database, VersionedProjectRepositoryError, never> =>
@@ -81,6 +85,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                   isoGitFs,
                   filesystem,
                   projectFilePath,
+                  internalProjectDir: INTERNAL_PROJECT_DIR,
                   projectName: newFile.name,
                   documentInternalPath: DOCUMENT_INTERNAL_PATH,
                 })
@@ -94,7 +99,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                   isoGitFs,
                   filesystem,
                   projectId: projectFilePath,
-                  projectDir: '/',
+                  projectDir: INTERNAL_PROJECT_DIR,
                 })
               )
           ),
@@ -162,6 +167,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                     isoGitFs,
                     filesystem,
                     projectFilePath,
+                    internalProjectDir: INTERNAL_PROJECT_DIR,
                     projectName: file.name,
                     documentInternalPath: DOCUMENT_INTERNAL_PATH,
                   })
@@ -175,7 +181,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                     isoGitFs,
                     filesystem,
                     projectId: projectFilePath,
-                    projectDir: '/',
+                    projectDir: INTERNAL_PROJECT_DIR,
                   })
                 )
             ),

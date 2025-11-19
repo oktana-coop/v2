@@ -27,6 +27,7 @@ export const createAdapter = ({
   isoGitFs,
   filesystem,
   projectFilePath,
+  internalProjectDir,
   projectName,
   documentInternalPath,
 }: {
@@ -37,6 +38,7 @@ export const createAdapter = ({
   isoGitFs: IsoGitFsApi;
   filesystem: Filesystem;
   projectFilePath: ProjectFsPath;
+  internalProjectDir: string;
   projectName: string;
   documentInternalPath: string;
 }): SingleDocumentProjectStore => {
@@ -49,7 +51,7 @@ export const createAdapter = ({
             try: () =>
               git.init({
                 fs: isoGitFs,
-                dir: '/',
+                dir: internalProjectDir,
                 defaultBranch: DEFAULT_BRANCH,
               }),
             catch: mapErrorTo(RepositoryError, 'Git repo error'),

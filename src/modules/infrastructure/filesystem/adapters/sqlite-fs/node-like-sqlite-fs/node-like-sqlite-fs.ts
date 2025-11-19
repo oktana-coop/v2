@@ -4,12 +4,18 @@ import { posix, sep } from 'node:path';
 import { type Database } from 'better-sqlite3';
 
 import { type NodeLikeFsApi, type Stats } from './types';
+import { hashPathToIno } from './utils';
 
 type DBFile = {
   path: string;
   content: Buffer;
   mode: number;
+  ctime: number;
   mtime: number;
+};
+
+type DBFileStats = Pick<DBFile, 'mode' | 'ctime' | 'mtime'> & {
+  size: number;
 };
 
 const DEFAULT_FILE_MODE = 33188; // Octal 0o100644
@@ -21,6 +27,7 @@ const createInitialSchema = (db: Database) =>
         path TEXT PRIMARY KEY,
         content BLOB NOT NULL,
         mode INTEGER NOT NULL DEFAULT ${DEFAULT_FILE_MODE},
+        ctime INTEGER NOT NULL DEFAULT (unixepoch()),
         mtime INTEGER NOT NULL DEFAULT (unixepoch())
       ) STRICT;
 
@@ -123,14 +130,27 @@ export const createAdapter = (db: Database): NodeLikeFsApi => {
       typeof options === 'object'
         ? (options?.mode ?? DEFAULT_FILE_MODE)
         : DEFAULT_FILE_MODE;
-    const mtime = Date.now();
+
+    // mtime is in seconds since epoch
+    // Date.now is in milliseconds since epoch
+    const mtime = Math.floor(Date.now() / 1000);
+    const ctime = Math.floor(Date.now() / 1000);
 
     const stmt = db.prepare(`
-          INSERT OR REPLACE INTO files (path, content, mode, mtime) 
-          VALUES (?, ?, ?, ?)
-        `);
+      INSERT INTO files (path, content, mode, ctime, mtime)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(path) DO UPDATE SET
+          content = excluded.content,
+          mode = excluded.mode,
+          mtime = excluded.mtime,
+          -- Only update ctime if mode (which is metadata) has changed
+          ctime = CASE
+            WHEN excluded.mode != files.mode THEN excluded.ctime
+            ELSE files.ctime
+          END
+    `);
 
-    stmt.run(normalized, buffer, mode, mtime);
+    stmt.run(normalized, buffer, mode, ctime, mtime);
   };
 
   const unlink = async (filepath: string) => {
@@ -237,15 +257,25 @@ export const createAdapter = (db: Database): NodeLikeFsApi => {
   const stat = async (filepath: string) => {
     const normalized = normalizePath(filepath);
 
-    const fileRow = await findFile(normalized);
+    const fileStats = db
+      .prepare(
+        `SELECT mode, ctime, mtime, length(content) as size FROM files WHERE path = ?`
+      )
+      .get(filepath) as DBFileStats | undefined;
 
-    if (fileRow) {
+    if (fileStats) {
       const stats: Stats = {
         isFile: () => true,
         isDirectory: () => false,
         isSymbolicLink: () => false,
-        mtimeMs: fileRow.mtime,
-        mode: fileRow.mode,
+        mode: fileStats.mode,
+        ctimeMs: fileStats.ctime * 1000,
+        mtimeMs: fileStats.mtime * 1000,
+        dev: 1,
+        ino: hashPathToIno(normalized),
+        uid: 0,
+        gid: 0,
+        size: fileStats.size,
       };
 
       return stats;
@@ -264,10 +294,17 @@ export const createAdapter = (db: Database): NodeLikeFsApi => {
         isFile: () => false,
         isDirectory: () => true,
         isSymbolicLink: () => false,
-        // TODO: This is not accurate but not sure if it's worth calculating in our use case
-        mtimeMs: now,
         // standard Unix/Git directory mode
         mode: 0o040755,
+        // TODO: This is not accurate but not sure if it's worth calculating for directories in our use case
+        ctimeMs: now,
+        // TODO: This is not accurate but not sure if it's worth calculating for directories in our use case
+        mtimeMs: now,
+        dev: 1,
+        ino: hashPathToIno(normalized),
+        uid: 0,
+        gid: 0,
+        size: 0,
       };
 
       return stats;
@@ -289,14 +326,20 @@ export const createAdapter = (db: Database): NodeLikeFsApi => {
     const normalized = normalizePath(filepath);
     const normalizedMode = typeof mode === 'string' ? parseInt(mode, 8) : mode;
 
+    // ctime is in seconds since epoch
+    // Date.now is in milliseconds since epoch
+    const ctime = Math.floor(Date.now() / 1000);
+
     const result = db
       .prepare(
         `
-            UPDATE files SET mode = ?
+            UPDATE files SET 
+              mode = ?
+              ctime = ?
             WHERE path = ?
           `
       )
-      .run(normalizedMode, normalized);
+      .run(normalizedMode, ctime, normalized);
 
     if (result.changes === 1) {
       // File existed & mode updated

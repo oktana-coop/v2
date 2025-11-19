@@ -55,7 +55,7 @@ export const createAdapter = ({
   filesystem: Filesystem;
   projectId: string;
   // Project dir is the same with projectId in real filesystem setups.
-  // But it is the root path ('/') in virtual filesystems like the SQLite fs.
+  // But it is the current directory ('.') in virtual filesystems like the SQLite fs (so that all paths stay relative).
   // We still want to keep the projectId separate to be able to identify the document store's project correctly.
   projectDir: string;
 }): VersionedDocumentStore => {
@@ -394,9 +394,14 @@ export const createAdapter = ({
           Effect.bind('documentCommitHistory', () =>
             getDocumentCommitHistory({ documentPath, projectDir })
           ),
-          Effect.bind('isModified', () =>
-            isDocumentModified({ projectDir, documentPath })
-          ),
+          Effect.bind('isModified', () => {
+            console.log(
+              'Checking if document is modified',
+              projectDir,
+              documentPath
+            );
+            return isDocumentModified({ projectDir, documentPath });
+          }),
           Effect.flatMap(({ documentCommitHistory, isModified }) =>
             getDocumentChangeHistory({
               modified: isModified,
