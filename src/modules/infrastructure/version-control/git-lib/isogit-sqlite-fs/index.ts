@@ -54,7 +54,7 @@ export class SQLite3IsoGitFs implements IsoGitFsApi {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS adapter_info (
         id INTEGER PRIMARY KEY CHECK (id = 1),
-        adapter_type TEXT NOT NULL,
+        version_control_system TEXT NOT NULL,
         schema_version INTEGER NOT NULL,
         created_at INTEGER NOT NULL DEFAULT (unixepoch()),
         last_migrated_at INTEGER NOT NULL DEFAULT (unixepoch())

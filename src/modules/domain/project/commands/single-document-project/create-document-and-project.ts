@@ -14,6 +14,7 @@ import { type SingleDocumentProjectStore } from '../../ports';
 export type CreateDocumentAndProjectArgs = {
   name?: string;
   content: string | null;
+  writeToFileWithPath?: string;
 };
 
 export type CreateDocumentAndProjectDeps = {
@@ -34,6 +35,7 @@ export const createDocumentAndProject =
   ({
     name,
     content,
+    writeToFileWithPath,
   }: CreateDocumentAndProjectArgs): Effect.Effect<
     CreateSingleDocumentProjectResult,
     | VersionedProjectRepositoryError
@@ -44,6 +46,8 @@ export const createDocumentAndProject =
     pipe(
       createDocument({
         content,
+        filePath: writeToFileWithPath,
+        writeToFile: Boolean(writeToFileWithPath),
       }),
       Effect.flatMap((documentId) =>
         pipe(

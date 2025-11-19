@@ -12,15 +12,17 @@ type DBFile = {
   mtime: number;
 };
 
+const DEFAULT_FILE_MODE = 33188; // Octal 0o100644
+
 const createInitialSchema = (db: Database) =>
   db.exec(`
       -- Single table for all files (working directory AND .git directory)
       CREATE TABLE IF NOT EXISTS files (
         path TEXT PRIMARY KEY,
         content BLOB NOT NULL,
-        mode INTEGER NOT NULL DEFAULT 0o100644,
+        mode INTEGER NOT NULL DEFAULT ${DEFAULT_FILE_MODE},
         mtime INTEGER NOT NULL DEFAULT (unixepoch())
-      ) STRICT
+      ) STRICT;
 
       -- Index for efficient directory listings
       CREATE INDEX IF NOT EXISTS idx_path ON files(path);
@@ -118,7 +120,9 @@ export const createAdapter = (db: Database): NodeLikeFsApi => {
 
     const buffer = bufferFromData(data);
     const mode =
-      typeof options === 'object' ? (options?.mode ?? 0o100644) : 0o100644;
+      typeof options === 'object'
+        ? (options?.mode ?? DEFAULT_FILE_MODE)
+        : DEFAULT_FILE_MODE;
     const mtime = Date.now();
 
     const stmt = db.prepare(`

@@ -94,6 +94,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                   isoGitFs,
                   filesystem,
                   projectId: projectFilePath,
+                  projectDir: '/',
                 })
               )
           ),
@@ -106,6 +107,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                     versionedProjectStore.createSingleDocumentProject,
                 })({
                   content: null,
+                  writeToFileWithPath: DOCUMENT_INTERNAL_PATH,
                 }),
                 Effect.map(({ documentId, projectId }) => ({
                   versionedProjectStore,
@@ -173,6 +175,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                     isoGitFs,
                     filesystem,
                     projectId: projectFilePath,
+                    projectDir: '/',
                   })
                 )
             ),

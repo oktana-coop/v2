@@ -45,6 +45,7 @@ export const createAdapter = ({
   isoGitFs,
   filesystem,
   projectId: projId,
+  projectDir,
 }: {
   // We have 2 filesystem APIs because isomorphic-git works well in both browser in Node.js
   // with its own implemented fs APIs, which more or less comply to the Node.js API.
@@ -52,21 +53,19 @@ export const createAdapter = ({
   // we are using our own Filesystem API.
   isoGitFs: IsoGitFsApi;
   filesystem: Filesystem;
-  projectId?: string;
+  projectId: string;
+  // Project dir is the same with projectId in real filesystem setups.
+  // But it is the root path ('/') in virtual filesystems like the SQLite fs.
+  // We still want to keep the projectId separate to be able to identify the document store's project correctly.
+  projectDir: string;
 }): VersionedDocumentStore => {
   // This is not an ideal model but we want to be able to tell that the document store we are searching in is the desired one.
   // Without this we are risking registering interest in documents from other repositories (and therefore polluting our stores)
-  let projectId: string | null = projId ?? null;
+  let projectId: string = projId;
   const setProjectId: VersionedDocumentStore['setProjectId'] = (id) =>
     Effect.sync(() => {
       projectId = id;
     });
-
-  const getProjectDir = (): Effect.Effect<string, RepositoryError, never> =>
-    fromNullable(
-      projectId,
-      () => new RepositoryError('Project ID not set in the document repo')
-    );
 
   const validateDocumentId: (
     id: ResolvedArtifactId
@@ -92,6 +91,7 @@ export const createAdapter = ({
 
   const createDocument: VersionedDocumentStore['createDocument'] = ({
     filePath,
+    writeToFile,
   }) =>
     pipe(
       fromNullable(
@@ -102,23 +102,37 @@ export const createAdapter = ({
           )
       ),
       Effect.flatMap((path) =>
-        Effect.try({
-          try: () => {
-            // TODO: Make branch a param
-            // TODO: Handle errors returned by createGitBlobRef
-            const documentId = createGitBlobRef({ ref: DEFAULT_BRANCH, path });
-            return documentId;
-          },
-          catch: mapErrorTo(RepositoryError, 'Git repo error'),
-        })
+        pipe(
+          Effect.try({
+            try: () => {
+              // TODO: Make branch a param
+              // TODO: Handle errors returned by createGitBlobRef
+              const documentId = createGitBlobRef({
+                ref: DEFAULT_BRANCH,
+                path,
+              });
+              return documentId;
+            },
+            catch: mapErrorTo(RepositoryError, 'Git repo error'),
+          }),
+          Effect.tap(() =>
+            writeToFile
+              ? pipe(
+                  filesystem.writeFile(path, ''),
+                  Effect.catchAll(() =>
+                    Effect.fail(new RepositoryError('Git repo error'))
+                  )
+                )
+              : Effect.succeed(undefined)
+          )
+        )
       )
     );
 
   const findDocumentById: VersionedDocumentStore['findDocumentById'] = (id) =>
     Effect.Do.pipe(
       Effect.bind('relativeDocumentPath', () => extractDocumentPathFromId(id)),
-      Effect.bind('projectDir', () => getProjectDir()),
-      Effect.bind('documentPath', ({ relativeDocumentPath, projectDir }) =>
+      Effect.bind('documentPath', ({ relativeDocumentPath }) =>
         Effect.succeed([projectDir, relativeDocumentPath].join('/'))
       ),
       Effect.flatMap(({ documentPath }) =>
@@ -234,8 +248,7 @@ export const createAdapter = ({
         Effect.bind('documentPath', () =>
           extractDocumentPathFromId(documentId)
         ),
-        Effect.bind('projectDir', () => getProjectDir()),
-        Effect.flatMap(({ documentPath, projectDir }) =>
+        Effect.flatMap(({ documentPath }) =>
           pipe(
             isDocumentModified({ projectDir, documentPath }),
             Effect.flatMap((modified) =>
@@ -272,8 +285,7 @@ export const createAdapter = ({
   }) =>
     Effect.Do.pipe(
       Effect.bind('documentPath', () => extractDocumentPathFromId(documentId)),
-      Effect.bind('projectDir', () => getProjectDir()),
-      Effect.flatMap(({ documentPath, projectDir }) =>
+      Effect.flatMap(({ documentPath }) =>
         pipe(
           Effect.tryPromise({
             try: () =>
@@ -375,10 +387,9 @@ export const createAdapter = ({
     };
 
     return Effect.Do.pipe(
-      Effect.bind('projectDir', () => getProjectDir()),
       Effect.bind('documentPath', () => extractDocumentPathFromId(documentId)),
       Effect.bind('document', () => findDocumentById(documentId)),
-      Effect.flatMap(({ projectDir, documentPath, document }) =>
+      Effect.flatMap(({ documentPath, document }) =>
         Effect.Do.pipe(
           Effect.bind('documentCommitHistory', () =>
             getDocumentCommitHistory({ documentPath, projectDir })
@@ -465,11 +476,10 @@ export const createAdapter = ({
     return isUncommittedChangeId(changeId)
       ? getDocumentFromFs(documentId)
       : Effect.Do.pipe(
-          Effect.bind('projectDir', () => getProjectDir()),
           Effect.bind('documentPath', () =>
             extractDocumentPathFromId(documentId)
           ),
-          Effect.flatMap(({ projectDir, documentPath }) =>
+          Effect.flatMap(({ documentPath }) =>
             pipe(
               Effect.succeed(changeId),
               Effect.filterOrFail(
@@ -549,7 +559,6 @@ export const createAdapter = ({
           Effect.bind('documentPath', () =>
             extractDocumentPathFromId(documentId)
           ),
-          Effect.bind('projectDir', () => getProjectDir()),
           Effect.bind('commitHash', () =>
             pipe(
               Effect.succeed(changeId),
@@ -559,7 +568,7 @@ export const createAdapter = ({
               )
             )
           ),
-          Effect.flatMap(({ documentPath, projectDir, commitHash }) =>
+          Effect.flatMap(({ documentPath, commitHash }) =>
             getDocumentHashAtCommit({
               projectDir,
               documentPath,

@@ -17,6 +17,7 @@ import {
 export type CreateDocumentArgs = {
   content: string | null;
   filePath?: string;
+  writeToFile?: boolean;
 };
 
 export type GetDocumentHandleAtChangeArgs = {
