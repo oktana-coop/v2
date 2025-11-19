@@ -67,7 +67,7 @@ export const createAdapter = ({
         Effect.flatMap(() =>
           Effect.tryPromise({
             try: () =>
-              window.singleDocumentProjectStoreManagerAPI.createSingleDocumentProject(
+              window.singleDocumentProjectStoreManagerAPI.setupSingleDocumentProjectStore(
                 {}
               ),
             // TODO: Leverage typed Effect errors returned from the respective node adapter
@@ -132,7 +132,7 @@ export const createAdapter = ({
             Effect.flatMap(() =>
               Effect.tryPromise({
                 try: () =>
-                  window.singleDocumentProjectStoreManagerAPI.openSingleDocumentProject(
+                  window.singleDocumentProjectStoreManagerAPI.openSingleDocumentProjectStore(
                     {
                       fromFile,
                     }

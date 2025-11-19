@@ -205,13 +205,15 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
     ),
 } as MultiDocumentProjectStorePromiseAPI);
 
+// TODO: Namespace IPC messages
 contextBridge.exposeInMainWorld('singleDocumentProjectStoreManagerAPI', {
-  createSingleDocumentProject: (args) =>
+  setupSingleDocumentProjectStore: (args) =>
     ipcRenderer.invoke('create-single-document-project', { ...args }),
-  openSingleDocumentProject: (args) =>
+  openSingleDocumentProjectStore: (args) =>
     ipcRenderer.invoke('open-single-document-project', { ...args }),
 } as SingleDocumentProjectStoreManagerAPI);
 
+// TODO: Namespace IPC messages
 contextBridge.exposeInMainWorld('multiDocumentProjectStoreManagerAPI', {
   openOrCreateMultiDocumentProject: () =>
     ipcRenderer.invoke('open-or-create-multi-document-project'),

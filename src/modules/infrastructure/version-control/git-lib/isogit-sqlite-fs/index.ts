@@ -17,7 +17,7 @@ type AdapterInfo = {
   schemaVersion: number;
 };
 
-export class SQLite3Fs implements IsoGitFsApi {
+export class SQLite3IsoGitFs implements IsoGitFsApi {
   private db: Database.Database;
   private nodeLikeFsSQLiteAdapter: NodeLikeFsApi;
   promises: IsoGitFsApi['promises'];

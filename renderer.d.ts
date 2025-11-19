@@ -65,7 +65,7 @@ export type AutomergeRepoNetworkAdapter = {
 };
 
 export type SingleDocumentProjectStoreManagerAPI = {
-  createSingleDocumentProject: (
+  setupSingleDocumentProjectStore: (
     args: SetupSingleDocumentProjectStoreArgs
   ) => Promise<
     Pick<
@@ -73,7 +73,7 @@ export type SingleDocumentProjectStoreManagerAPI = {
       'projectId' | 'documentId' | 'file' | 'name'
     >
   >;
-  openSingleDocumentProject: (
+  openSingleDocumentProjectStore: (
     args: OpenSingleDocumentProjectStoreArgs
   ) => Promise<
     Pick<
