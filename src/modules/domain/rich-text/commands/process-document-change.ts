@@ -78,17 +78,15 @@ export const processDocumentChange =
         })
       ),
       Effect.bind('writeToFileWithPath', () =>
-        projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-          ? pipe(
-              fromNullable(
-                filePath,
-                () =>
-                  new ValidationError(
-                    'File path not provided; cannot write to document file'
-                  )
+        pipe(
+          fromNullable(
+            filePath,
+            () =>
+              new ValidationError(
+                'File path not provided; cannot write to document file'
               )
-            )
-          : Effect.succeed(undefined)
+          )
+        )
       ),
       Effect.tap(({ textContent, writeToFileWithPath }) =>
         updateRichTextDocumentContent({

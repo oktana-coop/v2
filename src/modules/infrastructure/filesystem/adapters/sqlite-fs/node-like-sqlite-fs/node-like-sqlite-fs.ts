@@ -324,6 +324,14 @@ export const createAdapter = (db: Database): NodeLikeFsApi => {
     throw err;
   };
 
+  const readLink = async () => {
+    throw new Error('readLink is not supported in NodeLikeSQLiteFs');
+  };
+
+  const symLink = async () => {
+    throw new Error('symLink is not supported in NodeLikeSQLiteFs');
+  };
+
   return {
     readFile,
     writeFile,
@@ -333,6 +341,8 @@ export const createAdapter = (db: Database): NodeLikeFsApi => {
     rmdir,
     stat,
     lstat,
+    readLink,
+    symLink,
     chmod,
   };
 };

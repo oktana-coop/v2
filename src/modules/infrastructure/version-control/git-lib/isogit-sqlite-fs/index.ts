@@ -45,6 +45,8 @@ export class SQLite3IsoGitFs implements IsoGitFsApi {
       rmdir: this.nodeLikeFsSQLiteAdapter.rmdir,
       stat: this.nodeLikeFsSQLiteAdapter.stat,
       lstat: this.nodeLikeFsSQLiteAdapter.lstat,
+      readlink: this.nodeLikeFsSQLiteAdapter.readLink,
+      symlink: this.nodeLikeFsSQLiteAdapter.symLink,
       chmod: this.nodeLikeFsSQLiteAdapter.chmod,
     };
   }

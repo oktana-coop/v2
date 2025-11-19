@@ -39,5 +39,7 @@ export type NodeLikeFsApi = {
   rmdir: (dirpath: string) => Promise<void>;
   stat: (filepath: string) => Promise<Stats>;
   lstat: (filepath: string) => Promise<Stats>;
+  readLink: (filepath: string) => Promise<string>;
+  symLink: (target: string, path: string) => Promise<void>;
   chmod: (filepath: string, mode: Mode) => Promise<void>;
 };

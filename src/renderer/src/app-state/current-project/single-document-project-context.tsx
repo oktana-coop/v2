@@ -11,10 +11,14 @@ import { useNavigate, useParams } from 'react-router';
 import {
   type ProjectId,
   type SingleDocumentProjectStore,
+  urlEncodeProjectId,
 } from '../../../../modules/domain/project';
 import { isElectron } from '../../../../modules/infrastructure/cross-platform/utils';
 import { type File } from '../../../../modules/infrastructure/filesystem';
-import { type ResolvedArtifactId } from '../../../../modules/infrastructure/version-control';
+import {
+  type ResolvedArtifactId,
+  urlEncodeArtifactId,
+} from '../../../../modules/infrastructure/version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
 export type BrowserStorageProjectData = {
@@ -115,9 +119,12 @@ export const SingleDocumentProjectProvider = ({
     const openAndSelectFileFromOsEvent = async (file: File) => {
       const openedDocument = await handleOpenDocument({ fromFile: file });
       setLoading(false);
-      navigate(
-        `/projects/${openedDocument.projectId}/documents/${openedDocument.documentId}`
-      );
+
+      if (openedDocument.projectId && openedDocument.documentId) {
+        navigate(
+          `/projects/${urlEncodeProjectId(openedDocument.projectId)}/documents/${urlEncodeArtifactId(openedDocument.documentId)}`
+        );
+      }
     };
 
     if (fileToBeOpened) {
@@ -163,7 +170,7 @@ export const SingleDocumentProjectProvider = ({
       setProjectName(projName);
 
       navigate(
-        `/projects/${browserStorageProjectData.projectId}/documents/${docId}`
+        `/projects/${urlEncodeProjectId(browserStorageProjectData.projectId)}/documents/${urlEncodeArtifactId(docId)}`
       );
     }
 

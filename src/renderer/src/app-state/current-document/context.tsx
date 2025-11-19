@@ -51,7 +51,7 @@ import {
 } from '../';
 import { createWorkerClient } from './history-worker/client';
 
-const useWebWorker = true;
+const useWebWorker = false;
 
 export type CurrentDocumentContextType = {
   versionedDocumentId: ResolvedArtifactId | null;
@@ -481,7 +481,7 @@ export const CurrentDocumentProvider = ({
           })({
             documentId,
             updatedDocument: doc,
-            filePath: null,
+            filePath: '/document.md',
             projectType,
           })
         );
