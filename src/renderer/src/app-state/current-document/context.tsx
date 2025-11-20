@@ -51,7 +51,7 @@ import {
 } from '../';
 import { createWorkerClient } from './history-worker/client';
 
-const useWebWorker = false;
+const useHistoryWorker = window.config.useHistoryWorker;
 
 export type CurrentDocumentContextType = {
   versionedDocumentId: ResolvedArtifactId | null;
@@ -141,7 +141,9 @@ export const CurrentDocumentProvider = ({
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
   );
-  const loadHistoryFromWorker = useWebWorker ? createWorkerClient() : undefined;
+  const loadHistoryFromWorker = useHistoryWorker
+    ? createWorkerClient()
+    : undefined;
 
   useEffect(() => {
     const updateDocumentHandleAndSelectedFile = async ({
@@ -273,7 +275,7 @@ export const CurrentDocumentProvider = ({
       let historyInfo: ArtifactHistoryInfo<RichTextDocument>;
 
       if (
-        useWebWorker &&
+        useHistoryWorker &&
         loadHistoryFromWorker &&
         documentStore.exportDocumentToBinary
       ) {

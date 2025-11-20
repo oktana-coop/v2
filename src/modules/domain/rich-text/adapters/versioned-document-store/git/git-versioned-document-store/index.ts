@@ -394,14 +394,9 @@ export const createAdapter = ({
           Effect.bind('documentCommitHistory', () =>
             getDocumentCommitHistory({ documentPath, projectDir })
           ),
-          Effect.bind('isModified', () => {
-            console.log(
-              'Checking if document is modified',
-              projectDir,
-              documentPath
-            );
-            return isDocumentModified({ projectDir, documentPath });
-          }),
+          Effect.bind('isModified', () =>
+            isDocumentModified({ projectDir, documentPath })
+          ),
           Effect.flatMap(({ documentCommitHistory, isModified }) =>
             getDocumentChangeHistory({
               modified: isModified,

@@ -1,5 +1,6 @@
 import type { IpcRenderer } from 'electron';
 
+import { type BuildConfig } from './src/modules/config/browser';
 import {
   type MultiDocumentProjectStore,
   type OpenMultiDocumentProjectByIdArgs,
@@ -33,6 +34,9 @@ import {
 } from './src/modules/personalization/theme';
 
 export type UnregisterListenerFn = () => void;
+
+// Explicitly pick only the config values we want to expose to the renderer process
+export type Config = Pick<BuildConfig, 'useHistoryWorker'>;
 
 export type ElectronAPI = {
   onReceiveProcessId: (callback: (processId: string) => void) => IpcRenderer;
@@ -149,6 +153,7 @@ export type OsEventsAPI = {
 declare global {
   interface Window {
     electronAPI: ElectronAPI;
+    config: Config;
     personalizationAPI: PersonalizationAPI;
     automergeRepoNetworkAdapter: AutomergeRepoNetworkAdapter;
     filesystemAPI: FilesystemPromiseAPI;

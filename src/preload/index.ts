@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 import {
+  type Config,
   type ElectronAPI,
   type FilesystemPromiseAPI,
   type MultiDocumentProjectStoreManagerAPI,
@@ -11,6 +12,7 @@ import {
   type SingleDocumentProjectStorePromiseAPI,
   type VersionedDocumentStorePromiseAPI,
 } from '../../renderer';
+import { buildConfig } from '../modules/config';
 import { type UpdateState } from '../modules/infrastructure/cross-platform/update';
 import {
   type CreateNewFileArgs,
@@ -48,6 +50,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onToggleCommandPalette: (callback) =>
     registerIpcListener<void>('toggle-command-palette', callback),
 } as ElectronAPI);
+
+contextBridge.exposeInMainWorld('config', {
+  useHistoryWorker: buildConfig.useHistoryWorker,
+} as Config);
 
 contextBridge.exposeInMainWorld('personalizationAPI', {
   setTheme: (theme) => ipcRenderer.send('set-theme', theme),
