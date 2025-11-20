@@ -57,6 +57,7 @@ contextBridge.exposeInMainWorld('config', {
     buildConfig.singleDocumentProjectVersionControlSystem,
   multiDocumentProjectVersionControlSystem:
     buildConfig.multiDocumentProjectVersionControlSystem,
+  projectType: buildConfig.projectType,
 } as Config);
 
 contextBridge.exposeInMainWorld('personalizationAPI', {

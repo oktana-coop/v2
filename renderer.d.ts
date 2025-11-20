@@ -41,6 +41,7 @@ export type Config = Pick<
   | 'useHistoryWorker'
   | 'singleDocumentProjectVersionControlSystem'
   | 'multiDocumentProjectVersionControlSystem'
+  | 'projectType'
 >;
 
 export type ElectronAPI = {

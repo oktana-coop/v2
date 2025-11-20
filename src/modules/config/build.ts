@@ -7,4 +7,5 @@ export const buildConfig: BuildConfig = {
     .VITE_SINGLE_DOCUMENT_PROJECT_VCS as BuildConfig['singleDocumentProjectVersionControlSystem'],
   multiDocumentProjectVersionControlSystem: import.meta.env
     .VITE_MULTI_DOCUMENT_PROJECT_VCS as BuildConfig['multiDocumentProjectVersionControlSystem'],
+  projectType: import.meta.env.VITE_PROJECT_TYPE as BuildConfig['projectType'],
 };
