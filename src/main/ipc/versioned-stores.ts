@@ -1,7 +1,8 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
-import { ipcMain } from 'electron';
+import { type BrowserWindow, ipcMain } from 'electron';
 
+import { buildConfig } from '../../modules/config';
 import {
   type AddDocumentToMultiDocumentProjectArgs,
   type CreateMultiDocumentProjectArgs,
@@ -17,6 +18,12 @@ import {
   ValidationError as VersionedProjectValidationError,
 } from '../../modules/domain/project/node';
 import {
+  createNodeAutomergeMultiDocumentProjectStoreManagerAdapter,
+  createNodeAutomergeSingleDocumentProjectStoreManagerAdapter,
+  createNodeGitMultiDocumentProjectStoreManagerAdapter,
+  createNodeGitSingleDocumentProjectStoreManagerAdapter,
+} from '../../modules/domain/project/node';
+import {
   type CommitChangesArgs,
   type CreateDocumentArgs,
   type GetDocumentAtChangeArgs,
@@ -25,7 +32,10 @@ import {
 } from '../../modules/domain/rich-text';
 import { runPromiseSerializingErrorsForIPC } from '../../modules/infrastructure/cross-platform/electron-ipc-effect';
 import { Filesystem } from '../../modules/infrastructure/filesystem';
-import { type ResolvedArtifactId } from '../../modules/infrastructure/version-control';
+import {
+  type ResolvedArtifactId,
+  versionControlSystems,
+} from '../../modules/infrastructure/version-control';
 import {
   getVersionedStores,
   isMultiDocumentProjectVersionedStores,
@@ -35,14 +45,32 @@ import {
 } from '../versioned-stores';
 
 export const registerVersionedStoresEvents = ({
-  singleDocumentProjectStoreManager,
-  multiDocumentProjectStoreManager,
   filesystem,
+  rendererProcessId,
+  browserWindow,
 }: {
-  singleDocumentProjectStoreManager: SingleDocumentProjectStoreManager;
-  multiDocumentProjectStoreManager: MultiDocumentProjectStoreManager;
   filesystem: Filesystem;
+  rendererProcessId: string;
+  browserWindow: BrowserWindow;
 }) => {
+  const singleDocumentProjectStoreManager =
+    buildConfig.singleDocumentProjectVersionControlSystem ===
+    versionControlSystems.AUTOMERGE
+      ? createNodeAutomergeSingleDocumentProjectStoreManagerAdapter({
+          rendererProcessId,
+          browserWindow,
+        })
+      : createNodeGitSingleDocumentProjectStoreManagerAdapter();
+
+  const multiDocumentProjectStoreManager =
+    buildConfig.multiDocumentProjectVersionControlSystem ===
+    versionControlSystems.AUTOMERGE
+      ? createNodeAutomergeMultiDocumentProjectStoreManagerAdapter({
+          rendererProcessId,
+          browserWindow,
+        })
+      : createNodeGitMultiDocumentProjectStoreManagerAdapter();
+
   registerStoreManagerEvents({
     singleDocumentProjectStoreManager,
     multiDocumentProjectStoreManager,

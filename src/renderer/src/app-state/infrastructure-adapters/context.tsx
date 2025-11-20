@@ -6,16 +6,19 @@ import {
   type SingleDocumentProjectStoreManager,
 } from '../../../../modules/domain/project';
 import {
-  createBrowserMultiDocumentProjectStoreManagerAdapter,
-  createBrowserSingleDocumentProjectStoreManagerAdapter,
+  createBrowserAutomergeMultiDocumentProjectStoreManagerAdapter,
+  createBrowserAutomergeSingleDocumentProjectStoreManagerAdapter,
+  createElectronRendererAutomergeMultiDocumentProjectStoreManagerAdapter,
+  createElectronRendererAutomergeSingleDocumentProjectStoreManagerAdapter,
+  createElectronRendererIpcSingleDocumentProjectStoreManagerAdapter,
   createElectronRendererMultiDocumentProjectStoreManagerAdapter,
-  createElectronRendererSingleDocumentProjectStoreManagerAdapter,
 } from '../../../../modules/domain/project/browser';
 import { type VersionedDocumentStore } from '../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/electron-context';
 import { type Filesystem } from '../../../../modules/infrastructure/filesystem';
 import { createAdapter as createBrowserFilesystemAPIAdapter } from '../../../../modules/infrastructure/filesystem/adapters/browser-api';
 import { createAdapter as createElectronRendererFilesystemAPIAdapter } from '../../../../modules/infrastructure/filesystem/adapters/electron-renderer-api';
+import { versionControlSystems } from '../../../../modules/infrastructure/version-control';
 import { LoadingText } from '../../components/progress/LoadingText';
 
 export type InfrastructureAdaptersContextType = {
@@ -68,17 +71,32 @@ export const InfrastructureAdaptersProvider = ({
       if (isElectron) {
         if (processId) {
           const singleDocProjectStoreManager =
-            createElectronRendererSingleDocumentProjectStoreManagerAdapter();
+            window.config.singleDocumentProjectVersionControlSystem ===
+            versionControlSystems.AUTOMERGE
+              ? createElectronRendererAutomergeSingleDocumentProjectStoreManagerAdapter(
+                  { processId }
+                )
+              : // Currently used for Git. This adapter is really generic, it just delegates to the main process via IPC.
+                createElectronRendererIpcSingleDocumentProjectStoreManagerAdapter();
+
           const multiDocProjectStoreManager =
-            createElectronRendererMultiDocumentProjectStoreManagerAdapter();
+            window.config.singleDocumentProjectVersionControlSystem ===
+            versionControlSystems.AUTOMERGE
+              ? createElectronRendererAutomergeMultiDocumentProjectStoreManagerAdapter(
+                  { processId }
+                )
+              : // Currently used for Git. This adapter is really generic, it just delegates to the main process via IPC.
+                createElectronRendererMultiDocumentProjectStoreManagerAdapter();
+
           setSingleDocumentProjectStoreManager(singleDocProjectStoreManager);
           setMultiDocumentProjectStoreManager(multiDocProjectStoreManager);
         }
       } else {
+        // Only Automerge is supported in browser environment for now
         const singleDocProjectStoreManager =
-          createBrowserSingleDocumentProjectStoreManagerAdapter();
+          createBrowserAutomergeSingleDocumentProjectStoreManagerAdapter();
         const multiDocProjectStoreManager =
-          createBrowserMultiDocumentProjectStoreManagerAdapter();
+          createBrowserAutomergeMultiDocumentProjectStoreManagerAdapter();
         setSingleDocumentProjectStoreManager(singleDocProjectStoreManager);
         setMultiDocumentProjectStoreManager(multiDocProjectStoreManager);
       }

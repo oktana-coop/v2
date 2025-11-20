@@ -53,6 +53,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 contextBridge.exposeInMainWorld('config', {
   useHistoryWorker: buildConfig.useHistoryWorker,
+  singleDocumentProjectVersionControlSystem:
+    buildConfig.singleDocumentProjectVersionControlSystem,
+  multiDocumentProjectVersionControlSystem:
+    buildConfig.multiDocumentProjectVersionControlSystem,
 } as Config);
 
 contextBridge.exposeInMainWorld('personalizationAPI', {

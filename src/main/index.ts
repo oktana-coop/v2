@@ -15,10 +15,6 @@ import {
 import os from 'os';
 
 import { PROJECT_FILE_EXTENSION } from '../modules/domain/project';
-import {
-  createNodeMultiDocumentProjectStoreManagerAdapter,
-  createNodeSingleDocumentProjectStoreManagerAdapter,
-} from '../modules/domain/project/node';
 import { runPromiseSerializingErrorsForIPC } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
 import {
   type CreateNewFileArgs,
@@ -183,16 +179,10 @@ async function createWindow() {
 
   const rendererProcessId = String(win.webContents.id);
 
-  const singleDocumentProjectStoreManager =
-    createNodeSingleDocumentProjectStoreManagerAdapter();
-
-  const multiDocumentProjectStoreManager =
-    createNodeMultiDocumentProjectStoreManagerAdapter();
-
   registerVersionedStoresEvents({
-    singleDocumentProjectStoreManager,
-    multiDocumentProjectStoreManager,
     filesystem: filesystemAPI,
+    rendererProcessId,
+    browserWindow: win,
   });
 
   win.webContents.on('did-finish-load', () => {

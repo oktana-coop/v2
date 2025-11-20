@@ -36,7 +36,12 @@ import {
 export type UnregisterListenerFn = () => void;
 
 // Explicitly pick only the config values we want to expose to the renderer process
-export type Config = Pick<BuildConfig, 'useHistoryWorker'>;
+export type Config = Pick<
+  BuildConfig,
+  | 'useHistoryWorker'
+  | 'singleDocumentProjectVersionControlSystem'
+  | 'multiDocumentProjectVersionControlSystem'
+>;
 
 export type ElectronAPI = {
   onReceiveProcessId: (callback: (processId: string) => void) => IpcRenderer;
