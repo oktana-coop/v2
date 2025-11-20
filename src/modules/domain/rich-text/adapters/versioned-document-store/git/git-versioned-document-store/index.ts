@@ -46,6 +46,7 @@ export const createAdapter = ({
   filesystem,
   projectId: projId,
   projectDir,
+  managesFilesystemWorkdir,
 }: {
   // We have 2 filesystem APIs because isomorphic-git works well in both browser in Node.js
   // with its own implemented fs APIs, which more or less comply to the Node.js API.
@@ -58,6 +59,7 @@ export const createAdapter = ({
   // But it is the current directory ('.') in virtual filesystems like the SQLite fs (so that all paths stay relative).
   // We still want to keep the projectId separate to be able to identify the document store's project correctly.
   projectDir: string;
+  managesFilesystemWorkdir: boolean;
 }): VersionedDocumentStore => {
   // This is not an ideal model but we want to be able to tell that the document store we are searching in is the desired one.
   // Without this we are risking registering interest in documents from other repositories (and therefore polluting our stores)
@@ -91,7 +93,6 @@ export const createAdapter = ({
 
   const createDocument: VersionedDocumentStore['createDocument'] = ({
     filePath,
-    writeToFile,
   }) =>
     pipe(
       fromNullable(
@@ -116,7 +117,7 @@ export const createAdapter = ({
             catch: mapErrorTo(RepositoryError, 'Git repo error'),
           }),
           Effect.tap(() =>
-            writeToFile
+            managesFilesystemWorkdir
               ? pipe(
                   filesystem.writeFile(path, ''),
                   Effect.catchAll(() =>
@@ -601,6 +602,7 @@ export const createAdapter = ({
   return {
     projectId,
     setProjectId,
+    managesFilesystemWorkdir,
     createDocument,
     findDocumentById,
     getDocumentLastChangeId,

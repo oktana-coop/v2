@@ -9,6 +9,7 @@ import {
 import { useNavigate, useParams } from 'react-router';
 
 import {
+  DOCUMENT_INTERNAL_PATH,
   type ProjectId,
   type SingleDocumentProjectStore,
   urlEncodeProjectId,
@@ -18,6 +19,7 @@ import { type File } from '../../../../modules/infrastructure/filesystem';
 import {
   type ResolvedArtifactId,
   urlEncodeArtifactId,
+  versionControlSystems,
 } from '../../../../modules/infrastructure/version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
@@ -33,6 +35,7 @@ export type SingleDocumentProjectContextType = {
   loading: boolean;
   projectId: ProjectId | null;
   documentId: ResolvedArtifactId | null;
+  documentInternalPath: string | null;
   projectFile: File | null;
   projectName: string | null;
   versionedProjectStore: SingleDocumentProjectStore | null;
@@ -52,6 +55,8 @@ export const SingleDocumentProjectContext =
   createContext<SingleDocumentProjectContextType>({
     loading: false,
     projectId: null,
+    documentId: null,
+    documentInternalPath: null,
     projectFile: null,
     projectName: null,
     // @ts-expect-error will get overriden below
@@ -96,6 +101,13 @@ export const SingleDocumentProjectProvider = ({
   const [fileToBeOpened, setFileToBeOpened] = useState<File | null>(null);
   const navigate = useNavigate();
   const { projectId: projectIdInPath } = useParams();
+
+  const documentInternalPath =
+    versionControlSystems[
+      window.config.singleDocumentProjectVersionControlSystem
+    ] === versionControlSystems.GIT
+      ? DOCUMENT_INTERNAL_PATH
+      : null;
 
   useEffect(() => {
     if (!isElectron()) {
@@ -314,6 +326,7 @@ export const SingleDocumentProjectProvider = ({
         loading,
         projectId,
         documentId,
+        documentInternalPath,
         projectFile,
         projectName,
         versionedProjectStore,

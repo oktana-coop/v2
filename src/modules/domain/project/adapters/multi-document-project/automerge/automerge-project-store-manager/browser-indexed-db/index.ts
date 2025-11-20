@@ -92,6 +92,7 @@ const setupAutomergeRepoAndStores = ({
         automergeRepo,
         projectId,
         filesystem,
+        managesFilesystemWorkdir: true,
       }),
     }))
   );

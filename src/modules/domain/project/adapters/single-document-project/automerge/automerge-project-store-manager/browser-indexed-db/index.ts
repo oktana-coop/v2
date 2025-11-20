@@ -109,6 +109,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                   tempVersionedDocumentStore:
                     createAutomergeDocumentStoreAdapter({
                       automergeRepo: tempAutomergeRepo,
+                      managesFilesystemWorkdir: false,
                     }),
                 }),
                 Effect.flatMap(
@@ -190,6 +191,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                 createAutomergeDocumentStoreAdapter({
                   automergeRepo,
                   projectId: projectAndDocumentData.projectId,
+                  managesFilesystemWorkdir: false,
                 })
               )
           ),
@@ -234,6 +236,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                 versionedDocumentStore: createAutomergeDocumentStoreAdapter({
                   automergeRepo,
                   projectId,
+                  managesFilesystemWorkdir: false,
                 }),
               })),
               Effect.flatMap(

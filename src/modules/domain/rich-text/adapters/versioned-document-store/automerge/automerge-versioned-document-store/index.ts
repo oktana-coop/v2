@@ -46,10 +46,12 @@ export const createAdapter = ({
   automergeRepo,
   projectId: projId,
   filesystem,
+  managesFilesystemWorkdir,
 }: {
   automergeRepo: Repo;
   projectId?: string;
   filesystem?: Filesystem;
+  managesFilesystemWorkdir: boolean;
 }): RealtimeVersionedDocumentStore => {
   // This is not an ideal model but we want to be able to tell that the document store we are searching in is the desired one.
   // Without this we are risking registering interest in documents from other repositories (and therefore polluting our stores)
@@ -238,8 +240,15 @@ export const createAdapter = ({
           writeToFileWithPath
             ? pipe(
                 fromNullable(
-                  filesystem,
-                  () => new RepositoryError('Missing filesystem config')
+                  managesFilesystemWorkdir,
+                  () =>
+                    new RepositoryError('This store does not manage a workdir')
+                ),
+                Effect.flatMap(() =>
+                  fromNullable(
+                    filesystem,
+                    () => new RepositoryError('Missing filesystem config')
+                  )
                 ),
                 Effect.flatMap((filesystem) =>
                   filesystem.writeFile(writeToFileWithPath, content)
@@ -388,6 +397,7 @@ export const createAdapter = ({
   return {
     projectId,
     setProjectId,
+    managesFilesystemWorkdir,
     createDocument,
     getDocumentHandleAtChange,
     getDocumentAtChange,

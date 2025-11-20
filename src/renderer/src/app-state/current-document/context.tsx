@@ -48,6 +48,7 @@ import {
   CurrentProjectContext,
   InfrastructureAdaptersContext,
   MultiDocumentProjectContext,
+  SingleDocumentProjectContext,
 } from '../';
 import { createWorkerClient } from './history-worker/client';
 
@@ -138,6 +139,7 @@ export const CurrentDocumentProvider = ({
     clearFileSelection,
     directory,
   } = useContext(MultiDocumentProjectContext);
+  const { documentInternalPath } = useContext(SingleDocumentProjectContext);
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
   );
@@ -467,7 +469,10 @@ export const CurrentDocumentProvider = ({
               })({
                 documentId,
                 updatedDocument: doc,
-                filePath: absoluteFilePath,
+                writeToFileWithPath:
+                  versionedDocumentStore.managesFilesystemWorkdir
+                    ? absoluteFilePath
+                    : null,
                 projectType,
               })
             )
@@ -483,7 +488,9 @@ export const CurrentDocumentProvider = ({
           })({
             documentId,
             updatedDocument: doc,
-            filePath: '/document.md',
+            writeToFileWithPath: versionedDocumentStore.managesFilesystemWorkdir
+              ? documentInternalPath
+              : null,
             projectType,
           })
         );
@@ -498,6 +505,7 @@ export const CurrentDocumentProvider = ({
       versionedDocumentStore,
       projectId,
       documentId,
+      documentInternalPath,
       representationTransformAdapter,
       filesystem,
       selectedFileInfo,

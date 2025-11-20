@@ -1,9 +1,7 @@
 import * as Effect from 'effect/Effect';
-import { pipe } from 'effect/Function';
 
-import { fromNullable } from '../../../../utils/effect';
 import { mapErrorTo } from '../../../../utils/errors';
-import { type ProjectType, projectTypes } from '../../../domain/project';
+import { type ProjectType } from '../../../domain/project';
 import {
   AccessControlError as FilesystemAccessControlError,
   type Filesystem,
@@ -30,7 +28,7 @@ import {
 export type ProcessDocumentChangeArgs = {
   documentId: ResolvedArtifactId;
   updatedDocument: RichTextDocument;
-  filePath: string | null;
+  writeToFileWithPath: string | null;
   projectType: ProjectType;
 };
 
@@ -48,8 +46,7 @@ export const processDocumentChange =
   ({
     documentId,
     updatedDocument,
-    filePath,
-    projectType,
+    writeToFileWithPath,
   }: ProcessDocumentChangeArgs): Effect.Effect<
     void,
     | RepresentationTransformError
@@ -77,23 +74,12 @@ export const processDocumentChange =
           ),
         })
       ),
-      Effect.bind('writeToFileWithPath', () =>
-        pipe(
-          fromNullable(
-            filePath,
-            () =>
-              new ValidationError(
-                'File path not provided; cannot write to document file'
-              )
-          )
-        )
-      ),
-      Effect.tap(({ textContent, writeToFileWithPath }) =>
+      Effect.tap(({ textContent }) =>
         updateRichTextDocumentContent({
           documentId,
           representation: PRIMARY_RICH_TEXT_REPRESENTATION,
           content: textContent,
-          writeToFileWithPath,
+          writeToFileWithPath: writeToFileWithPath ?? undefined,
         })
       )
     );

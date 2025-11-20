@@ -161,7 +161,11 @@ export const createAdapter = ({
           ),
           Effect.bind('versionedDocumentStore', ({ automergeRepo }) =>
             Effect.succeed(
-              createAutomergeDocumentStoreAdapter({ automergeRepo, filesystem })
+              createAutomergeDocumentStoreAdapter({
+                automergeRepo,
+                filesystem,
+                managesFilesystemWorkdir: true,
+              })
             )
           ),
           Effect.flatMap(
@@ -249,6 +253,7 @@ export const createAdapter = ({
                 createAutomergeDocumentStoreAdapter({
                   automergeRepo,
                   filesystem,
+                  managesFilesystemWorkdir: true,
                 })
               )
             ),

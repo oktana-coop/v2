@@ -113,6 +113,7 @@ const openProject = ({
         automergeRepo,
         projectId,
         filesystem,
+        managesFilesystemWorkdir: true,
       }),
     })),
     Effect.tap(({ versionedProjectStore, versionedDocumentStore }) =>
@@ -328,7 +329,11 @@ const createNewProject = ({
         ),
         Effect.bind('versionedDocumentStore', () =>
           Effect.succeed(
-            createAutomergeDocumentStoreAdapter({ automergeRepo, filesystem })
+            createAutomergeDocumentStoreAdapter({
+              automergeRepo,
+              filesystem,
+              managesFilesystemWorkdir: true,
+            })
           )
         ),
         Effect.bind(

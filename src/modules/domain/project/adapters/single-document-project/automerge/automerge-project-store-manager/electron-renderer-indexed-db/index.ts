@@ -99,6 +99,7 @@ export const createAdapter = ({
               versionedDocumentStore: createAutomergeDocumentStoreAdapter({
                 automergeRepo,
                 projectId,
+                managesFilesystemWorkdir: true,
               }),
               projectId,
               documentId,
@@ -166,6 +167,7 @@ export const createAdapter = ({
                   versionedDocumentStore: createAutomergeDocumentStoreAdapter({
                     automergeRepo,
                     projectId,
+                    managesFilesystemWorkdir: true,
                   }),
                   projectId,
                   documentId,

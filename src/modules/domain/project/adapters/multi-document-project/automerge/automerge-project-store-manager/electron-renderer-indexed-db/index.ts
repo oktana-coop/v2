@@ -69,6 +69,9 @@ export const createAdapter = ({
               versionedDocumentStore: createAutomergeDocumentStoreAdapter({
                 automergeRepo,
                 projectId,
+                // It's really the main process store that manages the filesystem workdir here,
+                // but from the perspective of the client using this adapter it should be transparent.
+                managesFilesystemWorkdir: true,
               }),
               projectId,
               directory,
@@ -113,6 +116,9 @@ export const createAdapter = ({
                 versionedDocumentStore: createAutomergeDocumentStoreAdapter({
                   automergeRepo,
                   projectId,
+                  // It's really the main process store that manages the filesystem workdir here,
+                  // but from the perspective of the client using this adapter it should be transparent.
+                  managesFilesystemWorkdir: true,
                 }),
                 projectId,
                 directory,

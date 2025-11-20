@@ -10,7 +10,10 @@ import {
 import { SQLite3IsoGitFs } from '../../../../../../../../modules/infrastructure/version-control/git-lib/isogit-sqlite-fs';
 import { mapErrorTo } from '../../../../../../../../utils/errors';
 import { createDocumentAndProject } from '../../../../../commands/single-document-project';
-import { PROJECT_FILE_EXTENSION } from '../../../../../constants/file-extensions';
+import {
+  DOCUMENT_INTERNAL_PATH,
+  PROJECT_FILE_EXTENSION,
+} from '../../../../../constants';
 import { RepositoryError as VersionedProjectRepositoryError } from '../../../../../errors';
 import { parseProjectFsPath } from '../../../../../models';
 import {
@@ -19,7 +22,6 @@ import {
   type SetupSingleDocumentProjectStoreDeps,
   type SingleDocumentProjectStoreManager,
 } from '../../../../../ports';
-import { DOCUMENT_INTERNAL_PATH } from '../../document-internal-path';
 import { createAdapter as createSingleDocumentProjectStoreAdapter } from '../../git-project-store';
 
 // This will passed as the workdir in the SQLite virtual filesystem.
@@ -100,6 +102,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                   filesystem,
                   projectId: projectFilePath,
                   projectDir: INTERNAL_PROJECT_DIR,
+                  managesFilesystemWorkdir: true,
                 })
               )
           ),
@@ -182,6 +185,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                     filesystem,
                     projectId: projectFilePath,
                     projectDir: INTERNAL_PROJECT_DIR,
+                    managesFilesystemWorkdir: true,
                   })
                 )
             ),

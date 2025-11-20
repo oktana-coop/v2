@@ -68,6 +68,7 @@ export type VersionedDocumentStore = {
   // TODO: Remove this when we have a good solution with data integrity when switching automerge repos.
   projectId: string | null;
   setProjectId: (id: string) => Effect.Effect<void, never, never>;
+  managesFilesystemWorkdir: boolean;
   createDocument: (
     args: CreateDocumentArgs
   ) => Effect.Effect<

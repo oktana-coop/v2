@@ -22,8 +22,12 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
         }),
         Effect.map(({ projectId, directory }) => ({
           versionedProjectStore: createMultiDocumentProjectStoreAdapter(),
-          versionedDocumentStore:
-            createVersionedDocumentStoreAdapter(projectId),
+          versionedDocumentStore: createVersionedDocumentStoreAdapter({
+            projectId,
+            // It's really the main process store that manages the filesystem workdir here,
+            // but from the perspective of the client using this adapter it should be transparent.
+            managesFilesystemWorkdir: true,
+          }),
           projectId,
           directory,
         }))
@@ -50,8 +54,12 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
           }),
           Effect.map(({ directory }) => ({
             versionedProjectStore: createMultiDocumentProjectStoreAdapter(),
-            versionedDocumentStore:
-              createVersionedDocumentStoreAdapter(projectId),
+            // It's really the main process store that manages the filesystem workdir here,
+            // but from the perspective of the client using this adapter it should be transparent.
+            versionedDocumentStore: createVersionedDocumentStoreAdapter({
+              projectId,
+              managesFilesystemWorkdir: true,
+            }),
             projectId,
             directory,
           }))

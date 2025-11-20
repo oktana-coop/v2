@@ -15,7 +15,13 @@ import { type VersionedDocumentStore } from '../../../../ports';
 
 // This adapter just calls the relevant exposed functions from the preload script
 // to send the messages to the main Electron process which will do the heavy lifting.
-export const createAdapter = (projId: string): VersionedDocumentStore => {
+export const createAdapter = ({
+  projectId: projId,
+  managesFilesystemWorkdir,
+}: {
+  projectId: string;
+  managesFilesystemWorkdir: boolean;
+}): VersionedDocumentStore => {
   let projectId: string = projId;
   const setProjId: VersionedDocumentStore['setProjectId'] = (id) =>
     Effect.sync(() => {
@@ -35,6 +41,7 @@ export const createAdapter = (projId: string): VersionedDocumentStore => {
         >
       )(window.versionedDocumentStoreAPI.setProjectId(...args));
     },
+    managesFilesystemWorkdir,
     createDocument: (
       ...args: Parameters<VersionedDocumentStore['createDocument']>
     ) =>
