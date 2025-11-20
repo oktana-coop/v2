@@ -100,6 +100,10 @@ jobs:
         env:
           OKTANA_NPM_TOKEN: ${{ secrets.OKTANA_NPM_TOKEN }}
           NODE_OPTIONS: '--max-old-space-size=4096'
+          VITE_USE_HISTORY_WORKER: 'false'
+          VITE_SINGLE_DOCUMENT_PROJECT_VCS: 'GIT'
+          VITE_MULTI_DOCUMENT_PROJECT_VCS: 'GIT'
+          VITE_PROJECT_TYPE: 'SINGLE_DOCUMENT_PROJECT'
       - name: Package Electron app
         run: pnpm run package
         env:
