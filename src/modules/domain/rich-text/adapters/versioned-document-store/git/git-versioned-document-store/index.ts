@@ -93,6 +93,7 @@ export const createAdapter = ({
 
   const createDocument: VersionedDocumentStore['createDocument'] = ({
     filePath,
+    writeToFile,
   }) =>
     pipe(
       fromNullable(
@@ -117,11 +118,22 @@ export const createAdapter = ({
             catch: mapErrorTo(RepositoryError, 'Git repo error'),
           }),
           Effect.tap(() =>
-            managesFilesystemWorkdir
+            writeToFile
               ? pipe(
-                  filesystem.writeFile(path, ''),
-                  Effect.catchAll(() =>
-                    Effect.fail(new RepositoryError('Git repo error'))
+                  fromNullable(
+                    managesFilesystemWorkdir,
+                    () =>
+                      new RepositoryError(
+                        'This store does not manage a workdir'
+                      )
+                  ),
+                  Effect.flatMap(() =>
+                    pipe(
+                      filesystem.writeFile(path, ''),
+                      Effect.catchAll(() =>
+                        Effect.fail(new RepositoryError('Git repo error'))
+                      )
+                    )
                   )
                 )
               : Effect.succeed(undefined)
