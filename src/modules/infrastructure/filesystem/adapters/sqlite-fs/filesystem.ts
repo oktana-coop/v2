@@ -153,24 +153,26 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
       }))
     );
 
+  // Inside the SQLite filesystem, we use posix paths independently of the host OS.
   const getRelativePath: Filesystem['getRelativePath'] = ({
     path: descendantPath,
     relativeTo,
   }) =>
     Effect.try({
-      try: () => path.relative(relativeTo, descendantPath),
+      try: () => path.posix.relative(relativeTo, descendantPath),
       catch: mapErrorTo(
         RepositoryError,
         'Could not resolve path relative to directory'
       ),
     });
 
+  // Inside the SQLite filesystem, we use posix paths independently of the host OS.
   const getAbsolutePath: Filesystem['getAbsolutePath'] = ({
     path: descendantPath,
     dirPath,
   }) =>
     Effect.try({
-      try: () => path.join(dirPath, descendantPath),
+      try: () => path.posix.join(dirPath, descendantPath),
       catch: mapErrorTo(
         RepositoryError,
         'Could not join directory path with relative path'

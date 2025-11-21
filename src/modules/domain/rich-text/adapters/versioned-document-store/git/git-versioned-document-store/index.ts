@@ -146,7 +146,15 @@ export const createAdapter = ({
     Effect.Do.pipe(
       Effect.bind('relativeDocumentPath', () => extractDocumentPathFromId(id)),
       Effect.bind('documentPath', ({ relativeDocumentPath }) =>
-        Effect.succeed([projectDir, relativeDocumentPath].join('/'))
+        pipe(
+          filesystem.getAbsolutePath({
+            path: relativeDocumentPath,
+            dirPath: projectDir,
+          }),
+          Effect.catchAll(() =>
+            Effect.fail(new RepositoryError('Git repo error'))
+          )
+        )
       ),
       Effect.flatMap(({ documentPath }) =>
         pipe(
