@@ -1,5 +1,7 @@
 import type { ValueOf } from 'type-fest';
 
+import { buildConfig } from '../../../config';
+
 const AUTOMERGE = 'AUTOMERGE';
 const PANDOC = 'PANDOC';
 const MARKDOWN = 'MARKDOWN';
@@ -42,4 +44,4 @@ export const richTextRepresentationExtensions = {
 };
 
 export const PRIMARY_RICH_TEXT_REPRESENTATION =
-  richTextRepresentations.MARKDOWN;
+  buildConfig.primaryRichTextRepresentation ?? richTextRepresentations.MARKDOWN;
