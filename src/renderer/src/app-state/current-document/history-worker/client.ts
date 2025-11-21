@@ -11,15 +11,27 @@ const worker = new Worker(new URL('./index.ts', import.meta.url), {
   type: 'module',
 });
 
+const workerReady = new Promise<void>((resolve) => {
+  const readyHandler = (event: MessageEvent) => {
+    if (event.data?.type === 'WORKER_READY') {
+      worker.removeEventListener('message', readyHandler);
+      resolve();
+    }
+  };
+  worker.addEventListener('message', readyHandler);
+});
+
 export const createWorkerClient = () => {
   // Assign a unique ID to each message sent to the worker and include it in the worker's response.
   // This way, the worker's response is matched to the correct promise.
   let messageId = 0; // Unique ID for each message
 
-  return (
+  return async (
     documentData: Uint8Array
-  ): Promise<ArtifactHistoryInfo<RichTextDocument>> =>
-    new Promise((resolve, reject) => {
+  ): Promise<ArtifactHistoryInfo<RichTextDocument>> => {
+    await workerReady;
+
+    return new Promise((resolve, reject) => {
       const currentMessageId = messageId++;
 
       const handleMessage = (event: MessageEvent) => {
@@ -46,4 +58,5 @@ export const createWorkerClient = () => {
       // Post a message to the worker to start the WASI CLI execution
       worker.postMessage(message);
     });
+  };
 };

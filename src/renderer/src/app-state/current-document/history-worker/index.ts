@@ -44,3 +44,5 @@ self.onmessage = async (event) => {
     self.postMessage(result);
   }
 };
+
+self.postMessage({ type: 'WORKER_READY' });
