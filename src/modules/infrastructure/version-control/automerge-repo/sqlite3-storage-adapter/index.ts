@@ -8,6 +8,7 @@ import Database from 'better-sqlite3';
 const DEFAULT_TABLE_NAME = 'automerge';
 const KEY_PATH_DELIMITER = '/';
 const CURRENT_ADAPTER_SCHEMA_VERSION = 1;
+import { versionControlSystems } from '../../constants';
 
 const getKey = (key: StorageKey): string => key.join(KEY_PATH_DELIMITER);
 const splitKey = (key: string): StorageKey => key.split(KEY_PATH_DELIMITER);
@@ -45,20 +46,23 @@ export class SQLite3StorageAdapter implements StorageAdapterInterface {
   }
 
   private initializeSchema(): void {
-    // Create adapter_schema_version table to track version
     this.db.exec(`
-      CREATE TABLE IF NOT EXISTS adapter_schema_version (
-        version INTEGER NOT NULL PRIMARY KEY,
-        created_at INTEGER DEFAULT (unixepoch())
+      CREATE TABLE IF NOT EXISTS adapter_info (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        version_control_system TEXT NOT NULL,
+        schema_version INTEGER NOT NULL,
+        created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+        last_migrated_at INTEGER NOT NULL DEFAULT (unixepoch())
       ) STRICT
     `);
 
+    // TODO: Implement migrations when schema changes
     const currentVersion = this.getCurrentSchemaVersion();
 
     if (currentVersion === 0) {
       // First time setup - create initial schema
       this.createInitialSchema();
-      this.setSchemaVersion(CURRENT_ADAPTER_SCHEMA_VERSION);
+      this.setAdapterInfo();
     } else if (currentVersion !== CURRENT_ADAPTER_SCHEMA_VERSION) {
       // Schema version mismatch - let the user handle it
       throw new Error(
@@ -80,21 +84,25 @@ export class SQLite3StorageAdapter implements StorageAdapterInterface {
   private getCurrentSchemaVersion(): number {
     try {
       const stmt = this.db.prepare(
-        'SELECT version FROM adapter_schema_version ORDER BY version DESC LIMIT 1'
+        'SELECT schema_version FROM adapter_info ORDER BY schema_version DESC LIMIT 1'
       );
-      const result = stmt.get() as { version: number } | undefined;
-      return result?.version ?? 0;
+      const result = stmt.get() as { schema_version: number } | undefined;
+      return result?.schema_version ?? 0;
     } catch {
-      // adapter_schema_version table doesn't exist yet
+      // adapter_info table row doesn't exist yet
       return 0;
     }
   }
 
-  private setSchemaVersion(version: number): void {
-    const stmt = this.db.prepare(
-      'INSERT OR REPLACE INTO adapter_schema_version (version) VALUES (?)'
-    );
-    stmt.run(version);
+  private setAdapterInfo(): void {
+    this.db
+      .prepare(
+        `
+          INSERT OR REPLACE INTO adapter_info (id, version_control_system, schema_version)
+          VALUES (1, ?, ?)
+        `
+      )
+      .run(versionControlSystems.AUTOMERGE, CURRENT_ADAPTER_SCHEMA_VERSION);
   }
 
   async load(keyArray: StorageKey): Promise<Uint8Array | undefined> {

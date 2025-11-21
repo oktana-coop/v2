@@ -52,7 +52,6 @@ export class SQLite3IsoGitFs implements IsoGitFsApi {
   }
 
   private getAdapterInfoAndRunPotentialMigrations() {
-    // Create typed adapter_info table with integer timestamps
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS adapter_info (
         id INTEGER PRIMARY KEY CHECK (id = 1),
