@@ -1,14 +1,14 @@
 import { useContext, useEffect, useState } from 'react';
 
-import { projectTypes } from '../../../modules/domain/project';
+import { type ProjectId, projectTypes } from '../../../modules/domain/project';
 import { removeExtension } from '../../../modules/infrastructure/filesystem';
-import { type ResolvedArtifactId } from '../../../modules/infrastructure/version-control';
 import {
   CurrentProjectContext,
   MultiDocumentProjectContext,
   MultiDocumentProjectContextType,
   RecentProjectsContext,
   RecentProjectsContextType,
+  SingleDocumentProjectContext,
 } from '../app-state';
 import { useCurrentDocumentId } from './use-current-document-id';
 
@@ -34,13 +34,13 @@ const getDocumentListInMultiDocumentProject = (
 
 const getDocumentListInSingleDocumentProject = (
   recentProjects: RecentProjectsContextType['recentProjects'],
-  documentId: ResolvedArtifactId | null
+  projectId: ProjectId | null
 ): DocumentListItem[] =>
   recentProjects.map((projectInfo) => {
     const documentListItem: DocumentListItem = {
-      id: projectInfo.documentId,
+      id: projectInfo.projectId,
       name: projectInfo.projectName ?? 'Untitled Document',
-      isSelected: documentId === projectInfo.documentId,
+      isSelected: projectId === projectInfo.projectId,
     };
 
     return documentListItem;
@@ -50,6 +50,9 @@ export const useDocumentList = () => {
   const { projectType } = useContext(CurrentProjectContext);
   const { directory, directoryFiles, selectedFileInfo } = useContext(
     MultiDocumentProjectContext
+  );
+  const { projectId: singleDocumentProjectId } = useContext(
+    SingleDocumentProjectContext
   );
   const { recentProjects } = useContext(RecentProjectsContext);
   const [documentList, setDocumentList] = useState<DocumentListItem[]>([]);
@@ -63,7 +66,10 @@ export const useDocumentList = () => {
             directoryFiles,
             selectedFileInfo
           )
-        : getDocumentListInSingleDocumentProject(recentProjects, documentId);
+        : getDocumentListInSingleDocumentProject(
+            recentProjects,
+            singleDocumentProjectId
+          );
 
     setDocumentList(newList);
   }, [

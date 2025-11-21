@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
@@ -118,7 +119,7 @@ export const CurrentDocumentProvider = ({
     useState<VersionedDocumentHandle | null>(null);
   const [versionedDocument, setVersionedDocument] =
     useState<VersionedDocument | null>(null);
-  const { projectId } = useParams();
+  const { projectId, changeId } = useParams();
   const documentId = useCurrentDocumentId();
   const [searchParams] = useSearchParams();
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
@@ -146,8 +147,19 @@ export const CurrentDocumentProvider = ({
   const loadHistoryFromWorker = useHistoryWorker
     ? createWorkerClient()
     : undefined;
+  const prevProjectId = useRef(projectId);
+  const prevDocumentId = useRef(documentId);
 
   useEffect(() => {
+    const projectOrDocumentHasChanged =
+      prevProjectId.current !== projectId ||
+      prevDocumentId.current !== documentId;
+
+    const returningToSelectedDocumentEditMode =
+      prevDocumentId.current === documentId &&
+      prevProjectId.current === projectId &&
+      !changeId;
+
     const updateDocumentHandleAndSelectedFile = async ({
       versionedDocumentStore,
     }: {
@@ -195,6 +207,9 @@ export const CurrentDocumentProvider = ({
             path,
           });
         }
+
+        prevProjectId.current = projectId;
+        prevDocumentId.current = documentId;
       }
     };
 
@@ -203,13 +218,14 @@ export const CurrentDocumentProvider = ({
       // This is a very important safeguard. We don't want to ask the document from a document store that belongs to another project
       // due to how Automerge repo syncing works at the moment. If this happens, the repo registers interest in the wrong document
       // and can potentially get it if we are not careful when switching projects. Change with caution.
-      versionedDocumentStore.projectId === projectId
+      versionedDocumentStore.projectId === projectId &&
+      (projectOrDocumentHasChanged || returningToSelectedDocumentEditMode)
     ) {
       updateDocumentHandleAndSelectedFile({ versionedDocumentStore });
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documentId, projectId, versionedDocumentStore]);
+  }, [documentId, projectId, changeId, versionedDocumentStore]);
 
   const checkIfContentChangedFromLastCommit =
     (documentStore: VersionedDocumentStore) =>
