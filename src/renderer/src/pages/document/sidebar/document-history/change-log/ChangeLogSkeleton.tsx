@@ -23,10 +23,10 @@ const CommitSkeleton = ({
             circleSize={7.5}
             hasTopStem={!isFirst}
             hasBottomStem={!isLast}
-            color={resolvedTheme === themes.light ? '#e5e7eb' : '#374151'}
+            color={resolvedTheme === themes.light ? '#e5e7eb' : '#525252'}
           />
         </div>
-        <div className="h-4 w-3/4 bg-gray-200"></div>
+        <div className="h-4 w-3/4 bg-gray-200 dark:bg-neutral-600"></div>
       </div>
     </div>
   );
