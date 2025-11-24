@@ -1,13 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 import {
-  type Config,
   type ElectronAPI,
   type FilesystemPromiseAPI,
   type MultiDocumentProjectStoreManagerAPI,
   type MultiDocumentProjectStorePromiseAPI,
   type OsEventsAPI,
   type PersonalizationAPI,
+  type RendererConfig,
   type SingleDocumentProjectStoreManagerAPI,
   type SingleDocumentProjectStorePromiseAPI,
   type VersionedDocumentStorePromiseAPI,
@@ -58,7 +58,7 @@ contextBridge.exposeInMainWorld('config', {
   multiDocumentProjectVersionControlSystem:
     buildConfig.multiDocumentProjectVersionControlSystem,
   projectType: buildConfig.projectType,
-} as Config);
+} as RendererConfig);
 
 contextBridge.exposeInMainWorld('personalizationAPI', {
   setTheme: (theme) => ipcRenderer.send('set-theme', theme),

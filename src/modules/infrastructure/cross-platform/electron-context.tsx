@@ -1,5 +1,9 @@
 import { createContext, useEffect, useState } from 'react';
 
+import {
+  config as browserBuildConfig,
+  type RendererConfig,
+} from '../../config/browser';
 import { type UpdateState } from '../cross-platform/update';
 import { isElectron } from './utils';
 
@@ -12,6 +16,7 @@ type ElectronContextType = {
   downloadUpdate: () => void;
   dismissUpdateNotification: () => void;
   restartToInstallUpdate: () => void;
+  config: RendererConfig;
 };
 
 export const ElectronContext = createContext<ElectronContextType>({
@@ -23,6 +28,8 @@ export const ElectronContext = createContext<ElectronContextType>({
   downloadUpdate: () => {},
   dismissUpdateNotification: () => {},
   restartToInstallUpdate: () => {},
+  // @ts-expect-error will get overriden below
+  config: null,
 });
 
 export const ElectronProvider = ({
@@ -32,6 +39,9 @@ export const ElectronProvider = ({
 }) => {
   const [processId, setProcessId] = useState<string | null>(null);
   const [updateState, setUpdateState] = useState<UpdateState | null>(null);
+  const config: RendererConfig = isElectron()
+    ? window.config
+    : browserBuildConfig;
 
   useEffect(() => {
     if (isElectron()) {
@@ -93,6 +103,7 @@ export const ElectronProvider = ({
         downloadUpdate: handleDownloadUpdate,
         dismissUpdateNotification: handleDismissUpdateNotification,
         restartToInstallUpdate: () => handleRestartToInstallUpdate(),
+        config,
       }}
     >
       {children}

@@ -48,7 +48,7 @@ export const InfrastructureAdaptersProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { processId, isElectron } = useContext(ElectronContext);
+  const { processId, isElectron, config } = useContext(ElectronContext);
   const [versionedDocumentStore, setVersionedDocumentStore] =
     useState<VersionedDocumentStore | null>(null);
 
@@ -71,7 +71,7 @@ export const InfrastructureAdaptersProvider = ({
       if (isElectron) {
         if (processId) {
           const singleDocProjectStoreManager =
-            window.config.singleDocumentProjectVersionControlSystem ===
+            config.singleDocumentProjectVersionControlSystem ===
             versionControlSystems.AUTOMERGE
               ? createElectronRendererAutomergeSingleDocumentProjectStoreManagerAdapter(
                   { processId }
@@ -80,7 +80,7 @@ export const InfrastructureAdaptersProvider = ({
                 createElectronRendererIpcSingleDocumentProjectStoreManagerAdapter();
 
           const multiDocProjectStoreManager =
-            window.config.singleDocumentProjectVersionControlSystem ===
+            config.singleDocumentProjectVersionControlSystem ===
             versionControlSystems.AUTOMERGE
               ? createElectronRendererAutomergeMultiDocumentProjectStoreManagerAdapter(
                   { processId }

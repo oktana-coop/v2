@@ -9,3 +9,13 @@ export type BuildConfig = {
   multiDocumentProjectVersionControlSystem: VersionControlSystem;
   projectType: ProjectType;
 };
+
+// Explicitly pick only the config values we want to expose to the renderer process
+export type RendererConfig = Pick<
+  BuildConfig,
+  | 'useHistoryWorker'
+  | 'primaryRichTextRepresentation'
+  | 'singleDocumentProjectVersionControlSystem'
+  | 'multiDocumentProjectVersionControlSystem'
+  | 'projectType'
+>;

@@ -25,15 +25,19 @@ import { DocumentMainViewRouter } from './main/DocumentMainViewRouter';
 import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
 import { DirectoryFiles, RecentProjects } from './sidebar/document-list-views';
 
-export const Project = () => (
-  <CurrentProjectProvider projectType={window.config.projectType}>
-    <CurrentDocumentProvider>
-      <SidebarLayoutProvider>
-        <DocumentIndex />
-      </SidebarLayoutProvider>
-    </CurrentDocumentProvider>
-  </CurrentProjectProvider>
-);
+export const Project = () => {
+  const { config } = useContext(ElectronContext);
+
+  return (
+    <CurrentProjectProvider projectType={config.projectType}>
+      <CurrentDocumentProvider>
+        <SidebarLayoutProvider>
+          <DocumentIndex />
+        </SidebarLayoutProvider>
+      </CurrentDocumentProvider>
+    </CurrentProjectProvider>
+  );
+};
 
 export {
   DocumentEditor,

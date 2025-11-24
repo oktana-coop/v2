@@ -29,6 +29,7 @@ import {
   type VersionedDocumentStore,
 } from '../../../../modules/domain/rich-text';
 import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
+import { ElectronContext } from '../../../../modules/infrastructure/cross-platform';
 import {
   type ArtifactHistoryInfo,
   type Change,
@@ -52,8 +53,6 @@ import {
   SingleDocumentProjectContext,
 } from '../';
 import { createWorkerClient } from './history-worker/client';
-
-const useHistoryWorker = window.config.useHistoryWorker;
 
 export type CurrentDocumentContextType = {
   versionedDocumentId: ResolvedArtifactId | null;
@@ -111,6 +110,7 @@ export const CurrentDocumentProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
+  const { config } = useContext(ElectronContext);
   const { filesystem, versionedDocumentStore } = useContext(
     InfrastructureAdaptersContext
   );
@@ -144,7 +144,7 @@ export const CurrentDocumentProvider = ({
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
   );
-  const loadHistoryFromWorker = useHistoryWorker
+  const loadHistoryFromWorker = config.useHistoryWorker
     ? createWorkerClient()
     : undefined;
   const prevProjectId = useRef(projectId);
@@ -293,7 +293,7 @@ export const CurrentDocumentProvider = ({
       let historyInfo: ArtifactHistoryInfo<RichTextDocument>;
 
       if (
-        useHistoryWorker &&
+        config.useHistoryWorker &&
         loadHistoryFromWorker &&
         documentStore.exportDocumentToBinary
       ) {

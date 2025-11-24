@@ -14,6 +14,7 @@ import {
   type SingleDocumentProjectStore,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
+import { ElectronContext } from '../../../../modules/infrastructure/cross-platform';
 import { isElectron } from '../../../../modules/infrastructure/cross-platform/utils';
 import { type File } from '../../../../modules/infrastructure/filesystem';
 import {
@@ -91,6 +92,7 @@ export const SingleDocumentProjectProvider = ({
     singleDocumentProjectStoreManager,
     setVersionedDocumentStore,
   } = useContext(InfrastructureAdaptersContext);
+  const { config } = useContext(ElectronContext);
   const [loading, setLoading] = useState<boolean>(false);
   const [projectId, setProjectId] = useState<ProjectId | null>(null);
   const [documentId, setDocumentId] = useState<ResolvedArtifactId | null>(null);
@@ -103,9 +105,8 @@ export const SingleDocumentProjectProvider = ({
   const { projectId: projectIdInPath } = useParams();
 
   const documentInternalPath =
-    versionControlSystems[
-      window.config.singleDocumentProjectVersionControlSystem
-    ] === versionControlSystems.GIT
+    versionControlSystems[config.singleDocumentProjectVersionControlSystem] ===
+    versionControlSystems.GIT
       ? DOCUMENT_INTERNAL_PATH
       : null;
 
