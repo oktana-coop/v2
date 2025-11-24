@@ -12,24 +12,26 @@ import {
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
-import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
 import {
   RepositoryError as VersionedDocumentRepositoryError,
+  type ResolvedDocument,
+  ValidationError as VersionedDocumentValidationError,
   type VersionedDocumentStore,
 } from '../../../rich-text';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
 } from '../../errors';
+import { type ProjectId } from '../../models';
 import { type MultiDocumentProjectStore } from '../../ports/multi-document-project';
 
 export type CreateVersionedDocumentInFileArgs = {
   file: File;
-  projectId: VersionControlId | null;
+  projectId: ProjectId | null;
 };
 
 export type CreateVersionedDocumentInFileResult = {
-  id: VersionControlId;
+  id: ResolvedDocument['id'];
   path: string;
   name: string;
 };
@@ -55,6 +57,7 @@ export const createVersionedDocumentFromFile =
     | VersionedProjectNotFoundError
     | VersionedProjectDataIntegrityError
     | VersionedDocumentRepositoryError
+    | VersionedDocumentValidationError
     | FilesystemAccessControlError
     | FilesystemNotFoundError
     | FilesystemRepositoryError

@@ -1,26 +1,29 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router';
 
-import {
-  type VersionedDocument,
-  type VersionedDocumentHandle,
-} from '../../../../../../modules/domain/rich-text';
+import { isValidProjectId } from '../../../../../../modules/domain/project';
+import { type VersionedDocument } from '../../../../../../modules/domain/rich-text';
 import {
   type Change,
+  changeIdsAreSame,
   type ChangeWithUrlInfo,
-  decodeURLHeads,
-  encodeURLHeads,
-  headsAreSame,
+  type CommitId,
+  decodeUrlEncodedChangeId,
+  decodeUrlEncodedCommitId,
+  decomposeGitBlobRef,
   isCommit,
-  isValidVersionControlId,
-  UrlHeads,
+  isGitBlobRef,
+  type ResolvedArtifactId,
+  urlEncodeChangeId,
 } from '../../../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../../../modules/personalization/browser';
 import {
   CurrentDocumentContext,
   SidebarLayoutContext,
 } from '../../../../app-state';
+import { LongTextSkeleton } from '../../../../components/progress/skeletons/LongText';
 import {
+  useCurrentDocumentId,
   useCurrentDocumentName,
   useNavigateToDocument,
 } from '../../../../hooks';
@@ -28,19 +31,19 @@ import { ActionsBar } from './ActionsBar';
 import { type DiffViewProps, ReadOnlyView } from './ReadOnlyView';
 
 export const DocumentHistoricalView = () => {
-  const { changeId, documentId, projectId } = useParams();
+  const { changeId, projectId } = useParams();
+  const documentId = useCurrentDocumentId();
   const {
-    versionedDocumentHandle,
     versionedDocumentHistory: commits,
     selectedCommitIndex,
-    onSelectCommit,
+    onSelectChange,
     canCommit,
     onOpenCommitDialog,
-    getDocumentHandleAtCommit,
-    isContentSameAtHeads,
+    getDocumentAtChange,
+    isContentSameAtChanges,
   } = useContext(CurrentDocumentContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
-  const [doc, setDoc] = React.useState<VersionedDocument | null>();
+  const [doc, setDoc] = React.useState<VersionedDocument | null>(null);
   const [viewTitle, setViewTitle] = useState<string>('');
   const [diffProps, setDiffProps] = useState<DiffViewProps | null>(null);
 
@@ -66,9 +69,9 @@ export const DocumentHistoricalView = () => {
   const getDecodedDiffParam = useCallback(() => {
     const diffWithParam = searchParams.get('diffWith');
     if (diffWithParam) {
-      const decodedHeads = decodeURLHeads(diffWithParam);
-      if (decodedHeads) {
-        return decodedHeads;
+      const decodedCommitId = decodeUrlEncodedCommitId(diffWithParam);
+      if (decodedCommitId) {
+        return decodedCommitId;
       }
     }
     return null;
@@ -76,88 +79,89 @@ export const DocumentHistoricalView = () => {
 
   useEffect(() => {
     const loadDocOrDiff = async (
-      docHandle: VersionedDocumentHandle,
-      commits: ChangeWithUrlInfo[],
-      currentCommitIndex: number
+      documentId: ResolvedArtifactId,
+      changes: ChangeWithUrlInfo[],
+      currentChangeIndex: number
     ) => {
-      const currentCommitDocHandle = await getDocumentHandleAtCommit({
-        documentHandle: docHandle,
-        heads: commits[currentCommitIndex].heads,
-      });
-      const currentCommitDoc = await currentCommitDocHandle.doc();
+      try {
+        const currentChangeDoc = await getDocumentAtChange({
+          documentId,
+          changeId: changes[currentChangeIndex].id,
+        });
 
-      const isFirstCommit = isInitialChange(currentCommitIndex, commits);
+        const isFirstCommit = isInitialChange(currentChangeIndex, commits);
 
-      if (!showDiffInHistoryView || isFirstCommit) {
-        setDiffProps(null);
-      } else {
-        const diffWith = getDecodedDiffParam();
-        const diffCommit =
-          diffWith &&
-          commits.find((commit) => headsAreSame(commit.heads, diffWith));
-
-        if (diffCommit) {
-          const diffCommitDocHandle = await getDocumentHandleAtCommit({
-            documentHandle: docHandle,
-            heads: diffCommit.heads,
-          });
-          const previousCommitDoc = await diffCommitDocHandle.doc();
-          const isContentBetweenCommitsDifferent = !isContentSameAtHeads({
-            document: currentCommitDoc,
-            heads1: diffCommit.heads,
-            heads2: commits[currentCommitIndex].heads,
-          });
-
-          if (
-            previousCommitDoc &&
-            currentCommitDoc &&
-            isContentBetweenCommitsDifferent
-          ) {
-            setDiffProps({
-              docBefore: previousCommitDoc,
-              docAfter: currentCommitDoc,
-            });
-          }
-        } else {
+        if (!showDiffInHistoryView || isFirstCommit) {
           setDiffProps(null);
-        }
-      }
+        } else {
+          const diffWith = getDecodedDiffParam();
+          const diffCommit =
+            diffWith &&
+            changes.find((commit) => changeIdsAreSame(commit.id, diffWith));
 
-      setDoc(currentCommitDoc);
-      updateViewTitle(commits[currentCommitIndex]);
+          if (diffCommit) {
+            const previousCommitDoc = await getDocumentAtChange({
+              documentId,
+              changeId: diffCommit.id,
+            });
+            const isContentBetweenCommitsDifferent =
+              !(await isContentSameAtChanges({
+                documentId,
+                change1: diffCommit.id,
+                change2: changes[currentChangeIndex].id,
+              }));
+
+            if (
+              previousCommitDoc &&
+              currentChangeDoc &&
+              isContentBetweenCommitsDifferent
+            ) {
+              setDiffProps({
+                docBefore: previousCommitDoc,
+                docAfter: currentChangeDoc,
+              });
+            }
+          } else {
+            setDiffProps(null);
+          }
+        }
+
+        setDoc(currentChangeDoc);
+        updateViewTitle(commits[currentChangeIndex]);
+      } catch (err) {
+        console.error(err);
+      }
     };
 
     if (
-      versionedDocumentHandle &&
+      documentId &&
       commits.length > 0 &&
       selectedCommitIndex !== null &&
       selectedCommitIndex >= 0
     ) {
-      loadDocOrDiff(versionedDocumentHandle, commits, selectedCommitIndex);
+      loadDocOrDiff(documentId, commits, selectedCommitIndex);
     }
   }, [
-    getDocumentHandleAtCommit,
-    versionedDocumentHandle,
+    documentId,
     commits,
     showDiffInHistoryView,
-    searchParams,
-    getDecodedDiffParam,
     selectedCommitIndex,
+    getDecodedDiffParam,
   ]);
 
   useEffect(() => {
     if (commits.length > 0) {
       if (changeId) {
-        const urlHeads = decodeURLHeads(changeId);
-        if (!urlHeads) {
-          console.error('Invalid url heads for the selected commit:', changeId);
+        const decodedChangeId = decodeUrlEncodedChangeId(changeId);
+        if (!decodedChangeId) {
+          console.error('Invalid commit ID for the selected commit:', changeId);
           return;
         }
-        onSelectCommit(urlHeads);
+        onSelectChange(decodedChangeId);
       } else {
         // If no changeId is provided, we select the last commit
         const [lastChange] = commits;
-        onSelectCommit(lastChange.heads);
+        onSelectChange(lastChange.id);
       }
     }
 
@@ -177,11 +181,11 @@ export const DocumentHistoricalView = () => {
     }
   }, [currentDocumentName]);
 
-  const handleDiffCommitSelect = (heads: UrlHeads) => {
+  const handleDiffCommitSelect = (id: CommitId) => {
     setSearchParams((prev) => {
       const newParams = new URLSearchParams(prev);
-      const encodedHeads = encodeURLHeads(heads);
-      newParams.set('diffWith', encodedHeads);
+      const encodedCommitId = urlEncodeChangeId(id);
+      newParams.set('diffWith', encodedCommitId);
       return newParams;
     });
   };
@@ -201,20 +205,22 @@ export const DocumentHistoricalView = () => {
   };
 
   const handleEditClick = () => {
-    if (
-      isValidVersionControlId(projectId) &&
-      isValidVersionControlId(documentId)
-    ) {
-      navigateToDocument({ projectId, documentId, path: null });
+    if (isValidProjectId(projectId) && documentId) {
+      let path: string | null;
+      if (isGitBlobRef(documentId)) {
+        const decomposedBlobRef = decomposeGitBlobRef(documentId);
+        path = decomposedBlobRef.path;
+      } else {
+        path = null;
+      }
+
+      navigateToDocument({
+        projectId,
+        documentId,
+        path,
+      });
     }
   };
-
-  if (!doc) {
-    return (
-      // TODO: Use a spinner
-      <div>Loading...</div>
-    );
-  }
 
   return (
     <div className="flex flex-auto flex-col items-center">
@@ -252,13 +258,27 @@ export const DocumentHistoricalView = () => {
 
       <div className="flex w-full flex-auto flex-col items-center overflow-auto">
         <div className="flex w-full max-w-3xl flex-col">
-          {diffProps ? (
-            <ReadOnlyView {...diffProps} />
-          ) : (
-            <ReadOnlyView doc={doc} />
-          )}
+          <MainContent diffProps={diffProps} doc={doc} />
         </div>
       </div>
     </div>
   );
+};
+
+const MainContent = ({
+  diffProps,
+  doc,
+}: {
+  diffProps: DiffViewProps | null;
+  doc: VersionedDocument | null;
+}) => {
+  if (!doc) {
+    return <LongTextSkeleton />;
+  }
+
+  if (diffProps) {
+    return <ReadOnlyView {...diffProps} />;
+  }
+
+  return <ReadOnlyView doc={doc} />;
 };

@@ -7,9 +7,13 @@ import {
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
-import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
+import {
+  MigrationError,
+  type ResolvedArtifactId,
+} from '../../../../../modules/infrastructure/version-control';
 import {
   RepositoryError as VersionedDocumentRepositoryError,
+  ValidationError as VersionedDocumentValidationError,
   type VersionedDocumentStore,
 } from '../../../rich-text';
 import {
@@ -17,10 +21,11 @@ import {
   RepositoryError as VersionedProjectRepositoryError,
   ValidationError as VersionedProjectValidationError,
 } from '../../errors';
+import { type ProjectId } from '../../models';
 import { type SingleDocumentProjectStore } from './single-document-project-store';
 
 export type SetupSingleDocumentProjectStoreDeps = {
-  createNewFile: Filesystem['createNewFile'];
+  filesystem: Filesystem;
 };
 
 export type SetupSingleDocumentProjectStoreArgs = {
@@ -30,26 +35,26 @@ export type SetupSingleDocumentProjectStoreArgs = {
 export type SetupSingleDocumentProjectStoreResult = {
   versionedProjectStore: SingleDocumentProjectStore;
   versionedDocumentStore: VersionedDocumentStore;
-  projectId: VersionControlId;
-  documentId: VersionControlId;
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
   file: File | null;
   name: string | null;
 };
 
 export type OpenSingleDocumentProjectStoreDeps = {
-  openFile: Filesystem['openFile'];
+  filesystem: Filesystem;
 };
 
 export type OpenSingleDocumentProjectStoreArgs = {
   fromFile?: File;
-  projectId?: VersionControlId;
+  projectId?: ProjectId;
 };
 
 export type OpenSingleDocumentProjectStoreResult = {
   versionedProjectStore: SingleDocumentProjectStore;
   versionedDocumentStore: VersionedDocumentStore;
-  projectId: VersionControlId;
-  documentId: VersionControlId;
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
   file: File | null;
   name: string | null;
 };
@@ -66,6 +71,7 @@ export type SingleDocumentProjectStoreManager = {
     | FilesystemRepositoryError
     | VersionedProjectRepositoryError
     | VersionedDocumentRepositoryError
+    | VersionedDocumentValidationError
     | VersionedProjectValidationError,
     never
   >;
@@ -79,7 +85,8 @@ export type SingleDocumentProjectStoreManager = {
     | FilesystemRepositoryError
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
-    | VersionedProjectValidationError,
+    | VersionedProjectValidationError
+    | MigrationError,
     never
   >;
 };

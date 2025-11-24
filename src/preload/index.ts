@@ -2,29 +2,28 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 import {
   type ElectronAPI,
-  type MultiDocumentProjectAPI,
+  type FilesystemPromiseAPI,
+  type MultiDocumentProjectStoreManagerAPI,
+  type MultiDocumentProjectStorePromiseAPI,
   type OsEventsAPI,
   type PersonalizationAPI,
-  type SingleDocumentProjectAPI,
+  type RendererConfig,
+  type SingleDocumentProjectStoreManagerAPI,
+  type SingleDocumentProjectStorePromiseAPI,
+  type VersionedDocumentStorePromiseAPI,
 } from '../../renderer';
-import {
-  type OpenMultiDocumentProjectByIdArgs,
-  type OpenSingleDocumentProjectStoreArgs,
-  type SetupSingleDocumentProjectStoreArgs,
-} from '../modules/domain/project';
-import { type PromisifyEffects } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
+import { buildConfig } from '../modules/config';
 import { type UpdateState } from '../modules/infrastructure/cross-platform/update';
 import {
   type CreateNewFileArgs,
   type File,
-  type Filesystem as FilesystemAPI,
   type ListDirectoryFilesArgs,
   type OpenFileArgs,
 } from '../modules/infrastructure/filesystem';
 import type {
   FromMainMessage as AutomergeRepoNetworkFromMainIPCMessage,
   FromRendererMessage as AutomergeRepoNetworkFromRendererIPCMessage,
-  VersionControlId,
+  ResolvedArtifactId,
 } from '../modules/infrastructure/version-control';
 import type {
   RunWasiCLIArgs,
@@ -38,7 +37,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('renderer-process-id', (_, processId) =>
       callback(processId)
     ),
-  sendCurrentDocumentId: (id: VersionControlId) =>
+  sendCurrentDocumentId: (id: ResolvedArtifactId) =>
     ipcRenderer.send('current-document-id', id),
   openExternalLink: (url: string) =>
     ipcRenderer.send('open-external-link', url),
@@ -51,6 +50,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onToggleCommandPalette: (callback) =>
     registerIpcListener<void>('toggle-command-palette', callback),
 } as ElectronAPI);
+
+contextBridge.exposeInMainWorld('config', {
+  useHistoryWorker: buildConfig.useHistoryWorker,
+  singleDocumentProjectVersionControlSystem:
+    buildConfig.singleDocumentProjectVersionControlSystem,
+  multiDocumentProjectVersionControlSystem:
+    buildConfig.multiDocumentProjectVersionControlSystem,
+  projectType: buildConfig.projectType,
+} as RendererConfig);
 
 contextBridge.exposeInMainWorld('personalizationAPI', {
   setTheme: (theme) => ipcRenderer.send('set-theme', theme),
@@ -73,8 +81,6 @@ contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
     ),
 });
 
-type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
-
 contextBridge.exposeInMainWorld('filesystemAPI', {
   openDirectory: () => ipcRenderer.invoke('open-directory'),
   getDirectory: (path: string) => ipcRenderer.invoke('get-directory', path),
@@ -89,21 +95,142 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
   writeFile: (path: string, content: string) =>
     ipcRenderer.invoke('write-file', { path, content }),
   readFile: (path: string) => ipcRenderer.invoke('read-file', path),
+  getRelativePath: (args) =>
+    ipcRenderer.invoke('get-relative-path', { ...args }),
+  getAbsolutePath: (args) =>
+    ipcRenderer.invoke('get-absolute-path', { ...args }),
 } as FilesystemPromiseAPI);
 
-contextBridge.exposeInMainWorld('singleDocumentProjectAPI', {
-  createSingleDocumentProject: (args: SetupSingleDocumentProjectStoreArgs) =>
-    ipcRenderer.invoke('create-single-document-project', { ...args }),
-  openSingleDocumentProject: (args: OpenSingleDocumentProjectStoreArgs) =>
-    ipcRenderer.invoke('open-single-document-project', { ...args }),
-} as SingleDocumentProjectAPI);
+contextBridge.exposeInMainWorld('versionedDocumentStoreAPI', {
+  setProjectId: (id) =>
+    ipcRenderer.invoke('versioned-document-store:set-project-id', id),
+  createDocument: (args, projectId) =>
+    ipcRenderer.invoke(
+      'versioned-document-store:create-document',
+      { ...args },
+      projectId
+    ),
+  findDocumentById: (id, projectId) =>
+    ipcRenderer.invoke(
+      'versioned-document-store:find-document-by-id',
+      id,
+      projectId
+    ),
+  getDocumentLastChangeId: (id, projectId) =>
+    ipcRenderer.invoke(
+      'versioned-document-store:get-document-last-change-id',
+      id,
+      projectId
+    ),
+  updateRichTextDocumentContent: (args, projectId) =>
+    ipcRenderer.invoke(
+      'versioned-document-store:update-rich-text-document-content',
+      { ...args },
+      projectId
+    ),
+  deleteDocument: (id, projectId) =>
+    ipcRenderer.invoke(
+      'versioned-document-store:delete-document',
+      id,
+      projectId
+    ),
+  commitChanges: (args, projectId) =>
+    ipcRenderer.invoke(
+      'versioned-document-store:commit-changes',
+      { ...args },
+      projectId
+    ),
+  getDocumentHistory: (id, projectId) =>
+    ipcRenderer.invoke(
+      'versioned-document-store:get-document-history',
+      id,
+      projectId
+    ),
+  getDocumentAtChange: (args, projectId) =>
+    ipcRenderer.invoke(
+      'versioned-document-store:get-document-at-change',
+      {
+        ...args,
+      },
+      projectId
+    ),
+  isContentSameAtChanges: (args, projectId) =>
+    ipcRenderer.invoke(
+      'versioned-document-store:is-content-same-at-changes',
+      {
+        ...args,
+      },
+      projectId
+    ),
+  disconnect: (projectId) =>
+    ipcRenderer.invoke('versioned-document-store:disconnect', projectId),
+} as VersionedDocumentStorePromiseAPI);
 
-contextBridge.exposeInMainWorld('multiDocumentProjectAPI', {
+contextBridge.exposeInMainWorld('singleDocumentProjectStoreAPI', {
+  createSingleDocumentProject: (args, projectId) =>
+    ipcRenderer.invoke(
+      'single-document-project-store:create-single-document-project',
+      {
+        ...args,
+      },
+      projectId
+    ),
+  findDocumentInProject: (id) =>
+    ipcRenderer.invoke(
+      'single-document-project-store:find-document-in-project',
+      id
+    ),
+  findProjectById: (id) =>
+    ipcRenderer.invoke('single-document-project-store:find-project-by-id', id),
+  getProjectName: (id) =>
+    ipcRenderer.invoke('single-document-project-store:get-project-name', id),
+  disconnect: (projectId) =>
+    ipcRenderer.invoke('single-document-project-store:disconnect', projectId),
+} as SingleDocumentProjectStorePromiseAPI);
+
+contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
+  createProject: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:create-project', {
+      ...args,
+    }),
+  findProjectById: (id) =>
+    ipcRenderer.invoke('multi-document-project-store:find-project-by-id', id),
+  listProjectDocuments: (id) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:list-project-documents',
+      id
+    ),
+  addDocumentToProject: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:add-document-to-project', {
+      ...args,
+    }),
+  deleteDocumentFromProject: (args) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:delete-document-from-project',
+      { ...args }
+    ),
+  findDocumentInProject: (args) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:find-document-in-project',
+      { ...args }
+    ),
+} as MultiDocumentProjectStorePromiseAPI);
+
+// TODO: Namespace IPC messages
+contextBridge.exposeInMainWorld('singleDocumentProjectStoreManagerAPI', {
+  setupSingleDocumentProjectStore: (args) =>
+    ipcRenderer.invoke('create-single-document-project', { ...args }),
+  openSingleDocumentProjectStore: (args) =>
+    ipcRenderer.invoke('open-single-document-project', { ...args }),
+} as SingleDocumentProjectStoreManagerAPI);
+
+// TODO: Namespace IPC messages
+contextBridge.exposeInMainWorld('multiDocumentProjectStoreManagerAPI', {
   openOrCreateMultiDocumentProject: () =>
     ipcRenderer.invoke('open-or-create-multi-document-project'),
-  openMultiDocumentProjectById: (args: OpenMultiDocumentProjectByIdArgs) =>
+  openMultiDocumentProjectById: (args) =>
     ipcRenderer.invoke('open-multi-document-project-by-id', { ...args }),
-} as MultiDocumentProjectAPI);
+} as MultiDocumentProjectStoreManagerAPI);
 
 contextBridge.exposeInMainWorld('wasmAPI', {
   runWasiCLIOutputingText: (args: RunWasiCLIArgs) =>

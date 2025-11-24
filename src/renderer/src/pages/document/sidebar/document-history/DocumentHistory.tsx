@@ -1,22 +1,46 @@
-import {
-  type Commit,
-  type UncommitedChange,
-} from '../../../../../../modules/infrastructure/version-control';
+import { useContext } from 'react';
+
+import { type Change } from '../../../../../../modules/infrastructure/version-control';
+import { CurrentDocumentContext } from '../../../../app-state';
 import { CommitHistoryIcon } from '../../../../components/icons';
 import { SidebarHeading } from '../../../../components/sidebar/SidebarHeading';
-import { ChangeLog } from './ChangeLog';
+import { ChangeLog, ChangeLogSkeleton } from './change-log';
 import { EmptyView } from './EmptyView';
 
 export type DocumentHistoryPanelProps = {
-  commits: (Commit | UncommitedChange)[];
-  onCommitClick: (heads: Commit['heads']) => void;
-  selectedCommit: Commit['heads'] | null;
+  changes: Change[];
+  onChangeClick: (changeId: Change['id']) => void;
+  selectedChange: Change['id'] | null;
+};
+
+const DocumentHistoryContent = ({
+  changes,
+  onChangeClick,
+  selectedChange,
+}: DocumentHistoryPanelProps) => {
+  const { loadingHistory } = useContext(CurrentDocumentContext);
+
+  if (loadingHistory) {
+    return <ChangeLogSkeleton />;
+  }
+
+  if (changes.length === 0) {
+    return <EmptyView />;
+  }
+
+  return (
+    <ChangeLog
+      changes={changes}
+      onClick={onChangeClick}
+      selectedChange={selectedChange}
+    />
+  );
 };
 
 export const DocumentHistory = ({
-  commits,
-  onCommitClick,
-  selectedCommit,
+  changes,
+  onChangeClick,
+  selectedChange,
 }: DocumentHistoryPanelProps) => {
   return (
     <div className="flex h-full flex-col items-stretch py-6">
@@ -26,15 +50,11 @@ export const DocumentHistory = ({
         </div>
       </div>
       <div className="flex h-full flex-col items-stretch overflow-auto">
-        {commits.length > 0 ? (
-          <ChangeLog
-            changes={commits}
-            onClick={onCommitClick}
-            selectedCommit={selectedCommit}
-          />
-        ) : (
-          <EmptyView />
-        )}
+        <DocumentHistoryContent
+          changes={changes}
+          onChangeClick={onChangeClick}
+          selectedChange={selectedChange}
+        />
       </div>
     </div>
   );

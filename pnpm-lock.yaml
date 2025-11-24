@@ -9,32 +9,29 @@ importers:
   .:
     dependencies:
       '@automerge/automerge':
-        specifier: ^2.2.9
-        version: 2.2.9
+        specifier: ^3.1.2
+        version: 3.1.2
       '@automerge/automerge-repo':
-        specifier: ^2.0.7
-        version: 2.0.7
+        specifier: ^2.4.0
+        version: 2.4.0
       '@automerge/automerge-repo-network-websocket':
-        specifier: ^2.0.7
-        version: 2.0.7
+        specifier: ^2.4.0
+        version: 2.4.0
       '@automerge/automerge-repo-react-hooks':
-        specifier: ^2.0.7
-        version: 2.0.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^2.4.0
+        version: 2.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@automerge/automerge-repo-storage-indexeddb':
-        specifier: ^2.0.7
-        version: 2.0.7
+        specifier: ^2.4.0
+        version: 2.4.0
       '@automerge/automerge-repo-storage-nodefs':
-        specifier: ^2.0.7
-        version: 2.0.7
+        specifier: ^2.4.0
+        version: 2.4.0
       '@floating-ui/react':
         specifier: ^0.27.8
         version: 0.27.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@headlessui/react':
         specifier: ^2.2.4
         version: 2.2.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@oktana-coop/automerge-prosemirror':
-        specifier: 0.0.13-13
-        version: 0.0.13-13
       '@wasmer/wasi':
         specifier: ^1.2.2
         version: 1.2.2
@@ -71,6 +68,12 @@ importers:
       html2pdf.js:
         specifier: ^0.11.1
         version: 0.11.1
+      isomorphic-git:
+        specifier: ^1.34.2
+        version: 1.34.2
+      path-browserify:
+        specifier: ^1.0.1
+        version: 1.0.1
       prosemirror-commands:
         specifier: ^1.7.1
         version: 1.7.1
@@ -119,6 +122,9 @@ importers:
       vite-plugin-wasm:
         specifier: ^3.4.1
         version: 3.4.1(vite@6.3.5(@types/node@22.15.21)(jiti@1.21.7)(yaml@2.8.0))
+      zod:
+        specifier: ^4.1.12
+        version: 4.1.12
     devDependencies:
       '@chromatic-com/storybook':
         specifier: ^1.9.0
@@ -290,26 +296,26 @@ packages:
     resolution: {integrity: sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw==}
     engines: {node: '>=6.0.0'}
 
-  '@automerge/automerge-repo-network-websocket@2.0.7':
-    resolution: {integrity: sha512-sYphrn54SfEOMTtmlqc4lQlzMlv0upl8oyg3VoaSGvBIJFvnzFVRgXDuNJG5EnBHO8gT0AdwDHYXJDyaVd9IWQ==}
+  '@automerge/automerge-repo-network-websocket@2.4.0':
+    resolution: {integrity: sha512-xdJEMO+7oK40Y7hs/YyiTwaOrgxWv4JCQlQnVZ5KlGIkTwyzFoPguZYZskxYIJqmx239XXm8YikVsmm0CSSlDQ==}
 
-  '@automerge/automerge-repo-react-hooks@2.0.7':
-    resolution: {integrity: sha512-ow8xrpO+8UybydsIBcpJWxPnQp6duuCF5f8mEbUuvIYjjUgKF+Mk1RnZZRQsaQ9HP7X1iTXn4s3Uc8scAlUPKQ==}
+  '@automerge/automerge-repo-react-hooks@2.4.0':
+    resolution: {integrity: sha512-3XF+mJrcQHxsvOHQu0eEHDA43J4WT+BsEZhSefWRps20aQZNhybtxI1BVA8KlJgs7VgiNtUhuM4MvJM5ZeViRQ==}
     peerDependencies:
-      react: ^18.0.0
-      react-dom: ^18.0.0
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
 
-  '@automerge/automerge-repo-storage-indexeddb@2.0.7':
-    resolution: {integrity: sha512-QdhA/eb7kJFDSP5kbiwq1IYbzycRsXot421idWYpgJwMulJT24QrpMlLAxRtALrdjtqWIq3lWmoZqwtjyYK2Qg==}
+  '@automerge/automerge-repo-storage-indexeddb@2.4.0':
+    resolution: {integrity: sha512-oZlcr0Cp091aKr01F5YMPLhxpUxNfTEL6q/Ywjf7wMruSCWApA6Lt/S/jbU4bXIyvwjLUPQ6Ok7dzk1dr6Sdsg==}
 
-  '@automerge/automerge-repo-storage-nodefs@2.0.7':
-    resolution: {integrity: sha512-9oqbhNE4uQSKhhBnXBqQ2Twb7MIUr7XKx7+mZ43yxIYSUV43oPOfGw05tdgbuhXr5EQXNO+mgb9xDHfWrEx/aA==}
+  '@automerge/automerge-repo-storage-nodefs@2.4.0':
+    resolution: {integrity: sha512-nviM1e75KfB0hAz1SHFvdRdeuaxUo/Ve+glcR8cUdDhaO9rlD2+y2biVrxdhNUVT15czbmqPLMNJy5bTg//kYw==}
 
-  '@automerge/automerge-repo@2.0.7':
-    resolution: {integrity: sha512-mesv+b5KfN3L1pQCgy2yjhC3Yvg9FttzaFdbDCQ7p/Eed44npPByiB4TXHOzf2tlehAjBB7V5ruejxCRB3NAzQ==}
+  '@automerge/automerge-repo@2.4.0':
+    resolution: {integrity: sha512-cpSl4VRyu4iDoxi1eFl91mAND+VXnZUt80Clxd15JMn6XD6RUzpAGVACVKLLhgsccqpQQ5VeFuyTFrszHV6PsA==}
 
-  '@automerge/automerge@2.2.9':
-    resolution: {integrity: sha512-6HM52Ops79hAQBWMg/t0MNfGOdEiXyenQjO9F1hKZq0RWDsMLpPa1SzRy/C4/4UyX67sTHuA5CwBpH34SpfZlA==}
+  '@automerge/automerge@3.1.2':
+    resolution: {integrity: sha512-rAZRLAMrboBJGMmZXPOfYiwkmHXho6RjhUOIrlmf+Buukt/DN1oee8kHfpI3U4etetvGgqf5JaFVbydQpKT/Vg==}
 
   '@babel/code-frame@7.27.1':
     resolution: {integrity: sha512-cjQ7ZlQ0Mv3b47hABuTevyTuYN4i+loJKGeV9flcCgIK37cCXRh+L1bd3iBHlynerhQ7BhCkn2BPbQUL+rGqFg==}
@@ -995,9 +1001,6 @@ packages:
     resolution: {integrity: sha512-mJd2Z5TjYWq/ttPLLGqArdtnC74J6bOzg4rMDnN+p1xTacZ2yPRCk2y0oSWQtygLR9YVQXgOcONrwtnk3JupxQ==}
     engines: {node: ^12.13.0 || ^14.15.0 || >=16.0.0}
     deprecated: This functionality has been moved to @npmcli/fs
-
-  '@oktana-coop/automerge-prosemirror@0.0.13-13':
-    resolution: {integrity: sha512-FK4Tw1UKQJ3HfdEb5g7S+3Y3anGjJJuiBaL/RiM2610eb/Yd4IPlBb14KlxQNncj9YUyD5zmbtbmVKFurx00nA==, tarball: https://npm.pkg.github.com/download/@oktana-coop/automerge-prosemirror/0.0.13-13/f841c3ec3362175fcaa3f1233cb99520213eeecc}
 
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
@@ -1862,6 +1865,9 @@ packages:
     resolution: {integrity: sha512-NW2cX8m1Q7KPA7a5M2ULQeZ2wR5qI5PAbw5L0UOMxdioVk9PMZ0h1TmyZEkPYrCvYjDlFICusOu1dlEKAAeXBw==}
     engines: {node: '>=0.12.0'}
 
+  async-lock@1.4.1:
+    resolution: {integrity: sha512-Az2ZTpuytrtqENulXwO3GGv1Bztugx6TT37NIo7imr/Qo0gsYiGtSdBa2B6fsXhTpVZDNfu1Qn3pk531e3q+nQ==}
+
   async@3.2.6:
     resolution: {integrity: sha512-htCUDlxyyCLMgaM3xXg0C0LW2xqfuQ6p05pCEIsXuyQ+a1koYKTuBMzRNwmybfLgvJDMd0r1LTn4+E0Ti6C2AA==}
 
@@ -2119,6 +2125,9 @@ packages:
   classnames@2.5.1:
     resolution: {integrity: sha512-saHYOzhIQs6wy2sVxTM6bUDsQO4F50V9RQ22qBpEdCW+I+/Wmke2HOl6lS6dTpdxVhb88/I6+Hs+438c3lfUow==}
 
+  clean-git-ref@2.0.1:
+    resolution: {integrity: sha512-bLSptAy2P0s6hU4PzuIMKmMJJSE6gLXGH1cntDu7bWJUksvuM+7ReOK61mozULErYvP6a15rnYl0zFDef+pyPw==}
+
   clean-stack@2.2.0:
     resolution: {integrity: sha512-4diC9HaTE+KRAMWhDhrGOECgWZxoevMc5TlkObMqNSsVU62PYzXZ/SMTjzyGAFF1YusgxGcSWTEXBhp0CPwQ1A==}
     engines: {node: '>=6'}
@@ -2210,6 +2219,11 @@ packages:
   core-util-is@1.0.2:
     resolution: {integrity: sha512-3lqz5YjWTYnW6dlDa5TLaTCcShfar1e40rmcJVwCBJC6mWlFuj0eCHIElmG1g5kyuJ/GD+8Wn4FFCcz4gJPfaQ==}
 
+  crc-32@1.2.2:
+    resolution: {integrity: sha512-ROmzCKrTnOwybPcJApAA6WBWij23HVfGVNKqqrZpuyZOHqK2CwHSvpGuyt/UNNvaIjEd8X5IFGp4Mh+Ie1IHJQ==}
+    engines: {node: '>=0.8'}
+    hasBin: true
+
   crc@3.8.0:
     resolution: {integrity: sha512-iX3mfgcTMIq3ZKLIsVFAbv7+Mc10kxabAGQb8HvjA1o3T1PIYprbakQ65d3I+2HGHt6nSKkM9PYjgoJO2KcFBQ==}
 
@@ -2266,6 +2280,15 @@ packages:
 
   debug@4.4.1:
     resolution: {integrity: sha512-KcKCqiftBJcZr++7ykoDIEwSa3XWowTfNPo92BYxjXiyYEVrUQh2aLyhxBCwww+heortUFxEJYcRzosstTEBYQ==}
+    engines: {node: '>=6.0'}
+    peerDependencies:
+      supports-color: '*'
+    peerDependenciesMeta:
+      supports-color:
+        optional: true
+
+  debug@4.4.3:
+    resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
     engines: {node: '>=6.0'}
     peerDependencies:
       supports-color: '*'
@@ -2351,6 +2374,9 @@ packages:
   diff-sequences@29.6.3:
     resolution: {integrity: sha512-EjePK1srD3P08o2j4f0ExnylqRs5B9tJjcp9t1krH2qRi8CCdsYfwe9JgSLurFBWwq4uOlipzfk5fHNvwFKr8Q==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
+
+  diff3@0.0.3:
+    resolution: {integrity: sha512-iSq8ngPOt0K53A6eVr4d5Kn6GNrM2nQZtC740pzIriHtn4pOQ2lyzEXQMBeVcWERN0ye7fhBsk9PbLLQOnUx/g==}
 
   diff@4.0.2:
     resolution: {integrity: sha512-58lmxKSA4BNyLz+HHMUzlOEpg09FV+ev6ZMe3vJihgdxzgcwZ8VoEEPmALCZG9LmqfVoNMMKpttIYTVG6uDY7A==}
@@ -3084,6 +3110,10 @@ packages:
     resolution: {integrity: sha512-nPUB5km40q9e8UfN/Zc24eLlzdSf9OfKByBw9CIdw4H1giPMeA0OIJvbchsCu4npfI2QcMVBsGEBHKZ7wLTWmQ==}
     engines: {node: '>= 0.4'}
 
+  is-git-ref-name-valid@1.0.0:
+    resolution: {integrity: sha512-2hLTg+7IqMSP9nNp/EVCxzvAOJGsAn0f/cKtF8JaBeivjH5UgE/XZo3iJ0AvibdE7KSF1f/7JbjBTB8Wqgbn/w==}
+    engines: {node: '>=10'}
+
   is-glob@4.0.3:
     resolution: {integrity: sha512-xelSayHH36ZgE7ZWhli7pW34hNbNl8Ojv5KVmkJD4hBdD3th8Tfk9vYasLM+mXWOZhFkgZfxhLSnrwRr4elSSg==}
     engines: {node: '>=0.10.0'}
@@ -3167,6 +3197,11 @@ packages:
 
   isexe@2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
+
+  isomorphic-git@1.34.2:
+    resolution: {integrity: sha512-wPKs5a4sLn18SGd8MPNKe089wTnI4agfAY8et+q0GabtgJyNLRdC3ukHZ4EEC5XnczIwJOZ2xPvvTFgPXm80wg==}
+    engines: {node: '>=14.17'}
+    hasBin: true
 
   isomorphic-ws@5.0.0:
     resolution: {integrity: sha512-muId7Zzn9ywDsyXgTIafTry2sV3nySZeUDe6YedVd1Hvuuep5AsIlqK+XefWpYTyJG5e503F2xIuT2lcU6rCSw==}
@@ -3593,6 +3628,9 @@ packages:
   minimist@1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
 
+  minimisted@2.0.1:
+    resolution: {integrity: sha512-1oPjfuLQa2caorJUM8HV8lGgWCc0qqAO1MNv/k05G4qslmsndV/5WdNZrqCiyqiz3wohia2Ij2B7w2Dr7/IyrA==}
+
   minipass-collect@1.0.2:
     resolution: {integrity: sha512-6T6lH0H8OG9kITm/Jm6tdooIbogG9e0tLgpY6mphXSm/A9u8Nq1ryBG+Qspiub9LjWlBPsPS3tWQ/Botq4FdxA==}
     engines: {node: '>= 8'}
@@ -3749,9 +3787,6 @@ packages:
     resolution: {integrity: sha512-5b6Y85tPxZZ7QytO+BQzysW31HJku27cRIlkbAXaNx+BdcVi+LlRFmVXzeF6a7JCwJpyw5c4b+YSVImQIrBpuQ==}
     engines: {node: '>=10'}
 
-  ordered-map@0.1.0:
-    resolution: {integrity: sha512-ttpssyEqKXIeTapKeFTFG+oUCnrC+Fmyy1DPjys0vPJtccBE3baKDFTbJPDuKd9/XHbnKKe+KPQKTzBLri6Mtw==}
-
   orderedmap@2.1.1:
     resolution: {integrity: sha512-TvAWxi0nDe1j/rtMcWcIj94+Ffe6n7zhow33h40SKxmsmozs6dz/e+EajymfoFcHd7sxNn8yHM8839uixMOV6g==}
 
@@ -3786,6 +3821,9 @@ packages:
   package-json-from-dist@1.0.1:
     resolution: {integrity: sha512-UEZIS3/by4OC8vL3P2dTXRETpebLI2NiI5vIrjaD/5UtrkFX/tNbwjTSRAGC/+7CAo2pIcBaRgWmcBBHcsaCIw==}
 
+  pako@1.0.11:
+    resolution: {integrity: sha512-4hLB8Py4zZce5s4yd9XzopqwVv/yGNhV1Bl8NTmCq1763HeK2+EwVTv+leGeL13Dnh2wfbqowVPXCIO0z4taYw==}
+
   parent-module@1.0.1:
     resolution: {integrity: sha512-GQ2EWRpQV8/o+Aw8YqtfZZPfNRWZYkbidE9k5rpl/hC3vtHHBfGm2Ifi6qWV+coDGkrUKZAxE3Lot5kcsRlh+g==}
     engines: {node: '>=6'}
@@ -3796,6 +3834,9 @@ packages:
 
   parse5@7.3.0:
     resolution: {integrity: sha512-IInvU7fabl34qmi9gY8XOVxhYyMyuH2xUNpb2q8/Y+7552KlejkRvqvD19nMoUW/uQGGbqNpA6Tufu5FL5BZgw==}
+
+  path-browserify@1.0.1:
+    resolution: {integrity: sha512-b7uo2UCUOYZcnF/3ID0lulOJi/bafxa1xPe7ZPsammBSpjSWQkjNxlt635YGS2MiR9GjvuXCtz2emr3jbsz98g==}
 
   path-exists@4.0.0:
     resolution: {integrity: sha512-ak9Qy5Q7jYb2Wwcey5Fpvg2KoAc/ZIhLSLOSBmRmygPsGwkVVt0fZa0qrtMz+m6tJTAHfZQ8FnmB4MG4LWy7/w==}
@@ -3844,6 +3885,10 @@ packages:
   pify@2.3.0:
     resolution: {integrity: sha512-udgsAY+fTnvv7kI7aaxbqwWNb0AHiB0qBO89PZKPkoTmGOgdbrHDKD+0B2X4uTfJ/FT1R09r9gTsjUjNJotuog==}
     engines: {node: '>=0.10.0'}
+
+  pify@4.0.1:
+    resolution: {integrity: sha512-uB80kBFb/tfd68bVleG9T5GGsGPjJrLAUpR5PZIrhBnIaRTQRjqdJSsIKkOP6OAIFbj7GOrcudc5pNjZ+geV2g==}
+    engines: {node: '>=6'}
 
   pirates@4.0.7:
     resolution: {integrity: sha512-TfySrs/5nm8fQJDcBDuUng3VOUKsd7S+zqvbOTiGXHfxX4wK31ard+hoNuvkicM/2YFzlpDgABOevKSsB4G/FA==}
@@ -4020,9 +4065,6 @@ packages:
     resolution: {integrity: sha512-NxNv/kLguCA7p3jE8oL2aEBsrJWgAakBpgmgK6lpPWV+WuOmY6r2/zbAVnP+T8bQlA0nzHXSJSJW0Hq7ylaD2Q==}
     engines: {node: '>= 6'}
 
-  prosemirror-changeset@2.3.1:
-    resolution: {integrity: sha512-j0kORIBm8ayJNl3zQvD1TTPHJX3g042et6y/KQhZhnPrruO8exkTgG8X+NRpj7kIyMMEx74Xb3DyMIBtO0IKkQ==}
-
   prosemirror-commands@1.7.1:
     resolution: {integrity: sha512-rT7qZnQtx5c0/y/KlYaGvtG411S97UaL6gdp6RIZ23DLHanMYLyfGBV5DtSnZdthQql7W+lEVbpSfwtO8T+L2w==}
 
@@ -4037,9 +4079,6 @@ packages:
 
   prosemirror-model@1.25.2:
     resolution: {integrity: sha512-BVypCAJ4SL6jOiTsDffP3Wp6wD69lRhI4zg/iT8JXjp3ccZFiq5WyguxvMKmdKFC3prhaig7wSr8dneDToHE1Q==}
-
-  prosemirror-schema-basic@1.2.4:
-    resolution: {integrity: sha512-ELxP4TlX3yr2v5rM7Sb70SqStq5NvI15c0j9j/gjsrO5vaw+fnnpovCLEGIcpeGfifkuqJwl4fon6b+KdrODYQ==}
 
   prosemirror-schema-list@1.5.1:
     resolution: {integrity: sha512-927lFx/uwyQaGwJxLWCZRkjXG0p48KpMj6ueoYiu4JX05GGuGcgzAy62dfiV8eFZftgyBUvLx76RsMe20fJl+Q==}
@@ -4313,6 +4352,11 @@ packages:
   set-function-name@2.0.2:
     resolution: {integrity: sha512-7PGFlmtwsEADb0WYyvCMa1t+yke6daIG4Wirafur5kcf+MhUnPms1UeR0CKQdTZD81yESwMHbtn+TR+dMviakQ==}
     engines: {node: '>= 0.4'}
+
+  sha.js@2.4.12:
+    resolution: {integrity: sha512-8LzC5+bvI45BjpfXU8V5fdU2mfeKiQe1D1gIMn7XUlF3OTUrpdJpPPH4EMAnF0DsHHdSZqCdSss5qCmJKuiO3w==}
+    engines: {node: '>= 0.10'}
+    hasBin: true
 
   shebang-command@2.0.0:
     resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
@@ -4612,6 +4656,10 @@ packages:
   tmpl@1.0.5:
     resolution: {integrity: sha512-3f0uOEAQwIqGuWW2MVzYg8fV/QNnc/IpuJNG837rLuczAaLVHslWHZQj4IGiEl5Hs3kkbhwL9Ab7Hrsmuj+Smw==}
 
+  to-buffer@1.2.2:
+    resolution: {integrity: sha512-db0E3UJjcFhpDhAF4tLo03oli3pwl3dbnzXOUIlRKrp+ldk/VUxzpWYZENsw2SZiuBjHAk7DfB0VU7NKdpb6sw==}
+    engines: {node: '>= 0.4'}
+
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
     engines: {node: '>=8.0'}
@@ -4714,6 +4762,10 @@ packages:
   type-fest@4.41.0:
     resolution: {integrity: sha512-TeTSQ6H5YHvpqVwBRcnLDCBnDOHWYu7IvGbHT6N8AOymcr9PJGjc1GTtiWZTYg0NCgYwvnYWEkVChQAr9bjfwA==}
     engines: {node: '>=16'}
+
+  typed-array-buffer@1.0.3:
+    resolution: {integrity: sha512-nAYYwfY3qnzX30IkA6AQZjVbtK6duGontcQm1WSG1MD94YLqK0515GNApXkoxKOWMusVssAHWLh9SeaoefYFGw==}
+    engines: {node: '>= 0.4'}
 
   typescript@5.8.3:
     resolution: {integrity: sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==}
@@ -4984,6 +5036,9 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
+  zod@4.1.12:
+    resolution: {integrity: sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==}
+
 snapshots:
 
   7zip-bin@5.2.0: {}
@@ -4997,9 +5052,9 @@ snapshots:
       '@jridgewell/gen-mapping': 0.3.8
       '@jridgewell/trace-mapping': 0.3.25
 
-  '@automerge/automerge-repo-network-websocket@2.0.7':
+  '@automerge/automerge-repo-network-websocket@2.4.0':
     dependencies:
-      '@automerge/automerge-repo': 2.0.7
+      '@automerge/automerge-repo': 2.4.0
       cbor-x: 1.6.0
       debug: 4.4.1
       eventemitter3: 5.0.1
@@ -5010,10 +5065,10 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@automerge/automerge-repo-react-hooks@2.0.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@automerge/automerge-repo-react-hooks@2.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@automerge/automerge': 2.2.9
-      '@automerge/automerge-repo': 2.0.7
+      '@automerge/automerge': 3.1.2
+      '@automerge/automerge-repo': 2.4.0
       eventemitter3: 5.0.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
@@ -5021,22 +5076,22 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@automerge/automerge-repo-storage-indexeddb@2.0.7':
+  '@automerge/automerge-repo-storage-indexeddb@2.4.0':
     dependencies:
-      '@automerge/automerge-repo': 2.0.7
+      '@automerge/automerge-repo': 2.4.0
     transitivePeerDependencies:
       - supports-color
 
-  '@automerge/automerge-repo-storage-nodefs@2.0.7':
+  '@automerge/automerge-repo-storage-nodefs@2.4.0':
     dependencies:
-      '@automerge/automerge-repo': 2.0.7
+      '@automerge/automerge-repo': 2.4.0
       rimraf: 5.0.10
     transitivePeerDependencies:
       - supports-color
 
-  '@automerge/automerge-repo@2.0.7':
+  '@automerge/automerge-repo@2.4.0':
     dependencies:
-      '@automerge/automerge': 2.2.9
+      '@automerge/automerge': 3.1.2
       bs58check: 3.0.1
       cbor-x: 1.6.0
       debug: 4.4.1
@@ -5047,9 +5102,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@automerge/automerge@2.2.9':
-    dependencies:
-      uuid: 9.0.1
+  '@automerge/automerge@3.1.2': {}
 
   '@babel/code-frame@7.27.1':
     dependencies:
@@ -5397,7 +5450,7 @@ snapshots:
   '@electron/windows-sign@1.2.2':
     dependencies:
       cross-dirname: 0.1.0
-      debug: 4.4.1
+      debug: 4.4.3
       fs-extra: 11.3.1
       minimist: 1.2.8
       postject: 1.0.0-alpha.6
@@ -5779,7 +5832,7 @@ snapshots:
   '@jridgewell/gen-mapping@0.3.8':
     dependencies:
       '@jridgewell/set-array': 1.2.1
-      '@jridgewell/sourcemap-codec': 1.5.0
+      '@jridgewell/sourcemap-codec': 1.5.5
       '@jridgewell/trace-mapping': 0.3.25
 
   '@jridgewell/resolve-uri@3.1.2': {}
@@ -5788,13 +5841,12 @@ snapshots:
 
   '@jridgewell/sourcemap-codec@1.5.0': {}
 
-  '@jridgewell/sourcemap-codec@1.5.5':
-    optional: true
+  '@jridgewell/sourcemap-codec@1.5.5': {}
 
   '@jridgewell/trace-mapping@0.3.25':
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
-      '@jridgewell/sourcemap-codec': 1.5.0
+      '@jridgewell/sourcemap-codec': 1.5.5
 
   '@jridgewell/trace-mapping@0.3.9':
     dependencies:
@@ -5854,19 +5906,6 @@ snapshots:
     dependencies:
       mkdirp: 1.0.4
       rimraf: 3.0.2
-
-  '@oktana-coop/automerge-prosemirror@0.0.13-13':
-    dependencies:
-      '@automerge/automerge': 2.2.9
-      ordered-map: 0.1.0
-      prosemirror-changeset: 2.3.1
-      prosemirror-history: 1.4.1
-      prosemirror-model: 1.25.2
-      prosemirror-schema-basic: 1.2.4
-      prosemirror-schema-list: 1.5.1
-      prosemirror-state: 1.4.3
-      prosemirror-transform: 1.10.4
-      prosemirror-view: 1.40.1
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
@@ -6823,6 +6862,8 @@ snapshots:
 
   async-exit-hook@2.0.1: {}
 
+  async-lock@1.4.1: {}
+
   async@3.2.6: {}
 
   asynckit@0.4.0: {}
@@ -7161,6 +7202,8 @@ snapshots:
 
   classnames@2.5.1: {}
 
+  clean-git-ref@2.0.1: {}
+
   clean-stack@2.2.0: {}
 
   cli-cursor@3.1.0:
@@ -7243,6 +7286,8 @@ snapshots:
   core-util-is@1.0.2:
     optional: true
 
+  crc-32@1.2.2: {}
+
   crc@3.8.0:
     dependencies:
       buffer: 5.7.1
@@ -7306,6 +7351,10 @@ snapshots:
   debounce@2.2.0: {}
 
   debug@4.4.1:
+    dependencies:
+      ms: 2.1.3
+
+  debug@4.4.3:
     dependencies:
       ms: 2.1.3
 
@@ -7380,6 +7429,8 @@ snapshots:
   didyoumean@1.2.2: {}
 
   diff-sequences@29.6.3: {}
+
+  diff3@0.0.3: {}
 
   diff@4.0.2:
     optional: true
@@ -7541,7 +7592,7 @@ snapshots:
   electron-winstaller@5.4.0:
     dependencies:
       '@electron/asar': 3.4.1
-      debug: 4.4.1
+      debug: 4.4.3
       fs-extra: 7.0.1
       lodash: 4.17.21
       temp: 0.9.4
@@ -8256,6 +8307,8 @@ snapshots:
       has-tostringtag: 1.0.2
       safe-regex-test: 1.1.0
 
+  is-git-ref-name-valid@1.0.0: {}
+
   is-glob@4.0.3:
     dependencies:
       is-extglob: 2.1.1
@@ -8325,6 +8378,22 @@ snapshots:
   isbinaryfile@5.0.4: {}
 
   isexe@2.0.0: {}
+
+  isomorphic-git@1.34.2:
+    dependencies:
+      async-lock: 1.4.1
+      clean-git-ref: 2.0.1
+      crc-32: 1.2.2
+      diff3: 0.0.3
+      ignore: 5.3.2
+      is-git-ref-name-valid: 1.0.0
+      minimisted: 2.0.1
+      pako: 1.0.11
+      path-browserify: 1.0.1
+      pify: 4.0.1
+      readable-stream: 3.6.2
+      sha.js: 2.4.12
+      simple-get: 4.0.1
 
   isomorphic-ws@5.0.0(ws@8.18.2):
     dependencies:
@@ -8966,6 +9035,10 @@ snapshots:
 
   minimist@1.2.8: {}
 
+  minimisted@2.0.1:
+    dependencies:
+      minimist: 1.2.8
+
   minipass-collect@1.0.2:
     dependencies:
       minipass: 3.3.6
@@ -9120,8 +9193,6 @@ snapshots:
       strip-ansi: 6.0.1
       wcwidth: 1.0.1
 
-  ordered-map@0.1.0: {}
-
   orderedmap@2.1.1: {}
 
   p-cancelable@2.1.1: {}
@@ -9150,6 +9221,8 @@ snapshots:
 
   package-json-from-dist@1.0.1: {}
 
+  pako@1.0.11: {}
+
   parent-module@1.0.1:
     dependencies:
       callsites: 3.1.0
@@ -9164,6 +9237,8 @@ snapshots:
   parse5@7.3.0:
     dependencies:
       entities: 6.0.0
+
+  path-browserify@1.0.1: {}
 
   path-exists@4.0.0: {}
 
@@ -9194,6 +9269,8 @@ snapshots:
   picomatch@4.0.2: {}
 
   pify@2.3.0: {}
+
+  pify@4.0.1: {}
 
   pirates@4.0.7: {}
 
@@ -9313,10 +9390,6 @@ snapshots:
       kleur: 3.0.3
       sisteransi: 1.0.5
 
-  prosemirror-changeset@2.3.1:
-    dependencies:
-      prosemirror-transform: 1.10.4
-
   prosemirror-commands@1.7.1:
     dependencies:
       prosemirror-model: 1.25.2
@@ -9343,10 +9416,6 @@ snapshots:
   prosemirror-model@1.25.2:
     dependencies:
       orderedmap: 2.1.1
-
-  prosemirror-schema-basic@1.2.4:
-    dependencies:
-      prosemirror-model: 1.25.2
 
   prosemirror-schema-list@1.5.1:
     dependencies:
@@ -9661,6 +9730,12 @@ snapshots:
       functions-have-names: 1.2.3
       has-property-descriptors: 1.0.2
 
+  sha.js@2.4.12:
+    dependencies:
+      inherits: 2.0.4
+      safe-buffer: 5.2.1
+      to-buffer: 1.2.2
+
   shebang-command@2.0.0:
     dependencies:
       shebang-regex: 3.0.0
@@ -9727,7 +9802,7 @@ snapshots:
   socks-proxy-agent@7.0.0:
     dependencies:
       agent-base: 6.0.2
-      debug: 4.4.1
+      debug: 4.4.3
       socks: 2.8.7
     transitivePeerDependencies:
       - supports-color
@@ -10010,6 +10085,12 @@ snapshots:
 
   tmpl@1.0.5: {}
 
+  to-buffer@1.2.2:
+    dependencies:
+      isarray: 2.0.5
+      safe-buffer: 5.2.1
+      typed-array-buffer: 1.0.3
+
   to-regex-range@5.0.1:
     dependencies:
       is-number: 7.0.0
@@ -10107,6 +10188,12 @@ snapshots:
   type-fest@2.19.0: {}
 
   type-fest@4.41.0: {}
+
+  typed-array-buffer@1.0.3:
+    dependencies:
+      call-bound: 1.0.4
+      es-errors: 1.3.0
+      is-typed-array: 1.1.15
 
   typescript@5.8.3: {}
 
@@ -10338,3 +10425,5 @@ snapshots:
     optional: true
 
   yocto-queue@0.1.0: {}
+
+  zod@4.1.12: {}

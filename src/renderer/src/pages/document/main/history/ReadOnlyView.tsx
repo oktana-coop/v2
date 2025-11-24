@@ -3,10 +3,10 @@ import { EditorView } from 'prosemirror-view';
 import { useContext, useEffect, useRef } from 'react';
 
 import {
-  getSpansString,
+  getDocumentRichTextContent,
   prosemirror,
+  type RichTextDocument,
   richTextRepresentations,
-  type VersionedDocument,
 } from '../../../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform';
@@ -16,21 +16,16 @@ import {
   diffModify,
 } from '../../../../components/editing/marks';
 
-const {
-  automergeSchemaAdapter,
-  diffPlugin,
-  notesPlugin,
-  numberNotes,
-  openExternalLinkPlugin,
-} = prosemirror;
+const { schema, diffPlugin, notesPlugin, numberNotes, openExternalLinkPlugin } =
+  prosemirror;
 
 export type DiffViewProps = {
-  docBefore: VersionedDocument;
-  docAfter: VersionedDocument;
+  docBefore: RichTextDocument;
+  docAfter: RichTextDocument;
 };
 
 export type SingleDocViewProps = {
-  doc: VersionedDocument;
+  doc: RichTextDocument;
 };
 
 const isDiffViewProps = (
@@ -66,7 +61,6 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
   useEffect(() => {
     if (!editorRoot.current || viewRef.current) return;
 
-    const { schema } = automergeSchemaAdapter;
     const state = EditorState.create({
       schema,
     });
@@ -90,19 +84,22 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
     const produceAndShowDiff = async () => {
       if (!viewRef.current || !isDiffViewProps(props)) return;
 
-      const { schema } = automergeSchemaAdapter;
-      const spansBefore = getSpansString(props.docBefore);
-      const spansAfter = getSpansString(props.docAfter);
+      const contentBefore = getDocumentRichTextContent(props.docBefore);
+      const contentAfter = getDocumentRichTextContent(props.docAfter);
+
       const { pmDocAfter: pmDoc, decorations } = await proseMirrorDiff({
-        representation: richTextRepresentations.AUTOMERGE,
+        representation:
+          // There are some old document versions without the representataion set. The representation is Automerge in that case.
+          // TODO: Remove this fallback when we no longer expect documents without representation set.
+          props.docAfter.representation ?? richTextRepresentations.AUTOMERGE,
         proseMirrorSchema: schema,
         decorationClasses: {
           insert: diffInsert,
           modify: diffModify,
           delete: diffDelete,
         },
-        docBefore: spansBefore,
-        docAfter: spansAfter,
+        docBefore: contentBefore,
+        docAfter: contentAfter,
       });
 
       if (destroyed) return;
@@ -137,10 +134,18 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
     const versionedDocToProseMirror = async () => {
       if (!viewRef.current || !isSingleDocViewProps(props)) return;
 
-      const { schema } = automergeSchemaAdapter;
+      const richTextContent = getDocumentRichTextContent(props.doc);
+
       const pmDoc = await convertToProseMirror({
         schema: schema,
-        spans: getSpansString(props.doc),
+        document: {
+          ...props.doc,
+          // There are some old document versions without the representataion set. So the TS type is not completely accurate for all historical versions of a document.
+          // But we should be able to remove this check really soon (don't expect many people to have v2 versions < 0.6.6)
+          representation:
+            props.doc.representation ?? richTextRepresentations.AUTOMERGE,
+          content: richTextContent,
+        },
       });
 
       if (destroyed) return;

@@ -1,12 +1,12 @@
-import { init } from '@oktana-coop/automerge-prosemirror';
 import { clsx } from 'clsx';
+import debounce from 'debounce';
 import {
   baseKeymap,
   setBlockType as setProsemirrorBlockType,
 } from 'prosemirror-commands';
 import { history, redo, undo } from 'prosemirror-history';
 import { keymap } from 'prosemirror-keymap';
-import { Schema } from 'prosemirror-model';
+import { type Node, type Schema } from 'prosemirror-model';
 import { EditorState, Selection, Transaction } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { useContext, useEffect, useRef, useState } from 'react';
@@ -15,10 +15,13 @@ import {
   type BlockType,
   blockTypes,
   type ContainerBlockType,
+  getDocumentRichTextContent,
   getHeadingLevel,
   type LeafBlockType,
   LinkAttrs,
   prosemirror,
+  type RichTextDocument,
+  richTextRepresentations,
   type VersionedDocumentHandle,
 } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
@@ -27,7 +30,7 @@ import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';
 
 const {
-  automergeSchemaAdapter,
+  schema,
   buildInputRules,
   getCurrentLeafBlockType,
   getCurrentContainerBlockType,
@@ -56,24 +59,31 @@ const {
   notesPlugin,
   numberNotes,
   placeholderPlugin,
+  syncPlugin,
+  pmDocFromJSONString,
+  pmDocToJSONString,
 } = prosemirror;
 
 type RichTextEditorProps = {
-  docHandle: VersionedDocumentHandle;
+  doc: RichTextDocument;
+  docHandle: VersionedDocumentHandle | null;
   onSave: () => void;
+  onDocChange?: (doc: RichTextDocument) => Promise<void>;
   isEditable?: boolean;
   isToolbarOpen?: boolean;
 };
 
 export const RichTextEditor = ({
   docHandle,
+  doc,
   onSave,
+  onDocChange,
   isEditable = true,
   isToolbarOpen = false,
 }: RichTextEditorProps) => {
   const editorRoot = useRef<HTMLDivElement>(null);
   const editorViewRef = useRef<EditorView | null>(null);
-  const { schema, view, setView, setSchema, parseMarkdown } =
+  const { view, setView, parseMarkdown, convertToProseMirror } =
     useContext(ProseMirrorContext);
   const [leafBlockType, setLeafBlockType] = useState<LeafBlockType | null>(
     null
@@ -117,15 +127,7 @@ export const RichTextEditor = ({
     };
 
   useEffect(() => {
-    if (docHandle) {
-      const {
-        schema,
-        pmDoc,
-        plugin: automergeSyncPlugin,
-      } = init(docHandle, ['content'], {
-        schemaAdapter: automergeSchemaAdapter,
-      });
-
+    const setupEditorAndView = async (schema: Schema) => {
       const plugins = [
         buildInputRules(schema),
         placeholderPlugin('Start writing...'),
@@ -151,8 +153,44 @@ export const RichTextEditor = ({
         selectionChangePlugin(onSelectionChange(schema)),
         ensureTrailingParagraphPlugin(schema),
         ensureTrailingSpaceAfterAtomPlugin(),
-        automergeSyncPlugin,
       ];
+
+      if (isEditable && onDocChange) {
+        const handlePMDocChange = debounce((pmDoc: Node) => {
+          const pmJSONStr = pmDocToJSONString(pmDoc);
+
+          onDocChange({
+            type: doc.type,
+            schemaVersion: doc.schemaVersion,
+            representation: richTextRepresentations.PROSEMIRROR,
+            content: pmJSONStr,
+          });
+        }, 300);
+
+        plugins.push(
+          syncPlugin({
+            onPMDocChange: handlePMDocChange,
+            docHandle,
+          })
+        );
+      }
+
+      const richTextContent = getDocumentRichTextContent(doc);
+
+      const pmDoc =
+        doc.representation !== richTextRepresentations.PROSEMIRROR
+          ? await convertToProseMirror({
+              schema: schema,
+              document: {
+                ...doc,
+                content: richTextContent,
+              },
+            })
+          : pmDocFromJSONString(doc.content, schema);
+
+      // After awaiting async conversion, ensure another effect didn't create
+      // the view in the meantime (avoid duplicate EditorView creation).
+      if (editorViewRef.current) return;
 
       const editorConfig = {
         schema,
@@ -161,11 +199,11 @@ export const RichTextEditor = ({
       };
 
       const state = EditorState.create(editorConfig);
-      const view = new EditorView(editorRoot.current, {
+      const editorView = new EditorView(editorRoot.current, {
         state,
         dispatchTransaction: (tx: Transaction) => {
-          const newState = view.state.apply(tx);
-          view.updateState(newState);
+          const newState = editorView.state.apply(tx);
+          editorView.updateState(newState);
 
           // React state updates
           setLeafBlockType(getCurrentLeafBlockType(newState));
@@ -181,24 +219,38 @@ export const RichTextEditor = ({
         editable: () => isEditable,
       });
 
-      editorViewRef.current = view;
+      editorViewRef.current = editorView;
 
-      numberNotes(state, view.dispatch, view);
+      numberNotes(state, editorView.dispatch, editorView);
 
-      setView(view);
-      setSchema(schema);
+      // Announce the view to the shared context only after creation.
+      setView(editorView);
 
       if (isEditable) {
-        view.focus();
+        editorViewRef.current?.focus();
         setLeafBlockType(getCurrentLeafBlockType(state));
         setContainerBlockType(getCurrentContainerBlockType(state));
       }
+    };
 
-      return () => {
-        view.destroy();
-      };
+    if (schema && !editorViewRef.current) {
+      setupEditorAndView(schema);
     }
-  }, [docHandle, onSave, isEditable, setSchema, setView]);
+
+    return () => {
+      // If this component created the view (editorViewRef), destroy it and
+      // clear the context view so other components won't reuse the destroyed
+      // instance.
+      if (editorViewRef.current) {
+        editorViewRef.current.destroy();
+        // If the context still holds the same view, clear it.
+        if (view === editorViewRef.current) {
+          setView(null);
+        }
+        editorViewRef.current = null;
+      }
+    };
+  }, [doc, docHandle, onSave, isEditable, schema, setView]);
 
   const handleBlockSelect = (type: BlockType) => {
     if (view) {

@@ -34,6 +34,11 @@ export default defineConfig(({ mode }) => {
       define: {
         'process.env': env,
       },
+      resolve: {
+        alias: {
+          path: 'path-browserify',
+        },
+      },
       plugins: [topLevelAwait(), wasm(), react()],
       build: {
         rollupOptions: {

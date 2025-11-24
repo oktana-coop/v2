@@ -1,5 +1,5 @@
 import wasmUrl from '@automerge/automerge/automerge.wasm?url';
-import { next as Automerge } from '@automerge/automerge/slim';
+import * as Automerge from '@automerge/automerge/slim';
 
 import { type RichTextDocument } from '../../../../../modules/domain/rich-text';
 import {
@@ -44,3 +44,5 @@ self.onmessage = async (event) => {
     self.postMessage(result);
   }
 };
+
+self.postMessage({ type: 'WORKER_READY' });

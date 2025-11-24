@@ -2,9 +2,10 @@ import { useRef } from 'react';
 
 import {
   type ChangeWithUrlInfo,
-  decodeURLHeads,
-  encodeURLHeads,
-  type UrlHeads,
+  type CommitId,
+  decodeUrlEncodedCommitId,
+  isCommitWithUrlInfo,
+  urlEncodeChangeId,
 } from '../../../../../../modules/infrastructure/version-control';
 import { IconButton } from '../../../../components/actions/IconButton';
 import {
@@ -48,9 +49,9 @@ export const ActionsBar = ({
   canShowDiff: boolean;
   showDiff: boolean;
   onSetShowDiffChecked: (value: boolean) => void;
-  diffWith: UrlHeads | null;
+  diffWith: CommitId | null;
   history: Array<ChangeWithUrlInfo>;
-  onDiffCommitSelect: (heads: UrlHeads) => void;
+  onDiffCommitSelect: (commitId: CommitId) => void;
   canCommit: boolean;
   lastChangeIsCommitAndSelected: boolean;
   uncommittedChangesSelected: boolean;
@@ -80,10 +81,10 @@ export const ActionsBar = ({
     onCommitIconClick();
   };
 
-  const handleDiffCommitSelect = (heads: string) => {
-    const decodedHeads = decodeURLHeads(heads);
-    if (decodedHeads) {
-      onDiffCommitSelect(decodedHeads);
+  const handleDiffCommitSelect = (commitId: string) => {
+    const decodedChangeId = decodeUrlEncodedCommitId(commitId);
+    if (decodedChangeId) {
+      onDiffCommitSelect(decodedChangeId);
     }
   };
 
@@ -110,15 +111,20 @@ export const ActionsBar = ({
 
             <Listbox
               name="diff commits"
-              value={diffWith ? encodeURLHeads(diffWith) : null}
+              value={diffWith ? urlEncodeChangeId(diffWith) : null}
               onChange={handleDiffCommitSelect}
               disabled={!showDiff}
             >
-              {history.map(({ message, urlEncodedHeads }) => (
-                <ListboxOption key={urlEncodedHeads} value={urlEncodedHeads}>
-                  <ListboxLabel>{message}</ListboxLabel>
-                </ListboxOption>
-              ))}
+              {history
+                .filter(isCommitWithUrlInfo)
+                .map(({ message, urlEncodedChangeId }) => (
+                  <ListboxOption
+                    key={urlEncodedChangeId}
+                    value={urlEncodedChangeId}
+                  >
+                    <ListboxLabel>{message}</ListboxLabel>
+                  </ListboxOption>
+                ))}
             </Listbox>
           </div>
         )}

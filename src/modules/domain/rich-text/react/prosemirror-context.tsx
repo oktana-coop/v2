@@ -11,6 +11,7 @@ import {
 import { WasmContext } from '../../../../modules/infrastructure/wasm/react/wasm-context';
 import { createAdapter as createPandocDiffAdapter } from '../adapters/pandoc-diff';
 import { richTextRepresentations } from '../constants/representations';
+import { RichTextDocument } from '../models';
 import {
   type Diff,
   type ProseMirrorDiffArgs,
@@ -22,14 +23,12 @@ import { RepresentationTransformContext } from './representation-transform-conte
 
 type ConvertAutomergeToProseMirrorArgs = {
   schema: Schema;
-  spans: string;
+  document: RichTextDocument;
 };
 
 type ProseMirrorContextType = {
-  schema: Schema | null;
-  setSchema: (schema: Schema) => void;
   view: EditorView | null;
-  setView: (view: EditorView) => void;
+  setView: (view: EditorView | null) => void;
   proseMirrorDiff: (
     args: ProseMirrorDiffArgs
   ) => Promise<ProseMirrorDiffResult>;
@@ -43,9 +42,7 @@ type ProseMirrorContextType = {
 
 export const ProseMirrorContext = createContext<ProseMirrorContextType>({
   view: null,
-  schema: null,
   setView: () => {},
-  setSchema: () => {},
   // @ts-expect-error will get overriden below
   proseMirrorDiff: () => null,
   // @ts-expect-error will get overriden below
@@ -59,7 +56,6 @@ export const ProseMirrorProvider = ({
   children: React.ReactNode;
 }) => {
   const { runWasiCLIOutputingText } = useContext(WasmContext);
-  const [schema, setSchema] = useState<Schema | null>(null);
   const [view, setView] = useState<EditorView | null>(null);
   const [diffAdapter, setDiffAdapter] = useState<Diff | null>(null);
   const { adapter: representationTransformAdapter } = useContext(
@@ -73,24 +69,23 @@ export const ProseMirrorProvider = ({
     setDiffAdapter(pandocDiffAdapter);
   }, [runWasiCLIOutputingText]);
 
-  const handleSetSchema = useCallback((schema: Schema) => {
-    setSchema(schema);
-  }, []);
-
-  const handleSetView = useCallback((view: EditorView) => {
+  const handleSetView = useCallback((view: EditorView | null) => {
     setView(view);
   }, []);
 
-  const produceProseMirrorDiff = async (args: ProseMirrorDiffArgs) => {
-    // TODO: Handle adapter readiness with a promise
-    if (!diffAdapter) {
-      throw new Error(
-        'No diff adapter found when trying to produce the ProseMirror diff'
-      );
-    }
+  const produceProseMirrorDiff = useCallback(
+    async (args: ProseMirrorDiffArgs) => {
+      // TODO: Handle adapter readiness with a promise
+      if (!diffAdapter) {
+        throw new Error(
+          'No diff adapter found when trying to produce the ProseMirror diff'
+        );
+      }
 
-    return diffAdapter.proseMirrorDiff(args);
-  };
+      return diffAdapter.proseMirrorDiff(args);
+    },
+    [diffAdapter]
+  );
 
   const handleConvertToProseMirror = async (
     args: ConvertAutomergeToProseMirrorArgs
@@ -102,10 +97,28 @@ export const ProseMirrorProvider = ({
       );
     }
 
+    // If the document content is empty, return a minimal ProseMirror document
+    // consisting of the root `doc` node with a single empty `paragraph` child.
+    if (!args.document.content) {
+      const emptyParagraphDoc = {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [],
+          },
+        ],
+      };
+
+      const pmDoc = pmDocFromJSONString(emptyParagraphDoc, args.schema);
+
+      return pmDoc;
+    }
+
     const result = await representationTransformAdapter.transformToText({
-      from: richTextRepresentations.AUTOMERGE,
+      from: args.document.representation,
       to: richTextRepresentations.PROSEMIRROR,
-      input: args.spans,
+      input: args.document.content,
     });
 
     type RepresentationTransformPMOutput = {
@@ -163,8 +176,6 @@ export const ProseMirrorProvider = ({
   return (
     <ProseMirrorContext.Provider
       value={{
-        schema,
-        setSchema: handleSetSchema,
         view,
         setView: handleSetView,
         proseMirrorDiff: produceProseMirrorDiff,

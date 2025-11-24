@@ -2,9 +2,12 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import {
-  convertToStorageFormat,
+  getDocumentRichTextContent,
   NotFoundError as VersionedDocumentNotFoundError,
+  PRIMARY_RICH_TEXT_REPRESENTATION,
   RepositoryError as VersionedDocumentRepositoryError,
+  richTextRepresentationExtensions,
+  ValidationError as VersionedDocumentValidationError,
   type VersionedDocumentStore,
 } from '../../../../../modules/domain/rich-text';
 import {
@@ -16,28 +19,31 @@ import {
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
-import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
-import { RICH_TEXT_FILE_EXTENSION } from '../../constants/file-extensions';
+import {
+  MigrationError,
+  type ResolvedArtifactId,
+} from '../../../../../modules/infrastructure/version-control';
+import { mapErrorTo } from '../../../../../utils/errors';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
+  ValidationError as VersionedProjectValidationError,
 } from '../../errors';
-import { type ArtifactMetaData } from '../../models';
+import { type ArtifactMetaData, type ProjectId } from '../../models';
 import { type MultiDocumentProjectStore } from '../../ports/multi-document-project';
 import { createVersionedDocumentFromFile } from './create-versioned-document-from-file';
 import { deleteDocumentFromProject } from './delete-document-from-project';
 import { findDocumentInProject } from './find-document-in-project';
 
 export type UpdateProjectFromFilesystemContentArgs = {
-  projectId: VersionControlId;
+  projectId: ProjectId;
   directoryPath: string;
 };
 
 export type UpdateProjectFromFilesystemContentDeps = {
   findDocumentById: VersionedDocumentStore['findDocumentById'];
-  getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
   createDocument: VersionedDocumentStore['createDocument'];
-  updateDocumentSpans: VersionedDocumentStore['updateDocumentSpans'];
+  updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'];
   deleteDocument: VersionedDocumentStore['deleteDocument'];
   addDocumentToProject: MultiDocumentProjectStore['addDocumentToProject'];
   findDocumentInProject: MultiDocumentProjectStore['findDocumentInProject'];
@@ -66,33 +72,34 @@ const documentForFileExistsInProject = ({
 const propagateFileChangesToVersionedDocument =
   ({
     findDocumentById,
-    getDocumentFromHandle,
-    updateDocumentSpans,
+    updateRichTextDocumentContent,
     findDocumentInProject: findDocumentInProjectStore,
     readFile,
   }: {
     findDocumentById: VersionedDocumentStore['findDocumentById'];
     findDocumentInProject: MultiDocumentProjectStore['findDocumentInProject'];
-    updateDocumentSpans: VersionedDocumentStore['updateDocumentSpans'];
-    getDocumentFromHandle: VersionedDocumentStore['getDocumentFromHandle'];
+    updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'];
     readFile: Filesystem['readFile'];
   }) =>
   ({
     projectId,
     file,
   }: {
-    projectId: VersionControlId;
+    projectId: ProjectId;
     file: File;
   }): Effect.Effect<
     void,
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
+    | VersionedProjectValidationError
     | VersionedDocumentRepositoryError
     | VersionedDocumentNotFoundError
+    | VersionedDocumentValidationError
     | FilesystemAccessControlError
     | FilesystemNotFoundError
     | FilesystemRepositoryError
-    | FilesystemDataIntegrityError,
+    | FilesystemDataIntegrityError
+    | MigrationError,
     never
   > =>
     pipe(
@@ -103,33 +110,38 @@ const propagateFileChangesToVersionedDocument =
         documentPath: file.path,
         projectId,
       }),
-      Effect.flatMap((documentHandle) =>
+      Effect.flatMap(({ id: documentId, artifact: document }) =>
         pipe(
-          getDocumentFromHandle(documentHandle),
-          Effect.flatMap((document) =>
+          readFile(file.path),
+          Effect.flatMap((file) =>
+            isTextFile(file)
+              ? Effect.succeed(file)
+              : Effect.fail(
+                  new FilesystemDataIntegrityError(
+                    'Expected a text file but got a binary'
+                  )
+                )
+          ),
+          Effect.flatMap((fileContent) =>
             pipe(
-              readFile(file.path),
-              Effect.flatMap((file) =>
-                isTextFile(file)
-                  ? Effect.succeed(file)
-                  : Effect.fail(
-                      new FilesystemDataIntegrityError(
-                        'Expected a text file but got a binary'
-                      )
-                    )
-              ),
-              Effect.flatMap((fileContent) => {
-                if (
-                  fileContent.content &&
-                  fileContent.content !== convertToStorageFormat(document)
-                ) {
-                  return updateDocumentSpans({
-                    documentHandle,
-                    spans: JSON.parse(fileContent.content),
-                  });
-                }
-                return Effect.succeed(undefined);
-              })
+              Effect.try({
+                try: () => getDocumentRichTextContent(document),
+                catch: (err) =>
+                  mapErrorTo(
+                    VersionedDocumentRepositoryError,
+                    'Automerge Error'
+                  )(err),
+              }),
+              Effect.flatMap((documentRichTextContent) =>
+                fileContent.content &&
+                fileContent.content !== documentRichTextContent
+                  ? updateRichTextDocumentContent({
+                      documentId,
+                      representation: PRIMARY_RICH_TEXT_REPRESENTATION,
+                      content: fileContent.content,
+                    })
+                  : Effect.succeed(undefined)
+              )
             )
           )
         )
@@ -139,9 +151,8 @@ const propagateFileChangesToVersionedDocument =
 export const updateProjectFromFilesystemContent =
   ({
     findDocumentById,
-    getDocumentFromHandle,
     createDocument,
-    updateDocumentSpans,
+    updateRichTextDocumentContent,
     deleteDocument,
     listProjectDocuments,
     findDocumentInProject,
@@ -157,12 +168,15 @@ export const updateProjectFromFilesystemContent =
     void,
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
+    | VersionedProjectValidationError
     | VersionedDocumentRepositoryError
     | VersionedDocumentNotFoundError
+    | VersionedDocumentValidationError
     | FilesystemAccessControlError
     | FilesystemDataIntegrityError
     | FilesystemNotFoundError
-    | FilesystemRepositoryError,
+    | FilesystemRepositoryError
+    | MigrationError,
     never
   > =>
     Effect.Do.pipe(
@@ -170,7 +184,10 @@ export const updateProjectFromFilesystemContent =
       Effect.bind('directoryFiles', () =>
         listDirectoryFiles({
           path: directoryPath,
-          extensions: [RICH_TEXT_FILE_EXTENSION],
+          extensions: [
+            richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
+          ],
+          useRelativePath: true,
         })
       ),
       Effect.tap(({ directoryFiles, projectDocuments }) =>
@@ -181,8 +198,7 @@ export const updateProjectFromFilesystemContent =
               ? propagateFileChangesToVersionedDocument({
                   findDocumentById,
                   findDocumentInProject,
-                  updateDocumentSpans,
-                  getDocumentFromHandle,
+                  updateRichTextDocumentContent,
                   readFile,
                 })({ file, projectId })
               : createVersionedDocumentFromFile({
@@ -197,7 +213,7 @@ export const updateProjectFromFilesystemContent =
         )
       ),
       Effect.tap(({ directoryFiles, projectDocuments }) => {
-        const projectDocumentsToDelete: Array<VersionControlId> =
+        const projectDocumentsToDelete: Array<ResolvedArtifactId> =
           projectDocuments
             .filter(
               (documentMetaData) =>

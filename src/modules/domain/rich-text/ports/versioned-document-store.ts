@@ -3,32 +3,45 @@ import * as Effect from 'effect/Effect';
 import {
   type Change,
   type Commit,
-  type VersionControlId,
+  type MigrationError,
+  type ResolvedArtifactId,
 } from '../../../../modules/infrastructure/version-control';
-import { NotFoundError, RepositoryError } from '../errors';
+import { RichTextRepresentation } from '../constants';
+import { NotFoundError, RepositoryError, ValidationError } from '../errors';
 import {
-  type RichTextDocumentSpan,
+  type ResolvedDocument,
   type VersionedDocument,
   type VersionedDocumentHandle,
 } from '../models';
 
 export type CreateDocumentArgs = {
   content: string | null;
+  filePath?: string;
+  writeToFile?: boolean;
 };
 
-export type GetDocumentHandleAtCommitArgs = {
+export type GetDocumentHandleAtChangeArgs = {
   documentHandle: VersionedDocumentHandle;
-  heads: Commit['heads'];
+  changeId: Change['id'];
 };
 
-export type GetDocumentAtCommitArgs = {
-  document: VersionedDocument;
-  heads: Commit['heads'];
+export type GetDocumentAtChangeArgs = {
+  documentId: ResolvedArtifactId;
+  changeId: Change['id'];
 };
 
-export type UpdateDocumentSpansArgs = {
-  documentHandle: VersionedDocumentHandle;
-  spans: Array<RichTextDocumentSpan>;
+export type UpdateRichTextDocumentContentArgs = {
+  documentId: ResolvedArtifactId;
+  representation: RichTextRepresentation;
+  content: string;
+  writeToFileWithPath?: string;
+};
+
+export type GetDocumentHistoryResponse = {
+  history: Change[];
+  current: VersionedDocument;
+  latestChange: Change;
+  lastCommit: Commit | null;
 };
 
 export type GetDocumentHandleHistoryResponse = {
@@ -38,14 +51,14 @@ export type GetDocumentHandleHistoryResponse = {
   lastCommit: Commit | null;
 };
 
-export type IsContentSameAtHeadsArgs = {
-  document: VersionedDocument;
-  heads1: Commit['heads'];
-  heads2: Commit['heads'];
+export type IsContentSameAtChangesArgs = {
+  documentId: ResolvedArtifactId;
+  change1: Change['id'];
+  change2: Change['id'];
 };
 
 export type CommitChangesArgs = {
-  documentHandle: VersionedDocumentHandle;
+  documentId: ResolvedArtifactId;
   message: string;
 };
 
@@ -55,50 +68,109 @@ export type VersionedDocumentStore = {
   // TODO: Remove this when we have a good solution with data integrity when switching automerge repos.
   projectId: string | null;
   setProjectId: (id: string) => Effect.Effect<void, never, never>;
+  managesFilesystemWorkdir: boolean;
   createDocument: (
     args: CreateDocumentArgs
-  ) => Effect.Effect<VersionControlId, RepositoryError, never>;
-  getDocumentHandleAtCommit: (
-    args: GetDocumentHandleAtCommitArgs
-  ) => Effect.Effect<VersionedDocumentHandle, RepositoryError, never>;
-  getDocumentAtCommit: (
-    args: GetDocumentAtCommitArgs
-  ) => Effect.Effect<VersionedDocument, RepositoryError, never>;
+  ) => Effect.Effect<
+    ResolvedArtifactId,
+    ValidationError | RepositoryError,
+    never
+  >;
   findDocumentById: (
-    id: VersionControlId
+    id: ResolvedArtifactId
+  ) => Effect.Effect<
+    ResolvedDocument,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  getDocumentLastChangeId: (
+    documentId: ResolvedArtifactId
+  ) => Effect.Effect<
+    Change['id'],
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  updateRichTextDocumentContent: (
+    args: UpdateRichTextDocumentContentArgs
+  ) => Effect.Effect<
+    void,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  deleteDocument: (
+    id: ResolvedArtifactId
+  ) => Effect.Effect<
+    void,
+    ValidationError | MigrationError | RepositoryError | NotFoundError,
+    never
+  >;
+  commitChanges: (
+    args: CommitChangesArgs
+  ) => Effect.Effect<
+    void,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  getDocumentHistory: (
+    documentId: ResolvedArtifactId
+  ) => Effect.Effect<
+    GetDocumentHistoryResponse,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  getDocumentAtChange: (
+    args: GetDocumentAtChangeArgs
+  ) => Effect.Effect<
+    VersionedDocument,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  isContentSameAtChanges: (
+    args: IsContentSameAtChangesArgs
+  ) => Effect.Effect<
+    boolean,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  exportDocumentToBinary?: (
+    document: VersionedDocument
+  ) => Effect.Effect<Uint8Array, RepositoryError, never>;
+  importDocumentFromBinary?: (
+    data: Uint8Array
+  ) => Effect.Effect<VersionedDocument, RepositoryError, never>;
+  disconnect: () => Effect.Effect<void, RepositoryError, never>;
+};
+
+export type RealtimeVersionedDocumentStore = VersionedDocumentStore & {
+  getDocumentHandleAtChange: (
+    args: GetDocumentHandleAtChangeArgs
   ) => Effect.Effect<
     VersionedDocumentHandle,
-    RepositoryError | NotFoundError,
+    ValidationError | RepositoryError,
+    never
+  >;
+  findDocumentHandleById: (
+    id: ResolvedArtifactId
+  ) => Effect.Effect<
+    VersionedDocumentHandle,
+    ValidationError | MigrationError | RepositoryError | NotFoundError,
     never
   >;
   getDocumentFromHandle: (
     handle: VersionedDocumentHandle
-  ) => Effect.Effect<VersionedDocument, RepositoryError | NotFoundError, never>;
-  // TODO: Think of a better abstraction - this is too Automerge-specific
-  updateDocumentSpans: (
-    args: UpdateDocumentSpansArgs
-  ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;
-  deleteDocument: (
-    args: VersionControlId
-  ) => Effect.Effect<void, RepositoryError | NotFoundError, never>;
-  getDocumentHeads: (
-    document: VersionedDocument
-  ) => Effect.Effect<Commit['heads'], RepositoryError, never>;
+  ) => Effect.Effect<
+    VersionedDocument,
+    RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
   getDocumentHandleHistory: (
     handle: VersionedDocumentHandle
   ) => Effect.Effect<GetDocumentHandleHistoryResponse, RepositoryError, never>;
-  isContentSameAtHeads: (args: IsContentSameAtHeadsArgs) => boolean;
-  commitChanges: (
-    args: CommitChangesArgs
-  ) => Effect.Effect<void, RepositoryError, never>;
   exportDocumentHandleToBinary: (
     documentHandle: VersionedDocumentHandle
-  ) => Effect.Effect<Uint8Array, RepositoryError | NotFoundError, never>;
-  exportDocumentToBinary: (
-    document: VersionedDocument
-  ) => Effect.Effect<Uint8Array, RepositoryError, never>;
-  importDocumentFromBinary: (
-    data: Uint8Array
-  ) => Effect.Effect<VersionedDocument, RepositoryError, never>;
-  disconnect: () => Effect.Effect<void, RepositoryError, never>;
+  ) => Effect.Effect<
+    Uint8Array,
+    RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
 };

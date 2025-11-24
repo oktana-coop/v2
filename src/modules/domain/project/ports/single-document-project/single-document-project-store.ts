@@ -1,11 +1,14 @@
 import * as Effect from 'effect/Effect';
 
-import { type VersionControlId } from '../../../../infrastructure/version-control';
-import { NotFoundError, RepositoryError } from '../../errors';
+import {
+  MigrationError,
+  type ResolvedArtifactId,
+} from '../../../../infrastructure/version-control';
+import { NotFoundError, RepositoryError, ValidationError } from '../../errors';
 import {
   type BaseArtifactMetaData,
+  type ProjectId,
   type VersionedSingleDocumentProject,
-  type VersionedSingleDocumentProjectHandle,
 } from '../../models';
 
 export type CreateSingleDocumentProjectArgs = {
@@ -16,26 +19,27 @@ export type CreateSingleDocumentProjectArgs = {
 export type SingleDocumentProjectStore = {
   createSingleDocumentProject: (
     args: CreateSingleDocumentProjectArgs
-  ) => Effect.Effect<VersionControlId, RepositoryError, never>;
+  ) => Effect.Effect<ProjectId, RepositoryError, never>;
   findDocumentInProject: (
-    projectId: VersionControlId
-  ) => Effect.Effect<VersionControlId, RepositoryError | NotFoundError, never>;
-  findProjectById: (
-    projectId: VersionControlId
+    projectId: ProjectId
   ) => Effect.Effect<
-    VersionedSingleDocumentProjectHandle,
-    RepositoryError | NotFoundError,
+    ResolvedArtifactId,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
-  getProjectFromHandle: (
-    handle: VersionedSingleDocumentProjectHandle
+  findProjectById: (
+    projectId: ProjectId
   ) => Effect.Effect<
     VersionedSingleDocumentProject,
-    RepositoryError | NotFoundError,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
   getProjectName: (
-    projectId: VersionControlId
-  ) => Effect.Effect<string | null, RepositoryError | NotFoundError, never>;
+    projectId: ProjectId
+  ) => Effect.Effect<
+    string | null,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
   disconnect: () => Effect.Effect<void, RepositoryError, never>;
 };

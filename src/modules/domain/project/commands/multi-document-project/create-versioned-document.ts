@@ -2,7 +2,6 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as Option from 'effect/Option';
 
-import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
 import {
   AbortError as FilesystemAbortError,
   type Directory,
@@ -10,37 +9,44 @@ import {
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../infrastructure/filesystem';
+import { type ResolvedArtifactId } from '../../../../infrastructure/version-control';
 import {
+  PRIMARY_RICH_TEXT_REPRESENTATION,
   RepositoryError as VersionedDocumentRepositoryError,
+  richTextRepresentationExtensions,
+  ValidationError as VersionedDocumentValidationError,
   type VersionedDocumentStore,
 } from '../../../rich-text';
-import { RICH_TEXT_FILE_EXTENSION } from '../../constants/file-extensions';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
+  ValidationError as VersionedProjectValidationError,
 } from '../../errors';
+import { type ProjectId } from '../../models';
 import { type MultiDocumentProjectStore } from '../../ports/multi-document-project';
 
 export type CreateVersionedDocumentArgs = {
   content: string | null;
-  projectId: VersionControlId | null;
+  projectId: ProjectId | null;
   directory: Directory | null;
 };
 
 export type CreateVersionedDocumentDeps = {
   createNewFile: Filesystem['createNewFile'];
+  getRelativePath: Filesystem['getRelativePath'];
   createDocument: VersionedDocumentStore['createDocument'];
   addDocumentToProject: MultiDocumentProjectStore['addDocumentToProject'];
 };
 
 export type CreateVersionedDocumentResult = {
-  documentId: VersionControlId;
+  documentId: ResolvedArtifactId;
   filePath: string;
 };
 
 export const createVersionedDocument =
   ({
     createNewFile,
+    getRelativePath,
     createDocument,
     addDocumentToProject,
   }: CreateVersionedDocumentDeps) =>
@@ -55,7 +61,9 @@ export const createVersionedDocument =
     | FilesystemRepositoryError
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
-    | VersionedDocumentRepositoryError,
+    | VersionedDocumentRepositoryError
+    | VersionedDocumentValidationError
+    | VersionedProjectValidationError,
     never
   > =>
     Effect.Do.pipe(
@@ -63,16 +71,35 @@ export const createVersionedDocument =
         directory
           ? createNewFile({
               parentDirectory: directory,
-              extensions: [RICH_TEXT_FILE_EXTENSION],
+              extensions: [
+                richTextRepresentationExtensions[
+                  PRIMARY_RICH_TEXT_REPRESENTATION
+                ],
+              ],
             })
           : createNewFile({
-              extensions: [RICH_TEXT_FILE_EXTENSION],
+              extensions: [
+                richTextRepresentationExtensions[
+                  PRIMARY_RICH_TEXT_REPRESENTATION
+                ],
+              ],
             })
       ),
-      Effect.bind('documentId', () =>
-        createDocument({
-          content,
-        })
+      Effect.bind('documentId', ({ newFile }) =>
+        pipe(
+          directory
+            ? getRelativePath({
+                path: newFile.path,
+                relativeTo: directory.path,
+              })
+            : Effect.succeed(newFile.path),
+          Effect.flatMap((filePath) =>
+            createDocument({
+              content,
+              filePath,
+            })
+          )
+        )
       ),
       Effect.tap(({ documentId, newFile }) =>
         pipe(

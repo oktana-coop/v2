@@ -15,12 +15,12 @@ export const useDocumentSelection = () => {
       throw new Error('Could not select file because no project ID was found');
     }
 
-    const documentHandle = await findDocumentInProject({
+    const resolvedDocument = await findDocumentInProject({
       projectId,
       documentPath,
     });
 
-    if (!documentHandle) {
+    if (!resolvedDocument) {
       // TODO: Handle more gracefully
       throw new Error(
         'Could not select file because the versioned document was not found in project'
@@ -29,7 +29,7 @@ export const useDocumentSelection = () => {
 
     navigateToDocument({
       projectId,
-      documentId: documentHandle.url,
+      documentId: resolvedDocument.id,
       path: documentPath,
     });
   };

@@ -1,1 +1,1 @@
-export * from './automerge-project-store';
+export * from './automerge/automerge-project-store';

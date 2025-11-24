@@ -111,4 +111,22 @@ export const createAdapter = (): Filesystem => ({
       } as ErrorRegistry<EffectErrorType<ReturnType<Filesystem['readFile']>>>,
       FilesystemRepositoryError
     )(window.filesystemAPI.readFile(...args)),
+  getRelativePath: (...args: Parameters<Filesystem['getRelativePath']>) =>
+    effectifyIPCPromise(
+      {
+        FilesystemRepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<Filesystem['getRelativePath']>>
+      >,
+      FilesystemRepositoryError
+    )(window.filesystemAPI.getRelativePath(...args)),
+  getAbsolutePath: (...args: Parameters<Filesystem['getAbsolutePath']>) =>
+    effectifyIPCPromise(
+      {
+        FilesystemRepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<Filesystem['getAbsolutePath']>>
+      >,
+      FilesystemRepositoryError
+    )(window.filesystemAPI.getAbsolutePath(...args)),
 });

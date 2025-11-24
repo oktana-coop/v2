@@ -128,7 +128,7 @@ export const createAdapter = (): Filesystem => ({
       permissionState: 'granted', // TODO: Replace with constant
     });
   },
-  listDirectoryFiles: ({ path: directoryPath }) =>
+  listDirectoryFiles: ({ path: directoryPath, useRelativePath }) =>
     pipe(
       Effect.tryPromise({
         try: () =>
@@ -144,7 +144,9 @@ export const createAdapter = (): Filesystem => ({
             const file: File = {
               type: filesystemItemTypes.FILE,
               name: entry.name,
-              path: path.join(directoryPath, entry.name),
+              path: useRelativePath
+                ? entry.name
+                : path.join(directoryPath, entry.name),
             };
 
             return file;
@@ -282,4 +284,20 @@ export const createAdapter = (): Filesystem => ({
         content,
       }))
     ),
+  getRelativePath: ({ path: descendantPath, relativeTo }) =>
+    Effect.try({
+      try: () => path.relative(relativeTo, descendantPath),
+      catch: mapErrorTo(
+        RepositoryError,
+        'Could not resolve path relative to directory'
+      ),
+    }),
+  getAbsolutePath: ({ path: descendantPath, dirPath }) =>
+    Effect.try({
+      try: () => path.join(dirPath, descendantPath),
+      catch: mapErrorTo(
+        RepositoryError,
+        'Could not join directory path with relative path'
+      ),
+    }),
 });

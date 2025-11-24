@@ -12,8 +12,12 @@ import {
   findDocumentInProject,
   type MultiDocumentProjectStore,
 } from '../../../../modules/domain/project';
-import { RICH_TEXT_FILE_EXTENSION } from '../../../../modules/domain/project';
-import { VersionedDocumentHandle } from '../../../../modules/domain/rich-text';
+import { type ProjectId } from '../../../../modules/domain/project';
+import {
+  PRIMARY_RICH_TEXT_REPRESENTATION,
+  type ResolvedDocument,
+  richTextRepresentationExtensions,
+} from '../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform';
 import {
   type Directory,
@@ -23,37 +27,38 @@ import {
   removeExtension,
   removePath,
 } from '../../../../modules/infrastructure/filesystem';
-import { VersionControlId } from '../../../../modules/infrastructure/version-control';
+import { type ResolvedArtifactId } from '../../../../modules/infrastructure/version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
 type BrowserStorageProjectData = {
   directoryName: Directory['name'];
   directoryPath: Directory['path'];
-  projectId: VersionControlId;
+  projectId: ProjectId;
 };
 
 const BROWSER_STORAGE_PROJECT_DATA_KEY = 'multi-document-project';
 
 export type SelectedFileInfo = {
-  documentId: VersionControlId;
+  documentId: ResolvedArtifactId;
   path: string | null;
 };
 
 export type MultiDocumentProjectContextType = {
-  projectId: VersionControlId | null;
+  loading: boolean;
+  projectId: ProjectId | null;
   directory: Directory | null;
   directoryFiles: Array<File>;
   openDirectory: () => Promise<Directory>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
   createNewDocument: (name?: string) => Promise<{
-    projectId: VersionControlId;
-    documentId: VersionControlId;
+    projectId: ProjectId;
+    documentId: ResolvedArtifactId;
     path: string;
   }>;
   findDocumentInProject: (args: {
-    projectId: VersionControlId;
+    projectId: ProjectId;
     documentPath: string;
-  }) => Promise<VersionedDocumentHandle>;
+  }) => Promise<ResolvedDocument>;
   selectedFileInfo: SelectedFileInfo | null;
   selectedFileName: string | null;
   setSelectedFileInfo: (file: SelectedFileInfo) => void;
@@ -62,6 +67,7 @@ export type MultiDocumentProjectContextType = {
 
 export const MultiDocumentProjectContext =
   createContext<MultiDocumentProjectContextType>({
+    loading: false,
     projectId: null,
     directory: null,
     directoryFiles: [],
@@ -91,7 +97,8 @@ export const MultiDocumentProjectProvider = ({
     multiDocumentProjectStoreManager,
     setVersionedDocumentStore,
   } = useContext(InfrastructureAdaptersContext);
-  const [projectId, setProjectId] = useState<VersionControlId | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [projectId, setProjectId] = useState<ProjectId | null>(null);
   const [directory, setDirectory] = useState<Directory | null>(null);
   const [directoryFiles, setDirectoryFiles] = useState<Array<File>>([]);
   const [versionedProjectStore, setVersionedProjectStore] =
@@ -116,15 +123,15 @@ export const MultiDocumentProjectProvider = ({
         browserStorageProjectData?.directoryPath &&
         browserStorageProjectData?.projectId
       ) {
+        setLoading(true);
+
         const {
           versionedDocumentStore: documentStore,
           versionedProjectStore: projectStore,
           directory,
         } = await Effect.runPromise(
           multiDocumentProjectStoreManager.openMultiDocumentProjectById({
-            listDirectoryFiles: filesystem.listDirectoryFiles,
-            readFile: filesystem.readFile,
-            getDirectory: filesystem.getDirectory,
+            filesystem,
           })({
             projectId: browserStorageProjectData.projectId,
             directoryPath: browserStorageProjectData.directoryPath,
@@ -135,6 +142,8 @@ export const MultiDocumentProjectProvider = ({
         setDirectory(directory);
         setVersionedProjectStore(projectStore);
         setVersionedDocumentStore(documentStore);
+
+        setLoading(false);
       }
     };
 
@@ -146,7 +155,10 @@ export const MultiDocumentProjectProvider = ({
       const files = await Effect.runPromise(
         filesystem.listDirectoryFiles({
           path: dir.path,
-          extensions: [RICH_TEXT_FILE_EXTENSION],
+          extensions: [
+            richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
+          ],
+          useRelativePath: true,
         })
       );
       setDirectoryFiles(files);
@@ -175,6 +187,8 @@ export const MultiDocumentProjectProvider = ({
   };
 
   const handleOpenDirectory = async () => {
+    setLoading(true);
+
     const {
       versionedDocumentStore: documentStore,
       versionedProjectStore: projectStore,
@@ -182,12 +196,7 @@ export const MultiDocumentProjectProvider = ({
       directory: dir,
     } = await Effect.runPromise(
       multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject({
-        openDirectory: filesystem.openDirectory,
-        listDirectoryFiles: filesystem.listDirectoryFiles,
-        readFile: filesystem.readFile,
-        writeFile: filesystem.writeFile,
-        assertWritePermissionForDirectory:
-          filesystem.assertWritePermissionForDirectory,
+        filesystem,
       })()
     );
 
@@ -205,6 +214,8 @@ export const MultiDocumentProjectProvider = ({
       })
     );
 
+    setLoading(false);
+
     return dir;
   };
 
@@ -219,6 +230,7 @@ export const MultiDocumentProjectProvider = ({
       await Effect.runPromise(
         createVersionedDocument({
           createNewFile: filesystem.createNewFile,
+          getRelativePath: filesystem.getRelativePath,
           createDocument: versionedDocumentStore.createDocument,
           addDocumentToProject: versionedProjectStore.addDocumentToProject,
         })({
@@ -237,7 +249,10 @@ export const MultiDocumentProjectProvider = ({
       const files = await Effect.runPromise(
         filesystem.listDirectoryFiles({
           path: directory.path,
-          extensions: [RICH_TEXT_FILE_EXTENSION],
+          extensions: [
+            richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
+          ],
+          useRelativePath: true,
         })
       );
       setDirectoryFiles(files);
@@ -247,7 +262,7 @@ export const MultiDocumentProjectProvider = ({
   }, [versionedDocumentStore, versionedProjectStore]);
 
   const handleFindDocumentInProject = async (args: {
-    projectId: VersionControlId;
+    projectId: ProjectId;
     documentPath: string;
   }) => {
     if (!versionedDocumentStore || !versionedProjectStore) {
@@ -296,6 +311,7 @@ export const MultiDocumentProjectProvider = ({
   return (
     <MultiDocumentProjectContext.Provider
       value={{
+        loading,
         projectId,
         directory,
         directoryFiles,

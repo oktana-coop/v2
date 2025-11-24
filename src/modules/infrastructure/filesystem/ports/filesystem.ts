@@ -22,7 +22,18 @@ export type CreateNewFileArgs = {
 
 export type ListDirectoryFilesArgs = {
   path: string;
-  extensions: Array<string>;
+  extensions?: Array<string>;
+  useRelativePath?: boolean;
+};
+
+export type GetRelativePathArgs = {
+  path: string;
+  relativeTo: string;
+};
+
+export type GetAbsolutePathArgs = {
+  path: string;
+  dirPath: string;
 };
 
 export type Filesystem = {
@@ -76,4 +87,10 @@ export type Filesystem = {
     AccessControlError | NotFoundError | RepositoryError,
     never
   >;
+  getRelativePath: (
+    args: GetRelativePathArgs
+  ) => Effect.Effect<string, RepositoryError, never>;
+  getAbsolutePath: (
+    args: GetAbsolutePathArgs
+  ) => Effect.Effect<string, RepositoryError, never>;
 };

@@ -4,7 +4,7 @@ import { useParams } from 'react-router';
 import { projectTypes } from '../../../../modules/domain/project';
 import { ProseMirrorProvider } from '../../../../modules/domain/rich-text/react/prosemirror-context';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/electron-context';
-import { decodeURLHeads } from '../../../../modules/infrastructure/version-control';
+import { decodeUrlEncodedChangeId } from '../../../../modules/infrastructure/version-control';
 import {
   CurrentDocumentContext,
   CurrentDocumentProvider,
@@ -25,15 +25,19 @@ import { DocumentMainViewRouter } from './main/DocumentMainViewRouter';
 import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
 import { DirectoryFiles, RecentProjects } from './sidebar/document-list-views';
 
-export const Project = () => (
-  <CurrentProjectProvider projectType={projectTypes.SINGLE_DOCUMENT_PROJECT}>
-    <CurrentDocumentProvider>
-      <SidebarLayoutProvider>
-        <DocumentIndex />
-      </SidebarLayoutProvider>
-    </CurrentDocumentProvider>
-  </CurrentProjectProvider>
-);
+export const Project = () => {
+  const { config } = useContext(ElectronContext);
+
+  return (
+    <CurrentProjectProvider projectType={config.projectType}>
+      <CurrentDocumentProvider>
+        <SidebarLayoutProvider>
+          <DocumentIndex />
+        </SidebarLayoutProvider>
+      </CurrentDocumentProvider>
+    </CurrentProjectProvider>
+  );
+};
 
 export {
   DocumentEditor,
@@ -48,8 +52,8 @@ const DocumentIndex = () => {
     useState<boolean>(false);
   const { projectType } = useContext(CurrentProjectContext);
   const {
-    versionedDocumentHistory: commits,
-    onSelectCommit,
+    versionedDocumentHistory: changes,
+    onSelectChange,
     onCloseCommitDialog,
     isCommitDialogOpen,
     canCommit,
@@ -116,9 +120,11 @@ const DocumentIndex = () => {
                 )}
 
                 <DocumentHistory
-                  commits={commits}
-                  onCommitClick={onSelectCommit}
-                  selectedCommit={changeId ? decodeURLHeads(changeId) : null}
+                  changes={changes}
+                  onChangeClick={onSelectChange}
+                  selectedChange={
+                    changeId ? decodeUrlEncodedChangeId(changeId) : null
+                  }
                 />
               </StackedResizablePanelsLayout>
             }

@@ -1,4 +1,4 @@
-import { DecodedChange, next as Automerge } from '@automerge/automerge/slim';
+import * as Automerge from '@automerge/automerge/slim';
 import {
   decodeHeads,
   encodeHeads,
@@ -12,13 +12,22 @@ import { mapErrorTo } from '../../../../utils/errors';
 import { NotFoundError, RepositoryError } from '../errors';
 import {
   type Change,
+  changeIdsAreSame,
   type Commit,
-  headsAreSame,
-  isCommittedChange,
   type UncommitedChange,
   type VersionedArtifact,
   type VersionedArtifactHandle,
 } from '../models';
+
+export type CommittedChange = Automerge.DecodedChange & {
+  message: string;
+};
+
+export const isCommittedChange = (
+  change: Automerge.DecodedChange
+): change is CommittedChange => {
+  return Boolean(change.message);
+};
 
 export type ArtifactHistoryInfo<ArtifactType> = {
   history: Change[];
@@ -78,7 +87,7 @@ export const getArtifactAtCommit: <ArtifactType>(args: {
 
 export const getChangeMetadata =
   <ArtifactType>(artifact: VersionedArtifact<ArtifactType>) =>
-  (heads: UrlHeads): DecodedChange | undefined =>
+  (heads: UrlHeads): Automerge.DecodedChange | undefined =>
     Automerge.inspectChange(artifact, decodeHeads(heads)[0]) ?? undefined;
 
 export const getArtifactHeadsHistory = <ArtifactType>(
@@ -110,7 +119,7 @@ export const mapHeadsToHistoryInfo = <ArtifactType>({
 }: {
   headsHistory: UrlHeads[];
   artifact: VersionedArtifact<ArtifactType>;
-  metadataExtractor: (heads: UrlHeads) => DecodedChange | undefined;
+  metadataExtractor: (heads: UrlHeads) => Automerge.DecodedChange | undefined;
   contentEqFn: ArtifactContentEqFn<ArtifactType>;
 }): ArtifactHistoryInfo<ArtifactType> => {
   const changes = headsHistory
@@ -130,15 +139,12 @@ export const mapHeadsToHistoryInfo = <ArtifactType>({
 
   const [latestChangeMeta] = changes.slice(-1);
   const latestChange = {
-    hash: latestChangeMeta.hash,
-    heads: latestChangeMeta.heads,
+    id: latestChangeMeta.heads,
     time: new Date(latestChangeMeta.time),
   } as UncommitedChange;
 
   const commits = changes.filter(isCommittedChange).map((change) => ({
-    hash: change.hash,
-    // TODO: cannot see why hash & heads are different things!
-    heads: change.heads,
+    id: change.heads,
     message: change.message,
     time: new Date(change.time),
   })) as Array<Commit>;
@@ -147,8 +153,12 @@ export const mapHeadsToHistoryInfo = <ArtifactType>({
   const [lastCommit] = orderedCommits;
 
   if (lastCommit) {
-    return headsAreSame(latestChange.heads, lastCommit.heads) ||
-      contentEqFn(artifact, latestChange.heads, lastCommit.heads)
+    return changeIdsAreSame(latestChange.id, lastCommit.id) ||
+      contentEqFn(
+        artifact,
+        latestChange.id as UrlHeads,
+        lastCommit.id as UrlHeads
+      )
       ? {
           history: orderedCommits,
           current: artifact,
@@ -214,3 +224,5 @@ export const importFromBinary = <ArtifactType>(
   data: Uint8Array
 ): VersionedArtifact<ArtifactType> =>
   Automerge.load(data, { allowMissingChanges: false });
+
+export * from './migrations';

@@ -1,5 +1,7 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
+// Assuming `path` resolves to `path-browserify` using the build system.
+import path from 'path';
 
 import { fromNullable } from '../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../utils/errors';
@@ -251,7 +253,7 @@ export const createAdapter = (): Filesystem => ({
         permissionState,
       }))
     ),
-  listDirectoryFiles: ({ path, extensions }) =>
+  listDirectoryFiles: ({ path, extensions, useRelativePath }) =>
     Effect.Do.pipe(
       Effect.bind('directoryHandle', () => getDirHandleFromStorage(path)),
       Effect.bind('entries', ({ directoryHandle }) =>
@@ -282,18 +284,26 @@ export const createAdapter = (): Filesystem => ({
           entries.filter(
             (entry): entry is [string, FileSystemFileHandle] =>
               isFileEntry(entry) &&
-              extensions.some((ext) => entry[1].name.endsWith(`.${ext}`))
+              (extensions === undefined ||
+                extensions.some((ext) => entry[1].name.endsWith(`.${ext}`)))
           ),
           ([key, value]) =>
-            pipe(
-              getFileRelativePath(value, directoryHandle),
-              Effect.map((relativePath) => ({
-                type: filesystemItemTypes.FILE,
-                name: key,
-                path: relativePath,
-                handle: value,
-              }))
-            ),
+            useRelativePath
+              ? pipe(
+                  getFileRelativePath(value, directoryHandle),
+                  Effect.map((relativePath) => ({
+                    type: filesystemItemTypes.FILE,
+                    name: key,
+                    path: relativePath,
+                    handle: value,
+                  }))
+                )
+              : Effect.succeed({
+                  type: filesystemItemTypes.FILE,
+                  name: key,
+                  path: value.name,
+                  handle: value,
+                }),
           { concurrency: 10 }
         );
       }),
@@ -439,4 +449,20 @@ export const createAdapter = (): Filesystem => ({
         content: '',
       }))
     ),
+  getRelativePath: ({ path: descendantPath, relativeTo }) =>
+    Effect.try({
+      try: () => path.relative(relativeTo, descendantPath),
+      catch: mapErrorTo(
+        RepositoryError,
+        'Could not resolve path relative to directory'
+      ),
+    }),
+  getAbsolutePath: ({ path: descendantPath, dirPath }) =>
+    Effect.try({
+      try: () => path.join(dirPath, descendantPath),
+      catch: mapErrorTo(
+        RepositoryError,
+        'Could not join directory path with relative path'
+      ),
+    }),
 });

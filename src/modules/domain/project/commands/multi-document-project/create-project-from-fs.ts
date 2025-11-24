@@ -2,7 +2,10 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import {
+  PRIMARY_RICH_TEXT_REPRESENTATION,
   RepositoryError as VersionedDocumentRepositoryError,
+  richTextRepresentationExtensions,
+  ValidationError as VersionedDocumentValidationError,
   type VersionedDocumentStore,
 } from '../../../../../modules/domain/rich-text';
 import {
@@ -12,13 +15,13 @@ import {
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
-import { type VersionControlId } from '../../../../../modules/infrastructure/version-control';
-import { RICH_TEXT_FILE_EXTENSION } from '../../constants/file-extensions';
+import { type ResolvedArtifactId } from '../../../../../modules/infrastructure/version-control';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
+  ValidationError as VersionedProjectValidationError,
 } from '../../errors';
-import { type ArtifactMetaData } from '../../models';
+import { type ArtifactMetaData, type ProjectId } from '../../models';
 import { type MultiDocumentProjectStore } from '../../ports/multi-document-project';
 import { createVersionedDocumentFromFile } from './create-versioned-document-from-file';
 
@@ -45,10 +48,12 @@ export const createProjectFromFilesystemContent =
   ({
     directoryPath,
   }: CreateProjectFromFilesystemContentArgs): Effect.Effect<
-    VersionControlId,
+    ProjectId,
     | VersionedProjectRepositoryError
     | VersionedProjectNotFoundError
+    | VersionedProjectValidationError
     | VersionedDocumentRepositoryError
+    | VersionedDocumentValidationError
     | FilesystemAccessControlError
     | FilesystemDataIntegrityError
     | FilesystemNotFoundError
@@ -58,7 +63,9 @@ export const createProjectFromFilesystemContent =
     pipe(
       listDirectoryFiles({
         path: directoryPath,
-        extensions: [RICH_TEXT_FILE_EXTENSION],
+        extensions: [
+          richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
+        ],
       }),
       Effect.flatMap((directoryFiles) =>
         Effect.forEach(directoryFiles, (file) =>
@@ -79,7 +86,7 @@ export const createProjectFromFilesystemContent =
             (acc, doc) => {
               return { ...acc, [doc.id]: doc };
             },
-            {} as Record<VersionControlId, ArtifactMetaData>
+            {} as Record<ResolvedArtifactId, ArtifactMetaData>
           ),
         })
       )

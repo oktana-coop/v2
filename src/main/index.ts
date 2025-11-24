@@ -3,8 +3,6 @@ import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { exec } from 'child_process';
-import * as Effect from 'effect/Effect';
-import { pipe } from 'effect/Function';
 import {
   app,
   BrowserWindow,
@@ -17,24 +15,20 @@ import {
 import os from 'os';
 
 import { PROJECT_FILE_EXTENSION } from '../modules/domain/project';
-import {
-  createNodeMultiDocumentProjectStoreManagerAdapter,
-  createNodeSingleDocumentProjectStoreManagerAdapter,
-  OpenMultiDocumentProjectByIdArgs,
-  type OpenSingleDocumentProjectStoreArgs,
-  type SetupSingleDocumentProjectStoreArgs,
-} from '../modules/domain/project/node';
 import { runPromiseSerializingErrorsForIPC } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
 import {
   type CreateNewFileArgs,
   type File,
   filesystemItemTypes,
+  GetAbsolutePathArgs,
+  GetRelativePathArgs,
   type ListDirectoryFilesArgs,
   type OpenFileArgs,
 } from '../modules/infrastructure/filesystem';
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/infrastructure/filesystem/adapters/electron-node-api';
 import { type RunWasiCLIArgs } from '../modules/infrastructure/wasm';
 import { createAdapter as createNodeWasmAdapter } from '../modules/infrastructure/wasm/adapters/node-wasm';
+import { registerVersionedStoresEvents } from './ipc';
 import { buildMenu } from './menu';
 import { initializeStore } from './store';
 import { registerThemeIPCHandlers, setSavedOrDefaultTheme } from './theme';
@@ -185,17 +179,11 @@ async function createWindow() {
 
   const rendererProcessId = String(win.webContents.id);
 
-  const singleDocumentProjectStoreManager =
-    createNodeSingleDocumentProjectStoreManagerAdapter({
-      rendererProcessId,
-      browserWindow: win,
-    });
-
-  const multiDocumentProjectStoreManager =
-    createNodeMultiDocumentProjectStoreManagerAdapter({
-      rendererProcessId,
-      browserWindow: win,
-    });
+  registerVersionedStoresEvents({
+    filesystem: filesystemAPI,
+    rendererProcessId,
+    browserWindow: win,
+  });
 
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('renderer-process-id', rendererProcessId);
@@ -246,78 +234,11 @@ async function createWindow() {
   ipcMain.handle('read-file', (_, path: string) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.readFile(path))
   );
-
-  ipcMain.handle(
-    'create-single-document-project',
-    async (_, { name }: SetupSingleDocumentProjectStoreArgs) =>
-      Effect.runPromise(
-        pipe(
-          singleDocumentProjectStoreManager.setupSingleDocumentProjectStore({
-            createNewFile: filesystemAPI.createNewFile,
-          })({ name }),
-          Effect.map(({ projectId, documentId, file, name }) => ({
-            projectId,
-            documentId,
-            file,
-            name,
-          }))
-        )
-      )
+  ipcMain.handle('get-relative-path', (_, args: GetRelativePathArgs) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.getRelativePath(args))
   );
-
-  ipcMain.handle(
-    'open-single-document-project',
-    async (_, { fromFile }: OpenSingleDocumentProjectStoreArgs) =>
-      Effect.runPromise(
-        pipe(
-          singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
-            openFile: filesystemAPI.openFile,
-          })({ fromFile }),
-          Effect.map(({ projectId, documentId, file, name }) => ({
-            projectId,
-            documentId,
-            file,
-            name,
-          }))
-        )
-      )
-  );
-
-  ipcMain.handle('open-or-create-multi-document-project', async () =>
-    Effect.runPromise(
-      pipe(
-        multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject({
-          openDirectory: filesystemAPI.openDirectory,
-          listDirectoryFiles: filesystemAPI.listDirectoryFiles,
-          readFile: filesystemAPI.readFile,
-          writeFile: filesystemAPI.writeFile,
-          assertWritePermissionForDirectory:
-            filesystemAPI.assertWritePermissionForDirectory,
-        })(),
-        Effect.map(({ projectId, directory }) => ({
-          projectId,
-          directory,
-        }))
-      )
-    )
-  );
-
-  ipcMain.handle(
-    'open-multi-document-project-by-id',
-    async (_, { projectId, directoryPath }: OpenMultiDocumentProjectByIdArgs) =>
-      Effect.runPromise(
-        pipe(
-          multiDocumentProjectStoreManager.openMultiDocumentProjectById({
-            listDirectoryFiles: filesystemAPI.listDirectoryFiles,
-            readFile: filesystemAPI.readFile,
-            getDirectory: filesystemAPI.getDirectory,
-          })({ projectId, directoryPath }),
-          Effect.map(({ projectId, directory }) => ({
-            projectId,
-            directory,
-          }))
-        )
-      )
+  ipcMain.handle('get-absolute-path', (_, args: GetAbsolutePathArgs) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.getAbsolutePath(args))
   );
 
   ipcMain.on('open-external-link', (_, url: string) => {

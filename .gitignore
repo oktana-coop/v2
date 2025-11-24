@@ -31,3 +31,6 @@ storybook-static/
 
 # Automerge repo data dev folder
 automerge-repo-data/
+
+# Environment variables file
+.env
