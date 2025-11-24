@@ -1,10 +1,10 @@
 import { type ProjectType } from '../domain/project';
-import { type RichTextRepresentation } from '../domain/rich-text';
+import { type TextRichTextRepresentation } from '../domain/rich-text';
 import { type VersionControlSystem } from '../infrastructure/version-control';
 
 export type BuildConfig = {
   useHistoryWorker: boolean;
-  primaryRichTextRepresentation: RichTextRepresentation;
+  primaryRichTextRepresentation: TextRichTextRepresentation;
   singleDocumentProjectVersionControlSystem: VersionControlSystem;
   multiDocumentProjectVersionControlSystem: VersionControlSystem;
   projectType: ProjectType;
