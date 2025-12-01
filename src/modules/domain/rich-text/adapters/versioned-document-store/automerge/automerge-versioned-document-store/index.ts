@@ -364,6 +364,12 @@ export const createAdapter = ({
       )
     );
 
+  const restoreCommit: VersionedDocumentStore['restoreCommit'] = ({
+    documentId,
+    commit,
+    message,
+  }) => pipe();
+
   const exportDocumentToBinary: VersionedDocumentStore['exportDocumentToBinary'] =
     (document) =>
       Effect.try({
@@ -411,6 +417,7 @@ export const createAdapter = ({
     isContentSameAtChanges,
     getDocumentLastChangeId,
     commitChanges,
+    restoreCommit,
     exportDocumentHandleToBinary,
     exportDocumentToBinary,
     importDocumentFromBinary,

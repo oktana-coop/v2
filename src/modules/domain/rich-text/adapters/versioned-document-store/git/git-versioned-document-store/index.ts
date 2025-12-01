@@ -615,6 +615,12 @@ export const createAdapter = ({
       );
     };
 
+  const restoreCommit: VersionedDocumentStore['restoreCommit'] = ({
+    documentId,
+    commit,
+    message,
+  }) => pipe();
+
   // This is a no-op in the Git document repo.
   const disconnect: VersionedDocumentStore['disconnect'] = () =>
     Effect.succeed(undefined);
@@ -632,6 +638,7 @@ export const createAdapter = ({
     getDocumentHistory,
     getDocumentAtChange,
     isContentSameAtChanges,
+    restoreCommit,
     disconnect,
   };
 };

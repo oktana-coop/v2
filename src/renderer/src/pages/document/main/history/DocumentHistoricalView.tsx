@@ -39,6 +39,7 @@ export const DocumentHistoricalView = () => {
     onSelectChange,
     canCommit,
     onOpenCommitDialog,
+    onOpenRestoreCommitDialog,
     getDocumentAtChange,
     isContentSameAtChanges,
   } = useContext(CurrentDocumentContext);
@@ -222,14 +223,24 @@ export const DocumentHistoricalView = () => {
     }
   };
 
+  const handleOpenRestoreCommitDialog = () => {
+    if (
+      selectedCommitIndex !== null &&
+      selectedCommitIndex >= 0 &&
+      isCommit(commits[selectedCommitIndex])
+    ) {
+      const selectedCommit = commits[selectedCommitIndex];
+      onOpenRestoreCommitDialog(selectedCommit);
+    }
+  };
+
   return (
     <div className="flex flex-auto flex-col items-center">
       <div className="w-full">
         <ActionsBar
           isSidebarOpen={isSidebarOpen}
           onSidebarToggle={toggleSidebar}
-          // TODO: Implement revert functionality
-          onRevertIconClick={() => {}}
+          onRestoreCommitIconClick={handleOpenRestoreCommitDialog}
           title={viewTitle}
           canShowDiff={
             !selectedCommitIndex ||
