@@ -534,6 +534,12 @@ export const CurrentDocumentProvider = ({
 
   const exportToTextRepresentation = useCallback(
     async (representation: TextRichTextRepresentation) => {
+      if (!documentId) {
+        throw new Error(
+          'Document ID not set when trying to export to text representation'
+        );
+      }
+
       if (
         !versionedDocumentStore ||
         versionedDocumentStore.projectId !== projectId
@@ -545,20 +551,19 @@ export const CurrentDocumentProvider = ({
 
       if (!representationTransformAdapter) {
         throw new Error(
-          'No representation transform adapter found when trying to convert to Markdown'
+          'No representation transform adapter found when trying to convert to text representation'
         );
       }
 
-      if (!versionedDocument) {
-        throw new Error(
-          'Document ID not set when trying to export to Markdown'
-        );
-      }
+      // We fetch the latest version of the document to ensure we have the most up-to-date content
+      const { artifact: document } = await Effect.runPromise(
+        versionedDocumentStore.findDocumentById(documentId)
+      );
 
-      const documentContent = getDocumentRichTextContent(versionedDocument);
+      const documentContent = getDocumentRichTextContent(document);
 
       const str = await representationTransformAdapter.transformToText({
-        from: versionedDocument.representation,
+        from: document.representation,
         to: representation,
         input: documentContent,
       });
@@ -569,12 +574,18 @@ export const CurrentDocumentProvider = ({
       versionedDocumentStore,
       projectId,
       representationTransformAdapter,
-      versionedDocument,
+      documentId,
     ]
   );
 
   const exportToBinaryRepresentation = useCallback(
     async (representation: BinaryRichTextRepresentation) => {
+      if (!documentId) {
+        throw new Error(
+          'Document ID not set when trying to export to binary representation'
+        );
+      }
+
       if (
         !versionedDocumentStore ||
         versionedDocumentStore.projectId !== projectId
@@ -586,20 +597,19 @@ export const CurrentDocumentProvider = ({
 
       if (!representationTransformAdapter) {
         throw new Error(
-          'No representation transform adapter found when trying to convert to Markdown'
+          'No representation transform adapter found when trying to convert to binary representation'
         );
       }
 
-      if (!versionedDocument) {
-        throw new Error(
-          'Document ID not set when trying to export to Markdown'
-        );
-      }
+      // We fetch the latest version of the document to ensure we have the most up-to-date content
+      const { artifact: document } = await Effect.runPromise(
+        versionedDocumentStore.findDocumentById(documentId)
+      );
 
-      const documentContent = getDocumentRichTextContent(versionedDocument);
+      const documentContent = getDocumentRichTextContent(document);
 
       const str = await representationTransformAdapter.transformToBinary({
-        from: versionedDocument.representation,
+        from: document.representation,
         to: representation,
         input: documentContent,
       });
@@ -610,7 +620,7 @@ export const CurrentDocumentProvider = ({
       versionedDocumentStore,
       projectId,
       representationTransformAdapter,
-      versionedDocument,
+      documentId,
     ]
   );
 
