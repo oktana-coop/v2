@@ -603,7 +603,7 @@ export const CurrentDocumentProvider = ({
 
       // We fetch the latest version of the document to ensure we have the most up-to-date content
       const { artifact: document } = await Effect.runPromise(
-        versionedDocumentStore.findDocumentById(documentId!)
+        versionedDocumentStore.findDocumentById(documentId)
       );
 
       const documentContent = getDocumentRichTextContent(document);
