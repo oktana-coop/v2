@@ -8,7 +8,6 @@ import {
   changeIdsAreSame,
   type ChangeWithUrlInfo,
   type CommitId,
-  decodeUrlEncodedChangeId,
   decodeUrlEncodedCommitId,
   decomposeGitBlobRef,
   isCommit,
@@ -79,6 +78,10 @@ export const DocumentHistoricalView = () => {
   }, [searchParams]);
 
   useEffect(() => {
+    // This flag prevents stale effects from updating the UI.
+    // (e.g. when the user changes the selected commit quickly in the UI).
+    let isLatest = true;
+
     const loadDocOrDiff = async (
       documentId: ResolvedArtifactId,
       changes: ChangeWithUrlInfo[],
@@ -93,7 +96,9 @@ export const DocumentHistoricalView = () => {
         const isFirstCommit = isInitialChange(currentChangeIndex, commits);
 
         if (!showDiffInHistoryView || isFirstCommit) {
-          setDiffProps(null);
+          if (isLatest) {
+            setDiffProps(null);
+          }
         } else {
           const diffWith = getDecodedDiffParam();
           const diffCommit =
@@ -117,20 +122,28 @@ export const DocumentHistoricalView = () => {
               currentChangeDoc &&
               isContentBetweenCommitsDifferent
             ) {
-              setDiffProps({
-                docBefore: previousCommitDoc,
-                docAfter: currentChangeDoc,
-              });
+              if (isLatest) {
+                setDiffProps({
+                  docBefore: previousCommitDoc,
+                  docAfter: currentChangeDoc,
+                });
+              }
             }
           } else {
-            setDiffProps(null);
+            if (isLatest) {
+              setDiffProps(null);
+            }
           }
         }
 
-        setDoc(currentChangeDoc);
-        updateViewTitle(commits[currentChangeIndex]);
+        if (isLatest) {
+          setDoc(currentChangeDoc);
+          updateViewTitle(commits[currentChangeIndex]);
+        }
       } catch (err) {
-        console.error(err);
+        if (isLatest) {
+          console.error(err);
+        }
       }
     };
 
@@ -142,6 +155,10 @@ export const DocumentHistoricalView = () => {
     ) {
       loadDocOrDiff(documentId, commits, selectedCommitIndex);
     }
+
+    return () => {
+      isLatest = false;
+    };
   }, [
     documentId,
     commits,
