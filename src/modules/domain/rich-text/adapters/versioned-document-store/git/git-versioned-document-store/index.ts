@@ -344,10 +344,7 @@ export const createAdapter = ({
           ),
           Effect.flatMap((commitHashStr) =>
             Effect.try({
-              try: () => {
-                console.log('Committed changes with hash:', commitHashStr);
-                return parseGitCommitHash(commitHashStr);
-              },
+              try: () => parseGitCommitHash(commitHashStr),
               catch: mapErrorTo(RepositoryError, 'Git repo error'),
             })
           )

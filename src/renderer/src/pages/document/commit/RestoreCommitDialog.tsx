@@ -25,7 +25,7 @@ export const RestoreCommitDialog = ({
 
   useEffect(() => {
     if (commitToRestore) {
-      setCommitMessage(`Restore "${commitToRestore.message}"`);
+      setCommitMessage(`Restore "${commitToRestore.message.trimEnd()}"`);
     } else {
       setCommitMessage('');
     }
@@ -60,7 +60,7 @@ export const RestoreCommitDialog = ({
   return (
     <Modal
       isOpen={isOpen}
-      title={`Restore commit${commitToRestore ? `: "${commitToRestore.message}"` : ''}`}
+      title={`Restore commit${commitToRestore ? `: "${commitToRestore.message.trimEnd()}"` : ''}`}
       secondaryButton={
         <Button variant="plain" onClick={onCancel}>
           Cancel
