@@ -4,6 +4,7 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import {
+  type Commit,
   exportToBinary,
   getArtifactAtCommit,
   getArtifactFromHandle,
@@ -343,7 +344,7 @@ export const createAdapter = ({
   }) =>
     pipe(
       findDocumentHandleById(documentId),
-      Effect.flatMap((documentHandle) =>
+      Effect.tap((documentHandle) =>
         Effect.try({
           try: () =>
             documentHandle.change(
@@ -361,6 +362,16 @@ export const createAdapter = ({
             ),
           catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
         })
+      ),
+      Effect.flatMap(
+        () =>
+          // TODO: This is not ideal, we should get the change id from the change operation above.
+          // Arguably, using getLastLocalChange would be preferable.
+          getDocumentLastChangeId(documentId) as Effect.Effect<
+            Commit['id'],
+            ValidationError | RepositoryError | NotFoundError | MigrationError,
+            never
+          >
       )
     );
 

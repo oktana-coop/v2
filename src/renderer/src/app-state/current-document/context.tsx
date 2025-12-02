@@ -12,6 +12,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router';
 
 import {
   isValidProjectId,
+  type ProjectId,
   projectTypes,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
@@ -37,6 +38,7 @@ import {
   changeIdsAreSame,
   type ChangeWithUrlInfo,
   type Commit,
+  decodeUrlEncodedChangeId,
   decomposeGitBlobRef,
   isGitBlobRef,
   type ResolvedArtifactId,
@@ -129,7 +131,7 @@ export const CurrentDocumentProvider = ({
     useState<VersionedDocumentHandle | null>(null);
   const [versionedDocument, setVersionedDocument] =
     useState<VersionedDocument | null>(null);
-  const { projectId, changeId } = useParams();
+  const { projectId: projectIdParam, changeId: changeIdParam } = useParams();
   const documentId = useCurrentDocumentId();
   const [searchParams] = useSearchParams();
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
@@ -160,18 +162,18 @@ export const CurrentDocumentProvider = ({
   const loadHistoryFromWorker = config.useHistoryWorker
     ? createWorkerClient()
     : undefined;
-  const prevProjectId = useRef(projectId);
+  const prevProjectId = useRef(projectIdParam);
   const prevDocumentId = useRef(documentId);
 
   useEffect(() => {
     const projectOrDocumentHasChanged =
-      prevProjectId.current !== projectId ||
+      prevProjectId.current !== projectIdParam ||
       prevDocumentId.current !== documentId;
 
     const returningToSelectedDocumentEditMode =
       prevDocumentId.current === documentId &&
-      prevProjectId.current === projectId &&
-      !changeId;
+      prevProjectId.current === projectIdParam &&
+      !changeIdParam;
 
     const updateDocumentHandleAndSelectedFile = async ({
       versionedDocumentStore,
@@ -221,7 +223,7 @@ export const CurrentDocumentProvider = ({
           });
         }
 
-        prevProjectId.current = projectId;
+        prevProjectId.current = projectIdParam;
         prevDocumentId.current = documentId;
       }
     };
@@ -231,14 +233,14 @@ export const CurrentDocumentProvider = ({
       // This is a very important safeguard. We don't want to ask the document from a document store that belongs to another project
       // due to how Automerge repo syncing works at the moment. If this happens, the repo registers interest in the wrong document
       // and can potentially get it if we are not careful when switching projects. Change with caution.
-      versionedDocumentStore.projectId === projectId &&
+      versionedDocumentStore.projectId === projectIdParam &&
       (projectOrDocumentHasChanged || returningToSelectedDocumentEditMode)
     ) {
       updateDocumentHandleAndSelectedFile({ versionedDocumentStore });
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documentId, projectId, changeId, versionedDocumentStore]);
+  }, [documentId, projectIdParam, changeIdParam, versionedDocumentStore]);
 
   const checkIfContentChangedFromLastCommit =
     (documentStore: VersionedDocumentStore) =>
@@ -335,6 +337,8 @@ export const CurrentDocumentProvider = ({
         latestChangeId: historyInfo.latestChange.id,
         lastCommitId: historyInfo.lastCommit?.id,
       });
+
+      return historyWithURLInfo;
     };
 
   useEffect(() => {
@@ -346,9 +350,25 @@ export const CurrentDocumentProvider = ({
     }
   }, [versionedDocument]);
 
+  useEffect(() => {
+    if (versionedDocumentHistory.length > 0 && changeIdParam) {
+      const selectedCommitIndex = findSelectedCommitIndex({
+        changeId: decodeUrlEncodedChangeId(changeIdParam),
+        history: versionedDocumentHistory,
+      });
+
+      setSelectedCommitIndex(
+        selectedCommitIndex === -1 ? null : selectedCommitIndex
+      );
+    }
+  }, [versionedDocumentHistory, changeIdParam]);
+
   const handleCommit = useCallback(
     async (message: string) => {
-      if (!documentId || !versionedDocumentStore) return;
+      if (!documentId || !versionedDocumentStore) {
+        return;
+      }
+
       await Effect.runPromise(
         versionedDocumentStore.commitChanges({
           documentId,
@@ -370,7 +390,10 @@ export const CurrentDocumentProvider = ({
 
   const handleRestoreCommit = useCallback(
     async ({ message, commit }: { message: string; commit: Commit }) => {
-      if (!documentId || !versionedDocumentStore) return;
+      if (!documentId || !versionedDocument || !versionedDocumentStore) {
+        return;
+      }
+
       const restoreCommitId = await Effect.runPromise(
         versionedDocumentStore.restoreCommit({
           documentId,
@@ -379,11 +402,16 @@ export const CurrentDocumentProvider = ({
         })
       );
 
+      const newHistory = await loadHistory(versionedDocumentStore)({
+        doc: versionedDocument,
+        docId: documentId,
+      });
+
       setIsRestoreCommitDialogOpen(false);
       setCanCommit(false);
-      handleSelectChange(restoreCommitId);
+      handleSelectChange(restoreCommitId, newHistory);
     },
-    [documentId, versionedDocumentStore]
+    [documentId, versionedDocument, versionedDocumentStore]
   );
 
   const handleOpenCommitDialog = useCallback(() => {
@@ -404,52 +432,79 @@ export const CurrentDocumentProvider = ({
     setCommitToRestore(null);
   }, []);
 
+  const findSelectedCommitIndex = ({
+    changeId,
+    history,
+  }: {
+    changeId: ChangeId;
+    history: ChangeWithUrlInfo[];
+  }) => history.findIndex((commit) => changeIdsAreSame(commit.id, changeId));
+
+  const selectChange = ({
+    projectId,
+    documentId,
+    history,
+    changeId,
+    showDiffInHistoryView,
+  }: {
+    projectId: ProjectId;
+    documentId: ResolvedArtifactId;
+    history: ChangeWithUrlInfo[];
+    changeId: ChangeId;
+    showDiffInHistoryView: boolean;
+  }) => {
+    const isInitialChange = (index: number, changes: Change[]) =>
+      index === changes.length - 1;
+
+    const selectedCommitIndex = findSelectedCommitIndex({ changeId, history });
+
+    const isFirstCommit = isInitialChange(selectedCommitIndex, history);
+
+    const diffCommit = isFirstCommit ? null : history[selectedCommitIndex + 1];
+
+    let newUrl = `/projects/${urlEncodeProjectId(projectId)}/documents/${urlEncodeArtifactId(documentId)}/changes/${urlEncodeChangeId(changeId)}`;
+    if (diffCommit) {
+      const diffChangeURLEncodedId = urlEncodeChangeIdForChange(diffCommit);
+      newUrl += `?diffWith=${diffChangeURLEncodedId}`;
+    }
+
+    if (showDiffInHistoryView && diffCommit) {
+      newUrl += `&showDiff=true`;
+    }
+
+    navigate(newUrl);
+  };
+
   const handleSelectChange = useCallback(
-    (changeId: ChangeId) => {
-      if (!projectId || !isValidProjectId(projectId) || !documentId) {
+    (changeId: ChangeId, history?: ChangeWithUrlInfo[]) => {
+      if (!projectIdParam || !isValidProjectId(projectIdParam) || !documentId) {
         throw new Error(
           'Cannot select a change since projectId or documentId are not set yet.'
         );
       }
 
-      const isInitialChange = (index: number, changes: Change[]) =>
-        index === changes.length - 1;
-
-      const selectedCommitIndex = versionedDocumentHistory.findIndex((commit) =>
-        changeIdsAreSame(commit.id, changeId)
-      );
-
-      const isFirstCommit = isInitialChange(
-        selectedCommitIndex,
-        versionedDocumentHistory
-      );
-
-      const diffCommit = isFirstCommit
-        ? null
-        : versionedDocumentHistory[selectedCommitIndex + 1];
-
-      let newUrl = `/projects/${urlEncodeProjectId(projectId)}/documents/${urlEncodeArtifactId(documentId)}/changes/${urlEncodeChangeId(changeId)}`;
-      if (diffCommit) {
-        const diffChangeURLEncodedId = urlEncodeChangeIdForChange(diffCommit);
-        newUrl += `?diffWith=${diffChangeURLEncodedId}`;
-      }
-
-      if (showDiffInHistoryView && diffCommit) {
-        newUrl += `&showDiff=true`;
-      }
-
-      setSelectedCommitIndex(selectedCommitIndex);
-      navigate(newUrl);
+      return selectChange({
+        projectId: projectIdParam,
+        documentId,
+        history: history ?? versionedDocumentHistory,
+        changeId,
+        showDiffInHistoryView,
+      });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [documentId, versionedDocumentHistory, showDiffInHistoryView]
+    [
+      projectIdParam,
+      documentId,
+      versionedDocumentHistory,
+      showDiffInHistoryView,
+    ]
   );
 
   const handleGetDocumentAtChange = useCallback(
     async (args: GetDocumentAtChangeArgs) => {
       if (
         !versionedDocumentStore ||
-        versionedDocumentStore.projectId !== projectId
+        versionedDocumentStore.projectId !== projectIdParam
       ) {
         throw new Error(
           'Versioned document store not ready yet or mismatched project.'
@@ -460,14 +515,14 @@ export const CurrentDocumentProvider = ({
         versionedDocumentStore.getDocumentAtChange(args)
       );
     },
-    [versionedDocumentStore, projectId]
+    [versionedDocumentStore, projectIdParam]
   );
 
   const handleIsContentSameAtChanges = useCallback(
     (args: IsContentSameAtChangesArgs) => {
       if (
         !versionedDocumentStore ||
-        versionedDocumentStore.projectId !== projectId
+        versionedDocumentStore.projectId !== projectIdParam
       ) {
         throw new Error(
           'Versioned document store not ready yet or mismatched project.'
@@ -478,14 +533,14 @@ export const CurrentDocumentProvider = ({
         versionedDocumentStore.isContentSameAtChanges(args)
       );
     },
-    [versionedDocumentStore, projectId]
+    [versionedDocumentStore, projectIdParam]
   );
 
   const handleDocumentContentChange = useCallback(
     async (doc: RichTextDocument) => {
       if (
         !versionedDocumentStore ||
-        versionedDocumentStore.projectId !== projectId
+        versionedDocumentStore.projectId !== projectIdParam
       ) {
         throw new Error(
           'Versioned document store not ready yet or mismatched project.'
@@ -560,7 +615,7 @@ export const CurrentDocumentProvider = ({
     },
     [
       versionedDocumentStore,
-      projectId,
+      projectIdParam,
       documentId,
       documentInternalPath,
       representationTransformAdapter,
@@ -583,7 +638,7 @@ export const CurrentDocumentProvider = ({
 
       if (
         !versionedDocumentStore ||
-        versionedDocumentStore.projectId !== projectId
+        versionedDocumentStore.projectId !== projectIdParam
       ) {
         throw new Error(
           'Versioned document store not ready yet or mismatched project.'
@@ -613,7 +668,7 @@ export const CurrentDocumentProvider = ({
     },
     [
       versionedDocumentStore,
-      projectId,
+      projectIdParam,
       representationTransformAdapter,
       documentId,
     ]
@@ -629,7 +684,7 @@ export const CurrentDocumentProvider = ({
 
       if (
         !versionedDocumentStore ||
-        versionedDocumentStore.projectId !== projectId
+        versionedDocumentStore.projectId !== projectIdParam
       ) {
         throw new Error(
           'Versioned document store not ready yet or mismatched project.'
@@ -659,7 +714,7 @@ export const CurrentDocumentProvider = ({
     },
     [
       versionedDocumentStore,
-      projectId,
+      projectIdParam,
       representationTransformAdapter,
       documentId,
     ]

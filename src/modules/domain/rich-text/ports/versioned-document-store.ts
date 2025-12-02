@@ -113,7 +113,7 @@ export type VersionedDocumentStore = {
   commitChanges: (
     args: CommitChangesArgs
   ) => Effect.Effect<
-    void,
+    Commit['id'],
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;

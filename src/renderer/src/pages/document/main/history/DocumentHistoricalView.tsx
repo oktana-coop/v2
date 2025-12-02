@@ -152,24 +152,12 @@ export const DocumentHistoricalView = () => {
 
   useEffect(() => {
     if (commits.length > 0) {
-      if (changeId) {
-        const decodedChangeId = decodeUrlEncodedChangeId(changeId);
-        if (!decodedChangeId) {
-          console.error('Invalid commit ID for the selected commit:', changeId);
-          return;
-        }
-        onSelectChange(decodedChangeId);
-      } else {
+      if (!changeId) {
         // If no changeId is provided, we select the last commit
         const [lastChange] = commits;
         onSelectChange(lastChange.id);
       }
     }
-
-    // Consciously omitting selectCommit from the dependency array because it ends up
-    // resetting the selected diff commit as you check/uncheck the diff checkbox.
-    // It's a small detail but it makes the experience smoother.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [commits, changeId]);
 
   useEffect(() => {
