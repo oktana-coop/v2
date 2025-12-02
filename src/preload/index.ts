@@ -162,6 +162,14 @@ contextBridge.exposeInMainWorld('versionedDocumentStoreAPI', {
       },
       projectId
     ),
+  restoreCommit: (args, projectId) =>
+    ipcRenderer.invoke(
+      'versioned-document-store:restore-commit',
+      {
+        ...args,
+      },
+      projectId
+    ),
   disconnect: (projectId) =>
     ipcRenderer.invoke('versioned-document-store:disconnect', projectId),
 } as VersionedDocumentStorePromiseAPI);

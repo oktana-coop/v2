@@ -62,6 +62,13 @@ export type CommitChangesArgs = {
   message: string;
 };
 
+export type RestoreCommitArgs = {
+  documentId: ResolvedArtifactId;
+  commit: Commit;
+  message?: string;
+  writeToFileWithPath?: string;
+};
+
 export type VersionedDocumentStore = {
   // This is not an ideal model but we want to be able to tell that the document store we are searching in is the desired one.
   // Without this we are risking registering interest in documents from other repositories (and therefore polluting our stores).
@@ -107,7 +114,7 @@ export type VersionedDocumentStore = {
   commitChanges: (
     args: CommitChangesArgs
   ) => Effect.Effect<
-    void,
+    Commit['id'],
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
@@ -129,6 +136,13 @@ export type VersionedDocumentStore = {
     args: IsContentSameAtChangesArgs
   ) => Effect.Effect<
     boolean,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  restoreCommit: (
+    args: RestoreCommitArgs
+  ) => Effect.Effect<
+    Commit['id'],
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;

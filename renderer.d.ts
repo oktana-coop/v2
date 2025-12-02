@@ -137,6 +137,7 @@ type VersionedDocumentStoreIPCAPI = VersionedDocumentStore & {
     VersionedDocumentStore['isContentSameAtChanges'],
     string
   >;
+  restoreCommit: AppendParam<VersionedDocumentStore['restoreCommit'], string>;
   disconnect: AppendParam<VersionedDocumentStore['disconnect'], string>;
 };
 

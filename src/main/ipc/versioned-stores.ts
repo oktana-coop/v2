@@ -28,6 +28,7 @@ import {
   type CreateDocumentArgs,
   type GetDocumentAtChangeArgs,
   type IsContentSameAtChangesArgs,
+  RestoreCommitArgs,
   type UpdateRichTextDocumentContentArgs,
 } from '../../modules/domain/rich-text';
 import { runPromiseSerializingErrorsForIPC } from '../../modules/infrastructure/cross-platform/electron-ipc-effect';
@@ -535,6 +536,19 @@ const registerVersionedDocumentStoreEvents = () => {
           validateProjectIdAndGetVersionedStores(projectId),
           Effect.flatMap(({ versionedDocumentStore }) =>
             versionedDocumentStore.isContentSameAtChanges(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'versioned-document-store:restore-commit',
+    async (_, args: RestoreCommitArgs, projectId: string) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(projectId),
+          Effect.flatMap(({ versionedDocumentStore }) =>
+            versionedDocumentStore.restoreCommit(args)
           )
         )
       )

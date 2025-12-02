@@ -11,7 +11,7 @@ import { IconButton } from '../../../../components/actions/IconButton';
 import {
   CheckIcon,
   PenIcon,
-  RevertIcon,
+  RestoreCommitIcon,
   SidebarIcon,
   SidebarOpenIcon,
 } from '../../../../components/icons';
@@ -30,7 +30,7 @@ export const ActionsBar = ({
   title,
   isSidebarOpen,
   onSidebarToggle,
-  onRevertIconClick,
+  onRestoreCommitIconClick,
   canShowDiff,
   showDiff,
   onSetShowDiffChecked,
@@ -45,7 +45,7 @@ export const ActionsBar = ({
   title: string;
   isSidebarOpen: boolean;
   onSidebarToggle: () => void;
-  onRevertIconClick: () => void;
+  onRestoreCommitIconClick: () => void;
   canShowDiff: boolean;
   showDiff: boolean;
   onSetShowDiffChecked: (value: boolean) => void;
@@ -71,9 +71,9 @@ export const ActionsBar = ({
     }
   };
 
-  const handleRevertIconClick = (ev: React.MouseEvent) => {
+  const handleRestoreCommitIconClick = (ev: React.MouseEvent) => {
     ev.preventDefault();
-    onRevertIconClick();
+    onRestoreCommitIconClick();
   };
 
   const handleCheckIconClick = (ev: React.MouseEvent) => {
@@ -133,9 +133,11 @@ export const ActionsBar = ({
           onClick={
             uncommittedChangesSelected
               ? handleCheckIconClick
-              : handleRevertIconClick
+              : handleRestoreCommitIconClick
           }
-          icon={uncommittedChangesSelected ? <CheckIcon /> : <RevertIcon />}
+          icon={
+            uncommittedChangesSelected ? <CheckIcon /> : <RestoreCommitIcon />
+          }
           disabled={lastChangeIsCommitAndSelected}
           color={uncommittedChangesSelected ? 'purple' : undefined}
           tooltip={

@@ -8,7 +8,6 @@ import {
   changeIdsAreSame,
   type ChangeWithUrlInfo,
   type CommitId,
-  decodeUrlEncodedChangeId,
   decodeUrlEncodedCommitId,
   decomposeGitBlobRef,
   isCommit,
@@ -39,6 +38,7 @@ export const DocumentHistoricalView = () => {
     onSelectChange,
     canCommit,
     onOpenCommitDialog,
+    onOpenRestoreCommitDialog,
     getDocumentAtChange,
     isContentSameAtChanges,
   } = useContext(CurrentDocumentContext);
@@ -78,6 +78,10 @@ export const DocumentHistoricalView = () => {
   }, [searchParams]);
 
   useEffect(() => {
+    // This flag prevents stale effects from updating the UI.
+    // (e.g. when the user changes the selected commit quickly in the UI).
+    let isLatest = true;
+
     const loadDocOrDiff = async (
       documentId: ResolvedArtifactId,
       changes: ChangeWithUrlInfo[],
@@ -92,7 +96,9 @@ export const DocumentHistoricalView = () => {
         const isFirstCommit = isInitialChange(currentChangeIndex, commits);
 
         if (!showDiffInHistoryView || isFirstCommit) {
-          setDiffProps(null);
+          if (isLatest) {
+            setDiffProps(null);
+          }
         } else {
           const diffWith = getDecodedDiffParam();
           const diffCommit =
@@ -116,20 +122,28 @@ export const DocumentHistoricalView = () => {
               currentChangeDoc &&
               isContentBetweenCommitsDifferent
             ) {
-              setDiffProps({
-                docBefore: previousCommitDoc,
-                docAfter: currentChangeDoc,
-              });
+              if (isLatest) {
+                setDiffProps({
+                  docBefore: previousCommitDoc,
+                  docAfter: currentChangeDoc,
+                });
+              }
             }
           } else {
-            setDiffProps(null);
+            if (isLatest) {
+              setDiffProps(null);
+            }
           }
         }
 
-        setDoc(currentChangeDoc);
-        updateViewTitle(commits[currentChangeIndex]);
+        if (isLatest) {
+          setDoc(currentChangeDoc);
+          updateViewTitle(commits[currentChangeIndex]);
+        }
       } catch (err) {
-        console.error(err);
+        if (isLatest) {
+          console.error(err);
+        }
       }
     };
 
@@ -141,6 +155,10 @@ export const DocumentHistoricalView = () => {
     ) {
       loadDocOrDiff(documentId, commits, selectedCommitIndex);
     }
+
+    return () => {
+      isLatest = false;
+    };
   }, [
     documentId,
     commits,
@@ -151,24 +169,12 @@ export const DocumentHistoricalView = () => {
 
   useEffect(() => {
     if (commits.length > 0) {
-      if (changeId) {
-        const decodedChangeId = decodeUrlEncodedChangeId(changeId);
-        if (!decodedChangeId) {
-          console.error('Invalid commit ID for the selected commit:', changeId);
-          return;
-        }
-        onSelectChange(decodedChangeId);
-      } else {
+      if (!changeId) {
         // If no changeId is provided, we select the last commit
         const [lastChange] = commits;
         onSelectChange(lastChange.id);
       }
     }
-
-    // Consciously omitting selectCommit from the dependency array because it ends up
-    // resetting the selected diff commit as you check/uncheck the diff checkbox.
-    // It's a small detail but it makes the experience smoother.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [commits, changeId]);
 
   useEffect(() => {
@@ -222,14 +228,24 @@ export const DocumentHistoricalView = () => {
     }
   };
 
+  const handleOpenRestoreCommitDialog = () => {
+    if (
+      selectedCommitIndex !== null &&
+      selectedCommitIndex >= 0 &&
+      isCommit(commits[selectedCommitIndex])
+    ) {
+      const selectedCommit = commits[selectedCommitIndex];
+      onOpenRestoreCommitDialog(selectedCommit);
+    }
+  };
+
   return (
     <div className="flex flex-auto flex-col items-center">
       <div className="w-full">
         <ActionsBar
           isSidebarOpen={isSidebarOpen}
           onSidebarToggle={toggleSidebar}
-          // TODO: Implement revert functionality
-          onRevertIconClick={() => {}}
+          onRestoreCommitIconClick={handleOpenRestoreCommitDialog}
           title={viewTitle}
           canShowDiff={
             !selectedCommitIndex ||

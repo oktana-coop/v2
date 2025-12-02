@@ -80,7 +80,7 @@ export const createAdapter = ({
       )
     );
 
-  const extractDocumentPathFromId: (
+  const extractDocumentRelativePathFromId: (
     id: ResolvedArtifactId
   ) => Effect.Effect<string, ValidationError, never> = (id) =>
     pipe(
@@ -89,6 +89,24 @@ export const createAdapter = ({
         const { path: documentPath } = decomposeGitBlobRef(gitBlobRef);
         return documentPath;
       })
+    );
+
+  const buildDocumentAbsolutePathFromId: (
+    id: ResolvedArtifactId
+  ) => Effect.Effect<string, ValidationError | RepositoryError, never> = (id) =>
+    pipe(
+      extractDocumentRelativePathFromId(id),
+      Effect.flatMap((relativeDocumentPath) =>
+        pipe(
+          filesystem.getAbsolutePath({
+            path: relativeDocumentPath,
+            dirPath: projectDir,
+          }),
+          Effect.catchAll(() =>
+            Effect.fail(new RepositoryError('Git repo error'))
+          )
+        )
+      )
     );
 
   const createDocument: VersionedDocumentStore['createDocument'] = ({
@@ -143,20 +161,9 @@ export const createAdapter = ({
     );
 
   const findDocumentById: VersionedDocumentStore['findDocumentById'] = (id) =>
-    Effect.Do.pipe(
-      Effect.bind('relativeDocumentPath', () => extractDocumentPathFromId(id)),
-      Effect.bind('documentPath', ({ relativeDocumentPath }) =>
-        pipe(
-          filesystem.getAbsolutePath({
-            path: relativeDocumentPath,
-            dirPath: projectDir,
-          }),
-          Effect.catchAll(() =>
-            Effect.fail(new RepositoryError('Git repo error'))
-          )
-        )
-      ),
-      Effect.flatMap(({ documentPath }) =>
+    pipe(
+      buildDocumentAbsolutePathFromId(id),
+      Effect.flatMap((documentPath) =>
         pipe(
           filesystem.readFile(documentPath),
           Effect.catchTag('FilesystemNotFoundError', () =>
@@ -267,7 +274,7 @@ export const createAdapter = ({
 
       return Effect.Do.pipe(
         Effect.bind('documentPath', () =>
-          extractDocumentPathFromId(documentId)
+          extractDocumentRelativePathFromId(documentId)
         ),
         Effect.flatMap(({ documentPath }) =>
           pipe(
@@ -280,6 +287,8 @@ export const createAdapter = ({
       );
     };
 
+  // Note: This function expects an absolute path in writeToFileWithPath.
+  // TODO: Express this accurately in the type system.
   const updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'] =
     ({ content, writeToFileWithPath }) =>
       pipe(
@@ -305,7 +314,9 @@ export const createAdapter = ({
     message,
   }) =>
     Effect.Do.pipe(
-      Effect.bind('documentPath', () => extractDocumentPathFromId(documentId)),
+      Effect.bind('documentPath', () =>
+        extractDocumentRelativePathFromId(documentId)
+      ),
       Effect.flatMap(({ documentPath }) =>
         pipe(
           Effect.tryPromise({
@@ -328,6 +339,12 @@ export const createAdapter = ({
                   },
                   message,
                 }),
+              catch: mapErrorTo(RepositoryError, 'Git repo error'),
+            })
+          ),
+          Effect.flatMap((commitHashStr) =>
+            Effect.try({
+              try: () => parseGitCommitHash(commitHashStr),
               catch: mapErrorTo(RepositoryError, 'Git repo error'),
             })
           )
@@ -408,7 +425,9 @@ export const createAdapter = ({
     };
 
     return Effect.Do.pipe(
-      Effect.bind('documentPath', () => extractDocumentPathFromId(documentId)),
+      Effect.bind('documentPath', () =>
+        extractDocumentRelativePathFromId(documentId)
+      ),
       Effect.bind('document', () => findDocumentById(documentId)),
       Effect.flatMap(({ documentPath, document }) =>
         Effect.Do.pipe(
@@ -498,7 +517,7 @@ export const createAdapter = ({
       ? getDocumentFromFs(documentId)
       : Effect.Do.pipe(
           Effect.bind('documentPath', () =>
-            extractDocumentPathFromId(documentId)
+            extractDocumentRelativePathFromId(documentId)
           ),
           Effect.flatMap(({ documentPath }) =>
             pipe(
@@ -578,7 +597,7 @@ export const createAdapter = ({
       ? getUncommittedDocumentStateHash(documentId)
       : Effect.Do.pipe(
           Effect.bind('documentPath', () =>
-            extractDocumentPathFromId(documentId)
+            extractDocumentRelativePathFromId(documentId)
           ),
           Effect.bind('commitHash', () =>
             pipe(
@@ -615,6 +634,35 @@ export const createAdapter = ({
       );
     };
 
+  // TODO: Make this pipeline transactional
+  const restoreCommit: VersionedDocumentStore['restoreCommit'] = ({
+    documentId,
+    commit,
+    message,
+    writeToFileWithPath,
+  }) =>
+    Effect.Do.pipe(
+      Effect.bind('documentAtCommit', () =>
+        getDocumentAtChange({ documentId, changeId: commit.id })
+      ),
+      Effect.flatMap(({ documentAtCommit }) =>
+        pipe(
+          updateRichTextDocumentContent({
+            documentId,
+            representation: documentAtCommit.representation,
+            content: documentAtCommit.content,
+            writeToFileWithPath,
+          }),
+          Effect.flatMap(() =>
+            commitChanges({
+              documentId,
+              message: message ?? `Restore ${commit.message}`,
+            })
+          )
+        )
+      )
+    );
+
   // This is a no-op in the Git document repo.
   const disconnect: VersionedDocumentStore['disconnect'] = () =>
     Effect.succeed(undefined);
@@ -632,6 +680,7 @@ export const createAdapter = ({
     getDocumentHistory,
     getDocumentAtChange,
     isContentSameAtChanges,
+    restoreCommit,
     disconnect,
   };
 };

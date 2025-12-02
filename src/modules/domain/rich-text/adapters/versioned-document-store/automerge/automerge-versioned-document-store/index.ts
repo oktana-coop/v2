@@ -4,6 +4,7 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import {
+  type Commit,
   exportToBinary,
   getArtifactAtCommit,
   getArtifactFromHandle,
@@ -35,7 +36,10 @@ import {
   type VersionedDocument,
   type VersionedDocumentHandle,
 } from '../../../../models';
-import { type RichTextDocumentSpan } from '../../../../models/document/automerge';
+import {
+  getSpansString,
+  type RichTextDocumentSpan,
+} from '../../../../models/document/automerge';
 import {
   type RealtimeVersionedDocumentStore,
   type VersionedDocumentStore,
@@ -343,7 +347,7 @@ export const createAdapter = ({
   }) =>
     pipe(
       findDocumentHandleById(documentId),
-      Effect.flatMap((documentHandle) =>
+      Effect.tap((documentHandle) =>
         Effect.try({
           try: () =>
             documentHandle.change(
@@ -360,6 +364,58 @@ export const createAdapter = ({
               }
             ),
           catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
+        })
+      ),
+      Effect.flatMap(
+        () =>
+          // TODO: This is not ideal, we should get the change id from the change operation above.
+          // Arguably, using getLastLocalChange would be preferable.
+          getDocumentLastChangeId(documentId) as Effect.Effect<
+            Commit['id'],
+            ValidationError | RepositoryError | NotFoundError | MigrationError,
+            never
+          >
+      )
+    );
+
+  const restoreCommit: VersionedDocumentStore['restoreCommit'] = ({
+    documentId,
+    commit,
+    message,
+    writeToFileWithPath,
+  }) =>
+    pipe(
+      getDocumentAtChange({
+        documentId,
+        changeId: commit.id,
+      }),
+      Effect.flatMap((documentAtCommit) =>
+        documentAtCommit.representation === richTextRepresentations.AUTOMERGE
+          ? Effect.try({
+              try: () => getSpansString(documentAtCommit),
+              catch: mapErrorTo(
+                RepositoryError,
+                'Error getting spans from Automerge document'
+              ),
+            })
+          : Effect.fail(
+              new RepositoryError(
+                'Only Automerge representation is supported for restore'
+              )
+            )
+      ),
+      Effect.tap((documentContentAtCommit) =>
+        updateRichTextDocumentContent({
+          documentId,
+          representation: richTextRepresentations.AUTOMERGE,
+          content: documentContentAtCommit,
+          writeToFileWithPath,
+        })
+      ),
+      Effect.flatMap(() =>
+        commitChanges({
+          documentId,
+          message: message ?? `Restore ${commit.message}`,
         })
       )
     );
@@ -411,6 +467,7 @@ export const createAdapter = ({
     isContentSameAtChanges,
     getDocumentLastChangeId,
     commitChanges,
+    restoreCommit,
     exportDocumentHandleToBinary,
     exportDocumentToBinary,
     importDocumentFromBinary,
