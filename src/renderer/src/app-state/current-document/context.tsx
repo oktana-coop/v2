@@ -394,13 +394,42 @@ export const CurrentDocumentProvider = ({
         return;
       }
 
-      const restoreCommitId = await Effect.runPromise(
-        versionedDocumentStore.restoreCommit({
-          documentId,
-          message,
-          commit,
-        })
-      );
+      let restoreCommitId: Commit['id'];
+      if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
+        if (!directory || !selectedFileInfo?.path) {
+          throw new Error(
+            'Cannot write to file when restoring commit in multi-doc project'
+          );
+        }
+
+        restoreCommitId = await Effect.runPromise(
+          pipe(
+            filesystem.getAbsolutePath({
+              path: selectedFileInfo.path,
+              dirPath: directory.path,
+            }),
+            Effect.flatMap((absoluteFilePath) =>
+              versionedDocumentStore.restoreCommit({
+                documentId,
+                message,
+                commit,
+                writeToFileWithPath: absoluteFilePath,
+              })
+            )
+          )
+        );
+      } else {
+        restoreCommitId = await Effect.runPromise(
+          versionedDocumentStore.restoreCommit({
+            documentId,
+            message,
+            commit,
+            writeToFileWithPath: versionedDocumentStore.managesFilesystemWorkdir
+              ? (documentInternalPath ?? undefined)
+              : undefined,
+          })
+        );
+      }
 
       const newHistory = await loadHistory(versionedDocumentStore)({
         doc: versionedDocument,

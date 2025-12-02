@@ -642,21 +642,19 @@ export const createAdapter = ({
     documentId,
     commit,
     message,
+    writeToFileWithPath,
   }) =>
     Effect.Do.pipe(
       Effect.bind('documentAtCommit', () =>
         getDocumentAtChange({ documentId, changeId: commit.id })
       ),
-      Effect.bind('documentAbsolutePath', () =>
-        buildDocumentAbsolutePathFromId(documentId)
-      ),
-      Effect.flatMap(({ documentAtCommit, documentAbsolutePath }) =>
+      Effect.flatMap(({ documentAtCommit }) =>
         pipe(
           updateRichTextDocumentContent({
             documentId,
             representation: documentAtCommit.representation,
             content: documentAtCommit.content,
-            writeToFileWithPath: documentAbsolutePath,
+            writeToFileWithPath,
           }),
           Effect.flatMap(() =>
             commitChanges({

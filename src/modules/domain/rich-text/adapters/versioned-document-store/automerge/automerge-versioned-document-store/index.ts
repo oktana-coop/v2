@@ -36,7 +36,10 @@ import {
   type VersionedDocument,
   type VersionedDocumentHandle,
 } from '../../../../models';
-import { type RichTextDocumentSpan } from '../../../../models/document/automerge';
+import {
+  getSpansString,
+  type RichTextDocumentSpan,
+} from '../../../../models/document/automerge';
 import {
   type RealtimeVersionedDocumentStore,
   type VersionedDocumentStore,
@@ -379,7 +382,43 @@ export const createAdapter = ({
     documentId,
     commit,
     message,
-  }) => pipe();
+    writeToFileWithPath,
+  }) =>
+    pipe(
+      getDocumentAtChange({
+        documentId,
+        changeId: commit.id,
+      }),
+      Effect.flatMap((documentAtCommit) =>
+        documentAtCommit.representation === richTextRepresentations.AUTOMERGE
+          ? Effect.try({
+              try: () => getSpansString(documentAtCommit),
+              catch: mapErrorTo(
+                RepositoryError,
+                'Error getting spans from Automerge document'
+              ),
+            })
+          : Effect.fail(
+              new RepositoryError(
+                'Only Automerge representation is supported for restore'
+              )
+            )
+      ),
+      Effect.tap((documentContentAtCommit) =>
+        updateRichTextDocumentContent({
+          documentId,
+          representation: richTextRepresentations.AUTOMERGE,
+          content: documentContentAtCommit,
+          writeToFileWithPath,
+        })
+      ),
+      Effect.flatMap(() =>
+        commitChanges({
+          documentId,
+          message: message ?? `Restore ${commit.message}`,
+        })
+      )
+    );
 
   const exportDocumentToBinary: VersionedDocumentStore['exportDocumentToBinary'] =
     (document) =>

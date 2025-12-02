@@ -66,6 +66,7 @@ export type RestoreCommitArgs = {
   documentId: ResolvedArtifactId;
   commit: Commit;
   message?: string;
+  writeToFileWithPath?: string;
 };
 
 export type VersionedDocumentStore = {
