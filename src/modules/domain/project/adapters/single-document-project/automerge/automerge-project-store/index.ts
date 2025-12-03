@@ -144,6 +144,7 @@ export const createAdapter = (
       Effect.map((project) => project.name)
     );
 
+  // TODO: Implement branching in Automerge
   const createAndSwitchToBranch: SingleDocumentProjectStore['createAndSwitchToBranch'] =
     () =>
       Effect.fail(
@@ -160,7 +161,6 @@ export const createAdapter = (
       )
     );
 
-  // TODO: Implement branching in Automerge
   const disconnect: SingleDocumentProjectStore['disconnect'] = () =>
     Effect.tryPromise({
       try: () => automergeRepo.shutdown(),
