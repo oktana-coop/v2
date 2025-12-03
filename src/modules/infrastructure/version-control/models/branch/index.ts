@@ -38,3 +38,5 @@ export const branchSchema = z
   .brand<'Branch'>();
 
 export type Branch = z.infer<typeof branchSchema>;
+
+export const DEFAULT_BRANCH = 'main';

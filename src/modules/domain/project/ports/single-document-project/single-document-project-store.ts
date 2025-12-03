@@ -1,6 +1,7 @@
 import * as Effect from 'effect/Effect';
 
 import {
+  type Branch,
   MigrationError,
   type ResolvedArtifactId,
 } from '../../../../infrastructure/version-control';
@@ -14,6 +15,16 @@ import {
 export type CreateSingleDocumentProjectArgs = {
   documentMetaData: BaseArtifactMetaData;
   name: string | null;
+};
+
+export type CreateAndSwitchToBranchArgs = {
+  projectId: ProjectId;
+  branch: Branch;
+};
+
+export type SwitchToBranchArgs = {
+  projectId: ProjectId;
+  branch: Branch;
 };
 
 export type SingleDocumentProjectStore = {
@@ -41,5 +52,11 @@ export type SingleDocumentProjectStore = {
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
+  createAndSwitchToBranch: (
+    args: SwitchToBranchArgs
+  ) => Effect.Effect<void, RepositoryError, never>;
+  switchToBranch: (
+    args: SwitchToBranchArgs
+  ) => Effect.Effect<void, RepositoryError, never>;
   disconnect: () => Effect.Effect<void, RepositoryError, never>;
 };

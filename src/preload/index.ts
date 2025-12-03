@@ -200,6 +200,17 @@ contextBridge.exposeInMainWorld('singleDocumentProjectStoreAPI', {
     ipcRenderer.invoke('single-document-project-store:find-project-by-id', id),
   getProjectName: (id) =>
     ipcRenderer.invoke('single-document-project-store:get-project-name', id),
+  createAndSwitchToBranch: (args) =>
+    ipcRenderer.invoke(
+      'single-document-project-store:create-and-switch-to-branch',
+      {
+        ...args,
+      }
+    ),
+  switchToBranch: (args) =>
+    ipcRenderer.invoke('single-document-project-store:switch-to-branch', {
+      ...args,
+    }),
   disconnect: (projectId) =>
     ipcRenderer.invoke('single-document-project-store:disconnect', projectId),
 } as SingleDocumentProjectStorePromiseAPI);

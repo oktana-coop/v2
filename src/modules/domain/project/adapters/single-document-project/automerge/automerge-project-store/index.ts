@@ -144,6 +144,23 @@ export const createAdapter = (
       Effect.map((project) => project.name)
     );
 
+  const createAndSwitchToBranch: SingleDocumentProjectStore['createAndSwitchToBranch'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Branching is not yet supported when the app is configured with Automerge'
+        )
+      );
+
+  // TODO: Implement branching in Automerge
+  const switchToBranch: SingleDocumentProjectStore['switchToBranch'] = () =>
+    Effect.fail(
+      new RepositoryError(
+        'Branching is not yet supported when the app is configured with Automerge'
+      )
+    );
+
+  // TODO: Implement branching in Automerge
   const disconnect: SingleDocumentProjectStore['disconnect'] = () =>
     Effect.tryPromise({
       try: () => automergeRepo.shutdown(),
@@ -158,6 +175,8 @@ export const createAdapter = (
     findProjectById,
     findDocumentInProject,
     getProjectName,
+    createAndSwitchToBranch,
+    switchToBranch,
     disconnect,
   };
 };

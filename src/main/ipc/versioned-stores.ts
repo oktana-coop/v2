@@ -5,6 +5,7 @@ import { type BrowserWindow, ipcMain } from 'electron';
 import { buildConfig } from '../../modules/config';
 import {
   type AddDocumentToMultiDocumentProjectArgs,
+  type CreateAndSwitchToBranchArgs as SingleDocumentProjectCreateAndSwitchToBranchArgs,
   type CreateMultiDocumentProjectArgs,
   type CreateSingleDocumentProjectArgs,
   type DeleteDocumentFromMultiDocumentProjectArgs,
@@ -15,6 +16,7 @@ import {
   type ProjectId,
   type SetupSingleDocumentProjectStoreArgs,
   type SingleDocumentProjectStoreManager,
+  type SwitchToBranchArgs as SingleDocumentProjectSwitchToBranchArgs,
   ValidationError as VersionedProjectValidationError,
 } from '../../modules/domain/project/node';
 import {
@@ -263,6 +265,46 @@ const registerSingleDocumentProjectStoreEvents = () => {
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.getProjectName(id)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:create-and-switch-to-branch',
+    async (_, args: SingleDocumentProjectCreateAndSwitchToBranchArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.createAndSwitchToBranch(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:switch-to-branch',
+    async (_, args: SingleDocumentProjectSwitchToBranchArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.switchToBranch(args)
           )
         )
       )

@@ -82,6 +82,32 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.singleDocumentProjectStoreAPI.getProjectName(...args)),
+  createAndSwitchToBranch: (
+    ...args: Parameters<SingleDocumentProjectStore['createAndSwitchToBranch']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['createAndSwitchToBranch']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.createAndSwitchToBranch(...args)),
+  switchToBranch: (
+    ...args: Parameters<SingleDocumentProjectStore['switchToBranch']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['switchToBranch']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.switchToBranch(...args)),
   disconnect: (...args: Parameters<SingleDocumentProjectStore['disconnect']>) =>
     effectifyIPCPromise(
       {

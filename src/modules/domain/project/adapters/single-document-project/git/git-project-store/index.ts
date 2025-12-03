@@ -120,6 +120,32 @@ export const createAdapter = ({
       Effect.map((project) => project.name)
     );
 
+  const createAndSwitchToBranch: SingleDocumentProjectStore['createAndSwitchToBranch'] =
+    ({ branch }) =>
+      Effect.try({
+        try: () =>
+          git.branch({
+            fs: isoGitFs,
+            dir: internalProjectDir,
+            ref: branch,
+            checkout: true,
+          }),
+        catch: mapErrorTo(RepositoryError, 'Git repo error'),
+      });
+
+  const switchToBranch: SingleDocumentProjectStore['switchToBranch'] = ({
+    branch,
+  }) =>
+    Effect.try({
+      try: () =>
+        git.checkout({
+          fs: isoGitFs,
+          dir: internalProjectDir,
+          ref: branch,
+        }),
+      catch: mapErrorTo(RepositoryError, 'Git repo error'),
+    });
+
   // This is a no-op in the Git document repo.
   const disconnect: SingleDocumentProjectStore['disconnect'] = () =>
     Effect.succeed(undefined);
@@ -129,6 +155,8 @@ export const createAdapter = ({
     findProjectById,
     findDocumentInProject,
     getProjectName,
+    createAndSwitchToBranch,
+    switchToBranch,
     disconnect,
   };
 };
