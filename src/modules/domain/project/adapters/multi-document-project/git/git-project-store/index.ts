@@ -12,6 +12,7 @@ import {
   DEFAULT_AUTHOR_NAME,
   DEFAULT_BRANCH,
   isGitBlobRef,
+  parseBranch,
   type ResolvedArtifactId,
   versionedArtifactTypes,
 } from '../../../../../../../modules/infrastructure/version-control';
@@ -247,6 +248,42 @@ export const createAdapter = ({
       )
     );
 
+  const getCurrentBranch: MultiDocumentProjectStore['getCurrentBranch'] = ({
+    projectId,
+  }) =>
+    pipe(
+      Effect.succeed(projectId),
+      Effect.filterOrFail(
+        isProjectFsPath,
+        (val) => new ValidationError(`Invalid project id: ${val}`)
+      ),
+      Effect.flatMap((projectPath) =>
+        pipe(
+          Effect.tryPromise({
+            try: () =>
+              git.currentBranch({
+                fs: isoGitFs,
+                dir: projectPath,
+              }),
+            catch: mapErrorTo(RepositoryError, 'Git repo error'),
+          }),
+          Effect.filterOrFail(
+            (currentBranch) => typeof currentBranch === 'string',
+            () =>
+              new NotFoundError(
+                'Could not retrieve the current branch. The repo is in detached HEAD state.'
+              )
+          ),
+          Effect.flatMap((currentBranch) =>
+            Effect.try({
+              try: () => parseBranch(currentBranch),
+              catch: mapErrorTo(RepositoryError, 'Git repo error'),
+            })
+          )
+        )
+      )
+    );
+
   return {
     createProject,
     findProjectById,
@@ -256,5 +293,6 @@ export const createAdapter = ({
     findDocumentInProject,
     createAndSwitchToBranch,
     switchToBranch,
+    getCurrentBranch,
   };
 };

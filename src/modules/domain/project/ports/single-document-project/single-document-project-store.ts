@@ -27,6 +27,10 @@ export type SingleDocumentProjectSwitchToBranchArgs = {
   branch: Branch;
 };
 
+export type SingleDocumentProjectGetCurrentBranchArgs = {
+  projectId: ProjectId;
+};
+
 export type SingleDocumentProjectStore = {
   createSingleDocumentProject: (
     args: CreateSingleDocumentProjectArgs
@@ -54,9 +58,16 @@ export type SingleDocumentProjectStore = {
   >;
   createAndSwitchToBranch: (
     args: SingleDocumentProjectCreateAndSwitchToBranchArgs
-  ) => Effect.Effect<void, RepositoryError, never>;
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
   switchToBranch: (
     args: SingleDocumentProjectSwitchToBranchArgs
-  ) => Effect.Effect<void, RepositoryError, never>;
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  getCurrentBranch: (
+    args: SingleDocumentProjectGetCurrentBranchArgs
+  ) => Effect.Effect<
+    Branch,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
   disconnect: () => Effect.Effect<void, RepositoryError, never>;
 };

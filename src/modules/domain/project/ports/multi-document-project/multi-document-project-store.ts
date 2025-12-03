@@ -45,6 +45,10 @@ export type MultiDocumentProjectSwitchToBranchArgs = {
   branch: Branch;
 };
 
+export type MultiDocumentProjectGetCurrentBranchArgs = {
+  projectId: ProjectId;
+};
+
 export type MultiDocumentProjectStore = {
   createProject: (
     args: CreateMultiDocumentProjectArgs
@@ -86,8 +90,15 @@ export type MultiDocumentProjectStore = {
   >;
   createAndSwitchToBranch: (
     args: MultiDocumentProjectCreateAndSwitchToBranchArgs
-  ) => Effect.Effect<void, RepositoryError | ValidationError, never>;
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
   switchToBranch: (
     args: MultiDocumentProjectSwitchToBranchArgs
-  ) => Effect.Effect<void, RepositoryError | ValidationError, never>;
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  getCurrentBranch: (
+    args: MultiDocumentProjectGetCurrentBranchArgs
+  ) => Effect.Effect<
+    Branch,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
 };

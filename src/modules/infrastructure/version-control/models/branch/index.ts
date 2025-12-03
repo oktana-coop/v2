@@ -25,7 +25,7 @@ export const isValidBranchOrTagName = (ref: string): boolean => {
   return BRANCH_TAG_REGEX.test(ref);
 };
 
-export const branchSchema = z
+const branchSchema = z
   .string()
   .refine(
     (val): val is Branch => {
@@ -38,5 +38,7 @@ export const branchSchema = z
   .brand<'Branch'>();
 
 export type Branch = z.infer<typeof branchSchema>;
+
+export const parseBranch = (input: string) => branchSchema.parse(input);
 
 export const DEFAULT_BRANCH = 'main';

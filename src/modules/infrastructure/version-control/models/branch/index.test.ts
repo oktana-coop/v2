@@ -1,4 +1,4 @@
-import { branchSchema, isValidBranchOrTagName } from './index';
+import { isValidBranchOrTagName, parseBranch } from './index';
 
 describe('Branch', () => {
   describe('valid names', () => {
@@ -68,11 +68,11 @@ describe('Branch', () => {
 
   describe('parsing with zod', () => {
     it('passes valid names', () => {
-      expect(() => branchSchema.parse('feature/good')).not.toThrow();
+      expect(() => parseBranch('feature/good')).not.toThrow();
     });
 
     it('fails invalid names', () => {
-      expect(() => branchSchema.parse('.bad')).toThrow(/Invalid branch name/);
+      expect(() => parseBranch('.bad')).toThrow(/Invalid branch name/);
     });
   });
 });

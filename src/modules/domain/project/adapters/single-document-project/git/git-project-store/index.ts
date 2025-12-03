@@ -7,6 +7,7 @@ import {
   createGitBlobRef,
   DEFAULT_BRANCH,
   MigrationError,
+  parseBranch,
 } from '../../../../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../../../../utils/errors';
 import { projectTypes } from '../../../../constants';
@@ -146,6 +147,31 @@ export const createAdapter = ({
       catch: mapErrorTo(RepositoryError, 'Git repo error'),
     });
 
+  const getCurrentBranch: SingleDocumentProjectStore['getCurrentBranch'] = () =>
+    pipe(
+      Effect.tryPromise({
+        try: () =>
+          git.currentBranch({
+            fs: isoGitFs,
+            dir: internalProjectDir,
+          }),
+        catch: mapErrorTo(RepositoryError, 'Git repo error'),
+      }),
+      Effect.filterOrFail(
+        (currentBranch) => typeof currentBranch === 'string',
+        () =>
+          new NotFoundError(
+            'Could not retrieve the current branch. The repo is in detached HEAD state.'
+          )
+      ),
+      Effect.flatMap((currentBranch) =>
+        Effect.try({
+          try: () => parseBranch(currentBranch),
+          catch: mapErrorTo(RepositoryError, 'Git repo error'),
+        })
+      )
+    );
+
   // This is a no-op in the Git document repo.
   const disconnect: SingleDocumentProjectStore['disconnect'] = () =>
     Effect.succeed(undefined);
@@ -157,6 +183,7 @@ export const createAdapter = ({
     getProjectName,
     createAndSwitchToBranch,
     switchToBranch,
+    getCurrentBranch,
     disconnect,
   };
 };
