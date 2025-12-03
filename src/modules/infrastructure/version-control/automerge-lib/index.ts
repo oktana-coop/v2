@@ -34,6 +34,7 @@ export type ArtifactHistoryInfo<ArtifactType> = {
   current: VersionedArtifact<ArtifactType>;
   latestChange: Change;
   lastCommit: Commit | null;
+  hasUncommittedChanges: boolean;
 };
 
 export type ArtifactContentEqFn<ArtifactType> = (
@@ -164,12 +165,14 @@ export const mapHeadsToHistoryInfo = <ArtifactType>({
           current: artifact,
           latestChange,
           lastCommit,
+          hasUncommittedChanges: false,
         }
       : {
           history: [latestChange, ...orderedCommits],
           current: artifact,
           latestChange,
           lastCommit,
+          hasUncommittedChanges: true,
         };
   }
 
@@ -178,6 +181,7 @@ export const mapHeadsToHistoryInfo = <ArtifactType>({
     current: artifact,
     latestChange,
     lastCommit: null,
+    hasUncommittedChanges: true,
   };
 };
 

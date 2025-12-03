@@ -398,7 +398,12 @@ export const createAdapter = ({
       modified: boolean;
       commitHistory: Commit[];
     }) => Effect.Effect<
-      { history: Change[]; latestChange: Change; lastCommit: Commit | null },
+      {
+        history: Change[];
+        latestChange: Change;
+        lastCommit: Commit | null;
+        hasUncommittedChanges: boolean;
+      },
       RepositoryError | NotFoundError,
       never
     > = ({ modified, commitHistory }) => {
@@ -413,6 +418,7 @@ export const createAdapter = ({
           history: [uncommittedChange, ...commitHistory],
           latestChange: uncommittedChange,
           lastCommit,
+          hasUncommittedChanges: true,
         });
       }
 
@@ -421,6 +427,7 @@ export const createAdapter = ({
         // TODO: Handle more gracefully
         latestChange: lastCommit!,
         lastCommit,
+        hasUncommittedChanges: false,
       });
     };
 
@@ -443,12 +450,15 @@ export const createAdapter = ({
               commitHistory: documentCommitHistory,
             })
           ),
-          Effect.map(({ history, latestChange, lastCommit }) => ({
-            history,
-            latestChange,
-            lastCommit,
-            current: document.artifact,
-          }))
+          Effect.map(
+            ({ history, latestChange, lastCommit, hasUncommittedChanges }) => ({
+              history,
+              latestChange,
+              lastCommit,
+              current: document.artifact,
+              hasUncommittedChanges,
+            })
+          )
         )
       )
     );
@@ -466,53 +476,53 @@ export const createAdapter = ({
       Effect.map((resolvedDocument) => resolvedDocument.artifact)
     );
 
+  const getDocumentAtCommit: (args: {
+    projectDir: string;
+    documentPath: string;
+    commitHash: GitCommitHash;
+  }) => Effect.Effect<RichTextDocument, RepositoryError, never> = ({
+    projectDir,
+    documentPath,
+    commitHash,
+  }) =>
+    pipe(
+      Effect.tryPromise({
+        try: () =>
+          git.resolveRef({ fs: isoGitFs, dir: projectDir, ref: commitHash }),
+        catch: mapErrorTo(RepositoryError, 'Git repo error'),
+      }),
+      Effect.flatMap((commitOid) =>
+        pipe(
+          Effect.tryPromise({
+            try: () =>
+              git.readBlob({
+                fs: isoGitFs,
+                dir: projectDir,
+                oid: commitOid,
+                filepath: documentPath,
+              }),
+            catch: mapErrorTo(RepositoryError, 'Git repo error'),
+          }),
+          Effect.flatMap(({ blob }) =>
+            Effect.try({
+              try: () => Buffer.from(blob).toString('utf8'),
+              catch: mapErrorTo(RepositoryError, 'Git repo error'),
+            })
+          )
+        )
+      ),
+      Effect.map((content) => ({
+        type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        representation: PRIMARY_RICH_TEXT_REPRESENTATION,
+        content,
+      }))
+    );
+
   const getDocumentAtChange: VersionedDocumentStore['getDocumentAtChange'] = ({
     documentId,
     changeId,
   }) => {
-    const getDocumentAtCommit: (args: {
-      projectDir: string;
-      documentPath: string;
-      commitHash: GitCommitHash;
-    }) => Effect.Effect<RichTextDocument, RepositoryError, never> = ({
-      projectDir,
-      documentPath,
-      commitHash,
-    }) =>
-      pipe(
-        Effect.tryPromise({
-          try: () =>
-            git.resolveRef({ fs: isoGitFs, dir: projectDir, ref: commitHash }),
-          catch: mapErrorTo(RepositoryError, 'Git repo error'),
-        }),
-        Effect.flatMap((commitOid) =>
-          pipe(
-            Effect.tryPromise({
-              try: () =>
-                git.readBlob({
-                  fs: isoGitFs,
-                  dir: projectDir,
-                  oid: commitOid,
-                  filepath: documentPath,
-                }),
-              catch: mapErrorTo(RepositoryError, 'Git repo error'),
-            }),
-            Effect.flatMap(({ blob }) =>
-              Effect.try({
-                try: () => Buffer.from(blob).toString('utf8'),
-                catch: mapErrorTo(RepositoryError, 'Git repo error'),
-              })
-            )
-          )
-        ),
-        Effect.map((content) => ({
-          type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
-          schemaVersion: CURRENT_SCHEMA_VERSION,
-          representation: PRIMARY_RICH_TEXT_REPRESENTATION,
-          content,
-        }))
-      );
-
     return isUncommittedChangeId(changeId)
       ? getDocumentFromFs(documentId)
       : Effect.Do.pipe(
@@ -663,6 +673,57 @@ export const createAdapter = ({
       )
     );
 
+  const discardUncommittedChanges: VersionedDocumentStore['discardUncommittedChanges'] =
+    ({ documentId, writeToFileWithPath }) =>
+      pipe(
+        getDocumentHistory(documentId),
+        Effect.flatMap(({ lastCommit, hasUncommittedChanges }) => {
+          if (!hasUncommittedChanges) {
+            return Effect.fail(
+              new NotFoundError(
+                'The document does not have uncommitted changes to discard.'
+              )
+            );
+          }
+
+          if (!lastCommit) {
+            return Effect.fail(
+              new RepositoryError(
+                'The document only has uncommitted changes (and no commits). Cannot restore to a known state.'
+              )
+            );
+          }
+
+          return pipe(
+            extractDocumentRelativePathFromId(documentId),
+            Effect.flatMap((documentPath) =>
+              pipe(
+                Effect.succeed(lastCommit.id),
+                Effect.filterOrFail(
+                  isGitCommitHash,
+                  (val) => new ValidationError(`Invalid commit hash: ${val}`)
+                ),
+                Effect.flatMap((commitHash) =>
+                  getDocumentAtCommit({
+                    projectDir,
+                    documentPath,
+                    commitHash,
+                  })
+                )
+              )
+            ),
+            Effect.flatMap((documentAtCommit) =>
+              updateRichTextDocumentContent({
+                documentId,
+                representation: documentAtCommit.representation,
+                content: documentAtCommit.content,
+                writeToFileWithPath,
+              })
+            )
+          );
+        })
+      );
+
   // This is a no-op in the Git document repo.
   const disconnect: VersionedDocumentStore['disconnect'] = () =>
     Effect.succeed(undefined);
@@ -681,6 +742,7 @@ export const createAdapter = ({
     getDocumentAtChange,
     isContentSameAtChanges,
     restoreCommit,
+    discardUncommittedChanges,
     disconnect,
   };
 };

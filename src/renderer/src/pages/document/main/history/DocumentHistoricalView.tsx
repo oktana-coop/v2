@@ -39,6 +39,7 @@ export const DocumentHistoricalView = () => {
     canCommit,
     onOpenCommitDialog,
     onOpenRestoreCommitDialog,
+    onOpenDiscardChangesDialog,
     getDocumentAtChange,
     isContentSameAtChanges,
   } = useContext(CurrentDocumentContext);
@@ -239,6 +240,14 @@ export const DocumentHistoricalView = () => {
     }
   };
 
+  const areUncommittedChangesSelected = ({
+    commits,
+    selectedCommitIndex,
+  }: {
+    commits: ChangeWithUrlInfo[];
+    selectedCommitIndex: number | null;
+  }) => selectedCommitIndex === 0 && !isCommit(commits[selectedCommitIndex]);
+
   return (
     <div className="flex flex-auto flex-col items-center">
       <div className="w-full">
@@ -264,10 +273,19 @@ export const DocumentHistoricalView = () => {
           lastChangeIsCommitAndSelected={Boolean(
             selectedCommitIndex === 0 && isCommit(commits[selectedCommitIndex])
           )}
-          uncommittedChangesSelected={Boolean(
-            selectedCommitIndex === 0 && !isCommit(commits[selectedCommitIndex])
-          )}
+          uncommittedChangesSelected={areUncommittedChangesSelected({
+            commits,
+            selectedCommitIndex,
+          })}
+          canShowDiscardChanges={
+            commits.length > 1 &&
+            areUncommittedChangesSelected({
+              commits,
+              selectedCommitIndex,
+            })
+          }
           onCommitIconClick={onOpenCommitDialog}
+          onTrashIconClick={onOpenDiscardChangesDialog}
           onEditIconClick={handleEditClick}
         />
       </div>

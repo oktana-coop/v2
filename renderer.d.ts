@@ -138,6 +138,10 @@ type VersionedDocumentStoreIPCAPI = VersionedDocumentStore & {
     string
   >;
   restoreCommit: AppendParam<VersionedDocumentStore['restoreCommit'], string>;
+  discardUncommittedChanges: AppendParam<
+    VersionedDocumentStore['discardUncommittedChanges'],
+    string
+  >;
   disconnect: AppendParam<VersionedDocumentStore['disconnect'], string>;
 };
 

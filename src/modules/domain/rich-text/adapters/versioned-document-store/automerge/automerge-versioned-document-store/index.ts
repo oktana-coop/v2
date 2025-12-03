@@ -420,6 +420,60 @@ export const createAdapter = ({
       )
     );
 
+  const discardUncommittedChanges: VersionedDocumentStore['discardUncommittedChanges'] =
+    ({ documentId, writeToFileWithPath }) =>
+      pipe(
+        getDocumentHistory(documentId),
+        Effect.flatMap(({ lastCommit, hasUncommittedChanges }) => {
+          if (!hasUncommittedChanges) {
+            return Effect.fail(
+              new NotFoundError(
+                'The document does not have uncommitted changes to discard.'
+              )
+            );
+          }
+
+          if (!lastCommit) {
+            return Effect.fail(
+              new RepositoryError(
+                'The document only has uncommitted changes (and no commits). Cannot restore to a known state.'
+              )
+            );
+          }
+
+          return pipe(
+            getDocumentAtChange({
+              documentId,
+              changeId: lastCommit.id,
+            }),
+            Effect.flatMap((documentAtCommit) =>
+              documentAtCommit.representation ===
+              richTextRepresentations.AUTOMERGE
+                ? Effect.try({
+                    try: () => getSpansString(documentAtCommit),
+                    catch: mapErrorTo(
+                      RepositoryError,
+                      'Error getting spans from Automerge document'
+                    ),
+                  })
+                : Effect.fail(
+                    new RepositoryError(
+                      'Only Automerge representation is supported for restore'
+                    )
+                  )
+            ),
+            Effect.tap((documentContentAtCommit) =>
+              updateRichTextDocumentContent({
+                documentId,
+                representation: richTextRepresentations.AUTOMERGE,
+                content: documentContentAtCommit,
+                writeToFileWithPath,
+              })
+            )
+          );
+        })
+      );
+
   const exportDocumentToBinary: VersionedDocumentStore['exportDocumentToBinary'] =
     (document) =>
       Effect.try({
@@ -468,6 +522,7 @@ export const createAdapter = ({
     getDocumentLastChangeId,
     commitChanges,
     restoreCommit,
+    discardUncommittedChanges,
     exportDocumentHandleToBinary,
     exportDocumentToBinary,
     importDocumentFromBinary,

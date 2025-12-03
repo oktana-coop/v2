@@ -14,6 +14,7 @@ import {
   RestoreCommitIcon,
   SidebarIcon,
   SidebarOpenIcon,
+  TrashIcon,
 } from '../../../../components/icons';
 import {
   Checkbox,
@@ -37,9 +38,11 @@ export const ActionsBar = ({
   diffWith,
   history,
   onDiffCommitSelect,
+  canShowDiscardChanges,
   lastChangeIsCommitAndSelected,
   uncommittedChangesSelected,
   onEditIconClick,
+  onTrashIconClick,
   onCommitIconClick,
 }: {
   title: string;
@@ -53,9 +56,11 @@ export const ActionsBar = ({
   history: Array<ChangeWithUrlInfo>;
   onDiffCommitSelect: (commitId: CommitId) => void;
   canCommit: boolean;
+  canShowDiscardChanges: boolean;
   lastChangeIsCommitAndSelected: boolean;
   uncommittedChangesSelected: boolean;
   onEditIconClick: () => void;
+  onTrashIconClick: () => void;
   onCommitIconClick: () => void;
 }) => {
   const sidebarButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -129,29 +134,42 @@ export const ActionsBar = ({
           </div>
         )}
 
-        <IconButton
-          onClick={
-            uncommittedChangesSelected
-              ? handleCheckIconClick
-              : handleRestoreCommitIconClick
-          }
-          icon={
-            uncommittedChangesSelected ? <CheckIcon /> : <RestoreCommitIcon />
-          }
-          disabled={lastChangeIsCommitAndSelected}
-          color={uncommittedChangesSelected ? 'purple' : undefined}
-          tooltip={
-            uncommittedChangesSelected
-              ? 'Commit Changes'
-              : 'Revert to this State'
-          }
-        />
-
-        <IconButton
-          icon={<PenIcon />}
-          onClick={onEditIconClick}
-          tooltip="Edit Document"
-        />
+        {uncommittedChangesSelected ? (
+          <>
+            <IconButton
+              icon={<PenIcon />}
+              onClick={onEditIconClick}
+              tooltip="Edit Document"
+            />
+            {canShowDiscardChanges && (
+              <IconButton
+                icon={<TrashIcon />}
+                onClick={onTrashIconClick}
+                tooltip="Discard Changes"
+              />
+            )}
+            <IconButton
+              onClick={handleCheckIconClick}
+              icon={<CheckIcon />}
+              color="purple"
+              tooltip="Commit Changes"
+            />
+          </>
+        ) : (
+          <>
+            <IconButton
+              icon={<PenIcon />}
+              onClick={onEditIconClick}
+              tooltip="Edit Document (Current State)"
+            />
+            <IconButton
+              onClick={handleRestoreCommitIconClick}
+              icon={<RestoreCommitIcon />}
+              disabled={lastChangeIsCommitAndSelected}
+              tooltip="Revert to this State"
+            />
+          </>
+        )}
       </div>
     </div>
   );

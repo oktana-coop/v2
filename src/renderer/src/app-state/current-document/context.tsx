@@ -66,13 +66,17 @@ export type CurrentDocumentContextType = {
   canCommit: boolean;
   onCommit: (message: string) => Promise<void>;
   onRestoreCommit: (args: { message: string; commit: Commit }) => Promise<void>;
+  onDiscardChanges: () => Promise<void>;
   isCommitDialogOpen: boolean;
   commitToRestore: Commit | null;
   isRestoreCommitDialogOpen: boolean;
+  isDiscardChangesDialogOpen: boolean;
   onOpenCommitDialog: () => void;
   onCloseCommitDialog: () => void;
   onOpenRestoreCommitDialog: (commit: Commit) => void;
   onCloseRestoreCommitDialog: () => void;
+  onOpenDiscardChangesDialog: () => void;
+  onCloseDiscardChangesDialog: () => void;
   selectedCommitIndex: number | null;
   onSelectChange: (commitId: ChangeId) => void;
   getDocumentAtChange: (
@@ -100,13 +104,17 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     canCommit: false,
     onCommit: async () => {},
     onRestoreCommit: async () => {},
+    onDiscardChanges: async () => {},
     isCommitDialogOpen: false,
     isRestoreCommitDialogOpen: false,
+    isDiscardChangesDialogOpen: false,
     commitToRestore: null,
     onOpenCommitDialog: () => {},
     onCloseCommitDialog: () => {},
     onOpenRestoreCommitDialog: () => {},
     onCloseRestoreCommitDialog: () => {},
+    onOpenDiscardChangesDialog: () => {},
+    onCloseDiscardChangesDialog: () => {},
     selectedCommitIndex: null,
     onSelectChange: () => {},
     // @ts-expect-error will get overriden below
@@ -142,6 +150,8 @@ export const CurrentDocumentProvider = ({
   const [canCommit, setCanCommit] = useState(false);
   const [isCommitDialogOpen, setIsCommitDialogOpen] = useState<boolean>(false);
   const [isRestoreCommitDialogOpen, setIsRestoreCommitDialogOpen] =
+    useState<boolean>(false);
+  const [isDiscardChangesDialogOpen, setIsDiscardChangesDialogOpen] =
     useState<boolean>(false);
   const [commitToRestore, setCommitToRestore] = useState<Commit | null>(null);
   const [selectedCommitIndex, setSelectedCommitIndex] = useState<number | null>(
@@ -391,7 +401,9 @@ export const CurrentDocumentProvider = ({
   const handleRestoreCommit = useCallback(
     async ({ message, commit }: { message: string; commit: Commit }) => {
       if (!documentId || !versionedDocument || !versionedDocumentStore) {
-        return;
+        throw new Error(
+          'Cannot restore commit. Either the document or its store is not initialized yet.'
+        );
       }
 
       let restoreCommitId: Commit['id'];
@@ -443,6 +455,57 @@ export const CurrentDocumentProvider = ({
     [documentId, versionedDocument, versionedDocumentStore]
   );
 
+  const handleDiscardChanges = useCallback(async () => {
+    if (!documentId || !versionedDocument || !versionedDocumentStore) {
+      throw new Error(
+        'Cannot discard changes. Either the document or its store is not initialized yet.'
+      );
+    }
+
+    if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
+      if (!directory || !selectedFileInfo?.path) {
+        throw new Error(
+          'Cannot write to file when restoring commit in multi-doc project'
+        );
+      }
+
+      await Effect.runPromise(
+        pipe(
+          filesystem.getAbsolutePath({
+            path: selectedFileInfo.path,
+            dirPath: directory.path,
+          }),
+          Effect.flatMap((absoluteFilePath) =>
+            versionedDocumentStore.discardUncommittedChanges({
+              documentId,
+              writeToFileWithPath: absoluteFilePath,
+            })
+          )
+        )
+      );
+    } else {
+      await Effect.runPromise(
+        versionedDocumentStore.discardUncommittedChanges({
+          documentId,
+          writeToFileWithPath: versionedDocumentStore.managesFilesystemWorkdir
+            ? (documentInternalPath ?? undefined)
+            : undefined,
+        })
+      );
+    }
+
+    const newHistory = await loadHistory(versionedDocumentStore)({
+      doc: versionedDocument,
+      docId: documentId,
+    });
+
+    setIsDiscardChangesDialogOpen(false);
+    setCanCommit(false);
+
+    const [lastCommit] = newHistory;
+    handleSelectChange(lastCommit.id, newHistory);
+  }, [documentId, versionedDocument, versionedDocumentStore]);
+
   const handleOpenCommitDialog = useCallback(() => {
     setIsCommitDialogOpen(true);
   }, []);
@@ -459,6 +522,14 @@ export const CurrentDocumentProvider = ({
   const handleCloseRestoreCommitDialog = useCallback(() => {
     setIsRestoreCommitDialogOpen(false);
     setCommitToRestore(null);
+  }, []);
+
+  const handleOpenDiscardChangesDialog = useCallback(() => {
+    setIsDiscardChangesDialogOpen(true);
+  }, []);
+
+  const handleCloseDiscardChangesDialog = useCallback(() => {
+    setIsDiscardChangesDialogOpen(false);
   }, []);
 
   const findSelectedCommitIndex = ({
@@ -761,13 +832,17 @@ export const CurrentDocumentProvider = ({
         canCommit,
         onCommit: handleCommit,
         onRestoreCommit: handleRestoreCommit,
+        onDiscardChanges: handleDiscardChanges,
         isCommitDialogOpen,
         commitToRestore,
         isRestoreCommitDialogOpen,
+        isDiscardChangesDialogOpen,
         onOpenCommitDialog: handleOpenCommitDialog,
         onCloseCommitDialog: handleCloseCommitDialog,
         onOpenRestoreCommitDialog: handleOpenRestoreCommitDialog,
         onCloseRestoreCommitDialog: handleCloseRestoreCommitDialog,
+        onOpenDiscardChangesDialog: handleOpenDiscardChangesDialog,
+        onCloseDiscardChangesDialog: handleCloseDiscardChangesDialog,
         selectedCommitIndex,
         onSelectChange: handleSelectChange,
         getDocumentAtChange: handleGetDocumentAtChange,
