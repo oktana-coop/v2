@@ -18,9 +18,12 @@ import { StackedResizablePanelsLayout } from '../../components/layout/StackedRes
 import { useCreateDocument, useNavigateToDocument } from '../../hooks';
 import { useOpenDirectory } from '../../hooks/multi-document-project';
 import { useOpenDocument } from '../../hooks/single-document-project';
+import {
+  CommitDialog,
+  DiscardChangesDialog,
+  RestoreCommitDialog,
+} from './change-dialogs';
 import { DocumentCommandPalette } from './command-palette';
-import { CommitDialog } from './commit/CommitDialog';
-import { RestoreCommitDialog } from './commit/RestoreCommitDialog';
 import { CreateDocumentModal } from './create-document/CreateDocumentModal';
 import { DocumentMainViewRouter } from './main/DocumentMainViewRouter';
 import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
@@ -58,10 +61,13 @@ const DocumentIndex = () => {
     onCloseCommitDialog,
     isCommitDialogOpen,
     isRestoreCommitDialogOpen,
+    isDiscardChangesDialogOpen,
     canCommit,
     onCommit,
     onCloseRestoreCommitDialog,
+    onCloseDiscardChangesDialog,
     onRestoreCommit,
+    onDiscardChanges,
   } = useContext(CurrentDocumentContext);
   const { changeId } = useParams();
   const { createNewDocument } = useCreateDocument();
@@ -113,6 +119,11 @@ const DocumentIndex = () => {
           isOpen={isRestoreCommitDialogOpen}
           onCancel={onCloseRestoreCommitDialog}
           onRestoreCommit={(args) => onRestoreCommit(args)}
+        />
+        <DiscardChangesDialog
+          isOpen={isDiscardChangesDialogOpen}
+          onCancel={onCloseDiscardChangesDialog}
+          onDiscardChanges={() => onDiscardChanges()}
         />
         <DocumentCommandPalette
           onCreateDocument={handleCreateDocument}

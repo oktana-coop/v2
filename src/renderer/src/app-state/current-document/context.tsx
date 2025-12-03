@@ -66,13 +66,17 @@ export type CurrentDocumentContextType = {
   canCommit: boolean;
   onCommit: (message: string) => Promise<void>;
   onRestoreCommit: (args: { message: string; commit: Commit }) => Promise<void>;
+  onDiscardChanges: () => Promise<void>;
   isCommitDialogOpen: boolean;
   commitToRestore: Commit | null;
   isRestoreCommitDialogOpen: boolean;
+  isDiscardChangesDialogOpen: boolean;
   onOpenCommitDialog: () => void;
   onCloseCommitDialog: () => void;
   onOpenRestoreCommitDialog: (commit: Commit) => void;
   onCloseRestoreCommitDialog: () => void;
+  onOpenDiscardChangesDialog: () => void;
+  onCloseDiscardChangesDialog: () => void;
   selectedCommitIndex: number | null;
   onSelectChange: (commitId: ChangeId) => void;
   getDocumentAtChange: (
@@ -100,13 +104,17 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     canCommit: false,
     onCommit: async () => {},
     onRestoreCommit: async () => {},
+    onDiscardChanges: async () => {},
     isCommitDialogOpen: false,
     isRestoreCommitDialogOpen: false,
+    isDiscardChangesDialogOpen: false,
     commitToRestore: null,
     onOpenCommitDialog: () => {},
     onCloseCommitDialog: () => {},
     onOpenRestoreCommitDialog: () => {},
     onCloseRestoreCommitDialog: () => {},
+    onOpenDiscardChangesDialog: () => {},
+    onCloseDiscardChangesDialog: () => {},
     selectedCommitIndex: null,
     onSelectChange: () => {},
     // @ts-expect-error will get overriden below
@@ -142,6 +150,8 @@ export const CurrentDocumentProvider = ({
   const [canCommit, setCanCommit] = useState(false);
   const [isCommitDialogOpen, setIsCommitDialogOpen] = useState<boolean>(false);
   const [isRestoreCommitDialogOpen, setIsRestoreCommitDialogOpen] =
+    useState<boolean>(false);
+  const [isDiscardChangesDialogOpen, setIsDiscardChangesDialogOpen] =
     useState<boolean>(false);
   const [commitToRestore, setCommitToRestore] = useState<Commit | null>(null);
   const [selectedCommitIndex, setSelectedCommitIndex] = useState<number | null>(
@@ -443,6 +453,12 @@ export const CurrentDocumentProvider = ({
     [documentId, versionedDocument, versionedDocumentStore]
   );
 
+  const handleDiscardChanges = useCallback(async () => {}, [
+    documentId,
+    versionedDocument,
+    versionedDocumentStore,
+  ]);
+
   const handleOpenCommitDialog = useCallback(() => {
     setIsCommitDialogOpen(true);
   }, []);
@@ -459,6 +475,14 @@ export const CurrentDocumentProvider = ({
   const handleCloseRestoreCommitDialog = useCallback(() => {
     setIsRestoreCommitDialogOpen(false);
     setCommitToRestore(null);
+  }, []);
+
+  const handleOpenDiscardChangesDialog = useCallback(() => {
+    setIsDiscardChangesDialogOpen(true);
+  }, []);
+
+  const handleCloseDiscardChangesDialog = useCallback(() => {
+    setIsDiscardChangesDialogOpen(false);
   }, []);
 
   const findSelectedCommitIndex = ({
@@ -761,13 +785,17 @@ export const CurrentDocumentProvider = ({
         canCommit,
         onCommit: handleCommit,
         onRestoreCommit: handleRestoreCommit,
+        onDiscardChanges: handleDiscardChanges,
         isCommitDialogOpen,
         commitToRestore,
         isRestoreCommitDialogOpen,
+        isDiscardChangesDialogOpen,
         onOpenCommitDialog: handleOpenCommitDialog,
         onCloseCommitDialog: handleCloseCommitDialog,
         onOpenRestoreCommitDialog: handleOpenRestoreCommitDialog,
         onCloseRestoreCommitDialog: handleCloseRestoreCommitDialog,
+        onOpenDiscardChangesDialog: handleOpenDiscardChangesDialog,
+        onCloseDiscardChangesDialog: handleCloseDiscardChangesDialog,
         selectedCommitIndex,
         onSelectChange: handleSelectChange,
         getDocumentAtChange: handleGetDocumentAtChange,
