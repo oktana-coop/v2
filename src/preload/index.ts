@@ -241,6 +241,17 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
       'multi-document-project-store:find-document-in-project',
       { ...args }
     ),
+  createAndSwitchToBranch: (args) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:create-and-switch-to-branch',
+      {
+        ...args,
+      }
+    ),
+  switchToBranch: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:switch-to-branch', {
+      ...args,
+    }),
 } as MultiDocumentProjectStorePromiseAPI);
 
 // TODO: Namespace IPC messages

@@ -17,12 +17,12 @@ export type CreateSingleDocumentProjectArgs = {
   name: string | null;
 };
 
-export type CreateAndSwitchToBranchArgs = {
+export type SingleDocumentProjectCreateAndSwitchToBranchArgs = {
   projectId: ProjectId;
   branch: Branch;
 };
 
-export type SwitchToBranchArgs = {
+export type SingleDocumentProjectSwitchToBranchArgs = {
   projectId: ProjectId;
   branch: Branch;
 };
@@ -53,10 +53,10 @@ export type SingleDocumentProjectStore = {
     never
   >;
   createAndSwitchToBranch: (
-    args: SwitchToBranchArgs
+    args: SingleDocumentProjectCreateAndSwitchToBranchArgs
   ) => Effect.Effect<void, RepositoryError, never>;
   switchToBranch: (
-    args: SwitchToBranchArgs
+    args: SingleDocumentProjectSwitchToBranchArgs
   ) => Effect.Effect<void, RepositoryError, never>;
   disconnect: () => Effect.Effect<void, RepositoryError, never>;
 };

@@ -5,18 +5,20 @@ import { type BrowserWindow, ipcMain } from 'electron';
 import { buildConfig } from '../../modules/config';
 import {
   type AddDocumentToMultiDocumentProjectArgs,
-  type CreateAndSwitchToBranchArgs as SingleDocumentProjectCreateAndSwitchToBranchArgs,
   type CreateMultiDocumentProjectArgs,
   type CreateSingleDocumentProjectArgs,
   type DeleteDocumentFromMultiDocumentProjectArgs,
   type FindDocumentInMultiDocumentProjectArgs,
+  type MultiDocumentProjectCreateAndSwitchToBranchArgs,
   type MultiDocumentProjectStoreManager,
+  type MultiDocumentProjectSwitchToBranchArgs,
   OpenMultiDocumentProjectByIdArgs,
   type OpenSingleDocumentProjectStoreArgs,
   type ProjectId,
   type SetupSingleDocumentProjectStoreArgs,
+  type SingleDocumentProjectCreateAndSwitchToBranchArgs,
   type SingleDocumentProjectStoreManager,
-  type SwitchToBranchArgs as SingleDocumentProjectSwitchToBranchArgs,
+  type SingleDocumentProjectSwitchToBranchArgs,
   ValidationError as VersionedProjectValidationError,
 } from '../../modules/domain/project/node';
 import {
@@ -447,6 +449,46 @@ const registerMultiDocumentProjectStoreEvents = () => {
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.findDocumentInProject(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:create-and-switch-to-branch',
+    async (_, args: MultiDocumentProjectCreateAndSwitchToBranchArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.createAndSwitchToBranch(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:switch-to-branch',
+    async (_, args: MultiDocumentProjectSwitchToBranchArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.switchToBranch(args)
           )
         )
       )

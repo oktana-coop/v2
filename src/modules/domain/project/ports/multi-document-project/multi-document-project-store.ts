@@ -1,6 +1,7 @@
 import * as Effect from 'effect/Effect';
 
 import {
+  type Branch,
   MigrationError,
   type ResolvedArtifactId,
 } from '../../../../../modules/infrastructure/version-control';
@@ -32,6 +33,16 @@ export type DeleteDocumentFromMultiDocumentProjectArgs = {
 export type FindDocumentInMultiDocumentProjectArgs = {
   projectId: ProjectId;
   documentPath: string;
+};
+
+export type MultiDocumentProjectCreateAndSwitchToBranchArgs = {
+  projectId: ProjectId;
+  branch: Branch;
+};
+
+export type MultiDocumentProjectSwitchToBranchArgs = {
+  projectId: ProjectId;
+  branch: Branch;
 };
 
 export type MultiDocumentProjectStore = {
@@ -73,4 +84,10 @@ export type MultiDocumentProjectStore = {
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
+  createAndSwitchToBranch: (
+    args: MultiDocumentProjectCreateAndSwitchToBranchArgs
+  ) => Effect.Effect<void, RepositoryError | ValidationError, never>;
+  switchToBranch: (
+    args: MultiDocumentProjectSwitchToBranchArgs
+  ) => Effect.Effect<void, RepositoryError | ValidationError, never>;
 };

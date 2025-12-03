@@ -202,6 +202,51 @@ export const createAdapter = ({
         )
       );
 
+  const createAndSwitchToBranch: MultiDocumentProjectStore['createAndSwitchToBranch'] =
+    ({ projectId, branch }) =>
+      pipe(
+        Effect.succeed(projectId),
+        Effect.filterOrFail(
+          isProjectFsPath,
+          (val) => new ValidationError(`Invalid project id: ${val}`)
+        ),
+        Effect.flatMap((projectPath) =>
+          Effect.try({
+            try: () =>
+              git.branch({
+                fs: isoGitFs,
+                dir: projectPath,
+                ref: branch,
+                checkout: true,
+              }),
+            catch: mapErrorTo(RepositoryError, 'Git repo error'),
+          })
+        )
+      );
+
+  const switchToBranch: MultiDocumentProjectStore['switchToBranch'] = ({
+    projectId,
+    branch,
+  }) =>
+    pipe(
+      Effect.succeed(projectId),
+      Effect.filterOrFail(
+        isProjectFsPath,
+        (val) => new ValidationError(`Invalid project id: ${val}`)
+      ),
+      Effect.flatMap((projectPath) =>
+        Effect.try({
+          try: () =>
+            git.checkout({
+              fs: isoGitFs,
+              dir: projectPath,
+              ref: branch,
+            }),
+          catch: mapErrorTo(RepositoryError, 'Git repo error'),
+        })
+      )
+    );
+
   return {
     createProject,
     findProjectById,
@@ -209,5 +254,7 @@ export const createAdapter = ({
     addDocumentToProject,
     deleteDocumentFromProject,
     findDocumentInProject,
+    createAndSwitchToBranch,
+    switchToBranch,
   };
 };

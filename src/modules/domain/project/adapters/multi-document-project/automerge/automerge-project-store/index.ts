@@ -184,6 +184,23 @@ export const createAdapter = (
         )
       );
 
+  // TODO: Implement branching in Automerge
+  const createAndSwitchToBranch: MultiDocumentProjectStore['createAndSwitchToBranch'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Branching is not yet supported when the app is configured with Automerge'
+        )
+      );
+
+  // TODO: Implement branching in Automerge
+  const switchToBranch: MultiDocumentProjectStore['switchToBranch'] = () =>
+    Effect.fail(
+      new RepositoryError(
+        'Branching is not yet supported when the app is configured with Automerge'
+      )
+    );
+
   return {
     createProject,
     findProjectById,
@@ -191,5 +208,7 @@ export const createAdapter = (
     addDocumentToProject,
     deleteDocumentFromProject,
     findDocumentInProject,
+    createAndSwitchToBranch,
+    switchToBranch,
   };
 };
