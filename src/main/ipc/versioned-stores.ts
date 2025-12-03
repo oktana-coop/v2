@@ -26,6 +26,7 @@ import {
 import {
   type CommitChangesArgs,
   type CreateDocumentArgs,
+  DiscardUncommittedChangesArgs,
   type GetDocumentAtChangeArgs,
   type IsContentSameAtChangesArgs,
   RestoreCommitArgs,
@@ -549,6 +550,19 @@ const registerVersionedDocumentStoreEvents = () => {
           validateProjectIdAndGetVersionedStores(projectId),
           Effect.flatMap(({ versionedDocumentStore }) =>
             versionedDocumentStore.restoreCommit(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'versioned-document-store:discard-uncommitted-changes',
+    async (_, args: DiscardUncommittedChangesArgs, projectId: string) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(projectId),
+          Effect.flatMap(({ versionedDocumentStore }) =>
+            versionedDocumentStore.discardUncommittedChanges(args)
           )
         )
       )

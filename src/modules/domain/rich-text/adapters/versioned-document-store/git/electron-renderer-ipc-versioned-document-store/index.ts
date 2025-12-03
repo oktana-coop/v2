@@ -189,6 +189,27 @@ export const createAdapter = ({
         >,
         RepositoryError
       )(window.versionedDocumentStoreAPI.restoreCommit(...args, projectId)),
+    discardUncommittedChanges: (
+      ...args: Parameters<VersionedDocumentStore['discardUncommittedChanges']>
+    ) =>
+      effectifyIPCPromise(
+        {
+          ValidationError,
+          RepositoryError,
+          NotFoundError,
+          MigrationError,
+        } as ErrorRegistry<
+          EffectErrorType<
+            ReturnType<VersionedDocumentStore['discardUncommittedChanges']>
+          >
+        >,
+        RepositoryError
+      )(
+        window.versionedDocumentStoreAPI.discardUncommittedChanges(
+          ...args,
+          projectId
+        )
+      ),
     isContentSameAtChanges: (
       ...args: Parameters<VersionedDocumentStore['isContentSameAtChanges']>
     ) =>

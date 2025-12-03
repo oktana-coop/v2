@@ -170,6 +170,14 @@ contextBridge.exposeInMainWorld('versionedDocumentStoreAPI', {
       },
       projectId
     ),
+  discardUncommittedChanges: (args, projectId) =>
+    ipcRenderer.invoke(
+      'versioned-document-store:discard-uncommitted-changes',
+      {
+        ...args,
+      },
+      projectId
+    ),
   disconnect: (projectId) =>
     ipcRenderer.invoke('versioned-document-store:disconnect', projectId),
 } as VersionedDocumentStorePromiseAPI);

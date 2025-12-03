@@ -401,7 +401,9 @@ export const CurrentDocumentProvider = ({
   const handleRestoreCommit = useCallback(
     async ({ message, commit }: { message: string; commit: Commit }) => {
       if (!documentId || !versionedDocument || !versionedDocumentStore) {
-        return;
+        throw new Error(
+          'Cannot restore commit. Either the document or its store is not initialized yet.'
+        );
       }
 
       let restoreCommitId: Commit['id'];
@@ -453,11 +455,56 @@ export const CurrentDocumentProvider = ({
     [documentId, versionedDocument, versionedDocumentStore]
   );
 
-  const handleDiscardChanges = useCallback(async () => {}, [
-    documentId,
-    versionedDocument,
-    versionedDocumentStore,
-  ]);
+  const handleDiscardChanges = useCallback(async () => {
+    if (!documentId || !versionedDocument || !versionedDocumentStore) {
+      throw new Error(
+        'Cannot discard changes. Either the document or its store is not initialized yet.'
+      );
+    }
+
+    if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
+      if (!directory || !selectedFileInfo?.path) {
+        throw new Error(
+          'Cannot write to file when restoring commit in multi-doc project'
+        );
+      }
+
+      await Effect.runPromise(
+        pipe(
+          filesystem.getAbsolutePath({
+            path: selectedFileInfo.path,
+            dirPath: directory.path,
+          }),
+          Effect.flatMap((absoluteFilePath) =>
+            versionedDocumentStore.discardUncommittedChanges({
+              documentId,
+              writeToFileWithPath: absoluteFilePath,
+            })
+          )
+        )
+      );
+    } else {
+      await Effect.runPromise(
+        versionedDocumentStore.discardUncommittedChanges({
+          documentId,
+          writeToFileWithPath: versionedDocumentStore.managesFilesystemWorkdir
+            ? (documentInternalPath ?? undefined)
+            : undefined,
+        })
+      );
+    }
+
+    const newHistory = await loadHistory(versionedDocumentStore)({
+      doc: versionedDocument,
+      docId: documentId,
+    });
+
+    setIsDiscardChangesDialogOpen(false);
+    setCanCommit(false);
+
+    const [lastCommit] = newHistory;
+    handleSelectChange(lastCommit.id, newHistory);
+  }, [documentId, versionedDocument, versionedDocumentStore]);
 
   const handleOpenCommitDialog = useCallback(() => {
     setIsCommitDialogOpen(true);

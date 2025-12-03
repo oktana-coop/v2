@@ -42,6 +42,7 @@ export type GetDocumentHistoryResponse = {
   current: VersionedDocument;
   latestChange: Change;
   lastCommit: Commit | null;
+  hasUncommittedChanges: boolean;
 };
 
 export type GetDocumentHandleHistoryResponse = {
@@ -49,6 +50,7 @@ export type GetDocumentHandleHistoryResponse = {
   current: VersionedDocument;
   latestChange: Change;
   lastCommit: Commit | null;
+  hasUncommittedChanges: boolean;
 };
 
 export type IsContentSameAtChangesArgs = {
@@ -66,6 +68,11 @@ export type RestoreCommitArgs = {
   documentId: ResolvedArtifactId;
   commit: Commit;
   message?: string;
+  writeToFileWithPath?: string;
+};
+
+export type DiscardUncommittedChangesArgs = {
+  documentId: ResolvedArtifactId;
   writeToFileWithPath?: string;
 };
 
@@ -143,6 +150,13 @@ export type VersionedDocumentStore = {
     args: RestoreCommitArgs
   ) => Effect.Effect<
     Commit['id'],
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  discardUncommittedChanges: (
+    args: DiscardUncommittedChangesArgs
+  ) => Effect.Effect<
+    void,
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
