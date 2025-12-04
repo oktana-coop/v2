@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { GenericCommandPalette } from '../../components/dialogs/command-palette/GenericCommandPalette';
+import { GenericCommandPalette } from '../../components/dialogs/command-palette';
 import { Layout } from '../../components/layout/Layout';
 import { ThemeSection } from './ThemeSection';
 

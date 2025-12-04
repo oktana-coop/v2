@@ -8,6 +8,7 @@ import {
   DialogBackdrop,
   DialogPanel,
 } from '@headlessui/react';
+import React from 'react';
 import { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -56,11 +57,31 @@ export type CommandPaletteProps = {
   actions?: Array<ActionOption>;
 };
 
-const CommandPaletteSection = ({ children }: { children: React.ReactNode }) => (
-  <li className="py-2">{children}</li>
+export const CommandPaletteInput = ({
+  placeholder,
+  onChange,
+  onBlur,
+}: {
+  placeholder: string;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur: React.FocusEventHandler<HTMLInputElement> | undefined;
+}) => (
+  <ComboboxInput
+    autoFocus
+    className="col-start-1 row-start-1 h-12 w-full bg-transparent p-4 text-base text-gray-900 outline-none placeholder:text-gray-500 sm:text-sm dark:text-gray-100 dark:placeholder:text-gray-300"
+    placeholder={placeholder}
+    onChange={onChange}
+    onBlur={onBlur}
+  />
 );
 
-const CommandPaletteSectionTitle = ({ title }: { title: string }) => (
+export const CommandPaletteSection = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => <li className="py-2">{children}</li>;
+
+export const CommandPaletteSectionTitle = ({ title }: { title: string }) => (
   <h2 className="px-4 py-2 text-xs font-semibold text-gray-900 dark:text-gray-300">
     {title}
   </h2>
@@ -140,9 +161,7 @@ export const CommandPalette = ({
             }}
           >
             <div className="grid grid-cols-1">
-              <ComboboxInput
-                autoFocus
-                className="col-start-1 row-start-1 h-12 w-full bg-transparent p-4 text-base text-gray-900 outline-none placeholder:text-gray-500 sm:text-sm dark:text-gray-100 dark:placeholder:text-gray-300"
+              <CommandPaletteInput
                 placeholder="Search..."
                 onChange={(event) => {
                   setQuery(event.target.value);

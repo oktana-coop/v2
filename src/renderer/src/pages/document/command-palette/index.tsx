@@ -12,7 +12,7 @@ import {
 import {
   type ActionOption,
   CommandPalette,
-} from '../../../components/dialogs/command-palette/CommandPalette';
+} from '../../../components/dialogs/command-palette';
 import {
   useClearWebStorage,
   useCurrentDocumentName,
