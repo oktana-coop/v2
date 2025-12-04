@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { useKeyBindings } from '../../../hooks';
 
-const NoMatchingResults = () => {
+export const NoMatchingResults = () => {
   return (
     <div className="px-6 py-14 text-center sm:px-14">
       <p className="mt-4 text-sm text-gray-900 dark:text-gray-300">
@@ -97,6 +97,20 @@ export const CommandPaletteListSection = ({
     )}
     <ul className="text-sm text-gray-700 dark:text-gray-400">{children}</ul>
   </li>
+);
+
+export const CommandPaletteOptions = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => (
+  <ComboboxOptions
+    static
+    as="ul"
+    className="max-h-100 scroll-py-2 divide-y divide-gray-500/10 overflow-y-auto"
+  >
+    {children}
+  </ComboboxOptions>
 );
 
 export const CommandPaletteOption = ({
@@ -214,11 +228,7 @@ export const CommandPalette = ({
               />
             </div>
 
-            <ComboboxOptions
-              static
-              as="ul"
-              className="max-h-100 scroll-py-2 divide-y divide-gray-500/10 overflow-y-auto"
-            >
+            <CommandPaletteOptions>
               {contextualSection && filteredContextualActions.length > 0 && (
                 <CommandPaletteListSection title={contextualSection.groupTitle}>
                   {filteredContextualActions.map((action) => (
@@ -254,7 +264,7 @@ export const CommandPalette = ({
                   ))}
                 </CommandPaletteListSection>
               )}
-            </ComboboxOptions>
+            </CommandPaletteOptions>
             {query !== '' &&
               [
                 ...filteredDocuments,

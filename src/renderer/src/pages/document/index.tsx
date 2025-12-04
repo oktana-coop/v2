@@ -23,8 +23,8 @@ import {
   DiscardChangesDialog,
   RestoreCommitDialog,
 } from './change-dialogs';
-import { DocumentCommandPalette } from './command-palette';
 import { CreateDocumentModal } from './create-document/CreateDocumentModal';
+import { DocumentCommandPalette } from './document-command-palette';
 import { DocumentMainViewRouter } from './main/DocumentMainViewRouter';
 import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
 import { DirectoryFiles, RecentProjects } from './sidebar/document-list-views';
