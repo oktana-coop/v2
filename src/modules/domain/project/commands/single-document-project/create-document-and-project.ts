@@ -1,7 +1,10 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
-import { type ResolvedArtifactId } from '../../../../infrastructure/version-control';
+import {
+  type Branch,
+  type ResolvedArtifactId,
+} from '../../../../infrastructure/version-control';
 import {
   RepositoryError as VersionedDocumentRepositoryError,
   ValidationError as VersionedDocumentValidationError,
@@ -20,17 +23,20 @@ export type CreateDocumentAndProjectArgs = {
 export type CreateDocumentAndProjectDeps = {
   createDocument: VersionedDocumentStore['createDocument'];
   createSingleDocumentProject: SingleDocumentProjectStore['createSingleDocumentProject'];
+  getCurrentBranch: SingleDocumentProjectStore['getCurrentBranch'];
 };
 
 export type CreateSingleDocumentProjectResult = {
   documentId: ResolvedArtifactId;
   projectId: ProjectId;
+  currentBranch: Branch;
 };
 
 export const createDocumentAndProject =
   ({
     createDocument,
     createSingleDocumentProject,
+    getCurrentBranch,
   }: CreateDocumentAndProjectDeps) =>
   ({
     name,
@@ -43,19 +49,33 @@ export const createDocumentAndProject =
     | VersionedDocumentValidationError,
     never
   > =>
-    pipe(
-      createDocument({
-        content,
-        filePath: writeToFileWithPath,
-        writeToFile: Boolean(writeToFileWithPath),
-      }),
-      Effect.flatMap((documentId) =>
+    Effect.Do.pipe(
+      Effect.bind('documentId', () =>
+        createDocument({
+          content,
+          filePath: writeToFileWithPath,
+          writeToFile: Boolean(writeToFileWithPath),
+        })
+      ),
+      Effect.bind('projectId', ({ documentId }) =>
+        createSingleDocumentProject({
+          documentMetaData: { id: documentId },
+          name: name ?? null,
+        })
+      ),
+      Effect.flatMap(({ documentId, projectId }) =>
         pipe(
-          createSingleDocumentProject({
-            documentMetaData: { id: documentId },
-            name: name ?? null,
-          }),
-          Effect.map((projectId) => ({ documentId, projectId }))
+          getCurrentBranch({ projectId }),
+          // We shouldn't be getting validation or not-found error since we just created the project.
+          // If something is wrong here, from the perspective of the command we consider it a repository error.
+          Effect.catchAll(() =>
+            Effect.fail(new VersionedProjectRepositoryError('Git repo error'))
+          ),
+          Effect.map((currentBranch) => ({
+            projectId,
+            documentId,
+            currentBranch,
+          }))
         )
       )
     );

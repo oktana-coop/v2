@@ -397,17 +397,22 @@ export const createAdapter = ({
                     })
                 )
               ),
-              Effect.map(
+              Effect.flatMap(
                 ({
                   projectId,
                   versionedProjectStore,
                   versionedDocumentStore,
-                }) => ({
-                  versionedProjectStore,
-                  versionedDocumentStore,
-                  projectId,
-                  directory,
-                })
+                }) =>
+                  pipe(
+                    versionedProjectStore.getCurrentBranch({ projectId }),
+                    Effect.map((currentBranch) => ({
+                      versionedProjectStore,
+                      versionedDocumentStore,
+                      projectId,
+                      directory,
+                      currentBranch,
+                    }))
+                  )
               )
             )
           )
@@ -443,13 +448,18 @@ export const createAdapter = ({
                   filesystem,
                 })
               ),
-              Effect.map(
-                ({ versionedProjectStore, versionedDocumentStore }) => ({
-                  versionedProjectStore,
-                  versionedDocumentStore,
-                  projectId,
-                  directory,
-                })
+              Effect.flatMap(
+                ({ versionedProjectStore, versionedDocumentStore }) =>
+                  pipe(
+                    versionedProjectStore.getCurrentBranch({ projectId }),
+                    Effect.map((currentBranch) => ({
+                      versionedProjectStore,
+                      versionedDocumentStore,
+                      projectId,
+                      directory,
+                      currentBranch,
+                    }))
+                  )
               )
             )
           )

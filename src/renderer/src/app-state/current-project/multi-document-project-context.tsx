@@ -27,7 +27,10 @@ import {
   removeExtension,
   removePath,
 } from '../../../../modules/infrastructure/filesystem';
-import { type ResolvedArtifactId } from '../../../../modules/infrastructure/version-control';
+import {
+  type Branch,
+  type ResolvedArtifactId,
+} from '../../../../modules/infrastructure/version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
 type BrowserStorageProjectData = {
@@ -47,6 +50,7 @@ export type MultiDocumentProjectContextType = {
   loading: boolean;
   projectId: ProjectId | null;
   directory: Directory | null;
+  currentBranch: Branch | null;
   directoryFiles: Array<File>;
   openDirectory: () => Promise<Directory>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
@@ -70,6 +74,7 @@ export const MultiDocumentProjectContext =
     loading: false,
     projectId: null,
     directory: null,
+    branch: null,
     directoryFiles: [],
     // @ts-expect-error will get overriden below
     openDirectory: async () => null,
@@ -101,6 +106,7 @@ export const MultiDocumentProjectProvider = ({
   const [projectId, setProjectId] = useState<ProjectId | null>(null);
   const [directory, setDirectory] = useState<Directory | null>(null);
   const [directoryFiles, setDirectoryFiles] = useState<Array<File>>([]);
+  const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
   const [versionedProjectStore, setVersionedProjectStore] =
     useState<MultiDocumentProjectStore | null>(null);
   const [selectedFileInfo, setSelectedFileInfo] =
@@ -129,6 +135,7 @@ export const MultiDocumentProjectProvider = ({
           versionedDocumentStore: documentStore,
           versionedProjectStore: projectStore,
           directory,
+          currentBranch,
         } = await Effect.runPromise(
           multiDocumentProjectStoreManager.openMultiDocumentProjectById({
             filesystem,
@@ -140,6 +147,7 @@ export const MultiDocumentProjectProvider = ({
 
         setProjectId(browserStorageProjectData.projectId);
         setDirectory(directory);
+        setCurrentBranch(currentBranch);
         setVersionedProjectStore(projectStore);
         setVersionedDocumentStore(documentStore);
 
@@ -194,6 +202,7 @@ export const MultiDocumentProjectProvider = ({
       versionedProjectStore: projectStore,
       projectId: projId,
       directory: dir,
+      currentBranch,
     } = await Effect.runPromise(
       multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject({
         filesystem,
@@ -202,6 +211,7 @@ export const MultiDocumentProjectProvider = ({
 
     setProjectId(projId);
     setDirectory(dir);
+    setCurrentBranch(currentBranch);
     setVersionedProjectStore(projectStore);
     setVersionedDocumentStore(documentStore);
 
@@ -315,6 +325,7 @@ export const MultiDocumentProjectProvider = ({
         projectId,
         directory,
         directoryFiles,
+        currentBranch,
         openDirectory: handleOpenDirectory,
         requestPermissionForSelectedDirectory,
         createNewDocument: handleCreateNewDocument,

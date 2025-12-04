@@ -5,6 +5,8 @@ import { pipe } from 'effect/Function';
 import * as Option from 'effect/Option';
 
 import {
+  type Branch,
+  DEFAULT_BRANCH,
   migrateIfNeeded,
   versionedArtifactTypes,
 } from '../../../../../../../modules/infrastructure/version-control';
@@ -203,11 +205,7 @@ export const createAdapter = (
 
   // TODO: Implement branching in Automerge
   const getCurrentBranch: MultiDocumentProjectStore['getCurrentBranch'] = () =>
-    Effect.fail(
-      new RepositoryError(
-        'Branching is not yet supported when the app is configured with Automerge'
-      )
-    );
+    Effect.succeed(DEFAULT_BRANCH as Branch);
 
   return {
     createProject,

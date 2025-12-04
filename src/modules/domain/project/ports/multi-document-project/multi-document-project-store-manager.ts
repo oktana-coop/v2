@@ -15,7 +15,10 @@ import {
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
-import { MigrationError } from '../../../../../modules/infrastructure/version-control';
+import {
+  type Branch,
+  MigrationError,
+} from '../../../../../modules/infrastructure/version-control';
 import {
   DataIntegrityError as VersionedProjectDataIntegrityError,
   MissingProjectMetadataError as VersionedProjectMissingProjectMetadataError,
@@ -35,6 +38,7 @@ export type OpenOrCreateMultiDocumentProjectResult = {
   versionedDocumentStore: VersionedDocumentStore;
   projectId: ProjectId;
   directory: Directory;
+  currentBranch: Branch;
 };
 
 export type OpenMultiDocumentProjectByIdDeps = {
@@ -51,6 +55,7 @@ export type OpenMultiDocumentProjectByIdResult = {
   versionedDocumentStore: VersionedDocumentStore;
   projectId: ProjectId;
   directory: Directory;
+  currentBranch: Branch;
 };
 
 export type MultiDocumentProjectStoreManager = {

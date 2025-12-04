@@ -439,17 +439,22 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                 )
               )
           ),
-          Effect.map(
+          Effect.flatMap(
             ({
               storeData: { versionedDocumentStore, versionedProjectStore },
               projectId,
               directory,
-            }) => ({
-              versionedProjectStore,
-              versionedDocumentStore,
-              projectId,
-              directory,
-            })
+            }) =>
+              pipe(
+                versionedProjectStore.getCurrentBranch({ projectId }),
+                Effect.map((currentBranch) => ({
+                  versionedProjectStore,
+                  versionedDocumentStore,
+                  projectId,
+                  directory,
+                  currentBranch,
+                }))
+              )
           ),
           Effect.tap(({ versionedDocumentStore, projectId }) =>
             versionedDocumentStore.setProjectId(projectId)
@@ -478,7 +483,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                       documentStoreName: AUTOMERGE_DOCUMENTS_STORE_NAME,
                       metadataStoreName: PROJECT_METADATA_STORE_NAME,
                     }),
-                    Effect.flatMap((db) =>
+                    Effect.tap((db) =>
                       validateIdAndOpenProject({
                         projectId,
                         directoryPath,
@@ -501,11 +506,15 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                         db,
                       })
                     ),
-                    Effect.map(() => ({
+                    Effect.flatMap(() =>
+                      versionedProjectStore.getCurrentBranch({ projectId })
+                    ),
+                    Effect.map((currentBranch) => ({
                       versionedProjectStore,
                       versionedDocumentStore,
                       projectId,
                       directory,
+                      currentBranch,
                     }))
                   )
               )

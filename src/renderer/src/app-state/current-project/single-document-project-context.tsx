@@ -18,6 +18,7 @@ import { ElectronContext } from '../../../../modules/infrastructure/cross-platfo
 import { isElectron } from '../../../../modules/infrastructure/cross-platform/utils';
 import { type File } from '../../../../modules/infrastructure/filesystem';
 import {
+  type Branch,
   type ResolvedArtifactId,
   urlEncodeArtifactId,
   versionControlSystems,
@@ -39,6 +40,7 @@ export type SingleDocumentProjectContextType = {
   documentInternalPath: string | null;
   projectFile: File | null;
   projectName: string | null;
+  currentBranch: Branch | null;
   versionedProjectStore: SingleDocumentProjectStore | null;
   createNewDocument: (name?: string) => Promise<{
     projectId: ProjectId;
@@ -103,6 +105,7 @@ export const SingleDocumentProjectProvider = ({
   const [fileToBeOpened, setFileToBeOpened] = useState<File | null>(null);
   const navigate = useNavigate();
   const { projectId: projectIdInPath } = useParams();
+  const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
 
   const documentInternalPath =
     versionControlSystems[config.singleDocumentProjectVersionControlSystem] ===
@@ -164,6 +167,7 @@ export const SingleDocumentProjectProvider = ({
         versionedDocumentStore: documentStore,
         versionedProjectStore: projectStore,
         documentId: docId,
+        currentBranch,
         file,
         name: projName,
       } = await Effect.runPromise(
@@ -181,6 +185,7 @@ export const SingleDocumentProjectProvider = ({
       setDocumentId(docId);
       setProjectFile(file);
       setProjectName(projName);
+      setCurrentBranch(currentBranch);
 
       navigate(
         `/projects/${urlEncodeProjectId(browserStorageProjectData.projectId)}/documents/${urlEncodeArtifactId(docId)}`
@@ -203,6 +208,7 @@ export const SingleDocumentProjectProvider = ({
       versionedProjectStore: projectStore,
       projectId: projId,
       documentId: docId,
+      currentBranch,
       file,
       name: projName,
     } = await Effect.runPromise(
@@ -217,6 +223,7 @@ export const SingleDocumentProjectProvider = ({
     setDocumentId(docId);
     setProjectFile(file);
     setProjectName(projName);
+    setCurrentBranch(currentBranch);
 
     const browserStorageProjectData: BrowserStorageProjectData = {
       projectId: projId,
@@ -264,6 +271,7 @@ export const SingleDocumentProjectProvider = ({
           versionedProjectStore: projectStore,
           projectId: projId,
           documentId: docId,
+          currentBranch,
           file,
           name: projName,
         } = await Effect.runPromise(
@@ -282,6 +290,7 @@ export const SingleDocumentProjectProvider = ({
         setDocumentId(docId);
         setProjectFile(file);
         setProjectName(projName);
+        setCurrentBranch(currentBranch);
 
         const browserStorageProjectData: BrowserStorageProjectData = {
           projectId: projId,
@@ -330,6 +339,7 @@ export const SingleDocumentProjectProvider = ({
         documentInternalPath,
         projectFile,
         projectName,
+        currentBranch,
         versionedProjectStore,
         createNewDocument: handleCreateNewDocument,
         openDocument: handleOpenDocument,

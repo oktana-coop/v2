@@ -4,6 +4,8 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import {
+  type Branch,
+  DEFAULT_BRANCH,
   migrateIfNeeded,
   MigrationError,
   versionedArtifactTypes,
@@ -163,11 +165,7 @@ export const createAdapter = (
 
   // TODO: Implement branching in Automerge
   const getCurrentBranch: SingleDocumentProjectStore['getCurrentBranch'] = () =>
-    Effect.fail(
-      new RepositoryError(
-        'Branching is not yet supported when the app is configured with Automerge'
-      )
-    );
+    Effect.succeed(DEFAULT_BRANCH as Branch);
 
   const disconnect: SingleDocumentProjectStore['disconnect'] = () =>
     Effect.tryPromise({

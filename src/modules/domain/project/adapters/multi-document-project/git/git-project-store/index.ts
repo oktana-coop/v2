@@ -51,7 +51,7 @@ export const createAdapter = ({
         catch: mapErrorTo(ValidationError, 'Invalid project path'),
       }),
       Effect.tap((projectPath) =>
-        Effect.try({
+        Effect.tryPromise({
           try: () =>
             git.init({
               fs: isoGitFs,

@@ -8,6 +8,7 @@ import {
 import { RichTextEditor } from '../../../../components/editing/RichTextEditor';
 import { LongTextSkeleton } from '../../../../components/progress/skeletons/LongText';
 import { ActionsBar } from './ActionsBar';
+import { BottomBar } from './BottomBar';
 
 export const DocumentEditor = () => {
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
@@ -52,6 +53,10 @@ export const DocumentEditor = () => {
             <LongTextSkeleton />
           )}
         </div>
+      </div>
+
+      <div className="w-full">
+        <BottomBar />
       </div>
     </div>
   );

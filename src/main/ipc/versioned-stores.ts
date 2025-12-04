@@ -111,12 +111,15 @@ const registerStoreManagerEvents = ({
                 versionedDocumentStore,
               })
           ),
-          Effect.map(({ projectId, documentId, file, name }) => ({
-            projectId,
-            documentId,
-            file,
-            name,
-          }))
+          Effect.map(
+            ({ projectId, documentId, currentBranch, file, name }) => ({
+              projectId,
+              documentId,
+              currentBranch,
+              file,
+              name,
+            })
+          )
         )
       )
   );
@@ -136,12 +139,15 @@ const registerStoreManagerEvents = ({
                 versionedDocumentStore,
               })
           ),
-          Effect.map(({ projectId, documentId, file, name }) => ({
-            projectId,
-            documentId,
-            file,
-            name,
-          }))
+          Effect.map(
+            ({ projectId, documentId, currentBranch, file, name }) => ({
+              projectId,
+              documentId,
+              currentBranch,
+              file,
+              name,
+            })
+          )
         )
       )
   );
@@ -159,9 +165,10 @@ const registerStoreManagerEvents = ({
               versionedDocumentStore,
             })
         ),
-        Effect.map(({ projectId, directory }) => ({
+        Effect.map(({ projectId, directory, currentBranch }) => ({
           projectId,
           directory,
+          currentBranch,
         }))
       )
     )
@@ -182,9 +189,10 @@ const registerStoreManagerEvents = ({
                 versionedDocumentStore,
               })
           ),
-          Effect.map(({ projectId, directory }) => ({
+          Effect.map(({ projectId, directory, currentBranch }) => ({
             projectId,
             directory,
+            currentBranch,
           }))
         )
       )

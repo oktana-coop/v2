@@ -48,7 +48,7 @@ export const createAdapter = ({
       pipe(
         Effect.succeed(projectFilePath),
         Effect.tap(() =>
-          Effect.try({
+          Effect.tryPromise({
             try: () =>
               git.init({
                 fs: isoGitFs,
@@ -155,7 +155,10 @@ export const createAdapter = ({
             fs: isoGitFs,
             dir: internalProjectDir,
           }),
-        catch: mapErrorTo(RepositoryError, 'Git repo error'),
+        catch: mapErrorTo(
+          RepositoryError,
+          'Error in getting the current branch'
+        ),
       }),
       Effect.filterOrFail(
         (currentBranch) => typeof currentBranch === 'string',
@@ -167,7 +170,7 @@ export const createAdapter = ({
       Effect.flatMap((currentBranch) =>
         Effect.try({
           try: () => parseBranch(currentBranch),
-          catch: mapErrorTo(RepositoryError, 'Git repo error'),
+          catch: mapErrorTo(RepositoryError, 'Could not parse current branch'),
         })
       )
     );

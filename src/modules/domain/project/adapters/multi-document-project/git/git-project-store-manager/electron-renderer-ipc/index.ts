@@ -20,7 +20,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
             'Error in creating multi-document project'
           ),
         }),
-        Effect.map(({ projectId, directory }) => ({
+        Effect.map(({ projectId, directory, currentBranch }) => ({
           versionedProjectStore: createMultiDocumentProjectStoreAdapter(),
           versionedDocumentStore: createVersionedDocumentStoreAdapter({
             projectId,
@@ -30,6 +30,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
           }),
           projectId,
           directory,
+          currentBranch,
         }))
       );
 
@@ -52,7 +53,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
               'Error in creating multi-document project'
             ),
           }),
-          Effect.map(({ directory }) => ({
+          Effect.map(({ directory, currentBranch }) => ({
             versionedProjectStore: createMultiDocumentProjectStoreAdapter(),
             // It's really the main process store that manages the filesystem workdir here,
             // but from the perspective of the client using this adapter it should be transparent.
@@ -62,6 +63,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
             }),
             projectId,
             directory,
+            currentBranch,
           }))
         );
 
