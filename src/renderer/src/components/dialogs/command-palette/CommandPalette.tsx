@@ -56,6 +56,16 @@ export type CommandPaletteProps = {
   actions?: Array<ActionOption>;
 };
 
+const CommandPaletteSection = ({ children }: { children: React.ReactNode }) => (
+  <li className="py-2">{children}</li>
+);
+
+const CommandPaletteSectionTitle = ({ title }: { title: string }) => (
+  <h2 className="px-4 py-2 text-xs font-semibold text-gray-900 dark:text-gray-300">
+    {title}
+  </h2>
+);
+
 export const CommandPalette = ({
   open = false,
   onClose,
@@ -149,17 +159,17 @@ export const CommandPalette = ({
               className="max-h-100 scroll-py-2 divide-y divide-gray-500/10 overflow-y-auto"
             >
               {contextualSection && filteredContextualActions.length > 0 && (
-                <li className="p-4">
-                  <h2 className="mb-2 mt-4 text-xs font-semibold text-gray-900 dark:text-gray-300">
-                    {contextualSection.groupTitle}
-                  </h2>
+                <CommandPaletteSection>
+                  <CommandPaletteSectionTitle
+                    title={contextualSection.groupTitle}
+                  />
                   <ul className="text-sm text-gray-700 dark:text-gray-400">
                     {filteredContextualActions.map((action) => (
                       <ComboboxOption
                         as="li"
                         key={action.name}
                         value={action}
-                        className="group flex cursor-default select-none items-center px-2 py-2 data-[focus]:bg-gray-900/5 data-[focus]:text-gray-900 data-[focus]:outline-none dark:data-[focus]:bg-gray-300/5 dark:data-[focus]:text-gray-100"
+                        className="group flex cursor-default select-none items-center px-4 py-3 data-[focus]:bg-gray-900/5 data-[focus]:text-gray-900 data-[focus]:outline-none dark:data-[focus]:bg-gray-300/5 dark:data-[focus]:text-gray-100"
                       >
                         <span className="flex-auto truncate">
                           {action.name}
@@ -173,14 +183,12 @@ export const CommandPalette = ({
                       </ComboboxOption>
                     ))}
                   </ul>
-                </li>
+                </CommandPaletteSection>
               )}
               {filteredDocuments.length > 0 && (
-                <li className="p-4">
+                <CommandPaletteSection>
                   {documentsGroupTitle && (
-                    <h2 className="mb-2 mt-4 text-xs font-semibold text-gray-900 dark:text-gray-300">
-                      {documentsGroupTitle}
-                    </h2>
+                    <CommandPaletteSectionTitle title={documentsGroupTitle} />
                   )}
                   <ul className="text-sm text-gray-700 dark:text-gray-400">
                     {filteredDocuments.map((project) => (
@@ -188,7 +196,7 @@ export const CommandPalette = ({
                         as="li"
                         key={project.id || uuidv4()}
                         value={project}
-                        className="group flex cursor-default select-none items-center px-2 py-2 data-[focus]:bg-gray-900/5 data-[focus]:text-gray-900 data-[focus]:outline-none dark:data-[focus]:bg-gray-300/5 dark:data-[focus]:text-gray-100"
+                        className="group flex cursor-default select-none items-center px-4 py-3 data-[focus]:bg-gray-900/5 data-[focus]:text-gray-900 data-[focus]:outline-none dark:data-[focus]:bg-gray-300/5 dark:data-[focus]:text-gray-100"
                       >
                         <span className="flex-auto truncate">
                           {project.title}
@@ -199,10 +207,10 @@ export const CommandPalette = ({
                       </ComboboxOption>
                     ))}
                   </ul>
-                </li>
+                </CommandPaletteSection>
               )}
               {filteredActions.length > 0 && (
-                <li className="p-4">
+                <CommandPaletteSection>
                   <h2 className="sr-only">Quick actions</h2>
                   <ul className="text-sm text-gray-700 dark:text-gray-400">
                     {filteredActions.map((action) => (
@@ -210,7 +218,7 @@ export const CommandPalette = ({
                         as="li"
                         key={action.name}
                         value={action}
-                        className="group flex cursor-default select-none items-center px-2 py-2 data-[focus]:bg-gray-900/5 data-[focus]:text-gray-900 data-[focus]:outline-none dark:data-[focus]:bg-gray-300/5 dark:data-[focus]:text-gray-100"
+                        className="group flex cursor-default select-none items-center px-4 py-3 data-[focus]:bg-gray-900/5 data-[focus]:text-gray-900 data-[focus]:outline-none dark:data-[focus]:bg-gray-300/5 dark:data-[focus]:text-gray-100"
                       >
                         <span className="flex-auto truncate">
                           {action.name}
@@ -224,7 +232,7 @@ export const CommandPalette = ({
                       </ComboboxOption>
                     ))}
                   </ul>
-                </li>
+                </CommandPaletteSection>
               )}
             </ComboboxOptions>
             {query !== '' &&
