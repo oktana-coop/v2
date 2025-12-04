@@ -84,15 +84,15 @@ export const createAdapter = ({
     );
 
   const findProjectById: MultiDocumentProjectStore['findProjectById'] = (id) =>
-    pipe(
-      getDirectoryFiles(id),
-      Effect.map((files) =>
+    Effect.Do.pipe(
+      Effect.bind('files', () => getDirectoryFiles(id)),
+      Effect.bind('currentBranch', () => getCurrentBranch({ projectId: id })),
+      Effect.map(({ files, currentBranch }) =>
         files.reduce<Record<ResolvedArtifactId, ArtifactMetaData>>(
           (acc, file) => {
-            // TODO: Make branch a param
             // TODO: Handle errors returned by createGitBlobRef
             const documentId = createGitBlobRef({
-              ref: DEFAULT_BRANCH,
+              ref: currentBranch,
               path: file.path,
             });
 

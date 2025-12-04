@@ -60,14 +60,22 @@ export const createAdapter = ({
         )
       );
 
-  const findProjectById: SingleDocumentProjectStore['findProjectById'] = () =>
+  const findProjectById: SingleDocumentProjectStore['findProjectById'] = (
+    projectId
+  ) =>
     pipe(
-      // TODO: Make branch a param
-      // TODO: Handle errors returned by createGitBlobRef
-      Effect.succeed(
-        createGitBlobRef({
-          ref: DEFAULT_BRANCH,
-          path: documentInternalPath,
+      getCurrentBranch({ projectId }),
+      Effect.flatMap((currentBranch) =>
+        Effect.try({
+          try: () =>
+            createGitBlobRef({
+              ref: currentBranch,
+              path: documentInternalPath,
+            }),
+          catch: mapErrorTo(
+            ValidationError,
+            'Cannot create the Git blob ref for the document'
+          ),
         })
       ),
       // Ensure document path exists in the filesystem

@@ -6,19 +6,20 @@ import git, {
 } from 'isomorphic-git';
 
 import {
+  type Branch,
   type Change,
   type ChangeId,
   type Commit,
   createGitBlobRef,
   decomposeGitBlobRef,
   DEFAULT_AUTHOR_NAME,
-  DEFAULT_BRANCH,
   type GitBlobRef,
   type GitCommitHash,
   isGitBlobRef,
   isGitCommitHash,
   isUncommittedChangeId,
   MigrationError,
+  parseBranch,
   parseGitCommitHash,
   type ResolvedArtifactId,
   type UncommitedChange,
@@ -123,18 +124,24 @@ export const createAdapter = ({
       ),
       Effect.flatMap((path) =>
         pipe(
-          Effect.try({
-            try: () => {
-              // TODO: Make branch a param
-              // TODO: Handle errors returned by createGitBlobRef
-              const documentId = createGitBlobRef({
-                ref: DEFAULT_BRANCH,
-                path,
-              });
-              return documentId;
-            },
-            catch: mapErrorTo(RepositoryError, 'Git repo error'),
-          }),
+          getCurrentBranch(),
+          // Map errors related to branching to repo errors
+          Effect.catchAll(() =>
+            Effect.fail(new RepositoryError('Git repo error'))
+          ),
+          Effect.flatMap((currentBranch) =>
+            Effect.try({
+              try: () =>
+                createGitBlobRef({
+                  ref: currentBranch,
+                  path,
+                }),
+              catch: mapErrorTo(
+                ValidationError,
+                'Cannot create the Git blob ref for the document'
+              ),
+            })
+          ),
           Effect.tap(() =>
             writeToFile
               ? pipe(
@@ -723,6 +730,38 @@ export const createAdapter = ({
           );
         })
       );
+
+  const getCurrentBranch: () => Effect.Effect<
+    Branch,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  > = () =>
+    pipe(
+      Effect.tryPromise({
+        try: () =>
+          git.currentBranch({
+            fs: isoGitFs,
+            dir: projectDir,
+          }),
+        catch: mapErrorTo(
+          RepositoryError,
+          'Error in getting the current branch'
+        ),
+      }),
+      Effect.filterOrFail(
+        (currentBranch) => typeof currentBranch === 'string',
+        () =>
+          new NotFoundError(
+            'Could not retrieve the current branch. The repo is in detached HEAD state.'
+          )
+      ),
+      Effect.flatMap((currentBranch) =>
+        Effect.try({
+          try: () => parseBranch(currentBranch),
+          catch: mapErrorTo(RepositoryError, 'Could not parse current branch'),
+        })
+      )
+    );
 
   // This is a no-op in the Git document repo.
   const disconnect: VersionedDocumentStore['disconnect'] = () =>
