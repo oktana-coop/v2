@@ -147,4 +147,17 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.multiDocumentProjectStoreAPI.getCurrentBranch(...args)),
+  listBranches: (
+    ...args: Parameters<MultiDocumentProjectStore['listBranches']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        ValidationError,
+        RepositoryError,
+        NotFoundError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<MultiDocumentProjectStore['listBranches']>>
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.listBranches(...args)),
 });

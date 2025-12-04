@@ -10,6 +10,8 @@ import {
   type DeleteDocumentFromMultiDocumentProjectArgs,
   type FindDocumentInMultiDocumentProjectArgs,
   type MultiDocumentProjectCreateAndSwitchToBranchArgs,
+  type MultiDocumentProjectGetCurrentBranchArgs,
+  type MultiDocumentProjectListBranchesArgs,
   type MultiDocumentProjectStoreManager,
   type MultiDocumentProjectSwitchToBranchArgs,
   OpenMultiDocumentProjectByIdArgs,
@@ -17,6 +19,8 @@ import {
   type ProjectId,
   type SetupSingleDocumentProjectStoreArgs,
   type SingleDocumentProjectCreateAndSwitchToBranchArgs,
+  type SingleDocumentProjectGetCurrentBranchArgs,
+  type SingleDocumentProjectListBranchesArgs,
   type SingleDocumentProjectStoreManager,
   type SingleDocumentProjectSwitchToBranchArgs,
   ValidationError as VersionedProjectValidationError,
@@ -322,7 +326,27 @@ const registerSingleDocumentProjectStoreEvents = () => {
 
   ipcMain.handle(
     'single-document-project-store:get-current-branch',
-    async (_, args: SingleDocumentProjectSwitchToBranchArgs) =>
+    async (_, args: SingleDocumentProjectGetCurrentBranchArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.listBranches(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:list-branches',
+    async (_, args: SingleDocumentProjectListBranchesArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
           validateProjectIdAndGetVersionedStores(args.projectId),
@@ -524,7 +548,7 @@ const registerMultiDocumentProjectStoreEvents = () => {
 
   ipcMain.handle(
     'multi-document-project-store:get-current-branch',
-    async (_, args: MultiDocumentProjectSwitchToBranchArgs) =>
+    async (_, args: MultiDocumentProjectGetCurrentBranchArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
           getVersionedStores(args.projectId),
@@ -537,6 +561,26 @@ const registerMultiDocumentProjectStoreEvents = () => {
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.getCurrentBranch(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:list-branches',
+    async (_, args: MultiDocumentProjectListBranchesArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.listBranches(args)
           )
         )
       )

@@ -207,6 +207,10 @@ export const createAdapter = (
   const getCurrentBranch: MultiDocumentProjectStore['getCurrentBranch'] = () =>
     Effect.succeed(DEFAULT_BRANCH as Branch);
 
+  // TODO: Implement branching in Automerge
+  const listBranches: MultiDocumentProjectStore['listBranches'] = () =>
+    Effect.succeed([DEFAULT_BRANCH] as Branch[]);
+
   return {
     createProject,
     findProjectById,
@@ -217,5 +221,6 @@ export const createAdapter = (
     createAndSwitchToBranch,
     switchToBranch,
     getCurrentBranch,
+    listBranches,
   };
 };

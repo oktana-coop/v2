@@ -167,6 +167,10 @@ export const createAdapter = (
   const getCurrentBranch: SingleDocumentProjectStore['getCurrentBranch'] = () =>
     Effect.succeed(DEFAULT_BRANCH as Branch);
 
+  // TODO: Implement branching in Automerge
+  const listBranches: SingleDocumentProjectStore['listBranches'] = () =>
+    Effect.succeed([DEFAULT_BRANCH] as Branch[]);
+
   const disconnect: SingleDocumentProjectStore['disconnect'] = () =>
     Effect.tryPromise({
       try: () => automergeRepo.shutdown(),
@@ -184,6 +188,7 @@ export const createAdapter = (
     createAndSwitchToBranch,
     switchToBranch,
     getCurrentBranch,
+    listBranches,
     disconnect,
   };
 };

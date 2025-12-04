@@ -215,6 +215,10 @@ contextBridge.exposeInMainWorld('singleDocumentProjectStoreAPI', {
     ipcRenderer.invoke('single-document-project-store:get-current-branch', {
       ...args,
     }),
+  listBranches: (args) =>
+    ipcRenderer.invoke('single-document-project-store:list-branches', {
+      ...args,
+    }),
   disconnect: (projectId) =>
     ipcRenderer.invoke('single-document-project-store:disconnect', projectId),
 } as SingleDocumentProjectStorePromiseAPI);
@@ -258,6 +262,10 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
     }),
   getCurrentBranch: (args) =>
     ipcRenderer.invoke('multi-document-project-store:get-current-branch', {
+      ...args,
+    }),
+  listBranches: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:list-branches', {
       ...args,
     }),
 } as MultiDocumentProjectStorePromiseAPI);

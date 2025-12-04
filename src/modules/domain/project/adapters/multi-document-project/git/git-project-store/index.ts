@@ -284,6 +284,40 @@ export const createAdapter = ({
       )
     );
 
+  const listBranches: MultiDocumentProjectStore['listBranches'] = ({
+    projectId,
+  }) =>
+    pipe(
+      Effect.succeed(projectId),
+      Effect.filterOrFail(
+        isProjectFsPath,
+        (val) => new ValidationError(`Invalid project id: ${val}`)
+      ),
+      Effect.flatMap((projectPath) =>
+        pipe(
+          Effect.tryPromise({
+            try: () =>
+              git.listBranches({
+                fs: isoGitFs,
+                dir: projectPath,
+              }),
+            catch: mapErrorTo(RepositoryError, 'Error when listing branches'),
+          }),
+          Effect.flatMap((branches) =>
+            Effect.forEach(branches, (branch) =>
+              Effect.try({
+                try: () => parseBranch(branch),
+                catch: mapErrorTo(
+                  RepositoryError,
+                  `Could not parse branch ${branch}`
+                ),
+              })
+            )
+          )
+        )
+      )
+    );
+
   return {
     createProject,
     findProjectById,
@@ -294,5 +328,6 @@ export const createAdapter = ({
     createAndSwitchToBranch,
     switchToBranch,
     getCurrentBranch,
+    listBranches,
   };
 };

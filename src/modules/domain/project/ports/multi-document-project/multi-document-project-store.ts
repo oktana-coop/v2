@@ -49,6 +49,10 @@ export type MultiDocumentProjectGetCurrentBranchArgs = {
   projectId: ProjectId;
 };
 
+export type MultiDocumentProjectListBranchesArgs = {
+  projectId: ProjectId;
+};
+
 export type MultiDocumentProjectStore = {
   createProject: (
     args: CreateMultiDocumentProjectArgs
@@ -98,6 +102,13 @@ export type MultiDocumentProjectStore = {
     args: MultiDocumentProjectGetCurrentBranchArgs
   ) => Effect.Effect<
     Branch,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
+  listBranches: (
+    args: MultiDocumentProjectListBranchesArgs
+  ) => Effect.Effect<
+    Branch[],
     ValidationError | RepositoryError | NotFoundError,
     never
   >;

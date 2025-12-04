@@ -125,6 +125,19 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.singleDocumentProjectStoreAPI.getCurrentBranch(...args)),
+  listBranches: (
+    ...args: Parameters<SingleDocumentProjectStore['listBranches']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        ValidationError,
+        RepositoryError,
+        NotFoundError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<SingleDocumentProjectStore['listBranches']>>
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.listBranches(...args)),
   disconnect: (...args: Parameters<SingleDocumentProjectStore['disconnect']>) =>
     effectifyIPCPromise(
       {

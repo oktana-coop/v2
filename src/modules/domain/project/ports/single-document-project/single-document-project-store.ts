@@ -31,6 +31,10 @@ export type SingleDocumentProjectGetCurrentBranchArgs = {
   projectId: ProjectId;
 };
 
+export type SingleDocumentProjectListBranchesArgs = {
+  projectId: ProjectId;
+};
+
 export type SingleDocumentProjectStore = {
   createSingleDocumentProject: (
     args: CreateSingleDocumentProjectArgs
@@ -66,6 +70,13 @@ export type SingleDocumentProjectStore = {
     args: SingleDocumentProjectGetCurrentBranchArgs
   ) => Effect.Effect<
     Branch,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
+  listBranches: (
+    args: SingleDocumentProjectListBranchesArgs
+  ) => Effect.Effect<
+    Branch[],
     ValidationError | RepositoryError | NotFoundError,
     never
   >;

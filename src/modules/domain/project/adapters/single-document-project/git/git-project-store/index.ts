@@ -183,6 +183,29 @@ export const createAdapter = ({
       )
     );
 
+  const listBranches: SingleDocumentProjectStore['listBranches'] = () =>
+    pipe(
+      Effect.tryPromise({
+        try: () =>
+          git.listBranches({
+            fs: isoGitFs,
+            dir: internalProjectDir,
+          }),
+        catch: mapErrorTo(RepositoryError, 'Error when listing branches'),
+      }),
+      Effect.flatMap((branches) =>
+        Effect.forEach(branches, (branch) =>
+          Effect.try({
+            try: () => parseBranch(branch),
+            catch: mapErrorTo(
+              RepositoryError,
+              `Could not parse branch ${branch}`
+            ),
+          })
+        )
+      )
+    );
+
   // This is a no-op in the Git document repo.
   const disconnect: SingleDocumentProjectStore['disconnect'] = () =>
     Effect.succeed(undefined);
@@ -195,6 +218,7 @@ export const createAdapter = ({
     createAndSwitchToBranch,
     switchToBranch,
     getCurrentBranch,
+    listBranches,
     disconnect,
   };
 };
