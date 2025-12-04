@@ -8,8 +8,7 @@ import {
   DialogBackdrop,
   DialogPanel,
 } from '@headlessui/react';
-import React from 'react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useKeyBindings } from '../../../hooks';
@@ -45,6 +44,8 @@ export type ActionOption = {
   onActionSelection: () => void;
 };
 
+export type CommandPaletteOption = DocumentOption | ActionOption;
+
 export type CommandPaletteProps = {
   open?: boolean;
   onClose: () => void;
@@ -75,16 +76,57 @@ export const CommandPaletteInput = ({
   />
 );
 
-export const CommandPaletteSection = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => <li className="py-2">{children}</li>;
-
 export const CommandPaletteSectionTitle = ({ title }: { title: string }) => (
   <h2 className="px-4 py-2 text-xs font-semibold text-gray-900 dark:text-gray-300">
     {title}
   </h2>
+);
+
+export const CommandPaletteListSection = ({
+  title,
+  children,
+}: {
+  title?: string | React.ReactNode;
+  children: React.ReactNode;
+}) => (
+  <li className="py-2">
+    {typeof title === 'string' ? (
+      <CommandPaletteSectionTitle title={title} />
+    ) : (
+      title
+    )}
+    <ul className="text-sm text-gray-700 dark:text-gray-400">{children}</ul>
+  </li>
+);
+
+export const CommandPaletteOption = ({
+  label,
+  value,
+}: {
+  label: string;
+  value: CommandPaletteOption;
+}) => (
+  <ComboboxOption
+    as="li"
+    value={value}
+    className="group flex cursor-default select-none items-center px-4 py-3 data-[focus]:bg-gray-900/5 data-[focus]:text-gray-900 data-[focus]:outline-none dark:data-[focus]:bg-gray-300/5 dark:data-[focus]:text-gray-100"
+  >
+    <span className="flex-auto truncate">{label}</span>
+
+    {isDocumentOption(value) ? (
+      <span className="hidden flex-none text-gray-500 group-data-[focus]:inline">
+        Jump to...
+      </span>
+    ) : (
+      // Action Option
+      value.shortcut && (
+        <span className="flex-none text-xs font-semibold text-gray-500 dark:text-gray-400">
+          <kbd className="font-sans">⌘</kbd>
+          <kbd className="font-sans">{value.shortcut}</kbd>
+        </span>
+      )
+    )}
+  </ComboboxOption>
 );
 
 export const CommandPalette = ({
@@ -178,80 +220,39 @@ export const CommandPalette = ({
               className="max-h-100 scroll-py-2 divide-y divide-gray-500/10 overflow-y-auto"
             >
               {contextualSection && filteredContextualActions.length > 0 && (
-                <CommandPaletteSection>
-                  <CommandPaletteSectionTitle
-                    title={contextualSection.groupTitle}
-                  />
-                  <ul className="text-sm text-gray-700 dark:text-gray-400">
-                    {filteredContextualActions.map((action) => (
-                      <ComboboxOption
-                        as="li"
-                        key={action.name}
-                        value={action}
-                        className="group flex cursor-default select-none items-center px-4 py-3 data-[focus]:bg-gray-900/5 data-[focus]:text-gray-900 data-[focus]:outline-none dark:data-[focus]:bg-gray-300/5 dark:data-[focus]:text-gray-100"
-                      >
-                        <span className="flex-auto truncate">
-                          {action.name}
-                        </span>
-                        {action.shortcut && (
-                          <span className="flex-none text-xs font-semibold text-gray-500 dark:text-gray-400">
-                            <kbd className="font-sans">⌘</kbd>
-                            <kbd className="font-sans">{action.shortcut}</kbd>
-                          </span>
-                        )}
-                      </ComboboxOption>
-                    ))}
-                  </ul>
-                </CommandPaletteSection>
+                <CommandPaletteListSection title={contextualSection.groupTitle}>
+                  {filteredContextualActions.map((action) => (
+                    <CommandPaletteOption
+                      key={action.name}
+                      label={action.name}
+                      value={action}
+                    />
+                  ))}
+                </CommandPaletteListSection>
               )}
               {filteredDocuments.length > 0 && (
-                <CommandPaletteSection>
-                  {documentsGroupTitle && (
-                    <CommandPaletteSectionTitle title={documentsGroupTitle} />
-                  )}
-                  <ul className="text-sm text-gray-700 dark:text-gray-400">
-                    {filteredDocuments.map((project) => (
-                      <ComboboxOption
-                        as="li"
-                        key={project.id || uuidv4()}
-                        value={project}
-                        className="group flex cursor-default select-none items-center px-4 py-3 data-[focus]:bg-gray-900/5 data-[focus]:text-gray-900 data-[focus]:outline-none dark:data-[focus]:bg-gray-300/5 dark:data-[focus]:text-gray-100"
-                      >
-                        <span className="flex-auto truncate">
-                          {project.title}
-                        </span>
-                        <span className="hidden flex-none text-gray-500 group-data-[focus]:inline">
-                          Jump to...
-                        </span>
-                      </ComboboxOption>
-                    ))}
-                  </ul>
-                </CommandPaletteSection>
+                <CommandPaletteListSection title={documentsGroupTitle}>
+                  {filteredDocuments.map((project) => (
+                    <CommandPaletteOption
+                      key={project.id || uuidv4()}
+                      label={project.title}
+                      value={project}
+                    />
+                  ))}
+                </CommandPaletteListSection>
               )}
               {filteredActions.length > 0 && (
-                <CommandPaletteSection>
-                  <h2 className="sr-only">Quick actions</h2>
-                  <ul className="text-sm text-gray-700 dark:text-gray-400">
-                    {filteredActions.map((action) => (
-                      <ComboboxOption
-                        as="li"
-                        key={action.name}
-                        value={action}
-                        className="group flex cursor-default select-none items-center px-4 py-3 data-[focus]:bg-gray-900/5 data-[focus]:text-gray-900 data-[focus]:outline-none dark:data-[focus]:bg-gray-300/5 dark:data-[focus]:text-gray-100"
-                      >
-                        <span className="flex-auto truncate">
-                          {action.name}
-                        </span>
-                        {action.shortcut && (
-                          <span className="flex-none text-xs font-semibold text-gray-500 dark:text-gray-400">
-                            <kbd className="font-sans">⌘</kbd>
-                            <kbd className="font-sans">{action.shortcut}</kbd>
-                          </span>
-                        )}
-                      </ComboboxOption>
-                    ))}
-                  </ul>
-                </CommandPaletteSection>
+                <CommandPaletteListSection
+                  title={<h2 className="sr-only">Quick actions</h2>}
+                >
+                  {filteredActions.map((action) => (
+                    <CommandPaletteOption
+                      key={action.name}
+                      label={action.name}
+                      value={action}
+                    />
+                  ))}
+                </CommandPaletteListSection>
               )}
             </ComboboxOptions>
             {query !== '' &&
