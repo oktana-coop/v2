@@ -6,6 +6,8 @@ import { ProseMirrorProvider } from '../../../../modules/domain/rich-text/react/
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/electron-context';
 import { decodeUrlEncodedChangeId } from '../../../../modules/infrastructure/version-control';
 import {
+  BranchingCommandPaletteContext,
+  BranchingCommandPaletteStateProvider,
   CurrentDocumentContext,
   CurrentDocumentProvider,
   CurrentProjectContext,
@@ -15,9 +17,14 @@ import {
 import { Layout } from '../../components/layout/Layout';
 import { SidebarLayout } from '../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../components/layout/StackedResizablePanelsLayout';
-import { useCreateDocument, useNavigateToDocument } from '../../hooks';
+import {
+  useBranchInfo,
+  useCreateDocument,
+  useNavigateToDocument,
+} from '../../hooks';
 import { useOpenDirectory } from '../../hooks/multi-document-project';
 import { useOpenDocument } from '../../hooks/single-document-project';
+import { BranchingCommandPalette } from './branching-command-palette';
 import {
   CommitDialog,
   DiscardChangesDialog,
@@ -36,7 +43,9 @@ export const Project = () => {
     <CurrentProjectProvider projectType={config.projectType}>
       <CurrentDocumentProvider>
         <SidebarLayoutProvider>
-          <DocumentIndex />
+          <BranchingCommandPaletteStateProvider>
+            <DocumentIndex />
+          </BranchingCommandPaletteStateProvider>
         </SidebarLayoutProvider>
       </CurrentDocumentProvider>
     </CurrentProjectProvider>
@@ -69,10 +78,15 @@ const DocumentIndex = () => {
     onRestoreCommit,
     onDiscardChanges,
   } = useContext(CurrentDocumentContext);
+  const {
+    isOpen: isBranchingCommandPaletteOpen,
+    closeBranchingCommandPalette,
+  } = useContext(BranchingCommandPaletteContext);
   const { changeId } = useParams();
   const { createNewDocument } = useCreateDocument();
   const openDocument = useOpenDocument();
   const openDirectory = useOpenDirectory();
+  const { currentBranch } = useBranchInfo();
 
   useEffect(() => {
     window.document.title = 'v2 | Editor';
@@ -129,6 +143,14 @@ const DocumentIndex = () => {
           onCreateDocument={handleCreateDocument}
           onOpenDocument={handleOpenDocument}
         />
+        {currentBranch && (
+          <BranchingCommandPalette
+            open={isBranchingCommandPaletteOpen}
+            onClose={closeBranchingCommandPalette}
+            currentBranch={currentBranch}
+            branches={[currentBranch]}
+          />
+        )}
         <ProseMirrorProvider>
           <SidebarLayout
             sidebar={

@@ -8,7 +8,7 @@ import {
   SingleDocumentProjectContext,
 } from '../app-state';
 
-export const useCurrentBranch = () => {
+export const useBranchInfo = () => {
   const { projectType } = useContext(CurrentProjectContext);
   const { currentBranch: multiDocumentProjectCurrentBranch } = useContext(
     MultiDocumentProjectContext
@@ -31,5 +31,5 @@ export const useCurrentBranch = () => {
     projectType,
   ]);
 
-  return currentBranch;
+  return { currentBranch };
 };

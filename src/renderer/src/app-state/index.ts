@@ -30,6 +30,12 @@ export {
 } from './command-palette/context';
 
 export {
+  BranchingCommandPaletteContext,
+  type BranchingCommandPaletteContextType,
+  BranchingCommandPaletteStateProvider,
+} from './branching-command-palette/context';
+
+export {
   SidebarLayoutContext,
   type SidebarLayoutContextType,
   SidebarLayoutProvider,
