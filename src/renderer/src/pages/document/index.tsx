@@ -148,7 +148,6 @@ const DocumentIndex = () => {
             open={isBranchingCommandPaletteOpen}
             onClose={closeBranchingCommandPalette}
             currentBranch={currentBranch}
-            branches={[currentBranch]}
           />
         )}
         <ProseMirrorProvider>

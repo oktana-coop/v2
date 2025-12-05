@@ -10,12 +10,12 @@ import {
   CommandPaletteOptions,
   NoMatchingResults,
 } from '../../../components/dialogs/command-palette';
+import { useBranchInfo } from '../../../hooks';
 
 export type BranchingCommandPaletteProps = {
   open?: boolean;
   onClose: () => void;
   currentBranch: Branch;
-  branches: Branch[];
 };
 
 const experimentationActions = [
@@ -33,27 +33,41 @@ export const BranchingCommandPalette = ({
   open,
   onClose,
   currentBranch,
-  branches,
 }: BranchingCommandPaletteProps) => {
   const [query, setQuery] = useState('');
+  const [branches, setBranches] = useState<Branch[] | null>(null);
   const [branchActionOptions, setBranchActionOptions] = useState<
     ActionOption[]
   >([]);
+  const { listBranches } = useBranchInfo();
 
   useEffect(() => {
-    const allBranchActionOptions = branches.map((branch) => ({
-      name: branch,
-      onActionSelection: () => {},
-    }));
+    if (branches) {
+      const allBranchActionOptions = branches.map((branch) => ({
+        name: branch,
+        onActionSelection: () => {},
+      }));
 
-    const filteredBranchActionOptions =
-      query === ''
-        ? allBranchActionOptions
-        : allBranchActionOptions.filter((action) => {
-            return action.name.toLowerCase().includes(query.toLowerCase());
-          });
-    setBranchActionOptions(filteredBranchActionOptions);
+      const filteredBranchActionOptions =
+        query === ''
+          ? allBranchActionOptions
+          : allBranchActionOptions.filter((action) => {
+              return action.name.toLowerCase().includes(query.toLowerCase());
+            });
+      setBranchActionOptions(filteredBranchActionOptions);
+    }
   }, [branches, currentBranch, query]);
+
+  useEffect(() => {
+    const getBranches = async () => {
+      const listedBranches = await listBranches();
+      setBranches(listedBranches);
+    };
+
+    if (open) {
+      getBranches();
+    }
+  }, [open, listBranches]);
 
   const filteredExperimentationActions =
     query === ''

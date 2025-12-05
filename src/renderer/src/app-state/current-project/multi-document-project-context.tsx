@@ -67,6 +67,7 @@ export type MultiDocumentProjectContextType = {
   selectedFileName: string | null;
   setSelectedFileInfo: (file: SelectedFileInfo) => void;
   clearFileSelection: () => Promise<void>;
+  listBranches: () => Promise<Branch[]>;
 };
 
 export const MultiDocumentProjectContext =
@@ -318,6 +319,20 @@ export const MultiDocumentProjectProvider = ({
     }
   }, [selectedFileInfo]);
 
+  const handleListBranches = useCallback(async () => {
+    if (!versionedProjectStore || !projectId) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot list branches'
+      );
+    }
+
+    const branches = await Effect.runPromise(
+      versionedProjectStore.listBranches({ projectId })
+    );
+
+    return branches;
+  }, [versionedProjectStore, projectId]);
+
   return (
     <MultiDocumentProjectContext.Provider
       value={{
@@ -334,6 +349,7 @@ export const MultiDocumentProjectProvider = ({
         selectedFileName,
         setSelectedFileInfo: handleSetSelectedFileInfo,
         clearFileSelection,
+        listBranches: handleListBranches,
       }}
     >
       {children}

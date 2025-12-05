@@ -338,7 +338,7 @@ const registerSingleDocumentProjectStoreEvents = () => {
               )
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.listBranches(args)
+            versionedProjectStore.getCurrentBranch(args)
           )
         )
       )
@@ -358,7 +358,7 @@ const registerSingleDocumentProjectStoreEvents = () => {
               )
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.getCurrentBranch(args)
+            versionedProjectStore.listBranches(args)
           )
         )
       )

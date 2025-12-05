@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 
 import { projectTypes } from '../../../modules/domain/project';
 import { type Branch } from '../../../modules/infrastructure/version-control';
@@ -10,12 +10,14 @@ import {
 
 export const useBranchInfo = () => {
   const { projectType } = useContext(CurrentProjectContext);
-  const { currentBranch: multiDocumentProjectCurrentBranch } = useContext(
-    MultiDocumentProjectContext
-  );
-  const { currentBranch: singleDocumentProjectCurrentBranch } = useContext(
-    SingleDocumentProjectContext
-  );
+  const {
+    currentBranch: multiDocumentProjectCurrentBranch,
+    listBranches: listMultiDocumentProjectBranches,
+  } = useContext(MultiDocumentProjectContext);
+  const {
+    currentBranch: singleDocumentProjectCurrentBranch,
+    listBranches: listSingleDocumentProjectBranches,
+  } = useContext(SingleDocumentProjectContext);
 
   const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
 
@@ -31,5 +33,13 @@ export const useBranchInfo = () => {
     projectType,
   ]);
 
-  return { currentBranch };
+  const listBranches = useCallback(
+    () =>
+      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+        ? listMultiDocumentProjectBranches()
+        : listSingleDocumentProjectBranches(),
+    [projectType]
+  );
+
+  return { currentBranch, listBranches };
 };

@@ -41,6 +41,7 @@ export type SingleDocumentProjectContextType = {
   projectFile: File | null;
   projectName: string | null;
   currentBranch: Branch | null;
+  listBranches: () => Promise<Branch[]>;
   versionedProjectStore: SingleDocumentProjectStore | null;
   createNewDocument: (name?: string) => Promise<{
     projectId: ProjectId;
@@ -330,6 +331,20 @@ export const SingleDocumentProjectProvider = ({
     [projectIdInPath]
   );
 
+  const handleListBranches = useCallback(async () => {
+    if (!versionedProjectStore || !projectId) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot list branches'
+      );
+    }
+
+    const branches = await Effect.runPromise(
+      versionedProjectStore.listBranches({ projectId })
+    );
+
+    return branches;
+  }, [versionedProjectStore, projectId]);
+
   return (
     <SingleDocumentProjectContext.Provider
       value={{
@@ -340,6 +355,7 @@ export const SingleDocumentProjectProvider = ({
         projectFile,
         projectName,
         currentBranch,
+        listBranches: handleListBranches,
         versionedProjectStore,
         createNewDocument: handleCreateNewDocument,
         openDocument: handleOpenDocument,
