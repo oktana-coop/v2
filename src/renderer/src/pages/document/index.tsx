@@ -24,7 +24,8 @@ import {
 } from '../../hooks';
 import { useOpenDirectory } from '../../hooks/multi-document-project';
 import { useOpenDocument } from '../../hooks/single-document-project';
-import { BranchingCommandPalette } from './branching-command-palette';
+import { BranchingCommandPalette } from './branching/branching-command-palette';
+import { CreateBranchDialog } from './branching/CreateBranchDialog';
 import {
   CommitDialog,
   DiscardChangesDialog,
@@ -86,7 +87,12 @@ const DocumentIndex = () => {
   const { createNewDocument } = useCreateDocument();
   const openDocument = useOpenDocument();
   const openDirectory = useOpenDirectory();
-  const { currentBranch } = useBranchInfo();
+  const {
+    currentBranch,
+    createAndSwitchToBranch,
+    isCreateBranchDialogOpen,
+    closeCreateBranchDialog,
+  } = useBranchInfo();
 
   useEffect(() => {
     window.document.title = 'v2 | Editor';
@@ -142,6 +148,13 @@ const DocumentIndex = () => {
         <DocumentCommandPalette
           onCreateDocument={handleCreateDocument}
           onOpenDocument={handleOpenDocument}
+        />
+        <CreateBranchDialog
+          isOpen={isCreateBranchDialogOpen}
+          onCancel={closeCreateBranchDialog}
+          onCreateBranch={(branchName: string) =>
+            createAndSwitchToBranch(branchName)
+          }
         />
         {currentBranch && (
           <BranchingCommandPalette

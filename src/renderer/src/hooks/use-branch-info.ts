@@ -13,13 +13,25 @@ export const useBranchInfo = () => {
   const {
     currentBranch: multiDocumentProjectCurrentBranch,
     listBranches: listMultiDocumentProjectBranches,
+    createAndSwitchToBranch: createAndSwitchToBranchInMultiDocumentProject,
+    switchToBranch: switchToBranchInMultiDocumentProject,
+    isCreateBranchDialogOpen: isCreateBranchDialogOpenInMultiDocumentProject,
+    openCreateBranchDialog: openCreateBranchDialogInMultiDocumentProject,
+    closeCreateBranchDialog: closeCreateBranchDialogInMultiDocumentProject,
   } = useContext(MultiDocumentProjectContext);
   const {
     currentBranch: singleDocumentProjectCurrentBranch,
     listBranches: listSingleDocumentProjectBranches,
+    createAndSwitchToBranch: createAndSwitchToBranchInSingleDocumentProject,
+    switchToBranch: switchToBranchInSingleDocumentProject,
+    isCreateBranchDialogOpen: isCreateBranchDialogOpenInSingleDocumentProject,
+    openCreateBranchDialog: openCreateBranchDialogInSingleDocumentProject,
+    closeCreateBranchDialog: closeCreateBranchDialogInSingleDocumentProject,
   } = useContext(SingleDocumentProjectContext);
 
   const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
+  const [isCreateBranchDialogOpen, setIsCreateBranchDialogOpen] =
+    useState<boolean>(false);
 
   useEffect(() => {
     const branch =
@@ -33,13 +45,82 @@ export const useBranchInfo = () => {
     projectType,
   ]);
 
+  useEffect(() => {
+    const createDialogOpen =
+      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+        ? isCreateBranchDialogOpenInMultiDocumentProject
+        : isCreateBranchDialogOpenInSingleDocumentProject;
+    setIsCreateBranchDialogOpen(createDialogOpen);
+  }, [
+    isCreateBranchDialogOpenInMultiDocumentProject,
+    isCreateBranchDialogOpenInSingleDocumentProject,
+    projectType,
+  ]);
+
   const listBranches = useCallback(
     () =>
       projectType === projectTypes.MULTI_DOCUMENT_PROJECT
         ? listMultiDocumentProjectBranches()
         : listSingleDocumentProjectBranches(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [projectType]
   );
 
-  return { currentBranch, listBranches };
+  const createAndSwitchToBranch = useCallback(
+    (branchName: string) =>
+      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+        ? createAndSwitchToBranchInMultiDocumentProject(branchName)
+        : createAndSwitchToBranchInSingleDocumentProject(branchName),
+    [
+      projectType,
+      createAndSwitchToBranchInMultiDocumentProject,
+      createAndSwitchToBranchInSingleDocumentProject,
+    ]
+  );
+
+  const switchToBranch = useCallback(
+    (branch: Branch) =>
+      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+        ? switchToBranchInMultiDocumentProject(branch)
+        : switchToBranchInSingleDocumentProject(branch),
+    [
+      projectType,
+      switchToBranchInMultiDocumentProject,
+      switchToBranchInSingleDocumentProject,
+    ]
+  );
+
+  const openCreateBranchDialog = useCallback(
+    () =>
+      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+        ? openCreateBranchDialogInMultiDocumentProject()
+        : openCreateBranchDialogInSingleDocumentProject(),
+    [
+      projectType,
+      openCreateBranchDialogInMultiDocumentProject,
+      openCreateBranchDialogInSingleDocumentProject,
+    ]
+  );
+
+  const closeCreateBranchDialog = useCallback(
+    () =>
+      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+        ? closeCreateBranchDialogInMultiDocumentProject()
+        : closeCreateBranchDialogInSingleDocumentProject(),
+    [
+      projectType,
+      closeCreateBranchDialogInMultiDocumentProject,
+      closeCreateBranchDialogInSingleDocumentProject,
+    ]
+  );
+
+  return {
+    currentBranch,
+    listBranches,
+    createAndSwitchToBranch,
+    switchToBranch,
+    isCreateBranchDialogOpen,
+    openCreateBranchDialog,
+    closeCreateBranchDialog,
+  };
 };

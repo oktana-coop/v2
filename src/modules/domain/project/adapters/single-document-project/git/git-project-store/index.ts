@@ -131,7 +131,7 @@ export const createAdapter = ({
 
   const createAndSwitchToBranch: SingleDocumentProjectStore['createAndSwitchToBranch'] =
     ({ branch }) =>
-      Effect.try({
+      Effect.tryPromise({
         try: () =>
           git.branch({
             fs: isoGitFs,
@@ -145,7 +145,7 @@ export const createAdapter = ({
   const switchToBranch: SingleDocumentProjectStore['switchToBranch'] = ({
     branch,
   }) =>
-    Effect.try({
+    Effect.tryPromise({
       try: () =>
         git.checkout({
           fs: isoGitFs,

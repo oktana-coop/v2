@@ -20,7 +20,6 @@ export const Default: Story = {
       console.log('Closed');
     },
     currentBranch: 'polishing' as BranchingCommandPaletteProps['currentBranch'],
-    branches: ['main', 'polishing'] as BranchingCommandPaletteProps['branches'],
   },
 };
 

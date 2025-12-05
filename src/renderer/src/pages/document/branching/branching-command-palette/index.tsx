@@ -1,7 +1,7 @@
 import { Combobox, Dialog, DialogPanel } from '@headlessui/react';
 import { useEffect, useState } from 'react';
 
-import { type Branch } from '../../../../../modules/infrastructure/version-control';
+import { type Branch } from '../../../../../../modules/infrastructure/version-control';
 import {
   type ActionOption,
   CommandPaletteInput,
@@ -9,25 +9,14 @@ import {
   CommandPaletteOption,
   CommandPaletteOptions,
   NoMatchingResults,
-} from '../../../components/dialogs/command-palette';
-import { useBranchInfo } from '../../../hooks';
+} from '../../../../components/dialogs/command-palette';
+import { useBranchInfo } from '../../../../hooks';
 
 export type BranchingCommandPaletteProps = {
   open?: boolean;
   onClose: () => void;
   currentBranch: Branch;
 };
-
-const experimentationActions = [
-  {
-    name: 'Merge Branch',
-    onActionSelection: () => {},
-  },
-  {
-    name: 'Create New Branch',
-    onActionSelection: () => {},
-  },
-];
 
 export const BranchingCommandPalette = ({
   open,
@@ -39,13 +28,14 @@ export const BranchingCommandPalette = ({
   const [branchActionOptions, setBranchActionOptions] = useState<
     ActionOption[]
   >([]);
-  const { listBranches } = useBranchInfo();
+  const { listBranches, switchToBranch, openCreateBranchDialog } =
+    useBranchInfo();
 
   useEffect(() => {
     if (branches) {
       const allBranchActionOptions = branches.map((branch) => ({
         name: branch,
-        onActionSelection: () => {},
+        onActionSelection: () => switchToBranch(branch),
       }));
 
       const filteredBranchActionOptions =
@@ -68,6 +58,17 @@ export const BranchingCommandPalette = ({
       getBranches();
     }
   }, [open, listBranches]);
+
+  const experimentationActions = [
+    {
+      name: 'Merge Branch',
+      onActionSelection: () => {},
+    },
+    {
+      name: 'Create New Branch',
+      onActionSelection: () => openCreateBranchDialog(),
+    },
+  ];
 
   const filteredExperimentationActions =
     query === ''

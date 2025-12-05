@@ -29,6 +29,7 @@ import {
 } from '../../../../modules/infrastructure/filesystem';
 import {
   type Branch,
+  parseBranch,
   type ResolvedArtifactId,
 } from '../../../../modules/infrastructure/version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
@@ -68,6 +69,11 @@ export type MultiDocumentProjectContextType = {
   setSelectedFileInfo: (file: SelectedFileInfo) => void;
   clearFileSelection: () => Promise<void>;
   listBranches: () => Promise<Branch[]>;
+  createAndSwitchToBranch: (branchName: string) => Promise<void>;
+  switchToBranch: (branch: Branch) => Promise<void>;
+  isCreateBranchDialogOpen: boolean;
+  openCreateBranchDialog: () => void;
+  closeCreateBranchDialog: () => void;
 };
 
 export const MultiDocumentProjectContext =
@@ -113,6 +119,8 @@ export const MultiDocumentProjectProvider = ({
   const [selectedFileInfo, setSelectedFileInfo] =
     useState<SelectedFileInfo | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [isCreateBranchDialogOpen, setIsCreateBranchDialogOpen] =
+    useState<boolean>(false);
 
   useEffect(() => {
     const getSelectedDirectory = async () => {
@@ -333,6 +341,57 @@ export const MultiDocumentProjectProvider = ({
     return branches;
   }, [versionedProjectStore, projectId]);
 
+  const handleCreateAndSwitchToBranch = useCallback(
+    async (branchName: string) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot create branch.'
+        );
+      }
+
+      let branch: Branch;
+      try {
+        branch = parseBranch(branchName);
+      } catch (err) {
+        console.error(err);
+        throw new Error('Invalid branch name');
+      }
+
+      await Effect.runPromise(
+        versionedProjectStore.createAndSwitchToBranch({ projectId, branch })
+      );
+
+      setCurrentBranch(branch);
+      setIsCreateBranchDialogOpen(false);
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const handleSwitchToBranch = useCallback(
+    async (branch: Branch) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot create branch.'
+        );
+      }
+
+      await Effect.runPromise(
+        versionedProjectStore.switchToBranch({ projectId, branch })
+      );
+
+      setCurrentBranch(branch);
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const handleOpenCreateBranchDialog = useCallback(() => {
+    setIsCreateBranchDialogOpen(true);
+  }, []);
+
+  const handleCloseCreateBranchDialog = useCallback(() => {
+    setIsCreateBranchDialogOpen(false);
+  }, []);
+
   return (
     <MultiDocumentProjectContext.Provider
       value={{
@@ -350,6 +409,11 @@ export const MultiDocumentProjectProvider = ({
         setSelectedFileInfo: handleSetSelectedFileInfo,
         clearFileSelection,
         listBranches: handleListBranches,
+        createAndSwitchToBranch: handleCreateAndSwitchToBranch,
+        switchToBranch: handleSwitchToBranch,
+        isCreateBranchDialogOpen,
+        openCreateBranchDialog: handleOpenCreateBranchDialog,
+        closeCreateBranchDialog: handleCloseCreateBranchDialog,
       }}
     >
       {children}

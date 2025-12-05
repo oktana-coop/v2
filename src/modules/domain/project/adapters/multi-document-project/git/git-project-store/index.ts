@@ -212,7 +212,7 @@ export const createAdapter = ({
           (val) => new ValidationError(`Invalid project id: ${val}`)
         ),
         Effect.flatMap((projectPath) =>
-          Effect.try({
+          Effect.tryPromise({
             try: () =>
               git.branch({
                 fs: isoGitFs,
@@ -236,7 +236,7 @@ export const createAdapter = ({
         (val) => new ValidationError(`Invalid project id: ${val}`)
       ),
       Effect.flatMap((projectPath) =>
-        Effect.try({
+        Effect.tryPromise({
           try: () =>
             git.checkout({
               fs: isoGitFs,

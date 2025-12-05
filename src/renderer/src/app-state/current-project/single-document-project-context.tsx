@@ -19,6 +19,7 @@ import { isElectron } from '../../../../modules/infrastructure/cross-platform/ut
 import { type File } from '../../../../modules/infrastructure/filesystem';
 import {
   type Branch,
+  parseBranch,
   type ResolvedArtifactId,
   urlEncodeArtifactId,
   versionControlSystems,
@@ -41,7 +42,6 @@ export type SingleDocumentProjectContextType = {
   projectFile: File | null;
   projectName: string | null;
   currentBranch: Branch | null;
-  listBranches: () => Promise<Branch[]>;
   versionedProjectStore: SingleDocumentProjectStore | null;
   createNewDocument: (name?: string) => Promise<{
     projectId: ProjectId;
@@ -53,6 +53,12 @@ export type SingleDocumentProjectContextType = {
     documentId: ResolvedArtifactId | null;
     path: string | null;
   }>;
+  listBranches: () => Promise<Branch[]>;
+  createAndSwitchToBranch: (branchName: string) => Promise<void>;
+  switchToBranch: (branch: Branch) => Promise<void>;
+  isCreateBranchDialogOpen: boolean;
+  openCreateBranchDialog: () => void;
+  closeCreateBranchDialog: () => void;
 };
 
 export const SingleDocumentProjectContext =
@@ -68,6 +74,7 @@ export const SingleDocumentProjectContext =
     // @ts-expect-error will get overriden below
     openDocument: () => null,
     versionedProjectStore: null,
+    isCreateBranchDialogOpen: false,
   });
 
 const getFileToBeOpenedFromSessionStorage = (): File | null => {
@@ -107,6 +114,8 @@ export const SingleDocumentProjectProvider = ({
   const navigate = useNavigate();
   const { projectId: projectIdInPath } = useParams();
   const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
+  const [isCreateBranchDialogOpen, setIsCreateBranchDialogOpen] =
+    useState<boolean>(false);
 
   const documentInternalPath =
     versionControlSystems[config.singleDocumentProjectVersionControlSystem] ===
@@ -345,6 +354,57 @@ export const SingleDocumentProjectProvider = ({
     return branches;
   }, [versionedProjectStore, projectId]);
 
+  const handleCreateAndSwitchToBranch = useCallback(
+    async (branchName: string) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot create branch.'
+        );
+      }
+
+      let branch: Branch;
+      try {
+        branch = parseBranch(branchName);
+      } catch (err) {
+        console.error(err);
+        throw new Error('Invalid branch name');
+      }
+
+      await Effect.runPromise(
+        versionedProjectStore.createAndSwitchToBranch({ projectId, branch })
+      );
+
+      setCurrentBranch(branch);
+      setIsCreateBranchDialogOpen(false);
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const handleSwitchToBranch = useCallback(
+    async (branch: Branch) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot create branch.'
+        );
+      }
+
+      await Effect.runPromise(
+        versionedProjectStore.switchToBranch({ projectId, branch })
+      );
+
+      setCurrentBranch(branch);
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const handleOpenCreateBranchDialog = useCallback(() => {
+    setIsCreateBranchDialogOpen(true);
+  }, []);
+
+  const handleCloseCreateBranchDialog = useCallback(() => {
+    setIsCreateBranchDialogOpen(false);
+  }, []);
+
   return (
     <SingleDocumentProjectContext.Provider
       value={{
@@ -355,10 +415,15 @@ export const SingleDocumentProjectProvider = ({
         projectFile,
         projectName,
         currentBranch,
-        listBranches: handleListBranches,
         versionedProjectStore,
         createNewDocument: handleCreateNewDocument,
         openDocument: handleOpenDocument,
+        listBranches: handleListBranches,
+        createAndSwitchToBranch: handleCreateAndSwitchToBranch,
+        switchToBranch: handleSwitchToBranch,
+        isCreateBranchDialogOpen,
+        openCreateBranchDialog: handleOpenCreateBranchDialog,
+        closeCreateBranchDialog: handleCloseCreateBranchDialog,
       }}
     >
       {children}
