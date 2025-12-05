@@ -24,6 +24,7 @@ import {
 } from '../../hooks';
 import { useOpenDirectory } from '../../hooks/multi-document-project';
 import { useOpenDocument } from '../../hooks/single-document-project';
+import { BottomBar } from './bottom-bar';
 import { BranchingCommandPalette } from './branching/branching-command-palette';
 import { CreateBranchDialog } from './branching/CreateBranchDialog';
 import {
@@ -97,6 +98,9 @@ const DocumentIndex = () => {
   useEffect(() => {
     window.document.title = 'v2 | Editor';
   }, []);
+  const { openBranchingCommandPalette } = useContext(
+    BranchingCommandPaletteContext
+  );
 
   const navigateToDocument = useNavigateToDocument();
 
@@ -123,73 +127,81 @@ const DocumentIndex = () => {
 
   return (
     <Layout>
-      <div className="flex flex-auto">
-        <CreateDocumentModal
-          isOpen={isDocumentCreationModalOpen}
-          onClose={closeCreateDocumentModal}
-          onCreateDocument={navigateToDocument}
-        />
-        <CommitDialog
-          isOpen={isCommitDialogOpen}
-          onCancel={onCloseCommitDialog}
-          canCommit={canCommit}
-          onCommit={(message: string) => onCommit(message)}
-        />
-        <RestoreCommitDialog
-          isOpen={isRestoreCommitDialogOpen}
-          onCancel={onCloseRestoreCommitDialog}
-          onRestoreCommit={(args) => onRestoreCommit(args)}
-        />
-        <DiscardChangesDialog
-          isOpen={isDiscardChangesDialogOpen}
-          onCancel={onCloseDiscardChangesDialog}
-          onDiscardChanges={() => onDiscardChanges()}
-        />
-        <DocumentCommandPalette
-          onCreateDocument={handleCreateDocument}
-          onOpenDocument={handleOpenDocument}
-        />
-        <CreateBranchDialog
-          isOpen={isCreateBranchDialogOpen}
-          onCancel={closeCreateBranchDialog}
-          onCreateBranch={(branchName: string) =>
-            createAndSwitchToBranch(branchName)
-          }
-        />
-        {currentBranch && (
-          <BranchingCommandPalette
-            open={isBranchingCommandPaletteOpen}
-            onClose={closeBranchingCommandPalette}
-            currentBranch={currentBranch}
+      <div className="flex h-full flex-auto flex-col">
+        <div className="flex flex-auto overflow-y-auto">
+          <CreateDocumentModal
+            isOpen={isDocumentCreationModalOpen}
+            onClose={closeCreateDocumentModal}
+            onCreateDocument={navigateToDocument}
           />
-        )}
-        <ProseMirrorProvider>
-          <SidebarLayout
-            sidebar={
-              <StackedResizablePanelsLayout autoSaveId="editor-panel-group">
-                {projectType === projectTypes.MULTI_DOCUMENT_PROJECT ? (
-                  <DirectoryFiles onCreateDocument={handleCreateDocument} />
-                ) : (
-                  <RecentProjects onCreateDocument={handleCreateDocument} />
-                )}
-
-                <DocumentHistory
-                  changes={changes}
-                  onChangeClick={onSelectChange}
-                  selectedChange={
-                    changeId ? decodeUrlEncodedChangeId(changeId) : null
-                  }
-                />
-              </StackedResizablePanelsLayout>
+          <CommitDialog
+            isOpen={isCommitDialogOpen}
+            onCancel={onCloseCommitDialog}
+            canCommit={canCommit}
+            onCommit={(message: string) => onCommit(message)}
+          />
+          <RestoreCommitDialog
+            isOpen={isRestoreCommitDialogOpen}
+            onCancel={onCloseRestoreCommitDialog}
+            onRestoreCommit={(args) => onRestoreCommit(args)}
+          />
+          <DiscardChangesDialog
+            isOpen={isDiscardChangesDialogOpen}
+            onCancel={onCloseDiscardChangesDialog}
+            onDiscardChanges={() => onDiscardChanges()}
+          />
+          <DocumentCommandPalette
+            onCreateDocument={handleCreateDocument}
+            onOpenDocument={handleOpenDocument}
+          />
+          <CreateBranchDialog
+            isOpen={isCreateBranchDialogOpen}
+            onCancel={closeCreateBranchDialog}
+            onCreateBranch={(branchName: string) =>
+              createAndSwitchToBranch(branchName)
             }
-          >
-            <DocumentMainViewRouter
-              onCreateDocumentButtonClick={handleCreateDocument}
-              onOpenDocumentButtonClick={handleOpenDocument}
-              onOpenDirectoryButtonClick={handleOpenDirectory}
+          />
+          {currentBranch && (
+            <BranchingCommandPalette
+              open={isBranchingCommandPaletteOpen}
+              onClose={closeBranchingCommandPalette}
+              currentBranch={currentBranch}
             />
-          </SidebarLayout>
-        </ProseMirrorProvider>
+          )}
+          <ProseMirrorProvider>
+            <SidebarLayout
+              sidebar={
+                <StackedResizablePanelsLayout autoSaveId="editor-panel-group">
+                  {projectType === projectTypes.MULTI_DOCUMENT_PROJECT ? (
+                    <DirectoryFiles onCreateDocument={handleCreateDocument} />
+                  ) : (
+                    <RecentProjects onCreateDocument={handleCreateDocument} />
+                  )}
+
+                  <DocumentHistory
+                    changes={changes}
+                    onChangeClick={onSelectChange}
+                    selectedChange={
+                      changeId ? decodeUrlEncodedChangeId(changeId) : null
+                    }
+                  />
+                </StackedResizablePanelsLayout>
+              }
+            >
+              <DocumentMainViewRouter
+                onCreateDocumentButtonClick={handleCreateDocument}
+                onOpenDocumentButtonClick={handleOpenDocument}
+                onOpenDirectoryButtonClick={handleOpenDirectory}
+              />
+            </SidebarLayout>
+          </ProseMirrorProvider>
+        </div>
+        <div className="w-full">
+          <BottomBar
+            currentBranch={currentBranch}
+            onBranchButtonClick={openBranchingCommandPalette}
+          />
+        </div>
       </div>
     </Layout>
   );

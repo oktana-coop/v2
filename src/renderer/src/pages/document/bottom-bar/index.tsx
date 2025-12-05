@@ -1,6 +1,6 @@
-import { type Branch } from '../../../../../../modules/infrastructure/version-control';
-import { Button } from '../../../../components/actions/Button';
-import { BranchIcon, ChevronDownIcon } from '../../../../components/icons';
+import { type Branch } from '../../../../../modules/infrastructure/version-control';
+import { Button } from '../../../components/actions/Button';
+import { BranchIcon, ChevronDownIcon } from '../../../components/icons';
 
 export const BottomBar = ({
   currentBranch,
@@ -9,12 +9,13 @@ export const BottomBar = ({
   currentBranch: Branch | null;
   onBranchButtonClick: () => void;
 }) => (
-  <div className="flex items-center justify-center bg-neutral-100 p-1.5 dark:bg-neutral-900">
+  <div className="flex items-center bg-neutral-100 p-1.5 dark:bg-neutral-900">
     {currentBranch && (
       <Button
         variant="plain"
         color="purple"
-        className="sm:py-0"
+        // TODO: Implement small-sized button
+        className="!py-0 !text-sm/6"
         onClick={onBranchButtonClick}
       >
         <BranchIcon />

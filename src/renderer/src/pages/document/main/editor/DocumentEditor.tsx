@@ -2,15 +2,12 @@ import { useCallback, useContext, useState } from 'react';
 
 import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import {
-  BranchingCommandPaletteContext,
   CurrentDocumentContext,
   SidebarLayoutContext,
 } from '../../../../app-state';
 import { RichTextEditor } from '../../../../components/editing/RichTextEditor';
 import { LongTextSkeleton } from '../../../../components/progress/skeletons/LongText';
-import { useBranchInfo } from '../../../../hooks';
 import { ActionsBar } from './ActionsBar';
-import { BottomBar } from './BottomBar';
 
 export const DocumentEditor = () => {
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
@@ -23,10 +20,6 @@ export const DocumentEditor = () => {
     canCommit,
   } = useContext(CurrentDocumentContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
-  const { openBranchingCommandPalette } = useContext(
-    BranchingCommandPaletteContext
-  );
-  const { currentBranch } = useBranchInfo();
 
   const handleEditorToolbarToggle = useCallback(() => {
     toggleEditorToolbar(!isEditorToolbarOpen);
@@ -59,13 +52,6 @@ export const DocumentEditor = () => {
             <LongTextSkeleton />
           )}
         </div>
-      </div>
-
-      <div className="w-full">
-        <BottomBar
-          currentBranch={currentBranch}
-          onBranchButtonClick={openBranchingCommandPalette}
-        />
       </div>
     </div>
   );
