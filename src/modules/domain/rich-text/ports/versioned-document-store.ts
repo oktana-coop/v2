@@ -1,6 +1,7 @@
 import * as Effect from 'effect/Effect';
 
 import {
+  type Branch,
   type Change,
   type Commit,
   type MigrationError,
@@ -18,6 +19,7 @@ export type CreateDocumentArgs = {
   content: string | null;
   filePath?: string;
   writeToFile?: boolean;
+  branch?: Branch;
 };
 
 export type GetDocumentHandleAtChangeArgs = {

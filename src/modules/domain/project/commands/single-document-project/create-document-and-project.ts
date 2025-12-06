@@ -3,6 +3,7 @@ import { pipe } from 'effect/Function';
 
 import {
   type Branch,
+  DEFAULT_BRANCH,
   type ResolvedArtifactId,
 } from '../../../../infrastructure/version-control';
 import {
@@ -55,6 +56,7 @@ export const createDocumentAndProject =
           content,
           filePath: writeToFileWithPath,
           writeToFile: Boolean(writeToFileWithPath),
+          branch: DEFAULT_BRANCH as Branch,
         })
       ),
       Effect.bind('projectId', ({ documentId }) =>

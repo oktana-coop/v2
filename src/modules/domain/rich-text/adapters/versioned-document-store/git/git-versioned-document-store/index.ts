@@ -113,6 +113,7 @@ export const createAdapter = ({
   const createDocument: VersionedDocumentStore['createDocument'] = ({
     filePath,
     writeToFile,
+    branch,
   }) =>
     pipe(
       fromNullable(
@@ -124,11 +125,15 @@ export const createAdapter = ({
       ),
       Effect.flatMap((path) =>
         pipe(
-          getCurrentBranch(),
-          // Map errors related to branching to repo errors
-          Effect.catchAll(() =>
-            Effect.fail(new RepositoryError('Git repo error'))
-          ),
+          branch
+            ? Effect.succeed(branch)
+            : pipe(
+                getCurrentBranch(),
+                // Map errors related to branching to repo errors
+                Effect.catchAll(() =>
+                  Effect.fail(new RepositoryError('Git repo error'))
+                )
+              ),
           Effect.flatMap((currentBranch) =>
             Effect.try({
               try: () =>
