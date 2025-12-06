@@ -158,7 +158,7 @@ export const SingleDocumentProjectProvider = ({
     } else {
       openRecentProjectFromBrowserStorage();
     }
-  }, [fileToBeOpened]);
+  }, [fileToBeOpened, currentBranch]);
 
   const openRecentProjectFromBrowserStorage = async () => {
     setLoading(true);

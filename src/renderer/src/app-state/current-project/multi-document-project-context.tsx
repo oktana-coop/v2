@@ -6,11 +6,13 @@ import {
   useEffect,
   useState,
 } from 'react';
+import { useNavigate } from 'react-router';
 
 import {
   createVersionedDocument,
   findDocumentInProject,
   type MultiDocumentProjectStore,
+  urlEncodeProjectId,
 } from '../../../../modules/domain/project';
 import { type ProjectId } from '../../../../modules/domain/project';
 import {
@@ -22,8 +24,6 @@ import { ElectronContext } from '../../../../modules/infrastructure/cross-platfo
 import {
   type Directory,
   type File,
-} from '../../../../modules/infrastructure/filesystem';
-import {
   removeExtension,
   removePath,
 } from '../../../../modules/infrastructure/filesystem';
@@ -31,6 +31,7 @@ import {
   type Branch,
   parseBranch,
   type ResolvedArtifactId,
+  urlEncodeArtifactId,
 } from '../../../../modules/infrastructure/version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
@@ -121,6 +122,7 @@ export const MultiDocumentProjectProvider = ({
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [isCreateBranchDialogOpen, setIsCreateBranchDialogOpen] =
     useState<boolean>(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const getSelectedDirectory = async () => {
@@ -184,7 +186,43 @@ export const MultiDocumentProjectProvider = ({
     if (directory && directory.permissionState === 'granted') {
       getFiles(directory);
     }
-  }, [directory, filesystem]);
+  }, [directory, filesystem, currentBranch]);
+
+  useEffect(() => {
+    const reloadSelectedDocumentOrReset = async ({
+      projId,
+      selectedFilePath,
+    }: {
+      projId: ProjectId;
+      selectedFilePath: string;
+    }) => {
+      try {
+        const doc = await handleFindDocumentInProject({
+          projectId: projId,
+          documentPath: selectedFilePath,
+        });
+
+        setSelectedFileInfo({ documentId: doc.id, path: selectedFilePath });
+
+        const newUrl = `/projects/${urlEncodeProjectId(projId)}/documents/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(selectedFilePath)}`;
+        navigate(newUrl);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (err) {
+        clearFileSelection();
+        // TODO: Only do this on NotFoundError.
+        // TODO: Navigate to the specific project route (doesn't exist at the time of writing) this.
+        const newUrl = `/projects`;
+        navigate(newUrl);
+      }
+    };
+
+    if (projectId && selectedFileInfo?.path) {
+      reloadSelectedDocumentOrReset({
+        projId: projectId,
+        selectedFilePath: selectedFileInfo.path,
+      });
+    }
+  }, [currentBranch]);
 
   const requestPermissionForDirectory = async (dir: Directory) =>
     Effect.runPromise(filesystem.requestPermissionForDirectory(dir.path));
