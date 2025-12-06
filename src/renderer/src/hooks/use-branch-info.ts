@@ -62,8 +62,11 @@ export const useBranchInfo = () => {
       projectType === projectTypes.MULTI_DOCUMENT_PROJECT
         ? listMultiDocumentProjectBranches()
         : listSingleDocumentProjectBranches(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [projectType]
+    [
+      projectType,
+      listMultiDocumentProjectBranches,
+      listSingleDocumentProjectBranches,
+    ]
   );
 
   const createAndSwitchToBranch = useCallback(
