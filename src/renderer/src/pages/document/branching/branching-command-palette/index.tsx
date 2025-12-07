@@ -10,6 +10,7 @@ import {
   CommandPaletteOptions,
   NoMatchingResults,
 } from '../../../../components/dialogs/command-palette';
+import { Badge } from '../../../../components/highlighting/Badge';
 import {
   BranchIcon,
   MergeIcon,
@@ -68,7 +69,7 @@ export const BranchingCommandPalette = ({
 
   const experimentationActions = [
     {
-      name: 'Merge Branch',
+      name: 'Merge to Main Branch',
       onActionSelection: () => {},
       icon: MergeIcon,
     },
@@ -144,7 +145,16 @@ export const BranchingCommandPalette = ({
                   {branchActionOptions.map((action) => (
                     <CommandPaletteOption
                       key={action.name}
-                      label={action.name}
+                      label={
+                        action.name === currentBranch ? (
+                          <span className="flex-auto truncate">
+                            {action.name}
+                            <Badge className="ml-2">current</Badge>
+                          </span>
+                        ) : (
+                          action.name
+                        )
+                      }
                       value={action}
                       icon={action.icon}
                     />

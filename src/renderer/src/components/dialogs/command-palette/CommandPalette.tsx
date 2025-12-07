@@ -122,7 +122,7 @@ export const CommandPaletteOption = ({
   value,
   icon: Icon,
 }: {
-  label: string;
+  label: string | React.ReactNode;
   value: CommandPaletteOption;
   icon?: React.ComponentType<IconProps>;
 }) => (
@@ -132,7 +132,12 @@ export const CommandPaletteOption = ({
     className="group flex cursor-default select-none items-center px-4 py-3 data-[focus]:bg-gray-900/5 data-[focus]:text-gray-900 data-[focus]:outline-none dark:data-[focus]:bg-gray-300/5 dark:data-[focus]:text-gray-100"
   >
     {Icon && <Icon className="mr-1 text-gray-500 dark:text-gray-400" />}
-    <span className="flex-auto truncate">{label}</span>
+
+    {typeof label === 'string' ? (
+      <span className="flex-auto truncate">{label}</span>
+    ) : (
+      label
+    )}
 
     {isDocumentOption(value) ? (
       <span className="hidden flex-none text-gray-500 group-data-[focus]:inline dark:text-gray-400">
