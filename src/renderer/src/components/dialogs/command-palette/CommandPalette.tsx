@@ -12,6 +12,8 @@ import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useKeyBindings } from '../../../hooks';
+import { FileDocumentIcon } from '../../icons';
+import { type IconProps } from '../../icons/types';
 
 export const NoMatchingResults = () => {
   return (
@@ -36,12 +38,14 @@ export type DocumentOption = {
   id?: string;
   title: string;
   onDocumentSelection: () => void;
+  icon?: React.ComponentType<IconProps>;
 };
 
 export type ActionOption = {
   name: string;
   shortcut?: string;
   onActionSelection: () => void;
+  icon?: React.ComponentType<IconProps>;
 };
 
 export type CommandPaletteOption = DocumentOption | ActionOption;
@@ -116,19 +120,22 @@ export const CommandPaletteOptions = ({
 export const CommandPaletteOption = ({
   label,
   value,
+  icon: Icon,
 }: {
   label: string;
   value: CommandPaletteOption;
+  icon?: React.ComponentType<IconProps>;
 }) => (
   <ComboboxOption
     as="li"
     value={value}
     className="group flex cursor-default select-none items-center px-4 py-3 data-[focus]:bg-gray-900/5 data-[focus]:text-gray-900 data-[focus]:outline-none dark:data-[focus]:bg-gray-300/5 dark:data-[focus]:text-gray-100"
   >
+    {Icon && <Icon className="mr-1 text-gray-500 dark:text-gray-400" />}
     <span className="flex-auto truncate">{label}</span>
 
     {isDocumentOption(value) ? (
-      <span className="hidden flex-none text-gray-500 group-data-[focus]:inline">
+      <span className="hidden flex-none text-gray-500 group-data-[focus]:inline dark:text-gray-400">
         Jump to...
       </span>
     ) : (
@@ -236,6 +243,7 @@ export const CommandPalette = ({
                       key={action.name}
                       label={action.name}
                       value={action}
+                      icon={action.icon}
                     />
                   ))}
                 </CommandPaletteListSection>
@@ -247,6 +255,7 @@ export const CommandPalette = ({
                       key={project.id || uuidv4()}
                       label={project.title}
                       value={project}
+                      icon={FileDocumentIcon}
                     />
                   ))}
                 </CommandPaletteListSection>
@@ -260,6 +269,7 @@ export const CommandPalette = ({
                       key={action.name}
                       label={action.name}
                       value={action}
+                      icon={action.icon}
                     />
                   ))}
                 </CommandPaletteListSection>
