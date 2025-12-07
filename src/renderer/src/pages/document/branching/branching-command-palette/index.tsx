@@ -10,6 +10,12 @@ import {
   CommandPaletteOptions,
   NoMatchingResults,
 } from '../../../../components/dialogs/command-palette';
+import {
+  BranchIcon,
+  MergeIcon,
+  PenIcon,
+  PlusIcon,
+} from '../../../../components/icons';
 import { useBranchInfo } from '../../../../hooks';
 
 export type BranchingCommandPaletteProps = {
@@ -36,6 +42,7 @@ export const BranchingCommandPalette = ({
       const allBranchActionOptions = branches.map((branch) => ({
         name: branch,
         onActionSelection: () => switchToBranch(branch),
+        icon: branch === currentBranch ? PenIcon : BranchIcon,
       }));
 
       const filteredBranchActionOptions =
@@ -63,10 +70,12 @@ export const BranchingCommandPalette = ({
     {
       name: 'Merge Branch',
       onActionSelection: () => {},
+      icon: MergeIcon,
     },
     {
       name: 'Create New Branch',
       onActionSelection: () => openCreateBranchDialog(),
+      icon: PlusIcon,
     },
   ];
 
@@ -124,6 +133,7 @@ export const BranchingCommandPalette = ({
                       key={action.name}
                       label={action.name}
                       value={action}
+                      icon={action.icon}
                     />
                   ))}
                 </CommandPaletteListSection>
@@ -136,6 +146,7 @@ export const BranchingCommandPalette = ({
                       key={action.name}
                       label={action.name}
                       value={action}
+                      icon={action.icon}
                     />
                   ))}
                 </CommandPaletteListSection>

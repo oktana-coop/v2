@@ -26,6 +26,7 @@ export { HomeIcon } from './Home';
 export { ImageIcon } from './Image';
 export { InfoIcon } from './Info';
 export { LinkIcon } from './Link';
+export { MergeIcon } from './Merge';
 export { MoonIcon } from './Moon';
 export { OptionsIcon } from './Options';
 export { OrderedListIcon } from './OrderedList';
