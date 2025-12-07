@@ -1,7 +1,10 @@
 import { Combobox, Dialog, DialogPanel } from '@headlessui/react';
 import { useEffect, useState } from 'react';
 
-import { type Branch } from '../../../../../../modules/infrastructure/version-control';
+import {
+  type Branch,
+  DEFAULT_BRANCH,
+} from '../../../../../../modules/infrastructure/version-control';
 import {
   type ActionOption,
   CommandPaletteInput,
@@ -35,6 +38,8 @@ export const BranchingCommandPalette = ({
   const [branchActionOptions, setBranchActionOptions] = useState<
     ActionOption[]
   >([]);
+  const [experimentationActionOptions, setExperimentationActionOptions] =
+    useState<ActionOption[]>([]);
   const { listBranches, switchToBranch, openCreateBranchDialog } =
     useBranchInfo();
 
@@ -67,25 +72,34 @@ export const BranchingCommandPalette = ({
     }
   }, [open, listBranches]);
 
-  const experimentationActions = [
-    {
-      name: 'Merge to Main Branch',
-      onActionSelection: () => {},
-      icon: MergeIcon,
-    },
-    {
-      name: 'Create New Branch',
-      onActionSelection: () => openCreateBranchDialog(),
-      icon: PlusIcon,
-    },
-  ];
+  useEffect(() => {
+    if (branches) {
+      const mergeAction = {
+        name: 'Merge to Main Branch',
+        onActionSelection: () => {},
+        icon: MergeIcon,
+      };
 
-  const filteredExperimentationActions =
-    query === ''
-      ? experimentationActions || []
-      : (experimentationActions || []).filter((action) => {
-          return action.name.toLowerCase().includes(query.toLowerCase());
-        });
+      const createBranchAction = {
+        name: 'Create New Branch',
+        onActionSelection: () => openCreateBranchDialog(),
+        icon: PlusIcon,
+      };
+
+      const expActions =
+        currentBranch === DEFAULT_BRANCH
+          ? [createBranchAction]
+          : [mergeAction, createBranchAction];
+
+      const filteredExperimentationActionOptions =
+        query === ''
+          ? expActions
+          : expActions.filter((action) => {
+              return action.name.toLowerCase().includes(query.toLowerCase());
+            });
+      setExperimentationActionOptions(filteredExperimentationActionOptions);
+    }
+  }, [branches, currentBranch, query]);
 
   return (
     <Dialog
@@ -127,9 +141,9 @@ export const BranchingCommandPalette = ({
             </div>
 
             <CommandPaletteOptions>
-              {filteredExperimentationActions.length > 0 && (
+              {experimentationActionOptions.length > 0 && (
                 <CommandPaletteListSection title="Experimentation">
-                  {filteredExperimentationActions.map((action) => (
+                  {experimentationActionOptions.map((action) => (
                     <CommandPaletteOption
                       key={action.name}
                       label={action.name}
@@ -163,7 +177,7 @@ export const BranchingCommandPalette = ({
               )}
             </CommandPaletteOptions>
             {query !== '' &&
-              [...filteredExperimentationActions, ...branchActionOptions]
+              [...experimentationActionOptions, ...branchActionOptions]
                 .length === 0 && <NoMatchingResults />}
           </Combobox>
         </DialogPanel>
