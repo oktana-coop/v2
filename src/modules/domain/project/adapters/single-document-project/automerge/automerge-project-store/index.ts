@@ -180,6 +180,23 @@ export const createAdapter = (
       ),
     });
 
+  // TODO: Implement branching in Automerge
+  const deleteBranch: SingleDocumentProjectStore['deleteBranch'] = () =>
+    Effect.fail(
+      new RepositoryError(
+        'Branching is not yet supported when the app is configured with Automerge'
+      )
+    );
+
+  // TODO: Implement branching in Automerge
+  const mergeAndDeleteBranch: SingleDocumentProjectStore['mergeAndDeleteBranch'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Branching is not yet supported when the app is configured with Automerge'
+        )
+      );
+
   return {
     createSingleDocumentProject,
     findProjectById,
@@ -189,6 +206,8 @@ export const createAdapter = (
     switchToBranch,
     getCurrentBranch,
     listBranches,
+    deleteBranch,
+    mergeAndDeleteBranch,
     disconnect,
   };
 };

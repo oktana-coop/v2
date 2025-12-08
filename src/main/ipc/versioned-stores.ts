@@ -21,8 +21,10 @@ import {
   type ProjectId,
   type SetupSingleDocumentProjectStoreArgs,
   type SingleDocumentProjectCreateAndSwitchToBranchArgs,
+  type SingleDocumentProjectDeleteBranchArgs,
   type SingleDocumentProjectGetCurrentBranchArgs,
   type SingleDocumentProjectListBranchesArgs,
+  type SingleDocumentProjectMergeAndDeleteBranchArgs,
   type SingleDocumentProjectStoreManager,
   type SingleDocumentProjectSwitchToBranchArgs,
   ValidationError as VersionedProjectValidationError,
@@ -361,6 +363,46 @@ const registerSingleDocumentProjectStoreEvents = () => {
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.listBranches(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:delete-branch',
+    async (_, args: SingleDocumentProjectDeleteBranchArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.deleteBranch(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:merge-and-delete-branch',
+    async (_, args: SingleDocumentProjectMergeAndDeleteBranchArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.mergeAndDeleteBranch(args)
           )
         )
       )

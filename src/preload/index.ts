@@ -219,6 +219,17 @@ contextBridge.exposeInMainWorld('singleDocumentProjectStoreAPI', {
     ipcRenderer.invoke('single-document-project-store:list-branches', {
       ...args,
     }),
+  deleteBranch: (args) =>
+    ipcRenderer.invoke('single-document-project-store:delete-branch', {
+      ...args,
+    }),
+  mergeAndDeleteBranch: (args) =>
+    ipcRenderer.invoke(
+      'single-document-project-store:merge-and-delete-branch',
+      {
+        ...args,
+      }
+    ),
   disconnect: (projectId) =>
     ipcRenderer.invoke('single-document-project-store:disconnect', projectId),
 } as SingleDocumentProjectStorePromiseAPI);

@@ -1,14 +1,21 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
-import git, { type PromiseFsClient as IsoGitFsApi } from 'isomorphic-git';
+import git, {
+  Errors as IsoGitErrors,
+  type PromiseFsClient as IsoGitFsApi,
+} from 'isomorphic-git';
 
 import { type Filesystem } from '../../../../../../../modules/infrastructure/filesystem';
 import {
+  type Branch,
   createGitBlobRef,
   DEFAULT_BRANCH,
+  MergeConflictError,
   MigrationError,
   parseBranch,
+  parseGitCommitHash,
 } from '../../../../../../../modules/infrastructure/version-control';
+import { fromNullable } from '../../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../../utils/errors';
 import { projectTypes } from '../../../../constants';
 import {
@@ -206,6 +213,93 @@ export const createAdapter = ({
       )
     );
 
+  const deleteBranch: SingleDocumentProjectStore['deleteBranch'] = ({
+    projectId,
+    branch,
+  }) =>
+    pipe(
+      getCurrentBranch({ projectId }),
+      Effect.tap((currentBranch) =>
+        currentBranch === branch
+          ? switchToBranch({
+              projectId,
+              branch: DEFAULT_BRANCH as Branch,
+            })
+          : Effect.succeed(undefined)
+      ),
+      Effect.flatMap((currentBranch) =>
+        pipe(
+          Effect.tryPromise({
+            try: () =>
+              git.deleteBranch({
+                fs: isoGitFs,
+                dir: internalProjectDir,
+                ref: currentBranch,
+              }),
+            catch: mapErrorTo(
+              RepositoryError,
+              `Error in deleting ${currentBranch} branch.`
+            ),
+          }),
+          // If there was any error in deleting the branch,
+          // we also switch back to it before returning the error.
+          Effect.tapError((err) =>
+            pipe(
+              switchToBranch({
+                projectId,
+                branch: currentBranch,
+              }),
+              Effect.flatMap(() => Effect.fail(err))
+            )
+          )
+        )
+      )
+    );
+
+  const mergeAndDeleteBranch: SingleDocumentProjectStore['mergeAndDeleteBranch'] =
+    ({ projectId, from, into }) =>
+      pipe(
+        Effect.tryPromise({
+          try: () =>
+            git.merge({
+              fs: isoGitFs,
+              dir: internalProjectDir,
+              ours: into,
+              theirs: from,
+            }),
+          catch: (err) => {
+            if (err instanceof IsoGitErrors.MergeNotSupportedError) {
+              return new MergeConflictError(
+                `Error when trying to merge ${from} into ${into} due to conflicts.`
+              );
+            }
+
+            return new RepositoryError(
+              `Error when trying to merge ${from} into ${into}`
+            );
+          },
+        }),
+        Effect.flatMap(({ oid }) =>
+          pipe(
+            fromNullable(
+              oid,
+              () =>
+                // TODO: Revert the whole merge in this case (in a transactional manner).
+                new RepositoryError(
+                  'Could not resolve the new head of the branch after merging.'
+                )
+            ),
+            Effect.flatMap((mergeCommitId) =>
+              Effect.try({
+                try: () => parseGitCommitHash(mergeCommitId),
+                catch: mapErrorTo(RepositoryError, 'Invalid merge commit ID.'),
+              })
+            )
+          )
+        ),
+        Effect.tap(() => deleteBranch({ projectId, branch: from }))
+      );
+
   // This is a no-op in the Git document repo.
   const disconnect: SingleDocumentProjectStore['disconnect'] = () =>
     Effect.succeed(undefined);
@@ -219,6 +313,8 @@ export const createAdapter = ({
     switchToBranch,
     getCurrentBranch,
     listBranches,
+    deleteBranch,
+    mergeAndDeleteBranch,
     disconnect,
   };
 };

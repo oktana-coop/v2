@@ -2,7 +2,10 @@ import {
   effectifyIPCPromise,
   type ErrorRegistry,
 } from '../../../../../../../modules/infrastructure/cross-platform/electron-ipc-effect';
-import { MigrationError } from '../../../../../../../modules/infrastructure/version-control';
+import {
+  MergeConflictError,
+  MigrationError,
+} from '../../../../../../../modules/infrastructure/version-control';
 import { type EffectErrorType } from '../../../../../../../utils/effect';
 import {
   NotFoundError,
@@ -138,6 +141,35 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.singleDocumentProjectStoreAPI.listBranches(...args)),
+  deleteBranch: (
+    ...args: Parameters<SingleDocumentProjectStore['deleteBranch']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        ValidationError,
+        RepositoryError,
+        NotFoundError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<SingleDocumentProjectStore['deleteBranch']>>
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.deleteBranch(...args)),
+  mergeAndDeleteBranch: (
+    ...args: Parameters<SingleDocumentProjectStore['mergeAndDeleteBranch']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        ValidationError,
+        RepositoryError,
+        NotFoundError,
+        MergeConflictError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['mergeAndDeleteBranch']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.mergeAndDeleteBranch(...args)),
   disconnect: (...args: Parameters<SingleDocumentProjectStore['disconnect']>) =>
     effectifyIPCPromise(
       {
