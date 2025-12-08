@@ -20,6 +20,9 @@ export const useBranchInfo = () => {
     closeCreateBranchDialog: closeCreateBranchDialogInMultiDocumentProject,
     deleteBranch: deleteBranchInMultiDocumentProject,
     mergeAndDeleteBranch: mergeAndDeleteBranchInMultiDocumentProject,
+    branchToDelete: branchToDeleteInMultiDocumentProject,
+    openDeleteBranchDialog: openDeleteBranchDialogInMultiDocumentProject,
+    closeDeleteBranchDialog: closeDeleteBranchDialogInMultiDocumentProject,
   } = useContext(MultiDocumentProjectContext);
   const {
     currentBranch: singleDocumentProjectCurrentBranch,
@@ -31,11 +34,15 @@ export const useBranchInfo = () => {
     closeCreateBranchDialog: closeCreateBranchDialogInSingleDocumentProject,
     deleteBranch: deleteBranchInSingleDocumentProject,
     mergeAndDeleteBranch: mergeAndDeleteBranchInSingleDocumentProject,
+    branchToDelete: branchToDeleteInSingleDocumentProject,
+    openDeleteBranchDialog: openDeleteBranchDialogInSingleDocumentProject,
+    closeDeleteBranchDialog: closeDeleteBranchDialogInSingleDocumentProject,
   } = useContext(SingleDocumentProjectContext);
 
   const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
   const [isCreateBranchDialogOpen, setIsCreateBranchDialogOpen] =
     useState<boolean>(false);
+  const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
 
   useEffect(() => {
     const branch =
@@ -58,6 +65,18 @@ export const useBranchInfo = () => {
   }, [
     isCreateBranchDialogOpenInMultiDocumentProject,
     isCreateBranchDialogOpenInSingleDocumentProject,
+    projectType,
+  ]);
+
+  useEffect(() => {
+    const branchToDel =
+      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+        ? branchToDeleteInMultiDocumentProject
+        : branchToDeleteInSingleDocumentProject;
+    setBranchToDelete(branchToDel);
+  }, [
+    branchToDeleteInMultiDocumentProject,
+    branchToDeleteInSingleDocumentProject,
     projectType,
   ]);
 
@@ -145,6 +164,30 @@ export const useBranchInfo = () => {
     ]
   );
 
+  const openDeleteBranchDialog = useCallback(
+    (branch: Branch) =>
+      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+        ? openDeleteBranchDialogInMultiDocumentProject(branch)
+        : openDeleteBranchDialogInSingleDocumentProject(branch),
+    [
+      projectType,
+      openDeleteBranchDialogInMultiDocumentProject,
+      openDeleteBranchDialogInSingleDocumentProject,
+    ]
+  );
+
+  const closeDeleteBranchDialog = useCallback(
+    () =>
+      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+        ? closeDeleteBranchDialogInMultiDocumentProject()
+        : closeDeleteBranchDialogInSingleDocumentProject(),
+    [
+      projectType,
+      closeDeleteBranchDialogInMultiDocumentProject,
+      closeDeleteBranchDialogInSingleDocumentProject,
+    ]
+  );
+
   return {
     currentBranch,
     listBranches,
@@ -155,5 +198,8 @@ export const useBranchInfo = () => {
     closeCreateBranchDialog,
     deleteBranch,
     mergeAndDeleteBranch,
+    branchToDelete,
+    openDeleteBranchDialog,
+    closeDeleteBranchDialog,
   };
 };

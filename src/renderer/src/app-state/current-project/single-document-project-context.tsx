@@ -62,6 +62,9 @@ export type SingleDocumentProjectContextType = {
   closeCreateBranchDialog: () => void;
   deleteBranch: (branch: Branch) => Promise<void>;
   mergeAndDeleteBranch: (branch: Branch) => Promise<void>;
+  branchToDelete: Branch | null;
+  openDeleteBranchDialog: (branch: Branch) => void;
+  closeDeleteBranchDialog: () => void;
 };
 
 export const SingleDocumentProjectContext =
@@ -119,6 +122,7 @@ export const SingleDocumentProjectProvider = ({
   const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
   const [isCreateBranchDialogOpen, setIsCreateBranchDialogOpen] =
     useState<boolean>(false);
+  const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
 
   const documentInternalPath =
     versionControlSystems[config.singleDocumentProjectVersionControlSystem] ===
@@ -446,6 +450,14 @@ export const SingleDocumentProjectProvider = ({
     [versionedProjectStore, projectId]
   );
 
+  const handleOpenDeleteBranchDialog = useCallback((branch: Branch) => {
+    setBranchToDelete(branch);
+  }, []);
+
+  const handleCloseDeleteBranchDialog = useCallback(() => {
+    setBranchToDelete(null);
+  }, []);
+
   return (
     <SingleDocumentProjectContext.Provider
       value={{
@@ -467,6 +479,9 @@ export const SingleDocumentProjectProvider = ({
         closeCreateBranchDialog: handleCloseCreateBranchDialog,
         deleteBranch: handleDeleteBranch,
         mergeAndDeleteBranch: handleMergeAndDeleteBranch,
+        branchToDelete,
+        openDeleteBranchDialog: handleOpenDeleteBranchDialog,
+        closeDeleteBranchDialog: handleCloseDeleteBranchDialog,
       }}
     >
       {children}

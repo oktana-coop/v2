@@ -78,6 +78,9 @@ export type MultiDocumentProjectContextType = {
   closeCreateBranchDialog: () => void;
   deleteBranch: (branch: Branch) => Promise<void>;
   mergeAndDeleteBranch: (branch: Branch) => Promise<void>;
+  branchToDelete: Branch | null;
+  openDeleteBranchDialog: (branch: Branch) => void;
+  closeDeleteBranchDialog: () => void;
 };
 
 export const MultiDocumentProjectContext =
@@ -125,6 +128,7 @@ export const MultiDocumentProjectProvider = ({
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [isCreateBranchDialogOpen, setIsCreateBranchDialogOpen] =
     useState<boolean>(false);
+  const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -445,6 +449,7 @@ export const MultiDocumentProjectProvider = ({
         versionedProjectStore.deleteBranch({ projectId, branch })
       );
 
+      setBranchToDelete(null);
       setCurrentBranch(resultingCurrentBranch);
     },
     [versionedProjectStore, projectId]
@@ -471,6 +476,14 @@ export const MultiDocumentProjectProvider = ({
     [versionedProjectStore, projectId]
   );
 
+  const handleOpenDeleteBranchDialog = useCallback((branch: Branch) => {
+    setBranchToDelete(branch);
+  }, []);
+
+  const handleCloseDeleteBranchDialog = useCallback(() => {
+    setBranchToDelete(null);
+  }, []);
+
   return (
     <MultiDocumentProjectContext.Provider
       value={{
@@ -495,6 +508,9 @@ export const MultiDocumentProjectProvider = ({
         closeCreateBranchDialog: handleCloseCreateBranchDialog,
         deleteBranch: handleDeleteBranch,
         mergeAndDeleteBranch: handleMergeAndDeleteBranch,
+        branchToDelete,
+        openDeleteBranchDialog: handleOpenDeleteBranchDialog,
+        closeDeleteBranchDialog: handleCloseDeleteBranchDialog,
       }}
     >
       {children}

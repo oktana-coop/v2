@@ -25,8 +25,8 @@ import {
 import { useOpenDirectory } from '../../hooks/multi-document-project';
 import { useOpenDocument } from '../../hooks/single-document-project';
 import { BottomBar } from './bottom-bar';
+import { CreateBranchDialog, DeleteBranchDialog } from './branching';
 import { BranchingCommandPalette } from './branching/branching-command-palette';
-import { CreateBranchDialog } from './branching/CreateBranchDialog';
 import {
   CommitDialog,
   DiscardChangesDialog,
@@ -93,6 +93,8 @@ const DocumentIndex = () => {
     createAndSwitchToBranch,
     isCreateBranchDialogOpen,
     closeCreateBranchDialog,
+    branchToDelete,
+    closeDeleteBranchDialog,
   } = useBranchInfo();
 
   useEffect(() => {
@@ -160,6 +162,10 @@ const DocumentIndex = () => {
             onCreateBranch={(branchName: string) =>
               createAndSwitchToBranch(branchName)
             }
+          />
+          <DeleteBranchDialog
+            branch={branchToDelete}
+            onCancel={closeDeleteBranchDialog}
           />
           {currentBranch && (
             <BranchingCommandPalette

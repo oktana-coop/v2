@@ -19,6 +19,7 @@ import {
   MergeIcon,
   PenIcon,
   PlusIcon,
+  TrashIcon,
 } from '../../../../components/icons';
 import { useBranchInfo } from '../../../../hooks';
 
@@ -45,6 +46,7 @@ export const BranchingCommandPalette = ({
     listBranches,
     switchToBranch,
     openCreateBranchDialog,
+    openDeleteBranchDialog,
   } = useBranchInfo();
 
   useEffect(() => {
@@ -90,10 +92,16 @@ export const BranchingCommandPalette = ({
         icon: PlusIcon,
       };
 
+      const deleteBranchAction = {
+        name: 'Delete Branch',
+        onActionSelection: () => openDeleteBranchDialog(currentBranch),
+        icon: TrashIcon,
+      };
+
       const expActions =
         currentBranch === DEFAULT_BRANCH
           ? [createBranchAction]
-          : [mergeAction, createBranchAction];
+          : [mergeAction, createBranchAction, deleteBranchAction];
 
       const filteredExperimentationActionOptions =
         query === ''
@@ -109,6 +117,7 @@ export const BranchingCommandPalette = ({
     query,
     mergeAndDeleteBranch,
     openCreateBranchDialog,
+    openDeleteBranchDialog,
   ]);
 
   return (
