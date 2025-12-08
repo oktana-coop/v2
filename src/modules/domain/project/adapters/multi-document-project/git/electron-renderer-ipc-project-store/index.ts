@@ -2,7 +2,10 @@ import {
   effectifyIPCPromise,
   type ErrorRegistry,
 } from '../../../../../../../modules/infrastructure/cross-platform/electron-ipc-effect';
-import { MigrationError } from '../../../../../../../modules/infrastructure/version-control';
+import {
+  MergeConflictError,
+  MigrationError,
+} from '../../../../../../../modules/infrastructure/version-control';
 import { type EffectErrorType } from '../../../../../../../utils/effect';
 import {
   NotFoundError,
@@ -160,4 +163,33 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.multiDocumentProjectStoreAPI.listBranches(...args)),
+  deleteBranch: (
+    ...args: Parameters<MultiDocumentProjectStore['deleteBranch']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        ValidationError,
+        RepositoryError,
+        NotFoundError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<MultiDocumentProjectStore['deleteBranch']>>
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.deleteBranch(...args)),
+  mergeAndDeleteBranch: (
+    ...args: Parameters<MultiDocumentProjectStore['mergeAndDeleteBranch']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        ValidationError,
+        RepositoryError,
+        NotFoundError,
+        MergeConflictError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['mergeAndDeleteBranch']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.mergeAndDeleteBranch(...args)),
 });

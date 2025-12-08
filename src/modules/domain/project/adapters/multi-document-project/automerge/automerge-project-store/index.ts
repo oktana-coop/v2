@@ -211,6 +211,23 @@ export const createAdapter = (
   const listBranches: MultiDocumentProjectStore['listBranches'] = () =>
     Effect.succeed([DEFAULT_BRANCH] as Branch[]);
 
+  // TODO: Implement branching in Automerge
+  const deleteBranch: MultiDocumentProjectStore['deleteBranch'] = () =>
+    Effect.fail(
+      new RepositoryError(
+        'Branching is not yet supported when the app is configured with Automerge'
+      )
+    );
+
+  // TODO: Implement branching in Automerge
+  const mergeAndDeleteBranch: MultiDocumentProjectStore['mergeAndDeleteBranch'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Branching is not yet supported when the app is configured with Automerge'
+        )
+      );
+
   return {
     createProject,
     findProjectById,
@@ -222,5 +239,7 @@ export const createAdapter = (
     switchToBranch,
     getCurrentBranch,
     listBranches,
+    deleteBranch,
+    mergeAndDeleteBranch,
   };
 };

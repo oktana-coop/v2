@@ -1,21 +1,28 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as Option from 'effect/Option';
-import git, { type PromiseFsClient as IsoGitFsApi } from 'isomorphic-git';
+import git, {
+  Errors as IsoGitErrors,
+  type PromiseFsClient as IsoGitFsApi,
+} from 'isomorphic-git';
 
 import {
   type Filesystem,
   removePath,
 } from '../../../../../../../modules/infrastructure/filesystem';
 import {
+  type Branch,
   createGitBlobRef,
   DEFAULT_AUTHOR_NAME,
   DEFAULT_BRANCH,
   isGitBlobRef,
+  MergeConflictError,
   parseBranch,
+  parseGitCommitHash,
   type ResolvedArtifactId,
   versionedArtifactTypes,
 } from '../../../../../../../modules/infrastructure/version-control';
+import { fromNullable } from '../../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../../utils/errors';
 import {
   NotFoundError,
@@ -27,6 +34,7 @@ import {
   CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION,
   isProjectFsPath,
   parseProjectFsPath,
+  type ProjectFsPath,
   type ProjectId,
 } from '../../../../models';
 import { MultiDocumentProjectStore } from '../../../../ports/multi-document-project';
@@ -42,6 +50,17 @@ export const createAdapter = ({
   isoGitFs: IsoGitFsApi;
   filesystem: Filesystem;
 }): MultiDocumentProjectStore => {
+  const ensureProjectIdIsFsPath: (
+    projectId: ProjectId
+  ) => Effect.Effect<ProjectFsPath, ValidationError, never> = (projectId) =>
+    pipe(
+      Effect.succeed(projectId),
+      Effect.filterOrFail(
+        isProjectFsPath,
+        (val) => new ValidationError(`Invalid project id: ${val}`)
+      )
+    );
+
   const createProject: MultiDocumentProjectStore['createProject'] = ({
     path,
   }) =>
@@ -65,11 +84,7 @@ export const createAdapter = ({
 
   const getDirectoryFiles = (id: ProjectId) =>
     pipe(
-      Effect.succeed(id),
-      Effect.filterOrFail(
-        isProjectFsPath,
-        (val) => new ValidationError(`Invalid project id: ${val}`)
-      ),
+      ensureProjectIdIsFsPath(id),
       Effect.flatMap((projectPath) =>
         pipe(
           filesystem.listDirectoryFiles({
@@ -130,15 +145,7 @@ export const createAdapter = ({
   const deleteDocumentFromProject: MultiDocumentProjectStore['deleteDocumentFromProject'] =
     ({ projectId, documentId }) =>
       Effect.Do.pipe(
-        Effect.bind('projectPath', () =>
-          pipe(
-            Effect.succeed(projectId),
-            Effect.filterOrFail(
-              isProjectFsPath,
-              (val) => new ValidationError(`Invalid project id: ${val}`)
-            )
-          )
-        ),
+        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
         Effect.bind('documentName', () =>
           pipe(
             Effect.succeed(documentId),
@@ -206,11 +213,7 @@ export const createAdapter = ({
   const createAndSwitchToBranch: MultiDocumentProjectStore['createAndSwitchToBranch'] =
     ({ projectId, branch }) =>
       pipe(
-        Effect.succeed(projectId),
-        Effect.filterOrFail(
-          isProjectFsPath,
-          (val) => new ValidationError(`Invalid project id: ${val}`)
-        ),
+        ensureProjectIdIsFsPath(projectId),
         Effect.flatMap((projectPath) =>
           Effect.tryPromise({
             try: () =>
@@ -230,11 +233,7 @@ export const createAdapter = ({
     branch,
   }) =>
     pipe(
-      Effect.succeed(projectId),
-      Effect.filterOrFail(
-        isProjectFsPath,
-        (val) => new ValidationError(`Invalid project id: ${val}`)
-      ),
+      ensureProjectIdIsFsPath(projectId),
       Effect.flatMap((projectPath) =>
         Effect.tryPromise({
           try: () =>
@@ -252,11 +251,7 @@ export const createAdapter = ({
     projectId,
   }) =>
     pipe(
-      Effect.succeed(projectId),
-      Effect.filterOrFail(
-        isProjectFsPath,
-        (val) => new ValidationError(`Invalid project id: ${val}`)
-      ),
+      ensureProjectIdIsFsPath(projectId),
       Effect.flatMap((projectPath) =>
         pipe(
           Effect.tryPromise({
@@ -288,11 +283,7 @@ export const createAdapter = ({
     projectId,
   }) =>
     pipe(
-      Effect.succeed(projectId),
-      Effect.filterOrFail(
-        isProjectFsPath,
-        (val) => new ValidationError(`Invalid project id: ${val}`)
-      ),
+      ensureProjectIdIsFsPath(projectId),
       Effect.flatMap((projectPath) =>
         pipe(
           Effect.tryPromise({
@@ -318,6 +309,104 @@ export const createAdapter = ({
       )
     );
 
+  const deleteBranch: MultiDocumentProjectStore['deleteBranch'] = ({
+    projectId,
+    branch,
+  }) =>
+    pipe(
+      getCurrentBranch({ projectId }),
+      Effect.tap((currentBranch) =>
+        currentBranch === branch
+          ? switchToBranch({
+              projectId,
+              branch: DEFAULT_BRANCH as Branch,
+            })
+          : Effect.succeed(undefined)
+      ),
+      Effect.flatMap((currentBranch) =>
+        pipe(
+          ensureProjectIdIsFsPath(projectId),
+          Effect.flatMap((projectPath) =>
+            Effect.tryPromise({
+              try: () =>
+                git.deleteBranch({
+                  fs: isoGitFs,
+                  dir: projectPath,
+                  ref: currentBranch,
+                }),
+              catch: mapErrorTo(
+                RepositoryError,
+                `Error in deleting ${currentBranch} branch.`
+              ),
+            })
+          ),
+          // If there was any error in deleting the branch,
+          // we also switch back to it before returning the error.
+          Effect.tapError((err) =>
+            pipe(
+              switchToBranch({
+                projectId,
+                branch: currentBranch,
+              }),
+              Effect.flatMap(() => Effect.fail(err))
+            )
+          )
+        )
+      )
+    );
+
+  const mergeAndDeleteBranch: MultiDocumentProjectStore['mergeAndDeleteBranch'] =
+    ({ projectId, from, into }) =>
+      pipe(
+        ensureProjectIdIsFsPath(projectId),
+        Effect.flatMap((projectPath) =>
+          pipe(
+            Effect.tryPromise({
+              try: () =>
+                git.merge({
+                  fs: isoGitFs,
+                  dir: projectPath,
+                  ours: into,
+                  theirs: from,
+                }),
+              catch: (err) => {
+                if (err instanceof IsoGitErrors.MergeNotSupportedError) {
+                  return new MergeConflictError(
+                    `Error when trying to merge ${from} into ${into} due to conflicts.`
+                  );
+                }
+
+                return new RepositoryError(
+                  `Error when trying to merge ${from} into ${into}`
+                );
+              },
+            }),
+            Effect.flatMap(({ oid }) =>
+              pipe(
+                fromNullable(
+                  oid,
+                  () =>
+                    // TODO: Revert the whole merge in this case (in a transactional manner).
+                    new RepositoryError(
+                      'Could not resolve the new head of the branch after merging.'
+                    )
+                ),
+                Effect.flatMap((mergeCommitId) =>
+                  Effect.try({
+                    try: () => parseGitCommitHash(mergeCommitId),
+                    catch: mapErrorTo(
+                      RepositoryError,
+                      'Invalid merge commit ID.'
+                    ),
+                  })
+                )
+              )
+            ),
+            Effect.tap(() => deleteBranch({ projectId, branch: from }))
+          )
+        )
+      );
+
   return {
     createProject,
     findProjectById,
@@ -329,5 +418,7 @@ export const createAdapter = ({
     switchToBranch,
     getCurrentBranch,
     listBranches,
+    deleteBranch,
+    mergeAndDeleteBranch,
   };
 };

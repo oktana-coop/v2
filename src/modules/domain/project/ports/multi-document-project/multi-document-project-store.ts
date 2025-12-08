@@ -2,6 +2,8 @@ import * as Effect from 'effect/Effect';
 
 import {
   type Branch,
+  type Commit,
+  MergeConflictError,
   MigrationError,
   type ResolvedArtifactId,
 } from '../../../../../modules/infrastructure/version-control';
@@ -51,6 +53,17 @@ export type MultiDocumentProjectGetCurrentBranchArgs = {
 
 export type MultiDocumentProjectListBranchesArgs = {
   projectId: ProjectId;
+};
+
+export type MultiDocumentProjectDeleteBranchArgs = {
+  projectId: ProjectId;
+  branch: Branch;
+};
+
+export type MultiDocumentProjectMergeAndDeleteBranchArgs = {
+  projectId: ProjectId;
+  from: Branch;
+  into: Branch;
 };
 
 export type MultiDocumentProjectStore = {
@@ -110,6 +123,20 @@ export type MultiDocumentProjectStore = {
   ) => Effect.Effect<
     Branch[],
     ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
+  deleteBranch: (
+    args: MultiDocumentProjectDeleteBranchArgs
+  ) => Effect.Effect<
+    void,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
+  mergeAndDeleteBranch: (
+    args: MultiDocumentProjectMergeAndDeleteBranchArgs
+  ) => Effect.Effect<
+    Commit['id'],
+    ValidationError | RepositoryError | NotFoundError | MergeConflictError,
     never
   >;
 };

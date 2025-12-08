@@ -268,6 +268,14 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
     ipcRenderer.invoke('multi-document-project-store:list-branches', {
       ...args,
     }),
+  deleteBranch: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:delete-branch', {
+      ...args,
+    }),
+  mergeAndDeleteBranch: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:merge-and-delete-branch', {
+      ...args,
+    }),
 } as MultiDocumentProjectStorePromiseAPI);
 
 // TODO: Namespace IPC messages

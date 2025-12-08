@@ -10,8 +10,10 @@ import {
   type DeleteDocumentFromMultiDocumentProjectArgs,
   type FindDocumentInMultiDocumentProjectArgs,
   type MultiDocumentProjectCreateAndSwitchToBranchArgs,
+  type MultiDocumentProjectDeleteBranchArgs,
   type MultiDocumentProjectGetCurrentBranchArgs,
   type MultiDocumentProjectListBranchesArgs,
+  type MultiDocumentProjectMergeAndDeleteBranchArgs,
   type MultiDocumentProjectStoreManager,
   type MultiDocumentProjectSwitchToBranchArgs,
   OpenMultiDocumentProjectByIdArgs,
@@ -581,6 +583,46 @@ const registerMultiDocumentProjectStoreEvents = () => {
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.listBranches(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:delete-branch',
+    async (_, args: MultiDocumentProjectDeleteBranchArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.deleteBranch(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:merge-and-delete-branch',
+    async (_, args: MultiDocumentProjectMergeAndDeleteBranchArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.mergeAndDeleteBranch(args)
           )
         )
       )

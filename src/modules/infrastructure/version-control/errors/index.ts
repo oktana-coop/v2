@@ -15,3 +15,7 @@ export class MigrationError extends Cause.YieldableError {
 export class ValidationError extends Cause.YieldableError {
   readonly _tag = 'VersionControlValidationError';
 }
+
+export class MergeConflictError extends Cause.YieldableError {
+  readonly _tag = 'MergeConflictError';
+}
