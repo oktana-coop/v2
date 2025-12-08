@@ -1,22 +1,19 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
-import git, {
-  Errors as IsoGitErrors,
-  type PromiseFsClient as IsoGitFsApi,
-} from 'isomorphic-git';
+import git, { type PromiseFsClient as IsoGitFsApi } from 'isomorphic-git';
 
 import { type Filesystem } from '../../../../../../../modules/infrastructure/filesystem';
 import {
-  type Branch,
+  createAndSwitchToBranch as createAndSwitchToBranchWithGit,
   createGitBlobRef,
-  DEFAULT_AUTHOR_NAME,
   DEFAULT_BRANCH,
-  MergeConflictError,
+  deleteBranch as deleteBranchWithGit,
+  getCurrentBranch as getCurrentBranchWithGit,
+  listBranches as listBranchesWithGit,
+  mergeAndDeleteBranch as mergeAndDeleteBranchWithGit,
   MigrationError,
-  parseBranch,
-  parseGitCommitHash,
+  switchToBranch as switchToBranchWithGit,
 } from '../../../../../../../modules/infrastructure/version-control';
-import { fromNullable } from '../../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../../utils/errors';
 import { projectTypes } from '../../../../constants';
 import {
@@ -139,184 +136,90 @@ export const createAdapter = ({
 
   const createAndSwitchToBranch: SingleDocumentProjectStore['createAndSwitchToBranch'] =
     ({ branch }) =>
-      Effect.tryPromise({
-        try: () =>
-          git.branch({
-            fs: isoGitFs,
-            dir: internalProjectDir,
-            ref: branch,
-            checkout: true,
-          }),
-        catch: mapErrorTo(RepositoryError, 'Git repo error'),
-      });
+      pipe(
+        createAndSwitchToBranchWithGit({
+          isoGitFs,
+          dir: internalProjectDir,
+          branch,
+        }),
+        Effect.catchTag('VersionControlRepositoryError', (err) =>
+          Effect.fail(new RepositoryError(err.message))
+        )
+      );
 
   const switchToBranch: SingleDocumentProjectStore['switchToBranch'] = ({
     branch,
   }) =>
-    Effect.tryPromise({
-      try: () =>
-        git.checkout({
-          fs: isoGitFs,
-          dir: internalProjectDir,
-          ref: branch,
-        }),
-      catch: mapErrorTo(RepositoryError, 'Git repo error'),
-    });
+    pipe(
+      switchToBranchWithGit({
+        isoGitFs,
+        dir: internalProjectDir,
+        branch,
+      }),
+      Effect.catchTag('VersionControlRepositoryError', (err) =>
+        Effect.fail(new RepositoryError(err.message))
+      )
+    );
 
   const getCurrentBranch: SingleDocumentProjectStore['getCurrentBranch'] = () =>
     pipe(
-      Effect.tryPromise({
-        try: () =>
-          git.currentBranch({
-            fs: isoGitFs,
-            dir: internalProjectDir,
-          }),
-        catch: mapErrorTo(
-          RepositoryError,
-          'Error in getting the current branch'
-        ),
+      getCurrentBranchWithGit({
+        isoGitFs,
+        dir: internalProjectDir,
       }),
-      Effect.filterOrFail(
-        (currentBranch) => typeof currentBranch === 'string',
-        () =>
-          new NotFoundError(
-            'Could not retrieve the current branch. The repo is in detached HEAD state.'
-          )
+      Effect.catchTag('VersionControlNotFoundError', (err) =>
+        Effect.fail(new NotFoundError(err.message))
       ),
-      Effect.flatMap((currentBranch) =>
-        Effect.try({
-          try: () => parseBranch(currentBranch),
-          catch: mapErrorTo(RepositoryError, 'Could not parse current branch'),
-        })
+      Effect.catchTag('VersionControlRepositoryError', (err) =>
+        Effect.fail(new RepositoryError(err.message))
       )
     );
 
   const listBranches: SingleDocumentProjectStore['listBranches'] = () =>
     pipe(
-      Effect.tryPromise({
-        try: () =>
-          git.listBranches({
-            fs: isoGitFs,
-            dir: internalProjectDir,
-          }),
-        catch: mapErrorTo(RepositoryError, 'Error when listing branches'),
+      listBranchesWithGit({
+        isoGitFs,
+        dir: internalProjectDir,
       }),
-      Effect.flatMap((branches) =>
-        Effect.forEach(branches, (branch) =>
-          Effect.try({
-            try: () => parseBranch(branch),
-            catch: mapErrorTo(
-              RepositoryError,
-              `Could not parse branch ${branch}`
-            ),
-          })
-        )
+      Effect.catchTag('VersionControlNotFoundError', (err) =>
+        Effect.fail(new NotFoundError(err.message))
+      ),
+      Effect.catchTag('VersionControlRepositoryError', (err) =>
+        Effect.fail(new RepositoryError(err.message))
       )
     );
 
   const deleteBranch: SingleDocumentProjectStore['deleteBranch'] = ({
-    projectId,
     branch,
   }) =>
-    Effect.Do.pipe(
-      Effect.bind('currentBranch', () => getCurrentBranch({ projectId })),
-      Effect.bind('resultBranch', ({ currentBranch }) =>
-        currentBranch === branch
-          ? pipe(
-              Effect.succeed(DEFAULT_BRANCH as Branch),
-              Effect.tap((newBranch) =>
-                switchToBranch({
-                  projectId,
-                  branch: newBranch,
-                })
-              )
-            )
-          : Effect.succeed(currentBranch)
+    pipe(
+      deleteBranchWithGit({
+        isoGitFs,
+        dir: internalProjectDir,
+        branch,
+      }),
+      Effect.catchTag('VersionControlNotFoundError', (err) =>
+        Effect.fail(new NotFoundError(err.message))
       ),
-      Effect.flatMap(
-        ({ currentBranch: preDeletionCurrentBranch, resultBranch }) =>
-          pipe(
-            Effect.tryPromise({
-              try: () =>
-                git.deleteBranch({
-                  fs: isoGitFs,
-                  dir: internalProjectDir,
-                  ref: branch,
-                }),
-              catch: mapErrorTo(
-                RepositoryError,
-                `Error in deleting ${branch} branch.`
-              ),
-            }),
-            // If there was any error in deleting the branch,
-            // we also switch back to the original current branch before returning the error.
-            Effect.tapError((err) =>
-              pipe(
-                switchToBranch({
-                  projectId,
-                  branch: preDeletionCurrentBranch,
-                }),
-                Effect.flatMap(() => Effect.fail(err))
-              )
-            ),
-            // On success, return the resulting branch as the current one.
-            Effect.flatMap(() =>
-              Effect.succeed({
-                currentBranch: resultBranch,
-              })
-            )
-          )
+      Effect.catchTag('VersionControlRepositoryError', (err) =>
+        Effect.fail(new RepositoryError(err.message))
       )
     );
 
   const mergeAndDeleteBranch: SingleDocumentProjectStore['mergeAndDeleteBranch'] =
-    ({ projectId, from, into }) =>
+    ({ from, into }) =>
       pipe(
-        Effect.tryPromise({
-          try: () =>
-            git.merge({
-              fs: isoGitFs,
-              dir: internalProjectDir,
-              ours: into,
-              theirs: from,
-              author: {
-                name: DEFAULT_AUTHOR_NAME,
-              },
-            }),
-          catch: (err) => {
-            console.log(err);
-            if (err instanceof IsoGitErrors.MergeNotSupportedError) {
-              return new MergeConflictError(
-                `Error when trying to merge ${from} into ${into} due to conflicts.`
-              );
-            }
-
-            return new RepositoryError(
-              `Error when trying to merge ${from} into ${into}`
-            );
-          },
+        mergeAndDeleteBranchWithGit({
+          isoGitFs,
+          dir: internalProjectDir,
+          from,
+          into,
         }),
-        Effect.flatMap(({ oid }) =>
-          pipe(
-            fromNullable(
-              oid,
-              () =>
-                // TODO: Revert the whole merge in this case (in a transactional manner).
-                new RepositoryError(
-                  'Could not resolve the new head of the branch after merging.'
-                )
-            ),
-            Effect.flatMap((mergeCommitId) =>
-              Effect.try({
-                try: () => parseGitCommitHash(mergeCommitId),
-                catch: mapErrorTo(RepositoryError, 'Invalid merge commit ID.'),
-              })
-            )
-          )
+        Effect.catchTag('VersionControlNotFoundError', (err) =>
+          Effect.fail(new NotFoundError(err.message))
         ),
-        Effect.tap(() => deleteBranch({ projectId, branch: from })),
-        Effect.tap(() =>
-          switchToBranch({ projectId, branch: DEFAULT_BRANCH as Branch })
+        Effect.catchTag('VersionControlRepositoryError', (err) =>
+          Effect.fail(new RepositoryError(err.message))
         )
       );
 
