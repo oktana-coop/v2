@@ -314,42 +314,56 @@ export const createAdapter = ({
     branch,
   }) =>
     pipe(
-      getCurrentBranch({ projectId }),
-      Effect.tap((currentBranch) =>
-        currentBranch === branch
-          ? switchToBranch({
-              projectId,
-              branch: DEFAULT_BRANCH as Branch,
-            })
-          : Effect.succeed(undefined)
-      ),
-      Effect.flatMap((currentBranch) =>
-        pipe(
-          ensureProjectIdIsFsPath(projectId),
-          Effect.flatMap((projectPath) =>
-            Effect.tryPromise({
-              try: () =>
-                git.deleteBranch({
-                  fs: isoGitFs,
-                  dir: projectPath,
-                  ref: currentBranch,
-                }),
-              catch: mapErrorTo(
-                RepositoryError,
-                `Error in deleting ${currentBranch} branch.`
-              ),
-            })
+      ensureProjectIdIsFsPath(projectId),
+      Effect.flatMap((projectPath) =>
+        Effect.Do.pipe(
+          Effect.bind('currentBranch', () => getCurrentBranch({ projectId })),
+          Effect.bind('resultBranch', ({ currentBranch }) =>
+            currentBranch === branch
+              ? pipe(
+                  Effect.succeed(DEFAULT_BRANCH as Branch),
+                  Effect.tap((newBranch) =>
+                    switchToBranch({
+                      projectId,
+                      branch: newBranch,
+                    })
+                  )
+                )
+              : Effect.succeed(currentBranch)
           ),
-          // If there was any error in deleting the branch,
-          // we also switch back to it before returning the error.
-          Effect.tapError((err) =>
-            pipe(
-              switchToBranch({
-                projectId,
-                branch: currentBranch,
-              }),
-              Effect.flatMap(() => Effect.fail(err))
-            )
+          Effect.flatMap(
+            ({ currentBranch: preDeletionCurrentBranch, resultBranch }) =>
+              pipe(
+                Effect.tryPromise({
+                  try: () =>
+                    git.deleteBranch({
+                      fs: isoGitFs,
+                      dir: projectPath,
+                      ref: branch,
+                    }),
+                  catch: mapErrorTo(
+                    RepositoryError,
+                    `Error in deleting ${branch} branch.`
+                  ),
+                }),
+                // If there was any error in deleting the branch,
+                // we also switch back to the original current branch before returning the error.
+                Effect.tapError((err) =>
+                  pipe(
+                    switchToBranch({
+                      projectId,
+                      branch: preDeletionCurrentBranch,
+                    }),
+                    Effect.flatMap(() => Effect.fail(err))
+                  )
+                ),
+                // On success, return the resulting branch as the current one.
+                Effect.flatMap(() =>
+                  Effect.succeed({
+                    currentBranch: resultBranch,
+                  })
+                )
+              )
           )
         )
       )
@@ -368,6 +382,9 @@ export const createAdapter = ({
                   dir: projectPath,
                   ours: into,
                   theirs: from,
+                  author: {
+                    name: DEFAULT_AUTHOR_NAME,
+                  },
                 }),
               catch: (err) => {
                 if (err instanceof IsoGitErrors.MergeNotSupportedError) {
@@ -402,7 +419,10 @@ export const createAdapter = ({
                 )
               )
             ),
-            Effect.tap(() => deleteBranch({ projectId, branch: from }))
+            Effect.tap(() => deleteBranch({ projectId, branch: from })),
+            Effect.tap(() =>
+              switchToBranch({ projectId, branch: DEFAULT_BRANCH as Branch })
+            )
           )
         )
       );

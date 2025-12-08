@@ -60,6 +60,10 @@ export type MultiDocumentProjectDeleteBranchArgs = {
   branch: Branch;
 };
 
+export type MultiDocumentProjectDeleteBranchResult = {
+  currentBranch: Branch;
+};
+
 export type MultiDocumentProjectMergeAndDeleteBranchArgs = {
   projectId: ProjectId;
   from: Branch;
@@ -128,7 +132,7 @@ export type MultiDocumentProjectStore = {
   deleteBranch: (
     args: MultiDocumentProjectDeleteBranchArgs
   ) => Effect.Effect<
-    void,
+    MultiDocumentProjectDeleteBranchResult,
     ValidationError | RepositoryError | NotFoundError,
     never
   >;

@@ -40,8 +40,12 @@ export const BranchingCommandPalette = ({
   >([]);
   const [experimentationActionOptions, setExperimentationActionOptions] =
     useState<ActionOption[]>([]);
-  const { listBranches, switchToBranch, openCreateBranchDialog } =
-    useBranchInfo();
+  const {
+    mergeAndDeleteBranch,
+    listBranches,
+    switchToBranch,
+    openCreateBranchDialog,
+  } = useBranchInfo();
 
   useEffect(() => {
     if (branches) {
@@ -59,7 +63,7 @@ export const BranchingCommandPalette = ({
             });
       setBranchActionOptions(filteredBranchActionOptions);
     }
-  }, [branches, currentBranch, query]);
+  }, [branches, currentBranch, query, switchToBranch]);
 
   useEffect(() => {
     const getBranches = async () => {
@@ -76,7 +80,7 @@ export const BranchingCommandPalette = ({
     if (branches) {
       const mergeAction = {
         name: 'Merge to Main Branch',
-        onActionSelection: () => {},
+        onActionSelection: () => mergeAndDeleteBranch(currentBranch),
         icon: MergeIcon,
       };
 
@@ -99,7 +103,13 @@ export const BranchingCommandPalette = ({
             });
       setExperimentationActionOptions(filteredExperimentationActionOptions);
     }
-  }, [branches, currentBranch, query]);
+  }, [
+    branches,
+    currentBranch,
+    query,
+    mergeAndDeleteBranch,
+    openCreateBranchDialog,
+  ]);
 
   return (
     <Dialog

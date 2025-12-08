@@ -29,6 +29,7 @@ import {
 } from '../../../../modules/infrastructure/filesystem';
 import {
   type Branch,
+  DEFAULT_BRANCH,
   parseBranch,
   type ResolvedArtifactId,
   urlEncodeArtifactId,
@@ -75,6 +76,8 @@ export type MultiDocumentProjectContextType = {
   isCreateBranchDialogOpen: boolean;
   openCreateBranchDialog: () => void;
   closeCreateBranchDialog: () => void;
+  deleteBranch: (branch: Branch) => Promise<void>;
+  mergeAndDeleteBranch: (branch: Branch) => Promise<void>;
 };
 
 export const MultiDocumentProjectContext =
@@ -430,6 +433,44 @@ export const MultiDocumentProjectProvider = ({
     setIsCreateBranchDialogOpen(false);
   }, []);
 
+  const handleDeleteBranch = useCallback(
+    async (branch: Branch) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot delete branch.'
+        );
+      }
+
+      const { currentBranch: resultingCurrentBranch } = await Effect.runPromise(
+        versionedProjectStore.deleteBranch({ projectId, branch })
+      );
+
+      setCurrentBranch(resultingCurrentBranch);
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const handleMergeAndDeleteBranch = useCallback(
+    async (branch: Branch) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot delete branch.'
+        );
+      }
+
+      await Effect.runPromise(
+        versionedProjectStore.mergeAndDeleteBranch({
+          projectId,
+          from: branch,
+          into: DEFAULT_BRANCH as Branch,
+        })
+      );
+
+      setCurrentBranch(DEFAULT_BRANCH as Branch);
+    },
+    [versionedProjectStore, projectId]
+  );
+
   return (
     <MultiDocumentProjectContext.Provider
       value={{
@@ -452,6 +493,8 @@ export const MultiDocumentProjectProvider = ({
         isCreateBranchDialogOpen,
         openCreateBranchDialog: handleOpenCreateBranchDialog,
         closeCreateBranchDialog: handleCloseCreateBranchDialog,
+        deleteBranch: handleDeleteBranch,
+        mergeAndDeleteBranch: handleMergeAndDeleteBranch,
       }}
     >
       {children}

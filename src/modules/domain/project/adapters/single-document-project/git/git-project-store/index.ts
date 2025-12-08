@@ -9,6 +9,7 @@ import { type Filesystem } from '../../../../../../../modules/infrastructure/fil
 import {
   type Branch,
   createGitBlobRef,
+  DEFAULT_AUTHOR_NAME,
   DEFAULT_BRANCH,
   MergeConflictError,
   MigrationError,
@@ -217,42 +218,54 @@ export const createAdapter = ({
     projectId,
     branch,
   }) =>
-    pipe(
-      getCurrentBranch({ projectId }),
-      Effect.tap((currentBranch) =>
+    Effect.Do.pipe(
+      Effect.bind('currentBranch', () => getCurrentBranch({ projectId })),
+      Effect.bind('resultBranch', ({ currentBranch }) =>
         currentBranch === branch
-          ? switchToBranch({
-              projectId,
-              branch: DEFAULT_BRANCH as Branch,
-            })
-          : Effect.succeed(undefined)
+          ? pipe(
+              Effect.succeed(DEFAULT_BRANCH as Branch),
+              Effect.tap((newBranch) =>
+                switchToBranch({
+                  projectId,
+                  branch: newBranch,
+                })
+              )
+            )
+          : Effect.succeed(currentBranch)
       ),
-      Effect.flatMap((currentBranch) =>
-        pipe(
-          Effect.tryPromise({
-            try: () =>
-              git.deleteBranch({
-                fs: isoGitFs,
-                dir: internalProjectDir,
-                ref: currentBranch,
-              }),
-            catch: mapErrorTo(
-              RepositoryError,
-              `Error in deleting ${currentBranch} branch.`
+      Effect.flatMap(
+        ({ currentBranch: preDeletionCurrentBranch, resultBranch }) =>
+          pipe(
+            Effect.tryPromise({
+              try: () =>
+                git.deleteBranch({
+                  fs: isoGitFs,
+                  dir: internalProjectDir,
+                  ref: branch,
+                }),
+              catch: mapErrorTo(
+                RepositoryError,
+                `Error in deleting ${branch} branch.`
+              ),
+            }),
+            // If there was any error in deleting the branch,
+            // we also switch back to the original current branch before returning the error.
+            Effect.tapError((err) =>
+              pipe(
+                switchToBranch({
+                  projectId,
+                  branch: preDeletionCurrentBranch,
+                }),
+                Effect.flatMap(() => Effect.fail(err))
+              )
             ),
-          }),
-          // If there was any error in deleting the branch,
-          // we also switch back to it before returning the error.
-          Effect.tapError((err) =>
-            pipe(
-              switchToBranch({
-                projectId,
-                branch: currentBranch,
-              }),
-              Effect.flatMap(() => Effect.fail(err))
+            // On success, return the resulting branch as the current one.
+            Effect.flatMap(() =>
+              Effect.succeed({
+                currentBranch: resultBranch,
+              })
             )
           )
-        )
       )
     );
 
@@ -266,8 +279,12 @@ export const createAdapter = ({
               dir: internalProjectDir,
               ours: into,
               theirs: from,
+              author: {
+                name: DEFAULT_AUTHOR_NAME,
+              },
             }),
           catch: (err) => {
+            console.log(err);
             if (err instanceof IsoGitErrors.MergeNotSupportedError) {
               return new MergeConflictError(
                 `Error when trying to merge ${from} into ${into} due to conflicts.`
@@ -297,7 +314,10 @@ export const createAdapter = ({
             )
           )
         ),
-        Effect.tap(() => deleteBranch({ projectId, branch: from }))
+        Effect.tap(() => deleteBranch({ projectId, branch: from })),
+        Effect.tap(() =>
+          switchToBranch({ projectId, branch: DEFAULT_BRANCH as Branch })
+        )
       );
 
   // This is a no-op in the Git document repo.

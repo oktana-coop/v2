@@ -18,6 +18,8 @@ export const useBranchInfo = () => {
     isCreateBranchDialogOpen: isCreateBranchDialogOpenInMultiDocumentProject,
     openCreateBranchDialog: openCreateBranchDialogInMultiDocumentProject,
     closeCreateBranchDialog: closeCreateBranchDialogInMultiDocumentProject,
+    deleteBranch: deleteBranchInMultiDocumentProject,
+    mergeAndDeleteBranch: mergeAndDeleteBranchInMultiDocumentProject,
   } = useContext(MultiDocumentProjectContext);
   const {
     currentBranch: singleDocumentProjectCurrentBranch,
@@ -27,6 +29,8 @@ export const useBranchInfo = () => {
     isCreateBranchDialogOpen: isCreateBranchDialogOpenInSingleDocumentProject,
     openCreateBranchDialog: openCreateBranchDialogInSingleDocumentProject,
     closeCreateBranchDialog: closeCreateBranchDialogInSingleDocumentProject,
+    deleteBranch: deleteBranchInSingleDocumentProject,
+    mergeAndDeleteBranch: mergeAndDeleteBranchInSingleDocumentProject,
   } = useContext(SingleDocumentProjectContext);
 
   const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
@@ -117,6 +121,30 @@ export const useBranchInfo = () => {
     ]
   );
 
+  const deleteBranch = useCallback(
+    (branch: Branch) =>
+      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+        ? deleteBranchInMultiDocumentProject(branch)
+        : deleteBranchInSingleDocumentProject(branch),
+    [
+      projectType,
+      deleteBranchInMultiDocumentProject,
+      deleteBranchInSingleDocumentProject,
+    ]
+  );
+
+  const mergeAndDeleteBranch = useCallback(
+    (branch: Branch) =>
+      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+        ? mergeAndDeleteBranchInMultiDocumentProject(branch)
+        : mergeAndDeleteBranchInSingleDocumentProject(branch),
+    [
+      projectType,
+      mergeAndDeleteBranchInMultiDocumentProject,
+      mergeAndDeleteBranchInSingleDocumentProject,
+    ]
+  );
+
   return {
     currentBranch,
     listBranches,
@@ -125,5 +153,7 @@ export const useBranchInfo = () => {
     isCreateBranchDialogOpen,
     openCreateBranchDialog,
     closeCreateBranchDialog,
+    deleteBranch,
+    mergeAndDeleteBranch,
   };
 };

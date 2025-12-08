@@ -42,6 +42,10 @@ export type SingleDocumentProjectDeleteBranchArgs = {
   branch: Branch;
 };
 
+export type SingleDocumentProjectDeleteBranchResult = {
+  currentBranch: Branch;
+};
+
 export type SingleDocumentProjectMergeAndDeleteBranchArgs = {
   projectId: ProjectId;
   from: Branch;
@@ -96,7 +100,7 @@ export type SingleDocumentProjectStore = {
   deleteBranch: (
     args: SingleDocumentProjectDeleteBranchArgs
   ) => Effect.Effect<
-    void,
+    SingleDocumentProjectDeleteBranchResult,
     ValidationError | RepositoryError | NotFoundError,
     never
   >;
