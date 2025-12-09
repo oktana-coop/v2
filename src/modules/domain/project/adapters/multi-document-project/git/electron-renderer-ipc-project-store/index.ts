@@ -5,12 +5,17 @@ import {
 import {
   MergeConflictError,
   MigrationError,
+  VersionControlMergeConflictErrorTag,
+  VersionControlMigrationErrorTag,
 } from '../../../../../../../modules/infrastructure/version-control';
 import { type EffectErrorType } from '../../../../../../../utils/effect';
 import {
   NotFoundError,
   RepositoryError,
   ValidationError,
+  VersionedProjectNotFoundErrorTag,
+  VersionedProjectRepositoryErrorTag,
+  VersionedProjectValidationErrorTag,
 } from '../../../../errors';
 import { MultiDocumentProjectStore } from '../../../../ports/multi-document-project';
 
@@ -22,8 +27,8 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<MultiDocumentProjectStore['createProject']>>
       >,
@@ -34,10 +39,10 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
-        NotFoundError,
-        MigrationError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<MultiDocumentProjectStore['findProjectById']>
@@ -50,10 +55,10 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
-        NotFoundError,
-        MigrationError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<MultiDocumentProjectStore['listProjectDocuments']>
@@ -66,10 +71,10 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
-        NotFoundError,
-        MigrationError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<MultiDocumentProjectStore['addDocumentToProject']>
@@ -82,10 +87,10 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
-        NotFoundError,
-        MigrationError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<MultiDocumentProjectStore['deleteDocumentFromProject']>
@@ -98,10 +103,10 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
-        NotFoundError,
-        MigrationError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<MultiDocumentProjectStore['findDocumentInProject']>
@@ -114,8 +119,8 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<MultiDocumentProjectStore['createAndSwitchToBranch']>
@@ -128,8 +133,8 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<MultiDocumentProjectStore['switchToBranch']>>
       >,
@@ -140,9 +145,9 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
-        NotFoundError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<MultiDocumentProjectStore['getCurrentBranch']>
@@ -155,9 +160,9 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
-        NotFoundError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<MultiDocumentProjectStore['listBranches']>>
       >,
@@ -168,9 +173,9 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
-        NotFoundError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<MultiDocumentProjectStore['deleteBranch']>>
       >,
@@ -181,10 +186,10 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
-        NotFoundError,
-        MergeConflictError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMergeConflictErrorTag]: MergeConflictError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<MultiDocumentProjectStore['mergeAndDeleteBranch']>

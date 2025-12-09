@@ -28,12 +28,16 @@ import {
 } from '../../../../../../../modules/infrastructure/version-control';
 import { fromNullable } from '../../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../../utils/errors';
-import { type Filesystem } from '../../../../../../infrastructure/filesystem';
+import {
+  type Filesystem,
+  FilesystemNotFoundErrorTag,
+} from '../../../../../../infrastructure/filesystem';
 import { PRIMARY_RICH_TEXT_REPRESENTATION } from '../../../../constants';
 import {
   NotFoundError,
   RepositoryError,
   ValidationError,
+  VersionedDocumentNotFoundErrorTag,
 } from '../../../../errors';
 import {
   CURRENT_SCHEMA_VERSION,
@@ -178,7 +182,7 @@ export const createAdapter = ({
       Effect.flatMap((documentPath) =>
         pipe(
           filesystem.readFile(documentPath),
-          Effect.catchTag('FilesystemNotFoundError', () =>
+          Effect.catchTag(FilesystemNotFoundErrorTag, () =>
             Effect.fail(
               new NotFoundError(`File with path ${documentPath} not found`)
             )
@@ -390,7 +394,7 @@ export const createAdapter = ({
             return new RepositoryError('Git repo error');
           },
         }),
-        Effect.catchTag('VersionedDocumentNotFoundError', () =>
+        Effect.catchTag(VersionedDocumentNotFoundErrorTag, () =>
           Effect.succeed([])
         ),
         Effect.map((gitLog) =>

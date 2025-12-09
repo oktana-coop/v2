@@ -19,6 +19,8 @@ import {
   mergeAndDeleteBranch as mergeAndDeleteBranchWithGit,
   type ResolvedArtifactId,
   switchToBranch as switchToBranchWithGit,
+  VersionControlNotFoundErrorTag,
+  VersionControlRepositoryErrorTag,
   versionedArtifactTypes,
 } from '../../../../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../../../../utils/errors';
@@ -219,7 +221,7 @@ export const createAdapter = ({
               dir: projectPath,
               branch,
             }),
-            Effect.catchTag('VersionControlRepositoryError', (err) =>
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
               Effect.fail(new RepositoryError(err.message))
             )
           )
@@ -239,7 +241,7 @@ export const createAdapter = ({
             dir: projectPath,
             branch,
           }),
-          Effect.catchTag('VersionControlRepositoryError', (err) =>
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
             Effect.fail(new RepositoryError(err.message))
           )
         )
@@ -257,10 +259,10 @@ export const createAdapter = ({
             isoGitFs,
             dir: projectPath,
           }),
-          Effect.catchTag('VersionControlNotFoundError', (err) =>
+          Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
             Effect.fail(new NotFoundError(err.message))
           ),
-          Effect.catchTag('VersionControlRepositoryError', (err) =>
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
             Effect.fail(new RepositoryError(err.message))
           )
         )
@@ -278,10 +280,10 @@ export const createAdapter = ({
             isoGitFs,
             dir: projectPath,
           }),
-          Effect.catchTag('VersionControlNotFoundError', (err) =>
+          Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
             Effect.fail(new NotFoundError(err.message))
           ),
-          Effect.catchTag('VersionControlRepositoryError', (err) =>
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
             Effect.fail(new RepositoryError(err.message))
           )
         )
@@ -301,10 +303,10 @@ export const createAdapter = ({
             dir: projectPath,
             branch,
           }),
-          Effect.catchTag('VersionControlNotFoundError', (err) =>
+          Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
             Effect.fail(new NotFoundError(err.message))
           ),
-          Effect.catchTag('VersionControlRepositoryError', (err) =>
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
             Effect.fail(new RepositoryError(err.message))
           )
         )
@@ -323,10 +325,10 @@ export const createAdapter = ({
               from,
               into,
             }),
-            Effect.catchTag('VersionControlNotFoundError', (err) =>
+            Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
               Effect.fail(new NotFoundError(err.message))
             ),
-            Effect.catchTag('VersionControlRepositoryError', (err) =>
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
               Effect.fail(new RepositoryError(err.message))
             )
           )

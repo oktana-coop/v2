@@ -2,7 +2,10 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import git, { type PromiseFsClient as IsoGitFsApi } from 'isomorphic-git';
 
-import { type Filesystem } from '../../../../../../../modules/infrastructure/filesystem';
+import {
+  type Filesystem,
+  FilesystemNotFoundErrorTag,
+} from '../../../../../../../modules/infrastructure/filesystem';
 import {
   createAndSwitchToBranch as createAndSwitchToBranchWithGit,
   createGitBlobRef,
@@ -13,6 +16,8 @@ import {
   mergeAndDeleteBranch as mergeAndDeleteBranchWithGit,
   MigrationError,
   switchToBranch as switchToBranchWithGit,
+  VersionControlNotFoundErrorTag,
+  VersionControlRepositoryErrorTag,
 } from '../../../../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../../../../utils/errors';
 import { projectTypes } from '../../../../constants';
@@ -87,7 +92,7 @@ export const createAdapter = ({
       Effect.tap(() =>
         pipe(
           filesystem.readFile(documentInternalPath),
-          Effect.catchTag('FilesystemNotFoundError', () =>
+          Effect.catchTag(FilesystemNotFoundErrorTag, () =>
             Effect.fail(
               new NotFoundError(
                 `File with path ${documentInternalPath} not found`
@@ -142,7 +147,7 @@ export const createAdapter = ({
           dir: internalProjectDir,
           branch,
         }),
-        Effect.catchTag('VersionControlRepositoryError', (err) =>
+        Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
           Effect.fail(new RepositoryError(err.message))
         )
       );
@@ -156,7 +161,7 @@ export const createAdapter = ({
         dir: internalProjectDir,
         branch,
       }),
-      Effect.catchTag('VersionControlRepositoryError', (err) =>
+      Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
         Effect.fail(new RepositoryError(err.message))
       )
     );
@@ -167,10 +172,10 @@ export const createAdapter = ({
         isoGitFs,
         dir: internalProjectDir,
       }),
-      Effect.catchTag('VersionControlNotFoundError', (err) =>
+      Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
         Effect.fail(new NotFoundError(err.message))
       ),
-      Effect.catchTag('VersionControlRepositoryError', (err) =>
+      Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
         Effect.fail(new RepositoryError(err.message))
       )
     );
@@ -181,10 +186,10 @@ export const createAdapter = ({
         isoGitFs,
         dir: internalProjectDir,
       }),
-      Effect.catchTag('VersionControlNotFoundError', (err) =>
+      Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
         Effect.fail(new NotFoundError(err.message))
       ),
-      Effect.catchTag('VersionControlRepositoryError', (err) =>
+      Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
         Effect.fail(new RepositoryError(err.message))
       )
     );
@@ -198,10 +203,10 @@ export const createAdapter = ({
         dir: internalProjectDir,
         branch,
       }),
-      Effect.catchTag('VersionControlNotFoundError', (err) =>
+      Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
         Effect.fail(new NotFoundError(err.message))
       ),
-      Effect.catchTag('VersionControlRepositoryError', (err) =>
+      Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
         Effect.fail(new RepositoryError(err.message))
       )
     );
@@ -215,10 +220,10 @@ export const createAdapter = ({
           from,
           into,
         }),
-        Effect.catchTag('VersionControlNotFoundError', (err) =>
+        Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
           Effect.fail(new NotFoundError(err.message))
         ),
-        Effect.catchTag('VersionControlRepositoryError', (err) =>
+        Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
           Effect.fail(new RepositoryError(err.message))
         )
       );

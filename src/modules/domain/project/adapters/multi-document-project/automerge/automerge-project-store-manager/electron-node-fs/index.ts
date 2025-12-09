@@ -17,6 +17,7 @@ import {
   AccessControlError as FilesystemAccessControlError,
   DataIntegrityError as FilesystemDataIntegrityError,
   type Filesystem,
+  FilesystemNotFoundErrorTag,
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../../../../modules/infrastructure/filesystem';
@@ -152,7 +153,7 @@ const readProjectIdFromDirIndexFile = ({
 
   return pipe(
     readFile(indexFilePath),
-    Effect.catchTag('FilesystemNotFoundError', () =>
+    Effect.catchTag(FilesystemNotFoundErrorTag, () =>
       Effect.fail(
         new VersionedProjectMissingProjectMetadataError(
           'Index file not found in the specified directory'

@@ -8,6 +8,8 @@ import {
   DEFAULT_BRANCH,
   migrateIfNeeded,
   MigrationError,
+  VersionControlNotFoundErrorTag,
+  VersionControlRepositoryErrorTag,
   versionedArtifactTypes,
 } from '../../../../../../../modules/infrastructure/version-control';
 import { fromNullable } from '../../../../../../../utils/effect';
@@ -93,10 +95,10 @@ export const createAdapter = (
             handle,
             CURRENT_SINGLE_DOCUMENT_PROJECT_SCHEMA_VERSION
           ),
-          Effect.catchTag('VersionControlRepositoryError', () =>
+          Effect.catchTag(VersionControlRepositoryErrorTag, () =>
             Effect.fail(new RepositoryError('Automerge repo error'))
           ),
-          Effect.catchTag('VersionControlNotFoundError', () =>
+          Effect.catchTag(VersionControlNotFoundErrorTag, () =>
             Effect.fail(new NotFoundError('Not found'))
           )
         )

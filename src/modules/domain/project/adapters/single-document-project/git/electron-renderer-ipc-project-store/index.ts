@@ -6,12 +6,16 @@ import {
   MergeConflictError,
   MigrationError,
   VersionControlMergeConflictErrorTag,
+  VersionControlMigrationErrorTag,
 } from '../../../../../../../modules/infrastructure/version-control';
 import { type EffectErrorType } from '../../../../../../../utils/effect';
 import {
   NotFoundError,
   RepositoryError,
   ValidationError,
+  VersionedProjectNotFoundErrorTag,
+  VersionedProjectRepositoryErrorTag,
+  VersionedProjectValidationErrorTag,
 } from '../../../../errors';
 import { SingleDocumentProjectStore } from '../../../../ports/single-document-project';
 
@@ -25,7 +29,7 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        RepositoryError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<SingleDocumentProjectStore['createSingleDocumentProject']>
@@ -43,10 +47,10 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
-        NotFoundError,
-        MigrationError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<SingleDocumentProjectStore['findDocumentInProject']>
@@ -59,10 +63,10 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
-        NotFoundError,
-        MigrationError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<SingleDocumentProjectStore['findProjectById']>
@@ -75,10 +79,10 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
-        NotFoundError,
-        MigrationError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<SingleDocumentProjectStore['getProjectName']>
@@ -91,8 +95,8 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<SingleDocumentProjectStore['createAndSwitchToBranch']>
@@ -105,8 +109,8 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<SingleDocumentProjectStore['switchToBranch']>
@@ -119,9 +123,9 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
-        NotFoundError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<SingleDocumentProjectStore['getCurrentBranch']>
@@ -134,9 +138,9 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
-        NotFoundError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<SingleDocumentProjectStore['listBranches']>>
       >,
@@ -147,9 +151,9 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
-        NotFoundError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<SingleDocumentProjectStore['deleteBranch']>>
       >,
@@ -160,9 +164,9 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
-        ValidationError,
-        RepositoryError,
-        NotFoundError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
         [VersionControlMergeConflictErrorTag]: MergeConflictError,
       } as ErrorRegistry<
         EffectErrorType<
@@ -174,7 +178,7 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
   disconnect: (...args: Parameters<SingleDocumentProjectStore['disconnect']>) =>
     effectifyIPCPromise(
       {
-        RepositoryError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<SingleDocumentProjectStore['disconnect']>>
       >,

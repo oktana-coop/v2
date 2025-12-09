@@ -38,6 +38,7 @@ import {
   parseBranch,
   type ResolvedArtifactId,
   urlEncodeArtifactId,
+  VersionControlMergeConflictErrorTag,
 } from '../../../../modules/infrastructure/version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
@@ -482,7 +483,7 @@ export const MultiDocumentProjectProvider = ({
               notification: null,
             }))
           ),
-          Effect.catchTag('VersionControlMergeConflictError', (err) => {
+          Effect.catchTag(VersionControlMergeConflictErrorTag, (err) => {
             console.error(err);
             const notification = createErrorNotification({
               title: 'Merge Conflict',

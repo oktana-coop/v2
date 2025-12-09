@@ -1,11 +1,7 @@
 import { createContext, useState } from 'react';
 
-import {
-  createErrorNotification,
-  createInfoNotification,
-  type Notification,
-} from '../notification';
-import { NotificationType, notificationTypes } from '../notification-types';
+import { type Notification } from '../notification';
+import { NotificationType } from '../notification-types';
 
 export type DispatchNotificationArgs = {
   type: NotificationType;

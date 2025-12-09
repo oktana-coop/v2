@@ -12,6 +12,7 @@ import {
   MergeConflictError,
   NotFoundError,
   RepositoryError,
+  VersionControlNotFoundErrorTag,
 } from '../../errors';
 import {
   type Branch,
@@ -150,7 +151,7 @@ export const getBranchCommitHistory = ({
         return new RepositoryError('Git repo error');
       },
     }),
-    Effect.catchTag('VersionControlNotFoundError', () => Effect.succeed([])),
+    Effect.catchTag(VersionControlNotFoundErrorTag, () => Effect.succeed([])),
     Effect.map((gitLog) =>
       gitLog.map(
         (commitInfo) =>

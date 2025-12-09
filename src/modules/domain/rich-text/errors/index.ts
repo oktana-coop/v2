@@ -1,17 +1,25 @@
 import * as Cause from 'effect/Cause';
 
+export const VersionedDocumentRepositoryErrorTag =
+  'VersionedDocumentRepositoryError';
 export class RepositoryError extends Cause.YieldableError {
-  readonly _tag = 'VersionedDocumentRepositoryError';
+  readonly _tag = VersionedDocumentRepositoryErrorTag;
 }
 
+export const VersionedDocumentNotFoundErrorTag =
+  'VersionedDocumentNotFoundError';
 export class NotFoundError extends Cause.YieldableError {
-  readonly _tag = 'VersionedDocumentNotFoundError';
+  readonly _tag = VersionedDocumentNotFoundErrorTag;
 }
 
+export const VersionedDocumentRepresentationTransformErrorTag =
+  'VersionedDocumentRepresentationTransformError';
 export class RepresentationTransformError extends Cause.YieldableError {
-  readonly _tag = 'VersionedDocumentRepresentationTransformError';
+  readonly _tag = VersionedDocumentRepresentationTransformErrorTag;
 }
 
+export const VersionedDocumentValidationErrorTag =
+  'VersionedDocumentValidationError';
 export class ValidationError extends Cause.YieldableError {
-  readonly _tag = 'VersionedDocumentValidationError';
+  readonly _tag = VersionedDocumentValidationErrorTag;
 }
