@@ -424,6 +424,7 @@ export const SingleDocumentProjectProvider = ({
         versionedProjectStore.deleteBranch({ projectId, branch })
       );
 
+      setBranchToDelete(null);
       setCurrentBranch(resultingCurrentBranch);
     },
     [versionedProjectStore, projectId]
