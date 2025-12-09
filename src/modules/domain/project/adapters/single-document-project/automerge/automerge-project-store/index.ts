@@ -200,6 +200,8 @@ export const createAdapter = (
       );
 
   return {
+    // TODO: Implement branching in Automerge
+    supportsBranching: false,
     createSingleDocumentProject,
     findProjectById,
     findDocumentInProject,

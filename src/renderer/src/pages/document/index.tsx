@@ -89,6 +89,7 @@ const DocumentIndex = () => {
   const openDocument = useOpenDocument();
   const openDirectory = useOpenDirectory();
   const {
+    supportsBranching,
     currentBranch,
     createAndSwitchToBranch,
     isCreateBranchDialogOpen,
@@ -202,12 +203,14 @@ const DocumentIndex = () => {
             </SidebarLayout>
           </ProseMirrorProvider>
         </div>
-        <div className="w-full">
-          <BottomBar
-            currentBranch={currentBranch}
-            onBranchButtonClick={openBranchingCommandPalette}
-          />
-        </div>
+        {supportsBranching && (
+          <div className="w-full">
+            <BottomBar
+              currentBranch={currentBranch}
+              onBranchButtonClick={openBranchingCommandPalette}
+            />
+          </div>
+        )}
       </div>
     </Layout>
   );

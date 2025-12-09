@@ -23,6 +23,7 @@ export const useBranchInfo = () => {
     branchToDelete: branchToDeleteInMultiDocumentProject,
     openDeleteBranchDialog: openDeleteBranchDialogInMultiDocumentProject,
     closeDeleteBranchDialog: closeDeleteBranchDialogInMultiDocumentProject,
+    supportsBranching: multiDocumentProjectSupportsBranching,
   } = useContext(MultiDocumentProjectContext);
   const {
     currentBranch: singleDocumentProjectCurrentBranch,
@@ -37,12 +38,14 @@ export const useBranchInfo = () => {
     branchToDelete: branchToDeleteInSingleDocumentProject,
     openDeleteBranchDialog: openDeleteBranchDialogInSingleDocumentProject,
     closeDeleteBranchDialog: closeDeleteBranchDialogInSingleDocumentProject,
+    supportsBranching: singleDocumentProjectSupportsBranching,
   } = useContext(SingleDocumentProjectContext);
 
   const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
   const [isCreateBranchDialogOpen, setIsCreateBranchDialogOpen] =
     useState<boolean>(false);
   const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
+  const [supportsBranching, setSupportsBranching] = useState<boolean>(false);
 
   useEffect(() => {
     const branch =
@@ -77,6 +80,18 @@ export const useBranchInfo = () => {
   }, [
     branchToDeleteInMultiDocumentProject,
     branchToDeleteInSingleDocumentProject,
+    projectType,
+  ]);
+
+  useEffect(() => {
+    const branchingSupported =
+      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+        ? multiDocumentProjectSupportsBranching
+        : singleDocumentProjectSupportsBranching;
+    setSupportsBranching(branchingSupported);
+  }, [
+    multiDocumentProjectSupportsBranching,
+    singleDocumentProjectSupportsBranching,
     projectType,
   ]);
 
@@ -201,5 +216,6 @@ export const useBranchInfo = () => {
     branchToDelete,
     openDeleteBranchDialog,
     closeDeleteBranchDialog,
+    supportsBranching,
   };
 };

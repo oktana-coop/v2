@@ -233,6 +233,7 @@ export const createAdapter = ({
     Effect.succeed(undefined);
 
   return {
+    supportsBranching: true,
     createSingleDocumentProject,
     findProjectById,
     findDocumentInProject,

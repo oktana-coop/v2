@@ -22,6 +22,7 @@ import { MultiDocumentProjectStore } from '../../../../ports/multi-document-proj
 // This adapter just calls the relevant exposed functions from the preload script
 // to send the messages to the main Electron process which will do the heavy lifting.
 export const createAdapter = (): MultiDocumentProjectStore => ({
+  supportsBranching: true,
   createProject: (
     ...args: Parameters<MultiDocumentProjectStore['createProject']>
   ) =>

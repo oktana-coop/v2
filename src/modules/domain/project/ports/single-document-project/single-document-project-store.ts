@@ -53,6 +53,7 @@ export type SingleDocumentProjectMergeAndDeleteBranchArgs = {
 };
 
 export type SingleDocumentProjectStore = {
+  supportsBranching: boolean;
   createSingleDocumentProject: (
     args: CreateSingleDocumentProjectArgs
   ) => Effect.Effect<ProjectId, RepositoryError, never>;

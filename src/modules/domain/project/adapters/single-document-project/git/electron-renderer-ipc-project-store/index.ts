@@ -22,6 +22,7 @@ import { SingleDocumentProjectStore } from '../../../../ports/single-document-pr
 // This adapter just calls the relevant exposed functions from the preload script
 // to send the messages to the main Electron process which will do the heavy lifting.
 export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
+  supportsBranching: true,
   createSingleDocumentProject: (
     ...args: Parameters<
       SingleDocumentProjectStore['createSingleDocumentProject']

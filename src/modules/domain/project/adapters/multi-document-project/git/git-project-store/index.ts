@@ -336,6 +336,7 @@ export const createAdapter = ({
       );
 
   return {
+    supportsBranching: true,
     createProject,
     findProjectById,
     listProjectDocuments,

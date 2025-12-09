@@ -71,6 +71,7 @@ export type SingleDocumentProjectContextType = {
   branchToDelete: Branch | null;
   openDeleteBranchDialog: (branch: Branch) => void;
   closeDeleteBranchDialog: () => void;
+  supportsBranching: boolean;
 };
 
 export const SingleDocumentProjectContext =
@@ -129,6 +130,7 @@ export const SingleDocumentProjectProvider = ({
   const [isCreateBranchDialogOpen, setIsCreateBranchDialogOpen] =
     useState<boolean>(false);
   const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
+  const [supportsBranching, setSupportsBranching] = useState<boolean>(false);
   const { dispatchNotification } = useContext(NotificationsContext);
 
   const documentInternalPath =
@@ -354,6 +356,12 @@ export const SingleDocumentProjectProvider = ({
     [projectIdInPath]
   );
 
+  useEffect(() => {
+    if (versionedProjectStore) {
+      setSupportsBranching(versionedProjectStore.supportsBranching);
+    }
+  }, [versionedProjectStore]);
+
   const handleListBranches = useCallback(async () => {
     if (!versionedProjectStore || !projectId) {
       throw new Error(
@@ -521,6 +529,7 @@ export const SingleDocumentProjectProvider = ({
         branchToDelete,
         openDeleteBranchDialog: handleOpenDeleteBranchDialog,
         closeDeleteBranchDialog: handleCloseDeleteBranchDialog,
+        supportsBranching,
       }}
     >
       {children}

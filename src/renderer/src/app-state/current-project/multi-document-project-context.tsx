@@ -87,6 +87,7 @@ export type MultiDocumentProjectContextType = {
   branchToDelete: Branch | null;
   openDeleteBranchDialog: (branch: Branch) => void;
   closeDeleteBranchDialog: () => void;
+  supportsBranching: boolean;
 };
 
 export const MultiDocumentProjectContext =
@@ -136,6 +137,7 @@ export const MultiDocumentProjectProvider = ({
     useState<boolean>(false);
   const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
   const { dispatchNotification } = useContext(NotificationsContext);
+  const [supportsBranching, setSupportsBranching] = useState<boolean>(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -331,6 +333,12 @@ export const MultiDocumentProjectProvider = ({
 
     return { projectId, documentId: newDocumentId, path: newFilePath };
   }, [versionedDocumentStore, versionedProjectStore]);
+
+  useEffect(() => {
+    if (versionedProjectStore) {
+      setSupportsBranching(versionedProjectStore.supportsBranching);
+    }
+  }, [versionedProjectStore]);
 
   const handleFindDocumentInProject = async (args: {
     projectId: ProjectId;
@@ -549,6 +557,7 @@ export const MultiDocumentProjectProvider = ({
         branchToDelete,
         openDeleteBranchDialog: handleOpenDeleteBranchDialog,
         closeDeleteBranchDialog: handleCloseDeleteBranchDialog,
+        supportsBranching,
       }}
     >
       {children}

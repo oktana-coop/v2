@@ -71,6 +71,7 @@ export type MultiDocumentProjectMergeAndDeleteBranchArgs = {
 };
 
 export type MultiDocumentProjectStore = {
+  supportsBranching: boolean;
   createProject: (
     args: CreateMultiDocumentProjectArgs
   ) => Effect.Effect<ProjectId, ValidationError | RepositoryError, never>;
