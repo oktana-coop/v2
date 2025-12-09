@@ -1,17 +1,27 @@
 import * as Cause from 'effect/Cause';
 
+export const VersionControlRepositoryErrorTag = 'VersionControlRepositoryError';
 export class RepositoryError extends Cause.YieldableError {
-  readonly _tag = 'VersionControlRepositoryError';
+  readonly _tag = VersionControlRepositoryErrorTag;
 }
 
+export const VersionControlNotFoundErrorTag = 'VersionControlNotFoundError';
 export class NotFoundError extends Cause.YieldableError {
-  readonly _tag = 'VersionControlNotFoundError';
+  readonly _tag = VersionControlNotFoundErrorTag;
 }
 
+export const VersionControlMigrationErrorTag = 'VersionControlMigrationError';
 export class MigrationError extends Cause.YieldableError {
-  readonly _tag = 'VersionControlMigrationError';
+  readonly _tag = VersionControlMigrationErrorTag;
 }
 
+export const VersionControlValidationErrorTag = 'VersionControlValidationError';
 export class ValidationError extends Cause.YieldableError {
-  readonly _tag = 'VersionControlValidationError';
+  readonly _tag = VersionControlValidationErrorTag;
+}
+
+export const VersionControlMergeConflictErrorTag =
+  'VersionControlMergeConflictError';
+export class MergeConflictError extends Cause.YieldableError {
+  readonly _tag = VersionControlMergeConflictErrorTag;
 }

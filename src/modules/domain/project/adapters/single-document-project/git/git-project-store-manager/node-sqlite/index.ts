@@ -113,15 +113,17 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                   createDocument: versionedDocumentStore.createDocument,
                   createSingleDocumentProject:
                     versionedProjectStore.createSingleDocumentProject,
+                  getCurrentBranch: versionedProjectStore.getCurrentBranch,
                 })({
                   content: null,
                   writeToFileWithPath: DOCUMENT_INTERNAL_PATH,
                 }),
-                Effect.map(({ documentId, projectId }) => ({
+                Effect.map(({ documentId, projectId, currentBranch }) => ({
                   versionedProjectStore,
                   versionedDocumentStore,
                   projectId,
                   documentId,
+                  currentBranch,
                   file: newFile,
                   // The name is derived by the file name in this case
                   name: newFile.name,
@@ -194,6 +196,11 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
               ({ versionedProjectStore, projectFilePath }) =>
                 versionedProjectStore.findDocumentInProject(projectFilePath)
             ),
+            Effect.bind(
+              'currentBranch',
+              ({ versionedProjectStore, projectFilePath: projectId }) =>
+                versionedProjectStore.getCurrentBranch({ projectId })
+            ),
             Effect.map(
               ({
                 file,
@@ -201,11 +208,13 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                 versionedDocumentStore,
                 projectFilePath: projectId,
                 documentId,
+                currentBranch,
               }) => ({
                 versionedProjectStore,
                 versionedDocumentStore,
                 projectId,
                 documentId,
+                currentBranch,
                 file,
                 // The name is derived by the file name in this case
                 name: file.name,

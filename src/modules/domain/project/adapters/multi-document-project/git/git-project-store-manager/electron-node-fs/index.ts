@@ -24,18 +24,29 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
           Effect.bind('projectId', ({ directory, versionedProjectStore }) =>
             versionedProjectStore.createProject({ path: directory.path })
           ),
-          Effect.map(({ directory, versionedProjectStore, projectId }) => ({
-            versionedProjectStore,
-            versionedDocumentStore: createVersionedDocumentStoreAdapter({
-              isoGitFs: fs,
-              filesystem,
+          Effect.bind('currentBranch', ({ versionedProjectStore, projectId }) =>
+            versionedProjectStore.getCurrentBranch({ projectId })
+          ),
+          Effect.map(
+            ({
+              directory,
+              versionedProjectStore,
               projectId,
-              projectDir: projectId,
-              managesFilesystemWorkdir: true,
-            }),
-            projectId,
-            directory,
-          }))
+              currentBranch,
+            }) => ({
+              versionedProjectStore,
+              versionedDocumentStore: createVersionedDocumentStoreAdapter({
+                isoGitFs: fs,
+                filesystem,
+                projectId,
+                projectDir: projectId,
+                managesFilesystemWorkdir: true,
+              }),
+              projectId,
+              directory,
+              currentBranch,
+            })
+          )
         );
 
   const openMultiDocumentProjectById: MultiDocumentProjectStoreManager['openMultiDocumentProjectById'] =
@@ -54,7 +65,10 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
               })
             )
           ),
-          Effect.map(({ directory, versionedProjectStore }) => ({
+          Effect.bind('currentBranch', ({ versionedProjectStore }) =>
+            versionedProjectStore.getCurrentBranch({ projectId })
+          ),
+          Effect.map(({ directory, versionedProjectStore, currentBranch }) => ({
             versionedProjectStore,
             versionedDocumentStore: createVersionedDocumentStoreAdapter({
               isoGitFs: fs,
@@ -65,6 +79,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
             }),
             projectId,
             directory,
+            currentBranch,
           }))
         );
 

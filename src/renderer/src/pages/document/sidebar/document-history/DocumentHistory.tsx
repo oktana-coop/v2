@@ -18,13 +18,15 @@ const DocumentHistoryContent = ({
   onChangeClick,
   selectedChange,
 }: DocumentHistoryPanelProps) => {
-  const { loadingHistory } = useContext(CurrentDocumentContext);
+  const { versionedDocumentId, loadingHistory } = useContext(
+    CurrentDocumentContext
+  );
 
   if (loadingHistory) {
     return <ChangeLogSkeleton />;
   }
 
-  if (changes.length === 0) {
+  if (!versionedDocumentId || changes.length === 0) {
     return <EmptyView />;
   }
 

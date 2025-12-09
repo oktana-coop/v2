@@ -1,6 +1,9 @@
 import * as Effect from 'effect/Effect';
 
 import {
+  type Branch,
+  type Commit,
+  MergeConflictError,
   MigrationError,
   type ResolvedArtifactId,
 } from '../../../../infrastructure/version-control';
@@ -16,7 +19,41 @@ export type CreateSingleDocumentProjectArgs = {
   name: string | null;
 };
 
+export type SingleDocumentProjectCreateAndSwitchToBranchArgs = {
+  projectId: ProjectId;
+  branch: Branch;
+};
+
+export type SingleDocumentProjectSwitchToBranchArgs = {
+  projectId: ProjectId;
+  branch: Branch;
+};
+
+export type SingleDocumentProjectGetCurrentBranchArgs = {
+  projectId: ProjectId;
+};
+
+export type SingleDocumentProjectListBranchesArgs = {
+  projectId: ProjectId;
+};
+
+export type SingleDocumentProjectDeleteBranchArgs = {
+  projectId: ProjectId;
+  branch: Branch;
+};
+
+export type SingleDocumentProjectDeleteBranchResult = {
+  currentBranch: Branch;
+};
+
+export type SingleDocumentProjectMergeAndDeleteBranchArgs = {
+  projectId: ProjectId;
+  from: Branch;
+  into: Branch;
+};
+
 export type SingleDocumentProjectStore = {
+  supportsBranching: boolean;
   createSingleDocumentProject: (
     args: CreateSingleDocumentProjectArgs
   ) => Effect.Effect<ProjectId, RepositoryError, never>;
@@ -39,6 +76,40 @@ export type SingleDocumentProjectStore = {
   ) => Effect.Effect<
     string | null,
     ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  createAndSwitchToBranch: (
+    args: SingleDocumentProjectCreateAndSwitchToBranchArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  switchToBranch: (
+    args: SingleDocumentProjectSwitchToBranchArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  getCurrentBranch: (
+    args: SingleDocumentProjectGetCurrentBranchArgs
+  ) => Effect.Effect<
+    Branch,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
+  listBranches: (
+    args: SingleDocumentProjectListBranchesArgs
+  ) => Effect.Effect<
+    Branch[],
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
+  deleteBranch: (
+    args: SingleDocumentProjectDeleteBranchArgs
+  ) => Effect.Effect<
+    SingleDocumentProjectDeleteBranchResult,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
+  mergeAndDeleteBranch: (
+    args: SingleDocumentProjectMergeAndDeleteBranchArgs
+  ) => Effect.Effect<
+    Commit['id'],
+    ValidationError | RepositoryError | NotFoundError | MergeConflictError,
     never
   >;
   disconnect: () => Effect.Effect<void, RepositoryError, never>;

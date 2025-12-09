@@ -4,8 +4,12 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import {
+  type Branch,
+  DEFAULT_BRANCH,
   migrateIfNeeded,
   MigrationError,
+  VersionControlNotFoundErrorTag,
+  VersionControlRepositoryErrorTag,
   versionedArtifactTypes,
 } from '../../../../../../../modules/infrastructure/version-control';
 import { fromNullable } from '../../../../../../../utils/effect';
@@ -91,10 +95,10 @@ export const createAdapter = (
             handle,
             CURRENT_SINGLE_DOCUMENT_PROJECT_SCHEMA_VERSION
           ),
-          Effect.catchTag('VersionControlRepositoryError', () =>
+          Effect.catchTag(VersionControlRepositoryErrorTag, () =>
             Effect.fail(new RepositoryError('Automerge repo error'))
           ),
-          Effect.catchTag('VersionControlNotFoundError', () =>
+          Effect.catchTag(VersionControlNotFoundErrorTag, () =>
             Effect.fail(new NotFoundError('Not found'))
           )
         )
@@ -144,6 +148,31 @@ export const createAdapter = (
       Effect.map((project) => project.name)
     );
 
+  // TODO: Implement branching in Automerge
+  const createAndSwitchToBranch: SingleDocumentProjectStore['createAndSwitchToBranch'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Branching is not yet supported when the app is configured with Automerge'
+        )
+      );
+
+  // TODO: Implement branching in Automerge
+  const switchToBranch: SingleDocumentProjectStore['switchToBranch'] = () =>
+    Effect.fail(
+      new RepositoryError(
+        'Branching is not yet supported when the app is configured with Automerge'
+      )
+    );
+
+  // TODO: Implement branching in Automerge
+  const getCurrentBranch: SingleDocumentProjectStore['getCurrentBranch'] = () =>
+    Effect.succeed(DEFAULT_BRANCH as Branch);
+
+  // TODO: Implement branching in Automerge
+  const listBranches: SingleDocumentProjectStore['listBranches'] = () =>
+    Effect.succeed([DEFAULT_BRANCH] as Branch[]);
+
   const disconnect: SingleDocumentProjectStore['disconnect'] = () =>
     Effect.tryPromise({
       try: () => automergeRepo.shutdown(),
@@ -153,11 +182,36 @@ export const createAdapter = (
       ),
     });
 
+  // TODO: Implement branching in Automerge
+  const deleteBranch: SingleDocumentProjectStore['deleteBranch'] = () =>
+    Effect.fail(
+      new RepositoryError(
+        'Branching is not yet supported when the app is configured with Automerge'
+      )
+    );
+
+  // TODO: Implement branching in Automerge
+  const mergeAndDeleteBranch: SingleDocumentProjectStore['mergeAndDeleteBranch'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Branching is not yet supported when the app is configured with Automerge'
+        )
+      );
+
   return {
+    // TODO: Implement branching in Automerge
+    supportsBranching: false,
     createSingleDocumentProject,
     findProjectById,
     findDocumentInProject,
     getProjectName,
+    createAndSwitchToBranch,
+    switchToBranch,
+    getCurrentBranch,
+    listBranches,
+    deleteBranch,
+    mergeAndDeleteBranch,
     disconnect,
   };
 };

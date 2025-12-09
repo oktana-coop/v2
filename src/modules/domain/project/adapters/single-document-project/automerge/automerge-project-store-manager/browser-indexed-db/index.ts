@@ -120,6 +120,8 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                           tempVersionedDocumentStore.createDocument,
                         createSingleDocumentProject:
                           tempVersionedProjectStore.createSingleDocumentProject,
+                        getCurrentBranch:
+                          tempVersionedProjectStore.getCurrentBranch,
                       })({
                         name: projectName,
                         content: null,
@@ -195,17 +197,37 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                 })
               )
           ),
+          Effect.bind(
+            'currentBranch',
+            ({ versionedProjectStore, projectAndDocumentData }) =>
+              pipe(
+                versionedProjectStore.getCurrentBranch({
+                  projectId: projectAndDocumentData.projectId,
+                }),
+                // We shouldn't be getting validation or not-found error since we just created the project.
+                // If something is wrong here, from the perspective of the command we consider it a repository error.
+                Effect.catchAll(() =>
+                  Effect.fail(
+                    new VersionedProjectRepositoryError(
+                      'Error in getting the current branch'
+                    )
+                  )
+                )
+              )
+          ),
           Effect.map(
             ({
               versionedProjectStore,
               versionedDocumentStore,
               projectAndDocumentData,
               projectName,
+              currentBranch,
             }) => ({
               versionedProjectStore,
               versionedDocumentStore,
               projectId: projectAndDocumentData.projectId,
               documentId: projectAndDocumentData.documentId,
+              currentBranch,
               file: null,
               name: projectName,
             })
@@ -251,14 +273,20 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                           versionedProjectStore.getProjectName,
                       })({ projectId })
                     ),
-                    Effect.map(({ documentId, projectName }) => ({
-                      versionedProjectStore,
-                      versionedDocumentStore,
-                      projectId,
-                      documentId,
-                      file: null,
-                      name: projectName,
-                    }))
+                    Effect.bind('currentBranch', () =>
+                      versionedProjectStore.getCurrentBranch({ projectId })
+                    ),
+                    Effect.map(
+                      ({ documentId, projectName, currentBranch }) => ({
+                        versionedProjectStore,
+                        versionedDocumentStore,
+                        projectId,
+                        documentId,
+                        currentBranch,
+                        file: null,
+                        name: projectName,
+                      })
+                    )
                   )
               )
             )

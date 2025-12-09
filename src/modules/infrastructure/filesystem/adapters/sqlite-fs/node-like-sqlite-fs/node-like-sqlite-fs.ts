@@ -261,7 +261,7 @@ export const createAdapter = (db: Database): NodeLikeFsApi => {
       .prepare(
         `SELECT mode, ctime, mtime, length(content) as size FROM files WHERE path = ?`
       )
-      .get(filepath) as DBFileStats | undefined;
+      .get(normalized) as DBFileStats | undefined;
 
     if (fileStats) {
       const stats: Stats = {

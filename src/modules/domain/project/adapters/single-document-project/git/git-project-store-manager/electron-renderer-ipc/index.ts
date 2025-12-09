@@ -22,7 +22,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
             'Error in creating single-document project'
           ),
         }),
-        Effect.map(({ projectId, documentId, file, name }) => ({
+        Effect.map(({ projectId, documentId, currentBranch, file, name }) => ({
           versionedProjectStore:
             createSingleDocumentProjectStoreAdapter(projectId),
           versionedDocumentStore: createVersionedDocumentStoreAdapter({
@@ -33,6 +33,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
           }),
           projectId,
           documentId,
+          currentBranch,
           file,
           name,
         }))
@@ -57,20 +58,23 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
               'Error in creating single-document project'
             ),
           }),
-          Effect.map(({ projectId, documentId, file, name }) => ({
-            versionedProjectStore:
-              createSingleDocumentProjectStoreAdapter(projectId),
-            versionedDocumentStore: createVersionedDocumentStoreAdapter({
+          Effect.map(
+            ({ projectId, documentId, currentBranch, file, name }) => ({
+              versionedProjectStore:
+                createSingleDocumentProjectStoreAdapter(projectId),
+              versionedDocumentStore: createVersionedDocumentStoreAdapter({
+                projectId,
+                // It's really the main process store that manages the filesystem workdir here,
+                // but from the perspective of the client using this adapter it should be transparent.
+                managesFilesystemWorkdir: true,
+              }),
               projectId,
-              // It's really the main process store that manages the filesystem workdir here,
-              // but from the perspective of the client using this adapter it should be transparent.
-              managesFilesystemWorkdir: true,
-            }),
-            projectId,
-            documentId,
-            file,
-            name,
-          }))
+              documentId,
+              currentBranch,
+              file,
+              name,
+            })
+          )
         );
 
   return {

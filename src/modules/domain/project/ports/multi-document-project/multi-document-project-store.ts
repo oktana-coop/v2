@@ -1,6 +1,9 @@
 import * as Effect from 'effect/Effect';
 
 import {
+  type Branch,
+  type Commit,
+  MergeConflictError,
   MigrationError,
   type ResolvedArtifactId,
 } from '../../../../../modules/infrastructure/version-control';
@@ -34,7 +37,41 @@ export type FindDocumentInMultiDocumentProjectArgs = {
   documentPath: string;
 };
 
+export type MultiDocumentProjectCreateAndSwitchToBranchArgs = {
+  projectId: ProjectId;
+  branch: Branch;
+};
+
+export type MultiDocumentProjectSwitchToBranchArgs = {
+  projectId: ProjectId;
+  branch: Branch;
+};
+
+export type MultiDocumentProjectGetCurrentBranchArgs = {
+  projectId: ProjectId;
+};
+
+export type MultiDocumentProjectListBranchesArgs = {
+  projectId: ProjectId;
+};
+
+export type MultiDocumentProjectDeleteBranchArgs = {
+  projectId: ProjectId;
+  branch: Branch;
+};
+
+export type MultiDocumentProjectDeleteBranchResult = {
+  currentBranch: Branch;
+};
+
+export type MultiDocumentProjectMergeAndDeleteBranchArgs = {
+  projectId: ProjectId;
+  from: Branch;
+  into: Branch;
+};
+
 export type MultiDocumentProjectStore = {
+  supportsBranching: boolean;
   createProject: (
     args: CreateMultiDocumentProjectArgs
   ) => Effect.Effect<ProjectId, ValidationError | RepositoryError, never>;
@@ -71,6 +108,40 @@ export type MultiDocumentProjectStore = {
   ) => Effect.Effect<
     ResolvedArtifactId,
     ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  createAndSwitchToBranch: (
+    args: MultiDocumentProjectCreateAndSwitchToBranchArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  switchToBranch: (
+    args: MultiDocumentProjectSwitchToBranchArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  getCurrentBranch: (
+    args: MultiDocumentProjectGetCurrentBranchArgs
+  ) => Effect.Effect<
+    Branch,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
+  listBranches: (
+    args: MultiDocumentProjectListBranchesArgs
+  ) => Effect.Effect<
+    Branch[],
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
+  deleteBranch: (
+    args: MultiDocumentProjectDeleteBranchArgs
+  ) => Effect.Effect<
+    MultiDocumentProjectDeleteBranchResult,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
+  mergeAndDeleteBranch: (
+    args: MultiDocumentProjectMergeAndDeleteBranchArgs
+  ) => Effect.Effect<
+    Commit['id'],
+    ValidationError | RepositoryError | NotFoundError | MergeConflictError,
     never
   >;
 };

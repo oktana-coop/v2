@@ -71,7 +71,7 @@ export type SingleDocumentProjectStoreManagerAPI = {
   ) => Promise<
     Pick<
       SetupSingleDocumentProjectStoreResult,
-      'projectId' | 'documentId' | 'file' | 'name'
+      'projectId' | 'documentId' | 'currentBranch' | 'file' | 'name'
     >
   >;
   openSingleDocumentProjectStore: (
@@ -79,18 +79,23 @@ export type SingleDocumentProjectStoreManagerAPI = {
   ) => Promise<
     Pick<
       OpenSingleDocumentProjectStoreResult,
-      'projectId' | 'documentId' | 'file' | 'name'
+      'projectId' | 'documentId' | 'currentBranch' | 'file' | 'name'
     >
   >;
 };
 
 export type MultiDocumentProjectStoreManagerAPI = {
   openOrCreateMultiDocumentProject: () => Promise<
-    Pick<OpenOrCreateMultiDocumentProjectResult, 'projectId' | 'directory'>
+    Pick<
+      OpenOrCreateMultiDocumentProjectResult,
+      'projectId' | 'directory' | 'currentBranch'
+    >
   >;
   openMultiDocumentProjectById: (
     args: OpenMultiDocumentProjectByIdArgs
-  ) => Promise<Pick<OpenMultiDocumentProjectByIdResult, 'directory'>>;
+  ) => Promise<
+    Pick<OpenMultiDocumentProjectByIdResult, 'directory' | 'currentBranch'>
+  >;
 };
 
 export type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;

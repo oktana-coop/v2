@@ -1,33 +1,14 @@
 import { z } from 'zod';
 
+import { isValidBranchOrTagName } from '../branch';
+
 // Git ref validation patterns
 export const GIT_SHA_REGEX = /^[0-9a-f]{4,40}$/; // Commit SHA (short or full)
-const GIT_BRANCH_TAG_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9._/-]*[a-zA-Z0-9]$/; // Branch or tag name
 
-// Git ref names must follow these rules:
-// - Cannot start with . or /
-// - Cannot end with .lock, . or /
-// - Cannot contain .., @{, \, ASCII control characters, ~, ^, :, ?, *, [
-// - Can contain / but not consecutive //
-// eslint-disable-next-line no-control-regex
-const INVALID_REF_CHARS = /[\\~^:?*[\]@{}\x00-\x1f\x7f]|\.\.|\/{2,}|@\{/;
+const isValidGitSha = (ref: string): boolean => GIT_SHA_REGEX.test(ref);
 
-const isValidGitRef = (ref: string): boolean => {
-  // Check for invalid characters and patterns
-  if (INVALID_REF_CHARS.test(ref)) return false;
-
-  // Check if it's a SHA (most permissive)
-  if (GIT_SHA_REGEX.test(ref)) return true;
-
-  // Check if it's a valid branch/tag name
-  if (ref.length === 0) return false;
-  if (ref.startsWith('.') || ref.startsWith('/')) return false;
-  if (ref.endsWith('.') || ref.endsWith('/') || ref.endsWith('.lock'))
-    return false;
-
-  // Must contain only valid characters
-  return GIT_BRANCH_TAG_REGEX.test(ref);
-};
+const isValidGitRef = (ref: string): boolean =>
+  isValidGitSha(ref) || isValidBranchOrTagName(ref);
 
 // Git blob reference schema
 // Format: /blob/{ref}/{path}

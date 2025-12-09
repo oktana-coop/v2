@@ -8,6 +8,7 @@ import {
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
 import {
+  type Branch,
   MigrationError,
   type ResolvedArtifactId,
 } from '../../../../../modules/infrastructure/version-control';
@@ -37,6 +38,7 @@ export type SetupSingleDocumentProjectStoreResult = {
   versionedDocumentStore: VersionedDocumentStore;
   projectId: ProjectId;
   documentId: ResolvedArtifactId;
+  currentBranch: Branch;
   file: File | null;
   name: string | null;
 };
@@ -55,6 +57,7 @@ export type OpenSingleDocumentProjectStoreResult = {
   versionedDocumentStore: VersionedDocumentStore;
   projectId: ProjectId;
   documentId: ResolvedArtifactId;
+  currentBranch: Branch;
   file: File | null;
   name: string | null;
 };

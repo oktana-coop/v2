@@ -1,4 +1,5 @@
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 import {
   createContext,
   useCallback,
@@ -18,8 +19,16 @@ import { ElectronContext } from '../../../../modules/infrastructure/cross-platfo
 import { isElectron } from '../../../../modules/infrastructure/cross-platform/utils';
 import { type File } from '../../../../modules/infrastructure/filesystem';
 import {
+  createErrorNotification,
+  NotificationsContext,
+} from '../../../../modules/infrastructure/notifications/browser';
+import {
+  type Branch,
+  DEFAULT_BRANCH,
+  parseBranch,
   type ResolvedArtifactId,
   urlEncodeArtifactId,
+  VersionControlMergeConflictErrorTag,
   versionControlSystems,
 } from '../../../../modules/infrastructure/version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
@@ -39,6 +48,7 @@ export type SingleDocumentProjectContextType = {
   documentInternalPath: string | null;
   projectFile: File | null;
   projectName: string | null;
+  currentBranch: Branch | null;
   versionedProjectStore: SingleDocumentProjectStore | null;
   createNewDocument: (name?: string) => Promise<{
     projectId: ProjectId;
@@ -50,6 +60,18 @@ export type SingleDocumentProjectContextType = {
     documentId: ResolvedArtifactId | null;
     path: string | null;
   }>;
+  listBranches: () => Promise<Branch[]>;
+  createAndSwitchToBranch: (branchName: string) => Promise<void>;
+  switchToBranch: (branch: Branch) => Promise<void>;
+  isCreateBranchDialogOpen: boolean;
+  openCreateBranchDialog: () => void;
+  closeCreateBranchDialog: () => void;
+  deleteBranch: (branch: Branch) => Promise<void>;
+  mergeAndDeleteBranch: (branch: Branch) => Promise<void>;
+  branchToDelete: Branch | null;
+  openDeleteBranchDialog: (branch: Branch) => void;
+  closeDeleteBranchDialog: () => void;
+  supportsBranching: boolean;
 };
 
 export const SingleDocumentProjectContext =
@@ -65,6 +87,7 @@ export const SingleDocumentProjectContext =
     // @ts-expect-error will get overriden below
     openDocument: () => null,
     versionedProjectStore: null,
+    isCreateBranchDialogOpen: false,
   });
 
 const getFileToBeOpenedFromSessionStorage = (): File | null => {
@@ -103,6 +126,12 @@ export const SingleDocumentProjectProvider = ({
   const [fileToBeOpened, setFileToBeOpened] = useState<File | null>(null);
   const navigate = useNavigate();
   const { projectId: projectIdInPath } = useParams();
+  const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
+  const [isCreateBranchDialogOpen, setIsCreateBranchDialogOpen] =
+    useState<boolean>(false);
+  const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
+  const [supportsBranching, setSupportsBranching] = useState<boolean>(false);
+  const { dispatchNotification } = useContext(NotificationsContext);
 
   const documentInternalPath =
     versionControlSystems[config.singleDocumentProjectVersionControlSystem] ===
@@ -145,7 +174,7 @@ export const SingleDocumentProjectProvider = ({
     } else {
       openRecentProjectFromBrowserStorage();
     }
-  }, [fileToBeOpened]);
+  }, [fileToBeOpened, currentBranch]);
 
   const openRecentProjectFromBrowserStorage = async () => {
     setLoading(true);
@@ -164,6 +193,7 @@ export const SingleDocumentProjectProvider = ({
         versionedDocumentStore: documentStore,
         versionedProjectStore: projectStore,
         documentId: docId,
+        currentBranch,
         file,
         name: projName,
       } = await Effect.runPromise(
@@ -181,6 +211,7 @@ export const SingleDocumentProjectProvider = ({
       setDocumentId(docId);
       setProjectFile(file);
       setProjectName(projName);
+      setCurrentBranch(currentBranch);
 
       navigate(
         `/projects/${urlEncodeProjectId(browserStorageProjectData.projectId)}/documents/${urlEncodeArtifactId(docId)}`
@@ -203,6 +234,7 @@ export const SingleDocumentProjectProvider = ({
       versionedProjectStore: projectStore,
       projectId: projId,
       documentId: docId,
+      currentBranch,
       file,
       name: projName,
     } = await Effect.runPromise(
@@ -217,6 +249,7 @@ export const SingleDocumentProjectProvider = ({
     setDocumentId(docId);
     setProjectFile(file);
     setProjectName(projName);
+    setCurrentBranch(currentBranch);
 
     const browserStorageProjectData: BrowserStorageProjectData = {
       projectId: projId,
@@ -264,6 +297,7 @@ export const SingleDocumentProjectProvider = ({
           versionedProjectStore: projectStore,
           projectId: projId,
           documentId: docId,
+          currentBranch,
           file,
           name: projName,
         } = await Effect.runPromise(
@@ -282,6 +316,7 @@ export const SingleDocumentProjectProvider = ({
         setDocumentId(docId);
         setProjectFile(file);
         setProjectName(projName);
+        setCurrentBranch(currentBranch);
 
         const browserStorageProjectData: BrowserStorageProjectData = {
           projectId: projId,
@@ -321,6 +356,155 @@ export const SingleDocumentProjectProvider = ({
     [projectIdInPath]
   );
 
+  useEffect(() => {
+    if (versionedProjectStore) {
+      setSupportsBranching(versionedProjectStore.supportsBranching);
+    }
+  }, [versionedProjectStore]);
+
+  const handleListBranches = useCallback(async () => {
+    if (!versionedProjectStore || !projectId) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot list branches'
+      );
+    }
+
+    const branches = await Effect.runPromise(
+      versionedProjectStore.listBranches({ projectId })
+    );
+
+    return branches;
+  }, [versionedProjectStore, projectId]);
+
+  const handleCreateAndSwitchToBranch = useCallback(
+    async (branchName: string) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot create branch.'
+        );
+      }
+
+      let branch: Branch;
+      try {
+        branch = parseBranch(branchName);
+      } catch (err) {
+        console.error(err);
+        throw new Error('Invalid branch name');
+      }
+
+      await Effect.runPromise(
+        versionedProjectStore.createAndSwitchToBranch({ projectId, branch })
+      );
+
+      setCurrentBranch(branch);
+      setIsCreateBranchDialogOpen(false);
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const handleSwitchToBranch = useCallback(
+    async (branch: Branch) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot create branch.'
+        );
+      }
+
+      await Effect.runPromise(
+        versionedProjectStore.switchToBranch({ projectId, branch })
+      );
+
+      setCurrentBranch(branch);
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const handleOpenCreateBranchDialog = useCallback(() => {
+    setIsCreateBranchDialogOpen(true);
+  }, []);
+
+  const handleCloseCreateBranchDialog = useCallback(() => {
+    setIsCreateBranchDialogOpen(false);
+  }, []);
+
+  const handleDeleteBranch = useCallback(
+    async (branch: Branch) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot delete branch.'
+        );
+      }
+
+      const { currentBranch: resultingCurrentBranch } = await Effect.runPromise(
+        versionedProjectStore.deleteBranch({ projectId, branch })
+      );
+
+      setBranchToDelete(null);
+      setCurrentBranch(resultingCurrentBranch);
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const handleMergeAndDeleteBranch = useCallback(
+    async (branch: Branch) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot delete branch.'
+        );
+      }
+
+      const { notification } = await Effect.runPromise(
+        pipe(
+          pipe(
+            versionedProjectStore.mergeAndDeleteBranch({
+              projectId,
+              from: branch,
+              into: DEFAULT_BRANCH as Branch,
+            }),
+            Effect.map((lastCommitId) => ({
+              result: lastCommitId,
+              notification: null,
+            }))
+          ),
+          Effect.catchTag(VersionControlMergeConflictErrorTag, (err) => {
+            console.error(err);
+            const notification = createErrorNotification({
+              title: 'Merge Conflict',
+              message:
+                'A conflict was encountered when v2 tried to merge the branch. Conflict resolution workflow coming soon.',
+            });
+
+            return Effect.succeed({ result: null, notification });
+          }),
+          Effect.catchAll((err) => {
+            console.error(err);
+            const notification = createErrorNotification({
+              title: 'Merge Error',
+              message: `An error happened when trying to merge "${branch}" into "${DEFAULT_BRANCH}" branch`,
+            });
+
+            return Effect.succeed({ result: null, notification });
+          })
+        )
+      );
+
+      if (notification) {
+        dispatchNotification(notification);
+      }
+
+      setCurrentBranch(DEFAULT_BRANCH as Branch);
+    },
+    [versionedProjectStore, projectId, dispatchNotification]
+  );
+
+  const handleOpenDeleteBranchDialog = useCallback((branch: Branch) => {
+    setBranchToDelete(branch);
+  }, []);
+
+  const handleCloseDeleteBranchDialog = useCallback(() => {
+    setBranchToDelete(null);
+  }, []);
+
   return (
     <SingleDocumentProjectContext.Provider
       value={{
@@ -330,9 +514,22 @@ export const SingleDocumentProjectProvider = ({
         documentInternalPath,
         projectFile,
         projectName,
+        currentBranch,
         versionedProjectStore,
         createNewDocument: handleCreateNewDocument,
         openDocument: handleOpenDocument,
+        listBranches: handleListBranches,
+        createAndSwitchToBranch: handleCreateAndSwitchToBranch,
+        switchToBranch: handleSwitchToBranch,
+        isCreateBranchDialogOpen,
+        openCreateBranchDialog: handleOpenCreateBranchDialog,
+        closeCreateBranchDialog: handleCloseCreateBranchDialog,
+        deleteBranch: handleDeleteBranch,
+        mergeAndDeleteBranch: handleMergeAndDeleteBranch,
+        branchToDelete,
+        openDeleteBranchDialog: handleOpenDeleteBranchDialog,
+        closeDeleteBranchDialog: handleCloseDeleteBranchDialog,
+        supportsBranching,
       }}
     >
       {children}

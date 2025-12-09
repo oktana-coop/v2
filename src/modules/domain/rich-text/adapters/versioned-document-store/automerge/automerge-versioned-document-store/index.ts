@@ -19,6 +19,8 @@ import {
   migrateIfNeeded,
   MigrationError,
   type ResolvedArtifactId,
+  VersionControlNotFoundErrorTag,
+  VersionControlRepositoryErrorTag,
   versionedArtifactTypes,
 } from '../../../../../../../modules/infrastructure/version-control';
 import { fromNullable } from '../../../../../../../utils/effect';
@@ -75,9 +77,9 @@ export const createAdapter = ({
     pipe(
       getArtifactFromHandle<RichTextDocument>(handle),
       Effect.catchTags({
-        VersionControlRepositoryError: (err) =>
+        [VersionControlRepositoryErrorTag]: (err) =>
           Effect.fail(new RepositoryError(err.message)),
-        VersionControlNotFoundError: (err) =>
+        [VersionControlNotFoundErrorTag]: (err) =>
           Effect.fail(new NotFoundError(err.message)),
       })
     );
@@ -113,7 +115,7 @@ export const createAdapter = ({
             heads: commitHeads,
           })
         ),
-        Effect.catchTag('VersionControlRepositoryError', (err) =>
+        Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
           Effect.fail(new RepositoryError(err.message))
         )
       );
@@ -139,7 +141,7 @@ export const createAdapter = ({
           heads: commitHeads,
         })
       ),
-      Effect.catchTag('VersionControlRepositoryError', (err) =>
+      Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
         Effect.fail(new RepositoryError(err.message))
       )
     );
@@ -188,10 +190,10 @@ export const createAdapter = ({
         Effect.tap((handle) =>
           pipe(
             migrateIfNeeded(migrations)(handle, CURRENT_SCHEMA_VERSION),
-            Effect.catchTag('VersionControlRepositoryError', () =>
+            Effect.catchTag(VersionControlRepositoryErrorTag, () =>
               Effect.fail(new RepositoryError('Automerge repo error'))
             ),
-            Effect.catchTag('VersionControlNotFoundError', () =>
+            Effect.catchTag(VersionControlNotFoundErrorTag, () =>
               Effect.fail(new NotFoundError('Not found'))
             )
           )

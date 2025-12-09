@@ -8,11 +8,19 @@ import {
   removePath,
 } from '../../../../../../../modules/infrastructure/filesystem';
 import {
+  createAndSwitchToBranch as createAndSwitchToBranchWithGit,
   createGitBlobRef,
   DEFAULT_AUTHOR_NAME,
   DEFAULT_BRANCH,
+  deleteBranch as deleteBranchWithGit,
+  getCurrentBranch as getCurrentBranchWithGit,
   isGitBlobRef,
+  listBranches as listBranchesWithGit,
+  mergeAndDeleteBranch as mergeAndDeleteBranchWithGit,
   type ResolvedArtifactId,
+  switchToBranch as switchToBranchWithGit,
+  VersionControlNotFoundErrorTag,
+  VersionControlRepositoryErrorTag,
   versionedArtifactTypes,
 } from '../../../../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../../../../utils/errors';
@@ -26,6 +34,7 @@ import {
   CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION,
   isProjectFsPath,
   parseProjectFsPath,
+  type ProjectFsPath,
   type ProjectId,
 } from '../../../../models';
 import { MultiDocumentProjectStore } from '../../../../ports/multi-document-project';
@@ -41,6 +50,17 @@ export const createAdapter = ({
   isoGitFs: IsoGitFsApi;
   filesystem: Filesystem;
 }): MultiDocumentProjectStore => {
+  const ensureProjectIdIsFsPath: (
+    projectId: ProjectId
+  ) => Effect.Effect<ProjectFsPath, ValidationError, never> = (projectId) =>
+    pipe(
+      Effect.succeed(projectId),
+      Effect.filterOrFail(
+        isProjectFsPath,
+        (val) => new ValidationError(`Invalid project id: ${val}`)
+      )
+    );
+
   const createProject: MultiDocumentProjectStore['createProject'] = ({
     path,
   }) =>
@@ -50,7 +70,7 @@ export const createAdapter = ({
         catch: mapErrorTo(ValidationError, 'Invalid project path'),
       }),
       Effect.tap((projectPath) =>
-        Effect.try({
+        Effect.tryPromise({
           try: () =>
             git.init({
               fs: isoGitFs,
@@ -64,11 +84,7 @@ export const createAdapter = ({
 
   const getDirectoryFiles = (id: ProjectId) =>
     pipe(
-      Effect.succeed(id),
-      Effect.filterOrFail(
-        isProjectFsPath,
-        (val) => new ValidationError(`Invalid project id: ${val}`)
-      ),
+      ensureProjectIdIsFsPath(id),
       Effect.flatMap((projectPath) =>
         pipe(
           filesystem.listDirectoryFiles({
@@ -83,15 +99,15 @@ export const createAdapter = ({
     );
 
   const findProjectById: MultiDocumentProjectStore['findProjectById'] = (id) =>
-    pipe(
-      getDirectoryFiles(id),
-      Effect.map((files) =>
+    Effect.Do.pipe(
+      Effect.bind('files', () => getDirectoryFiles(id)),
+      Effect.bind('currentBranch', () => getCurrentBranch({ projectId: id })),
+      Effect.map(({ files, currentBranch }) =>
         files.reduce<Record<ResolvedArtifactId, ArtifactMetaData>>(
           (acc, file) => {
-            // TODO: Make branch a param
             // TODO: Handle errors returned by createGitBlobRef
             const documentId = createGitBlobRef({
-              ref: DEFAULT_BRANCH,
+              ref: currentBranch,
               path: file.path,
             });
 
@@ -129,15 +145,7 @@ export const createAdapter = ({
   const deleteDocumentFromProject: MultiDocumentProjectStore['deleteDocumentFromProject'] =
     ({ projectId, documentId }) =>
       Effect.Do.pipe(
-        Effect.bind('projectPath', () =>
-          pipe(
-            Effect.succeed(projectId),
-            Effect.filterOrFail(
-              isProjectFsPath,
-              (val) => new ValidationError(`Invalid project id: ${val}`)
-            )
-          )
-        ),
+        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
         Effect.bind('documentName', () =>
           pipe(
             Effect.succeed(documentId),
@@ -202,12 +210,144 @@ export const createAdapter = ({
         )
       );
 
+  const createAndSwitchToBranch: MultiDocumentProjectStore['createAndSwitchToBranch'] =
+    ({ projectId, branch }) =>
+      pipe(
+        ensureProjectIdIsFsPath(projectId),
+        Effect.flatMap((projectPath) =>
+          pipe(
+            createAndSwitchToBranchWithGit({
+              isoGitFs,
+              dir: projectPath,
+              branch,
+            }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            )
+          )
+        )
+      );
+
+  const switchToBranch: MultiDocumentProjectStore['switchToBranch'] = ({
+    projectId,
+    branch,
+  }) =>
+    pipe(
+      ensureProjectIdIsFsPath(projectId),
+      Effect.flatMap((projectPath) =>
+        pipe(
+          switchToBranchWithGit({
+            isoGitFs,
+            dir: projectPath,
+            branch,
+          }),
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      )
+    );
+
+  const getCurrentBranch: MultiDocumentProjectStore['getCurrentBranch'] = ({
+    projectId,
+  }) =>
+    pipe(
+      ensureProjectIdIsFsPath(projectId),
+      Effect.flatMap((projectPath) =>
+        pipe(
+          getCurrentBranchWithGit({
+            isoGitFs,
+            dir: projectPath,
+          }),
+          Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
+            Effect.fail(new NotFoundError(err.message))
+          ),
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      )
+    );
+
+  const listBranches: MultiDocumentProjectStore['listBranches'] = ({
+    projectId,
+  }) =>
+    pipe(
+      ensureProjectIdIsFsPath(projectId),
+      Effect.flatMap((projectPath) =>
+        pipe(
+          listBranchesWithGit({
+            isoGitFs,
+            dir: projectPath,
+          }),
+          Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
+            Effect.fail(new NotFoundError(err.message))
+          ),
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      )
+    );
+
+  const deleteBranch: MultiDocumentProjectStore['deleteBranch'] = ({
+    projectId,
+    branch,
+  }) =>
+    pipe(
+      ensureProjectIdIsFsPath(projectId),
+      Effect.flatMap((projectPath) =>
+        pipe(
+          deleteBranchWithGit({
+            isoGitFs,
+            dir: projectPath,
+            branch,
+          }),
+          Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
+            Effect.fail(new NotFoundError(err.message))
+          ),
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      )
+    );
+
+  const mergeAndDeleteBranch: MultiDocumentProjectStore['mergeAndDeleteBranch'] =
+    ({ projectId, from, into }) =>
+      pipe(
+        ensureProjectIdIsFsPath(projectId),
+        Effect.flatMap((projectPath) =>
+          pipe(
+            mergeAndDeleteBranchWithGit({
+              isoGitFs,
+              dir: projectPath,
+              from,
+              into,
+            }),
+            Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
+              Effect.fail(new NotFoundError(err.message))
+            ),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            )
+          )
+        )
+      );
+
   return {
+    supportsBranching: true,
     createProject,
     findProjectById,
     listProjectDocuments,
     addDocumentToProject,
     deleteDocumentFromProject,
     findDocumentInProject,
+    createAndSwitchToBranch,
+    switchToBranch,
+    getCurrentBranch,
+    listBranches,
+    deleteBranch,
+    mergeAndDeleteBranch,
   };
 };

@@ -1,21 +1,26 @@
 import * as Cause from 'effect/Cause';
 
+export const FilesystemRepositoryErrorTag = 'FilesystemRepositoryError';
 export class RepositoryError extends Cause.YieldableError {
-  readonly _tag = 'FilesystemRepositoryError';
+  readonly _tag = FilesystemRepositoryErrorTag;
 }
 
+export const FilesystemNotFoundErrorTag = 'FilesystemNotFoundError';
 export class NotFoundError extends Cause.YieldableError {
-  readonly _tag = 'FilesystemNotFoundError';
+  readonly _tag = FilesystemNotFoundErrorTag;
 }
 
+export const FilesystemAbortErrorTag = 'FilesystemAbortError';
 export class AbortError extends Cause.YieldableError {
-  readonly _tag = 'FilesystemAbortError';
+  readonly _tag = FilesystemAbortErrorTag;
 }
 
+export const FileystemDataIntegrityErrorTag = 'FileystemDataIntegrityError';
 export class DataIntegrityError extends Cause.YieldableError {
-  readonly _tag = 'FileystemDataIntegrityError';
+  readonly _tag = FileystemDataIntegrityErrorTag;
 }
 
+export const FilesystemAccessControlErrorTag = 'FilesystemAccessControlError';
 export class AccessControlError extends Cause.YieldableError {
-  readonly _tag = 'FilesystemAccessControlError';
+  readonly _tag = FilesystemAccessControlErrorTag;
 }

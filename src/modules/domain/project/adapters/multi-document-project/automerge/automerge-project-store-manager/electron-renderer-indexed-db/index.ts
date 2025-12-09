@@ -52,7 +52,7 @@ export const createAdapter = ({
             'Error in creating multi-document project'
           ),
         }),
-        Effect.flatMap(({ projectId, directory }) =>
+        Effect.flatMap(({ projectId, directory, currentBranch }) =>
           pipe(
             // TODO: Consider a cleaner approach of wiping IndexedDB (or the previous project's DB)
             // before setting up the new one. For now, assuming that we don't want to do this so that performance
@@ -75,6 +75,7 @@ export const createAdapter = ({
               }),
               projectId,
               directory,
+              currentBranch,
             }))
           )
         )
@@ -99,7 +100,7 @@ export const createAdapter = ({
               'Error in creating multi-document project'
             ),
           }),
-          Effect.flatMap(({ directory }) =>
+          Effect.flatMap(({ directory, currentBranch }) =>
             pipe(
               // TODO: Consider a cleaner approach of wiping IndexedDB (or the previous project's DB)
               // before setting up the new one. For now, assuming that we don't want to do this so that performance
@@ -122,6 +123,7 @@ export const createAdapter = ({
                 }),
                 projectId,
                 directory,
+                currentBranch,
               }))
             )
           )

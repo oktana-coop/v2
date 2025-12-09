@@ -3,12 +3,17 @@ import {
   type ErrorRegistry,
 } from '../../../../../modules/infrastructure/cross-platform/electron-ipc-effect';
 import {
-  AbortError as FilesystemAbortError,
-  AccessControlError as FilesystemAccessControlError,
-  DataIntegrityError as FilesystemDataIntegrityError,
+  AbortError,
+  AccessControlError,
+  DataIntegrityError,
   type Filesystem,
-  NotFoundError as FilesystemNotFoundError,
-  RepositoryError as FilesystemRepositoryError,
+  FilesystemAbortErrorTag,
+  FilesystemAccessControlErrorTag,
+  FilesystemNotFoundErrorTag,
+  FilesystemRepositoryErrorTag,
+  FileystemDataIntegrityErrorTag,
+  NotFoundError,
+  RepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
 import { type EffectErrorType } from '../../../../../utils/effect';
 
@@ -18,115 +23,115 @@ export const createAdapter = (): Filesystem => ({
   openDirectory: (...args: Parameters<Filesystem['openDirectory']>) =>
     effectifyIPCPromise(
       {
-        FilesystemAbortError,
-        FilesystemRepositoryError,
+        [FilesystemAbortErrorTag]: AbortError,
+        [FilesystemRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<Filesystem['openDirectory']>>
       >,
-      FilesystemRepositoryError
+      RepositoryError
     )(window.filesystemAPI.openDirectory(...args)),
   getDirectory: (...args: Parameters<Filesystem['getDirectory']>) =>
     effectifyIPCPromise(
       {
-        FilesystemNotFoundError,
-        FilesystemRepositoryError,
+        [FilesystemNotFoundErrorTag]: NotFoundError,
+        [FilesystemRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<Filesystem['getDirectory']>>
       >,
-      FilesystemRepositoryError
+      RepositoryError
     )(window.filesystemAPI.getDirectory(...args)),
   listDirectoryFiles: (...args: Parameters<Filesystem['listDirectoryFiles']>) =>
     effectifyIPCPromise(
       {
-        FilesystemDataIntegrityError,
-        FilesystemNotFoundError,
-        FilesystemRepositoryError,
+        [FileystemDataIntegrityErrorTag]: DataIntegrityError,
+        [FilesystemNotFoundErrorTag]: NotFoundError,
+        [FilesystemRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<Filesystem['listDirectoryFiles']>>
       >,
-      FilesystemRepositoryError
+      RepositoryError
     )(window.filesystemAPI.listDirectoryFiles(...args)),
   requestPermissionForDirectory: (
     ...args: Parameters<Filesystem['requestPermissionForDirectory']>
   ) =>
     effectifyIPCPromise(
       {
-        FilesystemAccessControlError,
-        FilesystemNotFoundError,
-        FilesystemRepositoryError,
+        [FilesystemAccessControlErrorTag]: AccessControlError,
+        [FilesystemNotFoundErrorTag]: NotFoundError,
+        [FilesystemRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<Filesystem['requestPermissionForDirectory']>>
       >,
-      FilesystemRepositoryError
+      RepositoryError
     )(window.filesystemAPI.requestPermissionForDirectory(...args)),
   assertWritePermissionForDirectory: (
     ...args: Parameters<Filesystem['assertWritePermissionForDirectory']>
   ) =>
     effectifyIPCPromise(
       {
-        FilesystemAccessControlError,
-        FilesystemNotFoundError,
-        FilesystemRepositoryError,
+        [FilesystemAccessControlErrorTag]: AccessControlError,
+        [FilesystemNotFoundErrorTag]: NotFoundError,
+        [FilesystemRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<Filesystem['assertWritePermissionForDirectory']>
         >
       >,
-      FilesystemRepositoryError
+      RepositoryError
     )(window.filesystemAPI.assertWritePermissionForDirectory(...args)),
   createNewFile: (...args: Parameters<Filesystem['createNewFile']>) =>
     effectifyIPCPromise(
       {
-        FilesystemAbortError,
-        FilesystemNotFoundError,
-        FilesystemRepositoryError,
+        [FilesystemAbortErrorTag]: AbortError,
+        [FilesystemNotFoundErrorTag]: NotFoundError,
+        [FilesystemRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<Filesystem['createNewFile']>>
       >,
-      FilesystemRepositoryError
+      RepositoryError
     )(window.filesystemAPI.createNewFile(...args)),
   openFile: (...args: Parameters<Filesystem['openFile']>) =>
     effectifyIPCPromise(
       {
-        FilesystemAbortError,
-        FilesystemRepositoryError,
+        [FilesystemAbortErrorTag]: AbortError,
+        [FilesystemRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<EffectErrorType<ReturnType<Filesystem['openFile']>>>,
-      FilesystemRepositoryError
+      RepositoryError
     )(window.filesystemAPI.openFile(...args)),
   writeFile: (...args: Parameters<Filesystem['writeFile']>) =>
     effectifyIPCPromise(
       {
-        FilesystemAccessControlError,
-        FilesystemNotFoundError,
-        FilesystemRepositoryError,
+        [FilesystemAccessControlErrorTag]: AccessControlError,
+        [FilesystemNotFoundErrorTag]: NotFoundError,
+        [FilesystemRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<EffectErrorType<ReturnType<Filesystem['writeFile']>>>,
-      FilesystemRepositoryError
+      RepositoryError
     )(window.filesystemAPI.writeFile(...args)),
   readFile: (...args: Parameters<Filesystem['readFile']>) =>
     effectifyIPCPromise(
       {
-        FilesystemAccessControlError,
-        FilesystemNotFoundError,
-        FilesystemRepositoryError,
+        [FilesystemAccessControlErrorTag]: AccessControlError,
+        [FilesystemNotFoundErrorTag]: NotFoundError,
+        [FilesystemRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<EffectErrorType<ReturnType<Filesystem['readFile']>>>,
-      FilesystemRepositoryError
+      RepositoryError
     )(window.filesystemAPI.readFile(...args)),
   getRelativePath: (...args: Parameters<Filesystem['getRelativePath']>) =>
     effectifyIPCPromise(
       {
-        FilesystemRepositoryError,
+        [FilesystemRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<Filesystem['getRelativePath']>>
       >,
-      FilesystemRepositoryError
+      RepositoryError
     )(window.filesystemAPI.getRelativePath(...args)),
   getAbsolutePath: (...args: Parameters<Filesystem['getAbsolutePath']>) =>
     effectifyIPCPromise(
       {
-        FilesystemRepositoryError,
+        [FilesystemRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<Filesystem['getAbsolutePath']>>
       >,
-      FilesystemRepositoryError
+      RepositoryError
     )(window.filesystemAPI.getAbsolutePath(...args)),
 });

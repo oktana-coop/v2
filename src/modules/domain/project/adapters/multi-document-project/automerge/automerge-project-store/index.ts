@@ -5,7 +5,11 @@ import { pipe } from 'effect/Function';
 import * as Option from 'effect/Option';
 
 import {
+  type Branch,
+  DEFAULT_BRANCH,
   migrateIfNeeded,
+  VersionControlNotFoundErrorTag,
+  VersionControlRepositoryErrorTag,
   versionedArtifactTypes,
 } from '../../../../../../../modules/infrastructure/version-control';
 import { fromNullable } from '../../../../../../../utils/effect';
@@ -98,10 +102,10 @@ export const createAdapter = (
             handle,
             CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION
           ),
-          Effect.catchTag('VersionControlRepositoryError', () =>
+          Effect.catchTag(VersionControlRepositoryErrorTag, () =>
             Effect.fail(new RepositoryError('Automerge repo error'))
           ),
-          Effect.catchTag('VersionControlNotFoundError', () =>
+          Effect.catchTag(VersionControlNotFoundErrorTag, () =>
             Effect.fail(new NotFoundError('Not found'))
           )
         )
@@ -184,12 +188,62 @@ export const createAdapter = (
         )
       );
 
+  // TODO: Implement branching in Automerge
+  const createAndSwitchToBranch: MultiDocumentProjectStore['createAndSwitchToBranch'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Branching is not yet supported when the app is configured with Automerge'
+        )
+      );
+
+  // TODO: Implement branching in Automerge
+  const switchToBranch: MultiDocumentProjectStore['switchToBranch'] = () =>
+    Effect.fail(
+      new RepositoryError(
+        'Branching is not yet supported when the app is configured with Automerge'
+      )
+    );
+
+  // TODO: Implement branching in Automerge
+  const getCurrentBranch: MultiDocumentProjectStore['getCurrentBranch'] = () =>
+    Effect.succeed(DEFAULT_BRANCH as Branch);
+
+  // TODO: Implement branching in Automerge
+  const listBranches: MultiDocumentProjectStore['listBranches'] = () =>
+    Effect.succeed([DEFAULT_BRANCH] as Branch[]);
+
+  // TODO: Implement branching in Automerge
+  const deleteBranch: MultiDocumentProjectStore['deleteBranch'] = () =>
+    Effect.fail(
+      new RepositoryError(
+        'Branching is not yet supported when the app is configured with Automerge'
+      )
+    );
+
+  // TODO: Implement branching in Automerge
+  const mergeAndDeleteBranch: MultiDocumentProjectStore['mergeAndDeleteBranch'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Branching is not yet supported when the app is configured with Automerge'
+        )
+      );
+
   return {
+    // TODO: Implement branching in Automerge
+    supportsBranching: false,
     createProject,
     findProjectById,
     listProjectDocuments,
     addDocumentToProject,
     deleteDocumentFromProject,
     findDocumentInProject,
+    createAndSwitchToBranch,
+    switchToBranch,
+    getCurrentBranch,
+    listBranches,
+    deleteBranch,
+    mergeAndDeleteBranch,
   };
 };

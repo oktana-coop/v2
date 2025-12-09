@@ -1,4 +1,5 @@
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 import {
   createContext,
   useCallback,
@@ -6,11 +7,13 @@ import {
   useEffect,
   useState,
 } from 'react';
+import { useNavigate } from 'react-router';
 
 import {
   createVersionedDocument,
   findDocumentInProject,
   type MultiDocumentProjectStore,
+  urlEncodeProjectId,
 } from '../../../../modules/domain/project';
 import { type ProjectId } from '../../../../modules/domain/project';
 import {
@@ -22,12 +25,21 @@ import { ElectronContext } from '../../../../modules/infrastructure/cross-platfo
 import {
   type Directory,
   type File,
-} from '../../../../modules/infrastructure/filesystem';
-import {
   removeExtension,
   removePath,
 } from '../../../../modules/infrastructure/filesystem';
-import { type ResolvedArtifactId } from '../../../../modules/infrastructure/version-control';
+import {
+  createErrorNotification,
+  NotificationsContext,
+} from '../../../../modules/infrastructure/notifications/browser';
+import {
+  type Branch,
+  DEFAULT_BRANCH,
+  parseBranch,
+  type ResolvedArtifactId,
+  urlEncodeArtifactId,
+  VersionControlMergeConflictErrorTag,
+} from '../../../../modules/infrastructure/version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
 type BrowserStorageProjectData = {
@@ -47,6 +59,7 @@ export type MultiDocumentProjectContextType = {
   loading: boolean;
   projectId: ProjectId | null;
   directory: Directory | null;
+  currentBranch: Branch | null;
   directoryFiles: Array<File>;
   openDirectory: () => Promise<Directory>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
@@ -63,6 +76,18 @@ export type MultiDocumentProjectContextType = {
   selectedFileName: string | null;
   setSelectedFileInfo: (file: SelectedFileInfo) => void;
   clearFileSelection: () => Promise<void>;
+  listBranches: () => Promise<Branch[]>;
+  createAndSwitchToBranch: (branchName: string) => Promise<void>;
+  switchToBranch: (branch: Branch) => Promise<void>;
+  isCreateBranchDialogOpen: boolean;
+  openCreateBranchDialog: () => void;
+  closeCreateBranchDialog: () => void;
+  deleteBranch: (branch: Branch) => Promise<void>;
+  mergeAndDeleteBranch: (branch: Branch) => Promise<void>;
+  branchToDelete: Branch | null;
+  openDeleteBranchDialog: (branch: Branch) => void;
+  closeDeleteBranchDialog: () => void;
+  supportsBranching: boolean;
 };
 
 export const MultiDocumentProjectContext =
@@ -70,6 +95,7 @@ export const MultiDocumentProjectContext =
     loading: false,
     projectId: null,
     directory: null,
+    branch: null,
     directoryFiles: [],
     // @ts-expect-error will get overriden below
     openDirectory: async () => null,
@@ -101,11 +127,18 @@ export const MultiDocumentProjectProvider = ({
   const [projectId, setProjectId] = useState<ProjectId | null>(null);
   const [directory, setDirectory] = useState<Directory | null>(null);
   const [directoryFiles, setDirectoryFiles] = useState<Array<File>>([]);
+  const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
   const [versionedProjectStore, setVersionedProjectStore] =
     useState<MultiDocumentProjectStore | null>(null);
   const [selectedFileInfo, setSelectedFileInfo] =
     useState<SelectedFileInfo | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [isCreateBranchDialogOpen, setIsCreateBranchDialogOpen] =
+    useState<boolean>(false);
+  const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
+  const { dispatchNotification } = useContext(NotificationsContext);
+  const [supportsBranching, setSupportsBranching] = useState<boolean>(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const getSelectedDirectory = async () => {
@@ -129,6 +162,7 @@ export const MultiDocumentProjectProvider = ({
           versionedDocumentStore: documentStore,
           versionedProjectStore: projectStore,
           directory,
+          currentBranch,
         } = await Effect.runPromise(
           multiDocumentProjectStoreManager.openMultiDocumentProjectById({
             filesystem,
@@ -140,6 +174,7 @@ export const MultiDocumentProjectProvider = ({
 
         setProjectId(browserStorageProjectData.projectId);
         setDirectory(directory);
+        setCurrentBranch(currentBranch);
         setVersionedProjectStore(projectStore);
         setVersionedDocumentStore(documentStore);
 
@@ -167,7 +202,43 @@ export const MultiDocumentProjectProvider = ({
     if (directory && directory.permissionState === 'granted') {
       getFiles(directory);
     }
-  }, [directory, filesystem]);
+  }, [directory, filesystem, currentBranch]);
+
+  useEffect(() => {
+    const reloadSelectedDocumentOrReset = async ({
+      projId,
+      selectedFilePath,
+    }: {
+      projId: ProjectId;
+      selectedFilePath: string;
+    }) => {
+      try {
+        const doc = await handleFindDocumentInProject({
+          projectId: projId,
+          documentPath: selectedFilePath,
+        });
+
+        setSelectedFileInfo({ documentId: doc.id, path: selectedFilePath });
+
+        const newUrl = `/projects/${urlEncodeProjectId(projId)}/documents/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(selectedFilePath)}`;
+        navigate(newUrl);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (err) {
+        clearFileSelection();
+        // TODO: Only do this on NotFoundError.
+        // TODO: Navigate to the specific project route (doesn't exist at the time of writing) this.
+        const newUrl = `/projects`;
+        navigate(newUrl);
+      }
+    };
+
+    if (projectId && selectedFileInfo?.path) {
+      reloadSelectedDocumentOrReset({
+        projId: projectId,
+        selectedFilePath: selectedFileInfo.path,
+      });
+    }
+  }, [currentBranch]);
 
   const requestPermissionForDirectory = async (dir: Directory) =>
     Effect.runPromise(filesystem.requestPermissionForDirectory(dir.path));
@@ -194,6 +265,7 @@ export const MultiDocumentProjectProvider = ({
       versionedProjectStore: projectStore,
       projectId: projId,
       directory: dir,
+      currentBranch,
     } = await Effect.runPromise(
       multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject({
         filesystem,
@@ -202,6 +274,7 @@ export const MultiDocumentProjectProvider = ({
 
     setProjectId(projId);
     setDirectory(dir);
+    setCurrentBranch(currentBranch);
     setVersionedProjectStore(projectStore);
     setVersionedDocumentStore(documentStore);
 
@@ -261,6 +334,12 @@ export const MultiDocumentProjectProvider = ({
     return { projectId, documentId: newDocumentId, path: newFilePath };
   }, [versionedDocumentStore, versionedProjectStore]);
 
+  useEffect(() => {
+    if (versionedProjectStore) {
+      setSupportsBranching(versionedProjectStore.supportsBranching);
+    }
+  }, [versionedProjectStore]);
+
   const handleFindDocumentInProject = async (args: {
     projectId: ProjectId;
     documentPath: string;
@@ -308,6 +387,149 @@ export const MultiDocumentProjectProvider = ({
     }
   }, [selectedFileInfo]);
 
+  const handleListBranches = useCallback(async () => {
+    if (!versionedProjectStore || !projectId) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot list branches'
+      );
+    }
+
+    const branches = await Effect.runPromise(
+      versionedProjectStore.listBranches({ projectId })
+    );
+
+    return branches;
+  }, [versionedProjectStore, projectId]);
+
+  const handleCreateAndSwitchToBranch = useCallback(
+    async (branchName: string) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot create branch.'
+        );
+      }
+
+      let branch: Branch;
+      try {
+        branch = parseBranch(branchName);
+      } catch (err) {
+        console.error(err);
+        throw new Error('Invalid branch name');
+      }
+
+      await Effect.runPromise(
+        versionedProjectStore.createAndSwitchToBranch({ projectId, branch })
+      );
+
+      setCurrentBranch(branch);
+      setIsCreateBranchDialogOpen(false);
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const handleSwitchToBranch = useCallback(
+    async (branch: Branch) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot create branch.'
+        );
+      }
+
+      await Effect.runPromise(
+        versionedProjectStore.switchToBranch({ projectId, branch })
+      );
+
+      setCurrentBranch(branch);
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const handleOpenCreateBranchDialog = useCallback(() => {
+    setIsCreateBranchDialogOpen(true);
+  }, []);
+
+  const handleCloseCreateBranchDialog = useCallback(() => {
+    setIsCreateBranchDialogOpen(false);
+  }, []);
+
+  const handleDeleteBranch = useCallback(
+    async (branch: Branch) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot delete branch.'
+        );
+      }
+
+      const { currentBranch: resultingCurrentBranch } = await Effect.runPromise(
+        versionedProjectStore.deleteBranch({ projectId, branch })
+      );
+
+      setBranchToDelete(null);
+      setCurrentBranch(resultingCurrentBranch);
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const handleMergeAndDeleteBranch = useCallback(
+    async (branch: Branch) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot delete branch.'
+        );
+      }
+
+      const { notification } = await Effect.runPromise(
+        pipe(
+          pipe(
+            versionedProjectStore.mergeAndDeleteBranch({
+              projectId,
+              from: branch,
+              into: DEFAULT_BRANCH as Branch,
+            }),
+            Effect.map((lastCommitId) => ({
+              result: lastCommitId,
+              notification: null,
+            }))
+          ),
+          Effect.catchTag(VersionControlMergeConflictErrorTag, (err) => {
+            console.error(err);
+            const notification = createErrorNotification({
+              title: 'Merge Conflict',
+              message:
+                'A conflict was encountered when v2 tried to merge the branch. Conflict resolution workflow coming soon.',
+            });
+
+            return Effect.succeed({ result: null, notification });
+          }),
+          Effect.catchAll((err) => {
+            console.error(err);
+            const notification = createErrorNotification({
+              title: 'Merge Error',
+              message: `An error happened when trying to merge "${branch}" into "${DEFAULT_BRANCH}" branch`,
+            });
+
+            return Effect.succeed({ result: null, notification });
+          })
+        )
+      );
+
+      if (notification) {
+        dispatchNotification(notification);
+      }
+
+      setCurrentBranch(DEFAULT_BRANCH as Branch);
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const handleOpenDeleteBranchDialog = useCallback((branch: Branch) => {
+    setBranchToDelete(branch);
+  }, []);
+
+  const handleCloseDeleteBranchDialog = useCallback(() => {
+    setBranchToDelete(null);
+  }, []);
+
   return (
     <MultiDocumentProjectContext.Provider
       value={{
@@ -315,6 +537,7 @@ export const MultiDocumentProjectProvider = ({
         projectId,
         directory,
         directoryFiles,
+        currentBranch,
         openDirectory: handleOpenDirectory,
         requestPermissionForSelectedDirectory,
         createNewDocument: handleCreateNewDocument,
@@ -323,6 +546,18 @@ export const MultiDocumentProjectProvider = ({
         selectedFileName,
         setSelectedFileInfo: handleSetSelectedFileInfo,
         clearFileSelection,
+        listBranches: handleListBranches,
+        createAndSwitchToBranch: handleCreateAndSwitchToBranch,
+        switchToBranch: handleSwitchToBranch,
+        isCreateBranchDialogOpen,
+        openCreateBranchDialog: handleOpenCreateBranchDialog,
+        closeCreateBranchDialog: handleCloseCreateBranchDialog,
+        deleteBranch: handleDeleteBranch,
+        mergeAndDeleteBranch: handleMergeAndDeleteBranch,
+        branchToDelete,
+        openDeleteBranchDialog: handleOpenDeleteBranchDialog,
+        closeDeleteBranchDialog: handleCloseDeleteBranchDialog,
+        supportsBranching,
       }}
     >
       {children}

@@ -4,12 +4,18 @@ import {
   effectifyIPCPromise,
   type ErrorRegistry,
 } from '../../../../../../../modules/infrastructure/cross-platform/electron-ipc-effect';
-import { MigrationError } from '../../../../../../../modules/infrastructure/version-control';
+import {
+  MigrationError,
+  VersionControlMigrationErrorTag,
+} from '../../../../../../../modules/infrastructure/version-control';
 import { type EffectErrorType } from '../../../../../../../utils/effect';
 import {
   NotFoundError,
   RepositoryError,
   ValidationError,
+  VersionedDocumentNotFoundErrorTag,
+  VersionedDocumentRepositoryErrorTag,
+  VersionedDocumentValidationErrorTag,
 } from '../../../../errors';
 import { type VersionedDocumentStore } from '../../../../ports';
 
@@ -46,7 +52,10 @@ export const createAdapter = ({
       ...args: Parameters<VersionedDocumentStore['createDocument']>
     ) =>
       effectifyIPCPromise(
-        { ValidationError, RepositoryError } as ErrorRegistry<
+        {
+          [VersionedDocumentValidationErrorTag]: ValidationError,
+          [VersionedDocumentRepositoryErrorTag]: RepositoryError,
+        } as ErrorRegistry<
           EffectErrorType<ReturnType<VersionedDocumentStore['createDocument']>>
         >,
         RepositoryError
@@ -56,10 +65,10 @@ export const createAdapter = ({
     ) =>
       effectifyIPCPromise(
         {
-          ValidationError,
-          RepositoryError,
-          NotFoundError,
-          MigrationError,
+          [VersionedDocumentValidationErrorTag]: ValidationError,
+          [VersionedDocumentRepositoryErrorTag]: RepositoryError,
+          [VersionedDocumentNotFoundErrorTag]: NotFoundError,
+          [VersionControlMigrationErrorTag]: MigrationError,
         } as ErrorRegistry<
           EffectErrorType<
             ReturnType<VersionedDocumentStore['findDocumentById']>
@@ -72,10 +81,10 @@ export const createAdapter = ({
     ) =>
       effectifyIPCPromise(
         {
-          ValidationError,
-          RepositoryError,
-          NotFoundError,
-          MigrationError,
+          [VersionedDocumentValidationErrorTag]: ValidationError,
+          [VersionedDocumentRepositoryErrorTag]: RepositoryError,
+          [VersionedDocumentNotFoundErrorTag]: NotFoundError,
+          [VersionControlMigrationErrorTag]: MigrationError,
         } as ErrorRegistry<
           EffectErrorType<
             ReturnType<VersionedDocumentStore['getDocumentLastChangeId']>
@@ -95,10 +104,10 @@ export const createAdapter = ({
     ) =>
       effectifyIPCPromise(
         {
-          ValidationError,
-          RepositoryError,
-          NotFoundError,
-          MigrationError,
+          [VersionedDocumentValidationErrorTag]: ValidationError,
+          [VersionedDocumentRepositoryErrorTag]: RepositoryError,
+          [VersionedDocumentNotFoundErrorTag]: NotFoundError,
+          [VersionControlMigrationErrorTag]: MigrationError,
         } as ErrorRegistry<
           EffectErrorType<
             ReturnType<VersionedDocumentStore['updateRichTextDocumentContent']>
@@ -116,10 +125,10 @@ export const createAdapter = ({
     ) =>
       effectifyIPCPromise(
         {
-          ValidationError,
-          RepositoryError,
-          NotFoundError,
-          MigrationError,
+          [VersionedDocumentValidationErrorTag]: ValidationError,
+          [VersionedDocumentRepositoryErrorTag]: RepositoryError,
+          [VersionedDocumentNotFoundErrorTag]: NotFoundError,
+          [VersionControlMigrationErrorTag]: MigrationError,
         } as ErrorRegistry<
           EffectErrorType<ReturnType<VersionedDocumentStore['deleteDocument']>>
         >,
@@ -130,10 +139,10 @@ export const createAdapter = ({
     ) =>
       effectifyIPCPromise(
         {
-          ValidationError,
-          RepositoryError,
-          NotFoundError,
-          MigrationError,
+          [VersionedDocumentValidationErrorTag]: ValidationError,
+          [VersionedDocumentRepositoryErrorTag]: RepositoryError,
+          [VersionedDocumentNotFoundErrorTag]: NotFoundError,
+          [VersionControlMigrationErrorTag]: MigrationError,
         } as ErrorRegistry<
           EffectErrorType<ReturnType<VersionedDocumentStore['commitChanges']>>
         >,
@@ -144,9 +153,9 @@ export const createAdapter = ({
     ) =>
       effectifyIPCPromise(
         {
-          ValidationError,
-          RepositoryError,
-          NotFoundError,
+          [VersionedDocumentValidationErrorTag]: ValidationError,
+          [VersionedDocumentRepositoryErrorTag]: RepositoryError,
+          [VersionedDocumentNotFoundErrorTag]: NotFoundError,
           MigrationError,
         } as ErrorRegistry<
           EffectErrorType<
@@ -162,10 +171,10 @@ export const createAdapter = ({
     ) =>
       effectifyIPCPromise(
         {
-          ValidationError,
-          RepositoryError,
-          NotFoundError,
-          MigrationError,
+          [VersionedDocumentValidationErrorTag]: ValidationError,
+          [VersionedDocumentRepositoryErrorTag]: RepositoryError,
+          [VersionedDocumentNotFoundErrorTag]: NotFoundError,
+          [VersionControlMigrationErrorTag]: MigrationError,
         } as ErrorRegistry<
           EffectErrorType<
             ReturnType<VersionedDocumentStore['getDocumentAtChange']>
@@ -180,10 +189,10 @@ export const createAdapter = ({
     ) =>
       effectifyIPCPromise(
         {
-          ValidationError,
-          RepositoryError,
-          NotFoundError,
-          MigrationError,
+          [VersionedDocumentValidationErrorTag]: ValidationError,
+          [VersionedDocumentRepositoryErrorTag]: RepositoryError,
+          [VersionedDocumentNotFoundErrorTag]: NotFoundError,
+          [VersionControlMigrationErrorTag]: MigrationError,
         } as ErrorRegistry<
           EffectErrorType<ReturnType<VersionedDocumentStore['restoreCommit']>>
         >,
@@ -194,10 +203,10 @@ export const createAdapter = ({
     ) =>
       effectifyIPCPromise(
         {
-          ValidationError,
-          RepositoryError,
-          NotFoundError,
-          MigrationError,
+          [VersionedDocumentValidationErrorTag]: ValidationError,
+          [VersionedDocumentRepositoryErrorTag]: RepositoryError,
+          [VersionedDocumentNotFoundErrorTag]: NotFoundError,
+          [VersionControlMigrationErrorTag]: MigrationError,
         } as ErrorRegistry<
           EffectErrorType<
             ReturnType<VersionedDocumentStore['discardUncommittedChanges']>
@@ -215,10 +224,10 @@ export const createAdapter = ({
     ) =>
       effectifyIPCPromise(
         {
-          ValidationError,
-          RepositoryError,
-          NotFoundError,
-          MigrationError,
+          [VersionedDocumentValidationErrorTag]: ValidationError,
+          [VersionedDocumentRepositoryErrorTag]: RepositoryError,
+          [VersionedDocumentNotFoundErrorTag]: NotFoundError,
+          [VersionControlMigrationErrorTag]: MigrationError,
         } as ErrorRegistry<
           EffectErrorType<
             ReturnType<VersionedDocumentStore['isContentSameAtChanges']>
@@ -234,7 +243,7 @@ export const createAdapter = ({
     disconnect: (...args: Parameters<VersionedDocumentStore['disconnect']>) =>
       effectifyIPCPromise(
         {
-          RepositoryError,
+          [VersionedDocumentRepositoryErrorTag]: RepositoryError,
         } as ErrorRegistry<
           EffectErrorType<ReturnType<VersionedDocumentStore['disconnect']>>
         >,

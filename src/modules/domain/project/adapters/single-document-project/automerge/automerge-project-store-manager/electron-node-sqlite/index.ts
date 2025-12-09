@@ -181,14 +181,16 @@ export const createAdapter = ({
                   createDocument: versionedDocumentStore.createDocument,
                   createSingleDocumentProject:
                     versionedProjectStore.createSingleDocumentProject,
+                  getCurrentBranch: versionedProjectStore.getCurrentBranch,
                 })({
                   content: null,
                 }),
-                Effect.map(({ documentId, projectId }) => ({
+                Effect.map(({ documentId, projectId, currentBranch }) => ({
                   versionedProjectStore,
                   versionedDocumentStore,
                   projectId,
                   documentId,
+                  currentBranch,
                   file: newFile,
                   // The name is derived by the file name in this case
                   name: newFile.name,
@@ -260,6 +262,11 @@ export const createAdapter = ({
             Effect.bind('documentId', ({ versionedProjectStore, projectId }) =>
               versionedProjectStore.findDocumentInProject(projectId)
             ),
+            Effect.bind(
+              'currentBranch',
+              ({ versionedProjectStore, projectId }) =>
+                versionedProjectStore.getCurrentBranch({ projectId })
+            ),
             Effect.tap(({ automergeRepo }) =>
               Effect.sync(() => {
                 currentAutomergeRepo = automergeRepo;
@@ -275,11 +282,13 @@ export const createAdapter = ({
                 versionedDocumentStore,
                 projectId,
                 documentId,
+                currentBranch,
               }) => ({
                 versionedProjectStore,
                 versionedDocumentStore,
                 projectId,
                 documentId,
+                currentBranch,
                 file,
                 // The name is derived by the file name in this case
                 name: file.name,
