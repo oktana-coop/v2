@@ -36,6 +36,15 @@ export type SwitchToBranchArgs = IsoGitDeps & {
 
 export type GetCurrentBranchArgs = IsoGitDeps;
 
+export type GetBranchCommitHistoryArgs = IsoGitDeps & {
+  branch: Branch;
+  limit?: number;
+};
+
+type SortBranchesByRecencyArgs = IsoGitDeps & {
+  branches: Branch[];
+};
+
 export type ListBranchesArgs = IsoGitDeps;
 
 export type DeleteBranchArgs = IsoGitDeps & {
@@ -114,6 +123,101 @@ export const getCurrentBranch = ({
     )
   );
 
+export const getBranchCommitHistory = ({
+  isoGitFs,
+  dir,
+  branch,
+  limit,
+}: GetBranchCommitHistoryArgs): Effect.Effect<
+  Commit[],
+  RepositoryError | NotFoundError,
+  never
+> =>
+  pipe(
+    Effect.tryPromise({
+      try: () =>
+        git.log({
+          fs: isoGitFs,
+          dir,
+          ref: branch,
+          depth: limit,
+        }),
+      catch: (err) => {
+        if (err instanceof IsoGitErrors.NotFoundError) {
+          return new NotFoundError('No commit found');
+        }
+
+        return new RepositoryError('Git repo error');
+      },
+    }),
+    Effect.catchTag('VersionControlNotFoundError', () => Effect.succeed([])),
+    Effect.map((gitLog) =>
+      gitLog.map(
+        (commitInfo) =>
+          ({
+            // TODO: Handle parsing errors
+            id: parseGitCommitHash(commitInfo.oid),
+            message: commitInfo.commit.message,
+            time: new Date(commitInfo.commit.author.timestamp * 1000),
+          }) as Commit
+      )
+    )
+  );
+
+const sortBranchesByRecency = ({
+  isoGitFs,
+  dir,
+  branches,
+}: SortBranchesByRecencyArgs): Effect.Effect<
+  Branch[],
+  RepositoryError | NotFoundError,
+  never
+> =>
+  pipe(
+    getCurrentBranch({ isoGitFs, dir }),
+    Effect.flatMap((currentBranch) =>
+      Effect.forEach(branches, (branch) =>
+        pipe(
+          getBranchCommitHistory({ isoGitFs, dir, branch, limit: 1 }),
+          Effect.map((commits) => (commits.length > 0 ? commits[0] : null)),
+          Effect.map((lastCommit) => ({
+            branch,
+            isCurrent: branch === currentBranch,
+            lastCommit,
+          }))
+        )
+      )
+    ),
+    Effect.map((branchesWithCommitInfo) =>
+      branchesWithCommitInfo.sort((branch1, branch2) => {
+        // Current branch comes first
+        if (branch1.isCurrent !== branch2.isCurrent) {
+          return Number(branch2.isCurrent) - Number(branch1.isCurrent);
+        }
+
+        // Branches with commits come before branches without
+        const branch1HasCommit = branch1.lastCommit !== null;
+        const branch2HasCommit = branch2.lastCommit !== null;
+        if (branch1HasCommit !== branch2HasCommit) {
+          return Number(branch2HasCommit) - Number(branch1HasCommit);
+        }
+
+        // Sort by most recent commit (newer first)
+        if (branch1.lastCommit && branch2.lastCommit) {
+          return (
+            branch2.lastCommit.time.getTime() -
+            branch1.lastCommit.time.getTime()
+          );
+        }
+
+        return 0;
+      })
+    ),
+    Effect.map((branchesWithCommitInfo) =>
+      branchesWithCommitInfo.map(({ branch }) => branch)
+    )
+  );
+
 export const listBranches = ({
   isoGitFs,
   dir,
@@ -141,6 +245,9 @@ export const listBranches = ({
           ),
         })
       )
+    ),
+    Effect.flatMap((branches) =>
+      sortBranchesByRecency({ isoGitFs, dir, branches })
     )
   );
 
