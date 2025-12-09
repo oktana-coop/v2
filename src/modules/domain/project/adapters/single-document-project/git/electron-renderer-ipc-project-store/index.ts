@@ -5,6 +5,7 @@ import {
 import {
   MergeConflictError,
   MigrationError,
+  VersionControlMergeConflictErrorTag,
 } from '../../../../../../../modules/infrastructure/version-control';
 import { type EffectErrorType } from '../../../../../../../utils/effect';
 import {
@@ -162,7 +163,7 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
         ValidationError,
         RepositoryError,
         NotFoundError,
-        MergeConflictError,
+        [VersionControlMergeConflictErrorTag]: MergeConflictError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<SingleDocumentProjectStore['mergeAndDeleteBranch']>

@@ -1,4 +1,5 @@
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 import {
   createContext,
   useCallback,
@@ -27,6 +28,10 @@ import {
   removeExtension,
   removePath,
 } from '../../../../modules/infrastructure/filesystem';
+import {
+  createErrorNotification,
+  NotificationsContext,
+} from '../../../../modules/infrastructure/notifications/browser';
 import {
   type Branch,
   DEFAULT_BRANCH,
@@ -129,6 +134,7 @@ export const MultiDocumentProjectProvider = ({
   const [isCreateBranchDialogOpen, setIsCreateBranchDialogOpen] =
     useState<boolean>(false);
   const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
+  const { dispatchNotification } = useContext(NotificationsContext);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -463,13 +469,44 @@ export const MultiDocumentProjectProvider = ({
         );
       }
 
-      await Effect.runPromise(
-        versionedProjectStore.mergeAndDeleteBranch({
-          projectId,
-          from: branch,
-          into: DEFAULT_BRANCH as Branch,
-        })
+      const { notification } = await Effect.runPromise(
+        pipe(
+          pipe(
+            versionedProjectStore.mergeAndDeleteBranch({
+              projectId,
+              from: branch,
+              into: DEFAULT_BRANCH as Branch,
+            }),
+            Effect.map((lastCommitId) => ({
+              result: lastCommitId,
+              notification: null,
+            }))
+          ),
+          Effect.catchTag('VersionControlMergeConflictError', (err) => {
+            console.error(err);
+            const notification = createErrorNotification({
+              title: 'Merge Conflict',
+              message:
+                'A conflict was encountered when v2 tried to merge the branch. Conflict resolution workflow coming soon.',
+            });
+
+            return Effect.succeed({ result: null, notification });
+          }),
+          Effect.catchAll((err) => {
+            console.error(err);
+            const notification = createErrorNotification({
+              title: 'Merge Error',
+              message: `An error happened when trying to merge "${branch}" into "${DEFAULT_BRANCH}" branch`,
+            });
+
+            return Effect.succeed({ result: null, notification });
+          })
+        )
       );
+
+      if (notification) {
+        dispatchNotification(notification);
+      }
 
       setCurrentBranch(DEFAULT_BRANCH as Branch);
     },

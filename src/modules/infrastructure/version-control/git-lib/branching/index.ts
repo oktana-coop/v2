@@ -337,7 +337,10 @@ export const mergeAndDeleteBranch = ({
         }),
       catch: (err) => {
         console.log(err);
-        if (err instanceof IsoGitErrors.MergeNotSupportedError) {
+        if (
+          err instanceof IsoGitErrors.MergeNotSupportedError ||
+          err instanceof IsoGitErrors.MergeConflictError
+        ) {
           return new MergeConflictError(
             `Error when trying to merge ${from} into ${into} due to conflicts.`
           );

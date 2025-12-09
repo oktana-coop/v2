@@ -1,4 +1,5 @@
 import { RepresentationTransformProvider } from '../../modules/domain/rich-text/react/representation-transform-context';
+import { NotificationsProvider } from '../../modules/infrastructure/notifications/browser.ts';
 import { WasmProvider } from '../../modules/infrastructure/wasm/react/wasm-context';
 import {
   FunctionalityConfigProvider,
@@ -17,9 +18,11 @@ export const AppWrapper = () => {
         <RepresentationTransformProvider>
           <ThemeProvider>
             <FunctionalityConfigProvider>
-              <CommandPaletteStateProvider>
-                <App />
-              </CommandPaletteStateProvider>
+              <NotificationsProvider>
+                <CommandPaletteStateProvider>
+                  <App />
+                </CommandPaletteStateProvider>
+              </NotificationsProvider>
             </FunctionalityConfigProvider>
           </ThemeProvider>
         </RepresentationTransformProvider>
