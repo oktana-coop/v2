@@ -1,5 +1,6 @@
 import * as Effect from 'effect/Effect';
 
+import { type Email, type Username } from '../../../../auth';
 import {
   type Branch,
   type Commit,
@@ -50,6 +51,12 @@ export type SingleDocumentProjectMergeAndDeleteBranchArgs = {
   projectId: ProjectId;
   from: Branch;
   into: Branch;
+};
+
+export type SingleDocumentProjectSetAuthorInfoArgs = {
+  projectId: ProjectId;
+  username: Username | null;
+  email: Email | null;
 };
 
 export type SingleDocumentProjectStore = {
@@ -112,5 +119,8 @@ export type SingleDocumentProjectStore = {
     ValidationError | RepositoryError | NotFoundError | MergeConflictError,
     never
   >;
+  setAuthorInfo: (
+    args: SingleDocumentProjectSetAuthorInfoArgs
+  ) => Effect.Effect<void, RepositoryError, never>;
   disconnect: () => Effect.Effect<void, RepositoryError, never>;
 };

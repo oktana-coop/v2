@@ -230,6 +230,10 @@ export const createAdapter = (
         )
       );
 
+  // TODO: Implement authorship in Automerge
+  const setAuthorInfo: MultiDocumentProjectStore['setAuthorInfo'] = () =>
+    Effect.succeed(undefined);
+
   return {
     // TODO: Implement branching in Automerge
     supportsBranching: false,
@@ -245,5 +249,6 @@ export const createAdapter = (
     listBranches,
     deleteBranch,
     mergeAndDeleteBranch,
+    setAuthorInfo,
   };
 };

@@ -1,9 +1,6 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
-import git, {
-  Errors as IsoGitErrors,
-  type PromiseFsClient as IsoGitFsApi,
-} from 'isomorphic-git';
+import git, { Errors as IsoGitErrors } from 'isomorphic-git';
 
 import { fromNullable } from '../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../utils/errors';
@@ -21,11 +18,7 @@ import {
   parseBranch,
   parseGitCommitHash,
 } from '../../models';
-
-type IsoGitDeps = {
-  isoGitFs: IsoGitFsApi;
-  dir: string;
-};
+import { IsoGitDeps } from '../types';
 
 export type CreateAndSwitchToBranchArgs = IsoGitDeps & {
   branch: Branch;

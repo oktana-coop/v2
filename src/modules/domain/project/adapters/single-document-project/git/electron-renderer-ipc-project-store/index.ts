@@ -176,6 +176,17 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.singleDocumentProjectStoreAPI.mergeAndDeleteBranch(...args)),
+  setAuthorInfo: (
+    ...args: Parameters<SingleDocumentProjectStore['setAuthorInfo']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<SingleDocumentProjectStore['setAuthorInfo']>>
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.setAuthorInfo(...args)),
   disconnect: (...args: Parameters<SingleDocumentProjectStore['disconnect']>) =>
     effectifyIPCPromise(
       {

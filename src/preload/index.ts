@@ -237,6 +237,10 @@ contextBridge.exposeInMainWorld('singleDocumentProjectStoreAPI', {
         ...args,
       }
     ),
+  setAuthorInfo: (args) =>
+    ipcRenderer.invoke('single-document-project-store:set-author-info', {
+      ...args,
+    }),
   disconnect: (projectId) =>
     ipcRenderer.invoke('single-document-project-store:disconnect', projectId),
 } as SingleDocumentProjectStorePromiseAPI);
@@ -292,6 +296,10 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
     }),
   mergeAndDeleteBranch: (args) =>
     ipcRenderer.invoke('multi-document-project-store:merge-and-delete-branch', {
+      ...args,
+    }),
+  setAuthorInfo: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:set-author-info', {
       ...args,
     }),
 } as MultiDocumentProjectStorePromiseAPI);

@@ -58,8 +58,8 @@ export type PersonalizationAPI = {
 };
 
 export type AuthAPI = {
-  setUsername: (username: Username) => Promise<void>;
-  setEmail: (email: Email) => Promise<void>;
+  setUsername: (username: Username | null) => Promise<void>;
+  setEmail: (email: Email | null) => Promise<void>;
   getInfo: () => Promise<{
     username: Username | null;
     email: Email | null;

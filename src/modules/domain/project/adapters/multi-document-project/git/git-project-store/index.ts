@@ -18,6 +18,7 @@ import {
   listBranches as listBranchesWithGit,
   mergeAndDeleteBranch as mergeAndDeleteBranchWithGit,
   type ResolvedArtifactId,
+  setAuthorInfo as setAuthorInfoInGit,
   switchToBranch as switchToBranchWithGit,
   VersionControlNotFoundErrorTag,
   VersionControlRepositoryErrorTag,
@@ -335,6 +336,28 @@ export const createAdapter = ({
         )
       );
 
+  const setAuthorInfo: MultiDocumentProjectStore['setAuthorInfo'] = ({
+    projectId,
+    username,
+    email,
+  }) =>
+    pipe(
+      ensureProjectIdIsFsPath(projectId),
+      Effect.flatMap((projectPath) =>
+        pipe(
+          setAuthorInfoInGit({
+            isoGitFs,
+            dir: projectPath,
+            username,
+            email,
+          }),
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      )
+    );
+
   return {
     supportsBranching: true,
     createProject,
@@ -349,5 +372,6 @@ export const createAdapter = ({
     listBranches,
     deleteBranch,
     mergeAndDeleteBranch,
+    setAuthorInfo,
   };
 };

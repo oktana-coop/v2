@@ -15,6 +15,7 @@ import {
   listBranches as listBranchesWithGit,
   mergeAndDeleteBranch as mergeAndDeleteBranchWithGit,
   MigrationError,
+  setAuthorInfo as setAuthorInfoInGit,
   switchToBranch as switchToBranchWithGit,
   VersionControlNotFoundErrorTag,
   VersionControlRepositoryErrorTag,
@@ -228,6 +229,22 @@ export const createAdapter = ({
         )
       );
 
+  const setAuthorInfo: SingleDocumentProjectStore['setAuthorInfo'] = ({
+    username,
+    email,
+  }) =>
+    pipe(
+      setAuthorInfoInGit({
+        isoGitFs,
+        dir: internalProjectDir,
+        username,
+        email,
+      }),
+      Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+        Effect.fail(new RepositoryError(err.message))
+      )
+    );
+
   // This is a no-op in the Git document repo.
   const disconnect: SingleDocumentProjectStore['disconnect'] = () =>
     Effect.succeed(undefined);
@@ -244,6 +261,7 @@ export const createAdapter = ({
     listBranches,
     deleteBranch,
     mergeAndDeleteBranch,
+    setAuthorInfo,
     disconnect,
   };
 };
