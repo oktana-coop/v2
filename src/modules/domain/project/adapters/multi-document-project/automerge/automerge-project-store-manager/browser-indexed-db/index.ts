@@ -21,6 +21,7 @@ import { MigrationError } from '../../../../../../../../modules/infrastructure/v
 import { setupForWeb as setupBrowserRepoForWeb } from '../../../../../../../../modules/infrastructure/version-control/automerge-repo/browser';
 import { fromNullable } from '../../../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../../../utils/errors';
+import { type Email, type Username } from '../../../../../../../auth';
 import {
   createProjectFromFilesystemContent,
   updateProjectFromFilesystemContent,
@@ -193,6 +194,8 @@ const createNewProject = ({
   listDirectoryFiles,
   readFile,
   db,
+  username,
+  email,
 }: {
   directoryPath: string;
   createDocument: VersionedDocumentStore['createDocument'];
@@ -201,6 +204,8 @@ const createNewProject = ({
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readFile: Filesystem['readFile'];
   db: IDBDatabase;
+  username: Username | null;
+  email: Email | null;
 }): Effect.Effect<
   ProjectId,
   | FilesystemAccessControlError
@@ -221,7 +226,7 @@ const createNewProject = ({
       addDocumentToProject,
       listDirectoryFiles,
       readFile,
-    })({ directoryPath }),
+    })({ directoryPath, username, email }),
     Effect.tap((projectId) =>
       writeProjectMetadataToIDB({
         db,
@@ -374,7 +379,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
   const openOrCreateMultiDocumentProject: MultiDocumentProjectStoreManager['openOrCreateMultiDocumentProject'] =
 
       ({ filesystem }) =>
-      () =>
+      ({ username, email }) =>
         Effect.Do.pipe(
           Effect.bind('directory', () => filesystem.openDirectory()),
           Effect.bind('db', ({ directory }) =>
@@ -428,6 +433,8 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                   () =>
                     createNewProject({
                       directoryPath: directory.path,
+                      username,
+                      email,
                       createDocument: versionedDocumentStore.createDocument,
                       createProject: versionedProjectStore.createProject,
                       addDocumentToProject:

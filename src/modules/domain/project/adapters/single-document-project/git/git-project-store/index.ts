@@ -15,7 +15,7 @@ import {
   listBranches as listBranchesWithGit,
   mergeAndDeleteBranch as mergeAndDeleteBranchWithGit,
   MigrationError,
-  setAuthorInfo as setAuthorInfoInGit,
+  setUserInfo as setUserInfoInGit,
   switchToBranch as switchToBranchWithGit,
   VersionControlNotFoundErrorTag,
   VersionControlRepositoryErrorTag,
@@ -55,7 +55,7 @@ export const createAdapter = ({
   documentInternalPath: string;
 }): SingleDocumentProjectStore => {
   const createSingleDocumentProject: SingleDocumentProjectStore['createSingleDocumentProject'] =
-    () =>
+    ({ username, email }) =>
       pipe(
         Effect.succeed(projectFilePath),
         Effect.tap(() =>
@@ -68,6 +68,9 @@ export const createAdapter = ({
               }),
             catch: mapErrorTo(RepositoryError, 'Git repo error'),
           })
+        ),
+        Effect.tap((projectFilePath) =>
+          setAuthorInfo({ projectId: projectFilePath, username, email })
         )
       );
 
@@ -234,7 +237,7 @@ export const createAdapter = ({
     email,
   }) =>
     pipe(
-      setAuthorInfoInGit({
+      setUserInfoInGit({
         isoGitFs,
         dir: internalProjectDir,
         username,

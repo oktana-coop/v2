@@ -10,7 +10,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
   const openOrCreateMultiDocumentProject: MultiDocumentProjectStoreManager['openOrCreateMultiDocumentProject'] =
 
       ({ filesystem }) =>
-      () =>
+      ({ username, email }) =>
         Effect.Do.pipe(
           Effect.bind('directory', () => filesystem.openDirectory()),
           Effect.bind('versionedProjectStore', () =>
@@ -22,7 +22,11 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
             )
           ),
           Effect.bind('projectId', ({ directory, versionedProjectStore }) =>
-            versionedProjectStore.createProject({ path: directory.path })
+            versionedProjectStore.createProject({
+              path: directory.path,
+              username,
+              email,
+            })
           ),
           Effect.bind('currentBranch', ({ versionedProjectStore, projectId }) =>
             versionedProjectStore.getCurrentBranch({ projectId })
@@ -52,7 +56,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
   const openMultiDocumentProjectById: MultiDocumentProjectStoreManager['openMultiDocumentProjectById'] =
 
       ({ filesystem }) =>
-      ({ projectId, directoryPath }) =>
+      ({ projectId, directoryPath, username, email }) =>
         Effect.Do.pipe(
           Effect.bind('directory', () =>
             filesystem.getDirectory(directoryPath)
@@ -64,6 +68,13 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                 filesystem,
               })
             )
+          ),
+          Effect.tap(({ versionedProjectStore }) =>
+            versionedProjectStore.setAuthorInfo({
+              projectId,
+              username,
+              email,
+            })
           ),
           Effect.bind('currentBranch', ({ versionedProjectStore }) =>
             versionedProjectStore.getCurrentBranch({ projectId })

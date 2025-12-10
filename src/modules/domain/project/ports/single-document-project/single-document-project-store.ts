@@ -15,10 +15,15 @@ import {
   type VersionedSingleDocumentProject,
 } from '../../models';
 
+type UserInfo = {
+  username: Username | null;
+  email: Email | null;
+};
+
 export type CreateSingleDocumentProjectArgs = {
   documentMetaData: BaseArtifactMetaData;
   name: string | null;
-};
+} & UserInfo;
 
 export type SingleDocumentProjectCreateAndSwitchToBranchArgs = {
   projectId: ProjectId;
@@ -55,9 +60,7 @@ export type SingleDocumentProjectMergeAndDeleteBranchArgs = {
 
 export type SingleDocumentProjectSetAuthorInfoArgs = {
   projectId: ProjectId;
-  username: Username | null;
-  email: Email | null;
-};
+} & UserInfo;
 
 export type SingleDocumentProjectStore = {
   supportsBranching: boolean;

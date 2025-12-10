@@ -9,35 +9,39 @@ import { createAdapter as createMultiDocumentProjectStoreAdapter } from '../../e
 
 export const createAdapter = (): MultiDocumentProjectStoreManager => {
   const openOrCreateMultiDocumentProject: MultiDocumentProjectStoreManager['openOrCreateMultiDocumentProject'] =
-    () => () =>
-      pipe(
-        Effect.tryPromise({
-          try: () =>
-            window.multiDocumentProjectStoreManagerAPI.openOrCreateMultiDocumentProject(),
-          // TODO: Leverage typed Effect errors returned from the respective node adapter
-          catch: mapErrorTo(
-            VersionedProjectRepositoryError,
-            'Error in creating multi-document project'
-          ),
-        }),
-        Effect.map(({ projectId, directory, currentBranch }) => ({
-          versionedProjectStore: createMultiDocumentProjectStoreAdapter(),
-          versionedDocumentStore: createVersionedDocumentStoreAdapter({
-            projectId,
-            // It's really the main process store that manages the filesystem workdir here,
-            // but from the perspective of the client using this adapter it should be transparent.
-            managesFilesystemWorkdir: true,
+
+      () =>
+      ({ username, email }) =>
+        pipe(
+          Effect.tryPromise({
+            try: () =>
+              window.multiDocumentProjectStoreManagerAPI.openOrCreateMultiDocumentProject(
+                { username, email }
+              ),
+            // TODO: Leverage typed Effect errors returned from the respective node adapter
+            catch: mapErrorTo(
+              VersionedProjectRepositoryError,
+              'Error in creating multi-document project'
+            ),
           }),
-          projectId,
-          directory,
-          currentBranch,
-        }))
-      );
+          Effect.map(({ projectId, directory, currentBranch }) => ({
+            versionedProjectStore: createMultiDocumentProjectStoreAdapter(),
+            versionedDocumentStore: createVersionedDocumentStoreAdapter({
+              projectId,
+              // It's really the main process store that manages the filesystem workdir here,
+              // but from the perspective of the client using this adapter it should be transparent.
+              managesFilesystemWorkdir: true,
+            }),
+            projectId,
+            directory,
+            currentBranch,
+          }))
+        );
 
   const openMultiDocumentProjectById: MultiDocumentProjectStoreManager['openMultiDocumentProjectById'] =
 
       () =>
-      ({ projectId, directoryPath }) =>
+      ({ projectId, directoryPath, username, email }) =>
         pipe(
           Effect.tryPromise({
             try: () =>
@@ -45,6 +49,8 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                 {
                   projectId,
                   directoryPath,
+                  username,
+                  email,
                 }
               ),
             // TODO: Leverage typed Effect errors returned from the respective node adapter

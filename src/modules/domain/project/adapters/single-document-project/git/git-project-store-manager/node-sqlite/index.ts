@@ -51,7 +51,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
   const setupSingleDocumentProjectStore: SingleDocumentProjectStoreManager['setupSingleDocumentProjectStore'] =
 
       ({ filesystem }: SetupSingleDocumentProjectStoreDeps) =>
-      () =>
+      ({ username, email }) =>
         Effect.Do.pipe(
           Effect.bind('newFile', () =>
             filesystem.createNewFile({
@@ -117,6 +117,8 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                 })({
                   content: null,
                   writeToFileWithPath: DOCUMENT_INTERNAL_PATH,
+                  username,
+                  email,
                 }),
                 Effect.map(({ documentId, projectId, currentBranch }) => ({
                   versionedProjectStore,
@@ -135,7 +137,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
   const openSingleDocumentProjectStore: SingleDocumentProjectStoreManager['openSingleDocumentProjectStore'] =
 
       ({ filesystem }: OpenSingleDocumentProjectStoreDeps) =>
-      ({ fromFile }: OpenSingleDocumentProjectStoreArgs) =>
+      ({ fromFile, username, email }: OpenSingleDocumentProjectStoreArgs) =>
         openSingleDocumentProjectStoreSemaphore.withPermits(1)(
           Effect.Do.pipe(
             Effect.bind('file', () =>
@@ -200,6 +202,14 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
               'currentBranch',
               ({ versionedProjectStore, projectFilePath: projectId }) =>
                 versionedProjectStore.getCurrentBranch({ projectId })
+            ),
+            Effect.tap(
+              ({ versionedProjectStore, projectFilePath: projectId }) =>
+                versionedProjectStore.setAuthorInfo({
+                  projectId,
+                  username,
+                  email,
+                })
             ),
             Effect.map(
               ({

@@ -16,10 +16,15 @@ import type {
   VersionedMultiDocumentProject,
 } from '../../models';
 
+type UserInfo = {
+  username: Username | null;
+  email: Email | null;
+};
+
 export type CreateMultiDocumentProjectArgs = {
   path: string;
   documents?: MultiDocumentProject['documents'];
-};
+} & UserInfo;
 
 export type AddDocumentToMultiDocumentProjectArgs = {
   documentId: ResolvedArtifactId;

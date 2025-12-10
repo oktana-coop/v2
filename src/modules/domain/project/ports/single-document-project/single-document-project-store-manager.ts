@@ -12,6 +12,7 @@ import {
   MigrationError,
   type ResolvedArtifactId,
 } from '../../../../../modules/infrastructure/version-control';
+import { type Email, type Username } from '../../../../auth';
 import {
   RepositoryError as VersionedDocumentRepositoryError,
   ValidationError as VersionedDocumentValidationError,
@@ -25,13 +26,18 @@ import {
 import { type ProjectId } from '../../models';
 import { type SingleDocumentProjectStore } from './single-document-project-store';
 
+type UserInfo = {
+  username: Username | null;
+  email: Email | null;
+};
+
 export type SetupSingleDocumentProjectStoreDeps = {
   filesystem: Filesystem;
 };
 
 export type SetupSingleDocumentProjectStoreArgs = {
   name?: string;
-};
+} & UserInfo;
 
 export type SetupSingleDocumentProjectStoreResult = {
   versionedProjectStore: SingleDocumentProjectStore;
@@ -50,7 +56,7 @@ export type OpenSingleDocumentProjectStoreDeps = {
 export type OpenSingleDocumentProjectStoreArgs = {
   fromFile?: File;
   projectId?: ProjectId;
-};
+} & UserInfo;
 
 export type OpenSingleDocumentProjectStoreResult = {
   versionedProjectStore: SingleDocumentProjectStore;

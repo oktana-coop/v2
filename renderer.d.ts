@@ -6,6 +6,7 @@ import {
   type MultiDocumentProjectStore,
   type OpenMultiDocumentProjectByIdArgs,
   type OpenMultiDocumentProjectByIdResult,
+  OpenOrCreateMultiDocumentProjectArgs,
   type OpenOrCreateMultiDocumentProjectResult,
   type OpenSingleDocumentProjectStoreArgs,
   type OpenSingleDocumentProjectStoreResult,
@@ -95,7 +96,9 @@ export type SingleDocumentProjectStoreManagerAPI = {
 };
 
 export type MultiDocumentProjectStoreManagerAPI = {
-  openOrCreateMultiDocumentProject: () => Promise<
+  openOrCreateMultiDocumentProject: (
+    args: OpenOrCreateMultiDocumentProjectArgs
+  ) => Promise<
     Pick<
       OpenOrCreateMultiDocumentProjectResult,
       'projectId' | 'directory' | 'currentBranch'

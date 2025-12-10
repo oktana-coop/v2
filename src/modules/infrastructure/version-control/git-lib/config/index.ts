@@ -6,17 +6,24 @@ import { mapErrorTo } from '../../../../../utils/errors';
 import { RepositoryError } from '../../errors';
 import { IsoGitDeps } from '../types';
 
-export type SetAuthorInfoArgs = IsoGitDeps & {
+export type SetUserInfoArgs = IsoGitDeps & {
   username: string | null;
   email: string | null;
 };
 
-export const setAuthorInfo = ({
+export type GetUserInfoArgs = IsoGitDeps;
+
+export type GetUserInfoResponse = {
+  username: string | null;
+  email: string | null;
+};
+
+export const setUserInfo = ({
   isoGitFs,
   dir,
   username,
   email,
-}: SetAuthorInfoArgs): Effect.Effect<void, RepositoryError, never> =>
+}: SetUserInfoArgs): Effect.Effect<void, RepositoryError, never> =>
   pipe(
     Effect.tryPromise({
       try: () =>
@@ -45,5 +52,50 @@ export const setAuthorInfo = ({
           'Error in setting the email in git repo config'
         ),
       })
+    )
+  );
+
+export const getUserInfo = ({
+  isoGitFs,
+  dir,
+}: GetUserInfoArgs): Effect.Effect<
+  GetUserInfoResponse,
+  RepositoryError,
+  never
+> =>
+  Effect.Do.pipe(
+    Effect.bind('username', () =>
+      pipe(
+        Effect.tryPromise({
+          try: () =>
+            git.getConfig({
+              fs: isoGitFs,
+              dir,
+              path: 'user.name',
+            }),
+          catch: mapErrorTo(
+            RepositoryError,
+            'Error in getting the username from the git repo config'
+          ),
+        }),
+        Effect.map((username) => (username ? String(username) : null))
+      )
+    ),
+    Effect.bind('email', () =>
+      pipe(
+        Effect.tryPromise({
+          try: () =>
+            git.getConfig({
+              fs: isoGitFs,
+              dir,
+              path: 'user.email',
+            }),
+          catch: mapErrorTo(
+            RepositoryError,
+            'Error in getting the email from the git repo config'
+          ),
+        }),
+        Effect.map((email) => (email ? String(email) : null))
+      )
     )
   );

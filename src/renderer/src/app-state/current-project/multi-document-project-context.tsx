@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { useNavigate } from 'react-router';
 
+import { AuthContext } from '../../../../modules/auth/browser';
 import {
   createVersionedDocument,
   findDocumentInProject,
@@ -138,6 +139,7 @@ export const MultiDocumentProjectProvider = ({
   const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
   const { dispatchNotification } = useContext(NotificationsContext);
   const [supportsBranching, setSupportsBranching] = useState<boolean>(false);
+  const { username, email } = useContext(AuthContext);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -169,6 +171,8 @@ export const MultiDocumentProjectProvider = ({
           })({
             projectId: browserStorageProjectData.projectId,
             directoryPath: browserStorageProjectData.directoryPath,
+            username,
+            email,
           })
         );
 
@@ -257,7 +261,7 @@ export const MultiDocumentProjectProvider = ({
     }
   };
 
-  const handleOpenDirectory = async () => {
+  const handleOpenDirectory = useCallback(async () => {
     setLoading(true);
 
     const {
@@ -269,7 +273,7 @@ export const MultiDocumentProjectProvider = ({
     } = await Effect.runPromise(
       multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject({
         filesystem,
-      })()
+      })({ username, email })
     );
 
     setProjectId(projId);
@@ -290,7 +294,7 @@ export const MultiDocumentProjectProvider = ({
     setLoading(false);
 
     return dir;
-  };
+  }, [multiDocumentProjectStoreManager, username, email]);
 
   const handleCreateNewDocument = useCallback(async () => {
     if (!versionedDocumentStore || !versionedProjectStore || !projectId) {
@@ -529,6 +533,29 @@ export const MultiDocumentProjectProvider = ({
   const handleCloseDeleteBranchDialog = useCallback(() => {
     setBranchToDelete(null);
   }, []);
+
+  useEffect(() => {
+    const updateAuthorInfoInProjectStore = async ({
+      versionedProjectStore,
+      projectId,
+    }: {
+      versionedProjectStore: MultiDocumentProjectStore;
+      projectId: ProjectId;
+    }) => {
+      versionedProjectStore.setAuthorInfo({
+        projectId,
+        username,
+        email,
+      });
+    };
+
+    if (versionedProjectStore && projectId) {
+      updateAuthorInfoInProjectStore({
+        versionedProjectStore,
+        projectId,
+      });
+    }
+  }, [username, email, versionedProjectStore, projectId]);
 
   return (
     <MultiDocumentProjectContext.Provider

@@ -314,8 +314,8 @@ contextBridge.exposeInMainWorld('singleDocumentProjectStoreManagerAPI', {
 
 // TODO: Namespace IPC messages
 contextBridge.exposeInMainWorld('multiDocumentProjectStoreManagerAPI', {
-  openOrCreateMultiDocumentProject: () =>
-    ipcRenderer.invoke('open-or-create-multi-document-project'),
+  openOrCreateMultiDocumentProject: (args) =>
+    ipcRenderer.invoke('open-or-create-multi-document-project', { ...args }),
   openMultiDocumentProjectById: (args) =>
     ipcRenderer.invoke('open-multi-document-project-by-id', { ...args }),
 } as MultiDocumentProjectStoreManagerAPI);

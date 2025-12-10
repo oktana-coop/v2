@@ -13,6 +13,7 @@ import {
   createGitBlobRef,
   decomposeGitBlobRef,
   DEFAULT_AUTHOR_NAME,
+  getUserInfo as getUserInfoFromConfig,
   type GitBlobRef,
   type GitCommitHash,
   isGitBlobRef,
@@ -24,6 +25,7 @@ import {
   type ResolvedArtifactId,
   type UncommitedChange,
   UNCOMMITTED_CHANGE_ID,
+  VersionControlRepositoryErrorTag,
   versionedArtifactTypes,
 } from '../../../../../../../modules/infrastructure/version-control';
 import { fromNullable } from '../../../../../../../utils/effect';
@@ -333,7 +335,15 @@ export const createAdapter = ({
       Effect.bind('documentPath', () =>
         extractDocumentRelativePathFromId(documentId)
       ),
-      Effect.flatMap(({ documentPath }) =>
+      Effect.bind('repoUserInfo', () =>
+        pipe(
+          getUserInfoFromConfig({ isoGitFs, dir: projectDir }),
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      ),
+      Effect.flatMap(({ documentPath, repoUserInfo }) =>
         pipe(
           Effect.tryPromise({
             try: () =>
@@ -351,7 +361,8 @@ export const createAdapter = ({
                   fs: isoGitFs,
                   dir: projectDir,
                   author: {
-                    name: DEFAULT_AUTHOR_NAME,
+                    name: repoUserInfo.username ?? DEFAULT_AUTHOR_NAME,
+                    email: repoUserInfo.email ?? undefined,
                   },
                   message,
                 }),
