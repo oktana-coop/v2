@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 
 import { GenericCommandPalette } from '../../components/dialogs/command-palette';
 import { Layout } from '../../components/layout/Layout';
+import { AuthorInfoSection } from './AuthorInfoSection';
 import { ThemeSection } from './ThemeSection';
 
 export const Options = () => {
@@ -12,7 +13,12 @@ export const Options = () => {
   return (
     <Layout>
       <div className="container mx-auto my-6 max-w-2xl">
-        <ThemeSection />
+        <div className="mb-12">
+          <AuthorInfoSection />
+        </div>
+        <div className="mb-12">
+          <ThemeSection />
+        </div>
       </div>
       <GenericCommandPalette />
     </Layout>
