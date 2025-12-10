@@ -1,5 +1,6 @@
 import type { IpcRenderer } from 'electron';
 
+import { type Email, type Username } from './src/modules/auth';
 import { type RendererConfig } from './src/modules/config/browser';
 import {
   type MultiDocumentProjectStore,
@@ -54,6 +55,15 @@ export type PersonalizationAPI = {
   getTheme: () => Promise<Theme>;
   getSystemTheme: () => Promise<Exclude<Theme, 'system'>>;
   onSystemThemeUpdate: (callback: (theme: ResolvedTheme) => void) => () => void;
+};
+
+export type AuthAPI = {
+  setUsername: (username: Username) => Promise<void>;
+  setEmail: (email: Email) => Promise<void>;
+  getInfo: () => Promise<{
+    username: Username | null;
+    email: Email | null;
+  }>;
 };
 
 export type AutomergeRepoNetworkAdapter = {
@@ -164,6 +174,7 @@ declare global {
     electronAPI: ElectronAPI;
     config: RendererConfig;
     personalizationAPI: PersonalizationAPI;
+    authAPI: AuthAPI;
     automergeRepoNetworkAdapter: AutomergeRepoNetworkAdapter;
     filesystemAPI: FilesystemPromiseAPI;
     versionedDocumentStoreAPI: VersionedDocumentStorePromiseAPI;

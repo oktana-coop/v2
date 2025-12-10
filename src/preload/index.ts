@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 import {
+  type AuthAPI,
   type ElectronAPI,
   type FilesystemPromiseAPI,
   type MultiDocumentProjectStoreManagerAPI,
@@ -67,6 +68,12 @@ contextBridge.exposeInMainWorld('personalizationAPI', {
   onSystemThemeUpdate: (callback) =>
     registerIpcListener<ResolvedTheme>('system-theme-update', callback),
 } as PersonalizationAPI);
+
+contextBridge.exposeInMainWorld('authAPI', {
+  setUsername: (username) => ipcRenderer.send('auth:set-username', username),
+  setEmail: (email) => ipcRenderer.send('auth:set-email', email),
+  getInfo: () => ipcRenderer.invoke('auth:get-info'),
+} as AuthAPI);
 
 contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
   sendRendererProcessMessage: (

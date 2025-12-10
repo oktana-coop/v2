@@ -1,6 +1,18 @@
-import { createContext, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
 
-import { type Email, type Username } from '../models';
+import { ElectronContext } from '../../infrastructure/cross-platform/electron-context';
+import {
+  type Email,
+  parseEmail,
+  parseUsername,
+  type Username,
+} from '../models';
 
 type AuthContextType = {
   username: Username | null;
@@ -16,17 +28,71 @@ export const AuthContext = createContext<AuthContextType>({
   setEmail: () => {},
 });
 
+const getAuthInfoFromLocalStorage = () => {
+  const localStorageUsername = localStorage.getItem('username');
+  const username = localStorageUsername
+    ? parseUsername(localStorageUsername)
+    : null;
+
+  const localStorageEmail = localStorage.getItem('email');
+  const email = localStorageEmail ? parseEmail(localStorageEmail) : null;
+
+  return {
+    username,
+    email,
+  };
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const { isElectron } = useContext(ElectronContext);
   const [username, setUsername] = useState<Username | null>(null);
   const [email, setEmail] = useState<Email | null>(null);
 
-  const handleSetUsername = (name: Username | null) => {
-    setUsername(name);
-  };
+  const handleSetUsername = useCallback(
+    (name: Username | null) => {
+      setUsername(name);
 
-  const handleSetEmail = (mail: Email | null) => {
-    setEmail(mail);
-  };
+      if (isElectron) {
+        window.authAPI.setUsername(name);
+      } else {
+        localStorage.setItem('username', name ?? '');
+      }
+    },
+    [isElectron]
+  );
+
+  const handleSetEmail = useCallback(
+    (mail: Email | null) => {
+      setEmail(mail);
+
+      if (isElectron) {
+        window.authAPI.setEmail(mail);
+      } else {
+        localStorage.setItem('email', mail ?? '');
+      }
+    },
+    [isElectron]
+  );
+
+  useEffect(() => {
+    const readAuthInfoFromMain = async () => {
+      const { username, email } = await window.authAPI.getInfo();
+      setUsername(username);
+      setEmail(email);
+    };
+
+    const readAuthInfoFromLocalStorage = async () => {
+      const { username, email } = await getAuthInfoFromLocalStorage();
+      setUsername(username);
+      setEmail(email);
+    };
+
+    if (isElectron) {
+      readAuthInfoFromMain();
+    } else {
+      readAuthInfoFromLocalStorage();
+    }
+  }, [isElectron]);
 
   return (
     <AuthContext.Provider

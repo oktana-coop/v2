@@ -28,6 +28,7 @@ import {
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/infrastructure/filesystem/adapters/electron-node-api';
 import { type RunWasiCLIArgs } from '../modules/infrastructure/wasm';
 import { createAdapter as createNodeWasmAdapter } from '../modules/infrastructure/wasm/adapters/node-wasm';
+import { registerAuthInfoIPCHandlers } from './auth';
 import { registerVersionedStoresEvents } from './ipc';
 import { buildMenu } from './menu';
 import { initializeStore } from './store';
@@ -265,6 +266,7 @@ async function createWindow() {
     wasmAPI.runWasiCLIOutputingBinary(args)
   );
 
+  registerAuthInfoIPCHandlers({ store });
   registerThemeIPCHandlers({ store, win });
 }
 
