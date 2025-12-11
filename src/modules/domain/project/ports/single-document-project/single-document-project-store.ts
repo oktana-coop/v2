@@ -1,5 +1,6 @@
 import * as Effect from 'effect/Effect';
 
+import { type Email, type Username } from '../../../../auth';
 import {
   type Branch,
   type Commit,
@@ -14,10 +15,15 @@ import {
   type VersionedSingleDocumentProject,
 } from '../../models';
 
+type UserInfo = {
+  username: Username | null;
+  email: Email | null;
+};
+
 export type CreateSingleDocumentProjectArgs = {
   documentMetaData: BaseArtifactMetaData;
   name: string | null;
-};
+} & UserInfo;
 
 export type SingleDocumentProjectCreateAndSwitchToBranchArgs = {
   projectId: ProjectId;
@@ -51,6 +57,10 @@ export type SingleDocumentProjectMergeAndDeleteBranchArgs = {
   from: Branch;
   into: Branch;
 };
+
+export type SingleDocumentProjectSetAuthorInfoArgs = {
+  projectId: ProjectId;
+} & UserInfo;
 
 export type SingleDocumentProjectStore = {
   supportsBranching: boolean;
@@ -112,5 +122,8 @@ export type SingleDocumentProjectStore = {
     ValidationError | RepositoryError | NotFoundError | MergeConflictError,
     never
   >;
+  setAuthorInfo: (
+    args: SingleDocumentProjectSetAuthorInfoArgs
+  ) => Effect.Effect<void, RepositoryError, never>;
   disconnect: () => Effect.Effect<void, RepositoryError, never>;
 };

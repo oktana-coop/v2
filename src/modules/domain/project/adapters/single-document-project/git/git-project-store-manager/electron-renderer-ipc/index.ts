@@ -9,40 +9,44 @@ import { createAdapter as createSingleDocumentProjectStoreAdapter } from '../../
 
 export const createAdapter = (): SingleDocumentProjectStoreManager => {
   const setupSingleDocumentProjectStore: SingleDocumentProjectStoreManager['setupSingleDocumentProjectStore'] =
-    () => () =>
-      pipe(
-        Effect.tryPromise({
-          try: () =>
-            window.singleDocumentProjectStoreManagerAPI.setupSingleDocumentProjectStore(
-              {}
+
+      () =>
+      ({ username, email }) =>
+        pipe(
+          Effect.tryPromise({
+            try: () =>
+              window.singleDocumentProjectStoreManagerAPI.setupSingleDocumentProjectStore(
+                { username, email }
+              ),
+            // TODO: Leverage typed Effect errors returned from the respective node adapter
+            catch: mapErrorTo(
+              VersionedProjectRepositoryError,
+              'Error in creating single-document project'
             ),
-          // TODO: Leverage typed Effect errors returned from the respective node adapter
-          catch: mapErrorTo(
-            VersionedProjectRepositoryError,
-            'Error in creating single-document project'
-          ),
-        }),
-        Effect.map(({ projectId, documentId, currentBranch, file, name }) => ({
-          versionedProjectStore:
-            createSingleDocumentProjectStoreAdapter(projectId),
-          versionedDocumentStore: createVersionedDocumentStoreAdapter({
-            projectId,
-            // It's really the main process store that manages the filesystem workdir here,
-            // but from the perspective of the client using this adapter it should be transparent.
-            managesFilesystemWorkdir: true,
           }),
-          projectId,
-          documentId,
-          currentBranch,
-          file,
-          name,
-        }))
-      );
+          Effect.map(
+            ({ projectId, documentId, currentBranch, file, name }) => ({
+              versionedProjectStore:
+                createSingleDocumentProjectStoreAdapter(projectId),
+              versionedDocumentStore: createVersionedDocumentStoreAdapter({
+                projectId,
+                // It's really the main process store that manages the filesystem workdir here,
+                // but from the perspective of the client using this adapter it should be transparent.
+                managesFilesystemWorkdir: true,
+              }),
+              projectId,
+              documentId,
+              currentBranch,
+              file,
+              name,
+            })
+          )
+        );
 
   const openSingleDocumentProjectStore: SingleDocumentProjectStoreManager['openSingleDocumentProjectStore'] =
 
       () =>
-      ({ fromFile, projectId }) =>
+      ({ fromFile, projectId, username, email }) =>
         pipe(
           Effect.tryPromise({
             try: () =>
@@ -50,6 +54,8 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                 {
                   fromFile,
                   projectId,
+                  username,
+                  email,
                 }
               ),
             // TODO: Leverage typed Effect errors returned from the respective node adapter

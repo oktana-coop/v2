@@ -81,7 +81,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
   const setupSingleDocumentProjectStore: SingleDocumentProjectStoreManager['setupSingleDocumentProjectStore'] =
 
       () =>
-      ({ name }) =>
+      ({ name, username, email }) =>
         Effect.Do.pipe(
           Effect.bind('projectName', () =>
             fromNullable(
@@ -125,6 +125,8 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                       })({
                         name: projectName,
                         content: null,
+                        username,
+                        email,
                       }),
                       Effect.map(({ documentId, projectId }) => ({
                         projectId,

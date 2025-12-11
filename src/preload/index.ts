@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 import {
+  type AuthAPI,
   type ElectronAPI,
   type FilesystemPromiseAPI,
   type MultiDocumentProjectStoreManagerAPI,
@@ -67,6 +68,12 @@ contextBridge.exposeInMainWorld('personalizationAPI', {
   onSystemThemeUpdate: (callback) =>
     registerIpcListener<ResolvedTheme>('system-theme-update', callback),
 } as PersonalizationAPI);
+
+contextBridge.exposeInMainWorld('authAPI', {
+  setUsername: (username) => ipcRenderer.send('auth:set-username', username),
+  setEmail: (email) => ipcRenderer.send('auth:set-email', email),
+  getInfo: () => ipcRenderer.invoke('auth:get-info'),
+} as AuthAPI);
 
 contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
   sendRendererProcessMessage: (
@@ -230,6 +237,10 @@ contextBridge.exposeInMainWorld('singleDocumentProjectStoreAPI', {
         ...args,
       }
     ),
+  setAuthorInfo: (args) =>
+    ipcRenderer.invoke('single-document-project-store:set-author-info', {
+      ...args,
+    }),
   disconnect: (projectId) =>
     ipcRenderer.invoke('single-document-project-store:disconnect', projectId),
 } as SingleDocumentProjectStorePromiseAPI);
@@ -287,6 +298,10 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
     ipcRenderer.invoke('multi-document-project-store:merge-and-delete-branch', {
       ...args,
     }),
+  setAuthorInfo: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:set-author-info', {
+      ...args,
+    }),
 } as MultiDocumentProjectStorePromiseAPI);
 
 // TODO: Namespace IPC messages
@@ -299,8 +314,8 @@ contextBridge.exposeInMainWorld('singleDocumentProjectStoreManagerAPI', {
 
 // TODO: Namespace IPC messages
 contextBridge.exposeInMainWorld('multiDocumentProjectStoreManagerAPI', {
-  openOrCreateMultiDocumentProject: () =>
-    ipcRenderer.invoke('open-or-create-multi-document-project'),
+  openOrCreateMultiDocumentProject: (args) =>
+    ipcRenderer.invoke('open-or-create-multi-document-project', { ...args }),
   openMultiDocumentProjectById: (args) =>
     ipcRenderer.invoke('open-multi-document-project-by-id', { ...args }),
 } as MultiDocumentProjectStoreManagerAPI);

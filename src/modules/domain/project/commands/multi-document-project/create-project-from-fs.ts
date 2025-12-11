@@ -16,6 +16,7 @@ import {
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
 import { type ResolvedArtifactId } from '../../../../../modules/infrastructure/version-control';
+import { type Email, type Username } from '../../../../auth';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
@@ -25,9 +26,14 @@ import { type ArtifactMetaData, type ProjectId } from '../../models';
 import { type MultiDocumentProjectStore } from '../../ports/multi-document-project';
 import { createVersionedDocumentFromFile } from './create-versioned-document-from-file';
 
+type UserInfo = {
+  username: Username | null;
+  email: Email | null;
+};
+
 export type CreateProjectFromFilesystemContentArgs = {
   directoryPath: string;
-};
+} & UserInfo;
 
 export type CreateProjectFromFilesystemContentDeps = {
   createDocument: VersionedDocumentStore['createDocument'];
@@ -47,6 +53,8 @@ export const createProjectFromFilesystemContent =
   }: CreateProjectFromFilesystemContentDeps) =>
   ({
     directoryPath,
+    username,
+    email,
   }: CreateProjectFromFilesystemContentArgs): Effect.Effect<
     ProjectId,
     | VersionedProjectRepositoryError
@@ -88,6 +96,8 @@ export const createProjectFromFilesystemContent =
             },
             {} as Record<ResolvedArtifactId, ArtifactMetaData>
           ),
+          username,
+          email,
         })
       )
     );

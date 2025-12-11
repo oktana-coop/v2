@@ -1,5 +1,6 @@
+import { AuthProvider } from '../../modules/auth/browser';
 import { RepresentationTransformProvider } from '../../modules/domain/rich-text/react/representation-transform-context';
-import { NotificationsProvider } from '../../modules/infrastructure/notifications/browser.ts';
+import { NotificationsProvider } from '../../modules/infrastructure/notifications/browser';
 import { WasmProvider } from '../../modules/infrastructure/wasm/react/wasm-context';
 import {
   FunctionalityConfigProvider,
@@ -16,15 +17,17 @@ export const AppWrapper = () => {
     <InfrastructureAdaptersProvider>
       <WasmProvider>
         <RepresentationTransformProvider>
-          <ThemeProvider>
-            <FunctionalityConfigProvider>
-              <NotificationsProvider>
-                <CommandPaletteStateProvider>
-                  <App />
-                </CommandPaletteStateProvider>
-              </NotificationsProvider>
-            </FunctionalityConfigProvider>
-          </ThemeProvider>
+          <AuthProvider>
+            <ThemeProvider>
+              <FunctionalityConfigProvider>
+                <NotificationsProvider>
+                  <CommandPaletteStateProvider>
+                    <App />
+                  </CommandPaletteStateProvider>
+                </NotificationsProvider>
+              </FunctionalityConfigProvider>
+            </ThemeProvider>
+          </AuthProvider>
         </RepresentationTransformProvider>
       </WasmProvider>
     </InfrastructureAdaptersProvider>

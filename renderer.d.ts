@@ -1,10 +1,12 @@
 import type { IpcRenderer } from 'electron';
 
+import { type Email, type Username } from './src/modules/auth';
 import { type RendererConfig } from './src/modules/config/browser';
 import {
   type MultiDocumentProjectStore,
   type OpenMultiDocumentProjectByIdArgs,
   type OpenMultiDocumentProjectByIdResult,
+  OpenOrCreateMultiDocumentProjectArgs,
   type OpenOrCreateMultiDocumentProjectResult,
   type OpenSingleDocumentProjectStoreArgs,
   type OpenSingleDocumentProjectStoreResult,
@@ -56,6 +58,15 @@ export type PersonalizationAPI = {
   onSystemThemeUpdate: (callback: (theme: ResolvedTheme) => void) => () => void;
 };
 
+export type AuthAPI = {
+  setUsername: (username: Username | null) => Promise<void>;
+  setEmail: (email: Email | null) => Promise<void>;
+  getInfo: () => Promise<{
+    username: Username | null;
+    email: Email | null;
+  }>;
+};
+
 export type AutomergeRepoNetworkAdapter = {
   sendRendererProcessMessage: (
     message: AutomergeRepoNetworkFromRendererIPCMessage
@@ -85,7 +96,9 @@ export type SingleDocumentProjectStoreManagerAPI = {
 };
 
 export type MultiDocumentProjectStoreManagerAPI = {
-  openOrCreateMultiDocumentProject: () => Promise<
+  openOrCreateMultiDocumentProject: (
+    args: OpenOrCreateMultiDocumentProjectArgs
+  ) => Promise<
     Pick<
       OpenOrCreateMultiDocumentProjectResult,
       'projectId' | 'directory' | 'currentBranch'
@@ -164,6 +177,7 @@ declare global {
     electronAPI: ElectronAPI;
     config: RendererConfig;
     personalizationAPI: PersonalizationAPI;
+    authAPI: AuthAPI;
     automergeRepoNetworkAdapter: AutomergeRepoNetworkAdapter;
     filesystemAPI: FilesystemPromiseAPI;
     versionedDocumentStoreAPI: VersionedDocumentStorePromiseAPI;

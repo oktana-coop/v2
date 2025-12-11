@@ -3,6 +3,7 @@ import { pipe } from 'effect/Function';
 import git, {
   Errors,
   type PromiseFsClient as IsoGitFsApi,
+  type ReadCommitResult,
 } from 'isomorphic-git';
 
 import {
@@ -13,17 +14,20 @@ import {
   createGitBlobRef,
   decomposeGitBlobRef,
   DEFAULT_AUTHOR_NAME,
+  getUserInfo as getUserInfoFromConfig,
   type GitBlobRef,
   type GitCommitHash,
   isGitBlobRef,
   isGitCommitHash,
   isUncommittedChangeId,
+  logResultToCommits,
   MigrationError,
   parseBranch,
   parseGitCommitHash,
   type ResolvedArtifactId,
   type UncommitedChange,
   UNCOMMITTED_CHANGE_ID,
+  VersionControlRepositoryErrorTag,
   versionedArtifactTypes,
 } from '../../../../../../../modules/infrastructure/version-control';
 import { fromNullable } from '../../../../../../../utils/effect';
@@ -333,7 +337,15 @@ export const createAdapter = ({
       Effect.bind('documentPath', () =>
         extractDocumentRelativePathFromId(documentId)
       ),
-      Effect.flatMap(({ documentPath }) =>
+      Effect.bind('repoUserInfo', () =>
+        pipe(
+          getUserInfoFromConfig({ isoGitFs, dir: projectDir }),
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      ),
+      Effect.flatMap(({ documentPath, repoUserInfo }) =>
         pipe(
           Effect.tryPromise({
             try: () =>
@@ -351,7 +363,8 @@ export const createAdapter = ({
                   fs: isoGitFs,
                   dir: projectDir,
                   author: {
-                    name: DEFAULT_AUTHOR_NAME,
+                    name: repoUserInfo.username ?? DEFAULT_AUTHOR_NAME,
+                    email: repoUserInfo.email ?? undefined,
                   },
                   message,
                 }),
@@ -395,17 +408,14 @@ export const createAdapter = ({
           },
         }),
         Effect.catchTag(VersionedDocumentNotFoundErrorTag, () =>
-          Effect.succeed([])
+          Effect.succeed([] as ReadCommitResult[])
         ),
-        Effect.map((gitLog) =>
-          gitLog.map(
-            (commitInfo) =>
-              ({
-                // TODO: Handle parsing errors
-                id: parseGitCommitHash(commitInfo.oid),
-                message: commitInfo.commit.message,
-                time: new Date(commitInfo.commit.author.timestamp * 1000),
-              }) as Commit
+        Effect.flatMap((logResult) =>
+          pipe(
+            logResultToCommits(logResult),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            )
           )
         )
       );

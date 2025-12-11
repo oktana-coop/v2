@@ -3,4 +3,4 @@ export * from './models';
 export * from './errors';
 export * from './constants';
 export * from './automerge-lib';
-export * from './git-lib/branching';
+export * from './git-lib';

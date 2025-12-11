@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
+import { AuthContext } from '../../../../modules/auth/browser';
 import {
   DOCUMENT_INTERNAL_PATH,
   type ProjectId,
@@ -132,6 +133,7 @@ export const SingleDocumentProjectProvider = ({
   const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
   const [supportsBranching, setSupportsBranching] = useState<boolean>(false);
   const { dispatchNotification } = useContext(NotificationsContext);
+  const { username, email } = useContext(AuthContext);
 
   const documentInternalPath =
     versionControlSystems[config.singleDocumentProjectVersionControlSystem] ===
@@ -176,7 +178,7 @@ export const SingleDocumentProjectProvider = ({
     }
   }, [fileToBeOpened, currentBranch]);
 
-  const openRecentProjectFromBrowserStorage = async () => {
+  const openRecentProjectFromBrowserStorage = useCallback(async () => {
     setLoading(true);
     // Check if we have a project ID in the browser storage
     const browserStorageBrowserDataValue = localStorage.getItem(
@@ -202,6 +204,8 @@ export const SingleDocumentProjectProvider = ({
         })({
           fromFile: browserStorageProjectData.file ?? undefined,
           projectId: browserStorageProjectData.projectId,
+          username,
+          email,
         })
       );
 
@@ -219,50 +223,53 @@ export const SingleDocumentProjectProvider = ({
     }
 
     setLoading(false);
-  };
+  }, [singleDocumentProjectStoreManager, username, email]);
 
-  const handleCreateNewDocument = async (name?: string) => {
-    if (versionedProjectStore) {
-      await Effect.runPromise(versionedProjectStore.disconnect());
+  const handleCreateNewDocument = useCallback(
+    async (name?: string) => {
+      if (versionedProjectStore) {
+        await Effect.runPromise(versionedProjectStore.disconnect());
 
-      setVersionedProjectStore(null);
-      setVersionedDocumentStore(null);
-    }
+        setVersionedProjectStore(null);
+        setVersionedDocumentStore(null);
+      }
 
-    const {
-      versionedDocumentStore: documentStore,
-      versionedProjectStore: projectStore,
-      projectId: projId,
-      documentId: docId,
-      currentBranch,
-      file,
-      name: projName,
-    } = await Effect.runPromise(
-      singleDocumentProjectStoreManager.setupSingleDocumentProjectStore({
-        filesystem,
-      })({ name })
-    );
+      const {
+        versionedDocumentStore: documentStore,
+        versionedProjectStore: projectStore,
+        projectId: projId,
+        documentId: docId,
+        currentBranch,
+        file,
+        name: projName,
+      } = await Effect.runPromise(
+        singleDocumentProjectStoreManager.setupSingleDocumentProjectStore({
+          filesystem,
+        })({ name, username, email })
+      );
 
-    setVersionedProjectStore(projectStore);
-    setVersionedDocumentStore(documentStore);
-    setProjectId(projId);
-    setDocumentId(docId);
-    setProjectFile(file);
-    setProjectName(projName);
-    setCurrentBranch(currentBranch);
+      setVersionedProjectStore(projectStore);
+      setVersionedDocumentStore(documentStore);
+      setProjectId(projId);
+      setDocumentId(docId);
+      setProjectFile(file);
+      setProjectName(projName);
+      setCurrentBranch(currentBranch);
 
-    const browserStorageProjectData: BrowserStorageProjectData = {
-      projectId: projId,
-      documentId: docId,
-      file,
-    };
-    localStorage.setItem(
-      BROWSER_STORAGE_PROJECT_DATA_KEY,
-      JSON.stringify(browserStorageProjectData)
-    );
+      const browserStorageProjectData: BrowserStorageProjectData = {
+        projectId: projId,
+        documentId: docId,
+        file,
+      };
+      localStorage.setItem(
+        BROWSER_STORAGE_PROJECT_DATA_KEY,
+        JSON.stringify(browserStorageProjectData)
+      );
 
-    return { projectId: projId, documentId: docId, path: file?.path ?? null };
-  };
+      return { projectId: projId, documentId: docId, path: file?.path ?? null };
+    },
+    [singleDocumentProjectStoreManager, username, email]
+  );
 
   const handleOpenDocument = useCallback(
     async (args?: {
@@ -304,10 +311,15 @@ export const SingleDocumentProjectProvider = ({
           args
             ? singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
                 filesystem,
-              })({ fromFile: args.fromFile, projectId: args.projectId })
+              })({
+                fromFile: args.fromFile,
+                projectId: args.projectId,
+                username,
+                email,
+              })
             : singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
                 filesystem,
-              })({})
+              })({ username, email })
         );
 
         setVersionedProjectStore(projectStore);
@@ -504,6 +516,29 @@ export const SingleDocumentProjectProvider = ({
   const handleCloseDeleteBranchDialog = useCallback(() => {
     setBranchToDelete(null);
   }, []);
+
+  useEffect(() => {
+    const updateAuthorInfoInProjectStore = async ({
+      versionedProjectStore,
+      projectId,
+    }: {
+      versionedProjectStore: SingleDocumentProjectStore;
+      projectId: ProjectId;
+    }) => {
+      versionedProjectStore.setAuthorInfo({
+        projectId,
+        username,
+        email,
+      });
+    };
+
+    if (versionedProjectStore && projectId) {
+      updateAuthorInfoInProjectStore({
+        versionedProjectStore,
+        projectId,
+      });
+    }
+  }, [username, email, versionedProjectStore, projectId]);
 
   return (
     <SingleDocumentProjectContext.Provider

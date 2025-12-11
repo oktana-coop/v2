@@ -19,6 +19,7 @@ import {
   type Branch,
   MigrationError,
 } from '../../../../../modules/infrastructure/version-control';
+import { type Email, type Username } from '../../../../auth';
 import {
   DataIntegrityError as VersionedProjectDataIntegrityError,
   MissingProjectMetadataError as VersionedProjectMissingProjectMetadataError,
@@ -29,9 +30,16 @@ import {
 import { type ProjectId } from '../../models';
 import { MultiDocumentProjectStore } from './multi-document-project-store';
 
+type UserInfo = {
+  username: Username | null;
+  email: Email | null;
+};
+
 export type OpenOrCreateMultiDocumentProjectDeps = {
   filesystem: Filesystem;
 };
+
+export type OpenOrCreateMultiDocumentProjectArgs = UserInfo;
 
 export type OpenOrCreateMultiDocumentProjectResult = {
   versionedProjectStore: MultiDocumentProjectStore;
@@ -45,7 +53,7 @@ export type OpenMultiDocumentProjectByIdDeps = {
   filesystem: Filesystem;
 };
 
-export type OpenMultiDocumentProjectByIdArgs = {
+export type OpenMultiDocumentProjectByIdArgs = UserInfo & {
   projectId: ProjectId;
   directoryPath: string;
 };
@@ -61,7 +69,9 @@ export type OpenMultiDocumentProjectByIdResult = {
 export type MultiDocumentProjectStoreManager = {
   openOrCreateMultiDocumentProject: (
     deps: OpenOrCreateMultiDocumentProjectDeps
-  ) => () => Effect.Effect<
+  ) => (
+    args: OpenOrCreateMultiDocumentProjectArgs
+  ) => Effect.Effect<
     OpenOrCreateMultiDocumentProjectResult,
     | FilesystemAbortError
     | FilesystemAccessControlError

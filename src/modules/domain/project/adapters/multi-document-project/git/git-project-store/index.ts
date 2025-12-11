@@ -14,10 +14,12 @@ import {
   DEFAULT_BRANCH,
   deleteBranch as deleteBranchWithGit,
   getCurrentBranch as getCurrentBranchWithGit,
+  getUserInfo as getUserInfoFromConfig,
   isGitBlobRef,
   listBranches as listBranchesWithGit,
   mergeAndDeleteBranch as mergeAndDeleteBranchWithGit,
   type ResolvedArtifactId,
+  setUserInfo as setUserInfoInGit,
   switchToBranch as switchToBranchWithGit,
   VersionControlNotFoundErrorTag,
   VersionControlRepositoryErrorTag,
@@ -63,6 +65,8 @@ export const createAdapter = ({
 
   const createProject: MultiDocumentProjectStore['createProject'] = ({
     path,
+    username,
+    email,
   }) =>
     pipe(
       Effect.try({
@@ -79,6 +83,9 @@ export const createAdapter = ({
             }),
           catch: mapErrorTo(RepositoryError, 'Git repo error'),
         })
+      ),
+      Effect.tap((projectPath) =>
+        setAuthorInfo({ projectId: projectPath, username, email })
       )
     );
 
@@ -157,7 +164,15 @@ export const createAdapter = ({
             Effect.map((documentGitBlobRef) => removePath(documentGitBlobRef))
           )
         ),
-        Effect.flatMap(({ projectPath, documentName }) =>
+        Effect.bind('repoUserInfo', ({ projectPath }) =>
+          pipe(
+            getUserInfoFromConfig({ isoGitFs, dir: projectPath }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            )
+          )
+        ),
+        Effect.flatMap(({ projectPath, documentName, repoUserInfo }) =>
           pipe(
             Effect.tryPromise({
               try: () =>
@@ -175,7 +190,8 @@ export const createAdapter = ({
                     fs: isoGitFs,
                     dir: projectPath,
                     author: {
-                      name: DEFAULT_AUTHOR_NAME,
+                      name: repoUserInfo.username ?? DEFAULT_AUTHOR_NAME,
+                      email: repoUserInfo.email ?? undefined,
                     },
                     message: `Removed ${documentName}`,
                   }),
@@ -335,6 +351,28 @@ export const createAdapter = ({
         )
       );
 
+  const setAuthorInfo: MultiDocumentProjectStore['setAuthorInfo'] = ({
+    projectId,
+    username,
+    email,
+  }) =>
+    pipe(
+      ensureProjectIdIsFsPath(projectId),
+      Effect.flatMap((projectPath) =>
+        pipe(
+          setUserInfoInGit({
+            isoGitFs,
+            dir: projectPath,
+            username,
+            email,
+          }),
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      )
+    );
+
   return {
     supportsBranching: true,
     createProject,
@@ -349,5 +387,6 @@ export const createAdapter = ({
     listBranches,
     deleteBranch,
     mergeAndDeleteBranch,
+    setAuthorInfo,
   };
 };

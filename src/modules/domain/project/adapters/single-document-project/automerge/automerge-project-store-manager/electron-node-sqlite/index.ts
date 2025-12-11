@@ -126,7 +126,7 @@ export const createAdapter = ({
   const setupSingleDocumentProjectStore: SingleDocumentProjectStoreManager['setupSingleDocumentProjectStore'] =
 
       ({ filesystem }: SetupSingleDocumentProjectStoreDeps) =>
-      () =>
+      ({ username, email }) =>
         Effect.Do.pipe(
           Effect.tap(() =>
             Effect.tryPromise({
@@ -184,6 +184,8 @@ export const createAdapter = ({
                   getCurrentBranch: versionedProjectStore.getCurrentBranch,
                 })({
                   content: null,
+                  username,
+                  email,
                 }),
                 Effect.map(({ documentId, projectId, currentBranch }) => ({
                   versionedProjectStore,

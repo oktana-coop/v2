@@ -14,9 +14,11 @@ import {
   type MultiDocumentProjectGetCurrentBranchArgs,
   type MultiDocumentProjectListBranchesArgs,
   type MultiDocumentProjectMergeAndDeleteBranchArgs,
+  MultiDocumentProjectSetAuthorInfoArgs,
   type MultiDocumentProjectStoreManager,
   type MultiDocumentProjectSwitchToBranchArgs,
   OpenMultiDocumentProjectByIdArgs,
+  OpenOrCreateMultiDocumentProjectArgs,
   type OpenSingleDocumentProjectStoreArgs,
   type ProjectId,
   type SetupSingleDocumentProjectStoreArgs,
@@ -25,6 +27,7 @@ import {
   type SingleDocumentProjectGetCurrentBranchArgs,
   type SingleDocumentProjectListBranchesArgs,
   type SingleDocumentProjectMergeAndDeleteBranchArgs,
+  type SingleDocumentProjectSetAuthorInfoArgs,
   type SingleDocumentProjectStoreManager,
   type SingleDocumentProjectSwitchToBranchArgs,
   ValidationError as VersionedProjectValidationError,
@@ -106,12 +109,12 @@ const registerStoreManagerEvents = ({
 }) => {
   ipcMain.handle(
     'create-single-document-project',
-    async (_, { name }: SetupSingleDocumentProjectStoreArgs) =>
+    async (_, { name, username, email }: SetupSingleDocumentProjectStoreArgs) =>
       Effect.runPromise(
         pipe(
           singleDocumentProjectStoreManager.setupSingleDocumentProjectStore({
             filesystem,
-          })({ name }),
+          })({ name, username, email }),
           Effect.tap(
             ({ projectId, versionedProjectStore, versionedDocumentStore }) =>
               setVersionedStores(projectId, {
@@ -134,12 +137,15 @@ const registerStoreManagerEvents = ({
 
   ipcMain.handle(
     'open-single-document-project',
-    async (_, { fromFile }: OpenSingleDocumentProjectStoreArgs) =>
+    async (
+      _,
+      { fromFile, username, email }: OpenSingleDocumentProjectStoreArgs
+    ) =>
       Effect.runPromise(
         pipe(
           singleDocumentProjectStoreManager.openSingleDocumentProjectStore({
             filesystem,
-          })({ fromFile }),
+          })({ fromFile, username, email }),
           Effect.tap(
             ({ projectId, versionedProjectStore, versionedDocumentStore }) =>
               setVersionedStores(projectId, {
@@ -160,36 +166,46 @@ const registerStoreManagerEvents = ({
       )
   );
 
-  ipcMain.handle('open-or-create-multi-document-project', async () =>
-    Effect.runPromise(
-      pipe(
-        multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject({
-          filesystem,
-        })(),
-        Effect.tap(
-          ({ projectId, versionedProjectStore, versionedDocumentStore }) =>
-            setVersionedStores(projectId, {
-              versionedProjectStore,
-              versionedDocumentStore,
-            })
-        ),
-        Effect.map(({ projectId, directory, currentBranch }) => ({
-          projectId,
-          directory,
-          currentBranch,
-        }))
+  ipcMain.handle(
+    'open-or-create-multi-document-project',
+    async (_, { username, email }: OpenOrCreateMultiDocumentProjectArgs) =>
+      Effect.runPromise(
+        pipe(
+          multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject({
+            filesystem,
+          })({ username, email }),
+          Effect.tap(
+            ({ projectId, versionedProjectStore, versionedDocumentStore }) =>
+              setVersionedStores(projectId, {
+                versionedProjectStore,
+                versionedDocumentStore,
+              })
+          ),
+          Effect.map(({ projectId, directory, currentBranch }) => ({
+            projectId,
+            directory,
+            currentBranch,
+          }))
+        )
       )
-    )
   );
 
   ipcMain.handle(
     'open-multi-document-project-by-id',
-    async (_, { projectId, directoryPath }: OpenMultiDocumentProjectByIdArgs) =>
+    async (
+      _,
+      {
+        projectId,
+        directoryPath,
+        username,
+        email,
+      }: OpenMultiDocumentProjectByIdArgs
+    ) =>
       Effect.runPromise(
         pipe(
           multiDocumentProjectStoreManager.openMultiDocumentProjectById({
             filesystem,
-          })({ projectId, directoryPath }),
+          })({ projectId, directoryPath, username, email }),
           Effect.tap(
             ({ projectId, versionedProjectStore, versionedDocumentStore }) =>
               setVersionedStores(projectId, {
@@ -403,6 +419,26 @@ const registerSingleDocumentProjectStoreEvents = () => {
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.mergeAndDeleteBranch(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:set-author-info',
+    async (_, args: SingleDocumentProjectSetAuthorInfoArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.setAuthorInfo(args)
           )
         )
       )
@@ -665,6 +701,26 @@ const registerMultiDocumentProjectStoreEvents = () => {
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.mergeAndDeleteBranch(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:set-author-info',
+    async (_, args: MultiDocumentProjectSetAuthorInfoArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.setAuthorInfo(args)
           )
         )
       )

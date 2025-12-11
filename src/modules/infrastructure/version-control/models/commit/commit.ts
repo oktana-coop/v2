@@ -1,3 +1,4 @@
+import { Username } from '../../../../auth';
 import { type ChangeId, type CommitId, urlEncodeChangeId } from './change-id';
 
 // Commit is a special type of an (automerge) change that
@@ -6,6 +7,9 @@ export type Commit = {
   id: CommitId;
   message: string;
   time: Date;
+  author?: {
+    username: Username;
+  };
 };
 
 export type UncommitedChange = {

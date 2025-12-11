@@ -7,6 +7,7 @@ import {
   MigrationError,
   type ResolvedArtifactId,
 } from '../../../../../modules/infrastructure/version-control';
+import { type Email, type Username } from '../../../../auth';
 import { NotFoundError, RepositoryError, ValidationError } from '../../errors';
 import type {
   ArtifactMetaData,
@@ -15,10 +16,15 @@ import type {
   VersionedMultiDocumentProject,
 } from '../../models';
 
+type UserInfo = {
+  username: Username | null;
+  email: Email | null;
+};
+
 export type CreateMultiDocumentProjectArgs = {
   path: string;
   documents?: MultiDocumentProject['documents'];
-};
+} & UserInfo;
 
 export type AddDocumentToMultiDocumentProjectArgs = {
   documentId: ResolvedArtifactId;
@@ -68,6 +74,12 @@ export type MultiDocumentProjectMergeAndDeleteBranchArgs = {
   projectId: ProjectId;
   from: Branch;
   into: Branch;
+};
+
+export type MultiDocumentProjectSetAuthorInfoArgs = {
+  projectId: ProjectId;
+  username: Username | null;
+  email: Email | null;
 };
 
 export type MultiDocumentProjectStore = {
@@ -144,4 +156,7 @@ export type MultiDocumentProjectStore = {
     ValidationError | RepositoryError | NotFoundError | MergeConflictError,
     never
   >;
+  setAuthorInfo: (
+    args: MultiDocumentProjectSetAuthorInfoArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
 };

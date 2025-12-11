@@ -25,6 +25,7 @@ import { MigrationError } from '../../../../../../../../modules/infrastructure/v
 import { setupFilesystemRepoForNode } from '../../../../../../../../modules/infrastructure/version-control/automerge-repo/node';
 import { fromNullable } from '../../../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../../../utils/errors';
+import { type Email, type Username } from '../../../../../../../auth';
 import {
   createProjectFromFilesystemContent,
   updateProjectFromFilesystemContent,
@@ -290,11 +291,15 @@ const writeIndexFile = ({
 
 const createNewProject = ({
   directoryPath,
+  username,
+  email,
   rendererProcessId,
   browserWindow,
   filesystem,
 }: {
   directoryPath: string;
+  username: Username | null;
+  email: Email | null;
   rendererProcessId: string;
   browserWindow: BrowserWindow;
   filesystem: Filesystem;
@@ -346,7 +351,7 @@ const createNewProject = ({
               addDocumentToProject: versionedProjectStore.addDocumentToProject,
               listDirectoryFiles: filesystem.listDirectoryFiles,
               readFile: filesystem.readFile,
-            })({ directoryPath })
+            })({ directoryPath, username, email })
         ),
         Effect.tap(({ projectId }) =>
           writeIndexFile({
@@ -369,7 +374,7 @@ export const createAdapter = ({
   const openOrCreateMultiDocumentProject: MultiDocumentProjectStoreManager['openOrCreateMultiDocumentProject'] =
 
       ({ filesystem }) =>
-      () =>
+      ({ username, email }) =>
         pipe(
           filesystem.openDirectory(),
           Effect.flatMap((directory) =>
@@ -392,6 +397,8 @@ export const createAdapter = ({
                   () =>
                     createNewProject({
                       directoryPath: directory.path,
+                      username,
+                      email,
                       rendererProcessId,
                       browserWindow,
                       filesystem,
