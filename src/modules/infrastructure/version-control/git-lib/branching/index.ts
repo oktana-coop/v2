@@ -9,7 +9,6 @@ import {
   MergeConflictError,
   NotFoundError,
   RepositoryError,
-  VersionControlNotFoundErrorTag,
 } from '../../errors';
 import {
   type Branch,
@@ -18,6 +17,7 @@ import {
   parseBranch,
   parseGitCommitHash,
 } from '../../models';
+import { getBranchCommitHistory } from '../history';
 import { IsoGitDeps } from '../types';
 
 export type CreateAndSwitchToBranchArgs = IsoGitDeps & {
@@ -29,11 +29,6 @@ export type SwitchToBranchArgs = IsoGitDeps & {
 };
 
 export type GetCurrentBranchArgs = IsoGitDeps;
-
-export type GetBranchCommitHistoryArgs = IsoGitDeps & {
-  branch: Branch;
-  limit?: number;
-};
 
 type SortBranchesByRecencyArgs = IsoGitDeps & {
   branches: Branch[];
@@ -114,47 +109,6 @@ export const getCurrentBranch = ({
         try: () => parseBranch(currentBranch),
         catch: mapErrorTo(RepositoryError, 'Could not parse current branch'),
       })
-    )
-  );
-
-export const getBranchCommitHistory = ({
-  isoGitFs,
-  dir,
-  branch,
-  limit,
-}: GetBranchCommitHistoryArgs): Effect.Effect<
-  Commit[],
-  RepositoryError | NotFoundError,
-  never
-> =>
-  pipe(
-    Effect.tryPromise({
-      try: () =>
-        git.log({
-          fs: isoGitFs,
-          dir,
-          ref: branch,
-          depth: limit,
-        }),
-      catch: (err) => {
-        if (err instanceof IsoGitErrors.NotFoundError) {
-          return new NotFoundError('No commit found');
-        }
-
-        return new RepositoryError('Git repo error');
-      },
-    }),
-    Effect.catchTag(VersionControlNotFoundErrorTag, () => Effect.succeed([])),
-    Effect.map((gitLog) =>
-      gitLog.map(
-        (commitInfo) =>
-          ({
-            // TODO: Handle parsing errors
-            id: parseGitCommitHash(commitInfo.oid),
-            message: commitInfo.commit.message,
-            time: new Date(commitInfo.commit.author.timestamp * 1000),
-          }) as Commit
-      )
     )
   );
 

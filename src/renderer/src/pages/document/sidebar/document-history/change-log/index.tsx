@@ -14,6 +14,7 @@ import {
   themes,
 } from '../../../../../../../modules/personalization/browser';
 import { TimelinePoint } from '../../../../../components/icons/TimelinePoint';
+import { UserAvatar } from '../../../../../components/user/UserAvatar';
 
 const Commit = ({
   commit,
@@ -44,8 +45,15 @@ const Commit = ({
             hasBottomStem={!isLast}
           />
         </div>
-        <div className={clsx('max-h-10 cursor-pointer text-sm', themeStyles)}>
-          {commit.message}
+        <div className="flex items-center gap-2">
+          {commit.author?.username && (
+            <UserAvatar username={commit.author.username} />
+          )}
+          <span
+            className={clsx('max-h-10 cursor-pointer text-sm', themeStyles)}
+          >
+            {commit.message}
+          </span>
         </div>
       </div>
     </div>

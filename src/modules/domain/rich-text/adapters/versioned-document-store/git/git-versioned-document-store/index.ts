@@ -3,6 +3,7 @@ import { pipe } from 'effect/Function';
 import git, {
   Errors,
   type PromiseFsClient as IsoGitFsApi,
+  type ReadCommitResult,
 } from 'isomorphic-git';
 
 import {
@@ -19,6 +20,7 @@ import {
   isGitBlobRef,
   isGitCommitHash,
   isUncommittedChangeId,
+  logResultToCommits,
   MigrationError,
   parseBranch,
   parseGitCommitHash,
@@ -406,17 +408,14 @@ export const createAdapter = ({
           },
         }),
         Effect.catchTag(VersionedDocumentNotFoundErrorTag, () =>
-          Effect.succeed([])
+          Effect.succeed([] as ReadCommitResult[])
         ),
-        Effect.map((gitLog) =>
-          gitLog.map(
-            (commitInfo) =>
-              ({
-                // TODO: Handle parsing errors
-                id: parseGitCommitHash(commitInfo.oid),
-                message: commitInfo.commit.message,
-                time: new Date(commitInfo.commit.author.timestamp * 1000),
-              }) as Commit
+        Effect.flatMap((logResult) =>
+          pipe(
+            logResultToCommits(logResult),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            )
           )
         )
       );
