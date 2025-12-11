@@ -45,7 +45,7 @@ const Commit = ({
             hasBottomStem={!isLast}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-y-hidden">
           {commit.author?.username && (
             <UserAvatar username={commit.author.username} />
           )}

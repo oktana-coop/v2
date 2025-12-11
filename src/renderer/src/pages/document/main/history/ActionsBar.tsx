@@ -100,7 +100,9 @@ export const ActionsBar = ({
         icon={isSidebarOpen ? <SidebarOpenIcon /> : <SidebarIcon />}
         onClick={handleSidebarToggle}
       />
-      <h3 className="flex-auto px-4 text-left text-base/7">{title}</h3>
+      <h3 className="max-h-14 flex-auto overflow-y-hidden px-4 text-left text-base/7">
+        {title}
+      </h3>
       <div className="flex flex-initial items-center gap-3">
         {canShowDiff && (
           <div className="flex items-center gap-2">
@@ -114,23 +116,26 @@ export const ActionsBar = ({
               <Label className="whitespace-nowrap">Show Diff with</Label>
             </CheckboxField>
 
-            <Listbox
-              name="diff commits"
-              value={diffWith ? urlEncodeChangeId(diffWith) : null}
-              onChange={handleDiffCommitSelect}
-              disabled={!showDiff}
-            >
-              {history
-                .filter(isCommitWithUrlInfo)
-                .map(({ message, urlEncodedChangeId }) => (
-                  <ListboxOption
-                    key={urlEncodedChangeId}
-                    value={urlEncodedChangeId}
-                  >
-                    <ListboxLabel>{message}</ListboxLabel>
-                  </ListboxOption>
-                ))}
-            </Listbox>
+            <div className="max-w-64">
+              <Listbox
+                name="diff commits"
+                value={diffWith ? urlEncodeChangeId(diffWith) : null}
+                onChange={handleDiffCommitSelect}
+                disabled={!showDiff}
+              >
+                {history
+                  .filter(isCommitWithUrlInfo)
+                  .map(({ message, urlEncodedChangeId }) => (
+                    <ListboxOption
+                      key={urlEncodedChangeId}
+                      value={urlEncodedChangeId}
+                      className="max-w-2xl"
+                    >
+                      <ListboxLabel>{message}</ListboxLabel>
+                    </ListboxOption>
+                  ))}
+              </Listbox>
+            </div>
           </div>
         )}
 
