@@ -18,6 +18,7 @@ import {
   useBranchInfo,
   useCreateDocument,
   useNavigateToDocument,
+  useProjectId,
 } from '../../../hooks';
 import { useOpenDocument } from '../../../hooks/single-document-project';
 import { ProjectCommandPalette } from '../shared/command-palette';
@@ -66,6 +67,7 @@ const Project = () => {
     isOpen: isBranchingCommandPaletteOpen,
     closeBranchingCommandPalette,
   } = useContext(BranchingCommandPaletteContext);
+  const projectId = useProjectId();
   const { changeId } = useParams();
   const { createNewDocument } = useCreateDocument();
   const openDocument = useOpenDocument();
@@ -177,9 +179,10 @@ const Project = () => {
           </SidebarLayout>
         </ProseMirrorProvider>
       </div>
-      {supportsBranching && (
+      {projectId && supportsBranching && (
         <div className="w-full">
           <BottomBar
+            projectId={projectId}
             currentBranch={currentBranch}
             onBranchButtonClick={openBranchingCommandPalette}
           />

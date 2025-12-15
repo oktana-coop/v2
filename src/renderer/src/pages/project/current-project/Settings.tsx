@@ -1,3 +1,3 @@
 export const ProjectSettings = () => {
-  return <div>Project Settings</div>;
+  return <div className="p-6">Project Settings Page (WIP)</div>;
 };

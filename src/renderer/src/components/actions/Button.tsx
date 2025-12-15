@@ -189,7 +189,8 @@ export const Button = React.forwardRef(function Button(
     clsx(styles[variant], styles.colors[variant][color ?? 'dark/zinc'])
   );
 
-  return 'href' in props ? (
+  // TODO: Use 'href' instead of 'to'
+  return 'to' in props ? (
     <Link
       {...props}
       className={classes}
@@ -198,8 +199,6 @@ export const Button = React.forwardRef(function Button(
       <TouchTarget>{children}</TouchTarget>
     </Link>
   ) : (
-    // @ts-expect-error onCopy handler not typed properly.
-    // TODO: search for issues or PRs in headlessui
     <HeadlessButton {...props} className={classes} ref={ref}>
       <TouchTarget>{children}</TouchTarget>
     </HeadlessButton>
