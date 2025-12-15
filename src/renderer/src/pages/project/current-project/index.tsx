@@ -20,6 +20,7 @@ import {
   useNavigateToDocument,
 } from '../../../hooks';
 import { useOpenDocument } from '../../../hooks/single-document-project';
+import { ProjectCommandPalette } from '../command-palette';
 import { CreateDocumentModal } from '../create-document/CreateDocumentModal';
 import { BottomBar } from './bottom-bar';
 import {
@@ -37,7 +38,6 @@ import {
   DirectoryFiles,
   RecentProjects,
 } from './document/sidebar/document-list-views';
-import { DocumentCommandPalette } from './document-command-palette';
 
 export const CurrentProject = () => (
   <BranchingCommandPaletteStateProvider>
@@ -134,7 +134,7 @@ const Project = () => {
           onCancel={onCloseDiscardChangesDialog}
           onDiscardChanges={() => onDiscardChanges()}
         />
-        <DocumentCommandPalette
+        <ProjectCommandPalette
           onCreateDocument={handleCreateDocument}
           onOpenDocument={handleOpenDocument}
         />
