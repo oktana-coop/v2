@@ -11,7 +11,6 @@ import {
 
 import { ElectronContext } from '../../modules/infrastructure/cross-platform';
 import { Layout } from './components/layout/Layout';
-import { LocationLogger } from './dev-utils/location-logger';
 import { Options } from './pages/options/Options';
 import {
   CurrentProject,
@@ -53,7 +52,6 @@ export const AppRouter = () => {
           <Route path="/options" element={<Options />} />
         </Routes>
       </Layout>
-      <LocationLogger />
     </Router>
   );
 };
