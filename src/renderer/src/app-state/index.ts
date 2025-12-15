@@ -36,6 +36,12 @@ export {
 } from './branching-command-palette/context';
 
 export {
+  CreateDocumentModalContext,
+  type CreateDocumentModalContextType,
+  CreateDocumentModalProvider,
+} from './create-document-modal/context';
+
+export {
   SidebarLayoutContext,
   type SidebarLayoutContextType,
   SidebarLayoutProvider,

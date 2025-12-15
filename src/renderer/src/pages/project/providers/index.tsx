@@ -3,6 +3,7 @@ import { Outlet } from 'react-router';
 
 import { ElectronContext } from '../../../../../modules/infrastructure/cross-platform/electron-context';
 import {
+  CreateDocumentModalProvider,
   CurrentDocumentProvider,
   CurrentProjectProvider,
   SidebarLayoutProvider,
@@ -14,9 +15,11 @@ export const ProjectProviders = () => {
   return (
     <CurrentProjectProvider projectType={config.projectType}>
       <CurrentDocumentProvider>
-        <SidebarLayoutProvider>
-          <Outlet />;
-        </SidebarLayoutProvider>
+        <CreateDocumentModalProvider>
+          <SidebarLayoutProvider>
+            <Outlet />;
+          </SidebarLayoutProvider>
+        </CreateDocumentModalProvider>
       </CurrentDocumentProvider>
     </CurrentProjectProvider>
   );

@@ -1,7 +1,7 @@
-import { useContext, useState } from 'react';
+import { useContext } from 'react';
 
 import { projectTypes } from '../../../../../../modules/domain/project';
-import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/electron-context';
+import { CreateDocumentModalContext } from '../../../../app-state';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
 import { useCreateDocument, useNavigateToDocument } from '../../../../hooks';
@@ -15,50 +15,31 @@ import {
 import { EmptyMainView } from '../empty-main-view';
 
 export const ProjectSelection = () => {
-  const { isElectron } = useContext(ElectronContext);
-  const { createNewDocument } = useCreateDocument();
+  const { triggerDocumentCreationDialog } = useCreateDocument();
   const openDocument = useOpenDocument();
   const openDirectory = useOpenDirectory();
-  const [isDocumentCreationModalOpen, setCreateDocumentModalOpen] =
-    useState<boolean>(false);
+  const { isOpen: isDocumentCreationModalOpen, closeCreateDocumentModal } =
+    useContext(CreateDocumentModalContext);
 
   const navigateToDocument = useNavigateToDocument();
 
-  const handleCreateDocument = async () => {
-    if (!isElectron) {
-      openCreateDocumentModal();
-    } else {
-      const { projectId, documentId, path } = await createNewDocument();
-      navigateToDocument({ projectId, documentId, path });
-    }
-  };
-
   const handleOpenDocument = () => openDocument();
-
   const handleOpenDirectory = () => openDirectory();
-
-  const openCreateDocumentModal = () => {
-    setCreateDocumentModalOpen(true);
-  };
-
-  const closeCreateDocumentModal = () => {
-    setCreateDocumentModalOpen(false);
-  };
 
   return (
     <SidebarLayout
       sidebar={
         <StackedResizablePanelsLayout autoSaveId="project-selection-panel-group">
           {window.config.projectType === projectTypes.MULTI_DOCUMENT_PROJECT ? (
-            <DirectoryFiles onCreateDocument={handleCreateDocument} />
+            <DirectoryFiles onCreateDocument={triggerDocumentCreationDialog} />
           ) : (
-            <RecentProjects onCreateDocument={handleCreateDocument} />
+            <RecentProjects onCreateDocument={triggerDocumentCreationDialog} />
           )}
         </StackedResizablePanelsLayout>
       }
     >
       <EmptyMainView
-        onCreateDocumentButtonClick={handleCreateDocument}
+        onCreateDocumentButtonClick={triggerDocumentCreationDialog}
         onOpenDocumentButtonClick={handleOpenDocument}
         onOpenDirectoryButtonClick={handleOpenDirectory}
       />

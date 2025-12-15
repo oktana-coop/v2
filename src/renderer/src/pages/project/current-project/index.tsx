@@ -1,19 +1,12 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect } from 'react';
 import { Outlet } from 'react-router';
-import { useParams } from 'react-router';
 
-import { projectTypes } from '../../../../../modules/domain/project';
-import { ProseMirrorProvider } from '../../../../../modules/domain/rich-text/react/prosemirror-context';
-import { ElectronContext } from '../../../../../modules/infrastructure/cross-platform/electron-context';
-import { decodeUrlEncodedChangeId } from '../../../../../modules/infrastructure/version-control';
 import {
   BranchingCommandPaletteContext,
+  CreateDocumentModalContext,
   CurrentDocumentContext,
-  CurrentProjectContext,
 } from '../../../app-state';
 import { BranchingCommandPaletteStateProvider } from '../../../app-state';
-import { SidebarLayout } from '../../../components/layout/SidebarLayout';
-import { StackedResizablePanelsLayout } from '../../../components/layout/StackedResizablePanelsLayout';
 import {
   useBranchInfo,
   useCreateDocument,
@@ -23,7 +16,6 @@ import {
 import { useOpenDocument } from '../../../hooks/single-document-project';
 import { ProjectCommandPalette } from '../shared/command-palette';
 import { CreateDocumentModal } from '../shared/create-document/CreateDocumentModal';
-import { DirectoryFiles, RecentProjects } from '../shared/document-list-views';
 import { BottomBar } from './bottom-bar';
 import {
   BranchingCommandPalette,
@@ -35,23 +27,17 @@ import {
   DiscardChangesDialog,
   RestoreCommitDialog,
 } from './change-dialogs';
-import { DocumentHistory } from './document/sidebar/document-history/DocumentHistory';
 
-export const CurrentProject = () => (
-  <BranchingCommandPaletteStateProvider>
-    <Project />
-  </BranchingCommandPaletteStateProvider>
-);
+export const CurrentProject = () => {
+  return (
+    <BranchingCommandPaletteStateProvider>
+      <Project />
+    </BranchingCommandPaletteStateProvider>
+  );
+};
 
 const Project = () => {
-  const { isElectron } = useContext(ElectronContext);
-
-  const [isDocumentCreationModalOpen, setCreateDocumentModalOpen] =
-    useState<boolean>(false);
-  const { projectType } = useContext(CurrentProjectContext);
   const {
-    versionedDocumentHistory: changes,
-    onSelectChange,
     onCloseCommitDialog,
     isCommitDialogOpen,
     isRestoreCommitDialogOpen,
@@ -68,8 +54,10 @@ const Project = () => {
     closeBranchingCommandPalette,
   } = useContext(BranchingCommandPaletteContext);
   const projectId = useProjectId();
-  const { changeId } = useParams();
-  const { createNewDocument } = useCreateDocument();
+  const { isOpen: isDocumentCreationModalOpen, closeCreateDocumentModal } =
+    useContext(CreateDocumentModalContext);
+
+  const { triggerDocumentCreationDialog } = useCreateDocument();
   const openDocument = useOpenDocument();
   const {
     supportsBranching,
@@ -89,23 +77,6 @@ const Project = () => {
   );
 
   const navigateToDocument = useNavigateToDocument();
-
-  const openCreateDocumentModal = () => {
-    setCreateDocumentModalOpen(true);
-  };
-
-  const closeCreateDocumentModal = () => {
-    setCreateDocumentModalOpen(false);
-  };
-
-  const handleCreateDocument = async () => {
-    if (!isElectron && projectType === projectTypes.SINGLE_DOCUMENT_PROJECT) {
-      openCreateDocumentModal();
-    } else {
-      const { projectId, documentId, path } = await createNewDocument();
-      navigateToDocument({ projectId, documentId, path });
-    }
-  };
 
   const handleOpenDocument = () => openDocument();
 
@@ -134,7 +105,7 @@ const Project = () => {
           onDiscardChanges={() => onDiscardChanges()}
         />
         <ProjectCommandPalette
-          onCreateDocument={handleCreateDocument}
+          onCreateDocument={triggerDocumentCreationDialog}
           onOpenDocument={handleOpenDocument}
         />
         <CreateBranchDialog
@@ -155,29 +126,7 @@ const Project = () => {
             currentBranch={currentBranch}
           />
         )}
-        <ProseMirrorProvider>
-          <SidebarLayout
-            sidebar={
-              <StackedResizablePanelsLayout autoSaveId="editor-panel-group">
-                {projectType === projectTypes.MULTI_DOCUMENT_PROJECT ? (
-                  <DirectoryFiles onCreateDocument={handleCreateDocument} />
-                ) : (
-                  <RecentProjects onCreateDocument={handleCreateDocument} />
-                )}
-
-                <DocumentHistory
-                  changes={changes}
-                  onChangeClick={onSelectChange}
-                  selectedChange={
-                    changeId ? decodeUrlEncodedChangeId(changeId) : null
-                  }
-                />
-              </StackedResizablePanelsLayout>
-            }
-          >
-            <Outlet />
-          </SidebarLayout>
-        </ProseMirrorProvider>
+        <Outlet />
       </div>
       {projectId && supportsBranching && (
         <div className="w-full">
@@ -192,5 +141,9 @@ const Project = () => {
   );
 };
 
-export { DocumentEditor, DocumentHistoricalView } from './document';
-export { ProjectSettings } from './Settings';
+export {
+  DocumentEditor,
+  DocumentHistoricalView,
+  ProjectDocuments,
+} from './documents';
+export { ProjectSettings } from './settings';

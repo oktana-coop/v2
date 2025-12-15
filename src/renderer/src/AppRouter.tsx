@@ -18,6 +18,7 @@ import {
   DocumentEditor,
   DocumentHistoricalView,
   DocumentSelection,
+  ProjectDocuments,
   ProjectProviders,
   ProjectSelection,
   ProjectSettings,
@@ -36,7 +37,7 @@ export const AppRouter = () => {
           <Route path="/projects" element={<ProjectProviders />}>
             <Route index element={<ProjectSelection />} />
             <Route path=":projectId" element={<CurrentProject />}>
-              <Route path="documents">
+              <Route path="documents" element={<ProjectDocuments />}>
                 <Route index element={<DocumentSelection />} />
                 <Route path=":documentId">
                   <Route index element={<DocumentEditor />} />
