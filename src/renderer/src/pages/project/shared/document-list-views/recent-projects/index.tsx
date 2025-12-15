@@ -1,18 +1,18 @@
 import { useContext } from 'react';
 
-import { ElectronContext } from '../../../../../../../../../modules/infrastructure/cross-platform/electron-context';
-import { IconButton } from '../../../../../../../components/actions/IconButton';
+import { ElectronContext } from '../../../../../../../modules/infrastructure/cross-platform/electron-context';
+import { IconButton } from '../../../../../components/actions/IconButton';
 import {
   FileDocumentIcon,
   FolderIcon,
   PlusIcon,
-} from '../../../../../../../components/icons';
-import { SidebarHeading } from '../../../../../../../components/sidebar/SidebarHeading';
-import { useDocumentList } from '../../../../../../../hooks';
+} from '../../../../../components/icons';
+import { SidebarHeading } from '../../../../../components/sidebar/SidebarHeading';
+import { useDocumentList } from '../../../../../hooks';
 import {
   useDocumentSelection as useDocumentSelectionInSingleDocumentProject,
   useOpenDocument,
-} from '../../../../../../../hooks/single-document-project';
+} from '../../../../../hooks/single-document-project';
 import { DocumentList } from '../DocumentList';
 import { EmptyView } from './EmptyView';
 

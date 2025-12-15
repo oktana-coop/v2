@@ -1,17 +1,17 @@
 import { useContext, useState } from 'react';
 
-import { projectTypes } from '../../../../../modules/domain/project';
-import { ElectronContext } from '../../../../../modules/infrastructure/cross-platform/electron-context';
-import { SidebarLayout } from '../../../components/layout/SidebarLayout';
-import { StackedResizablePanelsLayout } from '../../../components/layout/StackedResizablePanelsLayout';
-import { useCreateDocument, useNavigateToDocument } from '../../../hooks';
-import { useOpenDirectory } from '../../../hooks/multi-document-project';
-import { useOpenDocument } from '../../../hooks/single-document-project';
-import { CreateDocumentModal } from '../create-document/CreateDocumentModal';
+import { projectTypes } from '../../../../../../modules/domain/project';
+import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/electron-context';
+import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
+import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
+import { useCreateDocument, useNavigateToDocument } from '../../../../hooks';
+import { useOpenDirectory } from '../../../../hooks/multi-document-project';
+import { useOpenDocument } from '../../../../hooks/single-document-project';
+import { CreateDocumentModal } from '../../shared/create-document/CreateDocumentModal';
 import {
   DirectoryFiles,
   RecentProjects,
-} from '../current-project/document/sidebar/document-list-views';
+} from '../../shared/document-list-views';
 import { EmptyMainView } from '../empty-main-view';
 
 export const ProjectSelection = () => {

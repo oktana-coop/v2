@@ -1,6 +1,6 @@
 import { clsx } from 'clsx';
 
-import { FileDocumentIcon } from '../../../../../../components/icons';
+import { FileDocumentIcon } from '../../../../components/icons';
 
 export type DocumentListItem = {
   id: string;

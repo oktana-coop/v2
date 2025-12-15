@@ -1,8 +1,5 @@
-import { Button } from '../../../../../../../components/actions/Button';
-import {
-  FileDocumentIcon,
-  PenIcon,
-} from '../../../../../../../components/icons';
+import { Button } from '../../../../../components/actions/Button';
+import { FileDocumentIcon, PenIcon } from '../../../../../components/icons';
 
 export const EmptyView = ({
   onCreateDocumentButtonClick,

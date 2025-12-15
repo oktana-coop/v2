@@ -20,8 +20,9 @@ import {
   useNavigateToDocument,
 } from '../../../hooks';
 import { useOpenDocument } from '../../../hooks/single-document-project';
-import { ProjectCommandPalette } from '../command-palette';
-import { CreateDocumentModal } from '../create-document/CreateDocumentModal';
+import { ProjectCommandPalette } from '../shared/command-palette';
+import { CreateDocumentModal } from '../shared/create-document/CreateDocumentModal';
+import { DirectoryFiles, RecentProjects } from '../shared/document-list-views';
 import { BottomBar } from './bottom-bar';
 import {
   BranchingCommandPalette,
@@ -34,10 +35,6 @@ import {
   RestoreCommitDialog,
 } from './change-dialogs';
 import { DocumentHistory } from './document/sidebar/document-history/DocumentHistory';
-import {
-  DirectoryFiles,
-  RecentProjects,
-} from './document/sidebar/document-list-views';
 
 export const CurrentProject = () => (
   <BranchingCommandPaletteStateProvider>

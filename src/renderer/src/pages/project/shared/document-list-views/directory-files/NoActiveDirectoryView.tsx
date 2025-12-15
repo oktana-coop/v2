@@ -1,8 +1,8 @@
 import { useContext } from 'react';
 
-import { MultiDocumentProjectContext } from '../../../../../../../app-state';
-import { Button } from '../../../../../../../components/actions/Button';
-import { FolderIcon } from '../../../../../../../components/icons';
+import { MultiDocumentProjectContext } from '../../../../../app-state';
+import { Button } from '../../../../../components/actions/Button';
+import { FolderIcon } from '../../../../../components/icons';
 
 export const NoActiveDirectoryView = () => {
   const { directory, openDirectory, requestPermissionForSelectedDirectory } =

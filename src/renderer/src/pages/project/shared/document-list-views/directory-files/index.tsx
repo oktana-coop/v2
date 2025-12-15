@@ -1,11 +1,11 @@
 import { useContext } from 'react';
 
-import { MultiDocumentProjectContext } from '../../../../../../../app-state';
-import { IconButton } from '../../../../../../../components/actions/IconButton';
-import { FolderIcon, PlusIcon } from '../../../../../../../components/icons';
-import { SidebarHeading } from '../../../../../../../components/sidebar/SidebarHeading';
-import { useCreateDocument, useDocumentList } from '../../../../../../../hooks';
-import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../../../../../hooks/multi-document-project';
+import { MultiDocumentProjectContext } from '../../../../../app-state';
+import { IconButton } from '../../../../../components/actions/IconButton';
+import { FolderIcon, PlusIcon } from '../../../../../components/icons';
+import { SidebarHeading } from '../../../../../components/sidebar/SidebarHeading';
+import { useCreateDocument, useDocumentList } from '../../../../../hooks';
+import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../../../hooks/multi-document-project';
 import { DocumentList } from '../DocumentList';
 import { NoActiveDirectoryView } from './NoActiveDirectoryView';
 

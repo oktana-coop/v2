@@ -1,10 +1,10 @@
 import { useState } from 'react';
 
-import { type ProjectId } from '../../../../../modules/domain/project';
-import { type ResolvedArtifactId } from '../../../../../modules/infrastructure/version-control/';
-import { Button } from '../../../components/actions/Button';
-import { Modal } from '../../../components/dialogs/Modal';
-import { useCreateDocument } from '../../../hooks';
+import { type ProjectId } from '../../../../../../modules/domain/project';
+import { type ResolvedArtifactId } from '../../../../../../modules/infrastructure/version-control/';
+import { Button } from '../../../../components/actions/Button';
+import { Modal } from '../../../../components/dialogs/Modal';
+import { useCreateDocument } from '../../../../hooks';
 
 export const CreateDocumentModal = ({
   isOpen,

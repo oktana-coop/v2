@@ -1,26 +1,26 @@
 import { useContext } from 'react';
 
-import { projectTypes } from '../../../../../modules/domain/project';
-import { richTextRepresentations } from '../../../../../modules/domain/rich-text';
-import { ElectronContext } from '../../../../../modules/infrastructure/cross-platform';
-import { removeExtension } from '../../../../../modules/infrastructure/filesystem';
+import { projectTypes } from '../../../../../../modules/domain/project';
+import { richTextRepresentations } from '../../../../../../modules/domain/rich-text';
+import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform';
+import { removeExtension } from '../../../../../../modules/infrastructure/filesystem';
 import {
   CommandPaletteContext,
   CurrentDocumentContext,
   CurrentProjectContext,
-} from '../../../app-state';
+} from '../../../../app-state';
 import {
   type ActionOption,
   CommandPalette,
-} from '../../../components/dialogs/command-palette';
+} from '../../../../components/dialogs/command-palette';
 import {
   useClearWebStorage,
   useCurrentDocumentName,
   useDocumentList,
   useExport,
-} from '../../../hooks';
-import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../hooks/multi-document-project';
-import { useDocumentSelection as useDocumentSelectionInSingleDocumentProject } from '../../../hooks/single-document-project';
+} from '../../../../hooks';
+import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../../hooks/multi-document-project';
+import { useDocumentSelection as useDocumentSelectionInSingleDocumentProject } from '../../../../hooks/single-document-project';
 
 export const ProjectCommandPalette = ({
   onCreateDocument,
