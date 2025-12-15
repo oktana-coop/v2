@@ -1,5 +1,3 @@
-import { Link } from 'react-router';
-
 import {
   type ProjectId,
   urlEncodeProjectId,
