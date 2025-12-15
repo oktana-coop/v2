@@ -7,7 +7,7 @@ import {
   useEffect,
   useState,
 } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 
 import { AuthContext } from '../../../../modules/auth/browser';
 import {
@@ -129,6 +129,7 @@ export const MultiDocumentProjectProvider = ({
   const [directory, setDirectory] = useState<Directory | null>(null);
   const [directoryFiles, setDirectoryFiles] = useState<Array<File>>([]);
   const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
+  const { documentId: documentIdInPath } = useParams();
   const [versionedProjectStore, setVersionedProjectStore] =
     useState<MultiDocumentProjectStore | null>(null);
   const [selectedFileInfo, setSelectedFileInfo] =
@@ -183,6 +184,10 @@ export const MultiDocumentProjectProvider = ({
         setVersionedDocumentStore(documentStore);
 
         setLoading(false);
+
+        navigate(
+          `/projects/${urlEncodeProjectId(browserStorageProjectData.projectId)}/documents`
+        );
       }
     };
 
@@ -228,7 +233,6 @@ export const MultiDocumentProjectProvider = ({
         navigate(newUrl);
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
-        clearFileSelection();
         // TODO: Only do this on NotFoundError.
         // TODO: Navigate to the specific project route (doesn't exist at the time of writing) this.
         const newUrl = `/projects`;
@@ -243,6 +247,12 @@ export const MultiDocumentProjectProvider = ({
       });
     }
   }, [currentBranch]);
+
+  useEffect(() => {
+    if (!documentIdInPath) {
+      clearFileSelection();
+    }
+  }, [documentIdInPath]);
 
   const requestPermissionForDirectory = async (dir: Directory) =>
     Effect.runPromise(filesystem.requestPermissionForDirectory(dir.path));
@@ -292,6 +302,8 @@ export const MultiDocumentProjectProvider = ({
     );
 
     setLoading(false);
+
+    navigate(`/projects/${urlEncodeProjectId(projId)}/documents`);
 
     return dir;
   }, [multiDocumentProjectStoreManager, username, email]);

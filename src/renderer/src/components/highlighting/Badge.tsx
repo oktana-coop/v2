@@ -71,7 +71,7 @@ export const BadgeButton = forwardRef(function BadgeButton(
     'group relative inline-flex rounded-md focus:outline-none data-[focus]:outline data-[focus]:outline-2 data-[focus]:outline-offset-2 data-[focus]:outline-blue-500'
   );
 
-  return 'href' in props ? (
+  return 'to' in props ? (
     <Link
       {...props}
       className={classes}
@@ -82,7 +82,6 @@ export const BadgeButton = forwardRef(function BadgeButton(
       </TouchTarget>
     </Link>
   ) : (
-    // @ts-expect-error onCopy handler not typed properly.
     // TODO: search for issues or PRs in headlessui
     <Headless.Button {...props} className={classes} ref={ref}>
       <TouchTarget>
