@@ -1,44 +1,33 @@
-import './App.css';
-
-import { useContext } from 'react';
+import { AuthProvider } from '../../modules/auth/browser';
+import { RepresentationTransformProvider } from '../../modules/domain/rich-text/react/representation-transform-context';
+import { NotificationsProvider } from '../../modules/infrastructure/notifications/browser';
+import { WasmProvider } from '../../modules/infrastructure/wasm/react/wasm-context';
 import {
-  BrowserRouter,
-  MemoryRouter,
-  Navigate,
-  Route,
-  Routes,
-} from 'react-router';
-
-import { ElectronContext } from '../../modules/infrastructure/cross-platform';
+  FunctionalityConfigProvider,
+  ThemeProvider,
+} from '../../modules/personalization/browser';
 import {
-  DocumentEditor,
-  DocumentHistoricalView,
-  Project,
-} from './pages/document';
-import { Options } from './pages/options/Options';
+  CommandPaletteStateProvider,
+  InfrastructureAdaptersProvider,
+} from './app-state/index';
+import { AppRouter } from './AppRouter';
 
-function App() {
-  const { isElectron } = useContext(ElectronContext);
-
-  const Router = isElectron ? MemoryRouter : BrowserRouter;
-
-  return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Navigate to="/projects" replace />} />
-        <Route path="/projects" element={<Project />}>
-          <Route path=":projectId/documents/:documentId">
-            <Route index element={<DocumentEditor />} />
-            <Route
-              path="changes/:changeId"
-              element={<DocumentHistoricalView />}
-            />
-          </Route>
-        </Route>
-        <Route path="/options" element={<Options />} />
-      </Routes>
-    </Router>
-  );
-}
-
-export default App;
+export const App = () => (
+  <InfrastructureAdaptersProvider>
+    <WasmProvider>
+      <RepresentationTransformProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <FunctionalityConfigProvider>
+              <NotificationsProvider>
+                <CommandPaletteStateProvider>
+                  <AppRouter />
+                </CommandPaletteStateProvider>
+              </NotificationsProvider>
+            </FunctionalityConfigProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </RepresentationTransformProvider>
+    </WasmProvider>
+  </InfrastructureAdaptersProvider>
+);

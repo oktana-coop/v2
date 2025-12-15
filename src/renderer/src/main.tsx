@@ -5,7 +5,7 @@ import ReactDOM from 'react-dom/client';
 
 import { ElectronProvider } from '../../modules/infrastructure/cross-platform';
 import { type File } from '../../modules/infrastructure/filesystem';
-import { AppWrapper } from './AppWrapper';
+import { App } from './App';
 
 // Listen for files opened from the OS and store them in session storage
 // to be picked up by the relevant project context
@@ -17,7 +17,7 @@ window.osEventsAPI?.onOpenFileFromFilesystem((file: File) => {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ElectronProvider>
-      <AppWrapper />
+      <App />
     </ElectronProvider>
   </React.StrictMode>
 );

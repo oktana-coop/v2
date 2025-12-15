@@ -183,6 +183,10 @@ export const MultiDocumentProjectProvider = ({
         setVersionedDocumentStore(documentStore);
 
         setLoading(false);
+
+        navigate(
+          `/projects/${urlEncodeProjectId(browserStorageProjectData.projectId)}/documents`
+        );
       }
     };
 
@@ -292,6 +296,8 @@ export const MultiDocumentProjectProvider = ({
     );
 
     setLoading(false);
+
+    navigate(`/projects/${urlEncodeProjectId(projId)}/documents`);
 
     return dir;
   }, [multiDocumentProjectStoreManager, username, email]);
