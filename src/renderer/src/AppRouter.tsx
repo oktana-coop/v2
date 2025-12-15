@@ -51,8 +51,8 @@ export const AppRouter = () => {
           </Route>
           <Route path="/options" element={<Options />} />
         </Routes>
-        <LocationLogger />
       </Layout>
+      <LocationLogger />
     </Router>
   );
 };
