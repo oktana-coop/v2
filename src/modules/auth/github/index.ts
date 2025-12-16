@@ -6,9 +6,13 @@ import { pipe } from 'effect/Function';
 import * as Ref from 'effect/Ref';
 import * as Schedule from 'effect/Schedule';
 
-import { buildConfig } from '../../../../modules/config';
-import { mapErrorTo } from '../../../../utils/errors';
-import { SyncProviderError } from '../errors';
+import { buildConfig } from '../../../modules/config';
+import { mapErrorTo } from '../../../utils/errors';
+import { SyncProviderAuthError } from '../errors';
+import {
+  type GithubDeviceFlowVerificationInfo,
+  type GithubUserInfo,
+} from '../models';
 
 type UserResponse = Endpoints['GET /user']['response']['data'];
 
@@ -16,6 +20,9 @@ const DEVICE_CODE_URL = 'https://github.com/login/device/code';
 const ACCESS_TOKEN_URL = 'https://github.com/login/oauth/access_token';
 const ACCESS_TOKEN_GRANT_TYPE = 'urn:ietf:params:oauth:grant-type:device_code';
 const USER_URL = 'https://api.github.com/user';
+// As instructed in GitHub docs:
+// https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app#using-the-device-flow-to-generate-a-user-access-token
+const SLOW_DOWN_INTERVAL_INCREASE_SECONDS = 5;
 
 type RequestDeviceCodeGithubApiResponse = {
   device_code: string;
@@ -65,21 +72,6 @@ type RequestAccessTokenResponse = {
   tokenType: string;
 };
 
-export type GithubUserInfo = {
-  login: string;
-  name: string | null;
-  email: string | null;
-  avatarUrl: string;
-};
-
-export type GithubDeviceFlowVerificationInfo = {
-  // A verification code that your application should display so that the user can enter the code in a browser.
-  // This code is 8 characters with a hyphen in the middle. For example, WDJB-MJHT.
-  userCode: string;
-  // The URL where users need to enter their user_code
-  verificationUri: string;
-};
-
 export type GithubDeviceFlowResponse = {
   token: string;
   userInfo: GithubUserInfo;
@@ -87,7 +79,7 @@ export type GithubDeviceFlowResponse = {
 
 export const requestDeviceCode = (): Effect.Effect<
   RequestDeviceCodeResponse,
-  SyncProviderError,
+  SyncProviderAuthError,
   never
 > =>
   pipe(
@@ -113,7 +105,7 @@ export const requestDeviceCode = (): Effect.Effect<
         return (await response.json()) as RequestDeviceCodeGithubApiResponse;
       },
       catch: mapErrorTo(
-        SyncProviderError,
+        SyncProviderAuthError,
         'Error in getting the current branch'
       ),
     }),
@@ -141,7 +133,7 @@ class GithubAuthorizationSlowDownError extends Cause.YieldableError {
 type RequestAccessTokenError =
   | GithubAuthorizationPendingError
   | GithubAuthorizationSlowDownError
-  | SyncProviderError;
+  | SyncProviderAuthError;
 
 const requestAccessToken = (
   input: RequestAccessTokenInput
@@ -164,7 +156,10 @@ const requestAccessToken = (
 
         return (await response.json()) as RequestAccessTokenGithubApiResponse;
       },
-      catch: mapErrorTo(SyncProviderError, 'Error polling for access token'),
+      catch: mapErrorTo(
+        SyncProviderAuthError,
+        'Error polling for access token'
+      ),
     }),
     Effect.flatMap(
       (
@@ -199,7 +194,7 @@ const requestAccessToken = (
           );
         } else {
           return Effect.fail(
-            new SyncProviderError(
+            new SyncProviderAuthError(
               `Token request failed: ${githubApiResponse.error}`
             )
           );
@@ -224,28 +219,28 @@ const tokenRequestPollingScheduleEffect = ({
     Effect.map((intervalRef) =>
       pipe(
         // Timeout schedule - outputs elapsed Duration.
-        // The output type doesn't change in the next steps of the pipeline.
+        // The output type (Duration) doesn't change in the next steps of the pipeline.
         pipe(
           Schedule.elapsed,
           Schedule.whileOutput((elapsed) =>
             Duration.lessThan(elapsed, Duration.seconds(expiresInSeconds))
           )
         ),
-
         // Only retry on specific errors
         Schedule.whileInput(
           (error: RequestAccessTokenError) =>
             error._tag === GithubAuthorizationPendingErrorTag ||
             error._tag === GithubAuthorizationSlowDownErrorTag
         ),
-
         // Update the Ref when we see slow_down
         Schedule.tapInput((error: RequestAccessTokenError) =>
           error._tag === GithubAuthorizationSlowDownErrorTag
-            ? Ref.update(intervalRef, (n) => n + initialIntervalSeconds)
+            ? Ref.update(
+                intervalRef,
+                (n) => n + SLOW_DOWN_INTERVAL_INCREASE_SECONDS
+              )
             : Effect.void
         ),
-
         // Set delay based on current Ref value
         Schedule.modifyDelayEffect(() =>
           pipe(
@@ -259,7 +254,7 @@ const tokenRequestPollingScheduleEffect = ({
 
 const pollForToken = (
   input: RequestAccessTokenInput
-): Effect.Effect<RequestAccessTokenResponse, SyncProviderError, never> =>
+): Effect.Effect<RequestAccessTokenResponse, SyncProviderAuthError, never> =>
   pipe(
     tokenRequestPollingScheduleEffect({
       initialIntervalSeconds: input.interval,
@@ -268,12 +263,14 @@ const pollForToken = (
     Effect.flatMap((schedule) =>
       pipe(requestAccessToken(input), Effect.retry(schedule))
     ),
-    Effect.catchAll((err) => Effect.fail(new SyncProviderError(err.message)))
+    Effect.catchAll((err) =>
+      Effect.fail(new SyncProviderAuthError(err.message))
+    )
   );
 
 const getAuthenticatedUser = (
   token: string
-): Effect.Effect<GithubUserInfo, SyncProviderError, never> =>
+): Effect.Effect<GithubUserInfo, SyncProviderAuthError, never> =>
   pipe(
     Effect.tryPromise({
       try: async () => {
@@ -290,10 +287,13 @@ const getAuthenticatedUser = (
 
         return (await response.json()) as UserResponse;
       },
-      catch: mapErrorTo(SyncProviderError, 'Error getting authenticated user'),
+      catch: mapErrorTo(
+        SyncProviderAuthError,
+        'Error getting authenticated user'
+      ),
     }),
     Effect.map((user) => ({
-      login: user.login,
+      username: user.login,
       name: user.name,
       email: user.email,
       avatarUrl: user.avatar_url,
@@ -304,7 +304,7 @@ export const githubAuthUsingDeviceFlow = (
   onDeviceVerificationInfoAvailable: (
     verificationInfo: GithubDeviceFlowVerificationInfo
   ) => void
-): Effect.Effect<GithubDeviceFlowResponse, SyncProviderError, never> =>
+): Effect.Effect<GithubDeviceFlowResponse, SyncProviderAuthError, never> =>
   pipe(
     requestDeviceCode(),
     Effect.tap(({ userCode, verificationUri }) =>
@@ -314,9 +314,7 @@ export const githubAuthUsingDeviceFlow = (
         onDeviceVerificationInfoAvailable({ userCode, verificationUri });
       })
     ),
-    // Step 2: Poll for token
     Effect.flatMap((deviceCodeResponse) => pollForToken(deviceCodeResponse)),
-    // Step 3: Get user and installations in parallel
     Effect.flatMap(({ accessToken: token }) =>
       pipe(
         getAuthenticatedUser(token),

@@ -1,8 +1,10 @@
-import { ipcMain } from 'electron';
+import * as Effect from 'effect/Effect';
+import { type BrowserWindow, ipcMain } from 'electron';
 import Store from 'electron-store';
 
 import {
   type Email,
+  githubAuthUsingDeviceFlow,
   parseEmail,
   parseUsername,
   type Username,
@@ -11,8 +13,10 @@ import { type UserPreferences } from './store';
 
 export const registerAuthInfoIPCHandlers = ({
   store,
+  win,
 }: {
   store: Store<UserPreferences>;
+  win: BrowserWindow;
 }) => {
   ipcMain.on('auth:set-username', (_, username: Username | null) => {
     store.set('auth.username', username);
@@ -22,7 +26,7 @@ export const registerAuthInfoIPCHandlers = ({
     store.set('auth.email', email);
   });
 
-  ipcMain.handle('auth:get-info', () => {
+  ipcMain.handle('auth:get-info', async () => {
     const storeUsername = store.get('auth.username') || null;
     const username = storeUsername ? parseUsername(storeUsername) : null;
 
@@ -33,5 +37,16 @@ export const registerAuthInfoIPCHandlers = ({
       username,
       email,
     };
+  });
+
+  ipcMain.handle('auth:github-device-flow', async () => {
+    Effect.runPromise(
+      githubAuthUsingDeviceFlow((verificationInfo) => {
+        win.webContents.send(
+          'auth:github-device-flow-verification-info',
+          verificationInfo
+        );
+      })
+    );
   });
 };

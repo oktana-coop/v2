@@ -266,7 +266,7 @@ async function createWindow() {
     wasmAPI.runWasiCLIOutputingBinary(args)
   );
 
-  registerAuthInfoIPCHandlers({ store });
+  registerAuthInfoIPCHandlers({ store, win });
   registerThemeIPCHandlers({ store, win });
 }
 

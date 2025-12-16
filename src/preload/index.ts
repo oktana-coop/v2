@@ -13,6 +13,7 @@ import {
   type SingleDocumentProjectStorePromiseAPI,
   type VersionedDocumentStorePromiseAPI,
 } from '../../renderer';
+import { type GithubDeviceFlowVerificationInfo } from '../modules/auth';
 import { buildConfig } from '../modules/config';
 import { type UpdateState } from '../modules/infrastructure/cross-platform/update';
 import {
@@ -73,6 +74,13 @@ contextBridge.exposeInMainWorld('authAPI', {
   setUsername: (username) => ipcRenderer.send('auth:set-username', username),
   setEmail: (email) => ipcRenderer.send('auth:set-email', email),
   getInfo: () => ipcRenderer.invoke('auth:get-info'),
+  githubAuthUsingDeviceFlow: () =>
+    ipcRenderer.invoke('auth:github-device-flow'),
+  onDeviceVerificationInfoAvailable: (callback) =>
+    registerIpcListener<GithubDeviceFlowVerificationInfo>(
+      'auth:github-device-flow-verification-info',
+      callback
+    ),
 } as AuthAPI);
 
 contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {

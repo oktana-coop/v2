@@ -1,6 +1,10 @@
 import type { IpcRenderer } from 'electron';
 
-import { type Email, type Username } from './src/modules/auth';
+import {
+  type Email,
+  type GithubUserInfo,
+  type Username,
+} from './src/modules/auth';
 import { type RendererConfig } from './src/modules/config/browser';
 import {
   type MultiDocumentProjectStore,
@@ -27,6 +31,7 @@ import {
 import {
   type FromMainMessage as AutomergeRepoNetworkFromMainIPCMessage,
   type FromRendererMessage as AutomergeRepoNetworkFromRendererIPCMessage,
+  GithubDeviceFlowVerificationInfo,
   type ResolvedArtifactId,
 } from './src/modules/infrastructure/version-control';
 import { type Wasm as WasmAPI } from './src/modules/infrastructure/wasm';
@@ -64,7 +69,12 @@ export type AuthAPI = {
   getInfo: () => Promise<{
     username: Username | null;
     email: Email | null;
+    githubUserInfo: GithubUserInfo | null;
   }>;
+  githubAuthUsingDeviceFlow: () => Promise<GithubUserInfo>;
+  onDeviceVerificationInfoAvailable: (
+    callback: (verificationInfo: GithubDeviceFlowVerificationInfo) => void
+  ) => UnregisterListenerFn;
 };
 
 export type AutomergeRepoNetworkAdapter = {
