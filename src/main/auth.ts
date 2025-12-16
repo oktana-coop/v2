@@ -33,14 +33,18 @@ export const registerAuthInfoIPCHandlers = ({
     const storeEmail = store.get('auth.email') || null;
     const email = storeEmail ? parseEmail(storeEmail) : null;
 
+    const storeGithubUserInfo = store.get('auth.githubUserInfo') || null;
+    const githubUserInfo = storeGithubUserInfo ?? null;
+
     return {
       username,
       email,
+      githubUserInfo,
     };
   });
 
   ipcMain.handle('auth:github-device-flow', async () => {
-    Effect.runPromise(
+    const { userInfo } = await Effect.runPromise(
       githubAuthUsingDeviceFlow((verificationInfo) => {
         win.webContents.send(
           'auth:github-device-flow-verification-info',
@@ -48,5 +52,16 @@ export const registerAuthInfoIPCHandlers = ({
         );
       })
     );
+
+    // TODO: Store token securely
+
+    store.set('auth.githubUserInfo', userInfo);
+
+    return userInfo;
+  });
+
+  ipcMain.handle('auth:disconnect-from-github', async () => {
+    // TODO: Delete token locally and ideally also call the GitHub API to revoke the token
+    store.set('auth.githubUserInfo', null);
   });
 };

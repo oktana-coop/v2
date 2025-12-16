@@ -28,6 +28,7 @@ type AuthContextType = {
   setUsername: (name: Username | null) => void;
   setEmail: (email: Email | null) => void;
   connectToGithub: () => Promise<void>;
+  disconnectFromGithub: () => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextType>({
@@ -39,6 +40,7 @@ export const AuthContext = createContext<AuthContextType>({
   setEmail: () => {},
   // @ts-expect-error will get overriden below
   connectToGithub: async () => null,
+  disconnectFromGithub: async () => {},
 });
 
 const getAuthInfoFromLocalStorage = () => {
@@ -148,6 +150,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [isElectron, dispatchNotification]);
 
+  const handleDisconnectFromGithub = useCallback(async () => {
+    if (isElectron) {
+      await window.authAPI.disconnectFromGithub();
+      setGithubUserInfo(null);
+      setGithubDeviceFlowVerificationInfo(null);
+    }
+  }, [isElectron]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -158,6 +168,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUsername: handleSetUsername,
         setEmail: handleSetEmail,
         connectToGithub: handleConnectToGithub,
+        disconnectFromGithub: handleDisconnectFromGithub,
       }}
     >
       {children}

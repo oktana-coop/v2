@@ -36,27 +36,22 @@ const schema = {
         default: null,
       },
       githubUserInfo: {
-        oneOf: [
-          {
-            type: 'object',
-            properties: {
-              username: { type: 'string' },
-              name: {
-                oneOf: [{ type: 'string' }, { type: 'null' }],
-                default: null,
-              },
-              email: {
-                oneOf: [{ type: 'string' }, { type: 'null' }],
-                default: null,
-              },
-              avatarUrl: {
-                type: 'string',
-              },
-            },
-          },
-          { type: 'null' },
-        ],
+        type: ['object', 'null'],
         default: null,
+        properties: {
+          username: { type: 'string' },
+          name: {
+            oneOf: [{ type: 'string' }, { type: 'null' }],
+            default: null,
+          },
+          email: {
+            oneOf: [{ type: 'string' }, { type: 'null' }],
+            default: null,
+          },
+          avatarUrl: {
+            type: 'string',
+          },
+        },
       },
     },
   },

@@ -1,6 +1,6 @@
 import { SyncIcon } from '../../../components/icons';
 import { SectionHeader } from '../SectionHeader';
-import { GithubSyncProvider } from './Github';
+import { GithubSyncProvider } from './github';
 
 export const SyncProvidersSection = () => {
   return (

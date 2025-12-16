@@ -81,6 +81,7 @@ contextBridge.exposeInMainWorld('authAPI', {
       'auth:github-device-flow-verification-info',
       callback
     ),
+  disconnectFromGithub: () => ipcRenderer.invoke('auth:disconnect-from-github'),
 } as AuthAPI);
 
 contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {

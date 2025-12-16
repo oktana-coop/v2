@@ -75,6 +75,7 @@ export type AuthAPI = {
   onDeviceVerificationInfoAvailable: (
     callback: (verificationInfo: GithubDeviceFlowVerificationInfo) => void
   ) => UnregisterListenerFn;
+  disconnectFromGithub: () => Promise<void>;
 };
 
 export type AutomergeRepoNetworkAdapter = {
