@@ -1,6 +1,6 @@
 import * as Effect from 'effect/Effect';
 
-import { RepositoryError } from '../errors';
+import { NotFoundError, RepositoryError } from '../errors';
 
 export type EncryptAndSaveToFileArgs = {
   content: string;
@@ -21,7 +21,7 @@ export type EncryptedStore = {
   ) => Effect.Effect<void, RepositoryError, never>;
   readFromFileAndDecrypt: (
     args: ReadFromFileAndDecryptArgs
-  ) => Effect.Effect<string, RepositoryError, never>;
+  ) => Effect.Effect<string, NotFoundError | RepositoryError, never>;
   deleteEncryptedFile: (
     args: DeleteEncryptedFileArgs
   ) => Effect.Effect<void, RepositoryError, never>;

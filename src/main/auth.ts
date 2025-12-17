@@ -3,6 +3,7 @@ import { type BrowserWindow, ipcMain } from 'electron';
 import Store from 'electron-store';
 
 import {
+  disconnectFromGithub,
   type Email,
   type EncryptedStore,
   githubAuthUsingDeviceFlow,
@@ -56,15 +57,13 @@ export const registerAuthInfoIPCHandlers = ({
       })
     );
 
-    // TODO: Store token securely
-
     store.set('auth.githubUserInfo', userInfo);
 
     return userInfo;
   });
 
   ipcMain.handle('auth:disconnect-from-github', async () => {
-    // TODO: Delete token locally and ideally also call the GitHub API to revoke the token
+    await Effect.runPromise(disconnectFromGithub({ encryptedStore })());
     store.set('auth.githubUserInfo', null);
   });
 };

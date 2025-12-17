@@ -4,8 +4,11 @@ import { app } from 'electron';
 import { safeStorage } from 'electron';
 
 import { mapErrorTo } from '../../../utils/errors';
-import { Filesystem } from '../../infrastructure/filesystem';
-import { RepositoryError } from '../errors';
+import {
+  Filesystem,
+  FilesystemNotFoundErrorTag,
+} from '../../infrastructure/filesystem';
+import { NotFoundError, RepositoryError } from '../errors';
 import { EncryptedStore } from '../ports/encrypted-store';
 
 const STORAGE_DIR_NAME = 'userData';
@@ -82,6 +85,9 @@ export const createAdapter = ({
       Effect.flatMap((path) =>
         pipe(
           filesystem.readBinaryFile(path),
+          Effect.catchTag(FilesystemNotFoundErrorTag, () =>
+            Effect.fail(new NotFoundError('Encrypted file not found'))
+          ),
           Effect.catchAll((err) =>
             Effect.fail(new RepositoryError(err.message))
           )

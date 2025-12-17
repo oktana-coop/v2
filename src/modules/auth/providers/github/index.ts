@@ -8,7 +8,12 @@ import * as Schedule from 'effect/Schedule';
 
 import { buildConfig } from '../../../../modules/config';
 import { mapErrorTo } from '../../../../utils/errors';
-import { RepositoryError, SyncProviderAuthError } from '../../errors';
+import {
+  DataIntegrityError,
+  NotFoundError,
+  RepositoryError,
+  SyncProviderAuthError,
+} from '../../errors';
 import {
   type GithubDeviceFlowVerificationInfo,
   type GithubUserInfo,
@@ -26,7 +31,7 @@ const USER_URL = 'https://api.github.com/user';
 const SLOW_DOWN_INTERVAL_INCREASE_SECONDS = 5;
 
 const ENCRYPTED_GITHUB_TOKEN_INFO_FILENAME = 'github-auth.bin';
-// const ACCESS_TOKEN_REFRESH_BUFFER_MS = 60_000; // 1 minute
+const ACCESS_TOKEN_REFRESH_BUFFER_MS = 60_000; // 1 minute
 
 type RequestDeviceCodeGithubApiResponse = {
   device_code: string;
@@ -77,6 +82,10 @@ export type GithubAccessTokenInfo = {
 };
 
 export type GithubAuthUsingDeviceFlowDeps = {
+  encryptedStore: EncryptedStore;
+};
+
+export type DisconnectFromGithubDeps = {
   encryptedStore: EncryptedStore;
 };
 
@@ -143,6 +152,17 @@ type RequestAccessTokenError =
   | GithubAuthorizationSlowDownError
   | SyncProviderAuthError;
 
+const githubApiResponseToTokenInfo = (
+  input: RequestAccessTokenGithubApiSuccessResponse
+): GithubAccessTokenInfo => ({
+  accessToken: input.access_token,
+  accessTokenExpiresAt: Date.now() + input.expires_in * 1000,
+  refreshToken: input.refresh_token,
+  refreshTokenExpiresAt: Date.now() + input.refresh_token_expires_in * 1000,
+  scope: input.scope,
+  tokenType: input.token_type,
+});
+
 const requestAccessToken = (
   input: RequestAccessTokenInput
 ): Effect.Effect<GithubAccessTokenInfo, RequestAccessTokenError, never> =>
@@ -178,18 +198,8 @@ const requestAccessToken = (
         never
       > => {
         if ('access_token' in githubApiResponse) {
-          const response: GithubAccessTokenInfo = {
-            accessToken: githubApiResponse.access_token,
-            accessTokenExpiresAt:
-              Date.now() + githubApiResponse.expires_in * 1000,
-            refreshToken: githubApiResponse.refresh_token,
-            refreshTokenExpiresAt:
-              Date.now() + githubApiResponse.refresh_token_expires_in * 1000,
-            scope: githubApiResponse.scope,
-            tokenType: githubApiResponse.token_type,
-          };
-
-          return Effect.succeed(response);
+          const tokenInfo = githubApiResponseToTokenInfo(githubApiResponse);
+          return Effect.succeed(tokenInfo);
         } else if (githubApiResponse.error === 'authorization_pending') {
           return Effect.fail(
             new GithubAuthorizationPendingError(
@@ -352,4 +362,96 @@ export const githubAuthUsingDeviceFlow =
           )
         )
       )
+    );
+
+export const disconnectFromGithub =
+  ({ encryptedStore }: DisconnectFromGithubDeps) =>
+  (): Effect.Effect<void, RepositoryError, never> =>
+    encryptedStore.deleteEncryptedFile({
+      fileName: ENCRYPTED_GITHUB_TOKEN_INFO_FILENAME,
+    });
+
+type GetValidGithubAccessTokenDeps = {
+  encryptedStore: EncryptedStore;
+};
+
+const refreshGithubToken: (
+  refreshToken: string
+) => Effect.Effect<GithubAccessTokenInfo, SyncProviderAuthError, never> = (
+  refreshToken
+) =>
+  pipe(
+    Effect.tryPromise({
+      try: async () => {
+        const response = await fetch(ACCESS_TOKEN_URL, {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            client_id: buildConfig.githubAppClientId,
+            grant_type: ACCESS_TOKEN_GRANT_TYPE,
+            refresh_token: refreshToken,
+          }),
+        });
+
+        return (await response.json()) as RequestAccessTokenGithubApiResponse;
+      },
+      catch: mapErrorTo(
+        SyncProviderAuthError,
+        'Error polling for access token'
+      ),
+    }),
+    Effect.flatMap((githubApiResponse) => {
+      if ('access_token' in githubApiResponse) {
+        const tokenInfo = githubApiResponseToTokenInfo(githubApiResponse);
+        return Effect.succeed(tokenInfo);
+      } else {
+        return Effect.fail(
+          new SyncProviderAuthError(
+            `Token request failed: ${githubApiResponse.error}`
+          )
+        );
+      }
+    })
+  );
+
+// This function can be used before any request to the GitHub API.
+export const getValidGithubAccessToken =
+  ({ encryptedStore }: GetValidGithubAccessTokenDeps) =>
+  (): Effect.Effect<
+    string,
+    | SyncProviderAuthError
+    | DataIntegrityError
+    | RepositoryError
+    | NotFoundError,
+    never
+  > =>
+    pipe(
+      encryptedStore.readFromFileAndDecrypt({
+        fileName: ENCRYPTED_GITHUB_TOKEN_INFO_FILENAME,
+      }),
+      Effect.flatMap((tokenInfoStr) =>
+        Effect.try({
+          try: () => JSON.parse(tokenInfoStr) as GithubAccessTokenInfo,
+          catch: mapErrorTo(
+            DataIntegrityError,
+            'Could not parse GitHub token info from disk.'
+          ),
+        })
+      ),
+      Effect.flatMap((tokenInfo) =>
+        Date.now() <
+        tokenInfo.accessTokenExpiresAt - ACCESS_TOKEN_REFRESH_BUFFER_MS
+          ? Effect.succeed(tokenInfo)
+          : refreshGithubToken(tokenInfo.refreshToken)
+      ),
+      Effect.tap((tokenInfo) =>
+        encryptedStore.encryptAndSaveToFile({
+          fileName: ENCRYPTED_GITHUB_TOKEN_INFO_FILENAME,
+          content: JSON.stringify(tokenInfo),
+        })
+      ),
+      Effect.map(({ accessToken }) => accessToken)
     );
