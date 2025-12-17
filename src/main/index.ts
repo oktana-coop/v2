@@ -14,6 +14,7 @@ import {
 } from 'electron';
 import os from 'os';
 
+import { createElectronMainEncryptedStoreAdapter } from '../modules/auth/node';
 import { PROJECT_FILE_EXTENSION } from '../modules/domain/project';
 import { runPromiseSerializingErrorsForIPC } from '../modules/infrastructure/cross-platform';
 import {
@@ -38,6 +39,9 @@ import { update } from './update';
 
 const store = initializeStore();
 const filesystemAPI = createElectronNodeFilesystemAPIAdapter();
+const encryptedStore = createElectronMainEncryptedStoreAdapter({
+  filesystem: filesystemAPI,
+});
 
 globalThis.__filename = fileURLToPath(import.meta.url);
 globalThis.__dirname = dirname(__filename);
@@ -273,7 +277,7 @@ async function createWindow() {
     wasmAPI.runWasiCLIOutputingBinary(args)
   );
 
-  registerAuthInfoIPCHandlers({ store, win });
+  registerAuthInfoIPCHandlers({ store, win, encryptedStore });
   registerThemeIPCHandlers({ store, win });
 }
 

@@ -28,24 +28,27 @@ export const createAdapter = ({
       ),
     });
 
+  const getAbsoluteFilePath: (
+    relativePath: string
+  ) => Effect.Effect<string, RepositoryError, never> = (relativePath: string) =>
+    pipe(
+      getStorageDir(),
+      Effect.flatMap((dirPath) =>
+        pipe(
+          filesystem.getAbsolutePath({ path: relativePath, dirPath }),
+          Effect.catchAll((err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      )
+    );
+
   const encryptAndSaveToFile: EncryptedStore['encryptAndSaveToFile'] = ({
     content,
     fileName,
   }) =>
     Effect.Do.pipe(
-      Effect.bind('path', () =>
-        pipe(
-          getStorageDir(),
-          Effect.flatMap((dirPath) =>
-            pipe(
-              filesystem.getAbsolutePath({ path: fileName, dirPath }),
-              Effect.catchAll((err) =>
-                Effect.fail(new RepositoryError(err.message))
-              )
-            )
-          )
-        )
-      ),
+      Effect.bind('path', () => getAbsoluteFilePath(fileName)),
       Effect.bind('encryptedContent', () =>
         pipe(
           safeStorage.isEncryptionAvailable()
@@ -75,15 +78,7 @@ export const createAdapter = ({
     fileName,
   }) =>
     pipe(
-      getStorageDir(),
-      Effect.flatMap((dirPath) =>
-        pipe(
-          filesystem.getAbsolutePath({ path: fileName, dirPath }),
-          Effect.catchAll((err) =>
-            Effect.fail(new RepositoryError(err.message))
-          )
-        )
-      ),
+      getAbsoluteFilePath(fileName),
       Effect.flatMap((path) =>
         pipe(
           filesystem.readBinaryFile(path),
@@ -106,8 +101,24 @@ export const createAdapter = ({
       )
     );
 
+  const deleteEncryptedFile: EncryptedStore['deleteEncryptedFile'] = ({
+    fileName,
+  }) =>
+    pipe(
+      getAbsoluteFilePath(fileName),
+      Effect.flatMap((path) =>
+        pipe(
+          filesystem.deleteFile(path),
+          Effect.catchAll((err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      )
+    );
+
   return {
     encryptAndSaveToFile,
     readFromFileAndDecrypt,
+    deleteEncryptedFile,
   };
 };

@@ -4,6 +4,7 @@ import Store from 'electron-store';
 
 import {
   type Email,
+  type EncryptedStore,
   githubAuthUsingDeviceFlow,
   parseEmail,
   parseUsername,
@@ -14,9 +15,11 @@ import { type UserPreferences } from './store';
 export const registerAuthInfoIPCHandlers = ({
   store,
   win,
+  encryptedStore,
 }: {
   store: Store<UserPreferences>;
   win: BrowserWindow;
+  encryptedStore: EncryptedStore;
 }) => {
   ipcMain.on('auth:set-username', (_, username: Username | null) => {
     store.set('auth.username', username);
@@ -45,7 +48,7 @@ export const registerAuthInfoIPCHandlers = ({
 
   ipcMain.handle('auth:github-device-flow', async () => {
     const { userInfo } = await Effect.runPromise(
-      githubAuthUsingDeviceFlow((verificationInfo) => {
+      githubAuthUsingDeviceFlow({ encryptedStore })((verificationInfo) => {
         win.webContents.send(
           'auth:github-device-flow-verification-info',
           verificationInfo

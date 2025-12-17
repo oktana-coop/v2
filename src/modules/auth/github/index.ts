@@ -8,11 +8,12 @@ import * as Schedule from 'effect/Schedule';
 
 import { buildConfig } from '../../../modules/config';
 import { mapErrorTo } from '../../../utils/errors';
-import { SyncProviderAuthError } from '../errors';
+import { RepositoryError, SyncProviderAuthError } from '../errors';
 import {
   type GithubDeviceFlowVerificationInfo,
   type GithubUserInfo,
 } from '../models';
+import { EncryptedStore } from '../ports/encrypted-store';
 
 type UserResponse = Endpoints['GET /user']['response']['data'];
 
@@ -23,6 +24,9 @@ const USER_URL = 'https://api.github.com/user';
 // As instructed in GitHub docs:
 // https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app#using-the-device-flow-to-generate-a-user-access-token
 const SLOW_DOWN_INTERVAL_INCREASE_SECONDS = 5;
+
+const ENCRYPTED_GITHUB_TOKEN_INFO_FILENAME = 'github-auth.bin';
+// const ACCESS_TOKEN_REFRESH_BUFFER_MS = 60_000; // 1 minute
 
 type RequestDeviceCodeGithubApiResponse = {
   device_code: string;
@@ -63,13 +67,17 @@ type RequestAccessTokenGithubApiResponse =
   | RequestAccessTokenGithubApiSuccessResponse
   | RequestAccessTokenGithubApiErrorResponse;
 
-type RequestAccessTokenResponse = {
+export type GithubAccessTokenInfo = {
   accessToken: string;
-  expiresIn: number;
+  accessTokenExpiresAt: number; // epoch ms
   refreshToken: string;
-  refreshTokenExpiresIn: number;
+  refreshTokenExpiresAt: number; // epoch ms
   scope: string;
   tokenType: string;
+};
+
+export type GithubAuthUsingDeviceFlowDeps = {
+  encryptedStore: EncryptedStore;
 };
 
 export type GithubDeviceFlowResponse = {
@@ -137,7 +145,7 @@ type RequestAccessTokenError =
 
 const requestAccessToken = (
   input: RequestAccessTokenInput
-): Effect.Effect<RequestAccessTokenResponse, RequestAccessTokenError, never> =>
+): Effect.Effect<GithubAccessTokenInfo, RequestAccessTokenError, never> =>
   pipe(
     Effect.tryPromise({
       try: async () => {
@@ -165,16 +173,18 @@ const requestAccessToken = (
       (
         githubApiResponse
       ): Effect.Effect<
-        RequestAccessTokenResponse,
+        GithubAccessTokenInfo,
         RequestAccessTokenError,
         never
       > => {
         if ('access_token' in githubApiResponse) {
-          const response: RequestAccessTokenResponse = {
+          const response: GithubAccessTokenInfo = {
             accessToken: githubApiResponse.access_token,
-            expiresIn: githubApiResponse.expires_in,
+            accessTokenExpiresAt:
+              Date.now() + githubApiResponse.expires_in * 1000,
             refreshToken: githubApiResponse.refresh_token,
-            refreshTokenExpiresIn: githubApiResponse.refresh_token_expires_in,
+            refreshTokenExpiresAt:
+              Date.now() + githubApiResponse.refresh_token_expires_in * 1000,
             scope: githubApiResponse.scope,
             tokenType: githubApiResponse.token_type,
           };
@@ -254,7 +264,7 @@ const tokenRequestPollingScheduleEffect = ({
 
 const pollForToken = (
   input: RequestAccessTokenInput
-): Effect.Effect<RequestAccessTokenResponse, SyncProviderAuthError, never> =>
+): Effect.Effect<GithubAccessTokenInfo, SyncProviderAuthError, never> =>
   pipe(
     tokenRequestPollingScheduleEffect({
       initialIntervalSeconds: input.interval,
@@ -300,28 +310,46 @@ const getAuthenticatedUser = (
     }))
   );
 
-export const githubAuthUsingDeviceFlow = (
-  onDeviceVerificationInfoAvailable: (
-    verificationInfo: GithubDeviceFlowVerificationInfo
-  ) => void
-): Effect.Effect<GithubDeviceFlowResponse, SyncProviderAuthError, never> =>
-  pipe(
-    requestDeviceCode(),
-    Effect.tap(({ userCode, verificationUri }) =>
-      Effect.sync(() => {
-        // Callback to the caller so that we can display verification info (code)
-        // to the user and prompt them to fill it in their browser.
-        onDeviceVerificationInfoAvailable({ userCode, verificationUri });
-      })
-    ),
-    Effect.flatMap((deviceCodeResponse) => pollForToken(deviceCodeResponse)),
-    Effect.flatMap(({ accessToken: token }) =>
-      pipe(
-        getAuthenticatedUser(token),
-        Effect.map((userInfo) => ({
-          token,
-          userInfo,
-        }))
+export const githubAuthUsingDeviceFlow =
+  ({ encryptedStore }: GithubAuthUsingDeviceFlowDeps) =>
+  (
+    onDeviceVerificationInfoAvailable: (
+      verificationInfo: GithubDeviceFlowVerificationInfo
+    ) => void
+  ): Effect.Effect<
+    GithubDeviceFlowResponse,
+    SyncProviderAuthError | RepositoryError,
+    never
+  > =>
+    pipe(
+      requestDeviceCode(),
+      Effect.tap(({ userCode, verificationUri }) =>
+        Effect.sync(() => {
+          // Callback to the caller so that we can display verification info (code)
+          // to the user and prompt them to fill it in their browser.
+          onDeviceVerificationInfoAvailable({ userCode, verificationUri });
+        })
+      ),
+      Effect.flatMap((deviceCodeResponse) => pollForToken(deviceCodeResponse)),
+      Effect.tap((tokenInfo) =>
+        encryptedStore.encryptAndSaveToFile({
+          fileName: ENCRYPTED_GITHUB_TOKEN_INFO_FILENAME,
+          content: JSON.stringify(tokenInfo),
+        })
+      ),
+      Effect.flatMap(({ accessToken: token }) =>
+        pipe(
+          getAuthenticatedUser(token),
+          Effect.map((userInfo) => ({
+            token,
+            userInfo,
+          })),
+          // In the case of an error we must delete the token info file created in a previous pipeline step.
+          Effect.tapError(() =>
+            encryptedStore.deleteEncryptedFile({
+              fileName: ENCRYPTED_GITHUB_TOKEN_INFO_FILENAME,
+            })
+          )
+        )
       )
-    )
-  );
+    );

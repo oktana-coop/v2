@@ -11,6 +11,10 @@ export type ReadFromFileAndDecryptArgs = {
   fileName: string;
 };
 
+export type DeleteEncryptedFileArgs = {
+  fileName: string;
+};
+
 export type EncryptedStore = {
   encryptAndSaveToFile: (
     args: EncryptAndSaveToFileArgs
@@ -18,4 +22,7 @@ export type EncryptedStore = {
   readFromFileAndDecrypt: (
     args: ReadFromFileAndDecryptArgs
   ) => Effect.Effect<string, RepositoryError, never>;
+  deleteEncryptedFile: (
+    args: DeleteEncryptedFileArgs
+  ) => Effect.Effect<void, RepositoryError, never>;
 };

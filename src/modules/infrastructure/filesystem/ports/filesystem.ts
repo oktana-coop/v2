@@ -103,6 +103,13 @@ export type Filesystem = {
     AccessControlError | NotFoundError | RepositoryError | DataIntegrityError,
     never
   >;
+  deleteFile: (
+    path: string
+  ) => Effect.Effect<
+    void,
+    AccessControlError | NotFoundError | RepositoryError,
+    never
+  >;
   getRelativePath: (
     args: GetRelativePathArgs
   ) => Effect.Effect<string, RepositoryError, never>;
