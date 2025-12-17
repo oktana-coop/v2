@@ -6,14 +6,14 @@ import { pipe } from 'effect/Function';
 import * as Ref from 'effect/Ref';
 import * as Schedule from 'effect/Schedule';
 
-import { buildConfig } from '../../../modules/config';
-import { mapErrorTo } from '../../../utils/errors';
-import { RepositoryError, SyncProviderAuthError } from '../errors';
+import { buildConfig } from '../../../../modules/config';
+import { mapErrorTo } from '../../../../utils/errors';
+import { RepositoryError, SyncProviderAuthError } from '../../errors';
 import {
   type GithubDeviceFlowVerificationInfo,
   type GithubUserInfo,
-} from '../models';
-import { EncryptedStore } from '../ports/encrypted-store';
+} from '../../models';
+import { EncryptedStore } from '../../ports/encrypted-store';
 
 type UserResponse = Endpoints['GET /user']['response']['data'];
 
