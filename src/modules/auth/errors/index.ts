@@ -9,3 +9,8 @@ export const SyncProviderAuthErrorTag = 'SyncProviderAuthError';
 export class SyncProviderAuthError extends Cause.YieldableError {
   readonly _tag = SyncProviderAuthErrorTag;
 }
+
+export const AuthRepositoryErrorTag = 'AuthRepositoryError';
+export class RepositoryError extends Cause.YieldableError {
+  readonly _tag = AuthRepositoryErrorTag;
+}
