@@ -131,6 +131,15 @@ export const createAdapter = (): Filesystem => ({
       >,
       RepositoryError
     )(window.filesystemAPI.readTextFile(...args)),
+  deleteFile: (...args: Parameters<Filesystem['deleteFile']>) =>
+    effectifyIPCPromise(
+      {
+        [FilesystemAccessControlErrorTag]: AccessControlError,
+        [FilesystemNotFoundErrorTag]: NotFoundError,
+        [FilesystemRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<EffectErrorType<ReturnType<Filesystem['deleteFile']>>>,
+      RepositoryError
+    )(window.filesystemAPI.deleteFile(...args)),
   getRelativePath: (...args: Parameters<Filesystem['getRelativePath']>) =>
     effectifyIPCPromise(
       {

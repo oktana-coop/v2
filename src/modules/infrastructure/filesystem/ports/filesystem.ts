@@ -36,6 +36,11 @@ export type ListDirectoryFilesArgs = {
   useRelativePath?: boolean;
 };
 
+export type DeleteFileArgs = {
+  path: string;
+  parentDirectory?: Directory;
+};
+
 export type GetRelativePathArgs = {
   path: string;
   relativeTo: string;
@@ -104,7 +109,7 @@ export type Filesystem = {
     never
   >;
   deleteFile: (
-    path: string
+    args: DeleteFileArgs
   ) => Effect.Effect<
     void,
     AccessControlError | NotFoundError | RepositoryError,

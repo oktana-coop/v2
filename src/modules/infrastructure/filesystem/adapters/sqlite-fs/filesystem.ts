@@ -189,6 +189,25 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
       )
     );
 
+  const deleteFile: Filesystem['deleteFile'] = ({ path: filePath }) =>
+    Effect.tryPromise({
+      try: () => fs.unlink(filePath),
+      catch: (err: unknown) => {
+        if (isNodeError(err)) {
+          switch (err.code) {
+            case 'ENOENT':
+              return new NotFoundError(
+                `File in path ${filePath} does not exist`
+              );
+            default:
+              return new RepositoryError(err.message);
+          }
+        }
+
+        return new RepositoryError(`Error reading file with path ${filePath}`);
+      },
+    });
+
   // Inside the SQLite filesystem, we use posix paths independently of the host OS.
   const getRelativePath: Filesystem['getRelativePath'] = ({
     path: descendantPath,
@@ -226,6 +245,7 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
     writeFile,
     readBinaryFile,
     readTextFile,
+    deleteFile,
     getRelativePath,
     getAbsolutePath,
   };

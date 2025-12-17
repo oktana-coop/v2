@@ -108,7 +108,7 @@ export const createAdapter = ({
       getAbsoluteFilePath(fileName),
       Effect.flatMap((path) =>
         pipe(
-          filesystem.deleteFile(path),
+          filesystem.deleteFile({ path }),
           Effect.catchAll((err) =>
             Effect.fail(new RepositoryError(err.message))
           )

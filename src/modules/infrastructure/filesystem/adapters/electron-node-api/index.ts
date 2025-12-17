@@ -342,6 +342,29 @@ export const createAdapter = (): Filesystem => {
       )
     );
 
+  const deleteFile: Filesystem['deleteFile'] = ({ path: filePath }) =>
+    Effect.tryPromise({
+      try: () => fs.unlink(filePath),
+      catch: (err: unknown) => {
+        if (isNodeError(err)) {
+          switch (err.code) {
+            case 'ENOENT':
+              return new NotFoundError(
+                `File in path ${filePath} does not exist`
+              );
+            case 'EACCES':
+              return new AccessControlError(
+                `Permission denied for file with path ${filePath}`
+              );
+            default:
+              return new RepositoryError(err.message);
+          }
+        }
+
+        return new RepositoryError(`Error reading file with path ${filePath}`);
+      },
+    });
+
   const getRelativePath: Filesystem['getRelativePath'] = ({
     path: descendantPath,
     relativeTo,
@@ -377,6 +400,7 @@ export const createAdapter = (): Filesystem => {
     writeFile,
     readBinaryFile,
     readTextFile,
+    deleteFile,
     getRelativePath,
     getAbsolutePath,
   };

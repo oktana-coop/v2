@@ -498,6 +498,26 @@ export const createAdapter = (): Filesystem => ({
         content: '',
       }))
     ),
+  deleteFile: ({ path, parentDirectory }) =>
+    pipe(
+      fromNullable(
+        parentDirectory,
+        () =>
+          new NotFoundError(
+            'The parent directory is required when trying to delete a file via the browser filesystem API.'
+          )
+      ),
+      Effect.flatMap((parentDir) => getDirHandleFromStorage(parentDir.path)),
+      Effect.flatMap((dirHandle) =>
+        Effect.try({
+          try: () => dirHandle.removeEntry(path),
+          catch: mapErrorTo(
+            RepositoryError,
+            `Error when trying to delete the file with path ${path}`
+          ),
+        })
+      )
+    ),
   getRelativePath: ({ path: descendantPath, relativeTo }) =>
     Effect.try({
       try: () => path.relative(relativeTo, descendantPath),

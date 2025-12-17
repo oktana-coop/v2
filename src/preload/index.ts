@@ -18,6 +18,7 @@ import { buildConfig } from '../modules/config';
 import { type UpdateState } from '../modules/infrastructure/cross-platform';
 import {
   type CreateNewFileArgs,
+  type DeleteFileArgs,
   type File,
   type ListDirectoryFilesArgs,
   type OpenFileArgs,
@@ -116,6 +117,8 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
   readBinaryFile: (path: string) =>
     ipcRenderer.invoke('read-binary-file', path),
   readTextFile: (path: string) => ipcRenderer.invoke('read-text-file', path),
+  deleteFile: (args: DeleteFileArgs) =>
+    ipcRenderer.invoke('delete-file', { ...args }),
   getRelativePath: (args) =>
     ipcRenderer.invoke('get-relative-path', { ...args }),
   getAbsolutePath: (args) =>

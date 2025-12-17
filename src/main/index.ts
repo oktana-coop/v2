@@ -19,13 +19,14 @@ import { PROJECT_FILE_EXTENSION } from '../modules/domain/project';
 import { runPromiseSerializingErrorsForIPC } from '../modules/infrastructure/cross-platform';
 import {
   type CreateNewFileArgs,
+  type DeleteFileArgs,
   type File,
   filesystemItemTypes,
-  GetAbsolutePathArgs,
-  GetRelativePathArgs,
+  type GetAbsolutePathArgs,
+  type GetRelativePathArgs,
   type ListDirectoryFilesArgs,
   type OpenFileArgs,
-  WriteFileArgs,
+  type WriteFileArgs,
 } from '../modules/infrastructure/filesystem';
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/infrastructure/filesystem/adapters/electron-node-api';
 import { type RunWasiCLIArgs } from '../modules/infrastructure/wasm';
@@ -245,6 +246,9 @@ async function createWindow() {
   );
   ipcMain.handle('read-text-file', (_, path: string) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.readTextFile(path))
+  );
+  ipcMain.handle('delete-file', (_, args: DeleteFileArgs) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.deleteFile(args))
   );
   ipcMain.handle('get-relative-path', (_, args: GetRelativePathArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.getRelativePath(args))
