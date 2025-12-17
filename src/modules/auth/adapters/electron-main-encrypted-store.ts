@@ -53,7 +53,7 @@ export const createAdapter = ({
                 try: () => safeStorage.encryptString(content),
                 catch: mapErrorTo(
                   RepositoryError,
-                  'Cannot create the Git blob ref for the document'
+                  'Cannot encrypt file content to store it in the encrypted storage.'
                 ),
               })
             : Effect.fail(
@@ -71,7 +71,43 @@ export const createAdapter = ({
       )
     );
 
+  const readFromFileAndDecrypt: EncryptedStore['readFromFileAndDecrypt'] = ({
+    fileName,
+  }) =>
+    pipe(
+      getStorageDir(),
+      Effect.flatMap((dirPath) =>
+        pipe(
+          filesystem.getAbsolutePath({ path: fileName, dirPath }),
+          Effect.catchAll((err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      ),
+      Effect.flatMap((path) =>
+        pipe(
+          filesystem.readBinaryFile(path),
+          Effect.catchAll((err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      ),
+      Effect.flatMap(({ content }) =>
+        Effect.try({
+          try: () =>
+            safeStorage.decryptString(
+              Buffer.isBuffer(content) ? content : Buffer.from(content)
+            ),
+          catch: mapErrorTo(
+            RepositoryError,
+            'Cannot decrypt encrypted storage file content.'
+          ),
+        })
+      )
+    );
+
   return {
     encryptAndSaveToFile,
+    readFromFileAndDecrypt,
   };
 };
