@@ -9,7 +9,7 @@ import {
   richTextRepresentations,
 } from '../../../../../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../../../../../modules/domain/rich-text/react/prosemirror-context';
-import { ElectronContext } from '../../../../../../../../modules/infrastructure/cross-platform';
+import { ElectronContext } from '../../../../../../../../modules/infrastructure/cross-platform/browser';
 import {
   diffDelete,
   diffInsert,

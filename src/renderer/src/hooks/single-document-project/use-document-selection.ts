@@ -4,7 +4,7 @@ import {
   isValidProjectId,
   type ProjectId,
 } from '../../../../modules/domain/project';
-import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/electron-context';
+import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import { type File } from '../../../../modules/infrastructure/filesystem';
 import { type ResolvedArtifactId } from '../../../../modules/infrastructure/version-control';
 import {

@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 
-import { ElectronContext } from '../../../../../modules/infrastructure/cross-platform';
+import { ElectronContext } from '../../../../../modules/infrastructure/cross-platform/browser';
 import { CommandPaletteContext } from '../../../app-state';
 import { useClearWebStorage } from '../../../hooks';
 import { type ActionOption, CommandPalette } from './CommandPalette';

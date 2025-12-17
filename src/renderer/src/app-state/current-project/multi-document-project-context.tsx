@@ -22,7 +22,7 @@ import {
   type ResolvedDocument,
   richTextRepresentationExtensions,
 } from '../../../../modules/domain/rich-text';
-import { ElectronContext } from '../../../../modules/infrastructure/cross-platform';
+import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import {
   type Directory,
   type File,

@@ -15,7 +15,7 @@ import {
 import os from 'os';
 
 import { PROJECT_FILE_EXTENSION } from '../modules/domain/project';
-import { runPromiseSerializingErrorsForIPC } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
+import { runPromiseSerializingErrorsForIPC } from '../modules/infrastructure/cross-platform';
 import {
   type CreateNewFileArgs,
   type File,

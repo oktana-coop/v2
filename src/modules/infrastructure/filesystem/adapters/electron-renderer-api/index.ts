@@ -1,7 +1,7 @@
 import {
   effectifyIPCPromise,
   type ErrorRegistry,
-} from '../../../../../modules/infrastructure/cross-platform/electron-ipc-effect';
+} from '../../../../../modules/infrastructure/cross-platform';
 import {
   AbortError,
   AccessControlError,

@@ -15,7 +15,7 @@ import {
 } from '../../renderer';
 import { type GithubDeviceFlowVerificationInfo } from '../modules/auth';
 import { buildConfig } from '../modules/config';
-import { type UpdateState } from '../modules/infrastructure/cross-platform/update';
+import { type UpdateState } from '../modules/infrastructure/cross-platform';
 import {
   type CreateNewFileArgs,
   type File,

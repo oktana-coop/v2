@@ -3,7 +3,7 @@ import * as Effect from 'effect/Effect';
 import {
   effectifyIPCPromise,
   type ErrorRegistry,
-} from '../../../../../../../modules/infrastructure/cross-platform/electron-ipc-effect';
+} from '../../../../../../../modules/infrastructure/cross-platform';
 import {
   MigrationError,
   VersionControlMigrationErrorTag,

@@ -1,7 +1,7 @@
 import { MouseEventHandler, useCallback, useContext } from 'react';
 
 import { AuthContext } from '../../../../../../modules/auth/browser';
-import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/electron-context';
+import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
 import { Button } from '../../../../components/actions/Button';
 import { Modal } from '../../../../components/dialogs/Modal';
 import { GithubIcon } from '../../../../components/icons';

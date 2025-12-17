@@ -6,7 +6,7 @@ import {
   useState,
 } from 'react';
 
-import { ElectronContext } from '../../infrastructure/cross-platform/electron-context';
+import { ElectronContext } from '../../infrastructure/cross-platform/browser';
 import {
   createErrorNotification,
   NotificationsContext,

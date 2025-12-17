@@ -47,7 +47,7 @@ import {
   RestoreCommitArgs,
   type UpdateRichTextDocumentContentArgs,
 } from '../../modules/domain/rich-text';
-import { runPromiseSerializingErrorsForIPC } from '../../modules/infrastructure/cross-platform/electron-ipc-effect';
+import { runPromiseSerializingErrorsForIPC } from '../../modules/infrastructure/cross-platform';
 import { Filesystem } from '../../modules/infrastructure/filesystem';
 import {
   type ResolvedArtifactId,

@@ -22,8 +22,8 @@ import { type VersionedDocumentStore } from './src/modules/domain/rich-text';
 import {
   type AppendParam,
   type PromisifyEffects,
-} from './src/modules/infrastructure/cross-platform/electron-ipc-effect';
-import { type UpdateState } from './src/modules/infrastructure/cross-platform/update';
+  type UpdateState,
+} from './src/modules/infrastructure/cross-platform';
 import {
   type File,
   type Filesystem as FilesystemAPI,

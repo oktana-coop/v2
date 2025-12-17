@@ -16,8 +16,10 @@ import {
   type SingleDocumentProjectStore,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
-import { ElectronContext } from '../../../../modules/infrastructure/cross-platform';
-import { isElectron } from '../../../../modules/infrastructure/cross-platform/utils';
+import {
+  ElectronContext,
+  isElectron,
+} from '../../../../modules/infrastructure/cross-platform/browser';
 import { type File } from '../../../../modules/infrastructure/filesystem';
 import {
   createErrorNotification,

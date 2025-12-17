@@ -13,7 +13,7 @@ import {
   getLinkAttrsFromDomElement,
   LinkAttrs,
 } from '../../../../modules/domain/rich-text';
-import { ElectronContext } from '../../../../modules/infrastructure/cross-platform';
+import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import { Button } from '../actions/Button';
 import { IconButton } from '../actions/IconButton';
 import { CloseIcon } from '../icons';
