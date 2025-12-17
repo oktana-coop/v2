@@ -5,9 +5,13 @@ import { pipe } from 'effect/Function';
 
 import { mapErrorTo } from '../../../../../utils/errors';
 import { filesystemItemTypes } from '../../constants/filesystem-item-types';
-import { NotFoundError, RepositoryError } from '../../errors';
-import { Filesystem } from '../../ports/filesystem';
-import { File } from '../../types';
+import {
+  DataIntegrityError,
+  NotFoundError,
+  RepositoryError,
+} from '../../errors';
+import { type Filesystem } from '../../ports/filesystem';
+import { type File, isTextFile } from '../../types';
 import { NodeLikeFsApi } from './node-like-sqlite-fs';
 import { isNodeError } from './utils';
 
@@ -115,16 +119,13 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
       new RepositoryError('Cannot open a file in the SQLite fs adapter')
     );
 
-  const writeFile: Filesystem['writeFile'] = (
-    filePath: string,
-    content: string
-  ) =>
+  const writeFile: Filesystem['writeFile'] = ({ path: filePath, content }) =>
     Effect.tryPromise({
-      try: () => fs.writeFile(filePath, content, 'utf8'),
+      try: () => fs.writeFile(filePath, content),
       catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
     });
 
-  const readFile: Filesystem['readFile'] = (filePath: string) =>
+  const readTextFile: Filesystem['readTextFile'] = (filePath: string) =>
     pipe(
       Effect.tryPromise({
         try: () => fs.readFile(filePath, 'utf8'),
@@ -150,7 +151,14 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
         name: path.basename(filePath),
         path: filePath,
         content,
-      }))
+      })),
+      Effect.flatMap((file) =>
+        isTextFile(file)
+          ? Effect.succeed(file)
+          : Effect.fail(
+              new DataIntegrityError('Expected a text file but got a binary')
+            )
+      )
     );
 
   // Inside the SQLite filesystem, we use posix paths independently of the host OS.
@@ -188,7 +196,7 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
     createNewFile,
     openFile,
     writeFile,
-    readFile,
+    readTextFile,
     getRelativePath,
     getAbsolutePath,
   };

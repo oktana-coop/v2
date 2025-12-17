@@ -167,7 +167,7 @@ export const createAdapter = ({
                   ),
                   Effect.flatMap(() =>
                     pipe(
-                      filesystem.writeFile(path, ''),
+                      filesystem.writeFile({ path, content: '' }),
                       Effect.catchAll(() =>
                         Effect.fail(new RepositoryError('Git repo error'))
                       )
@@ -185,7 +185,7 @@ export const createAdapter = ({
       buildDocumentAbsolutePathFromId(id),
       Effect.flatMap((documentPath) =>
         pipe(
-          filesystem.readFile(documentPath),
+          filesystem.readTextFile(documentPath),
           Effect.catchTag(FilesystemNotFoundErrorTag, () =>
             Effect.fail(
               new NotFoundError(`File with path ${documentPath} not found`)
@@ -319,7 +319,7 @@ export const createAdapter = ({
               'File path not provided; cannot write to document file'
             )
         ),
-        Effect.flatMap((path) => filesystem.writeFile(path, content)),
+        Effect.flatMap((path) => filesystem.writeFile({ path, content })),
         Effect.catchAll(() =>
           Effect.fail(new RepositoryError('Git repo error'))
         )

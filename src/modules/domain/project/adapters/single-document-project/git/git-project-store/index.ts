@@ -95,7 +95,7 @@ export const createAdapter = ({
       // Ensure document path exists in the filesystem
       Effect.tap(() =>
         pipe(
-          filesystem.readFile(documentInternalPath),
+          filesystem.readTextFile(documentInternalPath),
           Effect.catchTag(FilesystemNotFoundErrorTag, () =>
             Effect.fail(
               new NotFoundError(

@@ -9,10 +9,12 @@ import { filesystemItemTypes } from '../../../constants/filesystem-item-types';
 import {
   AbortError,
   AccessControlError,
+  DataIntegrityError,
   NotFoundError,
   RepositoryError,
 } from '../../../errors';
-import { Filesystem } from '../../../ports/filesystem';
+import { type Filesystem } from '../../../ports/filesystem';
+import { isTextFile } from '../../../types';
 import {
   clearAllAndInsertManyFileHandles,
   clearFileHandles,
@@ -335,7 +337,7 @@ export const createAdapter = (): Filesystem => ({
         assertWritePermission(directoryHandle)
       )
     ),
-  readFile: (path: string) =>
+  readTextFile: (path: string) =>
     Effect.Do.pipe(
       Effect.bind('fileHandle', () => getFileHandleFromStorage(path)),
       Effect.bind('fileData', ({ fileHandle }) =>
@@ -368,9 +370,16 @@ export const createAdapter = (): Filesystem => ({
         name: fileData.name,
         path,
         content,
-      }))
+      })),
+      Effect.flatMap((file) =>
+        isTextFile(file)
+          ? Effect.succeed(file)
+          : Effect.fail(
+              new DataIntegrityError('Expected a text file but got a binary')
+            )
+      )
     ),
-  writeFile: (path: string, content: string) =>
+  writeFile: ({ path, content }) =>
     pipe(
       getFileHandleFromStorage(path),
       Effect.tap(assertWritePermission),
@@ -378,7 +387,22 @@ export const createAdapter = (): Filesystem => ({
         Effect.tryPromise({
           try: async () => {
             const writable = await fileHandle.createWritable();
-            await writable.write(content);
+
+            if (typeof content === 'string') {
+              await writable.write(content);
+            } else {
+              // Normalize Uint8Array<ArrayBufferLike> to ArrayBuffer
+              const buffer =
+                content.buffer instanceof ArrayBuffer
+                  ? content.buffer.slice(
+                      content.byteOffset,
+                      content.byteOffset + content.byteLength
+                    )
+                  : new Uint8Array(content).buffer;
+
+              await writable.write(buffer);
+            }
+
             await writable.close();
           },
           catch: mapErrorTo(RepositoryError, 'Browser filesystem API error'),

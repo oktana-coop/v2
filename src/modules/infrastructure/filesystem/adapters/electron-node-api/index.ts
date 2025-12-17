@@ -13,8 +13,8 @@ import {
   NotFoundError,
   RepositoryError,
 } from '../../errors';
-import { Filesystem } from '../../ports/filesystem';
-import { File } from '../../types';
+import { type Filesystem } from '../../ports/filesystem';
+import { type File } from '../../types';
 import { isHiddenFile, isNodeError } from './utils';
 
 const showDirPicker = (): Effect.Effect<
@@ -247,12 +247,12 @@ export const createAdapter = (): Filesystem => ({
         };
       })
     ),
-  writeFile: (filePath: string, content: string) =>
+  writeFile: ({ path: filePath, content }) =>
     Effect.tryPromise({
-      try: () => fs.writeFile(filePath, content, 'utf8'),
+      try: () => fs.writeFile(filePath, content),
       catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
     }),
-  readFile: (filePath: string) =>
+  readTextFile: (filePath: string) =>
     pipe(
       Effect.tryPromise({
         try: () => fs.readFile(filePath, 'utf8'),

@@ -24,6 +24,7 @@ import {
   GetRelativePathArgs,
   type ListDirectoryFilesArgs,
   type OpenFileArgs,
+  WriteFileArgs,
 } from '../modules/infrastructure/filesystem';
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/infrastructure/filesystem/adapters/electron-node-api';
 import { type RunWasiCLIArgs } from '../modules/infrastructure/wasm';
@@ -221,19 +222,22 @@ async function createWindow() {
       filesystemAPI.requestPermissionForDirectory(path)
     )
   );
+  ipcMain.handle('assert-write-permission-for-directory', (_, path: string) =>
+    runPromiseSerializingErrorsForIPC(
+      filesystemAPI.assertWritePermissionForDirectory(path)
+    )
+  );
   ipcMain.handle('create-new-file', (_, args: CreateNewFileArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.createNewFile(args))
   );
   ipcMain.handle('open-file', async (_, args: OpenFileArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.openFile(args))
   );
-  ipcMain.handle(
-    'write-file',
-    (_, { path, content }: { path: string; content: string }) =>
-      runPromiseSerializingErrorsForIPC(filesystemAPI.writeFile(path, content))
+  ipcMain.handle('write-file', (_, args: WriteFileArgs) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.writeFile(args))
   );
-  ipcMain.handle('read-file', (_, path: string) =>
-    runPromiseSerializingErrorsForIPC(filesystemAPI.readFile(path))
+  ipcMain.handle('read-text-file', (_, path: string) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.readTextFile(path))
   );
   ipcMain.handle('get-relative-path', (_, args: GetRelativePathArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.getRelativePath(args))

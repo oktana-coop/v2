@@ -21,6 +21,7 @@ import {
   type File,
   type ListDirectoryFilesArgs,
   type OpenFileArgs,
+  type WriteFileArgs,
 } from '../modules/infrastructure/filesystem';
 import type {
   FromMainMessage as AutomergeRepoNetworkFromMainIPCMessage,
@@ -104,13 +105,15 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
     ipcRenderer.invoke('list-directory-files', { ...args }),
   requestPermissionForDirectory: (path: string) =>
     ipcRenderer.invoke('request-permission-for-directory', path),
+  assertWritePermissionForDirectory: (path: string) =>
+    ipcRenderer.invoke('assert-write-permission-for-directory', path),
   createNewFile: (args: CreateNewFileArgs) =>
     ipcRenderer.invoke('create-new-file', { ...args }),
   openFile: (args: OpenFileArgs) =>
     ipcRenderer.invoke('open-file', { ...args }),
-  writeFile: (path: string, content: string) =>
-    ipcRenderer.invoke('write-file', { path, content }),
-  readFile: (path: string) => ipcRenderer.invoke('read-file', path),
+  writeFile: (args: WriteFileArgs) =>
+    ipcRenderer.invoke('write-file', { ...args }),
+  readTextFile: (path: string) => ipcRenderer.invoke('read-text-file', path),
   getRelativePath: (args) =>
     ipcRenderer.invoke('get-relative-path', { ...args }),
   getAbsolutePath: (args) =>
