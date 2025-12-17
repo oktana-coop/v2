@@ -236,6 +236,9 @@ async function createWindow() {
   ipcMain.handle('write-file', (_, args: WriteFileArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.writeFile(args))
   );
+  ipcMain.handle('read-binary-file', (_, path: string) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.readBinaryFile(path))
+  );
   ipcMain.handle('read-text-file', (_, path: string) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.readTextFile(path))
   );

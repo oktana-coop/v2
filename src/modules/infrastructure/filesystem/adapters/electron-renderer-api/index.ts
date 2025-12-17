@@ -107,6 +107,18 @@ export const createAdapter = (): Filesystem => ({
       } as ErrorRegistry<EffectErrorType<ReturnType<Filesystem['writeFile']>>>,
       RepositoryError
     )(window.filesystemAPI.writeFile(...args)),
+  readBinaryFile: (...args: Parameters<Filesystem['readBinaryFile']>) =>
+    effectifyIPCPromise(
+      {
+        [FilesystemAccessControlErrorTag]: AccessControlError,
+        [FilesystemNotFoundErrorTag]: NotFoundError,
+        [FilesystemRepositoryErrorTag]: RepositoryError,
+        [FilesystemDataIntegrityErrorTag]: DataIntegrityError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<Filesystem['readBinaryFile']>>
+      >,
+      RepositoryError
+    )(window.filesystemAPI.readBinaryFile(...args)),
   readTextFile: (...args: Parameters<Filesystem['readTextFile']>) =>
     effectifyIPCPromise(
       {

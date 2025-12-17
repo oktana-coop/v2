@@ -11,7 +11,7 @@ import {
   RepositoryError,
 } from '../../errors';
 import { type Filesystem } from '../../ports/filesystem';
-import { type File, isTextFile } from '../../types';
+import { type File, isBinaryFile, isTextFile } from '../../types';
 import { NodeLikeFsApi } from './node-like-sqlite-fs';
 import { isNodeError } from './utils';
 
@@ -125,10 +125,19 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
       catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
     });
 
-  const readTextFile: Filesystem['readTextFile'] = (filePath: string) =>
+  const readFile: (args: {
+    path: string;
+    encoding?: BufferEncoding;
+  }) => Effect.Effect<File, NotFoundError | RepositoryError, never> = ({
+    path: filePath,
+    encoding,
+  }) =>
     pipe(
-      Effect.tryPromise({
-        try: () => fs.readFile(filePath, 'utf8'),
+      Effect.tryPromise<string | Buffer, NotFoundError | RepositoryError>({
+        try: () =>
+          encoding
+            ? fs.readFile(filePath, { encoding })
+            : fs.readFile(filePath),
         catch: (err: unknown) => {
           if (isNodeError(err)) {
             switch (err.code) {
@@ -151,7 +160,26 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
         name: path.basename(filePath),
         path: filePath,
         content,
-      })),
+      }))
+    );
+
+  const readBinaryFile: Filesystem['readBinaryFile'] = (filePath) =>
+    pipe(
+      readFile({ path: filePath }),
+      Effect.flatMap((file) =>
+        isBinaryFile(file)
+          ? Effect.succeed(file)
+          : Effect.fail(
+              new DataIntegrityError(
+                'Expected a binary file but got a text one'
+              )
+            )
+      )
+    );
+
+  const readTextFile: Filesystem['readTextFile'] = (filePath) =>
+    pipe(
+      readFile({ path: filePath, encoding: 'utf8' }),
       Effect.flatMap((file) =>
         isTextFile(file)
           ? Effect.succeed(file)
@@ -196,6 +224,7 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
     createNewFile,
     openFile,
     writeFile,
+    readBinaryFile,
     readTextFile,
     getRelativePath,
     getAbsolutePath,

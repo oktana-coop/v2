@@ -20,7 +20,8 @@ export type NodeLikeFsApi = {
     filepath: string,
     options?:
       | {
-          encoding?: null | undefined;
+          // TODO: Use BufferEncoding type instead of string.
+          encoding: string;
           flag?: string | undefined;
         }
       | null

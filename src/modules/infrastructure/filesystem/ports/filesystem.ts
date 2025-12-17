@@ -7,7 +7,12 @@ import {
   NotFoundError,
   RepositoryError,
 } from '../errors';
-import { type Directory, type File, type TextFile } from '../types';
+import {
+  type BinaryFile,
+  type Directory,
+  type File,
+  type TextFile,
+} from '../types';
 
 export type OpenFileArgs = {
   extensions: Array<string>;
@@ -82,6 +87,13 @@ export type Filesystem = {
   ) => Effect.Effect<
     void,
     AccessControlError | NotFoundError | RepositoryError,
+    never
+  >;
+  readBinaryFile: (
+    path: string
+  ) => Effect.Effect<
+    BinaryFile,
+    AccessControlError | NotFoundError | RepositoryError | DataIntegrityError,
     never
   >;
   readTextFile: (

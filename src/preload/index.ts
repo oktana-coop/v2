@@ -113,6 +113,8 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
     ipcRenderer.invoke('open-file', { ...args }),
   writeFile: (args: WriteFileArgs) =>
     ipcRenderer.invoke('write-file', { ...args }),
+  readBinaryFile: (path: string) =>
+    ipcRenderer.invoke('read-binary-file', path),
   readTextFile: (path: string) => ipcRenderer.invoke('read-text-file', path),
   getRelativePath: (args) =>
     ipcRenderer.invoke('get-relative-path', { ...args }),

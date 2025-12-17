@@ -57,7 +57,7 @@ export const createAdapter = (db: Database): NodeLikeFsApi => {
     // isomorphic-git uses a generic object here, so it's good to narrow it down.
     options?:
       | {
-          encoding?: null | undefined;
+          encoding: string;
           flag?: string | undefined;
         }
       | null

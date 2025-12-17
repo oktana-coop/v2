@@ -10,11 +10,12 @@ import { filesystemItemTypes } from '../../constants/filesystem-item-types';
 import {
   AbortError,
   AccessControlError,
+  DataIntegrityError,
   NotFoundError,
   RepositoryError,
 } from '../../errors';
 import { type Filesystem } from '../../ports/filesystem';
-import { type File } from '../../types';
+import { type File, isBinaryFile, isTextFile } from '../../types';
 import { isHiddenFile, isNodeError } from './utils';
 
 const showDirPicker = (): Effect.Effect<
@@ -101,8 +102,8 @@ const showSaveDialog = ({
   );
 };
 
-export const createAdapter = (): Filesystem => ({
-  openDirectory: () =>
+export const createAdapter = (): Filesystem => {
+  const openDirectory: Filesystem['openDirectory'] = () =>
     pipe(
       showDirPicker(),
       Effect.map((result) => {
@@ -117,8 +118,9 @@ export const createAdapter = (): Filesystem => ({
           permissionState: 'granted', // TODO: Replace with constant
         };
       })
-    ),
-  getDirectory: (directoryPath: string) => {
+    );
+
+  const getDirectory: Filesystem['getDirectory'] = (directoryPath) => {
     const name = path.basename(directoryPath);
 
     return Effect.succeed({
@@ -127,8 +129,12 @@ export const createAdapter = (): Filesystem => ({
       path: directoryPath,
       permissionState: 'granted', // TODO: Replace with constant
     });
-  },
-  listDirectoryFiles: ({ path: directoryPath, useRelativePath }) =>
+  };
+
+  const listDirectoryFiles: Filesystem['listDirectoryFiles'] = ({
+    path: directoryPath,
+    useRelativePath,
+  }) =>
     pipe(
       Effect.tryPromise({
         try: () =>
@@ -155,66 +161,75 @@ export const createAdapter = (): Filesystem => ({
 
         return files;
       })
-    ),
-  requestPermissionForDirectory: (directoryPath: string) =>
-    pipe(
-      Effect.tryPromise({
-        try: () =>
-          fs.access(directoryPath, fs.constants.F_OK | fs.constants.R_OK),
-        catch: (err: unknown) => {
-          if (isNodeError(err)) {
-            switch (err.code) {
-              case 'ENOENT':
-                return new NotFoundError(
-                  `Directory ${directoryPath} does not exist`
-                );
-              case 'EACCES':
-                return new AccessControlError(
-                  `Permission denied for directory ${directoryPath}`
-                );
-              default:
-                return new RepositoryError(err.message);
-            }
-          }
+    );
 
-          return new RepositoryError(
-            `Unknown when trying to access directory ${directoryPath}`
-          );
-        },
-      }),
-      Effect.flatMap(() => Effect.succeed('granted'))
-    ),
-  assertWritePermissionForDirectory: (directoryPath: string) =>
-    pipe(
-      Effect.tryPromise({
-        try: () =>
-          fs.access(
-            directoryPath,
-            fs.constants.F_OK | fs.constants.R_OK | fs.constants.W_OK
-          ),
-        catch: (err: unknown) => {
-          if (isNodeError(err)) {
-            switch (err.code) {
-              case 'ENOENT':
-                return new NotFoundError(
-                  `Directory ${directoryPath} does not exist`
-                );
-              case 'EACCES':
-                return new AccessControlError(
-                  `Permission denied for directory ${directoryPath}`
-                );
-              default:
-                return new RepositoryError(err.message);
+  const requestPermissionForDirectory: Filesystem['requestPermissionForDirectory'] =
+    (directoryPath) =>
+      pipe(
+        Effect.tryPromise({
+          try: () =>
+            fs.access(directoryPath, fs.constants.F_OK | fs.constants.R_OK),
+          catch: (err: unknown) => {
+            if (isNodeError(err)) {
+              switch (err.code) {
+                case 'ENOENT':
+                  return new NotFoundError(
+                    `Directory ${directoryPath} does not exist`
+                  );
+                case 'EACCES':
+                  return new AccessControlError(
+                    `Permission denied for directory ${directoryPath}`
+                  );
+                default:
+                  return new RepositoryError(err.message);
+              }
             }
-          }
 
-          return new RepositoryError(
-            `Unknown when trying to access directory ${directoryPath}`
-          );
-        },
-      })
-    ),
-  createNewFile: ({ suggestedName, extensions, content = '' }) =>
+            return new RepositoryError(
+              `Unknown when trying to access directory ${directoryPath}`
+            );
+          },
+        }),
+        Effect.flatMap(() => Effect.succeed('granted'))
+      );
+
+  const assertWritePermissionForDirectory: Filesystem['assertWritePermissionForDirectory'] =
+    (directoryPath) =>
+      pipe(
+        Effect.tryPromise({
+          try: () =>
+            fs.access(
+              directoryPath,
+              fs.constants.F_OK | fs.constants.R_OK | fs.constants.W_OK
+            ),
+          catch: (err: unknown) => {
+            if (isNodeError(err)) {
+              switch (err.code) {
+                case 'ENOENT':
+                  return new NotFoundError(
+                    `Directory ${directoryPath} does not exist`
+                  );
+                case 'EACCES':
+                  return new AccessControlError(
+                    `Permission denied for directory ${directoryPath}`
+                  );
+                default:
+                  return new RepositoryError(err.message);
+              }
+            }
+
+            return new RepositoryError(
+              `Unknown when trying to access directory ${directoryPath}`
+            );
+          },
+        })
+      );
+
+  const createNewFile: Filesystem['createNewFile'] = ({
+    suggestedName,
+    extensions,
+    content = '',
+  }) =>
     pipe(
       showSaveDialog({ suggestedName, extensions }),
       Effect.tap(({ filePath }) =>
@@ -230,8 +245,9 @@ export const createAdapter = (): Filesystem => ({
         name: path.basename(filePath),
         content,
       }))
-    ),
-  openFile: ({ extensions }) =>
+    );
+
+  const openFile: Filesystem['openFile'] = ({ extensions }) =>
     pipe(
       showFilePicker({ extensions }),
       Effect.map((result) => {
@@ -246,16 +262,31 @@ export const createAdapter = (): Filesystem => ({
           content: '',
         };
       })
-    ),
-  writeFile: ({ path: filePath, content }) =>
+    );
+
+  const writeFile: Filesystem['writeFile'] = ({ path: filePath, content }) =>
     Effect.tryPromise({
       try: () => fs.writeFile(filePath, content),
       catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
-    }),
-  readTextFile: (filePath: string) =>
+    });
+
+  const readFile: (args: {
+    path: string;
+    encoding?: BufferEncoding;
+  }) => Effect.Effect<
+    File,
+    AccessControlError | NotFoundError | RepositoryError,
+    never
+  > = ({ path: filePath, encoding }) =>
     pipe(
-      Effect.tryPromise({
-        try: () => fs.readFile(filePath, 'utf8'),
+      Effect.tryPromise<
+        string | Buffer,
+        AccessControlError | NotFoundError | RepositoryError
+      >({
+        try: () =>
+          encoding
+            ? fs.readFile(filePath, { encoding })
+            : fs.readFile(filePath),
         catch: (err: unknown) => {
           if (isNodeError(err)) {
             switch (err.code) {
@@ -283,21 +314,70 @@ export const createAdapter = (): Filesystem => ({
         path: filePath,
         content,
       }))
-    ),
-  getRelativePath: ({ path: descendantPath, relativeTo }) =>
+    );
+
+  const readBinaryFile: Filesystem['readBinaryFile'] = (filePath) =>
+    pipe(
+      readFile({ path: filePath }),
+      Effect.flatMap((file) =>
+        isBinaryFile(file)
+          ? Effect.succeed(file)
+          : Effect.fail(
+              new DataIntegrityError(
+                'Expected a binary file but got a text one'
+              )
+            )
+      )
+    );
+
+  const readTextFile: Filesystem['readTextFile'] = (filePath) =>
+    pipe(
+      readFile({ path: filePath, encoding: 'utf8' }),
+      Effect.flatMap((file) =>
+        isTextFile(file)
+          ? Effect.succeed(file)
+          : Effect.fail(
+              new DataIntegrityError('Expected a text file but got a binary')
+            )
+      )
+    );
+
+  const getRelativePath: Filesystem['getRelativePath'] = ({
+    path: descendantPath,
+    relativeTo,
+  }) =>
     Effect.try({
       try: () => path.relative(relativeTo, descendantPath),
       catch: mapErrorTo(
         RepositoryError,
         'Could not resolve path relative to directory'
       ),
-    }),
-  getAbsolutePath: ({ path: descendantPath, dirPath }) =>
+    });
+
+  const getAbsolutePath: Filesystem['getAbsolutePath'] = ({
+    path: descendantPath,
+    dirPath,
+  }) =>
     Effect.try({
       try: () => path.join(dirPath, descendantPath),
       catch: mapErrorTo(
         RepositoryError,
         'Could not join directory path with relative path'
       ),
-    }),
-});
+    });
+
+  return {
+    openDirectory,
+    getDirectory,
+    listDirectoryFiles,
+    requestPermissionForDirectory,
+    assertWritePermissionForDirectory,
+    createNewFile,
+    openFile,
+    writeFile,
+    readBinaryFile,
+    readTextFile,
+    getRelativePath,
+    getAbsolutePath,
+  };
+};
