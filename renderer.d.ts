@@ -75,6 +75,7 @@ export type AuthAPI = {
   onDeviceVerificationInfoAvailable: (
     callback: (verificationInfo: GithubDeviceFlowVerificationInfo) => void
   ) => UnregisterListenerFn;
+  cancelGithubDeviceFlowAuth: () => Promise<void>;
   disconnectFromGithub: () => Promise<void>;
 };
 

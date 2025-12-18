@@ -28,6 +28,7 @@ type AuthContextType = {
   setUsername: (name: Username | null) => void;
   setEmail: (email: Email | null) => void;
   connectToGithub: () => Promise<void>;
+  cancelConnectingToGithub: () => Promise<void>;
   disconnectFromGithub: () => Promise<void>;
 };
 
@@ -150,6 +151,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [isElectron, dispatchNotification]);
 
+  const handleCancelConnectingToGithub = useCallback(async () => {
+    if (isElectron) {
+      await window.authAPI.cancelGithubDeviceFlowAuth();
+      setGithubDeviceFlowVerificationInfo(null);
+    }
+  }, [isElectron]);
+
   const handleDisconnectFromGithub = useCallback(async () => {
     if (isElectron) {
       await window.authAPI.disconnectFromGithub();
@@ -168,6 +176,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUsername: handleSetUsername,
         setEmail: handleSetEmail,
         connectToGithub: handleConnectToGithub,
+        cancelConnectingToGithub: handleCancelConnectingToGithub,
         disconnectFromGithub: handleDisconnectFromGithub,
       }}
     >

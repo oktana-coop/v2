@@ -12,6 +12,7 @@ export const GithubSyncProvider = () => {
     githubDeviceFlowVerificationInfo,
     githubUserInfo,
     connectToGithub,
+    cancelConnectingToGithub,
     disconnectFromGithub,
   } = useContext(AuthContext);
 
@@ -24,9 +25,13 @@ export const GithubSyncProvider = () => {
         <div className="flex-auto">
           <p className="mb-1 font-semibold">GitHub</p>
           <p>
-            {githubUserInfo
-              ? `Connected as ${githubUserInfo.username}`
-              : 'Connect to GitHub'}
+            {githubUserInfo ? (
+              <span>
+                Connected as <strong>{githubUserInfo.username}</strong>
+              </span>
+            ) : (
+              'Connect to GitHub'
+            )}
           </p>
         </div>
         {githubUserInfo ? (
@@ -39,6 +44,7 @@ export const GithubSyncProvider = () => {
       </div>
       <GithubVerificationInfoDialog
         isOpen={!githubUserInfo && Boolean(githubDeviceFlowVerificationInfo)}
+        onCancel={cancelConnectingToGithub}
       />
     </>
   );
