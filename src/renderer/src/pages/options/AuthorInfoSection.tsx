@@ -13,7 +13,7 @@ import {
   Label,
 } from '../../components/inputs/Fieldset';
 import { Input } from '../../components/inputs/Input';
-import { SectionHeader } from './SectionHeader';
+import { SectionHeader } from '../shared/settings/SectionHeader';
 
 export const AuthorInfoSection = () => {
   const {

@@ -65,7 +65,7 @@ export const GithubVerificationInfoDialog = ({
         </Button>
       }
     >
-      <div className="mb-4 space-y-2 border border-purple-200 bg-purple-50 p-4 dark:border-purple-800 dark:bg-purple-950/30">
+      <div className="mb-4 space-y-2 border border-purple-200 bg-purple-50 p-4 dark:border-purple-900 dark:bg-purple-950/30">
         <p className="text-sm font-medium text-purple-900 dark:text-purple-100">
           Follow these steps:
         </p>
@@ -77,7 +77,7 @@ export const GithubVerificationInfoDialog = ({
       </div>
       <Button className="w-full" variant="outline" onClick={handleCopyCode}>
         {copied ? (
-          <CheckIcon className="mr-1 text-green-500 dark:text-green-300" />
+          <CheckIcon className="mr-1 text-green-500 dark:text-green-400" />
         ) : (
           <CopyIcon className="mr-1" />
         )}
