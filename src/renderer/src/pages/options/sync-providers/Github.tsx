@@ -1,11 +1,9 @@
 import { useContext } from 'react';
 
-import { AuthContext } from '../../../../../modules/auth/browser';
+import { AuthContext, GITHUB_COLOR } from '../../../../../modules/auth/browser';
 import { Button } from '../../../components/actions/Button';
 import { GithubIcon } from '../../../components/icons';
 import { GithubVerificationInfoDialog } from '../../shared/sync-providers/github/VerificationInfoDialog';
-
-export const GITHUB_COLOR = '#24292f';
 
 export const GithubSyncProvider = () => {
   const {
