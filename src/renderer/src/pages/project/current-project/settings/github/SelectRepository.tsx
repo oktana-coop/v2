@@ -35,9 +35,9 @@ export const SelectRepository = () => {
         placeholder="Select GitHub repository&hellip;"
         name="github-repository-select"
       >
-        {githubRepositories.map(({ name }) => (
-          <ListboxOption key={name} value={name} className="max-w-2xl">
-            <ListboxLabel>{name}</ListboxLabel>
+        {githubRepositories.map(({ fullName }) => (
+          <ListboxOption key={fullName} value={fullName} className="max-w-2xl">
+            <ListboxLabel>{fullName}</ListboxLabel>
           </ListboxOption>
         ))}
       </Listbox>

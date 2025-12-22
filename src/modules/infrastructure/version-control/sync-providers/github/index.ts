@@ -18,7 +18,8 @@ export type GithubRepositoryInfo = {
   sshUrl: string;
 };
 
-const GET_REPOS_URL = 'https://api.github.com/user/repos';
+const GET_REPOS_URL =
+  'https://api.github.com/user/repos?sort=updated&per_page=50';
 
 export const getGithubUserRepositories = (
   userToken: string
