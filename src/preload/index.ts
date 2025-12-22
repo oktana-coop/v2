@@ -11,6 +11,7 @@ import {
   type RendererConfig,
   type SingleDocumentProjectStoreManagerAPI,
   type SingleDocumentProjectStorePromiseAPI,
+  type VersionControlSyncProvidersAPI,
   type VersionedDocumentStorePromiseAPI,
 } from '../../renderer';
 import { type GithubDeviceFlowVerificationInfo } from '../modules/auth';
@@ -338,6 +339,13 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreManagerAPI', {
   openMultiDocumentProjectById: (args) =>
     ipcRenderer.invoke('open-multi-document-project-by-id', { ...args }),
 } as MultiDocumentProjectStoreManagerAPI);
+
+contextBridge.exposeInMainWorld('versionControlSyncProvidersAPI', {
+  getGithubUserRepositories: () =>
+    ipcRenderer.invoke(
+      'version-control-sync-providers:get-github-user-repositories'
+    ),
+} as VersionControlSyncProvidersAPI);
 
 contextBridge.exposeInMainWorld('wasmAPI', {
   runWasiCLIOutputingText: (args: RunWasiCLIArgs) =>

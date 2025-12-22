@@ -2,10 +2,18 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import { type BrowserWindow, ipcMain } from 'electron';
 
+import {
+  type EncryptedStore,
+  getValidGithubAccessToken,
+} from '../../modules/auth/node';
 import { buildConfig } from '../../modules/config';
 import {
   type AddDocumentToMultiDocumentProjectArgs,
   type CreateMultiDocumentProjectArgs,
+  createNodeAutomergeMultiDocumentProjectStoreManagerAdapter,
+  createNodeAutomergeSingleDocumentProjectStoreManagerAdapter,
+  createNodeGitMultiDocumentProjectStoreManagerAdapter,
+  createNodeGitSingleDocumentProjectStoreManagerAdapter,
   type CreateSingleDocumentProjectArgs,
   type DeleteDocumentFromMultiDocumentProjectArgs,
   type FindDocumentInMultiDocumentProjectArgs,
@@ -14,11 +22,11 @@ import {
   type MultiDocumentProjectGetCurrentBranchArgs,
   type MultiDocumentProjectListBranchesArgs,
   type MultiDocumentProjectMergeAndDeleteBranchArgs,
-  MultiDocumentProjectSetAuthorInfoArgs,
+  type MultiDocumentProjectSetAuthorInfoArgs,
   type MultiDocumentProjectStoreManager,
   type MultiDocumentProjectSwitchToBranchArgs,
-  OpenMultiDocumentProjectByIdArgs,
-  OpenOrCreateMultiDocumentProjectArgs,
+  type OpenMultiDocumentProjectByIdArgs,
+  type OpenOrCreateMultiDocumentProjectArgs,
   type OpenSingleDocumentProjectStoreArgs,
   type ProjectId,
   type SetupSingleDocumentProjectStoreArgs,
@@ -33,12 +41,6 @@ import {
   ValidationError as VersionedProjectValidationError,
 } from '../../modules/domain/project/node';
 import {
-  createNodeAutomergeMultiDocumentProjectStoreManagerAdapter,
-  createNodeAutomergeSingleDocumentProjectStoreManagerAdapter,
-  createNodeGitMultiDocumentProjectStoreManagerAdapter,
-  createNodeGitSingleDocumentProjectStoreManagerAdapter,
-} from '../../modules/domain/project/node';
-import {
   type CommitChangesArgs,
   type CreateDocumentArgs,
   DiscardUncommittedChangesArgs,
@@ -50,6 +52,7 @@ import {
 import { runPromiseSerializingErrorsForIPC } from '../../modules/infrastructure/cross-platform';
 import { Filesystem } from '../../modules/infrastructure/filesystem';
 import {
+  getGithubUserRepositories,
   type ResolvedArtifactId,
   versionControlSystems,
 } from '../../modules/infrastructure/version-control';
@@ -65,10 +68,12 @@ export const registerVersionedStoresEvents = ({
   filesystem,
   rendererProcessId,
   browserWindow,
+  encryptedStore,
 }: {
   filesystem: Filesystem;
   rendererProcessId: string;
   browserWindow: BrowserWindow;
+  encryptedStore: EncryptedStore;
 }) => {
   const singleDocumentProjectStoreManager =
     buildConfig.singleDocumentProjectVersionControlSystem ===
@@ -96,6 +101,7 @@ export const registerVersionedStoresEvents = ({
   registerSingleDocumentProjectStoreEvents();
   registerMultiDocumentProjectStoreEvents();
   registerVersionedDocumentStoreEvents();
+  registerVersionControlSyncProvidersEvents({ encryptedStore });
 };
 
 const registerStoreManagerEvents = ({
@@ -893,6 +899,23 @@ const registerVersionedDocumentStoreEvents = () => {
           Effect.flatMap(({ versionedDocumentStore }) =>
             versionedDocumentStore.disconnect()
           )
+        )
+      )
+  );
+};
+
+const registerVersionControlSyncProvidersEvents = ({
+  encryptedStore,
+}: {
+  encryptedStore: EncryptedStore;
+}) => {
+  ipcMain.handle(
+    'version-control-sync-providers:get-github-user-repositories',
+    async () =>
+      Effect.runPromise(
+        pipe(
+          getValidGithubAccessToken({ encryptedStore })(),
+          Effect.flatMap((userToken) => getGithubUserRepositories(userToken))
         )
       )
   );

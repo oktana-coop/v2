@@ -190,6 +190,7 @@ async function createWindow() {
     filesystem: filesystemAPI,
     rendererProcessId,
     browserWindow: win,
+    encryptedStore,
   });
 
   win.webContents.on('did-finish-load', () => {

@@ -32,6 +32,7 @@ import {
   type FromMainMessage as AutomergeRepoNetworkFromMainIPCMessage,
   type FromRendererMessage as AutomergeRepoNetworkFromRendererIPCMessage,
   GithubDeviceFlowVerificationInfo,
+  type GithubRepositoryInfo,
   type ResolvedArtifactId,
 } from './src/modules/infrastructure/version-control';
 import { type Wasm as WasmAPI } from './src/modules/infrastructure/wasm';
@@ -182,6 +183,10 @@ export type OsEventsAPI = {
   onOpenFileFromFilesystem: (callback: (file: File) => void) => () => void;
 };
 
+export type VersionControlSyncProvidersAPI = {
+  getGithubUserRepositories: () => Promise<GithubRepositoryInfo[]>;
+};
+
 export { type RendererConfig } from './src/modules/config/browser';
 
 declare global {
@@ -197,6 +202,7 @@ declare global {
     multiDocumentProjectStoreAPI: MultiDocumentProjectStorePromiseAPI;
     singleDocumentProjectStoreManagerAPI: SingleDocumentProjectStoreManagerAPI;
     multiDocumentProjectStoreManagerAPI: MultiDocumentProjectStoreManagerAPI;
+    versionControlSyncProvidersAPI: VersionControlSyncProvidersAPI;
     wasmAPI: WasmAPI;
     osEventsAPI: OsEventsAPI;
   }
