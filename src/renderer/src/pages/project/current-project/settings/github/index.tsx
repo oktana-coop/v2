@@ -1,21 +1,29 @@
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 
 import {
   AuthContext,
   GITHUB_COLOR,
 } from '../../../../../../../modules/auth/browser';
+import { type GithubRepositoryInfo } from '../../../../../../../modules/infrastructure/version-control';
 import { Button } from '../../../../../components/actions/Button';
 import { GithubIcon } from '../../../../../components/icons';
 import { GithubVerificationInfoDialog } from '../../../../shared/sync-providers/github/VerificationInfoDialog';
 import { SelectRepository } from './SelectRepository';
 
 export const GithubProjectSettings = () => {
+  const [selectedRepository, setSelectedRepository] =
+    useState<GithubRepositoryInfo | null>(null);
+
   const {
     githubDeviceFlowVerificationInfo,
     githubUserInfo,
     connectToGithub,
     cancelConnectingToGithub,
   } = useContext(AuthContext);
+
+  const handleSelectRepository = (repository: GithubRepositoryInfo) => {
+    setSelectedRepository(repository);
+  };
 
   return (
     <>
@@ -26,9 +34,12 @@ export const GithubProjectSettings = () => {
         {githubUserInfo ? (
           <>
             <div className="flex-auto">
-              <p>Connect a GitHub repository</p>
+              <p className="mb-1 font-semibold">Connect a GitHub repository</p>
+              <SelectRepository onSelect={handleSelectRepository} />
             </div>
-            <SelectRepository />
+            <Button onClick={() => {}} disabled={!selectedRepository}>
+              Connect
+            </Button>
           </>
         ) : (
           <>

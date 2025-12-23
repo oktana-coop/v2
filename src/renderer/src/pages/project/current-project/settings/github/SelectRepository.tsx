@@ -9,13 +9,26 @@ import {
   ListboxOption,
 } from '../../../../../components/inputs/Listbox';
 
-export const SelectRepository = () => {
+export const SelectRepository = ({
+  onSelect,
+}: {
+  onSelect: (repository: GithubRepositoryInfo) => void;
+}) => {
   const { isElectron } = useContext(ElectronContext);
   const [githubRepositories, setGithubRepositories] = useState<
     GithubRepositoryInfo[]
   >([]);
 
   const { githubUserInfo } = useContext(AuthContext);
+
+  const handleSelect = (value: string) => {
+    const repository = githubRepositories.find(
+      (repo) => repo.fullName === value
+    );
+    if (repository) {
+      onSelect(repository);
+    }
+  };
 
   useEffect(() => {
     const fetchRepositories = async () => {
@@ -34,6 +47,7 @@ export const SelectRepository = () => {
       <Listbox
         placeholder="Select GitHub repository&hellip;"
         name="github-repository-select"
+        onChange={handleSelect}
       >
         {githubRepositories.map(({ fullName }) => (
           <ListboxOption key={fullName} value={fullName} className="max-w-2xl">
