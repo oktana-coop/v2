@@ -460,6 +460,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                   projectId,
                   directory,
                   currentBranch,
+                  remoteProjects: [],
                 }))
               )
           ),
@@ -522,6 +523,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                       projectId,
                       directory,
                       currentBranch,
+                      remoteProjects: [],
                     }))
                   )
               )

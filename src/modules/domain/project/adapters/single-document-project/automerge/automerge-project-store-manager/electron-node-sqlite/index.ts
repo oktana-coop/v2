@@ -193,6 +193,7 @@ export const createAdapter = ({
                   projectId,
                   documentId,
                   currentBranch,
+                  remoteProjects: [],
                   file: newFile,
                   // The name is derived by the file name in this case
                   name: newFile.name,
@@ -291,6 +292,7 @@ export const createAdapter = ({
                 projectId,
                 documentId,
                 currentBranch,
+                remoteProjects: [],
                 file,
                 // The name is derived by the file name in this case
                 name: file.name,

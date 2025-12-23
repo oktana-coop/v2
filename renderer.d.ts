@@ -95,7 +95,12 @@ export type SingleDocumentProjectStoreManagerAPI = {
   ) => Promise<
     Pick<
       SetupSingleDocumentProjectStoreResult,
-      'projectId' | 'documentId' | 'currentBranch' | 'file' | 'name'
+      | 'projectId'
+      | 'documentId'
+      | 'currentBranch'
+      | 'remoteProjects'
+      | 'file'
+      | 'name'
     >
   >;
   openSingleDocumentProjectStore: (
@@ -103,7 +108,12 @@ export type SingleDocumentProjectStoreManagerAPI = {
   ) => Promise<
     Pick<
       OpenSingleDocumentProjectStoreResult,
-      'projectId' | 'documentId' | 'currentBranch' | 'file' | 'name'
+      | 'projectId'
+      | 'documentId'
+      | 'currentBranch'
+      | 'remoteProjects'
+      | 'file'
+      | 'name'
     >
   >;
 };
@@ -114,13 +124,16 @@ export type MultiDocumentProjectStoreManagerAPI = {
   ) => Promise<
     Pick<
       OpenOrCreateMultiDocumentProjectResult,
-      'projectId' | 'directory' | 'currentBranch'
+      'projectId' | 'directory' | 'currentBranch' | 'remoteProjects'
     >
   >;
   openMultiDocumentProjectById: (
     args: OpenMultiDocumentProjectByIdArgs
   ) => Promise<
-    Pick<OpenMultiDocumentProjectByIdResult, 'directory' | 'currentBranch'>
+    Pick<
+      OpenMultiDocumentProjectByIdResult,
+      'directory' | 'currentBranch' | 'remoteProjects'
+    >
   >;
 };
 

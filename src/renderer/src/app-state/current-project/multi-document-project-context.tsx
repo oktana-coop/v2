@@ -15,6 +15,7 @@ import {
   DEFAULT_REMOTE_PROJECT_NAME,
   findDocumentInProject,
   type MultiDocumentProjectStore,
+  type RemoteProjectInfo,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
 import { type ProjectId } from '../../../../modules/domain/project';
@@ -90,6 +91,8 @@ export type MultiDocumentProjectContextType = {
   openDeleteBranchDialog: (branch: Branch) => void;
   closeDeleteBranchDialog: () => void;
   supportsBranching: boolean;
+  remoteProject: RemoteProjectInfo | null;
+  addRemoteProject: (url: string) => Promise<void>;
 };
 
 export const MultiDocumentProjectContext =
@@ -142,6 +145,9 @@ export const MultiDocumentProjectProvider = ({
   const { dispatchNotification } = useContext(NotificationsContext);
   const [supportsBranching, setSupportsBranching] = useState<boolean>(false);
   const { username, email } = useContext(AuthContext);
+  const [remoteProject, setRemoteProject] = useState<RemoteProjectInfo | null>(
+    null
+  );
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -167,6 +173,7 @@ export const MultiDocumentProjectProvider = ({
           versionedProjectStore: projectStore,
           directory,
           currentBranch,
+          remoteProjects,
         } = await Effect.runPromise(
           multiDocumentProjectStoreManager.openMultiDocumentProjectById({
             filesystem,
@@ -181,6 +188,7 @@ export const MultiDocumentProjectProvider = ({
         setProjectId(browserStorageProjectData.projectId);
         setDirectory(directory);
         setCurrentBranch(currentBranch);
+        setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
         setVersionedProjectStore(projectStore);
         setVersionedDocumentStore(documentStore);
 
@@ -281,6 +289,7 @@ export const MultiDocumentProjectProvider = ({
       projectId: projId,
       directory: dir,
       currentBranch,
+      remoteProjects,
     } = await Effect.runPromise(
       multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject({
         filesystem,
@@ -290,6 +299,7 @@ export const MultiDocumentProjectProvider = ({
     setProjectId(projId);
     setDirectory(dir);
     setCurrentBranch(currentBranch);
+    setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
     setVersionedProjectStore(projectStore);
     setVersionedDocumentStore(documentStore);
 
@@ -578,7 +588,7 @@ export const MultiDocumentProjectProvider = ({
         );
       }
 
-      const { notification } = await Effect.runPromise(
+      const { notification, result } = await Effect.runPromise(
         pipe(
           pipe(
             versionedProjectStore.addRemoteProject({
@@ -586,8 +596,11 @@ export const MultiDocumentProjectProvider = ({
               remoteName: DEFAULT_REMOTE_PROJECT_NAME,
               remoteUrl: url,
             }),
-            Effect.map((remoteInfo) => ({
-              result: remoteInfo,
+            Effect.map(() => ({
+              result: {
+                name: DEFAULT_REMOTE_PROJECT_NAME,
+                url,
+              },
               notification: null,
             }))
           ),
@@ -606,6 +619,8 @@ export const MultiDocumentProjectProvider = ({
       if (notification) {
         dispatchNotification(notification);
       }
+
+      setRemoteProject(result);
     },
     [versionedProjectStore, projectId]
   );
@@ -638,6 +653,7 @@ export const MultiDocumentProjectProvider = ({
         openDeleteBranchDialog: handleOpenDeleteBranchDialog,
         closeDeleteBranchDialog: handleCloseDeleteBranchDialog,
         supportsBranching,
+        remoteProject,
         addRemoteProject: handleAddRemoteProject,
       }}
     >

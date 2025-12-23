@@ -33,12 +33,18 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
           Effect.bind('currentBranch', ({ versionedProjectStore, projectId }) =>
             versionedProjectStore.getCurrentBranch({ projectId })
           ),
+          Effect.bind(
+            'remoteProjects',
+            ({ versionedProjectStore, projectId }) =>
+              versionedProjectStore.listRemoteProjects({ projectId })
+          ),
           Effect.map(
             ({
               directory,
               versionedProjectStore,
               projectId,
               currentBranch,
+              remoteProjects,
             }) => ({
               versionedProjectStore,
               versionedDocumentStore: createVersionedDocumentStoreAdapter({
@@ -51,6 +57,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
               projectId,
               directory,
               currentBranch,
+              remoteProjects,
             })
           )
         );
@@ -82,19 +89,30 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
           Effect.bind('currentBranch', ({ versionedProjectStore }) =>
             versionedProjectStore.getCurrentBranch({ projectId })
           ),
-          Effect.map(({ directory, versionedProjectStore, currentBranch }) => ({
-            versionedProjectStore,
-            versionedDocumentStore: createVersionedDocumentStoreAdapter({
-              isoGitFs: fs,
-              filesystem,
+          Effect.bind('remoteProjects', ({ versionedProjectStore }) =>
+            versionedProjectStore.listRemoteProjects({ projectId })
+          ),
+          Effect.map(
+            ({
+              directory,
+              versionedProjectStore,
+              currentBranch,
+              remoteProjects,
+            }) => ({
+              versionedProjectStore,
+              versionedDocumentStore: createVersionedDocumentStoreAdapter({
+                isoGitFs: fs,
+                filesystem,
+                projectId,
+                projectDir: projectId,
+                managesFilesystemWorkdir: true,
+              }),
               projectId,
-              projectDir: projectId,
-              managesFilesystemWorkdir: true,
-            }),
-            projectId,
-            directory,
-            currentBranch,
-          }))
+              directory,
+              currentBranch,
+              remoteProjects,
+            })
+          )
         );
 
   return {

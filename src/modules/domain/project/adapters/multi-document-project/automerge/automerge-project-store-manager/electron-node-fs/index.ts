@@ -420,6 +420,7 @@ export const createAdapter = ({
                       projectId,
                       directory,
                       currentBranch,
+                      remoteProjects: [],
                     }))
                   )
               )
@@ -467,6 +468,7 @@ export const createAdapter = ({
                       projectId,
                       directory,
                       currentBranch,
+                      remoteProjects: [],
                     }))
                   )
               )

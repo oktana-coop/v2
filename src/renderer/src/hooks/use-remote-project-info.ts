@@ -13,44 +13,45 @@ import {
 export const useRemoteProjectInfo = () => {
   const { projectType } = useContext(CurrentProjectContext);
   const {
-    originRemoteProjectInfo: multiDocumentOriginRemoteProjectInfo,
-    addRemote: addRemoteInMultiDocumentProject,
+    remoteProject: multiDocumentProjectRemoteProject,
+    addRemoteProject: addRemoteProjectInMultiDocumentProject,
   } = useContext(MultiDocumentProjectContext);
 
   const {
-    originRemoteProjectInfo: singleDocumentOriginRemoteProjectInfo,
-    addRemote: addRemoteInSingleDocumentProject,
+    remoteProject: singleDocumentProjectRemoteProject,
+    addRemoteProject: addRemoteProjectInSingleDocumentProject,
   } = useContext(SingleDocumentProjectContext);
 
-  const [originRemoteInfo, setOriginRemoteInfo] =
-    useState<RemoteProjectInfo | null>(null);
+  const [remoteProject, setRemoteProject] = useState<RemoteProjectInfo | null>(
+    null
+  );
 
   useEffect(() => {
     const origin =
       projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-        ? multiDocumentOriginRemoteProjectInfo
-        : singleDocumentOriginRemoteProjectInfo;
-    setOriginRemoteInfo(origin);
+        ? multiDocumentProjectRemoteProject
+        : singleDocumentProjectRemoteProject;
+    setRemoteProject(origin);
   }, [
-    multiDocumentOriginRemoteProjectInfo,
-    singleDocumentOriginRemoteProjectInfo,
+    multiDocumentProjectRemoteProject,
+    singleDocumentProjectRemoteProject,
     projectType,
   ]);
 
-  const addRemote = useCallback(
+  const addRemoteProject = useCallback(
     (url: string) =>
       projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-        ? addRemoteInMultiDocumentProject(url)
-        : addRemoteInSingleDocumentProject(url),
+        ? addRemoteProjectInMultiDocumentProject(url)
+        : addRemoteProjectInSingleDocumentProject(url),
     [
       projectType,
-      addRemoteInMultiDocumentProject,
-      addRemoteInSingleDocumentProject,
+      addRemoteProjectInMultiDocumentProject,
+      addRemoteProjectInSingleDocumentProject,
     ]
   );
 
   return {
-    originRemoteInfo,
-    addRemote,
+    remoteProject,
+    addRemoteProject,
   };
 };

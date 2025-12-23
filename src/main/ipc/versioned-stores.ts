@@ -139,10 +139,18 @@ const registerStoreManagerEvents = ({
               })
           ),
           Effect.map(
-            ({ projectId, documentId, currentBranch, file, name }) => ({
+            ({
               projectId,
               documentId,
               currentBranch,
+              remoteProjects,
+              file,
+              name,
+            }) => ({
+              projectId,
+              documentId,
+              currentBranch,
+              remoteProjects,
               file,
               name,
             })
@@ -170,10 +178,18 @@ const registerStoreManagerEvents = ({
               })
           ),
           Effect.map(
-            ({ projectId, documentId, currentBranch, file, name }) => ({
+            ({
               projectId,
               documentId,
               currentBranch,
+              remoteProjects,
+              file,
+              name,
+            }) => ({
+              projectId,
+              documentId,
+              currentBranch,
+              remoteProjects,
               file,
               name,
             })
@@ -197,11 +213,14 @@ const registerStoreManagerEvents = ({
                 versionedDocumentStore,
               })
           ),
-          Effect.map(({ projectId, directory, currentBranch }) => ({
-            projectId,
-            directory,
-            currentBranch,
-          }))
+          Effect.map(
+            ({ projectId, directory, currentBranch, remoteProjects }) => ({
+              projectId,
+              directory,
+              currentBranch,
+              remoteProjects,
+            })
+          )
         )
       )
   );
@@ -229,11 +248,14 @@ const registerStoreManagerEvents = ({
                 versionedDocumentStore,
               })
           ),
-          Effect.map(({ projectId, directory, currentBranch }) => ({
-            projectId,
-            directory,
-            currentBranch,
-          }))
+          Effect.map(
+            ({ projectId, directory, currentBranch, remoteProjects }) => ({
+              projectId,
+              directory,
+              currentBranch,
+              remoteProjects,
+            })
+          )
         )
       )
   );

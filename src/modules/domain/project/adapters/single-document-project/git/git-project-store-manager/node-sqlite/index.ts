@@ -128,6 +128,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                   projectId,
                   documentId,
                   currentBranch,
+                  remoteProjects: [],
                   file: newFile,
                   // The name is derived by the file name in this case
                   name: newFile.name,
@@ -206,6 +207,11 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
               ({ versionedProjectStore, projectFilePath: projectId }) =>
                 versionedProjectStore.getCurrentBranch({ projectId })
             ),
+            Effect.bind(
+              'remoteProjects',
+              ({ versionedProjectStore, projectFilePath: projectId }) =>
+                versionedProjectStore.listRemoteProjects({ projectId })
+            ),
             Effect.tap(
               ({ versionedProjectStore, projectFilePath: projectId }) =>
                 versionedProjectStore.setAuthorInfo({
@@ -222,12 +228,14 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                 projectFilePath: projectId,
                 documentId,
                 currentBranch,
+                remoteProjects,
               }) => ({
                 versionedProjectStore,
                 versionedDocumentStore,
                 projectId,
                 documentId,
                 currentBranch,
+                remoteProjects,
                 file,
                 // The name is derived by the file name in this case
                 name: file.name,
