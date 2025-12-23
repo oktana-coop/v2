@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
+import http from 'isomorphic-git/http/node';
 
 import { createAdapter as createVersionedDocumentStoreAdapter } from '../../../../../../../../modules/domain/rich-text/adapters/versioned-document-store/git/git-versioned-document-store';
 import {
@@ -86,6 +87,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                 createSingleDocumentProjectStoreAdapter({
                   isoGitFs,
                   filesystem,
+                  isoGitHttp: http,
                   projectFilePath,
                   internalProjectDir: INTERNAL_PROJECT_DIR,
                   projectName: newFile.name,
@@ -173,6 +175,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                   createSingleDocumentProjectStoreAdapter({
                     isoGitFs,
                     filesystem,
+                    isoGitHttp: http,
                     projectFilePath,
                     internalProjectDir: INTERNAL_PROJECT_DIR,
                     projectName: file.name,

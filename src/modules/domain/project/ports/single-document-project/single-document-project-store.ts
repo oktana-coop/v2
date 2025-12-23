@@ -62,6 +62,25 @@ export type SingleDocumentProjectSetAuthorInfoArgs = {
   projectId: ProjectId;
 } & UserInfo;
 
+export type SingleDocumentProjectAddRemoteProjectArgs = {
+  projectId: ProjectId;
+  remoteName?: string;
+  remoteUrl: string;
+  authToken?: string;
+};
+
+export type SingleDocumentProjectPushToRemoteProjectArgs = {
+  projectId: ProjectId;
+  remoteName?: string;
+  authToken?: string;
+};
+
+export type SingleDocumentProjectPullFromRemoteProjectArgs = {
+  projectId: ProjectId;
+  remoteName?: string;
+  authToken?: string;
+};
+
 export type SingleDocumentProjectStore = {
   supportsBranching: boolean;
   createSingleDocumentProject: (
@@ -125,5 +144,15 @@ export type SingleDocumentProjectStore = {
   setAuthorInfo: (
     args: SingleDocumentProjectSetAuthorInfoArgs
   ) => Effect.Effect<void, RepositoryError, never>;
+  // TODO: Consider moving to a separate, composable type like ExplicitSyncProjectStore
+  addRemoteProject: (
+    args: SingleDocumentProjectAddRemoteProjectArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  pushToRemoteProject: (
+    args: SingleDocumentProjectPushToRemoteProjectArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  pullFromRemoteProject: (
+    args: SingleDocumentProjectPullFromRemoteProjectArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
   disconnect: () => Effect.Effect<void, RepositoryError, never>;
 };

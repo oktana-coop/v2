@@ -187,6 +187,45 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.singleDocumentProjectStoreAPI.setAuthorInfo(...args)),
+  addRemoteProject: (
+    ...args: Parameters<SingleDocumentProjectStore['addRemoteProject']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['addRemoteProject']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.addRemoteProject(...args)),
+  pushToRemoteProject: (
+    ...args: Parameters<SingleDocumentProjectStore['pushToRemoteProject']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['pushToRemoteProject']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.pushToRemoteProject(...args)),
+  pullFromRemoteProject: (
+    ...args: Parameters<SingleDocumentProjectStore['pullFromRemoteProject']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['pullFromRemoteProject']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.pullFromRemoteProject(...args)),
   disconnect: (...args: Parameters<SingleDocumentProjectStore['disconnect']>) =>
     effectifyIPCPromise(
       {

@@ -4,7 +4,6 @@ import git from 'isomorphic-git';
 
 import { mapErrorTo } from '../../../../../utils/errors';
 import { RepositoryError } from '../../errors';
-import { type Branch } from '../../models';
 import { IsoGitDeps } from '../types';
 
 type ValidateRemoteConnectivityAndAuthArgs = Pick<IsoGitDeps, 'isoGitHttp'> & {

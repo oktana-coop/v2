@@ -261,6 +261,21 @@ contextBridge.exposeInMainWorld('singleDocumentProjectStoreAPI', {
     ipcRenderer.invoke('single-document-project-store:set-author-info', {
       ...args,
     }),
+  addRemoteProject: (args) =>
+    ipcRenderer.invoke('single-document-project-store:add-remote-project', {
+      ...args,
+    }),
+  pushToRemoteProject: (args) =>
+    ipcRenderer.invoke('single-document-project-store:push-to-remote-project', {
+      ...args,
+    }),
+  pullFromRemoteProject: (args) =>
+    ipcRenderer.invoke(
+      'single-document-project-store:pull-from-remote-project',
+      {
+        ...args,
+      }
+    ),
   disconnect: (projectId) =>
     ipcRenderer.invoke('single-document-project-store:disconnect', projectId),
 } as SingleDocumentProjectStorePromiseAPI);

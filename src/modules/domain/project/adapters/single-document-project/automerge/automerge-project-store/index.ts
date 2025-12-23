@@ -203,6 +203,32 @@ export const createAdapter = (
   const setAuthorInfo: SingleDocumentProjectStore['setAuthorInfo'] = () =>
     Effect.succeed(undefined);
 
+  // TODO: Implement explict sync in Automerge
+  const addRemoteProject: SingleDocumentProjectStore['addRemoteProject'] = () =>
+    Effect.fail(
+      new RepositoryError(
+        'Explicit sync is not yet supported when the app is configured with Automerge'
+      )
+    );
+
+  // TODO: Implement explict sync in Automerge
+  const pushToRemoteProject: SingleDocumentProjectStore['pushToRemoteProject'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Explicit sync is not yet supported when the app is configured with Automerge'
+        )
+      );
+
+  // TODO: Implement explict sync in Automerge
+  const pullFromRemoteProject: SingleDocumentProjectStore['pullFromRemoteProject'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Explicit sync is not yet supported when the app is configured with Automerge'
+        )
+      );
+
   return {
     // TODO: Implement branching in Automerge
     supportsBranching: false,
@@ -217,6 +243,9 @@ export const createAdapter = (
     deleteBranch,
     mergeAndDeleteBranch,
     setAuthorInfo,
+    addRemoteProject,
+    pushToRemoteProject,
+    pullFromRemoteProject,
     disconnect,
   };
 };

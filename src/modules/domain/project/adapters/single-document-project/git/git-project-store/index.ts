@@ -1,6 +1,10 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
-import git, { type PromiseFsClient as IsoGitFsApi } from 'isomorphic-git';
+import * as Option from 'effect/Option';
+import git, {
+  HttpClient as IsoGitHttpApi,
+  type PromiseFsClient as IsoGitFsApi,
+} from 'isomorphic-git';
 
 import {
   type Filesystem,
@@ -15,8 +19,11 @@ import {
   listBranches as listBranchesWithGit,
   mergeAndDeleteBranch as mergeAndDeleteBranchWithGit,
   MigrationError,
+  pullFromRemote as pullFromRemoteGitRepo,
+  pushToRemote as pushToRemoteGitRepo,
   setUserInfo as setUserInfoInGit,
   switchToBranch as switchToBranchWithGit,
+  validateAndAddRemote,
   VersionControlNotFoundErrorTag,
   VersionControlRepositoryErrorTag,
 } from '../../../../../../../modules/infrastructure/version-control';
@@ -38,6 +45,7 @@ import { type SingleDocumentProjectStore } from '../../../../ports';
 export const createAdapter = ({
   isoGitFs,
   filesystem,
+  isoGitHttp,
   projectFilePath,
   internalProjectDir,
   projectName,
@@ -49,6 +57,7 @@ export const createAdapter = ({
   // we are using our own Filesystem API.
   isoGitFs: IsoGitFsApi;
   filesystem: Filesystem;
+  isoGitHttp: IsoGitHttpApi;
   projectFilePath: ProjectFsPath;
   internalProjectDir: string;
   projectName: string;
@@ -248,6 +257,86 @@ export const createAdapter = ({
       )
     );
 
+  const ensureAuthTokenIsProvided: (
+    authToken: string | undefined
+  ) => Effect.Effect<string, ValidationError, never> = (authToken) =>
+    pipe(
+      Option.fromNullable(authToken),
+      Option.match({
+        onNone: () =>
+          Effect.fail(
+            new ValidationError(
+              'Auth token must be provided to perform this operation'
+            )
+          ),
+        onSome: (token) => Effect.succeed(token),
+      })
+    );
+
+  const addRemoteProject: SingleDocumentProjectStore['addRemoteProject'] = ({
+    remoteName = 'origin',
+    remoteUrl,
+    authToken: authTokenInput,
+  }) =>
+    pipe(
+      ensureAuthTokenIsProvided(authTokenInput),
+      Effect.flatMap((authToken) =>
+        pipe(
+          validateAndAddRemote({
+            isoGitFs,
+            isoGitHttp,
+            dir: internalProjectDir,
+            name: remoteName,
+            url: remoteUrl,
+            authToken,
+          }),
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      )
+    );
+
+  const pushToRemoteProject: SingleDocumentProjectStore['pushToRemoteProject'] =
+    ({ remoteName = 'origin', authToken: authTokenInput }) =>
+      pipe(
+        ensureAuthTokenIsProvided(authTokenInput),
+        Effect.flatMap((authToken) =>
+          pipe(
+            pushToRemoteGitRepo({
+              isoGitFs,
+              isoGitHttp,
+              dir: internalProjectDir,
+              remote: remoteName,
+              authToken,
+            }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            )
+          )
+        )
+      );
+
+  const pullFromRemoteProject: SingleDocumentProjectStore['pullFromRemoteProject'] =
+    ({ remoteName = 'origin', authToken: authTokenInput }) =>
+      pipe(
+        ensureAuthTokenIsProvided(authTokenInput),
+        Effect.flatMap((authToken) =>
+          pipe(
+            pullFromRemoteGitRepo({
+              isoGitFs,
+              isoGitHttp,
+              dir: internalProjectDir,
+              remote: remoteName,
+              authToken,
+            }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            )
+          )
+        )
+      );
+
   // This is a no-op in the Git document repo.
   const disconnect: SingleDocumentProjectStore['disconnect'] = () =>
     Effect.succeed(undefined);
@@ -265,6 +354,9 @@ export const createAdapter = ({
     deleteBranch,
     mergeAndDeleteBranch,
     setAuthorInfo,
+    addRemoteProject,
+    pushToRemoteProject,
+    pullFromRemoteProject,
     disconnect,
   };
 };
