@@ -322,6 +322,21 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
     ipcRenderer.invoke('multi-document-project-store:set-author-info', {
       ...args,
     }),
+  addRemoteProject: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:add-remote-project', {
+      ...args,
+    }),
+  pushToRemoteProject: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:push-to-remote-project', {
+      ...args,
+    }),
+  pullFromRemoteProject: (args) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:pull-from-remote-project',
+      {
+        ...args,
+      }
+    ),
 } as MultiDocumentProjectStorePromiseAPI);
 
 // TODO: Namespace IPC messages

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 
 import * as Effect from 'effect/Effect';
+import http from 'isomorphic-git/http/node';
 
 import { createAdapter as createVersionedDocumentStoreAdapter } from '../../../../../../../../modules/domain/rich-text/adapters/versioned-document-store/git/git-versioned-document-store';
 import { type MultiDocumentProjectStoreManager } from '../../../../../ports';
@@ -17,6 +18,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
             Effect.succeed(
               createMultiDocumentProjectStoreAdapter({
                 isoGitFs: fs,
+                isoGitHttp: http,
                 filesystem,
               })
             )
@@ -65,6 +67,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
             Effect.succeed(
               createMultiDocumentProjectStoreAdapter({
                 isoGitFs: fs,
+                isoGitHttp: http,
                 filesystem,
               })
             )

@@ -36,7 +36,7 @@ export const logResultToCommits = (
     )
   );
 
-export type GetBranchCommitHistoryArgs = IsoGitDeps & {
+export type GetBranchCommitHistoryArgs = Omit<IsoGitDeps, 'isoGitHttp'> & {
   branch: Branch;
   limit?: number;
 };

@@ -82,6 +82,25 @@ export type MultiDocumentProjectSetAuthorInfoArgs = {
   email: Email | null;
 };
 
+export type MultiDocumentProjectAddRemoteProjectArgs = {
+  projectId: ProjectId;
+  remoteName?: string;
+  remoteUrl: string;
+  authToken: string;
+};
+
+export type MultiDocumentProjectPushToRemoteProjectArgs = {
+  projectId: ProjectId;
+  remoteName?: string;
+  authToken: string;
+};
+
+export type MultiDocumentProjectPullFromRemoteProjectArgs = {
+  projectId: ProjectId;
+  remoteName?: string;
+  authToken: string;
+};
+
 export type MultiDocumentProjectStore = {
   supportsBranching: boolean;
   createProject: (
@@ -158,5 +177,15 @@ export type MultiDocumentProjectStore = {
   >;
   setAuthorInfo: (
     args: MultiDocumentProjectSetAuthorInfoArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  // TODO: Consider moving to a separate, composable type like ExplicitSyncProjectStore
+  addRemoteProject: (
+    args: MultiDocumentProjectAddRemoteProjectArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  pushToRemoteProject: (
+    args: MultiDocumentProjectPushToRemoteProjectArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  pullFromRemoteProject: (
+    args: MultiDocumentProjectPullFromRemoteProjectArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
 };
