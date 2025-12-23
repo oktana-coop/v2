@@ -230,6 +230,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
               projectId: projectAndDocumentData.projectId,
               documentId: projectAndDocumentData.documentId,
               currentBranch,
+              remoteProjects: [],
               file: null,
               name: projectName,
             })
@@ -285,6 +286,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                         projectId,
                         documentId,
                         currentBranch,
+                        remoteProjects: [],
                         file: null,
                         name: projectName,
                       })

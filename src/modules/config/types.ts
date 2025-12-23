@@ -8,6 +8,7 @@ export type BuildConfig = {
   singleDocumentProjectVersionControlSystem: VersionControlSystem;
   multiDocumentProjectVersionControlSystem: VersionControlSystem;
   projectType: ProjectType;
+  githubAppClientId: string;
 };
 
 // Explicitly pick only the config values we want to expose to the renderer process

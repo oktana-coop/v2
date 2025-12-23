@@ -6,7 +6,7 @@ import {
   useState,
 } from 'react';
 
-import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/electron-context';
+import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import { createAdapter as createBrowserWasmAdapter } from '../adapters/browser-wasm';
 import { createAdapter as createElectronRendererWasmAdapter } from '../adapters/electron-renderer-wasm';
 import type { RunWasiCLIArgs, Wasm } from '../ports/wasm';

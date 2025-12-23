@@ -7,10 +7,20 @@ import {
   NotFoundError,
   RepositoryError,
 } from '../errors';
-import type { Directory, File } from '../types';
+import {
+  type BinaryFile,
+  type Directory,
+  type File,
+  type TextFile,
+} from '../types';
 
 export type OpenFileArgs = {
   extensions: Array<string>;
+};
+
+export type WriteFileArgs = {
+  path: string;
+  content: string | Uint8Array;
 };
 
 export type CreateNewFileArgs = {
@@ -24,6 +34,11 @@ export type ListDirectoryFilesArgs = {
   path: string;
   extensions?: Array<string>;
   useRelativePath?: boolean;
+};
+
+export type DeleteFileArgs = {
+  path: string;
+  parentDirectory?: Directory;
 };
 
 export type GetRelativePathArgs = {
@@ -73,17 +88,30 @@ export type Filesystem = {
     args: OpenFileArgs
   ) => Effect.Effect<File, AbortError | RepositoryError, never>;
   writeFile: (
-    path: string,
-    content: string
+    args: WriteFileArgs
   ) => Effect.Effect<
     void,
     AccessControlError | NotFoundError | RepositoryError,
     never
   >;
-  readFile: (
+  readBinaryFile: (
     path: string
   ) => Effect.Effect<
-    File,
+    BinaryFile,
+    AccessControlError | NotFoundError | RepositoryError | DataIntegrityError,
+    never
+  >;
+  readTextFile: (
+    path: string
+  ) => Effect.Effect<
+    TextFile,
+    AccessControlError | NotFoundError | RepositoryError | DataIntegrityError,
+    never
+  >;
+  deleteFile: (
+    args: DeleteFileArgs
+  ) => Effect.Effect<
+    void,
     AccessControlError | NotFoundError | RepositoryError,
     never
   >;

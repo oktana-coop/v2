@@ -14,16 +14,19 @@ import {
 } from 'electron';
 import os from 'os';
 
+import { createElectronMainEncryptedStoreAdapter } from '../modules/auth/node';
 import { PROJECT_FILE_EXTENSION } from '../modules/domain/project';
-import { runPromiseSerializingErrorsForIPC } from '../modules/infrastructure/cross-platform/electron-ipc-effect';
+import { runPromiseSerializingErrorsForIPC } from '../modules/infrastructure/cross-platform';
 import {
   type CreateNewFileArgs,
+  type DeleteFileArgs,
   type File,
   filesystemItemTypes,
-  GetAbsolutePathArgs,
-  GetRelativePathArgs,
+  type GetAbsolutePathArgs,
+  type GetRelativePathArgs,
   type ListDirectoryFilesArgs,
   type OpenFileArgs,
+  type WriteFileArgs,
 } from '../modules/infrastructure/filesystem';
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/infrastructure/filesystem/adapters/electron-node-api';
 import { type RunWasiCLIArgs } from '../modules/infrastructure/wasm';
@@ -37,6 +40,9 @@ import { update } from './update';
 
 const store = initializeStore();
 const filesystemAPI = createElectronNodeFilesystemAPIAdapter();
+const encryptedStore = createElectronMainEncryptedStoreAdapter({
+  filesystem: filesystemAPI,
+});
 
 globalThis.__filename = fileURLToPath(import.meta.url);
 globalThis.__dirname = dirname(__filename);
@@ -184,6 +190,7 @@ async function createWindow() {
     filesystem: filesystemAPI,
     rendererProcessId,
     browserWindow: win,
+    encryptedStore,
   });
 
   win.webContents.on('did-finish-load', () => {
@@ -221,19 +228,28 @@ async function createWindow() {
       filesystemAPI.requestPermissionForDirectory(path)
     )
   );
+  ipcMain.handle('assert-write-permission-for-directory', (_, path: string) =>
+    runPromiseSerializingErrorsForIPC(
+      filesystemAPI.assertWritePermissionForDirectory(path)
+    )
+  );
   ipcMain.handle('create-new-file', (_, args: CreateNewFileArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.createNewFile(args))
   );
   ipcMain.handle('open-file', async (_, args: OpenFileArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.openFile(args))
   );
-  ipcMain.handle(
-    'write-file',
-    (_, { path, content }: { path: string; content: string }) =>
-      runPromiseSerializingErrorsForIPC(filesystemAPI.writeFile(path, content))
+  ipcMain.handle('write-file', (_, args: WriteFileArgs) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.writeFile(args))
   );
-  ipcMain.handle('read-file', (_, path: string) =>
-    runPromiseSerializingErrorsForIPC(filesystemAPI.readFile(path))
+  ipcMain.handle('read-binary-file', (_, path: string) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.readBinaryFile(path))
+  );
+  ipcMain.handle('read-text-file', (_, path: string) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.readTextFile(path))
+  );
+  ipcMain.handle('delete-file', (_, args: DeleteFileArgs) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.deleteFile(args))
   );
   ipcMain.handle('get-relative-path', (_, args: GetRelativePathArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.getRelativePath(args))
@@ -266,7 +282,7 @@ async function createWindow() {
     wasmAPI.runWasiCLIOutputingBinary(args)
   );
 
-  registerAuthInfoIPCHandlers({ store });
+  registerAuthInfoIPCHandlers({ store, win, encryptedStore });
   registerThemeIPCHandlers({ store, win });
 }
 

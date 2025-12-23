@@ -7,7 +7,7 @@ import {
 import { MoonIcon, SunIcon } from '../../components/icons';
 import { Label } from '../../components/inputs/Fieldset';
 import { Radio, RadioField, RadioGroup } from '../../components/inputs/Radio';
-import { SectionHeader } from './SectionHeader';
+import { SectionHeader } from '../shared/settings/SectionHeader';
 
 export const ThemeSection = () => {
   const { theme, resolvedTheme, setTheme } = useContext(ThemeContext);

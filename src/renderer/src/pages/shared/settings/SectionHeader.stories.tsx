@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import type { ComponentProps } from 'react';
 
-import { SunIcon } from '../../components/icons';
+import { SunIcon } from '../../../components/icons';
 import { SectionHeader } from './SectionHeader';
 
 const meta: Meta<typeof SectionHeader> = {

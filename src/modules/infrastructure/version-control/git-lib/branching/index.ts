@@ -20,23 +20,23 @@ import {
 import { getBranchCommitHistory } from '../history';
 import { IsoGitDeps } from '../types';
 
-export type CreateAndSwitchToBranchArgs = IsoGitDeps & {
+export type CreateAndSwitchToBranchArgs = Omit<IsoGitDeps, 'isoGitHttp'> & {
   branch: Branch;
 };
 
-export type SwitchToBranchArgs = IsoGitDeps & {
+export type SwitchToBranchArgs = Omit<IsoGitDeps, 'isoGitHttp'> & {
   branch: Branch;
 };
 
-export type GetCurrentBranchArgs = IsoGitDeps;
+export type GetCurrentBranchArgs = Omit<IsoGitDeps, 'isoGitHttp'>;
 
-type SortBranchesByRecencyArgs = IsoGitDeps & {
+type SortBranchesByRecencyArgs = Omit<IsoGitDeps, 'isoGitHttp'> & {
   branches: Branch[];
 };
 
-export type ListBranchesArgs = IsoGitDeps;
+export type ListBranchesArgs = Omit<IsoGitDeps, 'isoGitHttp'>;
 
-export type DeleteBranchArgs = IsoGitDeps & {
+export type DeleteBranchArgs = Omit<IsoGitDeps, 'isoGitHttp'> & {
   branch: Branch;
 };
 
@@ -44,7 +44,7 @@ export type DeleteBranchResult = {
   currentBranch: Branch;
 };
 
-export type MergeAndDeleteBranchArgs = IsoGitDeps & {
+export type MergeAndDeleteBranchArgs = Omit<IsoGitDeps, 'isoGitHttp'> & {
   from: Branch;
   into: Branch;
 };

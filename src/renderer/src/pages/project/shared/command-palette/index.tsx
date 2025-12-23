@@ -2,7 +2,7 @@ import { useContext } from 'react';
 
 import { projectTypes } from '../../../../../../modules/domain/project';
 import { richTextRepresentations } from '../../../../../../modules/domain/rich-text';
-import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform';
+import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
 import { removeExtension } from '../../../../../../modules/infrastructure/filesystem';
 import {
   CommandPaletteContext,

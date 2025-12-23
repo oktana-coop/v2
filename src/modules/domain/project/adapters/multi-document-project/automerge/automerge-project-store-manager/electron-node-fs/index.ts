@@ -131,21 +131,22 @@ const openProject = ({
           versionedProjectStore.deleteDocumentFromProject,
         addDocumentToProject: versionedProjectStore.addDocumentToProject,
         listDirectoryFiles: filesystem.listDirectoryFiles,
-        readFile: filesystem.readFile,
+        readTextFile: filesystem.readTextFile,
       })({ projectId, directoryPath })
     )
   );
 
 const readProjectIdFromDirIndexFile = ({
   directoryPath,
-  readFile,
+  readTextFile,
 }: {
   directoryPath: string;
-  readFile: Filesystem['readFile'];
+  readTextFile: Filesystem['readTextFile'];
 }): Effect.Effect<
   ProjectId,
   | FilesystemAccessControlError
   | FilesystemRepositoryError
+  | FilesystemDataIntegrityError
   | VersionedProjectMissingProjectMetadataError
   | VersionedProjectDataIntegrityError,
   never
@@ -153,7 +154,7 @@ const readProjectIdFromDirIndexFile = ({
   const indexFilePath = join(directoryPath, '.v2', 'index.txt');
 
   return pipe(
-    readFile(indexFilePath),
+    readTextFile(indexFilePath),
     Effect.catchTag(FilesystemNotFoundErrorTag, () =>
       Effect.fail(
         new VersionedProjectMissingProjectMetadataError(
@@ -227,7 +228,7 @@ const openProjectFromFilesystem = ({
     Effect.flatMap(() =>
       readProjectIdFromDirIndexFile({
         directoryPath,
-        readFile: filesystem.readFile,
+        readTextFile: filesystem.readTextFile,
       })
     ),
     Effect.flatMap((projectId) =>
@@ -286,7 +287,7 @@ const writeIndexFile = ({
   never
 > => {
   const indexFilePath = join(rootDirectoryPath, '.v2', 'index.txt');
-  return writeFile(indexFilePath, projectId);
+  return writeFile({ path: indexFilePath, content: projectId });
 };
 
 const createNewProject = ({
@@ -350,7 +351,7 @@ const createNewProject = ({
               createProject: versionedProjectStore.createProject,
               addDocumentToProject: versionedProjectStore.addDocumentToProject,
               listDirectoryFiles: filesystem.listDirectoryFiles,
-              readFile: filesystem.readFile,
+              readTextFile: filesystem.readTextFile,
             })({ directoryPath, username, email })
         ),
         Effect.tap(({ projectId }) =>
@@ -419,6 +420,7 @@ export const createAdapter = ({
                       projectId,
                       directory,
                       currentBranch,
+                      remoteProjects: [],
                     }))
                   )
               )
@@ -436,7 +438,7 @@ export const createAdapter = ({
             pipe(
               readProjectIdFromDirIndexFile({
                 directoryPath,
-                readFile: filesystem.readFile,
+                readTextFile: filesystem.readTextFile,
               }),
               Effect.flatMap((filesystemProjectId) =>
                 filesystemProjectId === projectId
@@ -466,6 +468,7 @@ export const createAdapter = ({
                       projectId,
                       directory,
                       currentBranch,
+                      remoteProjects: [],
                     }))
                   )
               )

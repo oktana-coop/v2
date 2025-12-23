@@ -15,7 +15,6 @@ import {
   DataIntegrityError as FilesystemDataIntegrityError,
   type File,
   type Filesystem,
-  isTextFile,
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
@@ -50,7 +49,7 @@ export type UpdateProjectFromFilesystemContentDeps = {
   listProjectDocuments: MultiDocumentProjectStore['listProjectDocuments'];
   deleteDocumentFromProject: MultiDocumentProjectStore['deleteDocumentFromProject'];
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
-  readFile: Filesystem['readFile'];
+  readTextFile: Filesystem['readTextFile'];
 };
 
 const documentForFileExistsInProject = ({
@@ -74,12 +73,12 @@ const propagateFileChangesToVersionedDocument =
     findDocumentById,
     updateRichTextDocumentContent,
     findDocumentInProject: findDocumentInProjectStore,
-    readFile,
+    readTextFile,
   }: {
     findDocumentById: VersionedDocumentStore['findDocumentById'];
     findDocumentInProject: MultiDocumentProjectStore['findDocumentInProject'];
     updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'];
-    readFile: Filesystem['readFile'];
+    readTextFile: Filesystem['readTextFile'];
   }) =>
   ({
     projectId,
@@ -112,16 +111,7 @@ const propagateFileChangesToVersionedDocument =
       }),
       Effect.flatMap(({ id: documentId, artifact: document }) =>
         pipe(
-          readFile(file.path),
-          Effect.flatMap((file) =>
-            isTextFile(file)
-              ? Effect.succeed(file)
-              : Effect.fail(
-                  new FilesystemDataIntegrityError(
-                    'Expected a text file but got a binary'
-                  )
-                )
-          ),
+          readTextFile(file.path),
           Effect.flatMap((fileContent) =>
             pipe(
               Effect.try({
@@ -158,7 +148,7 @@ export const updateProjectFromFilesystemContent =
     findDocumentInProject,
     deleteDocumentFromProject: deleteDocumentFromProjectStore,
     listDirectoryFiles,
-    readFile,
+    readTextFile,
     addDocumentToProject,
   }: UpdateProjectFromFilesystemContentDeps) =>
   ({
@@ -199,11 +189,11 @@ export const updateProjectFromFilesystemContent =
                   findDocumentById,
                   findDocumentInProject,
                   updateRichTextDocumentContent,
-                  readFile,
+                  readTextFile,
                 })({ file, projectId })
               : createVersionedDocumentFromFile({
                   createDocument,
-                  readFile,
+                  readTextFile,
                   addDocumentToProject,
                 })({
                   file,

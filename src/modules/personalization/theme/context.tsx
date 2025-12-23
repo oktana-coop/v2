@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-import { ElectronContext } from '../../infrastructure/cross-platform/electron-context';
+import { ElectronContext } from '../../infrastructure/cross-platform/browser';
 import { type ResolvedTheme, type Theme, themes } from './theme';
 
 const getDefaultTheme = () =>

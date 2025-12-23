@@ -8,7 +8,6 @@ import {
   DataIntegrityError as VersionedProjectDataIntegrityError,
   type File,
   type Filesystem,
-  isTextFile,
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
@@ -39,13 +38,13 @@ export type CreateVersionedDocumentInFileResult = {
 export type CreateVersionedDocumentInFileDeps = {
   createDocument: VersionedDocumentStore['createDocument'];
   addDocumentToProject: MultiDocumentProjectStore['addDocumentToProject'];
-  readFile: Filesystem['readFile'];
+  readTextFile: Filesystem['readTextFile'];
 };
 
 export const createVersionedDocumentFromFile =
   ({
     createDocument,
-    readFile,
+    readTextFile,
     addDocumentToProject,
   }: CreateVersionedDocumentInFileDeps) =>
   ({
@@ -65,26 +64,13 @@ export const createVersionedDocumentFromFile =
     never
   > =>
     Effect.Do.pipe(
-      Effect.bind('readFileResult', () =>
-        pipe(
-          readFile(file.path),
-          Effect.flatMap((file) =>
-            isTextFile(file)
-              ? Effect.succeed(file)
-              : Effect.fail(
-                  new FilesystemDataIntegrityError(
-                    'Expected a text file but got a binary'
-                  )
-                )
-          )
-        )
-      ),
-      Effect.bind('documentId', ({ readFileResult }) =>
+      Effect.bind('readTextFileResult', () => readTextFile(file.path)),
+      Effect.bind('documentId', ({ readTextFileResult }) =>
         createDocument({
-          content: readFileResult.content ?? null,
+          content: readTextFileResult.content ?? null,
         })
       ),
-      Effect.tap(({ readFileResult, documentId }) =>
+      Effect.tap(({ readTextFileResult, documentId }) =>
         pipe(
           Option.fromNullable(projectId),
           Option.match({
@@ -92,16 +78,16 @@ export const createVersionedDocumentFromFile =
             onSome: (projId) =>
               addDocumentToProject({
                 documentId,
-                name: readFileResult.name,
-                path: readFileResult.path,
+                name: readTextFileResult.name,
+                path: readTextFileResult.path,
                 projectId: projId,
               }),
           })
         )
       ),
-      Effect.map(({ readFileResult, documentId }) => ({
+      Effect.map(({ readTextFileResult, documentId }) => ({
         id: documentId,
-        path: readFileResult.path,
-        name: readFileResult.name,
+        path: readTextFileResult.path,
+        name: readTextFileResult.name,
       }))
     );

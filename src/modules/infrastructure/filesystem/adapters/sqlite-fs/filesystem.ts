@@ -5,9 +5,13 @@ import { pipe } from 'effect/Function';
 
 import { mapErrorTo } from '../../../../../utils/errors';
 import { filesystemItemTypes } from '../../constants/filesystem-item-types';
-import { NotFoundError, RepositoryError } from '../../errors';
-import { Filesystem } from '../../ports/filesystem';
-import { File } from '../../types';
+import {
+  DataIntegrityError,
+  NotFoundError,
+  RepositoryError,
+} from '../../errors';
+import { type Filesystem } from '../../ports/filesystem';
+import { type File, isBinaryFile, isTextFile } from '../../types';
 import { NodeLikeFsApi } from './node-like-sqlite-fs';
 import { isNodeError } from './utils';
 
@@ -115,19 +119,25 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
       new RepositoryError('Cannot open a file in the SQLite fs adapter')
     );
 
-  const writeFile: Filesystem['writeFile'] = (
-    filePath: string,
-    content: string
-  ) =>
+  const writeFile: Filesystem['writeFile'] = ({ path: filePath, content }) =>
     Effect.tryPromise({
-      try: () => fs.writeFile(filePath, content, 'utf8'),
+      try: () => fs.writeFile(filePath, content),
       catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
     });
 
-  const readFile: Filesystem['readFile'] = (filePath: string) =>
+  const readFile: (args: {
+    path: string;
+    encoding?: BufferEncoding;
+  }) => Effect.Effect<File, NotFoundError | RepositoryError, never> = ({
+    path: filePath,
+    encoding,
+  }) =>
     pipe(
-      Effect.tryPromise({
-        try: () => fs.readFile(filePath, 'utf8'),
+      Effect.tryPromise<string | Buffer, NotFoundError | RepositoryError>({
+        try: () =>
+          encoding
+            ? fs.readFile(filePath, { encoding })
+            : fs.readFile(filePath),
         catch: (err: unknown) => {
           if (isNodeError(err)) {
             switch (err.code) {
@@ -152,6 +162,51 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
         content,
       }))
     );
+
+  const readBinaryFile: Filesystem['readBinaryFile'] = (filePath) =>
+    pipe(
+      readFile({ path: filePath }),
+      Effect.flatMap((file) =>
+        isBinaryFile(file)
+          ? Effect.succeed(file)
+          : Effect.fail(
+              new DataIntegrityError(
+                'Expected a binary file but got a text one'
+              )
+            )
+      )
+    );
+
+  const readTextFile: Filesystem['readTextFile'] = (filePath) =>
+    pipe(
+      readFile({ path: filePath, encoding: 'utf8' }),
+      Effect.flatMap((file) =>
+        isTextFile(file)
+          ? Effect.succeed(file)
+          : Effect.fail(
+              new DataIntegrityError('Expected a text file but got a binary')
+            )
+      )
+    );
+
+  const deleteFile: Filesystem['deleteFile'] = ({ path: filePath }) =>
+    Effect.tryPromise({
+      try: () => fs.unlink(filePath),
+      catch: (err: unknown) => {
+        if (isNodeError(err)) {
+          switch (err.code) {
+            case 'ENOENT':
+              return new NotFoundError(
+                `File in path ${filePath} does not exist`
+              );
+            default:
+              return new RepositoryError(err.message);
+          }
+        }
+
+        return new RepositoryError(`Error reading file with path ${filePath}`);
+      },
+    });
 
   // Inside the SQLite filesystem, we use posix paths independently of the host OS.
   const getRelativePath: Filesystem['getRelativePath'] = ({
@@ -188,7 +243,9 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
     createNewFile,
     openFile,
     writeFile,
-    readFile,
+    readBinaryFile,
+    readTextFile,
+    deleteFile,
     getRelativePath,
     getAbsolutePath,
   };

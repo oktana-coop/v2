@@ -14,7 +14,7 @@ import {
   createElectronRendererMultiDocumentProjectStoreManagerAdapter,
 } from '../../../../modules/domain/project/browser';
 import { type VersionedDocumentStore } from '../../../../modules/domain/rich-text';
-import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/electron-context';
+import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import { type Filesystem } from '../../../../modules/infrastructure/filesystem';
 import { createAdapter as createBrowserFilesystemAPIAdapter } from '../../../../modules/infrastructure/filesystem/adapters/browser-api';
 import { createAdapter as createElectronRendererFilesystemAPIAdapter } from '../../../../modules/infrastructure/filesystem/adapters/electron-renderer-api';

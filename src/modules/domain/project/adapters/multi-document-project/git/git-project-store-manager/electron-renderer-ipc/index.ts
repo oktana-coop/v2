@@ -24,18 +24,21 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
               'Error in creating multi-document project'
             ),
           }),
-          Effect.map(({ projectId, directory, currentBranch }) => ({
-            versionedProjectStore: createMultiDocumentProjectStoreAdapter(),
-            versionedDocumentStore: createVersionedDocumentStoreAdapter({
+          Effect.map(
+            ({ projectId, directory, currentBranch, remoteProjects }) => ({
+              versionedProjectStore: createMultiDocumentProjectStoreAdapter(),
+              versionedDocumentStore: createVersionedDocumentStoreAdapter({
+                projectId,
+                // It's really the main process store that manages the filesystem workdir here,
+                // but from the perspective of the client using this adapter it should be transparent.
+                managesFilesystemWorkdir: true,
+              }),
               projectId,
-              // It's really the main process store that manages the filesystem workdir here,
-              // but from the perspective of the client using this adapter it should be transparent.
-              managesFilesystemWorkdir: true,
-            }),
-            projectId,
-            directory,
-            currentBranch,
-          }))
+              directory,
+              currentBranch,
+              remoteProjects,
+            })
+          )
         );
 
   const openMultiDocumentProjectById: MultiDocumentProjectStoreManager['openMultiDocumentProjectById'] =
@@ -59,7 +62,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
               'Error in creating multi-document project'
             ),
           }),
-          Effect.map(({ directory, currentBranch }) => ({
+          Effect.map(({ directory, currentBranch, remoteProjects }) => ({
             versionedProjectStore: createMultiDocumentProjectStoreAdapter(),
             // It's really the main process store that manages the filesystem workdir here,
             // but from the perspective of the client using this adapter it should be transparent.
@@ -70,6 +73,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
             projectId,
             directory,
             currentBranch,
+            remoteProjects,
           }))
         );
 

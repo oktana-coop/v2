@@ -30,7 +30,7 @@ import {
   type VersionedDocumentStore,
 } from '../../../../modules/domain/rich-text';
 import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
-import { ElectronContext } from '../../../../modules/infrastructure/cross-platform';
+import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import {
   type ArtifactHistoryInfo,
   type Change,

@@ -107,6 +107,7 @@ export const createAdapter = ({
                   projectId,
                   documentId,
                   currentBranch,
+                  remoteProjects: [],
                   file,
                   name,
                 }))
@@ -181,6 +182,7 @@ export const createAdapter = ({
                     projectId,
                     documentId,
                     currentBranch,
+                    remoteProjects: [],
                     file,
                     name,
                   }))

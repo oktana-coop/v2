@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { Outlet } from 'react-router';
 
-import { ElectronContext } from '../../../../../modules/infrastructure/cross-platform/electron-context';
+import { ElectronContext } from '../../../../../modules/infrastructure/cross-platform/browser';
 import {
   CreateDocumentModalProvider,
   CurrentDocumentProvider,

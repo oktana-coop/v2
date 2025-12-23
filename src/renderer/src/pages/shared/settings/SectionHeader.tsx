@@ -1,5 +1,5 @@
-import { IconProps } from '../../components/icons/types';
-import { Heading2 } from '../../components/typography/headings/Heading2';
+import { IconProps } from '../../../components/icons/types';
+import { Heading2 } from '../../../components/typography/headings/Heading2';
 
 type SectionHeaderProps = {
   icon?: React.ComponentType<IconProps>;

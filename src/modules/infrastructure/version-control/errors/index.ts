@@ -25,3 +25,9 @@ export const VersionControlMergeConflictErrorTag =
 export class MergeConflictError extends Cause.YieldableError {
   readonly _tag = VersionControlMergeConflictErrorTag;
 }
+
+export const VersionControlSyncProviderErrorTag =
+  'VersionControlSyncProviderError';
+export class SyncProviderError extends Cause.YieldableError {
+  readonly _tag = VersionControlSyncProviderErrorTag;
+}

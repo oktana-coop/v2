@@ -257,7 +257,7 @@ export const createAdapter = ({
                   )
                 ),
                 Effect.flatMap((filesystem) =>
-                  filesystem.writeFile(writeToFileWithPath, content)
+                  filesystem.writeFile({ path: writeToFileWithPath, content })
                 ),
                 Effect.catchAll(() =>
                   Effect.fail(new RepositoryError('Automerge repo error'))

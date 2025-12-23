@@ -3,9 +3,9 @@ import { createContext, useEffect, useState } from 'react';
 import {
   config as browserBuildConfig,
   type RendererConfig,
-} from '../../config/browser';
-import { type UpdateState } from '../cross-platform/update';
-import { isElectron } from './utils';
+} from '../../../config/browser';
+import { isElectron } from '../browser-env';
+import { type UpdateState } from '../update';
 
 type ElectronContextType = {
   processId: string | null;

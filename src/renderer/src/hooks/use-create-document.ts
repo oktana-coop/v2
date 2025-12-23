@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from 'react';
 
 import { projectTypes } from '../../../modules/domain/project';
-import { ElectronContext } from '../../../modules/infrastructure/cross-platform/electron-context';
+import { ElectronContext } from '../../../modules/infrastructure/cross-platform/browser';
 import {
   CreateDocumentModalContext,
   CurrentProjectContext,

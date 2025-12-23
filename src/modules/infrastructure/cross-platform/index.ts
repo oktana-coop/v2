@@ -1,2 +1,2 @@
-export { ElectronContext, ElectronProvider } from './electron-context';
+export * from './electron-ipc-effect';
 export * from './update';

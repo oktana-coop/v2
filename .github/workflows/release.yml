@@ -105,6 +105,7 @@ jobs:
           VITE_SINGLE_DOCUMENT_PROJECT_VCS: 'GIT'
           VITE_MULTI_DOCUMENT_PROJECT_VCS: 'GIT'
           VITE_PROJECT_TYPE: 'SINGLE_DOCUMENT_PROJECT'
+          VITE_GITHUB_APP_CLIENT_ID: 'Iv23lin5DIAsGGXyb2XO'
       - name: Package Electron app
         run: pnpm run package
         env:

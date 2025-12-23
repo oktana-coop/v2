@@ -23,7 +23,7 @@ import {
   RepositoryError as VersionedProjectRepositoryError,
   ValidationError as VersionedProjectValidationError,
 } from '../../errors';
-import { type ProjectId } from '../../models';
+import { type ProjectId, type RemoteProjectInfo } from '../../models';
 import { type SingleDocumentProjectStore } from './single-document-project-store';
 
 type UserInfo = {
@@ -45,6 +45,7 @@ export type SetupSingleDocumentProjectStoreResult = {
   projectId: ProjectId;
   documentId: ResolvedArtifactId;
   currentBranch: Branch;
+  remoteProjects: RemoteProjectInfo[];
   file: File | null;
   name: string | null;
 };
@@ -64,6 +65,7 @@ export type OpenSingleDocumentProjectStoreResult = {
   projectId: ProjectId;
   documentId: ResolvedArtifactId;
   currentBranch: Branch;
+  remoteProjects: RemoteProjectInfo[];
   file: File | null;
   name: string | null;
 };

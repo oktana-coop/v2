@@ -6,12 +6,12 @@ import { mapErrorTo } from '../../../../../utils/errors';
 import { RepositoryError } from '../../errors';
 import { IsoGitDeps } from '../types';
 
-export type SetUserInfoArgs = IsoGitDeps & {
+export type SetUserInfoArgs = Omit<IsoGitDeps, 'isoGitHttp'> & {
   username: string | null;
   email: string | null;
 };
 
-export type GetUserInfoArgs = IsoGitDeps;
+export type GetUserInfoArgs = Omit<IsoGitDeps, 'isoGitHttp'>;
 
 export type GetUserInfoResponse = {
   username: string | null;

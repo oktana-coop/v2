@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 
-import { ElectronContext } from '../../../../modules/infrastructure/cross-platform';
+import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import { ErrorIcon, UpdateIcon } from '../icons';
 import { ProgressBar } from '../progress/ProgressBar';
 import { NotificationWithActions } from './NotificationWithActions';

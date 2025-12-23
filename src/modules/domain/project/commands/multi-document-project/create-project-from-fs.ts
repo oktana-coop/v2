@@ -40,7 +40,7 @@ export type CreateProjectFromFilesystemContentDeps = {
   createProject: MultiDocumentProjectStore['createProject'];
   addDocumentToProject: MultiDocumentProjectStore['addDocumentToProject'];
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
-  readFile: Filesystem['readFile'];
+  readTextFile: Filesystem['readTextFile'];
 };
 
 export const createProjectFromFilesystemContent =
@@ -49,7 +49,7 @@ export const createProjectFromFilesystemContent =
     createProject,
     addDocumentToProject,
     listDirectoryFiles,
-    readFile,
+    readTextFile,
   }: CreateProjectFromFilesystemContentDeps) =>
   ({
     directoryPath,
@@ -80,7 +80,7 @@ export const createProjectFromFilesystemContent =
           createVersionedDocumentFromFile({
             addDocumentToProject,
             createDocument,
-            readFile,
+            readTextFile,
           })({
             file,
             projectId: null,

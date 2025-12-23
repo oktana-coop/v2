@@ -14,7 +14,7 @@ import {
   type UpdateDownloadedState,
   type UpdateErrorState,
   type UpdateNotAvailableState,
-} from '../modules/infrastructure/cross-platform/update';
+} from '../modules/infrastructure/cross-platform';
 
 autoUpdater.forceDevUpdateConfig = true;
 autoUpdater.logger = electronLogger;
