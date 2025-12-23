@@ -90,6 +90,10 @@ export type MultiDocumentProjectAddRemoteProjectArgs = {
   authToken?: string;
 };
 
+export type MultiDocumentProjectListRemoteProjectsArgs = {
+  projectId: ProjectId;
+};
+
 export type MultiDocumentProjectFindRemoteProjectByNameArgs = {
   projectId: ProjectId;
   remoteName: string;
@@ -188,6 +192,13 @@ export type MultiDocumentProjectStore = {
   addRemoteProject: (
     args: MultiDocumentProjectAddRemoteProjectArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  listRemoteProjects: (
+    args: MultiDocumentProjectListRemoteProjectsArgs
+  ) => Effect.Effect<
+    RemoteProjectInfo[],
+    ValidationError | RepositoryError,
+    never
+  >;
   findRemoteProjectByName: (
     args: MultiDocumentProjectFindRemoteProjectByNameArgs
   ) => Effect.Effect<

@@ -21,6 +21,7 @@ import {
   getUserInfo as getUserInfoFromConfig,
   isGitBlobRef,
   listBranches as listBranchesWithGit,
+  listRemotes as listGitRemotes,
   mergeAndDeleteBranch as mergeAndDeleteBranchWithGit,
   pullFromRemote as pullFromRemoteGitRepo,
   pushToRemote as pushToRemoteGitRepo,
@@ -424,6 +425,32 @@ export const createAdapter = ({
       )
     );
 
+  const listRemoteProjects: MultiDocumentProjectStore['listRemoteProjects'] = ({
+    projectId,
+  }) =>
+    pipe(
+      ensureProjectIdIsFsPath(projectId),
+      Effect.flatMap((projectPath) =>
+        pipe(
+          listGitRemotes({
+            isoGitFs,
+            dir: projectPath,
+          }),
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+            Effect.fail(new RepositoryError(err.message))
+          ),
+          Effect.flatMap((remotes) =>
+            Effect.succeed(
+              remotes.map((remote) => ({
+                name: remote.remote,
+                url: remote.url,
+              }))
+            )
+          )
+        )
+      )
+    );
+
   const findRemoteProjectByName: MultiDocumentProjectStore['findRemoteProjectByName'] =
     ({ projectId, remoteName = 'origin' }) =>
       pipe(
@@ -511,6 +538,7 @@ export const createAdapter = ({
     mergeAndDeleteBranch,
     setAuthorInfo,
     addRemoteProject,
+    listRemoteProjects,
     findRemoteProjectByName,
     pushToRemoteProject,
     pullFromRemoteProject,

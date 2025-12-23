@@ -23,6 +23,7 @@ import {
   type MultiDocumentProjectFindRemoteProjectByNameArgs,
   type MultiDocumentProjectGetCurrentBranchArgs,
   type MultiDocumentProjectListBranchesArgs,
+  type MultiDocumentProjectListRemoteProjectsArgs,
   type MultiDocumentProjectMergeAndDeleteBranchArgs,
   type MultiDocumentProjectPullFromRemoteProjectArgs,
   type MultiDocumentProjectPushToRemoteProjectArgs,
@@ -40,6 +41,7 @@ import {
   type SingleDocumentProjectFindRemoteProjectByNameArgs,
   type SingleDocumentProjectGetCurrentBranchArgs,
   type SingleDocumentProjectListBranchesArgs,
+  type SingleDocumentProjectListRemoteProjectsArgs,
   type SingleDocumentProjectMergeAndDeleteBranchArgs,
   type SingleDocumentProjectPullFromRemoteProjectArgs,
   type SingleDocumentProjectPushToRemoteProjectArgs,
@@ -491,6 +493,26 @@ const registerSingleDocumentProjectStoreEvents = ({
   );
 
   ipcMain.handle(
+    'single-document-project-store:list-remote-projects',
+    async (_, args: SingleDocumentProjectListRemoteProjectsArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.listRemoteProjects(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
     'single-document-project-store:find-remote-project-by-name',
     async (_, args: SingleDocumentProjectFindRemoteProjectByNameArgs) =>
       runPromiseSerializingErrorsForIPC(
@@ -875,6 +897,26 @@ const registerMultiDocumentProjectStoreEvents = ({
                 })
               )
             )
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:list-remote-projects',
+    async (_, args: MultiDocumentProjectListRemoteProjectsArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.listRemoteProjects(args)
           )
         )
       )

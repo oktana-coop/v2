@@ -212,6 +212,15 @@ export const createAdapter = (
     );
 
   // TODO: Implement explict sync in Automerge
+  const listRemoteProjects: SingleDocumentProjectStore['listRemoteProjects'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Explicit sync is not yet supported when the app is configured with Automerge'
+        )
+      );
+
+  // TODO: Implement explict sync in Automerge
   const findRemoteProjectByName: SingleDocumentProjectStore['findRemoteProjectByName'] =
     () =>
       Effect.fail(
@@ -253,6 +262,7 @@ export const createAdapter = (
     mergeAndDeleteBranch,
     setAuthorInfo,
     addRemoteProject,
+    listRemoteProjects,
     findRemoteProjectByName,
     pushToRemoteProject,
     pullFromRemoteProject,

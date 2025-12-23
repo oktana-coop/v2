@@ -201,6 +201,20 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.singleDocumentProjectStoreAPI.addRemoteProject(...args)),
+  listRemoteProjects: (
+    ...args: Parameters<SingleDocumentProjectStore['listRemoteProjects']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['listRemoteProjects']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.listRemoteProjects(...args)),
   findRemoteProjectByName: (
     ...args: Parameters<SingleDocumentProjectStore['findRemoteProjectByName']>
   ) =>

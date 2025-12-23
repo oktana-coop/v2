@@ -265,6 +265,10 @@ contextBridge.exposeInMainWorld('singleDocumentProjectStoreAPI', {
     ipcRenderer.invoke('single-document-project-store:add-remote-project', {
       ...args,
     }),
+  listRemoteProjects: (args) =>
+    ipcRenderer.invoke('single-document-project-store:list-remote-projects', {
+      ...args,
+    }),
   findRemoteProjectByName: (args) =>
     ipcRenderer.invoke(
       'single-document-project-store:find-remote-project-by-name',
@@ -346,6 +350,10 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
     }),
   addRemoteProject: (args) =>
     ipcRenderer.invoke('multi-document-project-store:add-remote-project', {
+      ...args,
+    }),
+  listRemoteProjects: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:list-remote-projects', {
       ...args,
     }),
   findRemoteProjectByName: (args) =>

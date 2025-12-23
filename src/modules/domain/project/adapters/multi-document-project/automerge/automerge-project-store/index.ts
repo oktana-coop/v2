@@ -243,6 +243,15 @@ export const createAdapter = (
     );
 
   // TODO: Implement explicit sync in Automerge
+  const listRemoteProjects: MultiDocumentProjectStore['listRemoteProjects'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Explicit sync is not yet supported when the app is configured with Automerge'
+        )
+      );
+
+  // TODO: Implement explicit sync in Automerge
   const findRemoteProjectByName: MultiDocumentProjectStore['findRemoteProjectByName'] =
     () =>
       Effect.fail(
@@ -286,6 +295,7 @@ export const createAdapter = (
     mergeAndDeleteBranch,
     setAuthorInfo,
     addRemoteProject,
+    listRemoteProjects,
     findRemoteProjectByName,
     pushToRemoteProject,
     pullFromRemoteProject,

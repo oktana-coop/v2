@@ -70,6 +70,10 @@ export type SingleDocumentProjectAddRemoteProjectArgs = {
   authToken?: string;
 };
 
+export type SingleDocumentProjectListRemoteProjectsArgs = {
+  projectId: ProjectId;
+};
+
 export type SingleDocumentProjectFindRemoteProjectByNameArgs = {
   projectId: ProjectId;
   remoteName: string;
@@ -154,6 +158,13 @@ export type SingleDocumentProjectStore = {
   addRemoteProject: (
     args: SingleDocumentProjectAddRemoteProjectArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  listRemoteProjects: (
+    args: SingleDocumentProjectListRemoteProjectsArgs
+  ) => Effect.Effect<
+    RemoteProjectInfo[],
+    ValidationError | RepositoryError,
+    never
+  >;
   findRemoteProjectByName: (
     args: SingleDocumentProjectFindRemoteProjectByNameArgs
   ) => Effect.Effect<

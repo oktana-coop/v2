@@ -224,6 +224,20 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.multiDocumentProjectStoreAPI.addRemoteProject(...args)),
+  listRemoteProjects: (
+    ...args: Parameters<MultiDocumentProjectStore['listRemoteProjects']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['listRemoteProjects']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.listRemoteProjects(...args)),
   findRemoteProjectByName: (
     ...args: Parameters<MultiDocumentProjectStore['findRemoteProjectByName']>
   ) =>

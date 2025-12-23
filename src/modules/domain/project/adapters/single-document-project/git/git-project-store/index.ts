@@ -18,6 +18,7 @@ import {
   findRemoteByName as findGitRemoteByName,
   getCurrentBranch as getCurrentBranchWithGit,
   listBranches as listBranchesWithGit,
+  listRemotes as listGitRemotes,
   mergeAndDeleteBranch as mergeAndDeleteBranchWithGit,
   MigrationError,
   pullFromRemote as pullFromRemoteGitRepo,
@@ -298,6 +299,26 @@ export const createAdapter = ({
       )
     );
 
+  const listRemoteProjects: SingleDocumentProjectStore['listRemoteProjects'] =
+    () =>
+      pipe(
+        listGitRemotes({
+          isoGitFs,
+          dir: internalProjectDir,
+        }),
+        Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+          Effect.fail(new RepositoryError(err.message))
+        ),
+        Effect.flatMap((remotes) =>
+          Effect.succeed(
+            remotes.map((remote) => ({
+              name: remote.remote,
+              url: remote.url,
+            }))
+          )
+        )
+      );
+
   const findRemoteProjectByName: SingleDocumentProjectStore['findRemoteProjectByName'] =
     ({ remoteName = 'origin' }) =>
       pipe(
@@ -376,6 +397,7 @@ export const createAdapter = ({
     mergeAndDeleteBranch,
     setAuthorInfo,
     addRemoteProject,
+    listRemoteProjects,
     findRemoteProjectByName,
     pushToRemoteProject,
     pullFromRemoteProject,
