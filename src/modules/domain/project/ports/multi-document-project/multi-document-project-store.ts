@@ -86,19 +86,19 @@ export type MultiDocumentProjectAddRemoteProjectArgs = {
   projectId: ProjectId;
   remoteName?: string;
   remoteUrl: string;
-  authToken: string;
+  authToken?: string;
 };
 
 export type MultiDocumentProjectPushToRemoteProjectArgs = {
   projectId: ProjectId;
   remoteName?: string;
-  authToken: string;
+  authToken?: string;
 };
 
 export type MultiDocumentProjectPullFromRemoteProjectArgs = {
   projectId: ProjectId;
   remoteName?: string;
-  authToken: string;
+  authToken?: string;
 };
 
 export type MultiDocumentProjectStore = {

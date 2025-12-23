@@ -101,8 +101,8 @@ export const registerVersionedStoresEvents = ({
     multiDocumentProjectStoreManager,
     filesystem,
   });
-  registerSingleDocumentProjectStoreEvents();
-  registerMultiDocumentProjectStoreEvents();
+  registerSingleDocumentProjectStoreEvents({ encryptedStore });
+  registerMultiDocumentProjectStoreEvents({ encryptedStore });
   registerVersionedDocumentStoreEvents();
   registerVersionControlSyncProvidersEvents({ encryptedStore });
 };
@@ -232,7 +232,11 @@ const registerStoreManagerEvents = ({
   );
 };
 
-const registerSingleDocumentProjectStoreEvents = () => {
+const registerSingleDocumentProjectStoreEvents = ({
+  encryptedStore,
+}: {
+  encryptedStore: EncryptedStore;
+}) => {
   ipcMain.handle(
     'single-document-project-store:create-single-document-project',
     async (_, args: CreateSingleDocumentProjectArgs, projectId: string) =>
@@ -474,7 +478,11 @@ const registerSingleDocumentProjectStoreEvents = () => {
   );
 };
 
-const registerMultiDocumentProjectStoreEvents = () => {
+const registerMultiDocumentProjectStoreEvents = ({
+  encryptedStore,
+}: {
+  encryptedStore: EncryptedStore;
+}) => {
   ipcMain.handle(
     'multi-document-project-store:create-project',
     async (_, args: CreateMultiDocumentProjectArgs) =>
@@ -749,7 +757,15 @@ const registerMultiDocumentProjectStoreEvents = () => {
               )
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.addRemoteProject(args)
+            pipe(
+              getValidGithubAccessToken({ encryptedStore })(),
+              Effect.flatMap((userToken) =>
+                versionedProjectStore.addRemoteProject({
+                  ...args,
+                  authToken: userToken,
+                })
+              )
+            )
           )
         )
       )
@@ -769,7 +785,15 @@ const registerMultiDocumentProjectStoreEvents = () => {
               )
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.pushToRemoteProject(args)
+            pipe(
+              getValidGithubAccessToken({ encryptedStore })(),
+              Effect.flatMap((userToken) =>
+                versionedProjectStore.pushToRemoteProject({
+                  ...args,
+                  authToken: userToken,
+                })
+              )
+            )
           )
         )
       )
@@ -789,7 +813,15 @@ const registerMultiDocumentProjectStoreEvents = () => {
               )
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.pullFromRemoteProject(args)
+            pipe(
+              getValidGithubAccessToken({ encryptedStore })(),
+              Effect.flatMap((userToken) =>
+                versionedProjectStore.pullFromRemoteProject({
+                  ...args,
+                  authToken: userToken,
+                })
+              )
+            )
           )
         )
       )

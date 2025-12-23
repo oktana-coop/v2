@@ -381,15 +381,32 @@ export const createAdapter = ({
       )
     );
 
+  const ensureAuthTokenIsProvided: (
+    authToken: string | undefined
+  ) => Effect.Effect<string, ValidationError, never> = (authToken) =>
+    pipe(
+      Option.fromNullable(authToken),
+      Option.match({
+        onNone: () =>
+          Effect.fail(
+            new ValidationError(
+              'Auth token must be provided to perform this operation'
+            )
+          ),
+        onSome: (token) => Effect.succeed(token),
+      })
+    );
+
   const addRemoteProject: MultiDocumentProjectStore['addRemoteProject'] = ({
     projectId,
     remoteName = 'origin',
     remoteUrl,
-    authToken,
+    authToken: authTokenInput,
   }) =>
-    pipe(
-      ensureProjectIdIsFsPath(projectId),
-      Effect.flatMap((projectPath) =>
+    Effect.Do.pipe(
+      Effect.bind('authToken', () => ensureAuthTokenIsProvided(authTokenInput)),
+      Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
+      Effect.flatMap(({ authToken, projectPath }) =>
         pipe(
           validateAndAddRemote({
             isoGitFs,
@@ -407,10 +424,13 @@ export const createAdapter = ({
     );
 
   const pushToRemoteProject: MultiDocumentProjectStore['pushToRemoteProject'] =
-    ({ projectId, remoteName = 'origin', authToken }) =>
-      pipe(
-        ensureProjectIdIsFsPath(projectId),
-        Effect.flatMap((projectPath) =>
+    ({ projectId, remoteName = 'origin', authToken: authTokenInput }) =>
+      Effect.Do.pipe(
+        Effect.bind('authToken', () =>
+          ensureAuthTokenIsProvided(authTokenInput)
+        ),
+        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
+        Effect.flatMap(({ authToken, projectPath }) =>
           pipe(
             pushToRemoteGitRepo({
               isoGitFs,
@@ -427,10 +447,13 @@ export const createAdapter = ({
       );
 
   const pullFromRemoteProject: MultiDocumentProjectStore['pullFromRemoteProject'] =
-    ({ projectId, remoteName = 'origin', authToken }) =>
-      pipe(
-        ensureProjectIdIsFsPath(projectId),
-        Effect.flatMap((projectPath) =>
+    ({ projectId, remoteName = 'origin', authToken: authTokenInput }) =>
+      Effect.Do.pipe(
+        Effect.bind('authToken', () =>
+          ensureAuthTokenIsProvided(authTokenInput)
+        ),
+        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
+        Effect.flatMap(({ authToken, projectPath }) =>
           pipe(
             pullFromRemoteGitRepo({
               isoGitFs,
