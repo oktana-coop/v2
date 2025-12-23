@@ -12,6 +12,7 @@ import { useNavigate, useParams } from 'react-router';
 import { AuthContext } from '../../../../modules/auth/browser';
 import {
   createVersionedDocument,
+  DEFAULT_REMOTE_PROJECT_NAME,
   findDocumentInProject,
   type MultiDocumentProjectStore,
   urlEncodeProjectId,
@@ -569,6 +570,46 @@ export const MultiDocumentProjectProvider = ({
     }
   }, [username, email, versionedProjectStore, projectId]);
 
+  const handleAddRemoteProject = useCallback(
+    async (url: string) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot add remote project.'
+        );
+      }
+
+      const { notification } = await Effect.runPromise(
+        pipe(
+          pipe(
+            versionedProjectStore.addRemoteProject({
+              projectId,
+              remoteName: DEFAULT_REMOTE_PROJECT_NAME,
+              remoteUrl: url,
+            }),
+            Effect.map((remoteInfo) => ({
+              result: remoteInfo,
+              notification: null,
+            }))
+          ),
+          Effect.catchAll((err) => {
+            console.error(err);
+            const notification = createErrorNotification({
+              title: 'Remote Project Error',
+              message: `An error happened when trying to connect the remote project.`,
+            });
+
+            return Effect.succeed({ result: null, notification });
+          })
+        )
+      );
+
+      if (notification) {
+        dispatchNotification(notification);
+      }
+    },
+    [versionedProjectStore, projectId]
+  );
+
   return (
     <MultiDocumentProjectContext.Provider
       value={{
@@ -597,6 +638,7 @@ export const MultiDocumentProjectProvider = ({
         openDeleteBranchDialog: handleOpenDeleteBranchDialog,
         closeDeleteBranchDialog: handleCloseDeleteBranchDialog,
         supportsBranching,
+        addRemoteProject: handleAddRemoteProject,
       }}
     >
       {children}

@@ -16,7 +16,7 @@ import {
   DEFAULT_AUTHOR_NAME,
   DEFAULT_BRANCH,
   deleteBranch as deleteBranchWithGit,
-  findRemoteByNameValidatingConnectivityAndAuth,
+  findRemoteByName as findGitRemoteByName,
   getCurrentBranch as getCurrentBranchWithGit,
   getUserInfo as getUserInfoFromConfig,
   isGitBlobRef,
@@ -425,20 +425,15 @@ export const createAdapter = ({
     );
 
   const findRemoteProjectByName: MultiDocumentProjectStore['findRemoteProjectByName'] =
-    ({ projectId, remoteName = 'origin', authToken: authTokenInput }) =>
-      Effect.Do.pipe(
-        Effect.bind('authToken', () =>
-          ensureAuthTokenIsProvided(authTokenInput)
-        ),
-        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
-        Effect.flatMap(({ authToken, projectPath }) =>
+    ({ projectId, remoteName = 'origin' }) =>
+      pipe(
+        ensureProjectIdIsFsPath(projectId),
+        Effect.flatMap((projectPath) =>
           pipe(
-            findRemoteByNameValidatingConnectivityAndAuth({
+            findGitRemoteByName({
               isoGitFs,
-              isoGitHttp,
               dir: projectPath,
               name: remoteName,
-              authToken,
             }),
             Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
               Effect.fail(new RepositoryError(err.message))

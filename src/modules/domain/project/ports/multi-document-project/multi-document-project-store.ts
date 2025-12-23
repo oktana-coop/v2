@@ -93,7 +93,6 @@ export type MultiDocumentProjectAddRemoteProjectArgs = {
 export type MultiDocumentProjectFindRemoteProjectByNameArgs = {
   projectId: ProjectId;
   remoteName: string;
-  authToken?: string;
 };
 
 export type MultiDocumentProjectPushToRemoteProjectArgs = {

@@ -136,9 +136,7 @@ export const pullFromRemote = ({
     catch: mapErrorTo(RepositoryError, 'Error in pulling from remote git repo'),
   });
 
-type ListRemotesArgs = Omit<IsoGitDeps, 'isoGitHttp'> & {
-  dir: string;
-};
+type ListRemotesArgs = Omit<IsoGitDeps, 'isoGitHttp'>;
 
 type RemoteInfo = { remote: string; url: string };
 
@@ -155,18 +153,17 @@ export const listRemotes = ({
     catch: mapErrorTo(RepositoryError, 'Error in listing git remotes'),
   });
 
-type FindRemoteByNameValidatingConnectivityAndAuthArgs = IsoGitDeps & {
-  dir: string;
+type FindRemoteByNameValidatingConnectivityAndAuthArgs = Omit<
+  IsoGitDeps,
+  'isoGitHttp'
+> & {
   name: string;
-  authToken: string;
 };
 
-export const findRemoteByNameValidatingConnectivityAndAuth = ({
+export const findRemoteByName = ({
   isoGitFs,
-  isoGitHttp,
   dir,
   name,
-  authToken,
 }: FindRemoteByNameValidatingConnectivityAndAuthArgs): Effect.Effect<
   RemoteInfo,
   NotFoundError | RepositoryError,
@@ -180,12 +177,5 @@ export const findRemoteByNameValidatingConnectivityAndAuth = ({
       return remote
         ? Effect.succeed(remote)
         : Effect.fail(new NotFoundError(`Remote with name ${name} not found`));
-    }),
-    Effect.tap((remote) =>
-      validateRemoteConnectivityAndAuth({
-        isoGitHttp,
-        url: remote.url,
-        authToken,
-      })
-    )
+    })
   );

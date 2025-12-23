@@ -73,7 +73,6 @@ export type SingleDocumentProjectAddRemoteProjectArgs = {
 export type SingleDocumentProjectFindRemoteProjectByNameArgs = {
   projectId: ProjectId;
   remoteName: string;
-  authToken?: string;
 };
 
 export type SingleDocumentProjectPushToRemoteProjectArgs = {

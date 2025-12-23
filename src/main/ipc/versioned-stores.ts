@@ -504,15 +504,7 @@ const registerSingleDocumentProjectStoreEvents = ({
               )
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
-            pipe(
-              getValidGithubAccessToken({ encryptedStore })(),
-              Effect.flatMap((userToken) =>
-                versionedProjectStore.findRemoteProjectByName({
-                  ...args,
-                  authToken: userToken,
-                })
-              )
-            )
+            versionedProjectStore.findRemoteProjectByName(args)
           )
         )
       )
@@ -902,15 +894,7 @@ const registerMultiDocumentProjectStoreEvents = ({
               )
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
-            pipe(
-              getValidGithubAccessToken({ encryptedStore })(),
-              Effect.flatMap((userToken) =>
-                versionedProjectStore.findRemoteProjectByName({
-                  ...args,
-                  authToken: userToken,
-                })
-              )
-            )
+            versionedProjectStore.findRemoteProjectByName(args)
           )
         )
       )
