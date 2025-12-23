@@ -193,6 +193,7 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
     effectifyIPCPromise(
       {
         [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<SingleDocumentProjectStore['addRemoteProject']>
@@ -200,12 +201,28 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.singleDocumentProjectStoreAPI.addRemoteProject(...args)),
+  findRemoteProjectByName: (
+    ...args: Parameters<SingleDocumentProjectStore['findRemoteProjectByName']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['findRemoteProjectByName']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.findRemoteProjectByName(...args)),
   pushToRemoteProject: (
     ...args: Parameters<SingleDocumentProjectStore['pushToRemoteProject']>
   ) =>
     effectifyIPCPromise(
       {
         [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<SingleDocumentProjectStore['pushToRemoteProject']>
@@ -219,6 +236,7 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
     effectifyIPCPromise(
       {
         [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<SingleDocumentProjectStore['pullFromRemoteProject']>

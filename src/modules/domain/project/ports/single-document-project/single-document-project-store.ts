@@ -12,6 +12,7 @@ import { NotFoundError, RepositoryError, ValidationError } from '../../errors';
 import {
   type BaseArtifactMetaData,
   type ProjectId,
+  type RemoteProjectInfo,
   type VersionedSingleDocumentProject,
 } from '../../models';
 
@@ -66,6 +67,12 @@ export type SingleDocumentProjectAddRemoteProjectArgs = {
   projectId: ProjectId;
   remoteName?: string;
   remoteUrl: string;
+  authToken?: string;
+};
+
+export type SingleDocumentProjectFindRemoteProjectByNameArgs = {
+  projectId: ProjectId;
+  remoteName: string;
   authToken?: string;
 };
 
@@ -148,6 +155,13 @@ export type SingleDocumentProjectStore = {
   addRemoteProject: (
     args: SingleDocumentProjectAddRemoteProjectArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  findRemoteProjectByName: (
+    args: SingleDocumentProjectFindRemoteProjectByNameArgs
+  ) => Effect.Effect<
+    RemoteProjectInfo,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
   pushToRemoteProject: (
     args: SingleDocumentProjectPushToRemoteProjectArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;

@@ -9,11 +9,12 @@ import {
 } from '../../../../../modules/infrastructure/version-control';
 import { type Email, type Username } from '../../../../auth';
 import { NotFoundError, RepositoryError, ValidationError } from '../../errors';
-import type {
-  ArtifactMetaData,
-  MultiDocumentProject,
-  ProjectId,
-  VersionedMultiDocumentProject,
+import {
+  type ArtifactMetaData,
+  type MultiDocumentProject,
+  type ProjectId,
+  type RemoteProjectInfo,
+  type VersionedMultiDocumentProject,
 } from '../../models';
 
 type UserInfo = {
@@ -86,6 +87,12 @@ export type MultiDocumentProjectAddRemoteProjectArgs = {
   projectId: ProjectId;
   remoteName?: string;
   remoteUrl: string;
+  authToken?: string;
+};
+
+export type MultiDocumentProjectFindRemoteProjectByNameArgs = {
+  projectId: ProjectId;
+  remoteName: string;
   authToken?: string;
 };
 
@@ -182,6 +189,13 @@ export type MultiDocumentProjectStore = {
   addRemoteProject: (
     args: MultiDocumentProjectAddRemoteProjectArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  findRemoteProjectByName: (
+    args: MultiDocumentProjectFindRemoteProjectByNameArgs
+  ) => Effect.Effect<
+    RemoteProjectInfo,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
   pushToRemoteProject: (
     args: MultiDocumentProjectPushToRemoteProjectArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;

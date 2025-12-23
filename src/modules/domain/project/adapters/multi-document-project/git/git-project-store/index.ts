@@ -16,6 +16,7 @@ import {
   DEFAULT_AUTHOR_NAME,
   DEFAULT_BRANCH,
   deleteBranch as deleteBranchWithGit,
+  findRemoteByNameValidatingConnectivityAndAuth,
   getCurrentBranch as getCurrentBranchWithGit,
   getUserInfo as getUserInfoFromConfig,
   isGitBlobRef,
@@ -423,6 +424,36 @@ export const createAdapter = ({
       )
     );
 
+  const findRemoteProjectByName: MultiDocumentProjectStore['findRemoteProjectByName'] =
+    ({ projectId, remoteName = 'origin', authToken: authTokenInput }) =>
+      Effect.Do.pipe(
+        Effect.bind('authToken', () =>
+          ensureAuthTokenIsProvided(authTokenInput)
+        ),
+        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
+        Effect.flatMap(({ authToken, projectPath }) =>
+          pipe(
+            findRemoteByNameValidatingConnectivityAndAuth({
+              isoGitFs,
+              isoGitHttp,
+              dir: projectPath,
+              name: remoteName,
+              authToken,
+            }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            ),
+            Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
+              Effect.fail(new NotFoundError(err.message))
+            ),
+            Effect.map((remoteInfo) => ({
+              name: remoteInfo.remote,
+              url: remoteInfo.url,
+            }))
+          )
+        )
+      );
+
   const pushToRemoteProject: MultiDocumentProjectStore['pushToRemoteProject'] =
     ({ projectId, remoteName = 'origin', authToken: authTokenInput }) =>
       Effect.Do.pipe(
@@ -485,6 +516,7 @@ export const createAdapter = ({
     mergeAndDeleteBranch,
     setAuthorInfo,
     addRemoteProject,
+    findRemoteProjectByName,
     pushToRemoteProject,
     pullFromRemoteProject,
   };

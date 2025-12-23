@@ -15,6 +15,7 @@ import {
   createGitBlobRef,
   DEFAULT_BRANCH,
   deleteBranch as deleteBranchWithGit,
+  findRemoteByNameValidatingConnectivityAndAuth,
   getCurrentBranch as getCurrentBranchWithGit,
   listBranches as listBranchesWithGit,
   mergeAndDeleteBranch as mergeAndDeleteBranchWithGit,
@@ -297,6 +298,33 @@ export const createAdapter = ({
       )
     );
 
+  const findRemoteProjectByName: SingleDocumentProjectStore['findRemoteProjectByName'] =
+    ({ remoteName = 'origin', authToken: authTokenInput }) =>
+      pipe(
+        ensureAuthTokenIsProvided(authTokenInput),
+        Effect.flatMap((authToken) =>
+          pipe(
+            findRemoteByNameValidatingConnectivityAndAuth({
+              isoGitFs,
+              isoGitHttp,
+              dir: internalProjectDir,
+              name: remoteName,
+              authToken,
+            }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            ),
+            Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
+              Effect.fail(new NotFoundError(err.message))
+            ),
+            Effect.map((remoteInfo) => ({
+              name: remoteInfo.remote,
+              url: remoteInfo.url,
+            }))
+          )
+        )
+      );
+
   const pushToRemoteProject: SingleDocumentProjectStore['pushToRemoteProject'] =
     ({ remoteName = 'origin', authToken: authTokenInput }) =>
       pipe(
@@ -355,6 +383,7 @@ export const createAdapter = ({
     mergeAndDeleteBranch,
     setAuthorInfo,
     addRemoteProject,
+    findRemoteProjectByName,
     pushToRemoteProject,
     pullFromRemoteProject,
     disconnect,

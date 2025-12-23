@@ -3,7 +3,7 @@ import { pipe } from 'effect/Function';
 import git from 'isomorphic-git';
 
 import { mapErrorTo } from '../../../../../utils/errors';
-import { RepositoryError } from '../../errors';
+import { NotFoundError, RepositoryError } from '../../errors';
 import { IsoGitDeps } from '../types';
 
 type ValidateRemoteConnectivityAndAuthArgs = Pick<IsoGitDeps, 'isoGitHttp'> & {
@@ -27,7 +27,7 @@ const validateRemoteConnectivityAndAuth = ({
 > =>
   Effect.tryPromise({
     try: () =>
-      git.listServerRefs({
+      git.getRemoteInfo({
         http: isoGitHttp,
         url,
         onAuth: authCallback(authToken),
@@ -135,3 +135,57 @@ export const pullFromRemote = ({
       }),
     catch: mapErrorTo(RepositoryError, 'Error in pulling from remote git repo'),
   });
+
+type ListRemotesArgs = Omit<IsoGitDeps, 'isoGitHttp'> & {
+  dir: string;
+};
+
+type RemoteInfo = { remote: string; url: string };
+
+export const listRemotes = ({
+  isoGitFs,
+  dir,
+}: ListRemotesArgs): Effect.Effect<RemoteInfo[], RepositoryError, never> =>
+  Effect.tryPromise({
+    try: () =>
+      git.listRemotes({
+        fs: isoGitFs,
+        dir,
+      }),
+    catch: mapErrorTo(RepositoryError, 'Error in listing git remotes'),
+  });
+
+type FindRemoteByNameValidatingConnectivityAndAuthArgs = IsoGitDeps & {
+  dir: string;
+  name: string;
+  authToken: string;
+};
+
+export const findRemoteByNameValidatingConnectivityAndAuth = ({
+  isoGitFs,
+  isoGitHttp,
+  dir,
+  name,
+  authToken,
+}: FindRemoteByNameValidatingConnectivityAndAuthArgs): Effect.Effect<
+  RemoteInfo,
+  NotFoundError | RepositoryError,
+  never
+> =>
+  pipe(
+    listRemotes({ isoGitFs, dir }),
+    Effect.flatMap((remotes) => {
+      const remote = remotes.find((r) => r.remote === name);
+
+      return remote
+        ? Effect.succeed(remote)
+        : Effect.fail(new NotFoundError(`Remote with name ${name} not found`));
+    }),
+    Effect.tap((remote) =>
+      validateRemoteConnectivityAndAuth({
+        isoGitHttp,
+        url: remote.url,
+        authToken,
+      })
+    )
+  );
