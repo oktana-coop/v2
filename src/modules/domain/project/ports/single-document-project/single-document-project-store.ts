@@ -91,6 +91,17 @@ export type SingleDocumentProjectPullFromRemoteProjectArgs = {
   authToken?: string;
 };
 
+export type SingleDocumentProjectGetRemoteBranchInfoArgs = {
+  projectId: ProjectId;
+  remoteName?: string;
+  authToken?: string;
+};
+
+export type SingleDocumentProjectGetRemoteBranchInfoResult = Record<
+  Branch,
+  Commit['id']
+>;
+
 export type SingleDocumentProjectStore = {
   supportsBranching: boolean;
   createSingleDocumentProject: (
@@ -178,5 +189,12 @@ export type SingleDocumentProjectStore = {
   pullFromRemoteProject: (
     args: SingleDocumentProjectPullFromRemoteProjectArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  getRemoteBranchInfo: (
+    args: SingleDocumentProjectGetRemoteBranchInfoArgs
+  ) => Effect.Effect<
+    SingleDocumentProjectGetRemoteBranchInfoResult,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
   disconnect: () => Effect.Effect<void, RepositoryError, never>;
 };

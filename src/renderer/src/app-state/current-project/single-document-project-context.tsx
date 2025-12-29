@@ -29,6 +29,7 @@ import {
 } from '../../../../modules/infrastructure/notifications/browser';
 import {
   type Branch,
+  type Commit,
   DEFAULT_BRANCH,
   parseBranch,
   type ResolvedArtifactId,
@@ -79,6 +80,7 @@ export type SingleDocumentProjectContextType = {
   supportsBranching: boolean;
   remoteProject: RemoteProjectInfo | null;
   addRemoteProject: (url: string) => Promise<void>;
+  remoteBranchInfo: Record<Branch, Commit['id']>;
 };
 
 export const SingleDocumentProjectContext =
@@ -143,6 +145,9 @@ export const SingleDocumentProjectProvider = ({
   const [remoteProject, setRemoteProject] = useState<RemoteProjectInfo | null>(
     null
   );
+  const [remoteBranchInfo, setRemoteBranchInfo] = useState<
+    Record<Branch, Commit['id']>
+  >({});
 
   const documentInternalPath =
     versionControlSystems[config.singleDocumentProjectVersionControlSystem] ===
@@ -389,6 +394,35 @@ export const SingleDocumentProjectProvider = ({
     }
   }, [versionedProjectStore]);
 
+  useEffect(() => {
+    const fetchRemoteBranchInfo = async ({
+      versionedProjectStore,
+      projectId,
+      remoteProject,
+    }: {
+      versionedProjectStore: SingleDocumentProjectStore;
+      projectId: ProjectId;
+      remoteProject: RemoteProjectInfo;
+    }) => {
+      const branchInfo = await Effect.runPromise(
+        versionedProjectStore.getRemoteBranchInfo({
+          projectId,
+          remoteName: remoteProject.name,
+        })
+      );
+
+      setRemoteBranchInfo(branchInfo);
+    };
+
+    if (versionedProjectStore && projectId && remoteProject) {
+      fetchRemoteBranchInfo({
+        versionedProjectStore,
+        projectId,
+        remoteProject,
+      });
+    }
+  }, [versionedProjectStore, projectId, remoteProject]);
+
   const handleListBranches = useCallback(async () => {
     if (!versionedProjectStore || !projectId) {
       throw new Error(
@@ -627,6 +661,7 @@ export const SingleDocumentProjectProvider = ({
         supportsBranching,
         remoteProject,
         addRemoteProject: handleAddRemoteProject,
+        remoteBranchInfo,
       }}
     >
       {children}

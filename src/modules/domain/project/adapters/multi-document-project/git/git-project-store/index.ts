@@ -18,6 +18,7 @@ import {
   deleteBranch as deleteBranchWithGit,
   findRemoteByName as findGitRemoteByName,
   getCurrentBranch as getCurrentBranchWithGit,
+  getRemoteBranchInfo as getRemoteBranchInfoWithGit,
   getUserInfo as getUserInfoFromConfig,
   isGitBlobRef,
   listBranches as listBranchesWithGit,
@@ -522,6 +523,42 @@ export const createAdapter = ({
         )
       );
 
+  const getRemoteBranchInfo: MultiDocumentProjectStore['getRemoteBranchInfo'] =
+    ({ projectId, remoteName = 'origin', authToken: authTokenInput }) =>
+      Effect.Do.pipe(
+        Effect.bind('authToken', () =>
+          ensureAuthTokenIsProvided(authTokenInput)
+        ),
+        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
+        Effect.flatMap(({ projectPath, authToken }) =>
+          pipe(
+            findGitRemoteByName({
+              isoGitFs,
+              dir: projectPath,
+              name: remoteName,
+            }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            ),
+            Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
+              Effect.fail(new NotFoundError(err.message))
+            ),
+            Effect.flatMap((remoteInfo) =>
+              pipe(
+                getRemoteBranchInfoWithGit({
+                  isoGitHttp,
+                  url: remoteInfo.url,
+                  authToken,
+                }),
+                Effect.catchAll((err) =>
+                  Effect.fail(new RepositoryError(err.message))
+                )
+              )
+            )
+          )
+        )
+      );
+
   return {
     supportsBranching: true,
     createProject,
@@ -542,5 +579,6 @@ export const createAdapter = ({
     findRemoteProjectByName,
     pushToRemoteProject,
     pullFromRemoteProject,
+    getRemoteBranchInfo,
   };
 };

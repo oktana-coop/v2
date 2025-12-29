@@ -278,6 +278,15 @@ export const createAdapter = (
         )
       );
 
+  // TODO: Implement explicit sync in Automerge
+  const getRemoteBranchInfo: MultiDocumentProjectStore['getRemoteBranchInfo'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Explicit sync is not yet supported when the app is configured with Automerge'
+        )
+      );
+
   return {
     // TODO: Implement branching in Automerge
     supportsBranching: false,
@@ -299,5 +308,6 @@ export const createAdapter = (
     findRemoteProjectByName,
     pushToRemoteProject,
     pullFromRemoteProject,
+    getRemoteBranchInfo,
   };
 };

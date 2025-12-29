@@ -258,6 +258,21 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.singleDocumentProjectStoreAPI.pullFromRemoteProject(...args)),
+  getRemoteBranchInfo: (
+    ...args: Parameters<SingleDocumentProjectStore['getRemoteBranchInfo']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['getRemoteBranchInfo']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.getRemoteBranchInfo(...args)),
   disconnect: (...args: Parameters<SingleDocumentProjectStore['disconnect']>) =>
     effectifyIPCPromise(
       {

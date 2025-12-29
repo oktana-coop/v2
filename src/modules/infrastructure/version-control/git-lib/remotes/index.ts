@@ -4,6 +4,12 @@ import git from 'isomorphic-git';
 
 import { mapErrorTo } from '../../../../../utils/errors';
 import { NotFoundError, RepositoryError } from '../../errors';
+import {
+  type Branch,
+  type Commit,
+  parseBranch,
+  parseGitCommitHash,
+} from '../../models';
 import { IsoGitDeps } from '../types';
 
 type ValidateRemoteConnectivityAndAuthArgs = Pick<IsoGitDeps, 'isoGitHttp'> & {
@@ -178,4 +184,80 @@ export const findRemoteByName = ({
         ? Effect.succeed(remote)
         : Effect.fail(new NotFoundError(`Remote with name ${name} not found`));
     })
+  );
+
+export type GetRemoteBranchInfoArgs = Pick<IsoGitDeps, 'isoGitHttp'> & {
+  url: string;
+  authToken: string;
+};
+
+export type GetRemoteBranchInfoResult = Record<Branch, Commit['id']>;
+
+export const getRemoteBranchInfo = ({
+  isoGitHttp,
+  url,
+  authToken,
+}: GetRemoteBranchInfoArgs): Effect.Effect<
+  GetRemoteBranchInfoResult,
+  RepositoryError,
+  never
+> =>
+  pipe(
+    Effect.tryPromise({
+      try: () =>
+        git.listServerRefs({
+          http: isoGitHttp,
+          url,
+          onAuth: authCallback(authToken),
+        }),
+      catch: mapErrorTo(
+        RepositoryError,
+        `Error in getting remote info for ${url}`
+      ),
+    }),
+    Effect.map((remoteRefs) =>
+      remoteRefs.filter((ref) => ref.ref.startsWith('refs/heads/'))
+    ),
+    Effect.flatMap((remoteBranchRefs) =>
+      Effect.forEach(remoteBranchRefs, (ref) => {
+        const match = ref.ref.match(/^refs\/heads\/(.+)$/);
+        if (match) {
+          const branchName = match[1];
+
+          return Effect.Do.pipe(
+            Effect.bind('branch', () =>
+              Effect.try({
+                try: () => parseBranch(branchName),
+                catch: mapErrorTo(
+                  RepositoryError,
+                  'Could not parse branch name from remote ref'
+                ),
+              })
+            ),
+            Effect.bind('commitId', () =>
+              Effect.try({
+                try: () => parseGitCommitHash(ref.oid),
+                catch: mapErrorTo(
+                  RepositoryError,
+                  'Could not parse commit ID from remote ref'
+                ),
+              })
+            ),
+            Effect.map(
+              ({ branch, commitId }) =>
+                ({
+                  [branch]: commitId,
+                }) as Record<Branch, Commit['id']>
+            )
+          );
+        } else {
+          return Effect.fail(
+            new RepositoryError(`Unexpected ref format from remote: ${ref.ref}`)
+          );
+        }
+      })
+    ),
+    Effect.map((branchRecords) =>
+      branchRecords.reduce((acc, record) => ({ ...acc, ...record }), {})
+    )
   );

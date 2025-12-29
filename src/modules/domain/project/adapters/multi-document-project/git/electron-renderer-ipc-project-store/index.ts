@@ -281,4 +281,18 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.multiDocumentProjectStoreAPI.pullFromRemoteProject(...args)),
+  getRemoteBranchInfo: (
+    ...args: Parameters<MultiDocumentProjectStore['getRemoteBranchInfo']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['getRemoteBranchInfo']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.getRemoteBranchInfo(...args)),
 });

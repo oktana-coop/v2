@@ -111,6 +111,17 @@ export type MultiDocumentProjectPullFromRemoteProjectArgs = {
   authToken?: string;
 };
 
+export type MultiDocumentProjectGetRemoteBranchInfoArgs = {
+  projectId: ProjectId;
+  remoteName?: string;
+  authToken?: string;
+};
+
+export type MultiDocumentProjectGetRemoteBranchInfoResult = Record<
+  Branch,
+  Commit['id']
+>;
+
 export type MultiDocumentProjectStore = {
   supportsBranching: boolean;
   createProject: (
@@ -212,4 +223,11 @@ export type MultiDocumentProjectStore = {
   pullFromRemoteProject: (
     args: MultiDocumentProjectPullFromRemoteProjectArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  getRemoteBranchInfo: (
+    args: MultiDocumentProjectGetRemoteBranchInfoArgs
+  ) => Effect.Effect<
+    MultiDocumentProjectGetRemoteBranchInfoResult,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
 };

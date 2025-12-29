@@ -287,6 +287,10 @@ contextBridge.exposeInMainWorld('singleDocumentProjectStoreAPI', {
         ...args,
       }
     ),
+  getRemoteBranchInfo: (args) =>
+    ipcRenderer.invoke('single-document-project-store:get-remote-branch-info', {
+      ...args,
+    }),
   disconnect: (projectId) =>
     ipcRenderer.invoke('single-document-project-store:disconnect', projectId),
 } as SingleDocumentProjectStorePromiseAPI);
@@ -374,6 +378,10 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
         ...args,
       }
     ),
+  getRemoteBranchInfo: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:get-remote-branch-info', {
+      ...args,
+    }),
 } as MultiDocumentProjectStorePromiseAPI);
 
 // TODO: Namespace IPC messages

@@ -37,6 +37,7 @@ import {
 } from '../../../../modules/infrastructure/notifications/browser';
 import {
   type Branch,
+  type Commit,
   DEFAULT_BRANCH,
   parseBranch,
   type ResolvedArtifactId,
@@ -93,6 +94,7 @@ export type MultiDocumentProjectContextType = {
   supportsBranching: boolean;
   remoteProject: RemoteProjectInfo | null;
   addRemoteProject: (url: string) => Promise<void>;
+  remoteBranchInfo: Record<Branch, Commit['id']>;
 };
 
 export const MultiDocumentProjectContext =
@@ -148,6 +150,9 @@ export const MultiDocumentProjectProvider = ({
   const [remoteProject, setRemoteProject] = useState<RemoteProjectInfo | null>(
     null
   );
+  const [remoteBranchInfo, setRemoteBranchInfo] = useState<
+    Record<Branch, Commit['id']>
+  >({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -279,6 +284,35 @@ export const MultiDocumentProjectProvider = ({
       setDirectory({ ...directory, permissionState });
     }
   };
+
+  useEffect(() => {
+    const fetchRemoteBranchInfo = async ({
+      versionedProjectStore,
+      projectId,
+      remoteProject,
+    }: {
+      versionedProjectStore: MultiDocumentProjectStore;
+      projectId: ProjectId;
+      remoteProject: RemoteProjectInfo;
+    }) => {
+      const branchInfo = await Effect.runPromise(
+        versionedProjectStore.getRemoteBranchInfo({
+          projectId,
+          remoteName: remoteProject.name,
+        })
+      );
+
+      setRemoteBranchInfo(branchInfo);
+    };
+
+    if (versionedProjectStore && projectId && remoteProject) {
+      fetchRemoteBranchInfo({
+        versionedProjectStore,
+        projectId,
+        remoteProject,
+      });
+    }
+  }, [versionedProjectStore, projectId, remoteProject]);
 
   const handleOpenDirectory = useCallback(async () => {
     setLoading(true);
@@ -655,6 +689,7 @@ export const MultiDocumentProjectProvider = ({
         supportsBranching,
         remoteProject,
         addRemoteProject: handleAddRemoteProject,
+        remoteBranchInfo,
       }}
     >
       {children}

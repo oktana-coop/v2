@@ -17,6 +17,7 @@ import {
   deleteBranch as deleteBranchWithGit,
   findRemoteByName as findGitRemoteByName,
   getCurrentBranch as getCurrentBranchWithGit,
+  getRemoteBranchInfo as getRemoteBranchInfoWithGit,
   listBranches as listBranchesWithGit,
   listRemotes as listGitRemotes,
   mergeAndDeleteBranch as mergeAndDeleteBranchWithGit,
@@ -379,6 +380,39 @@ export const createAdapter = ({
         )
       );
 
+  const getRemoteBranchInfo: SingleDocumentProjectStore['getRemoteBranchInfo'] =
+    ({ remoteName = 'origin', authToken: authTokenInput }) =>
+      pipe(
+        ensureAuthTokenIsProvided(authTokenInput),
+        Effect.flatMap((authToken) =>
+          pipe(
+            findGitRemoteByName({
+              isoGitFs,
+              dir: internalProjectDir,
+              name: remoteName,
+            }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            ),
+            Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
+              Effect.fail(new NotFoundError(err.message))
+            ),
+            Effect.flatMap((remoteInfo) =>
+              pipe(
+                getRemoteBranchInfoWithGit({
+                  isoGitHttp,
+                  url: remoteInfo.url,
+                  authToken,
+                }),
+                Effect.catchAll((err) =>
+                  Effect.fail(new RepositoryError(err.message))
+                )
+              )
+            )
+          )
+        )
+      );
+
   // This is a no-op in the Git document repo.
   const disconnect: SingleDocumentProjectStore['disconnect'] = () =>
     Effect.succeed(undefined);
@@ -401,6 +435,7 @@ export const createAdapter = ({
     findRemoteProjectByName,
     pushToRemoteProject,
     pullFromRemoteProject,
+    getRemoteBranchInfo,
     disconnect,
   };
 };
