@@ -90,12 +90,12 @@ export const BranchingCommandPalette = ({
     if (branches) {
       const syncActions = [
         {
-          name: 'Push to Remote',
+          name: 'Push Changes to Remote Branch',
           onActionSelection: () => pushToRemoteProject(),
           icon: PushIcon,
         },
         {
-          name: 'Pull from Remote',
+          name: 'Pull Changes from Remote Branch',
           onActionSelection: () => pullFromRemoteProject(),
           icon: PullIcon,
         },
