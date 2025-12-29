@@ -19,6 +19,8 @@ import {
   MergeIcon,
   PenIcon,
   PlusIcon,
+  PullIcon,
+  PushIcon,
   TrashIcon,
 } from '../../../../../components/icons';
 import { useBranchInfo } from '../../../../../hooks';
@@ -39,6 +41,9 @@ export const BranchingCommandPalette = ({
   const [branchActionOptions, setBranchActionOptions] = useState<
     ActionOption[]
   >([]);
+  const [syncActionOptions, setSyncActionOptions] = useState<ActionOption[]>(
+    []
+  );
   const [experimentationActionOptions, setExperimentationActionOptions] =
     useState<ActionOption[]>([]);
   const {
@@ -47,6 +52,9 @@ export const BranchingCommandPalette = ({
     switchToBranch,
     openCreateBranchDialog,
     openDeleteBranchDialog,
+    pushToRemoteProject,
+    pullFromRemoteProject,
+    supportsSync,
   } = useBranchInfo();
 
   useEffect(() => {
@@ -80,6 +88,26 @@ export const BranchingCommandPalette = ({
 
   useEffect(() => {
     if (branches) {
+      const syncActions = [
+        {
+          name: 'Push to Remote',
+          onActionSelection: () => pushToRemoteProject(),
+          icon: PushIcon,
+        },
+        {
+          name: 'Pull from Remote',
+          onActionSelection: () => pullFromRemoteProject(),
+          icon: PullIcon,
+        },
+      ];
+
+      const filteredSyncActionOptions =
+        query === ''
+          ? syncActions
+          : syncActions.filter((action) => {
+              return action.name.toLowerCase().includes(query.toLowerCase());
+            });
+
       const mergeAction = {
         name: 'Merge to Main Branch',
         onActionSelection: () => mergeAndDeleteBranch(currentBranch),
@@ -109,6 +137,8 @@ export const BranchingCommandPalette = ({
           : expActions.filter((action) => {
               return action.name.toLowerCase().includes(query.toLowerCase());
             });
+
+      setSyncActionOptions(filteredSyncActionOptions);
       setExperimentationActionOptions(filteredExperimentationActionOptions);
     }
   }, [
@@ -118,6 +148,8 @@ export const BranchingCommandPalette = ({
     mergeAndDeleteBranch,
     openCreateBranchDialog,
     openDeleteBranchDialog,
+    pushToRemoteProject,
+    pullFromRemoteProject,
   ]);
 
   return (
@@ -160,6 +192,19 @@ export const BranchingCommandPalette = ({
             </div>
 
             <CommandPaletteOptions>
+              {supportsSync && syncActionOptions.length > 0 && (
+                <CommandPaletteListSection title="Sync">
+                  {syncActionOptions.map((action) => (
+                    <CommandPaletteOption
+                      key={action.name}
+                      label={action.name}
+                      value={action}
+                      icon={action.icon}
+                    />
+                  ))}
+                </CommandPaletteListSection>
+              )}
+
               {experimentationActionOptions.length > 0 && (
                 <CommandPaletteListSection title="Experimentation">
                   {experimentationActionOptions.map((action) => (

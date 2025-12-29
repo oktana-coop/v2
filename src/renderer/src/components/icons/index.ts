@@ -34,6 +34,7 @@ export { OptionsIcon } from './Options';
 export { OrderedListIcon } from './OrderedList';
 export { PenIcon } from './Pen';
 export { PlusIcon } from './Plus';
+export { PullIcon } from './Pull';
 export { PushIcon } from './Push';
 export { RestoreCommitIcon } from './RestoreCommit';
 export { RevertIcon } from './Revert';

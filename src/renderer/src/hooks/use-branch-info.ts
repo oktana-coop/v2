@@ -7,6 +7,7 @@ import {
   MultiDocumentProjectContext,
   SingleDocumentProjectContext,
 } from '../app-state';
+import { useRemoteProjectInfo } from './use-remote-project-info';
 
 export const useBranchInfo = () => {
   const { projectType } = useContext(CurrentProjectContext);
@@ -24,6 +25,8 @@ export const useBranchInfo = () => {
     openDeleteBranchDialog: openDeleteBranchDialogInMultiDocumentProject,
     closeDeleteBranchDialog: closeDeleteBranchDialogInMultiDocumentProject,
     supportsBranching: multiDocumentProjectSupportsBranching,
+    pushToRemoteProject: pushToRemoteProjectInMultiDocumentProject,
+    pullFromRemoteProject: pullFromRemoteProjectInMultiDocumentProject,
   } = useContext(MultiDocumentProjectContext);
   const {
     currentBranch: singleDocumentProjectCurrentBranch,
@@ -39,13 +42,17 @@ export const useBranchInfo = () => {
     openDeleteBranchDialog: openDeleteBranchDialogInSingleDocumentProject,
     closeDeleteBranchDialog: closeDeleteBranchDialogInSingleDocumentProject,
     supportsBranching: singleDocumentProjectSupportsBranching,
+    pushToRemoteProject: pushToRemoteProjectInSingleDocumentProject,
+    pullFromRemoteProject: pullFromRemoteProjectInSingleDocumentProject,
   } = useContext(SingleDocumentProjectContext);
+  const { remoteProject } = useRemoteProjectInfo();
 
   const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
   const [isCreateBranchDialogOpen, setIsCreateBranchDialogOpen] =
     useState<boolean>(false);
   const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
   const [supportsBranching, setSupportsBranching] = useState<boolean>(false);
+  const [supportsSync, setSupportsSync] = useState<boolean>(false);
 
   useEffect(() => {
     const branch =
@@ -93,6 +100,15 @@ export const useBranchInfo = () => {
     multiDocumentProjectSupportsBranching,
     singleDocumentProjectSupportsBranching,
     projectType,
+  ]);
+
+  useEffect(() => {
+    setSupportsSync(Boolean(remoteProject));
+  }, [
+    multiDocumentProjectSupportsBranching,
+    singleDocumentProjectSupportsBranching,
+    projectType,
+    remoteProject,
   ]);
 
   const listBranches = useCallback(
@@ -203,6 +219,30 @@ export const useBranchInfo = () => {
     ]
   );
 
+  const pushToRemoteProject = useCallback(
+    () =>
+      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+        ? pushToRemoteProjectInMultiDocumentProject()
+        : pushToRemoteProjectInSingleDocumentProject(),
+    [
+      projectType,
+      pushToRemoteProjectInMultiDocumentProject,
+      pushToRemoteProjectInSingleDocumentProject,
+    ]
+  );
+
+  const pullFromRemoteProject = useCallback(
+    () =>
+      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+        ? pullFromRemoteProjectInMultiDocumentProject()
+        : pullFromRemoteProjectInSingleDocumentProject(),
+    [
+      projectType,
+      pullFromRemoteProjectInMultiDocumentProject,
+      pullFromRemoteProjectInSingleDocumentProject,
+    ]
+  );
+
   return {
     currentBranch,
     listBranches,
@@ -217,5 +257,8 @@ export const useBranchInfo = () => {
     openDeleteBranchDialog,
     closeDeleteBranchDialog,
     supportsBranching,
+    supportsSync,
+    pushToRemoteProject,
+    pullFromRemoteProject,
   };
 };

@@ -95,6 +95,8 @@ export type MultiDocumentProjectContextType = {
   remoteProject: RemoteProjectInfo | null;
   addRemoteProject: (url: string) => Promise<void>;
   remoteBranchInfo: Record<Branch, Commit['id']>;
+  pushToRemoteProject: () => Promise<void>;
+  pullFromRemoteProject: () => Promise<void>;
 };
 
 export const MultiDocumentProjectContext =
@@ -659,6 +661,36 @@ export const MultiDocumentProjectProvider = ({
     [versionedProjectStore, projectId]
   );
 
+  const handlePushToRemoteProject = useCallback(async () => {
+    if (!versionedProjectStore || !projectId || !remoteProject) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot push to remote project.'
+      );
+    }
+
+    await Effect.runPromise(
+      versionedProjectStore.pushToRemoteProject({
+        projectId,
+        remoteName: remoteProject.name,
+      })
+    );
+  }, [versionedProjectStore, projectId, remoteProject]);
+
+  const handlePullFromRemoteProject = useCallback(async () => {
+    if (!versionedProjectStore || !projectId || !remoteProject) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot pull from remote project.'
+      );
+    }
+
+    await Effect.runPromise(
+      versionedProjectStore.pullFromRemoteProject({
+        projectId,
+        remoteName: remoteProject.name,
+      })
+    );
+  }, [versionedProjectStore, projectId, remoteProject]);
+
   return (
     <MultiDocumentProjectContext.Provider
       value={{
@@ -690,6 +722,8 @@ export const MultiDocumentProjectProvider = ({
         remoteProject,
         addRemoteProject: handleAddRemoteProject,
         remoteBranchInfo,
+        pushToRemoteProject: handlePushToRemoteProject,
+        pullFromRemoteProject: handlePullFromRemoteProject,
       }}
     >
       {children}
