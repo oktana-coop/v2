@@ -16,7 +16,12 @@ import {
 } from '../../renderer';
 import { type GithubDeviceFlowVerificationInfo } from '../modules/auth';
 import { buildConfig } from '../modules/config';
-import { type UpdateState } from '../modules/infrastructure/cross-platform';
+import {
+  isLinux,
+  isMac,
+  isWindows,
+  type UpdateState,
+} from '../modules/infrastructure/cross-platform/node';
 import {
   type CreateNewFileArgs,
   type DeleteFileArgs,
@@ -38,6 +43,9 @@ import { type ResolvedTheme } from '../modules/personalization/theme';
 import { registerIpcListener } from './utils';
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  isMac: isMac(),
+  isWindows: isWindows(),
+  isLinux: isLinux(),
   onReceiveProcessId: (callback: (processId: string) => void) =>
     ipcRenderer.on('renderer-process-id', (_, processId) =>
       callback(processId)

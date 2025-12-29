@@ -16,7 +16,10 @@ import os from 'os';
 
 import { createElectronMainEncryptedStoreAdapter } from '../modules/auth/node';
 import { PROJECT_FILE_EXTENSION } from '../modules/domain/project';
-import { runPromiseSerializingErrorsForIPC } from '../modules/infrastructure/cross-platform';
+import {
+  isMac,
+  runPromiseSerializingErrorsForIPC,
+} from '../modules/infrastructure/cross-platform/node';
 import {
   type CreateNewFileArgs,
   type DeleteFileArgs,
@@ -165,13 +168,8 @@ async function createWindow() {
     icon,
     webPreferences: {
       preload,
-      // Warning: Enable nodeIntegration and disable contextIsolation is not secure in production
-      // nodeIntegration: true,
-
-      // Consider using contextBridge.exposeInMainWorld
-      // Read more on https://www.electronjs.org/docs/latest/tutorial/context-isolation
-      // contextIsolation: false,
     },
+    ...(isMac() && { titleBarStyle: 'hidden' }),
   });
 
   if (url) {

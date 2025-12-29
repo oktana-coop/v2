@@ -6,6 +6,7 @@ import {
   shell,
 } from 'electron';
 
+import { isMac } from '../modules/infrastructure/cross-platform/node';
 import { checkForUpdates } from './update';
 
 const sendIPCMessageToFocusedWindow = (message: string) => {
@@ -16,8 +17,6 @@ const sendIPCMessageToFocusedWindow = (message: string) => {
 };
 
 export const buildMenu = () => {
-  const isMac = process.platform === 'darwin';
-
   const appMenuSubmenu: MenuItemConstructorOptions[] = [
     { role: 'about' },
     {
@@ -37,7 +36,7 @@ export const buildMenu = () => {
   const viewMenuSubmenu: MenuItemConstructorOptions[] = [
     {
       label: 'Command Palette',
-      accelerator: isMac ? 'Cmd+K' : 'Ctrl+K',
+      accelerator: isMac() ? 'Cmd+K' : 'Ctrl+K',
       click: () => sendIPCMessageToFocusedWindow('toggle-command-palette'),
     },
     { type: 'separator' },
@@ -53,7 +52,7 @@ export const buildMenu = () => {
   ];
 
   const template: MenuItemConstructorOptions[] = [
-    ...(isMac
+    ...(isMac()
       ? [
           {
             label: app.name,

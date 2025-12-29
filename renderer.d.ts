@@ -44,6 +44,9 @@ import {
 export type UnregisterListenerFn = () => void;
 
 export type ElectronAPI = {
+  isMac: boolean;
+  isWindows: boolean;
+  isLinux: boolean;
   onReceiveProcessId: (callback: (processId: string) => void) => IpcRenderer;
   sendCurrentDocumentId: (id: ResolvedArtifactId) => void;
   openExternalLink: (url: string) => void;
