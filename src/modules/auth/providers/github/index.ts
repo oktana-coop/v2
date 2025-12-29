@@ -391,7 +391,7 @@ const refreshGithubToken: (
           },
           body: JSON.stringify({
             client_id: buildConfig.githubAppClientId,
-            grant_type: ACCESS_TOKEN_GRANT_TYPE,
+            grant_type: 'refresh_token',
             refresh_token: refreshToken,
           }),
         });
