@@ -4,9 +4,11 @@ import {
   type ErrorNotification as ErrorNotificationType,
   type InfoNotification as InfoNotificationType,
   isErrorNotification,
+  isSuccessNotification,
   NotificationsContext,
+  type SuccessNotification as SuccessNotificationType,
 } from '../../../../modules/infrastructure/notifications/browser';
-import { ErrorIcon, InfoIcon } from '../icons';
+import { CheckIcon, ErrorIcon, InfoIcon } from '../icons';
 import { SimpleNotification } from './SimpleNotification';
 
 const InfoNotification = ({
@@ -20,6 +22,23 @@ const InfoNotification = ({
     show={true}
     onClose={onClose}
     icon={InfoIcon}
+    title={notification.title}
+    message={notification.message}
+  />
+);
+
+const SuccessNotification = ({
+  notification,
+  onClose,
+}: {
+  notification: SuccessNotificationType;
+  onClose: () => void;
+}) => (
+  <SimpleNotification
+    show={true}
+    onClose={onClose}
+    icon={CheckIcon}
+    iconClasses="text-green-400"
     title={notification.title}
     message={notification.message}
   />
@@ -50,19 +69,31 @@ export const GenericNotifications = () => {
     dismissNotification(id);
   };
 
-  return Object.values(notifications).map((notification) =>
-    isErrorNotification(notification) ? (
-      <ErrorNotification
-        key={notification.id}
-        notification={notification}
-        onClose={handleDismissNotification(notification.id)}
-      />
-    ) : (
-      <InfoNotification
-        key={notification.id}
-        notification={notification}
-        onClose={handleDismissNotification(notification.id)}
-      />
-    )
-  );
+  return Object.values(notifications).map((notification) => {
+    if (isErrorNotification(notification)) {
+      return (
+        <ErrorNotification
+          key={notification.id}
+          notification={notification}
+          onClose={handleDismissNotification(notification.id)}
+        />
+      );
+    } else if (isSuccessNotification(notification)) {
+      return (
+        <SuccessNotification
+          key={notification.id}
+          notification={notification}
+          onClose={handleDismissNotification(notification.id)}
+        />
+      );
+    } else {
+      return (
+        <InfoNotification
+          key={notification.id}
+          notification={notification}
+          onClose={handleDismissNotification(notification.id)}
+        />
+      );
+    }
+  });
 };

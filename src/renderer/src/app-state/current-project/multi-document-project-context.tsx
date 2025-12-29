@@ -33,6 +33,7 @@ import {
 } from '../../../../modules/infrastructure/filesystem';
 import {
   createErrorNotification,
+  createSuccessNotification,
   NotificationsContext,
 } from '../../../../modules/infrastructure/notifications/browser';
 import {
@@ -684,12 +685,28 @@ export const MultiDocumentProjectProvider = ({
       );
     }
 
-    await Effect.runPromise(
-      versionedProjectStore.pushToRemoteProject({
-        projectId,
-        remoteName: remoteProject.name,
-      })
-    );
+    try {
+      await Effect.runPromise(
+        versionedProjectStore.pushToRemoteProject({
+          projectId,
+          remoteName: remoteProject.name,
+        })
+      );
+
+      const notification = createSuccessNotification({
+        title: 'Push Successful',
+        message: `Changes have been successfully pushed to the remote project.`,
+      });
+      dispatchNotification(notification);
+    } catch (err) {
+      console.error(err);
+
+      const notification = createErrorNotification({
+        title: 'Push Error',
+        message: `An error happened when trying to push to the remote project.`,
+      });
+      dispatchNotification(notification);
+    }
   }, [versionedProjectStore, projectId, remoteProject]);
 
   const handlePullFromRemoteProject = useCallback(async () => {
@@ -699,14 +716,24 @@ export const MultiDocumentProjectProvider = ({
       );
     }
 
-    await Effect.runPromise(
-      versionedProjectStore.pullFromRemoteProject({
-        projectId,
-        remoteName: remoteProject.name,
-      })
-    );
+    try {
+      await Effect.runPromise(
+        versionedProjectStore.pullFromRemoteProject({
+          projectId,
+          remoteName: remoteProject.name,
+        })
+      );
 
-    setPulledUpstreamChanges(true);
+      setPulledUpstreamChanges(true);
+    } catch (err) {
+      console.error(err);
+
+      const notification = createErrorNotification({
+        title: 'Pull Error',
+        message: `An error happened when trying to pull changes from the remote project.`,
+      });
+      dispatchNotification(notification);
+    }
   }, [versionedProjectStore, projectId, remoteProject]);
 
   const resetPulledUpstreamChanges = () => {
