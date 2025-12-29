@@ -11,15 +11,19 @@ import {
   type RendererConfig,
   type SingleDocumentProjectStoreManagerAPI,
   type SingleDocumentProjectStorePromiseAPI,
+  type VersionControlSyncProvidersAPI,
   type VersionedDocumentStorePromiseAPI,
 } from '../../renderer';
+import { type GithubDeviceFlowVerificationInfo } from '../modules/auth';
 import { buildConfig } from '../modules/config';
-import { type UpdateState } from '../modules/infrastructure/cross-platform/update';
+import { type UpdateState } from '../modules/infrastructure/cross-platform';
 import {
   type CreateNewFileArgs,
+  type DeleteFileArgs,
   type File,
   type ListDirectoryFilesArgs,
   type OpenFileArgs,
+  type WriteFileArgs,
 } from '../modules/infrastructure/filesystem';
 import type {
   FromMainMessage as AutomergeRepoNetworkFromMainIPCMessage,
@@ -73,6 +77,16 @@ contextBridge.exposeInMainWorld('authAPI', {
   setUsername: (username) => ipcRenderer.send('auth:set-username', username),
   setEmail: (email) => ipcRenderer.send('auth:set-email', email),
   getInfo: () => ipcRenderer.invoke('auth:get-info'),
+  githubAuthUsingDeviceFlow: () =>
+    ipcRenderer.invoke('auth:github-device-flow'),
+  onDeviceVerificationInfoAvailable: (callback) =>
+    registerIpcListener<GithubDeviceFlowVerificationInfo>(
+      'auth:github-device-flow-verification-info',
+      callback
+    ),
+  cancelGithubDeviceFlowAuth: () =>
+    ipcRenderer.invoke('auth:cancel-github-device-flow'),
+  disconnectFromGithub: () => ipcRenderer.invoke('auth:disconnect-from-github'),
 } as AuthAPI);
 
 contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
@@ -95,13 +109,19 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
     ipcRenderer.invoke('list-directory-files', { ...args }),
   requestPermissionForDirectory: (path: string) =>
     ipcRenderer.invoke('request-permission-for-directory', path),
+  assertWritePermissionForDirectory: (path: string) =>
+    ipcRenderer.invoke('assert-write-permission-for-directory', path),
   createNewFile: (args: CreateNewFileArgs) =>
     ipcRenderer.invoke('create-new-file', { ...args }),
   openFile: (args: OpenFileArgs) =>
     ipcRenderer.invoke('open-file', { ...args }),
-  writeFile: (path: string, content: string) =>
-    ipcRenderer.invoke('write-file', { path, content }),
-  readFile: (path: string) => ipcRenderer.invoke('read-file', path),
+  writeFile: (args: WriteFileArgs) =>
+    ipcRenderer.invoke('write-file', { ...args }),
+  readBinaryFile: (path: string) =>
+    ipcRenderer.invoke('read-binary-file', path),
+  readTextFile: (path: string) => ipcRenderer.invoke('read-text-file', path),
+  deleteFile: (args: DeleteFileArgs) =>
+    ipcRenderer.invoke('delete-file', { ...args }),
   getRelativePath: (args) =>
     ipcRenderer.invoke('get-relative-path', { ...args }),
   getAbsolutePath: (args) =>
@@ -241,6 +261,36 @@ contextBridge.exposeInMainWorld('singleDocumentProjectStoreAPI', {
     ipcRenderer.invoke('single-document-project-store:set-author-info', {
       ...args,
     }),
+  addRemoteProject: (args) =>
+    ipcRenderer.invoke('single-document-project-store:add-remote-project', {
+      ...args,
+    }),
+  listRemoteProjects: (args) =>
+    ipcRenderer.invoke('single-document-project-store:list-remote-projects', {
+      ...args,
+    }),
+  findRemoteProjectByName: (args) =>
+    ipcRenderer.invoke(
+      'single-document-project-store:find-remote-project-by-name',
+      {
+        ...args,
+      }
+    ),
+  pushToRemoteProject: (args) =>
+    ipcRenderer.invoke('single-document-project-store:push-to-remote-project', {
+      ...args,
+    }),
+  pullFromRemoteProject: (args) =>
+    ipcRenderer.invoke(
+      'single-document-project-store:pull-from-remote-project',
+      {
+        ...args,
+      }
+    ),
+  getRemoteBranchInfo: (args) =>
+    ipcRenderer.invoke('single-document-project-store:get-remote-branch-info', {
+      ...args,
+    }),
   disconnect: (projectId) =>
     ipcRenderer.invoke('single-document-project-store:disconnect', projectId),
 } as SingleDocumentProjectStorePromiseAPI);
@@ -302,6 +352,36 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
     ipcRenderer.invoke('multi-document-project-store:set-author-info', {
       ...args,
     }),
+  addRemoteProject: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:add-remote-project', {
+      ...args,
+    }),
+  listRemoteProjects: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:list-remote-projects', {
+      ...args,
+    }),
+  findRemoteProjectByName: (args) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:find-remote-project-by-name',
+      {
+        ...args,
+      }
+    ),
+  pushToRemoteProject: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:push-to-remote-project', {
+      ...args,
+    }),
+  pullFromRemoteProject: (args) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:pull-from-remote-project',
+      {
+        ...args,
+      }
+    ),
+  getRemoteBranchInfo: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:get-remote-branch-info', {
+      ...args,
+    }),
 } as MultiDocumentProjectStorePromiseAPI);
 
 // TODO: Namespace IPC messages
@@ -319,6 +399,13 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreManagerAPI', {
   openMultiDocumentProjectById: (args) =>
     ipcRenderer.invoke('open-multi-document-project-by-id', { ...args }),
 } as MultiDocumentProjectStoreManagerAPI);
+
+contextBridge.exposeInMainWorld('versionControlSyncProvidersAPI', {
+  getGithubUserRepositories: () =>
+    ipcRenderer.invoke(
+      'version-control-sync-providers:get-github-user-repositories'
+    ),
+} as VersionControlSyncProvidersAPI);
 
 contextBridge.exposeInMainWorld('wasmAPI', {
   runWasiCLIOutputingText: (args: RunWasiCLIArgs) =>

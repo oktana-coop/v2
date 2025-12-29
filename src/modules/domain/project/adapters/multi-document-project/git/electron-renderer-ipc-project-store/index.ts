@@ -1,7 +1,7 @@
 import {
   effectifyIPCPromise,
   type ErrorRegistry,
-} from '../../../../../../../modules/infrastructure/cross-platform/electron-ipc-effect';
+} from '../../../../../../../modules/infrastructure/cross-platform';
 import {
   MergeConflictError,
   MigrationError,
@@ -210,4 +210,89 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.multiDocumentProjectStoreAPI.setAuthorInfo(...args)),
+  addRemoteProject: (
+    ...args: Parameters<MultiDocumentProjectStore['addRemoteProject']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['addRemoteProject']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.addRemoteProject(...args)),
+  listRemoteProjects: (
+    ...args: Parameters<MultiDocumentProjectStore['listRemoteProjects']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['listRemoteProjects']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.listRemoteProjects(...args)),
+  findRemoteProjectByName: (
+    ...args: Parameters<MultiDocumentProjectStore['findRemoteProjectByName']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['findRemoteProjectByName']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.findRemoteProjectByName(...args)),
+  pushToRemoteProject: (
+    ...args: Parameters<MultiDocumentProjectStore['pushToRemoteProject']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['pushToRemoteProject']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.pushToRemoteProject(...args)),
+  pullFromRemoteProject: (
+    ...args: Parameters<MultiDocumentProjectStore['pullFromRemoteProject']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['pullFromRemoteProject']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.pullFromRemoteProject(...args)),
+  getRemoteBranchInfo: (
+    ...args: Parameters<MultiDocumentProjectStore['getRemoteBranchInfo']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['getRemoteBranchInfo']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.getRemoteBranchInfo(...args)),
 });

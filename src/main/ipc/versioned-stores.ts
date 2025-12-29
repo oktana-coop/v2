@@ -2,41 +2,55 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import { type BrowserWindow, ipcMain } from 'electron';
 
+import {
+  type EncryptedStore,
+  getValidGithubAccessToken,
+} from '../../modules/auth/node';
 import { buildConfig } from '../../modules/config';
 import {
   type AddDocumentToMultiDocumentProjectArgs,
   type CreateMultiDocumentProjectArgs,
-  type CreateSingleDocumentProjectArgs,
-  type DeleteDocumentFromMultiDocumentProjectArgs,
-  type FindDocumentInMultiDocumentProjectArgs,
-  type MultiDocumentProjectCreateAndSwitchToBranchArgs,
-  type MultiDocumentProjectDeleteBranchArgs,
-  type MultiDocumentProjectGetCurrentBranchArgs,
-  type MultiDocumentProjectListBranchesArgs,
-  type MultiDocumentProjectMergeAndDeleteBranchArgs,
-  MultiDocumentProjectSetAuthorInfoArgs,
-  type MultiDocumentProjectStoreManager,
-  type MultiDocumentProjectSwitchToBranchArgs,
-  OpenMultiDocumentProjectByIdArgs,
-  OpenOrCreateMultiDocumentProjectArgs,
-  type OpenSingleDocumentProjectStoreArgs,
-  type ProjectId,
-  type SetupSingleDocumentProjectStoreArgs,
-  type SingleDocumentProjectCreateAndSwitchToBranchArgs,
-  type SingleDocumentProjectDeleteBranchArgs,
-  type SingleDocumentProjectGetCurrentBranchArgs,
-  type SingleDocumentProjectListBranchesArgs,
-  type SingleDocumentProjectMergeAndDeleteBranchArgs,
-  type SingleDocumentProjectSetAuthorInfoArgs,
-  type SingleDocumentProjectStoreManager,
-  type SingleDocumentProjectSwitchToBranchArgs,
-  ValidationError as VersionedProjectValidationError,
-} from '../../modules/domain/project/node';
-import {
   createNodeAutomergeMultiDocumentProjectStoreManagerAdapter,
   createNodeAutomergeSingleDocumentProjectStoreManagerAdapter,
   createNodeGitMultiDocumentProjectStoreManagerAdapter,
   createNodeGitSingleDocumentProjectStoreManagerAdapter,
+  type CreateSingleDocumentProjectArgs,
+  type DeleteDocumentFromMultiDocumentProjectArgs,
+  type FindDocumentInMultiDocumentProjectArgs,
+  type MultiDocumentProjectAddRemoteProjectArgs,
+  type MultiDocumentProjectCreateAndSwitchToBranchArgs,
+  type MultiDocumentProjectDeleteBranchArgs,
+  type MultiDocumentProjectFindRemoteProjectByNameArgs,
+  type MultiDocumentProjectGetCurrentBranchArgs,
+  type MultiDocumentProjectGetRemoteBranchInfoArgs,
+  type MultiDocumentProjectListBranchesArgs,
+  type MultiDocumentProjectListRemoteProjectsArgs,
+  type MultiDocumentProjectMergeAndDeleteBranchArgs,
+  type MultiDocumentProjectPullFromRemoteProjectArgs,
+  type MultiDocumentProjectPushToRemoteProjectArgs,
+  type MultiDocumentProjectSetAuthorInfoArgs,
+  type MultiDocumentProjectStoreManager,
+  type MultiDocumentProjectSwitchToBranchArgs,
+  type OpenMultiDocumentProjectByIdArgs,
+  type OpenOrCreateMultiDocumentProjectArgs,
+  type OpenSingleDocumentProjectStoreArgs,
+  type ProjectId,
+  type SetupSingleDocumentProjectStoreArgs,
+  type SingleDocumentProjectAddRemoteProjectArgs,
+  type SingleDocumentProjectCreateAndSwitchToBranchArgs,
+  type SingleDocumentProjectDeleteBranchArgs,
+  type SingleDocumentProjectFindRemoteProjectByNameArgs,
+  type SingleDocumentProjectGetCurrentBranchArgs,
+  type SingleDocumentProjectGetRemoteBranchInfoArgs,
+  type SingleDocumentProjectListBranchesArgs,
+  type SingleDocumentProjectListRemoteProjectsArgs,
+  type SingleDocumentProjectMergeAndDeleteBranchArgs,
+  type SingleDocumentProjectPullFromRemoteProjectArgs,
+  type SingleDocumentProjectPushToRemoteProjectArgs,
+  type SingleDocumentProjectSetAuthorInfoArgs,
+  type SingleDocumentProjectStoreManager,
+  type SingleDocumentProjectSwitchToBranchArgs,
+  ValidationError as VersionedProjectValidationError,
 } from '../../modules/domain/project/node';
 import {
   type CommitChangesArgs,
@@ -47,9 +61,10 @@ import {
   RestoreCommitArgs,
   type UpdateRichTextDocumentContentArgs,
 } from '../../modules/domain/rich-text';
-import { runPromiseSerializingErrorsForIPC } from '../../modules/infrastructure/cross-platform/electron-ipc-effect';
+import { runPromiseSerializingErrorsForIPC } from '../../modules/infrastructure/cross-platform';
 import { Filesystem } from '../../modules/infrastructure/filesystem';
 import {
+  getGithubUserRepositories,
   type ResolvedArtifactId,
   versionControlSystems,
 } from '../../modules/infrastructure/version-control';
@@ -65,10 +80,12 @@ export const registerVersionedStoresEvents = ({
   filesystem,
   rendererProcessId,
   browserWindow,
+  encryptedStore,
 }: {
   filesystem: Filesystem;
   rendererProcessId: string;
   browserWindow: BrowserWindow;
+  encryptedStore: EncryptedStore;
 }) => {
   const singleDocumentProjectStoreManager =
     buildConfig.singleDocumentProjectVersionControlSystem ===
@@ -93,9 +110,10 @@ export const registerVersionedStoresEvents = ({
     multiDocumentProjectStoreManager,
     filesystem,
   });
-  registerSingleDocumentProjectStoreEvents();
-  registerMultiDocumentProjectStoreEvents();
+  registerSingleDocumentProjectStoreEvents({ encryptedStore });
+  registerMultiDocumentProjectStoreEvents({ encryptedStore });
   registerVersionedDocumentStoreEvents();
+  registerVersionControlSyncProvidersEvents({ encryptedStore });
 };
 
 const registerStoreManagerEvents = ({
@@ -123,10 +141,18 @@ const registerStoreManagerEvents = ({
               })
           ),
           Effect.map(
-            ({ projectId, documentId, currentBranch, file, name }) => ({
+            ({
               projectId,
               documentId,
               currentBranch,
+              remoteProjects,
+              file,
+              name,
+            }) => ({
+              projectId,
+              documentId,
+              currentBranch,
+              remoteProjects,
               file,
               name,
             })
@@ -154,10 +180,18 @@ const registerStoreManagerEvents = ({
               })
           ),
           Effect.map(
-            ({ projectId, documentId, currentBranch, file, name }) => ({
+            ({
               projectId,
               documentId,
               currentBranch,
+              remoteProjects,
+              file,
+              name,
+            }) => ({
+              projectId,
+              documentId,
+              currentBranch,
+              remoteProjects,
               file,
               name,
             })
@@ -181,11 +215,14 @@ const registerStoreManagerEvents = ({
                 versionedDocumentStore,
               })
           ),
-          Effect.map(({ projectId, directory, currentBranch }) => ({
-            projectId,
-            directory,
-            currentBranch,
-          }))
+          Effect.map(
+            ({ projectId, directory, currentBranch, remoteProjects }) => ({
+              projectId,
+              directory,
+              currentBranch,
+              remoteProjects,
+            })
+          )
         )
       )
   );
@@ -213,17 +250,24 @@ const registerStoreManagerEvents = ({
                 versionedDocumentStore,
               })
           ),
-          Effect.map(({ projectId, directory, currentBranch }) => ({
-            projectId,
-            directory,
-            currentBranch,
-          }))
+          Effect.map(
+            ({ projectId, directory, currentBranch, remoteProjects }) => ({
+              projectId,
+              directory,
+              currentBranch,
+              remoteProjects,
+            })
+          )
         )
       )
   );
 };
 
-const registerSingleDocumentProjectStoreEvents = () => {
+const registerSingleDocumentProjectStoreEvents = ({
+  encryptedStore,
+}: {
+  encryptedStore: EncryptedStore;
+}) => {
   ipcMain.handle(
     'single-document-project-store:create-single-document-project',
     async (_, args: CreateSingleDocumentProjectArgs, projectId: string) =>
@@ -445,6 +489,158 @@ const registerSingleDocumentProjectStoreEvents = () => {
   );
 
   ipcMain.handle(
+    'single-document-project-store:add-remote-project',
+    async (_, args: SingleDocumentProjectAddRemoteProjectArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            pipe(
+              getValidGithubAccessToken({ encryptedStore })(),
+              Effect.flatMap((userToken) =>
+                versionedProjectStore.addRemoteProject({
+                  ...args,
+                  authToken: userToken,
+                })
+              )
+            )
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:list-remote-projects',
+    async (_, args: SingleDocumentProjectListRemoteProjectsArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.listRemoteProjects(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:find-remote-project-by-name',
+    async (_, args: SingleDocumentProjectFindRemoteProjectByNameArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.findRemoteProjectByName(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:push-to-remote-project',
+    async (_, args: SingleDocumentProjectPushToRemoteProjectArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            pipe(
+              getValidGithubAccessToken({ encryptedStore })(),
+              Effect.flatMap((userToken) =>
+                versionedProjectStore.pushToRemoteProject({
+                  ...args,
+                  authToken: userToken,
+                })
+              )
+            )
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:pull-from-remote-project',
+    async (_, args: SingleDocumentProjectPullFromRemoteProjectArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            pipe(
+              getValidGithubAccessToken({ encryptedStore })(),
+              Effect.flatMap((userToken) =>
+                versionedProjectStore.pullFromRemoteProject({
+                  ...args,
+                  authToken: userToken,
+                })
+              )
+            )
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:get-remote-branch-info',
+    async (_, args: SingleDocumentProjectGetRemoteBranchInfoArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            pipe(
+              getValidGithubAccessToken({ encryptedStore })(),
+              Effect.flatMap((userToken) =>
+                versionedProjectStore.getRemoteBranchInfo({
+                  ...args,
+                  authToken: userToken,
+                })
+              )
+            )
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
     'single-document-project-store:disconnect',
     async (_, projectId: string) =>
       runPromiseSerializingErrorsForIPC(
@@ -465,7 +661,11 @@ const registerSingleDocumentProjectStoreEvents = () => {
   );
 };
 
-const registerMultiDocumentProjectStoreEvents = () => {
+const registerMultiDocumentProjectStoreEvents = ({
+  encryptedStore,
+}: {
+  encryptedStore: EncryptedStore;
+}) => {
   ipcMain.handle(
     'multi-document-project-store:create-project',
     async (_, args: CreateMultiDocumentProjectArgs) =>
@@ -725,6 +925,158 @@ const registerMultiDocumentProjectStoreEvents = () => {
         )
       )
   );
+
+  ipcMain.handle(
+    'multi-document-project-store:add-remote-project',
+    async (_, args: MultiDocumentProjectAddRemoteProjectArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            pipe(
+              getValidGithubAccessToken({ encryptedStore })(),
+              Effect.flatMap((userToken) =>
+                versionedProjectStore.addRemoteProject({
+                  ...args,
+                  authToken: userToken,
+                })
+              )
+            )
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:list-remote-projects',
+    async (_, args: MultiDocumentProjectListRemoteProjectsArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.listRemoteProjects(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:find-remote-project-by-name',
+    async (_, args: MultiDocumentProjectFindRemoteProjectByNameArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.findRemoteProjectByName(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:push-to-remote-project',
+    async (_, args: MultiDocumentProjectPushToRemoteProjectArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            pipe(
+              getValidGithubAccessToken({ encryptedStore })(),
+              Effect.flatMap((userToken) =>
+                versionedProjectStore.pushToRemoteProject({
+                  ...args,
+                  authToken: userToken,
+                })
+              )
+            )
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:pull-from-remote-project',
+    async (_, args: MultiDocumentProjectPullFromRemoteProjectArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            pipe(
+              getValidGithubAccessToken({ encryptedStore })(),
+              Effect.flatMap((userToken) =>
+                versionedProjectStore.pullFromRemoteProject({
+                  ...args,
+                  authToken: userToken,
+                })
+              )
+            )
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:get-remote-branch-info',
+    async (_, args: MultiDocumentProjectGetRemoteBranchInfoArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            pipe(
+              getValidGithubAccessToken({ encryptedStore })(),
+              Effect.flatMap((userToken) =>
+                versionedProjectStore.getRemoteBranchInfo({
+                  ...args,
+                  authToken: userToken,
+                })
+              )
+            )
+          )
+        )
+      )
+  );
 };
 
 const registerVersionedDocumentStoreEvents = () => {
@@ -893,6 +1245,23 @@ const registerVersionedDocumentStoreEvents = () => {
           Effect.flatMap(({ versionedDocumentStore }) =>
             versionedDocumentStore.disconnect()
           )
+        )
+      )
+  );
+};
+
+const registerVersionControlSyncProvidersEvents = ({
+  encryptedStore,
+}: {
+  encryptedStore: EncryptedStore;
+}) => {
+  ipcMain.handle(
+    'version-control-sync-providers:get-github-user-repositories',
+    async () =>
+      Effect.runPromise(
+        pipe(
+          getValidGithubAccessToken({ encryptedStore })(),
+          Effect.flatMap((userToken) => getGithubUserRepositories(userToken))
         )
       )
   );

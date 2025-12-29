@@ -234,6 +234,59 @@ export const createAdapter = (
   const setAuthorInfo: MultiDocumentProjectStore['setAuthorInfo'] = () =>
     Effect.succeed(undefined);
 
+  // TODO: Implement explicit sync in Automerge
+  const addRemoteProject: MultiDocumentProjectStore['addRemoteProject'] = () =>
+    Effect.fail(
+      new RepositoryError(
+        'Explicit sync is not yet supported when the app is configured with Automerge'
+      )
+    );
+
+  // TODO: Implement explicit sync in Automerge
+  const listRemoteProjects: MultiDocumentProjectStore['listRemoteProjects'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Explicit sync is not yet supported when the app is configured with Automerge'
+        )
+      );
+
+  // TODO: Implement explicit sync in Automerge
+  const findRemoteProjectByName: MultiDocumentProjectStore['findRemoteProjectByName'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Explicit sync is not yet supported when the app is configured with Automerge'
+        )
+      );
+
+  // TODO: Implement explicit sync in Automerge
+  const pushToRemoteProject: MultiDocumentProjectStore['pushToRemoteProject'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Explicit sync is not yet supported when the app is configured with Automerge'
+        )
+      );
+
+  // TODO: Implement explicit sync in Automerge
+  const pullFromRemoteProject: MultiDocumentProjectStore['pullFromRemoteProject'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Explicit sync is not yet supported when the app is configured with Automerge'
+        )
+      );
+
+  // TODO: Implement explicit sync in Automerge
+  const getRemoteBranchInfo: MultiDocumentProjectStore['getRemoteBranchInfo'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Explicit sync is not yet supported when the app is configured with Automerge'
+        )
+      );
+
   return {
     // TODO: Implement branching in Automerge
     supportsBranching: false,
@@ -250,5 +303,11 @@ export const createAdapter = (
     deleteBranch,
     mergeAndDeleteBranch,
     setAuthorInfo,
+    addRemoteProject,
+    listRemoteProjects,
+    findRemoteProjectByName,
+    pushToRemoteProject,
+    pullFromRemoteProject,
+    getRemoteBranchInfo,
   };
 };

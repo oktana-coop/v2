@@ -9,11 +9,12 @@ import {
 } from '../../../../../modules/infrastructure/version-control';
 import { type Email, type Username } from '../../../../auth';
 import { NotFoundError, RepositoryError, ValidationError } from '../../errors';
-import type {
-  ArtifactMetaData,
-  MultiDocumentProject,
-  ProjectId,
-  VersionedMultiDocumentProject,
+import {
+  type ArtifactMetaData,
+  type MultiDocumentProject,
+  type ProjectId,
+  type RemoteProjectInfo,
+  type VersionedMultiDocumentProject,
 } from '../../models';
 
 type UserInfo = {
@@ -81,6 +82,45 @@ export type MultiDocumentProjectSetAuthorInfoArgs = {
   username: Username | null;
   email: Email | null;
 };
+
+export type MultiDocumentProjectAddRemoteProjectArgs = {
+  projectId: ProjectId;
+  remoteName?: string;
+  remoteUrl: string;
+  authToken?: string;
+};
+
+export type MultiDocumentProjectListRemoteProjectsArgs = {
+  projectId: ProjectId;
+};
+
+export type MultiDocumentProjectFindRemoteProjectByNameArgs = {
+  projectId: ProjectId;
+  remoteName: string;
+};
+
+export type MultiDocumentProjectPushToRemoteProjectArgs = {
+  projectId: ProjectId;
+  remoteName?: string;
+  authToken?: string;
+};
+
+export type MultiDocumentProjectPullFromRemoteProjectArgs = {
+  projectId: ProjectId;
+  remoteName?: string;
+  authToken?: string;
+};
+
+export type MultiDocumentProjectGetRemoteBranchInfoArgs = {
+  projectId: ProjectId;
+  remoteName?: string;
+  authToken?: string;
+};
+
+export type MultiDocumentProjectGetRemoteBranchInfoResult = Record<
+  Branch,
+  Commit['id']
+>;
 
 export type MultiDocumentProjectStore = {
   supportsBranching: boolean;
@@ -159,4 +199,35 @@ export type MultiDocumentProjectStore = {
   setAuthorInfo: (
     args: MultiDocumentProjectSetAuthorInfoArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  // TODO: Consider moving to a separate, composable type like ExplicitSyncProjectStore
+  addRemoteProject: (
+    args: MultiDocumentProjectAddRemoteProjectArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  listRemoteProjects: (
+    args: MultiDocumentProjectListRemoteProjectsArgs
+  ) => Effect.Effect<
+    RemoteProjectInfo[],
+    ValidationError | RepositoryError,
+    never
+  >;
+  findRemoteProjectByName: (
+    args: MultiDocumentProjectFindRemoteProjectByNameArgs
+  ) => Effect.Effect<
+    RemoteProjectInfo,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
+  pushToRemoteProject: (
+    args: MultiDocumentProjectPushToRemoteProjectArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  pullFromRemoteProject: (
+    args: MultiDocumentProjectPullFromRemoteProjectArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  getRemoteBranchInfo: (
+    args: MultiDocumentProjectGetRemoteBranchInfoArgs
+  ) => Effect.Effect<
+    MultiDocumentProjectGetRemoteBranchInfoResult,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
 };

@@ -12,8 +12,10 @@ import { useNavigate, useParams } from 'react-router';
 import { AuthContext } from '../../../../modules/auth/browser';
 import {
   createVersionedDocument,
+  DEFAULT_REMOTE_PROJECT_NAME,
   findDocumentInProject,
   type MultiDocumentProjectStore,
+  type RemoteProjectInfo,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
 import { type ProjectId } from '../../../../modules/domain/project';
@@ -22,7 +24,7 @@ import {
   type ResolvedDocument,
   richTextRepresentationExtensions,
 } from '../../../../modules/domain/rich-text';
-import { ElectronContext } from '../../../../modules/infrastructure/cross-platform';
+import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import {
   type Directory,
   type File,
@@ -31,10 +33,12 @@ import {
 } from '../../../../modules/infrastructure/filesystem';
 import {
   createErrorNotification,
+  createSuccessNotification,
   NotificationsContext,
 } from '../../../../modules/infrastructure/notifications/browser';
 import {
   type Branch,
+  type Commit,
   DEFAULT_BRANCH,
   parseBranch,
   type ResolvedArtifactId,
@@ -89,6 +93,13 @@ export type MultiDocumentProjectContextType = {
   openDeleteBranchDialog: (branch: Branch) => void;
   closeDeleteBranchDialog: () => void;
   supportsBranching: boolean;
+  remoteProject: RemoteProjectInfo | null;
+  addRemoteProject: (url: string) => Promise<void>;
+  remoteBranchInfo: Record<Branch, Commit['id']>;
+  pushToRemoteProject: () => Promise<void>;
+  pullFromRemoteProject: () => Promise<void>;
+  pulledUpstreamChanges: boolean;
+  onHandlePulledUpstreamChanges: () => void;
 };
 
 export const MultiDocumentProjectContext =
@@ -141,6 +152,14 @@ export const MultiDocumentProjectProvider = ({
   const { dispatchNotification } = useContext(NotificationsContext);
   const [supportsBranching, setSupportsBranching] = useState<boolean>(false);
   const { username, email } = useContext(AuthContext);
+  const [remoteProject, setRemoteProject] = useState<RemoteProjectInfo | null>(
+    null
+  );
+  const [remoteBranchInfo, setRemoteBranchInfo] = useState<
+    Record<Branch, Commit['id']>
+  >({});
+  const [pulledUpstreamChanges, setPulledUpstreamChanges] =
+    useState<boolean>(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -166,6 +185,7 @@ export const MultiDocumentProjectProvider = ({
           versionedProjectStore: projectStore,
           directory,
           currentBranch,
+          remoteProjects,
         } = await Effect.runPromise(
           multiDocumentProjectStoreManager.openMultiDocumentProjectById({
             filesystem,
@@ -180,6 +200,7 @@ export const MultiDocumentProjectProvider = ({
         setProjectId(browserStorageProjectData.projectId);
         setDirectory(directory);
         setCurrentBranch(currentBranch);
+        setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
         setVersionedProjectStore(projectStore);
         setVersionedDocumentStore(documentStore);
 
@@ -211,9 +232,15 @@ export const MultiDocumentProjectProvider = ({
     if (directory && directory.permissionState === 'granted') {
       getFiles(directory);
     }
-  }, [directory, filesystem, currentBranch]);
+  }, [directory, filesystem, currentBranch, pulledUpstreamChanges]);
 
   useEffect(() => {
+    const navigateToProjectsList = () => {
+      const newUrl = `/projects`;
+      setPulledUpstreamChanges(false);
+      navigate(newUrl);
+    };
+
     const reloadSelectedDocumentOrReset = async ({
       projId,
       selectedFilePath,
@@ -230,23 +257,29 @@ export const MultiDocumentProjectProvider = ({
         setSelectedFileInfo({ documentId: doc.id, path: selectedFilePath });
 
         const newUrl = `/projects/${urlEncodeProjectId(projId)}/documents/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(selectedFilePath)}`;
+        setPulledUpstreamChanges(false);
         navigate(newUrl);
+
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
         // TODO: Only do this on NotFoundError.
         // TODO: Navigate to the specific project route (doesn't exist at the time of writing) this.
-        const newUrl = `/projects`;
-        navigate(newUrl);
+        navigateToProjectsList();
       }
     };
 
     if (projectId && selectedFileInfo?.path) {
-      reloadSelectedDocumentOrReset({
-        projId: projectId,
-        selectedFilePath: selectedFileInfo.path,
-      });
+      if (selectedFileInfo) {
+        reloadSelectedDocumentOrReset({
+          projId: projectId,
+          selectedFilePath: selectedFileInfo.path,
+        });
+      } else {
+        // TODO: Navigate to the specific project route (doesn't exist at the time of writing) this.
+        navigateToProjectsList();
+      }
     }
-  }, [currentBranch]);
+  }, [currentBranch, pulledUpstreamChanges]);
 
   useEffect(() => {
     if (!documentIdInPath) {
@@ -271,6 +304,35 @@ export const MultiDocumentProjectProvider = ({
     }
   };
 
+  useEffect(() => {
+    const fetchRemoteBranchInfo = async ({
+      versionedProjectStore,
+      projectId,
+      remoteProject,
+    }: {
+      versionedProjectStore: MultiDocumentProjectStore;
+      projectId: ProjectId;
+      remoteProject: RemoteProjectInfo;
+    }) => {
+      const branchInfo = await Effect.runPromise(
+        versionedProjectStore.getRemoteBranchInfo({
+          projectId,
+          remoteName: remoteProject.name,
+        })
+      );
+
+      setRemoteBranchInfo(branchInfo);
+    };
+
+    if (versionedProjectStore && projectId && remoteProject) {
+      fetchRemoteBranchInfo({
+        versionedProjectStore,
+        projectId,
+        remoteProject,
+      });
+    }
+  }, [versionedProjectStore, projectId, remoteProject]);
+
   const handleOpenDirectory = useCallback(async () => {
     setLoading(true);
 
@@ -280,6 +342,7 @@ export const MultiDocumentProjectProvider = ({
       projectId: projId,
       directory: dir,
       currentBranch,
+      remoteProjects,
     } = await Effect.runPromise(
       multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject({
         filesystem,
@@ -289,6 +352,7 @@ export const MultiDocumentProjectProvider = ({
     setProjectId(projId);
     setDirectory(dir);
     setCurrentBranch(currentBranch);
+    setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
     setVersionedProjectStore(projectStore);
     setVersionedDocumentStore(documentStore);
 
@@ -569,6 +633,113 @@ export const MultiDocumentProjectProvider = ({
     }
   }, [username, email, versionedProjectStore, projectId]);
 
+  const handleAddRemoteProject = useCallback(
+    async (url: string) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot add remote project.'
+        );
+      }
+
+      const { notification, result } = await Effect.runPromise(
+        pipe(
+          pipe(
+            versionedProjectStore.addRemoteProject({
+              projectId,
+              remoteName: DEFAULT_REMOTE_PROJECT_NAME,
+              remoteUrl: url,
+            }),
+            Effect.map(() => ({
+              result: {
+                name: DEFAULT_REMOTE_PROJECT_NAME,
+                url,
+              },
+              notification: null,
+            }))
+          ),
+          Effect.catchAll((err) => {
+            console.error(err);
+            const notification = createErrorNotification({
+              title: 'Remote Project Error',
+              message: `An error happened when trying to connect the remote project.`,
+            });
+
+            return Effect.succeed({ result: null, notification });
+          })
+        )
+      );
+
+      if (notification) {
+        dispatchNotification(notification);
+      }
+
+      setRemoteProject(result);
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const handlePushToRemoteProject = useCallback(async () => {
+    if (!versionedProjectStore || !projectId || !remoteProject) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot push to remote project.'
+      );
+    }
+
+    try {
+      await Effect.runPromise(
+        versionedProjectStore.pushToRemoteProject({
+          projectId,
+          remoteName: remoteProject.name,
+        })
+      );
+
+      const notification = createSuccessNotification({
+        title: 'Push Successful',
+        message: `Changes have been successfully pushed to the remote project.`,
+      });
+      dispatchNotification(notification);
+    } catch (err) {
+      console.error(err);
+
+      const notification = createErrorNotification({
+        title: 'Push Error',
+        message: `An error happened when trying to push to the remote project.`,
+      });
+      dispatchNotification(notification);
+    }
+  }, [versionedProjectStore, projectId, remoteProject]);
+
+  const handlePullFromRemoteProject = useCallback(async () => {
+    if (!versionedProjectStore || !projectId || !remoteProject) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot pull from remote project.'
+      );
+    }
+
+    try {
+      await Effect.runPromise(
+        versionedProjectStore.pullFromRemoteProject({
+          projectId,
+          remoteName: remoteProject.name,
+        })
+      );
+
+      setPulledUpstreamChanges(true);
+    } catch (err) {
+      console.error(err);
+
+      const notification = createErrorNotification({
+        title: 'Pull Error',
+        message: `An error happened when trying to pull changes from the remote project.`,
+      });
+      dispatchNotification(notification);
+    }
+  }, [versionedProjectStore, projectId, remoteProject]);
+
+  const resetPulledUpstreamChanges = () => {
+    setPulledUpstreamChanges(false);
+  };
+
   return (
     <MultiDocumentProjectContext.Provider
       value={{
@@ -597,6 +768,13 @@ export const MultiDocumentProjectProvider = ({
         openDeleteBranchDialog: handleOpenDeleteBranchDialog,
         closeDeleteBranchDialog: handleCloseDeleteBranchDialog,
         supportsBranching,
+        remoteProject,
+        addRemoteProject: handleAddRemoteProject,
+        remoteBranchInfo,
+        pushToRemoteProject: handlePushToRemoteProject,
+        pullFromRemoteProject: handlePullFromRemoteProject,
+        pulledUpstreamChanges,
+        onHandlePulledUpstreamChanges: resetPulledUpstreamChanges,
       }}
     >
       {children}

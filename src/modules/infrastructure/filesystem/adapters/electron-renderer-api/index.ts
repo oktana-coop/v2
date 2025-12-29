@@ -1,7 +1,7 @@
 import {
   effectifyIPCPromise,
   type ErrorRegistry,
-} from '../../../../../modules/infrastructure/cross-platform/electron-ipc-effect';
+} from '../../../../../modules/infrastructure/cross-platform';
 import {
   AbortError,
   AccessControlError,
@@ -9,9 +9,9 @@ import {
   type Filesystem,
   FilesystemAbortErrorTag,
   FilesystemAccessControlErrorTag,
+  FilesystemDataIntegrityErrorTag,
   FilesystemNotFoundErrorTag,
   FilesystemRepositoryErrorTag,
-  FileystemDataIntegrityErrorTag,
   NotFoundError,
   RepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
@@ -43,7 +43,7 @@ export const createAdapter = (): Filesystem => ({
   listDirectoryFiles: (...args: Parameters<Filesystem['listDirectoryFiles']>) =>
     effectifyIPCPromise(
       {
-        [FileystemDataIntegrityErrorTag]: DataIntegrityError,
+        [FilesystemDataIntegrityErrorTag]: DataIntegrityError,
         [FilesystemNotFoundErrorTag]: NotFoundError,
         [FilesystemRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<
@@ -107,15 +107,39 @@ export const createAdapter = (): Filesystem => ({
       } as ErrorRegistry<EffectErrorType<ReturnType<Filesystem['writeFile']>>>,
       RepositoryError
     )(window.filesystemAPI.writeFile(...args)),
-  readFile: (...args: Parameters<Filesystem['readFile']>) =>
+  readBinaryFile: (...args: Parameters<Filesystem['readBinaryFile']>) =>
     effectifyIPCPromise(
       {
         [FilesystemAccessControlErrorTag]: AccessControlError,
         [FilesystemNotFoundErrorTag]: NotFoundError,
         [FilesystemRepositoryErrorTag]: RepositoryError,
-      } as ErrorRegistry<EffectErrorType<ReturnType<Filesystem['readFile']>>>,
+        [FilesystemDataIntegrityErrorTag]: DataIntegrityError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<Filesystem['readBinaryFile']>>
+      >,
       RepositoryError
-    )(window.filesystemAPI.readFile(...args)),
+    )(window.filesystemAPI.readBinaryFile(...args)),
+  readTextFile: (...args: Parameters<Filesystem['readTextFile']>) =>
+    effectifyIPCPromise(
+      {
+        [FilesystemAccessControlErrorTag]: AccessControlError,
+        [FilesystemNotFoundErrorTag]: NotFoundError,
+        [FilesystemRepositoryErrorTag]: RepositoryError,
+        [FilesystemDataIntegrityErrorTag]: DataIntegrityError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<Filesystem['readTextFile']>>
+      >,
+      RepositoryError
+    )(window.filesystemAPI.readTextFile(...args)),
+  deleteFile: (...args: Parameters<Filesystem['deleteFile']>) =>
+    effectifyIPCPromise(
+      {
+        [FilesystemAccessControlErrorTag]: AccessControlError,
+        [FilesystemNotFoundErrorTag]: NotFoundError,
+        [FilesystemRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<EffectErrorType<ReturnType<Filesystem['deleteFile']>>>,
+      RepositoryError
+    )(window.filesystemAPI.deleteFile(...args)),
   getRelativePath: (...args: Parameters<Filesystem['getRelativePath']>) =>
     effectifyIPCPromise(
       {

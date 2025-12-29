@@ -3,7 +3,7 @@ import './index.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
-import { ElectronProvider } from '../../modules/infrastructure/cross-platform';
+import { ElectronProvider } from '../../modules/infrastructure/cross-platform/browser';
 import { type File } from '../../modules/infrastructure/filesystem';
 import { App } from './App';
 

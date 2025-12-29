@@ -25,7 +25,14 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
             ),
           }),
           Effect.map(
-            ({ projectId, documentId, currentBranch, file, name }) => ({
+            ({
+              projectId,
+              documentId,
+              currentBranch,
+              remoteProjects,
+              file,
+              name,
+            }) => ({
               versionedProjectStore:
                 createSingleDocumentProjectStoreAdapter(projectId),
               versionedDocumentStore: createVersionedDocumentStoreAdapter({
@@ -37,6 +44,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
               projectId,
               documentId,
               currentBranch,
+              remoteProjects,
               file,
               name,
             })
@@ -65,7 +73,14 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
             ),
           }),
           Effect.map(
-            ({ projectId, documentId, currentBranch, file, name }) => ({
+            ({
+              projectId,
+              documentId,
+              currentBranch,
+              remoteProjects,
+              file,
+              name,
+            }) => ({
               versionedProjectStore:
                 createSingleDocumentProjectStoreAdapter(projectId),
               versionedDocumentStore: createVersionedDocumentStoreAdapter({
@@ -77,6 +92,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
               projectId,
               documentId,
               currentBranch,
+              remoteProjects,
               file,
               name,
             })

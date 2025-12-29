@@ -9,6 +9,7 @@ import {
   DirectoryFiles,
   RecentProjects,
 } from '../../shared/document-list-views';
+import { ProjectSync } from './ProjectSync';
 
 export const ProjectSettings = () => {
   const { projectType } = useContext(CurrentProjectContext);
@@ -26,7 +27,9 @@ export const ProjectSettings = () => {
         </StackedResizablePanelsLayout>
       }
     >
-      <div className="p-6">Project Settings Page (WIP)</div>
+      <div className="container mx-auto my-6 flex max-w-2xl flex-col gap-16">
+        <ProjectSync />
+      </div>
     </SidebarLayout>
   );
 };

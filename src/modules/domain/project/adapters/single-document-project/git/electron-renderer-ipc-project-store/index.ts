@@ -1,7 +1,7 @@
 import {
   effectifyIPCPromise,
   type ErrorRegistry,
-} from '../../../../../../../modules/infrastructure/cross-platform/electron-ipc-effect';
+} from '../../../../../../../modules/infrastructure/cross-platform';
 import {
   MergeConflictError,
   MigrationError,
@@ -187,6 +187,92 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.singleDocumentProjectStoreAPI.setAuthorInfo(...args)),
+  addRemoteProject: (
+    ...args: Parameters<SingleDocumentProjectStore['addRemoteProject']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['addRemoteProject']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.addRemoteProject(...args)),
+  listRemoteProjects: (
+    ...args: Parameters<SingleDocumentProjectStore['listRemoteProjects']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['listRemoteProjects']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.listRemoteProjects(...args)),
+  findRemoteProjectByName: (
+    ...args: Parameters<SingleDocumentProjectStore['findRemoteProjectByName']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['findRemoteProjectByName']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.findRemoteProjectByName(...args)),
+  pushToRemoteProject: (
+    ...args: Parameters<SingleDocumentProjectStore['pushToRemoteProject']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['pushToRemoteProject']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.pushToRemoteProject(...args)),
+  pullFromRemoteProject: (
+    ...args: Parameters<SingleDocumentProjectStore['pullFromRemoteProject']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['pullFromRemoteProject']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.pullFromRemoteProject(...args)),
+  getRemoteBranchInfo: (
+    ...args: Parameters<SingleDocumentProjectStore['getRemoteBranchInfo']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['getRemoteBranchInfo']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.getRemoteBranchInfo(...args)),
   disconnect: (...args: Parameters<SingleDocumentProjectStore['disconnect']>) =>
     effectifyIPCPromise(
       {

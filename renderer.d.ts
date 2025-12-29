@@ -1,6 +1,10 @@
 import type { IpcRenderer } from 'electron';
 
-import { type Email, type Username } from './src/modules/auth';
+import {
+  type Email,
+  type GithubUserInfo,
+  type Username,
+} from './src/modules/auth';
 import { type RendererConfig } from './src/modules/config/browser';
 import {
   type MultiDocumentProjectStore,
@@ -18,8 +22,8 @@ import { type VersionedDocumentStore } from './src/modules/domain/rich-text';
 import {
   type AppendParam,
   type PromisifyEffects,
-} from './src/modules/infrastructure/cross-platform/electron-ipc-effect';
-import { type UpdateState } from './src/modules/infrastructure/cross-platform/update';
+  type UpdateState,
+} from './src/modules/infrastructure/cross-platform';
 import {
   type File,
   type Filesystem as FilesystemAPI,
@@ -27,6 +31,8 @@ import {
 import {
   type FromMainMessage as AutomergeRepoNetworkFromMainIPCMessage,
   type FromRendererMessage as AutomergeRepoNetworkFromRendererIPCMessage,
+  GithubDeviceFlowVerificationInfo,
+  type GithubRepositoryInfo,
   type ResolvedArtifactId,
 } from './src/modules/infrastructure/version-control';
 import { type Wasm as WasmAPI } from './src/modules/infrastructure/wasm';
@@ -64,7 +70,14 @@ export type AuthAPI = {
   getInfo: () => Promise<{
     username: Username | null;
     email: Email | null;
+    githubUserInfo: GithubUserInfo | null;
   }>;
+  githubAuthUsingDeviceFlow: () => Promise<GithubUserInfo>;
+  onDeviceVerificationInfoAvailable: (
+    callback: (verificationInfo: GithubDeviceFlowVerificationInfo) => void
+  ) => UnregisterListenerFn;
+  cancelGithubDeviceFlowAuth: () => Promise<void>;
+  disconnectFromGithub: () => Promise<void>;
 };
 
 export type AutomergeRepoNetworkAdapter = {
@@ -82,7 +95,12 @@ export type SingleDocumentProjectStoreManagerAPI = {
   ) => Promise<
     Pick<
       SetupSingleDocumentProjectStoreResult,
-      'projectId' | 'documentId' | 'currentBranch' | 'file' | 'name'
+      | 'projectId'
+      | 'documentId'
+      | 'currentBranch'
+      | 'remoteProjects'
+      | 'file'
+      | 'name'
     >
   >;
   openSingleDocumentProjectStore: (
@@ -90,7 +108,12 @@ export type SingleDocumentProjectStoreManagerAPI = {
   ) => Promise<
     Pick<
       OpenSingleDocumentProjectStoreResult,
-      'projectId' | 'documentId' | 'currentBranch' | 'file' | 'name'
+      | 'projectId'
+      | 'documentId'
+      | 'currentBranch'
+      | 'remoteProjects'
+      | 'file'
+      | 'name'
     >
   >;
 };
@@ -101,13 +124,16 @@ export type MultiDocumentProjectStoreManagerAPI = {
   ) => Promise<
     Pick<
       OpenOrCreateMultiDocumentProjectResult,
-      'projectId' | 'directory' | 'currentBranch'
+      'projectId' | 'directory' | 'currentBranch' | 'remoteProjects'
     >
   >;
   openMultiDocumentProjectById: (
     args: OpenMultiDocumentProjectByIdArgs
   ) => Promise<
-    Pick<OpenMultiDocumentProjectByIdResult, 'directory' | 'currentBranch'>
+    Pick<
+      OpenMultiDocumentProjectByIdResult,
+      'directory' | 'currentBranch' | 'remoteProjects'
+    >
   >;
 };
 
@@ -170,6 +196,10 @@ export type OsEventsAPI = {
   onOpenFileFromFilesystem: (callback: (file: File) => void) => () => void;
 };
 
+export type VersionControlSyncProvidersAPI = {
+  getGithubUserRepositories: () => Promise<GithubRepositoryInfo[]>;
+};
+
 export { type RendererConfig } from './src/modules/config/browser';
 
 declare global {
@@ -185,6 +215,7 @@ declare global {
     multiDocumentProjectStoreAPI: MultiDocumentProjectStorePromiseAPI;
     singleDocumentProjectStoreManagerAPI: SingleDocumentProjectStoreManagerAPI;
     multiDocumentProjectStoreManagerAPI: MultiDocumentProjectStoreManagerAPI;
+    versionControlSyncProvidersAPI: VersionControlSyncProvidersAPI;
     wasmAPI: WasmAPI;
     osEventsAPI: OsEventsAPI;
   }

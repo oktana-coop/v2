@@ -1,7 +1,10 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as Option from 'effect/Option';
-import git, { type PromiseFsClient as IsoGitFsApi } from 'isomorphic-git';
+import git, {
+  type HttpClient as IsoGitHttpApi,
+  type PromiseFsClient as IsoGitFsApi,
+} from 'isomorphic-git';
 
 import {
   type Filesystem,
@@ -13,14 +16,20 @@ import {
   DEFAULT_AUTHOR_NAME,
   DEFAULT_BRANCH,
   deleteBranch as deleteBranchWithGit,
+  findRemoteByName as findGitRemoteByName,
   getCurrentBranch as getCurrentBranchWithGit,
+  getRemoteBranchInfo as getRemoteBranchInfoWithGit,
   getUserInfo as getUserInfoFromConfig,
   isGitBlobRef,
   listBranches as listBranchesWithGit,
+  listRemotes as listGitRemotes,
   mergeAndDeleteBranch as mergeAndDeleteBranchWithGit,
+  pullFromRemote as pullFromRemoteGitRepo,
+  pushToRemote as pushToRemoteGitRepo,
   type ResolvedArtifactId,
   setUserInfo as setUserInfoInGit,
   switchToBranch as switchToBranchWithGit,
+  validateAndAddRemote,
   VersionControlNotFoundErrorTag,
   VersionControlRepositoryErrorTag,
   versionedArtifactTypes,
@@ -44,6 +53,7 @@ import { MultiDocumentProjectStore } from '../../../../ports/multi-document-proj
 export const createAdapter = ({
   isoGitFs,
   filesystem,
+  isoGitHttp,
 }: {
   // We have 2 filesystem APIs because isomorphic-git works well in both browser in Node.js
   // with its own implemented fs APIs, which more or less comply to the Node.js API.
@@ -51,6 +61,7 @@ export const createAdapter = ({
   // we are using our own Filesystem API.
   isoGitFs: IsoGitFsApi;
   filesystem: Filesystem;
+  isoGitHttp: IsoGitHttpApi;
 }): MultiDocumentProjectStore => {
   const ensureProjectIdIsFsPath: (
     projectId: ProjectId
@@ -373,6 +384,181 @@ export const createAdapter = ({
       )
     );
 
+  const ensureAuthTokenIsProvided: (
+    authToken: string | undefined
+  ) => Effect.Effect<string, ValidationError, never> = (authToken) =>
+    pipe(
+      Option.fromNullable(authToken),
+      Option.match({
+        onNone: () =>
+          Effect.fail(
+            new ValidationError(
+              'Auth token must be provided to perform this operation'
+            )
+          ),
+        onSome: (token) => Effect.succeed(token),
+      })
+    );
+
+  const addRemoteProject: MultiDocumentProjectStore['addRemoteProject'] = ({
+    projectId,
+    remoteName = 'origin',
+    remoteUrl,
+    authToken: authTokenInput,
+  }) =>
+    Effect.Do.pipe(
+      Effect.bind('authToken', () => ensureAuthTokenIsProvided(authTokenInput)),
+      Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
+      Effect.flatMap(({ authToken, projectPath }) =>
+        pipe(
+          validateAndAddRemote({
+            isoGitFs,
+            isoGitHttp,
+            dir: projectPath,
+            name: remoteName,
+            url: remoteUrl,
+            authToken,
+          }),
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      )
+    );
+
+  const listRemoteProjects: MultiDocumentProjectStore['listRemoteProjects'] = ({
+    projectId,
+  }) =>
+    pipe(
+      ensureProjectIdIsFsPath(projectId),
+      Effect.flatMap((projectPath) =>
+        pipe(
+          listGitRemotes({
+            isoGitFs,
+            dir: projectPath,
+          }),
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+            Effect.fail(new RepositoryError(err.message))
+          ),
+          Effect.flatMap((remotes) =>
+            Effect.succeed(
+              remotes.map((remote) => ({
+                name: remote.remote,
+                url: remote.url,
+              }))
+            )
+          )
+        )
+      )
+    );
+
+  const findRemoteProjectByName: MultiDocumentProjectStore['findRemoteProjectByName'] =
+    ({ projectId, remoteName = 'origin' }) =>
+      pipe(
+        ensureProjectIdIsFsPath(projectId),
+        Effect.flatMap((projectPath) =>
+          pipe(
+            findGitRemoteByName({
+              isoGitFs,
+              dir: projectPath,
+              name: remoteName,
+            }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            ),
+            Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
+              Effect.fail(new NotFoundError(err.message))
+            ),
+            Effect.map((remoteInfo) => ({
+              name: remoteInfo.remote,
+              url: remoteInfo.url,
+            }))
+          )
+        )
+      );
+
+  const pushToRemoteProject: MultiDocumentProjectStore['pushToRemoteProject'] =
+    ({ projectId, remoteName = 'origin', authToken: authTokenInput }) =>
+      Effect.Do.pipe(
+        Effect.bind('authToken', () =>
+          ensureAuthTokenIsProvided(authTokenInput)
+        ),
+        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
+        Effect.flatMap(({ authToken, projectPath }) =>
+          pipe(
+            pushToRemoteGitRepo({
+              isoGitFs,
+              isoGitHttp,
+              dir: projectPath,
+              remote: remoteName,
+              authToken,
+            }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            )
+          )
+        )
+      );
+
+  const pullFromRemoteProject: MultiDocumentProjectStore['pullFromRemoteProject'] =
+    ({ projectId, remoteName = 'origin', authToken: authTokenInput }) =>
+      Effect.Do.pipe(
+        Effect.bind('authToken', () =>
+          ensureAuthTokenIsProvided(authTokenInput)
+        ),
+        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
+        Effect.flatMap(({ authToken, projectPath }) =>
+          pipe(
+            pullFromRemoteGitRepo({
+              isoGitFs,
+              isoGitHttp,
+              dir: projectPath,
+              remote: remoteName,
+              authToken,
+            }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            )
+          )
+        )
+      );
+
+  const getRemoteBranchInfo: MultiDocumentProjectStore['getRemoteBranchInfo'] =
+    ({ projectId, remoteName = 'origin', authToken: authTokenInput }) =>
+      Effect.Do.pipe(
+        Effect.bind('authToken', () =>
+          ensureAuthTokenIsProvided(authTokenInput)
+        ),
+        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
+        Effect.flatMap(({ projectPath, authToken }) =>
+          pipe(
+            findGitRemoteByName({
+              isoGitFs,
+              dir: projectPath,
+              name: remoteName,
+            }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            ),
+            Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
+              Effect.fail(new NotFoundError(err.message))
+            ),
+            Effect.flatMap((remoteInfo) =>
+              pipe(
+                getRemoteBranchInfoWithGit({
+                  isoGitHttp,
+                  url: remoteInfo.url,
+                  authToken,
+                }),
+                Effect.catchAll((err) =>
+                  Effect.fail(new RepositoryError(err.message))
+                )
+              )
+            )
+          )
+        )
+      );
+
   return {
     supportsBranching: true,
     createProject,
@@ -388,5 +574,11 @@ export const createAdapter = ({
     deleteBranch,
     mergeAndDeleteBranch,
     setAuthorInfo,
+    addRemoteProject,
+    listRemoteProjects,
+    findRemoteProjectByName,
+    pushToRemoteProject,
+    pullFromRemoteProject,
+    getRemoteBranchInfo,
   };
 };

@@ -11,13 +11,17 @@ import { useNavigate, useParams } from 'react-router';
 
 import { AuthContext } from '../../../../modules/auth/browser';
 import {
+  DEFAULT_REMOTE_PROJECT_NAME,
   DOCUMENT_INTERNAL_PATH,
   type ProjectId,
+  type RemoteProjectInfo,
   type SingleDocumentProjectStore,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
-import { ElectronContext } from '../../../../modules/infrastructure/cross-platform';
-import { isElectron } from '../../../../modules/infrastructure/cross-platform/utils';
+import {
+  ElectronContext,
+  isElectron,
+} from '../../../../modules/infrastructure/cross-platform/browser';
 import { type File } from '../../../../modules/infrastructure/filesystem';
 import {
   createErrorNotification,
@@ -25,6 +29,7 @@ import {
 } from '../../../../modules/infrastructure/notifications/browser';
 import {
   type Branch,
+  type Commit,
   DEFAULT_BRANCH,
   parseBranch,
   type ResolvedArtifactId,
@@ -73,6 +78,13 @@ export type SingleDocumentProjectContextType = {
   openDeleteBranchDialog: (branch: Branch) => void;
   closeDeleteBranchDialog: () => void;
   supportsBranching: boolean;
+  remoteProject: RemoteProjectInfo | null;
+  addRemoteProject: (url: string) => Promise<void>;
+  remoteBranchInfo: Record<Branch, Commit['id']>;
+  pushToRemoteProject: () => Promise<void>;
+  pullFromRemoteProject: () => Promise<void>;
+  pulledUpstreamChanges: boolean;
+  onHandlePulledUpstreamChanges: () => void;
 };
 
 export const SingleDocumentProjectContext =
@@ -134,6 +146,14 @@ export const SingleDocumentProjectProvider = ({
   const [supportsBranching, setSupportsBranching] = useState<boolean>(false);
   const { dispatchNotification } = useContext(NotificationsContext);
   const { username, email } = useContext(AuthContext);
+  const [remoteProject, setRemoteProject] = useState<RemoteProjectInfo | null>(
+    null
+  );
+  const [remoteBranchInfo, setRemoteBranchInfo] = useState<
+    Record<Branch, Commit['id']>
+  >({});
+  const [pulledUpstreamChanges, setPulledUpstreamChanges] =
+    useState<boolean>(false);
 
   const documentInternalPath =
     versionControlSystems[config.singleDocumentProjectVersionControlSystem] ===
@@ -196,6 +216,7 @@ export const SingleDocumentProjectProvider = ({
         versionedProjectStore: projectStore,
         documentId: docId,
         currentBranch,
+        remoteProjects,
         file,
         name: projName,
       } = await Effect.runPromise(
@@ -216,6 +237,7 @@ export const SingleDocumentProjectProvider = ({
       setProjectFile(file);
       setProjectName(projName);
       setCurrentBranch(currentBranch);
+      setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
 
       navigate(
         `/projects/${urlEncodeProjectId(browserStorageProjectData.projectId)}/documents/${urlEncodeArtifactId(docId)}`
@@ -240,6 +262,7 @@ export const SingleDocumentProjectProvider = ({
         projectId: projId,
         documentId: docId,
         currentBranch,
+        remoteProjects,
         file,
         name: projName,
       } = await Effect.runPromise(
@@ -255,6 +278,7 @@ export const SingleDocumentProjectProvider = ({
       setProjectFile(file);
       setProjectName(projName);
       setCurrentBranch(currentBranch);
+      setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
 
       const browserStorageProjectData: BrowserStorageProjectData = {
         projectId: projId,
@@ -305,6 +329,7 @@ export const SingleDocumentProjectProvider = ({
           projectId: projId,
           documentId: docId,
           currentBranch,
+          remoteProjects,
           file,
           name: projName,
         } = await Effect.runPromise(
@@ -329,6 +354,7 @@ export const SingleDocumentProjectProvider = ({
         setProjectFile(file);
         setProjectName(projName);
         setCurrentBranch(currentBranch);
+        setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
 
         const browserStorageProjectData: BrowserStorageProjectData = {
           projectId: projId,
@@ -373,6 +399,35 @@ export const SingleDocumentProjectProvider = ({
       setSupportsBranching(versionedProjectStore.supportsBranching);
     }
   }, [versionedProjectStore]);
+
+  useEffect(() => {
+    const fetchRemoteBranchInfo = async ({
+      versionedProjectStore,
+      projectId,
+      remoteProject,
+    }: {
+      versionedProjectStore: SingleDocumentProjectStore;
+      projectId: ProjectId;
+      remoteProject: RemoteProjectInfo;
+    }) => {
+      const branchInfo = await Effect.runPromise(
+        versionedProjectStore.getRemoteBranchInfo({
+          projectId,
+          remoteName: remoteProject.name,
+        })
+      );
+
+      setRemoteBranchInfo(branchInfo);
+    };
+
+    if (versionedProjectStore && projectId && remoteProject) {
+      fetchRemoteBranchInfo({
+        versionedProjectStore,
+        projectId,
+        remoteProject,
+      });
+    }
+  }, [versionedProjectStore, projectId, remoteProject]);
 
   const handleListBranches = useCallback(async () => {
     if (!versionedProjectStore || !projectId) {
@@ -540,6 +595,87 @@ export const SingleDocumentProjectProvider = ({
     }
   }, [username, email, versionedProjectStore, projectId]);
 
+  const handleAddRemoteProject = useCallback(
+    async (url: string) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot add remote project.'
+        );
+      }
+
+      const { notification, result } = await Effect.runPromise(
+        pipe(
+          pipe(
+            versionedProjectStore.addRemoteProject({
+              projectId,
+              remoteName: DEFAULT_REMOTE_PROJECT_NAME,
+              remoteUrl: url,
+            }),
+            Effect.map(() => ({
+              result: {
+                name: DEFAULT_REMOTE_PROJECT_NAME,
+                url,
+              },
+              notification: null,
+            }))
+          ),
+          Effect.catchAll((err) => {
+            console.error(err);
+            const notification = createErrorNotification({
+              title: 'Remote Project Error',
+              message: `An error happened when trying to connect the remote project.`,
+            });
+
+            return Effect.succeed({ result: null, notification });
+          })
+        )
+      );
+
+      if (notification) {
+        dispatchNotification(notification);
+      }
+
+      setRemoteProject(result);
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const handlePushToRemoteProject = useCallback(async () => {
+    if (!versionedProjectStore || !projectId || !remoteProject) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot push to remote project.'
+      );
+    }
+
+    await Effect.runPromise(
+      versionedProjectStore.pushToRemoteProject({
+        projectId,
+        remoteName: remoteProject.name,
+      })
+    );
+  }, [versionedProjectStore, projectId, remoteProject]);
+
+  const handlePullFromRemoteProject = useCallback(async () => {
+    if (!versionedProjectStore || !projectId || !remoteProject) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot pull from remote project.'
+      );
+    }
+
+    await Effect.runPromise(
+      versionedProjectStore.pullFromRemoteProject({
+        projectId,
+        remoteName: remoteProject.name,
+      })
+    );
+
+    setPulledUpstreamChanges(true);
+  }, [versionedProjectStore, projectId, remoteProject]);
+
+  const resetPulledUpstreamChanges = () => {
+    setPulledUpstreamChanges(false);
+  };
+
   return (
     <SingleDocumentProjectContext.Provider
       value={{
@@ -565,6 +701,13 @@ export const SingleDocumentProjectProvider = ({
         openDeleteBranchDialog: handleOpenDeleteBranchDialog,
         closeDeleteBranchDialog: handleCloseDeleteBranchDialog,
         supportsBranching,
+        remoteProject,
+        addRemoteProject: handleAddRemoteProject,
+        remoteBranchInfo,
+        pushToRemoteProject: handlePushToRemoteProject,
+        pullFromRemoteProject: handlePullFromRemoteProject,
+        pulledUpstreamChanges,
+        onHandlePulledUpstreamChanges: resetPulledUpstreamChanges,
       }}
     >
       {children}

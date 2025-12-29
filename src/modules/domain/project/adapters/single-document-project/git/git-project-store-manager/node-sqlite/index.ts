@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
+import http from 'isomorphic-git/http/node';
 
 import { createAdapter as createVersionedDocumentStoreAdapter } from '../../../../../../../../modules/domain/rich-text/adapters/versioned-document-store/git/git-versioned-document-store';
 import {
@@ -86,6 +87,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                 createSingleDocumentProjectStoreAdapter({
                   isoGitFs,
                   filesystem,
+                  isoGitHttp: http,
                   projectFilePath,
                   internalProjectDir: INTERNAL_PROJECT_DIR,
                   projectName: newFile.name,
@@ -126,6 +128,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                   projectId,
                   documentId,
                   currentBranch,
+                  remoteProjects: [],
                   file: newFile,
                   // The name is derived by the file name in this case
                   name: newFile.name,
@@ -173,6 +176,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                   createSingleDocumentProjectStoreAdapter({
                     isoGitFs,
                     filesystem,
+                    isoGitHttp: http,
                     projectFilePath,
                     internalProjectDir: INTERNAL_PROJECT_DIR,
                     projectName: file.name,
@@ -203,6 +207,11 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
               ({ versionedProjectStore, projectFilePath: projectId }) =>
                 versionedProjectStore.getCurrentBranch({ projectId })
             ),
+            Effect.bind(
+              'remoteProjects',
+              ({ versionedProjectStore, projectFilePath: projectId }) =>
+                versionedProjectStore.listRemoteProjects({ projectId })
+            ),
             Effect.tap(
               ({ versionedProjectStore, projectFilePath: projectId }) =>
                 versionedProjectStore.setAuthorInfo({
@@ -219,12 +228,14 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                 projectFilePath: projectId,
                 documentId,
                 currentBranch,
+                remoteProjects,
               }) => ({
                 versionedProjectStore,
                 versionedDocumentStore,
                 projectId,
                 documentId,
                 currentBranch,
+                remoteProjects,
                 file,
                 // The name is derived by the file name in this case
                 name: file.name,

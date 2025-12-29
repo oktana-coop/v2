@@ -19,6 +19,14 @@ const infoNotificationSchema = notificationInfoSchema
 
 export type InfoNotification = z.infer<typeof infoNotificationSchema>;
 
+const successNotificationSchema = notificationInfoSchema
+  .extend({
+    type: z.literal(notificationTypes.SUCCESS_NOTIFICATION),
+  })
+  .brand('SuccessNotification');
+
+export type SuccessNotification = z.infer<typeof successNotificationSchema>;
+
 const errorNotificationSchema = notificationInfoSchema
   .extend({
     type: z.literal(notificationTypes.ERROR_NOTIFICATION),
@@ -29,6 +37,7 @@ export type ErrorNotification = z.infer<typeof errorNotificationSchema>;
 
 export const notificationSchema = z.union([
   infoNotificationSchema,
+  successNotificationSchema,
   errorNotificationSchema,
 ]);
 
@@ -44,6 +53,20 @@ export const createInfoNotification = ({
   notificationSchema.parse({
     id: uuidv4(),
     type: notificationTypes.INFO_NOTIFICATION,
+    title,
+    message,
+  });
+
+export const createSuccessNotification = ({
+  title,
+  message,
+}: {
+  title: NotificationInfo['title'];
+  message: NotificationInfo['message'];
+}) =>
+  notificationSchema.parse({
+    id: uuidv4(),
+    type: notificationTypes.SUCCESS_NOTIFICATION,
     title,
     message,
   });
@@ -66,6 +89,11 @@ export const isInfoNotification = (
   notification: Notification
 ): notification is InfoNotification =>
   notification.type === notificationTypes.INFO_NOTIFICATION;
+
+export const isSuccessNotification = (
+  notification: Notification
+): notification is SuccessNotification =>
+  notification.type === notificationTypes.SUCCESS_NOTIFICATION;
 
 export const isErrorNotification = (
   notification: Notification

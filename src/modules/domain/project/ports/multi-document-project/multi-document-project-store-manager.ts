@@ -27,7 +27,7 @@ import {
   RepositoryError as VersionedProjectRepositoryError,
   ValidationError as VersionedProjectValidationError,
 } from '../../errors';
-import { type ProjectId } from '../../models';
+import { type ProjectId, type RemoteProjectInfo } from '../../models';
 import { MultiDocumentProjectStore } from './multi-document-project-store';
 
 type UserInfo = {
@@ -47,6 +47,7 @@ export type OpenOrCreateMultiDocumentProjectResult = {
   projectId: ProjectId;
   directory: Directory;
   currentBranch: Branch;
+  remoteProjects: RemoteProjectInfo[];
 };
 
 export type OpenMultiDocumentProjectByIdDeps = {
@@ -64,6 +65,7 @@ export type OpenMultiDocumentProjectByIdResult = {
   projectId: ProjectId;
   directory: Directory;
   currentBranch: Branch;
+  remoteProjects: RemoteProjectInfo[];
 };
 
 export type MultiDocumentProjectStoreManager = {

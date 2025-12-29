@@ -12,6 +12,7 @@ import { NotFoundError, RepositoryError, ValidationError } from '../../errors';
 import {
   type BaseArtifactMetaData,
   type ProjectId,
+  type RemoteProjectInfo,
   type VersionedSingleDocumentProject,
 } from '../../models';
 
@@ -61,6 +62,45 @@ export type SingleDocumentProjectMergeAndDeleteBranchArgs = {
 export type SingleDocumentProjectSetAuthorInfoArgs = {
   projectId: ProjectId;
 } & UserInfo;
+
+export type SingleDocumentProjectAddRemoteProjectArgs = {
+  projectId: ProjectId;
+  remoteName?: string;
+  remoteUrl: string;
+  authToken?: string;
+};
+
+export type SingleDocumentProjectListRemoteProjectsArgs = {
+  projectId: ProjectId;
+};
+
+export type SingleDocumentProjectFindRemoteProjectByNameArgs = {
+  projectId: ProjectId;
+  remoteName: string;
+};
+
+export type SingleDocumentProjectPushToRemoteProjectArgs = {
+  projectId: ProjectId;
+  remoteName?: string;
+  authToken?: string;
+};
+
+export type SingleDocumentProjectPullFromRemoteProjectArgs = {
+  projectId: ProjectId;
+  remoteName?: string;
+  authToken?: string;
+};
+
+export type SingleDocumentProjectGetRemoteBranchInfoArgs = {
+  projectId: ProjectId;
+  remoteName?: string;
+  authToken?: string;
+};
+
+export type SingleDocumentProjectGetRemoteBranchInfoResult = Record<
+  Branch,
+  Commit['id']
+>;
 
 export type SingleDocumentProjectStore = {
   supportsBranching: boolean;
@@ -125,5 +165,36 @@ export type SingleDocumentProjectStore = {
   setAuthorInfo: (
     args: SingleDocumentProjectSetAuthorInfoArgs
   ) => Effect.Effect<void, RepositoryError, never>;
+  // TODO: Consider moving to a separate, composable type like ExplicitSyncProjectStore
+  addRemoteProject: (
+    args: SingleDocumentProjectAddRemoteProjectArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  listRemoteProjects: (
+    args: SingleDocumentProjectListRemoteProjectsArgs
+  ) => Effect.Effect<
+    RemoteProjectInfo[],
+    ValidationError | RepositoryError,
+    never
+  >;
+  findRemoteProjectByName: (
+    args: SingleDocumentProjectFindRemoteProjectByNameArgs
+  ) => Effect.Effect<
+    RemoteProjectInfo,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
+  pushToRemoteProject: (
+    args: SingleDocumentProjectPushToRemoteProjectArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  pullFromRemoteProject: (
+    args: SingleDocumentProjectPullFromRemoteProjectArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  getRemoteBranchInfo: (
+    args: SingleDocumentProjectGetRemoteBranchInfoArgs
+  ) => Effect.Effect<
+    SingleDocumentProjectGetRemoteBranchInfoResult,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
   disconnect: () => Effect.Effect<void, RepositoryError, never>;
 };

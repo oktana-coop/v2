@@ -9,10 +9,12 @@ import { filesystemItemTypes } from '../../../constants/filesystem-item-types';
 import {
   AbortError,
   AccessControlError,
+  DataIntegrityError,
   NotFoundError,
   RepositoryError,
 } from '../../../errors';
-import { Filesystem } from '../../../ports/filesystem';
+import { type Filesystem } from '../../../ports/filesystem';
+import { type File, isBinaryFile, isTextFile } from '../../../types';
 import {
   clearAllAndInsertManyFileHandles,
   clearFileHandles,
@@ -214,6 +216,49 @@ const getFileHandleFromStorage = (
     Effect.map((file) => file.fileHandle)
   );
 
+const readFile: (args: {
+  path: string;
+  as: 'text' | 'binary';
+}) => Effect.Effect<
+  File,
+  AccessControlError | NotFoundError | RepositoryError,
+  never
+> = ({ path, as }) =>
+  Effect.Do.pipe(
+    Effect.bind('fileHandle', () => getFileHandleFromStorage(path)),
+    Effect.bind('fileData', ({ fileHandle }) =>
+      Effect.tryPromise({
+        try: () => fileHandle.getFile(),
+        catch: (err: unknown) => {
+          if (err instanceof DOMException) {
+            if (err.name === 'NotAllowedError') {
+              return new AccessControlError(err.message);
+            } else if (err.name === 'NotFoundError') {
+              return new NotFoundError(err.message);
+            }
+          }
+
+          return mapErrorTo(
+            RepositoryError,
+            'Browser filesystem API error'
+          )(err);
+        },
+      })
+    ),
+    Effect.bind('content', ({ fileData }) =>
+      Effect.tryPromise<string | Uint8Array, RepositoryError>({
+        try: () => (as === 'text' ? fileData.text() : fileData.bytes()),
+        catch: mapErrorTo(RepositoryError, 'Browser filesystem API error'),
+      })
+    ),
+    Effect.map(({ fileData, content }) => ({
+      type: filesystemItemTypes.FILE,
+      name: fileData.name,
+      path,
+      content,
+    }))
+  );
+
 export const createAdapter = (): Filesystem => ({
   openDirectory: () =>
     Effect.Do.pipe(
@@ -335,42 +380,31 @@ export const createAdapter = (): Filesystem => ({
         assertWritePermission(directoryHandle)
       )
     ),
-  readFile: (path: string) =>
-    Effect.Do.pipe(
-      Effect.bind('fileHandle', () => getFileHandleFromStorage(path)),
-      Effect.bind('fileData', ({ fileHandle }) =>
-        Effect.tryPromise({
-          try: () => fileHandle.getFile(),
-          catch: (err: unknown) => {
-            if (err instanceof DOMException) {
-              if (err.name === 'NotAllowedError') {
-                return new AccessControlError(err.message);
-              } else if (err.name === 'NotFoundError') {
-                return new NotFoundError(err.message);
-              }
-            }
-
-            return mapErrorTo(
-              RepositoryError,
-              'Browser filesystem API error'
-            )(err);
-          },
-        })
-      ),
-      Effect.bind('content', ({ fileData }) =>
-        Effect.tryPromise({
-          try: () => fileData.text(),
-          catch: mapErrorTo(RepositoryError, 'Browser filesystem API error'),
-        })
-      ),
-      Effect.map(({ fileData, content }) => ({
-        type: filesystemItemTypes.FILE,
-        name: fileData.name,
-        path,
-        content,
-      }))
+  readBinaryFile: (path: string) =>
+    pipe(
+      readFile({ path, as: 'binary' }),
+      Effect.flatMap((file) =>
+        isBinaryFile(file)
+          ? Effect.succeed(file)
+          : Effect.fail(
+              new DataIntegrityError(
+                'Expected a binary file but got a text one'
+              )
+            )
+      )
     ),
-  writeFile: (path: string, content: string) =>
+  readTextFile: (path: string) =>
+    pipe(
+      readFile({ path, as: 'text' }),
+      Effect.flatMap((file) =>
+        isTextFile(file)
+          ? Effect.succeed(file)
+          : Effect.fail(
+              new DataIntegrityError('Expected a text file but got a binary')
+            )
+      )
+    ),
+  writeFile: ({ path, content }) =>
     pipe(
       getFileHandleFromStorage(path),
       Effect.tap(assertWritePermission),
@@ -378,7 +412,22 @@ export const createAdapter = (): Filesystem => ({
         Effect.tryPromise({
           try: async () => {
             const writable = await fileHandle.createWritable();
-            await writable.write(content);
+
+            if (typeof content === 'string') {
+              await writable.write(content);
+            } else {
+              // Normalize Uint8Array<ArrayBufferLike> to ArrayBuffer
+              const buffer =
+                content.buffer instanceof ArrayBuffer
+                  ? content.buffer.slice(
+                      content.byteOffset,
+                      content.byteOffset + content.byteLength
+                    )
+                  : new Uint8Array(content).buffer;
+
+              await writable.write(buffer);
+            }
+
             await writable.close();
           },
           catch: mapErrorTo(RepositoryError, 'Browser filesystem API error'),
@@ -448,6 +497,26 @@ export const createAdapter = (): Filesystem => ({
         // TODO: Read content properly
         content: '',
       }))
+    ),
+  deleteFile: ({ path, parentDirectory }) =>
+    pipe(
+      fromNullable(
+        parentDirectory,
+        () =>
+          new NotFoundError(
+            'The parent directory is required when trying to delete a file via the browser filesystem API.'
+          )
+      ),
+      Effect.flatMap((parentDir) => getDirHandleFromStorage(parentDir.path)),
+      Effect.flatMap((dirHandle) =>
+        Effect.try({
+          try: () => dirHandle.removeEntry(path),
+          catch: mapErrorTo(
+            RepositoryError,
+            `Error when trying to delete the file with path ${path}`
+          ),
+        })
+      )
     ),
   getRelativePath: ({ path: descendantPath, relativeTo }) =>
     Effect.try({

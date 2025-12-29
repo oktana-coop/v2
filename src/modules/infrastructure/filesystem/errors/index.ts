@@ -15,9 +15,9 @@ export class AbortError extends Cause.YieldableError {
   readonly _tag = FilesystemAbortErrorTag;
 }
 
-export const FileystemDataIntegrityErrorTag = 'FileystemDataIntegrityError';
+export const FilesystemDataIntegrityErrorTag = 'FilesystemDataIntegrityError';
 export class DataIntegrityError extends Cause.YieldableError {
-  readonly _tag = FileystemDataIntegrityErrorTag;
+  readonly _tag = FilesystemDataIntegrityErrorTag;
 }
 
 export const FilesystemAccessControlErrorTag = 'FilesystemAccessControlError';

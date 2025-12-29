@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 
-import { ElectronContext } from '../../../../../../../modules/infrastructure/cross-platform/electron-context';
+import { ElectronContext } from '../../../../../../../modules/infrastructure/cross-platform/browser';
 import { IconButton } from '../../../../../components/actions/IconButton';
 import {
   FileDocumentIcon,
