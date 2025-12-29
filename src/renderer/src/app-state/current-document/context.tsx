@@ -48,6 +48,7 @@ import {
 } from '../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../modules/personalization/browser';
 import { useCurrentDocumentId } from '../../hooks/use-current-document-id';
+import { usePulledUpstreamChanges } from '../../hooks/use-pulled-upstream-changes';
 import {
   CurrentProjectContext,
   InfrastructureAdaptersContext,
@@ -174,6 +175,8 @@ export const CurrentDocumentProvider = ({
     : undefined;
   const prevProjectId = useRef(projectIdParam);
   const prevDocumentId = useRef(documentId);
+  const { pulledUpstreamChanges, resetPulledUpstreamChanges } =
+    usePulledUpstreamChanges();
 
   useEffect(() => {
     const projectOrDocumentHasChanged =
@@ -194,6 +197,7 @@ export const CurrentDocumentProvider = ({
         clearFileSelection();
         setVersionedDocumentHandle(null);
         setVersionedDocument(null);
+        resetPulledUpstreamChanges();
       } else {
         setVersionedDocumentHandle(null);
         setVersionedDocument(null);
@@ -231,6 +235,7 @@ export const CurrentDocumentProvider = ({
             documentId,
             path,
           });
+          resetPulledUpstreamChanges();
         }
 
         prevProjectId.current = projectIdParam;
@@ -244,13 +249,21 @@ export const CurrentDocumentProvider = ({
       // due to how Automerge repo syncing works at the moment. If this happens, the repo registers interest in the wrong document
       // and can potentially get it if we are not careful when switching projects. Change with caution.
       versionedDocumentStore.projectId === projectIdParam &&
-      (projectOrDocumentHasChanged || returningToSelectedDocumentEditMode)
+      (projectOrDocumentHasChanged ||
+        returningToSelectedDocumentEditMode ||
+        pulledUpstreamChanges)
     ) {
       updateDocumentHandleAndSelectedFile({ versionedDocumentStore });
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documentId, projectIdParam, changeIdParam, versionedDocumentStore]);
+  }, [
+    documentId,
+    projectIdParam,
+    changeIdParam,
+    versionedDocumentStore,
+    pulledUpstreamChanges,
+  ]);
 
   const checkIfContentChangedFromLastCommit =
     (documentStore: VersionedDocumentStore) =>

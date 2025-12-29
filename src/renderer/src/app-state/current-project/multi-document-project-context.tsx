@@ -97,6 +97,8 @@ export type MultiDocumentProjectContextType = {
   remoteBranchInfo: Record<Branch, Commit['id']>;
   pushToRemoteProject: () => Promise<void>;
   pullFromRemoteProject: () => Promise<void>;
+  pulledUpstreamChanges: boolean;
+  onHandlePulledUpstreamChanges: () => void;
 };
 
 export const MultiDocumentProjectContext =
@@ -155,6 +157,8 @@ export const MultiDocumentProjectProvider = ({
   const [remoteBranchInfo, setRemoteBranchInfo] = useState<
     Record<Branch, Commit['id']>
   >({});
+  const [pulledUpstreamChanges, setPulledUpstreamChanges] =
+    useState<boolean>(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -227,9 +231,15 @@ export const MultiDocumentProjectProvider = ({
     if (directory && directory.permissionState === 'granted') {
       getFiles(directory);
     }
-  }, [directory, filesystem, currentBranch]);
+  }, [directory, filesystem, currentBranch, pulledUpstreamChanges]);
 
   useEffect(() => {
+    const navigateToProjectsList = () => {
+      const newUrl = `/projects`;
+      setPulledUpstreamChanges(false);
+      navigate(newUrl);
+    };
+
     const reloadSelectedDocumentOrReset = async ({
       projId,
       selectedFilePath,
@@ -246,23 +256,29 @@ export const MultiDocumentProjectProvider = ({
         setSelectedFileInfo({ documentId: doc.id, path: selectedFilePath });
 
         const newUrl = `/projects/${urlEncodeProjectId(projId)}/documents/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(selectedFilePath)}`;
+        setPulledUpstreamChanges(false);
         navigate(newUrl);
+
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
         // TODO: Only do this on NotFoundError.
         // TODO: Navigate to the specific project route (doesn't exist at the time of writing) this.
-        const newUrl = `/projects`;
-        navigate(newUrl);
+        navigateToProjectsList();
       }
     };
 
     if (projectId && selectedFileInfo?.path) {
-      reloadSelectedDocumentOrReset({
-        projId: projectId,
-        selectedFilePath: selectedFileInfo.path,
-      });
+      if (selectedFileInfo) {
+        reloadSelectedDocumentOrReset({
+          projId: projectId,
+          selectedFilePath: selectedFileInfo.path,
+        });
+      } else {
+        // TODO: Navigate to the specific project route (doesn't exist at the time of writing) this.
+        navigateToProjectsList();
+      }
     }
-  }, [currentBranch]);
+  }, [currentBranch, pulledUpstreamChanges]);
 
   useEffect(() => {
     if (!documentIdInPath) {
@@ -689,7 +705,13 @@ export const MultiDocumentProjectProvider = ({
         remoteName: remoteProject.name,
       })
     );
+
+    setPulledUpstreamChanges(true);
   }, [versionedProjectStore, projectId, remoteProject]);
+
+  const resetPulledUpstreamChanges = () => {
+    setPulledUpstreamChanges(false);
+  };
 
   return (
     <MultiDocumentProjectContext.Provider
@@ -724,6 +746,8 @@ export const MultiDocumentProjectProvider = ({
         remoteBranchInfo,
         pushToRemoteProject: handlePushToRemoteProject,
         pullFromRemoteProject: handlePullFromRemoteProject,
+        pulledUpstreamChanges,
+        onHandlePulledUpstreamChanges: resetPulledUpstreamChanges,
       }}
     >
       {children}

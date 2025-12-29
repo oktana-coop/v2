@@ -83,6 +83,8 @@ export type SingleDocumentProjectContextType = {
   remoteBranchInfo: Record<Branch, Commit['id']>;
   pushToRemoteProject: () => Promise<void>;
   pullFromRemoteProject: () => Promise<void>;
+  pulledUpstreamChanges: boolean;
+  onHandlePulledUpstreamChanges: () => void;
 };
 
 export const SingleDocumentProjectContext =
@@ -150,6 +152,8 @@ export const SingleDocumentProjectProvider = ({
   const [remoteBranchInfo, setRemoteBranchInfo] = useState<
     Record<Branch, Commit['id']>
   >({});
+  const [pulledUpstreamChanges, setPulledUpstreamChanges] =
+    useState<boolean>(false);
 
   const documentInternalPath =
     versionControlSystems[config.singleDocumentProjectVersionControlSystem] ===
@@ -664,7 +668,13 @@ export const SingleDocumentProjectProvider = ({
         remoteName: remoteProject.name,
       })
     );
+
+    setPulledUpstreamChanges(true);
   }, [versionedProjectStore, projectId, remoteProject]);
+
+  const resetPulledUpstreamChanges = () => {
+    setPulledUpstreamChanges(false);
+  };
 
   return (
     <SingleDocumentProjectContext.Provider
@@ -696,6 +706,8 @@ export const SingleDocumentProjectProvider = ({
         remoteBranchInfo,
         pushToRemoteProject: handlePushToRemoteProject,
         pullFromRemoteProject: handlePullFromRemoteProject,
+        pulledUpstreamChanges,
+        onHandlePulledUpstreamChanges: resetPulledUpstreamChanges,
       }}
     >
       {children}
