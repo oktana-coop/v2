@@ -17,6 +17,9 @@ type ElectronContextType = {
   dismissUpdateNotification: () => void;
   restartToInstallUpdate: () => void;
   config: RendererConfig;
+  isMac: boolean;
+  isWindows: boolean;
+  isLinux: boolean;
 };
 
 export const ElectronContext = createContext<ElectronContextType>({
@@ -42,6 +45,9 @@ export const ElectronProvider = ({
   const config: RendererConfig = isElectron()
     ? window.config
     : browserBuildConfig;
+  const isMac = isElectron() && window.electronAPI.isMac;
+  const isWindows = isElectron() && window.electronAPI.isWindows;
+  const isLinux = isElectron() && window.electronAPI.isLinux;
 
   useEffect(() => {
     if (isElectron()) {
@@ -104,6 +110,9 @@ export const ElectronProvider = ({
         dismissUpdateNotification: handleDismissUpdateNotification,
         restartToInstallUpdate: () => handleRestartToInstallUpdate(),
         config,
+        isMac,
+        isWindows,
+        isLinux,
       }}
     >
       {children}
