@@ -13,7 +13,7 @@ const CommandPaletteTrigger = ({ onClick }: CommandPaletteTriggerProps) => (
   <HeadlessButton
     className={clsx([
       // Basic layout
-      'flex w-3/4 items-center justify-between px-2 py-1 lg:w-2/4 xl:w-1/4',
+      'flex w-3/4 items-center justify-between rounded-md px-2 py-1 lg:w-2/4 xl:w-1/4',
 
       // Typography
       'text-sm/4 text-zinc-950 dark:text-white',
