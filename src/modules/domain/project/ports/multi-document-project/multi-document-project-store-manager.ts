@@ -39,7 +39,9 @@ export type OpenOrCreateMultiDocumentProjectDeps = {
   filesystem: Filesystem;
 };
 
-export type OpenOrCreateMultiDocumentProjectArgs = UserInfo;
+export type OpenOrCreateMultiDocumentProjectArgs = UserInfo & {
+  cloneUrl?: string;
+};
 
 export type OpenOrCreateMultiDocumentProjectResult = {
   versionedProjectStore: MultiDocumentProjectStore;

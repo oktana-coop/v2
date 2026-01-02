@@ -11,7 +11,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
   const openOrCreateMultiDocumentProject: MultiDocumentProjectStoreManager['openOrCreateMultiDocumentProject'] =
 
       ({ filesystem }) =>
-      ({ username, email }) =>
+      ({ username, email, cloneUrl }) =>
         Effect.Do.pipe(
           Effect.bind('directory', () => filesystem.openDirectory()),
           Effect.bind('versionedProjectStore', () =>
@@ -26,6 +26,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
           Effect.bind('projectId', ({ directory, versionedProjectStore }) =>
             versionedProjectStore.createProject({
               path: directory.path,
+              cloneUrl,
               username,
               email,
             })

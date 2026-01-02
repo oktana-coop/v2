@@ -24,6 +24,7 @@ type UserInfo = {
 export type CreateSingleDocumentProjectArgs = {
   documentMetaData: BaseArtifactMetaData;
   name: string | null;
+  cloneUrl?: string;
 } & UserInfo;
 
 export type SingleDocumentProjectCreateAndSwitchToBranchArgs = {

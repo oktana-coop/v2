@@ -37,6 +37,7 @@ export type SetupSingleDocumentProjectStoreDeps = {
 
 export type SetupSingleDocumentProjectStoreArgs = {
   name?: string;
+  cloneUrl?: string;
 } & UserInfo;
 
 export type SetupSingleDocumentProjectStoreResult = {

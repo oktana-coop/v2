@@ -25,6 +25,7 @@ export type CreateDocumentAndProjectArgs = {
   name?: string;
   content: string | null;
   writeToFileWithPath?: string;
+  cloneUrl?: string;
 } & UserInfo;
 
 export type CreateDocumentAndProjectDeps = {
@@ -51,6 +52,7 @@ export const createDocumentAndProject =
     writeToFileWithPath,
     username,
     email,
+    cloneUrl,
   }: CreateDocumentAndProjectArgs): Effect.Effect<
     CreateSingleDocumentProjectResult,
     | VersionedProjectRepositoryError
@@ -73,6 +75,7 @@ export const createDocumentAndProject =
           name: name ?? null,
           username,
           email,
+          cloneUrl,
         })
       ),
       Effect.flatMap(({ documentId, projectId }) =>

@@ -67,17 +67,24 @@ export const createAdapter = ({
   documentInternalPath: string;
 }): SingleDocumentProjectStore => {
   const createSingleDocumentProject: SingleDocumentProjectStore['createSingleDocumentProject'] =
-    ({ username, email }) =>
+    ({ username, email, cloneUrl }) =>
       pipe(
         Effect.succeed(projectFilePath),
         Effect.tap(() =>
           Effect.tryPromise({
             try: () =>
-              git.init({
-                fs: isoGitFs,
-                dir: internalProjectDir,
-                defaultBranch: DEFAULT_BRANCH,
-              }),
+              cloneUrl
+                ? git.clone({
+                    fs: isoGitFs,
+                    http: isoGitHttp,
+                    dir: internalProjectDir,
+                    url: cloneUrl,
+                  })
+                : git.init({
+                    fs: isoGitFs,
+                    dir: internalProjectDir,
+                    defaultBranch: DEFAULT_BRANCH,
+                  }),
             catch: mapErrorTo(RepositoryError, 'Git repo error'),
           })
         ),

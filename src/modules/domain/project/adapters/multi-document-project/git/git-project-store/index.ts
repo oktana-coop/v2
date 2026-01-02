@@ -76,6 +76,7 @@ export const createAdapter = ({
 
   const createProject: MultiDocumentProjectStore['createProject'] = ({
     path,
+    cloneUrl,
     username,
     email,
   }) =>
@@ -87,11 +88,18 @@ export const createAdapter = ({
       Effect.tap((projectPath) =>
         Effect.tryPromise({
           try: () =>
-            git.init({
-              fs: isoGitFs,
-              dir: projectPath,
-              defaultBranch: DEFAULT_BRANCH,
-            }),
+            cloneUrl
+              ? git.clone({
+                  fs: isoGitFs,
+                  http: isoGitHttp,
+                  dir: projectPath,
+                  url: cloneUrl,
+                })
+              : git.init({
+                  fs: isoGitFs,
+                  dir: projectPath,
+                  defaultBranch: DEFAULT_BRANCH,
+                }),
           catch: mapErrorTo(RepositoryError, 'Git repo error'),
         })
       ),

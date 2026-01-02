@@ -11,12 +11,12 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
   const setupSingleDocumentProjectStore: SingleDocumentProjectStoreManager['setupSingleDocumentProjectStore'] =
 
       () =>
-      ({ username, email }) =>
+      ({ username, email, cloneUrl }) =>
         pipe(
           Effect.tryPromise({
             try: () =>
               window.singleDocumentProjectStoreManagerAPI.setupSingleDocumentProjectStore(
-                { username, email }
+                { username, email, cloneUrl }
               ),
             // TODO: Leverage typed Effect errors returned from the respective node adapter
             catch: mapErrorTo(

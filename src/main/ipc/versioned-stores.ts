@@ -127,12 +127,15 @@ const registerStoreManagerEvents = ({
 }) => {
   ipcMain.handle(
     'create-single-document-project',
-    async (_, { name, username, email }: SetupSingleDocumentProjectStoreArgs) =>
+    async (
+      _,
+      { name, username, email, cloneUrl }: SetupSingleDocumentProjectStoreArgs
+    ) =>
       Effect.runPromise(
         pipe(
           singleDocumentProjectStoreManager.setupSingleDocumentProjectStore({
             filesystem,
-          })({ name, username, email }),
+          })({ name, username, email, cloneUrl }),
           Effect.tap(
             ({ projectId, versionedProjectStore, versionedDocumentStore }) =>
               setVersionedStores(projectId, {
@@ -202,12 +205,15 @@ const registerStoreManagerEvents = ({
 
   ipcMain.handle(
     'open-or-create-multi-document-project',
-    async (_, { username, email }: OpenOrCreateMultiDocumentProjectArgs) =>
+    async (
+      _,
+      { username, email, cloneUrl }: OpenOrCreateMultiDocumentProjectArgs
+    ) =>
       Effect.runPromise(
         pipe(
           multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject({
             filesystem,
-          })({ username, email }),
+          })({ username, email, cloneUrl }),
           Effect.tap(
             ({ projectId, versionedProjectStore, versionedDocumentStore }) =>
               setVersionedStores(projectId, {
