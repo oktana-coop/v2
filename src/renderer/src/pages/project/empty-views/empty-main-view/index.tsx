@@ -4,6 +4,7 @@ import { projectTypes } from '../../../../../../modules/domain/project';
 import {
   CloneFromGithubModalContext,
   CurrentProjectContext,
+  SidebarLayoutContext,
 } from '../../../../app-state';
 import { Button } from '../../../../components/actions/Button';
 import { EmptyDocument } from '../../../../components/document-views/EmptyDocument';
@@ -14,6 +15,7 @@ import {
   PenIcon,
 } from '../../../../components/icons';
 import { useCreateDocument, useDocumentList } from '../../../../hooks';
+import { DefaultActionsBar } from '../../../shared/default-actions-bar';
 
 export const EmptyMainView = ({
   onCreateDocumentButtonClick,
@@ -26,6 +28,7 @@ export const EmptyMainView = ({
 }) => {
   const { projectType } = useContext(CurrentProjectContext);
   const { openCloneFromGithubModal } = useContext(CloneFromGithubModalContext);
+  const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
 
   const { documentList: documents } = useDocumentList();
   const { canCreateDocument } = useCreateDocument();
@@ -36,51 +39,59 @@ export const EmptyMainView = ({
       : 'Create a new document';
 
   return (
-    <EmptyDocument
-      message={
-        documents.length > 0
-          ? '👈 Pick one document from the list to continue editing. Or create a new one 😉.'
-          : openProjectPrompt
-      }
-    >
-      {projectType === projectTypes.MULTI_DOCUMENT_PROJECT ? (
-        <Button
-          onClick={onOpenDirectoryButtonClick}
-          variant="plain"
-          color="purple"
-        >
-          <FolderIcon className="mr-1" />
-          Open folder
-        </Button>
-      ) : (
-        <Button
-          onClick={onOpenDocumentButtonClick}
-          variant="plain"
-          color="purple"
-        >
-          <FileDocumentIcon className="mr-1" />
-          Open document
-        </Button>
-      )}
-      {canCreateDocument && (
-        <Button
-          onClick={onCreateDocumentButtonClick}
-          variant="plain"
-          color="purple"
-        >
-          <PenIcon className="mr-1" />
-          Create document
-        </Button>
-      )}
-      <Button
-        onClick={openCloneFromGithubModal}
-        variant="plain"
-        color="dark/zinc"
-        className="w-64"
+    <div className="flex w-full flex-col">
+      <div className="w-full">
+        <DefaultActionsBar
+          isSidebarOpen={isSidebarOpen}
+          onSidebarToggle={toggleSidebar}
+        />
+      </div>
+      <EmptyDocument
+        message={
+          documents.length > 0
+            ? '👈 Pick one document from the list to continue editing. Or create a new one 😉.'
+            : openProjectPrompt
+        }
       >
-        <GithubIcon className="mr-1" />
-        Clone from GitHub
-      </Button>
-    </EmptyDocument>
+        {projectType === projectTypes.MULTI_DOCUMENT_PROJECT ? (
+          <Button
+            onClick={onOpenDirectoryButtonClick}
+            variant="plain"
+            color="purple"
+          >
+            <FolderIcon className="mr-1" />
+            Open folder
+          </Button>
+        ) : (
+          <Button
+            onClick={onOpenDocumentButtonClick}
+            variant="plain"
+            color="purple"
+          >
+            <FileDocumentIcon className="mr-1" />
+            Open document
+          </Button>
+        )}
+        {canCreateDocument && (
+          <Button
+            onClick={onCreateDocumentButtonClick}
+            variant="plain"
+            color="purple"
+          >
+            <PenIcon className="mr-1" />
+            Create document
+          </Button>
+        )}
+        <Button
+          onClick={openCloneFromGithubModal}
+          variant="plain"
+          color="dark/zinc"
+          className="w-64"
+        >
+          <GithubIcon className="mr-1" />
+          Clone from GitHub
+        </Button>
+      </EmptyDocument>
+    </div>
   );
 };
