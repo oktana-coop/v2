@@ -1,12 +1,16 @@
 import { useContext } from 'react';
 
 import { projectTypes } from '../../../../../../modules/domain/project';
-import { CurrentProjectContext } from '../../../../app-state';
+import {
+  CloneFromGithubModalContext,
+  CurrentProjectContext,
+} from '../../../../app-state';
 import { Button } from '../../../../components/actions/Button';
 import { EmptyDocument } from '../../../../components/document-views/EmptyDocument';
 import {
   FileDocumentIcon,
   FolderIcon,
+  GithubIcon,
   PenIcon,
 } from '../../../../components/icons';
 import { useCreateDocument, useDocumentList } from '../../../../hooks';
@@ -21,6 +25,8 @@ export const EmptyMainView = ({
   onOpenDirectoryButtonClick: () => void;
 }) => {
   const { projectType } = useContext(CurrentProjectContext);
+  const { openCloneFromGithubModal } = useContext(CloneFromGithubModalContext);
+
   const { documentList: documents } = useDocumentList();
   const { canCreateDocument } = useCreateDocument();
 
@@ -66,6 +72,15 @@ export const EmptyMainView = ({
           Create document
         </Button>
       )}
+      <Button
+        onClick={openCloneFromGithubModal}
+        variant="plain"
+        color="dark/zinc"
+        className="w-64"
+      >
+        <GithubIcon className="mr-1" />
+        Clone from GitHub
+      </Button>
     </EmptyDocument>
   );
 };

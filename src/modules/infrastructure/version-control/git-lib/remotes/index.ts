@@ -10,17 +10,13 @@ import {
   parseBranch,
   parseGitCommitHash,
 } from '../../models';
+import { authCallback } from '../auth';
 import { IsoGitDeps } from '../types';
 
 type ValidateRemoteConnectivityAndAuthArgs = Pick<IsoGitDeps, 'isoGitHttp'> & {
   url: string;
   authToken: string;
 };
-
-const authCallback = (authToken: string) => () => ({
-  username: 'oauth2', // arbitrary / doesn't matter for token auth
-  password: authToken,
-});
 
 const validateRemoteConnectivityAndAuth = ({
   isoGitHttp,

@@ -1,12 +1,16 @@
 import { useContext } from 'react';
 
 import { projectTypes } from '../../../../../../modules/domain/project';
-import { CreateDocumentModalContext } from '../../../../app-state';
+import {
+  CloneFromGithubModalContext,
+  CreateDocumentModalContext,
+} from '../../../../app-state';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
 import { useCreateDocument, useNavigateToDocument } from '../../../../hooks';
 import { useOpenDirectory } from '../../../../hooks/multi-document-project';
 import { useOpenDocument } from '../../../../hooks/single-document-project';
+import { CloneFromGithubDialog } from '../../../shared/sync-providers/github/CloneFromGithubDialog';
 import { CreateDocumentModal } from '../../shared/create-document/CreateDocumentModal';
 import {
   DirectoryFiles,
@@ -20,6 +24,8 @@ export const ProjectSelection = () => {
   const openDirectory = useOpenDirectory();
   const { isOpen: isDocumentCreationModalOpen, closeCreateDocumentModal } =
     useContext(CreateDocumentModalContext);
+  const { isOpen: isCloneFromGithubModalOpen, closeCloneFromGithubModal } =
+    useContext(CloneFromGithubModalContext);
 
   const navigateToDocument = useNavigateToDocument();
 
@@ -47,6 +53,10 @@ export const ProjectSelection = () => {
         isOpen={isDocumentCreationModalOpen}
         onClose={closeCreateDocumentModal}
         onCreateDocument={navigateToDocument}
+      />
+      <CloneFromGithubDialog
+        isOpen={isCloneFromGithubModalOpen}
+        onCancel={closeCloneFromGithubModal}
       />
     </SidebarLayout>
   );

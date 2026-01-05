@@ -30,6 +30,7 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
   ) =>
     effectifyIPCPromise(
       {
+        [VersionedProjectValidationErrorTag]: ValidationError,
         [VersionedProjectRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<
         EffectErrorType<

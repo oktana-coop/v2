@@ -11,12 +11,12 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
   const openOrCreateMultiDocumentProject: MultiDocumentProjectStoreManager['openOrCreateMultiDocumentProject'] =
 
       () =>
-      ({ username, email }) =>
+      ({ username, email, cloneUrl }) =>
         pipe(
           Effect.tryPromise({
             try: () =>
               window.multiDocumentProjectStoreManagerAPI.openOrCreateMultiDocumentProject(
-                { username, email }
+                { username, email, cloneUrl }
               ),
             // TODO: Leverage typed Effect errors returned from the respective node adapter
             catch: mapErrorTo(

@@ -1,13 +1,13 @@
 import { useContext, useEffect, useState } from 'react';
 
-import { AuthContext } from '../../../../../../../modules/auth/browser';
-import { ElectronContext } from '../../../../../../../modules/infrastructure/cross-platform/browser';
-import { GithubRepositoryInfo } from '../../../../../../../modules/infrastructure/version-control';
+import { AuthContext } from '../../../../../../modules/auth/browser';
+import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
+import { GithubRepositoryInfo } from '../../../../../../modules/infrastructure/version-control';
 import {
   Listbox,
   ListboxLabel,
   ListboxOption,
-} from '../../../../../components/inputs/Listbox';
+} from '../../../../components/inputs/Listbox';
 
 export const SelectRepository = ({
   onSelect,

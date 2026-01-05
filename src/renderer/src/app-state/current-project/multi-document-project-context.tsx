@@ -60,15 +60,19 @@ export type SelectedFileInfo = {
   path: string | null;
 };
 
+type CreateNewDocumentArgs = {
+  name?: string;
+};
+
 export type MultiDocumentProjectContextType = {
   loading: boolean;
   projectId: ProjectId | null;
   directory: Directory | null;
   currentBranch: Branch | null;
   directoryFiles: Array<File>;
-  openDirectory: () => Promise<Directory>;
+  openDirectory: (cloneUrl?: string) => Promise<Directory>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
-  createNewDocument: (name?: string) => Promise<{
+  createNewDocument: (args?: CreateNewDocumentArgs) => Promise<{
     projectId: ProjectId;
     documentId: ResolvedArtifactId;
     path: string;
@@ -333,44 +337,47 @@ export const MultiDocumentProjectProvider = ({
     }
   }, [versionedProjectStore, projectId, remoteProject]);
 
-  const handleOpenDirectory = useCallback(async () => {
-    setLoading(true);
+  const handleOpenDirectory = useCallback(
+    async (cloneUrl?: string) => {
+      setLoading(true);
 
-    const {
-      versionedDocumentStore: documentStore,
-      versionedProjectStore: projectStore,
-      projectId: projId,
-      directory: dir,
-      currentBranch,
-      remoteProjects,
-    } = await Effect.runPromise(
-      multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject({
-        filesystem,
-      })({ username, email })
-    );
-
-    setProjectId(projId);
-    setDirectory(dir);
-    setCurrentBranch(currentBranch);
-    setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
-    setVersionedProjectStore(projectStore);
-    setVersionedDocumentStore(documentStore);
-
-    localStorage.setItem(
-      BROWSER_STORAGE_PROJECT_DATA_KEY,
-      JSON.stringify({
-        directoryName: dir.name,
-        directoryPath: dir.path,
+      const {
+        versionedDocumentStore: documentStore,
+        versionedProjectStore: projectStore,
         projectId: projId,
-      })
-    );
+        directory: dir,
+        currentBranch,
+        remoteProjects,
+      } = await Effect.runPromise(
+        multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject({
+          filesystem,
+        })({ username, email, cloneUrl })
+      );
 
-    setLoading(false);
+      setProjectId(projId);
+      setDirectory(dir);
+      setCurrentBranch(currentBranch);
+      setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
+      setVersionedProjectStore(projectStore);
+      setVersionedDocumentStore(documentStore);
 
-    navigate(`/projects/${urlEncodeProjectId(projId)}/documents`);
+      localStorage.setItem(
+        BROWSER_STORAGE_PROJECT_DATA_KEY,
+        JSON.stringify({
+          directoryName: dir.name,
+          directoryPath: dir.path,
+          projectId: projId,
+        })
+      );
 
-    return dir;
-  }, [multiDocumentProjectStoreManager, username, email]);
+      setLoading(false);
+
+      navigate(`/projects/${urlEncodeProjectId(projId)}/documents`);
+
+      return dir;
+    },
+    [multiDocumentProjectStoreManager, username, email]
+  );
 
   const handleCreateNewDocument = useCallback(async () => {
     if (!versionedDocumentStore || !versionedProjectStore || !projectId) {

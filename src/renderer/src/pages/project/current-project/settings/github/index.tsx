@@ -8,8 +8,8 @@ import { type GithubRepositoryInfo } from '../../../../../../../modules/infrastr
 import { Button } from '../../../../../components/actions/Button';
 import { GithubIcon } from '../../../../../components/icons';
 import { useRemoteProjectInfo } from '../../../../../hooks';
+import { SelectRepository } from '../../../../shared/sync-providers/github/SelectRepository';
 import { GithubVerificationInfoDialog } from '../../../../shared/sync-providers/github/VerificationInfoDialog';
-import { SelectRepository } from './SelectRepository';
 
 const getFullNameFromUrl = (url: string) => {
   const match = url.match(/github\.com[:/](.+\/.+?)(?:\.git)?$/);

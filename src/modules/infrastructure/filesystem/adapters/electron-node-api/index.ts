@@ -26,7 +26,7 @@ const showDirPicker = (): Effect.Effect<
   pipe(
     Effect.promise(() =>
       dialog.showOpenDialog({
-        properties: ['openDirectory'],
+        properties: ['openDirectory', 'createDirectory'],
       })
     ),
     Effect.tap((result) =>

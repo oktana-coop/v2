@@ -11,6 +11,7 @@ import {
   removePath,
 } from '../../../../../../../modules/infrastructure/filesystem';
 import {
+  cloneRepository as cloneGitRepo,
   createAndSwitchToBranch as createAndSwitchToBranchWithGit,
   createGitBlobRef,
   DEFAULT_AUTHOR_NAME,
@@ -76,6 +77,8 @@ export const createAdapter = ({
 
   const createProject: MultiDocumentProjectStore['createProject'] = ({
     path,
+    cloneUrl,
+    authToken: authTokenInput,
     username,
     email,
   }) =>
@@ -85,15 +88,33 @@ export const createAdapter = ({
         catch: mapErrorTo(ValidationError, 'Invalid project path'),
       }),
       Effect.tap((projectPath) =>
-        Effect.tryPromise({
-          try: () =>
-            git.init({
-              fs: isoGitFs,
-              dir: projectPath,
-              defaultBranch: DEFAULT_BRANCH,
-            }),
-          catch: mapErrorTo(RepositoryError, 'Git repo error'),
-        })
+        cloneUrl
+          ? pipe(
+              ensureAuthTokenIsProvided(authTokenInput),
+              Effect.flatMap((authToken) =>
+                pipe(
+                  cloneGitRepo({
+                    isoGitFs,
+                    isoGitHttp,
+                    dir: projectPath,
+                    url: cloneUrl,
+                    authToken,
+                  }),
+                  Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+                    Effect.fail(new RepositoryError(err.message))
+                  )
+                )
+              )
+            )
+          : Effect.tryPromise({
+              try: () =>
+                git.init({
+                  fs: isoGitFs,
+                  dir: projectPath,
+                  defaultBranch: DEFAULT_BRANCH,
+                }),
+              catch: mapErrorTo(RepositoryError, 'Git repo error'),
+            })
       ),
       Effect.tap((projectPath) =>
         setAuthorInfo({ projectId: projectPath, username, email })

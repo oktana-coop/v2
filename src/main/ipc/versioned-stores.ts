@@ -109,6 +109,7 @@ export const registerVersionedStoresEvents = ({
     singleDocumentProjectStoreManager,
     multiDocumentProjectStoreManager,
     filesystem,
+    encryptedStore,
   });
   registerSingleDocumentProjectStoreEvents({ encryptedStore });
   registerMultiDocumentProjectStoreEvents({ encryptedStore });
@@ -120,19 +121,37 @@ const registerStoreManagerEvents = ({
   singleDocumentProjectStoreManager,
   multiDocumentProjectStoreManager,
   filesystem,
+  encryptedStore,
 }: {
   singleDocumentProjectStoreManager: SingleDocumentProjectStoreManager;
   multiDocumentProjectStoreManager: MultiDocumentProjectStoreManager;
   filesystem: Filesystem;
+  encryptedStore: EncryptedStore;
 }) => {
   ipcMain.handle(
     'create-single-document-project',
-    async (_, { name, username, email }: SetupSingleDocumentProjectStoreArgs) =>
+    async (
+      _,
+      { name, username, email, cloneUrl }: SetupSingleDocumentProjectStoreArgs
+    ) =>
       Effect.runPromise(
         pipe(
-          singleDocumentProjectStoreManager.setupSingleDocumentProjectStore({
-            filesystem,
-          })({ name, username, email }),
+          cloneUrl
+            ? pipe(
+                getValidGithubAccessToken({ encryptedStore })(),
+                Effect.flatMap((userToken) =>
+                  singleDocumentProjectStoreManager.setupSingleDocumentProjectStore(
+                    {
+                      filesystem,
+                    }
+                  )({ name, username, email, cloneUrl, authToken: userToken })
+                )
+              )
+            : singleDocumentProjectStoreManager.setupSingleDocumentProjectStore(
+                {
+                  filesystem,
+                }
+              )({ name, username, email }),
           Effect.tap(
             ({ projectId, versionedProjectStore, versionedDocumentStore }) =>
               setVersionedStores(projectId, {
@@ -202,12 +221,28 @@ const registerStoreManagerEvents = ({
 
   ipcMain.handle(
     'open-or-create-multi-document-project',
-    async (_, { username, email }: OpenOrCreateMultiDocumentProjectArgs) =>
+    async (
+      _,
+      { username, email, cloneUrl }: OpenOrCreateMultiDocumentProjectArgs
+    ) =>
       Effect.runPromise(
         pipe(
-          multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject({
-            filesystem,
-          })({ username, email }),
+          cloneUrl
+            ? pipe(
+                getValidGithubAccessToken({ encryptedStore })(),
+                Effect.flatMap((userToken) =>
+                  multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject(
+                    {
+                      filesystem,
+                    }
+                  )({ username, email, cloneUrl, authToken: userToken })
+                )
+              )
+            : multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject(
+                {
+                  filesystem,
+                }
+              )({ username, email }),
           Effect.tap(
             ({ projectId, versionedProjectStore, versionedDocumentStore }) =>
               setVersionedStores(projectId, {

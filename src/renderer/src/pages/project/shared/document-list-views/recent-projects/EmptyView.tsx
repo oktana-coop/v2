@@ -1,12 +1,18 @@
 import { Button } from '../../../../../components/actions/Button';
-import { FileDocumentIcon, PenIcon } from '../../../../../components/icons';
+import {
+  FileDocumentIcon,
+  GithubIcon,
+  PenIcon,
+} from '../../../../../components/icons';
 
 export const EmptyView = ({
   onCreateDocumentButtonClick,
   onOpenDocumentButtonClick,
+  onCloneFromGithubButtonClick,
 }: {
   onCreateDocumentButtonClick: () => void;
   onOpenDocumentButtonClick: () => void;
+  onCloneFromGithubButtonClick: () => void;
 }) => {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4">
@@ -27,6 +33,15 @@ export const EmptyView = ({
       >
         <PenIcon className="mr-1" />
         Create document
+      </Button>
+      <Button
+        onClick={onCloneFromGithubButtonClick}
+        variant="solid"
+        color="dark/zinc"
+        className="w-64"
+      >
+        <GithubIcon className="mr-1" />
+        Clone from GitHub
       </Button>
     </div>
   );

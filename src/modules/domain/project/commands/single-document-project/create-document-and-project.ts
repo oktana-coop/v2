@@ -12,7 +12,10 @@ import {
   ValidationError as VersionedDocumentValidationError,
   type VersionedDocumentStore,
 } from '../../../rich-text';
-import { RepositoryError as VersionedProjectRepositoryError } from '../../errors';
+import {
+  RepositoryError as VersionedProjectRepositoryError,
+  ValidationError as VersionedProjectValidationError,
+} from '../../errors';
 import { ProjectId } from '../../models';
 import { type SingleDocumentProjectStore } from '../../ports';
 
@@ -25,6 +28,8 @@ export type CreateDocumentAndProjectArgs = {
   name?: string;
   content: string | null;
   writeToFileWithPath?: string;
+  cloneUrl?: string;
+  authToken?: string;
 } & UserInfo;
 
 export type CreateDocumentAndProjectDeps = {
@@ -51,9 +56,12 @@ export const createDocumentAndProject =
     writeToFileWithPath,
     username,
     email,
+    cloneUrl,
+    authToken,
   }: CreateDocumentAndProjectArgs): Effect.Effect<
     CreateSingleDocumentProjectResult,
     | VersionedProjectRepositoryError
+    | VersionedProjectValidationError
     | VersionedDocumentRepositoryError
     | VersionedDocumentValidationError,
     never
@@ -63,7 +71,7 @@ export const createDocumentAndProject =
         createDocument({
           content,
           filePath: writeToFileWithPath,
-          writeToFile: Boolean(writeToFileWithPath),
+          writeToFile: cloneUrl ? false : Boolean(writeToFileWithPath),
           branch: DEFAULT_BRANCH as Branch,
         })
       ),
@@ -73,6 +81,8 @@ export const createDocumentAndProject =
           name: name ?? null,
           username,
           email,
+          cloneUrl,
+          authToken,
         })
       ),
       Effect.flatMap(({ documentId, projectId }) =>
