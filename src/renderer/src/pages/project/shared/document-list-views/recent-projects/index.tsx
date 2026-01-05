@@ -1,6 +1,7 @@
 import { useContext } from 'react';
 
 import { ElectronContext } from '../../../../../../../modules/infrastructure/cross-platform/browser';
+import { CloneFromGithubModalContext } from '../../../../../app-state';
 import { IconButton } from '../../../../../components/actions/IconButton';
 import {
   FileDocumentIcon,
@@ -22,10 +23,16 @@ export const RecentProjects = ({
   onCreateDocument: () => void;
 }) => {
   const { isElectron } = useContext(ElectronContext);
+  const { openCloneFromGithubModal } = useContext(CloneFromGithubModalContext);
+
   const selectDocument = useDocumentSelectionInSingleDocumentProject();
   const openDocument = useOpenDocument();
   const { documentList: items } = useDocumentList();
   const handleOpenDocument = () => openDocument();
+
+  const handleCloneFromGithub = () => {
+    openCloneFromGithubModal();
+  };
 
   return (
     <div className="flex h-full flex-col items-stretch py-6">
@@ -61,6 +68,7 @@ export const RecentProjects = ({
         <EmptyView
           onCreateDocumentButtonClick={onCreateDocument}
           onOpenDocumentButtonClick={handleOpenDocument}
+          onCloneFromGithubButtonClick={handleCloneFromGithub}
         />
       )}
     </div>

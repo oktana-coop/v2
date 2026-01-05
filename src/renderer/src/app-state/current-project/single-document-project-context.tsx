@@ -47,6 +47,11 @@ export type BrowserStorageProjectData = {
 
 export const BROWSER_STORAGE_PROJECT_DATA_KEY = 'single-document-project';
 
+type CreateNewDocumentArgs = {
+  name?: string;
+  cloneUrl?: string;
+};
+
 export type SingleDocumentProjectContextType = {
   loading: boolean;
   projectId: ProjectId | null;
@@ -56,7 +61,7 @@ export type SingleDocumentProjectContextType = {
   projectName: string | null;
   currentBranch: Branch | null;
   versionedProjectStore: SingleDocumentProjectStore | null;
-  createNewDocument: (name?: string) => Promise<{
+  createNewDocument: (args?: CreateNewDocumentArgs) => Promise<{
     projectId: ProjectId;
     documentId: ResolvedArtifactId;
     path: string | null;
@@ -248,7 +253,7 @@ export const SingleDocumentProjectProvider = ({
   }, [singleDocumentProjectStoreManager, username, email]);
 
   const handleCreateNewDocument = useCallback(
-    async (name?: string) => {
+    async (args?: CreateNewDocumentArgs) => {
       if (versionedProjectStore) {
         await Effect.runPromise(versionedProjectStore.disconnect());
 
@@ -268,7 +273,7 @@ export const SingleDocumentProjectProvider = ({
       } = await Effect.runPromise(
         singleDocumentProjectStoreManager.setupSingleDocumentProjectStore({
           filesystem,
-        })({ name, username, email })
+        })({ name: args?.name, username, email, cloneUrl: args?.cloneUrl })
       );
 
       setVersionedProjectStore(projectStore);

@@ -52,7 +52,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
   const setupSingleDocumentProjectStore: SingleDocumentProjectStoreManager['setupSingleDocumentProjectStore'] =
 
       ({ filesystem }: SetupSingleDocumentProjectStoreDeps) =>
-      ({ username, email }) =>
+      ({ username, email, cloneUrl }) =>
         Effect.Do.pipe(
           Effect.bind('newFile', () =>
             filesystem.createNewFile({
@@ -121,6 +121,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                   writeToFileWithPath: DOCUMENT_INTERNAL_PATH,
                   username,
                   email,
+                  cloneUrl,
                 }),
                 Effect.map(({ documentId, projectId, currentBranch }) => ({
                   versionedProjectStore,

@@ -36,6 +36,12 @@ export {
 } from './branching-command-palette/context';
 
 export {
+  CloneFromGithubModalContext,
+  type CloneFromGithubModalContextType,
+  CloneFromGithubModalProvider,
+} from './clone-from-github-modal/context';
+
+export {
   CreateDocumentModalContext,
   type CreateDocumentModalContextType,
   CreateDocumentModalProvider,

@@ -23,7 +23,9 @@ export const CreateDocumentModal = ({
   const { createNewDocument } = useCreateDocument();
 
   const handleDocumentCreation = async (title: string) => {
-    const { projectId, documentId, path } = await createNewDocument(title);
+    const { projectId, documentId, path } = await createNewDocument({
+      name: title,
+    });
 
     setNewDocName('');
     onClose();
