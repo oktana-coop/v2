@@ -41,6 +41,7 @@ export type OpenOrCreateMultiDocumentProjectDeps = {
 
 export type OpenOrCreateMultiDocumentProjectArgs = UserInfo & {
   cloneUrl?: string;
+  authToken?: string;
 };
 
 export type OpenOrCreateMultiDocumentProjectResult = {

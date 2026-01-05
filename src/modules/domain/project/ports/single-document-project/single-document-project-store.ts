@@ -25,6 +25,7 @@ export type CreateSingleDocumentProjectArgs = {
   documentMetaData: BaseArtifactMetaData;
   name: string | null;
   cloneUrl?: string;
+  authToken?: string;
 } & UserInfo;
 
 export type SingleDocumentProjectCreateAndSwitchToBranchArgs = {
@@ -107,7 +108,7 @@ export type SingleDocumentProjectStore = {
   supportsBranching: boolean;
   createSingleDocumentProject: (
     args: CreateSingleDocumentProjectArgs
-  ) => Effect.Effect<ProjectId, RepositoryError, never>;
+  ) => Effect.Effect<ProjectId, ValidationError | RepositoryError, never>;
   findDocumentInProject: (
     projectId: ProjectId
   ) => Effect.Effect<

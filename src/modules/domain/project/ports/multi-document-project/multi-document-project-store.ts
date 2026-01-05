@@ -26,6 +26,7 @@ export type CreateMultiDocumentProjectArgs = {
   path: string;
   documents?: MultiDocumentProject['documents'];
   cloneUrl?: string;
+  authToken?: string;
 } & UserInfo;
 
 export type AddDocumentToMultiDocumentProjectArgs = {

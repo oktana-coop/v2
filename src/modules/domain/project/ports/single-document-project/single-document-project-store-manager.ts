@@ -38,6 +38,7 @@ export type SetupSingleDocumentProjectStoreDeps = {
 export type SetupSingleDocumentProjectStoreArgs = {
   name?: string;
   cloneUrl?: string;
+  authToken?: string;
 } & UserInfo;
 
 export type SetupSingleDocumentProjectStoreResult = {

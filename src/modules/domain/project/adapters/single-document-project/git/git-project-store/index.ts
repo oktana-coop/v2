@@ -11,6 +11,7 @@ import {
   FilesystemNotFoundErrorTag,
 } from '../../../../../../../modules/infrastructure/filesystem';
 import {
+  cloneRepository as cloneGitRepo,
   createAndSwitchToBranch as createAndSwitchToBranchWithGit,
   createGitBlobRef,
   DEFAULT_BRANCH,
@@ -67,26 +68,37 @@ export const createAdapter = ({
   documentInternalPath: string;
 }): SingleDocumentProjectStore => {
   const createSingleDocumentProject: SingleDocumentProjectStore['createSingleDocumentProject'] =
-    ({ username, email, cloneUrl }) =>
+    ({ username, email, cloneUrl, authToken: authTokenInput }) =>
       pipe(
         Effect.succeed(projectFilePath),
         Effect.tap(() =>
-          Effect.tryPromise({
-            try: () =>
-              cloneUrl
-                ? git.clone({
-                    fs: isoGitFs,
-                    http: isoGitHttp,
-                    dir: internalProjectDir,
-                    url: cloneUrl,
-                  })
-                : git.init({
+          cloneUrl
+            ? pipe(
+                ensureAuthTokenIsProvided(authTokenInput),
+                Effect.flatMap((authToken) =>
+                  pipe(
+                    cloneGitRepo({
+                      isoGitFs,
+                      isoGitHttp,
+                      dir: internalProjectDir,
+                      url: cloneUrl,
+                      authToken,
+                    }),
+                    Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+                      Effect.fail(new RepositoryError(err.message))
+                    )
+                  )
+                )
+              )
+            : Effect.tryPromise({
+                try: () =>
+                  git.init({
                     fs: isoGitFs,
                     dir: internalProjectDir,
                     defaultBranch: DEFAULT_BRANCH,
                   }),
-            catch: mapErrorTo(RepositoryError, 'Git repo error'),
-          })
+                catch: mapErrorTo(RepositoryError, 'Git repo error'),
+              })
         ),
         Effect.tap((projectFilePath) =>
           setAuthorInfo({ projectId: projectFilePath, username, email })
