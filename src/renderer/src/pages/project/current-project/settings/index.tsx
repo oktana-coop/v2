@@ -1,10 +1,14 @@
 import { useContext } from 'react';
 
 import { projectTypes } from '../../../../../../modules/domain/project';
-import { CurrentProjectContext } from '../../../../app-state';
+import {
+  CurrentProjectContext,
+  SidebarLayoutContext,
+} from '../../../../app-state';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
 import { useCreateDocument } from '../../../../hooks';
+import { DefaultActionsBar } from '../../../shared/default-actions-bar';
 import {
   DirectoryFiles,
   RecentProjects,
@@ -14,6 +18,7 @@ import { ProjectSync } from './ProjectSync';
 export const ProjectSettings = () => {
   const { projectType } = useContext(CurrentProjectContext);
   const { triggerDocumentCreationDialog } = useCreateDocument();
+  const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
 
   return (
     <SidebarLayout
@@ -27,8 +32,16 @@ export const ProjectSettings = () => {
         </StackedResizablePanelsLayout>
       }
     >
-      <div className="container mx-auto my-6 flex max-w-2xl flex-col gap-16">
-        <ProjectSync />
+      <div className="flex w-full flex-col">
+        <div className="w-full">
+          <DefaultActionsBar
+            isSidebarOpen={isSidebarOpen}
+            onSidebarToggle={toggleSidebar}
+          />
+        </div>
+        <div className="container mx-auto my-6 flex max-w-2xl flex-col gap-16">
+          <ProjectSync />
+        </div>
       </div>
     </SidebarLayout>
   );

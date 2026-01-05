@@ -17,6 +17,8 @@ export const SidebarLayoutContext = createContext<SidebarLayoutContextType>({
   expandSidebar: () => {},
 });
 
+const MIN_EXPAND_SIZE = 20;
+
 export const SidebarLayoutProvider = ({
   children,
 }: {
@@ -34,7 +36,7 @@ export const SidebarLayoutProvider = ({
     if (sidebarPanel.isExpanded()) {
       sidebarPanel.collapse();
     } else {
-      sidebarPanel.expand();
+      sidebarPanel.expand(MIN_EXPAND_SIZE);
     }
   }, [sidebarPanelRef]);
 
