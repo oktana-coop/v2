@@ -40,11 +40,13 @@ import {
   type Branch,
   type Commit,
   DEFAULT_BRANCH,
+  type MergeConflictInfo,
   parseBranch,
   type ResolvedArtifactId,
   urlEncodeArtifactId,
   VersionControlMergeConflictErrorTag,
 } from '../../../../modules/infrastructure/version-control';
+import { useNavigateToResolveConflicts } from '../../hooks';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
 type BrowserStorageProjectData = {
@@ -97,6 +99,7 @@ export type MultiDocumentProjectContextType = {
   openDeleteBranchDialog: (branch: Branch) => void;
   closeDeleteBranchDialog: () => void;
   supportsBranching: boolean;
+  mergeConflictInfo: MergeConflictInfo | null;
   remoteProject: RemoteProjectInfo | null;
   addRemoteProject: (url: string) => Promise<void>;
   remoteBranchInfo: Record<Branch, Commit['id']>;
@@ -144,6 +147,8 @@ export const MultiDocumentProjectProvider = ({
   const [directory, setDirectory] = useState<Directory | null>(null);
   const [directoryFiles, setDirectoryFiles] = useState<Array<File>>([]);
   const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
+  const [mergeConflictInfo, setMergeConflictInfo] =
+    useState<MergeConflictInfo | null>(null);
   const { documentId: documentIdInPath } = useParams();
   const [versionedProjectStore, setVersionedProjectStore] =
     useState<MultiDocumentProjectStore | null>(null);
@@ -165,6 +170,7 @@ export const MultiDocumentProjectProvider = ({
   const [pulledUpstreamChanges, setPulledUpstreamChanges] =
     useState<boolean>(false);
   const navigate = useNavigate();
+  const navigateToResolveMergeConflicts = useNavigateToResolveConflicts();
 
   useEffect(() => {
     const getSelectedDirectory = async () => {
@@ -189,6 +195,7 @@ export const MultiDocumentProjectProvider = ({
           versionedProjectStore: projectStore,
           directory,
           currentBranch,
+          mergeConflictInfo,
           remoteProjects,
         } = await Effect.runPromise(
           multiDocumentProjectStoreManager.openMultiDocumentProjectById({
@@ -204,15 +211,23 @@ export const MultiDocumentProjectProvider = ({
         setProjectId(browserStorageProjectData.projectId);
         setDirectory(directory);
         setCurrentBranch(currentBranch);
+        setMergeConflictInfo(mergeConflictInfo);
         setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
         setVersionedProjectStore(projectStore);
         setVersionedDocumentStore(documentStore);
 
         setLoading(false);
 
-        navigate(
-          `/projects/${urlEncodeProjectId(browserStorageProjectData.projectId)}/documents`
-        );
+        if (mergeConflictInfo) {
+          navigateToResolveMergeConflicts({
+            projectId: browserStorageProjectData.projectId,
+            mergeConflictInfo,
+          });
+        } else {
+          navigate(
+            `/projects/${urlEncodeProjectId(browserStorageProjectData.projectId)}/documents`
+          );
+        }
       }
     };
 
@@ -347,6 +362,7 @@ export const MultiDocumentProjectProvider = ({
         projectId: projId,
         directory: dir,
         currentBranch,
+        mergeConflictInfo,
         remoteProjects,
       } = await Effect.runPromise(
         multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject({
@@ -357,6 +373,7 @@ export const MultiDocumentProjectProvider = ({
       setProjectId(projId);
       setDirectory(dir);
       setCurrentBranch(currentBranch);
+      setMergeConflictInfo(mergeConflictInfo);
       setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
       setVersionedProjectStore(projectStore);
       setVersionedDocumentStore(documentStore);
@@ -372,7 +389,16 @@ export const MultiDocumentProjectProvider = ({
 
       setLoading(false);
 
-      navigate(`/projects/${urlEncodeProjectId(projId)}/documents`);
+      if (mergeConflictInfo) {
+        const resolveConflictsUrl = buildResolveConlictsUrl({
+          projectId: projId,
+          mergeConflictInfo,
+        });
+
+        navigate(resolveConflictsUrl);
+      } else {
+        navigate(`/projects/${urlEncodeProjectId(projId)}/documents`);
+      }
 
       return dir;
     },
@@ -775,6 +801,7 @@ export const MultiDocumentProjectProvider = ({
         openDeleteBranchDialog: handleOpenDeleteBranchDialog,
         closeDeleteBranchDialog: handleCloseDeleteBranchDialog,
         supportsBranching,
+        mergeConflictInfo,
         remoteProject,
         addRemoteProject: handleAddRemoteProject,
         remoteBranchInfo,

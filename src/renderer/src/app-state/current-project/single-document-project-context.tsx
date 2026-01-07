@@ -31,12 +31,14 @@ import {
   type Branch,
   type Commit,
   DEFAULT_BRANCH,
+  type MergeConflictInfo,
   parseBranch,
   type ResolvedArtifactId,
   urlEncodeArtifactId,
   VersionControlMergeConflictErrorTag,
   versionControlSystems,
 } from '../../../../modules/infrastructure/version-control';
+import { useNavigateToResolveConflicts } from '../../hooks/use-navigate-to-resolve-merge-conflicts';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
 export type BrowserStorageProjectData = {
@@ -70,6 +72,7 @@ export type SingleDocumentProjectContextType = {
     projectId: ProjectId | null;
     documentId: ResolvedArtifactId | null;
     path: string | null;
+    mergeConflictInfo: MergeConflictInfo | null;
   }>;
   listBranches: () => Promise<Branch[]>;
   createAndSwitchToBranch: (branchName: string) => Promise<void>;
@@ -83,6 +86,7 @@ export type SingleDocumentProjectContextType = {
   openDeleteBranchDialog: (branch: Branch) => void;
   closeDeleteBranchDialog: () => void;
   supportsBranching: boolean;
+  mergeConflictInfo: MergeConflictInfo | null;
   remoteProject: RemoteProjectInfo | null;
   addRemoteProject: (url: string) => Promise<void>;
   remoteBranchInfo: Record<Branch, Commit['id']>;
@@ -149,6 +153,8 @@ export const SingleDocumentProjectProvider = ({
     useState<boolean>(false);
   const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
   const [supportsBranching, setSupportsBranching] = useState<boolean>(false);
+  const [mergeConflictInfo, setMergeConflictInfo] =
+    useState<MergeConflictInfo | null>(null);
   const { dispatchNotification } = useContext(NotificationsContext);
   const { username, email } = useContext(AuthContext);
   const [remoteProject, setRemoteProject] = useState<RemoteProjectInfo | null>(
@@ -159,6 +165,7 @@ export const SingleDocumentProjectProvider = ({
   >({});
   const [pulledUpstreamChanges, setPulledUpstreamChanges] =
     useState<boolean>(false);
+  const navigateToResolveMergeConflicts = useNavigateToResolveConflicts();
 
   const documentInternalPath =
     versionControlSystems[config.singleDocumentProjectVersionControlSystem] ===
@@ -221,6 +228,7 @@ export const SingleDocumentProjectProvider = ({
         versionedProjectStore: projectStore,
         documentId: docId,
         currentBranch,
+        mergeConflictInfo,
         remoteProjects,
         file,
         name: projName,
@@ -242,11 +250,19 @@ export const SingleDocumentProjectProvider = ({
       setProjectFile(file);
       setProjectName(projName);
       setCurrentBranch(currentBranch);
+      setMergeConflictInfo(mergeConflictInfo);
       setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
 
-      navigate(
-        `/projects/${urlEncodeProjectId(browserStorageProjectData.projectId)}/documents/${urlEncodeArtifactId(docId)}`
-      );
+      if (mergeConflictInfo) {
+        navigateToResolveMergeConflicts({
+          projectId: browserStorageProjectData.projectId,
+          mergeConflictInfo,
+        });
+      } else {
+        navigate(
+          `/projects/${urlEncodeProjectId(browserStorageProjectData.projectId)}/documents/${urlEncodeArtifactId(docId)}`
+        );
+      }
     }
 
     setLoading(false);
@@ -316,7 +332,12 @@ export const SingleDocumentProjectProvider = ({
           projectIdInPath &&
           projectId === projectIdInPath
         ) {
-          return { projectId, documentId, path: projectFile?.path ?? null };
+          return {
+            projectId,
+            documentId,
+            path: projectFile?.path ?? null,
+            mergeConflictInfo,
+          };
         }
 
         setLoading(true);
@@ -334,6 +355,7 @@ export const SingleDocumentProjectProvider = ({
           projectId: projId,
           documentId: docId,
           currentBranch,
+          mergeConflictInfo: conflictInfo,
           remoteProjects,
           file,
           name: projName,
@@ -359,6 +381,7 @@ export const SingleDocumentProjectProvider = ({
         setProjectFile(file);
         setProjectName(projName);
         setCurrentBranch(currentBranch);
+        setMergeConflictInfo(conflictInfo);
         setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
 
         const browserStorageProjectData: BrowserStorageProjectData = {
@@ -377,6 +400,7 @@ export const SingleDocumentProjectProvider = ({
           projectId: projId,
           documentId: docId,
           path: file?.path ?? null,
+          mergeConflictInfo: conflictInfo,
         };
       } catch {
         // Restore previous state if opening failed
@@ -392,7 +416,12 @@ export const SingleDocumentProjectProvider = ({
             forceOpen: true,
           });
         } else {
-          return { projectId: null, documentId: null, path: null };
+          return {
+            projectId: null,
+            documentId: null,
+            path: null,
+            mergeConflictInfo: null,
+          };
         }
       }
     },
@@ -706,6 +735,7 @@ export const SingleDocumentProjectProvider = ({
         openDeleteBranchDialog: handleOpenDeleteBranchDialog,
         closeDeleteBranchDialog: handleCloseDeleteBranchDialog,
         supportsBranching,
+        mergeConflictInfo,
         remoteProject,
         addRemoteProject: handleAddRemoteProject,
         remoteBranchInfo,
