@@ -48,7 +48,7 @@ export type RenameDeleteConflict = {
   deletedIn: MergePole;
 };
 
-// One pole renamed a file to a name that the other branch used for a new file.
+// One pole renamed a file to a name that the other pole used for a new file.
 export type RenameAddConflict = {
   kind: 'rename/add';
   basePath: ResolvedArtifactId;
