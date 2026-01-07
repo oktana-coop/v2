@@ -14,6 +14,8 @@ import {
   type Branch,
   type Commit,
   DEFAULT_BRANCH,
+  GitCommitHash,
+  type MergeConflictInfo,
   parseBranch,
   parseGitCommitHash,
 } from '../../models';
@@ -321,4 +323,150 @@ export const mergeAndDeleteBranch = ({
     Effect.tap(() =>
       switchToBranch({ isoGitFs, dir, branch: DEFAULT_BRANCH as Branch })
     )
+  );
+
+export type IsInMergeConflictStateArgs = Omit<IsoGitDeps, 'isoGitHttp'>;
+
+export const isInMergeConflictState = ({
+  isoGitFs,
+  dir,
+}: IsInMergeConflictStateArgs): Effect.Effect<
+  boolean,
+  RepositoryError,
+  never
+> =>
+  pipe(
+    Effect.tryPromise({
+      try: () => git.statusMatrix({ fs: isoGitFs, dir }),
+      catch: mapErrorTo(
+        RepositoryError,
+        `Error in getting the file status matrix for the Git repository.`
+      ),
+    }),
+    Effect.map((matrix) =>
+      // statusMatrix() returns rows like:
+      // [filepath, HEAD, workdir, stage]
+      // The important part here is the fourth value (stage):
+      // stage === 1 -> base
+      // stage === 2 -> ours
+      // stage === 3 -> theirs
+      // When ours/theirs stage exists, it means that Git has encountered a conflict and has
+      // added multiple entries for the same file (corresponding to its different stages) in its index.
+      matrix.some(([, , , stage]) => stage === 2 || stage === 3)
+    )
+  );
+
+export type GetMergeConflictInfoArgs = Omit<IsoGitDeps, 'isoGitHttp'>;
+
+const getCommitForRef = ({
+  ref,
+  isoGitFs,
+  dir,
+}: Omit<IsoGitDeps, 'isoGitHttp'> & { ref: string }): Effect.Effect<
+  GitCommitHash,
+  RepositoryError,
+  never
+> =>
+  pipe(
+    Effect.tryPromise({
+      try: () =>
+        git.resolveRef({
+          fs: isoGitFs,
+          dir,
+          ref,
+        }),
+      catch: mapErrorTo(RepositoryError, 'Error in resolving Git repo HEAD.'),
+    }),
+    Effect.flatMap((commitOid) =>
+      Effect.try({
+        try: () => parseGitCommitHash(commitOid),
+        catch: mapErrorTo(
+          RepositoryError,
+          'Error in resolving Git repo HEAD commit id.'
+        ),
+      })
+    )
+  );
+
+const getCommitsRelatedToMerge = ({
+  isoGitFs,
+  dir,
+}: Omit<IsoGitDeps, 'isoGitHttp'>): Effect.Effect<
+  {
+    targetCommitId: Commit['id'];
+    sourceCommitId: Commit['id'];
+    commonAncestorCommitId: Commit['id'];
+  },
+  RepositoryError,
+  never
+> =>
+  Effect.Do.pipe(
+    Effect.bind('targetCommitId', () =>
+      getCommitForRef({ ref: 'HEAD', isoGitFs, dir })
+    ),
+    Effect.bind('sourceCommitId', () =>
+      getCommitForRef({ ref: 'MERGE_HEAD', isoGitFs, dir })
+    ),
+    Effect.bind(
+      'commonAncestorCommitId',
+      ({ targetCommitId, sourceCommitId }) =>
+        pipe(
+          Effect.tryPromise({
+            try: async () => {
+              const result = await git.findMergeBase({
+                fs: isoGitFs,
+                dir,
+                oids: [targetCommitId, sourceCommitId],
+              });
+
+              // findMergeBase returns any[]; narrow it to string[].
+              if (
+                !Array.isArray(result) ||
+                !result.every((x) => typeof x === 'string')
+              ) {
+                throw new Error('Unexpected return value from findMergeBase');
+              }
+
+              if (result.length === 0) {
+                throw new Error(
+                  'No merge base (common ancestor between source and target commit) found'
+                );
+              }
+
+              console.warn(
+                'Multiple merge bases (common ancestors between source and target commits) found, using first'
+              );
+
+              return result[0];
+            },
+            catch: mapErrorTo(
+              RepositoryError,
+              'Error in finding common ancestor between source and target commits.'
+            ),
+          }),
+          Effect.flatMap((mergeBaseInput) =>
+            Effect.try({
+              try: () => parseGitCommitHash(mergeBaseInput),
+              catch: mapErrorTo(
+                RepositoryError,
+                'Error in resolving Git repo HEAD commit id.'
+              ),
+            })
+          )
+        )
+    )
+  );
+
+export const getMergeConflictInfo = ({
+  isoGitFs,
+  dir,
+}: GetMergeConflictInfoArgs): Effect.Effect<
+  MergeConflictInfo | null,
+  RepositoryError,
+  never
+> =>
+  pipe(
+    isInMergeConflictState({ dir, isoGitFs })
+      ? pipe(getCommitsRelatedToMerge({ dir, isoGitFs }))
+      : Effect.succeed(null)
   );
