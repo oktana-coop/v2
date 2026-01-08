@@ -100,23 +100,17 @@ export const isInMergeConflictState = ({
 > =>
   pipe(
     Effect.tryPromise({
-      try: () => git.statusMatrix({ fs: isoGitFs, dir }),
-      catch: mapErrorTo(
-        RepositoryError,
-        `Error in getting the file status matrix for the Git repository.`
-      ),
+      try: async () => {
+        await git.resolveRef({
+          fs: isoGitFs,
+          dir,
+          ref: 'MERGE_HEAD',
+        });
+        return true;
+      },
+      catch: mapErrorTo(NotFoundError, 'Merge head not found'),
     }),
-    Effect.map((matrix) =>
-      // statusMatrix() returns rows like:
-      // [filepath, HEAD, workdir, stage]
-      // The important part here is the fourth value (stage):
-      // stage === 1 -> base
-      // stage === 2 -> ours
-      // stage === 3 -> theirs
-      // When ours/theirs stage exists, it means that Git has encountered a conflict and has
-      // added multiple entries for the same file (corresponding to its different stages) in its index.
-      matrix.some(([, , , stage]) => stage === 2 || stage === 3)
-    )
+    Effect.catchAll(() => Effect.succeed(false))
   );
 
 export type GetMergeConflictInfoArgs = Omit<IsoGitDeps, 'isoGitHttp'>;
@@ -229,14 +223,30 @@ export const getMergeConflictInfo = ({
   never
 > =>
   pipe(
-    isInMergeConflictState({ dir, isoGitFs })
-      ? pipe(
-          getCommitsRelatedToMerge({ dir, isoGitFs }),
-          // TODO: Gather conflicts
-          Effect.map((mergeCommitsInfo) => ({
-            ...mergeCommitsInfo,
-            conflicts: [],
-          }))
-        )
-      : Effect.succeed(null)
+    isInMergeConflictState({ dir, isoGitFs }),
+    Effect.flatMap((inMergeConflictState) =>
+      inMergeConflictState
+        ? pipe(
+            getCommitsRelatedToMerge({ dir, isoGitFs }),
+            Effect.tap(() =>
+              Effect.tryPromise({
+                try: async () => {
+                  const indexFiles = await git.listFiles({ dir, fs: isoGitFs });
+                  console.log(indexFiles);
+                  return indexFiles;
+                },
+                catch: mapErrorTo(
+                  RepositoryError,
+                  'Error in listing Git index files.'
+                ),
+              })
+            ),
+            // TODO: Gather conflicts
+            Effect.map((mergeCommitsInfo) => ({
+              ...mergeCommitsInfo,
+              conflicts: [],
+            }))
+          )
+        : Effect.succeed(null)
+    )
   );

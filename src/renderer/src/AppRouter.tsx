@@ -18,6 +18,7 @@ import {
   DocumentHistoricalView,
   DocumentSelection,
   ProjectDocuments,
+  ProjectMergeConflictResolution,
   ProjectProviders,
   ProjectSelection,
   ProjectSettings,
@@ -46,6 +47,10 @@ export const AppRouter = () => {
                   />
                 </Route>
               </Route>
+              <Route
+                path="merge"
+                element={<ProjectMergeConflictResolution />}
+              />
               <Route path="settings" element={<ProjectSettings />} />
             </Route>
           </Route>

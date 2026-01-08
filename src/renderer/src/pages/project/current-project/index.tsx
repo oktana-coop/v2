@@ -147,3 +147,4 @@ export {
   ProjectDocuments,
 } from './documents';
 export { ProjectSettings } from './settings';
+export { ProjectMergeConflictResolution } from './merge-conflict-resolution';
