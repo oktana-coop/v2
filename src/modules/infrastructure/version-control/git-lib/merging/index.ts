@@ -190,9 +190,11 @@ const getCommitsRelatedToMerge = ({
                 );
               }
 
-              console.warn(
-                'Multiple merge bases (common ancestors between source and target commits) found, using first'
-              );
+              if (result.length > 1) {
+                console.warn(
+                  'Multiple merge bases (common ancestors between source and target commits) found, using first'
+                );
+              }
 
               return result[0];
             },
