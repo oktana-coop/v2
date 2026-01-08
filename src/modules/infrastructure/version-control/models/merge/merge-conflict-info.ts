@@ -5,10 +5,10 @@ import { type MergeConflict } from './merge-conflict';
 export type MergeConflictInfo = {
   // Aka "ours" in Git.
   targetCommitId: Commit['id'];
-  targetCommitBranch?: Branch;
+  targetBranch?: Branch;
   // Aka "their" in Git.
   sourceCommitId: Commit['id'];
-  sourceCommitBranch?: Branch;
+  sourceBranch?: Branch;
   // Aka "base" in Git.
   commonAncestorCommitId: Commit['id'];
   conflicts: MergeConflict[];

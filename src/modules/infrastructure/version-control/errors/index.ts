@@ -1,5 +1,7 @@
 import * as Cause from 'effect/Cause';
 
+import { MergeConflictInfo } from '../models';
+
 export const VersionControlRepositoryErrorTag = 'VersionControlRepositoryError';
 export class RepositoryError extends Cause.YieldableError {
   readonly _tag = VersionControlRepositoryErrorTag;
@@ -24,6 +26,12 @@ export const VersionControlMergeConflictErrorTag =
   'VersionControlMergeConflictError';
 export class MergeConflictError extends Cause.YieldableError {
   readonly _tag = VersionControlMergeConflictErrorTag;
+  readonly mergeConflictInfo;
+
+  constructor(mergeConflictInfo: MergeConflictInfo, message?: string) {
+    super(message);
+    this.mergeConflictInfo = mergeConflictInfo;
+  }
 }
 
 export const VersionControlSyncProviderErrorTag =

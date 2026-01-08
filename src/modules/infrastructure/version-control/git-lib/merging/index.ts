@@ -1,3 +1,4 @@
+import * as Cause from 'effect/Cause';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import git, { Errors as IsoGitErrors } from 'isomorphic-git';
@@ -43,8 +44,65 @@ export const mergeAndDeleteBranch = ({
   Commit['id'],
   RepositoryError | NotFoundError | MergeConflictError,
   never
-> =>
-  pipe(
+> => {
+  type IsoGitMergeConflictErrorData = {
+    filepaths: string[];
+    bothModified: string[];
+    deleteByUs: string[];
+    deleteByTheirs: string[];
+  };
+
+  const readMergeConflictsFromErrorData = (
+    errData: IsoGitMergeConflictErrorData
+  ): MergeConflict[] => {
+    const deletedInSourceConflicts: ModifyDeleteConflict[] =
+      errData.deleteByTheirs.length > 0
+        ? errData.deleteByTheirs.map((filepath) => ({
+            kind: 'modify/delete',
+            // TODO: Parse this properly.
+            path: filepath as ResolvedArtifactId,
+            deletedIn: mergePoles.MERGE_SOURCE,
+          }))
+        : [];
+
+    const deletedInTargetConflicts: ModifyDeleteConflict[] =
+      errData.deleteByUs.length > 0
+        ? errData.deleteByUs.map((filepath) => ({
+            kind: 'modify/delete',
+            // TODO: Parse this properly.
+            path: filepath as ResolvedArtifactId,
+            deletedIn: mergePoles.MERGE_TARGET,
+          }))
+        : [];
+
+    const contentConflicts: ContentConflict[] =
+      errData.bothModified.length > 0
+        ? errData.bothModified.map((filepath) => ({
+            kind: 'content',
+            // TODO: Parse this properly.
+            path: filepath as ResolvedArtifactId,
+          }))
+        : [];
+
+    return [
+      ...deletedInSourceConflicts,
+      ...deletedInTargetConflicts,
+      ...contentConflicts,
+    ];
+  };
+
+  const IsoGitMergeConflictErrorTag = 'IsoGitMergeConflictError';
+  class IsoGitMergeConflictError extends Cause.YieldableError {
+    readonly _tag = IsoGitMergeConflictErrorTag;
+    readonly data;
+
+    constructor(errData: IsoGitMergeConflictErrorData, message?: string) {
+      super(message);
+      this.data = errData;
+    }
+  }
+
+  return pipe(
     Effect.tryPromise({
       try: () =>
         git.merge({
@@ -55,16 +113,11 @@ export const mergeAndDeleteBranch = ({
           author: {
             name: DEFAULT_AUTHOR_NAME,
           },
+          abortOnConflict: false,
         }),
       catch: (err) => {
-        console.log(err);
-        if (
-          err instanceof IsoGitErrors.MergeNotSupportedError ||
-          err instanceof IsoGitErrors.MergeConflictError
-        ) {
-          return new MergeConflictError(
-            `Error when trying to merge ${from} into ${into} due to conflicts.`
-          );
+        if (err instanceof IsoGitErrors.MergeConflictError) {
+          return new IsoGitMergeConflictError(err.data);
         }
 
         return new RepositoryError(
@@ -72,6 +125,24 @@ export const mergeAndDeleteBranch = ({
         );
       },
     }),
+    Effect.catchTag(IsoGitMergeConflictErrorTag, (err) =>
+      pipe(
+        getCommitsRelatedToMerge({ isoGitFs, dir }),
+        Effect.flatMap((commitsRelatedToMerge) => {
+          const mergeConflictInfo: MergeConflictInfo = {
+            ...commitsRelatedToMerge,
+            sourceBranch: from,
+            targetBranch: into,
+            conflicts: readMergeConflictsFromErrorData(err.data),
+          };
+
+          return new MergeConflictError(
+            mergeConflictInfo,
+            `Error when trying to merge ${from} into ${into} due to conflicts.`
+          );
+        })
+      )
+    ),
     Effect.flatMap(({ oid }) =>
       pipe(
         fromNullable(
@@ -95,6 +166,7 @@ export const mergeAndDeleteBranch = ({
       switchToBranch({ isoGitFs, dir, branch: DEFAULT_BRANCH as Branch })
     )
   );
+};
 
 export type IsInMergeConflictStateArgs = Omit<IsoGitDeps, 'isoGitHttp'>;
 
@@ -292,7 +364,7 @@ const readMergeConflictsFromGitIndex = ({
         kind: 'modify/delete',
         // TODO: Parse this properly.
         path: unmergedPathInfo.path as ResolvedArtifactId,
-        deletedIn: mergePoles.MERGE_DESTINATION,
+        deletedIn: mergePoles.MERGE_TARGET,
       };
 
       return Effect.succeed(conflict);
