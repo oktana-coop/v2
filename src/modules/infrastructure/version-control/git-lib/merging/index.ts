@@ -1,6 +1,8 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import git, { Errors as IsoGitErrors } from 'isomorphic-git';
+import { GitIndexManager } from 'isomorphic-git/managers';
+import path from 'path';
 
 import { fromNullable } from '../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../utils/errors';
@@ -11,12 +13,18 @@ import {
   RepositoryError,
 } from '../../errors';
 import {
+  type AddAddConflict,
   type Branch,
   type Commit,
+  type ContentConflict,
   DEFAULT_BRANCH,
-  GitCommitHash,
+  type GitCommitHash,
+  type MergeConflict,
   type MergeConflictInfo,
+  mergePoles,
+  type ModifyDeleteConflict,
   parseGitCommitHash,
+  type ResolvedArtifactId,
 } from '../../models';
 import { deleteBranch, switchToBranch } from '../branching';
 import { IsoGitDeps } from '../types';
@@ -216,6 +224,138 @@ const getCommitsRelatedToMerge = ({
     )
   );
 
+const readMergeConflictsFromGitIndex = ({
+  isoGitFs,
+  dir,
+}: Omit<IsoGitDeps, 'isoGitHttp'>): Effect.Effect<
+  MergeConflict[],
+  RepositoryError,
+  never
+> => {
+  type UnmergedPathInfo = {
+    path: string;
+    stages: Record<string, string>;
+  };
+
+  const mergeConflictFromUnmergedPathInfo = (
+    unmergedPathInfo: UnmergedPathInfo
+  ): Effect.Effect<MergeConflict, RepositoryError, never> => {
+    if (
+      unmergedPathInfo.stages['1'] &&
+      unmergedPathInfo.stages['2'] &&
+      unmergedPathInfo.stages['3']
+    ) {
+      const conflict: ContentConflict = {
+        kind: 'content',
+        // TODO: Parse this properly.
+        path: unmergedPathInfo.path as ResolvedArtifactId,
+      };
+
+      return Effect.succeed(conflict);
+    }
+
+    if (
+      !unmergedPathInfo.stages['1'] &&
+      unmergedPathInfo.stages['2'] &&
+      unmergedPathInfo.stages['3']
+    ) {
+      const conflict: AddAddConflict = {
+        kind: 'add/add',
+        // TODO: Parse this properly.
+        path: unmergedPathInfo.path as ResolvedArtifactId,
+      };
+
+      return Effect.succeed(conflict);
+    }
+
+    if (
+      unmergedPathInfo.stages['1'] &&
+      unmergedPathInfo.stages['2'] &&
+      !unmergedPathInfo.stages['3']
+    ) {
+      const conflict: ModifyDeleteConflict = {
+        kind: 'modify/delete',
+        // TODO: Parse this properly.
+        path: unmergedPathInfo.path as ResolvedArtifactId,
+        deletedIn: mergePoles.MERGE_SOURCE,
+      };
+
+      return Effect.succeed(conflict);
+    }
+
+    if (
+      unmergedPathInfo.stages['1'] &&
+      unmergedPathInfo.stages['3'] &&
+      !unmergedPathInfo.stages['2']
+    ) {
+      const conflict: ModifyDeleteConflict = {
+        kind: 'modify/delete',
+        // TODO: Parse this properly.
+        path: unmergedPathInfo.path as ResolvedArtifactId,
+        deletedIn: mergePoles.MERGE_DESTINATION,
+      };
+
+      return Effect.succeed(conflict);
+    }
+
+    return Effect.fail(
+      new RepositoryError(
+        `Could not process merge conflict for path ${unmergedPathInfo.path}`
+      )
+    );
+  };
+
+  return pipe(
+    Effect.tryPromise({
+      try: async () => {
+        const unmergedEntries: UnmergedPathInfo[] =
+          await GitIndexManager.acquire(
+            {
+              fs: {
+                ...isoGitFs.promises,
+                read: isoGitFs.promises.readFile,
+              },
+              gitdir: path.join(dir, '.git'),
+              cache: {},
+              allowUnmerged: true,
+            },
+            async (index) =>
+              index.unmergedPaths.map((path) => {
+                const entry = index.entriesMap.get(path) as {
+                  stages: {
+                    oid: string;
+                    flags: {
+                      stage: number;
+                    };
+                  }[];
+                };
+
+                const unmergedPathInfo: UnmergedPathInfo = {
+                  path,
+                  stages: entry.stages.filter(Boolean).reduce(
+                    (stagesAcc, current) => ({
+                      ...stagesAcc,
+                      [current.flags.stage]: current.oid,
+                    }),
+                    {}
+                  ),
+                };
+
+                return unmergedPathInfo;
+              })
+          );
+
+        return unmergedEntries;
+      },
+      catch: mapErrorTo(RepositoryError, 'Error in listing Git index files.'),
+    }),
+    Effect.flatMap((unmergedPathsInfo) =>
+      Effect.forEach(unmergedPathsInfo, (unmergedPathInfo) =>
+        mergeConflictFromUnmergedPathInfo(unmergedPathInfo)
+      )
+    )
+  );
+};
 export const getMergeConflictInfo = ({
   isoGitFs,
   dir,
@@ -230,24 +370,15 @@ export const getMergeConflictInfo = ({
       inMergeConflictState
         ? pipe(
             getCommitsRelatedToMerge({ dir, isoGitFs }),
-            Effect.tap(() =>
-              Effect.tryPromise({
-                try: async () => {
-                  const indexFiles = await git.listFiles({ dir, fs: isoGitFs });
-                  console.log(indexFiles);
-                  return indexFiles;
-                },
-                catch: mapErrorTo(
-                  RepositoryError,
-                  'Error in listing Git index files.'
-                ),
-              })
-            ),
-            // TODO: Gather conflicts
-            Effect.map((mergeCommitsInfo) => ({
-              ...mergeCommitsInfo,
-              conflicts: [],
-            }))
+            Effect.flatMap((commitsRelatedToMerge) =>
+              pipe(
+                readMergeConflictsFromGitIndex({ isoGitFs, dir }),
+                Effect.map((conflicts) => ({
+                  ...commitsRelatedToMerge,
+                  conflicts,
+                }))
+              )
+            )
           )
         : Effect.succeed(null)
     )
