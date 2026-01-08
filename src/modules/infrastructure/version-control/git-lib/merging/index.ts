@@ -137,8 +137,8 @@ export const mergeAndDeleteBranch = ({
           };
 
           return new MergeConflictError(
-            mergeConflictInfo,
-            `Error when trying to merge ${from} into ${into} due to conflicts.`
+            `Error when trying to merge ${from} into ${into} due to conflicts.`,
+            mergeConflictInfo
           );
         })
       )

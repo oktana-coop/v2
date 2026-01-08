@@ -26,11 +26,11 @@ export const VersionControlMergeConflictErrorTag =
   'VersionControlMergeConflictError';
 export class MergeConflictError extends Cause.YieldableError {
   readonly _tag = VersionControlMergeConflictErrorTag;
-  readonly mergeConflictInfo;
+  readonly data;
 
-  constructor(mergeConflictInfo: MergeConflictInfo, message?: string) {
+  constructor(message: string, data: MergeConflictInfo) {
     super(message);
-    this.mergeConflictInfo = mergeConflictInfo;
+    this.data = data;
   }
 }
 
