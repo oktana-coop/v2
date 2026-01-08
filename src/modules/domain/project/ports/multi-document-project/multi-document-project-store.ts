@@ -4,6 +4,7 @@ import {
   type Branch,
   type Commit,
   MergeConflictError,
+  type MergeConflictInfo,
   MigrationError,
   type ResolvedArtifactId,
 } from '../../../../../modules/infrastructure/version-control';
@@ -77,6 +78,14 @@ export type MultiDocumentProjectMergeAndDeleteBranchArgs = {
   projectId: ProjectId;
   from: Branch;
   into: Branch;
+};
+
+export type MultiDocumentProjectIsInMergeConflictStateArgs = {
+  projectId: ProjectId;
+};
+
+export type MultiDocumentProjectGetMergeConflictInfoArgs = {
+  projectId: ProjectId;
 };
 
 export type MultiDocumentProjectSetAuthorInfoArgs = {
@@ -196,6 +205,13 @@ export type MultiDocumentProjectStore = {
   ) => Effect.Effect<
     Commit['id'],
     ValidationError | RepositoryError | NotFoundError | MergeConflictError,
+    never
+  >;
+  getMergeConflictInfo: (
+    args: MultiDocumentProjectGetMergeConflictInfoArgs
+  ) => Effect.Effect<
+    MergeConflictInfo | null,
+    ValidationError | RepositoryError,
     never
   >;
   setAuthorInfo: (

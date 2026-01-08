@@ -198,6 +198,20 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.multiDocumentProjectStoreAPI.mergeAndDeleteBranch(...args)),
+  getMergeConflictInfo: (
+    ...args: Parameters<MultiDocumentProjectStore['getMergeConflictInfo']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['getMergeConflictInfo']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.getMergeConflictInfo(...args)),
   setAuthorInfo: (
     ...args: Parameters<MultiDocumentProjectStore['setAuthorInfo']>
   ) =>

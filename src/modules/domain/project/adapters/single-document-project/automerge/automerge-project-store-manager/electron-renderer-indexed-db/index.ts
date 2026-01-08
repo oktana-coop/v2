@@ -153,7 +153,15 @@ export const createAdapter = ({
               })
             ),
             Effect.flatMap(
-              ({ projectId, documentId, currentBranch, file, name }) =>
+              ({
+                projectId,
+                documentId,
+                currentBranch,
+                mergeConflictInfo,
+                remoteProjects,
+                file,
+                name,
+              }) =>
                 pipe(
                   // TODO: Consider a cleaner approach of wiping IndexedDB (or the previous project's DB)
                   // before setting up the new one. For now, assuming that we don't want to do this so that performance
@@ -182,7 +190,8 @@ export const createAdapter = ({
                     projectId,
                     documentId,
                     currentBranch,
-                    remoteProjects: [],
+                    mergeConflictInfo,
+                    remoteProjects,
                     file,
                     name,
                   }))

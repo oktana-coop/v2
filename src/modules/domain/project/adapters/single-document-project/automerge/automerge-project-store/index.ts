@@ -199,6 +199,9 @@ export const createAdapter = (
         )
       );
 
+  const getMergeConflictInfo: SingleDocumentProjectStore['getMergeConflictInfo'] =
+    () => Effect.succeed(null);
+
   // TODO: Implement authorship in Automerge
   const setAuthorInfo: SingleDocumentProjectStore['setAuthorInfo'] = () =>
     Effect.succeed(undefined);
@@ -269,6 +272,7 @@ export const createAdapter = (
     listBranches,
     deleteBranch,
     mergeAndDeleteBranch,
+    getMergeConflictInfo,
     setAuthorInfo,
     addRemoteProject,
     listRemoteProjects,

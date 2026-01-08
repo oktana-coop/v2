@@ -286,6 +286,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                         projectId,
                         documentId,
                         currentBranch,
+                        mergeConflictInfo: null,
                         remoteProjects: [],
                         file: null,
                         name: projectName,

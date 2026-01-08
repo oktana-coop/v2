@@ -460,6 +460,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                   projectId,
                   directory,
                   currentBranch,
+                  mergeConflictInfo: null,
                   remoteProjects: [],
                 }))
               )
@@ -523,6 +524,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                       projectId,
                       directory,
                       currentBranch,
+                      mergeConflictInfo: null,
                       remoteProjects: [],
                     }))
                   )

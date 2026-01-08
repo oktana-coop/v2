@@ -48,7 +48,6 @@ export type SetupSingleDocumentProjectStoreResult = {
   projectId: ProjectId;
   documentId: ResolvedArtifactId;
   currentBranch: Branch;
-  mergeConflictInfo: MergeConflictInfo | null;
   remoteProjects: RemoteProjectInfo[];
   file: File | null;
   name: string | null;

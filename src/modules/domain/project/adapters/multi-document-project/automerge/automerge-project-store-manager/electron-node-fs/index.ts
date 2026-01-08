@@ -420,6 +420,7 @@ export const createAdapter = ({
                       projectId,
                       directory,
                       currentBranch,
+                      mergeConflictInfo: null,
                       remoteProjects: [],
                     }))
                   )
@@ -468,6 +469,7 @@ export const createAdapter = ({
                       projectId,
                       directory,
                       currentBranch,
+                      mergeConflictInfo: null,
                       remoteProjects: [],
                     }))
                   )

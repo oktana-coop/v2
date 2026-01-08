@@ -210,6 +210,11 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                 versionedProjectStore.getCurrentBranch({ projectId })
             ),
             Effect.bind(
+              'mergeConflictInfo',
+              ({ versionedProjectStore, projectFilePath: projectId }) =>
+                versionedProjectStore.getMergeConflictInfo({ projectId })
+            ),
+            Effect.bind(
               'remoteProjects',
               ({ versionedProjectStore, projectFilePath: projectId }) =>
                 versionedProjectStore.listRemoteProjects({ projectId })
@@ -230,6 +235,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                 projectFilePath: projectId,
                 documentId,
                 currentBranch,
+                mergeConflictInfo,
                 remoteProjects,
               }) => ({
                 versionedProjectStore,
@@ -237,6 +243,7 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                 projectId,
                 documentId,
                 currentBranch,
+                mergeConflictInfo,
                 remoteProjects,
                 file,
                 // The name is derived by the file name in this case

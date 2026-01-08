@@ -390,12 +390,10 @@ export const MultiDocumentProjectProvider = ({
       setLoading(false);
 
       if (mergeConflictInfo) {
-        const resolveConflictsUrl = buildResolveConlictsUrl({
+        navigateToResolveMergeConflicts({
           projectId: projId,
           mergeConflictInfo,
         });
-
-        navigate(resolveConflictsUrl);
       } else {
         navigate(`/projects/${urlEncodeProjectId(projId)}/documents`);
       }

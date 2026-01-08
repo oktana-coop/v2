@@ -265,6 +265,13 @@ contextBridge.exposeInMainWorld('singleDocumentProjectStoreAPI', {
         ...args,
       }
     ),
+  getMergeConflictInfo: (args) =>
+    ipcRenderer.invoke(
+      'single-document-project-store:get-merge-conflict-info',
+      {
+        ...args,
+      }
+    ),
   setAuthorInfo: (args) =>
     ipcRenderer.invoke('single-document-project-store:set-author-info', {
       ...args,
@@ -354,6 +361,10 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
     }),
   mergeAndDeleteBranch: (args) =>
     ipcRenderer.invoke('multi-document-project-store:merge-and-delete-branch', {
+      ...args,
+    }),
+  getMergeConflictInfo: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:get-merge-conflict-info', {
       ...args,
     }),
   setAuthorInfo: (args) =>

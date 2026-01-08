@@ -22,6 +22,7 @@ import {
   type MultiDocumentProjectDeleteBranchArgs,
   type MultiDocumentProjectFindRemoteProjectByNameArgs,
   type MultiDocumentProjectGetCurrentBranchArgs,
+  type MultiDocumentProjectGetMergeConflictInfoArgs,
   type MultiDocumentProjectGetRemoteBranchInfoArgs,
   type MultiDocumentProjectListBranchesArgs,
   type MultiDocumentProjectListRemoteProjectsArgs,
@@ -41,6 +42,7 @@ import {
   type SingleDocumentProjectDeleteBranchArgs,
   type SingleDocumentProjectFindRemoteProjectByNameArgs,
   type SingleDocumentProjectGetCurrentBranchArgs,
+  type SingleDocumentProjectGetMergeConflictInfoArgs,
   type SingleDocumentProjectGetRemoteBranchInfoArgs,
   type SingleDocumentProjectListBranchesArgs,
   type SingleDocumentProjectListRemoteProjectsArgs,
@@ -203,6 +205,7 @@ const registerStoreManagerEvents = ({
               projectId,
               documentId,
               currentBranch,
+              mergeConflictInfo,
               remoteProjects,
               file,
               name,
@@ -210,6 +213,7 @@ const registerStoreManagerEvents = ({
               projectId,
               documentId,
               currentBranch,
+              mergeConflictInfo,
               remoteProjects,
               file,
               name,
@@ -251,10 +255,17 @@ const registerStoreManagerEvents = ({
               })
           ),
           Effect.map(
-            ({ projectId, directory, currentBranch, remoteProjects }) => ({
+            ({
               projectId,
               directory,
               currentBranch,
+              mergeConflictInfo,
+              remoteProjects,
+            }) => ({
+              projectId,
+              directory,
+              currentBranch,
+              mergeConflictInfo,
               remoteProjects,
             })
           )
@@ -286,10 +297,17 @@ const registerStoreManagerEvents = ({
               })
           ),
           Effect.map(
-            ({ projectId, directory, currentBranch, remoteProjects }) => ({
+            ({
               projectId,
               directory,
               currentBranch,
+              mergeConflictInfo,
+              remoteProjects,
+            }) => ({
+              projectId,
+              directory,
+              currentBranch,
+              mergeConflictInfo,
               remoteProjects,
             })
           )
@@ -498,6 +516,26 @@ const registerSingleDocumentProjectStoreEvents = ({
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.mergeAndDeleteBranch(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:get-merge-conflict-info',
+    async (_, args: SingleDocumentProjectGetMergeConflictInfoArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.getMergeConflictInfo(args)
           )
         )
       )
@@ -936,6 +974,26 @@ const registerMultiDocumentProjectStoreEvents = ({
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.mergeAndDeleteBranch(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:get-merge-conflict-info',
+    async (_, args: MultiDocumentProjectGetMergeConflictInfoArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.getMergeConflictInfo(args)
           )
         )
       )

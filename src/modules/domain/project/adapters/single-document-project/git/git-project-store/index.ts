@@ -18,6 +18,7 @@ import {
   deleteBranch as deleteBranchWithGit,
   findRemoteByName as findGitRemoteByName,
   getCurrentBranch as getCurrentBranchWithGit,
+  getMergeConflictInfo as getGitRepoMergeConflictInfo,
   getRemoteBranchInfo as getRemoteBranchInfoWithGit,
   listBranches as listBranchesWithGit,
   listRemotes as listGitRemotes,
@@ -263,6 +264,18 @@ export const createAdapter = ({
         )
       );
 
+  const getMergeConflictInfo: SingleDocumentProjectStore['getMergeConflictInfo'] =
+    () =>
+      pipe(
+        getGitRepoMergeConflictInfo({
+          isoGitFs,
+          dir: internalProjectDir,
+        }),
+        Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+          Effect.fail(new RepositoryError(err.message))
+        )
+      );
+
   const setAuthorInfo: SingleDocumentProjectStore['setAuthorInfo'] = ({
     username,
     email,
@@ -448,6 +461,7 @@ export const createAdapter = ({
     listBranches,
     deleteBranch,
     mergeAndDeleteBranch,
+    getMergeConflictInfo,
     setAuthorInfo,
     addRemoteProject,
     listRemoteProjects,

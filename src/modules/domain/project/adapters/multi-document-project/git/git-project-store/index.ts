@@ -19,6 +19,7 @@ import {
   deleteBranch as deleteBranchWithGit,
   findRemoteByName as findGitRemoteByName,
   getCurrentBranch as getCurrentBranchWithGit,
+  getMergeConflictInfo as getGitRepoMergeConflictInfo,
   getRemoteBranchInfo as getRemoteBranchInfoWithGit,
   getUserInfo as getUserInfoFromConfig,
   isGitBlobRef,
@@ -383,6 +384,23 @@ export const createAdapter = ({
         )
       );
 
+  const getMergeConflictInfo: MultiDocumentProjectStore['getMergeConflictInfo'] =
+    ({ projectId }) =>
+      pipe(
+        ensureProjectIdIsFsPath(projectId),
+        Effect.flatMap((projectPath) =>
+          pipe(
+            getGitRepoMergeConflictInfo({
+              isoGitFs,
+              dir: projectPath,
+            }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            )
+          )
+        )
+      );
+
   const setAuthorInfo: MultiDocumentProjectStore['setAuthorInfo'] = ({
     projectId,
     username,
@@ -594,6 +612,7 @@ export const createAdapter = ({
     listBranches,
     deleteBranch,
     mergeAndDeleteBranch,
+    getMergeConflictInfo,
     setAuthorInfo,
     addRemoteProject,
     listRemoteProjects,
