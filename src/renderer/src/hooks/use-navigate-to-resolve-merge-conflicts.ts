@@ -15,11 +15,8 @@ const buildResolveConlictsUrl = ({
 }) => {
   const resolveConflictsBaseUrl = `/projects/${urlEncodeProjectId(projectId)}/merge?source=${mergeConflictInfo.sourceCommitId}&target=${mergeConflictInfo.targetCommitId}&commonAncestor=${mergeConflictInfo.commonAncestorCommitId}`;
 
-  if (
-    mergeConflictInfo.sourceCommitBranch &&
-    mergeConflictInfo.targetCommitBranch
-  ) {
-    return `${resolveConflictsBaseUrl}&sourceBranch=${mergeConflictInfo.sourceCommitBranch}&targetBranch=${mergeConflictInfo.targetCommitBranch}`;
+  if (mergeConflictInfo.sourceBranch && mergeConflictInfo.targetBranch) {
+    return `${resolveConflictsBaseUrl}&sourceBranch=${mergeConflictInfo.sourceBranch}&targetBranch=${mergeConflictInfo.targetBranch}`;
   }
 
   return resolveConflictsBaseUrl;
