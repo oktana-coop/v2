@@ -22,10 +22,10 @@ export const DiffIcon = ({
           y="17"
           width="8"
           height="2"
-          color={color ?? 'currentColor'}
+          fill={color ?? 'currentColor'}
         />
-        <path d="M8 8H16V10H8V8Z" color={color ?? 'currentColor'} />
-        <path d="M11 13V5H13V13H11Z" color={color ?? 'currentColor'} />
+        <path d="M8 8H16V10H8V8Z" fill={color ?? 'currentColor'} />
+        <path d="M11 13V5H13V13H11Z" fill={color ?? 'currentColor'} />
       </g>
     </svg>
   );
