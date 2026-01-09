@@ -9,8 +9,8 @@ import { Link } from './Link';
 
 const styles = {
   size: {
-    sm: 'px-[calc(theme(spacing[2.5])-1px)] py-[calc(theme(spacing[1.5])-1px)] text-sm/6',
-    md: 'px-[calc(theme(spacing[3]))] py-[calc(theme(spacing[2]))] text-base/6',
+    sm: 'px-[calc(theme(spacing[2.5]))] py-[calc(theme(spacing[0.5]))] text-sm/6',
+    md: 'px-[calc(theme(spacing[3]))] py-[calc(theme(spacing[1]))] text-base/6',
     lg: 'px-[calc(theme(spacing[3.5])-1px)] py-[calc(theme(spacing[2.5])-1px)] text-base/6',
   },
   base: [
