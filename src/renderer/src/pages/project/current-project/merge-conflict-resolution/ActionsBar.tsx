@@ -1,0 +1,58 @@
+import { useRef } from 'react';
+
+import { Button } from '../../../../components/actions/Button';
+import { IconButton } from '../../../../components/actions/IconButton';
+import { SidebarIcon, SidebarOpenIcon } from '../../../../components/icons';
+
+export const MergeConflictResolutionActionsBar = ({
+  isSidebarOpen,
+  onSidebarToggle,
+  onAbortMerge,
+  onResolveConflict,
+}: {
+  isSidebarOpen: boolean;
+  onSidebarToggle: () => void;
+  onAbortMerge: () => void;
+  onResolveConflict: () => void;
+}) => {
+  const sidebarButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  const handleSidebarToggle = (ev: React.MouseEvent) => {
+    ev.preventDefault();
+    onSidebarToggle();
+
+    // manually remove the hover state because headless-ui doesn't handle it properly in this case
+    if (sidebarButtonRef.current) {
+      sidebarButtonRef.current.removeAttribute('data-headlessui-state');
+      sidebarButtonRef.current.removeAttribute('data-hover');
+    }
+  };
+
+  const handleAbortMerge = (ev: React.MouseEvent) => {
+    ev.preventDefault();
+    onAbortMerge();
+  };
+
+  const handleResolveConflict = (ev: React.MouseEvent) => {
+    ev.preventDefault();
+    onResolveConflict();
+  };
+
+  return (
+    <div className="flex flex-initial items-center justify-between px-4 py-2">
+      <IconButton
+        ref={sidebarButtonRef}
+        icon={isSidebarOpen ? <SidebarOpenIcon /> : <SidebarIcon />}
+        onClick={handleSidebarToggle}
+      />
+      <div className="flex flex-initial items-center gap-2">
+        <Button color="purple" variant="outline" onClick={handleAbortMerge}>
+          Abort Merge
+        </Button>
+        <Button color="purple" onClick={handleResolveConflict}>
+          Resolve Conflict
+        </Button>
+      </div>
+    </div>
+  );
+};

@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 
 import { SidebarLayoutContext } from '../../../../app-state';
-import { DefaultActionsBar } from '../../../shared/default-actions-bar';
+import { MergeConflictResolutionActionsBar } from './ActionsBar';
 
 export const CompareContentConflictResolution = () => {
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
@@ -9,9 +9,11 @@ export const CompareContentConflictResolution = () => {
   return (
     <div className="flex w-full flex-col">
       <div className="w-full">
-        <DefaultActionsBar
+        <MergeConflictResolutionActionsBar
           isSidebarOpen={isSidebarOpen}
           onSidebarToggle={toggleSidebar}
+          onAbortMerge={() => {}}
+          onResolveConflict={() => {}}
         />
       </div>
       <div className="p-4">Compare Content Conflict Resolution</div>
