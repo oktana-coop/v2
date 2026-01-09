@@ -34,7 +34,10 @@ export const StructuralConflictResolution = () => {
             what should happen to each file before merging content.
           </p>
           {structuralConflicts.map((conflict) => (
-            <StructuralConflict conflict={conflict} />
+            <StructuralConflict
+              conflict={conflict}
+              mergeConflictInfo={mergeConflictInfo}
+            />
           ))}
         </div>
       </div>
