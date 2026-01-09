@@ -60,7 +60,8 @@ export const mergeAndDeleteBranch = ({
         ? errData.deleteByTheirs.map((filepath) => ({
             kind: 'modify/delete',
             // TODO: Parse this properly.
-            path: filepath as ResolvedArtifactId,
+            artifactId: filepath as ResolvedArtifactId,
+            path: filepath,
             deletedIn: mergePoles.MERGE_SOURCE,
           }))
         : [];
@@ -70,7 +71,8 @@ export const mergeAndDeleteBranch = ({
         ? errData.deleteByUs.map((filepath) => ({
             kind: 'modify/delete',
             // TODO: Parse this properly.
-            path: filepath as ResolvedArtifactId,
+            artifactId: filepath as ResolvedArtifactId,
+            path: filepath,
             deletedIn: mergePoles.MERGE_TARGET,
           }))
         : [];
@@ -80,7 +82,8 @@ export const mergeAndDeleteBranch = ({
         ? errData.bothModified.map((filepath) => ({
             kind: 'content',
             // TODO: Parse this properly.
-            path: filepath as ResolvedArtifactId,
+            artifactId: filepath as ResolvedArtifactId,
+            path: filepath,
           }))
         : [];
 
@@ -320,7 +323,8 @@ const readMergeConflictsFromGitIndex = ({
       const conflict: ContentConflict = {
         kind: 'content',
         // TODO: Parse this properly.
-        path: unmergedPathInfo.path as ResolvedArtifactId,
+        artifactId: unmergedPathInfo.path as ResolvedArtifactId,
+        path: unmergedPathInfo.path,
       };
 
       return Effect.succeed(conflict);
@@ -334,7 +338,9 @@ const readMergeConflictsFromGitIndex = ({
       const conflict: AddAddConflict = {
         kind: 'add/add',
         // TODO: Parse this properly.
-        path: unmergedPathInfo.path as ResolvedArtifactId,
+        sourceArtifactId: unmergedPathInfo.path as ResolvedArtifactId,
+        targetArtifactId: unmergedPathInfo.path as ResolvedArtifactId,
+        path: unmergedPathInfo.path,
       };
 
       return Effect.succeed(conflict);
@@ -348,7 +354,8 @@ const readMergeConflictsFromGitIndex = ({
       const conflict: ModifyDeleteConflict = {
         kind: 'modify/delete',
         // TODO: Parse this properly.
-        path: unmergedPathInfo.path as ResolvedArtifactId,
+        artifactId: unmergedPathInfo.path as ResolvedArtifactId,
+        path: unmergedPathInfo.path,
         deletedIn: mergePoles.MERGE_SOURCE,
       };
 
@@ -363,7 +370,8 @@ const readMergeConflictsFromGitIndex = ({
       const conflict: ModifyDeleteConflict = {
         kind: 'modify/delete',
         // TODO: Parse this properly.
-        path: unmergedPathInfo.path as ResolvedArtifactId,
+        artifactId: unmergedPathInfo.path as ResolvedArtifactId,
+        path: unmergedPathInfo.path,
         deletedIn: mergePoles.MERGE_TARGET,
       };
 

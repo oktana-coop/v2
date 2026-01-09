@@ -9,7 +9,8 @@ import { type MergePole } from './merge-poles';
 // Both poles modified the same file in conflicting ways.
 export type ContentConflict = {
   kind: 'content';
-  path: ResolvedArtifactId;
+  artifactId: ResolvedArtifactId;
+  path: string;
 };
 
 export const isContentConflict = (
@@ -19,7 +20,8 @@ export const isContentConflict = (
 // One pole deleted a file while the other modified it.
 export type ModifyDeleteConflict = {
   kind: 'modify/delete';
-  path: ResolvedArtifactId;
+  artifactId: ResolvedArtifactId;
+  path: string;
   deletedIn: MergePole;
 };
 
@@ -30,7 +32,9 @@ export const isModifyDeleteConflict = (
 // Both poles added a file with the same name but different content.
 export type AddAddConflict = {
   kind: 'add/add';
-  path: ResolvedArtifactId;
+  sourceArtifactId: ResolvedArtifactId;
+  targetArtifactId: ResolvedArtifactId;
+  path: string;
 };
 
 export const isAddAddConflict = (
@@ -40,8 +44,8 @@ export const isAddAddConflict = (
 // One pole added a file while the other added a directory with the same name.
 export type FileDirectoryConflict = {
   kind: 'file/directory';
-  filePath: ResolvedArtifactId;
-  directoryPath: ResolvedArtifactId;
+  filePath: string;
+  directoryPath: string;
 };
 
 export const isFileDirectoryConflict = (
@@ -51,9 +55,10 @@ export const isFileDirectoryConflict = (
 // Both poles renamed the same file to different names.
 export type RenameRenameConflict = {
   kind: 'rename/rename';
-  basePath: ResolvedArtifactId;
-  targetPath: ResolvedArtifactId;
-  sourcePath: ResolvedArtifactId;
+  artifactId: ResolvedArtifactId;
+  basePath: string;
+  targetPath: string;
+  sourcePath: string;
 };
 
 export const isRenameRenameConflict = (
@@ -63,8 +68,9 @@ export const isRenameRenameConflict = (
 // One pole renamed a file while the other deleted it.
 export type RenameDeleteConflict = {
   kind: 'rename/delete';
-  basePath: ResolvedArtifactId;
-  renamedPath: ResolvedArtifactId;
+  artifactId: ResolvedArtifactId;
+  basePath: string;
+  renamedPath: string;
   deletedIn: MergePole;
 };
 
@@ -75,9 +81,11 @@ export const isRenameDeleteConflict = (
 // One pole renamed a file to a name that the other pole used for a new file.
 export type RenameAddConflict = {
   kind: 'rename/add';
-  basePath: ResolvedArtifactId;
-  renamedPath: ResolvedArtifactId;
-  addedPath: ResolvedArtifactId;
+  renamedArtifactId: ResolvedArtifactId;
+  basePath: string;
+  renamedPath: string;
+  addedArtifactId: ResolvedArtifactId;
+  addedPath: string;
 };
 
 export const isRenameAddConflict = (
@@ -87,7 +95,7 @@ export const isRenameAddConflict = (
 // Both poles modified a submodule pointer to different commits.
 export type SubmoduleConflict = {
   kind: 'submodule';
-  path: ResolvedArtifactId;
+  path: string;
   targetCommit: Commit['id'];
   sourceCommit: Commit['id'];
 };
@@ -98,6 +106,11 @@ export const isSubmoduleConflict = (
 
 export type CompareContentConflict = ContentConflict | AddAddConflict;
 
+export const isCompareContentConflict = (
+  conflict: MergeConflict
+): conflict is CompareContentConflict =>
+  isContentConflict(conflict) || isAddAddConflict(conflict);
+
 export type StructuralConflict =
   | ModifyDeleteConflict
   | FileDirectoryConflict
@@ -105,5 +118,15 @@ export type StructuralConflict =
   | RenameDeleteConflict
   | RenameAddConflict
   | SubmoduleConflict;
+
+export const isStructuralConflict = (
+  conflict: MergeConflict
+): conflict is StructuralConflict =>
+  isModifyDeleteConflict(conflict) ||
+  isFileDirectoryConflict(conflict) ||
+  isRenameRenameConflict(conflict) ||
+  isRenameDeleteConflict(conflict) ||
+  isRenameAddConflict(conflict) ||
+  isSubmoduleConflict(conflict);
 
 export type MergeConflict = CompareContentConflict | StructuralConflict;

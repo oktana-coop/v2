@@ -4,6 +4,7 @@ export * from './use-current-document-name';
 export * from './use-document-list';
 export * from './use-key-bindings';
 export * from './use-loading-project';
+export * from './use-merge-conflict-info';
 export * from './use-navigate-to-document';
 export * from './use-navigate-to-resolve-merge-conflicts';
 export * from './use-export';

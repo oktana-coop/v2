@@ -9,10 +9,8 @@ import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
 import { useCreateDocument } from '../../../../hooks';
 import { DefaultActionsBar } from '../../../shared/default-actions-bar';
-import {
-  DirectoryFiles,
-  RecentProjects,
-} from '../../shared/document-list-views';
+import { RecentProjects } from '../../shared/document-list-views';
+import { MergeConflictsList } from './MergeConflictsList';
 
 export const ProjectMergeConflictResolution = () => {
   const { projectType } = useContext(CurrentProjectContext);
@@ -24,7 +22,7 @@ export const ProjectMergeConflictResolution = () => {
       sidebar={
         <StackedResizablePanelsLayout autoSaveId="project-merge-conflict-resolution-panel-group">
           {projectType === projectTypes.MULTI_DOCUMENT_PROJECT ? (
-            <DirectoryFiles onCreateDocument={triggerDocumentCreationDialog} />
+            <MergeConflictsList />
           ) : (
             <RecentProjects onCreateDocument={triggerDocumentCreationDialog} />
           )}

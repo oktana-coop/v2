@@ -1,10 +1,6 @@
 import { type Branch } from '../branch';
 import { type Commit } from '../commit';
-import {
-  isAddAddConflict,
-  isContentConflict,
-  type MergeConflict,
-} from './merge-conflict';
+import { type MergeConflict } from './merge-conflict';
 
 export type MergeConflictInfo = {
   // Aka "ours" in Git.
@@ -17,8 +13,3 @@ export type MergeConflictInfo = {
   commonAncestorCommitId: Commit['id'];
   conflicts: MergeConflict[];
 };
-
-export const hasStructuralConflicts = (conflictInfo: MergeConflictInfo) =>
-  conflictInfo.conflicts.some(
-    (conflict) => !isContentConflict(conflict) && !isAddAddConflict(conflict)
-  );
