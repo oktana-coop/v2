@@ -5,6 +5,7 @@ export { ChevronDownIcon } from './ChevronDown';
 export { CloseIcon } from './Close';
 export { CommitHistoryIcon } from './CommitHistory';
 export { CopyIcon } from './Copy';
+export { DiffIcon } from './Diff';
 export { ErrorIcon } from './Error';
 export { FileDocumentIcon } from './FileDocument';
 export { FolderIcon } from './Folder';

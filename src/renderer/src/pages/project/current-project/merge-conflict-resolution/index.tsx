@@ -1,21 +1,17 @@
 import { useContext } from 'react';
+import { Outlet } from 'react-router';
 
 import { projectTypes } from '../../../../../../modules/domain/project';
-import {
-  CurrentProjectContext,
-  SidebarLayoutContext,
-} from '../../../../app-state';
+import { CurrentProjectContext } from '../../../../app-state';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
 import { useCreateDocument } from '../../../../hooks';
-import { DefaultActionsBar } from '../../../shared/default-actions-bar';
 import { RecentProjects } from '../../shared/document-list-views';
 import { MergeConflictsList } from './MergeConflictsList';
 
 export const ProjectMergeConflictResolution = () => {
   const { projectType } = useContext(CurrentProjectContext);
   const { triggerDocumentCreationDialog } = useCreateDocument();
-  const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
 
   return (
     <SidebarLayout
@@ -29,15 +25,10 @@ export const ProjectMergeConflictResolution = () => {
         </StackedResizablePanelsLayout>
       }
     >
-      <div className="flex w-full flex-col">
-        <div className="w-full">
-          <DefaultActionsBar
-            isSidebarOpen={isSidebarOpen}
-            onSidebarToggle={toggleSidebar}
-          />
-        </div>
-        <div className="p-4">Merge Conflict Resolution Screen</div>
-      </div>
+      <Outlet />
     </SidebarLayout>
   );
 };
+
+export { CompareContentConflictResolution } from './CompareContentConflictResolution';
+export { StructuralConflictResolution } from './StructuralConflictResolution';

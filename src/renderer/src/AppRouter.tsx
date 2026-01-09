@@ -13,6 +13,7 @@ import { ElectronContext } from '../../modules/infrastructure/cross-platform/bro
 import { Layout } from './components/layout/Layout';
 import { Options } from './pages/options/Options';
 import {
+  CompareContentConflictResolution,
   CurrentProject,
   DocumentEditor,
   DocumentHistoricalView,
@@ -22,6 +23,7 @@ import {
   ProjectProviders,
   ProjectSelection,
   ProjectSettings,
+  StructuralConflictResolution,
 } from './pages/project';
 
 export const AppRouter = () => {
@@ -47,10 +49,16 @@ export const AppRouter = () => {
                   />
                 </Route>
               </Route>
-              <Route
-                path="merge"
-                element={<ProjectMergeConflictResolution />}
-              />
+              <Route path="merge" element={<ProjectMergeConflictResolution />}>
+                <Route
+                  path="structural"
+                  element={<StructuralConflictResolution />}
+                />
+                <Route
+                  path=":compareContentPath"
+                  element={<CompareContentConflictResolution />}
+                />
+              </Route>
               <Route path="settings" element={<ProjectSettings />} />
             </Route>
           </Route>
