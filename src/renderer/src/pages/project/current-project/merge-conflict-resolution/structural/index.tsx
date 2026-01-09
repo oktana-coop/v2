@@ -28,7 +28,7 @@ export const StructuralConflictResolution = () => {
       </div>
       <div className="container mx-auto my-6 flex max-w-2xl flex-col gap-16">
         <div className="text-left">
-          <SectionHeader icon={DiffIcon} heading="Project Sync" />
+          <SectionHeader icon={DiffIcon} heading="File Changes" />
           <p className="mb-6">
             Some files have changes that conflict across branches. Please decide
             what should happen to each file before merging content.
