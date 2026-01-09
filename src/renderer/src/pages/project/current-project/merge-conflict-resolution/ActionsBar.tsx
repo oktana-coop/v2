@@ -46,10 +46,15 @@ export const MergeConflictResolutionActionsBar = ({
         onClick={handleSidebarToggle}
       />
       <div className="flex flex-initial items-center gap-2">
-        <Button color="purple" variant="outline" onClick={handleAbortMerge}>
+        <Button
+          color="purple"
+          variant="outline"
+          onClick={handleAbortMerge}
+          size="sm"
+        >
           Abort Merge
         </Button>
-        <Button color="purple" onClick={handleResolveConflict}>
+        <Button color="purple" onClick={handleResolveConflict} size="sm">
           Resolve Conflict
         </Button>
       </div>

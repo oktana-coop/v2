@@ -8,12 +8,14 @@ import React from 'react';
 import { Link } from './Link';
 
 const styles = {
+  size: {
+    sm: 'px-[calc(theme(spacing[2.5])-1px)] py-[calc(theme(spacing[1.5])-1px)] text-sm/6',
+    md: 'px-[calc(theme(spacing[3]))] py-[calc(theme(spacing[2]))] text-base/6',
+    lg: 'px-[calc(theme(spacing[3.5])-1px)] py-[calc(theme(spacing[2.5])-1px)] text-base/6',
+  },
   base: [
     // Base
-    'relative isolate inline-flex items-center justify-center gap-x-0.5 border text-base/6 font-medium',
-
-    // Sizing
-    'px-[calc(theme(spacing[3.5])-1px)] py-[calc(theme(spacing[2.5])-1px)] sm:px-[calc(theme(spacing[3.5])-1px)] sm:py-[calc(theme(spacing[2.5])-1px)] sm:text-base/6',
+    'relative isolate inline-flex items-center justify-center gap-x-0.5 border font-medium',
 
     // Focus
     'focus:outline-none data-[focus]:outline data-[focus]:outline-2 data-[focus]:outline-offset-2 data-[focus]:outline-blue-500',
@@ -163,13 +165,18 @@ const styles = {
 };
 
 type ButtonVariant = 'solid' | 'outline' | 'plain';
+type ButtonSize = 'sm' | 'md' | 'lg';
 
 export type ButtonColor =
   | keyof typeof styles.colors.solid
   | keyof typeof styles.colors.outline
   | keyof typeof styles.colors.plain;
 
-type ButtonProps = { variant?: ButtonVariant; color?: ButtonColor } & {
+type ButtonProps = {
+  variant?: ButtonVariant;
+  color?: ButtonColor;
+  size?: ButtonSize;
+} & {
   children: React.ReactNode;
 } & (HeadlessButtonProps | React.ComponentPropsWithoutRef<typeof Link>);
 
@@ -177,6 +184,7 @@ export const Button = React.forwardRef(function Button(
   {
     color = 'dark/zinc',
     variant = 'solid',
+    size = 'md',
     className,
     children,
     ...props
@@ -186,6 +194,7 @@ export const Button = React.forwardRef(function Button(
   const classes = clsx(
     className,
     styles.base,
+    styles.size[size],
     clsx(styles[variant], styles.colors[variant][color ?? 'dark/zinc'])
   );
 
