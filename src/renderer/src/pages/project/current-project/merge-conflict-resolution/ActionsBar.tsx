@@ -1,15 +1,19 @@
 import { useRef } from 'react';
 
+import { MergeConflictInfo } from '../../../../../../modules/infrastructure/version-control';
 import { Button } from '../../../../components/actions/Button';
 import { IconButton } from '../../../../components/actions/IconButton';
 import { SidebarIcon, SidebarOpenIcon } from '../../../../components/icons';
+import { MergePoles } from './MergePoles';
 
 export const MergeConflictResolutionActionsBar = ({
+  mergeConflictInfo,
   isSidebarOpen,
   onSidebarToggle,
   onAbortMerge,
   onResolveConflict,
 }: {
+  mergeConflictInfo: MergeConflictInfo;
   isSidebarOpen: boolean;
   onSidebarToggle: () => void;
   onAbortMerge: () => void;
@@ -45,6 +49,10 @@ export const MergeConflictResolutionActionsBar = ({
         icon={isSidebarOpen ? <SidebarOpenIcon /> : <SidebarIcon />}
         onClick={handleSidebarToggle}
       />
+      <h2 className="max-h-14 flex-auto overflow-y-hidden px-4 text-left text-base/7">
+        Resolving merge conflicts:{' '}
+        <MergePoles mergeConflictInfo={mergeConflictInfo} />
+      </h2>
       <div className="flex flex-initial items-center gap-2">
         <Button
           color="purple"

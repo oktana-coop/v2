@@ -9,12 +9,17 @@ import { StructuralConflict } from './structural/StructuralConflict';
 
 export const StructuralConflictResolution = () => {
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
-  const { structuralConflicts } = useMergeConflictInfo();
+  const { mergeConflictInfo, structuralConflicts } = useMergeConflictInfo();
+
+  if (!mergeConflictInfo) {
+    return null;
+  }
 
   return (
     <div className="flex w-full flex-col">
       <div className="w-full">
         <MergeConflictResolutionActionsBar
+          mergeConflictInfo={mergeConflictInfo}
           isSidebarOpen={isSidebarOpen}
           onSidebarToggle={toggleSidebar}
           onAbortMerge={() => {}}

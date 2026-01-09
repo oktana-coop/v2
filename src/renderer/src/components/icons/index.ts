@@ -1,3 +1,4 @@
+export { ArrowLongRight } from './ArrowLongRight';
 export { BranchIcon } from './Branch';
 export { BulletListIcon } from './BulletList';
 export { CheckIcon } from './Check';
