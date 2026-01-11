@@ -30,5 +30,5 @@ export const ProjectMergeConflictResolution = () => {
   );
 };
 
-export { CompareContentConflictResolution } from './CompareContentConflictResolution';
+export { CompareContentConflictResolution } from './compare-content';
 export { StructuralConflictResolution } from './structural';

@@ -1,8 +1,8 @@
 import { useContext } from 'react';
 
-import { SidebarLayoutContext } from '../../../../app-state';
-import { useMergeConflictInfo } from '../../../../hooks';
-import { MergeConflictResolutionActionsBar } from './ActionsBar';
+import { SidebarLayoutContext } from '../../../../../app-state';
+import { useMergeConflictInfo } from '../../../../../hooks';
+import { MergeConflictResolutionActionsBar } from '../ActionsBar';
 
 export const CompareContentConflictResolution = () => {
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
