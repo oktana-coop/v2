@@ -23,3 +23,14 @@ export const VersionedDocumentValidationErrorTag =
 export class ValidationError extends Cause.YieldableError {
   readonly _tag = VersionedDocumentValidationErrorTag;
 }
+
+export const VersionedDocumentDiffErrorTag = 'VersionedDocumentDiffError';
+export class DiffError extends Cause.YieldableError {
+  readonly _tag = VersionedDocumentDiffErrorTag;
+}
+
+export const VersionedDocumentResolveMergeConflictsErrorTag =
+  'VersionedDocumentResolveMergeConflictsError';
+export class ResolveMergeConflictsError extends Cause.YieldableError {
+  readonly _tag = VersionedDocumentResolveMergeConflictsErrorTag;
+}
