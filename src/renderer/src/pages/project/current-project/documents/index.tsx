@@ -3,7 +3,6 @@ import { Outlet, useParams } from 'react-router';
 
 export { DocumentEditor, DocumentHistoricalView } from './main';
 import { projectTypes } from '../../../../../../modules/domain/project';
-import { ProseMirrorProvider } from '../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { decodeUrlEncodedChangeId } from '../../../../../../modules/infrastructure/version-control';
 import {
   CurrentDocumentContext,
@@ -27,32 +26,26 @@ export const ProjectDocuments = () => {
   const { triggerDocumentCreationDialog } = useCreateDocument();
 
   return (
-    <ProseMirrorProvider>
-      <SidebarLayout
-        sidebar={
-          <StackedResizablePanelsLayout autoSaveId="project-documents-panel-group">
-            {projectType === projectTypes.MULTI_DOCUMENT_PROJECT ? (
-              <DirectoryFiles
-                onCreateDocument={triggerDocumentCreationDialog}
-              />
-            ) : (
-              <RecentProjects
-                onCreateDocument={triggerDocumentCreationDialog}
-              />
-            )}
+    <SidebarLayout
+      sidebar={
+        <StackedResizablePanelsLayout autoSaveId="project-documents-panel-group">
+          {projectType === projectTypes.MULTI_DOCUMENT_PROJECT ? (
+            <DirectoryFiles onCreateDocument={triggerDocumentCreationDialog} />
+          ) : (
+            <RecentProjects onCreateDocument={triggerDocumentCreationDialog} />
+          )}
 
-            <DocumentHistory
-              changes={changes}
-              onChangeClick={onSelectChange}
-              selectedChange={
-                changeId ? decodeUrlEncodedChangeId(changeId) : null
-              }
-            />
-          </StackedResizablePanelsLayout>
-        }
-      >
-        <Outlet />
-      </SidebarLayout>
-    </ProseMirrorProvider>
+          <DocumentHistory
+            changes={changes}
+            onChangeClick={onSelectChange}
+            selectedChange={
+              changeId ? decodeUrlEncodedChangeId(changeId) : null
+            }
+          />
+        </StackedResizablePanelsLayout>
+      }
+    >
+      <Outlet />
+    </SidebarLayout>
   );
 };

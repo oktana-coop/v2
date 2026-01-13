@@ -9,7 +9,9 @@ import { type MergePole } from './merge-poles';
 // Both poles modified the same file in conflicting ways.
 export type ContentConflict = {
   kind: 'content';
-  artifactId: ResolvedArtifactId;
+  sourceArtifactId: ResolvedArtifactId;
+  targetArtifactId: ResolvedArtifactId;
+  commonAncestorArtifactId: ResolvedArtifactId;
   path: string;
 };
 

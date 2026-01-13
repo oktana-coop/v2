@@ -31,9 +31,14 @@ export const ContentConflict = ({
     const suggestMerge = async (projId: ProjectId) => {
       const { targetDocument, mergedDocument } = await suggestContentMerge({
         projectId: projId,
-        documentId: conflict.artifactId,
+        sourceDocumentId: conflict.sourceArtifactId,
+        targetDocumentId: conflict.targetArtifactId,
+        commonAncestorDocumentId: conflict.commonAncestorArtifactId,
         mergeConflictInfo,
       });
+
+      console.log(targetDocument);
+      console.log(mergedDocument);
 
       setSuggestedResolution({
         docBefore: targetDocument,

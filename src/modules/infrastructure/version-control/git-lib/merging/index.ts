@@ -18,6 +18,7 @@ import {
   type Branch,
   type Commit,
   type ContentConflict,
+  createGitBlobRef,
   DEFAULT_BRANCH,
   type GitCommitHash,
   type MergeConflict,
@@ -33,6 +34,12 @@ import { IsoGitDeps } from '../types';
 export type MergeAndDeleteBranchArgs = Omit<IsoGitDeps, 'isoGitHttp'> & {
   from: Branch;
   into: Branch;
+};
+
+type ConflictCommits = {
+  targetCommitId: GitCommitHash;
+  sourceCommitId: GitCommitHash;
+  commonAncestorCommitId: GitCommitHash;
 };
 
 export const mergeAndDeleteBranch = ({
@@ -52,9 +59,13 @@ export const mergeAndDeleteBranch = ({
     deleteByTheirs: string[];
   };
 
-  const readMergeConflictsFromErrorData = (
-    errData: IsoGitMergeConflictErrorData
-  ): MergeConflict[] => {
+  const readMergeConflictsFromErrorData = ({
+    errData,
+    conflictCommits,
+  }: {
+    errData: IsoGitMergeConflictErrorData;
+    conflictCommits: ConflictCommits;
+  }): MergeConflict[] => {
     const deletedInSourceConflicts: ModifyDeleteConflict[] =
       errData.deleteByTheirs.length > 0
         ? errData.deleteByTheirs.map((filepath) => ({
@@ -81,8 +92,19 @@ export const mergeAndDeleteBranch = ({
       errData.bothModified.length > 0
         ? errData.bothModified.map((filepath) => ({
             kind: 'content',
-            // TODO: Parse this properly.
-            artifactId: filepath as ResolvedArtifactId,
+            // TODO: Parse these properly.
+            sourceArtifactId: createGitBlobRef({
+              ref: conflictCommits.sourceCommitId,
+              path: filepath,
+            }),
+            targetArtifactId: createGitBlobRef({
+              ref: conflictCommits.targetCommitId,
+              path: filepath,
+            }),
+            commonAncestorArtifactId: createGitBlobRef({
+              ref: conflictCommits.commonAncestorCommitId,
+              path: filepath,
+            }),
             path: filepath,
           }))
         : [];
@@ -130,13 +152,16 @@ export const mergeAndDeleteBranch = ({
     }),
     Effect.catchTag(IsoGitMergeConflictErrorTag, (err) =>
       pipe(
-        getCommitsRelatedToMerge({ isoGitFs, dir }),
-        Effect.flatMap((commitsRelatedToMerge) => {
+        getConflictCommits({ isoGitFs, dir }),
+        Effect.flatMap((conflictCommits) => {
           const mergeConflictInfo: MergeConflictInfo = {
-            ...commitsRelatedToMerge,
+            ...conflictCommits,
             sourceBranch: from,
             targetBranch: into,
-            conflicts: readMergeConflictsFromErrorData(err.data),
+            conflicts: readMergeConflictsFromErrorData({
+              errData: err.data,
+              conflictCommits,
+            }),
           };
 
           return new MergeConflictError(
@@ -228,15 +253,11 @@ const getCommitForRef = ({
     )
   );
 
-const getCommitsRelatedToMerge = ({
+const getConflictCommits = ({
   isoGitFs,
   dir,
 }: Omit<IsoGitDeps, 'isoGitHttp'>): Effect.Effect<
-  {
-    targetCommitId: Commit['id'];
-    sourceCommitId: Commit['id'];
-    commonAncestorCommitId: Commit['id'];
-  },
+  ConflictCommits,
   RepositoryError,
   never
 > =>
@@ -302,19 +323,20 @@ const getCommitsRelatedToMerge = ({
 const readMergeConflictsFromGitIndex = ({
   isoGitFs,
   dir,
-}: Omit<IsoGitDeps, 'isoGitHttp'>): Effect.Effect<
-  MergeConflict[],
-  RepositoryError,
-  never
-> => {
+  conflictCommits,
+}: Omit<IsoGitDeps, 'isoGitHttp'> & {
+  conflictCommits: ConflictCommits;
+}): Effect.Effect<MergeConflict[], RepositoryError, never> => {
   type UnmergedPathInfo = {
     path: string;
     stages: Record<string, string>;
   };
 
-  const mergeConflictFromUnmergedPathInfo = (
-    unmergedPathInfo: UnmergedPathInfo
-  ): Effect.Effect<MergeConflict, RepositoryError, never> => {
+  const mergeConflictFromUnmergedPathInfo = ({
+    unmergedPathInfo,
+  }: {
+    unmergedPathInfo: UnmergedPathInfo;
+  }): Effect.Effect<MergeConflict, RepositoryError, never> => {
     if (
       unmergedPathInfo.stages['1'] &&
       unmergedPathInfo.stages['2'] &&
@@ -322,8 +344,19 @@ const readMergeConflictsFromGitIndex = ({
     ) {
       const conflict: ContentConflict = {
         kind: 'content',
-        // TODO: Parse this properly.
-        artifactId: unmergedPathInfo.path as ResolvedArtifactId,
+        // TODO: Parse these properly.
+        sourceArtifactId: createGitBlobRef({
+          ref: conflictCommits.sourceCommitId,
+          path: unmergedPathInfo.path,
+        }),
+        targetArtifactId: createGitBlobRef({
+          ref: conflictCommits.targetCommitId,
+          path: unmergedPathInfo.path,
+        }),
+        commonAncestorArtifactId: createGitBlobRef({
+          ref: conflictCommits.commonAncestorCommitId,
+          path: unmergedPathInfo.path,
+        }),
         path: unmergedPathInfo.path,
       };
 
@@ -431,7 +464,7 @@ const readMergeConflictsFromGitIndex = ({
     }),
     Effect.flatMap((unmergedPathsInfo) =>
       Effect.forEach(unmergedPathsInfo, (unmergedPathInfo) =>
-        mergeConflictFromUnmergedPathInfo(unmergedPathInfo)
+        mergeConflictFromUnmergedPathInfo({ unmergedPathInfo })
       )
     )
   );
@@ -449,12 +482,16 @@ export const getMergeConflictInfo = ({
     Effect.flatMap((inMergeConflictState) =>
       inMergeConflictState
         ? pipe(
-            getCommitsRelatedToMerge({ dir, isoGitFs }),
-            Effect.flatMap((commitsRelatedToMerge) =>
+            getConflictCommits({ dir, isoGitFs }),
+            Effect.flatMap((conflictCommits) =>
               pipe(
-                readMergeConflictsFromGitIndex({ isoGitFs, dir }),
+                readMergeConflictsFromGitIndex({
+                  isoGitFs,
+                  dir,
+                  conflictCommits,
+                }),
                 Effect.map((conflicts) => ({
-                  ...commitsRelatedToMerge,
+                  ...conflictCommits,
                   conflicts,
                 }))
               )

@@ -19,11 +19,15 @@ export const useSuggestContentMerge = () => {
   const suggestContentMerge = useCallback(
     async ({
       projectId,
-      documentId,
+      sourceDocumentId,
+      targetDocumentId,
+      commonAncestorDocumentId,
       mergeConflictInfo,
     }: {
       projectId: ProjectId;
-      documentId: ResolvedArtifactId;
+      sourceDocumentId: ResolvedArtifactId;
+      targetDocumentId: ResolvedArtifactId;
+      commonAncestorDocumentId: ResolvedArtifactId;
       mergeConflictInfo: MergeConflictInfo;
       // proseMirrorSchema: PMSchema;
       // proseMirrorDecorationClasses: DiffDecorationClasses;
@@ -46,7 +50,9 @@ export const useSuggestContentMerge = () => {
           getDocumentAtChange: versionedDocumentStore.getDocumentAtChange,
           resolveMergeConflicts: mergeConflictResolver.resolveMergeConflicts,
         })({
-          documentId,
+          sourceDocumentId: sourceDocumentId,
+          targetDocumentId: targetDocumentId,
+          commonAncestorDocumentId: commonAncestorDocumentId,
           sourceCommitId: mergeConflictInfo.sourceCommitId,
           targetCommitId: mergeConflictInfo.targetCommitId,
           commonAncestorCommitId: mergeConflictInfo.commonAncestorCommitId,

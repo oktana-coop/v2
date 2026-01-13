@@ -87,6 +87,8 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
       const contentBefore = getDocumentRichTextContent(props.docBefore);
       const contentAfter = getDocumentRichTextContent(props.docAfter);
 
+      console.log(contentBefore, contentAfter);
+
       const { pmDocAfter: pmDoc, decorations } = await proseMirrorDiff({
         representation:
           // There are some old document versions without the representataion set. The representation is Automerge in that case.
@@ -117,6 +119,8 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
       numberNotes(state, viewRef.current.dispatch, viewRef.current);
       viewRef.current.updateState(state);
     };
+
+    console.log(props, diffAdapterReady);
 
     // TODO: Handle adapter readiness with a promise
     if (diffAdapterReady) {

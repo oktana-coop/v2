@@ -20,7 +20,9 @@ import {
 } from '../ports';
 
 export type SuggestMergeArgs = {
-  documentId: ResolvedArtifactId;
+  sourceDocumentId: ResolvedArtifactId;
+  targetDocumentId: ResolvedArtifactId;
+  commonAncestorDocumentId: ResolvedArtifactId;
   sourceCommitId: CommitId;
   targetCommitId: CommitId;
   commonAncestorCommitId: CommitId;
@@ -41,7 +43,9 @@ export type SuggestMergeResult = {
 export const suggestMerge =
   ({ getDocumentAtChange, resolveMergeConflicts }: SuggestMergeDeps) =>
   ({
-    documentId,
+    sourceDocumentId,
+    targetDocumentId,
+    commonAncestorDocumentId,
     sourceCommitId,
     targetCommitId,
     commonAncestorCommitId,
@@ -57,13 +61,22 @@ export const suggestMerge =
   > =>
     Effect.Do.pipe(
       Effect.bind('sourceDocument', () =>
-        getDocumentAtChange({ documentId, changeId: sourceCommitId })
+        getDocumentAtChange({
+          documentId: sourceDocumentId,
+          changeId: sourceCommitId,
+        })
       ),
       Effect.bind('targetDocument', () =>
-        getDocumentAtChange({ documentId, changeId: targetCommitId })
+        getDocumentAtChange({
+          documentId: targetDocumentId,
+          changeId: targetCommitId,
+        })
       ),
       Effect.bind('commonAncestorDocument', () =>
-        getDocumentAtChange({ documentId, changeId: commonAncestorCommitId })
+        getDocumentAtChange({
+          documentId: commonAncestorDocumentId,
+          changeId: commonAncestorCommitId,
+        })
       ),
       Effect.bind(
         'mergedDocument',
