@@ -1,28 +1,23 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
-import { type Node as PMNode, Schema as PMSchema } from 'prosemirror-model';
-import { type DecorationSet as PMDecorationSet } from 'prosemirror-view';
 
-import { mapErrorTo } from '../../../../utils/errors';
 import {
   CommitId,
   MigrationError,
   type ResolvedArtifactId,
 } from '../../../infrastructure/version-control';
 import {
-  DiffError,
   NotFoundError,
   RepositoryError,
   RepresentationTransformError,
   ResolveMergeConflictsError,
   ValidationError,
 } from '../errors';
+import { RichTextDocument } from '../models';
 import {
-  type Diff,
   type MergeConflictResolver,
   type VersionedDocumentStore,
 } from '../ports';
-import { type DiffDecorationClasses } from '../prosemirror';
 
 export type SuggestMergeArgs = {
   documentId: ResolvedArtifactId;
@@ -34,24 +29,17 @@ export type SuggestMergeArgs = {
 export type SuggestMergeDeps = {
   getDocumentAtChange: VersionedDocumentStore['getDocumentAtChange'];
   resolveMergeConflicts: MergeConflictResolver['resolveMergeConflicts'];
-  proseMirrorDiff: Diff['proseMirrorDiff'];
-  proseMirrorSchema: PMSchema;
-  proseMirrorDecorationClasses: DiffDecorationClasses;
 };
 
 export type SuggestMergeResult = {
-  pmDocAfter: PMNode;
-  pmDecorations: PMDecorationSet;
+  sourceDocument: RichTextDocument;
+  targetDocument: RichTextDocument;
+  commonAncestorDocument: RichTextDocument;
+  mergedDocument: RichTextDocument;
 };
 
 export const suggestMerge =
-  ({
-    getDocumentAtChange,
-    resolveMergeConflicts,
-    proseMirrorDiff,
-    proseMirrorSchema,
-    proseMirrorDecorationClasses,
-  }: SuggestMergeDeps) =>
+  ({ getDocumentAtChange, resolveMergeConflicts }: SuggestMergeDeps) =>
   ({
     documentId,
     sourceCommitId,
@@ -64,7 +52,6 @@ export const suggestMerge =
     | NotFoundError
     | MigrationError
     | ValidationError
-    | DiffError
     | ResolveMergeConflictsError,
     never
   > =>
@@ -79,35 +66,15 @@ export const suggestMerge =
         getDocumentAtChange({ documentId, changeId: commonAncestorCommitId })
       ),
       Effect.bind(
-        'resolveMergeConflictsResult',
+        'mergedDocument',
         ({ sourceDocument, targetDocument, commonAncestorDocument }) =>
-          resolveMergeConflicts({
-            sourceDocument,
-            targetDocument,
-            commonAncestorDocument,
-          })
-      ),
-      Effect.flatMap(({ targetDocument, resolveMergeConflictsResult }) =>
-        pipe(
-          Effect.tryPromise({
-            try: () =>
-              proseMirrorDiff({
-                representation:
-                  resolveMergeConflictsResult.mergedDocument.representation,
-                proseMirrorSchema,
-                decorationClasses: proseMirrorDecorationClasses,
-                docBefore: targetDocument.content,
-                docAfter: resolveMergeConflictsResult.mergedDocument.content,
-              }),
-            catch: mapErrorTo(
-              DiffError,
-              'Error in diffing merged document with target document.'
-            ),
-          }),
-          Effect.map(({ pmDocAfter, decorations }) => ({
-            pmDocAfter,
-            pmDecorations: decorations,
-          }))
-        )
+          pipe(
+            resolveMergeConflicts({
+              sourceDocument,
+              targetDocument,
+              commonAncestorDocument,
+            }),
+            Effect.map((result) => result.mergedDocument)
+          )
       )
     );

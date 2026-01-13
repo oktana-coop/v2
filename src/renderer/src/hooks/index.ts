@@ -13,3 +13,4 @@ export * from './use-branch-info';
 export * from './use-project-id';
 export * from './use-pulled-upstream-changes';
 export * from './use-remote-project-info';
+export * from './use-suggest-content-merge';
