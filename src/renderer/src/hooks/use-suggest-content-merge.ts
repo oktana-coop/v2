@@ -29,8 +29,6 @@ export const useSuggestContentMerge = () => {
       targetDocumentId: ResolvedArtifactId;
       commonAncestorDocumentId: ResolvedArtifactId;
       mergeConflictInfo: MergeConflictInfo;
-      // proseMirrorSchema: PMSchema;
-      // proseMirrorDecorationClasses: DiffDecorationClasses;
     }) => {
       if (
         !versionedDocumentStore ||
