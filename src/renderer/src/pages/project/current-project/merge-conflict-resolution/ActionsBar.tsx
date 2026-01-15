@@ -85,7 +85,7 @@ export const MergeConflictResolutionActionsBar = ({
               onChange={onSetShowDiffChecked}
               color="purple"
             />
-            <Label className="whitespace-nowrap">Show Diff with</Label>
+            <Label className="whitespace-nowrap">Show Diff</Label>
           </CheckboxField>
         )}
         {hasEditorToolbarToggle && (
