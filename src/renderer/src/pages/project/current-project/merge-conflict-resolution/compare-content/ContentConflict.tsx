@@ -37,9 +37,6 @@ export const ContentConflict = ({
         mergeConflictInfo,
       });
 
-      console.log(targetDocument);
-      console.log(mergedDocument);
-
       setSuggestedResolution({
         docBefore: targetDocument,
         docAfter: mergedDocument,
@@ -57,7 +54,9 @@ export const ContentConflict = ({
 
   return (
     <div>
-      <SuggestedMergeInfoPanel />
+      <div className="p-4">
+        <SuggestedMergeInfoPanel />
+      </div>
       <ReadOnlyView {...suggestedResolution} />
     </div>
   );

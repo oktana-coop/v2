@@ -76,7 +76,7 @@ export const createAdapter = ({
                     content: '',
                   })
                 ),
-                Effect.tap((emptyDoc) =>
+                Effect.flatMap((emptyDoc) =>
                   Effect.try({
                     try: () =>
                       Automerge.change(emptyDoc, (doc) =>
@@ -156,17 +156,30 @@ export const createAdapter = ({
           ({ sourceDocumentAutomergeDoc, targetDocumentAutomergeDoc }) =>
             pipe(
               Effect.try({
-                try: () =>
-                  Automerge.merge(
+                try: () => {
+                  const mergedAutomergeDoc = Automerge.merge(
                     sourceDocumentAutomergeDoc,
                     targetDocumentAutomergeDoc
-                  ),
+                  );
+
+                  const automergeConflicts = Automerge.getConflicts(
+                    mergedAutomergeDoc,
+                    'content'
+                  );
+
+                  console.log(automergeConflicts);
+
+                  return {
+                    mergedAutomergeDoc,
+                    automergeConflicts,
+                  };
+                },
                 catch: mapErrorTo(
                   ResolveMergeConflictsError,
                   'Error in merging source and target versions using Automerge.'
                 ),
               }),
-              Effect.flatMap((mergedAutomergeDoc) =>
+              Effect.flatMap(({ mergedAutomergeDoc, automergeConflicts }) =>
                 Effect.tryPromise({
                   try: async () => {
                     const mergedDocumentContent = await transformToText({
