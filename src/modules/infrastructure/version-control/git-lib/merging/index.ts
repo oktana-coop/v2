@@ -513,6 +513,7 @@ const readMergeConflictsFromGitIndex = ({
     )
   );
 };
+
 export const getMergeConflictInfo = ({
   isoGitFs,
   dir,
@@ -544,3 +545,18 @@ export const getMergeConflictInfo = ({
         : Effect.succeed(null)
     )
   );
+
+export type AbortMergeArgs = Omit<IsoGitDeps, 'isoGitHttp'>;
+
+export const abortMerge = ({
+  isoGitFs,
+  dir,
+}: AbortMergeArgs): Effect.Effect<void, RepositoryError, never> =>
+  Effect.tryPromise({
+    try: () =>
+      git.abortMerge({
+        fs: isoGitFs,
+        dir,
+      }),
+    catch: mapErrorTo(RepositoryError, 'Error in aborting merge.'),
+  });

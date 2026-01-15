@@ -190,6 +190,15 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.singleDocumentProjectStoreAPI.getMergeConflictInfo(...args)),
+  abortMerge: (...args: Parameters<SingleDocumentProjectStore['abortMerge']>) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<SingleDocumentProjectStore['abortMerge']>>
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.abortMerge(...args)),
   setAuthorInfo: (
     ...args: Parameters<SingleDocumentProjectStore['setAuthorInfo']>
   ) =>

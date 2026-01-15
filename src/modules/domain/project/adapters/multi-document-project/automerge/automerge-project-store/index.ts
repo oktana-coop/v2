@@ -233,6 +233,13 @@ export const createAdapter = (
   const getMergeConflictInfo: MultiDocumentProjectStore['getMergeConflictInfo'] =
     () => Effect.succeed(null);
 
+  const abortMerge: MultiDocumentProjectStore['abortMerge'] = () =>
+    Effect.fail(
+      new RepositoryError(
+        'Branching is not yet supported when the app is configured with Automerge'
+      )
+    );
+
   // TODO: Implement authorship in Automerge
   const setAuthorInfo: MultiDocumentProjectStore['setAuthorInfo'] = () =>
     Effect.succeed(undefined);
@@ -306,6 +313,7 @@ export const createAdapter = (
     deleteBranch,
     mergeAndDeleteBranch,
     getMergeConflictInfo,
+    abortMerge,
     setAuthorInfo,
     addRemoteProject,
     listRemoteProjects,

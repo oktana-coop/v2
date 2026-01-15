@@ -11,6 +11,7 @@ import {
   FilesystemNotFoundErrorTag,
 } from '../../../../../../../modules/infrastructure/filesystem';
 import {
+  abortMerge as abortGitMerge,
   cloneRepository as cloneGitRepo,
   createAndSwitchToBranch as createAndSwitchToBranchWithGit,
   createGitBlobRef,
@@ -276,6 +277,17 @@ export const createAdapter = ({
         )
       );
 
+  const abortMerge: SingleDocumentProjectStore['abortMerge'] = () =>
+    pipe(
+      abortGitMerge({
+        isoGitFs,
+        dir: internalProjectDir,
+      }),
+      Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+        Effect.fail(new RepositoryError(err.message))
+      )
+    );
+
   const setAuthorInfo: SingleDocumentProjectStore['setAuthorInfo'] = ({
     username,
     email,
@@ -462,6 +474,7 @@ export const createAdapter = ({
     deleteBranch,
     mergeAndDeleteBranch,
     getMergeConflictInfo,
+    abortMerge,
     setAuthorInfo,
     addRemoteProject,
     listRemoteProjects,

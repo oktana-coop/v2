@@ -17,6 +17,7 @@ import {
   type CreateSingleDocumentProjectArgs,
   type DeleteDocumentFromMultiDocumentProjectArgs,
   type FindDocumentInMultiDocumentProjectArgs,
+  type MultiDocumentProjectAbortMergeArgs,
   type MultiDocumentProjectAddRemoteProjectArgs,
   type MultiDocumentProjectCreateAndSwitchToBranchArgs,
   type MultiDocumentProjectDeleteBranchArgs,
@@ -37,6 +38,7 @@ import {
   type OpenSingleDocumentProjectStoreArgs,
   type ProjectId,
   type SetupSingleDocumentProjectStoreArgs,
+  type SingleDocumentProjectAbortMergeArgs,
   type SingleDocumentProjectAddRemoteProjectArgs,
   type SingleDocumentProjectCreateAndSwitchToBranchArgs,
   type SingleDocumentProjectDeleteBranchArgs,
@@ -542,6 +544,26 @@ const registerSingleDocumentProjectStoreEvents = ({
   );
 
   ipcMain.handle(
+    'single-document-project-store:abort-merge',
+    async (_, args: SingleDocumentProjectAbortMergeArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.abortMerge(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
     'single-document-project-store:set-author-info',
     async (_, args: SingleDocumentProjectSetAuthorInfoArgs) =>
       runPromiseSerializingErrorsForIPC(
@@ -994,6 +1016,26 @@ const registerMultiDocumentProjectStoreEvents = ({
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.getMergeConflictInfo(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:abort-merge',
+    async (_, args: MultiDocumentProjectAbortMergeArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.abortMerge(args)
           )
         )
       )

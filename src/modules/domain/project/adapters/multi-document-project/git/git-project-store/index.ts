@@ -11,6 +11,7 @@ import {
   removePath,
 } from '../../../../../../../modules/infrastructure/filesystem';
 import {
+  abortMerge as abortGitMerge,
   cloneRepository as cloneGitRepo,
   createAndSwitchToBranch as createAndSwitchToBranchWithGit,
   createGitBlobRef,
@@ -401,6 +402,22 @@ export const createAdapter = ({
         )
       );
 
+  const abortMerge: MultiDocumentProjectStore['abortMerge'] = ({ projectId }) =>
+    pipe(
+      ensureProjectIdIsFsPath(projectId),
+      Effect.flatMap((projectPath) =>
+        pipe(
+          abortGitMerge({
+            isoGitFs,
+            dir: projectPath,
+          }),
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      )
+    );
+
   const setAuthorInfo: MultiDocumentProjectStore['setAuthorInfo'] = ({
     projectId,
     username,
@@ -613,6 +630,7 @@ export const createAdapter = ({
     deleteBranch,
     mergeAndDeleteBranch,
     getMergeConflictInfo,
+    abortMerge,
     setAuthorInfo,
     addRemoteProject,
     listRemoteProjects,

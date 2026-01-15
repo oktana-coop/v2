@@ -272,6 +272,10 @@ contextBridge.exposeInMainWorld('singleDocumentProjectStoreAPI', {
         ...args,
       }
     ),
+  abortMerge: (args) =>
+    ipcRenderer.invoke('single-document-project-store:abort-merge', {
+      ...args,
+    }),
   setAuthorInfo: (args) =>
     ipcRenderer.invoke('single-document-project-store:set-author-info', {
       ...args,
@@ -365,6 +369,10 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
     }),
   getMergeConflictInfo: (args) =>
     ipcRenderer.invoke('multi-document-project-store:get-merge-conflict-info', {
+      ...args,
+    }),
+  abortMerge: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:abort-merge', {
       ...args,
     }),
   setAuthorInfo: (args) =>

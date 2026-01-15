@@ -212,6 +212,16 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.multiDocumentProjectStoreAPI.getMergeConflictInfo(...args)),
+  abortMerge: (...args: Parameters<MultiDocumentProjectStore['abortMerge']>) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<MultiDocumentProjectStore['abortMerge']>>
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.abortMerge(...args)),
   setAuthorInfo: (
     ...args: Parameters<MultiDocumentProjectStore['setAuthorInfo']>
   ) =>

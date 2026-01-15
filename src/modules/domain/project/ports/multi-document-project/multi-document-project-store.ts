@@ -88,6 +88,10 @@ export type MultiDocumentProjectGetMergeConflictInfoArgs = {
   projectId: ProjectId;
 };
 
+export type MultiDocumentProjectAbortMergeArgs = {
+  projectId: ProjectId;
+};
+
 export type MultiDocumentProjectSetAuthorInfoArgs = {
   projectId: ProjectId;
   username: Username | null;
@@ -214,6 +218,9 @@ export type MultiDocumentProjectStore = {
     ValidationError | RepositoryError,
     never
   >;
+  abortMerge: (
+    args: MultiDocumentProjectAbortMergeArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
   setAuthorInfo: (
     args: MultiDocumentProjectSetAuthorInfoArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
