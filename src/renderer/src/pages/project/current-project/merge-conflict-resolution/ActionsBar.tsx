@@ -3,7 +3,11 @@ import { useRef } from 'react';
 import { MergeConflictInfo } from '../../../../../../modules/infrastructure/version-control';
 import { Button } from '../../../../components/actions/Button';
 import { IconButton } from '../../../../components/actions/IconButton';
-import { SidebarIcon, SidebarOpenIcon } from '../../../../components/icons';
+import {
+  SidebarIcon,
+  SidebarOpenIcon,
+  ToolbarToggleIcon,
+} from '../../../../components/icons';
 import { MergeInfo } from './merge-info';
 
 export const MergeConflictResolutionActionsBar = ({
@@ -12,12 +16,16 @@ export const MergeConflictResolutionActionsBar = ({
   onSidebarToggle,
   onAbortMerge,
   onResolveConflict,
+  hasEditorToolbarToggle,
+  onEditorToolbarToggle,
 }: {
   mergeConflictInfo: MergeConflictInfo;
   isSidebarOpen: boolean;
   onSidebarToggle: () => void;
   onAbortMerge: () => void;
   onResolveConflict: () => void;
+  hasEditorToolbarToggle: boolean;
+  onEditorToolbarToggle?: () => void;
 }) => {
   const sidebarButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -42,6 +50,11 @@ export const MergeConflictResolutionActionsBar = ({
     onResolveConflict();
   };
 
+  const handleToolbarToggle = (ev: React.MouseEvent) => {
+    ev.preventDefault();
+    onEditorToolbarToggle?.();
+  };
+
   return (
     <div className="flex flex-initial items-center justify-between px-4 py-2">
       <IconButton
@@ -54,6 +67,12 @@ export const MergeConflictResolutionActionsBar = ({
         <MergeInfo mergeConflictInfo={mergeConflictInfo} />
       </h2>
       <div className="flex flex-initial items-center gap-2">
+        {hasEditorToolbarToggle && (
+          <IconButton
+            icon={<ToolbarToggleIcon />}
+            onClick={handleToolbarToggle}
+          />
+        )}
         <Button
           color="purple"
           variant="outline"

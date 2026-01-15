@@ -8,17 +8,20 @@ import { ContentConflict } from './ContentConflict';
 export type CompareContentConflictProps = {
   conflict: CompareContentConflictType;
   mergeConflictInfo: MergeConflictInfo;
+  isEditorToolbarOpen: boolean;
 };
 
 export const CompareContentConflict = ({
   conflict,
   mergeConflictInfo,
+  isEditorToolbarOpen,
 }: CompareContentConflictProps) => {
   if (isContentConflict(conflict)) {
     return (
       <ContentConflict
         conflict={conflict}
         mergeConflictInfo={mergeConflictInfo}
+        isEditorToolbarOpen={isEditorToolbarOpen}
       />
     );
   }

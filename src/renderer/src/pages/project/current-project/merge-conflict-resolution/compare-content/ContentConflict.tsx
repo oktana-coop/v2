@@ -6,19 +6,21 @@ import {
   ContentConflict as ContentConflictType,
   type MergeConflictInfo,
 } from '../../../../../../../modules/infrastructure/version-control';
+import { RichTextEditor } from '../../../../../components/editing/RichTextEditor';
 import { LongTextSkeleton } from '../../../../../components/progress/skeletons/LongText';
 import { useProjectId, useSuggestContentMerge } from '../../../../../hooks';
-import { ReadOnlyView } from '../../documents/main/history/ReadOnlyView';
 import { SuggestedMergeInfoPanel } from './SuggestedMergeInfoPanel';
 
 export type ContentConflictProps = {
   conflict: ContentConflictType;
   mergeConflictInfo: MergeConflictInfo;
+  isEditorToolbarOpen: boolean;
 };
 
 export const ContentConflict = ({
   conflict,
   mergeConflictInfo,
+  isEditorToolbarOpen,
 }: ContentConflictProps) => {
   const projectId = useProjectId();
   const [suggestedResolution, setSuggestedResolution] = useState<{
@@ -57,7 +59,12 @@ export const ContentConflict = ({
       <div className="p-4">
         <SuggestedMergeInfoPanel />
       </div>
-      <ReadOnlyView {...suggestedResolution} />
+      <RichTextEditor
+        doc={suggestedResolution.docAfter}
+        docHandle={null}
+        isToolbarOpen={isEditorToolbarOpen}
+        onDocChange={async () => {}}
+      />
     </div>
   );
 

@@ -67,7 +67,6 @@ const {
 type RichTextEditorProps = {
   doc: RichTextDocument;
   docHandle: VersionedDocumentHandle | null;
-  onSave: () => void;
   onDocChange?: (doc: RichTextDocument) => Promise<void>;
   isEditable?: boolean;
   isToolbarOpen?: boolean;
@@ -76,7 +75,6 @@ type RichTextEditorProps = {
 export const RichTextEditor = ({
   docHandle,
   doc,
-  onSave,
   onDocChange,
   isEditable = true,
   isToolbarOpen = false,
@@ -250,7 +248,7 @@ export const RichTextEditor = ({
         editorViewRef.current = null;
       }
     };
-  }, [doc, docHandle, onSave, isEditable, schema, setView]);
+  }, [doc, docHandle, isEditable, schema, setView]);
 
   const handleBlockSelect = (type: BlockType) => {
     if (view) {
