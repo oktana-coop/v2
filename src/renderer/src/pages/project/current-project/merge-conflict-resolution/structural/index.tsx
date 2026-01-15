@@ -1,5 +1,14 @@
 import { useContext } from 'react';
 
+import {
+  isFileDirectoryConflict,
+  isModifyDeleteConflict,
+  isRenameAddConflict,
+  isRenameDeleteConflict,
+  isRenameRenameConflict,
+  isSubmoduleConflict,
+  type StructuralConflict as StructuralConflictType,
+} from '../../../../../../../modules/infrastructure/version-control';
 import { SidebarLayoutContext } from '../../../../../app-state';
 import { DiffIcon } from '../../../../../components/icons';
 import { useMergeConflictInfo } from '../../../../../hooks';
@@ -14,6 +23,32 @@ export const StructuralConflictResolution = () => {
   if (!mergeConflictInfo) {
     return null;
   }
+
+  const getConflictKey = (conflict: StructuralConflictType) => {
+    if (isModifyDeleteConflict(conflict)) {
+      return `modify-delete-${conflict.path}`;
+    }
+
+    if (isFileDirectoryConflict(conflict)) {
+      return `file-directory-${conflict.filePath}-${conflict.directoryPath}`;
+    }
+
+    if (isRenameRenameConflict(conflict)) {
+      return `rename-rename-${conflict.basePath}-${conflict.sourcePath}-${conflict.targetPath}`;
+    }
+
+    if (isRenameDeleteConflict(conflict)) {
+      return `rename-delete-${conflict.renamedPath}`;
+    }
+
+    if (isRenameAddConflict(conflict)) {
+      return `rename-add-${conflict.renamedPath}`;
+    }
+
+    if (isSubmoduleConflict(conflict)) {
+      return `submodule-${conflict.path}`;
+    }
+  };
 
   return (
     <div className="flex w-full flex-col">
@@ -37,6 +72,7 @@ export const StructuralConflictResolution = () => {
           </p>
           {structuralConflicts.map((conflict) => (
             <StructuralConflict
+              key={getConflictKey(conflict)}
               conflict={conflict}
               mergeConflictInfo={mergeConflictInfo}
             />

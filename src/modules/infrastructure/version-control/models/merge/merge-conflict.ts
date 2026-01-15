@@ -29,7 +29,7 @@ export type ModifyDeleteConflict = {
 
 export const isModifyDeleteConflict = (
   conflict: MergeConflict
-): conflict is ContentConflict => conflict.kind === 'modify/delete';
+): conflict is ModifyDeleteConflict => conflict.kind === 'modify/delete';
 
 // Both poles added a file with the same name but different content.
 export type AddAddConflict = {
