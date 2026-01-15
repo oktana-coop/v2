@@ -15,12 +15,14 @@ export type ContentConflictProps = {
   conflict: ContentConflictType;
   mergeConflictInfo: MergeConflictInfo;
   isEditorToolbarOpen: boolean;
+  showDiff: boolean;
 };
 
 export const ContentConflict = ({
   conflict,
   mergeConflictInfo,
   isEditorToolbarOpen,
+  showDiff,
 }: ContentConflictProps) => {
   const projectId = useProjectId();
   const [suggestedResolution, setSuggestedResolution] = useState<{
@@ -64,7 +66,7 @@ export const ContentConflict = ({
         docHandle={null}
         isToolbarOpen={isEditorToolbarOpen}
         onDocChange={async () => {}}
-        showDiffWith={suggestedResolution.docBefore}
+        showDiffWith={showDiff ? suggestedResolution.docBefore : undefined}
       />
     </div>
   );

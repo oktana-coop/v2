@@ -15,6 +15,7 @@ import {
   type BlockType,
   blockTypes,
   type ContainerBlockType,
+  CURRENT_SCHEMA_VERSION,
   getDocumentRichTextContent,
   getHeadingLevel,
   type LeafBlockType,
@@ -25,6 +26,7 @@ import {
   type VersionedDocumentHandle,
 } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
+import { versionedArtifactTypes } from '../../../../modules/infrastructure/version-control';
 import { EditorToolbar } from './editor-toolbar';
 import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';
@@ -134,65 +136,79 @@ export const RichTextEditor = ({
       }
     };
 
+  const getBasePlugins = (schema: Schema) => [
+    buildInputRules(schema),
+    placeholderPlugin('Start writing...'),
+    ...markdownMarkPlugins(schema),
+    pasteMarkdownPlugin(parseMarkdown(schema)),
+    notesPlugin(),
+    history(),
+    keymap({
+      'Mod-b': toggleStrong(schema),
+      'Mod-i': toggleEm(schema),
+      'Mod-z': undo,
+      'Mod-y': redo,
+      'Shift-Mod-z': redo,
+      Enter: splitListItem(schema.nodes.list_item),
+      'Mod-[': liftListItem(schema.nodes.list_item),
+      'Mod-]': sinkListItem(schema.nodes.list_item),
+      // Disable tab keystrokes in the editor to prevent tabbing
+      // to the next focusable element
+      Tab: () => true,
+    }),
+    keymap(baseKeymap),
+    linkSelectionPlugin,
+    selectionChangePlugin(onSelectionChange(schema)),
+    ensureTrailingParagraphPlugin(schema),
+    ensureTrailingSpaceAfterAtomPlugin(),
+  ];
+
+  const getDiffPlugin = async ({
+    currentDoc,
+    diffWith,
+  }: {
+    currentDoc: RichTextDocument;
+    diffWith: RichTextDocument;
+  }) => {
+    const decorationClasses = {
+      insert: diffInsert,
+      modify: diffModify,
+      delete: diffDelete,
+    };
+
+    const contentBefore = getDocumentRichTextContent(diffWith);
+    const contentAfter = getDocumentRichTextContent(currentDoc);
+
+    const { decorations } = await proseMirrorDiff({
+      representation:
+        // There are some old document versions without the representataion set. The representation is Automerge in that case.
+        // TODO: Remove this fallback when we no longer expect documents without representation set.
+        doc.representation ?? richTextRepresentations.AUTOMERGE,
+      proseMirrorSchema: schema,
+      decorationClasses,
+      docBefore: contentBefore,
+      docAfter: contentAfter,
+    });
+
+    return diffPlugin({
+      decorations,
+      proseMirrorDiff,
+      convertFromProseMirror,
+      decorationClasses,
+      diffWith: showDiffWith,
+    });
+  };
+
   useEffect(() => {
     const setupEditorAndView = async (schema: Schema) => {
-      const plugins = [
-        buildInputRules(schema),
-        placeholderPlugin('Start writing...'),
-        ...markdownMarkPlugins(schema),
-        pasteMarkdownPlugin(parseMarkdown(schema)),
-        notesPlugin(),
-        history(),
-        keymap({
-          'Mod-b': toggleStrong(schema),
-          'Mod-i': toggleEm(schema),
-          'Mod-z': undo,
-          'Mod-y': redo,
-          'Shift-Mod-z': redo,
-          Enter: splitListItem(schema.nodes.list_item),
-          'Mod-[': liftListItem(schema.nodes.list_item),
-          'Mod-]': sinkListItem(schema.nodes.list_item),
-          // Disable tab keystrokes in the editor to prevent tabbing
-          // to the next focusable element
-          Tab: () => true,
-        }),
-        keymap(baseKeymap),
-        linkSelectionPlugin,
-        selectionChangePlugin(onSelectionChange(schema)),
-        ensureTrailingParagraphPlugin(schema),
-        ensureTrailingSpaceAfterAtomPlugin(),
-      ];
+      const plugins = getBasePlugins(schema);
 
       if (showDiffWith) {
-        const decorationClasses = {
-          insert: diffInsert,
-          modify: diffModify,
-          delete: diffDelete,
-        };
-
-        const contentBefore = getDocumentRichTextContent(showDiffWith);
-        const contentAfter = getDocumentRichTextContent(doc);
-
-        const { decorations } = await proseMirrorDiff({
-          representation:
-            // There are some old document versions without the representataion set. The representation is Automerge in that case.
-            // TODO: Remove this fallback when we no longer expect documents without representation set.
-            doc.representation ?? richTextRepresentations.AUTOMERGE,
-          proseMirrorSchema: schema,
-          decorationClasses,
-          docBefore: contentBefore,
-          docAfter: contentAfter,
+        const diff = await getDiffPlugin({
+          currentDoc: doc,
+          diffWith: showDiffWith,
         });
-
-        plugins.push(
-          diffPlugin({
-            decorations,
-            proseMirrorDiff,
-            convertFromProseMirror,
-            decorationClasses,
-            diffWith: showDiffWith,
-          })
-        );
+        plugins.push(diff);
       }
 
       if (isEditable && onDocChange) {
@@ -291,6 +307,52 @@ export const RichTextEditor = ({
       }
     };
   }, [doc, docHandle, isEditable, schema, setView]);
+
+  useEffect(() => {
+    const reconfigurePlugins = async ({
+      pmDoc,
+      diffWith,
+      editorView,
+    }: {
+      pmDoc: Node;
+      diffWith: RichTextDocument | undefined;
+      editorView: EditorView;
+    }) => {
+      const plugins = getBasePlugins(schema);
+
+      if (diffWith) {
+        const currentDocContent = await convertFromProseMirror({
+          pmDoc,
+          to: diffWith.representation,
+        });
+
+        const currentDoc: RichTextDocument = {
+          type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
+          representation: diffWith.representation,
+          schemaVersion: CURRENT_SCHEMA_VERSION,
+          content: currentDocContent,
+        };
+
+        const diffPlugin = await getDiffPlugin({
+          currentDoc,
+          diffWith,
+        });
+
+        plugins.push(diffPlugin);
+      }
+
+      const newState = editorView.state.reconfigure({ plugins });
+      editorView.updateState(newState);
+    };
+
+    if (editorViewRef.current) {
+      reconfigurePlugins({
+        pmDoc: editorViewRef.current.state.doc,
+        diffWith: showDiffWith,
+        editorView: editorViewRef.current,
+      });
+    }
+  }, [showDiffWith, convertFromProseMirror]);
 
   const handleBlockSelect = (type: BlockType) => {
     if (view) {

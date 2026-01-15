@@ -8,6 +8,11 @@ import {
   SidebarOpenIcon,
   ToolbarToggleIcon,
 } from '../../../../components/icons';
+import {
+  Checkbox,
+  CheckboxField,
+} from '../../../../components/inputs/Checkbox';
+import { Label } from '../../../../components/inputs/Fieldset';
 import { MergeInfo } from './merge-info';
 
 export const MergeConflictResolutionActionsBar = ({
@@ -18,6 +23,9 @@ export const MergeConflictResolutionActionsBar = ({
   onResolveConflict,
   hasEditorToolbarToggle,
   onEditorToolbarToggle,
+  hasShowDiffCheckbox,
+  showDiff,
+  onSetShowDiffChecked,
 }: {
   mergeConflictInfo: MergeConflictInfo;
   isSidebarOpen: boolean;
@@ -26,6 +34,9 @@ export const MergeConflictResolutionActionsBar = ({
   onResolveConflict: () => void;
   hasEditorToolbarToggle: boolean;
   onEditorToolbarToggle?: () => void;
+  hasShowDiffCheckbox: boolean;
+  showDiff?: boolean;
+  onSetShowDiffChecked?: (value: boolean) => void;
 }) => {
   const sidebarButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -67,6 +78,16 @@ export const MergeConflictResolutionActionsBar = ({
         <MergeInfo mergeConflictInfo={mergeConflictInfo} />
       </h2>
       <div className="flex flex-initial items-center gap-2">
+        {hasShowDiffCheckbox && (
+          <CheckboxField className="flex items-center !gap-x-2">
+            <Checkbox
+              checked={showDiff}
+              onChange={onSetShowDiffChecked}
+              color="purple"
+            />
+            <Label className="whitespace-nowrap">Show Diff with</Label>
+          </CheckboxField>
+        )}
         {hasEditorToolbarToggle && (
           <IconButton
             icon={<ToolbarToggleIcon />}

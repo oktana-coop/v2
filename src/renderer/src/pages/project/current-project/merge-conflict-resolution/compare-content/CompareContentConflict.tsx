@@ -9,12 +9,14 @@ export type CompareContentConflictProps = {
   conflict: CompareContentConflictType;
   mergeConflictInfo: MergeConflictInfo;
   isEditorToolbarOpen: boolean;
+  showDiff: boolean;
 };
 
 export const CompareContentConflict = ({
   conflict,
   mergeConflictInfo,
   isEditorToolbarOpen,
+  showDiff,
 }: CompareContentConflictProps) => {
   if (isContentConflict(conflict)) {
     return (
@@ -22,6 +24,7 @@ export const CompareContentConflict = ({
         conflict={conflict}
         mergeConflictInfo={mergeConflictInfo}
         isEditorToolbarOpen={isEditorToolbarOpen}
+        showDiff={showDiff}
       />
     );
   }

@@ -18,6 +18,7 @@ export const CompareContentConflictResolution = () => {
     null
   );
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
+  const [showDiff, setShowDiff] = useState<boolean>(true);
 
   useEffect(() => {
     const selectedConflict = compareContentConflicts.find(
@@ -30,6 +31,10 @@ export const CompareContentConflictResolution = () => {
     toggleEditorToolbar(!isEditorToolbarOpen);
     editorView?.focus();
   }, [editorView, isEditorToolbarOpen]);
+
+  const handleSetShowDiff = (checked: boolean) => {
+    setShowDiff(checked);
+  };
 
   if (!mergeConflictInfo) {
     return null;
@@ -46,6 +51,9 @@ export const CompareContentConflictResolution = () => {
           onEditorToolbarToggle={handleEditorToolbarToggle}
           onAbortMerge={() => {}}
           onResolveConflict={() => {}}
+          hasShowDiffCheckbox={true}
+          showDiff={showDiff}
+          onSetShowDiffChecked={handleSetShowDiff}
         />
       </div>
       <div className="flex w-full flex-auto flex-col items-center overflow-auto">
@@ -55,6 +63,7 @@ export const CompareContentConflictResolution = () => {
               conflict={conflict}
               mergeConflictInfo={mergeConflictInfo}
               isEditorToolbarOpen={isEditorToolbarOpen}
+              showDiff={showDiff}
             />
           ) : (
             <LongTextSkeleton />

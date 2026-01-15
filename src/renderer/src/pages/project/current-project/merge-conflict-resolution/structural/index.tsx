@@ -25,6 +25,7 @@ export const StructuralConflictResolution = () => {
           onAbortMerge={() => {}}
           onResolveConflict={() => {}}
           hasEditorToolbarToggle={false}
+          hasShowDiffCheckbox={false}
         />
       </div>
       <div className="container mx-auto my-6 flex max-w-2xl flex-col gap-16">
