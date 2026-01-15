@@ -13,7 +13,8 @@ export const CompareContentConflictResolution = () => {
   const { compareContentPath } = useParams();
   const { view: editorView } = useContext(ProseMirrorContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
-  const { mergeConflictInfo, compareContentConflicts } = useMergeConflictInfo();
+  const { mergeConflictInfo, compareContentConflicts, abortMerge } =
+    useMergeConflictInfo();
   const [conflict, setConflict] = useState<CompareContentConflictType | null>(
     null
   );
@@ -36,6 +37,10 @@ export const CompareContentConflictResolution = () => {
     setShowDiff(checked);
   };
 
+  const handleAbortMerge = () => {
+    abortMerge();
+  };
+
   if (!mergeConflictInfo) {
     return null;
   }
@@ -49,7 +54,7 @@ export const CompareContentConflictResolution = () => {
           onSidebarToggle={toggleSidebar}
           hasEditorToolbarToggle={true}
           onEditorToolbarToggle={handleEditorToolbarToggle}
-          onAbortMerge={() => {}}
+          onAbortMerge={handleAbortMerge}
           onResolveConflict={() => {}}
           hasShowDiffCheckbox={true}
           showDiff={showDiff}

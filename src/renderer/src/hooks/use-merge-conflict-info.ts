@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 
 import { projectTypes } from '../../../modules/domain/project';
 import {
@@ -16,11 +16,15 @@ import {
 
 export const useMergeConflictInfo = () => {
   const { projectType } = useContext(CurrentProjectContext);
-  const { mergeConflictInfo: multiDocumentProjectMergeConflictInfo } =
-    useContext(MultiDocumentProjectContext);
+  const {
+    mergeConflictInfo: multiDocumentProjectMergeConflictInfo,
+    abortMerge: abortMergeInMultiDocumentProject,
+  } = useContext(MultiDocumentProjectContext);
 
-  const { mergeConflictInfo: singleDocumentProjectMergeConflictInfo } =
-    useContext(SingleDocumentProjectContext);
+  const {
+    mergeConflictInfo: singleDocumentProjectMergeConflictInfo,
+    abortMerge: abortMergeInSingleDocumentProject,
+  } = useContext(SingleDocumentProjectContext);
 
   const [mergeConflictInfo, setMergeConflictInfo] =
     useState<MergeConflictInfo | null>(null);
@@ -58,9 +62,22 @@ export const useMergeConflictInfo = () => {
     projectType,
   ]);
 
+  const abortMerge = useCallback(
+    () =>
+      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+        ? abortMergeInMultiDocumentProject()
+        : abortMergeInSingleDocumentProject(),
+    [
+      projectType,
+      abortMergeInMultiDocumentProject,
+      abortMergeInSingleDocumentProject,
+    ]
+  );
+
   return {
     mergeConflictInfo,
     structuralConflicts,
     compareContentConflicts,
+    abortMerge,
   };
 };

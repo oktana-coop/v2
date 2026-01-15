@@ -18,7 +18,8 @@ import { StructuralConflict } from './StructuralConflict';
 
 export const StructuralConflictResolution = () => {
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
-  const { mergeConflictInfo, structuralConflicts } = useMergeConflictInfo();
+  const { mergeConflictInfo, structuralConflicts, abortMerge } =
+    useMergeConflictInfo();
 
   if (!mergeConflictInfo) {
     return null;
@@ -50,6 +51,10 @@ export const StructuralConflictResolution = () => {
     }
   };
 
+  const handleAbortMerge = () => {
+    abortMerge();
+  };
+
   return (
     <div className="flex w-full flex-col">
       <div className="w-full">
@@ -57,7 +62,7 @@ export const StructuralConflictResolution = () => {
           mergeConflictInfo={mergeConflictInfo}
           isSidebarOpen={isSidebarOpen}
           onSidebarToggle={toggleSidebar}
-          onAbortMerge={() => {}}
+          onAbortMerge={handleAbortMerge}
           onResolveConflict={() => {}}
           hasEditorToolbarToggle={false}
           hasShowDiffCheckbox={false}

@@ -95,6 +95,7 @@ export type MultiDocumentProjectContextType = {
   closeCreateBranchDialog: () => void;
   deleteBranch: (branch: Branch) => Promise<void>;
   mergeAndDeleteBranch: (branch: Branch) => Promise<void>;
+  abortMerge: () => Promise<void>;
   branchToDelete: Branch | null;
   openDeleteBranchDialog: (branch: Branch) => void;
   closeDeleteBranchDialog: () => void;
@@ -643,6 +644,45 @@ export const MultiDocumentProjectProvider = ({
     [versionedProjectStore, projectId, navigateToResolveMergeConflicts]
   );
 
+  const handleAbortMerge = useCallback(async () => {
+    if (!versionedProjectStore || !projectId) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot abort merge.'
+      );
+    }
+
+    const { notification } = await Effect.runPromise(
+      pipe(
+        pipe(
+          versionedProjectStore.abortMerge({
+            projectId,
+          }),
+          Effect.map(() => ({
+            notification: null,
+          }))
+        ),
+        Effect.catchAll((err) => {
+          console.error(err);
+          const notification = createErrorNotification({
+            title: 'Abort Merge Error',
+            message:
+              'An error happened when trying to abort the merge operation. Please contact us for support.',
+          });
+
+          return Effect.succeed({
+            notification,
+          });
+        })
+      )
+    );
+
+    if (notification) {
+      dispatchNotification(notification);
+    } else {
+      navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
+    }
+  }, [versionedProjectStore, projectId]);
+
   const handleOpenDeleteBranchDialog = useCallback((branch: Branch) => {
     setBranchToDelete(branch);
   }, []);
@@ -805,6 +845,7 @@ export const MultiDocumentProjectProvider = ({
         closeCreateBranchDialog: handleCloseCreateBranchDialog,
         deleteBranch: handleDeleteBranch,
         mergeAndDeleteBranch: handleMergeAndDeleteBranch,
+        abortMerge: handleAbortMerge,
         branchToDelete,
         openDeleteBranchDialog: handleOpenDeleteBranchDialog,
         closeDeleteBranchDialog: handleCloseDeleteBranchDialog,
