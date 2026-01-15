@@ -33,6 +33,7 @@ export const runPromiseSerializingErrorsForIPC = <A, E extends TaggedError>(
           error: {
             message: error.message,
             tag: error._tag,
+            data: error.data,
           },
         })
       )

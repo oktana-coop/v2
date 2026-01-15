@@ -3,7 +3,10 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as Option from 'effect/Option';
 
-export type TaggedError = Cause.YieldableError & { readonly _tag: string };
+export type TaggedError = Cause.YieldableError & {
+  readonly _tag: string;
+  data?: unknown;
+};
 
 export const fromNullable = <A, E>(
   value: A | null | undefined,

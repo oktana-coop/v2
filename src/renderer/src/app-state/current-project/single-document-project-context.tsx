@@ -554,7 +554,7 @@ export const SingleDocumentProjectProvider = ({
         );
       }
 
-      const { notification } = await Effect.runPromise(
+      const { notification, mergeConflictInfo } = await Effect.runPromise(
         pipe(
           pipe(
             versionedProjectStore.mergeAndDeleteBranch({
@@ -565,18 +565,16 @@ export const SingleDocumentProjectProvider = ({
             Effect.map((lastCommitId) => ({
               result: lastCommitId,
               notification: null,
+              mergeConflictInfo: null,
             }))
           ),
-          Effect.catchTag(VersionControlMergeConflictErrorTag, (err) => {
-            console.error(err);
-            const notification = createErrorNotification({
-              title: 'Merge Conflict',
-              message:
-                'A conflict was encountered when v2 tried to merge the branch. Conflict resolution workflow coming soon.',
-            });
-
-            return Effect.succeed({ result: null, notification });
-          }),
+          Effect.catchTag(VersionControlMergeConflictErrorTag, (err) =>
+            Effect.succeed({
+              result: null,
+              notification: null,
+              mergeConflictInfo: err.data,
+            })
+          ),
           Effect.catchAll((err) => {
             console.error(err);
             const notification = createErrorNotification({
@@ -584,7 +582,11 @@ export const SingleDocumentProjectProvider = ({
               message: `An error happened when trying to merge "${branch}" into "${DEFAULT_BRANCH}" branch`,
             });
 
-            return Effect.succeed({ result: null, notification });
+            return Effect.succeed({
+              result: null,
+              notification,
+              mergeConflictInfo: null,
+            });
           })
         )
       );
@@ -594,6 +596,14 @@ export const SingleDocumentProjectProvider = ({
       }
 
       setCurrentBranch(DEFAULT_BRANCH as Branch);
+
+      if (mergeConflictInfo) {
+        setMergeConflictInfo(mergeConflictInfo);
+        navigateToResolveMergeConflicts({
+          projectId,
+          mergeConflictInfo,
+        });
+      }
     },
     [versionedProjectStore, projectId, dispatchNotification]
   );
