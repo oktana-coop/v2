@@ -28,6 +28,7 @@ import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/p
 import { EditorToolbar } from './editor-toolbar';
 import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';
+import { diffDelete, diffInsert, diffModify } from './marks';
 
 const {
   schema,
@@ -62,6 +63,7 @@ const {
   syncPlugin,
   pmDocFromJSONString,
   pmDocToJSONString,
+  diffPlugin,
 } = prosemirror;
 
 type RichTextEditorProps = {
@@ -70,6 +72,7 @@ type RichTextEditorProps = {
   onDocChange?: (doc: RichTextDocument) => Promise<void>;
   isEditable?: boolean;
   isToolbarOpen?: boolean;
+  showDiffWith?: RichTextDocument;
 };
 
 export const RichTextEditor = ({
@@ -78,11 +81,18 @@ export const RichTextEditor = ({
   onDocChange,
   isEditable = true,
   isToolbarOpen = false,
+  showDiffWith,
 }: RichTextEditorProps) => {
   const editorRoot = useRef<HTMLDivElement>(null);
   const editorViewRef = useRef<EditorView | null>(null);
-  const { view, setView, parseMarkdown, convertToProseMirror } =
-    useContext(ProseMirrorContext);
+  const {
+    view,
+    setView,
+    parseMarkdown,
+    convertToProseMirror,
+    convertFromProseMirror,
+    proseMirrorDiff,
+  } = useContext(ProseMirrorContext);
   const [leafBlockType, setLeafBlockType] = useState<LeafBlockType | null>(
     null
   );
@@ -153,8 +163,40 @@ export const RichTextEditor = ({
         ensureTrailingSpaceAfterAtomPlugin(),
       ];
 
+      if (showDiffWith) {
+        const decorationClasses = {
+          insert: diffInsert,
+          modify: diffModify,
+          delete: diffDelete,
+        };
+
+        const contentBefore = getDocumentRichTextContent(showDiffWith);
+        const contentAfter = getDocumentRichTextContent(doc);
+
+        const { decorations } = await proseMirrorDiff({
+          representation:
+            // There are some old document versions without the representataion set. The representation is Automerge in that case.
+            // TODO: Remove this fallback when we no longer expect documents without representation set.
+            doc.representation ?? richTextRepresentations.AUTOMERGE,
+          proseMirrorSchema: schema,
+          decorationClasses,
+          docBefore: contentBefore,
+          docAfter: contentAfter,
+        });
+
+        plugins.push(
+          diffPlugin({
+            decorations,
+            proseMirrorDiff,
+            convertFromProseMirror,
+            decorationClasses,
+            diffWith: showDiffWith,
+          })
+        );
+      }
+
       if (isEditable && onDocChange) {
-        const handlePMDocChange = debounce((pmDoc: Node) => {
+        const handlePMDocChange = debounce(async (pmDoc: Node) => {
           const pmJSONStr = pmDocToJSONString(pmDoc);
 
           onDocChange({

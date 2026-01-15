@@ -64,6 +64,7 @@ export const ContentConflict = ({
         docHandle={null}
         isToolbarOpen={isEditorToolbarOpen}
         onDocChange={async () => {}}
+        showDiffWith={suggestedResolution.docBefore}
       />
     </div>
   );
