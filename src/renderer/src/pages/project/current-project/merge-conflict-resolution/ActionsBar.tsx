@@ -14,6 +14,7 @@ import {
 } from '../../../../components/inputs/Checkbox';
 import { Label } from '../../../../components/inputs/Fieldset';
 import { MergeInfo } from './merge-info';
+import { MergePole } from './merge-info/MergePole';
 
 export const MergeConflictResolutionActionsBar = ({
   mergeConflictInfo,
@@ -85,7 +86,19 @@ export const MergeConflictResolutionActionsBar = ({
               onChange={onSetShowDiffChecked}
               color="purple"
             />
-            <Label className="whitespace-nowrap">Show Diff</Label>
+            <Label className="whitespace-nowrap">
+              Show Diff
+              {mergeConflictInfo.targetBranch && (
+                <span>
+                  {' '}
+                  with{' '}
+                  <MergePole
+                    branch={mergeConflictInfo.targetBranch}
+                    commitId={mergeConflictInfo.targetCommitId}
+                  />
+                </span>
+              )}
+            </Label>
           </CheckboxField>
         )}
         {hasEditorToolbarToggle && (
