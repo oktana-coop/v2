@@ -19,7 +19,6 @@ import {
   type Commit,
   type ContentConflict,
   createGitBlobRef,
-  DEFAULT_BRANCH,
   type GitCommitHash,
   type MergeConflict,
   type MergeConflictInfo,
@@ -58,6 +57,50 @@ export const mergeAndDeleteBranch = ({
     deleteByUs: string[];
     deleteByTheirs: string[];
   };
+
+  const writeMergeState = ({
+    isoGitFs,
+    dir,
+    sourceBranch,
+  }: Omit<IsoGitDeps, 'isoGitHttp'> & {
+    sourceBranch: Branch;
+  }): Effect.Effect<void, RepositoryError, never> =>
+    pipe(
+      getCommitForRef({ isoGitFs, dir, ref: sourceBranch }),
+      Effect.flatMap((sourceCommitHash) =>
+        Effect.tryPromise({
+          try: () =>
+            isoGitFs.promises.writeFile(
+              path.join(dir, '.git', 'MERGE_HEAD'),
+              sourceCommitHash + '\n',
+              'utf8'
+            ),
+          catch: mapErrorTo(RepositoryError, 'Error writing MERGE_HEAD'),
+        })
+      ),
+      Effect.tap(() =>
+        Effect.tryPromise({
+          try: () =>
+            isoGitFs.promises.writeFile(
+              path.join(dir, '.git', 'MERGE_MSG'),
+              `Merge branch ${sourceBranch}.` + '\n',
+              'utf8'
+            ),
+          catch: mapErrorTo(RepositoryError, 'Error writing MERGE_MSG'),
+        })
+      ),
+      Effect.tap(() =>
+        Effect.tryPromise({
+          try: () =>
+            isoGitFs.promises.writeFile(
+              path.join(dir, '.git', 'MERGE_MODE'),
+              '',
+              'utf8'
+            ),
+          catch: mapErrorTo(RepositoryError, 'Error writing MERGE_MODE'),
+        })
+      )
+    );
 
   const readMergeConflictsFromErrorData = ({
     errData,
@@ -128,31 +171,35 @@ export const mergeAndDeleteBranch = ({
   }
 
   return pipe(
-    Effect.tryPromise({
-      try: () =>
-        git.merge({
-          fs: isoGitFs,
-          dir,
-          ours: into,
-          theirs: from,
-          author: {
-            name: DEFAULT_AUTHOR_NAME,
-          },
-          abortOnConflict: false,
-        }),
-      catch: (err) => {
-        if (err instanceof IsoGitErrors.MergeConflictError) {
-          return new IsoGitMergeConflictError(err.data);
-        }
+    switchToBranch({ isoGitFs, dir, branch: into }),
+    Effect.flatMap(() =>
+      Effect.tryPromise({
+        try: () =>
+          git.merge({
+            fs: isoGitFs,
+            dir,
+            ours: into,
+            theirs: from,
+            author: {
+              name: DEFAULT_AUTHOR_NAME,
+            },
+            abortOnConflict: false,
+          }),
+        catch: (err) => {
+          if (err instanceof IsoGitErrors.MergeConflictError) {
+            return new IsoGitMergeConflictError(err.data);
+          }
 
-        return new RepositoryError(
-          `Error when trying to merge ${from} into ${into}`
-        );
-      },
-    }),
+          return new RepositoryError(
+            `Error when trying to merge ${from} into ${into}`
+          );
+        },
+      })
+    ),
     Effect.catchTag(IsoGitMergeConflictErrorTag, (err) =>
       pipe(
-        getConflictCommits({ isoGitFs, dir }),
+        writeMergeState({ isoGitFs, dir, sourceBranch: from }),
+        Effect.flatMap(() => getConflictCommits({ isoGitFs, dir })),
         Effect.flatMap((conflictCommits) => {
           const mergeConflictInfo: MergeConflictInfo = {
             ...conflictCommits,
@@ -189,10 +236,7 @@ export const mergeAndDeleteBranch = ({
         )
       )
     ),
-    Effect.tap(() => deleteBranch({ isoGitFs, dir, branch: from })),
-    Effect.tap(() =>
-      switchToBranch({ isoGitFs, dir, branch: DEFAULT_BRANCH as Branch })
-    )
+    Effect.tap(() => deleteBranch({ isoGitFs, dir, branch: from }))
   );
 };
 
@@ -240,14 +284,14 @@ const getCommitForRef = ({
           dir,
           ref,
         }),
-      catch: mapErrorTo(RepositoryError, 'Error in resolving Git repo HEAD.'),
+      catch: mapErrorTo(RepositoryError, 'Error in resolving Git ref.'),
     }),
     Effect.flatMap((commitOid) =>
       Effect.try({
         try: () => parseGitCommitHash(commitOid),
         catch: mapErrorTo(
           RepositoryError,
-          'Error in resolving Git repo HEAD commit id.'
+          'Error in resolving Git ref commit id.'
         ),
       })
     )
