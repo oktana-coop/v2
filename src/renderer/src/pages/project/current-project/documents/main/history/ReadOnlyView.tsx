@@ -87,8 +87,6 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
       const contentBefore = getDocumentRichTextContent(props.docBefore);
       const contentAfter = getDocumentRichTextContent(props.docAfter);
 
-      console.log(contentBefore, contentAfter);
-
       const { pmDocAfter: pmDoc, decorations } = await proseMirrorDiff({
         representation:
           // There are some old document versions without the representataion set. The representation is Automerge in that case.
