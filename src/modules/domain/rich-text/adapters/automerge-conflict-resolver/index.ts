@@ -38,7 +38,7 @@ export const createAdapter = ({
         try: () => Automerge.initializeWasm(wasmUrl),
         catch: mapErrorTo(
           RepresentationTransformError,
-          'Error in converting document to Automerge.'
+          'Error in initializing Automerge.'
         ),
       }),
       Effect.flatMap(() =>
@@ -167,8 +167,6 @@ export const createAdapter = ({
                     'content'
                   );
 
-                  console.log(automergeConflicts);
-
                   return {
                     mergedAutomergeDoc,
                     automergeConflicts,
@@ -179,7 +177,7 @@ export const createAdapter = ({
                   'Error in merging source and target versions using Automerge.'
                 ),
               }),
-              Effect.flatMap(({ mergedAutomergeDoc, automergeConflicts }) =>
+              Effect.flatMap(({ mergedAutomergeDoc }) =>
                 Effect.tryPromise({
                   try: async () => {
                     const mergedDocumentContent = await transformToText({
