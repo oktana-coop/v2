@@ -115,6 +115,18 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.multiDocumentProjectStoreAPI.findDocumentInProject(...args)),
+  commitChanges: (
+    ...args: Parameters<MultiDocumentProjectStore['commitChanges']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<MultiDocumentProjectStore['commitChanges']>>
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.commitChanges(...args)),
   createAndSwitchToBranch: (
     ...args: Parameters<MultiDocumentProjectStore['createAndSwitchToBranch']>
   ) =>

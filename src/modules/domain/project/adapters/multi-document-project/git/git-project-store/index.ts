@@ -31,6 +31,7 @@ import {
   pushToRemote as pushToRemoteGitRepo,
   type ResolvedArtifactId,
   setUserInfo as setUserInfoInGit,
+  stageAndCommitWorkdirChanges,
   switchToBranch as switchToBranchWithGit,
   validateAndAddRemote,
   VersionControlNotFoundErrorTag,
@@ -259,6 +260,26 @@ export const createAdapter = ({
           )
         )
       );
+
+  const commitChanges: MultiDocumentProjectStore['commitChanges'] = ({
+    projectId,
+    message,
+  }) =>
+    pipe(
+      ensureProjectIdIsFsPath(projectId),
+      Effect.flatMap((projectPath) =>
+        pipe(
+          stageAndCommitWorkdirChanges({
+            isoGitFs,
+            dir: projectPath,
+            message,
+          }),
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      )
+    );
 
   const createAndSwitchToBranch: MultiDocumentProjectStore['createAndSwitchToBranch'] =
     ({ projectId, branch }) =>
@@ -623,6 +644,7 @@ export const createAdapter = ({
     addDocumentToProject,
     deleteDocumentFromProject,
     findDocumentInProject,
+    commitChanges,
     createAndSwitchToBranch,
     switchToBranch,
     getCurrentBranch,

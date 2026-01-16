@@ -188,6 +188,14 @@ export const createAdapter = (
         )
       );
 
+  // TODO: Implement multi-doc commits in Automerge
+  const commitChanges: MultiDocumentProjectStore['commitChanges'] = () =>
+    Effect.fail(
+      new RepositoryError(
+        'Committing changes to a project has not yet been implemented in Automerge'
+      )
+    );
+
   // TODO: Implement branching in Automerge
   const createAndSwitchToBranch: MultiDocumentProjectStore['createAndSwitchToBranch'] =
     () =>
@@ -306,6 +314,7 @@ export const createAdapter = (
     addDocumentToProject,
     deleteDocumentFromProject,
     findDocumentInProject,
+    commitChanges,
     createAndSwitchToBranch,
     switchToBranch,
     getCurrentBranch,

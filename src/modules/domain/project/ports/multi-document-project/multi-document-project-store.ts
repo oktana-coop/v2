@@ -47,6 +47,11 @@ export type FindDocumentInMultiDocumentProjectArgs = {
   documentPath: string;
 };
 
+export type MultiDocumentProjectCommitChangesArgs = {
+  projectId: ProjectId;
+  message: string;
+};
+
 export type MultiDocumentProjectCreateAndSwitchToBranchArgs = {
   projectId: ProjectId;
   branch: Branch;
@@ -177,6 +182,9 @@ export type MultiDocumentProjectStore = {
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
+  commitChanges: (
+    args: MultiDocumentProjectCommitChangesArgs
+  ) => Effect.Effect<Commit['id'], ValidationError | RepositoryError, never>;
   createAndSwitchToBranch: (
     args: MultiDocumentProjectCreateAndSwitchToBranchArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;

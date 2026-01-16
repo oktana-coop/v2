@@ -340,6 +340,10 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
       'multi-document-project-store:find-document-in-project',
       { ...args }
     ),
+  commitChanges: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:commit-changes', {
+      ...args,
+    }),
   createAndSwitchToBranch: (args) =>
     ipcRenderer.invoke(
       'multi-document-project-store:create-and-switch-to-branch',

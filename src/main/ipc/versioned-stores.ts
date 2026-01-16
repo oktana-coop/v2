@@ -19,6 +19,7 @@ import {
   type FindDocumentInMultiDocumentProjectArgs,
   type MultiDocumentProjectAbortMergeArgs,
   type MultiDocumentProjectAddRemoteProjectArgs,
+  type MultiDocumentProjectCommitChangesArgs,
   type MultiDocumentProjectCreateAndSwitchToBranchArgs,
   type MultiDocumentProjectDeleteBranchArgs,
   type MultiDocumentProjectFindRemoteProjectByNameArgs,
@@ -876,6 +877,26 @@ const registerMultiDocumentProjectStoreEvents = ({
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.findDocumentInProject(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:commit-changes',
+    async (_, args: MultiDocumentProjectCommitChangesArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.commitChanges(args)
           )
         )
       )
