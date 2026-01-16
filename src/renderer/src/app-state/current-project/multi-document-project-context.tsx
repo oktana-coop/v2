@@ -708,11 +708,10 @@ export const MultiDocumentProjectProvider = ({
           }),
           Effect.tap((conflictInfo) => {
             const conflicts = conflictInfo?.conflicts;
-            console.log(conflicts);
 
             return conflicts && conflicts.length > 0
               ? Effect.succeed(undefined)
-              : versionedProjectStore.commitChanges({
+              : versionedProjectStore.commitMergeConflictsResolution({
                   projectId,
                   // Here we are using the outdated merge conflict info, but that's what we want
                   // (we commit when the new conflict info is null).

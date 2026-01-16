@@ -650,6 +650,9 @@ export const SingleDocumentProjectProvider = ({
   }, [versionedProjectStore, projectId]);
 
   const handleRefreshConflictsAndMergeIfPossible = useCallback(async () => {
+    const buildCommitMessage = (mergeConflictInfo: MergeConflictInfo | null) =>
+      `Merge branch${mergeConflictInfo?.sourceBranch ? ` ${mergeConflictInfo.sourceBranch}` : ''}`;
+
     if (!versionedProjectStore || !projectId) {
       throw new Error(
         'Project store is not ready or project has not been set yet. Cannot get merge conflict info.'
@@ -662,8 +665,18 @@ export const SingleDocumentProjectProvider = ({
           versionedProjectStore.getMergeConflictInfo({
             projectId,
           }),
-          // In the single-document project we commit when updating the (single) document, so there
-          // is not much to do here. We just check if there are any other conflicts and navigate accordingly.
+          Effect.tap((conflictInfo) => {
+            const conflicts = conflictInfo?.conflicts;
+
+            return conflicts && conflicts.length > 0
+              ? Effect.succeed(undefined)
+              : versionedProjectStore.commitMergeConflictsResolution({
+                  projectId,
+                  // Here we are using the outdated merge conflict info, but that's what we want
+                  // (we commit when the new conflict info is null).
+                  message: buildCommitMessage(mergeConflictInfo),
+                });
+          }),
           Effect.map((conflictInfo) => ({
             conflictInfo,
             notification: null,

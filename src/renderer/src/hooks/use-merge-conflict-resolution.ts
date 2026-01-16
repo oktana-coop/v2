@@ -29,9 +29,6 @@ import {
   SingleDocumentProjectContext,
 } from '../app-state';
 
-const buildCommitMessage = (mergeConflictInfo: MergeConflictInfo) =>
-  `Merge branch${mergeConflictInfo.sourceBranch ? ` ${mergeConflictInfo.sourceBranch}` : ''}`;
-
 export const useMergeConflictResolution = () => {
   const { projectType } = useContext(CurrentProjectContext);
   const {
@@ -245,28 +242,20 @@ export const useMergeConflictResolution = () => {
       } else {
         try {
           await Effect.runPromise(
-            pipe(
-              processDocumentChange({
-                transformToText: representationTransformAdapter.transformToText,
-                updateRichTextDocumentContent:
-                  versionedDocumentStore.updateRichTextDocumentContent,
-                writeFile: filesystem.writeFile,
-              })({
-                documentId,
-                updatedDocument: doc,
-                writeToFileWithPath:
-                  versionedDocumentStore.managesFilesystemWorkdir
-                    ? documentInternalPath
-                    : null,
-                projectType,
-              }),
-              Effect.flatMap(() =>
-                versionedDocumentStore.commitChanges({
-                  documentId,
-                  message: buildCommitMessage(mergeConflictInfo),
-                })
-              )
-            )
+            processDocumentChange({
+              transformToText: representationTransformAdapter.transformToText,
+              updateRichTextDocumentContent:
+                versionedDocumentStore.updateRichTextDocumentContent,
+              writeFile: filesystem.writeFile,
+            })({
+              documentId,
+              updatedDocument: doc,
+              writeToFileWithPath:
+                versionedDocumentStore.managesFilesystemWorkdir
+                  ? documentInternalPath
+                  : null,
+              projectType,
+            })
           );
         } catch (err) {
           console.error(err);
