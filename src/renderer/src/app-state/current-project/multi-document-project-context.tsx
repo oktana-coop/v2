@@ -749,6 +749,13 @@ export const MultiDocumentProjectProvider = ({
           mergeConflictInfo: conflictInfo,
         });
       } else {
+        const notification = createSuccessNotification({
+          title: 'Successful Merge',
+          message:
+            'The branch was merged successfully. You are back in the main branch.',
+        });
+        dispatchNotification(notification);
+        setMergeConflictInfo(null);
         navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
       }
     }

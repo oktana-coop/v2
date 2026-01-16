@@ -25,6 +25,7 @@ import {
 import { type File } from '../../../../modules/infrastructure/filesystem';
 import {
   createErrorNotification,
+  createSuccessNotification,
   NotificationsContext,
 } from '../../../../modules/infrastructure/notifications/browser';
 import {
@@ -708,6 +709,13 @@ export const SingleDocumentProjectProvider = ({
           mergeConflictInfo: conflictInfo,
         });
       } else {
+        const notification = createSuccessNotification({
+          title: 'Successful Merge',
+          message:
+            'The branch was merged successfully. You are back in the main branch.',
+        });
+        dispatchNotification(notification);
+        setMergeConflictInfo(null);
         navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
       }
     }
