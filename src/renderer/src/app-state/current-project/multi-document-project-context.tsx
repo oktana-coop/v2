@@ -295,7 +295,7 @@ export const MultiDocumentProjectProvider = ({
       }
     };
 
-    if (projectId && selectedFileInfo?.path) {
+    if (projectId && selectedFileInfo?.path && !mergeConflictInfo) {
       if (selectedFileInfo) {
         reloadSelectedDocumentOrReset({
           projId: projectId,
@@ -306,7 +306,7 @@ export const MultiDocumentProjectProvider = ({
         navigateToProjectsList();
       }
     }
-  }, [currentBranch, pulledUpstreamChanges]);
+  }, [currentBranch, pulledUpstreamChanges, mergeConflictInfo]);
 
   useEffect(() => {
     if (!documentIdInPath) {
@@ -597,42 +597,43 @@ export const MultiDocumentProjectProvider = ({
         );
       }
 
-      const { notification, mergeConflictInfo } = await Effect.runPromise(
-        pipe(
+      const { notification, mergeConflictInfo: conflictInfo } =
+        await Effect.runPromise(
           pipe(
-            versionedProjectStore.mergeAndDeleteBranch({
-              projectId,
-              from: branch,
-              into: DEFAULT_BRANCH as Branch,
-            }),
-            Effect.map((lastCommitId) => ({
-              result: lastCommitId,
-              notification: null,
-              mergeConflictInfo: null,
-            }))
-          ),
-          Effect.catchTag(VersionControlMergeConflictErrorTag, (err) =>
-            Effect.succeed({
-              result: null,
-              notification: null,
-              mergeConflictInfo: err.data,
-            })
-          ),
-          Effect.catchAll((err) => {
-            console.error(err);
-            const notification = createErrorNotification({
-              title: 'Merge Error',
-              message: `An error happened when trying to merge "${branch}" into "${DEFAULT_BRANCH}" branch`,
-            });
+            pipe(
+              versionedProjectStore.mergeAndDeleteBranch({
+                projectId,
+                from: branch,
+                into: DEFAULT_BRANCH as Branch,
+              }),
+              Effect.map((lastCommitId) => ({
+                result: lastCommitId,
+                notification: null,
+                mergeConflictInfo: null,
+              }))
+            ),
+            Effect.catchTag(VersionControlMergeConflictErrorTag, (err) =>
+              Effect.succeed({
+                result: null,
+                notification: null,
+                mergeConflictInfo: err.data,
+              })
+            ),
+            Effect.catchAll((err) => {
+              console.error(err);
+              const notification = createErrorNotification({
+                title: 'Merge Error',
+                message: `An error happened when trying to merge "${branch}" into "${DEFAULT_BRANCH}" branch`,
+              });
 
-            return Effect.succeed({
-              result: null,
-              notification,
-              mergeConflictInfo: null,
-            });
-          })
-        )
-      );
+              return Effect.succeed({
+                result: null,
+                notification,
+                mergeConflictInfo: null,
+              });
+            })
+          )
+        );
 
       if (notification) {
         dispatchNotification(notification);
@@ -640,11 +641,11 @@ export const MultiDocumentProjectProvider = ({
 
       setCurrentBranch(DEFAULT_BRANCH as Branch);
 
-      if (mergeConflictInfo) {
-        setMergeConflictInfo(mergeConflictInfo);
+      if (conflictInfo) {
+        setMergeConflictInfo(conflictInfo);
         navigateToResolveMergeConflicts({
           projectId,
-          mergeConflictInfo,
+          mergeConflictInfo: conflictInfo,
         });
       }
     },
