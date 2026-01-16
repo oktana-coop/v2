@@ -83,6 +83,7 @@ export type SingleDocumentProjectContextType = {
   deleteBranch: (branch: Branch) => Promise<void>;
   mergeAndDeleteBranch: (branch: Branch) => Promise<void>;
   abortMerge: () => Promise<void>;
+  getMergeConflictInfo: () => Promise<void>;
   branchToDelete: Branch | null;
   openDeleteBranchDialog: (branch: Branch) => void;
   closeDeleteBranchDialog: () => void;
@@ -648,6 +649,55 @@ export const SingleDocumentProjectProvider = ({
     }
   }, [versionedProjectStore, projectId]);
 
+  const handleGetMergeConflictInfo = useCallback(async () => {
+    if (!versionedProjectStore || !projectId) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot get merge conflict info.'
+      );
+    }
+
+    const { notification, conflictInfo } = await Effect.runPromise(
+      pipe(
+        pipe(
+          versionedProjectStore.getMergeConflictInfo({
+            projectId,
+          }),
+          Effect.map((conflictInfo) => ({
+            conflictInfo,
+            notification: null,
+          }))
+        ),
+        Effect.catchAll((err) => {
+          console.error(err);
+          const notification = createErrorNotification({
+            title: 'Get Merge Conflict Info Error',
+            message:
+              'An error happened when trying to get the merge conflict info. Please refresh and, if the problem is not resolved, contact us for support.',
+          });
+
+          return Effect.succeed({
+            conflictInfo: null,
+            notification,
+          });
+        })
+      )
+    );
+
+    if (notification) {
+      dispatchNotification(notification);
+    } else {
+      if (conflictInfo) {
+        setMergeConflictInfo(conflictInfo);
+        navigateToResolveMergeConflicts({
+          projectId,
+          mergeConflictInfo: conflictInfo,
+        });
+      } else {
+        navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
+      }
+    }
+  }, [versionedProjectStore, projectId, navigateToResolveMergeConflicts]);
+
   const handleOpenDeleteBranchDialog = useCallback((branch: Branch) => {
     setBranchToDelete(branch);
   }, []);
@@ -782,6 +832,7 @@ export const SingleDocumentProjectProvider = ({
         deleteBranch: handleDeleteBranch,
         mergeAndDeleteBranch: handleMergeAndDeleteBranch,
         abortMerge: handleAbortMerge,
+        getMergeConflictInfo: handleGetMergeConflictInfo,
         branchToDelete,
         openDeleteBranchDialog: handleOpenDeleteBranchDialog,
         closeDeleteBranchDialog: handleCloseDeleteBranchDialog,
