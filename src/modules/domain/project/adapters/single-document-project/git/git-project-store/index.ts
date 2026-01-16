@@ -33,6 +33,7 @@ import {
   validateAndAddRemote,
   VersionControlNotFoundErrorTag,
   VersionControlRepositoryErrorTag,
+  writeGitignore,
 } from '../../../../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../../../../utils/errors';
 import { projectTypes } from '../../../../constants';
@@ -93,15 +94,25 @@ export const createAdapter = ({
                   )
                 )
               )
-            : Effect.tryPromise({
-                try: () =>
-                  git.init({
-                    fs: isoGitFs,
-                    dir: internalProjectDir,
-                    defaultBranch: DEFAULT_BRANCH,
-                  }),
-                catch: mapErrorTo(RepositoryError, 'Git repo error'),
-              })
+            : pipe(
+                Effect.tryPromise({
+                  try: () =>
+                    git.init({
+                      fs: isoGitFs,
+                      dir: internalProjectDir,
+                      defaultBranch: DEFAULT_BRANCH,
+                    }),
+                  catch: mapErrorTo(RepositoryError, 'Git repo error'),
+                }),
+                Effect.tap(() =>
+                  pipe(
+                    writeGitignore({ isoGitFs, dir: internalProjectDir }),
+                    Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+                      Effect.fail(new RepositoryError(err.message))
+                    )
+                  )
+                )
+              )
         ),
         Effect.tap((projectFilePath) =>
           setAuthorInfo({ projectId: projectFilePath, username, email })

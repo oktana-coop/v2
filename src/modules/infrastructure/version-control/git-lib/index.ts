@@ -1,6 +1,7 @@
 export * from './branching';
 export * from './committing';
 export * from './config';
+export * from './gitignore';
 export * from './history';
 export * from './merging';
 export * from './remotes';
