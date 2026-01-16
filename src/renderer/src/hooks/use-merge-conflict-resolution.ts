@@ -1,9 +1,15 @@
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 import { useCallback, useContext, useEffect, useState } from 'react';
 
 import { type ProjectId, projectTypes } from '../../../modules/domain/project';
-import { suggestMerge } from '../../../modules/domain/rich-text';
+import {
+  processDocumentChange,
+  type RichTextDocument,
+  suggestMerge,
+} from '../../../modules/domain/rich-text';
 import { MergeConflictResolverContext } from '../../../modules/domain/rich-text/react/merge-conflict-resover-context';
+import { RepresentationTransformContext } from '../../../modules/domain/rich-text/react/representation-transform-context';
 import {
   type CompareContentConflict,
   isCompareContentConflict,
@@ -24,13 +30,20 @@ export const useMergeConflictResolution = () => {
   const {
     mergeConflictInfo: multiDocumentProjectMergeConflictInfo,
     abortMerge: abortMergeInMultiDocumentProject,
+    directory,
   } = useContext(MultiDocumentProjectContext);
 
   const {
     mergeConflictInfo: singleDocumentProjectMergeConflictInfo,
     abortMerge: abortMergeInSingleDocumentProject,
+    documentInternalPath,
   } = useContext(SingleDocumentProjectContext);
-  const { versionedDocumentStore } = useContext(InfrastructureAdaptersContext);
+  const { versionedDocumentStore, filesystem } = useContext(
+    InfrastructureAdaptersContext
+  );
+  const { adapter: representationTransformAdapter } = useContext(
+    RepresentationTransformContext
+  );
   const { adapter: mergeConflictResolver } = useContext(
     MergeConflictResolverContext
   );
@@ -127,11 +140,96 @@ export const useMergeConflictResolution = () => {
     [versionedDocumentStore, mergeConflictResolver]
   );
 
+  const resolveContentConflict = useCallback(
+    async ({
+      documentId,
+      relativePath,
+      projectId,
+      doc,
+    }: {
+      documentId: ResolvedArtifactId;
+      relativePath: string;
+      projectId: ProjectId;
+      doc: RichTextDocument;
+    }) => {
+      if (
+        !versionedDocumentStore ||
+        versionedDocumentStore.projectId !== projectId
+      ) {
+        throw new Error(
+          'Versioned document store not ready yet or mismatched project.'
+        );
+      }
+
+      if (!representationTransformAdapter) {
+        throw new Error(
+          'No representation transform adapter found when trying to resolve a content conflict.'
+        );
+      }
+
+      if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
+        if (!directory || !relativePath) {
+          throw new Error('Cannot update file in multi-doc project');
+        }
+
+        await Effect.runPromise(
+          pipe(
+            filesystem.getAbsolutePath({
+              path: relativePath,
+              dirPath: directory.path,
+            }),
+            Effect.flatMap((absoluteFilePath) =>
+              processDocumentChange({
+                transformToText: representationTransformAdapter.transformToText,
+                updateRichTextDocumentContent:
+                  versionedDocumentStore.updateRichTextDocumentContent,
+                writeFile: filesystem.writeFile,
+              })({
+                documentId,
+                updatedDocument: doc,
+                writeToFileWithPath:
+                  versionedDocumentStore.managesFilesystemWorkdir
+                    ? absoluteFilePath
+                    : null,
+                projectType,
+              })
+            )
+          )
+        );
+      } else {
+        await Effect.runPromise(
+          processDocumentChange({
+            transformToText: representationTransformAdapter.transformToText,
+            updateRichTextDocumentContent:
+              versionedDocumentStore.updateRichTextDocumentContent,
+            writeFile: filesystem.writeFile,
+          })({
+            documentId,
+            updatedDocument: doc,
+            writeToFileWithPath: versionedDocumentStore.managesFilesystemWorkdir
+              ? documentInternalPath
+              : null,
+            projectType,
+          })
+        );
+      }
+    },
+    [
+      versionedDocumentStore,
+      representationTransformAdapter,
+      filesystem,
+      directory,
+      projectType,
+      documentInternalPath,
+    ]
+  );
+
   return {
     mergeConflictInfo,
     structuralConflicts,
     compareContentConflicts,
     abortMerge,
     suggestContentMerge,
+    resolveContentConflict,
   };
 };
