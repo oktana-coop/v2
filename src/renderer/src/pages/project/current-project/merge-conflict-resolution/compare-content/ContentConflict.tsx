@@ -8,7 +8,7 @@ import {
 } from '../../../../../../../modules/infrastructure/version-control';
 import { RichTextEditor } from '../../../../../components/editing/RichTextEditor';
 import { LongTextSkeleton } from '../../../../../components/progress/skeletons/LongText';
-import { useProjectId, useSuggestContentMerge } from '../../../../../hooks';
+import { useMergeConflictResolution, useProjectId } from '../../../../../hooks';
 import { SuggestedMergeInfoPanel } from './SuggestedMergeInfoPanel';
 
 export type ContentConflictProps = {
@@ -29,7 +29,7 @@ export const ContentConflict = ({
     docBefore: RichTextDocument;
     docAfter: RichTextDocument;
   } | null>(null);
-  const { suggestContentMerge } = useSuggestContentMerge();
+  const { suggestContentMerge } = useMergeConflictResolution();
 
   useEffect(() => {
     const suggestMerge = async (projId: ProjectId) => {

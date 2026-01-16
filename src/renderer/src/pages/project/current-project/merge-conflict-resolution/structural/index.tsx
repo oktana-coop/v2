@@ -11,7 +11,7 @@ import {
 } from '../../../../../../../modules/infrastructure/version-control';
 import { SidebarLayoutContext } from '../../../../../app-state';
 import { DiffIcon } from '../../../../../components/icons';
-import { useMergeConflictInfo } from '../../../../../hooks';
+import { useMergeConflictResolution } from '../../../../../hooks';
 import { SectionHeader } from '../../../../shared/settings/SectionHeader';
 import { MergeConflictResolutionActionsBar } from '../ActionsBar';
 import { StructuralConflict } from './StructuralConflict';
@@ -19,7 +19,7 @@ import { StructuralConflict } from './StructuralConflict';
 export const StructuralConflictResolution = () => {
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const { mergeConflictInfo, structuralConflicts, abortMerge } =
-    useMergeConflictInfo();
+    useMergeConflictResolution();
 
   if (!mergeConflictInfo) {
     return null;

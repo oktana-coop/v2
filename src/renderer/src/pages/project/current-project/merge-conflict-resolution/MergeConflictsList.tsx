@@ -5,7 +5,7 @@ import { removeExtension } from '../../../../../../modules/infrastructure/filesy
 import { DiffIcon, MergeIcon } from '../../../../components/icons';
 import { SidebarHeading } from '../../../../components/sidebar/SidebarHeading';
 import {
-  useMergeConflictInfo,
+  useMergeConflictResolution,
   useNavigateToResolveConflicts,
   useProjectId,
 } from '../../../../hooks';
@@ -25,7 +25,7 @@ export const MergeConflictsList = () => {
   const [areStructuralConflictsSelected, setAreStructuralConflictsSelected] =
     useState<boolean>(false);
   const { compareContentConflicts, structuralConflicts, mergeConflictInfo } =
-    useMergeConflictInfo();
+    useMergeConflictResolution();
   const navigateToMergeConflictRoute = useNavigateToResolveConflicts();
 
   useEffect(() => {

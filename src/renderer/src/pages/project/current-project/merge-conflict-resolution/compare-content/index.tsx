@@ -5,7 +5,7 @@ import { ProseMirrorContext } from '../../../../../../../modules/domain/rich-tex
 import { CompareContentConflict as CompareContentConflictType } from '../../../../../../../modules/infrastructure/version-control';
 import { SidebarLayoutContext } from '../../../../../app-state';
 import { LongTextSkeleton } from '../../../../../components/progress/skeletons/LongText';
-import { useMergeConflictInfo } from '../../../../../hooks';
+import { useMergeConflictResolution } from '../../../../../hooks';
 import { MergeConflictResolutionActionsBar } from '../ActionsBar';
 import { CompareContentConflict } from './CompareContentConflict';
 
@@ -14,7 +14,7 @@ export const CompareContentConflictResolution = () => {
   const { view: editorView } = useContext(ProseMirrorContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const { mergeConflictInfo, compareContentConflicts, abortMerge } =
-    useMergeConflictInfo();
+    useMergeConflictResolution();
   const [conflict, setConflict] = useState<CompareContentConflictType | null>(
     null
   );
