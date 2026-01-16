@@ -37,13 +37,17 @@ export const useMergeConflictResolution = () => {
   const {
     mergeConflictInfo: multiDocumentProjectMergeConflictInfo,
     abortMerge: abortMergeInMultiDocumentProject,
-    getMergeConflictInfo: getMergeConflictInfoInMultiDocumentProject,
+    refreshConflictsAndMergeIfPossible:
+      refreshConflictsAndMergeIfPossibleInMultiDocProject,
     directory,
+    resolveConflictByKeepingDocument,
+    resolveConflictByDeletingDocument,
   } = useContext(MultiDocumentProjectContext);
   const {
     mergeConflictInfo: singleDocumentProjectMergeConflictInfo,
     abortMerge: abortMergeInSingleDocumentProject,
-    getMergeConflictInfo: getMergeConflictInfoInSingleDocumentProject,
+    refreshConflictsAndMergeIfPossible:
+      refreshConflictsAndMergeIfPossibleInSingleDocProject,
     documentInternalPath,
   } = useContext(SingleDocumentProjectContext);
   const { versionedDocumentStore, filesystem } = useContext(
@@ -105,15 +109,15 @@ export const useMergeConflictResolution = () => {
     ]
   );
 
-  const getMergeConflictInfo = useCallback(
+  const refreshConflictsAndMergeIfPossible = useCallback(
     () =>
       projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-        ? getMergeConflictInfoInMultiDocumentProject()
-        : getMergeConflictInfoInSingleDocumentProject(),
+        ? refreshConflictsAndMergeIfPossibleInMultiDocProject()
+        : refreshConflictsAndMergeIfPossibleInSingleDocProject(),
     [
       projectType,
-      getMergeConflictInfoInMultiDocumentProject,
-      getMergeConflictInfoInSingleDocumentProject,
+      refreshConflictsAndMergeIfPossibleInMultiDocProject,
+      refreshConflictsAndMergeIfPossibleInSingleDocProject,
     ]
   );
 
@@ -276,7 +280,7 @@ export const useMergeConflictResolution = () => {
         }
       }
 
-      getMergeConflictInfo();
+      refreshConflictsAndMergeIfPossible();
     },
     [
       versionedDocumentStore,
@@ -286,7 +290,7 @@ export const useMergeConflictResolution = () => {
       projectType,
       documentInternalPath,
       mergeConflictInfo,
-      getMergeConflictInfo,
+      refreshConflictsAndMergeIfPossible,
       dispatchNotification,
     ]
   );
@@ -298,5 +302,7 @@ export const useMergeConflictResolution = () => {
     abortMerge,
     suggestContentMerge,
     resolveContentConflict,
+    resolveConflictByKeepingDocument,
+    resolveConflictByDeletingDocument,
   };
 };

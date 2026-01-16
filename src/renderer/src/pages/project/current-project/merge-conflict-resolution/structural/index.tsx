@@ -63,7 +63,7 @@ export const StructuralConflictResolution = () => {
           isSidebarOpen={isSidebarOpen}
           onSidebarToggle={toggleSidebar}
           onAbortMerge={handleAbortMerge}
-          onResolveConflict={() => {}}
+          hasResolveConflictButton={false}
           hasEditorToolbarToggle={false}
           hasShowDiffCheckbox={false}
         />

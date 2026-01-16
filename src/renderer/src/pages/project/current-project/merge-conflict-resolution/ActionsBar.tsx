@@ -21,6 +21,7 @@ export const MergeConflictResolutionActionsBar = ({
   isSidebarOpen,
   onSidebarToggle,
   onAbortMerge,
+  hasResolveConflictButton,
   onResolveConflict,
   hasEditorToolbarToggle,
   onEditorToolbarToggle,
@@ -32,7 +33,8 @@ export const MergeConflictResolutionActionsBar = ({
   isSidebarOpen: boolean;
   onSidebarToggle: () => void;
   onAbortMerge: () => void;
-  onResolveConflict: () => void;
+  hasResolveConflictButton: boolean;
+  onResolveConflict?: () => void;
   hasEditorToolbarToggle: boolean;
   onEditorToolbarToggle?: () => void;
   hasShowDiffCheckbox: boolean;
@@ -59,7 +61,7 @@ export const MergeConflictResolutionActionsBar = ({
 
   const handleResolveConflict = (ev: React.MouseEvent) => {
     ev.preventDefault();
-    onResolveConflict();
+    onResolveConflict?.();
   };
 
   const handleToolbarToggle = (ev: React.MouseEvent) => {
@@ -115,9 +117,11 @@ export const MergeConflictResolutionActionsBar = ({
         >
           Abort Merge
         </Button>
-        <Button color="purple" onClick={handleResolveConflict} size="sm">
-          Resolve Conflict
-        </Button>
+        {hasResolveConflictButton && (
+          <Button color="purple" onClick={handleResolveConflict} size="sm">
+            Resolve Conflict
+          </Button>
+        )}
       </div>
     </div>
   );

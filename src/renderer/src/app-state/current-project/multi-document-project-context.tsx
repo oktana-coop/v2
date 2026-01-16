@@ -96,7 +96,13 @@ export type MultiDocumentProjectContextType = {
   deleteBranch: (branch: Branch) => Promise<void>;
   mergeAndDeleteBranch: (branch: Branch) => Promise<void>;
   abortMerge: () => Promise<void>;
-  getMergeConflictInfo: () => Promise<void>;
+  refreshConflictsAndMergeIfPossible: () => Promise<void>;
+  resolveConflictByKeepingDocument: (
+    documentId: ResolvedArtifactId
+  ) => Promise<void>;
+  resolveConflictByDeletingDocument: (
+    documentId: ResolvedArtifactId
+  ) => Promise<void>;
   branchToDelete: Branch | null;
   openDeleteBranchDialog: (branch: Branch) => void;
   closeDeleteBranchDialog: () => void;
@@ -684,7 +690,10 @@ export const MultiDocumentProjectProvider = ({
     }
   }, [versionedProjectStore, projectId]);
 
-  const handleGetMergeConflictInfo = useCallback(async () => {
+  const handleRefreshConflictsAndMergeIfPossible = useCallback(async () => {
+    const buildCommitMessage = (mergeConflictInfo: MergeConflictInfo | null) =>
+      `Merge branch${mergeConflictInfo?.sourceBranch ? ` ${mergeConflictInfo.sourceBranch}` : ''}`;
+
     if (!versionedProjectStore || !projectId) {
       throw new Error(
         'Project store is not ready or project has not been set yet. Cannot get merge conflict info.'
@@ -696,6 +705,19 @@ export const MultiDocumentProjectProvider = ({
         pipe(
           versionedProjectStore.getMergeConflictInfo({
             projectId,
+          }),
+          Effect.tap((conflictInfo) => {
+            const conflicts = conflictInfo?.conflicts;
+            console.log(conflicts);
+
+            return conflicts && conflicts.length > 0
+              ? Effect.succeed(undefined)
+              : versionedProjectStore.commitChanges({
+                  projectId,
+                  // Here we are using the outdated merge conflict info, but that's what we want
+                  // (we commit when the new conflict info is null).
+                  message: buildCommitMessage(mergeConflictInfo),
+                });
           }),
           Effect.map((conflictInfo) => ({
             conflictInfo,
@@ -721,7 +743,7 @@ export const MultiDocumentProjectProvider = ({
     if (notification) {
       dispatchNotification(notification);
     } else {
-      if (conflictInfo) {
+      if (conflictInfo && conflictInfo.conflicts.length > 0) {
         setMergeConflictInfo(conflictInfo);
         navigateToResolveMergeConflicts({
           projectId,
@@ -732,6 +754,66 @@ export const MultiDocumentProjectProvider = ({
       }
     }
   }, [versionedProjectStore, projectId, navigateToResolveMergeConflicts]);
+
+  const handleResolveConflictByKeepingDocument = useCallback(
+    async (documentId: ResolvedArtifactId) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot resolve the conflict.'
+        );
+      }
+
+      try {
+        await Effect.runPromise(
+          versionedProjectStore.resolveConflictByKeepingDocument({
+            projectId,
+            documentId,
+          })
+        );
+      } catch (err) {
+        console.error(err);
+
+        const notification = createErrorNotification({
+          title: 'Resolve Conflict Error',
+          message: `An error happened when trying to resolve the conflict. Please try again and if the error persists contact us for support.`,
+        });
+        dispatchNotification(notification);
+      }
+
+      handleRefreshConflictsAndMergeIfPossible();
+    },
+    [versionedProjectStore, projectId, handleRefreshConflictsAndMergeIfPossible]
+  );
+
+  const handleResolveConflictByDeletingDocument = useCallback(
+    async (documentId: ResolvedArtifactId) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot resolve the conflict.'
+        );
+      }
+
+      try {
+        await Effect.runPromise(
+          versionedProjectStore.resolveConflictByDeletingDocument({
+            projectId,
+            documentId,
+          })
+        );
+      } catch (err) {
+        console.error(err);
+
+        const notification = createErrorNotification({
+          title: 'Resolve Conflict Error',
+          message: `An error happened when trying to resolve the conflict. Please try again and if the error persists contact us for support.`,
+        });
+        dispatchNotification(notification);
+      }
+
+      handleRefreshConflictsAndMergeIfPossible();
+    },
+    [versionedProjectStore, projectId, handleRefreshConflictsAndMergeIfPossible]
+  );
 
   const handleOpenDeleteBranchDialog = useCallback((branch: Branch) => {
     setBranchToDelete(branch);
@@ -896,7 +978,12 @@ export const MultiDocumentProjectProvider = ({
         deleteBranch: handleDeleteBranch,
         mergeAndDeleteBranch: handleMergeAndDeleteBranch,
         abortMerge: handleAbortMerge,
-        getMergeConflictInfo: handleGetMergeConflictInfo,
+        refreshConflictsAndMergeIfPossible:
+          handleRefreshConflictsAndMergeIfPossible,
+        resolveConflictByKeepingDocument:
+          handleResolveConflictByKeepingDocument,
+        resolveConflictByDeletingDocument:
+          handleResolveConflictByDeletingDocument,
         branchToDelete,
         openDeleteBranchDialog: handleOpenDeleteBranchDialog,
         closeDeleteBranchDialog: handleCloseDeleteBranchDialog,

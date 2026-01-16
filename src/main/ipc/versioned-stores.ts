@@ -1078,7 +1078,7 @@ const registerMultiDocumentProjectStoreEvents = ({
               )
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.resolveConflictByDeletingDocument(args)
+            versionedProjectStore.resolveConflictByKeepingDocument(args)
           )
         )
       )

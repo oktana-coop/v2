@@ -25,7 +25,6 @@ import {
   mergePoles,
   type ModifyDeleteConflict,
   parseGitCommitHash,
-  type ResolvedArtifactId,
 } from '../../models';
 import { deleteBranch, switchToBranch } from '../branching';
 import { IsoGitDeps } from '../types';
@@ -114,7 +113,11 @@ export const mergeAndDeleteBranch = ({
         ? errData.deleteByTheirs.map((filepath) => ({
             kind: 'modify/delete',
             // TODO: Parse this properly.
-            artifactId: filepath as ResolvedArtifactId,
+            // Deleted in source; the artifact we want is from target.
+            artifactId: createGitBlobRef({
+              ref: conflictCommits.targetCommitId,
+              path: filepath,
+            }),
             path: filepath,
             deletedIn: mergePoles.MERGE_SOURCE,
           }))
@@ -125,7 +128,11 @@ export const mergeAndDeleteBranch = ({
         ? errData.deleteByUs.map((filepath) => ({
             kind: 'modify/delete',
             // TODO: Parse this properly.
-            artifactId: filepath as ResolvedArtifactId,
+            // Deleted in target; the artifact we want is from source.
+            artifactId: createGitBlobRef({
+              ref: conflictCommits.sourceCommitId,
+              path: filepath,
+            }),
             path: filepath,
             deletedIn: mergePoles.MERGE_TARGET,
           }))
@@ -415,8 +422,14 @@ const readMergeConflictsFromGitIndex = ({
       const conflict: AddAddConflict = {
         kind: 'add/add',
         // TODO: Parse this properly.
-        sourceArtifactId: unmergedPathInfo.path as ResolvedArtifactId,
-        targetArtifactId: unmergedPathInfo.path as ResolvedArtifactId,
+        sourceArtifactId: createGitBlobRef({
+          ref: conflictCommits.sourceCommitId,
+          path: unmergedPathInfo.path,
+        }),
+        targetArtifactId: createGitBlobRef({
+          ref: conflictCommits.targetCommitId,
+          path: unmergedPathInfo.path,
+        }),
         path: unmergedPathInfo.path,
       };
 
@@ -431,7 +444,11 @@ const readMergeConflictsFromGitIndex = ({
       const conflict: ModifyDeleteConflict = {
         kind: 'modify/delete',
         // TODO: Parse this properly.
-        artifactId: unmergedPathInfo.path as ResolvedArtifactId,
+        // Deleted in source; the artifact we want is from target.
+        artifactId: createGitBlobRef({
+          ref: conflictCommits.targetCommitId,
+          path: unmergedPathInfo.path,
+        }),
         path: unmergedPathInfo.path,
         deletedIn: mergePoles.MERGE_SOURCE,
       };
@@ -447,7 +464,11 @@ const readMergeConflictsFromGitIndex = ({
       const conflict: ModifyDeleteConflict = {
         kind: 'modify/delete',
         // TODO: Parse this properly.
-        artifactId: unmergedPathInfo.path as ResolvedArtifactId,
+        // Deleted in target; the artifact we want is from source.
+        artifactId: createGitBlobRef({
+          ref: conflictCommits.sourceCommitId,
+          path: unmergedPathInfo.path,
+        }),
         path: unmergedPathInfo.path,
         deletedIn: mergePoles.MERGE_TARGET,
       };

@@ -83,7 +83,7 @@ export type SingleDocumentProjectContextType = {
   deleteBranch: (branch: Branch) => Promise<void>;
   mergeAndDeleteBranch: (branch: Branch) => Promise<void>;
   abortMerge: () => Promise<void>;
-  getMergeConflictInfo: () => Promise<void>;
+  refreshConflictsAndMergeIfPossible: () => Promise<void>;
   branchToDelete: Branch | null;
   openDeleteBranchDialog: (branch: Branch) => void;
   closeDeleteBranchDialog: () => void;
@@ -649,7 +649,7 @@ export const SingleDocumentProjectProvider = ({
     }
   }, [versionedProjectStore, projectId]);
 
-  const handleGetMergeConflictInfo = useCallback(async () => {
+  const handleRefreshConflictsAndMergeIfPossible = useCallback(async () => {
     if (!versionedProjectStore || !projectId) {
       throw new Error(
         'Project store is not ready or project has not been set yet. Cannot get merge conflict info.'
@@ -662,6 +662,8 @@ export const SingleDocumentProjectProvider = ({
           versionedProjectStore.getMergeConflictInfo({
             projectId,
           }),
+          // In the single-document project we commit when updating the (single) document, so there
+          // is not much to do here. We just check if there are any other conflicts and navigate accordingly.
           Effect.map((conflictInfo) => ({
             conflictInfo,
             notification: null,
@@ -686,7 +688,7 @@ export const SingleDocumentProjectProvider = ({
     if (notification) {
       dispatchNotification(notification);
     } else {
-      if (conflictInfo) {
+      if (conflictInfo && conflictInfo.conflicts.length > 0) {
         setMergeConflictInfo(conflictInfo);
         navigateToResolveMergeConflicts({
           projectId,
@@ -832,7 +834,8 @@ export const SingleDocumentProjectProvider = ({
         deleteBranch: handleDeleteBranch,
         mergeAndDeleteBranch: handleMergeAndDeleteBranch,
         abortMerge: handleAbortMerge,
-        getMergeConflictInfo: handleGetMergeConflictInfo,
+        refreshConflictsAndMergeIfPossible:
+          handleRefreshConflictsAndMergeIfPossible,
         branchToDelete,
         openDeleteBranchDialog: handleOpenDeleteBranchDialog,
         closeDeleteBranchDialog: handleCloseDeleteBranchDialog,
