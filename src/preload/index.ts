@@ -213,6 +213,14 @@ contextBridge.exposeInMainWorld('versionedDocumentStoreAPI', {
       },
       projectId
     ),
+  resolveContentConflict: (args, projectId) =>
+    ipcRenderer.invoke(
+      'versioned-document-store:resolve-content-conflict',
+      {
+        ...args,
+      },
+      projectId
+    ),
   disconnect: (projectId) =>
     ipcRenderer.invoke('versioned-document-store:disconnect', projectId),
 } as VersionedDocumentStorePromiseAPI);

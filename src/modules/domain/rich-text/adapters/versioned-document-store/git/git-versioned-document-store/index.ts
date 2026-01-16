@@ -782,6 +782,22 @@ export const createAdapter = ({
       )
     );
 
+  const resolveContentConflict: VersionedDocumentStore['resolveContentConflict'] =
+    ({ documentId }) =>
+      pipe(
+        extractDocumentRelativePathFromId(documentId),
+        Effect.flatMap((documentPath) =>
+          Effect.tryPromise({
+            try: () =>
+              git.add({
+                fs: isoGitFs,
+                dir: projectDir,
+                filepath: documentPath,
+              }),
+            catch: mapErrorTo(RepositoryError, 'Git repo error'),
+          })
+        )
+      );
   // This is a no-op in the Git document repo.
   const disconnect: VersionedDocumentStore['disconnect'] = () =>
     Effect.succeed(undefined);
@@ -801,6 +817,7 @@ export const createAdapter = ({
     isContentSameAtChanges,
     restoreCommit,
     discardUncommittedChanges,
+    resolveContentConflict,
     disconnect,
   };
 };

@@ -1393,6 +1393,19 @@ const registerVersionedDocumentStoreEvents = () => {
   );
 
   ipcMain.handle(
+    'versioned-document-store:resolve-content-conflict',
+    async (_, args: DiscardUncommittedChangesArgs, projectId: string) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(projectId),
+          Effect.flatMap(({ versionedDocumentStore }) =>
+            versionedDocumentStore.resolveContentConflict(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
     'versioned-document-store:disconnect',
     async (_, projectId: string) =>
       runPromiseSerializingErrorsForIPC(

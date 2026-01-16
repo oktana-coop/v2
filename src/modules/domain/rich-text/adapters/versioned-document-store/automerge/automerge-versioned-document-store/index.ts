@@ -497,6 +497,14 @@ export const createAdapter = ({
         catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
       });
 
+  const resolveContentConflict: VersionedDocumentStore['resolveContentConflict'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Resolving content conflicts explicitly is not yet supported in Automerge.'
+        )
+      );
+
   const disconnect: VersionedDocumentStore['disconnect'] = () =>
     Effect.tryPromise({
       try: () => automergeRepo.shutdown(),
@@ -525,6 +533,7 @@ export const createAdapter = ({
     commitChanges,
     restoreCommit,
     discardUncommittedChanges,
+    resolveContentConflict,
     exportDocumentHandleToBinary,
     exportDocumentToBinary,
     importDocumentFromBinary,

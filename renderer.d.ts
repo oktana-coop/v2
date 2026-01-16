@@ -194,6 +194,10 @@ type VersionedDocumentStoreIPCAPI = VersionedDocumentStore & {
     VersionedDocumentStore['discardUncommittedChanges'],
     string
   >;
+  resolveContentConflict: AppendParam<
+    VersionedDocumentStore['resolveContentConflict'],
+    string
+  >;
   disconnect: AppendParam<VersionedDocumentStore['disconnect'], string>;
 };
 
