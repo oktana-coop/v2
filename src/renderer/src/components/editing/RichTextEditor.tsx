@@ -163,7 +163,7 @@ export const RichTextEditor = ({
     ensureTrailingSpaceAfterAtomPlugin(),
   ];
 
-  const getDiffPlugin = async ({
+  const setupDiffPlugin = async ({
     currentDoc,
     diffWith,
   }: {
@@ -199,36 +199,43 @@ export const RichTextEditor = ({
     });
   };
 
+  const setupSyncPlugin = ({
+    onDocChange,
+  }: {
+    onDocChange: (doc: RichTextDocument) => Promise<void>;
+  }) => {
+    const handlePMDocChange = debounce(async (pmDoc: Node) => {
+      const pmJSONStr = pmDocToJSONString(pmDoc);
+
+      onDocChange({
+        type: doc.type,
+        schemaVersion: doc.schemaVersion,
+        representation: richTextRepresentations.PROSEMIRROR,
+        content: pmJSONStr,
+      });
+    }, 300);
+
+    return syncPlugin({
+      onPMDocChange: handlePMDocChange,
+      docHandle,
+    });
+  };
+
   useEffect(() => {
     const setupEditorAndView = async (schema: Schema) => {
       const plugins = getBasePlugins(schema);
 
+      if (isEditable && onDocChange) {
+        const sync = setupSyncPlugin({ onDocChange });
+        plugins.push(sync);
+      }
+
       if (showDiffWith) {
-        const diff = await getDiffPlugin({
+        const diff = await setupDiffPlugin({
           currentDoc: doc,
           diffWith: showDiffWith,
         });
         plugins.push(diff);
-      }
-
-      if (isEditable && onDocChange) {
-        const handlePMDocChange = debounce(async (pmDoc: Node) => {
-          const pmJSONStr = pmDocToJSONString(pmDoc);
-
-          onDocChange({
-            type: doc.type,
-            schemaVersion: doc.schemaVersion,
-            representation: richTextRepresentations.PROSEMIRROR,
-            content: pmJSONStr,
-          });
-        }, 300);
-
-        plugins.push(
-          syncPlugin({
-            onPMDocChange: handlePMDocChange,
-            docHandle,
-          })
-        );
       }
 
       const richTextContent = getDocumentRichTextContent(doc);
@@ -320,6 +327,11 @@ export const RichTextEditor = ({
     }) => {
       const plugins = getBasePlugins(schema);
 
+      if (isEditable && onDocChange) {
+        const sync = setupSyncPlugin({ onDocChange });
+        plugins.push(sync);
+      }
+
       if (diffWith) {
         const currentDocContent = await convertFromProseMirror({
           pmDoc,
@@ -333,7 +345,7 @@ export const RichTextEditor = ({
           content: currentDocContent,
         };
 
-        const diffPlugin = await getDiffPlugin({
+        const diffPlugin = await setupDiffPlugin({
           currentDoc,
           diffWith,
         });

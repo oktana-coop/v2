@@ -1,3 +1,4 @@
+import { type RichTextDocument } from '../../../../../../../modules/domain/rich-text';
 import {
   type CompareContentConflict as CompareContentConflictType,
   isContentConflict,
@@ -10,6 +11,7 @@ export type CompareContentConflictProps = {
   mergeConflictInfo: MergeConflictInfo;
   isEditorToolbarOpen: boolean;
   showDiff: boolean;
+  onDocChange: (doc: RichTextDocument) => Promise<void>;
 };
 
 export const CompareContentConflict = ({
@@ -17,6 +19,7 @@ export const CompareContentConflict = ({
   mergeConflictInfo,
   isEditorToolbarOpen,
   showDiff,
+  onDocChange,
 }: CompareContentConflictProps) => {
   if (isContentConflict(conflict)) {
     return (
@@ -25,6 +28,7 @@ export const CompareContentConflict = ({
         mergeConflictInfo={mergeConflictInfo}
         isEditorToolbarOpen={isEditorToolbarOpen}
         showDiff={showDiff}
+        onDocChange={onDocChange}
       />
     );
   }

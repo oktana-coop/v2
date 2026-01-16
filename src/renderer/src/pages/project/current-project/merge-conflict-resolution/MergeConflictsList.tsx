@@ -33,33 +33,33 @@ export const MergeConflictsList = () => {
   }, [structuralSubRouteMatch]);
 
   useEffect(() => {
-    if (compareContentConflicts.length > 0) {
-      const structuralConflictItems: DocumentListItem[] =
-        structuralConflicts.length > 0
-          ? [
-              {
-                id: 'structural',
-                name: 'File Changes',
-                isSelected: areStructuralConflictsSelected,
-                icon: DiffIcon,
-              },
-            ]
-          : [];
+    const structuralConflictItems: DocumentListItem[] =
+      structuralConflicts.length > 0
+        ? [
+            {
+              id: 'structural',
+              name: 'File Changes',
+              isSelected: areStructuralConflictsSelected,
+              icon: DiffIcon,
+            },
+          ]
+        : [];
 
-      const compareContentConflictItems: DocumentListItem[] =
-        compareContentConflicts.map((conflict) => ({
-          id: conflict.path,
-          name: removeExtension(conflict.path),
-          isSelected: conflict.path === compareContentPath,
-        }));
+    const compareContentConflictItems: DocumentListItem[] =
+      compareContentConflicts.length > 0
+        ? compareContentConflicts.map((conflict) => ({
+            id: conflict.path,
+            name: removeExtension(conflict.path),
+            isSelected: conflict.path === compareContentPath,
+          }))
+        : [];
 
-      const docList = [
-        ...structuralConflictItems,
-        ...compareContentConflictItems,
-      ];
+    const docList = [
+      ...structuralConflictItems,
+      ...compareContentConflictItems,
+    ];
 
-      setDocumentsList(docList);
-    }
+    setDocumentsList(docList);
   }, [
     structuralConflicts,
     compareContentConflicts,

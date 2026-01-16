@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { type ProjectId } from '../../../../../../../modules/domain/project';
-import { RichTextDocument } from '../../../../../../../modules/domain/rich-text';
+import { type RichTextDocument } from '../../../../../../../modules/domain/rich-text';
 import {
   ContentConflict as ContentConflictType,
   type MergeConflictInfo,
@@ -16,6 +16,7 @@ export type ContentConflictProps = {
   mergeConflictInfo: MergeConflictInfo;
   isEditorToolbarOpen: boolean;
   showDiff: boolean;
+  onDocChange: (doc: RichTextDocument) => Promise<void>;
 };
 
 export const ContentConflict = ({
@@ -23,6 +24,7 @@ export const ContentConflict = ({
   mergeConflictInfo,
   isEditorToolbarOpen,
   showDiff,
+  onDocChange,
 }: ContentConflictProps) => {
   const projectId = useProjectId();
   const [suggestedResolution, setSuggestedResolution] = useState<{
@@ -45,6 +47,8 @@ export const ContentConflict = ({
         docBefore: targetDocument,
         docAfter: mergedDocument,
       });
+
+      onDocChange(mergedDocument);
     };
 
     if (projectId) {
@@ -65,7 +69,7 @@ export const ContentConflict = ({
         doc={suggestedResolution.docAfter}
         docHandle={null}
         isToolbarOpen={isEditorToolbarOpen}
-        onDocChange={async () => {}}
+        onDocChange={onDocChange}
         showDiffWith={showDiff ? suggestedResolution.docBefore : undefined}
       />
     </div>

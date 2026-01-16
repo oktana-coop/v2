@@ -1,23 +1,30 @@
 import { useCallback, useContext, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 
+import { type RichTextDocument } from '../../../../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../../../../modules/domain/rich-text/react/prosemirror-context';
-import { CompareContentConflict as CompareContentConflictType } from '../../../../../../../modules/infrastructure/version-control';
+import { type CompareContentConflict as CompareContentConflictType } from '../../../../../../../modules/infrastructure/version-control';
 import { SidebarLayoutContext } from '../../../../../app-state';
 import { LongTextSkeleton } from '../../../../../components/progress/skeletons/LongText';
-import { useMergeConflictResolution } from '../../../../../hooks';
+import { useMergeConflictResolution, useProjectId } from '../../../../../hooks';
 import { MergeConflictResolutionActionsBar } from '../ActionsBar';
 import { CompareContentConflict } from './CompareContentConflict';
 
 export const CompareContentConflictResolution = () => {
   const { compareContentPath } = useParams();
+  const projectId = useProjectId();
   const { view: editorView } = useContext(ProseMirrorContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
-  const { mergeConflictInfo, compareContentConflicts, abortMerge } =
-    useMergeConflictResolution();
+  const {
+    mergeConflictInfo,
+    compareContentConflicts,
+    abortMerge,
+    resolveContentConflict,
+  } = useMergeConflictResolution();
   const [conflict, setConflict] = useState<CompareContentConflictType | null>(
     null
   );
+  const [tempConflictDocs] = useState<Record<string, RichTextDocument>>({});
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
   const [showDiff, setShowDiff] = useState<boolean>(true);
 
@@ -41,6 +48,21 @@ export const CompareContentConflictResolution = () => {
     abortMerge();
   };
 
+  const handleDocChange = (path: string) => async (doc: RichTextDocument) => {
+    tempConflictDocs[path] = doc;
+  };
+
+  const handleResolveConflict = async () => {
+    if (projectId && conflict && tempConflictDocs[conflict.path]) {
+      await resolveContentConflict({
+        documentId: conflict.targetArtifactId,
+        relativePath: conflict.path,
+        projectId,
+        doc: tempConflictDocs[conflict.path],
+      });
+    }
+  };
+
   if (!mergeConflictInfo) {
     return null;
   }
@@ -55,7 +77,7 @@ export const CompareContentConflictResolution = () => {
           hasEditorToolbarToggle={true}
           onEditorToolbarToggle={handleEditorToolbarToggle}
           onAbortMerge={handleAbortMerge}
-          onResolveConflict={() => {}}
+          onResolveConflict={handleResolveConflict}
           hasShowDiffCheckbox={true}
           showDiff={showDiff}
           onSetShowDiffChecked={handleSetShowDiff}
@@ -69,6 +91,7 @@ export const CompareContentConflictResolution = () => {
               mergeConflictInfo={mergeConflictInfo}
               isEditorToolbarOpen={isEditorToolbarOpen}
               showDiff={showDiff}
+              onDocChange={handleDocChange(conflict.path)}
             />
           ) : (
             <LongTextSkeleton />
