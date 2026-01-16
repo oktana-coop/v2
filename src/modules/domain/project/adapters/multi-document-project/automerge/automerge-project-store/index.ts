@@ -248,6 +248,24 @@ export const createAdapter = (
       )
     );
 
+  // TODO: Implement multi-file conflict resolution in Automerge
+  const resolveConflictByKeepingDocument: MultiDocumentProjectStore['resolveConflictByKeepingDocument'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Multi-file conflict resolution is not yet supported when the app is configured with Automerge'
+        )
+      );
+
+  // TODO: Implement multi-file conflict resolution in Automerge
+  const resolveConflictByDeletingDocument: MultiDocumentProjectStore['resolveConflictByDeletingDocument'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Multi-file conflict resolution is not yet supported when the app is configured with Automerge'
+        )
+      );
+
   // TODO: Implement authorship in Automerge
   const setAuthorInfo: MultiDocumentProjectStore['setAuthorInfo'] = () =>
     Effect.succeed(undefined);
@@ -323,6 +341,8 @@ export const createAdapter = (
     mergeAndDeleteBranch,
     getMergeConflictInfo,
     abortMerge,
+    resolveConflictByKeepingDocument,
+    resolveConflictByDeletingDocument,
     setAuthorInfo,
     addRemoteProject,
     listRemoteProjects,

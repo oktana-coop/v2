@@ -31,6 +31,8 @@ import {
   type MultiDocumentProjectMergeAndDeleteBranchArgs,
   type MultiDocumentProjectPullFromRemoteProjectArgs,
   type MultiDocumentProjectPushToRemoteProjectArgs,
+  type MultiDocumentProjectResolveConflictByDeletingDocumentArgs,
+  type MultiDocumentProjectResolveConflictByKeepingDocumentArgs,
   type MultiDocumentProjectSetAuthorInfoArgs,
   type MultiDocumentProjectStoreManager,
   type MultiDocumentProjectSwitchToBranchArgs,
@@ -1057,6 +1059,49 @@ const registerMultiDocumentProjectStoreEvents = ({
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.abortMerge(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:resolve-conflict-by-keeping-document',
+    async (_, args: MultiDocumentProjectResolveConflictByKeepingDocumentArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.resolveConflictByDeletingDocument(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:resolve-conflict-by-deleting-document',
+    async (
+      _,
+      args: MultiDocumentProjectResolveConflictByDeletingDocumentArgs
+    ) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.resolveConflictByDeletingDocument(args)
           )
         )
       )

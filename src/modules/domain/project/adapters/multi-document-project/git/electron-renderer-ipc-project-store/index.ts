@@ -234,6 +234,50 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.multiDocumentProjectStoreAPI.abortMerge(...args)),
+  resolveConflictByKeepingDocument: (
+    ...args: Parameters<
+      MultiDocumentProjectStore['resolveConflictByKeepingDocument']
+    >
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<
+            MultiDocumentProjectStore['resolveConflictByKeepingDocument']
+          >
+        >
+      >,
+      RepositoryError
+    )(
+      window.multiDocumentProjectStoreAPI.resolveConflictByKeepingDocument(
+        ...args
+      )
+    ),
+  resolveConflictByDeletingDocument: (
+    ...args: Parameters<
+      MultiDocumentProjectStore['resolveConflictByDeletingDocument']
+    >
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<
+            MultiDocumentProjectStore['resolveConflictByDeletingDocument']
+          >
+        >
+      >,
+      RepositoryError
+    )(
+      window.multiDocumentProjectStoreAPI.resolveConflictByDeletingDocument(
+        ...args
+      )
+    ),
   setAuthorInfo: (
     ...args: Parameters<MultiDocumentProjectStore['setAuthorInfo']>
   ) =>

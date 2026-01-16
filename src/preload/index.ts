@@ -387,6 +387,20 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
     ipcRenderer.invoke('multi-document-project-store:abort-merge', {
       ...args,
     }),
+  resolveConflictByKeepingDocument: (args) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:resolve-conflict-by-keeping-document',
+      {
+        ...args,
+      }
+    ),
+  resolveConflictByDeletingDocument: (args) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:resolve-conflict-by-deleting-document',
+      {
+        ...args,
+      }
+    ),
   setAuthorInfo: (args) =>
     ipcRenderer.invoke('multi-document-project-store:set-author-info', {
       ...args,

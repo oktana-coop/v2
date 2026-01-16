@@ -97,6 +97,16 @@ export type MultiDocumentProjectAbortMergeArgs = {
   projectId: ProjectId;
 };
 
+export type MultiDocumentProjectResolveConflictByKeepingDocumentArgs = {
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
+};
+
+export type MultiDocumentProjectResolveConflictByDeletingDocumentArgs = {
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
+};
+
 export type MultiDocumentProjectSetAuthorInfoArgs = {
   projectId: ProjectId;
   username: Username | null;
@@ -228,6 +238,12 @@ export type MultiDocumentProjectStore = {
   >;
   abortMerge: (
     args: MultiDocumentProjectAbortMergeArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  resolveConflictByKeepingDocument: (
+    args: MultiDocumentProjectResolveConflictByKeepingDocumentArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  resolveConflictByDeletingDocument: (
+    args: MultiDocumentProjectResolveConflictByDeletingDocumentArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
   setAuthorInfo: (
     args: MultiDocumentProjectSetAuthorInfoArgs
