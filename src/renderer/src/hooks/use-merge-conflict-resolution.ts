@@ -25,6 +25,9 @@ import {
   SingleDocumentProjectContext,
 } from '../app-state';
 
+const buildCommitMessage = (mergeConflictInfo: MergeConflictInfo) =>
+  `Merge branch${mergeConflictInfo.sourceBranch ? ` ${mergeConflictInfo.sourceBranch}` : ''}`;
+
 export const useMergeConflictResolution = () => {
   const { projectType } = useContext(CurrentProjectContext);
   const {
@@ -167,6 +170,12 @@ export const useMergeConflictResolution = () => {
         );
       }
 
+      if (!mergeConflictInfo) {
+        throw new Error(
+          'No merge conflict info found when trying to resolve a conflict.'
+        );
+      }
+
       if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
         if (!directory || !relativePath) {
           throw new Error('Cannot update file in multi-doc project');
@@ -193,24 +202,36 @@ export const useMergeConflictResolution = () => {
                     : null,
                 projectType,
               })
+            ),
+            Effect.flatMap(() =>
+              versionedDocumentStore.resolveContentConflict({ documentId })
             )
           )
         );
       } else {
         await Effect.runPromise(
-          processDocumentChange({
-            transformToText: representationTransformAdapter.transformToText,
-            updateRichTextDocumentContent:
-              versionedDocumentStore.updateRichTextDocumentContent,
-            writeFile: filesystem.writeFile,
-          })({
-            documentId,
-            updatedDocument: doc,
-            writeToFileWithPath: versionedDocumentStore.managesFilesystemWorkdir
-              ? documentInternalPath
-              : null,
-            projectType,
-          })
+          pipe(
+            processDocumentChange({
+              transformToText: representationTransformAdapter.transformToText,
+              updateRichTextDocumentContent:
+                versionedDocumentStore.updateRichTextDocumentContent,
+              writeFile: filesystem.writeFile,
+            })({
+              documentId,
+              updatedDocument: doc,
+              writeToFileWithPath:
+                versionedDocumentStore.managesFilesystemWorkdir
+                  ? documentInternalPath
+                  : null,
+              projectType,
+            }),
+            Effect.flatMap(() =>
+              versionedDocumentStore.commitChanges({
+                documentId,
+                message: buildCommitMessage(mergeConflictInfo),
+              })
+            )
+          )
         );
       }
     },
@@ -221,6 +242,7 @@ export const useMergeConflictResolution = () => {
       directory,
       projectType,
       documentInternalPath,
+      mergeConflictInfo,
     ]
   );
 
