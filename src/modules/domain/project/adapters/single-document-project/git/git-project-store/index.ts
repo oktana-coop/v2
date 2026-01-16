@@ -13,6 +13,7 @@ import {
 import {
   abortMerge as abortGitMerge,
   cloneRepository as cloneGitRepo,
+  commitMergeConflictsResolution as commitMergeConflictsResolutionToGit,
   createAndSwitchToBranch as createAndSwitchToBranchWithGit,
   createGitBlobRef,
   DEFAULT_BRANCH,
@@ -288,6 +289,19 @@ export const createAdapter = ({
       )
     );
 
+  const commitMergeConflictsResolution: SingleDocumentProjectStore['commitMergeConflictsResolution'] =
+    ({ message }) =>
+      pipe(
+        commitMergeConflictsResolutionToGit({
+          isoGitFs,
+          dir: internalProjectDir,
+          message,
+        }),
+        Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+          Effect.fail(new RepositoryError(err.message))
+        )
+      );
+
   const setAuthorInfo: SingleDocumentProjectStore['setAuthorInfo'] = ({
     username,
     email,
@@ -475,6 +489,7 @@ export const createAdapter = ({
     mergeAndDeleteBranch,
     getMergeConflictInfo,
     abortMerge,
+    commitMergeConflictsResolution,
     setAuthorInfo,
     addRemoteProject,
     listRemoteProjects,

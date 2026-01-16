@@ -20,6 +20,7 @@ import {
   type MultiDocumentProjectAbortMergeArgs,
   type MultiDocumentProjectAddRemoteProjectArgs,
   type MultiDocumentProjectCommitChangesArgs,
+  type MultiDocumentProjectCommitMergeConflictsResolutionArgs,
   type MultiDocumentProjectCreateAndSwitchToBranchArgs,
   type MultiDocumentProjectDeleteBranchArgs,
   type MultiDocumentProjectFindRemoteProjectByNameArgs,
@@ -43,6 +44,7 @@ import {
   type SetupSingleDocumentProjectStoreArgs,
   type SingleDocumentProjectAbortMergeArgs,
   type SingleDocumentProjectAddRemoteProjectArgs,
+  type SingleDocumentProjectCommitMergeConflictsResolutionArgs,
   type SingleDocumentProjectCreateAndSwitchToBranchArgs,
   type SingleDocumentProjectDeleteBranchArgs,
   type SingleDocumentProjectFindRemoteProjectByNameArgs,
@@ -567,6 +569,26 @@ const registerSingleDocumentProjectStoreEvents = ({
   );
 
   ipcMain.handle(
+    'single-document-project-store:commit-merge-conflicts-resolution',
+    async (_, args: SingleDocumentProjectCommitMergeConflictsResolutionArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.commitMergeConflictsResolution(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
     'single-document-project-store:set-author-info',
     async (_, args: SingleDocumentProjectSetAuthorInfoArgs) =>
       runPromiseSerializingErrorsForIPC(
@@ -1059,6 +1081,26 @@ const registerMultiDocumentProjectStoreEvents = ({
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.abortMerge(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:commit-merge-conflicts-resolution',
+    async (_, args: MultiDocumentProjectCommitMergeConflictsResolutionArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.commitMergeConflictsResolution(args)
           )
         )
       )

@@ -77,6 +77,7 @@ export const CompareContentConflictResolution = () => {
           hasEditorToolbarToggle={true}
           onEditorToolbarToggle={handleEditorToolbarToggle}
           onAbortMerge={handleAbortMerge}
+          hasResolveConflictButton={true}
           onResolveConflict={handleResolveConflict}
           hasShowDiffCheckbox={true}
           showDiff={showDiff}

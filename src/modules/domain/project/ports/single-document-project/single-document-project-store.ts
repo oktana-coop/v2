@@ -74,6 +74,11 @@ export type SingleDocumentProjectAbortMergeArgs = {
   projectId: ProjectId;
 };
 
+export type SingleDocumentProjectCommitMergeConflictsResolutionArgs = {
+  projectId: ProjectId;
+  message: string;
+};
+
 export type SingleDocumentProjectSetAuthorInfoArgs = {
   projectId: ProjectId;
 } & UserInfo;
@@ -183,6 +188,9 @@ export type SingleDocumentProjectStore = {
   abortMerge: (
     args: SingleDocumentProjectAbortMergeArgs
   ) => Effect.Effect<void, RepositoryError, never>;
+  commitMergeConflictsResolution: (
+    args: SingleDocumentProjectCommitMergeConflictsResolutionArgs
+  ) => Effect.Effect<Commit['id'], RepositoryError, never>;
   setAuthorInfo: (
     args: SingleDocumentProjectSetAuthorInfoArgs
   ) => Effect.Effect<void, RepositoryError, never>;

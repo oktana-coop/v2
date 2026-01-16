@@ -10,6 +10,7 @@ import { type Filesystem } from '../../../../../../../modules/infrastructure/fil
 import {
   abortMerge as abortGitMerge,
   cloneRepository as cloneGitRepo,
+  commitMergeConflictsResolution as commitMergeConflictsResolutionToGit,
   createAndSwitchToBranch as createAndSwitchToBranchWithGit,
   createGitBlobRef,
   decomposeGitBlobRef,
@@ -497,6 +498,24 @@ export const createAdapter = ({
         )
       );
 
+  const commitMergeConflictsResolution: MultiDocumentProjectStore['commitMergeConflictsResolution'] =
+    ({ projectId, message }) =>
+      pipe(
+        ensureProjectIdIsFsPath(projectId),
+        Effect.flatMap((projectPath) =>
+          pipe(
+            commitMergeConflictsResolutionToGit({
+              isoGitFs,
+              dir: projectPath,
+              message,
+            }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            )
+          )
+        )
+      );
+
   const setAuthorInfo: MultiDocumentProjectStore['setAuthorInfo'] = ({
     projectId,
     username,
@@ -713,6 +732,7 @@ export const createAdapter = ({
     abortMerge,
     resolveConflictByKeepingDocument,
     resolveConflictByDeletingDocument,
+    commitMergeConflictsResolution,
     setAuthorInfo,
     addRemoteProject,
     listRemoteProjects,

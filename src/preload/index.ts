@@ -284,6 +284,13 @@ contextBridge.exposeInMainWorld('singleDocumentProjectStoreAPI', {
     ipcRenderer.invoke('single-document-project-store:abort-merge', {
       ...args,
     }),
+  commitMergeConflictsResolution: (args) =>
+    ipcRenderer.invoke(
+      'single-document-project-store:commit-merge-conflicts-resolution',
+      {
+        ...args,
+      }
+    ),
   setAuthorInfo: (args) =>
     ipcRenderer.invoke('single-document-project-store:set-author-info', {
       ...args,
@@ -387,6 +394,13 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
     ipcRenderer.invoke('multi-document-project-store:abort-merge', {
       ...args,
     }),
+  commitMergeConflictsResolution: (args) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:commit-merge-conflicts-resolution',
+      {
+        ...args,
+      }
+    ),
   resolveConflictByKeepingDocument: (args) =>
     ipcRenderer.invoke(
       'multi-document-project-store:resolve-conflict-by-keeping-document',

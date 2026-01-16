@@ -27,6 +27,7 @@ import {
   parseGitCommitHash,
 } from '../../models';
 import { deleteBranch, switchToBranch } from '../branching';
+import { stageAndCommitWorkdirChanges } from '../committing';
 import { IsoGitDeps } from '../types';
 
 export type MergeAndDeleteBranchArgs = Omit<IsoGitDeps, 'isoGitHttp'> & {
@@ -567,43 +568,42 @@ export const getMergeConflictInfo = ({
     )
   );
 
+const clearMergeState = ({
+  isoGitFs,
+  dir,
+}: Omit<IsoGitDeps, 'isoGitHttp'>): Effect.Effect<
+  void,
+  RepositoryError,
+  never
+> =>
+  pipe(
+    Effect.tryPromise({
+      try: () => isoGitFs.promises.unlink(path.join(dir, '.git', 'MERGE_HEAD')),
+      catch: mapErrorTo(RepositoryError, 'Error deleting MERGE_HEAD'),
+    }),
+    Effect.tap(() =>
+      Effect.tryPromise({
+        try: () =>
+          isoGitFs.promises.unlink(path.join(dir, '.git', 'MERGE_MSG')),
+        catch: mapErrorTo(RepositoryError, 'Error deleting MERGE_MSG'),
+      })
+    ),
+    Effect.tap(() =>
+      Effect.tryPromise({
+        try: () =>
+          isoGitFs.promises.unlink(path.join(dir, '.git', 'MERGE_MODE')),
+        catch: mapErrorTo(RepositoryError, 'Error deleting MERGE_MODE'),
+      })
+    )
+  );
+
 export type AbortMergeArgs = Omit<IsoGitDeps, 'isoGitHttp'>;
 
 export const abortMerge = ({
   isoGitFs,
   dir,
-}: AbortMergeArgs): Effect.Effect<void, RepositoryError, never> => {
-  const clearMergeState = ({
-    isoGitFs,
-    dir,
-  }: Omit<IsoGitDeps, 'isoGitHttp'>): Effect.Effect<
-    void,
-    RepositoryError,
-    never
-  > =>
-    pipe(
-      Effect.tryPromise({
-        try: () =>
-          isoGitFs.promises.unlink(path.join(dir, '.git', 'MERGE_HEAD')),
-        catch: mapErrorTo(RepositoryError, 'Error deleting MERGE_HEAD'),
-      }),
-      Effect.tap(() =>
-        Effect.tryPromise({
-          try: () =>
-            isoGitFs.promises.unlink(path.join(dir, '.git', 'MERGE_MSG')),
-          catch: mapErrorTo(RepositoryError, 'Error deleting MERGE_MSG'),
-        })
-      ),
-      Effect.tap(() =>
-        Effect.tryPromise({
-          try: () =>
-            isoGitFs.promises.unlink(path.join(dir, '.git', 'MERGE_MODE')),
-          catch: mapErrorTo(RepositoryError, 'Error deleting MERGE_MODE'),
-        })
-      )
-    );
-
-  return pipe(
+}: AbortMergeArgs): Effect.Effect<void, RepositoryError, never> =>
+  pipe(
     Effect.tryPromise({
       try: () =>
         git.abortMerge({
@@ -614,4 +614,24 @@ export const abortMerge = ({
     }),
     Effect.tap(() => clearMergeState({ isoGitFs, dir }))
   );
+
+export type CommitMergeConflictsResolutionArgs = Omit<
+  IsoGitDeps,
+  'isoGitHttp'
+> & {
+  message: string;
 };
+
+export const commitMergeConflictsResolution = ({
+  isoGitFs,
+  dir,
+  message,
+}: CommitMergeConflictsResolutionArgs): Effect.Effect<
+  Commit['id'],
+  RepositoryError,
+  never
+> =>
+  pipe(
+    stageAndCommitWorkdirChanges({ isoGitFs, dir, message }),
+    Effect.tap(() => clearMergeState({ isoGitFs, dir }))
+  );

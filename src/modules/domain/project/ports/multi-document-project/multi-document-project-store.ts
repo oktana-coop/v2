@@ -107,6 +107,11 @@ export type MultiDocumentProjectResolveConflictByDeletingDocumentArgs = {
   documentId: ResolvedArtifactId;
 };
 
+export type MultiDocumentProjectCommitMergeConflictsResolutionArgs = {
+  projectId: ProjectId;
+  message: string;
+};
+
 export type MultiDocumentProjectSetAuthorInfoArgs = {
   projectId: ProjectId;
   username: Username | null;
@@ -245,6 +250,9 @@ export type MultiDocumentProjectStore = {
   resolveConflictByDeletingDocument: (
     args: MultiDocumentProjectResolveConflictByDeletingDocumentArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  commitMergeConflictsResolution: (
+    args: MultiDocumentProjectCommitMergeConflictsResolutionArgs
+  ) => Effect.Effect<Commit['id'], ValidationError | RepositoryError, never>;
   setAuthorInfo: (
     args: MultiDocumentProjectSetAuthorInfoArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;

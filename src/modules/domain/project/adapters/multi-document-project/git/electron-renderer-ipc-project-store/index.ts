@@ -278,6 +278,28 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
         ...args
       )
     ),
+  commitMergeConflictsResolution: (
+    ...args: Parameters<
+      MultiDocumentProjectStore['commitMergeConflictsResolution']
+    >
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<
+            MultiDocumentProjectStore['commitMergeConflictsResolution']
+          >
+        >
+      >,
+      RepositoryError
+    )(
+      window.multiDocumentProjectStoreAPI.commitMergeConflictsResolution(
+        ...args
+      )
+    ),
   setAuthorInfo: (
     ...args: Parameters<MultiDocumentProjectStore['setAuthorInfo']>
   ) =>

@@ -209,6 +209,14 @@ export const createAdapter = (
       )
     );
 
+  const commitMergeConflictsResolution: SingleDocumentProjectStore['commitMergeConflictsResolution'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Explicit merge conflict resolution is not yet supported when the app is configured with Automerge'
+        )
+      );
+
   // TODO: Implement authorship in Automerge
   const setAuthorInfo: SingleDocumentProjectStore['setAuthorInfo'] = () =>
     Effect.succeed(undefined);
@@ -281,6 +289,7 @@ export const createAdapter = (
     mergeAndDeleteBranch,
     getMergeConflictInfo,
     abortMerge,
+    commitMergeConflictsResolution,
     setAuthorInfo,
     addRemoteProject,
     listRemoteProjects,
