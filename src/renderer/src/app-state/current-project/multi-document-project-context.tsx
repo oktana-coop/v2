@@ -692,9 +692,6 @@ export const MultiDocumentProjectProvider = ({
   }, [versionedProjectStore, projectId]);
 
   const handleRefreshConflictsAndMergeIfPossible = useCallback(async () => {
-    const buildCommitMessage = (mergeConflictInfo: MergeConflictInfo | null) =>
-      `Merge branch${mergeConflictInfo?.sourceBranch ? ` ${mergeConflictInfo.sourceBranch}` : ''}`;
-
     if (!versionedProjectStore || !projectId) {
       throw new Error(
         'Project store is not ready or project has not been set yet. Cannot get merge conflict info.'
@@ -714,9 +711,6 @@ export const MultiDocumentProjectProvider = ({
               ? Effect.succeed(undefined)
               : versionedProjectStore.commitMergeConflictsResolution({
                   projectId,
-                  // Here we are using the outdated merge conflict info, but that's what we want
-                  // (we commit when the new conflict info is null).
-                  message: buildCommitMessage(mergeConflictInfo),
                 });
           }),
           Effect.map((conflictInfo) => ({

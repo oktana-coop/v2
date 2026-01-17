@@ -109,7 +109,7 @@ export type MultiDocumentProjectResolveConflictByDeletingDocumentArgs = {
 
 export type MultiDocumentProjectCommitMergeConflictsResolutionArgs = {
   projectId: ProjectId;
-  message: string;
+  message?: string;
 };
 
 export type MultiDocumentProjectSetAuthorInfoArgs = {

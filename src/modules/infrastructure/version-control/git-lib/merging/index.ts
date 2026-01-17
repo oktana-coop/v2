@@ -619,19 +619,43 @@ export type CommitMergeConflictsResolutionArgs = Omit<
   IsoGitDeps,
   'isoGitHttp'
 > & {
-  message: string;
+  message?: string;
 };
+
+type ReadMessageFromMergeMsgFileArgs = Omit<IsoGitDeps, 'isoGitHttp'>;
+
+const readMessageFromMergeMsgFile = ({
+  isoGitFs,
+  dir,
+}: ReadMessageFromMergeMsgFileArgs): Effect.Effect<
+  string,
+  RepositoryError,
+  never
+> =>
+  Effect.tryPromise({
+    try: () =>
+      isoGitFs.promises.readFile(path.join(dir, '.git', 'MERGE_MSG'), 'utf8'),
+    catch: mapErrorTo(RepositoryError, 'Error in reading MERGE_MSG file.'),
+  });
 
 export const commitMergeConflictsResolution = ({
   isoGitFs,
   dir,
-  message,
+  message: messageInput,
 }: CommitMergeConflictsResolutionArgs): Effect.Effect<
   Commit['id'],
   RepositoryError,
   never
 > =>
   pipe(
-    stageAndCommitWorkdirChanges({ isoGitFs, dir, message }),
+    messageInput
+      ? Effect.succeed(messageInput)
+      : pipe(
+          readMessageFromMergeMsgFile({ isoGitFs, dir }),
+          Effect.catchAll(() => Effect.succeed('Merge branch'))
+        ),
+    Effect.flatMap((message) =>
+      stageAndCommitWorkdirChanges({ isoGitFs, dir, message })
+    ),
     Effect.tap(() => clearMergeState({ isoGitFs, dir }))
   );

@@ -76,7 +76,7 @@ export type SingleDocumentProjectAbortMergeArgs = {
 
 export type SingleDocumentProjectCommitMergeConflictsResolutionArgs = {
   projectId: ProjectId;
-  message: string;
+  message?: string;
 };
 
 export type SingleDocumentProjectSetAuthorInfoArgs = {
