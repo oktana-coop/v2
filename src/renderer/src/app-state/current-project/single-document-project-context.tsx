@@ -660,39 +660,30 @@ export const SingleDocumentProjectProvider = ({
       );
     }
 
-    const { notification, conflictInfo } = await Effect.runPromise(
+    const { notification } = await Effect.runPromise(
       pipe(
         pipe(
-          versionedProjectStore.getMergeConflictInfo({
+          // In the single document project there can only be a conflict in one document.
+          // So, we commit the merge resolution when it's resolved.
+          versionedProjectStore.commitMergeConflictsResolution({
             projectId,
+            // Here we are using the outdated merge conflict info, but that's what we want
+            // (we commit when the new conflict info is null).
+            message: buildCommitMessage(mergeConflictInfo),
           }),
-          Effect.tap((conflictInfo) => {
-            const conflicts = conflictInfo?.conflicts;
-
-            return conflicts && conflicts.length > 0
-              ? Effect.succeed(undefined)
-              : versionedProjectStore.commitMergeConflictsResolution({
-                  projectId,
-                  // Here we are using the outdated merge conflict info, but that's what we want
-                  // (we commit when the new conflict info is null).
-                  message: buildCommitMessage(mergeConflictInfo),
-                });
-          }),
-          Effect.map((conflictInfo) => ({
-            conflictInfo,
+          Effect.map(() => ({
             notification: null,
           }))
         ),
         Effect.catchAll((err) => {
           console.error(err);
           const notification = createErrorNotification({
-            title: 'Get Merge Conflict Info Error',
+            title: 'Resolve Conflict Error',
             message:
-              'An error happened when trying to get the merge conflict info. Please refresh and, if the problem is not resolved, contact us for support.',
+              'An error happened when trying to resolve the conflict. Please try again and, if the problem is not resolved, contact us for support.',
           });
 
           return Effect.succeed({
-            conflictInfo: null,
             notification,
           });
         })
@@ -702,24 +693,16 @@ export const SingleDocumentProjectProvider = ({
     if (notification) {
       dispatchNotification(notification);
     } else {
-      if (conflictInfo && conflictInfo.conflicts.length > 0) {
-        setMergeConflictInfo(conflictInfo);
-        navigateToResolveMergeConflicts({
-          projectId,
-          mergeConflictInfo: conflictInfo,
-        });
-      } else {
-        const notification = createSuccessNotification({
-          title: 'Successful Merge',
-          message:
-            'The branch was merged successfully. You are back in the main branch.',
-        });
-        dispatchNotification(notification);
-        setMergeConflictInfo(null);
-        navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
-      }
+      const notification = createSuccessNotification({
+        title: 'Successful Merge',
+        message:
+          'The branch was merged successfully. You are back in the main branch.',
+      });
+      dispatchNotification(notification);
+      setMergeConflictInfo(null);
+      navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
     }
-  }, [versionedProjectStore, projectId, navigateToResolveMergeConflicts]);
+  }, [versionedProjectStore, projectId, mergeConflictInfo]);
 
   const handleOpenDeleteBranchDialog = useCallback((branch: Branch) => {
     setBranchToDelete(branch);
