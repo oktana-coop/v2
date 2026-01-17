@@ -3,6 +3,7 @@ import {
   type MergeConflictInfo,
   type StructuralConflict as StructuralConflictType,
 } from '../../../../../../../modules/infrastructure/version-control';
+import { UnsupportedConflict } from '../UnsupportedConflict';
 import { ModifyDeleteConflict } from './ModifyDeleteConflict';
 
 export const StructuralConflict = ({
@@ -21,5 +22,5 @@ export const StructuralConflict = ({
     );
   }
 
-  return null;
+  return <UnsupportedConflict />;
 };

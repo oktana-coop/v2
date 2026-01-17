@@ -4,6 +4,7 @@ import {
   isContentConflict,
   type MergeConflictInfo,
 } from '../../../../../../../modules/infrastructure/version-control';
+import { UnsupportedConflict } from '../UnsupportedConflict';
 import { ContentConflict } from './ContentConflict';
 
 export type CompareContentConflictProps = {
@@ -36,5 +37,5 @@ export const CompareContentConflict = ({
   // TODO: Implement AddAddConflict.
   // In this case it's probably best to ask from the user
   // to select one of the two versions instead of comparing.
-  return null;
+  return <UnsupportedConflict />;
 };
