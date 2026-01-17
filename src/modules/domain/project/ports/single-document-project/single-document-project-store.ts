@@ -5,6 +5,7 @@ import {
   type Branch,
   type Commit,
   MergeConflictError,
+  type MergeConflictInfo,
   MigrationError,
   type ResolvedArtifactId,
 } from '../../../../infrastructure/version-control';
@@ -59,6 +60,23 @@ export type SingleDocumentProjectMergeAndDeleteBranchArgs = {
   projectId: ProjectId;
   from: Branch;
   into: Branch;
+};
+
+export type SingleDocumentProjectIsInMergeConflictStateArgs = {
+  projectId: ProjectId;
+};
+
+export type SingleDocumentProjectGetMergeConflictInfoArgs = {
+  projectId: ProjectId;
+};
+
+export type SingleDocumentProjectAbortMergeArgs = {
+  projectId: ProjectId;
+};
+
+export type SingleDocumentProjectCommitMergeConflictsResolutionArgs = {
+  projectId: ProjectId;
+  message?: string;
 };
 
 export type SingleDocumentProjectSetAuthorInfoArgs = {
@@ -164,6 +182,15 @@ export type SingleDocumentProjectStore = {
     ValidationError | RepositoryError | NotFoundError | MergeConflictError,
     never
   >;
+  getMergeConflictInfo: (
+    args: SingleDocumentProjectGetMergeConflictInfoArgs
+  ) => Effect.Effect<MergeConflictInfo | null, RepositoryError, never>;
+  abortMerge: (
+    args: SingleDocumentProjectAbortMergeArgs
+  ) => Effect.Effect<void, RepositoryError, never>;
+  commitMergeConflictsResolution: (
+    args: SingleDocumentProjectCommitMergeConflictsResolutionArgs
+  ) => Effect.Effect<Commit['id'], RepositoryError, never>;
   setAuthorInfo: (
     args: SingleDocumentProjectSetAuthorInfoArgs
   ) => Effect.Effect<void, RepositoryError, never>;

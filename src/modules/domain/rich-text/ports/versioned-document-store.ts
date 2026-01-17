@@ -78,6 +78,10 @@ export type DiscardUncommittedChangesArgs = {
   writeToFileWithPath?: string;
 };
 
+export type ResolveContentConflictArgs = {
+  documentId: ResolvedArtifactId;
+};
+
 export type VersionedDocumentStore = {
   // This is not an ideal model but we want to be able to tell that the document store we are searching in is the desired one.
   // Without this we are risking registering interest in documents from other repositories (and therefore polluting our stores).
@@ -162,6 +166,9 @@ export type VersionedDocumentStore = {
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
+  resolveContentConflict: (
+    args: ResolveContentConflictArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
   exportDocumentToBinary?: (
     document: VersionedDocument
   ) => Effect.Effect<Uint8Array, RepositoryError, never>;

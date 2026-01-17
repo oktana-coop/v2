@@ -292,6 +292,7 @@ export const createAdapter = ({
                 projectId,
                 documentId,
                 currentBranch,
+                mergeConflictInfo: null,
                 remoteProjects: [],
                 file,
                 // The name is derived by the file name in this case

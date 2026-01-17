@@ -10,32 +10,39 @@ import {
 
 import { WasmContext } from '../../../../modules/infrastructure/wasm/react/wasm-context';
 import { createAdapter as createPandocDiffAdapter } from '../adapters/pandoc-diff';
-import { richTextRepresentations } from '../constants/representations';
+import {
+  richTextRepresentations,
+  type TextRichTextRepresentation,
+} from '../constants/representations';
 import { RichTextDocument } from '../models';
 import {
   type Diff,
   type ProseMirrorDiffArgs,
   type ProseMirrorDiffResult,
 } from '../ports/diff';
-import { pmDocFromJSONString } from '../prosemirror';
+import { pmDocFromJSONString, pmDocToJSONString } from '../prosemirror';
 import { type PMNode } from '../prosemirror/hs-lib';
 import { RepresentationTransformContext } from './representation-transform-context';
 
-type ConvertAutomergeToProseMirrorArgs = {
+export type ConvertToProseMirrorArgs = {
   schema: Schema;
   document: RichTextDocument;
 };
 
-type ProseMirrorContextType = {
+export type ConvertFromProseMirrorArgs = {
+  pmDoc: Node;
+  to: TextRichTextRepresentation;
+};
+
+export type ProseMirrorContextType = {
   view: EditorView | null;
   setView: (view: EditorView | null) => void;
   proseMirrorDiff: (
     args: ProseMirrorDiffArgs
   ) => Promise<ProseMirrorDiffResult>;
   diffAdapterReady: boolean;
-  convertToProseMirror: (
-    args: ConvertAutomergeToProseMirrorArgs
-  ) => Promise<Node>;
+  convertToProseMirror: (args: ConvertToProseMirrorArgs) => Promise<Node>;
+  convertFromProseMirror: (args: ConvertFromProseMirrorArgs) => Promise<string>;
   parseMarkdown: (schema: Schema) => (input: string) => Promise<Node>;
   representationTransformAdapterReady: boolean;
 };
@@ -87,9 +94,7 @@ export const ProseMirrorProvider = ({
     [diffAdapter]
   );
 
-  const handleConvertToProseMirror = async (
-    args: ConvertAutomergeToProseMirrorArgs
-  ) => {
+  const handleConvertToProseMirror = async (args: ConvertToProseMirrorArgs) => {
     // TODO: Handle adapter readiness with a promise
     if (!representationTransformAdapter) {
       throw new Error(
@@ -173,6 +178,23 @@ export const ProseMirrorProvider = ({
     return pmDoc;
   };
 
+  const handleConvertFromProseMirror = async (
+    args: ConvertFromProseMirrorArgs
+  ) => {
+    // TODO: Handle adapter readiness with a promise
+    if (!representationTransformAdapter) {
+      throw new Error(
+        'No representation transform adapter found when trying to convert from ProseMirror'
+      );
+    }
+
+    return representationTransformAdapter.transformToText({
+      from: richTextRepresentations.PROSEMIRROR,
+      to: args.to,
+      input: pmDocToJSONString(args.pmDoc),
+    });
+  };
+
   return (
     <ProseMirrorContext.Provider
       value={{
@@ -181,6 +203,7 @@ export const ProseMirrorProvider = ({
         proseMirrorDiff: produceProseMirrorDiff,
         diffAdapterReady: Boolean(diffAdapter),
         convertToProseMirror: handleConvertToProseMirror,
+        convertFromProseMirror: handleConvertFromProseMirror,
         representationTransformAdapterReady: Boolean(
           representationTransformAdapter
         ),

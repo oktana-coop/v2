@@ -1,22 +1,10 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
-import git, { Errors as IsoGitErrors } from 'isomorphic-git';
+import git from 'isomorphic-git';
 
-import { fromNullable } from '../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../utils/errors';
-import { DEFAULT_AUTHOR_NAME } from '../../constants';
-import {
-  MergeConflictError,
-  NotFoundError,
-  RepositoryError,
-} from '../../errors';
-import {
-  type Branch,
-  type Commit,
-  DEFAULT_BRANCH,
-  parseBranch,
-  parseGitCommitHash,
-} from '../../models';
+import { NotFoundError, RepositoryError } from '../../errors';
+import { type Branch, DEFAULT_BRANCH, parseBranch } from '../../models';
 import { getBranchCommitHistory } from '../history';
 import { IsoGitDeps } from '../types';
 
@@ -42,11 +30,6 @@ export type DeleteBranchArgs = Omit<IsoGitDeps, 'isoGitHttp'> & {
 
 export type DeleteBranchResult = {
   currentBranch: Branch;
-};
-
-export type MergeAndDeleteBranchArgs = Omit<IsoGitDeps, 'isoGitHttp'> & {
-  from: Branch;
-  into: Branch;
 };
 
 export const createAndSwitchToBranch = ({
@@ -258,67 +241,5 @@ export const deleteBranch = ({
             })
           )
         )
-    )
-  );
-
-export const mergeAndDeleteBranch = ({
-  isoGitFs,
-  dir,
-  from,
-  into,
-}: MergeAndDeleteBranchArgs): Effect.Effect<
-  Commit['id'],
-  RepositoryError | NotFoundError | MergeConflictError,
-  never
-> =>
-  pipe(
-    Effect.tryPromise({
-      try: () =>
-        git.merge({
-          fs: isoGitFs,
-          dir,
-          ours: into,
-          theirs: from,
-          author: {
-            name: DEFAULT_AUTHOR_NAME,
-          },
-        }),
-      catch: (err) => {
-        console.log(err);
-        if (
-          err instanceof IsoGitErrors.MergeNotSupportedError ||
-          err instanceof IsoGitErrors.MergeConflictError
-        ) {
-          return new MergeConflictError(
-            `Error when trying to merge ${from} into ${into} due to conflicts.`
-          );
-        }
-
-        return new RepositoryError(
-          `Error when trying to merge ${from} into ${into}`
-        );
-      },
-    }),
-    Effect.flatMap(({ oid }) =>
-      pipe(
-        fromNullable(
-          oid,
-          () =>
-            // TODO: Revert the whole merge in this case (in a transactional manner).
-            new RepositoryError(
-              'Could not resolve the new head of the branch after merging.'
-            )
-        ),
-        Effect.flatMap((mergeCommitId) =>
-          Effect.try({
-            try: () => parseGitCommitHash(mergeCommitId),
-            catch: mapErrorTo(RepositoryError, 'Invalid merge commit ID.'),
-          })
-        )
-      )
-    ),
-    Effect.tap(() => deleteBranch({ isoGitFs, dir, branch: from })),
-    Effect.tap(() =>
-      switchToBranch({ isoGitFs, dir, branch: DEFAULT_BRANCH as Branch })
     )
   );

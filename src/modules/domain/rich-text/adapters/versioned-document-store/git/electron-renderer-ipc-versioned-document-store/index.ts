@@ -240,6 +240,25 @@ export const createAdapter = ({
           projectId
         )
       ),
+    resolveContentConflict: (
+      ...args: Parameters<VersionedDocumentStore['resolveContentConflict']>
+    ) =>
+      effectifyIPCPromise(
+        {
+          [VersionedDocumentValidationErrorTag]: ValidationError,
+          [VersionedDocumentRepositoryErrorTag]: RepositoryError,
+        } as ErrorRegistry<
+          EffectErrorType<
+            ReturnType<VersionedDocumentStore['resolveContentConflict']>
+          >
+        >,
+        RepositoryError
+      )(
+        window.versionedDocumentStoreAPI.resolveContentConflict(
+          ...args,
+          projectId
+        )
+      ),
     disconnect: (...args: Parameters<VersionedDocumentStore['disconnect']>) =>
       effectifyIPCPromise(
         {

@@ -36,6 +36,11 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
             versionedProjectStore.getCurrentBranch({ projectId })
           ),
           Effect.bind(
+            'mergeConflictInfo',
+            ({ versionedProjectStore, projectId }) =>
+              versionedProjectStore.getMergeConflictInfo({ projectId })
+          ),
+          Effect.bind(
             'remoteProjects',
             ({ versionedProjectStore, projectId }) =>
               versionedProjectStore.listRemoteProjects({ projectId })
@@ -46,6 +51,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
               versionedProjectStore,
               projectId,
               currentBranch,
+              mergeConflictInfo,
               remoteProjects,
             }) => ({
               versionedProjectStore,
@@ -59,6 +65,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
               projectId,
               directory,
               currentBranch,
+              mergeConflictInfo,
               remoteProjects,
             })
           )
@@ -91,6 +98,9 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
           Effect.bind('currentBranch', ({ versionedProjectStore }) =>
             versionedProjectStore.getCurrentBranch({ projectId })
           ),
+          Effect.bind('mergeConflictInfo', ({ versionedProjectStore }) =>
+            versionedProjectStore.getMergeConflictInfo({ projectId })
+          ),
           Effect.bind('remoteProjects', ({ versionedProjectStore }) =>
             versionedProjectStore.listRemoteProjects({ projectId })
           ),
@@ -99,6 +109,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
               directory,
               versionedProjectStore,
               currentBranch,
+              mergeConflictInfo,
               remoteProjects,
             }) => ({
               versionedProjectStore,
@@ -112,6 +123,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
               projectId,
               directory,
               currentBranch,
+              mergeConflictInfo,
               remoteProjects,
             })
           )

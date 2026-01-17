@@ -4,6 +4,7 @@ import {
   type Branch,
   type Commit,
   MergeConflictError,
+  type MergeConflictInfo,
   MigrationError,
   type ResolvedArtifactId,
 } from '../../../../../modules/infrastructure/version-control';
@@ -46,6 +47,11 @@ export type FindDocumentInMultiDocumentProjectArgs = {
   documentPath: string;
 };
 
+export type MultiDocumentProjectCommitChangesArgs = {
+  projectId: ProjectId;
+  message: string;
+};
+
 export type MultiDocumentProjectCreateAndSwitchToBranchArgs = {
   projectId: ProjectId;
   branch: Branch;
@@ -77,6 +83,33 @@ export type MultiDocumentProjectMergeAndDeleteBranchArgs = {
   projectId: ProjectId;
   from: Branch;
   into: Branch;
+};
+
+export type MultiDocumentProjectIsInMergeConflictStateArgs = {
+  projectId: ProjectId;
+};
+
+export type MultiDocumentProjectGetMergeConflictInfoArgs = {
+  projectId: ProjectId;
+};
+
+export type MultiDocumentProjectAbortMergeArgs = {
+  projectId: ProjectId;
+};
+
+export type MultiDocumentProjectResolveConflictByKeepingDocumentArgs = {
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
+};
+
+export type MultiDocumentProjectResolveConflictByDeletingDocumentArgs = {
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
+};
+
+export type MultiDocumentProjectCommitMergeConflictsResolutionArgs = {
+  projectId: ProjectId;
+  message?: string;
 };
 
 export type MultiDocumentProjectSetAuthorInfoArgs = {
@@ -164,6 +197,9 @@ export type MultiDocumentProjectStore = {
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
+  commitChanges: (
+    args: MultiDocumentProjectCommitChangesArgs
+  ) => Effect.Effect<Commit['id'], ValidationError | RepositoryError, never>;
   createAndSwitchToBranch: (
     args: MultiDocumentProjectCreateAndSwitchToBranchArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
@@ -198,6 +234,25 @@ export type MultiDocumentProjectStore = {
     ValidationError | RepositoryError | NotFoundError | MergeConflictError,
     never
   >;
+  getMergeConflictInfo: (
+    args: MultiDocumentProjectGetMergeConflictInfoArgs
+  ) => Effect.Effect<
+    MergeConflictInfo | null,
+    ValidationError | RepositoryError,
+    never
+  >;
+  abortMerge: (
+    args: MultiDocumentProjectAbortMergeArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  resolveConflictByKeepingDocument: (
+    args: MultiDocumentProjectResolveConflictByKeepingDocumentArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  resolveConflictByDeletingDocument: (
+    args: MultiDocumentProjectResolveConflictByDeletingDocumentArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  commitMergeConflictsResolution: (
+    args: MultiDocumentProjectCommitMergeConflictsResolutionArgs
+  ) => Effect.Effect<Commit['id'], ValidationError | RepositoryError, never>;
   setAuthorInfo: (
     args: MultiDocumentProjectSetAuthorInfoArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;

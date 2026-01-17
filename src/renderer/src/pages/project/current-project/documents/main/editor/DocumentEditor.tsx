@@ -44,7 +44,6 @@ export const DocumentEditor = () => {
             <RichTextEditor
               doc={versionedDocument}
               docHandle={versionedDocumentHandle}
-              onSave={onOpenCommitDialog}
               isToolbarOpen={isEditorToolbarOpen}
               onDocChange={onDocumentContentChange}
             />

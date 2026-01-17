@@ -86,3 +86,46 @@ export const IconButtonWithTooltip: Story = {
     />
   ),
 };
+
+export const VariantsColorsAndSizes: Story = {
+  render: () => {
+    const variants = ['solid', 'outline', 'plain'] as const;
+    const colors = [undefined, 'purple', 'red'] as const;
+    const sizes = ['sm', 'md', 'lg'] as const;
+
+    return (
+      <div className="grid gap-10">
+        {variants.map((variant) => (
+          <div key={variant} className="space-y-4">
+            <strong className="text-sm font-semibold capitalize text-gray-900 dark:text-gray-100">
+              {variant}
+            </strong>
+
+            <div className="space-y-3">
+              {sizes.map((size) => (
+                <div key={size} className="flex items-center gap-4">
+                  <div className="w-10 text-xs text-gray-600 dark:text-gray-400">
+                    {size}
+                  </div>
+
+                  <div className="flex gap-4">
+                    {colors.map((color) => (
+                      <Button
+                        key={`${variant}-${size}-${color ?? 'default'}`}
+                        variant={variant}
+                        color={color}
+                        size={size}
+                      >
+                        {color ?? 'default'}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  },
+};

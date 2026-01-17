@@ -17,6 +17,7 @@ import {
 } from '../../../../../modules/infrastructure/filesystem';
 import {
   type Branch,
+  type MergeConflictInfo,
   MigrationError,
 } from '../../../../../modules/infrastructure/version-control';
 import { type Email, type Username } from '../../../../auth';
@@ -50,6 +51,7 @@ export type OpenOrCreateMultiDocumentProjectResult = {
   projectId: ProjectId;
   directory: Directory;
   currentBranch: Branch;
+  mergeConflictInfo: MergeConflictInfo | null;
   remoteProjects: RemoteProjectInfo[];
 };
 
@@ -68,6 +70,7 @@ export type OpenMultiDocumentProjectByIdResult = {
   projectId: ProjectId;
   directory: Directory;
   currentBranch: Branch;
+  mergeConflictInfo: MergeConflictInfo | null;
   remoteProjects: RemoteProjectInfo[];
 };
 

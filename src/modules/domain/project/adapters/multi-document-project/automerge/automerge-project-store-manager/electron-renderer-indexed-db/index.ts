@@ -56,33 +56,41 @@ export const createAdapter = ({
               'Error in creating multi-document project'
             ),
           }),
-          Effect.flatMap(({ projectId, directory, currentBranch }) =>
-            pipe(
-              // TODO: Consider a cleaner approach of wiping IndexedDB (or the previous project's DB)
-              // before setting up the new one. For now, assuming that we don't want to do this so that performance
-              // is better as the user switches between known projects, and IndexedDB is guaranteed to be wiped when
-              // they close the app.
-              setupAutomergeRepo({
-                processId,
-                dbName: projectId,
-                store: STORE_NAME,
-              }),
-              Effect.map((automergeRepo) => ({
-                versionedProjectStore:
-                  createAutomergeProjectStoreAdapter(automergeRepo),
-                versionedDocumentStore: createAutomergeDocumentStoreAdapter({
-                  automergeRepo,
-                  projectId,
-                  // It's really the main process store that manages the filesystem workdir here,
-                  // but from the perspective of the client using this adapter it should be transparent.
-                  managesFilesystemWorkdir: true,
+          Effect.flatMap(
+            ({
+              projectId,
+              directory,
+              currentBranch,
+              mergeConflictInfo,
+              remoteProjects,
+            }) =>
+              pipe(
+                // TODO: Consider a cleaner approach of wiping IndexedDB (or the previous project's DB)
+                // before setting up the new one. For now, assuming that we don't want to do this so that performance
+                // is better as the user switches between known projects, and IndexedDB is guaranteed to be wiped when
+                // they close the app.
+                setupAutomergeRepo({
+                  processId,
+                  dbName: projectId,
+                  store: STORE_NAME,
                 }),
-                projectId,
-                directory,
-                currentBranch,
-                remoteProjects: [],
-              }))
-            )
+                Effect.map((automergeRepo) => ({
+                  versionedProjectStore:
+                    createAutomergeProjectStoreAdapter(automergeRepo),
+                  versionedDocumentStore: createAutomergeDocumentStoreAdapter({
+                    automergeRepo,
+                    projectId,
+                    // It's really the main process store that manages the filesystem workdir here,
+                    // but from the perspective of the client using this adapter it should be transparent.
+                    managesFilesystemWorkdir: true,
+                  }),
+                  projectId,
+                  directory,
+                  currentBranch,
+                  mergeConflictInfo,
+                  remoteProjects,
+                }))
+              )
           )
         );
 
@@ -107,33 +115,35 @@ export const createAdapter = ({
               'Error in creating multi-document project'
             ),
           }),
-          Effect.flatMap(({ directory, currentBranch }) =>
-            pipe(
-              // TODO: Consider a cleaner approach of wiping IndexedDB (or the previous project's DB)
-              // before setting up the new one. For now, assuming that we don't want to do this so that performance
-              // is better as the user switches between known projects, and IndexedDB is guaranteed to be wiped when
-              // they close the app.
-              setupAutomergeRepo({
-                processId,
-                dbName: projectId,
-                store: STORE_NAME,
-              }),
-              Effect.map((automergeRepo) => ({
-                versionedProjectStore:
-                  createAutomergeProjectStoreAdapter(automergeRepo),
-                versionedDocumentStore: createAutomergeDocumentStoreAdapter({
-                  automergeRepo,
-                  projectId,
-                  // It's really the main process store that manages the filesystem workdir here,
-                  // but from the perspective of the client using this adapter it should be transparent.
-                  managesFilesystemWorkdir: true,
+          Effect.flatMap(
+            ({ directory, currentBranch, mergeConflictInfo, remoteProjects }) =>
+              pipe(
+                // TODO: Consider a cleaner approach of wiping IndexedDB (or the previous project's DB)
+                // before setting up the new one. For now, assuming that we don't want to do this so that performance
+                // is better as the user switches between known projects, and IndexedDB is guaranteed to be wiped when
+                // they close the app.
+                setupAutomergeRepo({
+                  processId,
+                  dbName: projectId,
+                  store: STORE_NAME,
                 }),
-                projectId,
-                directory,
-                currentBranch,
-                remoteProjects: [],
-              }))
-            )
+                Effect.map((automergeRepo) => ({
+                  versionedProjectStore:
+                    createAutomergeProjectStoreAdapter(automergeRepo),
+                  versionedDocumentStore: createAutomergeDocumentStoreAdapter({
+                    automergeRepo,
+                    projectId,
+                    // It's really the main process store that manages the filesystem workdir here,
+                    // but from the perspective of the client using this adapter it should be transparent.
+                    managesFilesystemWorkdir: true,
+                  }),
+                  projectId,
+                  directory,
+                  currentBranch,
+                  mergeConflictInfo,
+                  remoteProjects,
+                }))
+              )
           )
         );
 

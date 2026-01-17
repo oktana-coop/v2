@@ -40,11 +40,13 @@ import {
   type Branch,
   type Commit,
   DEFAULT_BRANCH,
+  type MergeConflictInfo,
   parseBranch,
   type ResolvedArtifactId,
   urlEncodeArtifactId,
   VersionControlMergeConflictErrorTag,
 } from '../../../../modules/infrastructure/version-control';
+import { useNavigateToResolveConflicts } from '../../hooks';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
 type BrowserStorageProjectData = {
@@ -93,10 +95,19 @@ export type MultiDocumentProjectContextType = {
   closeCreateBranchDialog: () => void;
   deleteBranch: (branch: Branch) => Promise<void>;
   mergeAndDeleteBranch: (branch: Branch) => Promise<void>;
+  abortMerge: () => Promise<void>;
+  refreshConflictsAndMergeIfPossible: () => Promise<void>;
+  resolveConflictByKeepingDocument: (
+    documentId: ResolvedArtifactId
+  ) => Promise<void>;
+  resolveConflictByDeletingDocument: (
+    documentId: ResolvedArtifactId
+  ) => Promise<void>;
   branchToDelete: Branch | null;
   openDeleteBranchDialog: (branch: Branch) => void;
   closeDeleteBranchDialog: () => void;
   supportsBranching: boolean;
+  mergeConflictInfo: MergeConflictInfo | null;
   remoteProject: RemoteProjectInfo | null;
   addRemoteProject: (url: string) => Promise<void>;
   remoteBranchInfo: Record<Branch, Commit['id']>;
@@ -144,6 +155,8 @@ export const MultiDocumentProjectProvider = ({
   const [directory, setDirectory] = useState<Directory | null>(null);
   const [directoryFiles, setDirectoryFiles] = useState<Array<File>>([]);
   const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
+  const [mergeConflictInfo, setMergeConflictInfo] =
+    useState<MergeConflictInfo | null>(null);
   const { documentId: documentIdInPath } = useParams();
   const [versionedProjectStore, setVersionedProjectStore] =
     useState<MultiDocumentProjectStore | null>(null);
@@ -165,6 +178,7 @@ export const MultiDocumentProjectProvider = ({
   const [pulledUpstreamChanges, setPulledUpstreamChanges] =
     useState<boolean>(false);
   const navigate = useNavigate();
+  const navigateToResolveMergeConflicts = useNavigateToResolveConflicts();
 
   useEffect(() => {
     const getSelectedDirectory = async () => {
@@ -189,6 +203,7 @@ export const MultiDocumentProjectProvider = ({
           versionedProjectStore: projectStore,
           directory,
           currentBranch,
+          mergeConflictInfo,
           remoteProjects,
         } = await Effect.runPromise(
           multiDocumentProjectStoreManager.openMultiDocumentProjectById({
@@ -204,15 +219,23 @@ export const MultiDocumentProjectProvider = ({
         setProjectId(browserStorageProjectData.projectId);
         setDirectory(directory);
         setCurrentBranch(currentBranch);
+        setMergeConflictInfo(mergeConflictInfo);
         setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
         setVersionedProjectStore(projectStore);
         setVersionedDocumentStore(documentStore);
 
         setLoading(false);
 
-        navigate(
-          `/projects/${urlEncodeProjectId(browserStorageProjectData.projectId)}/documents`
-        );
+        if (mergeConflictInfo) {
+          navigateToResolveMergeConflicts({
+            projectId: browserStorageProjectData.projectId,
+            mergeConflictInfo,
+          });
+        } else {
+          navigate(
+            `/projects/${urlEncodeProjectId(browserStorageProjectData.projectId)}/documents`
+          );
+        }
       }
     };
 
@@ -272,7 +295,7 @@ export const MultiDocumentProjectProvider = ({
       }
     };
 
-    if (projectId && selectedFileInfo?.path) {
+    if (projectId && selectedFileInfo?.path && !mergeConflictInfo) {
       if (selectedFileInfo) {
         reloadSelectedDocumentOrReset({
           projId: projectId,
@@ -283,7 +306,7 @@ export const MultiDocumentProjectProvider = ({
         navigateToProjectsList();
       }
     }
-  }, [currentBranch, pulledUpstreamChanges]);
+  }, [currentBranch, pulledUpstreamChanges, mergeConflictInfo]);
 
   useEffect(() => {
     if (!documentIdInPath) {
@@ -347,6 +370,7 @@ export const MultiDocumentProjectProvider = ({
         projectId: projId,
         directory: dir,
         currentBranch,
+        mergeConflictInfo,
         remoteProjects,
       } = await Effect.runPromise(
         multiDocumentProjectStoreManager.openOrCreateMultiDocumentProject({
@@ -357,6 +381,7 @@ export const MultiDocumentProjectProvider = ({
       setProjectId(projId);
       setDirectory(dir);
       setCurrentBranch(currentBranch);
+      setMergeConflictInfo(mergeConflictInfo);
       setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
       setVersionedProjectStore(projectStore);
       setVersionedDocumentStore(documentStore);
@@ -372,7 +397,14 @@ export const MultiDocumentProjectProvider = ({
 
       setLoading(false);
 
-      navigate(`/projects/${urlEncodeProjectId(projId)}/documents`);
+      if (mergeConflictInfo) {
+        navigateToResolveMergeConflicts({
+          projectId: projId,
+          mergeConflictInfo,
+        });
+      } else {
+        navigate(`/projects/${urlEncodeProjectId(projId)}/documents`);
+      }
 
       return dir;
     },
@@ -565,48 +597,223 @@ export const MultiDocumentProjectProvider = ({
         );
       }
 
-      const { notification } = await Effect.runPromise(
-        pipe(
+      const { notification, mergeConflictInfo: conflictInfo } =
+        await Effect.runPromise(
           pipe(
-            versionedProjectStore.mergeAndDeleteBranch({
-              projectId,
-              from: branch,
-              into: DEFAULT_BRANCH as Branch,
-            }),
-            Effect.map((lastCommitId) => ({
-              result: lastCommitId,
-              notification: null,
-            }))
-          ),
-          Effect.catchTag(VersionControlMergeConflictErrorTag, (err) => {
-            console.error(err);
-            const notification = createErrorNotification({
-              title: 'Merge Conflict',
-              message:
-                'A conflict was encountered when v2 tried to merge the branch. Conflict resolution workflow coming soon.',
-            });
+            pipe(
+              versionedProjectStore.mergeAndDeleteBranch({
+                projectId,
+                from: branch,
+                into: DEFAULT_BRANCH as Branch,
+              }),
+              Effect.map((lastCommitId) => ({
+                result: lastCommitId,
+                notification: null,
+                mergeConflictInfo: null,
+              }))
+            ),
+            Effect.catchTag(VersionControlMergeConflictErrorTag, (err) =>
+              Effect.succeed({
+                result: null,
+                notification: null,
+                mergeConflictInfo: err.data,
+              })
+            ),
+            Effect.catchAll((err) => {
+              console.error(err);
+              const notification = createErrorNotification({
+                title: 'Merge Error',
+                message: `An error happened when trying to merge "${branch}" into "${DEFAULT_BRANCH}" branch`,
+              });
 
-            return Effect.succeed({ result: null, notification });
-          }),
-          Effect.catchAll((err) => {
-            console.error(err);
-            const notification = createErrorNotification({
-              title: 'Merge Error',
-              message: `An error happened when trying to merge "${branch}" into "${DEFAULT_BRANCH}" branch`,
-            });
-
-            return Effect.succeed({ result: null, notification });
-          })
-        )
-      );
+              return Effect.succeed({
+                result: null,
+                notification,
+                mergeConflictInfo: null,
+              });
+            })
+          )
+        );
 
       if (notification) {
         dispatchNotification(notification);
       }
 
       setCurrentBranch(DEFAULT_BRANCH as Branch);
+
+      if (conflictInfo) {
+        setMergeConflictInfo(conflictInfo);
+        navigateToResolveMergeConflicts({
+          projectId,
+          mergeConflictInfo: conflictInfo,
+        });
+      }
     },
-    [versionedProjectStore, projectId]
+    [versionedProjectStore, projectId, navigateToResolveMergeConflicts]
+  );
+
+  const handleAbortMerge = useCallback(async () => {
+    if (!versionedProjectStore || !projectId) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot abort merge.'
+      );
+    }
+
+    const { notification } = await Effect.runPromise(
+      pipe(
+        pipe(
+          versionedProjectStore.abortMerge({
+            projectId,
+          }),
+          Effect.map(() => ({
+            notification: null,
+          }))
+        ),
+        Effect.catchAll((err) => {
+          console.error(err);
+          const notification = createErrorNotification({
+            title: 'Abort Merge Error',
+            message:
+              'An error happened when trying to abort the merge operation. Please contact us for support.',
+          });
+
+          return Effect.succeed({
+            notification,
+          });
+        })
+      )
+    );
+
+    if (notification) {
+      dispatchNotification(notification);
+    } else {
+      navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
+    }
+  }, [versionedProjectStore, projectId]);
+
+  const handleRefreshConflictsAndMergeIfPossible = useCallback(async () => {
+    if (!versionedProjectStore || !projectId) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot get merge conflict info.'
+      );
+    }
+
+    const { notification, conflictInfo } = await Effect.runPromise(
+      pipe(
+        pipe(
+          versionedProjectStore.getMergeConflictInfo({
+            projectId,
+          }),
+          Effect.tap((conflictInfo) => {
+            const conflicts = conflictInfo?.conflicts;
+
+            return conflicts && conflicts.length > 0
+              ? Effect.succeed(undefined)
+              : versionedProjectStore.commitMergeConflictsResolution({
+                  projectId,
+                });
+          }),
+          Effect.map((conflictInfo) => ({
+            conflictInfo,
+            notification: null,
+          }))
+        ),
+        Effect.catchAll((err) => {
+          console.error(err);
+          const notification = createErrorNotification({
+            title: 'Get Merge Conflict Info Error',
+            message:
+              'An error happened when trying to get the merge conflict info. Please refresh and, if the problem is not resolved, contact us for support.',
+          });
+
+          return Effect.succeed({
+            conflictInfo: null,
+            notification,
+          });
+        })
+      )
+    );
+
+    if (notification) {
+      dispatchNotification(notification);
+    } else {
+      if (conflictInfo && conflictInfo.conflicts.length > 0) {
+        setMergeConflictInfo(conflictInfo);
+        navigateToResolveMergeConflicts({
+          projectId,
+          mergeConflictInfo: conflictInfo,
+        });
+      } else {
+        const notification = createSuccessNotification({
+          title: 'Successful Merge',
+          message:
+            'The branch was merged successfully. You are back in the main branch.',
+        });
+        dispatchNotification(notification);
+        setMergeConflictInfo(null);
+        navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
+      }
+    }
+  }, [versionedProjectStore, projectId, navigateToResolveMergeConflicts]);
+
+  const handleResolveConflictByKeepingDocument = useCallback(
+    async (documentId: ResolvedArtifactId) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot resolve the conflict.'
+        );
+      }
+
+      try {
+        await Effect.runPromise(
+          versionedProjectStore.resolveConflictByKeepingDocument({
+            projectId,
+            documentId,
+          })
+        );
+      } catch (err) {
+        console.error(err);
+
+        const notification = createErrorNotification({
+          title: 'Resolve Conflict Error',
+          message: `An error happened when trying to resolve the conflict. Please try again and if the error persists contact us for support.`,
+        });
+        dispatchNotification(notification);
+      }
+
+      handleRefreshConflictsAndMergeIfPossible();
+    },
+    [versionedProjectStore, projectId, handleRefreshConflictsAndMergeIfPossible]
+  );
+
+  const handleResolveConflictByDeletingDocument = useCallback(
+    async (documentId: ResolvedArtifactId) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot resolve the conflict.'
+        );
+      }
+
+      try {
+        await Effect.runPromise(
+          versionedProjectStore.resolveConflictByDeletingDocument({
+            projectId,
+            documentId,
+          })
+        );
+      } catch (err) {
+        console.error(err);
+
+        const notification = createErrorNotification({
+          title: 'Resolve Conflict Error',
+          message: `An error happened when trying to resolve the conflict. Please try again and if the error persists contact us for support.`,
+        });
+        dispatchNotification(notification);
+      }
+
+      handleRefreshConflictsAndMergeIfPossible();
+    },
+    [versionedProjectStore, projectId, handleRefreshConflictsAndMergeIfPossible]
   );
 
   const handleOpenDeleteBranchDialog = useCallback((branch: Branch) => {
@@ -771,10 +978,18 @@ export const MultiDocumentProjectProvider = ({
         closeCreateBranchDialog: handleCloseCreateBranchDialog,
         deleteBranch: handleDeleteBranch,
         mergeAndDeleteBranch: handleMergeAndDeleteBranch,
+        abortMerge: handleAbortMerge,
+        refreshConflictsAndMergeIfPossible:
+          handleRefreshConflictsAndMergeIfPossible,
+        resolveConflictByKeepingDocument:
+          handleResolveConflictByKeepingDocument,
+        resolveConflictByDeletingDocument:
+          handleResolveConflictByDeletingDocument,
         branchToDelete,
         openDeleteBranchDialog: handleOpenDeleteBranchDialog,
         closeDeleteBranchDialog: handleCloseDeleteBranchDialog,
         supportsBranching,
+        mergeConflictInfo,
         remoteProject,
         addRemoteProject: handleAddRemoteProject,
         remoteBranchInfo,

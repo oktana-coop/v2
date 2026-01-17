@@ -53,6 +53,7 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
     proseMirrorDiff,
     diffAdapterReady,
     convertToProseMirror,
+    convertFromProseMirror,
     representationTransformAdapterReady,
   } = useContext(ProseMirrorContext);
 
@@ -87,17 +88,19 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
       const contentBefore = getDocumentRichTextContent(props.docBefore);
       const contentAfter = getDocumentRichTextContent(props.docAfter);
 
+      const decorationClasses = {
+        insert: diffInsert,
+        modify: diffModify,
+        delete: diffDelete,
+      };
+
       const { pmDocAfter: pmDoc, decorations } = await proseMirrorDiff({
         representation:
           // There are some old document versions without the representataion set. The representation is Automerge in that case.
           // TODO: Remove this fallback when we no longer expect documents without representation set.
           props.docAfter.representation ?? richTextRepresentations.AUTOMERGE,
         proseMirrorSchema: schema,
-        decorationClasses: {
-          insert: diffInsert,
-          modify: diffModify,
-          delete: diffDelete,
-        },
+        decorationClasses,
         docBefore: contentBefore,
         docAfter: contentAfter,
       });
@@ -109,7 +112,12 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
         doc: pmDoc,
         plugins: [
           openExternalLinkPlugin(openExternalLink),
-          diffPlugin({ decorations }),
+          diffPlugin({
+            decorations,
+            proseMirrorDiff,
+            convertFromProseMirror,
+            decorationClasses,
+          }),
           notesPlugin(),
         ],
       });

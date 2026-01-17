@@ -114,6 +114,7 @@ export type SingleDocumentProjectStoreManagerAPI = {
       | 'projectId'
       | 'documentId'
       | 'currentBranch'
+      | 'mergeConflictInfo'
       | 'remoteProjects'
       | 'file'
       | 'name'
@@ -127,7 +128,11 @@ export type MultiDocumentProjectStoreManagerAPI = {
   ) => Promise<
     Pick<
       OpenOrCreateMultiDocumentProjectResult,
-      'projectId' | 'directory' | 'currentBranch' | 'remoteProjects'
+      | 'projectId'
+      | 'directory'
+      | 'currentBranch'
+      | 'mergeConflictInfo'
+      | 'remoteProjects'
     >
   >;
   openMultiDocumentProjectById: (
@@ -135,7 +140,7 @@ export type MultiDocumentProjectStoreManagerAPI = {
   ) => Promise<
     Pick<
       OpenMultiDocumentProjectByIdResult,
-      'directory' | 'currentBranch' | 'remoteProjects'
+      'directory' | 'currentBranch' | 'mergeConflictInfo' | 'remoteProjects'
     >
   >;
 };
@@ -187,6 +192,10 @@ type VersionedDocumentStoreIPCAPI = VersionedDocumentStore & {
   restoreCommit: AppendParam<VersionedDocumentStore['restoreCommit'], string>;
   discardUncommittedChanges: AppendParam<
     VersionedDocumentStore['discardUncommittedChanges'],
+    string
+  >;
+  resolveContentConflict: AppendParam<
+    VersionedDocumentStore['resolveContentConflict'],
     string
   >;
   disconnect: AppendParam<VersionedDocumentStore['disconnect'], string>;

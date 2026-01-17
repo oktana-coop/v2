@@ -6,34 +6,40 @@ import git, {
   type PromiseFsClient as IsoGitFsApi,
 } from 'isomorphic-git';
 
+import { type Filesystem } from '../../../../../../../modules/infrastructure/filesystem';
 import {
-  type Filesystem,
-  removePath,
-} from '../../../../../../../modules/infrastructure/filesystem';
-import {
+  abortMerge as abortGitMerge,
   cloneRepository as cloneGitRepo,
+  commitMergeConflictsResolution as commitMergeConflictsResolutionToGit,
   createAndSwitchToBranch as createAndSwitchToBranchWithGit,
   createGitBlobRef,
+  decomposeGitBlobRef,
   DEFAULT_AUTHOR_NAME,
   DEFAULT_BRANCH,
   deleteBranch as deleteBranchWithGit,
   findRemoteByName as findGitRemoteByName,
   getCurrentBranch as getCurrentBranchWithGit,
+  getMergeConflictInfo as getGitRepoMergeConflictInfo,
   getRemoteBranchInfo as getRemoteBranchInfoWithGit,
   getUserInfo as getUserInfoFromConfig,
+  type GitBlobRef,
   isGitBlobRef,
   listBranches as listBranchesWithGit,
   listRemotes as listGitRemotes,
   mergeAndDeleteBranch as mergeAndDeleteBranchWithGit,
   pullFromRemote as pullFromRemoteGitRepo,
   pushToRemote as pushToRemoteGitRepo,
+  removeFile as removeFileFromGit,
   type ResolvedArtifactId,
   setUserInfo as setUserInfoInGit,
+  stageAndCommitWorkdirChanges,
+  stageFile as stageFileInGit,
   switchToBranch as switchToBranchWithGit,
   validateAndAddRemote,
   VersionControlNotFoundErrorTag,
   VersionControlRepositoryErrorTag,
   versionedArtifactTypes,
+  writeGitignore,
 } from '../../../../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../../../../utils/errors';
 import {
@@ -106,15 +112,25 @@ export const createAdapter = ({
                 )
               )
             )
-          : Effect.tryPromise({
-              try: () =>
-                git.init({
-                  fs: isoGitFs,
-                  dir: projectPath,
-                  defaultBranch: DEFAULT_BRANCH,
-                }),
-              catch: mapErrorTo(RepositoryError, 'Git repo error'),
-            })
+          : pipe(
+              Effect.tryPromise({
+                try: () =>
+                  git.init({
+                    fs: isoGitFs,
+                    dir: projectPath,
+                    defaultBranch: DEFAULT_BRANCH,
+                  }),
+                catch: mapErrorTo(RepositoryError, 'Git repo error'),
+              }),
+              Effect.tap(() =>
+                pipe(
+                  writeGitignore({ isoGitFs, dir: projectPath }),
+                  Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+                    Effect.fail(new RepositoryError(err.message))
+                  )
+                )
+              )
+            )
       ),
       Effect.tap((projectPath) =>
         setAuthorInfo({ projectId: projectPath, username, email })
@@ -181,20 +197,34 @@ export const createAdapter = ({
   const addDocumentToProject: MultiDocumentProjectStore['addDocumentToProject'] =
     () => Effect.succeed(undefined);
 
+  const ensureDocumentIdIsGitRef: (
+    id: ResolvedArtifactId
+  ) => Effect.Effect<GitBlobRef, ValidationError, never> = (id) =>
+    pipe(
+      Effect.succeed(id),
+      Effect.filterOrFail(
+        isGitBlobRef,
+        (val) => new ValidationError(`Invalid document id: ${val}`)
+      )
+    );
+
+  const extractDocumentRelativePathFromId: (
+    id: ResolvedArtifactId
+  ) => Effect.Effect<string, ValidationError, never> = (id) =>
+    pipe(
+      ensureDocumentIdIsGitRef(id),
+      Effect.map((gitBlobRef) => {
+        const { path: documentPath } = decomposeGitBlobRef(gitBlobRef);
+        return documentPath;
+      })
+    );
+
   const deleteDocumentFromProject: MultiDocumentProjectStore['deleteDocumentFromProject'] =
     ({ projectId, documentId }) =>
       Effect.Do.pipe(
         Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
-        Effect.bind('documentName', () =>
-          pipe(
-            Effect.succeed(documentId),
-            Effect.filterOrFail(
-              isGitBlobRef,
-              (val) => new ValidationError(`Invalid document id: ${val}`)
-            ),
-            // TODO: This won't work well for documents inside sub-folders.
-            Effect.map((documentGitBlobRef) => removePath(documentGitBlobRef))
-          )
+        Effect.bind('documentPath', () =>
+          extractDocumentRelativePathFromId(documentId)
         ),
         Effect.bind('repoUserInfo', ({ projectPath }) =>
           pipe(
@@ -204,17 +234,18 @@ export const createAdapter = ({
             )
           )
         ),
-        Effect.flatMap(({ projectPath, documentName, repoUserInfo }) =>
+        Effect.flatMap(({ projectPath, documentPath, repoUserInfo }) =>
           pipe(
-            Effect.tryPromise({
-              try: () =>
-                git.remove({
-                  fs: isoGitFs,
-                  dir: projectPath,
-                  filepath: documentName,
-                }),
-              catch: mapErrorTo(RepositoryError, 'Git repo error'),
-            }),
+            pipe(
+              removeFileFromGit({
+                isoGitFs,
+                dir: projectPath,
+                path: documentPath,
+              }),
+              Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+                Effect.fail(new RepositoryError(err.message))
+              )
+            ),
             Effect.flatMap(() =>
               Effect.tryPromise({
                 try: () =>
@@ -225,7 +256,7 @@ export const createAdapter = ({
                       name: repoUserInfo.username ?? DEFAULT_AUTHOR_NAME,
                       email: repoUserInfo.email ?? undefined,
                     },
-                    message: `Removed ${documentName}`,
+                    message: `Removed ${documentPath}`,
                   }),
                 catch: mapErrorTo(RepositoryError, 'Git repo error'),
               })
@@ -257,6 +288,26 @@ export const createAdapter = ({
           )
         )
       );
+
+  const commitChanges: MultiDocumentProjectStore['commitChanges'] = ({
+    projectId,
+    message,
+  }) =>
+    pipe(
+      ensureProjectIdIsFsPath(projectId),
+      Effect.flatMap((projectPath) =>
+        pipe(
+          stageAndCommitWorkdirChanges({
+            isoGitFs,
+            dir: projectPath,
+            message,
+          }),
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      )
+    );
 
   const createAndSwitchToBranch: MultiDocumentProjectStore['createAndSwitchToBranch'] =
     ({ projectId, branch }) =>
@@ -376,6 +427,99 @@ export const createAdapter = ({
             Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
               Effect.fail(new NotFoundError(err.message))
             ),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            )
+          )
+        )
+      );
+
+  const getMergeConflictInfo: MultiDocumentProjectStore['getMergeConflictInfo'] =
+    ({ projectId }) =>
+      pipe(
+        ensureProjectIdIsFsPath(projectId),
+        Effect.flatMap((projectPath) =>
+          pipe(
+            getGitRepoMergeConflictInfo({
+              isoGitFs,
+              dir: projectPath,
+            }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            )
+          )
+        )
+      );
+
+  const abortMerge: MultiDocumentProjectStore['abortMerge'] = ({ projectId }) =>
+    pipe(
+      ensureProjectIdIsFsPath(projectId),
+      Effect.flatMap((projectPath) =>
+        pipe(
+          abortGitMerge({
+            isoGitFs,
+            dir: projectPath,
+          }),
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      )
+    );
+
+  const resolveConflictByKeepingDocument: MultiDocumentProjectStore['resolveConflictByKeepingDocument'] =
+    ({ projectId, documentId }) =>
+      Effect.Do.pipe(
+        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
+        Effect.bind('documentPath', () =>
+          extractDocumentRelativePathFromId(documentId)
+        ),
+        Effect.flatMap(({ projectPath, documentPath }) =>
+          pipe(
+            stageFileInGit({
+              isoGitFs,
+              dir: projectPath,
+              path: documentPath,
+            }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            )
+          )
+        )
+      );
+
+  const resolveConflictByDeletingDocument: MultiDocumentProjectStore['resolveConflictByDeletingDocument'] =
+    ({ projectId, documentId }) =>
+      Effect.Do.pipe(
+        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
+        Effect.bind('documentPath', () =>
+          extractDocumentRelativePathFromId(documentId)
+        ),
+        Effect.flatMap(({ projectPath, documentPath }) =>
+          pipe(
+            removeFileFromGit({
+              isoGitFs,
+              dir: projectPath,
+              path: documentPath,
+            }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            )
+          )
+        )
+      );
+
+  const commitMergeConflictsResolution: MultiDocumentProjectStore['commitMergeConflictsResolution'] =
+    ({ projectId, message }) =>
+      pipe(
+        ensureProjectIdIsFsPath(projectId),
+        Effect.flatMap((projectPath) =>
+          pipe(
+            commitMergeConflictsResolutionToGit({
+              isoGitFs,
+              dir: projectPath,
+              message,
+            }),
             Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
               Effect.fail(new RepositoryError(err.message))
             )
@@ -588,12 +732,18 @@ export const createAdapter = ({
     addDocumentToProject,
     deleteDocumentFromProject,
     findDocumentInProject,
+    commitChanges,
     createAndSwitchToBranch,
     switchToBranch,
     getCurrentBranch,
     listBranches,
     deleteBranch,
     mergeAndDeleteBranch,
+    getMergeConflictInfo,
+    abortMerge,
+    resolveConflictByKeepingDocument,
+    resolveConflictByDeletingDocument,
+    commitMergeConflictsResolution,
     setAuthorInfo,
     addRemoteProject,
     listRemoteProjects,

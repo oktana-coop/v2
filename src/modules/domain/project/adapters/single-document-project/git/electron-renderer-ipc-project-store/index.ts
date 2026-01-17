@@ -177,6 +177,49 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.singleDocumentProjectStoreAPI.mergeAndDeleteBranch(...args)),
+  getMergeConflictInfo: (
+    ...args: Parameters<SingleDocumentProjectStore['getMergeConflictInfo']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['getMergeConflictInfo']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.getMergeConflictInfo(...args)),
+  abortMerge: (...args: Parameters<SingleDocumentProjectStore['abortMerge']>) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<SingleDocumentProjectStore['abortMerge']>>
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.abortMerge(...args)),
+  commitMergeConflictsResolution: (
+    ...args: Parameters<
+      SingleDocumentProjectStore['commitMergeConflictsResolution']
+    >
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<
+            SingleDocumentProjectStore['commitMergeConflictsResolution']
+          >
+        >
+      >,
+      RepositoryError
+    )(
+      window.singleDocumentProjectStoreAPI.commitMergeConflictsResolution(
+        ...args
+      )
+    ),
   setAuthorInfo: (
     ...args: Parameters<SingleDocumentProjectStore['setAuthorInfo']>
   ) =>

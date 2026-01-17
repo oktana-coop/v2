@@ -17,17 +17,23 @@ import {
   type CreateSingleDocumentProjectArgs,
   type DeleteDocumentFromMultiDocumentProjectArgs,
   type FindDocumentInMultiDocumentProjectArgs,
+  type MultiDocumentProjectAbortMergeArgs,
   type MultiDocumentProjectAddRemoteProjectArgs,
+  type MultiDocumentProjectCommitChangesArgs,
+  type MultiDocumentProjectCommitMergeConflictsResolutionArgs,
   type MultiDocumentProjectCreateAndSwitchToBranchArgs,
   type MultiDocumentProjectDeleteBranchArgs,
   type MultiDocumentProjectFindRemoteProjectByNameArgs,
   type MultiDocumentProjectGetCurrentBranchArgs,
+  type MultiDocumentProjectGetMergeConflictInfoArgs,
   type MultiDocumentProjectGetRemoteBranchInfoArgs,
   type MultiDocumentProjectListBranchesArgs,
   type MultiDocumentProjectListRemoteProjectsArgs,
   type MultiDocumentProjectMergeAndDeleteBranchArgs,
   type MultiDocumentProjectPullFromRemoteProjectArgs,
   type MultiDocumentProjectPushToRemoteProjectArgs,
+  type MultiDocumentProjectResolveConflictByDeletingDocumentArgs,
+  type MultiDocumentProjectResolveConflictByKeepingDocumentArgs,
   type MultiDocumentProjectSetAuthorInfoArgs,
   type MultiDocumentProjectStoreManager,
   type MultiDocumentProjectSwitchToBranchArgs,
@@ -36,11 +42,14 @@ import {
   type OpenSingleDocumentProjectStoreArgs,
   type ProjectId,
   type SetupSingleDocumentProjectStoreArgs,
+  type SingleDocumentProjectAbortMergeArgs,
   type SingleDocumentProjectAddRemoteProjectArgs,
+  type SingleDocumentProjectCommitMergeConflictsResolutionArgs,
   type SingleDocumentProjectCreateAndSwitchToBranchArgs,
   type SingleDocumentProjectDeleteBranchArgs,
   type SingleDocumentProjectFindRemoteProjectByNameArgs,
   type SingleDocumentProjectGetCurrentBranchArgs,
+  type SingleDocumentProjectGetMergeConflictInfoArgs,
   type SingleDocumentProjectGetRemoteBranchInfoArgs,
   type SingleDocumentProjectListBranchesArgs,
   type SingleDocumentProjectListRemoteProjectsArgs,
@@ -203,6 +212,7 @@ const registerStoreManagerEvents = ({
               projectId,
               documentId,
               currentBranch,
+              mergeConflictInfo,
               remoteProjects,
               file,
               name,
@@ -210,6 +220,7 @@ const registerStoreManagerEvents = ({
               projectId,
               documentId,
               currentBranch,
+              mergeConflictInfo,
               remoteProjects,
               file,
               name,
@@ -251,10 +262,17 @@ const registerStoreManagerEvents = ({
               })
           ),
           Effect.map(
-            ({ projectId, directory, currentBranch, remoteProjects }) => ({
+            ({
               projectId,
               directory,
               currentBranch,
+              mergeConflictInfo,
+              remoteProjects,
+            }) => ({
+              projectId,
+              directory,
+              currentBranch,
+              mergeConflictInfo,
               remoteProjects,
             })
           )
@@ -286,10 +304,17 @@ const registerStoreManagerEvents = ({
               })
           ),
           Effect.map(
-            ({ projectId, directory, currentBranch, remoteProjects }) => ({
+            ({
               projectId,
               directory,
               currentBranch,
+              mergeConflictInfo,
+              remoteProjects,
+            }) => ({
+              projectId,
+              directory,
+              currentBranch,
+              mergeConflictInfo,
               remoteProjects,
             })
           )
@@ -498,6 +523,66 @@ const registerSingleDocumentProjectStoreEvents = ({
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.mergeAndDeleteBranch(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:get-merge-conflict-info',
+    async (_, args: SingleDocumentProjectGetMergeConflictInfoArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.getMergeConflictInfo(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:abort-merge',
+    async (_, args: SingleDocumentProjectAbortMergeArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.abortMerge(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:commit-merge-conflicts-resolution',
+    async (_, args: SingleDocumentProjectCommitMergeConflictsResolutionArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.commitMergeConflictsResolution(args)
           )
         )
       )
@@ -822,6 +907,26 @@ const registerMultiDocumentProjectStoreEvents = ({
   );
 
   ipcMain.handle(
+    'multi-document-project-store:commit-changes',
+    async (_, args: MultiDocumentProjectCommitChangesArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.commitChanges(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
     'multi-document-project-store:create-and-switch-to-branch',
     async (_, args: MultiDocumentProjectCreateAndSwitchToBranchArgs) =>
       runPromiseSerializingErrorsForIPC(
@@ -936,6 +1041,109 @@ const registerMultiDocumentProjectStoreEvents = ({
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.mergeAndDeleteBranch(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:get-merge-conflict-info',
+    async (_, args: MultiDocumentProjectGetMergeConflictInfoArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.getMergeConflictInfo(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:abort-merge',
+    async (_, args: MultiDocumentProjectAbortMergeArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.abortMerge(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:commit-merge-conflicts-resolution',
+    async (_, args: MultiDocumentProjectCommitMergeConflictsResolutionArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.commitMergeConflictsResolution(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:resolve-conflict-by-keeping-document',
+    async (_, args: MultiDocumentProjectResolveConflictByKeepingDocumentArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.resolveConflictByKeepingDocument(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:resolve-conflict-by-deleting-document',
+    async (
+      _,
+      args: MultiDocumentProjectResolveConflictByDeletingDocumentArgs
+    ) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.resolveConflictByDeletingDocument(args)
           )
         )
       )
@@ -1266,6 +1474,19 @@ const registerVersionedDocumentStoreEvents = () => {
           validateProjectIdAndGetVersionedStores(projectId),
           Effect.flatMap(({ versionedDocumentStore }) =>
             versionedDocumentStore.discardUncommittedChanges(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'versioned-document-store:resolve-content-conflict',
+    async (_, args: DiscardUncommittedChangesArgs, projectId: string) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(projectId),
+          Effect.flatMap(({ versionedDocumentStore }) =>
+            versionedDocumentStore.resolveContentConflict(args)
           )
         )
       )

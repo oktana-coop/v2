@@ -43,6 +43,8 @@ export const parseCommitId = (input: string | string[]): CommitId =>
 
 export type CommitId = z.infer<typeof commitIdSchema>;
 
+export const getShortenedCommitId = (id: CommitId) => id.slice(0, 7);
+
 export const changeIdSchema = z.union([
   commitIdSchema,
   uncommittedChangeIdSchema,

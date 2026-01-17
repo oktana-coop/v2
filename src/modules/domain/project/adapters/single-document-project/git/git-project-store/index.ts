@@ -11,13 +11,16 @@ import {
   FilesystemNotFoundErrorTag,
 } from '../../../../../../../modules/infrastructure/filesystem';
 import {
+  abortMerge as abortGitMerge,
   cloneRepository as cloneGitRepo,
+  commitMergeConflictsResolution as commitMergeConflictsResolutionToGit,
   createAndSwitchToBranch as createAndSwitchToBranchWithGit,
   createGitBlobRef,
   DEFAULT_BRANCH,
   deleteBranch as deleteBranchWithGit,
   findRemoteByName as findGitRemoteByName,
   getCurrentBranch as getCurrentBranchWithGit,
+  getMergeConflictInfo as getGitRepoMergeConflictInfo,
   getRemoteBranchInfo as getRemoteBranchInfoWithGit,
   listBranches as listBranchesWithGit,
   listRemotes as listGitRemotes,
@@ -30,6 +33,7 @@ import {
   validateAndAddRemote,
   VersionControlNotFoundErrorTag,
   VersionControlRepositoryErrorTag,
+  writeGitignore,
 } from '../../../../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../../../../utils/errors';
 import { projectTypes } from '../../../../constants';
@@ -90,15 +94,25 @@ export const createAdapter = ({
                   )
                 )
               )
-            : Effect.tryPromise({
-                try: () =>
-                  git.init({
-                    fs: isoGitFs,
-                    dir: internalProjectDir,
-                    defaultBranch: DEFAULT_BRANCH,
-                  }),
-                catch: mapErrorTo(RepositoryError, 'Git repo error'),
-              })
+            : pipe(
+                Effect.tryPromise({
+                  try: () =>
+                    git.init({
+                      fs: isoGitFs,
+                      dir: internalProjectDir,
+                      defaultBranch: DEFAULT_BRANCH,
+                    }),
+                  catch: mapErrorTo(RepositoryError, 'Git repo error'),
+                }),
+                Effect.tap(() =>
+                  pipe(
+                    writeGitignore({ isoGitFs, dir: internalProjectDir }),
+                    Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+                      Effect.fail(new RepositoryError(err.message))
+                    )
+                  )
+                )
+              )
         ),
         Effect.tap((projectFilePath) =>
           setAuthorInfo({ projectId: projectFilePath, username, email })
@@ -258,6 +272,42 @@ export const createAdapter = ({
         Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
           Effect.fail(new NotFoundError(err.message))
         ),
+        Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+          Effect.fail(new RepositoryError(err.message))
+        )
+      );
+
+  const getMergeConflictInfo: SingleDocumentProjectStore['getMergeConflictInfo'] =
+    () =>
+      pipe(
+        getGitRepoMergeConflictInfo({
+          isoGitFs,
+          dir: internalProjectDir,
+        }),
+        Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+          Effect.fail(new RepositoryError(err.message))
+        )
+      );
+
+  const abortMerge: SingleDocumentProjectStore['abortMerge'] = () =>
+    pipe(
+      abortGitMerge({
+        isoGitFs,
+        dir: internalProjectDir,
+      }),
+      Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+        Effect.fail(new RepositoryError(err.message))
+      )
+    );
+
+  const commitMergeConflictsResolution: SingleDocumentProjectStore['commitMergeConflictsResolution'] =
+    ({ message }) =>
+      pipe(
+        commitMergeConflictsResolutionToGit({
+          isoGitFs,
+          dir: internalProjectDir,
+          message,
+        }),
         Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
           Effect.fail(new RepositoryError(err.message))
         )
@@ -448,6 +498,9 @@ export const createAdapter = ({
     listBranches,
     deleteBranch,
     mergeAndDeleteBranch,
+    getMergeConflictInfo,
+    abortMerge,
+    commitMergeConflictsResolution,
     setAuthorInfo,
     addRemoteProject,
     listRemoteProjects,

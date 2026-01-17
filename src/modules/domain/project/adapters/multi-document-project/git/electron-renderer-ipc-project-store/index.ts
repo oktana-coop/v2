@@ -115,6 +115,18 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.multiDocumentProjectStoreAPI.findDocumentInProject(...args)),
+  commitChanges: (
+    ...args: Parameters<MultiDocumentProjectStore['commitChanges']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<MultiDocumentProjectStore['commitChanges']>>
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.commitChanges(...args)),
   createAndSwitchToBranch: (
     ...args: Parameters<MultiDocumentProjectStore['createAndSwitchToBranch']>
   ) =>
@@ -198,6 +210,96 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.multiDocumentProjectStoreAPI.mergeAndDeleteBranch(...args)),
+  getMergeConflictInfo: (
+    ...args: Parameters<MultiDocumentProjectStore['getMergeConflictInfo']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['getMergeConflictInfo']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.getMergeConflictInfo(...args)),
+  abortMerge: (...args: Parameters<MultiDocumentProjectStore['abortMerge']>) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<MultiDocumentProjectStore['abortMerge']>>
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.abortMerge(...args)),
+  resolveConflictByKeepingDocument: (
+    ...args: Parameters<
+      MultiDocumentProjectStore['resolveConflictByKeepingDocument']
+    >
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<
+            MultiDocumentProjectStore['resolveConflictByKeepingDocument']
+          >
+        >
+      >,
+      RepositoryError
+    )(
+      window.multiDocumentProjectStoreAPI.resolveConflictByKeepingDocument(
+        ...args
+      )
+    ),
+  resolveConflictByDeletingDocument: (
+    ...args: Parameters<
+      MultiDocumentProjectStore['resolveConflictByDeletingDocument']
+    >
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<
+            MultiDocumentProjectStore['resolveConflictByDeletingDocument']
+          >
+        >
+      >,
+      RepositoryError
+    )(
+      window.multiDocumentProjectStoreAPI.resolveConflictByDeletingDocument(
+        ...args
+      )
+    ),
+  commitMergeConflictsResolution: (
+    ...args: Parameters<
+      MultiDocumentProjectStore['commitMergeConflictsResolution']
+    >
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<
+            MultiDocumentProjectStore['commitMergeConflictsResolution']
+          >
+        >
+      >,
+      RepositoryError
+    )(
+      window.multiDocumentProjectStoreAPI.commitMergeConflictsResolution(
+        ...args
+      )
+    ),
   setAuthorInfo: (
     ...args: Parameters<MultiDocumentProjectStore['setAuthorInfo']>
   ) =>

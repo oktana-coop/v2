@@ -9,6 +9,7 @@ import {
 } from '../../../../../modules/infrastructure/filesystem';
 import {
   type Branch,
+  type MergeConflictInfo,
   MigrationError,
   type ResolvedArtifactId,
 } from '../../../../../modules/infrastructure/version-control';
@@ -67,6 +68,7 @@ export type OpenSingleDocumentProjectStoreResult = {
   projectId: ProjectId;
   documentId: ResolvedArtifactId;
   currentBranch: Branch;
+  mergeConflictInfo: MergeConflictInfo | null;
   remoteProjects: RemoteProjectInfo[];
   file: File | null;
   name: string | null;

@@ -1,6 +1,7 @@
 import { useContext } from 'react';
 import { Outlet } from 'react-router';
 
+import { ProseMirrorProvider } from '../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { ElectronContext } from '../../../../../modules/infrastructure/cross-platform/browser';
 import {
   CloneFromGithubModalProvider,
@@ -18,9 +19,11 @@ export const ProjectProviders = () => {
       <CurrentDocumentProvider>
         <CloneFromGithubModalProvider>
           <CreateDocumentModalProvider>
-            <SidebarLayoutProvider>
-              <Outlet />;
-            </SidebarLayoutProvider>
+            <ProseMirrorProvider>
+              <SidebarLayoutProvider>
+                <Outlet />;
+              </SidebarLayoutProvider>
+            </ProseMirrorProvider>
           </CreateDocumentModalProvider>
         </CloneFromGithubModalProvider>
       </CurrentDocumentProvider>

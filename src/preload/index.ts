@@ -213,6 +213,14 @@ contextBridge.exposeInMainWorld('versionedDocumentStoreAPI', {
       },
       projectId
     ),
+  resolveContentConflict: (args, projectId) =>
+    ipcRenderer.invoke(
+      'versioned-document-store:resolve-content-conflict',
+      {
+        ...args,
+      },
+      projectId
+    ),
   disconnect: (projectId) =>
     ipcRenderer.invoke('versioned-document-store:disconnect', projectId),
 } as VersionedDocumentStorePromiseAPI);
@@ -261,6 +269,24 @@ contextBridge.exposeInMainWorld('singleDocumentProjectStoreAPI', {
   mergeAndDeleteBranch: (args) =>
     ipcRenderer.invoke(
       'single-document-project-store:merge-and-delete-branch',
+      {
+        ...args,
+      }
+    ),
+  getMergeConflictInfo: (args) =>
+    ipcRenderer.invoke(
+      'single-document-project-store:get-merge-conflict-info',
+      {
+        ...args,
+      }
+    ),
+  abortMerge: (args) =>
+    ipcRenderer.invoke('single-document-project-store:abort-merge', {
+      ...args,
+    }),
+  commitMergeConflictsResolution: (args) =>
+    ipcRenderer.invoke(
+      'single-document-project-store:commit-merge-conflicts-resolution',
       {
         ...args,
       }
@@ -329,6 +355,10 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
       'multi-document-project-store:find-document-in-project',
       { ...args }
     ),
+  commitChanges: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:commit-changes', {
+      ...args,
+    }),
   createAndSwitchToBranch: (args) =>
     ipcRenderer.invoke(
       'multi-document-project-store:create-and-switch-to-branch',
@@ -356,6 +386,35 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
     ipcRenderer.invoke('multi-document-project-store:merge-and-delete-branch', {
       ...args,
     }),
+  getMergeConflictInfo: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:get-merge-conflict-info', {
+      ...args,
+    }),
+  abortMerge: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:abort-merge', {
+      ...args,
+    }),
+  commitMergeConflictsResolution: (args) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:commit-merge-conflicts-resolution',
+      {
+        ...args,
+      }
+    ),
+  resolveConflictByKeepingDocument: (args) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:resolve-conflict-by-keeping-document',
+      {
+        ...args,
+      }
+    ),
+  resolveConflictByDeletingDocument: (args) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:resolve-conflict-by-deleting-document',
+      {
+        ...args,
+      }
+    ),
   setAuthorInfo: (args) =>
     ipcRenderer.invoke('multi-document-project-store:set-author-info', {
       ...args,

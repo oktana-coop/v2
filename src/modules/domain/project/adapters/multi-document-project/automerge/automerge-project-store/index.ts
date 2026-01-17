@@ -188,6 +188,14 @@ export const createAdapter = (
         )
       );
 
+  // TODO: Implement multi-doc commits in Automerge
+  const commitChanges: MultiDocumentProjectStore['commitChanges'] = () =>
+    Effect.fail(
+      new RepositoryError(
+        'Committing changes to a project has not yet been implemented in Automerge'
+      )
+    );
+
   // TODO: Implement branching in Automerge
   const createAndSwitchToBranch: MultiDocumentProjectStore['createAndSwitchToBranch'] =
     () =>
@@ -227,6 +235,43 @@ export const createAdapter = (
       Effect.fail(
         new RepositoryError(
           'Branching is not yet supported when the app is configured with Automerge'
+        )
+      );
+
+  const getMergeConflictInfo: MultiDocumentProjectStore['getMergeConflictInfo'] =
+    () => Effect.succeed(null);
+
+  const abortMerge: MultiDocumentProjectStore['abortMerge'] = () =>
+    Effect.fail(
+      new RepositoryError(
+        'Branching is not yet supported when the app is configured with Automerge'
+      )
+    );
+
+  // TODO: Implement multi-file conflict resolution in Automerge
+  const resolveConflictByKeepingDocument: MultiDocumentProjectStore['resolveConflictByKeepingDocument'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Multi-file conflict resolution is not yet supported when the app is configured with Automerge'
+        )
+      );
+
+  // TODO: Implement multi-file conflict resolution in Automerge
+  const resolveConflictByDeletingDocument: MultiDocumentProjectStore['resolveConflictByDeletingDocument'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Multi-file conflict resolution is not yet supported when the app is configured with Automerge'
+        )
+      );
+
+  // TODO: Implement multi-file conflict resolution in Automerge
+  const commitMergeConflictsResolution: MultiDocumentProjectStore['commitMergeConflictsResolution'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Multi-file conflict resolution is not yet supported when the app is configured with Automerge'
         )
       );
 
@@ -296,12 +341,18 @@ export const createAdapter = (
     addDocumentToProject,
     deleteDocumentFromProject,
     findDocumentInProject,
+    commitChanges,
     createAndSwitchToBranch,
     switchToBranch,
     getCurrentBranch,
     listBranches,
     deleteBranch,
     mergeAndDeleteBranch,
+    getMergeConflictInfo,
+    abortMerge,
+    resolveConflictByKeepingDocument,
+    resolveConflictByDeletingDocument,
+    commitMergeConflictsResolution,
     setAuthorInfo,
     addRemoteProject,
     listRemoteProjects,

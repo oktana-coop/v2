@@ -15,6 +15,7 @@ import {
   type BlockType,
   blockTypes,
   type ContainerBlockType,
+  CURRENT_SCHEMA_VERSION,
   getDocumentRichTextContent,
   getHeadingLevel,
   type LeafBlockType,
@@ -25,9 +26,11 @@ import {
   type VersionedDocumentHandle,
 } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
+import { versionedArtifactTypes } from '../../../../modules/infrastructure/version-control';
 import { EditorToolbar } from './editor-toolbar';
 import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';
+import { diffDelete, diffInsert, diffModify } from './marks';
 
 const {
   schema,
@@ -62,29 +65,36 @@ const {
   syncPlugin,
   pmDocFromJSONString,
   pmDocToJSONString,
+  diffPlugin,
 } = prosemirror;
 
 type RichTextEditorProps = {
   doc: RichTextDocument;
   docHandle: VersionedDocumentHandle | null;
-  onSave: () => void;
   onDocChange?: (doc: RichTextDocument) => Promise<void>;
   isEditable?: boolean;
   isToolbarOpen?: boolean;
+  showDiffWith?: RichTextDocument;
 };
 
 export const RichTextEditor = ({
   docHandle,
   doc,
-  onSave,
   onDocChange,
   isEditable = true,
   isToolbarOpen = false,
+  showDiffWith,
 }: RichTextEditorProps) => {
   const editorRoot = useRef<HTMLDivElement>(null);
   const editorViewRef = useRef<EditorView | null>(null);
-  const { view, setView, parseMarkdown, convertToProseMirror } =
-    useContext(ProseMirrorContext);
+  const {
+    view,
+    setView,
+    parseMarkdown,
+    convertToProseMirror,
+    convertFromProseMirror,
+    proseMirrorDiff,
+  } = useContext(ProseMirrorContext);
   const [leafBlockType, setLeafBlockType] = useState<LeafBlockType | null>(
     null
   );
@@ -126,53 +136,106 @@ export const RichTextEditor = ({
       }
     };
 
+  const getBasePlugins = (schema: Schema) => [
+    buildInputRules(schema),
+    placeholderPlugin('Start writing...'),
+    ...markdownMarkPlugins(schema),
+    pasteMarkdownPlugin(parseMarkdown(schema)),
+    notesPlugin(),
+    history(),
+    keymap({
+      'Mod-b': toggleStrong(schema),
+      'Mod-i': toggleEm(schema),
+      'Mod-z': undo,
+      'Mod-y': redo,
+      'Shift-Mod-z': redo,
+      Enter: splitListItem(schema.nodes.list_item),
+      'Mod-[': liftListItem(schema.nodes.list_item),
+      'Mod-]': sinkListItem(schema.nodes.list_item),
+      // Disable tab keystrokes in the editor to prevent tabbing
+      // to the next focusable element
+      Tab: () => true,
+    }),
+    keymap(baseKeymap),
+    linkSelectionPlugin,
+    selectionChangePlugin(onSelectionChange(schema)),
+    ensureTrailingParagraphPlugin(schema),
+    ensureTrailingSpaceAfterAtomPlugin(),
+  ];
+
+  const setupDiffPlugin = async ({
+    currentDoc,
+    diffWith,
+  }: {
+    currentDoc: RichTextDocument;
+    diffWith: RichTextDocument;
+  }) => {
+    const decorationClasses = {
+      insert: diffInsert,
+      modify: diffModify,
+      delete: diffDelete,
+    };
+
+    const contentBefore = getDocumentRichTextContent(diffWith);
+    const contentAfter = getDocumentRichTextContent(currentDoc);
+
+    const { decorations } = await proseMirrorDiff({
+      representation:
+        // There are some old document versions without the representataion set. The representation is Automerge in that case.
+        // TODO: Remove this fallback when we no longer expect documents without representation set.
+        doc.representation ?? richTextRepresentations.AUTOMERGE,
+      proseMirrorSchema: schema,
+      decorationClasses,
+      docBefore: contentBefore,
+      docAfter: contentAfter,
+    });
+
+    return diffPlugin({
+      decorations,
+      proseMirrorDiff,
+      convertFromProseMirror,
+      decorationClasses,
+      diffWith: showDiffWith,
+    });
+  };
+
+  const setupSyncPlugin = ({
+    onDocChange,
+  }: {
+    onDocChange: (doc: RichTextDocument) => Promise<void>;
+  }) => {
+    const handlePMDocChange = debounce(async (pmDoc: Node) => {
+      const pmJSONStr = pmDocToJSONString(pmDoc);
+
+      onDocChange({
+        type: doc.type,
+        schemaVersion: doc.schemaVersion,
+        representation: richTextRepresentations.PROSEMIRROR,
+        content: pmJSONStr,
+      });
+    }, 300);
+
+    return syncPlugin({
+      onPMDocChange: handlePMDocChange,
+      docHandle,
+    });
+  };
+
   useEffect(() => {
     const setupEditorAndView = async (schema: Schema) => {
-      const plugins = [
-        buildInputRules(schema),
-        placeholderPlugin('Start writing...'),
-        ...markdownMarkPlugins(schema),
-        pasteMarkdownPlugin(parseMarkdown(schema)),
-        notesPlugin(),
-        history(),
-        keymap({
-          'Mod-b': toggleStrong(schema),
-          'Mod-i': toggleEm(schema),
-          'Mod-z': undo,
-          'Mod-y': redo,
-          'Shift-Mod-z': redo,
-          Enter: splitListItem(schema.nodes.list_item),
-          'Mod-[': liftListItem(schema.nodes.list_item),
-          'Mod-]': sinkListItem(schema.nodes.list_item),
-          // Disable tab keystrokes in the editor to prevent tabbing
-          // to the next focusable element
-          Tab: () => true,
-        }),
-        keymap(baseKeymap),
-        linkSelectionPlugin,
-        selectionChangePlugin(onSelectionChange(schema)),
-        ensureTrailingParagraphPlugin(schema),
-        ensureTrailingSpaceAfterAtomPlugin(),
-      ];
+      const plugins = getBasePlugins(schema);
 
       if (isEditable && onDocChange) {
-        const handlePMDocChange = debounce((pmDoc: Node) => {
-          const pmJSONStr = pmDocToJSONString(pmDoc);
+        const sync = setupSyncPlugin({ onDocChange });
+        plugins.push(sync);
+      }
 
-          onDocChange({
-            type: doc.type,
-            schemaVersion: doc.schemaVersion,
-            representation: richTextRepresentations.PROSEMIRROR,
-            content: pmJSONStr,
-          });
-        }, 300);
-
-        plugins.push(
-          syncPlugin({
-            onPMDocChange: handlePMDocChange,
-            docHandle,
-          })
-        );
+      if (showDiffWith) {
+        const diff = await setupDiffPlugin({
+          currentDoc: doc,
+          diffWith: showDiffWith,
+        });
+        plugins.push(diff);
       }
 
       const richTextContent = getDocumentRichTextContent(doc);
@@ -250,7 +313,58 @@ export const RichTextEditor = ({
         editorViewRef.current = null;
       }
     };
-  }, [doc, docHandle, onSave, isEditable, schema, setView]);
+  }, [doc, docHandle, isEditable, schema, setView]);
+
+  useEffect(() => {
+    const reconfigurePlugins = async ({
+      pmDoc,
+      diffWith,
+      editorView,
+    }: {
+      pmDoc: Node;
+      diffWith: RichTextDocument | undefined;
+      editorView: EditorView;
+    }) => {
+      const plugins = getBasePlugins(schema);
+
+      if (isEditable && onDocChange) {
+        const sync = setupSyncPlugin({ onDocChange });
+        plugins.push(sync);
+      }
+
+      if (diffWith) {
+        const currentDocContent = await convertFromProseMirror({
+          pmDoc,
+          to: diffWith.representation,
+        });
+
+        const currentDoc: RichTextDocument = {
+          type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
+          representation: diffWith.representation,
+          schemaVersion: CURRENT_SCHEMA_VERSION,
+          content: currentDocContent,
+        };
+
+        const diffPlugin = await setupDiffPlugin({
+          currentDoc,
+          diffWith,
+        });
+
+        plugins.push(diffPlugin);
+      }
+
+      const newState = editorView.state.reconfigure({ plugins });
+      editorView.updateState(newState);
+    };
+
+    if (editorViewRef.current) {
+      reconfigurePlugins({
+        pmDoc: editorViewRef.current.state.doc,
+        diffWith: showDiffWith,
+        editorView: editorViewRef.current,
+      });
+    }
+  }, [showDiffWith, convertFromProseMirror]);
 
   const handleBlockSelect = (type: BlockType) => {
     if (view) {

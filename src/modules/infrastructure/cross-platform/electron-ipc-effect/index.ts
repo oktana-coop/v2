@@ -33,13 +33,17 @@ export const runPromiseSerializingErrorsForIPC = <A, E extends TaggedError>(
           error: {
             message: error.message,
             tag: error._tag,
+            data: error.data,
           },
         })
       )
     )
   );
 
-type ErrorClass<E extends TaggedError> = new (message: string) => E;
+type ErrorClass<E extends TaggedError> = new (
+  message: string,
+  data?: unknown
+) => E;
 
 export type ErrorRegistry<E extends TaggedError> = Record<
   string,
