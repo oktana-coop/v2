@@ -21,7 +21,7 @@ export const ProjectProviders = () => {
           <CreateDocumentModalProvider>
             <ProseMirrorProvider>
               <SidebarLayoutProvider>
-                <Outlet />;
+                <Outlet />
               </SidebarLayoutProvider>
             </ProseMirrorProvider>
           </CreateDocumentModalProvider>
