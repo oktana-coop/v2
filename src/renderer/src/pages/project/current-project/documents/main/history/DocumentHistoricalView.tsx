@@ -240,6 +240,12 @@ export const DocumentHistoricalView = () => {
     }
   };
 
+  const handleOpenDiscardChangesDialog = () => {
+    onOpenDiscardChangesDialog({
+      navigateToLastCommitAfterDiscarding: true,
+    });
+  };
+
   const areUncommittedChangesSelected = ({
     commits,
     selectedCommitIndex,
@@ -285,7 +291,7 @@ export const DocumentHistoricalView = () => {
             })
           }
           onCommitIconClick={onOpenCommitDialog}
-          onTrashIconClick={onOpenDiscardChangesDialog}
+          onTrashIconClick={handleOpenDiscardChangesDialog}
           onEditIconClick={handleEditClick}
         />
       </div>

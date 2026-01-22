@@ -76,7 +76,9 @@ export type CurrentDocumentContextType = {
   onCloseCommitDialog: () => void;
   onOpenRestoreCommitDialog: (commit: Commit) => void;
   onCloseRestoreCommitDialog: () => void;
-  onOpenDiscardChangesDialog: () => void;
+  onOpenDiscardChangesDialog: (args?: {
+    navigateToLastCommitAfterDiscarding?: boolean;
+  }) => void;
   onCloseDiscardChangesDialog: () => void;
   selectedCommitIndex: number | null;
   onSelectChange: (commitId: ChangeId) => void;
@@ -154,6 +156,10 @@ export const CurrentDocumentProvider = ({
     useState<boolean>(false);
   const [isDiscardChangesDialogOpen, setIsDiscardChangesDialogOpen] =
     useState<boolean>(false);
+  const [
+    navigateToLastCommitAfterDiscarding,
+    setNavigateToLastCommitAfterDiscarding,
+  ] = useState<boolean>(false);
   const [commitToRestore, setCommitToRestore] = useState<Commit | null>(null);
   const [selectedCommitIndex, setSelectedCommitIndex] = useState<number | null>(
     null
@@ -177,6 +183,7 @@ export const CurrentDocumentProvider = ({
   const prevDocumentId = useRef(documentId);
   const { pulledUpstreamChanges, resetPulledUpstreamChanges } =
     usePulledUpstreamChanges();
+  const [documentNeedsReload, setDocumentNeedsReload] = useState(false);
 
   useEffect(() => {
     const projectOrDocumentHasChanged =
@@ -198,6 +205,7 @@ export const CurrentDocumentProvider = ({
         setVersionedDocumentHandle(null);
         setVersionedDocument(null);
         resetPulledUpstreamChanges();
+        setDocumentNeedsReload(false);
       } else {
         setVersionedDocumentHandle(null);
         setVersionedDocument(null);
@@ -210,6 +218,7 @@ export const CurrentDocumentProvider = ({
         setVersionedDocumentHandle(documentHandle);
         setVersionedDocument(document);
         setLoadingHistory(true);
+        setDocumentNeedsReload(false);
 
         // TODO: Clean this up. The ID in the Automerge case is not the file path, so we need to get it from somewhere else.
         // This is why we use the path query param, which must be set.
@@ -251,7 +260,8 @@ export const CurrentDocumentProvider = ({
       versionedDocumentStore.projectId === projectIdParam &&
       (projectOrDocumentHasChanged ||
         returningToSelectedDocumentEditMode ||
-        pulledUpstreamChanges)
+        pulledUpstreamChanges ||
+        documentNeedsReload)
     ) {
       updateDocumentHandleAndSelectedFile({ versionedDocumentStore });
     }
@@ -263,6 +273,7 @@ export const CurrentDocumentProvider = ({
     changeIdParam,
     versionedDocumentStore,
     pulledUpstreamChanges,
+    documentNeedsReload,
   ]);
 
   const checkIfContentChangedFromLastCommit =
@@ -512,12 +523,22 @@ export const CurrentDocumentProvider = ({
       docId: documentId,
     });
 
-    setIsDiscardChangesDialogOpen(false);
-    setCanCommit(false);
+    if (navigateToLastCommitAfterDiscarding) {
+      const [lastCommit] = newHistory;
+      handleSelectChange(lastCommit.id, newHistory);
+    } else {
+      setDocumentNeedsReload(true);
+    }
 
-    const [lastCommit] = newHistory;
-    handleSelectChange(lastCommit.id, newHistory);
-  }, [documentId, versionedDocument, versionedDocumentStore]);
+    setIsDiscardChangesDialogOpen(false);
+    setNavigateToLastCommitAfterDiscarding(false);
+    setCanCommit(false);
+  }, [
+    documentId,
+    versionedDocument,
+    versionedDocumentStore,
+    navigateToLastCommitAfterDiscarding,
+  ]);
 
   const handleOpenCommitDialog = useCallback(() => {
     setIsCommitDialogOpen(true);
@@ -537,12 +558,25 @@ export const CurrentDocumentProvider = ({
     setCommitToRestore(null);
   }, []);
 
-  const handleOpenDiscardChangesDialog = useCallback(() => {
-    setIsDiscardChangesDialogOpen(true);
-  }, []);
+  const handleOpenDiscardChangesDialog = useCallback(
+    (
+      args:
+        | {
+            navigateToLastCommitAfterDiscarding?: boolean;
+          }
+        | undefined
+    ) => {
+      setNavigateToLastCommitAfterDiscarding(
+        args?.navigateToLastCommitAfterDiscarding ?? false
+      );
+      setIsDiscardChangesDialogOpen(true);
+    },
+    []
+  );
 
   const handleCloseDiscardChangesDialog = useCallback(() => {
     setIsDiscardChangesDialogOpen(false);
+    setNavigateToLastCommitAfterDiscarding(false);
   }, []);
 
   const findSelectedCommitIndex = ({

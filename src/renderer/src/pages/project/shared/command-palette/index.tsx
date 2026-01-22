@@ -33,7 +33,8 @@ export const ProjectCommandPalette = ({
     CommandPaletteContext
   );
   const { projectType } = useContext(CurrentProjectContext);
-  const { canCommit, onOpenCommitDialog } = useContext(CurrentDocumentContext);
+  const { canCommit, onOpenCommitDialog, onOpenDiscardChangesDialog } =
+    useContext(CurrentDocumentContext);
   const { isElectron, checkForUpdate } = useContext(ElectronContext);
 
   const handleDocumentSelectionInMultiDocumentProject =
@@ -84,6 +85,41 @@ export const ProjectCommandPalette = ({
     ...(isElectron ? electronSpecificActions : browserSpecificActions),
   ];
 
+  const documentActions = [
+    ...(canCommit
+      ? [
+          {
+            name: 'Commit changes',
+            shortcut: 'S',
+            onActionSelection: onOpenCommitDialog,
+          },
+          {
+            name: 'Discard changes',
+            onActionSelection: onOpenDiscardChangesDialog,
+          },
+        ]
+      : []),
+    {
+      name: 'Export to Markdown',
+      shortcut: 'M',
+      onActionSelection: exportToText(richTextRepresentations.MARKDOWN),
+    },
+    {
+      name: 'Export to HTML',
+      shortcut: 'H',
+      onActionSelection: exportToText(richTextRepresentations.HTML),
+    },
+    {
+      name: 'Export to Docx (Microsoft Word)',
+      shortcut: 'W',
+      onActionSelection: exportToBinary(richTextRepresentations.DOCX),
+    },
+    {
+      name: 'Export to Pandoc',
+      onActionSelection: exportToText(richTextRepresentations.PANDOC),
+    },
+  ];
+
   return (
     <CommandPalette
       open={isCommandPaletteOpen}
@@ -93,44 +129,7 @@ export const ProjectCommandPalette = ({
         currentDocumentName
           ? {
               groupTitle: `Current document: ${currentDocumentName}`,
-              actions: [
-                {
-                  name: 'Commit changes',
-                  shortcut: 'S',
-                  onActionSelection: () => {
-                    if (canCommit) {
-                      return onOpenCommitDialog();
-                    }
-                    // TODO: display a toast notification sort of type
-                    alert('All saved! No changes to commit!');
-                  },
-                },
-                {
-                  name: 'Export to Markdown',
-                  shortcut: 'M',
-                  onActionSelection: exportToText(
-                    richTextRepresentations.MARKDOWN
-                  ),
-                },
-                {
-                  name: 'Export to HTML',
-                  shortcut: 'H',
-                  onActionSelection: exportToText(richTextRepresentations.HTML),
-                },
-                {
-                  name: 'Export to Docx (Microsoft Word)',
-                  shortcut: 'W',
-                  onActionSelection: exportToBinary(
-                    richTextRepresentations.DOCX
-                  ),
-                },
-                {
-                  name: 'Export to Pandoc',
-                  onActionSelection: exportToText(
-                    richTextRepresentations.PANDOC
-                  ),
-                },
-              ],
+              actions: documentActions,
             }
           : undefined
       }
