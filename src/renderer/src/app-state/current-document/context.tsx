@@ -8,7 +8,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router';
+import {
+  useMatch,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router';
 
 import {
   isValidProjectId,
@@ -76,9 +81,7 @@ export type CurrentDocumentContextType = {
   onCloseCommitDialog: () => void;
   onOpenRestoreCommitDialog: (commit: Commit) => void;
   onCloseRestoreCommitDialog: () => void;
-  onOpenDiscardChangesDialog: (args?: {
-    navigateToLastCommitAfterDiscarding?: boolean;
-  }) => void;
+  onOpenDiscardChangesDialog: () => void;
   onCloseDiscardChangesDialog: () => void;
   selectedCommitIndex: number | null;
   onSelectChange: (commitId: ChangeId) => void;
@@ -156,10 +159,6 @@ export const CurrentDocumentProvider = ({
     useState<boolean>(false);
   const [isDiscardChangesDialogOpen, setIsDiscardChangesDialogOpen] =
     useState<boolean>(false);
-  const [
-    navigateToLastCommitAfterDiscarding,
-    setNavigateToLastCommitAfterDiscarding,
-  ] = useState<boolean>(false);
   const [commitToRestore, setCommitToRestore] = useState<Commit | null>(null);
   const [selectedCommitIndex, setSelectedCommitIndex] = useState<number | null>(
     null
@@ -184,6 +183,12 @@ export const CurrentDocumentProvider = ({
   const { pulledUpstreamChanges, resetPulledUpstreamChanges } =
     usePulledUpstreamChanges();
   const [documentNeedsReload, setDocumentNeedsReload] = useState(false);
+  const documentRouteMatch = useMatch(
+    '/projects/:projectId/documents/:documentId'
+  );
+  const documentChangeSubRouteMatch = useMatch(
+    '/projects/:projectId/documents/:documentId/changes/:changeId'
+  );
 
   useEffect(() => {
     const projectOrDocumentHasChanged =
@@ -523,21 +528,21 @@ export const CurrentDocumentProvider = ({
       docId: documentId,
     });
 
-    if (navigateToLastCommitAfterDiscarding) {
+    if (documentChangeSubRouteMatch) {
       const [lastCommit] = newHistory;
       handleSelectChange(lastCommit.id, newHistory);
-    } else {
+    } else if (documentRouteMatch) {
       setDocumentNeedsReload(true);
     }
 
     setIsDiscardChangesDialogOpen(false);
-    setNavigateToLastCommitAfterDiscarding(false);
     setCanCommit(false);
   }, [
     documentId,
     versionedDocument,
     versionedDocumentStore,
-    navigateToLastCommitAfterDiscarding,
+    documentChangeSubRouteMatch,
+    documentRouteMatch,
   ]);
 
   const handleOpenCommitDialog = useCallback(() => {
@@ -558,25 +563,12 @@ export const CurrentDocumentProvider = ({
     setCommitToRestore(null);
   }, []);
 
-  const handleOpenDiscardChangesDialog = useCallback(
-    (
-      args:
-        | {
-            navigateToLastCommitAfterDiscarding?: boolean;
-          }
-        | undefined
-    ) => {
-      setNavigateToLastCommitAfterDiscarding(
-        args?.navigateToLastCommitAfterDiscarding ?? false
-      );
-      setIsDiscardChangesDialogOpen(true);
-    },
-    []
-  );
+  const handleOpenDiscardChangesDialog = useCallback(() => {
+    setIsDiscardChangesDialogOpen(true);
+  }, []);
 
   const handleCloseDiscardChangesDialog = useCallback(() => {
     setIsDiscardChangesDialogOpen(false);
-    setNavigateToLastCommitAfterDiscarding(false);
   }, []);
 
   const findSelectedCommitIndex = ({
