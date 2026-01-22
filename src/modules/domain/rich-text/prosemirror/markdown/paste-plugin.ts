@@ -11,6 +11,13 @@ export const pasteMarkdownPlugin = (
     props: {
       handlePaste(view, event) {
         const clipboardData = event.clipboardData;
+
+        const html = clipboardData?.getData('text/html');
+        if (html) {
+          // Let ProseMirror handle HTML pastes
+          return false;
+        }
+
         const text = clipboardData?.getData('text/plain');
 
         if (text && /[*_`~#-]/.test(text)) {
