@@ -1,6 +1,8 @@
 import { Node, Slice } from 'prosemirror-model';
 import { Plugin, PluginKey } from 'prosemirror-state';
 
+import { isMarkdown } from './detection';
+
 export const pluginKey = new PluginKey('paste-markdown');
 
 export const pasteMarkdownPlugin = (
@@ -11,16 +13,9 @@ export const pasteMarkdownPlugin = (
     props: {
       handlePaste(view, event) {
         const clipboardData = event.clipboardData;
-
-        const html = clipboardData?.getData('text/html');
-        if (html) {
-          // Let ProseMirror handle HTML pastes
-          return false;
-        }
-
         const text = clipboardData?.getData('text/plain');
 
-        if (text && /[*_`~#-]/.test(text)) {
+        if (text && isMarkdown(text)) {
           // Defer async parsing and dispatch to after the event loop tick
           setTimeout(async () => {
             const parsed = await parseMarkdown(text);
