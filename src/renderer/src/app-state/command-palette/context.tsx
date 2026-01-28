@@ -1,6 +1,7 @@
 import { createContext, useEffect, useState } from 'react';
 
 import { useKeyBindings } from '../../hooks';
+import { keyBindings } from '../../pages/project/shared/command-palette/key-bindings';
 
 export type CommandPaletteContextType = {
   isOpen: boolean;
@@ -33,7 +34,7 @@ export const CommandPaletteStateProvider = ({
   }, []);
 
   useKeyBindings({
-    'ctrl+k': () => setIsOpen((state) => !state),
+    [keyBindings.controlK.keyBinding]: () => setIsOpen((state) => !state),
   });
 
   const handleOpenCommandPalette = () => {
