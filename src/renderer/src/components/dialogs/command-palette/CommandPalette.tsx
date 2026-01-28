@@ -147,8 +147,18 @@ export const CommandPaletteOption = ({
       // Action Option
       value.shortcut && (
         <span className="flex-none text-xs font-semibold text-gray-500 dark:text-gray-400">
-          <kbd className="font-sans">⌘</kbd>
-          <kbd className="font-sans">{value.shortcut}</kbd>
+          {value.shortcut.includes('ctrl') && (
+            <kbd className="font-sans">⌘</kbd>
+          )}
+          {value.shortcut.includes('shift') && (
+            <kbd className="font-sans">⇧</kbd>
+          )}
+          <kbd className="font-sans">
+            {value.shortcut
+              .replace('ctrl+', '')
+              .replace('shift+', '')
+              .toUpperCase()}
+          </kbd>
         </span>
       )
     )}
