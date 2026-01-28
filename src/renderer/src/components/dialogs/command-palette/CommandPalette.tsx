@@ -11,7 +11,7 @@ import {
 import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import { useKeyBindings } from '../../../hooks';
+import { KeyBinding, useKeyBindings } from '../../../hooks';
 import { FileDocumentIcon } from '../../icons';
 import { type IconProps } from '../../icons/types';
 
@@ -43,7 +43,7 @@ export type DocumentOption = {
 
 export type ActionOption = {
   name: string;
-  shortcut?: string;
+  shortcut?: KeyBinding;
   onActionSelection: () => void;
   icon?: React.ComponentType<IconProps>;
 };
@@ -168,7 +168,7 @@ export const CommandPalette = ({
   const actionsKeyBindings = allActions
     .filter((action) => action.shortcut)
     .map((action) => ({
-      [`ctrl+${action.shortcut!.toLowerCase()}`]: action.onActionSelection,
+      [`${action.shortcut}`]: action.onActionSelection,
     }))
     .reduce((acc, curr) => ({ ...acc, ...curr }), {});
   useKeyBindings(actionsKeyBindings);

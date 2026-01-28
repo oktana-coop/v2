@@ -1,8 +1,20 @@
 import { useEffect } from 'react';
 
-export const useKeyBindings = (keyBindings: {
-  [keyboardEvent: string]: () => void;
-}) => {
+type Modifier = 'ctrl' | 'shift';
+type Letters = 'k' | 'o' | 't' | 's' | 'm' | 'h' | 'w' | 'd'; // for now only the ones used in the application
+type SpecialKey = 'enter' | 'escape' | 'tab';
+type Key = Letters | SpecialKey;
+
+export type KeyBinding =
+  | `${Key}`
+  | `${Modifier}+${Key}`
+  | `${Modifier}+${Modifier}+${Key}`;
+
+type KeyBindings = {
+  [K in KeyBinding]?: () => void;
+};
+
+export const useKeyBindings = (keyBindings: KeyBindings) => {
   useEffect(() => {
     const singleKeyBindings = Object.keys(keyBindings).filter((key) => {
       return !key.includes('+');
@@ -20,12 +32,14 @@ export const useKeyBindings = (keyBindings: {
           .map((binding) => {
             return binding.split('ctrl+shift+').slice(1)[0];
           })
-          .includes(event.key) &&
+          .includes(event.key.toLowerCase()) &&
         (event.ctrlKey === true || event.metaKey === true) &&
         event.shiftKey === true
       ) {
         event.preventDefault();
-        return keyBindings[`ctrl+shift+${event.key}`]();
+        const fn =
+          keyBindings[`ctrl+shift+${event.key.toLowerCase()}` as KeyBinding];
+        if (fn) return fn();
       }
 
       if (
@@ -33,17 +47,19 @@ export const useKeyBindings = (keyBindings: {
           .map((binding) => {
             return binding.split('ctrl+').slice(1)[0];
           })
-          .includes(event.key) &&
+          .includes(event.key.toLowerCase()) &&
         (event.ctrlKey === true || event.metaKey === true) &&
         event.shiftKey === false
       ) {
         event.preventDefault();
-        return keyBindings[`ctrl+${event.key}`]();
+        const fn = keyBindings[`ctrl+${event.key.toLowerCase()}` as KeyBinding];
+        if (fn) return fn();
       }
 
-      if (singleKeyBindings.includes(event.key)) {
+      if (singleKeyBindings.includes(event.key.toLowerCase())) {
         event.preventDefault();
-        return keyBindings[event.key]();
+        const fn = keyBindings[`${event.key.toLowerCase()}` as KeyBinding];
+        if (fn) return fn();
       }
     };
 
