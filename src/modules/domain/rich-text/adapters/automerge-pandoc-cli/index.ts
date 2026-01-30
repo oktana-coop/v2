@@ -17,6 +17,10 @@ export const createAdapter = ({
     to,
     input,
   }) => {
+    if (input === '') {
+      return '';
+    }
+
     const output = await runWasiCLIOutputingText({
       type: cliTypes.HS_LIB,
       args: [
@@ -29,6 +33,10 @@ export const createAdapter = ({
         input,
       ],
     });
+
+    if (!output) {
+      throw new Error('Error in transforming to text. No output received.');
+    }
 
     return output;
   };
