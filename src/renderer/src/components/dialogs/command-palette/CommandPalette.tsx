@@ -148,13 +148,9 @@ export const CommandPaletteOption = ({
       // Action Option
       value.shortcut && (
         <span className="flex-none text-xs font-semibold text-gray-500 dark:text-gray-400">
-          {value.shortcut.includes('ctrl') && (
-            <kbd className="font-sans">⌘</kbd>
-          )}
-          {value.shortcut.includes('shift') && (
-            <kbd className="font-sans">⇧</kbd>
-          )}
-          <kbd className="font-sans">
+          {value.shortcut.includes('ctrl') && <kbd className="kbd">⌘</kbd>}
+          {value.shortcut.includes('shift') && <kbd className="kbd">⇧</kbd>}
+          <kbd className="kbd">
             {value.shortcut
               .replace('ctrl+', '')
               .replace('shift+', '')
