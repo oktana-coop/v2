@@ -11,7 +11,7 @@
   "version": "0.11.2",
   "type": "module",
   "main": "./dist/main/index.js",
-  "packageManager": "pnpm@10.15.0",
+  "packageManager": "pnpm@10.28.2",
   "scripts": {
     "app:dir": "electron-builder --dir --publish=never",
     "package": "electron-builder --publish=never",

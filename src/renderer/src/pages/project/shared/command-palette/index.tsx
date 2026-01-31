@@ -55,8 +55,8 @@ export const ProjectCommandPalette = ({
 
   const singleDocumentProjectActions = [
     {
-      name: keyBindings.controlO.command,
-      shortcut: keyBindings.controlO.keyBinding,
+      name: keyBindings.ctrlO.command,
+      shortcut: keyBindings.ctrlO.keyBinding,
       onActionSelection: onOpenDocument,
     },
   ];
@@ -76,8 +76,8 @@ export const ProjectCommandPalette = ({
 
   const generalActions = [
     {
-      name: keyBindings.controlT.command,
-      shortcut: keyBindings.controlT.keyBinding,
+      name: keyBindings.ctrlT.command,
+      shortcut: keyBindings.ctrlT.keyBinding,
       onActionSelection: onCreateDocument,
     },
     ...(projectType === projectTypes.MULTI_DOCUMENT_PROJECT
@@ -90,8 +90,8 @@ export const ProjectCommandPalette = ({
     ...(canCommit
       ? [
           {
-            name: keyBindings.controlS.command,
-            shortcut: keyBindings.controlS.keyBinding,
+            name: keyBindings.ctrlS.command,
+            shortcut: keyBindings.ctrlS.keyBinding,
             onActionSelection: onOpenCommitDialog,
           },
           {
@@ -101,18 +101,18 @@ export const ProjectCommandPalette = ({
         ]
       : []),
     {
-      name: keyBindings.controlShiftM.command,
-      shortcut: keyBindings.controlShiftM.keyBinding,
+      name: keyBindings.ctrlShiftM.command,
+      shortcut: keyBindings.ctrlShiftM.keyBinding,
       onActionSelection: exportToText(richTextRepresentations.MARKDOWN),
     },
     {
-      name: keyBindings.controlShiftH.command,
-      shortcut: keyBindings.controlShiftH.keyBinding,
+      name: keyBindings.ctrlShiftH.command,
+      shortcut: keyBindings.ctrlShiftH.keyBinding,
       onActionSelection: exportToText(richTextRepresentations.HTML),
     },
     {
-      name: keyBindings.controlShiftW.command,
-      shortcut: keyBindings.controlShiftW.keyBinding,
+      name: keyBindings.ctrlShiftW.command,
+      shortcut: keyBindings.ctrlShiftW.keyBinding,
       onActionSelection: exportToBinary(richTextRepresentations.DOCX),
     },
     {

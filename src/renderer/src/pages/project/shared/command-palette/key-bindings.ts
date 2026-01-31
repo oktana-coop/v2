@@ -3,45 +3,45 @@
 // know where a key binding has already been taken
 // and for what purpose
 
-import { KeyBinding } from '../../../../hooks/use-key-bindings';
+import type { KeyBinding } from '../../../../hooks/use-key-bindings';
 
 // ctrl is used here to represent both ctrl (Windows/Linux) and cmd (Mac)
 export const keyBindings: Record<
   string,
   { command: string; keyBinding: KeyBinding }
 > = {
-  controlShiftD: {
+  ctrlShiftD: {
     command: 'Discard changes',
     keyBinding: 'ctrl+shift+d',
   },
-  controlK: {
+  ctrlK: {
     command: 'Toggle command palette',
     keyBinding: 'ctrl+k',
   },
-  controlO: {
+  ctrlO: {
     command: 'Open document',
     keyBinding: 'ctrl+o',
   },
-  controlT: {
+  ctrlT: {
     command: 'Create a new document',
     keyBinding: 'ctrl+t',
   },
-  controlS: {
+  ctrlS: {
     // aka save
     // as this is the "proper save" shortcut that allows you to save with context, hence commit
     // while the "simple save" (no context) is handled automatically. auto-save is always on.
     command: 'Commit changes',
     keyBinding: 'ctrl+s',
   },
-  controlShiftM: {
+  ctrlShiftM: {
     command: 'Export to Markdown',
     keyBinding: 'ctrl+shift+m',
   },
-  controlShiftH: {
+  ctrlShiftH: {
     command: 'Export to HTML',
     keyBinding: 'ctrl+shift+h',
   },
-  controlShiftW: {
+  ctrlShiftW: {
     command: 'Export to Docx (Microsoft Word)',
     keyBinding: 'ctrl+shift+w',
   },

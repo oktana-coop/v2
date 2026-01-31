@@ -34,7 +34,7 @@ export const CommandPaletteStateProvider = ({
   }, []);
 
   useKeyBindings({
-    [keyBindings.controlK.keyBinding]: () => setIsOpen((state) => !state),
+    [keyBindings.ctrlK.keyBinding]: () => setIsOpen((state) => !state),
   });
 
   const handleOpenCommandPalette = () => {
