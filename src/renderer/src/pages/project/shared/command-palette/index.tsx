@@ -21,6 +21,7 @@ import {
 } from '../../../../hooks';
 import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../../hooks/multi-document-project';
 import { useDocumentSelection as useDocumentSelectionInSingleDocumentProject } from '../../../../hooks/single-document-project';
+import { keyBindings } from './key-bindings';
 
 export const ProjectCommandPalette = ({
   onCreateDocument,
@@ -54,8 +55,8 @@ export const ProjectCommandPalette = ({
 
   const singleDocumentProjectActions = [
     {
-      name: 'Open document',
-      shortcut: 'O',
+      name: keyBindings.ctrlO.command,
+      shortcut: keyBindings.ctrlO.keyBinding,
       onActionSelection: onOpenDocument,
     },
   ];
@@ -75,8 +76,8 @@ export const ProjectCommandPalette = ({
 
   const generalActions = [
     {
-      name: 'Create new document',
-      shortcut: 'D',
+      name: keyBindings.ctrlT.command,
+      shortcut: keyBindings.ctrlT.keyBinding,
       onActionSelection: onCreateDocument,
     },
     ...(projectType === projectTypes.MULTI_DOCUMENT_PROJECT
@@ -89,8 +90,8 @@ export const ProjectCommandPalette = ({
     ...(canCommit
       ? [
           {
-            name: 'Commit changes',
-            shortcut: 'S',
+            name: keyBindings.ctrlS.command,
+            shortcut: keyBindings.ctrlS.keyBinding,
             onActionSelection: onOpenCommitDialog,
           },
           {
@@ -100,18 +101,18 @@ export const ProjectCommandPalette = ({
         ]
       : []),
     {
-      name: 'Export to Markdown',
-      shortcut: 'M',
+      name: keyBindings.ctrlShiftM.command,
+      shortcut: keyBindings.ctrlShiftM.keyBinding,
       onActionSelection: exportToText(richTextRepresentations.MARKDOWN),
     },
     {
-      name: 'Export to HTML',
-      shortcut: 'H',
+      name: keyBindings.ctrlShiftH.command,
+      shortcut: keyBindings.ctrlShiftH.keyBinding,
       onActionSelection: exportToText(richTextRepresentations.HTML),
     },
     {
-      name: 'Export to Docx (Microsoft Word)',
-      shortcut: 'W',
+      name: keyBindings.ctrlShiftW.command,
+      shortcut: keyBindings.ctrlShiftW.keyBinding,
       onActionSelection: exportToBinary(richTextRepresentations.DOCX),
     },
     {

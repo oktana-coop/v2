@@ -32,3 +32,20 @@
 .editor {
   margin-bottom: 50vh;
 }
+
+@layer components {
+  .kbd {
+    @apply inline-flex items-center justify-center
+      rounded-md border border-zinc-300 bg-zinc-100
+      px-1 py-0.5
+      m-0.5
+      font-sans text-xs font-medium text-zinc-900
+      shadow-sm
+      dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100;
+      font-size: 0.75rem;
+      --size: calc(var(--size-selector, 0.25rem) * 6);
+      height: var(--size);
+      min-width: var(--size); 
+      padding-inline: 0em;
+  }
+}

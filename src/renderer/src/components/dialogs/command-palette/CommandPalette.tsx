@@ -11,6 +11,7 @@ import {
 import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
+import type { KeyBinding } from '../../../hooks';
 import { useKeyBindings } from '../../../hooks';
 import { FileDocumentIcon } from '../../icons';
 import { type IconProps } from '../../icons/types';
@@ -43,7 +44,7 @@ export type DocumentOption = {
 
 export type ActionOption = {
   name: string;
-  shortcut?: string;
+  shortcut?: KeyBinding;
   onActionSelection: () => void;
   icon?: React.ComponentType<IconProps>;
 };
@@ -147,8 +148,14 @@ export const CommandPaletteOption = ({
       // Action Option
       value.shortcut && (
         <span className="flex-none text-xs font-semibold text-gray-500 dark:text-gray-400">
-          <kbd className="font-sans">⌘</kbd>
-          <kbd className="font-sans">{value.shortcut}</kbd>
+          {value.shortcut.includes('ctrl') && <kbd className="kbd">⌘</kbd>}
+          {value.shortcut.includes('shift') && <kbd className="kbd">⇧</kbd>}
+          <kbd className="kbd">
+            {value.shortcut
+              .replace('ctrl+', '')
+              .replace('shift+', '')
+              .toUpperCase()}
+          </kbd>
         </span>
       )
     )}
@@ -168,7 +175,7 @@ export const CommandPalette = ({
   const actionsKeyBindings = allActions
     .filter((action) => action.shortcut)
     .map((action) => ({
-      [`ctrl+${action.shortcut!.toLowerCase()}`]: action.onActionSelection,
+      [`${action.shortcut}`]: action.onActionSelection,
     }))
     .reduce((acc, curr) => ({ ...acc, ...curr }), {});
   useKeyBindings(actionsKeyBindings);

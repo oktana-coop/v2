@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import type { ComponentProps } from 'react';
 
+import { KeyBinding } from '../../../hooks';
 import { CommandPalette } from './CommandPalette';
 
 const meta: Meta<typeof CommandPalette> = {
@@ -29,12 +30,12 @@ const myRecentDocuments = [
 const quickActions = [
   {
     name: 'Add new file...',
-    shortcut: 'N',
+    shortcut: `ctrl+n` as KeyBinding,
     onActionSelection: () => console.log('Add new file... selected'),
   },
   {
     name: 'Add new folder...',
-    shortcut: 'F',
+    shortcut: `ctrl+f` as KeyBinding,
     onActionSelection: () => console.log('Add new folder... selected'),
   },
   {
@@ -45,7 +46,7 @@ const quickActions = [
   },
   {
     name: 'Add label...',
-    shortcut: 'L',
+    shortcut: `ctrl+l` as KeyBinding,
     onActionSelection: () => {
       console.log('Add label... selected');
     },
