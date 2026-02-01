@@ -90,6 +90,25 @@ If for any case the release workflow fails, the version bump and the commit are 
 
 By default, the release worfklow performs a **patch** update from the previous version (`v0.1.1` → `v0.1.2`), but this default is an option for the maintainer who runs the release worfklow. You can override this by including one of the following in the commit message: `#major`, `#minor`, or `#patch`. For details, see [bumping in github-tag-action](https://github.com/anothrNick/github-tag-action?tab=readme-ov-file#bumping).
 
+#### Publishing the Release
+
+After the draft release is created, you can review and edit the release notes, then publish the release on GitHub.
+
+**macOS**
+
+Code signing and notarization are performed during the build process. No separate publish step is required.
+
+Required secrets: `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_TEAM_ID`, `APPLE_APP_SPECIFIC_PASSWORD`
+
+**Arch Linux**
+
+When a release is published, a separate `Publish Packages` workflow automatically triggers and publishes to AUR (Arch User Repository):
+1. Generates a PKGBUILD file for the new version
+2. Commits the PKGBUILD to the separate AUR package repository (`v2-bin` on aur.archlinux.org)
+3. This is independent from the main source code repository
+
+Required secrets: `AUR_USERNAME`, `AUR_EMAIL`, `AUR_SSH_PRIVATE_KEY`
+
 ### Package the app for your OS (locally)
 
 To create artifacts for various operating systems, first build the app as shown above. Then run:
