@@ -104,6 +104,7 @@
     },
     "linux": {
       "icon": "public/icons/icon",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
       "target": [
         {
           "target": "AppImage",

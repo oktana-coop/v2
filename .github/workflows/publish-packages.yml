@@ -1,0 +1,29 @@
+name: Publish Packages
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish-aur:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Generate PKGBUILD
+        run: |
+          chmod +x ./scripts/aur/generate-pkgbuild.sh
+          ./scripts/aur/generate-pkgbuild.sh ${{ github.event.release.tag_name }}
+
+      - name: Publish to AUR
+        uses: KSXGitHub/github-actions-deploy-aur@v4.1.1
+        with:
+          pkgname: v2-bin
+          pkgbuild: ./PKGBUILD
+          commit_username: ${{ secrets.AUR_USERNAME }}
+          commit_email: ${{ secrets.AUR_EMAIL }}
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: "Update to ${{ github.event.release.tag_name }}"
+          updpkgsums: false
