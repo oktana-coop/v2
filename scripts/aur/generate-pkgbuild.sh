@@ -20,7 +20,7 @@ VERSION="${VERSION#v}"
 echo "Generating PKGBUILD for version ${VERSION}..."
 
 # URLs for the AppImages
-X86_URL="https://github.com/oktana-coop/v2/releases/download/v${VERSION}/v2-${VERSION}-x64.AppImage"
+X86_URL="https://github.com/oktana-coop/v2/releases/download/v${VERSION}/v2-${VERSION}-x86_64.AppImage"
 ARM_URL="https://github.com/oktana-coop/v2/releases/download/v${VERSION}/v2-${VERSION}-arm64.AppImage"
 
 # Download with retry (assets may not be immediately available after release)
