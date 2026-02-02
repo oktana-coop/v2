@@ -54,6 +54,10 @@ export const createAdapter = ({
       ],
     });
 
+    if (!output) {
+      throw new Error('Conversion failed: No output returned');
+    }
+
     // TODO: Perform proper validation & handle error cases
     const parsedOutput = JSON.parse(output) as HSLibConversionOutput;
 
