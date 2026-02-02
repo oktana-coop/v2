@@ -5,6 +5,26 @@ import {
 import { type RepresentationTransform } from '../../ports/representation-transform';
 import { representationToCliArg } from './cli-args';
 
+type HSLibConversionSuccessOutput = {
+  data: string;
+};
+
+type HSLibError = {
+  message: string;
+};
+
+type HSLibFailureOutput = {
+  errors: HSLibError[];
+};
+
+type HSLibConversionOutput = HSLibConversionSuccessOutput | HSLibFailureOutput;
+
+const isHSLibFailureOutput = (
+  output: HSLibConversionOutput
+): output is HSLibFailureOutput => {
+  return 'errors' in output;
+};
+
 export const createAdapter = ({
   runWasiCLIOutputingText,
   runWasiCLIOutputingBinary,
@@ -35,10 +55,19 @@ export const createAdapter = ({
     });
 
     if (!output) {
-      throw new Error('Error in transforming to text. No output received.');
+      throw new Error('Conversion failed: No output returned');
     }
 
-    return output;
+    // TODO: Perform proper validation & handle error cases
+    const parsedOutput = JSON.parse(output) as HSLibConversionOutput;
+
+    if (isHSLibFailureOutput(parsedOutput)) {
+      throw new Error(
+        `Conversion failed: ${parsedOutput.errors.map((error) => error.message).join(', ')}`
+      );
+    }
+
+    return parsedOutput.data;
   };
 
   const transformToBinary: RepresentationTransform['transformToBinary'] =

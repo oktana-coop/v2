@@ -8,6 +8,10 @@ import {
   useState,
 } from 'react';
 
+import {
+  createErrorNotification,
+  NotificationsContext,
+} from '../../../../modules/infrastructure/notifications/browser';
 import { WasmContext } from '../../../../modules/infrastructure/wasm/react/wasm-context';
 import { createAdapter as createPandocDiffAdapter } from '../adapters/pandoc-diff';
 import {
@@ -68,6 +72,7 @@ export const ProseMirrorProvider = ({
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
   );
+  const { dispatchNotification } = useContext(NotificationsContext);
 
   useEffect(() => {
     const pandocDiffAdapter = createPandocDiffAdapter({
@@ -120,29 +125,33 @@ export const ProseMirrorProvider = ({
       return pmDoc;
     }
 
-    const result = await representationTransformAdapter.transformToText({
-      from: args.document.representation,
-      to: richTextRepresentations.PROSEMIRROR,
-      input: args.document.content,
-    });
-
-    type RepresentationTransformPMOutput = {
-      doc: PMNode;
-    };
-
-    let parsedOutput;
-
     try {
-      parsedOutput = JSON.parse(result) as RepresentationTransformPMOutput;
+      const result = await representationTransformAdapter.transformToText({
+        from: args.document.representation,
+        to: richTextRepresentations.PROSEMIRROR,
+        input: args.document.content,
+      });
+
+      type RepresentationTransformPMOutput = {
+        doc: PMNode;
+      };
+
+      const parsedOutput = JSON.parse(
+        result
+      ) as RepresentationTransformPMOutput;
+
+      const pmDoc = pmDocFromJSONString(parsedOutput.doc, args.schema);
+
+      return pmDoc;
     } catch (error) {
-      throw new Error(
-        `Failed to parse output from representation transform adapter: ${error}`
-      );
+      const notification = createErrorNotification({
+        title: 'Error Reading Document',
+        message: `An error happened when the editor tried to read the document. Please reach out to us for
+    support.`,
+      });
+      dispatchNotification(notification);
+      throw error;
     }
-
-    const pmDoc = pmDocFromJSONString(parsedOutput.doc, args.schema);
-
-    return pmDoc;
   };
 
   const handleParseMarkdown = (schema: Schema) => async (input: string) => {
