@@ -132,15 +132,13 @@ export const ProseMirrorProvider = ({
         input: args.document.content,
       });
 
-      type RepresentationTransformPMOutput = {
-        doc: PMNode;
-      };
+      type RepresentationTransformPMOutput = PMNode;
 
       const parsedOutput = JSON.parse(
         result
       ) as RepresentationTransformPMOutput;
 
-      const pmDoc = pmDocFromJSONString(parsedOutput.doc, args.schema);
+      const pmDoc = pmDocFromJSONString(parsedOutput, args.schema);
 
       return pmDoc;
     } catch (error) {
@@ -182,7 +180,7 @@ export const ProseMirrorProvider = ({
       );
     }
 
-    const pmDoc = pmDocFromJSONString(parsedOutput.doc, schema);
+    const pmDoc = pmDocFromJSONString(parsedOutput, schema);
 
     return pmDoc;
   };
