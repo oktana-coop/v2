@@ -232,14 +232,12 @@ const schemaSpec: SchemaSpec = {
       atom: true,
       attrs: {
         id: { default: null },
-        href: { default: null },
       },
       parseDOM: [
         {
           tag: 'a.note-ref',
           getAttrs: (dom) => ({
             id: dom.getAttribute('data-id') ?? null,
-            href: dom.getAttribute('href') || '',
           }),
         },
       ],
