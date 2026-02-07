@@ -1,0 +1,9 @@
+APT::FTPArchive::Release {
+  Origin "Oktana Coop";
+  Label "v2 Editor";
+  Suite "stable";
+  Codename "stable";
+  Architectures "amd64 arm64";
+  Components "main";
+  Description "v2 - A local-first rich text editor";
+};
