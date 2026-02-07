@@ -109,6 +109,18 @@ When a release is published, a separate `Publish Packages` workflow automaticall
 
 Required secrets: `AUR_USERNAME`, `AUR_EMAIL`, `AUR_SSH_PRIVATE_KEY`
 
+**Ubuntu/Debian**
+
+When a release is published, the `Publish Packages` workflow also publishes to a custom APT repository:
+1. Downloads the `.deb` packages (amd64 and arm64) from the GitHub release
+2. Generates APT repository metadata (Packages, Release files)
+3. Signs the repository with GPG
+4. Commits to the separate `v2-deb` repository hosted on GitHub Pages
+
+This allows Ubuntu/Debian users to install and update v2 via `apt`. See [oktana-coop/v2-deb](https://github.com/oktana-coop/v2-deb) for installation instructions.
+
+Required secrets: `APT_GPG_PRIVATE_KEY`, `APT_GPG_KEY_ID`, `GH_PAT`
+
 ### Package the app for your OS (locally)
 
 To create artifacts for various operating systems, first build the app as shown above. Then run:
