@@ -67,8 +67,8 @@ jobs:
 
           # Configure git
           cd v2-deb
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "Oktana Coop"
+          git config user.email "team@oktana.dev"
 
           # Commit and push
           git add .
