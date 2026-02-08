@@ -81,8 +81,12 @@ echo "DEB packages verified successfully"
 echo "Generating Packages files..."
 cd "$REPO_DIR"
 
-dpkg-scanpackages --arch amd64 pool/ > dists/stable/main/binary-amd64/Packages
-dpkg-scanpackages --arch arm64 pool/ > dists/stable/main/binary-arm64/Packages
+# Scan with multiversion to get both architectures
+dpkg-scanpackages --multiversion pool/ /dev/null > /tmp/all-packages.txt 2>&1
+
+# Split into architecture-specific files
+awk 'BEGIN {RS=""; FS="\n"} /^Architecture: amd64/ {print; print ""}' /tmp/all-packages.txt > dists/stable/main/binary-amd64/Packages
+awk 'BEGIN {RS=""; FS="\n"} /^Architecture: arm64/ {print; print ""}' /tmp/all-packages.txt > dists/stable/main/binary-arm64/Packages
 
 # Compress Packages files
 gzip -kf dists/stable/main/binary-amd64/Packages
@@ -98,9 +102,9 @@ if [[ -z "${GPG_KEY_ID:-}" ]]; then
 else
     echo "Signing Release file..."
     # Generate detached signature
-    gpg --default-key "${GPG_KEY_ID}" -abs -o dists/stable/Release.gpg dists/stable/Release
+    gpg --batch --pinentry-mode loopback --default-key "${GPG_KEY_ID}" -abs -o dists/stable/Release.gpg dists/stable/Release
     # Generate inline signature
-    gpg --default-key "${GPG_KEY_ID}" --clearsign -o dists/stable/InRelease dists/stable/Release
+    gpg --batch --pinentry-mode loopback --default-key "${GPG_KEY_ID}" --clearsign -o dists/stable/InRelease dists/stable/Release
     echo "Release file signed successfully"
 fi
 
