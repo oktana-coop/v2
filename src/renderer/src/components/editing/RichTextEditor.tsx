@@ -66,6 +66,7 @@ const {
   pmDocFromJSONString,
   pmDocToJSONString,
   diffPlugin,
+  registerNodeViews,
 } = prosemirror;
 
 type RichTextEditorProps = {
@@ -264,6 +265,7 @@ export const RichTextEditor = ({
       const state = EditorState.create(editorConfig);
       const editorView = new EditorView(editorRoot.current, {
         state,
+        nodeViews: registerNodeViews(),
         dispatchTransaction: (tx: Transaction) => {
           const newState = editorView.state.apply(tx);
           editorView.updateState(newState);

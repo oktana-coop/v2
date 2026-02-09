@@ -17,6 +17,7 @@ import {
   code as codeClasses,
   link as linkClasses,
 } from '../../../../renderer/src/components/editing/marks';
+import { codeBlockLanguages } from '../constants';
 import { getLinkAttrsFromDomElement } from '../models/link';
 
 // basics
@@ -124,17 +125,41 @@ const schemaSpec: SchemaSpec = {
     /// A code listing. Disallows marks or non-text inline
     /// nodes by default. Represented as a `<pre>` element with a
     /// `<code>` element inside of it.
+    /// Note: A custom node view is used to render this node, which includes a language selector dropdown.
     code_block: {
+      attrs: {
+        language: { default: codeBlockLanguages.PLAINTEXT },
+      },
       content: 'text*',
       marks: '',
       group: 'block',
       code: true,
       defining: true,
-      parseDOM: [{ tag: 'pre', preserveWhitespace: 'full' }],
-      toDOM() {
+      parseDOM: [
+        {
+          tag: 'pre',
+          preserveWhitespace: 'full',
+          getAttrs(dom) {
+            return {
+              language: dom.getAttribute('data-language') || null,
+            };
+          },
+        },
+      ],
+      toDOM(node) {
+        const { language } = node.attrs;
+
         return [
           'pre',
-          ['code', { class: codeBlockClasses, spellcheck: 'false' }, 0],
+          [
+            'code',
+            {
+              class:
+                `${codeBlockClasses} ${language ? `language-${language}` : ''}`.trim(),
+              spellcheck: 'false',
+            },
+            0,
+          ],
         ];
       },
     },
