@@ -7,9 +7,17 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-VERSION="${1:-}"
+NO_SIGN=false
+VERSION=""
+for arg in "$@"; do
+    case "$arg" in
+        --no-sign) NO_SIGN=true ;;
+        *) VERSION="$arg" ;;
+    esac
+done
+
 if [[ -z "$VERSION" ]]; then
-    echo "Usage: $0 <version>"
+    echo "Usage: $0 <version> [--no-sign]"
     echo "Example: $0 v0.11.7"
     exit 1
 fi
@@ -97,13 +105,14 @@ echo "Generating Release file..."
 apt-ftparchive -c "${SCRIPT_DIR}/apt-repo-config" release dists/stable > dists/stable/Release
 
 # Sign Release file (requires GPG_KEY_ID environment variable)
-if [[ -z "${GPG_KEY_ID:-}" ]]; then
-    echo "Warning: GPG_KEY_ID not set, skipping signing" >&2
+if [[ "$NO_SIGN" == "true" ]]; then
+    echo "Skipping signing (--no-sign)" >&2
+elif [[ -z "${GPG_KEY_ID:-}" ]]; then
+    echo "Error: GPG_KEY_ID not set. Set GPG_KEY_ID or pass --no-sign for local testing." >&2
+    exit 1
 else
     echo "Signing Release file..."
-    # Generate detached signature
     gpg --batch --pinentry-mode loopback --default-key "${GPG_KEY_ID}" -abs -o dists/stable/Release.gpg dists/stable/Release
-    # Generate inline signature
     gpg --batch --pinentry-mode loopback --default-key "${GPG_KEY_ID}" --clearsign -o dists/stable/InRelease dists/stable/Release
     echo "Release file signed successfully"
 fi
