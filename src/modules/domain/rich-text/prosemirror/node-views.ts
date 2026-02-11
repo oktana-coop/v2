@@ -1,6 +1,6 @@
 import { type NodeViewConstructor } from 'prosemirror-view';
 
-import { CodeBlockView } from './code-blocks/CodeBlockView';
+import { CodeBlockView } from './code-blocks';
 
 export const registerNodeViews = (): {
   [node: string]: NodeViewConstructor;

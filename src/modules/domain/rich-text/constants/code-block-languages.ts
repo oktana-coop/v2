@@ -9,7 +9,6 @@ const DART = 'dart';
 const DOCKERFILE = 'docker';
 const ELIXIR = 'elixir';
 const ERLANG = 'erlang';
-const EXCEL = 'excel';
 const GO = 'go';
 const GRAPHQL = 'graphql';
 const HASKELL = 'haskell';
@@ -56,7 +55,6 @@ export const codeBlockLanguages = {
   DOCKERFILE,
   ELIXIR,
   ERLANG,
-  EXCEL,
   GO,
   GRAPHQL,
   HASKELL,
@@ -104,7 +102,6 @@ export const codeBlockLanguageNames: Record<CodeBlockLanguage, string> = {
   [DOCKERFILE]: 'Dockerfile',
   [ELIXIR]: 'Elixir',
   [ERLANG]: 'Erlang',
-  [EXCEL]: 'Excel',
   [GO]: 'Go',
   [GRAPHQL]: 'GraphQL',
   [HASKELL]: 'Haskell',

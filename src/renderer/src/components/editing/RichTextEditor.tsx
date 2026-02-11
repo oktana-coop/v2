@@ -67,6 +67,7 @@ const {
   pmDocToJSONString,
   diffPlugin,
   registerNodeViews,
+  codeBlockHighlightPlugin,
 } = prosemirror;
 
 type RichTextEditorProps = {
@@ -143,6 +144,7 @@ export const RichTextEditor = ({
     ...markdownMarkPlugins(schema),
     pasteMarkdownPlugin(parseMarkdown(schema)),
     notesPlugin(),
+    codeBlockHighlightPlugin,
     history(),
     keymap({
       'Mod-b': toggleStrong(schema),

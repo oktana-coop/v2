@@ -16,8 +16,14 @@ import {
   diffModify,
 } from '../../../../../../components/editing/marks';
 
-const { schema, diffPlugin, notesPlugin, numberNotes, openExternalLinkPlugin } =
-  prosemirror;
+const {
+  schema,
+  diffPlugin,
+  notesPlugin,
+  numberNotes,
+  openExternalLinkPlugin,
+  codeBlockHighlightPlugin,
+} = prosemirror;
 
 export type DiffViewProps = {
   docBefore: RichTextDocument;
@@ -161,7 +167,11 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
       const state = EditorState.create({
         schema,
         doc: pmDoc,
-        plugins: [openExternalLinkPlugin(openExternalLink), notesPlugin()],
+        plugins: [
+          openExternalLinkPlugin(openExternalLink),
+          notesPlugin(),
+          codeBlockHighlightPlugin,
+        ],
       });
 
       numberNotes(state, viewRef.current.dispatch, viewRef.current);

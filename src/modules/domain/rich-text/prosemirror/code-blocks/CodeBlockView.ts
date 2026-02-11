@@ -10,8 +10,10 @@ const createSelectElement = (initialValue: string) => {
   selectWrapper.className = 'relative';
 
   const select = document.createElement('select');
+  // Both our selected shiki themes are dark, so we use a dark background for the select to match the highlighted code block.
+  // In case we use a light theme in the future, we can switch to a light background and outline when that theme is active.
   select.className =
-    'appearance-none w-full rounded-md bg-black/[.02] dark:bg-white/5 py-0.5 pl-3 pr-8 text-gray-900 dark:text-white outline outline-1 -outline-offset-1 outline-gray-300 dark:outline-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-purple-500 dark:focus-visible:outline-purple-300 text-sm/6';
+    'appearance-none w-full rounded-md bg-neutral-900/85 py-0.5 pl-3 pr-8 text-white outline outline-1 -outline-offset-1 outline-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-purple-300 text-sm/6';
 
   Object.values(codeBlockLanguages).forEach((language) => {
     const option = document.createElement('option');
@@ -95,6 +97,7 @@ export class CodeBlockView implements NodeView {
 
     // Create the content DOM (the actual code block)
     this.contentDOM = document.createElement('pre');
+    this.contentDOM.spellcheck = false;
     const code = document.createElement('code');
     code.spellcheck = false;
     this.contentDOM.appendChild(code);
