@@ -33,19 +33,41 @@
   margin-bottom: 50vh;
 }
 
+.light .ProseMirror pre {
+  background-color: var(--shiki-light-bg, inherit);
+}
+
+.light .shiki,
+.light .shiki span {
+  color: var(--shiki-light) !important;
+  background-color: var(--shiki-light-bg) !important;
+  /* Optional, if you also want font styles */
+  font-style: var(--shiki-light-font-style) !important;
+  font-weight: var(--shiki-light-font-weight) !important;
+  text-decoration: var(--shiki-light-text-decoration) !important;
+}
+
+.dark .ProseMirror pre {
+  background-color: var(--shiki-dark-bg, inherit);
+}
+
+.dark .shiki,
+.dark .shiki span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+  /* Optional, if you also want font styles */
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}
+
 @layer components {
   .kbd {
-    @apply inline-flex items-center justify-center
-      rounded-md border border-zinc-300 bg-zinc-100
-      px-1 py-0.5
-      m-0.5
-      font-sans text-xs font-medium text-zinc-900
-      shadow-sm
-      dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100;
-      font-size: 0.75rem;
-      --size: calc(var(--size-selector, 0.25rem) * 6);
-      height: var(--size);
-      min-width: var(--size); 
-      padding-inline: 0em;
+    @apply m-0.5 inline-flex items-center justify-center rounded-md border border-zinc-300 bg-zinc-100 px-1 py-0.5 font-sans text-xs font-medium text-zinc-900 shadow-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100;
+    font-size: 0.75rem;
+    --size: calc(var(--size-selector, 0.25rem) * 6);
+    height: var(--size);
+    min-width: var(--size);
+    padding-inline: 0em;
   }
 }
