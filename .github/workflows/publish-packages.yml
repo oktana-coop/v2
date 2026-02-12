@@ -27,3 +27,50 @@ jobs:
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
           commit_message: "Update to ${{ github.event.release.tag_name }}"
           updpkgsums: false
+
+  publish-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Install APT repository tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev apt-utils gnupg
+
+      - name: Import GPG key
+        run: |
+          echo "${{ secrets.APT_GPG_PRIVATE_KEY }}" | gpg --batch --import
+          gpg --list-secret-keys
+
+      - name: Generate APT repository
+        env:
+          GPG_KEY_ID: ${{ secrets.APT_GPG_KEY_ID }}
+        run: |
+          chmod +x ./scripts/ubuntu/generate-apt-repo.sh
+          ./scripts/ubuntu/generate-apt-repo.sh ${{ github.event.release.tag_name }}
+
+      - name: Clone v2-deb repository
+        uses: actions/checkout@v4
+        with:
+          repository: oktana-coop/v2-deb
+          token: ${{ secrets.GH_PAT }}
+          path: v2-deb
+
+      - name: Update v2-deb repository
+        run: |
+          # Copy repository files
+          cp -r apt-repo/* v2-deb/
+
+          # Configure git
+          cd v2-deb
+          git config user.name "Oktana Coop"
+          git config user.email "team@oktana.dev"
+
+          # Commit and push
+          git add .
+          git commit -m "Update to ${{ github.event.release.tag_name }}" || echo "No changes to commit"
+          git push origin main
