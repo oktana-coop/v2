@@ -50,6 +50,7 @@ export const createAdapter = ({
         representationToCliArg(from),
         '--to',
         representationToCliArg(to),
+        '--',
         input,
       ],
     });
