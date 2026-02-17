@@ -59,6 +59,9 @@ const schemaSpec: SchemaSpec = {
     /// NodeSpec The top level document node.
     doc: {
       content: 'block+',
+      attrs: {
+        pandocMeta: { default: null },
+      },
     },
 
     /// A plain paragraph textblock. Represented in the DOM

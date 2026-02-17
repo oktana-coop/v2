@@ -106,6 +106,7 @@ export const createAdapter = ({
         'proseMirrorDiff',
         '--from',
         representationToCliArg(representation),
+        '--',
         docBefore,
         docAfter,
       ],
