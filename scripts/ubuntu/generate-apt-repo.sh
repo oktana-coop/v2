@@ -90,11 +90,11 @@ echo "Generating Packages files..."
 cd "$REPO_DIR"
 
 # Scan with multiversion to get both architectures
-dpkg-scanpackages --multiversion pool/ /dev/null > /tmp/all-packages.txt 2>&1
+dpkg-scanpackages --multiversion pool/ /dev/null > /tmp/all-packages.txt
 
 # Split into architecture-specific files
-awk 'BEGIN {RS=""; FS="\n"} /^Architecture: amd64/ {print; print ""}' /tmp/all-packages.txt > dists/stable/main/binary-amd64/Packages
-awk 'BEGIN {RS=""; FS="\n"} /^Architecture: arm64/ {print; print ""}' /tmp/all-packages.txt > dists/stable/main/binary-arm64/Packages
+awk 'BEGIN {RS=""; FS="\n"} /\nArchitecture: amd64/ {print; print ""}' /tmp/all-packages.txt > dists/stable/main/binary-amd64/Packages
+awk 'BEGIN {RS=""; FS="\n"} /\nArchitecture: arm64/ {print; print ""}' /tmp/all-packages.txt > dists/stable/main/binary-arm64/Packages
 
 # Compress Packages files
 gzip -kf dists/stable/main/binary-amd64/Packages
