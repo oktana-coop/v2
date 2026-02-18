@@ -14,7 +14,12 @@ import {
   RepositoryError,
 } from '../../../errors';
 import { type Filesystem } from '../../../ports/filesystem';
-import { type File, isBinaryFile, isTextFile } from '../../../types';
+import {
+  type Directory,
+  type File,
+  isBinaryFile,
+  isTextFile,
+} from '../../../types';
 import {
   clearAllAndInsertManyFileHandles,
   clearFileHandles,
@@ -111,8 +116,8 @@ const showSaveFilePicker = ({
     },
   });
 
-const getFileRelativePath = (
-  fileHandle: FileSystemFileHandle,
+const getHandleRelativePath = (
+  fileHandle: FileSystemHandle,
   relativeTo: FileSystemDirectoryHandle
 ): Effect.Effect<string, RepositoryError, never> =>
   pipe(
@@ -259,8 +264,8 @@ const readFile: (args: {
     }))
   );
 
-export const createAdapter = (): Filesystem => ({
-  openDirectory: () =>
+export const createAdapter = (): Filesystem => {
+  const openDirectory: Filesystem['openDirectory'] = () =>
     Effect.Do.pipe(
       Effect.bind('dirHandle', () => showDirPicker()),
       Effect.bind('permissionState', ({ dirHandle }) =>
@@ -284,8 +289,9 @@ export const createAdapter = (): Filesystem => ({
         path: dirHandle.name,
         permissionState,
       }))
-    ),
-  getDirectory: (path: string) =>
+    );
+
+  const getDirectory: Filesystem['getDirectory'] = (path) =>
     Effect.Do.pipe(
       Effect.bind('dirHandle', () => getDirHandleFromStorage(path)),
       Effect.bind('permissionState', ({ dirHandle }) =>
@@ -297,8 +303,13 @@ export const createAdapter = (): Filesystem => ({
         path: dirHandle.name,
         permissionState,
       }))
-    ),
-  listDirectoryFiles: ({ path, extensions, useRelativePath }) =>
+    );
+
+  const listDirectoryFiles: Filesystem['listDirectoryFiles'] = ({
+    path,
+    extensions,
+    useRelativePath,
+  }) =>
     Effect.Do.pipe(
       Effect.bind('directoryHandle', () => getDirHandleFromStorage(path)),
       Effect.bind('entries', ({ directoryHandle }) =>
@@ -335,7 +346,7 @@ export const createAdapter = (): Filesystem => ({
           ([key, value]) =>
             useRelativePath
               ? pipe(
-                  getFileRelativePath(value, directoryHandle),
+                  getHandleRelativePath(value, directoryHandle),
                   Effect.map((relativePath) => ({
                     type: filesystemItemTypes.FILE,
                     name: key,
@@ -367,20 +378,176 @@ export const createAdapter = (): Filesystem => ({
           ),
         })
       )
-    ),
-  requestPermissionForDirectory: (path: string) =>
-    pipe(
-      getDirHandleFromStorage(path),
-      Effect.flatMap((directoryHandle) => requestPermission(directoryHandle))
-    ),
-  assertWritePermissionForDirectory: (path: string) =>
-    pipe(
-      getDirHandleFromStorage(path),
-      Effect.flatMap((directoryHandle) =>
-        assertWritePermission(directoryHandle)
+    );
+
+  // TODO: Clean this up.
+  const listDirectoryTree: Filesystem['listDirectoryTree'] = ({
+    path: directoryPath,
+    extensions,
+    useRelativePath,
+    depth,
+  }) =>
+    Effect.Do.pipe(
+      Effect.bind('directoryHandle', () =>
+        getDirHandleFromStorage(directoryPath)
+      ),
+      Effect.bind('entries', ({ directoryHandle }) =>
+        Effect.tryPromise({
+          // TODO: Replace with `Array.fromAsync` when it's more widely supported
+          try: async () => {
+            const entries: [string, FileSystemHandle][] = [];
+            for await (const entry of directoryHandle.entries()) {
+              entries.push(entry);
+            }
+            return entries;
+          },
+          catch: mapErrorTo(
+            RepositoryError,
+            'Failed to read directory entries'
+          ),
+        })
+      ),
+      Effect.flatMap(({ entries, directoryHandle }) => {
+        const isDirectoryEntry = (
+          entry: [string, FileSystemHandle]
+        ): entry is [string, FileSystemDirectoryHandle] => {
+          const [, handle] = entry;
+          return handle.kind === 'directory';
+        };
+
+        const isFileEntry = (
+          entry: [string, FileSystemHandle]
+        ): entry is [string, FileSystemFileHandle] => {
+          const [, handle] = entry;
+          return handle.kind === 'file';
+        };
+
+        const fileOrSubDirEffect: Effect.Effect<
+          Array<
+            | (Directory & { handle: FileSystemDirectoryHandle })
+            | (File & { handle: FileSystemFileHandle })
+          >,
+          DataIntegrityError | NotFoundError | RepositoryError,
+          never
+        > = Effect.forEach(
+          entries.filter(
+            (entry) =>
+              isDirectoryEntry(entry) ||
+              (isFileEntry(entry) &&
+                (extensions === undefined ||
+                  extensions.some((ext) => entry[1].name.endsWith(`.${ext}`))))
+          ),
+          ([key, value]) => {
+            if (isDirectoryEntry([key, value])) {
+              const subDirPath = value.name;
+
+              const subDirEffect: Effect.Effect<
+                | (Directory & { handle: FileSystemDirectoryHandle })
+                | (File & { handle: FileSystemFileHandle }),
+                DataIntegrityError | NotFoundError | RepositoryError,
+                never
+              > = Effect.Do.pipe(
+                Effect.bind('children', () =>
+                  !depth || depth > 0
+                    ? listDirectoryTree({
+                        path: subDirPath,
+                        useRelativePath,
+                        depth: depth ? depth - 1 : undefined,
+                      })
+                    : Effect.succeed([])
+                ),
+                Effect.bind('resultPath', () =>
+                  useRelativePath
+                    ? getHandleRelativePath(value, directoryHandle)
+                    : Effect.succeed(value.name)
+                ),
+                Effect.tap(() =>
+                  Effect.tryPromise({
+                    try: () =>
+                      persistDirectoryHandle(
+                        value as FileSystemDirectoryHandle
+                      ),
+                    catch: mapErrorTo(RepositoryError, 'Browser storage error'),
+                  })
+                ),
+                Effect.map(({ children, resultPath }) => ({
+                  type: filesystemItemTypes.DIRECTORY,
+                  name: subDirPath,
+                  path: resultPath,
+                  children: children.length > 0 ? children : undefined,
+                  permissionState: 'granted', // TODO: Replace with constant
+                  handle: value as FileSystemDirectoryHandle,
+                }))
+              );
+
+              return subDirEffect;
+            }
+
+            const fileEffect: Effect.Effect<
+              | (Directory & { handle: FileSystemDirectoryHandle })
+              | (File & { handle: FileSystemFileHandle }),
+              DataIntegrityError | NotFoundError | RepositoryError,
+              never
+            > = useRelativePath
+              ? pipe(
+                  getHandleRelativePath(value, directoryHandle),
+                  Effect.map((relativePath) => ({
+                    type: filesystemItemTypes.FILE,
+                    name: key,
+                    path: relativePath,
+                    handle: value as FileSystemFileHandle,
+                  }))
+                )
+              : Effect.succeed({
+                  type: filesystemItemTypes.FILE,
+                  name: key,
+                  path: value.name,
+                  handle: value as FileSystemFileHandle,
+                });
+
+            return fileEffect;
+          },
+          { concurrency: 10 }
+        );
+
+        return fileOrSubDirEffect;
+      }),
+      Effect.tap((entries) =>
+        Effect.tryPromise({
+          try: () =>
+            clearAllAndInsertManyFileHandles(
+              entries
+                .filter((entry) => entry.type === filesystemItemTypes.FILE)
+                .map((file) => ({
+                  fileHandle: file.handle as FileSystemFileHandle,
+                  relativePath: file.path,
+                }))
+            ),
+          catch: mapErrorTo(
+            RepositoryError,
+            'Failed to persist file handles in the browser storage'
+          ),
+        })
       )
-    ),
-  readBinaryFile: (path: string) =>
+    );
+
+  const requestPermissionForDirectory: Filesystem['requestPermissionForDirectory'] =
+    (path: string) =>
+      pipe(
+        getDirHandleFromStorage(path),
+        Effect.flatMap((directoryHandle) => requestPermission(directoryHandle))
+      );
+
+  const assertWritePermissionForDirectory: Filesystem['assertWritePermissionForDirectory'] =
+    (path: string) =>
+      pipe(
+        getDirHandleFromStorage(path),
+        Effect.flatMap((directoryHandle) =>
+          assertWritePermission(directoryHandle)
+        )
+      );
+
+  const readBinaryFile: Filesystem['readBinaryFile'] = (path: string) =>
     pipe(
       readFile({ path, as: 'binary' }),
       Effect.flatMap((file) =>
@@ -392,8 +559,9 @@ export const createAdapter = (): Filesystem => ({
               )
             )
       )
-    ),
-  readTextFile: (path: string) =>
+    );
+
+  const readTextFile: Filesystem['readTextFile'] = (path: string) =>
     pipe(
       readFile({ path, as: 'text' }),
       Effect.flatMap((file) =>
@@ -403,8 +571,9 @@ export const createAdapter = (): Filesystem => ({
               new DataIntegrityError('Expected a text file but got a binary')
             )
       )
-    ),
-  writeFile: ({ path, content }) =>
+    );
+
+  const writeFile: Filesystem['writeFile'] = ({ path, content }) =>
     pipe(
       getFileHandleFromStorage(path),
       Effect.tap(assertWritePermission),
@@ -433,8 +602,9 @@ export const createAdapter = (): Filesystem => ({
           catch: mapErrorTo(RepositoryError, 'Browser filesystem API error'),
         })
       )
-    ),
-  createNewFile: ({
+    );
+
+  const createNewFile: Filesystem['createNewFile'] = ({
     suggestedName,
     extensions,
     parentDirectory,
@@ -463,7 +633,7 @@ export const createAdapter = (): Filesystem => ({
           ? pipe(
               getDirHandleFromStorage(parentDirectory.path),
               Effect.flatMap((directoryHandle) =>
-                getFileRelativePath(fileHandle, directoryHandle)
+                getHandleRelativePath(fileHandle, directoryHandle)
               )
             )
           : Effect.succeed(fileHandle.name)
@@ -480,8 +650,9 @@ export const createAdapter = (): Filesystem => ({
         name: fileHandle.name,
         content,
       }))
-    ),
-  openFile: ({ extensions }) =>
+    );
+
+  const openFile: Filesystem['openFile'] = ({ extensions }) =>
     pipe(
       showFilePicker({ extensions }),
       Effect.tap((fileHandle) =>
@@ -497,8 +668,9 @@ export const createAdapter = (): Filesystem => ({
         // TODO: Read content properly
         content: '',
       }))
-    ),
-  deleteFile: ({ path, parentDirectory }) =>
+    );
+
+  const deleteFile: Filesystem['deleteFile'] = ({ path, parentDirectory }) =>
     pipe(
       fromNullable(
         parentDirectory,
@@ -517,21 +689,46 @@ export const createAdapter = (): Filesystem => ({
           ),
         })
       )
-    ),
-  getRelativePath: ({ path: descendantPath, relativeTo }) =>
+    );
+
+  const getRelativePath: Filesystem['getRelativePath'] = ({
+    path: descendantPath,
+    relativeTo,
+  }) =>
     Effect.try({
       try: () => path.relative(relativeTo, descendantPath),
       catch: mapErrorTo(
         RepositoryError,
         'Could not resolve path relative to directory'
       ),
-    }),
-  getAbsolutePath: ({ path: descendantPath, dirPath }) =>
+    });
+
+  const getAbsolutePath: Filesystem['getAbsolutePath'] = ({
+    path: descendantPath,
+    dirPath,
+  }) =>
     Effect.try({
       try: () => path.join(dirPath, descendantPath),
       catch: mapErrorTo(
         RepositoryError,
         'Could not join directory path with relative path'
       ),
-    }),
-});
+    });
+
+  return {
+    openDirectory,
+    getDirectory,
+    listDirectoryFiles,
+    listDirectoryTree,
+    requestPermissionForDirectory,
+    assertWritePermissionForDirectory,
+    createNewFile,
+    openFile,
+    writeFile,
+    readBinaryFile,
+    readTextFile,
+    deleteFile,
+    getRelativePath,
+    getAbsolutePath,
+  };
+};

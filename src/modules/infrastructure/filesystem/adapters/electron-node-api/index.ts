@@ -15,7 +15,12 @@ import {
   RepositoryError,
 } from '../../errors';
 import { type Filesystem } from '../../ports/filesystem';
-import { type File, isBinaryFile, isTextFile } from '../../types';
+import {
+  type Directory,
+  type File,
+  isBinaryFile,
+  isTextFile,
+} from '../../types';
 import { isHiddenFile, isNodeError } from './utils';
 
 const showDirPicker = (): Effect.Effect<
@@ -161,6 +166,62 @@ export const createAdapter = (): Filesystem => {
 
         return files;
       })
+    );
+
+  const listDirectoryTree: Filesystem['listDirectoryTree'] = ({
+    path: directoryPath,
+    useRelativePath,
+    depth,
+  }) =>
+    pipe(
+      Effect.tryPromise({
+        try: () =>
+          fs.readdir(directoryPath, {
+            withFileTypes: true,
+          }),
+        catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
+      }),
+      Effect.flatMap((dirEntries) =>
+        Effect.forEach(dirEntries, (entry) => {
+          const absolutePath = path.join(directoryPath, entry.name);
+          const resultPath = useRelativePath ? entry.name : absolutePath;
+
+          const itemPath = useRelativePath
+            ? entry.name
+            : path.join(directoryPath, entry.name);
+
+          if (entry.isDirectory()) {
+            return pipe(
+              !depth || depth > 0
+                ? listDirectoryTree({
+                    path: absolutePath,
+                    useRelativePath,
+                    depth: depth ? depth - 1 : undefined,
+                  })
+                : Effect.succeed([]),
+              Effect.map((children) => {
+                const directory: Directory = {
+                  type: filesystemItemTypes.DIRECTORY,
+                  name: entry.name,
+                  path: resultPath,
+                  children: children.length > 0 ? children : undefined,
+                  permissionState: 'granted', // TODO: Replace with constant
+                };
+
+                return directory;
+              })
+            );
+          }
+
+          const file: File = {
+            type: filesystemItemTypes.FILE,
+            name: entry.name,
+            path: itemPath,
+          };
+
+          return Effect.succeed<Directory | File>(file);
+        })
+      )
     );
 
   const requestPermissionForDirectory: Filesystem['requestPermissionForDirectory'] =
@@ -393,6 +454,7 @@ export const createAdapter = (): Filesystem => {
     openDirectory,
     getDirectory,
     listDirectoryFiles,
+    listDirectoryTree,
     requestPermissionForDirectory,
     assertWritePermissionForDirectory,
     createNewFile,

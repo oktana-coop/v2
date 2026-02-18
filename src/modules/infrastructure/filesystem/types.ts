@@ -8,6 +8,7 @@ export type FilesystemItem = {
 export type Directory = FilesystemItem & {
   type: typeof filesystemItemTypes.DIRECTORY;
   permissionState: PermissionState;
+  children?: Array<Directory | File>;
 };
 
 export type File = FilesystemItem & {

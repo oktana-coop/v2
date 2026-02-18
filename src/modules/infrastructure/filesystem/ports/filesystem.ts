@@ -36,6 +36,13 @@ export type ListDirectoryFilesArgs = {
   useRelativePath?: boolean;
 };
 
+export type ListDirectoryTreeArgs = {
+  path: string;
+  depth?: number;
+  extensions?: Array<string>;
+  useRelativePath?: boolean;
+};
+
 export type DeleteFileArgs = {
   path: string;
   parentDirectory?: Directory;
@@ -64,6 +71,13 @@ export type Filesystem = {
     args: ListDirectoryFilesArgs
   ) => Effect.Effect<
     Array<File>,
+    DataIntegrityError | NotFoundError | RepositoryError,
+    never
+  >;
+  listDirectoryTree: (
+    args: ListDirectoryTreeArgs
+  ) => Effect.Effect<
+    Array<Directory | File>,
     DataIntegrityError | NotFoundError | RepositoryError,
     never
   >;
