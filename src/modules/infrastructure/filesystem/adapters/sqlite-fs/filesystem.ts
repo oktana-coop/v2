@@ -98,6 +98,10 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
       })
     );
 
+  // In the SQLite fs adapter, we have a flat structure and no real directories,
+  // so we can just reuse the listDirectoryFiles implementation.
+  const listDirectoryTree: Filesystem['listDirectoryTree'] = listDirectoryFiles;
+
   const requestPermissionForDirectory: Filesystem['requestPermissionForDirectory'] =
     (directoryPath: string) =>
       pipe(
@@ -238,6 +242,7 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
     openDirectory,
     getDirectory,
     listDirectoryFiles,
+    listDirectoryTree,
     requestPermissionForDirectory,
     assertWritePermissionForDirectory,
     createNewFile,

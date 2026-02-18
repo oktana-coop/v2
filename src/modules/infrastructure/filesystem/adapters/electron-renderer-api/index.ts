@@ -51,6 +51,17 @@ export const createAdapter = (): Filesystem => ({
       >,
       RepositoryError
     )(window.filesystemAPI.listDirectoryFiles(...args)),
+  listDirectoryTree: (...args: Parameters<Filesystem['listDirectoryTree']>) =>
+    effectifyIPCPromise(
+      {
+        [FilesystemDataIntegrityErrorTag]: DataIntegrityError,
+        [FilesystemNotFoundErrorTag]: NotFoundError,
+        [FilesystemRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<Filesystem['listDirectoryTree']>>
+      >,
+      RepositoryError
+    )(window.filesystemAPI.listDirectoryTree(...args)),
   requestPermissionForDirectory: (
     ...args: Parameters<Filesystem['requestPermissionForDirectory']>
   ) =>
