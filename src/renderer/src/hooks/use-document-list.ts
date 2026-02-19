@@ -1,11 +1,9 @@
 import { useContext, useEffect, useState } from 'react';
 
 import { type ProjectId, projectTypes } from '../../../modules/domain/project';
-import { removeExtension } from '../../../modules/infrastructure/filesystem';
 import {
   CurrentProjectContext,
   MultiDocumentProjectContext,
-  MultiDocumentProjectContextType,
   RecentProjectsContext,
   RecentProjectsContextType,
   SingleDocumentProjectContext,
@@ -17,20 +15,6 @@ export type DocumentListItem = {
   name: string;
   isSelected: boolean;
 };
-
-const getDocumentListInMultiDocumentProject = (
-  directoryFiles: MultiDocumentProjectContextType['directoryFiles'],
-  selectedFileInfo: MultiDocumentProjectContextType['selectedFileInfo']
-): DocumentListItem[] =>
-  directoryFiles.map((file) => {
-    const documentListItem: DocumentListItem = {
-      id: file.path,
-      name: removeExtension(file.name),
-      isSelected: selectedFileInfo?.path === file.path,
-    };
-
-    return documentListItem;
-  });
 
 const getDocumentListInSingleDocumentProject = (
   recentProjects: RecentProjectsContextType['recentProjects'],
@@ -48,7 +32,7 @@ const getDocumentListInSingleDocumentProject = (
 
 export const useDocumentList = () => {
   const { projectType } = useContext(CurrentProjectContext);
-  const { directory, directoryFiles, selectedFileInfo } = useContext(
+  const { directory, selectedFileInfo } = useContext(
     MultiDocumentProjectContext
   );
   const { projectId: singleDocumentProjectId } = useContext(
@@ -62,23 +46,14 @@ export const useDocumentList = () => {
   useEffect(() => {
     const newList =
       projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-        ? getDocumentListInMultiDocumentProject(
-            directoryFiles,
-            selectedFileInfo
-          )
+        ? []
         : getDocumentListInSingleDocumentProject(
             recentProjects,
             singleDocumentProjectId
           );
 
     setDocumentList(newList);
-  }, [
-    documentId,
-    projectType,
-    recentProjects,
-    directoryFiles,
-    selectedFileInfo,
-  ]);
+  }, [documentId, projectType, recentProjects, selectedFileInfo]);
 
   useEffect(() => {
     const canShowDocumentList =

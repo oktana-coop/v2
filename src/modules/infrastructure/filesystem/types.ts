@@ -16,6 +16,12 @@ export type File = FilesystemItem & {
   content?: string | Uint8Array;
 };
 
+export const isDirectory = (item: Directory | File): item is Directory =>
+  item.type === filesystemItemTypes.DIRECTORY;
+
+export const isFile = (item: Directory | File): item is File =>
+  item.type === filesystemItemTypes.FILE;
+
 export type TextFile = File & {
   content: string;
 };
