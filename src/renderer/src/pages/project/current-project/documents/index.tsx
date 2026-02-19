@@ -11,10 +11,8 @@ import {
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
 import { useCreateDocument } from '../../../../hooks';
-import {
-  DirectoryFiles,
-  RecentProjects,
-} from '../../shared/document-list-views';
+import { RecentProjects } from '../../shared/document-list-views';
+import { DirectoryTreeView } from '../../shared/explorer-tree-views';
 import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
 
 export const ProjectDocuments = () => {
@@ -30,7 +28,9 @@ export const ProjectDocuments = () => {
       sidebar={
         <StackedResizablePanelsLayout autoSaveId="project-documents-panel-group">
           {projectType === projectTypes.MULTI_DOCUMENT_PROJECT ? (
-            <DirectoryFiles onCreateDocument={triggerDocumentCreationDialog} />
+            <DirectoryTreeView
+              onCreateDocument={triggerDocumentCreationDialog}
+            />
           ) : (
             <RecentProjects onCreateDocument={triggerDocumentCreationDialog} />
           )}

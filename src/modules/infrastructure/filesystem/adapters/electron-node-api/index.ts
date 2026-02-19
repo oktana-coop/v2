@@ -192,7 +192,7 @@ export const createAdapter = (): Filesystem => {
 
           if (entry.isDirectory()) {
             return pipe(
-              !depth || depth > 0
+              !depth || depth > 1
                 ? listDirectoryTree({
                     path: absolutePath,
                     useRelativePath,

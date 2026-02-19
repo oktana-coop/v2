@@ -448,7 +448,7 @@ export const createAdapter = (): Filesystem => {
                 never
               > = Effect.Do.pipe(
                 Effect.bind('children', () =>
-                  !depth || depth > 0
+                  !depth || depth > 1
                     ? listDirectoryTree({
                         path: subDirPath,
                         useRelativePath,

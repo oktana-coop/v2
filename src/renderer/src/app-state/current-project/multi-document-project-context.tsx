@@ -71,7 +71,7 @@ export type MultiDocumentProjectContextType = {
   projectId: ProjectId | null;
   directory: Directory | null;
   currentBranch: Branch | null;
-  directoryFiles: Array<File>;
+  directoryTree: Array<Directory | File>;
   openDirectory: (cloneUrl?: string) => Promise<Directory>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
   createNewDocument: (args?: CreateNewDocumentArgs) => Promise<{
@@ -153,7 +153,9 @@ export const MultiDocumentProjectProvider = ({
   const [loading, setLoading] = useState<boolean>(false);
   const [projectId, setProjectId] = useState<ProjectId | null>(null);
   const [directory, setDirectory] = useState<Directory | null>(null);
-  const [directoryFiles, setDirectoryFiles] = useState<Array<File>>([]);
+  const [directoryTree, setDirectoryTree] = useState<Array<Directory | File>>(
+    []
+  );
   const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
   const [mergeConflictInfo, setMergeConflictInfo] =
     useState<MergeConflictInfo | null>(null);
@@ -243,21 +245,22 @@ export const MultiDocumentProjectProvider = ({
   }, []);
 
   useEffect(() => {
-    const getFiles = async (dir: Directory) => {
-      const files = await Effect.runPromise(
-        filesystem.listDirectoryFiles({
+    const getDirTree = async (dir: Directory) => {
+      const dirTree = await Effect.runPromise(
+        filesystem.listDirectoryTree({
           path: dir.path,
           extensions: [
             richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
           ],
           useRelativePath: true,
+          depth: 1,
         })
       );
-      setDirectoryFiles(files);
+      setDirectoryTree(dirTree);
     };
 
     if (directory && directory.permissionState === 'granted') {
-      getFiles(directory);
+      getDirTree(directory);
     }
   }, [directory, filesystem, currentBranch, pulledUpstreamChanges]);
 
@@ -438,16 +441,17 @@ export const MultiDocumentProjectProvider = ({
       directory.permissionState === 'granted' &&
       directory.path
     ) {
-      const files = await Effect.runPromise(
-        filesystem.listDirectoryFiles({
+      const dirTree = await Effect.runPromise(
+        filesystem.listDirectoryTree({
           path: directory.path,
           extensions: [
             richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
           ],
           useRelativePath: true,
+          depth: 1,
         })
       );
-      setDirectoryFiles(files);
+      setDirectoryTree(dirTree);
     }
 
     return { projectId, documentId: newDocumentId, path: newFilePath };
@@ -960,7 +964,7 @@ export const MultiDocumentProjectProvider = ({
         loading,
         projectId,
         directory,
-        directoryFiles,
+        directoryTree,
         currentBranch,
         openDirectory: handleOpenDirectory,
         requestPermissionForSelectedDirectory,
