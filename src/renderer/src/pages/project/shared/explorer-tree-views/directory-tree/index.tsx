@@ -1,5 +1,6 @@
 import { useContext } from 'react';
 import { NodeApi, Tree } from 'react-arborist';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 
 import { type Directory } from '../../../../../../../modules/infrastructure/filesystem';
 import { MultiDocumentProjectContext } from '../../../../../app-state';
@@ -12,17 +13,20 @@ import {
   useDocumentExplorerTree,
 } from '../../../../../hooks';
 import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../../../hooks/multi-document-project';
+import { TreeNode } from '../TreeNode';
 import { EmptyView } from './EmptyView';
 import { NoActiveDirectoryView } from './NoActiveDirectoryView';
 
 const DirectoryTree = ({
   directory,
   data,
+  selection,
   onCreateDocument,
   onSelectItem,
 }: {
   directory: Directory | null;
   data: ExplorerTreeNode[];
+  selection: string | null;
   onCreateDocument: () => void;
   onSelectItem: (id: string) => Promise<void>;
 }) => {
@@ -38,7 +42,22 @@ const DirectoryTree = ({
         <div className="mb-1 truncate px-4 text-left font-bold text-black text-opacity-85 dark:text-white dark:text-opacity-85">
           {directory?.name ?? 'Files'}
         </div>
-        <Tree data={data} onSelect={handleSelect} />
+        <div className="flex-auto">
+          <AutoSizer
+            renderProp={({ width, height }) => (
+              <Tree
+                data={data}
+                onSelect={handleSelect}
+                selection={selection ?? undefined}
+                width={width ?? '100%'}
+                height={height}
+                rowHeight={32}
+              >
+                {TreeNode}
+              </Tree>
+            )}
+          />
+        </div>
       </div>
     );
   }
@@ -53,7 +72,11 @@ export const DirectoryTreeView = ({
 }) => {
   const { directory } = useContext(MultiDocumentProjectContext);
   const handleDocumentSelection = useDocumentSelectionInMultiDocumentProject();
-  const { explorerTree: documents, canShowTree } = useDocumentExplorerTree();
+  const {
+    explorerTree: documents,
+    canShowTree,
+    selection,
+  } = useDocumentExplorerTree();
   const { canCreateDocument } = useCreateDocument();
 
   return (
@@ -76,6 +99,7 @@ export const DirectoryTreeView = ({
         <DirectoryTree
           directory={directory}
           data={documents}
+          selection={selection}
           onCreateDocument={onCreateDocument}
           onSelectItem={handleDocumentSelection}
         />

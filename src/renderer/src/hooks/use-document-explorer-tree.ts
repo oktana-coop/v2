@@ -4,6 +4,8 @@ import { projectTypes } from '../../../modules/domain/project';
 import {
   type Directory,
   type File,
+  type FilesystemItemType,
+  filesystemItemTypes,
   isDirectory,
 } from '../../../modules/infrastructure/filesystem';
 import {
@@ -19,6 +21,7 @@ import { useCurrentDocumentId } from './use-current-document-id';
 export type ExplorerTreeNode = {
   id: string;
   name: string;
+  type: FilesystemItemType;
   children?: ExplorerTreeNode[];
 };
 
@@ -34,12 +37,14 @@ const getExplorerTreeInMultiDocumentProject = (
   const mapFileToTreeNode = (file: File): ExplorerTreeNode => ({
     id: file.path,
     name: file.name,
+    type: filesystemItemTypes.FILE,
   });
 
   const getDirectorySubtree = (directory: Directory): ExplorerTreeNode => {
     const subtreeNode: ExplorerTreeNode = {
       id: directory.path,
       name: directory.name,
+      type: filesystemItemTypes.DIRECTORY,
       children: directory.children?.map((child) => {
         if (isDirectory(child)) {
           return getDirectorySubtree(child);
@@ -70,6 +75,7 @@ const getExplorerTreeInSingleDocumentProject = (
     const explorerTreeNode: ExplorerTreeNode = {
       id: projectInfo.projectId,
       name: projectInfo.projectName ?? 'Untitled Document',
+      type: filesystemItemTypes.FILE,
     };
 
     return explorerTreeNode;
