@@ -9,7 +9,7 @@
     "url": "https://oktana.dev"
   },
   "version": "0.11.11",
-  "license": "AGPL-3.0-only",
+  "license": "AGPL-3.0-or-later",
   "type": "module",
   "main": "./dist/main/index.js",
   "packageManager": "pnpm@10.28.2",
