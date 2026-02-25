@@ -378,7 +378,9 @@ export const RichTextEditor = ({
         case blockTypes.HEADING_1:
         case blockTypes.HEADING_2:
         case blockTypes.HEADING_3:
-        case blockTypes.HEADING_4: {
+        case blockTypes.HEADING_4:
+        case blockTypes.HEADING_5:
+        case blockTypes.HEADING_6: {
           const level = getHeadingLevel(type);
 
           if (

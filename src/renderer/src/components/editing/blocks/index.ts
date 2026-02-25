@@ -8,6 +8,10 @@ export { classes as heading3 } from '../../typography/headings/Heading3';
 
 export { classes as heading4 } from '../../typography/headings/Heading4';
 
+export { classes as heading5 } from '../../typography/headings/Heading5';
+
+export { classes as heading6 } from '../../typography/headings/Heading6';
+
 export const codeBlock =
   'block text-sm leading-5 p-4 font-mono bg-[var(--shiki-light-bg,rgb(237,237,237))] dark:bg-[var(--shiki-dark-bg,rgb(60,60,60))] mb-4';
 

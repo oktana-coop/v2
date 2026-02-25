@@ -13,6 +13,8 @@ import {
   FormatHeading2Icon,
   FormatHeading3Icon,
   FormatHeading4Icon,
+  FormatHeading5Icon,
+  FormatHeading6Icon,
   FormatItalicIcon,
   FormatQuoteIcon,
   FormatTextIcon,
@@ -48,6 +50,16 @@ const blockOptions = [
     label: 'Heading 4',
     value: blockTypes.HEADING_4,
     icon: FormatHeading4Icon,
+  },
+  {
+    label: 'Heading 5',
+    value: blockTypes.HEADING_5,
+    icon: FormatHeading5Icon,
+  },
+  {
+    label: 'Heading 6',
+    value: blockTypes.HEADING_6,
+    icon: FormatHeading6Icon,
   },
   {
     label: 'Code Block',

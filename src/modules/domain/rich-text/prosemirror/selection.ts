@@ -34,6 +34,10 @@ export const getCurrentLeafBlockType = (
           return blockTypes.HEADING_3;
         case 4:
           return blockTypes.HEADING_4;
+        case 5:
+          return blockTypes.HEADING_5;
+        case 6:
+          return blockTypes.HEADING_6;
       }
     case 'code_block':
       return blockTypes.CODE_BLOCK;
