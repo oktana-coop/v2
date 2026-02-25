@@ -5,6 +5,8 @@ const HEADING_1 = 'HEADING_1';
 const HEADING_2 = 'HEADING_2';
 const HEADING_3 = 'HEADING_3';
 const HEADING_4 = 'HEADING_4';
+const HEADING_5 = 'HEADING_5';
+const HEADING_6 = 'HEADING_6';
 const CODE_BLOCK = 'CODE_BLOCK';
 const BLOCKQUOTE = 'BLOCKQUOTE';
 const BULLET_LIST = 'BULLET_LIST';
@@ -15,6 +17,8 @@ export const headingTypes = {
   HEADING_2,
   HEADING_3,
   HEADING_4,
+  HEADING_5,
+  HEADING_6,
 } as const;
 
 export const leafBlockTypes = {

@@ -8,6 +8,8 @@ import {
   heading2 as heading2Classes,
   heading3 as heading3Classes,
   heading4 as heading4Classes,
+  heading5 as heading5Classes,
+  heading6 as heading6Classes,
   noteContent as noteContentClasses,
   orderedList as orderedListClasses,
   paragraph as paragraphClasses,
@@ -51,6 +53,10 @@ const getHeadingLevelClasses = (level: number) => {
       return heading3Classes;
     case 4:
       return heading4Classes;
+    case 5:
+      return heading5Classes;
+    case 6:
+      return heading6Classes;
   }
 };
 
@@ -117,6 +123,8 @@ const schemaSpec: SchemaSpec = {
         { tag: 'h2', attrs: { level: 2 } },
         { tag: 'h3', attrs: { level: 3 } },
         { tag: 'h4', attrs: { level: 4 } },
+        { tag: 'h5', attrs: { level: 5 } },
+        { tag: 'h6', attrs: { level: 6 } },
       ],
       toDOM(node) {
         const classes = getHeadingLevelClasses(node.attrs.level);

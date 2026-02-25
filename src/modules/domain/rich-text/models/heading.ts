@@ -10,5 +10,9 @@ export const getHeadingLevel = (type: HeadingType): number => {
       return 3;
     case blockTypes.HEADING_4:
       return 4;
+    case blockTypes.HEADING_5:
+      return 5;
+    case blockTypes.HEADING_6:
+      return 6;
   }
 };
