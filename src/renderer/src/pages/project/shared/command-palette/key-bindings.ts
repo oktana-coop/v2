@@ -45,4 +45,8 @@ export const keyBindings: Record<
     command: 'Export to Docx (Microsoft Word)',
     keyBinding: 'ctrl+shift+w',
   },
+  ctrlAltF: {
+    command: 'Insert footnote',
+    keyBinding: 'ctrl+alt+f',
+  },
 } as const;

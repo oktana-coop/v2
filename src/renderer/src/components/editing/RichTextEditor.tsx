@@ -155,6 +155,7 @@ export const RichTextEditor = ({
       Enter: splitListItem(schema.nodes.list_item),
       'Mod-[': liftListItem(schema.nodes.list_item),
       'Mod-]': sinkListItem(schema.nodes.list_item),
+      'Mod-Alt-f': insertNote,
       // Disable tab keystrokes in the editor to prevent tabbing
       // to the next focusable element
       Tab: () => true,
