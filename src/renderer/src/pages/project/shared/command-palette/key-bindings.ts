@@ -49,4 +49,8 @@ export const keyBindings: Record<
     command: 'Insert footnote',
     keyBinding: 'ctrl+alt+f',
   },
+  ctrlComma: {
+    command: 'Open Project Settings',
+    keyBinding: 'ctrl+,',
+  },
 } as const;

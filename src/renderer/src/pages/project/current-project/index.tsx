@@ -1,6 +1,7 @@
 import { useContext, useEffect } from 'react';
-import { Outlet } from 'react-router';
+import { Outlet, useNavigate } from 'react-router';
 
+import { urlEncodeProjectId } from '../../../../../modules/domain/project';
 import {
   BranchingCommandPaletteContext,
   CreateDocumentModalContext,
@@ -49,6 +50,7 @@ const Project = () => {
     onRestoreCommit,
     onDiscardChanges,
   } = useContext(CurrentDocumentContext);
+  const navigate = useNavigate();
   const {
     isOpen: isBranchingCommandPaletteOpen,
     closeBranchingCommandPalette,
@@ -80,6 +82,13 @@ const Project = () => {
 
   const handleOpenDocument = () => openDocument();
 
+  const handleOpenProjectSettings = () => {
+    if (projectId) {
+      const projectSettingsUrL = `/projects/${urlEncodeProjectId(projectId)}/settings`;
+      navigate(projectSettingsUrL);
+    }
+  };
+
   return (
     <div className="flex h-full flex-auto flex-col">
       <div className="flex flex-auto overflow-y-auto">
@@ -107,6 +116,7 @@ const Project = () => {
         <ProjectCommandPalette
           onCreateDocument={triggerDocumentCreationDialog}
           onOpenDocument={handleOpenDocument}
+          onOpenProjectSettings={handleOpenProjectSettings}
         />
         <CreateBranchDialog
           isOpen={isCreateBranchDialogOpen}

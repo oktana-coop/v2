@@ -26,9 +26,11 @@ import { keyBindings } from './key-bindings';
 export const ProjectCommandPalette = ({
   onCreateDocument,
   onOpenDocument,
+  onOpenProjectSettings,
 }: {
   onCreateDocument: () => void;
   onOpenDocument: () => void;
+  onOpenProjectSettings: () => void;
 }) => {
   const { isOpen: isCommandPaletteOpen, closeCommandPalette } = useContext(
     CommandPaletteContext
@@ -79,6 +81,11 @@ export const ProjectCommandPalette = ({
       name: keyBindings.ctrlT.command,
       shortcut: keyBindings.ctrlT.keyBinding,
       onActionSelection: onCreateDocument,
+    },
+    {
+      name: keyBindings.ctrlComma.command,
+      shortcut: keyBindings.ctrlComma.keyBinding,
+      onActionSelection: onOpenProjectSettings,
     },
     ...(projectType === projectTypes.MULTI_DOCUMENT_PROJECT
       ? []
