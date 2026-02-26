@@ -34,6 +34,8 @@ export default {
       },
       fontFamily: {
         mono: ['FiraCode-Regular', 'SFMono-Regular', 'monospace'],
+        ui: ['Montserrat', 'sans-serif'],
+        editor: ['Noto Sans', 'sans-serif'],
       },
     },
     fontFamily: {

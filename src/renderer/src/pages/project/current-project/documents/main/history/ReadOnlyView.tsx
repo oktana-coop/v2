@@ -188,5 +188,11 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
     };
   }, [props, convertToProseMirror, representationTransformAdapterReady]);
 
-  return <div className="editor flex-auto p-4" id="editor" ref={editorRoot} />;
+  return (
+    <div
+      className="editor flex-auto p-4 font-editor"
+      id="editor"
+      ref={editorRoot}
+    />
+  );
 };

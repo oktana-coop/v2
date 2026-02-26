@@ -523,7 +523,11 @@ export const RichTextEditor = ({
         className="flex flex-auto p-4 outline-none"
         onClick={() => editorViewRef.current?.focus()}
       >
-        <div className="editor flex-auto" id="editor" ref={editorRoot} />
+        <div
+          className="editor flex-auto font-editor"
+          id="editor"
+          ref={editorRoot}
+        />
       </div>
 
       {isEditable && leafBlockType && (
