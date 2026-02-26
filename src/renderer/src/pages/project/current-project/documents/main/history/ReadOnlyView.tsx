@@ -190,7 +190,7 @@ export const ReadOnlyView = (props: ReadOnlyViewProps) => {
 
   return (
     <div
-      className="editor font-editor flex-auto p-4"
+      className="editor flex-auto p-4 font-editor"
       id="editor"
       ref={editorRoot}
     />

@@ -521,7 +521,7 @@ export const RichTextEditor = ({
         onClick={() => editorViewRef.current?.focus()}
       >
         <div
-          className="editor font-editor flex-auto"
+          className="editor flex-auto font-editor"
           id="editor"
           ref={editorRoot}
         />
