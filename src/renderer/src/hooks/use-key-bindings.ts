@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 
 type Modifier = 'ctrl' | 'shift' | 'alt';
 type Letters = 'k' | 'o' | 't' | 's' | 'm' | 'h' | 'w' | 'd' | 'f'; // for now only the ones used in the application
-type SpecialKey = 'enter' | 'escape' | 'tab';
+type SpecialKey = 'enter' | 'escape' | 'tab' | ',';
 type Key = Letters | SpecialKey;
 
 export type KeyBinding =
