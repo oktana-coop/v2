@@ -193,6 +193,7 @@ const createNewProject = ({
   addDocumentToProject,
   listDirectoryFiles,
   readTextFile,
+  getRelativePath,
   db,
   username,
   email,
@@ -203,6 +204,7 @@ const createNewProject = ({
   addDocumentToProject: MultiDocumentProjectStore['addDocumentToProject'];
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readTextFile: Filesystem['readTextFile'];
+  getRelativePath: Filesystem['getRelativePath'];
   db: IDBDatabase;
   username: Username | null;
   email: Email | null;
@@ -226,6 +228,7 @@ const createNewProject = ({
       addDocumentToProject,
       listDirectoryFiles,
       readTextFile,
+      getRelativePath,
     })({ directoryPath, username, email }),
     Effect.tap((projectId) =>
       writeProjectMetadataToIDB({
@@ -248,6 +251,7 @@ const openExistingProject = ({
   addDocumentToProject,
   listDirectoryFiles,
   readTextFile,
+  getRelativePath,
   db,
 }: {
   directoryPath: string;
@@ -261,6 +265,7 @@ const openExistingProject = ({
   addDocumentToProject: MultiDocumentProjectStore['addDocumentToProject'];
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readTextFile: Filesystem['readTextFile'];
+  getRelativePath: Filesystem['getRelativePath'];
   db: IDBDatabase;
 }): Effect.Effect<
   ProjectId,
@@ -296,6 +301,7 @@ const openExistingProject = ({
         addDocumentToProject,
         listDirectoryFiles,
         readTextFile,
+        getRelativePath,
       })({ projectId, directoryPath })
     )
   );
@@ -313,6 +319,7 @@ const validateIdAndOpenProject = ({
   addDocumentToProject,
   listDirectoryFiles,
   readTextFile,
+  getRelativePath,
   db,
 }: {
   projectId: ProjectId;
@@ -327,6 +334,7 @@ const validateIdAndOpenProject = ({
   addDocumentToProject: MultiDocumentProjectStore['addDocumentToProject'];
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readTextFile: Filesystem['readTextFile'];
+  getRelativePath: Filesystem['getRelativePath'];
   db: IDBDatabase;
 }): Effect.Effect<
   ProjectId,
@@ -371,6 +379,7 @@ const validateIdAndOpenProject = ({
         addDocumentToProject,
         listDirectoryFiles,
         readTextFile,
+        getRelativePath,
       })({ projectId, directoryPath })
     )
   );
@@ -421,6 +430,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                     versionedProjectStore.addDocumentToProject,
                   listDirectoryFiles: filesystem.listDirectoryFiles,
                   readTextFile: filesystem.readTextFile,
+                  getRelativePath: filesystem.getRelativePath,
                   db,
                 }),
                 Effect.catchIf(
@@ -441,6 +451,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                         versionedProjectStore.addDocumentToProject,
                       listDirectoryFiles: filesystem.listDirectoryFiles,
                       readTextFile: filesystem.readTextFile,
+                      getRelativePath: filesystem.getRelativePath,
                       db,
                     })
                 )
@@ -512,6 +523,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                           versionedProjectStore.addDocumentToProject,
                         listDirectoryFiles: filesystem.listDirectoryFiles,
                         readTextFile: filesystem.readTextFile,
+                        getRelativePath: filesystem.getRelativePath,
                         db,
                       })
                     ),

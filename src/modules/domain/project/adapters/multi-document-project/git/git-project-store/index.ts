@@ -145,7 +145,7 @@ export const createAdapter = ({
           filesystem.listDirectoryFiles({
             path: projectPath,
             useRelativePath: true,
-            recursive: false,
+            recursive: true,
           }),
           Effect.catchAll(() =>
             Effect.fail(new RepositoryError('Git repo error'))

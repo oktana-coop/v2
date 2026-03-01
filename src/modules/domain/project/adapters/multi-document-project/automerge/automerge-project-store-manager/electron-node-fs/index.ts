@@ -132,6 +132,7 @@ const openProject = ({
         addDocumentToProject: versionedProjectStore.addDocumentToProject,
         listDirectoryFiles: filesystem.listDirectoryFiles,
         readTextFile: filesystem.readTextFile,
+        getRelativePath: filesystem.getRelativePath,
       })({ projectId, directoryPath })
     )
   );
@@ -352,6 +353,7 @@ const createNewProject = ({
               addDocumentToProject: versionedProjectStore.addDocumentToProject,
               listDirectoryFiles: filesystem.listDirectoryFiles,
               readTextFile: filesystem.readTextFile,
+              getRelativePath: filesystem.getRelativePath,
             })({ directoryPath, username, email })
         ),
         Effect.tap(({ projectId }) =>

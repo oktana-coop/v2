@@ -41,6 +41,7 @@ export type CreateProjectFromFilesystemContentDeps = {
   addDocumentToProject: MultiDocumentProjectStore['addDocumentToProject'];
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readTextFile: Filesystem['readTextFile'];
+  getRelativePath: Filesystem['getRelativePath'];
 };
 
 export const createProjectFromFilesystemContent =
@@ -50,6 +51,7 @@ export const createProjectFromFilesystemContent =
     addDocumentToProject,
     listDirectoryFiles,
     readTextFile,
+    getRelativePath,
   }: CreateProjectFromFilesystemContentDeps) =>
   ({
     directoryPath,
@@ -75,7 +77,7 @@ export const createProjectFromFilesystemContent =
           richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
         ],
         useRelativePath: false,
-        recursive: false,
+        recursive: true,
       }),
       Effect.flatMap((directoryFiles) =>
         Effect.forEach(directoryFiles, (file) =>
@@ -87,6 +89,14 @@ export const createProjectFromFilesystemContent =
             file,
             projectId: null,
           })
+        )
+      ),
+      Effect.flatMap((documents) =>
+        Effect.forEach(documents, (doc) =>
+          pipe(
+            getRelativePath({ path: doc.path, relativeTo: directoryPath }),
+            Effect.map((relativePath) => ({ ...doc, path: relativePath }))
+          )
         )
       ),
       Effect.flatMap((documents) =>
