@@ -131,6 +131,45 @@ const getFileRelativePath = (
     )
   );
 
+type CollectedFile = {
+  name: string;
+  path: string;
+  handle: FileSystemFileHandle;
+};
+
+const walkDir = async (
+  dirHandle: FileSystemDirectoryHandle,
+  prefix: string,
+  extensions: Array<string> | undefined,
+  useRelativePath: boolean,
+  recursive: boolean
+): Promise<CollectedFile[]> => {
+  const results: CollectedFile[] = [];
+  for await (const [name, handle] of dirHandle.entries()) {
+    if (name.startsWith('.')) continue;
+
+    if (handle.kind === 'file') {
+      if (
+        extensions === undefined ||
+        extensions.some((ext) => name.endsWith(`.${ext}`))
+      ) {
+        const filePath = useRelativePath ? `${prefix}/${name}` : name;
+        results.push({ name, path: filePath, handle });
+      }
+    } else if (handle.kind === 'directory' && recursive) {
+      const subResults = await walkDir(
+        handle,
+        `${prefix}/${name}`,
+        extensions,
+        useRelativePath,
+        recursive
+      );
+      results.push(...subResults);
+    }
+  }
+  return results;
+};
+
 const getPermissionState = (
   handle: FileSystemHandle
 ): Effect.Effect<PermissionState, never, never> =>
@@ -298,65 +337,30 @@ export const createAdapter = (): Filesystem => ({
         permissionState,
       }))
     ),
-  listDirectoryFiles: ({ path, extensions, useRelativePath }) =>
+  listDirectoryFiles: ({ path, extensions, useRelativePath, recursive }) =>
     Effect.Do.pipe(
       Effect.bind('directoryHandle', () => getDirHandleFromStorage(path)),
-      Effect.bind('entries', ({ directoryHandle }) =>
+      Effect.bind('collectedFiles', ({ directoryHandle }) =>
         Effect.tryPromise({
-          // TODO: Replace with `Array.fromAsync` when it's more widely supported
-          try: async () => {
-            const entries: [string, FileSystemHandle][] = [];
-            for await (const entry of directoryHandle.entries()) {
-              entries.push(entry);
-            }
-            return entries;
-          },
+          try: () =>
+            walkDir(
+              directoryHandle,
+              directoryHandle.name,
+              extensions,
+              useRelativePath,
+              recursive
+            ),
           catch: mapErrorTo(
             RepositoryError,
             'Failed to read directory entries'
           ),
         })
       ),
-      Effect.flatMap(({ entries, directoryHandle }) => {
-        const isFileEntry = (
-          entry: [string, FileSystemHandle]
-        ): entry is [string, FileSystemFileHandle] => {
-          const [, handle] = entry;
-          return handle.kind === 'file';
-        };
-
-        return Effect.forEach(
-          entries.filter(
-            (entry): entry is [string, FileSystemFileHandle] =>
-              isFileEntry(entry) &&
-              (extensions === undefined ||
-                extensions.some((ext) => entry[1].name.endsWith(`.${ext}`)))
-          ),
-          ([key, value]) =>
-            useRelativePath
-              ? pipe(
-                  getFileRelativePath(value, directoryHandle),
-                  Effect.map((relativePath) => ({
-                    type: filesystemItemTypes.FILE,
-                    name: key,
-                    path: relativePath,
-                    handle: value,
-                  }))
-                )
-              : Effect.succeed({
-                  type: filesystemItemTypes.FILE,
-                  name: key,
-                  path: value.name,
-                  handle: value,
-                }),
-          { concurrency: 10 }
-        );
-      }),
-      Effect.tap((files) =>
+      Effect.tap(({ collectedFiles }) =>
         Effect.tryPromise({
           try: () =>
             clearAllAndInsertManyFileHandles(
-              files.map((file) => ({
+              collectedFiles.map((file) => ({
                 fileHandle: file.handle,
                 relativePath: file.path,
               }))
@@ -366,6 +370,13 @@ export const createAdapter = (): Filesystem => ({
             'Failed to persist file handles in the browser storage'
           ),
         })
+      ),
+      Effect.map(({ collectedFiles }) =>
+        collectedFiles.map((file) => ({
+          type: filesystemItemTypes.FILE as typeof filesystemItemTypes.FILE,
+          name: file.name,
+          path: file.path,
+        }))
       )
     ),
   requestPermissionForDirectory: (path: string) =>

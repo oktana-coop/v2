@@ -70,7 +70,7 @@ export const createVersionedDocumentFromFile =
           content: readTextFileResult.content ?? null,
         })
       ),
-      Effect.tap(({ readTextFileResult, documentId }) =>
+      Effect.tap(({ documentId }) =>
         pipe(
           Option.fromNullable(projectId),
           Option.match({
@@ -78,16 +78,16 @@ export const createVersionedDocumentFromFile =
             onSome: (projId) =>
               addDocumentToProject({
                 documentId,
-                name: readTextFileResult.name,
-                path: readTextFileResult.path,
+                name: file.name,
+                path: file.path,
                 projectId: projId,
               }),
           })
         )
       ),
-      Effect.map(({ readTextFileResult, documentId }) => ({
+      Effect.map(({ documentId }) => ({
         id: documentId,
-        path: readTextFileResult.path,
-        name: readTextFileResult.name,
+        path: file.path,
+        name: file.name,
       }))
     );

@@ -131,11 +131,67 @@ export const createAdapter = (): Filesystem => {
     });
   };
 
+  const walkDirectory = async (
+    currentPath: string,
+    baseDir: string,
+    useRelativePath: boolean,
+    extensions: Array<string> | undefined
+  ): Promise<File[]> => {
+    const entries = await fs.readdir(currentPath, { withFileTypes: true });
+    const files: File[] = [];
+
+    for (const entry of entries) {
+      if (isHiddenFile(entry.name)) continue;
+
+      const fullPath = path.join(currentPath, entry.name);
+
+      if (entry.isFile()) {
+        if (
+          extensions === undefined ||
+          extensions.some((ext) => entry.name.endsWith(`.${ext}`))
+        ) {
+          files.push({
+            type: filesystemItemTypes.FILE,
+            name: entry.name,
+            path: useRelativePath ? path.relative(baseDir, fullPath) : fullPath,
+          });
+        }
+      } else if (entry.isDirectory()) {
+        const subFiles = await walkDirectory(
+          fullPath,
+          baseDir,
+          useRelativePath,
+          extensions
+        );
+        files.push(...subFiles);
+      }
+    }
+
+    return files;
+  };
+
   const listDirectoryFiles: Filesystem['listDirectoryFiles'] = ({
     path: directoryPath,
+    extensions,
     useRelativePath,
-  }) =>
-    pipe(
+    recursive,
+  }) => {
+    if (recursive) {
+      return pipe(
+        Effect.tryPromise({
+          try: () =>
+            walkDirectory(
+              directoryPath,
+              directoryPath,
+              useRelativePath,
+              extensions
+            ),
+          catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
+        })
+      );
+    }
+
+    return pipe(
       Effect.tryPromise({
         try: () =>
           fs.readdir(directoryPath, {
@@ -162,6 +218,7 @@ export const createAdapter = (): Filesystem => {
         return files;
       })
     );
+  };
 
   const requestPermissionForDirectory: Filesystem['requestPermissionForDirectory'] =
     (directoryPath) =>

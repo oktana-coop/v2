@@ -50,18 +50,30 @@ export type UpdateProjectFromFilesystemContentDeps = {
   deleteDocumentFromProject: MultiDocumentProjectStore['deleteDocumentFromProject'];
   listDirectoryFiles: Filesystem['listDirectoryFiles'];
   readTextFile: Filesystem['readTextFile'];
+  getRelativePath: Filesystem['getRelativePath'];
+};
+
+/**
+ * A file paired with its relative path for storage in the project.
+ * `file.path` is the absolute path (for reading), `relativePath` is for project storage.
+ */
+type FileWithRelativePath = {
+  file: File;
+  relativePath: string;
 };
 
 const documentForFileExistsInProject = ({
-  file,
+  relativePath,
+  fileName,
   projectDocuments,
 }: {
-  file: File;
+  relativePath: string;
+  fileName: string;
   projectDocuments: ArtifactMetaData[];
 }): boolean =>
   projectDocuments.some(
     (docMetaData) =>
-      docMetaData.name === file.name && docMetaData.path === file.path
+      docMetaData.name === fileName && docMetaData.path === relativePath
   );
 
 // For files with corresponding documents in the version control repository,
@@ -83,9 +95,11 @@ const propagateFileChangesToVersionedDocument =
   ({
     projectId,
     file,
+    relativePath,
   }: {
     projectId: ProjectId;
     file: File;
+    relativePath: string;
   }): Effect.Effect<
     void,
     | VersionedProjectRepositoryError
@@ -106,7 +120,7 @@ const propagateFileChangesToVersionedDocument =
         findDocumentById,
         findDocumentInProjectStore,
       })({
-        documentPath: file.path,
+        documentPath: relativePath,
         projectId,
       }),
       Effect.flatMap(({ id: documentId, artifact: document }) =>
@@ -150,6 +164,7 @@ export const updateProjectFromFilesystemContent =
     listDirectoryFiles,
     readTextFile,
     addDocumentToProject,
+    getRelativePath,
   }: UpdateProjectFromFilesystemContentDeps) =>
   ({
     projectId,
@@ -172,31 +187,56 @@ export const updateProjectFromFilesystemContent =
     Effect.Do.pipe(
       Effect.bind('projectDocuments', () => listProjectDocuments(projectId)),
       Effect.bind('directoryFiles', () =>
-        listDirectoryFiles({
-          path: directoryPath,
-          extensions: [
-            richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
-          ],
-          useRelativePath: true,
-        })
+        pipe(
+          listDirectoryFiles({
+            path: directoryPath,
+            extensions: [
+              richTextRepresentationExtensions[
+                PRIMARY_RICH_TEXT_REPRESENTATION
+              ],
+            ],
+            useRelativePath: false,
+            recursive: true,
+          }),
+          Effect.flatMap((files) =>
+            Effect.forEach(files, (file) =>
+              pipe(
+                getRelativePath({
+                  path: file.path,
+                  relativeTo: directoryPath,
+                }),
+                Effect.map(
+                  (relativePath): FileWithRelativePath => ({
+                    file,
+                    relativePath,
+                  })
+                )
+              )
+            )
+          )
+        )
       ),
       Effect.tap(({ directoryFiles, projectDocuments }) =>
         Effect.forEach(
           directoryFiles,
-          (file) =>
-            documentForFileExistsInProject({ file, projectDocuments })
+          ({ file, relativePath }) =>
+            documentForFileExistsInProject({
+              relativePath,
+              fileName: file.name,
+              projectDocuments,
+            })
               ? propagateFileChangesToVersionedDocument({
                   findDocumentById,
                   findDocumentInProject,
                   updateRichTextDocumentContent,
                   readTextFile,
-                })({ file, projectId })
+                })({ file, relativePath, projectId })
               : createVersionedDocumentFromFile({
                   createDocument,
                   readTextFile,
                   addDocumentToProject,
                 })({
-                  file,
+                  file: { ...file, path: relativePath },
                   projectId,
                 }),
           { concurrency: 10 }
@@ -208,7 +248,7 @@ export const updateProjectFromFilesystemContent =
             .filter(
               (documentMetaData) =>
                 !directoryFiles.some(
-                  (file) => documentMetaData.path === file.path
+                  ({ relativePath }) => documentMetaData.path === relativePath
                 )
             )
             .map((documentMetaData) => documentMetaData.id);
