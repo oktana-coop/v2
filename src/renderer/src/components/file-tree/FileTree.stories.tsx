@@ -24,14 +24,14 @@ export default meta;
 type Story = StoryObj<ComponentProps<typeof FileTree>>;
 
 const mockDirectory = {
-  type: filesystemItemTypes.DIRECTORY as const,
+  type: filesystemItemTypes.DIRECTORY,
   name: 'my-project',
   path: '/home/user/my-project',
   permissionState: 'granted' as PermissionState,
 };
 
 const file = (name: string, path: string) => ({
-  type: filesystemItemTypes.FILE as const,
+  type: filesystemItemTypes.FILE,
   name,
   path,
 });
