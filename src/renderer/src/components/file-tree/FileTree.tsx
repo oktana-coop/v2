@@ -1,6 +1,5 @@
-import { useMemo, useState } from 'react';
-
 import { clsx } from 'clsx';
+import { useMemo, useState } from 'react';
 
 import {
   type File,
@@ -115,7 +114,7 @@ const DirNodeView = ({
   return (
     <li>
       <button
-        className="flex w-full items-center truncate bg-transparent py-1 pr-4 text-left text-black dark:text-white hover:bg-zinc-950/5 dark:hover:bg-white/5"
+        className="flex w-full items-center truncate bg-transparent py-1 pr-4 text-left text-black hover:bg-zinc-950/5 dark:text-white dark:hover:bg-white/5"
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
         onClick={() => setExpanded((prev) => !prev)}
       >
