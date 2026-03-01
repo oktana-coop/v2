@@ -180,7 +180,12 @@ export const createAdapter = (): Filesystem => {
       return pipe(
         Effect.tryPromise({
           try: () =>
-            walkDirectory(directoryPath, directoryPath, useRelativePath, extensions),
+            walkDirectory(
+              directoryPath,
+              directoryPath,
+              useRelativePath,
+              extensions
+            ),
           catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
         })
       );

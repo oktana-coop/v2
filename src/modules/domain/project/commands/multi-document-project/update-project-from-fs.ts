@@ -191,7 +191,9 @@ export const updateProjectFromFilesystemContent =
           listDirectoryFiles({
             path: directoryPath,
             extensions: [
-              richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
+              richTextRepresentationExtensions[
+                PRIMARY_RICH_TEXT_REPRESENTATION
+              ],
             ],
             useRelativePath: false,
             recursive: true,
@@ -246,8 +248,7 @@ export const updateProjectFromFilesystemContent =
             .filter(
               (documentMetaData) =>
                 !directoryFiles.some(
-                  ({ relativePath }) =>
-                    documentMetaData.path === relativePath
+                  ({ relativePath }) => documentMetaData.path === relativePath
                 )
             )
             .map((documentMetaData) => documentMetaData.id);
