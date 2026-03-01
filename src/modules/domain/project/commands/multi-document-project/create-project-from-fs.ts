@@ -74,6 +74,8 @@ export const createProjectFromFilesystemContent =
         extensions: [
           richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
         ],
+        useRelativePath: false,
+        recursive: false,
       }),
       Effect.flatMap((directoryFiles) =>
         Effect.forEach(directoryFiles, (file) =>

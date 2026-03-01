@@ -33,7 +33,8 @@ export type CreateNewFileArgs = {
 export type ListDirectoryFilesArgs = {
   path: string;
   extensions?: Array<string>;
-  useRelativePath?: boolean;
+  useRelativePath: boolean;
+  recursive: boolean;
 };
 
 export type DeleteFileArgs = {

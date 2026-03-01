@@ -251,6 +251,7 @@ export const MultiDocumentProjectProvider = ({
             richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
           ],
           useRelativePath: true,
+          recursive: true,
         })
       );
       setDirectoryFiles(files);
@@ -445,6 +446,7 @@ export const MultiDocumentProjectProvider = ({
             richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
           ],
           useRelativePath: true,
+          recursive: true,
         })
       );
       setDirectoryFiles(files);

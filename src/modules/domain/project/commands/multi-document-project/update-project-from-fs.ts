@@ -178,6 +178,7 @@ export const updateProjectFromFilesystemContent =
             richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
           ],
           useRelativePath: true,
+          recursive: false,
         })
       ),
       Effect.tap(({ directoryFiles, projectDocuments }) =>
