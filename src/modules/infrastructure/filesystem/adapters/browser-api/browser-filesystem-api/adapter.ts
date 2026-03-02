@@ -416,7 +416,20 @@ export const createAdapter = (): Filesystem => {
                   const [, handle] = entry;
                   return !isHidden(handle.name);
                 })
-          )
+          ),
+          Effect.map((entries) => {
+            // Sort directories first, then files; both in alphabetical order
+            const sortedEntries = [...entries].sort(
+              ([nameA, handleA], [nameB, handleB]) => {
+                if (handleA.kind === handleB.kind) {
+                  return nameA.localeCompare(nameB);
+                }
+                return handleA.kind === 'directory' ? -1 : 1;
+              }
+            );
+
+            return sortedEntries;
+          })
         )
       ),
       Effect.flatMap(({ entries, directoryHandle }) => {

@@ -187,6 +187,20 @@ export const createAdapter = (): Filesystem => {
           ? dirEntries
           : dirEntries.filter((entry) => !isHidden(entry.name))
       ),
+      Effect.map((dirEntries) =>
+        dirEntries.sort((a, b) => {
+          // Sort directories first
+          if (a.isDirectory() && !b.isDirectory()) {
+            return -1;
+          }
+          if (!a.isDirectory() && b.isDirectory()) {
+            return 1;
+          }
+
+          // Then sort alphabetically
+          return a.name.localeCompare(b.name);
+        })
+      ),
       Effect.flatMap((dirEntries) =>
         Effect.forEach(dirEntries, (entry) => {
           const absolutePath = path.join(directoryPath, entry.name);
