@@ -11,7 +11,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
   return (
     <div className="flex h-full flex-col bg-[#fafafa] text-black dark:bg-neutral-800 dark:text-white">
       {isMac && <MacTitleBar />}
-      <div className="flex flex-auto overflow-hidden">
+      <div className="flex h-full flex-auto overflow-hidden">
         <NavBar />
         {children}
         <Notifications />
