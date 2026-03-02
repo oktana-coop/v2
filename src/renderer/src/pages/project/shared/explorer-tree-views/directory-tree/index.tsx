@@ -38,24 +38,34 @@ const DirectoryTree = ({
 
   if (data.length > 0) {
     return (
-      <div className="flex flex-col items-stretch overflow-auto">
-        <div className="mb-1 truncate px-4 text-left font-bold text-black text-opacity-85 dark:text-white dark:text-opacity-85">
-          {directory?.name ?? 'Files'}
+      <div className="flex h-full flex-col items-stretch overflow-hidden">
+        <div className="mb-1 flex-initial">
+          <h3 className="truncate px-4 text-left font-bold text-black text-opacity-85 dark:text-white dark:text-opacity-85">
+            {directory?.name ?? 'Files'}
+          </h3>
         </div>
-        <div className="flex-auto">
+        <div
+          className="flex-1 overflow-hidden"
+          style={{ scrollbarColor: 'inherit', scrollbarWidth: 'inherit' }}
+        >
           <AutoSizer
-            renderProp={({ width, height }) => (
-              <Tree
-                data={data}
-                onSelect={handleSelect}
-                selection={selection ?? undefined}
-                width={width ?? '100%'}
-                height={height}
-                rowHeight={32}
-              >
-                {TreeNode}
-              </Tree>
-            )}
+            renderProp={({ width, height }) => {
+              console.log('height', height);
+
+              return (
+                <Tree
+                  data={data}
+                  onSelect={handleSelect}
+                  selection={selection ?? undefined}
+                  width={width ?? '100%'}
+                  height={height}
+                  rowHeight={32}
+                  className="explorer-tree overflow-auto"
+                >
+                  {TreeNode}
+                </Tree>
+              );
+            }}
           />
         </div>
       </div>
