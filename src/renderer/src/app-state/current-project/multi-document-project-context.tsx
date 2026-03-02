@@ -253,7 +253,6 @@ export const MultiDocumentProjectProvider = ({
             richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
           ],
           useRelativePath: true,
-          depth: 1,
         })
       );
       setDirectoryTree(dirTree);
@@ -448,7 +447,6 @@ export const MultiDocumentProjectProvider = ({
             richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
           ],
           useRelativePath: true,
-          depth: 1,
         })
       );
       setDirectoryTree(dirTree);

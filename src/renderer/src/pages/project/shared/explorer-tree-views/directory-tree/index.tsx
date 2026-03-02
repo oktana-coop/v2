@@ -1,8 +1,11 @@
 import { useContext } from 'react';
-import { NodeApi, Tree } from 'react-arborist';
+import { type NodeApi, Tree } from 'react-arborist';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 
-import { type Directory } from '../../../../../../../modules/infrastructure/filesystem';
+import {
+  type Directory,
+  filesystemItemTypes,
+} from '../../../../../../../modules/infrastructure/filesystem';
 import { MultiDocumentProjectContext } from '../../../../../app-state';
 import { IconButton } from '../../../../../components/actions/IconButton';
 import { FolderIcon, PlusIcon } from '../../../../../components/icons';
@@ -30,9 +33,9 @@ const DirectoryTree = ({
   onCreateDocument: () => void;
   onSelectItem: (id: string) => Promise<void>;
 }) => {
-  const handleSelect = (nodes: NodeApi<ExplorerTreeNode>[]) => {
-    if (nodes.length > 0) {
-      onSelectItem(nodes[0].data.id);
+  const handleActivate = (node: NodeApi<ExplorerTreeNode>) => {
+    if (node.data.type === filesystemItemTypes.FILE) {
+      onSelectItem(node.id);
     }
   };
 
@@ -52,12 +55,12 @@ const DirectoryTree = ({
             renderProp={({ width, height }) => (
               <Tree
                 data={data}
-                onSelect={handleSelect}
                 selection={selection ?? undefined}
                 width={width ?? '100%'}
                 height={height}
                 rowHeight={32}
                 className="explorer-tree overflow-auto"
+                onActivate={handleActivate}
               >
                 {TreeNode}
               </Tree>
