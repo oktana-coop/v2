@@ -49,23 +49,19 @@ const DirectoryTree = ({
           style={{ scrollbarColor: 'inherit', scrollbarWidth: 'inherit' }}
         >
           <AutoSizer
-            renderProp={({ width, height }) => {
-              console.log('height', height);
-
-              return (
-                <Tree
-                  data={data}
-                  onSelect={handleSelect}
-                  selection={selection ?? undefined}
-                  width={width ?? '100%'}
-                  height={height}
-                  rowHeight={32}
-                  className="explorer-tree overflow-auto"
-                >
-                  {TreeNode}
-                </Tree>
-              );
-            }}
+            renderProp={({ width, height }) => (
+              <Tree
+                data={data}
+                onSelect={handleSelect}
+                selection={selection ?? undefined}
+                width={width ?? '100%'}
+                height={height}
+                rowHeight={32}
+                className="explorer-tree overflow-auto"
+              >
+                {TreeNode}
+              </Tree>
+            )}
           />
         </div>
       </div>
