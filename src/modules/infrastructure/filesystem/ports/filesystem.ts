@@ -38,6 +38,7 @@ export type ListDirectoryFilesArgs = {
 
 export type ListDirectoryTreeArgs = {
   path: string;
+  includeHidden?: boolean;
   depth?: number;
   extensions?: Array<string>;
   useRelativePath?: boolean;

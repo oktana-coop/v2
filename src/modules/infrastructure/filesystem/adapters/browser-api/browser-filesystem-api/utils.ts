@@ -10,7 +10,3 @@ export const isHidden = (path: string): boolean => {
 
   return false;
 };
-
-export const isNodeError = (err: unknown): err is NodeJS.ErrnoException => {
-  return err instanceof Error && 'code' in err;
-};

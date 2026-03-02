@@ -21,7 +21,7 @@ import {
   isBinaryFile,
   isTextFile,
 } from '../../types';
-import { isHiddenFile, isNodeError } from './utils';
+import { isHidden, isNodeError } from './utils';
 
 const showDirPicker = (): Effect.Effect<
   Electron.OpenDialogReturnValue,
@@ -162,7 +162,7 @@ export const createAdapter = (): Filesystem => {
 
             return file;
           })
-          .filter((file) => !isHiddenFile(file.path));
+          .filter((file) => !isHidden(file.path));
 
         return files;
       })
@@ -170,6 +170,7 @@ export const createAdapter = (): Filesystem => {
 
   const listDirectoryTree: Filesystem['listDirectoryTree'] = ({
     path: directoryPath,
+    includeHidden = false,
     useRelativePath,
     depth,
   }) =>
@@ -181,6 +182,11 @@ export const createAdapter = (): Filesystem => {
           }),
         catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
       }),
+      Effect.map((dirEntries) =>
+        includeHidden
+          ? dirEntries
+          : dirEntries.filter((entry) => !isHidden(entry.name))
+      ),
       Effect.flatMap((dirEntries) =>
         Effect.forEach(dirEntries, (entry) => {
           const absolutePath = path.join(directoryPath, entry.name);

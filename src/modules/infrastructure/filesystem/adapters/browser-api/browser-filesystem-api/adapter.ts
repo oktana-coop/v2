@@ -28,6 +28,7 @@ import {
   persistDirectoryHandle,
   persistFileHandle,
 } from './../browser-storage';
+import { isHidden } from './utils';
 
 const showDirPicker = (): Effect.Effect<
   FileSystemDirectoryHandle,
@@ -383,6 +384,7 @@ export const createAdapter = (): Filesystem => {
   // TODO: Clean this up.
   const listDirectoryTree: Filesystem['listDirectoryTree'] = ({
     path: directoryPath,
+    includeHidden = false,
     extensions,
     useRelativePath,
     depth,
@@ -392,20 +394,30 @@ export const createAdapter = (): Filesystem => {
         getDirHandleFromStorage(directoryPath)
       ),
       Effect.bind('entries', ({ directoryHandle }) =>
-        Effect.tryPromise({
-          // TODO: Replace with `Array.fromAsync` when it's more widely supported
-          try: async () => {
-            const entries: [string, FileSystemHandle][] = [];
-            for await (const entry of directoryHandle.entries()) {
-              entries.push(entry);
-            }
-            return entries;
-          },
-          catch: mapErrorTo(
-            RepositoryError,
-            'Failed to read directory entries'
-          ),
-        })
+        pipe(
+          Effect.tryPromise({
+            // TODO: Replace with `Array.fromAsync` when it's more widely supported
+            try: async () => {
+              const entries: [string, FileSystemHandle][] = [];
+              for await (const entry of directoryHandle.entries()) {
+                entries.push(entry);
+              }
+              return entries;
+            },
+            catch: mapErrorTo(
+              RepositoryError,
+              'Failed to read directory entries'
+            ),
+          }),
+          Effect.map((entries) =>
+            includeHidden
+              ? entries
+              : entries.filter((entry) => {
+                  const [, handle] = entry;
+                  return !isHidden(handle.name);
+                })
+          )
+        )
       ),
       Effect.flatMap(({ entries, directoryHandle }) => {
         const isDirectoryEntry = (
