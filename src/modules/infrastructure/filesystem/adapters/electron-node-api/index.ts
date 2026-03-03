@@ -164,9 +164,8 @@ export const createAdapter = (): Filesystem => {
       ),
       Effect.map((dirEntries) => dirEntries.filter((entry) => entry.isFile())),
       Effect.flatMap((dirFileEntries) =>
-        Effect.forEach(dirFileEntries, (entry) => {
-          console.log(dirFileEntries);
-          return Effect.Do.pipe(
+        Effect.forEach(dirFileEntries, (entry) =>
+          Effect.Do.pipe(
             Effect.bind('absolutePath', () =>
               Effect.succeed(path.join(entry.parentPath, entry.name))
             ),
@@ -187,8 +186,8 @@ export const createAdapter = (): Filesystem => {
 
               return Effect.succeed(file);
             })
-          );
-        })
+          )
+        )
       )
     );
 
