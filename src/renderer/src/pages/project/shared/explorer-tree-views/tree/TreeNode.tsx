@@ -1,12 +1,16 @@
 import { clsx } from 'clsx';
 import { type NodeApi, type NodeRendererProps } from 'react-arborist';
 
-import { filesystemItemTypes } from '../../../../../../modules/infrastructure/filesystem';
+import { filesystemItemTypes } from '../../../../../../../modules/infrastructure/filesystem';
 import {
   ChevronDownIcon,
+  DiffIcon,
   FileDocumentIcon,
-} from '../../../../components/icons';
-import { type ExplorerTreeNode } from '../../../../hooks';
+} from '../../../../../components/icons';
+import {
+  type ExplorerTreeNode,
+  STRUCTURAL_CONFLICTS_NODE_TYPE,
+} from '../../../../../hooks';
 
 const nodeClasses = (node: NodeApi<ExplorerTreeNode>) =>
   clsx(
@@ -60,6 +64,26 @@ const FileNode = ({
   </div>
 );
 
+const StructuralConflictsNode = ({
+  node,
+  style,
+  onClick,
+}: NodeRendererProps<ExplorerTreeNode> & {
+  onClick: (ev: React.MouseEvent) => void;
+}) => (
+  <div
+    onClick={onClick}
+    className={nodeClasses(node)}
+    style={{
+      ...style,
+      paddingLeft: node.level * 24 + 36,
+    }}
+  >
+    <DiffIcon className="mr-1 shrink-0" size={16} />
+    {node.data.name}
+  </div>
+);
+
 export const TreeNode = ({
   node,
   ...nodeRendererProps
@@ -72,6 +96,16 @@ export const TreeNode = ({
       node.toggle();
     }
   };
+
+  if (node.data.type === STRUCTURAL_CONFLICTS_NODE_TYPE) {
+    return (
+      <StructuralConflictsNode
+        node={node}
+        {...nodeRendererProps}
+        onClick={handleClick}
+      />
+    );
+  }
 
   if (node.data.type === filesystemItemTypes.DIRECTORY) {
     return (

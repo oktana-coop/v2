@@ -1,11 +1,6 @@
 import { useContext } from 'react';
-import { type NodeApi, Tree } from 'react-arborist';
-import { AutoSizer } from 'react-virtualized-auto-sizer';
 
-import {
-  type Directory,
-  filesystemItemTypes,
-} from '../../../../../../../modules/infrastructure/filesystem';
+import { type Directory } from '../../../../../../../modules/infrastructure/filesystem';
 import { MultiDocumentProjectContext } from '../../../../../app-state';
 import { IconButton } from '../../../../../components/actions/IconButton';
 import { FolderIcon, PlusIcon } from '../../../../../components/icons';
@@ -16,7 +11,7 @@ import {
   useDocumentExplorerTree,
 } from '../../../../../hooks';
 import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../../../hooks/multi-document-project';
-import { TreeNode } from '../TreeNode';
+import { TreeView } from '../tree';
 import { EmptyView } from './EmptyView';
 import { NoActiveDirectoryView } from './NoActiveDirectoryView';
 
@@ -33,12 +28,6 @@ const DirectoryTree = ({
   onCreateDocument: () => void;
   onSelectItem: (id: string) => Promise<void>;
 }) => {
-  const handleActivate = (node: NodeApi<ExplorerTreeNode>) => {
-    if (node.data.type === filesystemItemTypes.FILE) {
-      onSelectItem(node.id);
-    }
-  };
-
   if (data.length > 0) {
     return (
       <div className="flex h-full flex-col items-stretch overflow-hidden">
@@ -47,26 +36,11 @@ const DirectoryTree = ({
             {directory?.name ?? 'Files'}
           </h3>
         </div>
-        <div
-          className="flex-1 overflow-hidden"
-          style={{ scrollbarColor: 'inherit', scrollbarWidth: 'inherit' }}
-        >
-          <AutoSizer
-            renderProp={({ width, height }) => (
-              <Tree
-                data={data}
-                selection={selection ?? undefined}
-                width={width ?? '100%'}
-                height={height}
-                rowHeight={32}
-                className="explorer-tree overflow-auto"
-                onActivate={handleActivate}
-              >
-                {TreeNode}
-              </Tree>
-            )}
-          />
-        </div>
+        <TreeView
+          data={data}
+          selection={selection}
+          onSelectItem={onSelectItem}
+        />
       </div>
     );
   }

@@ -11,8 +11,10 @@ import {
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
 import { useCreateDocument } from '../../../../hooks';
-import { RecentProjects } from '../../shared/document-list-views';
-import { DirectoryTreeView } from '../../shared/explorer-tree-views';
+import {
+  DirectoryTreeView,
+  RecentProjects,
+} from '../../shared/explorer-tree-views';
 import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
 
 export const ProjectDocuments = () => {

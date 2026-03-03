@@ -14,7 +14,7 @@ import {
   GithubIcon,
   PenIcon,
 } from '../../../../components/icons';
-import { useCreateDocument, useDocumentList } from '../../../../hooks';
+import { useCreateDocument, useDocumentExplorerTree } from '../../../../hooks';
 import { DefaultActionsBar } from '../../../shared/default-actions-bar';
 
 export const EmptyMainView = ({
@@ -30,7 +30,7 @@ export const EmptyMainView = ({
   const { openCloneFromGithubModal } = useContext(CloneFromGithubModalContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
 
-  const { documentList: documents } = useDocumentList();
+  const { explorerTree: documents } = useDocumentExplorerTree();
   const { canCreateDocument } = useCreateDocument();
 
   const openProjectPrompt =

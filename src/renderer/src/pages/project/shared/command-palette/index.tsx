@@ -16,7 +16,7 @@ import {
 import {
   useClearWebStorage,
   useCurrentDocumentName,
-  useDocumentList,
+  useDocumentExplorerTree,
   useExport,
 } from '../../../../hooks';
 import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../../hooks/multi-document-project';
@@ -45,7 +45,7 @@ export const ProjectCommandPalette = ({
   const handleDocumentSelectionInSingleDocumentProject =
     useDocumentSelectionInSingleDocumentProject();
   const currentDocumentName = useCurrentDocumentName();
-  const { documentList: documents } = useDocumentList();
+  const { explorerTree: documents, selection } = useDocumentExplorerTree();
   const clearWebStorage = useClearWebStorage();
 
   const handleDocumentSelection =
@@ -142,7 +142,7 @@ export const ProjectCommandPalette = ({
           : undefined
       }
       documents={documents
-        .filter((doc) => !doc.isSelected)
+        .filter((doc) => doc.id !== selection)
         .map((doc) => ({
           title: removeExtension(doc.name),
           onDocumentSelection: () => {

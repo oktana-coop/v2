@@ -18,10 +18,12 @@ import {
 } from '../app-state';
 import { useCurrentDocumentId } from './use-current-document-id';
 
+export const STRUCTURAL_CONFLICTS_NODE_TYPE = 'STRUCTURAL_CONFLICTS' as const;
+
 export type ExplorerTreeNode = {
   id: string;
   name: string;
-  type: FilesystemItemType;
+  type: FilesystemItemType | typeof STRUCTURAL_CONFLICTS_NODE_TYPE;
   children?: ExplorerTreeNode[];
 };
 

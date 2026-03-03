@@ -6,7 +6,7 @@ import { CurrentProjectContext } from '../../../../app-state';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
 import { useCreateDocument } from '../../../../hooks';
-import { RecentProjects } from '../../shared/document-list-views';
+import { RecentProjects } from '../../shared/explorer-tree-views';
 import { MergeConflictsList } from './MergeConflictsList';
 
 export const ProjectMergeConflictResolution = () => {

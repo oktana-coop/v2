@@ -13,9 +13,9 @@ import { useOpenDocument } from '../../../../hooks/single-document-project';
 import { CloneFromGithubDialog } from '../../../shared/sync-providers/github/CloneFromGithubDialog';
 import { CreateDocumentModal } from '../../shared/create-document/CreateDocumentModal';
 import {
-  DirectoryFiles,
+  DirectoryTreeView,
   RecentProjects,
-} from '../../shared/document-list-views';
+} from '../../shared/explorer-tree-views';
 import { EmptyMainView } from '../empty-main-view';
 
 export const ProjectSelection = () => {
@@ -37,7 +37,9 @@ export const ProjectSelection = () => {
       sidebar={
         <StackedResizablePanelsLayout autoSaveId="project-selection-panel-group">
           {window.config.projectType === projectTypes.MULTI_DOCUMENT_PROJECT ? (
-            <DirectoryFiles onCreateDocument={triggerDocumentCreationDialog} />
+            <DirectoryTreeView
+              onCreateDocument={triggerDocumentCreationDialog}
+            />
           ) : (
             <RecentProjects onCreateDocument={triggerDocumentCreationDialog} />
           )}
