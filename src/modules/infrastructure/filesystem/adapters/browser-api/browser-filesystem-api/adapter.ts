@@ -306,6 +306,7 @@ export const createAdapter = (): Filesystem => {
       }))
     );
 
+  // TODO: Handle recursive case
   const listDirectoryFiles: Filesystem['listDirectoryFiles'] = ({
     path,
     extensions,
