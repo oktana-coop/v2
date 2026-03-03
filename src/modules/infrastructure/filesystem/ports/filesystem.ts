@@ -32,8 +32,10 @@ export type CreateNewFileArgs = {
 
 export type ListDirectoryFilesArgs = {
   path: string;
+  includeHidden?: boolean;
   extensions?: Array<string>;
   useRelativePath?: boolean;
+  recursive?: boolean;
 };
 
 export type ListDirectoryTreeArgs = {
@@ -41,7 +43,7 @@ export type ListDirectoryTreeArgs = {
   includeHidden?: boolean;
   depth?: number;
   extensions?: Array<string>;
-  useRelativePath?: boolean;
+  useRelativePathTo?: string;
 };
 
 export type DeleteFileArgs = {

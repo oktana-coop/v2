@@ -138,40 +138,57 @@ export const createAdapter = (): Filesystem => {
 
   const listDirectoryFiles: Filesystem['listDirectoryFiles'] = ({
     path: directoryPath,
+    includeHidden = false,
     useRelativePath,
+    recursive,
   }) =>
     pipe(
       Effect.tryPromise({
         try: () =>
           fs.readdir(directoryPath, {
             withFileTypes: true,
+            recursive,
           }),
         catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
       }),
-      Effect.map((dirEntries) => {
-        const files = dirEntries
-          .filter((entry) => entry.isFile())
-          .map((entry) => {
-            const file: File = {
-              type: filesystemItemTypes.FILE,
-              name: entry.name,
-              path: useRelativePath
-                ? entry.name
-                : path.join(directoryPath, entry.name),
-            };
+      Effect.map((dirEntries) =>
+        includeHidden
+          ? dirEntries
+          : dirEntries.filter((entry) => !isHidden(entry.name))
+      ),
+      Effect.map((dirEntries) => dirEntries.filter((entry) => entry.isFile())),
+      Effect.flatMap((dirFileEntries) =>
+        Effect.forEach(dirFileEntries, (entry) => {
+          return Effect.Do.pipe(
+            Effect.bind('absolutePath', () =>
+              Effect.succeed(path.join(entry.parentPath, entry.name))
+            ),
+            Effect.bind('resultPath', ({ absolutePath }) =>
+              useRelativePath
+                ? getRelativePath({
+                    path: absolutePath,
+                    relativeTo: directoryPath,
+                  })
+                : Effect.succeed(absolutePath)
+            ),
+            Effect.flatMap(({ resultPath }) => {
+              const file: File = {
+                type: filesystemItemTypes.FILE,
+                name: entry.name,
+                path: resultPath,
+              };
 
-            return file;
-          })
-          .filter((file) => !isHidden(file.path));
-
-        return files;
-      })
+              return Effect.succeed(file);
+            })
+          );
+        })
+      )
     );
 
   const listDirectoryTree: Filesystem['listDirectoryTree'] = ({
     path: directoryPath,
     includeHidden = false,
-    useRelativePath,
+    useRelativePathTo,
     depth,
   }) =>
     pipe(
@@ -202,45 +219,53 @@ export const createAdapter = (): Filesystem => {
         })
       ),
       Effect.flatMap((dirEntries) =>
-        Effect.forEach(dirEntries, (entry) => {
-          const absolutePath = path.join(directoryPath, entry.name);
-          const resultPath = useRelativePath ? entry.name : absolutePath;
-
-          const itemPath = useRelativePath
-            ? entry.name
-            : path.join(directoryPath, entry.name);
-
-          if (entry.isDirectory()) {
-            return pipe(
-              !depth || depth > 1
-                ? listDirectoryTree({
+        Effect.forEach(dirEntries, (entry) =>
+          Effect.Do.pipe(
+            Effect.bind('absolutePath', () =>
+              Effect.succeed(path.join(entry.parentPath, entry.name))
+            ),
+            Effect.bind('resultPath', ({ absolutePath }) =>
+              useRelativePathTo
+                ? getRelativePath({
                     path: absolutePath,
-                    useRelativePath,
-                    depth: depth ? depth - 1 : undefined,
+                    relativeTo: useRelativePathTo,
                   })
-                : Effect.succeed([]),
-              Effect.map((children) => {
-                const directory: Directory = {
-                  type: filesystemItemTypes.DIRECTORY,
-                  name: entry.name,
-                  path: resultPath,
-                  children: children.length > 0 ? children : undefined,
-                  permissionState: 'granted', // TODO: Replace with constant
-                };
+                : Effect.succeed(absolutePath)
+            ),
+            Effect.flatMap(({ absolutePath, resultPath }) => {
+              if (entry.isDirectory()) {
+                return pipe(
+                  !depth || depth > 1
+                    ? listDirectoryTree({
+                        path: absolutePath,
+                        useRelativePathTo,
+                        depth: depth ? depth - 1 : undefined,
+                      })
+                    : Effect.succeed([]),
+                  Effect.map((children) => {
+                    const directory: Directory = {
+                      type: filesystemItemTypes.DIRECTORY,
+                      name: entry.name,
+                      path: resultPath,
+                      children: children.length > 0 ? children : undefined,
+                      permissionState: 'granted', // TODO: Replace with constant
+                    };
 
-                return directory;
-              })
-            );
-          }
+                    return directory;
+                  })
+                );
+              }
 
-          const file: File = {
-            type: filesystemItemTypes.FILE,
-            name: entry.name,
-            path: itemPath,
-          };
+              const file: File = {
+                type: filesystemItemTypes.FILE,
+                name: entry.name,
+                path: resultPath,
+              };
 
-          return Effect.succeed<Directory | File>(file);
-        })
+              return Effect.succeed<Directory | File>(file);
+            })
+          )
+        )
       )
     );
 

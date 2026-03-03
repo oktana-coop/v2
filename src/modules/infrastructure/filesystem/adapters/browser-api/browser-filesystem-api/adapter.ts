@@ -386,7 +386,7 @@ export const createAdapter = (): Filesystem => {
     path: directoryPath,
     includeHidden = false,
     extensions,
-    useRelativePath,
+    useRelativePathTo,
     depth,
   }) =>
     Effect.Do.pipe(
@@ -476,13 +476,13 @@ export const createAdapter = (): Filesystem => {
                   !depth || depth > 1
                     ? listDirectoryTree({
                         path: subDirPath,
-                        useRelativePath,
+                        useRelativePathTo: directoryPath,
                         depth: depth ? depth - 1 : undefined,
                       })
                     : Effect.succeed([])
                 ),
                 Effect.bind('resultPath', () =>
-                  useRelativePath
+                  useRelativePathTo
                     ? getHandleRelativePath(value, directoryHandle)
                     : Effect.succeed(value.name)
                 ),
@@ -513,7 +513,7 @@ export const createAdapter = (): Filesystem => {
               | (File & { handle: FileSystemFileHandle }),
               DataIntegrityError | NotFoundError | RepositoryError,
               never
-            > = useRelativePath
+            > = useRelativePathTo
               ? pipe(
                   getHandleRelativePath(value, directoryHandle),
                   Effect.map((relativePath) => ({
