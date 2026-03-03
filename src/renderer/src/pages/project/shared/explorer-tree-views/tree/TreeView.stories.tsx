@@ -5,7 +5,7 @@ import { filesystemItemTypes } from '../../../../../../../modules/infrastructure
 import { TreeView } from './TreeView';
 
 const meta: Meta<typeof TreeView> = {
-  title: 'pages/explorer/TreeView',
+  title: 'navigation/TreeView',
   component: TreeView,
   parameters: {
     layout: 'fullscreen',
