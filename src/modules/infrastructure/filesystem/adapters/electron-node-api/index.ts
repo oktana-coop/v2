@@ -21,7 +21,7 @@ import {
   isBinaryFile,
   isTextFile,
 } from '../../types';
-import { isHidden, isNodeError } from './utils';
+import { isHidden, isNodeError, pathContainsHiddenEntries } from './utils';
 
 const showDirPicker = (): Effect.Effect<
   Electron.OpenDialogReturnValue,
@@ -154,11 +154,18 @@ export const createAdapter = (): Filesystem => {
       Effect.map((dirEntries) =>
         includeHidden
           ? dirEntries
-          : dirEntries.filter((entry) => !isHidden(entry.name))
+          : dirEntries.filter(
+              (entry) =>
+                !isHidden(entry.name) &&
+                // `recursive: true` will result in files inside hidden directories being returned,
+                // so we need to filter those out as well
+                !pathContainsHiddenEntries(entry.parentPath)
+            )
       ),
       Effect.map((dirEntries) => dirEntries.filter((entry) => entry.isFile())),
       Effect.flatMap((dirFileEntries) =>
         Effect.forEach(dirFileEntries, (entry) => {
+          console.log(dirFileEntries);
           return Effect.Do.pipe(
             Effect.bind('absolutePath', () =>
               Effect.succeed(path.join(entry.parentPath, entry.name))
