@@ -247,13 +247,17 @@ export const createAdapter = (): Filesystem => {
                         useRelativePathTo,
                         depth: depth ? depth - 1 : undefined,
                       })
-                    : Effect.succeed([]),
+                    : (Effect.succeed(undefined) as Effect.Effect<
+                        Array<Directory | File> | undefined,
+                        DataIntegrityError | NotFoundError | RepositoryError,
+                        never
+                      >),
                   Effect.map((children) => {
                     const directory: Directory = {
                       type: filesystemItemTypes.DIRECTORY,
                       name: entry.name,
                       path: resultPath,
-                      children: children.length > 0 ? children : undefined,
+                      children: children ?? undefined,
                       permissionState: 'granted', // TODO: Replace with constant
                     };
 
