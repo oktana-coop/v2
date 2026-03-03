@@ -1,12 +1,19 @@
 import { clsx } from 'clsx';
 import { type NodeApi, type NodeRendererProps } from 'react-arborist';
 
-import { filesystemItemTypes } from '../../../../../../../modules/infrastructure/filesystem';
+import {
+  filesystemItemTypes,
+  getExtension,
+} from '../../../../../../../modules/infrastructure/filesystem';
 import {
   ChevronDownIcon,
   DiffIcon,
   FileDocumentIcon,
+  ImageIcon,
+  MarkdownIcon,
+  PdfIcon,
 } from '../../../../../components/icons';
+import { DocxIcon } from '../../../../../components/icons/Docx';
 import {
   type ExplorerTreeNode,
   STRUCTURAL_CONFLICTS_NODE_TYPE,
@@ -35,14 +42,66 @@ const DirectoryNode = ({
   >
     <ChevronDownIcon
       className={clsx(
-        'mr-1 shrink-0 transition-transform duration-150',
+        'mr-2 shrink-0 transition-transform duration-150',
         !node.isOpen && '-rotate-90'
       )}
-      size={16}
+      size={20}
     />
     {node.data.name}
   </div>
 );
+
+const FileExtensionIcon = ({ fileName }: { fileName: string }) => {
+  const extension = getExtension(fileName).toLowerCase();
+
+  if (extension === 'md' || extension === 'markdown') {
+    return (
+      <MarkdownIcon
+        className="mr-2 shrink-0 text-purple-500 dark:text-purple-300"
+        size={20}
+      />
+    );
+  }
+
+  if (extension === 'docx' || extension === 'doc') {
+    return (
+      <DocxIcon
+        className="mr-2 shrink-0 text-blue-500 dark:text-blue-300"
+        size={20}
+      />
+    );
+  }
+
+  if (extension === 'pdf') {
+    return (
+      <PdfIcon
+        className="mr-2 shrink-0 text-red-500 dark:text-red-300"
+        size={20}
+      />
+    );
+  }
+
+  if (
+    extension === 'png' ||
+    extension === 'jpg' ||
+    extension === 'jpeg' ||
+    extension === 'gif'
+  ) {
+    return (
+      <ImageIcon
+        className="mr-2 shrink-0 text-indigo-500 dark:text-indigo-300"
+        size={20}
+      />
+    );
+  }
+
+  return (
+    <FileDocumentIcon
+      className="mr-2 shrink-0 text-zinc-700 dark:text-zinc-300"
+      size={20}
+    />
+  );
+};
 
 const FileNode = ({
   node,
@@ -56,10 +115,10 @@ const FileNode = ({
     className={nodeClasses(node)}
     style={{
       ...style,
-      paddingLeft: node.level * 24 + 36,
+      paddingLeft: node.level * 24 + 40,
     }}
   >
-    <FileDocumentIcon className="mr-1 shrink-0" size={16} />
+    <FileExtensionIcon fileName={node.data.name} />
     {node.data.name}
   </div>
 );
@@ -79,7 +138,7 @@ const StructuralConflictsNode = ({
       paddingLeft: node.level * 24 + 36,
     }}
   >
-    <DiffIcon className="mr-1 shrink-0" size={16} />
+    <DiffIcon className="mr-1 shrink-0" size={20} />
     {node.data.name}
   </div>
 );
