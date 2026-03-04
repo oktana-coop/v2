@@ -36,8 +36,11 @@ import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modu
 import { type RunWasiCLIArgs } from '../modules/infrastructure/wasm';
 import { createAdapter as createNodeWasmAdapter } from '../modules/infrastructure/wasm/adapters/node-wasm';
 import { registerAuthInfoIPCHandlers } from './auth';
-import { registerVersionedStoresEvents } from './ipc';
-import { buildMenu } from './menu';
+import {
+  registerContextMenusIPCHandlers,
+  registerVersionedStoresEvents,
+} from './ipc';
+import { buildAppMenu } from './menus';
 import { initializeStore } from './store';
 import { registerThemeIPCHandlers, setSavedOrDefaultTheme } from './theme';
 import { update } from './update';
@@ -288,11 +291,12 @@ async function createWindow() {
 
   registerAuthInfoIPCHandlers({ store, win, encryptedStore });
   registerThemeIPCHandlers({ store, win });
+  registerContextMenusIPCHandlers({ win });
 }
 
 app.whenReady().then(() => {
-  const menu = buildMenu();
-  Menu.setApplicationMenu(menu);
+  const appMenu = buildAppMenu();
+  Menu.setApplicationMenu(appMenu);
 
   setSavedOrDefaultTheme(store);
 

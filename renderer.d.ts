@@ -21,6 +21,8 @@ import {
 import { type VersionedDocumentStore } from './src/modules/domain/rich-text';
 import {
   type AppendParam,
+  type ContextMenuAction,
+  type ContextMenuPayload,
   type PromisifyEffects,
   type UpdateState,
 } from './src/modules/infrastructure/cross-platform';
@@ -58,6 +60,10 @@ export type ElectronAPI = {
   downloadUpdate: () => Promise<void>;
   restartToInstallUpdate: () => Promise<void>;
   onToggleCommandPalette: (callback: () => void) => () => void;
+  showContextMenu: (payload: ContextMenuPayload) => void;
+  onContextMenuAction: (
+    callback: (action: ContextMenuAction) => void
+  ) => () => void;
 };
 
 export type PersonalizationAPI = {

@@ -17,6 +17,10 @@ import {
 import { type GithubDeviceFlowVerificationInfo } from '../modules/auth';
 import { buildConfig } from '../modules/config';
 import {
+  type ContextMenuAction,
+  type ContextMenuPayload,
+} from '../modules/infrastructure/cross-platform';
+import {
   isLinux,
   isMac,
   isWindows,
@@ -63,6 +67,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   restartToInstallUpdate: () => ipcRenderer.invoke('restart-to-install-update'),
   onToggleCommandPalette: (callback) =>
     registerIpcListener<void>('toggle-command-palette', callback),
+  showContextMenu: (payload: ContextMenuPayload) =>
+    ipcRenderer.invoke('context-menu:show', payload),
+  onContextMenuAction: (callback) =>
+    registerIpcListener<ContextMenuAction>('context-menu:action', callback),
 } as ElectronAPI);
 
 contextBridge.exposeInMainWorld('config', {

@@ -1,22 +1,10 @@
-import {
-  app,
-  BrowserWindow,
-  Menu,
-  type MenuItemConstructorOptions,
-  shell,
-} from 'electron';
+import { app, Menu, type MenuItemConstructorOptions, shell } from 'electron';
 
-import { isMac } from '../modules/infrastructure/cross-platform/node';
-import { checkForUpdates } from './update';
+import { isMac } from '../../modules/infrastructure/cross-platform/node';
+import { checkForUpdates } from '../update';
+import { sendIPCMessageToFocusedWindow } from './utils';
 
-const sendIPCMessageToFocusedWindow = (message: string) => {
-  const focused = BrowserWindow.getFocusedWindow();
-  if (focused && !focused.isDestroyed()) {
-    focused.webContents.send(message);
-  }
-};
-
-export const buildMenu = () => {
+export const buildAppMenu = () => {
   const appMenuSubmenu: MenuItemConstructorOptions[] = [
     { role: 'about' },
     {
