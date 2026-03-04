@@ -29,6 +29,7 @@ export const RecentProjects = ({
   const openDocument = useOpenDocument();
   const { explorerTree: items, selection } = useDocumentExplorerTree();
   const handleOpenDocument = () => openDocument();
+  const handleCreateDocument = () => onCreateDocument();
 
   const handleCloneFromGithub = () => {
     openCloneFromGithubModal();
@@ -50,7 +51,7 @@ export const RecentProjects = ({
           )}
 
           <IconButton
-            onClick={onCreateDocument}
+            onClick={handleCreateDocument}
             icon={<PlusIcon size={20} />}
             tooltip="New Document"
           />
@@ -70,7 +71,7 @@ export const RecentProjects = ({
         </div>
       ) : (
         <EmptyView
-          onCreateDocumentButtonClick={onCreateDocument}
+          onCreateDocumentButtonClick={handleCreateDocument}
           onOpenDocumentButtonClick={handleOpenDocument}
           onCloneFromGithubButtonClick={handleCloneFromGithub}
         />
