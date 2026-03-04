@@ -1,23 +1,25 @@
 import { useEffect, useState } from 'react';
 import { useMatch, useParams } from 'react-router';
 
-import { removeExtension } from '../../../../../../modules/infrastructure/filesystem';
-import { DiffIcon, MergeIcon } from '../../../../components/icons';
+import {
+  filesystemItemTypes,
+  removeExtension,
+} from '../../../../../../modules/infrastructure/filesystem';
+import { MergeIcon } from '../../../../components/icons';
 import { SidebarHeading } from '../../../../components/sidebar/SidebarHeading';
 import {
+  type ExplorerTreeNode,
+  STRUCTURAL_CONFLICTS_NODE_TYPE,
   useMergeConflictResolution,
   useNavigateToResolveConflicts,
   useProjectId,
 } from '../../../../hooks';
-import {
-  DocumentList,
-  type DocumentListItem,
-} from '../../shared/document-list-views/DocumentList';
+import { TreeView } from '../../shared/explorer-tree-views/tree';
 import { EmptyView } from './EmptyView';
 
 export const MergeConflictsList = () => {
   const projectId = useProjectId();
-  const [documentsList, setDocumentsList] = useState<DocumentListItem[]>([]);
+  const [documentsList, setDocumentsList] = useState<ExplorerTreeNode[]>([]);
   const structuralSubRouteMatch = useMatch(
     '/projects/:projectId/merge/structural'
   );
@@ -33,24 +35,24 @@ export const MergeConflictsList = () => {
   }, [structuralSubRouteMatch]);
 
   useEffect(() => {
-    const structuralConflictItems: DocumentListItem[] =
+    console.log('Structural Conflicts:', structuralConflicts);
+    const structuralConflictItems: ExplorerTreeNode[] =
       structuralConflicts.length > 0
         ? [
             {
+              type: STRUCTURAL_CONFLICTS_NODE_TYPE,
               id: 'structural',
               name: 'File Changes',
-              isSelected: areStructuralConflictsSelected,
-              icon: DiffIcon,
             },
           ]
         : [];
 
-    const compareContentConflictItems: DocumentListItem[] =
+    const compareContentConflictItems: ExplorerTreeNode[] =
       compareContentConflicts.length > 0
         ? compareContentConflicts.map((conflict) => ({
+            type: filesystemItemTypes.FILE,
             id: conflict.path,
             name: removeExtension(conflict.path),
-            isSelected: conflict.path === compareContentPath,
           }))
         : [];
 
@@ -68,6 +70,7 @@ export const MergeConflictsList = () => {
   ]);
 
   const handleSelectDocumentConflict = async (id: string) => {
+    console.log(id);
     if (projectId && mergeConflictInfo) {
       navigateToMergeConflictRoute({
         projectId,
@@ -87,8 +90,13 @@ export const MergeConflictsList = () => {
 
       {documentsList.length > 0 ? (
         <div className="flex flex-col items-stretch overflow-auto">
-          <DocumentList
-            items={documentsList}
+          <TreeView
+            data={documentsList}
+            selection={
+              areStructuralConflictsSelected
+                ? 'structural'
+                : (compareContentPath ?? null)
+            }
             onSelectItem={handleSelectDocumentConflict}
           />
         </div>

@@ -28,6 +28,7 @@ import {
   type GetAbsolutePathArgs,
   type GetRelativePathArgs,
   type ListDirectoryFilesArgs,
+  type ListDirectoryTreeArgs,
   type OpenFileArgs,
   type WriteFileArgs,
 } from '../modules/infrastructure/filesystem';
@@ -220,6 +221,11 @@ async function createWindow() {
     'list-directory-files',
     async (_, args: ListDirectoryFilesArgs) =>
       runPromiseSerializingErrorsForIPC(filesystemAPI.listDirectoryFiles(args))
+  );
+  ipcMain.handle(
+    'list-directory-tree',
+    async (_, args: ListDirectoryTreeArgs) =>
+      runPromiseSerializingErrorsForIPC(filesystemAPI.listDirectoryTree(args))
   );
   ipcMain.handle('request-permission-for-directory', (_, path: string) =>
     runPromiseSerializingErrorsForIPC(

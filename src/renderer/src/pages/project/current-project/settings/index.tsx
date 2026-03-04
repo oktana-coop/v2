@@ -10,9 +10,9 @@ import { StackedResizablePanelsLayout } from '../../../../components/layout/Stac
 import { useCreateDocument } from '../../../../hooks';
 import { DefaultActionsBar } from '../../../shared/default-actions-bar';
 import {
-  DirectoryFiles,
+  DirectoryTreeView,
   RecentProjects,
-} from '../../shared/document-list-views';
+} from '../../shared/explorer-tree-views';
 import { ProjectSync } from './ProjectSync';
 
 export const ProjectSettings = () => {
@@ -25,7 +25,9 @@ export const ProjectSettings = () => {
       sidebar={
         <StackedResizablePanelsLayout autoSaveId="project-settings-panel-group">
           {projectType === projectTypes.MULTI_DOCUMENT_PROJECT ? (
-            <DirectoryFiles onCreateDocument={triggerDocumentCreationDialog} />
+            <DirectoryTreeView
+              onCreateDocument={triggerDocumentCreationDialog}
+            />
           ) : (
             <RecentProjects onCreateDocument={triggerDocumentCreationDialog} />
           )}

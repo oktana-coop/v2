@@ -15,8 +15,13 @@ import {
   RepositoryError,
 } from '../../errors';
 import { type Filesystem } from '../../ports/filesystem';
-import { type File, isBinaryFile, isTextFile } from '../../types';
-import { isHiddenFile, isNodeError } from './utils';
+import {
+  type Directory,
+  type File,
+  isBinaryFile,
+  isTextFile,
+} from '../../types';
+import { isHidden, isNodeError, pathContainsHiddenEntries } from './utils';
 
 const showDirPicker = (): Effect.Effect<
   Electron.OpenDialogReturnValue,
@@ -133,7 +138,64 @@ export const createAdapter = (): Filesystem => {
 
   const listDirectoryFiles: Filesystem['listDirectoryFiles'] = ({
     path: directoryPath,
+    includeHidden = false,
     useRelativePath,
+    recursive,
+  }) =>
+    pipe(
+      Effect.tryPromise({
+        try: () =>
+          fs.readdir(directoryPath, {
+            withFileTypes: true,
+            recursive,
+          }),
+        catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
+      }),
+      Effect.map((dirEntries) =>
+        includeHidden
+          ? dirEntries
+          : dirEntries.filter(
+              (entry) =>
+                !isHidden(entry.name) &&
+                // `recursive: true` will result in files inside hidden directories being returned,
+                // so we need to filter those out as well
+                !pathContainsHiddenEntries(entry.parentPath)
+            )
+      ),
+      Effect.map((dirEntries) => dirEntries.filter((entry) => entry.isFile())),
+      Effect.flatMap((dirFileEntries) =>
+        Effect.forEach(dirFileEntries, (entry) =>
+          Effect.Do.pipe(
+            Effect.bind('absolutePath', () =>
+              Effect.succeed(path.join(entry.parentPath, entry.name))
+            ),
+            Effect.bind('resultPath', ({ absolutePath }) =>
+              useRelativePath
+                ? getRelativePath({
+                    path: absolutePath,
+                    relativeTo: directoryPath,
+                  })
+                : Effect.succeed(absolutePath)
+            ),
+            Effect.flatMap(({ resultPath }) => {
+              const file: File = {
+                type: filesystemItemTypes.FILE,
+                name: entry.name,
+                path: resultPath,
+              };
+
+              return Effect.succeed(file);
+            })
+          )
+        )
+      )
+    );
+
+  const listDirectoryTree: Filesystem['listDirectoryTree'] = ({
+    path: directoryPath,
+    includeHidden = false,
+    useRelativePathTo,
+    depth,
   }) =>
     pipe(
       Effect.tryPromise({
@@ -143,24 +205,78 @@ export const createAdapter = (): Filesystem => {
           }),
         catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
       }),
-      Effect.map((dirEntries) => {
-        const files = dirEntries
-          .filter((entry) => entry.isFile())
-          .map((entry) => {
-            const file: File = {
-              type: filesystemItemTypes.FILE,
-              name: entry.name,
-              path: useRelativePath
-                ? entry.name
-                : path.join(directoryPath, entry.name),
-            };
+      Effect.map((dirEntries) =>
+        includeHidden
+          ? dirEntries
+          : dirEntries.filter((entry) => !isHidden(entry.name))
+      ),
+      Effect.map((dirEntries) =>
+        dirEntries.sort((a, b) => {
+          // Sort directories first
+          if (a.isDirectory() && !b.isDirectory()) {
+            return -1;
+          }
+          if (!a.isDirectory() && b.isDirectory()) {
+            return 1;
+          }
 
-            return file;
-          })
-          .filter((file) => !isHiddenFile(file.path));
+          // Then sort alphabetically
+          return a.name.localeCompare(b.name);
+        })
+      ),
+      Effect.flatMap((dirEntries) =>
+        Effect.forEach(dirEntries, (entry) =>
+          Effect.Do.pipe(
+            Effect.bind('absolutePath', () =>
+              Effect.succeed(path.join(entry.parentPath, entry.name))
+            ),
+            Effect.bind('resultPath', ({ absolutePath }) =>
+              useRelativePathTo
+                ? getRelativePath({
+                    path: absolutePath,
+                    relativeTo: useRelativePathTo,
+                  })
+                : Effect.succeed(absolutePath)
+            ),
+            Effect.flatMap(({ absolutePath, resultPath }) => {
+              if (entry.isDirectory()) {
+                return pipe(
+                  !depth || depth > 1
+                    ? listDirectoryTree({
+                        path: absolutePath,
+                        useRelativePathTo,
+                        depth: depth ? depth - 1 : undefined,
+                      })
+                    : (Effect.succeed(undefined) as Effect.Effect<
+                        Array<Directory | File> | undefined,
+                        DataIntegrityError | NotFoundError | RepositoryError,
+                        never
+                      >),
+                  Effect.map((children) => {
+                    const directory: Directory = {
+                      type: filesystemItemTypes.DIRECTORY,
+                      name: entry.name,
+                      path: resultPath,
+                      children: children ?? undefined,
+                      permissionState: 'granted', // TODO: Replace with constant
+                    };
 
-        return files;
-      })
+                    return directory;
+                  })
+                );
+              }
+
+              const file: File = {
+                type: filesystemItemTypes.FILE,
+                name: entry.name,
+                path: resultPath,
+              };
+
+              return Effect.succeed<Directory | File>(file);
+            })
+          )
+        )
+      )
     );
 
   const requestPermissionForDirectory: Filesystem['requestPermissionForDirectory'] =
@@ -393,6 +509,7 @@ export const createAdapter = (): Filesystem => {
     openDirectory,
     getDirectory,
     listDirectoryFiles,
+    listDirectoryTree,
     requestPermissionForDirectory,
     assertWritePermissionForDirectory,
     createNewFile,

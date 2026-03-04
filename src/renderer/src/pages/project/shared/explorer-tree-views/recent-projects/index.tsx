@@ -9,12 +9,12 @@ import {
   PlusIcon,
 } from '../../../../../components/icons';
 import { SidebarHeading } from '../../../../../components/sidebar/SidebarHeading';
-import { useDocumentList } from '../../../../../hooks';
+import { useDocumentExplorerTree } from '../../../../../hooks';
 import {
   useDocumentSelection as useDocumentSelectionInSingleDocumentProject,
   useOpenDocument,
 } from '../../../../../hooks/single-document-project';
-import { DocumentList } from '../DocumentList';
+import { TreeView } from '../tree';
 import { EmptyView } from './EmptyView';
 
 export const RecentProjects = ({
@@ -27,8 +27,9 @@ export const RecentProjects = ({
 
   const selectDocument = useDocumentSelectionInSingleDocumentProject();
   const openDocument = useOpenDocument();
-  const { documentList: items } = useDocumentList();
+  const { explorerTree: items, selection } = useDocumentExplorerTree();
   const handleOpenDocument = () => openDocument();
+  const handleCreateDocument = () => onCreateDocument();
 
   const handleCloneFromGithub = () => {
     openCloneFromGithubModal();
@@ -50,7 +51,7 @@ export const RecentProjects = ({
           )}
 
           <IconButton
-            onClick={onCreateDocument}
+            onClick={handleCreateDocument}
             icon={<PlusIcon size={20} />}
             tooltip="New Document"
           />
@@ -59,14 +60,18 @@ export const RecentProjects = ({
 
       {items.length > 0 ? (
         <div className="flex flex-col items-stretch overflow-auto">
-          <div className="mb-1 truncate px-4 text-left font-bold text-black text-opacity-85 dark:text-white dark:text-opacity-85">
+          <h3 className="truncate px-4 text-left font-bold text-black text-opacity-85 dark:text-white dark:text-opacity-85">
             Recent Documents
-          </div>
-          <DocumentList items={items} onSelectItem={selectDocument} />
+          </h3>
+          <TreeView
+            data={items}
+            selection={selection}
+            onSelectItem={selectDocument}
+          />
         </div>
       ) : (
         <EmptyView
-          onCreateDocumentButtonClick={onCreateDocument}
+          onCreateDocumentButtonClick={handleCreateDocument}
           onOpenDocumentButtonClick={handleOpenDocument}
           onCloneFromGithubButtonClick={handleCloneFromGithub}
         />

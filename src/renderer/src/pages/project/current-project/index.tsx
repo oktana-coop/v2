@@ -82,6 +82,8 @@ const Project = () => {
 
   const handleOpenDocument = () => openDocument();
 
+  const handleCreateDocument = () => triggerDocumentCreationDialog();
+
   const handleOpenProjectSettings = () => {
     if (projectId) {
       const projectSettingsUrL = `/projects/${urlEncodeProjectId(projectId)}/settings`;
@@ -114,7 +116,7 @@ const Project = () => {
           onDiscardChanges={() => onDiscardChanges()}
         />
         <ProjectCommandPalette
-          onCreateDocument={triggerDocumentCreationDialog}
+          onCreateDocument={handleCreateDocument}
           onOpenDocument={handleOpenDocument}
           onOpenProjectSettings={handleOpenProjectSettings}
         />

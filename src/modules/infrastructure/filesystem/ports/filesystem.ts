@@ -32,8 +32,18 @@ export type CreateNewFileArgs = {
 
 export type ListDirectoryFilesArgs = {
   path: string;
+  includeHidden?: boolean;
   extensions?: Array<string>;
   useRelativePath?: boolean;
+  recursive?: boolean;
+};
+
+export type ListDirectoryTreeArgs = {
+  path: string;
+  includeHidden?: boolean;
+  depth?: number;
+  extensions?: Array<string>;
+  useRelativePathTo?: string;
 };
 
 export type DeleteFileArgs = {
@@ -64,6 +74,13 @@ export type Filesystem = {
     args: ListDirectoryFilesArgs
   ) => Effect.Effect<
     Array<File>,
+    DataIntegrityError | NotFoundError | RepositoryError,
+    never
+  >;
+  listDirectoryTree: (
+    args: ListDirectoryTreeArgs
+  ) => Effect.Effect<
+    Array<Directory | File>,
     DataIntegrityError | NotFoundError | RepositoryError,
     never
   >;

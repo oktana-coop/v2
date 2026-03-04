@@ -8,12 +8,19 @@ export type FilesystemItem = {
 export type Directory = FilesystemItem & {
   type: typeof filesystemItemTypes.DIRECTORY;
   permissionState: PermissionState;
+  children?: Array<Directory | File>;
 };
 
 export type File = FilesystemItem & {
   type: typeof filesystemItemTypes.FILE;
   content?: string | Uint8Array;
 };
+
+export const isDirectory = (item: Directory | File): item is Directory =>
+  item.type === filesystemItemTypes.DIRECTORY;
+
+export const isFile = (item: Directory | File): item is File =>
+  item.type === filesystemItemTypes.FILE;
 
 export type TextFile = File & {
   content: string;

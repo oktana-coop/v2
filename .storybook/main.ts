@@ -1,6 +1,7 @@
 import '@storybook/addon-console';
 
 import type { StorybookConfig } from '@storybook/react-vite';
+import type { InlineConfig } from 'vite';
 
 const config: StorybookConfig = {
   stories: ['../src/**/*.mdx', '../src/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
@@ -19,6 +20,20 @@ const config: StorybookConfig = {
   },
   docs: {
     autodocs: 'tag',
+  },
+  // Need to alias 'path' to 'path-browserify' for Storybook since
+  // some of our components use 'path' and it doesn't work in the Storybook environment
+  async viteFinal(config: InlineConfig) {
+    return {
+      ...config,
+      resolve: {
+        ...config.resolve,
+        alias: {
+          ...config.resolve?.alias,
+          path: 'path-browserify',
+        },
+      },
+    };
   },
 };
 

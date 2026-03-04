@@ -6,33 +6,41 @@ import { IconButton } from '../../../../../components/actions/IconButton';
 import { FolderIcon, PlusIcon } from '../../../../../components/icons';
 import { SidebarHeading } from '../../../../../components/sidebar/SidebarHeading';
 import {
-  type DocumentListItem,
+  type ExplorerTreeNode,
   useCreateDocument,
-  useDocumentList,
+  useDocumentExplorerTree,
 } from '../../../../../hooks';
 import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../../../hooks/multi-document-project';
-import { DocumentList } from '../DocumentList';
+import { TreeView } from '../tree';
 import { EmptyView } from './EmptyView';
 import { NoActiveDirectoryView } from './NoActiveDirectoryView';
 
-const DirectoryFilesList = ({
+const DirectoryTree = ({
   directory,
-  documents,
+  data,
+  selection,
   onCreateDocument,
   onSelectItem,
 }: {
   directory: Directory | null;
-  documents: DocumentListItem[];
+  data: ExplorerTreeNode[];
+  selection: string | null;
   onCreateDocument: () => void;
   onSelectItem: (id: string) => Promise<void>;
 }) => {
-  if (documents.length > 0) {
+  if (data.length > 0) {
     return (
-      <div className="flex flex-col items-stretch overflow-auto">
-        <div className="mb-1 truncate px-4 text-left font-bold text-black text-opacity-85 dark:text-white dark:text-opacity-85">
-          {directory?.name ?? 'Files'}
+      <div className="flex h-full flex-col items-stretch overflow-hidden">
+        <div className="mb-1 flex-initial">
+          <h3 className="truncate px-4 text-left font-bold text-black text-opacity-85 dark:text-white dark:text-opacity-85">
+            {directory?.name ?? 'Files'}
+          </h3>
         </div>
-        <DocumentList items={documents} onSelectItem={onSelectItem} />
+        <TreeView
+          data={data}
+          selection={selection}
+          onSelectItem={onSelectItem}
+        />
       </div>
     );
   }
@@ -40,14 +48,18 @@ const DirectoryFilesList = ({
   return <EmptyView onCreateDocumentButtonClick={onCreateDocument} />;
 };
 
-export const DirectoryFiles = ({
+export const DirectoryTreeView = ({
   onCreateDocument,
 }: {
   onCreateDocument: () => void;
 }) => {
   const { directory } = useContext(MultiDocumentProjectContext);
   const handleDocumentSelection = useDocumentSelectionInMultiDocumentProject();
-  const { documentList: documents, canShowList } = useDocumentList();
+  const {
+    explorerTree: documents,
+    canShowTree,
+    selection,
+  } = useDocumentExplorerTree();
   const { canCreateDocument } = useCreateDocument();
 
   return (
@@ -66,10 +78,11 @@ export const DirectoryFiles = ({
         </div>
       </div>
 
-      {canShowList ? (
-        <DirectoryFilesList
+      {canShowTree ? (
+        <DirectoryTree
           directory={directory}
-          documents={documents}
+          data={documents}
+          selection={selection}
           onCreateDocument={onCreateDocument}
           onSelectItem={handleDocumentSelection}
         />

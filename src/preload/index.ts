@@ -27,6 +27,7 @@ import {
   type DeleteFileArgs,
   type File,
   type ListDirectoryFilesArgs,
+  type ListDirectoryTreeArgs,
   type OpenFileArgs,
   type WriteFileArgs,
 } from '../modules/infrastructure/filesystem';
@@ -115,6 +116,8 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
   getDirectory: (path: string) => ipcRenderer.invoke('get-directory', path),
   listDirectoryFiles: (args: ListDirectoryFilesArgs) =>
     ipcRenderer.invoke('list-directory-files', { ...args }),
+  listDirectoryTree: (args: ListDirectoryTreeArgs) =>
+    ipcRenderer.invoke('list-directory-tree', { ...args }),
   requestPermissionForDirectory: (path: string) =>
     ipcRenderer.invoke('request-permission-for-directory', path),
   assertWritePermissionForDirectory: (path: string) =>
