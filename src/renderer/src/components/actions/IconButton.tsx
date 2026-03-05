@@ -25,6 +25,7 @@ export const IconButton = forwardRef(function IconButton(
       onClick={onClick}
       ref={ref}
       disabled={disabled}
+      aria-label={tooltip}
     >
       {icon}
     </Button>

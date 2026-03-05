@@ -76,6 +76,7 @@ export const DirectoryTreeView = ({
             <IconButton
               onClick={onCreateDocument}
               icon={<PlusIcon size={20} />}
+              tooltip="New Document"
             />
           )}
         </div>
