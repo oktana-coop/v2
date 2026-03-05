@@ -57,4 +57,13 @@ export default [
       'simple-import-sort/imports': 'error',
     },
   },
+  {
+    // Playwright fixtures use a `use` callback that trips the react-hooks rule,
+    // and empty destructuring `{}` is intentional for fixtures with no deps.
+    files: ['e2e/**/*.ts'],
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
+      'no-empty-pattern': 'off',
+    },
+  },
 ];
