@@ -53,4 +53,8 @@ export const keyBindings: Record<
     command: 'Open Project Settings',
     keyBinding: 'ctrl+,',
   },
+  ctrlShiftL: {
+    command: 'Editor: Insert or edit link',
+    keyBinding: 'ctrl+shift+l',
+  },
 } as const;
