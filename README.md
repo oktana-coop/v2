@@ -42,7 +42,9 @@ Don't forget to close the debugger in the end of your session.
 
 **Note:** There is an issue that seems to be related to EffectTS runtime when you start the app from the VSCode integrated terminal (we get Effect-related errors we don't get when we run it from the OS terminal).
 
-### Storybook
+### Testing
+
+#### Storybook
 
 [Storybook](https://storybook.js.org) is used to build and render components in isolation.
 
@@ -51,6 +53,42 @@ To start Storybook, run:
 ```sh
 pnpm run storybook
 ```
+
+#### E2E Tests
+
+End-to-end tests use [Playwright](https://playwright.dev/) with its Electron integration, running against the **built** app.
+
+**Run all tests** (builds first):
+
+```sh
+pnpm run test:e2e
+```
+
+> Note: Electron doesn't support a true headless mode — Electron windows will appear briefly during the run on macOS. On Linux CI, use a virtual display (Xvfb) to suppress them.
+
+**Open the Playwright UI** (test timeline, action logs, attachments):
+
+```sh
+pnpm run test:e2e:ui
+```
+
+> Note: the Playwright UI's browser preview panel does not work for Electron apps — the Electron window itself is the live view.
+
+**Step through a test with DevTools** (opens Playwright Inspector, pauses before each action):
+
+```sh
+pnpm run test:e2e:debug
+```
+
+The Inspector pauses before every action, keeping the Electron window open so you can right-click → Inspect or open DevTools from the View menu.
+
+**View the HTML report** from the last run:
+
+```sh
+pnpm run test:e2e:report
+```
+
+Test files live in `e2e/`. Results (JSON, HTML report, failure screenshots) are written to `e2e-results/`.
 
 ### Build
 
@@ -103,6 +141,7 @@ Required secrets: `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_TEAM_ID`, `
 **Arch Linux**
 
 When a release is published, a separate `Publish Packages` workflow automatically triggers and publishes to AUR (Arch User Repository):
+
 1. Generates a PKGBUILD file for the new version
 2. Commits the PKGBUILD to the separate AUR package repository (`v2-bin` on aur.archlinux.org)
 3. This is independent from the main source code repository
@@ -112,6 +151,7 @@ Required secrets: `AUR_USERNAME`, `AUR_EMAIL`, `AUR_SSH_PRIVATE_KEY`
 **Ubuntu/Debian**
 
 When a release is published, the `Publish Packages` workflow also publishes to a custom APT repository:
+
 1. Downloads the `.deb` packages (amd64 and arm64) from the GitHub release
 2. Generates APT repository metadata (Packages, Release files)
 3. Signs the repository with GPG

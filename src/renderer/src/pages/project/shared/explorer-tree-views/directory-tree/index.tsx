@@ -63,7 +63,10 @@ export const DirectoryTreeView = ({
   const { canCreateDocument } = useCreateDocument();
 
   return (
-    <div className="flex h-full flex-col items-stretch py-6">
+    <div
+      className="flex h-full flex-col items-stretch py-6"
+      data-testid="file-explorer"
+    >
       <div className="flex items-center px-4 pb-4">
         <div className="flex-auto">
           <SidebarHeading icon={FolderIcon} text="File Explorer" />

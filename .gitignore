@@ -34,3 +34,6 @@ automerge-repo-data/
 
 # Environment variables file
 .env
+
+# Playwright e2e test results
+e2e-results/
