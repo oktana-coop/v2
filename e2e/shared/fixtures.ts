@@ -12,6 +12,7 @@ type Fixtures = {
   electronApp: ElectronApplication;
   window: Page;
   testProjectDir: string;
+  emptyProjectDir: string;
 };
 
 export const test = base.extend<Fixtures>({
@@ -40,6 +41,12 @@ export const test = base.extend<Fixtures>({
       path.join(dir, 'world.md'),
       '# World\n\nAnother document.\n'
     );
+    await use(dir);
+    fs.rmSync(dir, { recursive: true, force: true });
+  },
+
+  emptyProjectDir: async ({}, use) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'v2-e2e-empty-'));
     await use(dir);
     fs.rmSync(dir, { recursive: true, force: true });
   },

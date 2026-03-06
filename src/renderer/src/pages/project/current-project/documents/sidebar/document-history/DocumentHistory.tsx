@@ -45,7 +45,10 @@ export const DocumentHistory = ({
   selectedChange,
 }: DocumentHistoryPanelProps) => {
   return (
-    <div className="flex h-full flex-col items-stretch py-6">
+    <div
+      className="flex h-full flex-col items-stretch py-6"
+      data-testid="document-history"
+    >
       <div className="flex items-center px-4 pb-4">
         <div className="flex-auto">
           <SidebarHeading icon={CommitHistoryIcon} text="Document History" />

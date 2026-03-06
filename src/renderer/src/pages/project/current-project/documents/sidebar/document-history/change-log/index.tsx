@@ -34,6 +34,7 @@ const Commit = ({
   return (
     <div
       className="cursor-pointer text-left"
+      data-testid="history-commit"
       onClick={() => onClick(commit.id)}
     >
       <div className="flex flex-row items-center">
@@ -77,6 +78,7 @@ const UncommittedChange = ({
   return (
     <div
       className="cursor-pointer text-left"
+      data-testid="uncommitted-changes"
       key={urlEncodeChangeId(change.id)}
       onClick={() => onClick(change.id)}
     >

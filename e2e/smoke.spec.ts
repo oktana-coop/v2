@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures';
+import { expect, test } from './shared/fixtures';
 
 test('app launches and shows main window', async ({ window }) => {
   await expect(window).toHaveTitle(/v2/i);
