@@ -24,6 +24,11 @@ on:
           - patch
           - minor
           - major
+      skip_e2e:
+        description: 'Skip E2E tests'
+        required: false
+        default: false
+        type: boolean
 concurrency:
   group: deploying-new-version
 jobs:
@@ -70,9 +75,57 @@ jobs:
 
           echo "bump_commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
+  e2e:
+    needs: [versioning]
+    if: needs.versioning.outputs.new_tag && !inputs.skip_e2e
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          lfs: true
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --shamefully-hoist
+        env:
+          OKTANA_NPM_TOKEN: ${{ secrets.OKTANA_NPM_TOKEN }}
+      - name: Install Playwright system dependencies
+        run: npx playwright install-deps
+      - name: Build app
+        run: pnpm run build
+        env:
+          OKTANA_NPM_TOKEN: ${{ secrets.OKTANA_NPM_TOKEN }}
+          NODE_OPTIONS: '--max-old-space-size=4096'
+          VITE_USE_HISTORY_WORKER: 'false'
+          VITE_PRIMARY_RICH_TEXT_REPRESENTATION: 'MARKDOWN'
+          VITE_SINGLE_DOCUMENT_PROJECT_VCS: 'GIT'
+          VITE_MULTI_DOCUMENT_PROJECT_VCS: 'GIT'
+          VITE_PROJECT_TYPE: 'MULTI_DOCUMENT_PROJECT'
+          VITE_GITHUB_APP_CLIENT_ID: 'Iv23lin5DIAsGGXyb2XO'
+      - name: Run E2E tests
+        run: xvfb-run --auto-servernum pnpm exec playwright test
+      - name: Upload E2E results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: e2e-results/
+          retention-days: 3
+
   build:
-    needs: versioning
-    if: needs.versioning.outputs.new_tag
+    needs: [versioning, e2e]
+    # always() is needed so GitHub doesn't auto-skip this job when e2e was skipped via skip_e2e input.
+    # Build proceeds only when e2e passed (normal flow) or was intentionally skipped.
+    if: |
+      always() &&
+      needs.versioning.outputs.new_tag &&
+      (needs.e2e.result == 'success' || needs.e2e.result == 'skipped')
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -193,7 +246,7 @@ jobs:
 
   revert_version_bump_on_failure:
     if: failure() && needs.versioning.outputs.new_tag
-    needs: [versioning, build, release]
+    needs: [versioning, e2e, build, release]
     runs-on: ubuntu-latest
     permissions:
       contents: write
