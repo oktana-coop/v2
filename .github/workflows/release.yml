@@ -95,6 +95,10 @@ jobs:
         run: pnpm install --shamefully-hoist
         env:
           OKTANA_NPM_TOKEN: ${{ secrets.OKTANA_NPM_TOKEN }}
+      # Required on Ubuntu runners: Electron's chrome-sandbox binary must be owned by root with setuid (4755).
+      # https://github.com/electron/electron/issues/42510
+      - name: Fix Electron sandbox permissions
+        run: sudo chown root:root node_modules/electron/dist/chrome-sandbox && sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
       - name: Install Playwright system dependencies
         run: npx playwright install-deps
       - name: Build app
