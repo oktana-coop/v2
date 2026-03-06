@@ -16,7 +16,11 @@ test('disk write: typed content is saved to the .md file', async ({
   await openProjectFolder({ electronApp, window, folderPath: testProjectDir });
   await openHelloMd({ window });
 
-  await typeInEditorAndWaitForDebounce({ window, text: ' persisted' });
+  await typeInEditorAndWaitForDebounce({
+    window,
+    text: ' persisted',
+    waitFor: 600,
+  });
 
   const content = fs.readFileSync(
     path.join(testProjectDir, 'hello.md'),
