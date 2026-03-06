@@ -1,12 +1,12 @@
 import { expect, test } from './fixtures';
-import { openProjectFolder } from './helpers';
+import { openProjectFolder, typeInEditor } from './helpers';
 
 test('opens a project folder and lists documents', async ({
   electronApp,
   window,
   testProjectDir,
 }) => {
-  await openProjectFolder(electronApp, window, testProjectDir);
+  await openProjectFolder({ electronApp, window, folderPath: testProjectDir });
 
   // Both .md files should appear in the sidebar
   await expect(window.getByText('hello')).toBeVisible();
@@ -20,7 +20,7 @@ test('opens a document and edits it in ProseMirror', async ({
   window,
   testProjectDir,
 }) => {
-  await openProjectFolder(electronApp, window, testProjectDir);
+  await openProjectFolder({ electronApp, window, folderPath: testProjectDir });
 
   // Click the first document in the sidebar
   await window.getByText('hello').click();
@@ -31,9 +31,7 @@ test('opens a document and edits it in ProseMirror', async ({
   await expect(editor.locator('h1')).toHaveText('Hello');
 
   // Type some new content
-  await editor.click();
-  await window.keyboard.press('End');
-  await window.keyboard.type(' — edited');
+  await typeInEditor({ window, text: ' — edited' });
 
   // Verify the DOM reflects the edit
   await expect(editor).toContainText('Hello — edited');

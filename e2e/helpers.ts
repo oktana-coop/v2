@@ -6,11 +6,15 @@ import { ElectronApplication, Page } from '@playwright/test';
  * 2. Clicking the "Open Folder" button in the UI to trigger the flow
  * 3. Waiting for the file explorer sidebar to appear
  */
-export async function openProjectFolder(
-  electronApp: ElectronApplication,
-  window: Page,
-  folderPath: string
-): Promise<void> {
+export const openProjectFolder = async ({
+  electronApp,
+  window,
+  folderPath,
+}: {
+  electronApp: ElectronApplication;
+  window: Page;
+  folderPath: string;
+}): Promise<void> => {
   // Mock the native dialog before clicking so no system dialog appears
   await electronApp.evaluate(async ({ dialog }, dirPath) => {
     dialog.showOpenDialog = async () => ({
@@ -27,20 +31,27 @@ export async function openProjectFolder(
 
   // Wait for the sidebar / file tree to appear — confirms project is loaded
   await window.waitForSelector('[data-testid="file-explorer"]', {
-    timeout: 5_000,
+    timeout: 800,
   });
-}
+};
 
 /**
  * Mocks Electron's showSaveDialog to return a specific file path, then clicks
- * the create-file button. The app writes the new file to disk at filePath and
- * navigates to the editor for it.
+ * the create-file button.
+ *
+ * Note: this helper does NOT create the file on disk. The app itself is
+ * responsible for writing the file as part of its "new document" flow — this
+ * helper only drives the UI.
  */
-export async function createNewFile(
-  electronApp: ElectronApplication,
-  window: Page,
-  filePath: string
-): Promise<void> {
+export const createNewFile = async ({
+  electronApp,
+  window,
+  filePath,
+}: {
+  electronApp: ElectronApplication;
+  window: Page;
+  filePath: string;
+}): Promise<void> => {
   await electronApp.evaluate(async ({ dialog }, fp) => {
     dialog.showSaveDialog = async () => ({
       canceled: false,
@@ -52,15 +63,46 @@ export async function createNewFile(
 
   // Wait for the editor to open for the new file
   await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
-}
+};
 
-/**
- * Opens hello.md in the editor from the file explorer.
- */
-export async function openHelloMd(window: Page): Promise<void> {
+export const openHelloMd = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
   await window.getByText('hello').click();
   await window.waitForSelector('.ProseMirror', { timeout: 2_000 });
-}
+};
+
+export const typeInEditor = async ({
+  window,
+  text,
+}: {
+  window: Page;
+  text: string;
+}): Promise<void> => {
+  const editor = window.locator('.ProseMirror');
+  await editor.click();
+  await window.keyboard.press('End');
+  await window.keyboard.type(text);
+};
+
+/**
+ * There is a debounce of (at the time of writing this) 300ms as the user is typing.
+ * This function waits for this debounce period before returning.
+ */
+export const typeInEditorAndWaitForDebounce = async ({
+  window,
+  text,
+  waitFor = 350,
+}: {
+  window: Page;
+  text: string;
+  waitFor?: number;
+}): Promise<void> => {
+  await typeInEditor({ window, text });
+  await window.waitForTimeout(waitFor);
+};
 
 /**
  * Clicks the commit button (CheckIcon) in the editor ActionsBar,
@@ -69,51 +111,59 @@ export async function openHelloMd(window: Page): Promise<void> {
  * HeadlessUI Dialog uses CSS transitions; we wait for the textarea inside
  * the dialog rather than waiting for the dialog element itself.
  */
-export async function commitChanges(
-  window: Page,
-  message: string
-): Promise<void> {
+export const commitChanges = async ({
+  window,
+  message,
+}: {
+  window: Page;
+  message: string;
+}): Promise<void> => {
   // Click the commit button in either the editor or history ActionsBar
   await window.getByRole('button', { name: /commit changes/i }).click();
 
   // Wait for the commit message textarea to be visible (autofocused in dialog)
   const textarea = window.getByRole('textbox');
-  await textarea.waitFor({ state: 'visible', timeout: 2_000 });
+  await textarea.waitFor({ state: 'visible', timeout: 500 });
   await textarea.fill(message);
 
   // Click the "Commit" button in the dialog
   await window.getByRole('button', { name: /^Commit$/i }).click();
 
   // Wait for dialog to close (textarea disappears)
-  await textarea.waitFor({ state: 'hidden', timeout: 3_000 });
-}
+  await textarea.waitFor({ state: 'hidden', timeout: 500 });
+};
 
-/**
- * Clicks the "Uncommited changes" entry in the document history sidebar.
- */
-export async function selectUncommittedChanges(window: Page): Promise<void> {
+export const selectUncommittedChanges = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
   await window.getByTestId('uncommitted-changes').click();
-}
+};
 
-/**
- * Clicks a commit entry by its message text in the document history sidebar.
- */
-export async function selectHistoryCommit(
-  window: Page,
-  commitMessage: string
-): Promise<void> {
+export const selectFirstCommit = async ({
+  window,
+  commitMessage,
+}: {
+  window: Page;
+  commitMessage: string;
+}): Promise<void> => {
   const commits = window.getByTestId('history-commit');
   await commits.filter({ hasText: commitMessage }).first().click();
-}
+};
 
 /**
  * Clicks the "Edit Document" (PenIcon) button in the history ActionsBar
  * to return to the editor from the history view.
  */
-export async function returnToEditor(window: Page): Promise<void> {
+export const returnToEditor = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
   await window.getByRole('button', { name: /edit document/i }).click();
-  await window.waitForSelector('.ProseMirror', { timeout: 2_000 });
-}
+  await window.waitForSelector('.ProseMirror', { timeout: 500 });
+};
 
 /**
  * With uncommitted changes selected, clicks the Discard Changes button
@@ -122,14 +172,18 @@ export async function returnToEditor(window: Page): Promise<void> {
  * HeadlessUI Dialog uses CSS transitions; we wait for the "Discard" button
  * inside the dialog rather than the dialog element itself.
  */
-export async function discardChanges(window: Page): Promise<void> {
+export const discardChanges = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
   await window.getByRole('button', { name: /discard changes/i }).click();
 
   // Wait for the Discard button inside the confirmation dialog
   const discardBtn = window.getByRole('button', { name: /^Discard$/i });
-  await discardBtn.waitFor({ state: 'visible', timeout: 2_000 });
+  await discardBtn.waitFor({ state: 'visible', timeout: 500 });
   await discardBtn.click();
 
   // Wait for dialog to close
-  await discardBtn.waitFor({ state: 'hidden', timeout: 3_000 });
-}
+  await discardBtn.waitFor({ state: 'hidden', timeout: 500 });
+};
