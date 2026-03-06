@@ -64,6 +64,7 @@ export default [
     rules: {
       'react-hooks/rules-of-hooks': 'off',
       'no-empty-pattern': 'off',
+      'no-empty': ['error', { allowEmptyCatch: true }],
     },
   },
 ];
