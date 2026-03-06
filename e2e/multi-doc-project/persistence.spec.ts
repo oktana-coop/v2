@@ -1,12 +1,12 @@
 import fs from 'fs';
 import path from 'path';
 
-import { expect, test } from './fixtures';
+import { expect, test } from '../shared/fixtures';
 import {
   openHelloMd,
   openProjectFolder,
   typeInEditorAndWaitForDebounce,
-} from './helpers';
+} from '../shared/helpers';
 
 test('disk write: typed content is saved to the .md file', async ({
   electronApp,
