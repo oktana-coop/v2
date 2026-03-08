@@ -215,25 +215,10 @@ export const CurrentDocumentProvider = ({
         setVersionedDocumentHandle(null);
         setVersionedDocument(null);
 
-        let result;
-
-        try {
-          result = await Effect.runPromise(
+        const { artifact: document, handle: documentHandle } =
+          await Effect.runPromise(
             versionedDocumentStore.findDocumentById(documentId)
           );
-        } catch (error) {
-          console.error('Failed to load document:', error);
-          clearFileSelection();
-          setDocumentNeedsReload(false);
-          if (projectIdParam) {
-            navigate(
-              `/projects/${urlEncodeProjectId(projectIdParam as ProjectId)}/documents`
-            );
-          }
-          return;
-        }
-
-        const { artifact: document, handle: documentHandle } = result;
 
         setVersionedDocumentHandle(documentHandle);
         setVersionedDocument(document);
