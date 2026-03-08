@@ -13,16 +13,16 @@ type AvatarProps = {
   className?: string;
 };
 
-export function Avatar({
-  src = null,
-  square = false,
-  initials,
-  alt = '',
-  className,
-  ...props
-}: AvatarProps & React.ComponentPropsWithoutRef<'span'>) {
+export const Avatar = forwardRef<
+  HTMLSpanElement,
+  AvatarProps & React.ComponentPropsWithoutRef<'span'>
+>(function Avatar(
+  { src = null, square = false, initials, alt = '', className, ...props },
+  ref
+) {
   return (
     <span
+      ref={ref}
       data-slot="avatar"
       {...props}
       className={clsx(
@@ -58,7 +58,7 @@ export function Avatar({
       {src && <img className="size-full" src={src} alt={alt} />}
     </span>
   );
-}
+});
 
 export const AvatarButton = forwardRef(function AvatarButton(
   {

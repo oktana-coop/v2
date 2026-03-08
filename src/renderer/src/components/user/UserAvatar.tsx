@@ -1,5 +1,6 @@
 import { getInitials, type Username } from '../../../../modules/auth';
 import { DEFAULT_AUTHOR_NAME } from '../../../../modules/infrastructure/version-control';
+import { Tooltip } from '../accessibility/Tooltip';
 import { Avatar } from './Avatar';
 
 const getColorClass = (name: string): string => {
@@ -86,9 +87,11 @@ export const UserAvatar = ({ username }: { username: Username }) => {
   }
 
   return (
-    <Avatar
-      initials={getInitials(username)}
-      className={`size-8 ${getColorClass(username)}`}
-    />
+    <Tooltip text={username}>
+      <Avatar
+        initials={getInitials(username)}
+        className={`size-8 ${getColorClass(username)}`}
+      />
+    </Tooltip>
   );
 };
