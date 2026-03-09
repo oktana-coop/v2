@@ -504,22 +504,24 @@ export const MultiDocumentProjectProvider = ({
     async (name: string) => {
       if (!directory || !pendingNewDirectory) return;
 
-      const parentAbsolutePath = await Effect.runPromise(
-        filesystem.getAbsolutePath({
-          path: pendingNewDirectory.parentPath,
-          dirPath: directory.path,
-        })
-      );
-
-      const parentDir = {
-        type: filesystemItemTypes.DIRECTORY,
-        path: parentAbsolutePath,
-        name: getDirectoryName(parentAbsolutePath),
-        permissionState: 'granted' as PermissionState,
-      };
-
       await Effect.runPromise(
-        filesystem.createDirectory({ name, parentDirectory: parentDir })
+        pipe(
+          filesystem.getAbsolutePath({
+            path: pendingNewDirectory.parentPath,
+            dirPath: directory.path,
+          }),
+          Effect.flatMap((parentAbsolutePath) =>
+            filesystem.createDirectory({
+              name,
+              parentDirectory: {
+                type: filesystemItemTypes.DIRECTORY,
+                path: parentAbsolutePath,
+                name,
+                permissionState: 'granted' as PermissionState,
+              },
+            })
+          )
+        )
       );
 
       setPendingNewDirectory(null);
