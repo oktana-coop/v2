@@ -37,3 +37,6 @@ automerge-repo-data/
 
 # Playwright e2e test results
 e2e-results/
+
+# Local Agent Config
+CLAUDE.local.md
