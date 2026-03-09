@@ -71,7 +71,7 @@ export const createNewFile = async ({
  * cannot interact with). Also mocks showSaveDialog to return the desired
  * file path.
  */
-export const mockContextMenuToCreateNewFile = async ({
+export const createNewFileFromContextMenu = async ({
   electronApp,
   newFilePath,
 }: {

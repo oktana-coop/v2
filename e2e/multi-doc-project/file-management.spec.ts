@@ -3,7 +3,7 @@ import path from 'path';
 import { expect, test } from '../shared/fixtures';
 import {
   createNewFile,
-  mockContextMenuToCreateNewFile,
+  createNewFileFromContextMenu,
   openHelloMd,
   openProjectFolder,
   typeInEditor,
@@ -261,7 +261,7 @@ test.describe('nested directory structure', () => {
     const betaFolder = path.join(nestedProjectDir, 'beta-folder');
     const newFilePath = path.join(betaFolder, 'new-in-beta.md');
 
-    await mockContextMenuToCreateNewFile({
+    await createNewFileFromContextMenu({
       electronApp,
       newFilePath,
     });
