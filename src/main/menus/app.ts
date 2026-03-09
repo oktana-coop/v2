@@ -28,12 +28,6 @@ export const buildAppMenu = () => {
       click: () => sendIPCMessageToFocusedWindow('toggle-command-palette'),
     },
     { type: 'separator' },
-    {
-      label: 'Insert Footnote',
-      accelerator: isMac() ? 'Cmd+Option+F' : 'Ctrl+Alt+F',
-      click: () => sendIPCMessageToFocusedWindow('insert-footnote'),
-    },
-    { type: 'separator' },
     { role: 'reload' },
     { role: 'forceReload' },
     { role: 'toggleDevTools' },
