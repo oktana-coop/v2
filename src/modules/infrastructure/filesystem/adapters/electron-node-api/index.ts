@@ -493,6 +493,28 @@ export const createAdapter = (): Filesystem => {
       },
     });
 
+  const createDirectory: Filesystem['createDirectory'] = ({
+    name,
+    parentDirectory,
+  }) => {
+    const fullPath = parentDirectory
+      ? path.join(parentDirectory.path, name)
+      : name;
+
+    return pipe(
+      Effect.tryPromise({
+        try: () => fs.mkdir(fullPath),
+        catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
+      }),
+      Effect.map(() => ({
+        type: filesystemItemTypes.DIRECTORY,
+        path: fullPath,
+        name,
+        permissionState: 'granted' as PermissionState,
+      }))
+    );
+  };
+
   const getRelativePath: Filesystem['getRelativePath'] = ({
     path: descendantPath,
     relativeTo,
@@ -532,5 +554,6 @@ export const createAdapter = (): Filesystem => {
     deleteFile,
     getRelativePath,
     getAbsolutePath,
+    createDirectory,
   };
 };

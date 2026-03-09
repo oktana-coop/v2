@@ -21,6 +21,7 @@ import {
   runPromiseSerializingErrorsForIPC,
 } from '../modules/infrastructure/cross-platform/node';
 import {
+  type CreateDirectoryArgs,
   type CreateNewFileArgs,
   type DeleteFileArgs,
   type File,
@@ -263,6 +264,9 @@ async function createWindow() {
   );
   ipcMain.handle('get-absolute-path', (_, args: GetAbsolutePathArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.getAbsolutePath(args))
+  );
+  ipcMain.handle('create-directory', (_, args: CreateDirectoryArgs) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.createDirectory(args))
   );
 
   ipcMain.on('open-external-link', (_, url: string) => {

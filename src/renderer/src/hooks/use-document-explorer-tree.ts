@@ -19,6 +19,7 @@ import {
 import { useCurrentDocumentId } from './use-current-document-id';
 
 export const STRUCTURAL_CONFLICTS_NODE_TYPE = 'STRUCTURAL_CONFLICTS' as const;
+export const NEW_DIRECTORY_NODE_ID = 'NEW_DIRECTORY' as const;
 
 export type ExplorerTreeNode = {
   id: string;
@@ -32,6 +33,34 @@ export type DocumentListItem = {
   name: string;
   isSelected: boolean;
 };
+
+const injectPendingDirectoryNode = (
+  nodes: ExplorerTreeNode[],
+  parentPath: string
+): ExplorerTreeNode[] =>
+  nodes.map((node) => {
+    if (node.type === filesystemItemTypes.DIRECTORY && node.id === parentPath) {
+      const pendingNode: ExplorerTreeNode = {
+        id: NEW_DIRECTORY_NODE_ID,
+        name: '',
+        type: filesystemItemTypes.DIRECTORY,
+        children: [],
+      };
+      return {
+        ...node,
+        children: [pendingNode, ...(node.children ?? [])],
+      };
+    }
+
+    if (node.children) {
+      return {
+        ...node,
+        children: injectPendingDirectoryNode(node.children, parentPath),
+      };
+    }
+
+    return node;
+  });
 
 const getExplorerTreeInMultiDocumentProject = (
   directoryTree: MultiDocumentProjectContextType['directoryTree']
@@ -85,9 +114,14 @@ const getExplorerTreeInSingleDocumentProject = (
 
 export const useDocumentExplorerTree = () => {
   const { projectType } = useContext(CurrentProjectContext);
-  const { directory, directoryTree, selectedFileInfo } = useContext(
-    MultiDocumentProjectContext
-  );
+  const {
+    directory,
+    directoryTree,
+    selectedFileInfo,
+    pendingNewDirectory,
+    createDirectory,
+    cancelCreateDirectory,
+  } = useContext(MultiDocumentProjectContext);
   const { projectId: singleDocumentProjectId } = useContext(
     SingleDocumentProjectContext
   );
@@ -98,10 +132,20 @@ export const useDocumentExplorerTree = () => {
   const documentId = useCurrentDocumentId();
 
   useEffect(() => {
-    const newTree =
+    let newTree =
       projectType === projectTypes.MULTI_DOCUMENT_PROJECT
         ? getExplorerTreeInMultiDocumentProject(directoryTree)
         : getExplorerTreeInSingleDocumentProject(recentProjects);
+
+    if (
+      projectType === projectTypes.MULTI_DOCUMENT_PROJECT &&
+      pendingNewDirectory
+    ) {
+      newTree = injectPendingDirectoryNode(
+        newTree,
+        pendingNewDirectory.parentPath
+      );
+    }
 
     const selection =
       projectType === projectTypes.MULTI_DOCUMENT_PROJECT
@@ -116,6 +160,7 @@ export const useDocumentExplorerTree = () => {
     recentProjects,
     directoryTree,
     selectedFileInfo,
+    pendingNewDirectory,
   ]);
 
   useEffect(() => {
@@ -131,5 +176,7 @@ export const useDocumentExplorerTree = () => {
     canShowTree,
     explorerTree,
     selection,
+    createDirectory,
+    cancelCreateDirectory,
   };
 };

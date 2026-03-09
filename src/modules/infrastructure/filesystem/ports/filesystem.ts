@@ -51,6 +51,11 @@ export type DeleteFileArgs = {
   parentDirectory?: Directory;
 };
 
+export type CreateDirectoryArgs = {
+  name: string;
+  parentDirectory?: Directory;
+};
+
 export type GetRelativePathArgs = {
   path: string;
   relativeTo: string;
@@ -132,6 +137,9 @@ export type Filesystem = {
     AccessControlError | NotFoundError | RepositoryError,
     never
   >;
+  createDirectory: (
+    args: CreateDirectoryArgs
+  ) => Effect.Effect<Directory, NotFoundError | RepositoryError, never>;
   getRelativePath: (
     args: GetRelativePathArgs
   ) => Effect.Effect<string, RepositoryError, never>;

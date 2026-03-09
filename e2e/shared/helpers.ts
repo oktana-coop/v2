@@ -103,6 +103,34 @@ export const createNewFileFromContextMenu = async ({
   });
 };
 
+/**
+ * Mocks the main-process context-menu:show handler to auto-respond with
+ * a "New Folder" action (bypassing the native OS menu popup that Playwright
+ * cannot interact with).
+ */
+export const createNewSubfolderFromContextMenu = async ({
+  electronApp,
+}: {
+  electronApp: ElectronApplication;
+}): Promise<void> => {
+  await electronApp.evaluate(async ({ ipcMain, BrowserWindow }) => {
+    ipcMain.removeHandler('context-menu:show');
+
+    ipcMain.handle('context-menu:show', async (_, payload) => {
+      if (
+        payload.context === 'EXPLORER_TREE_NODE' &&
+        payload.nodeType === 'DIRECTORY'
+      ) {
+        const win = BrowserWindow.getAllWindows()[0];
+        win.webContents.send('context-menu:action', {
+          context: 'EXPLORER_TREE_DIRECTORY',
+          action: { type: 'NEW_DIRECTORY', parentPath: payload.path },
+        });
+      }
+    });
+  });
+};
+
 export const openHelloMd = async ({
   window,
 }: {

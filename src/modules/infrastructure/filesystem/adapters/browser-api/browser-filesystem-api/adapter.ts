@@ -717,6 +717,52 @@ export const createAdapter = (): Filesystem => {
       )
     );
 
+  const createDirectory: Filesystem['createDirectory'] = ({
+    name,
+    parentDirectory,
+  }) =>
+    pipe(
+      fromNullable(
+        parentDirectory,
+        () =>
+          new RepositoryError(
+            'A parent directory is required when creating a directory via the browser filesystem API.'
+          )
+      ),
+      Effect.flatMap((parentDir) =>
+        pipe(
+          getDirHandleFromStorage(parentDir.path),
+          Effect.flatMap((parentDirHandle) =>
+            Effect.tryPromise({
+              try: () =>
+                parentDirHandle.getDirectoryHandle(name, { create: true }),
+              catch: mapErrorTo(
+                RepositoryError,
+                'Browser filesystem API error'
+              ),
+            })
+          ),
+          Effect.tap((newDirHandle) =>
+            Effect.tryPromise({
+              try: () => persistDirectoryHandle(newDirHandle),
+              catch: mapErrorTo(RepositoryError, 'Browser storage error'),
+            })
+          ),
+          Effect.flatMap((newDirHandle) =>
+            pipe(
+              getAbsolutePath({ path: name, dirPath: parentDir.path }),
+              Effect.map((absolutePath) => ({
+                type: filesystemItemTypes.DIRECTORY,
+                name: newDirHandle.name,
+                path: absolutePath,
+                permissionState: 'granted' as PermissionState,
+              }))
+            )
+          )
+        )
+      )
+    );
+
   const getRelativePath: Filesystem['getRelativePath'] = ({
     path: descendantPath,
     relativeTo,
@@ -756,5 +802,6 @@ export const createAdapter = (): Filesystem => {
     deleteFile,
     getRelativePath,
     getAbsolutePath,
+    createDirectory,
   };
 };

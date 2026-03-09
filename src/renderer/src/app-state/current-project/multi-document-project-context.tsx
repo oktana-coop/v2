@@ -70,6 +70,10 @@ type CreateNewDocumentArgs = {
   parentPath?: string;
 };
 
+type PendingNewDirectory = {
+  parentPath: string;
+};
+
 export type MultiDocumentProjectContextType = {
   loading: boolean;
   projectId: ProjectId | null;
@@ -119,6 +123,9 @@ export type MultiDocumentProjectContextType = {
   pullFromRemoteProject: () => Promise<void>;
   pulledUpstreamChanges: boolean;
   onHandlePulledUpstreamChanges: () => void;
+  pendingNewDirectory: PendingNewDirectory | null;
+  createDirectory: (name: string) => Promise<void>;
+  cancelCreateDirectory: () => void;
 };
 
 export const MultiDocumentProjectContext =
@@ -140,6 +147,10 @@ export const MultiDocumentProjectContext =
     selectedFileName: null,
     setSelectedFileInfo: async () => {},
     clearFileSelection: async () => {},
+    pendingNewDirectory: null,
+    // @ts-expect-error will get overriden below
+    createDirectory: async () => null,
+    cancelCreateDirectory: () => {},
   });
 
 export const MultiDocumentProjectProvider = ({
@@ -183,6 +194,8 @@ export const MultiDocumentProjectProvider = ({
   >({});
   const [pulledUpstreamChanges, setPulledUpstreamChanges] =
     useState<boolean>(false);
+  const [pendingNewDirectory, setPendingNewDirectory] =
+    useState<PendingNewDirectory | null>(null);
   const navigate = useNavigate();
   const navigateToResolveMergeConflicts = useNavigateToResolveConflicts();
 
@@ -487,6 +500,58 @@ export const MultiDocumentProjectProvider = ({
     [versionedDocumentStore, versionedProjectStore]
   );
 
+  const handleCreateDirectory = useCallback(
+    async (name: string) => {
+      if (!directory || !pendingNewDirectory) return;
+
+      await Effect.runPromise(
+        pipe(
+          filesystem.getAbsolutePath({
+            path: pendingNewDirectory.parentPath,
+            dirPath: directory.path,
+          }),
+          Effect.flatMap((parentAbsolutePath) =>
+            filesystem.createDirectory({
+              name,
+              parentDirectory: {
+                type: filesystemItemTypes.DIRECTORY,
+                path: parentAbsolutePath,
+                name,
+                permissionState: 'granted' as PermissionState,
+              },
+            })
+          )
+        )
+      );
+
+      setPendingNewDirectory(null);
+
+      if (
+        directory &&
+        directory.permissionState === 'granted' &&
+        directory.path
+      ) {
+        const dirTree = await Effect.runPromise(
+          filesystem.listDirectoryTree({
+            path: directory.path,
+            extensions: [
+              richTextRepresentationExtensions[
+                PRIMARY_RICH_TEXT_REPRESENTATION
+              ],
+            ],
+            useRelativePathTo: directory.path,
+          })
+        );
+        setDirectoryTree(dirTree);
+      }
+    },
+    [filesystem, directory, pendingNewDirectory]
+  );
+
+  const cancelCreateDirectory = useCallback(() => {
+    setPendingNewDirectory(null);
+  }, []);
+
   useEffect(() => {
     if (!isElectron) return;
 
@@ -508,6 +573,13 @@ export const MultiDocumentProjectProvider = ({
           navigate(
             `/projects/${urlEncodeProjectId(projId)}/documents/${urlEncodeArtifactId(documentId)}?path=${encodeURIComponent(filePath)}`
           );
+        }
+
+        if (
+          action.context === EXPLORER_TREE_DIRECTORY &&
+          action.action.type === 'NEW_DIRECTORY'
+        ) {
+          setPendingNewDirectory({ parentPath: action.action.parentPath });
         }
       }
     );
@@ -1059,6 +1131,9 @@ export const MultiDocumentProjectProvider = ({
         pullFromRemoteProject: handlePullFromRemoteProject,
         pulledUpstreamChanges,
         onHandlePulledUpstreamChanges: resetPulledUpstreamChanges,
+        pendingNewDirectory,
+        createDirectory: handleCreateDirectory,
+        cancelCreateDirectory,
       }}
     >
       {children}

@@ -4,6 +4,7 @@ import { expect, test } from '../shared/fixtures';
 import {
   createNewFile,
   createNewFileFromContextMenu,
+  createNewSubfolderFromContextMenu,
   openHelloMd,
   openProjectFolder,
   typeInEditor,
@@ -249,6 +250,71 @@ test.describe('nested directory structure', () => {
     expect(idx('armadillo.md')).toBeLessThan(idx('zebra.md'));
   });
 
+  test('create new subfolder inside a directory via context menu', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    await createNewSubfolderFromContextMenu({ electronApp });
+
+    // Right-click the beta-folder directory node to trigger the NEW_DIRECTORY action
+    await window.getByText('beta-folder').click({ button: 'right' });
+
+    // An inline text input should appear for naming the new folder
+    const input = window.locator('input[type="text"]');
+    await input.waitFor({ state: 'visible', timeout: 500 });
+
+    // Type the new folder name and confirm
+    await input.fill('my-new-subfolder');
+    await window.keyboard.press('Enter');
+
+    // The new folder should appear in the explorer
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer).toContainText('my-new-subfolder', {
+      timeout: 500,
+    });
+  });
+
+  test('inline input stays visible while typing a subfolder name', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    await createNewSubfolderFromContextMenu({ electronApp });
+
+    await window.getByText('beta-folder').click({ button: 'right' });
+
+    const input = window.locator('input[type="text"]');
+    await input.waitFor({ state: 'visible', timeout: 500 });
+
+    // Type each character individually with a small delay to expose any
+    // blur/focus race that dismisses the input mid-typing.
+    for (const char of 'slow-typed-folder') {
+      await window.keyboard.type(char);
+      await window.waitForTimeout(30);
+      await expect(input).toBeVisible();
+    }
+
+    await window.keyboard.press('Enter');
+
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer).toContainText('slow-typed-folder', {
+      timeout: 500,
+    });
+  });
+
   test('create new file inside a subdirectory via context menu', async ({
     electronApp,
     window,
@@ -272,7 +338,7 @@ test.describe('nested directory structure', () => {
     await window.getByText('beta-folder').click({ button: 'right' });
 
     // Wait for the editor to open for the new file
-    await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
+    await window.waitForSelector('.ProseMirror', { timeout: 500 });
 
     // The new file should appear under beta-folder in the explorer
     const explorer = window.getByTestId('file-explorer');
