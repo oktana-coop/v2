@@ -21,12 +21,16 @@ const DirectoryTree = ({
   selection,
   onCreateDocument,
   onSelectItem,
+  onCreateDirectory,
+  onCancelCreateDirectory,
 }: {
   directory: Directory | null;
   data: ExplorerTreeNode[];
   selection: string | null;
   onCreateDocument: () => void;
   onSelectItem: (id: string) => Promise<void>;
+  onCreateDirectory: (name: string) => Promise<void>;
+  onCancelCreateDirectory: () => void;
 }) => {
   if (data.length > 0) {
     return (
@@ -40,6 +44,8 @@ const DirectoryTree = ({
           data={data}
           selection={selection}
           onSelectItem={onSelectItem}
+          onCreateDirectory={onCreateDirectory}
+          onCancelCreateDirectory={onCancelCreateDirectory}
         />
       </div>
     );
@@ -59,6 +65,8 @@ export const DirectoryTreeView = ({
     explorerTree: documents,
     canShowTree,
     selection,
+    createDirectory,
+    cancelCreateDirectory,
   } = useDocumentExplorerTree();
   const { canCreateDocument } = useCreateDocument();
 
@@ -89,6 +97,8 @@ export const DirectoryTreeView = ({
           selection={selection}
           onCreateDocument={onCreateDocument}
           onSelectItem={handleDocumentSelection}
+          onCreateDirectory={createDirectory}
+          onCancelCreateDirectory={cancelCreateDirectory}
         />
       ) : (
         <NoActiveDirectoryView />

@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import type { ComponentProps } from 'react';
 
 import { filesystemItemTypes } from '../../../../../../../modules/infrastructure/filesystem';
+import { NEW_DIRECTORY_NODE_ID } from '../../../../../hooks';
 import { TreeView } from './TreeView';
 
 const meta: Meta<typeof TreeView> = {
@@ -220,6 +221,36 @@ export const WithEmptyFolders: Story = {
     ],
     selection: null,
     onSelectItem: async (id) => console.log('Selected:', id),
+  },
+};
+
+// The inline-input state shown when creating a new subfolder.
+export const WithNewDirectoryInput: Story = {
+  args: {
+    data: [
+      {
+        id: 'parent',
+        name: 'parent-folder',
+        type: filesystemItemTypes.DIRECTORY,
+        children: [
+          {
+            id: NEW_DIRECTORY_NODE_ID,
+            name: '',
+            type: filesystemItemTypes.DIRECTORY,
+            children: [],
+          },
+          {
+            id: 'existing-child',
+            name: 'existing-doc.md',
+            type: filesystemItemTypes.FILE,
+          },
+        ],
+      },
+    ],
+    selection: null,
+    onSelectItem: async () => {},
+    onCreateDirectory: async (name) => console.log('Create directory:', name),
+    onCancelCreateDirectory: () => console.log('Cancel create directory'),
   },
 };
 

@@ -238,6 +238,15 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
       ),
     });
 
+  // Directories are implicit from filenames in the SQLite filesystem,
+  // so creating a directory explicitly is not supported.
+  const createDirectory: Filesystem['createDirectory'] = () =>
+    Effect.fail(
+      new RepositoryError(
+        'Creating directories is not supported in the SQLite filesystem.'
+      )
+    );
+
   return {
     openDirectory,
     getDirectory,
@@ -253,5 +262,6 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
     deleteFile,
     getRelativePath,
     getAbsolutePath,
+    createDirectory,
   };
 };

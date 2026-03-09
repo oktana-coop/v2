@@ -27,6 +27,7 @@ import {
   type UpdateState,
 } from '../modules/infrastructure/cross-platform/node';
 import {
+  type CreateDirectoryArgs,
   type CreateNewFileArgs,
   type DeleteFileArgs,
   type File,
@@ -141,6 +142,8 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
   readTextFile: (path: string) => ipcRenderer.invoke('read-text-file', path),
   deleteFile: (args: DeleteFileArgs) =>
     ipcRenderer.invoke('delete-file', { ...args }),
+  createDirectory: (args: CreateDirectoryArgs) =>
+    ipcRenderer.invoke('create-directory', { ...args }),
   getRelativePath: (args) =>
     ipcRenderer.invoke('get-relative-path', { ...args }),
   getAbsolutePath: (args) =>

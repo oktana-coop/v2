@@ -1,4 +1,5 @@
 import { clsx } from 'clsx';
+import { useEffect, useRef } from 'react';
 import { type NodeApi, type NodeRendererProps } from 'react-arborist';
 
 import { EXPLORER_TREE_NODE } from '../../../../../../../modules/infrastructure/cross-platform';
@@ -17,14 +18,70 @@ import {
 import { DocxIcon } from '../../../../../components/icons/Docx';
 import {
   type ExplorerTreeNode,
+  NEW_DIRECTORY_NODE_ID,
   STRUCTURAL_CONFLICTS_NODE_TYPE,
 } from '../../../../../hooks';
+import { useTreeCallbacks } from './TreeView';
 
 const nodeClasses = (node: NodeApi<ExplorerTreeNode>) =>
   clsx(
     'flex items-center h-[32px] cursor-pointer overflow-hidden text-ellipsis text-nowrap text-sm py-0.5 hover:bg-zinc-950/5 dark:hover:bg-white/5',
     node.isSelected ? 'bg-purple-50 dark:bg-neutral-600' : ''
   );
+
+const NewDirectoryNode = ({
+  node,
+  style,
+}: NodeRendererProps<ExplorerTreeNode>) => {
+  const { onCreateDirectory, onCancelCreateDirectory } = useTreeCallbacks();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const handleKeyDown = (ev: React.KeyboardEvent<HTMLInputElement>) => {
+    // Prevent react-arborist from intercepting keyboard events (e.g. arrow
+    // navigation), which would steal focus from the input and trigger onBlur.
+    ev.stopPropagation();
+
+    if (ev.key === 'Enter') {
+      const value = inputRef.current?.value.trim() ?? '';
+      if (value) {
+        onCreateDirectory(value);
+      } else {
+        onCancelCreateDirectory();
+      }
+    } else if (ev.key === 'Escape') {
+      onCancelCreateDirectory();
+    }
+  };
+
+  const handleBlur = () => {
+    onCancelCreateDirectory();
+  };
+
+  return (
+    <div
+      className={clsx(
+        'flex h-[32px] items-center overflow-hidden py-0.5 text-sm'
+      )}
+      style={{
+        ...style,
+        paddingLeft: node.level * 24 + 36,
+      }}
+    >
+      <ChevronDownIcon className="mr-2 shrink-0 -rotate-90" size={20} />
+      <input
+        ref={inputRef}
+        type="text"
+        className="min-w-0 flex-1 border border-purple-400 bg-transparent px-1 text-sm outline-none dark:border-purple-300"
+        onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
+      />
+    </div>
+  );
+};
 
 const DirectoryNode = ({
   node,
@@ -182,6 +239,10 @@ export const TreeNode = ({
       node.toggle();
     }
   };
+
+  if (node.data.id === NEW_DIRECTORY_NODE_ID) {
+    return <NewDirectoryNode node={node} {...nodeRendererProps} />;
+  }
 
   if (node.data.type === STRUCTURAL_CONFLICTS_NODE_TYPE) {
     return (
