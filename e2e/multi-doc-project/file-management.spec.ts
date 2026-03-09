@@ -3,6 +3,7 @@ import path from 'path';
 import { expect, test } from '../shared/fixtures';
 import {
   createNewFile,
+  createNewFileFromContextMenu,
   openHelloMd,
   openProjectFolder,
   typeInEditor,
@@ -244,5 +245,44 @@ test.describe('nested directory structure', () => {
 
     // Files are sorted alphabetically among themselves
     expect(idx('armadillo.md')).toBeLessThan(idx('zebra.md'));
+  });
+
+  test('create new file inside a subdirectory via context menu', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    const betaFolder = path.join(nestedProjectDir, 'beta-folder');
+    const newFilePath = path.join(betaFolder, 'new-in-beta.md');
+
+    await createNewFileFromContextMenu({
+      electronApp,
+      newFilePath,
+    });
+
+    // Right-click the beta-folder directory node to trigger context menu IPC
+    await window.getByText('beta-folder').click({ button: 'right' });
+
+    // Wait for the editor to open for the new file
+    await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
+
+    // The new file should appear under beta-folder in the explorer
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer).toContainText('new-in-beta');
+
+    // The editor should be open and editable
+    await typeInEditorAndWaitForDebounce({
+      window,
+      text: 'Created in subfolder',
+    });
+    await expect(window.locator('.ProseMirror')).toContainText(
+      'Created in subfolder'
+    );
   });
 });

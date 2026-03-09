@@ -65,6 +65,44 @@ export const createNewFile = async ({
   await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
 };
 
+/**
+ * Mocks the main-process context-menu:show handler to auto-respond with
+ * a "New File" action (bypassing the native OS menu popup that Playwright
+ * cannot interact with). Also mocks showSaveDialog to return the desired
+ * file path.
+ */
+export const createNewFileFromContextMenu = async ({
+  electronApp,
+  newFilePath,
+}: {
+  electronApp: ElectronApplication;
+  newFilePath: string;
+}): Promise<void> => {
+  await electronApp.evaluate(async ({ dialog }, fp) => {
+    dialog.showSaveDialog = async () => ({
+      canceled: false,
+      filePath: fp,
+    });
+  }, newFilePath);
+
+  await electronApp.evaluate(async ({ ipcMain, BrowserWindow }) => {
+    ipcMain.removeHandler('context-menu:show');
+
+    ipcMain.handle('context-menu:show', async (_, payload) => {
+      if (
+        payload.context === 'EXPLORER_TREE_NODE' &&
+        payload.nodeType === 'DIRECTORY'
+      ) {
+        const win = BrowserWindow.getAllWindows()[0];
+        win.webContents.send('context-menu:action', {
+          context: 'EXPLORER_TREE_DIRECTORY',
+          action: { type: 'NEW_FILE', parentPath: payload.path },
+        });
+      }
+    });
+  });
+};
+
 export const openHelloMd = async ({
   window,
 }: {

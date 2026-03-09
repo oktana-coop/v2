@@ -1,6 +1,7 @@
 import { clsx } from 'clsx';
 import { type NodeApi, type NodeRendererProps } from 'react-arborist';
 
+import { EXPLORER_TREE_NODE } from '../../../../../../../modules/infrastructure/cross-platform';
 import {
   filesystemItemTypes,
   getExtension,
@@ -31,25 +32,38 @@ const DirectoryNode = ({
   onClick,
 }: NodeRendererProps<ExplorerTreeNode> & {
   onClick: (ev: React.MouseEvent) => void;
-}) => (
-  <div
-    onClick={onClick}
-    className={nodeClasses(node)}
-    style={{
-      ...style,
-      paddingLeft: node.level * 24 + 36,
-    }}
-  >
-    <ChevronDownIcon
-      className={clsx(
-        'mr-2 shrink-0 transition-transform duration-150',
-        !node.isOpen && '-rotate-90'
-      )}
-      size={20}
-    />
-    {node.data.name}
-  </div>
-);
+}) => {
+  const handleContextMenu = (ev: React.MouseEvent) => {
+    ev.preventDefault();
+
+    window.electronAPI.showContextMenu({
+      context: EXPLORER_TREE_NODE,
+      nodeType: 'DIRECTORY',
+      path: node.data.id,
+    });
+  };
+
+  return (
+    <div
+      onClick={onClick}
+      onContextMenu={handleContextMenu}
+      className={nodeClasses(node)}
+      style={{
+        ...style,
+        paddingLeft: node.level * 24 + 36,
+      }}
+    >
+      <ChevronDownIcon
+        className={clsx(
+          'mr-2 shrink-0 transition-transform duration-150',
+          !node.isOpen && '-rotate-90'
+        )}
+        size={20}
+      />
+      {node.data.name}
+    </div>
+  );
+};
 
 const FileExtensionIcon = ({ fileName }: { fileName: string }) => {
   const extension = getExtension(fileName).toLowerCase();
@@ -109,19 +123,32 @@ const FileNode = ({
   onClick,
 }: NodeRendererProps<ExplorerTreeNode> & {
   onClick: (ev: React.MouseEvent) => void;
-}) => (
-  <div
-    onClick={onClick}
-    className={nodeClasses(node)}
-    style={{
-      ...style,
-      paddingLeft: node.level * 24 + 40,
-    }}
-  >
-    <FileExtensionIcon fileName={node.data.name} />
-    {node.data.name}
-  </div>
-);
+}) => {
+  const handleContextMenu = (ev: React.MouseEvent) => {
+    ev.preventDefault();
+
+    window.electronAPI.showContextMenu({
+      context: EXPLORER_TREE_NODE,
+      nodeType: 'FILE',
+      path: node.data.id,
+    });
+  };
+
+  return (
+    <div
+      onClick={onClick}
+      onContextMenu={handleContextMenu}
+      className={nodeClasses(node)}
+      style={{
+        ...style,
+        paddingLeft: node.level * 24 + 40,
+      }}
+    >
+      <FileExtensionIcon fileName={node.data.name} />
+      {node.data.name}
+    </div>
+  );
+};
 
 const StructuralConflictsNode = ({
   node,
