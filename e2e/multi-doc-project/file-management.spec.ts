@@ -230,6 +230,8 @@ test.describe('nested directory structure', () => {
       folderPath: nestedProjectDir,
     });
 
+    await window.waitForTimeout(500);
+
     // With all nodes expanded the rendered order (top-to-bottom) is:
     //   alpha-folder → notes → nested-note.md → beta-folder → beta-doc.md → armadillo.md → zebra.md
     // We compare DOM indices to verify the sort contract.

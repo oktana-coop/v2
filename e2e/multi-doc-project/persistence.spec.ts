@@ -43,7 +43,11 @@ test('markdown round-trip: typed content survives a window reload', async ({
   );
 
   // Append to the heading
-  await typeInEditorAndWaitForDebounce({ window, text: ' roundtrip' });
+  await typeInEditorAndWaitForDebounce({
+    window,
+    text: ' roundtrip',
+    waitFor: 700,
+  });
 
   // Reload the window — forces a cold load from disk
   await window.reload();
