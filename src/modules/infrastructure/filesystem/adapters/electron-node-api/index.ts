@@ -68,9 +68,11 @@ const showFilePicker = ({
 const showSaveDialog = ({
   suggestedName,
   extensions,
+  parentDirectoryPath,
 }: {
   suggestedName?: string;
   extensions: Array<string>;
+  parentDirectoryPath?: string;
 }): Effect.Effect<Electron.SaveDialogReturnValue, AbortError, never> => {
   const getDefaultPath = ({
     name,
@@ -92,7 +94,12 @@ const showSaveDialog = ({
       dialog.showSaveDialog({
         // TODO: Replace with suggestedName or `untitled` when
         // https://github.com/electron/electron/issues/48295 is fixed
-        defaultPath: getDefaultPath({ name: suggestedName, exts: extensions }),
+        defaultPath: parentDirectoryPath
+          ? path.join(
+              parentDirectoryPath,
+              getDefaultPath({ name: suggestedName, exts: extensions })
+            )
+          : getDefaultPath({ name: suggestedName, exts: extensions }),
         filters: extensions.map((ext) => ({
           name: `${ext} Files`,
           extensions: [ext],
@@ -345,9 +352,14 @@ export const createAdapter = (): Filesystem => {
     suggestedName,
     extensions,
     content = '',
+    parentDirectory,
   }) =>
     pipe(
-      showSaveDialog({ suggestedName, extensions }),
+      showSaveDialog({
+        suggestedName,
+        extensions,
+        parentDirectoryPath: parentDirectory?.path,
+      }),
       Effect.tap(({ filePath }) =>
         Effect.tryPromise({
           // Node ignores the encoding if the data is binary

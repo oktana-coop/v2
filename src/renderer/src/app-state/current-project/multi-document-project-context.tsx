@@ -24,10 +24,13 @@ import {
   type ResolvedDocument,
   richTextRepresentationExtensions,
 } from '../../../../modules/domain/rich-text';
+import { EXPLORER_TREE_DIRECTORY } from '../../../../modules/infrastructure/cross-platform';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import {
   type Directory,
   type File,
+  filesystemItemTypes,
+  getDirectoryName,
   removeExtension,
   removePath,
 } from '../../../../modules/infrastructure/filesystem';
@@ -64,6 +67,7 @@ export type SelectedFileInfo = {
 
 type CreateNewDocumentArgs = {
   name?: string;
+  parentPath?: string;
 };
 
 export type MultiDocumentProjectContextType = {
@@ -413,47 +417,103 @@ export const MultiDocumentProjectProvider = ({
     [multiDocumentProjectStoreManager, username, email]
   );
 
-  const handleCreateNewDocument = useCallback(async () => {
-    if (!versionedDocumentStore || !versionedProjectStore || !projectId) {
-      throw new Error(
-        'Cannot create document. Document and project store have not been initialized yet.'
-      );
-    }
+  const handleCreateNewDocument = useCallback(
+    async (args?: CreateNewDocumentArgs) => {
+      if (!versionedDocumentStore || !versionedProjectStore || !projectId) {
+        throw new Error(
+          'Cannot create document. Document and project store have not been initialized yet.'
+        );
+      }
 
-    const { documentId: newDocumentId, filePath: newFilePath } =
-      await Effect.runPromise(
-        createVersionedDocument({
-          createNewFile: filesystem.createNewFile,
-          getRelativePath: filesystem.getRelativePath,
-          createDocument: versionedDocumentStore.createDocument,
-          addDocumentToProject: versionedProjectStore.addDocumentToProject,
-        })({
-          projectId,
-          content: null,
-          directory,
-        })
-      );
+      const { documentId: newDocumentId, filePath: newFilePath } =
+        await Effect.runPromise(
+          pipe(
+            args?.parentPath && directory
+              ? pipe(
+                  filesystem.getAbsolutePath({
+                    path: args.parentPath,
+                    dirPath: directory.path,
+                  }),
+                  Effect.map(
+                    (parentAbsolutePath) =>
+                      ({
+                        type: filesystemItemTypes.DIRECTORY,
+                        path: parentAbsolutePath,
+                        name: getDirectoryName(parentAbsolutePath),
+                        permissionState: 'granted',
+                      }) as Directory | null
+                  )
+                )
+              : Effect.succeed(null),
+            Effect.flatMap((parentDirectory) =>
+              createVersionedDocument({
+                createNewFile: filesystem.createNewFile,
+                getRelativePath: filesystem.getRelativePath,
+                createDocument: versionedDocumentStore.createDocument,
+                addDocumentToProject:
+                  versionedProjectStore.addDocumentToProject,
+              })({
+                projectId,
+                content: null,
+                projectDirectory: directory,
+                parentDirectory,
+              })
+            )
+          )
+        );
 
-    // Refresh directory files if a directory is selected
-    if (
-      directory &&
-      directory.permissionState === 'granted' &&
-      directory.path
-    ) {
-      const dirTree = await Effect.runPromise(
-        filesystem.listDirectoryTree({
-          path: directory.path,
-          extensions: [
-            richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
-          ],
-          useRelativePathTo: directory.path,
-        })
-      );
-      setDirectoryTree(dirTree);
-    }
+      // Refresh directory files if a directory is selected
+      if (
+        directory &&
+        directory.permissionState === 'granted' &&
+        directory.path
+      ) {
+        const dirTree = await Effect.runPromise(
+          filesystem.listDirectoryTree({
+            path: directory.path,
+            extensions: [
+              richTextRepresentationExtensions[
+                PRIMARY_RICH_TEXT_REPRESENTATION
+              ],
+            ],
+            useRelativePathTo: directory.path,
+          })
+        );
+        setDirectoryTree(dirTree);
+      }
 
-    return { projectId, documentId: newDocumentId, path: newFilePath };
-  }, [versionedDocumentStore, versionedProjectStore]);
+      return { projectId, documentId: newDocumentId, path: newFilePath };
+    },
+    [versionedDocumentStore, versionedProjectStore]
+  );
+
+  useEffect(() => {
+    if (!isElectron) return;
+
+    const unsubscribe = window.electronAPI.onContextMenuAction(
+      async (action) => {
+        if (
+          action.context === EXPLORER_TREE_DIRECTORY &&
+          action.action.type === 'NEW_FILE'
+        ) {
+          const {
+            documentId,
+            projectId: projId,
+            path: filePath,
+          } = await handleCreateNewDocument({
+            parentPath: action.action.parentPath,
+          });
+
+          handleSetSelectedFileInfo({ documentId, path: filePath });
+          navigate(
+            `/projects/${urlEncodeProjectId(projId)}/documents/${urlEncodeArtifactId(documentId)}?path=${encodeURIComponent(filePath)}`
+          );
+        }
+      }
+    );
+
+    return unsubscribe;
+  }, [isElectron, handleCreateNewDocument, navigate]);
 
   useEffect(() => {
     if (versionedProjectStore) {

@@ -1,4 +1,4 @@
-import { removeExtension, removePath } from './utils';
+import { getDirectoryName, removeExtension, removePath } from './utils';
 
 describe('filesystem/utils', () => {
   describe('removeExtension', () => {
@@ -44,6 +44,24 @@ describe('filesystem/utils', () => {
       expect(removePath('/some/ odd/path////my file name.v2')).toBe(
         'my file name.v2'
       );
+    });
+  });
+
+  describe('getDirectoryName', () => {
+    it('returns the last part of a directory path', () => {
+      expect(getDirectoryName('some/nested/folder')).toBe('folder');
+    });
+
+    it('handles a trailing slash', () => {
+      expect(getDirectoryName('some/nested/folder/')).toBe('folder');
+    });
+
+    it('handles an absolute path', () => {
+      expect(getDirectoryName('/Users/alice/documents')).toBe('documents');
+    });
+
+    it('returns the name as-is when there is no separator', () => {
+      expect(getDirectoryName('folder')).toBe('folder');
     });
   });
 });

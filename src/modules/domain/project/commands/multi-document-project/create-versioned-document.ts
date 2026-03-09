@@ -28,7 +28,8 @@ import { type MultiDocumentProjectStore } from '../../ports/multi-document-proje
 export type CreateVersionedDocumentArgs = {
   content: string | null;
   projectId: ProjectId | null;
-  directory: Directory | null;
+  projectDirectory: Directory | null;
+  parentDirectory: Directory | null;
 };
 
 export type CreateVersionedDocumentDeps = {
@@ -53,7 +54,8 @@ export const createVersionedDocument =
   ({
     content,
     projectId,
-    directory,
+    projectDirectory,
+    parentDirectory,
   }: CreateVersionedDocumentArgs): Effect.Effect<
     CreateVersionedDocumentResult,
     | FilesystemAbortError
@@ -67,30 +69,22 @@ export const createVersionedDocument =
     never
   > =>
     Effect.Do.pipe(
-      Effect.bind('newFile', () =>
-        directory
-          ? createNewFile({
-              parentDirectory: directory,
-              extensions: [
-                richTextRepresentationExtensions[
-                  PRIMARY_RICH_TEXT_REPRESENTATION
-                ],
-              ],
-            })
-          : createNewFile({
-              extensions: [
-                richTextRepresentationExtensions[
-                  PRIMARY_RICH_TEXT_REPRESENTATION
-                ],
-              ],
-            })
-      ),
+      Effect.bind('newFile', () => {
+        const parentDir = parentDirectory ?? projectDirectory;
+
+        return createNewFile({
+          parentDirectory: parentDir ?? undefined,
+          extensions: [
+            richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
+          ],
+        });
+      }),
       Effect.bind('documentId', ({ newFile }) =>
         pipe(
-          directory
+          projectDirectory
             ? getRelativePath({
                 path: newFile.path,
-                relativeTo: directory.path,
+                relativeTo: projectDirectory.path,
               })
             : Effect.succeed(newFile.path),
           Effect.flatMap((filePath) =>
