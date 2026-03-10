@@ -54,7 +54,7 @@ export const keyBindings: Record<
     keyBinding: 'ctrl+,',
   },
   ctrlShiftL: {
-    command: 'Editor: Insert or edit link',
+    command: 'Insert or edit link',
     keyBinding: 'ctrl+shift+l',
   },
 } as const;
