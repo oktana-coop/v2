@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import z from 'zod';
 
 import {
   ensureHttpPrefix,
@@ -16,19 +15,6 @@ type LinkDialogProps = {
   isOpen?: boolean;
   onCancel?: () => void;
   onSave: (attrs: LinkAttrs) => void;
-};
-
-const ValidLink = z.url({
-  protocol: /^https?$/,
-  hostname: z.regexes.domain,
-});
-const isValidLink = (link: string) => {
-  try {
-    ValidLink.parse(link);
-    return true;
-  } catch {
-    return false;
-  }
 };
 
 export const LinkDialog = ({
@@ -81,11 +67,7 @@ export const LinkDialog = ({
         </Button>
       }
       primaryButton={
-        <Button
-          onClick={handleSave}
-          disabled={!(title && isValidLink(ensureHttpPrefix(href)))}
-          color="purple"
-        >
+        <Button onClick={handleSave} disabled={!(title && href)} color="purple">
           <CheckIcon />
           Save
         </Button>
@@ -110,7 +92,6 @@ export const LinkDialog = ({
               value={href}
               onChange={handleHrefChange}
               onKeyDown={handleKeyDown}
-              invalid={!isValidLink(ensureHttpPrefix(href))}
             />
           </Field>
         </FieldGroup>
