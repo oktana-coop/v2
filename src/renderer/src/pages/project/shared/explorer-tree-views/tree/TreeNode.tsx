@@ -1,12 +1,14 @@
 import { clsx } from 'clsx';
-import { useEffect, useRef } from 'react';
+import { useContext, useEffect, useRef } from 'react';
 import { type NodeApi, type NodeRendererProps } from 'react-arborist';
 
+import { projectTypes } from '../../../../../../../modules/domain/project';
 import { EXPLORER_TREE_NODE } from '../../../../../../../modules/infrastructure/cross-platform';
 import {
   filesystemItemTypes,
   getExtension,
 } from '../../../../../../../modules/infrastructure/filesystem';
+import { CurrentProjectContext } from '../../../../../app-state';
 import {
   ChevronDownIcon,
   DiffIcon,
@@ -181,8 +183,13 @@ const FileNode = ({
 }: NodeRendererProps<ExplorerTreeNode> & {
   onClick: (ev: React.MouseEvent) => void;
 }) => {
+  const { projectType } = useContext(CurrentProjectContext);
+
   const handleContextMenu = (ev: React.MouseEvent) => {
     ev.preventDefault();
+
+    // TODO: support context menu for single-document projects
+    if (projectType !== projectTypes.MULTI_DOCUMENT_PROJECT) return;
 
     window.electronAPI.showContextMenu({
       context: EXPLORER_TREE_NODE,
