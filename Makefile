@@ -48,5 +48,8 @@ lint:
 test:
 	pnpm run test
 
+watch-tests:
+	pnpm run test:watch
+
 checks: install compile build lint test
 	echo "✨ All checks are successful"

@@ -27,6 +27,8 @@ import {
 } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
 import { versionedArtifactTypes } from '../../../../modules/infrastructure/version-control';
+import { useKeyBindings } from '../../hooks';
+import { keyBindings } from '../../pages/project/shared/command-palette/key-bindings';
 import { EditorToolbar } from './editor-toolbar';
 import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';
@@ -166,6 +168,12 @@ export const RichTextEditor = ({
     ensureTrailingParagraphPlugin(schema),
     ensureTrailingSpaceAfterAtomPlugin(),
   ];
+
+  useKeyBindings({
+    [keyBindings.ctrlShiftL.keyBinding]: () => {
+      handleLinkToggle();
+    },
+  });
 
   const setupDiffPlugin = async ({
     currentDoc,
