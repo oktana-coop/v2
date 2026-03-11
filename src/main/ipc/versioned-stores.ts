@@ -64,6 +64,7 @@ import {
 import {
   type CommitChangesArgs,
   type CreateDocumentArgs,
+  type DeleteDocumentArgs,
   DiscardUncommittedChangesArgs,
   type GetDocumentAtChangeArgs,
   type IsContentSameAtChangesArgs,
@@ -1390,12 +1391,12 @@ const registerVersionedDocumentStoreEvents = () => {
 
   ipcMain.handle(
     'versioned-document-store:delete-document',
-    async (_, id: ResolvedArtifactId, projectId: string) =>
+    async (_, args: DeleteDocumentArgs, projectId: string) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
           validateProjectIdAndGetVersionedStores(projectId),
           Effect.flatMap(({ versionedDocumentStore }) =>
-            versionedDocumentStore.deleteDocument(id)
+            versionedDocumentStore.deleteDocument(args)
           )
         )
       )

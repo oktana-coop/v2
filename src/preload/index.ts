@@ -177,10 +177,10 @@ contextBridge.exposeInMainWorld('versionedDocumentStoreAPI', {
       { ...args },
       projectId
     ),
-  deleteDocument: (id, projectId) =>
+  deleteDocument: (args, projectId) =>
     ipcRenderer.invoke(
       'versioned-document-store:delete-document',
-      id,
+      args,
       projectId
     ),
   commitChanges: (args, projectId) =>

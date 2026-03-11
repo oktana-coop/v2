@@ -7,7 +7,9 @@ import {
 import {
   type ContextMenuAction,
   EXPLORER_TREE_DIRECTORY,
+  EXPLORER_TREE_FILE,
   type ExplorerTreeDirectoryAction,
+  type ExplorerTreeFileAction,
 } from '../../modules/infrastructure/cross-platform';
 import { isMac } from '../../modules/infrastructure/cross-platform/node';
 import { sendIPCMessageToFocusedWindow } from './utils';
@@ -25,11 +27,11 @@ export const buildAndShowExplorerFileContextMenu = ({
       accelerator: isMac() ? 'Enter' : 'F2',
       click: () =>
         sendIPCMessageToFocusedWindow('context-menu:action', {
-          context: EXPLORER_TREE_DIRECTORY,
+          context: EXPLORER_TREE_FILE,
           action: {
             type: 'RENAME',
             path,
-          } as ExplorerTreeDirectoryAction,
+          } as ExplorerTreeFileAction,
         } as ContextMenuAction),
     },
     {
@@ -37,11 +39,11 @@ export const buildAndShowExplorerFileContextMenu = ({
       accelerator: isMac() ? 'Cmd+Backspace' : 'Ctrl+Backspace',
       click: () =>
         sendIPCMessageToFocusedWindow('context-menu:action', {
-          context: EXPLORER_TREE_DIRECTORY,
+          context: EXPLORER_TREE_FILE,
           action: {
             type: 'DELETE',
             path,
-          } as ExplorerTreeDirectoryAction,
+          } as ExplorerTreeFileAction,
         } as ContextMenuAction),
     },
   ];

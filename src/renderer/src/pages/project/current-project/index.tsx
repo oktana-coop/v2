@@ -2,6 +2,7 @@ import { useContext, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 
 import { urlEncodeProjectId } from '../../../../../modules/domain/project';
+import { removePath } from '../../../../../modules/infrastructure/filesystem';
 import {
   BranchingCommandPaletteContext,
   CreateDocumentModalContext,
@@ -11,6 +12,7 @@ import { BranchingCommandPaletteStateProvider } from '../../../app-state';
 import {
   useBranchInfo,
   useCreateDocument,
+  useDeleteDocument,
   useNavigateToDocument,
   useProjectId,
 } from '../../../hooks';
@@ -25,6 +27,7 @@ import {
 } from './branching';
 import {
   CommitDialog,
+  DeleteDocumentDialog,
   DiscardChangesDialog,
   RestoreCommitDialog,
 } from './change-dialogs';
@@ -59,6 +62,8 @@ const Project = () => {
   const { isOpen: isDocumentCreationModalOpen, closeCreateDocumentModal } =
     useContext(CreateDocumentModalContext);
 
+  const { filePathToDelete, deleteDocument, cancelDeleteDocument } =
+    useDeleteDocument();
   const { triggerDocumentCreationDialog } = useCreateDocument();
   const openDocument = useOpenDocument();
   const {
@@ -114,6 +119,12 @@ const Project = () => {
           isOpen={isDiscardChangesDialogOpen}
           onCancel={onCloseDiscardChangesDialog}
           onDiscardChanges={() => onDiscardChanges()}
+        />
+        <DeleteDocumentDialog
+          isOpen={filePathToDelete !== null}
+          documentName={filePathToDelete ? removePath(filePathToDelete) : null}
+          onCancel={cancelDeleteDocument}
+          onConfirm={deleteDocument}
         />
         <ProjectCommandPalette
           onCreateDocument={handleCreateDocument}

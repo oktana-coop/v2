@@ -325,9 +325,23 @@ export const createAdapter = ({
         )
       );
 
-  // This is a no-op in the Git document repo since the relevant operation in the project repo (deleting a document from a project) does it.
-  const deleteDocument: VersionedDocumentStore['deleteDocument'] = () =>
-    Effect.succeed(undefined);
+  const deleteDocument: VersionedDocumentStore['deleteDocument'] = ({
+    documentId,
+    deleteFromFilesystem,
+  }) =>
+    deleteFromFilesystem && managesFilesystemWorkdir
+      ? pipe(
+          buildDocumentAbsolutePathFromId(documentId),
+          Effect.flatMap((documentPath) =>
+            pipe(
+              filesystem.deleteFile({ path: documentPath }),
+              Effect.catchAll(() =>
+                Effect.fail(new RepositoryError('Git repo error'))
+              )
+            )
+          )
+        )
+      : Effect.succeed(undefined);
 
   const commitChanges: VersionedDocumentStore['commitChanges'] = ({
     documentId,

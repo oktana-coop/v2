@@ -253,3 +253,46 @@ export const discardChanges = async ({
   // Wait for dialog to close
   await discardBtn.waitFor({ state: 'hidden', timeout: 500 });
 };
+
+/**
+ * Mocks the main-process context-menu:show handler to auto-respond with
+ * a "Delete" action for file nodes (bypassing the native OS menu popup that
+ * Playwright cannot interact with).
+ */
+export const deleteFileFromContextMenu = async ({
+  electronApp,
+}: {
+  electronApp: ElectronApplication;
+}): Promise<void> => {
+  await electronApp.evaluate(async ({ ipcMain, BrowserWindow }) => {
+    ipcMain.removeHandler('context-menu:show');
+
+    ipcMain.handle('context-menu:show', async (_, payload) => {
+      if (
+        payload.context === 'EXPLORER_TREE_NODE' &&
+        payload.nodeType === 'FILE'
+      ) {
+        const win = BrowserWindow.getAllWindows()[0];
+        win.webContents.send('context-menu:action', {
+          context: 'EXPLORER_TREE_FILE',
+          action: { type: 'DELETE', path: payload.path },
+        });
+      }
+    });
+  });
+};
+
+/**
+ * Clicks the "Delete" button in the delete-file confirmation dialog
+ * and waits for the dialog to close.
+ */
+export const confirmDeletion = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  const deleteBtn = window.getByRole('button', { name: /^Delete$/i });
+  await deleteBtn.waitFor({ state: 'visible', timeout: 500 });
+  await deleteBtn.click();
+  await deleteBtn.waitFor({ state: 'hidden', timeout: 500 });
+};

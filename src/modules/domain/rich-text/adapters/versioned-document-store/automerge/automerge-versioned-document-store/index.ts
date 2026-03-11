@@ -267,9 +267,9 @@ export const createAdapter = ({
         )
       );
 
-  const deleteDocument: VersionedDocumentStore['deleteDocument'] = (
-    documentId
-  ) =>
+  const deleteDocument: VersionedDocumentStore['deleteDocument'] = ({
+    documentId,
+  }) =>
     pipe(
       findDocumentHandleById(documentId),
       Effect.tap((documentHandle) =>
