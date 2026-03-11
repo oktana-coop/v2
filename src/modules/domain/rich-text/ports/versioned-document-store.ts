@@ -78,6 +78,11 @@ export type DiscardUncommittedChangesArgs = {
   writeToFileWithPath?: string;
 };
 
+export type DeleteDocumentArgs = {
+  documentId: ResolvedArtifactId;
+  deleteFromFilesystem?: boolean;
+};
+
 export type ResolveContentConflictArgs = {
   documentId: ResolvedArtifactId;
 };
@@ -118,7 +123,7 @@ export type VersionedDocumentStore = {
     never
   >;
   deleteDocument: (
-    id: ResolvedArtifactId
+    args: DeleteDocumentArgs
   ) => Effect.Effect<
     void,
     ValidationError | MigrationError | RepositoryError | NotFoundError,

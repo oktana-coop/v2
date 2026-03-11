@@ -2,9 +2,11 @@ import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
 import {
+  confirmDeletion,
   createNewFile,
   createNewFileFromContextMenu,
   createNewSubfolderFromContextMenu,
+  deleteFileFromContextMenu,
   openHelloMd,
   openProjectFolder,
   typeInEditor,
@@ -352,5 +354,111 @@ test.describe('nested directory structure', () => {
     await expect(window.locator('.ProseMirror')).toContainText(
       'Created in subfolder'
     );
+  });
+});
+
+test.describe('file deletion', () => {
+  test('delete a file in project root', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    await deleteFileFromContextMenu({ electronApp });
+
+    // Right-click hello to trigger the DELETE action
+    await window.getByText('hello').click({ button: 'right' });
+
+    await confirmDeletion({ window });
+
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer.getByText('hello')).not.toBeVisible({
+      timeout: 2_000,
+    });
+    await expect(explorer.getByText('world')).toBeVisible();
+  });
+
+  test('delete a file within a sub-folder', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    await deleteFileFromContextMenu({ electronApp });
+
+    await window.getByText('beta-doc.md').click({ button: 'right' });
+
+    await confirmDeletion({ window });
+
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer.getByText('beta-doc.md')).not.toBeVisible({
+      timeout: 2_000,
+    });
+    await expect(explorer.getByText('beta-folder')).toBeVisible();
+  });
+
+  test('delete the currently-open file', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    // Open hello.md in the editor
+    await openHelloMd({ window });
+    await expect(window.locator('.ProseMirror')).toBeVisible();
+
+    await deleteFileFromContextMenu({ electronApp });
+
+    const explorer = window.getByTestId('file-explorer');
+    await explorer.getByText('hello').click({ button: 'right' });
+
+    await confirmDeletion({ window });
+
+    await expect(explorer.getByText('hello')).not.toBeVisible({
+      timeout: 2_000,
+    });
+  });
+
+  // TODO: Test that deletion creates a VCS commit once we have a
+  // project-commits view that can be asserted against in the UI.
+
+  test('cancel deletion keeps the file', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    await deleteFileFromContextMenu({ electronApp });
+
+    await window.getByText('hello').click({ button: 'right' });
+
+    // Click Cancel instead of Delete
+    const cancelBtn = window.getByRole('button', { name: /^Cancel$/i });
+    await cancelBtn.waitFor({ state: 'visible', timeout: 500 });
+    await cancelBtn.click();
+
+    // File should still be visible
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer.getByText('hello')).toBeVisible();
   });
 });

@@ -13,6 +13,7 @@ import { AuthContext } from '../../../../modules/auth/browser';
 import {
   createVersionedDocument,
   DEFAULT_REMOTE_PROJECT_NAME,
+  deleteDocumentFromProject,
   findDocumentInProject,
   type MultiDocumentProjectStore,
   type RemoteProjectInfo,
@@ -24,7 +25,10 @@ import {
   type ResolvedDocument,
   richTextRepresentationExtensions,
 } from '../../../../modules/domain/rich-text';
-import { EXPLORER_TREE_DIRECTORY } from '../../../../modules/infrastructure/cross-platform';
+import {
+  EXPLORER_TREE_DIRECTORY,
+  EXPLORER_TREE_FILE,
+} from '../../../../modules/infrastructure/cross-platform';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import {
   type Directory,
@@ -126,6 +130,9 @@ export type MultiDocumentProjectContextType = {
   pendingNewDirectory: PendingNewDirectory | null;
   createDirectory: (name: string) => Promise<void>;
   cancelCreateDirectory: () => void;
+  filePathToDelete: string | null;
+  deleteDocument: (args: { relativePath: string }) => Promise<void>;
+  cancelDeleteDocument: () => void;
 };
 
 export const MultiDocumentProjectContext =
@@ -151,6 +158,9 @@ export const MultiDocumentProjectContext =
     // @ts-expect-error will get overriden below
     createDirectory: async () => null,
     cancelCreateDirectory: () => {},
+    filePathToDelete: null,
+    deleteDocument: async () => {},
+    cancelDeleteDocument: () => {},
   });
 
 export const MultiDocumentProjectProvider = ({
@@ -196,6 +206,7 @@ export const MultiDocumentProjectProvider = ({
     useState<boolean>(false);
   const [pendingNewDirectory, setPendingNewDirectory] =
     useState<PendingNewDirectory | null>(null);
+  const [filePathToDelete, setFileToDelete] = useState<string | null>(null);
   const navigate = useNavigate();
   const navigateToResolveMergeConflicts = useNavigateToResolveConflicts();
 
@@ -552,6 +563,90 @@ export const MultiDocumentProjectProvider = ({
     setPendingNewDirectory(null);
   }, []);
 
+  const handleDeleteDocument = useCallback(
+    async ({ relativePath }: { relativePath: string }) => {
+      if (!directory) {
+        return;
+      }
+
+      if (!versionedDocumentStore || !versionedProjectStore || !projectId) {
+        throw new Error(
+          'Cannot delete file. Document and project store have not been initialized yet.'
+        );
+      }
+
+      try {
+        await Effect.runPromise(
+          pipe(
+            findDocumentInProject({
+              findDocumentById: versionedDocumentStore.findDocumentById,
+              findDocumentInProjectStore:
+                versionedProjectStore.findDocumentInProject,
+            })({
+              projectId,
+              documentPath: relativePath,
+            }),
+            Effect.flatMap((doc) =>
+              deleteDocumentFromProject({
+                deleteDocument: versionedDocumentStore.deleteDocument,
+                deleteDocumentFromProjectStore:
+                  versionedProjectStore.deleteDocumentFromProject,
+              })({
+                documentId: doc.id,
+                projectId,
+                deleteFromFilesystem: true,
+              })
+            )
+          )
+        );
+
+        // Refresh directory tree
+        if (directory.permissionState === 'granted' && directory.path) {
+          const dirTree = await Effect.runPromise(
+            filesystem.listDirectoryTree({
+              path: directory.path,
+              extensions: [
+                richTextRepresentationExtensions[
+                  PRIMARY_RICH_TEXT_REPRESENTATION
+                ],
+              ],
+              useRelativePathTo: directory.path,
+            })
+          );
+          setDirectoryTree(dirTree);
+        }
+
+        // If the deleted file was currently selected, clear selection and navigate away
+        if (selectedFileInfo?.path === relativePath) {
+          await clearFileSelection();
+          navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
+        }
+
+        setFileToDelete(null);
+      } catch (err) {
+        console.error(err);
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Delete File Error',
+            message:
+              'An error happened when trying to delete the file. Please try again.',
+          })
+        );
+        setFileToDelete(null);
+      }
+    },
+    [
+      versionedDocumentStore,
+      versionedProjectStore,
+      projectId,
+      directory,
+      filesystem,
+      selectedFileInfo,
+      navigate,
+      dispatchNotification,
+    ]
+  );
+
   useEffect(() => {
     if (!isElectron) return;
 
@@ -580,6 +675,13 @@ export const MultiDocumentProjectProvider = ({
           action.action.type === 'NEW_DIRECTORY'
         ) {
           setPendingNewDirectory({ parentPath: action.action.parentPath });
+        }
+
+        if (
+          action.context === EXPLORER_TREE_FILE &&
+          action.action.type === 'DELETE'
+        ) {
+          setFileToDelete(action.action.path);
         }
       }
     );
@@ -1134,6 +1236,9 @@ export const MultiDocumentProjectProvider = ({
         pendingNewDirectory,
         createDirectory: handleCreateDirectory,
         cancelCreateDirectory,
+        filePathToDelete,
+        deleteDocument: handleDeleteDocument,
+        cancelDeleteDocument: () => setFileToDelete(null),
       }}
     >
       {children}

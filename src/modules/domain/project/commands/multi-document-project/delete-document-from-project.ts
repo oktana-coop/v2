@@ -22,6 +22,7 @@ import { type MultiDocumentProjectStore } from '../../ports/multi-document-proje
 export type DeleteDocumentFromProjectArgs = {
   documentId: ResolvedArtifactId;
   projectId: ProjectId;
+  deleteFromFilesystem?: boolean;
 };
 
 export type DeleteDocumentFromProjectDeps = {
@@ -37,6 +38,7 @@ export const deleteDocumentFromProject =
   ({
     documentId,
     projectId,
+    deleteFromFilesystem,
   }: DeleteDocumentFromProjectArgs): Effect.Effect<
     void,
     | VersionedProjectRepositoryError
@@ -50,5 +52,5 @@ export const deleteDocumentFromProject =
   > =>
     pipe(
       deleteDocumentFromProjectStore({ documentId, projectId }),
-      Effect.flatMap(() => deleteDocument(documentId))
+      Effect.flatMap(() => deleteDocument({ documentId, deleteFromFilesystem }))
     );
