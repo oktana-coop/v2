@@ -32,8 +32,9 @@ storybook-static/
 # Automerge repo data dev folder
 automerge-repo-data/
 
-# Environment variables file
+# Environment variables files
 .env
+.env.development
 
 # Playwright e2e test results
 e2e-results/
