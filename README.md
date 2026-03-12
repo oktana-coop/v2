@@ -19,6 +19,22 @@ Built on top of [Automerge](https://automerge.org/), [ProseMirror](https://prose
 $ pnpm install
 ```
 
+### Environment Setup
+
+The app uses two environment files, both gitignored:
+
+- **`.env`** — Shared variables loaded in **all** modes (dev, build, test).
+- **`.env.development`** — Dev-only overrides loaded only by `electron-vite dev`.
+
+Copy the sample files to get started:
+
+```sh
+cp .env.sample .env
+cp .env.development.sample .env.development
+```
+
+`VITE_DEV_SERVER_URL` lives in `.env.development` so that production builds (and E2E tests, which run against the built app) never try to connect to a dev server.
+
 ### Pull Git LFS Artifacts
 
 ```sh
