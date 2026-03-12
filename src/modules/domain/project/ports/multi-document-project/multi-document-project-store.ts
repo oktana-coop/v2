@@ -42,6 +42,12 @@ export type DeleteDocumentFromMultiDocumentProjectArgs = {
   documentId: ResolvedArtifactId;
 };
 
+export type RenameDocumentInMultiDocumentProjectArgs = {
+  projectId: ProjectId;
+  oldDocumentPath: string;
+  newDocumentPath: string;
+};
+
 export type FindDocumentInMultiDocumentProjectArgs = {
   projectId: ProjectId;
   documentPath: string;
@@ -185,6 +191,13 @@ export type MultiDocumentProjectStore = {
   >;
   deleteDocumentFromProject: (
     args: DeleteDocumentFromMultiDocumentProjectArgs
+  ) => Effect.Effect<
+    void,
+    ValidationError | MigrationError | RepositoryError | NotFoundError,
+    never
+  >;
+  renameDocumentInProject: (
+    args: RenameDocumentInMultiDocumentProjectArgs
   ) => Effect.Effect<
     void,
     ValidationError | MigrationError | RepositoryError | NotFoundError,

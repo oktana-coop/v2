@@ -121,6 +121,11 @@ export const useDocumentExplorerTree = () => {
     pendingNewDirectory,
     createDirectory,
     cancelCreateDirectory,
+    filePathToRename,
+    renameDocumentError,
+    clearRenameDocumentError,
+    renameDocument,
+    cancelRenameDocument,
   } = useContext(MultiDocumentProjectContext);
   const { projectId: singleDocumentProjectId } = useContext(
     SingleDocumentProjectContext
@@ -178,5 +183,10 @@ export const useDocumentExplorerTree = () => {
     selection,
     createDirectory,
     cancelCreateDirectory,
+    filePathToRename,
+    renameDocumentError,
+    clearRenameDocumentError,
+    renameDocument,
+    cancelRenameDocument,
   };
 };

@@ -283,6 +283,34 @@ export const deleteFileFromContextMenu = async ({
 };
 
 /**
+ * Mocks the main-process context-menu:show handler to auto-respond with
+ * a "Rename" action for file nodes (bypassing the native OS menu popup that
+ * Playwright cannot interact with).
+ */
+export const renameFileFromContextMenu = async ({
+  electronApp,
+}: {
+  electronApp: ElectronApplication;
+}): Promise<void> => {
+  await electronApp.evaluate(async ({ ipcMain, BrowserWindow }) => {
+    ipcMain.removeHandler('context-menu:show');
+
+    ipcMain.handle('context-menu:show', async (_, payload) => {
+      if (
+        payload.context === 'EXPLORER_TREE_NODE' &&
+        payload.nodeType === 'FILE'
+      ) {
+        const win = BrowserWindow.getAllWindows()[0];
+        win.webContents.send('context-menu:action', {
+          context: 'EXPLORER_TREE_FILE',
+          action: { type: 'RENAME', path: payload.path },
+        });
+      }
+    });
+  });
+};
+
+/**
  * Clicks the "Delete" button in the delete-file confirmation dialog
  * and waits for the dialog to close.
  */

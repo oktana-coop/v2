@@ -367,6 +367,35 @@ export const createAdapter = (db: Database): NodeLikeFsApi => {
     throw err;
   };
 
+  const rename = async (oldPath: string, newPath: string): Promise<void> => {
+    const normalizedOld = normalizePath(oldPath);
+    const normalizedNew = normalizePath(newPath);
+
+    const existing = db
+      .prepare('SELECT 1 FROM files WHERE path = ?')
+      .get(normalizedNew);
+
+    if (existing) {
+      const err: NodeJS.ErrnoException = new Error(
+        `EEXIST: file already exists, rename '${oldPath}' -> '${newPath}'`
+      );
+      err.code = 'EEXIST';
+      throw err;
+    }
+
+    const result = db
+      .prepare('UPDATE files SET path = ? WHERE path = ?')
+      .run(normalizedNew, normalizedOld);
+
+    if (result.changes === 0) {
+      const err: NodeJS.ErrnoException = new Error(
+        `ENOENT: no such file or directory, rename '${oldPath}'`
+      );
+      err.code = 'ENOENT';
+      throw err;
+    }
+  };
+
   const readLink = async () => {
     throw new Error('readLink is not supported in NodeLikeSQLiteFs');
   };
@@ -387,5 +416,6 @@ export const createAdapter = (db: Database): NodeLikeFsApi => {
     readLink,
     symLink,
     chmod,
+    rename,
   };
 };

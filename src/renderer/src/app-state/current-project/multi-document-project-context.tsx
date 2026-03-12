@@ -17,6 +17,7 @@ import {
   findDocumentInProject,
   type MultiDocumentProjectStore,
   type RemoteProjectInfo,
+  renameDocumentInProject,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
 import { type ProjectId } from '../../../../modules/domain/project';
@@ -33,6 +34,7 @@ import { ElectronContext } from '../../../../modules/infrastructure/cross-platfo
 import {
   type Directory,
   type File,
+  FilesystemAlreadyExistsErrorTag,
   filesystemItemTypes,
   getDirectoryName,
   removeExtension,
@@ -133,6 +135,14 @@ export type MultiDocumentProjectContextType = {
   filePathToDelete: string | null;
   deleteDocument: (args: { relativePath: string }) => Promise<void>;
   cancelDeleteDocument: () => void;
+  filePathToRename: string | null;
+  renameDocumentError: string | null;
+  clearRenameDocumentError: () => void;
+  renameDocument: (args: {
+    oldRelativePath: string;
+    newName: string;
+  }) => Promise<void>;
+  cancelRenameDocument: () => void;
 };
 
 export const MultiDocumentProjectContext =
@@ -161,6 +171,11 @@ export const MultiDocumentProjectContext =
     filePathToDelete: null,
     deleteDocument: async () => {},
     cancelDeleteDocument: () => {},
+    filePathToRename: null,
+    renameDocumentError: null,
+    clearRenameDocumentError: () => {},
+    renameDocument: async () => {},
+    cancelRenameDocument: () => {},
   });
 
 export const MultiDocumentProjectProvider = ({
@@ -207,6 +222,12 @@ export const MultiDocumentProjectProvider = ({
   const [pendingNewDirectory, setPendingNewDirectory] =
     useState<PendingNewDirectory | null>(null);
   const [filePathToDelete, setFileToDelete] = useState<string | null>(null);
+  const [filePathToRename, setDocumentPathToRename] = useState<string | null>(
+    null
+  );
+  const [renameDocumentError, setRenameDocumentError] = useState<string | null>(
+    null
+  );
   const navigate = useNavigate();
   const navigateToResolveMergeConflicts = useNavigateToResolveConflicts();
 
@@ -647,6 +668,129 @@ export const MultiDocumentProjectProvider = ({
     ]
   );
 
+  const handleRenameDocument = useCallback(
+    async ({
+      oldRelativePath,
+      newName,
+    }: {
+      oldRelativePath: string;
+      newName: string;
+    }) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Cannot rename document. The project store has not been initialized yet.'
+        );
+      }
+
+      if (!directory || !newName.trim()) {
+        return;
+      }
+
+      try {
+        const result = await Effect.runPromise(
+          pipe(
+            renameDocumentInProject({
+              renameFile: filesystem.renameFile,
+              renameDocumentInProjectStore:
+                versionedProjectStore.renameDocumentInProject,
+              getAbsolutePath: filesystem.getAbsolutePath,
+              getRenamedPath: filesystem.getRenamedPath,
+            })({
+              projectId,
+              oldDocumentPath: oldRelativePath,
+              newName,
+              renameInFilesystem: true,
+              projectDirectoryPath: directory.path,
+            }),
+            Effect.map(({ newDocumentPath }) => ({
+              collision: false,
+              newDocumentPath,
+            })),
+            Effect.catchTag(FilesystemAlreadyExistsErrorTag, () =>
+              Effect.succeed({ collision: true, newDocumentPath: '' })
+            )
+          )
+        );
+
+        if (result.collision) {
+          setRenameDocumentError('A document with this name already exists');
+          return;
+        }
+
+        const newRelativePath = result.newDocumentPath;
+
+        // Refresh directory tree
+        if (directory.permissionState === 'granted' && directory.path) {
+          const dirTree = await Effect.runPromise(
+            filesystem.listDirectoryTree({
+              path: directory.path,
+              extensions: [
+                richTextRepresentationExtensions[
+                  PRIMARY_RICH_TEXT_REPRESENTATION
+                ],
+              ],
+              useRelativePathTo: directory.path,
+            })
+          );
+          setDirectoryTree(dirTree);
+        }
+
+        // If the renamed file was currently selected, update selection to new path
+        if (selectedFileInfo?.path === oldRelativePath) {
+          try {
+            const doc = await handleFindDocumentInProject({
+              projectId,
+              documentPath: newRelativePath,
+            });
+            handleSetSelectedFileInfo({
+              documentId: doc.id,
+              path: newRelativePath,
+            });
+            navigate(
+              `/projects/${urlEncodeProjectId(projectId)}/documents/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(newRelativePath)}`
+            );
+          } catch {
+            // Document not found at new path — clear selection
+            await clearFileSelection();
+            navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
+          }
+        }
+
+        setDocumentPathToRename(null);
+        setRenameDocumentError(null);
+      } catch (err) {
+        console.error(err);
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Rename Document Error',
+            message:
+              'An error happened when trying to rename the document. Please try again.',
+          })
+        );
+        setDocumentPathToRename(null);
+        setRenameDocumentError(null);
+      }
+    },
+    [
+      versionedProjectStore,
+      projectId,
+      directory,
+      filesystem,
+      selectedFileInfo,
+      navigate,
+      dispatchNotification,
+    ]
+  );
+
+  const clearRenameDocumentError = useCallback(() => {
+    setRenameDocumentError(null);
+  }, []);
+
+  const cancelRenameDocument = useCallback(() => {
+    setDocumentPathToRename(null);
+    setRenameDocumentError(null);
+  }, []);
+
   useEffect(() => {
     if (!isElectron) return;
 
@@ -682,6 +826,14 @@ export const MultiDocumentProjectProvider = ({
           action.action.type === 'DELETE'
         ) {
           setFileToDelete(action.action.path);
+        }
+
+        if (
+          action.context === EXPLORER_TREE_FILE &&
+          action.action.type === 'RENAME'
+        ) {
+          setDocumentPathToRename(action.action.path);
+          setRenameDocumentError(null);
         }
       }
     );
@@ -1239,6 +1391,11 @@ export const MultiDocumentProjectProvider = ({
         filePathToDelete,
         deleteDocument: handleDeleteDocument,
         cancelDeleteDocument: () => setFileToDelete(null),
+        filePathToRename,
+        renameDocumentError,
+        clearRenameDocumentError,
+        renameDocument: handleRenameDocument,
+        cancelRenameDocument,
       }}
     >
       {children}

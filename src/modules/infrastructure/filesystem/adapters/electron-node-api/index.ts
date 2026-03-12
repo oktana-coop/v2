@@ -10,6 +10,7 @@ import { filesystemItemTypes } from '../../constants/filesystem-item-types';
 import {
   AbortError,
   AccessControlError,
+  AlreadyExistsError,
   DataIntegrityError,
   NotFoundError,
   RepositoryError,
@@ -515,6 +516,55 @@ export const createAdapter = (): Filesystem => {
     );
   };
 
+  const renameFile: Filesystem['renameFile'] = ({ oldPath, newPath }) => {
+    // On POSIX (macOS/Linux), fs.rename silently overwrites the target, so
+    // we check existence upfront to produce a consistent typed error
+    // cross-platform. On Windows, fs.rename would also return EEXIST, but
+    // this check makes behaviour uniform.
+    return pipe(
+      Effect.tryPromise({ try: () => fs.access(newPath), catch: () => null }),
+      Effect.match({ onSuccess: () => true, onFailure: () => false }),
+      Effect.flatMap(
+        (
+          targetExists
+        ): Effect.Effect<
+          void,
+          | AlreadyExistsError
+          | NotFoundError
+          | AccessControlError
+          | RepositoryError
+        > =>
+          targetExists
+            ? Effect.fail(
+                new AlreadyExistsError(
+                  `A file already exists at path ${newPath}`
+                )
+              )
+            : Effect.tryPromise({
+                try: () => fs.rename(oldPath, newPath),
+                catch: (err: unknown) => {
+                  if (isNodeError(err)) {
+                    switch (err.code) {
+                      case 'ENOENT':
+                        return new NotFoundError(
+                          `File at path ${oldPath} does not exist`
+                        );
+                      case 'EACCES':
+                        return new AccessControlError(
+                          `Permission denied when renaming ${oldPath}`
+                        );
+                      default:
+                        return new RepositoryError(err.message);
+                    }
+                  }
+
+                  return new RepositoryError(`Error renaming file ${oldPath}`);
+                },
+              })
+      )
+    );
+  };
+
   const getRelativePath: Filesystem['getRelativePath'] = ({
     path: descendantPath,
     relativeTo,
@@ -539,6 +589,19 @@ export const createAdapter = (): Filesystem => {
       ),
     });
 
+  const getRenamedPath: Filesystem['getRenamedPath'] = ({ oldPath, newName }) =>
+    Effect.try({
+      try: () => {
+        const dir = path.dirname(oldPath);
+        return path.format({
+          dir: dir === '.' ? '' : dir,
+          name: newName,
+          ext: path.extname(oldPath),
+        });
+      },
+      catch: mapErrorTo(RepositoryError, 'Could not compute renamed path'),
+    });
+
   return {
     openDirectory,
     getDirectory,
@@ -552,8 +615,10 @@ export const createAdapter = (): Filesystem => {
     readBinaryFile,
     readTextFile,
     deleteFile,
+    renameFile,
     getRelativePath,
     getAbsolutePath,
+    getRenamedPath,
     createDirectory,
   };
 };

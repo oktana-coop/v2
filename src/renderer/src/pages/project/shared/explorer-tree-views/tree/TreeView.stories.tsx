@@ -254,6 +254,43 @@ export const WithNewDirectoryInput: Story = {
   },
 };
 
+// The inline-input state shown when renaming an existing file.
+export const WithRenamingFileInput: Story = {
+  args: {
+    data: [
+      {
+        id: 'docs/Introduction.md',
+        name: 'Introduction.md',
+        type: filesystemItemTypes.FILE,
+      },
+      {
+        id: 'docs/Getting Started.md',
+        name: 'Getting Started.md',
+        type: filesystemItemTypes.FILE,
+      },
+      {
+        id: 'docs/API Reference.md',
+        name: 'API Reference.md',
+        type: filesystemItemTypes.FILE,
+      },
+    ],
+    selection: null,
+    filePathToRename: 'docs/Introduction.md',
+    onSelectItem: async () => {},
+    onRenameDocument: async (oldPath, newName) =>
+      console.log('Rename:', oldPath, '->', newName),
+    onCancelRenameDocument: () => console.log('Cancel rename'),
+  },
+};
+
+// The inline-input state when the rename fails (e.g. name collision).
+export const WithRenamingFileInputError: Story = {
+  args: {
+    ...WithRenamingFileInput.args,
+    renameDocumentError: 'A file named "Getting Started.md" already exists.',
+  },
+};
+
 export const WithSelection: Story = {
   args: {
     data: [

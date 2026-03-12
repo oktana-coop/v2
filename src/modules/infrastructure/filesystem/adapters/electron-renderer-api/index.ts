@@ -5,10 +5,12 @@ import {
 import {
   AbortError,
   AccessControlError,
+  AlreadyExistsError,
   DataIntegrityError,
   type Filesystem,
   FilesystemAbortErrorTag,
   FilesystemAccessControlErrorTag,
+  FilesystemAlreadyExistsErrorTag,
   FilesystemDataIntegrityErrorTag,
   FilesystemNotFoundErrorTag,
   FilesystemRepositoryErrorTag,
@@ -151,6 +153,16 @@ export const createAdapter = (): Filesystem => ({
       } as ErrorRegistry<EffectErrorType<ReturnType<Filesystem['deleteFile']>>>,
       RepositoryError
     )(window.filesystemAPI.deleteFile(...args)),
+  renameFile: (...args: Parameters<Filesystem['renameFile']>) =>
+    effectifyIPCPromise(
+      {
+        [FilesystemAlreadyExistsErrorTag]: AlreadyExistsError,
+        [FilesystemAccessControlErrorTag]: AccessControlError,
+        [FilesystemNotFoundErrorTag]: NotFoundError,
+        [FilesystemRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<EffectErrorType<ReturnType<Filesystem['renameFile']>>>,
+      RepositoryError
+    )(window.filesystemAPI.renameFile(...args)),
   createDirectory: (...args: Parameters<Filesystem['createDirectory']>) =>
     effectifyIPCPromise(
       {
@@ -179,4 +191,13 @@ export const createAdapter = (): Filesystem => ({
       >,
       RepositoryError
     )(window.filesystemAPI.getAbsolutePath(...args)),
+  getRenamedPath: (...args: Parameters<Filesystem['getRenamedPath']>) =>
+    effectifyIPCPromise(
+      {
+        [FilesystemRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<Filesystem['getRenamedPath']>>
+      >,
+      RepositoryError
+    )(window.filesystemAPI.getRenamedPath(...args)),
 });

@@ -6,6 +6,7 @@ import { pipe } from 'effect/Function';
 import { mapErrorTo } from '../../../../../utils/errors';
 import { filesystemItemTypes } from '../../constants/filesystem-item-types';
 import {
+  AlreadyExistsError,
   DataIntegrityError,
   NotFoundError,
   RepositoryError,
@@ -238,6 +239,43 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
       ),
     });
 
+  const renameFile: Filesystem['renameFile'] = ({ oldPath, newPath }) =>
+    Effect.tryPromise({
+      try: () => fs.rename(oldPath, newPath),
+      catch: (err: unknown) => {
+        if (isNodeError(err)) {
+          switch (err.code) {
+            case 'EEXIST':
+              return new AlreadyExistsError(
+                `A file already exists at path ${newPath}`
+              );
+            case 'ENOENT':
+              return new NotFoundError(
+                `File at path ${oldPath} does not exist`
+              );
+            default:
+              return new RepositoryError(err.message);
+          }
+        }
+
+        return new RepositoryError(`Error renaming file ${oldPath}`);
+      },
+    });
+
+  // Inside the SQLite filesystem, we use posix paths independently of the host OS.
+  const getRenamedPath: Filesystem['getRenamedPath'] = ({ oldPath, newName }) =>
+    Effect.try({
+      try: () => {
+        const dir = path.posix.dirname(oldPath);
+        return path.posix.format({
+          dir: dir === '.' ? '' : dir,
+          name: newName,
+          ext: path.posix.extname(oldPath),
+        });
+      },
+      catch: mapErrorTo(RepositoryError, 'Could not compute renamed path'),
+    });
+
   // Directories are implicit from filenames in the SQLite filesystem,
   // so creating a directory explicitly is not supported.
   const createDirectory: Filesystem['createDirectory'] = () =>
@@ -260,8 +298,10 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
     readBinaryFile,
     readTextFile,
     deleteFile,
+    renameFile,
     getRelativePath,
     getAbsolutePath,
+    getRenamedPath,
     createDirectory,
   };
 };

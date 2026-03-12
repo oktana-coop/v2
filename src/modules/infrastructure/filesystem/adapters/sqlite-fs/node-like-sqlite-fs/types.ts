@@ -49,4 +49,5 @@ export type NodeLikeFsApi = {
   readLink: (filepath: string) => Promise<string>;
   symLink: (target: string, path: string) => Promise<void>;
   chmod: (filepath: string, mode: Mode) => Promise<void>;
+  rename: (oldPath: string, newPath: string) => Promise<void>;
 };

@@ -41,6 +41,7 @@ import {
   type OpenOrCreateMultiDocumentProjectArgs,
   type OpenSingleDocumentProjectStoreArgs,
   type ProjectId,
+  type RenameDocumentInMultiDocumentProjectArgs,
   type SetupSingleDocumentProjectStoreArgs,
   type SingleDocumentProjectAbortMergeArgs,
   type SingleDocumentProjectAddRemoteProjectArgs,
@@ -882,6 +883,26 @@ const registerMultiDocumentProjectStoreEvents = ({
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.deleteDocumentFromProject(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:rename-document-in-project',
+    async (_, args: RenameDocumentInMultiDocumentProjectArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.renameDocumentInProject(args)
           )
         )
       )

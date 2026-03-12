@@ -1,5 +1,6 @@
 export * from './use-create-document';
 export * from './use-delete-document';
+export * from './use-rename-document';
 export * from './use-current-document-id';
 export * from './use-current-document-name';
 export * from './use-document-explorer-tree';

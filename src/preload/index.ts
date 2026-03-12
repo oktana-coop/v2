@@ -31,9 +31,11 @@ import {
   type CreateNewFileArgs,
   type DeleteFileArgs,
   type File,
+  type GetRenamedPathArgs,
   type ListDirectoryFilesArgs,
   type ListDirectoryTreeArgs,
   type OpenFileArgs,
+  type RenameFileArgs,
   type WriteFileArgs,
 } from '../modules/infrastructure/filesystem';
 import type {
@@ -142,12 +144,16 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
   readTextFile: (path: string) => ipcRenderer.invoke('read-text-file', path),
   deleteFile: (args: DeleteFileArgs) =>
     ipcRenderer.invoke('delete-file', { ...args }),
+  renameFile: (args: RenameFileArgs) =>
+    ipcRenderer.invoke('rename-file', { ...args }),
   createDirectory: (args: CreateDirectoryArgs) =>
     ipcRenderer.invoke('create-directory', { ...args }),
   getRelativePath: (args) =>
     ipcRenderer.invoke('get-relative-path', { ...args }),
   getAbsolutePath: (args) =>
     ipcRenderer.invoke('get-absolute-path', { ...args }),
+  getRenamedPath: (args: GetRenamedPathArgs) =>
+    ipcRenderer.invoke('get-renamed-path', { ...args }),
 } as FilesystemPromiseAPI);
 
 contextBridge.exposeInMainWorld('versionedDocumentStoreAPI', {
@@ -362,6 +368,11 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
   deleteDocumentFromProject: (args) =>
     ipcRenderer.invoke(
       'multi-document-project-store:delete-document-from-project',
+      { ...args }
+    ),
+  renameDocumentInProject: (args) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:rename-document-in-project',
       { ...args }
     ),
   findDocumentInProject: (args) =>

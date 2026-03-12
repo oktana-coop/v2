@@ -3,6 +3,7 @@ import * as Effect from 'effect/Effect';
 import {
   AbortError,
   AccessControlError,
+  AlreadyExistsError,
   DataIntegrityError,
   NotFoundError,
   RepositoryError,
@@ -51,6 +52,11 @@ export type DeleteFileArgs = {
   parentDirectory?: Directory;
 };
 
+export type RenameFileArgs = {
+  oldPath: string;
+  newPath: string;
+};
+
 export type CreateDirectoryArgs = {
   name: string;
   parentDirectory?: Directory;
@@ -64,6 +70,11 @@ export type GetRelativePathArgs = {
 export type GetAbsolutePathArgs = {
   path: string;
   dirPath: string;
+};
+
+export type GetRenamedPathArgs = {
+  oldPath: string;
+  newName: string;
 };
 
 export type Filesystem = {
@@ -137,6 +148,13 @@ export type Filesystem = {
     AccessControlError | NotFoundError | RepositoryError,
     never
   >;
+  renameFile: (
+    args: RenameFileArgs
+  ) => Effect.Effect<
+    void,
+    AlreadyExistsError | AccessControlError | NotFoundError | RepositoryError,
+    never
+  >;
   createDirectory: (
     args: CreateDirectoryArgs
   ) => Effect.Effect<Directory, NotFoundError | RepositoryError, never>;
@@ -145,5 +163,8 @@ export type Filesystem = {
   ) => Effect.Effect<string, RepositoryError, never>;
   getAbsolutePath: (
     args: GetAbsolutePathArgs
+  ) => Effect.Effect<string, RepositoryError, never>;
+  getRenamedPath: (
+    args: GetRenamedPathArgs
   ) => Effect.Effect<string, RepositoryError, never>;
 };
