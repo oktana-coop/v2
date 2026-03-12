@@ -9,7 +9,9 @@ import { filesystemItemTypes } from '../../../constants/filesystem-item-types';
 import {
   AbortError,
   AccessControlError,
+  AlreadyExistsError,
   DataIntegrityError,
+  FilesystemNotFoundErrorTag,
   NotFoundError,
   RepositoryError,
 } from '../../../errors';
@@ -763,6 +765,77 @@ export const createAdapter = (): Filesystem => {
       )
     );
 
+  const renameFile: Filesystem['renameFile'] = ({ oldPath, newPath }) => {
+    const oldName = path.basename(oldPath);
+    const newName = path.basename(newPath);
+    const parentDirPath = path.dirname(oldPath);
+
+    return Effect.Do.pipe(
+      Effect.bind('dirHandle', () => getDirHandleFromStorage(parentDirPath)),
+      Effect.bind('oldFileHandle', () => getFileHandleFromStorage(oldPath)),
+      Effect.bind('content', ({ oldFileHandle }) =>
+        Effect.tryPromise({
+          try: async () => {
+            const file = await oldFileHandle.getFile();
+            return file.arrayBuffer();
+          },
+          catch: mapErrorTo(RepositoryError, 'Browser filesystem API error'),
+        })
+      ),
+      Effect.tap(({ dirHandle }) =>
+        Effect.tryPromise({
+          try: async () => {
+            await dirHandle.getFileHandle(newName, { create: false });
+            throw new AlreadyExistsError(
+              `A file already exists at path ${newPath}`
+            );
+          },
+          catch: (err: unknown) => {
+            if (err instanceof AlreadyExistsError) return err;
+
+            if (err instanceof DOMException && err.name === 'NotFoundError') {
+              return new NotFoundError();
+            }
+
+            return mapErrorTo(
+              RepositoryError,
+              'Browser filesystem API error'
+            )(err);
+          },
+        }).pipe(Effect.catchTag(FilesystemNotFoundErrorTag, () => Effect.void))
+      ),
+      Effect.bind('newFileHandle', ({ dirHandle }) =>
+        Effect.tryPromise({
+          try: () => dirHandle.getFileHandle(newName, { create: true }),
+          catch: mapErrorTo(RepositoryError, 'Browser filesystem API error'),
+        })
+      ),
+      Effect.tap(({ newFileHandle, content }) =>
+        Effect.tryPromise({
+          try: async () => {
+            const writable = await newFileHandle.createWritable();
+            await writable.write(content);
+            await writable.close();
+          },
+          catch: mapErrorTo(RepositoryError, 'Browser filesystem API error'),
+        })
+      ),
+      Effect.tap(({ dirHandle }) =>
+        Effect.tryPromise({
+          try: () => dirHandle.removeEntry(oldName),
+          catch: mapErrorTo(RepositoryError, 'Browser filesystem API error'),
+        })
+      ),
+      Effect.tap(({ newFileHandle }) =>
+        persistFileHandleInStorage({
+          handle: newFileHandle,
+          relativePath: newPath,
+        })
+      ),
+      Effect.as(undefined)
+    );
+  };
+
   const getRelativePath: Filesystem['getRelativePath'] = ({
     path: descendantPath,
     relativeTo,
@@ -787,6 +860,19 @@ export const createAdapter = (): Filesystem => {
       ),
     });
 
+  const getRenamedPath: Filesystem['getRenamedPath'] = ({ oldPath, newName }) =>
+    Effect.try({
+      try: () => {
+        const dir = path.dirname(oldPath);
+        return path.format({
+          dir: dir === '.' ? '' : dir,
+          name: newName,
+          ext: path.extname(oldPath),
+        });
+      },
+      catch: mapErrorTo(RepositoryError, 'Could not compute renamed path'),
+    });
+
   return {
     openDirectory,
     getDirectory,
@@ -800,8 +886,10 @@ export const createAdapter = (): Filesystem => {
     readBinaryFile,
     readTextFile,
     deleteFile,
+    renameFile,
     getRelativePath,
     getAbsolutePath,
+    getRenamedPath,
     createDirectory,
   };
 };

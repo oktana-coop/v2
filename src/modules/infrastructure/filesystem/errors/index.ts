@@ -24,3 +24,8 @@ export const FilesystemAccessControlErrorTag = 'FilesystemAccessControlError';
 export class AccessControlError extends Cause.YieldableError {
   readonly _tag = FilesystemAccessControlErrorTag;
 }
+
+export const FilesystemAlreadyExistsErrorTag = 'FilesystemAlreadyExistsError';
+export class AlreadyExistsError extends Cause.YieldableError {
+  readonly _tag = FilesystemAlreadyExistsErrorTag;
+}

@@ -28,9 +28,11 @@ import {
   filesystemItemTypes,
   type GetAbsolutePathArgs,
   type GetRelativePathArgs,
+  type GetRenamedPathArgs,
   type ListDirectoryFilesArgs,
   type ListDirectoryTreeArgs,
   type OpenFileArgs,
+  type RenameFileArgs,
   type WriteFileArgs,
 } from '../modules/infrastructure/filesystem';
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/infrastructure/filesystem/adapters/electron-node-api';
@@ -259,11 +261,17 @@ async function createWindow() {
   ipcMain.handle('delete-file', (_, args: DeleteFileArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.deleteFile(args))
   );
+  ipcMain.handle('rename-file', (_, args: RenameFileArgs) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.renameFile(args))
+  );
   ipcMain.handle('get-relative-path', (_, args: GetRelativePathArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.getRelativePath(args))
   );
   ipcMain.handle('get-absolute-path', (_, args: GetAbsolutePathArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.getAbsolutePath(args))
+  );
+  ipcMain.handle('get-renamed-path', (_, args: GetRenamedPathArgs) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.getRenamedPath(args))
   );
   ipcMain.handle('create-directory', (_, args: CreateDirectoryArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.createDirectory(args))

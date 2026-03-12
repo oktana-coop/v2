@@ -33,6 +33,14 @@ const config: StorybookConfig = {
           path: 'path-browserify',
         },
       },
+      optimizeDeps: {
+        ...config.optimizeDeps,
+        include: [
+          ...(config.optimizeDeps?.include ?? []),
+          '@wasmer/wasi',
+          'buffer',
+        ],
+      },
     };
   },
 };

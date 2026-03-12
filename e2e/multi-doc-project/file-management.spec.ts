@@ -9,6 +9,7 @@ import {
   deleteFileFromContextMenu,
   openHelloMd,
   openProjectFolder,
+  renameFileFromContextMenu,
   typeInEditor,
   typeInEditorAndWaitForDebounce,
 } from '../shared/helpers';
@@ -460,5 +461,196 @@ test.describe('file deletion', () => {
     // File should still be visible
     const explorer = window.getByTestId('file-explorer');
     await expect(explorer.getByText('hello')).toBeVisible();
+  });
+});
+
+test.describe('file rename', () => {
+  test('rename a file in project root', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    await renameFileFromContextMenu({ electronApp });
+
+    await window.getByText('hello').click({ button: 'right' });
+
+    const input = window.locator('input[type="text"]');
+    await input.waitFor({ state: 'visible', timeout: 500 });
+
+    await input.fill('renamed');
+    await window.keyboard.press('Enter');
+
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer.getByText('renamed')).toBeVisible({
+      timeout: 2_000,
+    });
+    await expect(explorer.getByText('hello')).not.toBeVisible({
+      timeout: 2_000,
+    });
+  });
+
+  test('rename a file in a subfolder', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    await renameFileFromContextMenu({ electronApp });
+
+    await window.getByText('beta-doc.md').click({ button: 'right' });
+
+    const input = window.locator('input[type="text"]');
+    await input.waitFor({ state: 'visible', timeout: 500 });
+
+    await input.fill('gamma-doc');
+    await window.keyboard.press('Enter');
+
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer.getByText('gamma-doc')).toBeVisible({
+      timeout: 2_000,
+    });
+    await expect(explorer.getByText('beta-doc.md')).not.toBeVisible({
+      timeout: 2_000,
+    });
+  });
+
+  test('rename the currently-open file', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    await openHelloMd({ window });
+    await expect(window.locator('.ProseMirror')).toBeVisible();
+
+    await renameFileFromContextMenu({ electronApp });
+
+    const explorer = window.getByTestId('file-explorer');
+    await explorer.getByText('hello').click({ button: 'right' });
+
+    const input = window.locator('input[type="text"]');
+    await input.waitFor({ state: 'visible', timeout: 500 });
+
+    await input.fill('renamed-hello');
+    await window.keyboard.press('Enter');
+
+    await expect(explorer.getByText('renamed-hello')).toBeVisible({
+      timeout: 2_000,
+    });
+    // Editor should still be visible after rename
+    await expect(window.locator('.ProseMirror')).toBeVisible();
+  });
+
+  test('abort rename with Escape keeps original name', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    await renameFileFromContextMenu({ electronApp });
+
+    await window.getByText('hello').click({ button: 'right' });
+
+    const input = window.locator('input[type="text"]');
+    await input.waitFor({ state: 'visible', timeout: 500 });
+
+    await window.keyboard.press('Escape');
+
+    // Input should be gone and original name preserved
+    await expect(input).not.toBeVisible({ timeout: 500 });
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer.getByText('hello')).toBeVisible();
+  });
+
+  test('abort rename with empty input keeps original name', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    await renameFileFromContextMenu({ electronApp });
+
+    await window.getByText('hello').click({ button: 'right' });
+
+    const input = window.locator('input[type="text"]');
+    await input.waitFor({ state: 'visible', timeout: 500 });
+
+    await input.fill('');
+    await window.keyboard.press('Enter');
+
+    // Input should be gone and original name preserved
+    await expect(input).not.toBeVisible({ timeout: 500 });
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer.getByText('hello')).toBeVisible();
+  });
+
+  test('name collision shows error and keeps input visible', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    await renameFileFromContextMenu({ electronApp });
+
+    const explorer = window.getByTestId('file-explorer');
+    await window.getByText('hello').click({ button: 'right' });
+
+    const input = window.locator('input[type="text"]');
+    await input.waitFor({ state: 'visible', timeout: 500 });
+
+    // First collision: rename 'hello' to the already-existing 'world'
+    await input.clear();
+    await input.fill('world');
+    await window.keyboard.press('Enter');
+    // Input should remain visible
+    await expect(input).toBeVisible();
+    // Error tooltip is set
+    await expect(input).toHaveAttribute('title');
+    await expect(explorer.getByText('world')).toBeVisible();
+
+    // Type something to clear the error state
+    await window.keyboard.type('x');
+    await expect(input).not.toHaveAttribute('title');
+
+    // Second collision: try the same conflicting name again
+    await input.clear();
+    await input.fill('world');
+    await window.keyboard.press('Enter');
+    // Input should remain visible
+    await expect(input).toBeVisible();
+    // Error tooltip is set
+    await expect(input).toHaveAttribute('title');
+    await expect(explorer.getByText('world')).toBeVisible();
   });
 });

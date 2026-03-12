@@ -1,6 +1,8 @@
 jest.mock('node:fs', () => ({
   promises: {
+    access: jest.fn(),
     readdir: jest.fn(),
+    rename: jest.fn(),
   },
 }));
 
@@ -10,6 +12,12 @@ import path from 'node:path';
 import * as Effect from 'effect/Effect';
 
 import { filesystemItemTypes } from '../../constants/filesystem-item-types';
+import {
+  AccessControlError,
+  AlreadyExistsError,
+  NotFoundError,
+  RepositoryError,
+} from '../../errors';
 import { createAdapter } from './index';
 
 // Helper that mimics the Dirent objects returned by fs.readdir
@@ -1056,6 +1064,126 @@ describe('electron-node-api filesystem adapter', () => {
           },
         ]);
       });
+    });
+  });
+
+  describe('getRenamedPath', () => {
+    it('preserves extension when renaming a file in a directory', async () => {
+      const result = await Effect.runPromise(
+        adapter.getRenamedPath({
+          oldPath: path.join(basePath, 'notes.md'),
+          newName: 'renamed',
+        })
+      );
+
+      expect(result).toBe(path.join(basePath, 'renamed.md'));
+    });
+
+    it('produces no leading dot-slash for a filename without a parent directory', async () => {
+      const result = await Effect.runPromise(
+        adapter.getRenamedPath({ oldPath: 'notes.md', newName: 'renamed' })
+      );
+
+      expect(result).toBe('renamed.md');
+    });
+
+    it('works for files in subdirectories', async () => {
+      const result = await Effect.runPromise(
+        adapter.getRenamedPath({
+          oldPath: path.join(basePath, 'docs', 'intro.md'),
+          newName: 'getting-started',
+        })
+      );
+
+      expect(result).toBe(path.join(basePath, 'docs', 'getting-started.md'));
+    });
+
+    it('preserves a file with no extension', async () => {
+      const result = await Effect.runPromise(
+        adapter.getRenamedPath({
+          oldPath: path.join(basePath, 'LICENSE'),
+          newName: 'NOTICE',
+        })
+      );
+
+      expect(result).toBe(path.join(basePath, 'NOTICE'));
+    });
+  });
+
+  describe('renameFile', () => {
+    const mockNodeError = (code: string) =>
+      Object.assign(new Error(code), { code });
+
+    const mockAccessFn = fs.access as jest.Mock;
+    const mockRenameFn = fs.rename as jest.Mock;
+
+    const oldPath = path.join(basePath, 'notes.md');
+    const newPath = path.join(basePath, 'renamed.md');
+
+    it('renames the file when the target does not exist', async () => {
+      mockAccessFn.mockRejectedValue(mockNodeError('ENOENT'));
+      mockRenameFn.mockResolvedValue(undefined);
+
+      await Effect.runPromise(adapter.renameFile({ oldPath, newPath }));
+
+      expect(mockRenameFn).toHaveBeenCalledWith(oldPath, newPath);
+    });
+
+    it('fails with AlreadyExistsError when the target already exists', async () => {
+      mockAccessFn.mockResolvedValue(undefined);
+
+      // Effect.flip swaps the error and success channels, letting us
+      // assert on the failure value via runPromise
+      const err = await Effect.runPromise(
+        Effect.flip(adapter.renameFile({ oldPath, newPath }))
+      );
+
+      expect(err).toBeInstanceOf(AlreadyExistsError);
+      expect(mockRenameFn).not.toHaveBeenCalled();
+    });
+
+    it('fails with NotFoundError when the source file does not exist', async () => {
+      mockAccessFn.mockRejectedValue(mockNodeError('ENOENT'));
+      mockRenameFn.mockRejectedValue(mockNodeError('ENOENT'));
+
+      const err = await Effect.runPromise(
+        Effect.flip(adapter.renameFile({ oldPath, newPath }))
+      );
+
+      expect(err).toBeInstanceOf(NotFoundError);
+    });
+
+    it('fails with AccessControlError on permission denied', async () => {
+      mockAccessFn.mockRejectedValue(mockNodeError('ENOENT'));
+      mockRenameFn.mockRejectedValue(mockNodeError('EACCES'));
+
+      const err = await Effect.runPromise(
+        Effect.flip(adapter.renameFile({ oldPath, newPath }))
+      );
+
+      expect(err).toBeInstanceOf(AccessControlError);
+    });
+
+    it('fails with RepositoryError for other Node.js errors', async () => {
+      mockAccessFn.mockRejectedValue(mockNodeError('ENOENT'));
+      mockRenameFn.mockRejectedValue(mockNodeError('EIO'));
+
+      const err = await Effect.runPromise(
+        Effect.flip(adapter.renameFile({ oldPath, newPath }))
+      );
+
+      expect(err).toBeInstanceOf(RepositoryError);
+    });
+
+    it('fails with RepositoryError for non-Node.js errors', async () => {
+      mockAccessFn.mockRejectedValue(mockNodeError('ENOENT'));
+      mockRenameFn.mockRejectedValue(new TypeError('unexpected'));
+
+      const err = await Effect.runPromise(
+        Effect.flip(adapter.renameFile({ oldPath, newPath }))
+      );
+
+      expect(err).toBeInstanceOf(RepositoryError);
     });
   });
 });

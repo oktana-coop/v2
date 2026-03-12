@@ -30,6 +30,7 @@ import {
   pullFromRemote as pullFromRemoteGitRepo,
   pushToRemote as pushToRemoteGitRepo,
   removeFile as removeFileFromGit,
+  renameFile as renameFileInGit,
   type ResolvedArtifactId,
   setUserInfo as setUserInfoInGit,
   stageAndCommitWorkdirChanges,
@@ -219,6 +220,48 @@ export const createAdapter = ({
         return documentPath;
       })
     );
+
+  const renameDocumentInProject: MultiDocumentProjectStore['renameDocumentInProject'] =
+    ({ projectId, oldDocumentPath, newDocumentPath }) =>
+      Effect.Do.pipe(
+        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
+        Effect.bind('repoUserInfo', ({ projectPath }) =>
+          pipe(
+            getUserInfoFromConfig({ isoGitFs, dir: projectPath }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            )
+          )
+        ),
+        Effect.flatMap(({ projectPath, repoUserInfo }) =>
+          pipe(
+            renameFileInGit({
+              isoGitFs,
+              dir: projectPath,
+              oldPath: oldDocumentPath,
+              newPath: newDocumentPath,
+            }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            ),
+            Effect.flatMap(() =>
+              Effect.tryPromise({
+                try: () =>
+                  git.commit({
+                    fs: isoGitFs,
+                    dir: projectPath,
+                    author: {
+                      name: repoUserInfo.username ?? DEFAULT_AUTHOR_NAME,
+                      email: repoUserInfo.email ?? undefined,
+                    },
+                    message: `Renamed ${oldDocumentPath} to ${newDocumentPath}`,
+                  }),
+                catch: mapErrorTo(RepositoryError, 'Git repo error'),
+              })
+            )
+          )
+        )
+      );
 
   const deleteDocumentFromProject: MultiDocumentProjectStore['deleteDocumentFromProject'] =
     ({ projectId, documentId }) =>
@@ -732,6 +775,7 @@ export const createAdapter = ({
     listProjectDocuments,
     addDocumentToProject,
     deleteDocumentFromProject,
+    renameDocumentInProject,
     findDocumentInProject,
     commitChanges,
     createAndSwitchToBranch,

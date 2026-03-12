@@ -99,6 +99,22 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.multiDocumentProjectStoreAPI.deleteDocumentFromProject(...args)),
+  renameDocumentInProject: (
+    ...args: Parameters<MultiDocumentProjectStore['renameDocumentInProject']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['renameDocumentInProject']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.renameDocumentInProject(...args)),
   findDocumentInProject: (
     ...args: Parameters<MultiDocumentProjectStore['findDocumentInProject']>
   ) =>

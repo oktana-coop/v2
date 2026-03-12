@@ -164,6 +164,13 @@ export const createAdapter = (
         )
       );
 
+  // TODO: Implement renameDocumentInProject for Automerge
+  const renameDocumentInProject: MultiDocumentProjectStore['renameDocumentInProject'] =
+    () =>
+      Effect.fail(
+        new RepositoryError('Rename not yet implemented for Automerge')
+      );
+
   const findDocumentInProject: MultiDocumentProjectStore['findDocumentInProject'] =
     ({ projectId, documentPath }) =>
       pipe(
@@ -340,6 +347,7 @@ export const createAdapter = (
     listProjectDocuments,
     addDocumentToProject,
     deleteDocumentFromProject,
+    renameDocumentInProject,
     findDocumentInProject,
     commitChanges,
     createAndSwitchToBranch,

@@ -85,6 +85,80 @@ const NewDirectoryNode = ({
   );
 };
 
+const RenamingFileNode = ({
+  node,
+  style,
+}: NodeRendererProps<ExplorerTreeNode>) => {
+  const {
+    onRenameDocument,
+    onCancelRenameDocument,
+    onClearRenameDocumentError,
+    renameDocumentError,
+  } = useTreeCallbacks();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const fileName = node.data.name;
+  const extIndex = fileName.lastIndexOf('.');
+  const nameWithoutExt = extIndex >= 0 ? fileName.slice(0, extIndex) : fileName;
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, []);
+
+  const handleKeyDown = (ev: React.KeyboardEvent<HTMLInputElement>) => {
+    ev.stopPropagation();
+
+    if (ev.key === 'Enter') {
+      const value = inputRef.current?.value.trim() ?? '';
+      if (value) {
+        onRenameDocument(node.data.id, value);
+      } else {
+        onCancelRenameDocument();
+      }
+    } else if (ev.key === 'Escape') {
+      onCancelRenameDocument();
+    }
+  };
+
+  const handleChange = () => {
+    onClearRenameDocumentError();
+  };
+
+  const handleBlur = () => {
+    onCancelRenameDocument();
+  };
+
+  return (
+    <div
+      className="flex h-[32px] items-center overflow-hidden py-0.5 text-sm"
+      style={{
+        ...style,
+        paddingLeft: node.level * 24 + 40,
+      }}
+    >
+      <FileExtensionIcon fileName={node.data.name} />
+      <input
+        ref={inputRef}
+        type="text"
+        defaultValue={nameWithoutExt}
+        title={renameDocumentError ?? undefined}
+        className={clsx(
+          'min-w-0 flex-1 border bg-transparent px-1 text-sm outline-none',
+          renameDocumentError
+            ? 'border-red-500 dark:border-red-400'
+            : 'border-purple-400 dark:border-purple-300'
+        )}
+        onKeyDown={handleKeyDown}
+        onChange={handleChange}
+        onBlur={handleBlur}
+      />
+    </div>
+  );
+};
+
 const DirectoryNode = ({
   node,
   style,
@@ -180,10 +254,16 @@ const FileNode = ({
   node,
   style,
   onClick,
+  ...rest
 }: NodeRendererProps<ExplorerTreeNode> & {
   onClick: (ev: React.MouseEvent) => void;
 }) => {
   const { projectType } = useContext(CurrentProjectContext);
+  const { filePathToRename } = useTreeCallbacks();
+
+  if (filePathToRename === node.data.id) {
+    return <RenamingFileNode node={node} style={style} {...rest} />;
+  }
 
   const handleContextMenu = (ev: React.MouseEvent) => {
     ev.preventDefault();

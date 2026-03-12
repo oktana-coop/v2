@@ -14,11 +14,21 @@ import { TreeNode } from './TreeNode';
 type TreeCallbacks = {
   onCreateDirectory: (name: string) => Promise<void>;
   onCancelCreateDirectory: () => void;
+  onRenameDocument: (oldPath: string, newName: string) => Promise<void>;
+  onCancelRenameDocument: () => void;
+  onClearRenameDocumentError: () => void;
+  filePathToRename: string | null;
+  renameDocumentError: string | null;
 };
 
 const TreeCallbacksContext = createContext<TreeCallbacks>({
   onCreateDirectory: async () => {},
   onCancelCreateDirectory: () => {},
+  onRenameDocument: async () => {},
+  onCancelRenameDocument: () => {},
+  onClearRenameDocumentError: () => {},
+  filePathToRename: null,
+  renameDocumentError: null,
 });
 
 export const useTreeCallbacks = () => useContext(TreeCallbacksContext);
@@ -29,12 +39,22 @@ export const TreeView = ({
   onSelectItem,
   onCreateDirectory = async () => {},
   onCancelCreateDirectory = () => {},
+  onRenameDocument = async () => {},
+  onCancelRenameDocument = () => {},
+  onClearRenameDocumentError = () => {},
+  filePathToRename = null,
+  renameDocumentError = null,
 }: {
   data: ExplorerTreeNode[];
   selection: string | null;
   onSelectItem: (id: string) => Promise<void>;
   onCreateDirectory?: (name: string) => Promise<void>;
   onCancelCreateDirectory?: () => void;
+  onRenameDocument?: (oldPath: string, newName: string) => Promise<void>;
+  onCancelRenameDocument?: () => void;
+  onClearRenameDocumentError?: () => void;
+  filePathToRename?: string | null;
+  renameDocumentError?: string | null;
 }) => {
   const handleActivate = (node: NodeApi<ExplorerTreeNode>) => {
     if (
@@ -47,7 +67,15 @@ export const TreeView = ({
 
   return (
     <TreeCallbacksContext.Provider
-      value={{ onCreateDirectory, onCancelCreateDirectory }}
+      value={{
+        onCreateDirectory,
+        onCancelCreateDirectory,
+        onRenameDocument,
+        onCancelRenameDocument,
+        onClearRenameDocumentError,
+        filePathToRename,
+        renameDocumentError,
+      }}
     >
       <div
         className="flex-1 overflow-hidden"
