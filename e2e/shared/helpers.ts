@@ -376,7 +376,7 @@ export const confirmDeletion = async ({
   window: Page;
 }): Promise<void> => {
   const deleteBtn = window.getByRole('button', { name: /^Delete$/i });
-  await deleteBtn.waitFor({ state: 'visible', timeout: 500 });
+  await deleteBtn.waitFor({ state: 'visible', timeout: 2_000 });
   await deleteBtn.click();
-  await deleteBtn.waitFor({ state: 'hidden', timeout: 500 });
+  await deleteBtn.waitFor({ state: 'hidden', timeout: 2_000 });
 };

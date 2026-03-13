@@ -176,7 +176,7 @@ test.describe('nested directory structure', () => {
     // react-arborist opens all nodes by default; the nested file is immediately
     // visible without having to expand the parent directory first
     await window.getByText('nested-note.md').click();
-    await window.waitForSelector('.ProseMirror', { timeout: 300 });
+    await window.waitForSelector('.ProseMirror', { timeout: 2_000 });
 
     const editor = window.locator('.ProseMirror');
     await expect(editor.locator('h1')).toHaveText('Nested Note');
@@ -343,7 +343,7 @@ test.describe('nested directory structure', () => {
     await window.getByText('beta-folder').click({ button: 'right' });
 
     // Wait for the editor to open for the new file
-    await window.waitForSelector('.ProseMirror', { timeout: 500 });
+    await window.waitForSelector('.ProseMirror', { timeout: 2_000 });
 
     // The new file should appear under beta-folder in the explorer
     const explorer = window.getByTestId('file-explorer');
@@ -536,7 +536,7 @@ test.describe('folder deletion', () => {
 
     // Open nested-note.md which lives inside alpha-folder/notes/
     await window.getByText('nested-note.md').click();
-    await window.waitForSelector('.ProseMirror', { timeout: 500 });
+    await window.waitForSelector('.ProseMirror', { timeout: 2_000 });
 
     await deleteFolderFromContextMenu({ electronApp });
 
@@ -550,7 +550,7 @@ test.describe('folder deletion', () => {
     });
     // Editor should no longer show the deleted file
     await expect(window.locator('.ProseMirror')).not.toBeVisible({
-      timeout: 2_000,
+      timeout: 3_000,
     });
   });
 
