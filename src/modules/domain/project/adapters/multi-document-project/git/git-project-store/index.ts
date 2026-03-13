@@ -309,6 +309,58 @@ export const createAdapter = ({
         )
       );
 
+  const deleteDocumentsFromProject: MultiDocumentProjectStore['deleteDocumentsFromProject'] =
+    ({ projectId, documentIds }) =>
+      Effect.Do.pipe(
+        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
+        Effect.bind('documentPaths', () =>
+          Effect.forEach(documentIds, extractDocumentRelativePathFromId)
+        ),
+        Effect.bind('repoUserInfo', ({ projectPath }) =>
+          pipe(
+            getUserInfoFromConfig({ isoGitFs, dir: projectPath }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            )
+          )
+        ),
+        Effect.flatMap(({ projectPath, documentPaths, repoUserInfo }) =>
+          pipe(
+            Effect.forEach(documentPaths, (docPath) =>
+              pipe(
+                removeFileFromGit({
+                  isoGitFs,
+                  dir: projectPath,
+                  path: docPath,
+                }),
+                Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+                  Effect.fail(new RepositoryError(err.message))
+                )
+              )
+            ),
+            Effect.flatMap(() =>
+              Effect.tryPromise({
+                try: () =>
+                  git.commit({
+                    fs: isoGitFs,
+                    dir: projectPath,
+                    author: {
+                      name: repoUserInfo.username ?? DEFAULT_AUTHOR_NAME,
+                      email: repoUserInfo.email ?? undefined,
+                    },
+                    message:
+                      documentPaths.length === 1
+                        ? `Removed ${documentPaths[0]}`
+                        : `Removed ${documentPaths.length} documents`,
+                  }),
+                catch: mapErrorTo(RepositoryError, 'Git repo error'),
+              })
+            ),
+            Effect.map(() => undefined)
+          )
+        )
+      );
+
   const findDocumentInProject: MultiDocumentProjectStore['findDocumentInProject'] =
     ({ projectId, documentPath }) =>
       pipe(
@@ -775,6 +827,7 @@ export const createAdapter = ({
     listProjectDocuments,
     addDocumentToProject,
     deleteDocumentFromProject,
+    deleteDocumentsFromProject,
     renameDocumentInProject,
     findDocumentInProject,
     commitChanges,

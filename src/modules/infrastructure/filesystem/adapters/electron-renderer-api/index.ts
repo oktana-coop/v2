@@ -153,6 +153,17 @@ export const createAdapter = (): Filesystem => ({
       } as ErrorRegistry<EffectErrorType<ReturnType<Filesystem['deleteFile']>>>,
       RepositoryError
     )(window.filesystemAPI.deleteFile(...args)),
+  deleteDirectory: (...args: Parameters<Filesystem['deleteDirectory']>) =>
+    effectifyIPCPromise(
+      {
+        [FilesystemAccessControlErrorTag]: AccessControlError,
+        [FilesystemNotFoundErrorTag]: NotFoundError,
+        [FilesystemRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<Filesystem['deleteDirectory']>>
+      >,
+      RepositoryError
+    )(window.filesystemAPI.deleteDirectory(...args)),
   renameFile: (...args: Parameters<Filesystem['renameFile']>) =>
     effectifyIPCPromise(
       {

@@ -72,6 +72,8 @@ export const test = base.extend<Fixtures>({
     //       nested-note.md
     //   beta-folder/
     //     beta-doc.md
+    //     image1.png  (non-document file)
+    //   gamma-folder/   (empty)
     //   armadillo.md
     //   zebra.md
     //
@@ -80,9 +82,15 @@ export const test = base.extend<Fixtures>({
     const alphaDir = path.join(dir, 'alpha-folder');
     const notesDir = path.join(alphaDir, 'notes');
     const betaDir = path.join(dir, 'beta-folder');
+    const gammaDir = path.join(dir, 'gamma-folder');
     fs.mkdirSync(alphaDir);
     fs.mkdirSync(notesDir);
     fs.mkdirSync(betaDir);
+    fs.mkdirSync(gammaDir);
+
+    // A non-document file inside beta-folder to verify it is removed along with
+    // the folder even though the app does not treat it as a document.
+    fs.writeFileSync(path.join(betaDir, 'image1.png'), 'untracked content\n');
 
     fs.writeFileSync(
       path.join(notesDir, 'nested-note.md'),

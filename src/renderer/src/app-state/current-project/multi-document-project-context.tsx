@@ -14,17 +14,20 @@ import {
   createVersionedDocument,
   DEFAULT_REMOTE_PROJECT_NAME,
   deleteDocumentFromProject,
+  deleteDocumentsFromProject,
   findDocumentInProject,
   type MultiDocumentProjectStore,
   type RemoteProjectInfo,
   renameDocumentInProject,
   urlEncodeProjectId,
+  VersionedProjectNotFoundErrorTag,
 } from '../../../../modules/domain/project';
 import { type ProjectId } from '../../../../modules/domain/project';
 import {
   PRIMARY_RICH_TEXT_REPRESENTATION,
   type ResolvedDocument,
   richTextRepresentationExtensions,
+  VersionedDocumentNotFoundErrorTag,
 } from '../../../../modules/domain/rich-text';
 import {
   EXPLORER_TREE_DIRECTORY,
@@ -135,6 +138,9 @@ export type MultiDocumentProjectContextType = {
   filePathToDelete: string | null;
   deleteDocument: (args: { relativePath: string }) => Promise<void>;
   cancelDeleteDocument: () => void;
+  directoryPathToDelete: string | null;
+  deleteDirectory: (args: { relativePath: string }) => Promise<void>;
+  cancelDeleteDirectory: () => void;
   filePathToRename: string | null;
   renameDocumentError: string | null;
   clearRenameDocumentError: () => void;
@@ -171,6 +177,9 @@ export const MultiDocumentProjectContext =
     filePathToDelete: null,
     deleteDocument: async () => {},
     cancelDeleteDocument: () => {},
+    directoryPathToDelete: null,
+    deleteDirectory: async () => {},
+    cancelDeleteDirectory: () => {},
     filePathToRename: null,
     renameDocumentError: null,
     clearRenameDocumentError: () => {},
@@ -222,6 +231,9 @@ export const MultiDocumentProjectProvider = ({
   const [pendingNewDirectory, setPendingNewDirectory] =
     useState<PendingNewDirectory | null>(null);
   const [filePathToDelete, setFileToDelete] = useState<string | null>(null);
+  const [directoryPathToDelete, setDirectoryToDelete] = useState<string | null>(
+    null
+  );
   const [filePathToRename, setDocumentPathToRename] = useState<string | null>(
     null
   );
@@ -668,6 +680,143 @@ export const MultiDocumentProjectProvider = ({
     ]
   );
 
+  const handleDeleteDirectory = useCallback(
+    ({ relativePath }: { relativePath: string }): Promise<void> => {
+      if (!directory) {
+        return Promise.resolve();
+      }
+
+      if (!versionedDocumentStore || !versionedProjectStore || !projectId) {
+        throw new Error(
+          'Cannot delete folder. Document and project store have not been initialized yet.'
+        );
+      }
+
+      return Effect.runPromise(
+        pipe(
+          filesystem.getAbsolutePath({
+            path: relativePath,
+            dirPath: directory.path,
+          }),
+          Effect.flatMap((absoluteDirPath) =>
+            pipe(
+              filesystem.listDirectoryFiles({
+                path: absoluteDirPath,
+                recursive: true,
+                extensions: [
+                  richTextRepresentationExtensions[
+                    PRIMARY_RICH_TEXT_REPRESENTATION
+                  ],
+                ],
+              }),
+              // Find only tracked documents (untracked files are silently skipped)
+              Effect.flatMap((files) =>
+                Effect.forEach(files, (file) =>
+                  pipe(
+                    filesystem.getRelativePath({
+                      path: file.path,
+                      relativeTo: directory.path,
+                    }),
+                    Effect.flatMap((fileRelativePath) =>
+                      pipe(
+                        findDocumentInProject({
+                          findDocumentById:
+                            versionedDocumentStore.findDocumentById,
+                          findDocumentInProjectStore:
+                            versionedProjectStore.findDocumentInProject,
+                        })({ projectId, documentPath: fileRelativePath }),
+                        Effect.map((doc) => doc.id),
+                        Effect.catchTag(VersionedProjectNotFoundErrorTag, () =>
+                          Effect.succeed(null)
+                        ),
+                        Effect.catchTag(VersionedDocumentNotFoundErrorTag, () =>
+                          Effect.succeed(null)
+                        )
+                      )
+                    )
+                  )
+                )
+              ),
+              Effect.map((ids) =>
+                ids.filter((id): id is NonNullable<typeof id> => id !== null)
+              ),
+              Effect.flatMap((documentIds) =>
+                Effect.if(documentIds.length > 0, {
+                  onTrue: () =>
+                    deleteDocumentsFromProject({
+                      deleteDocument: versionedDocumentStore.deleteDocument,
+                      deleteDocumentsFromProjectStore:
+                        versionedProjectStore.deleteDocumentsFromProject,
+                      deleteDirectory: filesystem.deleteDirectory,
+                    })({
+                      documentIds,
+                      projectId,
+                      deleteFromFilesystem: true,
+                      directoryPath: absoluteDirPath,
+                    }),
+                  // None of the directory documents is tracked in version control.
+                  // Just delete the directory in this case.
+                  onFalse: () =>
+                    filesystem.deleteDirectory({ path: absoluteDirPath }),
+                })
+              ),
+              // Refresh directory tree
+              Effect.tap(() =>
+                directory.permissionState === 'granted' && directory.path
+                  ? pipe(
+                      filesystem.listDirectoryTree({
+                        path: directory.path,
+                        extensions: [
+                          richTextRepresentationExtensions[
+                            PRIMARY_RICH_TEXT_REPRESENTATION
+                          ],
+                        ],
+                        useRelativePathTo: directory.path,
+                      }),
+                      Effect.map((dirTree) => setDirectoryTree(dirTree))
+                    )
+                  : Effect.void
+              ),
+              // If the currently selected file was inside the deleted directory,
+              // clear selection and navigate away
+              Effect.tap(() =>
+                Effect.sync(() => {
+                  if (selectedFileInfo?.path?.startsWith(relativePath + '/')) {
+                    setSelectedFileInfo(null);
+                    navigate(
+                      `/projects/${urlEncodeProjectId(projectId)}/documents`
+                    );
+                  }
+                })
+              ),
+              Effect.tap(() => Effect.sync(() => setDirectoryToDelete(null)))
+            )
+          )
+        )
+      ).catch((err) => {
+        console.error(err);
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Delete Folder Error',
+            message:
+              'An error happened when trying to delete the folder. Please try again.',
+          })
+        );
+        setDirectoryToDelete(null);
+      });
+    },
+    [
+      versionedDocumentStore,
+      versionedProjectStore,
+      projectId,
+      directory,
+      filesystem,
+      selectedFileInfo,
+      navigate,
+      dispatchNotification,
+    ]
+  );
+
   const handleRenameDocument = useCallback(
     async ({
       oldRelativePath,
@@ -826,6 +975,13 @@ export const MultiDocumentProjectProvider = ({
           action.action.type === 'DELETE'
         ) {
           setFileToDelete(action.action.path);
+        }
+
+        if (
+          action.context === EXPLORER_TREE_DIRECTORY &&
+          action.action.type === 'DELETE'
+        ) {
+          setDirectoryToDelete(action.action.path);
         }
 
         if (
@@ -1391,6 +1547,9 @@ export const MultiDocumentProjectProvider = ({
         filePathToDelete,
         deleteDocument: handleDeleteDocument,
         cancelDeleteDocument: () => setFileToDelete(null),
+        directoryPathToDelete,
+        deleteDirectory: handleDeleteDirectory,
+        cancelDeleteDirectory: () => setDirectoryToDelete(null),
         filePathToRename,
         renameDocumentError,
         clearRenameDocumentError,

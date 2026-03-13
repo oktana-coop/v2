@@ -719,6 +719,41 @@ export const createAdapter = (): Filesystem => {
       )
     );
 
+  const deleteDirectory: Filesystem['deleteDirectory'] = ({
+    path: dirPath,
+  }) => {
+    const dirName = path.basename(dirPath);
+    const parentPath = path.dirname(dirPath);
+
+    return pipe(
+      getDirHandleFromStorage(parentPath),
+      Effect.flatMap((parentDirHandle) =>
+        Effect.tryPromise({
+          try: () => parentDirHandle.removeEntry(dirName, { recursive: true }),
+          catch: (err: unknown) => {
+            if (err instanceof DOMException) {
+              switch (err.name) {
+                case 'NotFoundError':
+                  return new NotFoundError(
+                    `Directory at path ${dirPath} does not exist`
+                  );
+                case 'NotAllowedError':
+                  return new AccessControlError(
+                    `Permission denied for directory at path ${dirPath}`
+                  );
+              }
+            }
+
+            return mapErrorTo(
+              RepositoryError,
+              'Browser filesystem API error'
+            )(err);
+          },
+        })
+      )
+    );
+  };
+
   const createDirectory: Filesystem['createDirectory'] = ({
     name,
     parentDirectory,
@@ -886,6 +921,7 @@ export const createAdapter = (): Filesystem => {
     readBinaryFile,
     readTextFile,
     deleteFile,
+    deleteDirectory,
     renameFile,
     getRelativePath,
     getAbsolutePath,

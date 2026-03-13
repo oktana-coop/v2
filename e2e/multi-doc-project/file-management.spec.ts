@@ -7,6 +7,7 @@ import {
   createNewFileFromContextMenu,
   createNewSubfolderFromContextMenu,
   deleteFileFromContextMenu,
+  deleteFolderFromContextMenu,
   openHelloMd,
   openProjectFolder,
   renameFileFromContextMenu,
@@ -461,6 +462,150 @@ test.describe('file deletion', () => {
     // File should still be visible
     const explorer = window.getByTestId('file-explorer');
     await expect(explorer.getByText('hello')).toBeVisible();
+  });
+});
+
+test.describe('folder deletion', () => {
+  test('delete a folder in project root', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    await deleteFolderFromContextMenu({ electronApp });
+
+    await window.getByText('beta-folder').click({ button: 'right' });
+
+    await confirmDeletion({ window });
+
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer.getByText('beta-folder')).not.toBeVisible({
+      timeout: 2_000,
+    });
+    await expect(explorer.getByText('beta-doc.md')).not.toBeVisible({
+      timeout: 2_000,
+    });
+    // Other folders/files should remain
+    await expect(explorer.getByText('alpha-folder')).toBeVisible();
+  });
+
+  test('delete a nested folder', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    await deleteFolderFromContextMenu({ electronApp });
+
+    await window.getByText('notes').click({ button: 'right' });
+
+    await confirmDeletion({ window });
+
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer.getByText('notes')).not.toBeVisible({
+      timeout: 2_000,
+    });
+    await expect(explorer.getByText('nested-note.md')).not.toBeVisible({
+      timeout: 2_000,
+    });
+    // Parent folder should still exist
+    await expect(explorer.getByText('alpha-folder')).toBeVisible();
+  });
+
+  test('delete folder containing the currently-opened file', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    // Open nested-note.md which lives inside alpha-folder/notes/
+    await window.getByText('nested-note.md').click();
+    await window.waitForSelector('.ProseMirror', { timeout: 500 });
+
+    await deleteFolderFromContextMenu({ electronApp });
+
+    await window.getByText('alpha-folder').click({ button: 'right' });
+
+    await confirmDeletion({ window });
+
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer.getByText('alpha-folder')).not.toBeVisible({
+      timeout: 2_000,
+    });
+    // Editor should no longer show the deleted file
+    await expect(window.locator('.ProseMirror')).not.toBeVisible({
+      timeout: 2_000,
+    });
+  });
+
+  test('delete an empty sub-folder', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    await deleteFolderFromContextMenu({ electronApp });
+
+    await window.getByText('gamma-folder').click({ button: 'right' });
+
+    await confirmDeletion({ window });
+
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer.getByText('gamma-folder')).not.toBeVisible({
+      timeout: 2_000,
+    });
+    // Other folders should remain
+    await expect(explorer.getByText('alpha-folder')).toBeVisible();
+    await expect(explorer.getByText('beta-folder')).toBeVisible();
+  });
+
+  test('delete a folder containing a non-document file', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    await deleteFolderFromContextMenu({ electronApp });
+
+    // beta-folder contains both beta-doc.md and image1.png (a non-document file)
+    await window.getByText('beta-folder').click({ button: 'right' });
+
+    await confirmDeletion({ window });
+
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer.getByText('beta-folder')).not.toBeVisible({
+      timeout: 2_000,
+    });
+    await expect(explorer.getByText('beta-doc.md')).not.toBeVisible({
+      timeout: 2_000,
+    });
+    // Other folders should remain
+    await expect(explorer.getByText('alpha-folder')).toBeVisible();
   });
 });
 

@@ -1,4 +1,5 @@
 export * from './use-create-document';
+export * from './use-delete-directory';
 export * from './use-delete-document';
 export * from './use-rename-document';
 export * from './use-current-document-id';

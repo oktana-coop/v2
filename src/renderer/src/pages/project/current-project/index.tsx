@@ -12,6 +12,7 @@ import { BranchingCommandPaletteStateProvider } from '../../../app-state';
 import {
   useBranchInfo,
   useCreateDocument,
+  useDeleteDirectory,
   useDeleteDocument,
   useNavigateToDocument,
   useProjectId,
@@ -27,6 +28,7 @@ import {
 } from './branching';
 import {
   CommitDialog,
+  DeleteDirectoryDialog,
   DeleteDocumentDialog,
   DiscardChangesDialog,
   RestoreCommitDialog,
@@ -64,6 +66,11 @@ const Project = () => {
 
   const { filePathToDelete, deleteDocument, cancelDeleteDocument } =
     useDeleteDocument();
+  const {
+    directoryPathToDelete,
+    confirmDeleteDirectory,
+    cancelDeleteDirectory,
+  } = useDeleteDirectory();
   const { triggerDocumentCreationDialog } = useCreateDocument();
   const openDocument = useOpenDocument();
   const {
@@ -125,6 +132,14 @@ const Project = () => {
           documentName={filePathToDelete ? removePath(filePathToDelete) : null}
           onCancel={cancelDeleteDocument}
           onConfirm={deleteDocument}
+        />
+        <DeleteDirectoryDialog
+          isOpen={directoryPathToDelete !== null}
+          directoryName={
+            directoryPathToDelete ? removePath(directoryPathToDelete) : null
+          }
+          onCancel={cancelDeleteDirectory}
+          onConfirm={confirmDeleteDirectory}
         />
         <ProjectCommandPalette
           onCreateDocument={handleCreateDocument}

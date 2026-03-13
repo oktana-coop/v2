@@ -52,6 +52,10 @@ export type DeleteFileArgs = {
   parentDirectory?: Directory;
 };
 
+export type DeleteDirectoryArgs = {
+  path: string;
+};
+
 export type RenameFileArgs = {
   oldPath: string;
   newPath: string;
@@ -143,6 +147,13 @@ export type Filesystem = {
   >;
   deleteFile: (
     args: DeleteFileArgs
+  ) => Effect.Effect<
+    void,
+    AccessControlError | NotFoundError | RepositoryError,
+    never
+  >;
+  deleteDirectory: (
+    args: DeleteDirectoryArgs
   ) => Effect.Effect<
     void,
     AccessControlError | NotFoundError | RepositoryError,

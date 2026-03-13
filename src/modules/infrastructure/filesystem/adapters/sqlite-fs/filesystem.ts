@@ -276,6 +276,27 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
       catch: mapErrorTo(RepositoryError, 'Could not compute renamed path'),
     });
 
+  const deleteDirectory: Filesystem['deleteDirectory'] = ({ path: dirPath }) =>
+    Effect.tryPromise({
+      try: () => fs.rmdir(dirPath),
+      catch: (err: unknown) => {
+        if (isNodeError(err)) {
+          switch (err.code) {
+            case 'ENOENT':
+              return new NotFoundError(
+                `Directory at path ${dirPath} does not exist`
+              );
+            default:
+              return new RepositoryError(err.message);
+          }
+        }
+
+        return new RepositoryError(
+          `Error deleting directory at path ${dirPath}`
+        );
+      },
+    });
+
   // Directories are implicit from filenames in the SQLite filesystem,
   // so creating a directory explicitly is not supported.
   const createDirectory: Filesystem['createDirectory'] = () =>
@@ -298,6 +319,7 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
     readBinaryFile,
     readTextFile,
     deleteFile,
+    deleteDirectory,
     renameFile,
     getRelativePath,
     getAbsolutePath,

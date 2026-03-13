@@ -256,6 +256,34 @@ export const discardChanges = async ({
 
 /**
  * Mocks the main-process context-menu:show handler to auto-respond with
+ * a "Delete" action for directory nodes (bypassing the native OS menu popup
+ * that Playwright cannot interact with).
+ */
+export const deleteFolderFromContextMenu = async ({
+  electronApp,
+}: {
+  electronApp: ElectronApplication;
+}): Promise<void> => {
+  await electronApp.evaluate(async ({ ipcMain, BrowserWindow }) => {
+    ipcMain.removeHandler('context-menu:show');
+
+    ipcMain.handle('context-menu:show', async (_, payload) => {
+      if (
+        payload.context === 'EXPLORER_TREE_NODE' &&
+        payload.nodeType === 'DIRECTORY'
+      ) {
+        const win = BrowserWindow.getAllWindows()[0];
+        win.webContents.send('context-menu:action', {
+          context: 'EXPLORER_TREE_DIRECTORY',
+          action: { type: 'DELETE', path: payload.path },
+        });
+      }
+    });
+  });
+};
+
+/**
+ * Mocks the main-process context-menu:show handler to auto-respond with
  * a "Delete" action for file nodes (bypassing the native OS menu popup that
  * Playwright cannot interact with).
  */
