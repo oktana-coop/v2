@@ -1,15 +1,17 @@
-jest.mock('node:fs', () => ({
-  promises: {
-    access: jest.fn(),
-    readdir: jest.fn(),
-    rename: jest.fn(),
-  },
-}));
-
 import { type Dirent, promises as fs } from 'node:fs';
 import path from 'node:path';
 
 import * as Effect from 'effect/Effect';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('node:fs', () => {
+  const promises = {
+    access: vi.fn(),
+    readdir: vi.fn(),
+    rename: vi.fn(),
+  };
+  return { default: { promises }, promises };
+});
 
 import { filesystemItemTypes } from '../../constants/filesystem-item-types';
 import {
@@ -42,12 +44,12 @@ describe('electron-node-api filesystem adapter', () => {
       ? 'C:\\Users\\alice\\Documents'
       : '/Users/alice/Documents';
 
-  const mockAccess = jest.mocked(fs.access);
-  const mockReaddir = jest.mocked(fs.readdir);
-  const mockRename = jest.mocked(fs.rename);
+  const mockAccess = vi.mocked(fs.access);
+  const mockReaddir = vi.mocked(fs.readdir);
+  const mockRename = vi.mocked(fs.rename);
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('listDirectoryFiles', () => {

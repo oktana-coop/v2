@@ -1,4 +1,5 @@
 import * as Effect from 'effect/Effect';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   AlreadyExistsError,
@@ -70,7 +71,7 @@ describe('sqlite-fs filesystem adapter', () => {
     const newPath = `${basePath}/renamed.md`;
 
     it('renames the file successfully', async () => {
-      const rename = jest.fn().mockResolvedValue(undefined);
+      const rename = vi.fn().mockResolvedValue(undefined);
       const adapter = createAdapter(makeFs({ rename }));
 
       await Effect.runPromise(adapter.renameFile({ oldPath, newPath }));
@@ -79,7 +80,7 @@ describe('sqlite-fs filesystem adapter', () => {
     });
 
     it('fails with AlreadyExistsError when the target already exists', async () => {
-      const rename = jest.fn().mockRejectedValue(mockNodeError('EEXIST'));
+      const rename = vi.fn().mockRejectedValue(mockNodeError('EEXIST'));
       const adapter = createAdapter(makeFs({ rename }));
 
       // Effect.flip swaps the error and success channels, letting us
@@ -92,7 +93,7 @@ describe('sqlite-fs filesystem adapter', () => {
     });
 
     it('fails with NotFoundError when the source file does not exist', async () => {
-      const rename = jest.fn().mockRejectedValue(mockNodeError('ENOENT'));
+      const rename = vi.fn().mockRejectedValue(mockNodeError('ENOENT'));
       const adapter = createAdapter(makeFs({ rename }));
 
       const err = await Effect.runPromise(
@@ -103,7 +104,7 @@ describe('sqlite-fs filesystem adapter', () => {
     });
 
     it('fails with RepositoryError for other Node.js errors', async () => {
-      const rename = jest.fn().mockRejectedValue(mockNodeError('EIO'));
+      const rename = vi.fn().mockRejectedValue(mockNodeError('EIO'));
       const adapter = createAdapter(makeFs({ rename }));
 
       const err = await Effect.runPromise(
@@ -114,7 +115,7 @@ describe('sqlite-fs filesystem adapter', () => {
     });
 
     it('fails with RepositoryError for non-Node.js errors', async () => {
-      const rename = jest.fn().mockRejectedValue(new TypeError('unexpected'));
+      const rename = vi.fn().mockRejectedValue(new TypeError('unexpected'));
       const adapter = createAdapter(makeFs({ rename }));
 
       const err = await Effect.runPromise(

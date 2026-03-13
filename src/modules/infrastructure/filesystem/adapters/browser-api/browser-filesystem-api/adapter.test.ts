@@ -1,5 +1,6 @@
 import * as Effect from 'effect/Effect';
 import path from 'path';
+import { describe, expect, it } from 'vitest';
 
 import { createAdapter } from './adapter';
 

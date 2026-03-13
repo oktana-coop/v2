@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
 // Adding these to the global object were required for
 // storybook-addon-remix-react-router to run properly after React Router v7 updgrade (its version was update from v3 to v4)
