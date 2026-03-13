@@ -800,7 +800,7 @@ export const createAdapter = (): Filesystem => {
       )
     );
 
-  const renameFile: Filesystem['renameFile'] = ({ oldPath, newPath }) => {
+  const rename: Filesystem['rename'] = ({ oldPath, newPath }) => {
     const oldName = path.basename(oldPath);
     const newName = path.basename(newPath);
     const parentDirPath = path.dirname(oldPath);
@@ -922,7 +922,7 @@ export const createAdapter = (): Filesystem => {
     readTextFile,
     deleteFile,
     deleteDirectory,
-    renameFile,
+    rename,
     getRelativePath,
     getAbsolutePath,
     getRenamedPath,

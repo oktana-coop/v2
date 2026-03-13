@@ -36,7 +36,7 @@ import {
   type ListDirectoryFilesArgs,
   type ListDirectoryTreeArgs,
   type OpenFileArgs,
-  type RenameFileArgs,
+  type RenameArgs,
   type WriteFileArgs,
 } from '../modules/infrastructure/filesystem';
 import type {
@@ -147,8 +147,7 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
     ipcRenderer.invoke('delete-file', { ...args }),
   deleteDirectory: (args: DeleteDirectoryArgs) =>
     ipcRenderer.invoke('delete-directory', { ...args }),
-  renameFile: (args: RenameFileArgs) =>
-    ipcRenderer.invoke('rename-file', { ...args }),
+  rename: (args: RenameArgs) => ipcRenderer.invoke('rename', { ...args }),
   createDirectory: (args: CreateDirectoryArgs) =>
     ipcRenderer.invoke('create-directory', { ...args }),
   getRelativePath: (args) =>
@@ -381,6 +380,11 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
   renameDocumentInProject: (args) =>
     ipcRenderer.invoke(
       'multi-document-project-store:rename-document-in-project',
+      { ...args }
+    ),
+  renameDocumentsInProject: (args) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:rename-documents-in-project',
       { ...args }
     ),
   findDocumentInProject: (args) =>

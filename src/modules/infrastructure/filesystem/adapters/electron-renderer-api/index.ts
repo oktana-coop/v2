@@ -164,16 +164,16 @@ export const createAdapter = (): Filesystem => ({
       >,
       RepositoryError
     )(window.filesystemAPI.deleteDirectory(...args)),
-  renameFile: (...args: Parameters<Filesystem['renameFile']>) =>
+  rename: (...args: Parameters<Filesystem['rename']>) =>
     effectifyIPCPromise(
       {
         [FilesystemAlreadyExistsErrorTag]: AlreadyExistsError,
         [FilesystemAccessControlErrorTag]: AccessControlError,
         [FilesystemNotFoundErrorTag]: NotFoundError,
         [FilesystemRepositoryErrorTag]: RepositoryError,
-      } as ErrorRegistry<EffectErrorType<ReturnType<Filesystem['renameFile']>>>,
+      } as ErrorRegistry<EffectErrorType<ReturnType<Filesystem['rename']>>>,
       RepositoryError
-    )(window.filesystemAPI.renameFile(...args)),
+    )(window.filesystemAPI.rename(...args)),
   createDirectory: (...args: Parameters<Filesystem['createDirectory']>) =>
     effectifyIPCPromise(
       {

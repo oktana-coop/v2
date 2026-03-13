@@ -11,6 +11,7 @@ import {
   openHelloMd,
   openProjectFolder,
   renameFileFromContextMenu,
+  renameFolderFromContextMenu,
   typeInEditor,
   typeInEditorAndWaitForDebounce,
 } from '../shared/helpers';
@@ -797,5 +798,160 @@ test.describe('file rename', () => {
     // Error tooltip is set
     await expect(input).toHaveAttribute('title');
     await expect(explorer.getByText('world')).toBeVisible();
+  });
+});
+
+test.describe('folder rename', () => {
+  test('rename a folder in project root', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    await renameFolderFromContextMenu({ electronApp });
+
+    const explorer = window.getByTestId('file-explorer');
+    await explorer.getByText('beta-folder').click({ button: 'right' });
+
+    const input = window.locator('input[type="text"]');
+    await input.waitFor({ state: 'visible', timeout: 500 });
+
+    await input.clear();
+    await input.fill('renamed-folder');
+    await window.keyboard.press('Enter');
+
+    await expect(explorer.getByText('renamed-folder')).toBeVisible({
+      timeout: 2_000,
+    });
+    await expect(explorer.getByText('beta-folder')).not.toBeVisible({
+      timeout: 2_000,
+    });
+  });
+
+  test('rename a folder in a subfolder', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    await renameFolderFromContextMenu({ electronApp });
+
+    // All nodes start expanded; notes is already visible inside alpha-folder
+    const explorer = window.getByTestId('file-explorer');
+    await explorer.getByText('notes').click({ button: 'right' });
+
+    const input = window.locator('input[type="text"]');
+    await input.waitFor({ state: 'visible', timeout: 500 });
+
+    await input.clear();
+    await input.fill('memos');
+    await window.keyboard.press('Enter');
+
+    await expect(explorer.getByText('memos')).toBeVisible({ timeout: 2_000 });
+    await expect(explorer.getByText('notes')).not.toBeVisible({
+      timeout: 2_000,
+    });
+  });
+
+  test('rename the folder containing the currently-open file', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    // Open the file inside beta-folder (all nodes start expanded)
+    const explorer = window.getByTestId('file-explorer');
+    await explorer.getByText('beta-doc.md').click();
+    await expect(window.locator('.ProseMirror')).toBeVisible();
+
+    await renameFolderFromContextMenu({ electronApp });
+
+    await explorer.getByText('beta-folder').click({ button: 'right' });
+
+    const input = window.locator('input[type="text"]');
+    await input.waitFor({ state: 'visible', timeout: 500 });
+
+    await input.clear();
+    await input.fill('renamed-beta');
+    await window.keyboard.press('Enter');
+
+    await expect(explorer.getByText('renamed-beta')).toBeVisible({
+      timeout: 2_000,
+    });
+    // Editor should still be visible after rename
+    await expect(window.locator('.ProseMirror')).toBeVisible();
+  });
+
+  test('abort rename with Escape keeps original name', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    await renameFolderFromContextMenu({ electronApp });
+
+    const explorer = window.getByTestId('file-explorer');
+    await explorer.getByText('beta-folder').click({ button: 'right' });
+
+    const input = window.locator('input[type="text"]');
+    await input.waitFor({ state: 'visible', timeout: 500 });
+
+    await window.keyboard.press('Escape');
+
+    await expect(input).not.toBeVisible({ timeout: 500 });
+    await expect(explorer.getByText('beta-folder')).toBeVisible();
+  });
+
+  test('name collision shows error and keeps input visible', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    await renameFolderFromContextMenu({ electronApp });
+
+    const explorer = window.getByTestId('file-explorer');
+    await explorer.getByText('alpha-folder').click({ button: 'right' });
+
+    const input = window.locator('input[type="text"]');
+    await input.waitFor({ state: 'visible', timeout: 500 });
+
+    // Try to rename alpha-folder to beta-folder (already exists)
+    await input.clear();
+    await input.fill('beta-folder');
+    await window.keyboard.press('Enter');
+
+    // Input should remain visible
+    await expect(input).toBeVisible();
+    // Error tooltip is set
+    await expect(input).toHaveAttribute('title');
+    // The conflicting folder still exists (alpha-folder is in rename mode so its
+    // text is inside the input, not a text node — check beta-folder instead)
+    await expect(explorer.getByText('beta-folder')).toBeVisible();
   });
 });

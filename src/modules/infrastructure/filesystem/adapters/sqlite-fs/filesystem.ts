@@ -239,7 +239,7 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
       ),
     });
 
-  const renameFile: Filesystem['renameFile'] = ({ oldPath, newPath }) =>
+  const rename: Filesystem['rename'] = ({ oldPath, newPath }) =>
     Effect.tryPromise({
       try: () => fs.rename(oldPath, newPath),
       catch: (err: unknown) => {
@@ -320,7 +320,7 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
     readTextFile,
     deleteFile,
     deleteDirectory,
-    renameFile,
+    rename,
     getRelativePath,
     getAbsolutePath,
     getRenamedPath,

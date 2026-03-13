@@ -53,6 +53,11 @@ export type RenameDocumentInMultiDocumentProjectArgs = {
   newDocumentPath: string;
 };
 
+export type RenameDocumentsInMultiDocumentProjectArgs = {
+  projectId: ProjectId;
+  documentRenames: Array<{ oldDocumentPath: string; newDocumentPath: string }>;
+};
+
 export type FindDocumentInMultiDocumentProjectArgs = {
   projectId: ProjectId;
   documentPath: string;
@@ -210,6 +215,13 @@ export type MultiDocumentProjectStore = {
   >;
   renameDocumentInProject: (
     args: RenameDocumentInMultiDocumentProjectArgs
+  ) => Effect.Effect<
+    void,
+    ValidationError | MigrationError | RepositoryError | NotFoundError,
+    never
+  >;
+  renameDocumentsInProject: (
+    args: RenameDocumentsInMultiDocumentProjectArgs
   ) => Effect.Effect<
     void,
     ValidationError | MigrationError | RepositoryError | NotFoundError,

@@ -361,6 +361,58 @@ export const createAdapter = ({
         )
       );
 
+  const renameDocumentsInProject: MultiDocumentProjectStore['renameDocumentsInProject'] =
+    ({ projectId, documentRenames }) =>
+      Effect.Do.pipe(
+        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
+        Effect.bind('repoUserInfo', ({ projectPath }) =>
+          pipe(
+            getUserInfoFromConfig({ isoGitFs, dir: projectPath }),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            )
+          )
+        ),
+        Effect.flatMap(({ projectPath, repoUserInfo }) =>
+          pipe(
+            Effect.forEach(
+              documentRenames,
+              ({ oldDocumentPath, newDocumentPath }) =>
+                pipe(
+                  renameFileInGit({
+                    isoGitFs,
+                    dir: projectPath,
+                    oldPath: oldDocumentPath,
+                    newPath: newDocumentPath,
+                  }),
+                  Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+                    Effect.fail(new RepositoryError(err.message))
+                  )
+                )
+            ),
+            Effect.flatMap(() =>
+              Effect.tryPromise({
+                try: () =>
+                  git.commit({
+                    fs: isoGitFs,
+                    dir: projectPath,
+                    author: {
+                      name: repoUserInfo.username ?? DEFAULT_AUTHOR_NAME,
+                      email: repoUserInfo.email ?? undefined,
+                    },
+                    message:
+                      documentRenames.length === 1
+                        ? `Renamed ${documentRenames[0].oldDocumentPath} to ${documentRenames[0].newDocumentPath}`
+                        : `Renamed ${documentRenames.length} documents`,
+                  }),
+                catch: mapErrorTo(RepositoryError, 'Git repo error'),
+              })
+            ),
+            Effect.map(() => undefined)
+          )
+        )
+      );
+
   const findDocumentInProject: MultiDocumentProjectStore['findDocumentInProject'] =
     ({ projectId, documentPath }) =>
       pipe(
@@ -829,6 +881,7 @@ export const createAdapter = ({
     deleteDocumentFromProject,
     deleteDocumentsFromProject,
     renameDocumentInProject,
+    renameDocumentsInProject,
     findDocumentInProject,
     commitChanges,
     createAndSwitchToBranch,

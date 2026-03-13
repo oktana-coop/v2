@@ -1165,7 +1165,7 @@ describe('electron-node-api filesystem adapter', () => {
     });
   });
 
-  describe('renameFile', () => {
+  describe('rename', () => {
     const mockNodeError = (code: string) =>
       Object.assign(new Error(code), { code });
 
@@ -1176,7 +1176,7 @@ describe('electron-node-api filesystem adapter', () => {
       mockAccess.mockRejectedValue(mockNodeError('ENOENT'));
       mockRename.mockResolvedValue(undefined);
 
-      await Effect.runPromise(adapter.renameFile({ oldPath, newPath }));
+      await Effect.runPromise(adapter.rename({ oldPath, newPath }));
 
       expect(mockRename).toHaveBeenCalledWith(oldPath, newPath);
     });
@@ -1187,7 +1187,7 @@ describe('electron-node-api filesystem adapter', () => {
       // Effect.flip swaps the error and success channels, letting us
       // assert on the failure value via runPromise
       const err = await Effect.runPromise(
-        Effect.flip(adapter.renameFile({ oldPath, newPath }))
+        Effect.flip(adapter.rename({ oldPath, newPath }))
       );
 
       expect(err).toBeInstanceOf(AlreadyExistsError);
@@ -1199,7 +1199,7 @@ describe('electron-node-api filesystem adapter', () => {
       mockRename.mockRejectedValue(mockNodeError('ENOENT'));
 
       const err = await Effect.runPromise(
-        Effect.flip(adapter.renameFile({ oldPath, newPath }))
+        Effect.flip(adapter.rename({ oldPath, newPath }))
       );
 
       expect(err).toBeInstanceOf(NotFoundError);
@@ -1210,7 +1210,7 @@ describe('electron-node-api filesystem adapter', () => {
       mockRename.mockRejectedValue(mockNodeError('EACCES'));
 
       const err = await Effect.runPromise(
-        Effect.flip(adapter.renameFile({ oldPath, newPath }))
+        Effect.flip(adapter.rename({ oldPath, newPath }))
       );
 
       expect(err).toBeInstanceOf(AccessControlError);
@@ -1221,7 +1221,7 @@ describe('electron-node-api filesystem adapter', () => {
       mockRename.mockRejectedValue(mockNodeError('EIO'));
 
       const err = await Effect.runPromise(
-        Effect.flip(adapter.renameFile({ oldPath, newPath }))
+        Effect.flip(adapter.rename({ oldPath, newPath }))
       );
 
       expect(err).toBeInstanceOf(RepositoryError);
@@ -1232,7 +1232,7 @@ describe('electron-node-api filesystem adapter', () => {
       mockRename.mockRejectedValue(new TypeError('unexpected'));
 
       const err = await Effect.runPromise(
-        Effect.flip(adapter.renameFile({ oldPath, newPath }))
+        Effect.flip(adapter.rename({ oldPath, newPath }))
       );
 
       expect(err).toBeInstanceOf(RepositoryError);

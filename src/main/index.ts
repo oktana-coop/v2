@@ -33,7 +33,7 @@ import {
   type ListDirectoryFilesArgs,
   type ListDirectoryTreeArgs,
   type OpenFileArgs,
-  type RenameFileArgs,
+  type RenameArgs,
   type WriteFileArgs,
 } from '../modules/infrastructure/filesystem';
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/infrastructure/filesystem/adapters/electron-node-api';
@@ -265,8 +265,8 @@ async function createWindow() {
   ipcMain.handle('delete-directory', (_, args: DeleteDirectoryArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.deleteDirectory(args))
   );
-  ipcMain.handle('rename-file', (_, args: RenameFileArgs) =>
-    runPromiseSerializingErrorsForIPC(filesystemAPI.renameFile(args))
+  ipcMain.handle('rename', (_, args: RenameArgs) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.rename(args))
   );
   ipcMain.handle('get-relative-path', (_, args: GetRelativePathArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.getRelativePath(args))

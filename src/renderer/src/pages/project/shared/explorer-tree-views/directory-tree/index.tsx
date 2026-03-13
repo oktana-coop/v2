@@ -28,6 +28,11 @@ const DirectoryTree = ({
   onClearRenameDocumentError,
   filePathToRename,
   renameDocumentError,
+  onRenameDirectory,
+  onCancelRenameDirectory,
+  onClearRenameDirectoryError,
+  directoryPathToRename,
+  renameDirectoryError,
 }: {
   directory: Directory | null;
   data: ExplorerTreeNode[];
@@ -41,6 +46,11 @@ const DirectoryTree = ({
   onClearRenameDocumentError: () => void;
   filePathToRename: string | null;
   renameDocumentError: string | null;
+  onRenameDirectory: (oldPath: string, newName: string) => Promise<void>;
+  onCancelRenameDirectory: () => void;
+  onClearRenameDirectoryError: () => void;
+  directoryPathToRename: string | null;
+  renameDirectoryError: string | null;
 }) => {
   if (data.length > 0) {
     return (
@@ -61,6 +71,11 @@ const DirectoryTree = ({
           onClearRenameDocumentError={onClearRenameDocumentError}
           filePathToRename={filePathToRename}
           renameDocumentError={renameDocumentError}
+          onRenameDirectory={onRenameDirectory}
+          onCancelRenameDirectory={onCancelRenameDirectory}
+          onClearRenameDirectoryError={onClearRenameDirectoryError}
+          directoryPathToRename={directoryPathToRename}
+          renameDirectoryError={renameDirectoryError}
         />
       </div>
     );
@@ -87,11 +102,19 @@ export const DirectoryTreeView = ({
     clearRenameDocumentError,
     renameDocument,
     cancelRenameDocument,
+    directoryPathToRename,
+    renameDirectoryError,
+    clearRenameDirectoryError,
+    renameDirectory,
+    cancelRenameDirectory,
   } = useDocumentExplorerTree();
   const { canCreateDocument } = useCreateDocument();
 
   const handleRenameDocument = (oldPath: string, newName: string) =>
     renameDocument({ oldRelativePath: oldPath, newName });
+
+  const handleRenameDirectory = (oldPath: string, newName: string) =>
+    renameDirectory({ oldRelativePath: oldPath, newName });
 
   return (
     <div
@@ -127,6 +150,11 @@ export const DirectoryTreeView = ({
           onClearRenameDocumentError={clearRenameDocumentError}
           filePathToRename={filePathToRename}
           renameDocumentError={renameDocumentError}
+          onRenameDirectory={handleRenameDirectory}
+          onCancelRenameDirectory={cancelRenameDirectory}
+          onClearRenameDirectoryError={clearRenameDirectoryError}
+          directoryPathToRename={directoryPathToRename}
+          renameDirectoryError={renameDirectoryError}
         />
       ) : (
         <NoActiveDirectoryView />

@@ -159,6 +159,76 @@ const RenamingFileNode = ({
   );
 };
 
+const RenamingDirectoryNode = ({
+  node,
+  style,
+}: NodeRendererProps<ExplorerTreeNode>) => {
+  const {
+    onRenameDirectory,
+    onCancelRenameDirectory,
+    onClearRenameDirectoryError,
+    renameDirectoryError,
+  } = useTreeCallbacks();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, []);
+
+  const handleKeyDown = (ev: React.KeyboardEvent<HTMLInputElement>) => {
+    ev.stopPropagation();
+
+    if (ev.key === 'Enter') {
+      const value = inputRef.current?.value.trim() ?? '';
+      if (value) {
+        onRenameDirectory(node.data.id, value);
+      } else {
+        onCancelRenameDirectory();
+      }
+    } else if (ev.key === 'Escape') {
+      onCancelRenameDirectory();
+    }
+  };
+
+  const handleChange = () => {
+    onClearRenameDirectoryError();
+  };
+
+  const handleBlur = () => {
+    onCancelRenameDirectory();
+  };
+
+  return (
+    <div
+      className="flex h-[32px] items-center overflow-hidden py-0.5 text-sm"
+      style={{
+        ...style,
+        paddingLeft: node.level * 24 + 36,
+      }}
+    >
+      <ChevronDownIcon className="mr-2 shrink-0 -rotate-90" size={20} />
+      <input
+        ref={inputRef}
+        type="text"
+        defaultValue={node.data.name}
+        title={renameDirectoryError ?? undefined}
+        className={clsx(
+          'min-w-0 flex-1 border bg-transparent px-1 text-sm outline-none',
+          renameDirectoryError
+            ? 'border-red-500 dark:border-red-400'
+            : 'border-purple-400 dark:border-purple-300'
+        )}
+        onKeyDown={handleKeyDown}
+        onChange={handleChange}
+        onBlur={handleBlur}
+      />
+    </div>
+  );
+};
+
 const DirectoryNode = ({
   node,
   style,
@@ -318,6 +388,8 @@ export const TreeNode = ({
   node,
   ...nodeRendererProps
 }: NodeRendererProps<ExplorerTreeNode>) => {
+  const { directoryPathToRename } = useTreeCallbacks();
+
   const handleClick = (ev: React.MouseEvent) => {
     node.handleClick?.(ev);
 
@@ -342,6 +414,9 @@ export const TreeNode = ({
   }
 
   if (node.data.type === filesystemItemTypes.DIRECTORY) {
+    if (directoryPathToRename === node.data.id) {
+      return <RenamingDirectoryNode node={node} {...nodeRendererProps} />;
+    }
     return (
       <DirectoryNode node={node} {...nodeRendererProps} onClick={handleClick} />
     );
