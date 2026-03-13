@@ -541,7 +541,7 @@ export const createAdapter = (): Filesystem => {
     );
   };
 
-  const renameFile: Filesystem['renameFile'] = ({ oldPath, newPath }) => {
+  const rename: Filesystem['rename'] = ({ oldPath, newPath }) => {
     // On POSIX (macOS/Linux), fs.rename silently overwrites the target, so
     // we check existence upfront to produce a consistent typed error
     // cross-platform. On Windows, fs.rename would also return EEXIST, but
@@ -641,7 +641,7 @@ export const createAdapter = (): Filesystem => {
     readTextFile,
     deleteFile,
     deleteDirectory,
-    renameFile,
+    rename,
     getRelativePath,
     getAbsolutePath,
     getRenamedPath,

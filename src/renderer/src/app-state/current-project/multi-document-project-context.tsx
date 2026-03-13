@@ -18,6 +18,7 @@ import {
   findDocumentInProject,
   type MultiDocumentProjectStore,
   type RemoteProjectInfo,
+  renameDirectoryInProject,
   renameDocumentInProject,
   urlEncodeProjectId,
   VersionedProjectNotFoundErrorTag,
@@ -149,6 +150,14 @@ export type MultiDocumentProjectContextType = {
     newName: string;
   }) => Promise<void>;
   cancelRenameDocument: () => void;
+  directoryPathToRename: string | null;
+  renameDirectoryError: string | null;
+  clearRenameDirectoryError: () => void;
+  renameDirectory: (args: {
+    oldRelativePath: string;
+    newName: string;
+  }) => Promise<void>;
+  cancelRenameDirectory: () => void;
 };
 
 export const MultiDocumentProjectContext =
@@ -185,6 +194,11 @@ export const MultiDocumentProjectContext =
     clearRenameDocumentError: () => {},
     renameDocument: async () => {},
     cancelRenameDocument: () => {},
+    directoryPathToRename: null,
+    renameDirectoryError: null,
+    clearRenameDirectoryError: () => {},
+    renameDirectory: async () => {},
+    cancelRenameDirectory: () => {},
   });
 
 export const MultiDocumentProjectProvider = ({
@@ -240,6 +254,12 @@ export const MultiDocumentProjectProvider = ({
   const [renameDocumentError, setRenameDocumentError] = useState<string | null>(
     null
   );
+  const [directoryPathToRename, setDirectoryPathToRename] = useState<
+    string | null
+  >(null);
+  const [renameDirectoryError, setRenameDirectoryError] = useState<
+    string | null
+  >(null);
   const navigate = useNavigate();
   const navigateToResolveMergeConflicts = useNavigateToResolveConflicts();
 
@@ -839,7 +859,7 @@ export const MultiDocumentProjectProvider = ({
         const result = await Effect.runPromise(
           pipe(
             renameDocumentInProject({
-              renameFile: filesystem.renameFile,
+              rename: filesystem.rename,
               renameDocumentInProjectStore:
                 versionedProjectStore.renameDocumentInProject,
               getAbsolutePath: filesystem.getAbsolutePath,
@@ -940,6 +960,135 @@ export const MultiDocumentProjectProvider = ({
     setRenameDocumentError(null);
   }, []);
 
+  const handleRenameDirectory = useCallback(
+    async ({
+      oldRelativePath,
+      newName,
+    }: {
+      oldRelativePath: string;
+      newName: string;
+    }) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Cannot rename directory. The project store has not been initialized yet.'
+        );
+      }
+
+      if (!directory || !newName.trim()) {
+        return;
+      }
+
+      try {
+        const result = await Effect.runPromise(
+          pipe(
+            renameDirectoryInProject({
+              rename: filesystem.rename,
+              renameDocumentsInProjectStore:
+                versionedProjectStore.renameDocumentsInProject,
+              getAbsolutePath: filesystem.getAbsolutePath,
+              listDirectoryFiles: filesystem.listDirectoryFiles,
+              getRelativePath: filesystem.getRelativePath,
+              getRenamedPath: filesystem.getRenamedPath,
+            })({
+              projectId,
+              oldDirectoryPath: oldRelativePath,
+              newDirectoryName: newName,
+              projectDirectoryPath: directory.path,
+            }),
+            Effect.map(({ newDirectoryPath }) => ({
+              collision: false,
+              newDirectoryPath,
+            })),
+            Effect.catchTag(FilesystemAlreadyExistsErrorTag, () =>
+              Effect.succeed({ collision: true, newDirectoryPath: '' })
+            )
+          )
+        );
+
+        if (result.collision) {
+          setRenameDirectoryError('A folder with this name already exists');
+          return;
+        }
+
+        const newDirectoryPath = result.newDirectoryPath;
+
+        // Refresh directory tree
+        if (directory.permissionState === 'granted' && directory.path) {
+          const dirTree = await Effect.runPromise(
+            filesystem.listDirectoryTree({
+              path: directory.path,
+              extensions: [
+                richTextRepresentationExtensions[
+                  PRIMARY_RICH_TEXT_REPRESENTATION
+                ],
+              ],
+              useRelativePathTo: directory.path,
+            })
+          );
+          setDirectoryTree(dirTree);
+        }
+
+        // If the currently-selected file was inside the renamed directory, update selection
+        if (
+          selectedFileInfo?.path &&
+          selectedFileInfo.path.startsWith(oldRelativePath)
+        ) {
+          const newFilePath =
+            newDirectoryPath +
+            selectedFileInfo.path.slice(oldRelativePath.length);
+          try {
+            const doc = await handleFindDocumentInProject({
+              projectId,
+              documentPath: newFilePath,
+            });
+            handleSetSelectedFileInfo({
+              documentId: doc.id,
+              path: newFilePath,
+            });
+            navigate(
+              `/projects/${urlEncodeProjectId(projectId)}/documents/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(newFilePath)}`
+            );
+          } catch {
+            await clearFileSelection();
+            navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
+          }
+        }
+
+        setDirectoryPathToRename(null);
+        setRenameDirectoryError(null);
+      } catch (err) {
+        console.error(err);
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Rename Folder Error',
+            message:
+              'An error happened when trying to rename the folder. Please try again.',
+          })
+        );
+        setDirectoryPathToRename(null);
+        setRenameDirectoryError(null);
+      }
+    },
+    [
+      versionedProjectStore,
+      projectId,
+      directory,
+      filesystem,
+      selectedFileInfo,
+      navigate,
+      dispatchNotification,
+    ]
+  );
+
+  const clearRenameDirectoryError = useCallback(() => {
+    setRenameDirectoryError(null);
+  }, []);
+
+  const cancelRenameDirectory = useCallback(() => {
+    setDirectoryPathToRename(null);
+    setRenameDirectoryError(null);
+  }, []);
+
   useEffect(() => {
     if (!isElectron) return;
 
@@ -990,6 +1139,14 @@ export const MultiDocumentProjectProvider = ({
         ) {
           setDocumentPathToRename(action.action.path);
           setRenameDocumentError(null);
+        }
+
+        if (
+          action.context === EXPLORER_TREE_DIRECTORY &&
+          action.action.type === 'RENAME'
+        ) {
+          setDirectoryPathToRename(action.action.path);
+          setRenameDirectoryError(null);
         }
       }
     );
@@ -1555,6 +1712,11 @@ export const MultiDocumentProjectProvider = ({
         clearRenameDocumentError,
         renameDocument: handleRenameDocument,
         cancelRenameDocument,
+        directoryPathToRename,
+        renameDirectoryError,
+        clearRenameDirectoryError,
+        renameDirectory: handleRenameDirectory,
+        cancelRenameDirectory,
       }}
     >
       {children}

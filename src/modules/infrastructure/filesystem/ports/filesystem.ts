@@ -56,7 +56,7 @@ export type DeleteDirectoryArgs = {
   path: string;
 };
 
-export type RenameFileArgs = {
+export type RenameArgs = {
   oldPath: string;
   newPath: string;
 };
@@ -159,8 +159,8 @@ export type Filesystem = {
     AccessControlError | NotFoundError | RepositoryError,
     never
   >;
-  renameFile: (
-    args: RenameFileArgs
+  rename: (
+    args: RenameArgs
   ) => Effect.Effect<
     void,
     AlreadyExistsError | AccessControlError | NotFoundError | RepositoryError,

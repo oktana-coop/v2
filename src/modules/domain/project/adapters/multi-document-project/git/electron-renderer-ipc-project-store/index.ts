@@ -131,6 +131,22 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.multiDocumentProjectStoreAPI.renameDocumentInProject(...args)),
+  renameDocumentsInProject: (
+    ...args: Parameters<MultiDocumentProjectStore['renameDocumentsInProject']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['renameDocumentsInProject']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.renameDocumentsInProject(...args)),
   findDocumentInProject: (
     ...args: Parameters<MultiDocumentProjectStore['findDocumentInProject']>
   ) =>

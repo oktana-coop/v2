@@ -62,7 +62,7 @@ describe('sqlite-fs filesystem adapter', () => {
     });
   });
 
-  describe('renameFile', () => {
+  describe('rename', () => {
     const mockNodeError = (code: string) =>
       Object.assign(new Error(code), { code });
 
@@ -73,7 +73,7 @@ describe('sqlite-fs filesystem adapter', () => {
       const rename = vi.fn().mockResolvedValue(undefined);
       const adapter = createAdapter(makeFs({ rename }));
 
-      await Effect.runPromise(adapter.renameFile({ oldPath, newPath }));
+      await Effect.runPromise(adapter.rename({ oldPath, newPath }));
 
       expect(rename).toHaveBeenCalledWith(oldPath, newPath);
     });
@@ -85,7 +85,7 @@ describe('sqlite-fs filesystem adapter', () => {
       // Effect.flip swaps the error and success channels, letting us
       // assert on the failure value via runPromise
       const err = await Effect.runPromise(
-        Effect.flip(adapter.renameFile({ oldPath, newPath }))
+        Effect.flip(adapter.rename({ oldPath, newPath }))
       );
 
       expect(err).toBeInstanceOf(AlreadyExistsError);
@@ -96,7 +96,7 @@ describe('sqlite-fs filesystem adapter', () => {
       const adapter = createAdapter(makeFs({ rename }));
 
       const err = await Effect.runPromise(
-        Effect.flip(adapter.renameFile({ oldPath, newPath }))
+        Effect.flip(adapter.rename({ oldPath, newPath }))
       );
 
       expect(err).toBeInstanceOf(NotFoundError);
@@ -107,7 +107,7 @@ describe('sqlite-fs filesystem adapter', () => {
       const adapter = createAdapter(makeFs({ rename }));
 
       const err = await Effect.runPromise(
-        Effect.flip(adapter.renameFile({ oldPath, newPath }))
+        Effect.flip(adapter.rename({ oldPath, newPath }))
       );
 
       expect(err).toBeInstanceOf(RepositoryError);
@@ -118,7 +118,7 @@ describe('sqlite-fs filesystem adapter', () => {
       const adapter = createAdapter(makeFs({ rename }));
 
       const err = await Effect.runPromise(
-        Effect.flip(adapter.renameFile({ oldPath, newPath }))
+        Effect.flip(adapter.rename({ oldPath, newPath }))
       );
 
       expect(err).toBeInstanceOf(RepositoryError);

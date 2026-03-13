@@ -22,7 +22,7 @@ export type RenameDocumentInProjectArgs = {
 };
 
 export type RenameDocumentInProjectDeps = {
-  renameFile: Filesystem['renameFile'];
+  rename: Filesystem['rename'];
   renameDocumentInProjectStore: MultiDocumentProjectStore['renameDocumentInProject'];
   getAbsolutePath: Filesystem['getAbsolutePath'];
   getRenamedPath: Filesystem['getRenamedPath'];
@@ -30,7 +30,7 @@ export type RenameDocumentInProjectDeps = {
 
 export const renameDocumentInProject =
   ({
-    renameFile,
+    rename,
     renameDocumentInProjectStore,
     getAbsolutePath,
     getRenamedPath,
@@ -70,7 +70,7 @@ export const renameDocumentInProject =
                   }),
                 ]),
                 Effect.flatMap(([oldAbsolutePath, newAbsolutePath]) =>
-                  renameFile({
+                  rename({
                     oldPath: oldAbsolutePath,
                     newPath: newAbsolutePath,
                   })

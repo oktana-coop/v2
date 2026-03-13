@@ -19,6 +19,11 @@ type TreeCallbacks = {
   onClearRenameDocumentError: () => void;
   filePathToRename: string | null;
   renameDocumentError: string | null;
+  onRenameDirectory: (oldPath: string, newName: string) => Promise<void>;
+  onCancelRenameDirectory: () => void;
+  onClearRenameDirectoryError: () => void;
+  directoryPathToRename: string | null;
+  renameDirectoryError: string | null;
 };
 
 const TreeCallbacksContext = createContext<TreeCallbacks>({
@@ -29,6 +34,11 @@ const TreeCallbacksContext = createContext<TreeCallbacks>({
   onClearRenameDocumentError: () => {},
   filePathToRename: null,
   renameDocumentError: null,
+  onRenameDirectory: async () => {},
+  onCancelRenameDirectory: () => {},
+  onClearRenameDirectoryError: () => {},
+  directoryPathToRename: null,
+  renameDirectoryError: null,
 });
 
 export const useTreeCallbacks = () => useContext(TreeCallbacksContext);
@@ -44,6 +54,11 @@ export const TreeView = ({
   onClearRenameDocumentError = () => {},
   filePathToRename = null,
   renameDocumentError = null,
+  onRenameDirectory = async () => {},
+  onCancelRenameDirectory = () => {},
+  onClearRenameDirectoryError = () => {},
+  directoryPathToRename = null,
+  renameDirectoryError = null,
 }: {
   data: ExplorerTreeNode[];
   selection: string | null;
@@ -55,6 +70,11 @@ export const TreeView = ({
   onClearRenameDocumentError?: () => void;
   filePathToRename?: string | null;
   renameDocumentError?: string | null;
+  onRenameDirectory?: (oldPath: string, newName: string) => Promise<void>;
+  onCancelRenameDirectory?: () => void;
+  onClearRenameDirectoryError?: () => void;
+  directoryPathToRename?: string | null;
+  renameDirectoryError?: string | null;
 }) => {
   const handleActivate = (node: NodeApi<ExplorerTreeNode>) => {
     if (
@@ -75,6 +95,11 @@ export const TreeView = ({
         onClearRenameDocumentError,
         filePathToRename,
         renameDocumentError,
+        onRenameDirectory,
+        onCancelRenameDirectory,
+        onClearRenameDirectoryError,
+        directoryPathToRename,
+        renameDirectoryError,
       }}
     >
       <div
