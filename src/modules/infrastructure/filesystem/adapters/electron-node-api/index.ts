@@ -494,6 +494,31 @@ export const createAdapter = (): Filesystem => {
       },
     });
 
+  const deleteDirectory: Filesystem['deleteDirectory'] = ({ path: dirPath }) =>
+    Effect.tryPromise({
+      try: () => fs.rm(dirPath, { recursive: true }),
+      catch: (err: unknown) => {
+        if (isNodeError(err)) {
+          switch (err.code) {
+            case 'ENOENT':
+              return new NotFoundError(
+                `Directory at path ${dirPath} does not exist`
+              );
+            case 'EACCES':
+              return new AccessControlError(
+                `Permission denied for directory with path ${dirPath}`
+              );
+            default:
+              return new RepositoryError(err.message);
+          }
+        }
+
+        return new RepositoryError(
+          `Error deleting directory at path ${dirPath}`
+        );
+      },
+    });
+
   const createDirectory: Filesystem['createDirectory'] = ({
     name,
     parentDirectory,
@@ -615,6 +640,7 @@ export const createAdapter = (): Filesystem => {
     readBinaryFile,
     readTextFile,
     deleteFile,
+    deleteDirectory,
     renameFile,
     getRelativePath,
     getAbsolutePath,

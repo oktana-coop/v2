@@ -17,6 +17,7 @@ vi.mock('node:fs', () => {
     access: vi.fn(),
     readdir: vi.fn(),
     rename: vi.fn(),
+    rm: vi.fn(),
   };
   return { default: { promises }, promises };
 });
@@ -46,6 +47,7 @@ describe('electron-node-api filesystem adapter', () => {
   const mockAccess = vi.mocked(fs.access);
   const mockReaddir = vi.mocked(fs.readdir);
   const mockRename = vi.mocked(fs.rename);
+  const mockRm = vi.mocked(fs.rm);
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -1105,6 +1107,61 @@ describe('electron-node-api filesystem adapter', () => {
       );
 
       expect(result).toBe(path.join(basePath, 'NOTICE'));
+    });
+  });
+
+  describe('deleteDirectory', () => {
+    const mockNodeError = (code: string) =>
+      Object.assign(new Error(code), { code });
+
+    const dirPath = path.join(basePath, 'my-folder');
+
+    it('removes the directory recursively', async () => {
+      mockRm.mockResolvedValue(undefined);
+
+      await Effect.runPromise(adapter.deleteDirectory({ path: dirPath }));
+
+      expect(mockRm).toHaveBeenCalledWith(dirPath, { recursive: true });
+    });
+
+    it('fails with NotFoundError when the directory does not exist', async () => {
+      mockRm.mockRejectedValue(mockNodeError('ENOENT'));
+
+      const err = await Effect.runPromise(
+        Effect.flip(adapter.deleteDirectory({ path: dirPath }))
+      );
+
+      expect(err).toBeInstanceOf(NotFoundError);
+    });
+
+    it('fails with AccessControlError on permission denied', async () => {
+      mockRm.mockRejectedValue(mockNodeError('EACCES'));
+
+      const err = await Effect.runPromise(
+        Effect.flip(adapter.deleteDirectory({ path: dirPath }))
+      );
+
+      expect(err).toBeInstanceOf(AccessControlError);
+    });
+
+    it('fails with RepositoryError for other Node.js errors', async () => {
+      mockRm.mockRejectedValue(mockNodeError('EIO'));
+
+      const err = await Effect.runPromise(
+        Effect.flip(adapter.deleteDirectory({ path: dirPath }))
+      );
+
+      expect(err).toBeInstanceOf(RepositoryError);
+    });
+
+    it('fails with RepositoryError for non-Node.js errors', async () => {
+      mockRm.mockRejectedValue(new TypeError('unexpected'));
+
+      const err = await Effect.runPromise(
+        Effect.flip(adapter.deleteDirectory({ path: dirPath }))
+      );
+
+      expect(err).toBeInstanceOf(RepositoryError);
     });
   });
 

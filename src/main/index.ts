@@ -23,6 +23,7 @@ import {
 import {
   type CreateDirectoryArgs,
   type CreateNewFileArgs,
+  type DeleteDirectoryArgs,
   type DeleteFileArgs,
   type File,
   filesystemItemTypes,
@@ -260,6 +261,9 @@ async function createWindow() {
   );
   ipcMain.handle('delete-file', (_, args: DeleteFileArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.deleteFile(args))
+  );
+  ipcMain.handle('delete-directory', (_, args: DeleteDirectoryArgs) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.deleteDirectory(args))
   );
   ipcMain.handle('rename-file', (_, args: RenameFileArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.renameFile(args))

@@ -29,6 +29,7 @@ import {
 import {
   type CreateDirectoryArgs,
   type CreateNewFileArgs,
+  type DeleteDirectoryArgs,
   type DeleteFileArgs,
   type File,
   type GetRenamedPathArgs,
@@ -144,6 +145,8 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
   readTextFile: (path: string) => ipcRenderer.invoke('read-text-file', path),
   deleteFile: (args: DeleteFileArgs) =>
     ipcRenderer.invoke('delete-file', { ...args }),
+  deleteDirectory: (args: DeleteDirectoryArgs) =>
+    ipcRenderer.invoke('delete-directory', { ...args }),
   renameFile: (args: RenameFileArgs) =>
     ipcRenderer.invoke('rename-file', { ...args }),
   createDirectory: (args: CreateDirectoryArgs) =>
@@ -368,6 +371,11 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
   deleteDocumentFromProject: (args) =>
     ipcRenderer.invoke(
       'multi-document-project-store:delete-document-from-project',
+      { ...args }
+    ),
+  deleteDocumentsFromProject: (args) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:delete-documents-from-project',
       { ...args }
     ),
   renameDocumentInProject: (args) =>

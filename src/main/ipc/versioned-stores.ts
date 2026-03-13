@@ -16,6 +16,7 @@ import {
   createNodeGitSingleDocumentProjectStoreManagerAdapter,
   type CreateSingleDocumentProjectArgs,
   type DeleteDocumentFromMultiDocumentProjectArgs,
+  type DeleteDocumentsFromMultiDocumentProjectArgs,
   type FindDocumentInMultiDocumentProjectArgs,
   type MultiDocumentProjectAbortMergeArgs,
   type MultiDocumentProjectAddRemoteProjectArgs,
@@ -883,6 +884,26 @@ const registerMultiDocumentProjectStoreEvents = ({
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.deleteDocumentFromProject(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:delete-documents-from-project',
+    async (_, args: DeleteDocumentsFromMultiDocumentProjectArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.deleteDocumentsFromProject(args)
           )
         )
       )

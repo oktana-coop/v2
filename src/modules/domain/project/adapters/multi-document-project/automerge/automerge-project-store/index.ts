@@ -164,6 +164,15 @@ export const createAdapter = (
         )
       );
 
+  // TODO: Implement deleteDocumentsFromProject for Automerge
+  const deleteDocumentsFromProject: MultiDocumentProjectStore['deleteDocumentsFromProject'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Batch document deletion is not supported for Automerge.'
+        )
+      );
+
   // TODO: Implement renameDocumentInProject for Automerge
   const renameDocumentInProject: MultiDocumentProjectStore['renameDocumentInProject'] =
     () =>
@@ -347,6 +356,7 @@ export const createAdapter = (
     listProjectDocuments,
     addDocumentToProject,
     deleteDocumentFromProject,
+    deleteDocumentsFromProject,
     renameDocumentInProject,
     findDocumentInProject,
     commitChanges,
