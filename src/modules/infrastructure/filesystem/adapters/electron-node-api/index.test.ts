@@ -6,7 +6,7 @@ jest.mock('node:fs', () => ({
   },
 }));
 
-import { promises as fs } from 'node:fs';
+import { type Dirent, promises as fs } from 'node:fs';
 import path from 'node:path';
 
 import * as Effect from 'effect/Effect';
@@ -26,18 +26,13 @@ function makeDirent(
   name: string,
   isFile: boolean,
   parentPath: string
-): {
-  name: string;
-  parentPath: string;
-  isFile: () => boolean;
-  isDirectory: () => boolean;
-} {
+): Dirent<Buffer> {
   return {
     name,
     parentPath,
     isFile: () => isFile,
     isDirectory: () => !isFile,
-  };
+  } as unknown as Dirent<Buffer>;
 }
 
 describe('electron-node-api filesystem adapter', () => {
@@ -47,7 +42,9 @@ describe('electron-node-api filesystem adapter', () => {
       ? 'C:\\Users\\alice\\Documents'
       : '/Users/alice/Documents';
 
-  const mockReaddirFn = fs.readdir as jest.Mock;
+  const mockAccess = jest.mocked(fs.access);
+  const mockReaddir = jest.mocked(fs.readdir);
+  const mockRename = jest.mocked(fs.rename);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -57,7 +54,7 @@ describe('electron-node-api filesystem adapter', () => {
     describe('empty directory', () => {
       it('returns empty array when no files are present', async () => {
         const entries: ReturnType<typeof makeDirent>[] = [];
-        mockReaddirFn.mockResolvedValue(entries);
+        mockReaddir.mockResolvedValue(entries);
 
         const result = await Effect.runPromise(
           adapter.listDirectoryFiles({
@@ -70,7 +67,7 @@ describe('electron-node-api filesystem adapter', () => {
 
         expect(result).toEqual([]);
 
-        expect(fs.readdir).toHaveBeenCalledWith(basePath, {
+        expect(mockReaddir).toHaveBeenCalledWith(basePath, {
           withFileTypes: true,
           recursive: false,
         });
@@ -84,7 +81,7 @@ describe('electron-node-api filesystem adapter', () => {
           makeDirent('document.md', true, basePath),
           makeDirent('image.png', true, basePath),
         ];
-        mockReaddirFn.mockResolvedValue(entries);
+        mockReaddir.mockResolvedValue(entries);
 
         const result = await Effect.runPromise(
           adapter.listDirectoryFiles({
@@ -116,7 +113,7 @@ describe('electron-node-api filesystem adapter', () => {
           },
         ]);
 
-        expect(fs.readdir).toHaveBeenCalledWith(basePath, {
+        expect(mockReaddir).toHaveBeenCalledWith(basePath, {
           withFileTypes: true,
           recursive: false,
         });
@@ -132,7 +129,7 @@ describe('electron-node-api filesystem adapter', () => {
             path.join(basePath, 'docs', 'archived')
           ),
         ];
-        mockReaddirFn.mockResolvedValue(entries);
+        mockReaddir.mockResolvedValue(entries);
 
         const result = await Effect.runPromise(
           adapter.listDirectoryFiles({
@@ -164,7 +161,7 @@ describe('electron-node-api filesystem adapter', () => {
           },
         ]);
 
-        expect(fs.readdir).toHaveBeenCalledWith(basePath, {
+        expect(mockReaddir).toHaveBeenCalledWith(basePath, {
           withFileTypes: true,
           recursive: true,
         });
@@ -181,7 +178,7 @@ describe('electron-node-api filesystem adapter', () => {
           makeDirent('.env', true, basePath),
           makeDirent('another.md', true, basePath),
         ];
-        mockReaddirFn.mockResolvedValue(entries);
+        mockReaddir.mockResolvedValue(entries);
 
         const result = await Effect.runPromise(
           adapter.listDirectoryFiles({
@@ -207,7 +204,7 @@ describe('electron-node-api filesystem adapter', () => {
           },
         ]);
 
-        expect(fs.readdir).toHaveBeenCalledWith(basePath, {
+        expect(mockReaddir).toHaveBeenCalledWith(basePath, {
           withFileTypes: true,
           recursive: false,
         });
@@ -226,7 +223,7 @@ describe('electron-node-api filesystem adapter', () => {
           ),
           makeDirent('cache.tmp', true, path.join(basePath, '.cache')),
         ];
-        mockReaddirFn.mockResolvedValue(entries);
+        mockReaddir.mockResolvedValue(entries);
 
         const result = await Effect.runPromise(
           adapter.listDirectoryFiles({
@@ -252,7 +249,7 @@ describe('electron-node-api filesystem adapter', () => {
           },
         ]);
 
-        expect(fs.readdir).toHaveBeenCalledWith(basePath, {
+        expect(mockReaddir).toHaveBeenCalledWith(basePath, {
           withFileTypes: true,
           recursive: true,
         });
@@ -281,7 +278,7 @@ describe('electron-node-api filesystem adapter', () => {
           makeDirent('config', true, path.join(basePath, '.git', 'refs')),
           makeDirent('manifest.txt', true, path.join(basePath, 'metadata')),
         ];
-        mockReaddirFn.mockResolvedValue(entries);
+        mockReaddir.mockResolvedValue(entries);
 
         const result = await Effect.runPromise(
           adapter.listDirectoryFiles({
@@ -325,7 +322,7 @@ describe('electron-node-api filesystem adapter', () => {
           },
         ]);
 
-        expect(fs.readdir).toHaveBeenCalledWith(basePath, {
+        expect(mockReaddir).toHaveBeenCalledWith(basePath, {
           withFileTypes: true,
           recursive: true,
         });
@@ -343,7 +340,7 @@ describe('electron-node-api filesystem adapter', () => {
           makeDirent('HEAD', true, path.join(basePath, '.git')),
           makeDirent('manifest.txt', true, path.join(basePath, 'metadata')),
         ];
-        mockReaddirFn.mockResolvedValue(entries);
+        mockReaddir.mockResolvedValue(entries);
 
         const result = await Effect.runPromise(
           adapter.listDirectoryFiles({
@@ -381,7 +378,7 @@ describe('electron-node-api filesystem adapter', () => {
           },
         ]);
 
-        expect(fs.readdir).toHaveBeenCalledWith(basePath, {
+        expect(mockReaddir).toHaveBeenCalledWith(basePath, {
           withFileTypes: true,
           recursive: true,
         });
@@ -395,7 +392,7 @@ describe('electron-node-api filesystem adapter', () => {
         // Folder structure:
         // /Users/alice/Documents/ (empty)
         const entries: ReturnType<typeof makeDirent>[] = [];
-        mockReaddirFn.mockResolvedValue(entries);
+        mockReaddir.mockResolvedValue(entries);
 
         const result = await Effect.runPromise(
           adapter.listDirectoryTree({
@@ -406,7 +403,7 @@ describe('electron-node-api filesystem adapter', () => {
 
         expect(result).toEqual([]);
 
-        expect(fs.readdir).toHaveBeenCalledWith(basePath, {
+        expect(mockReaddir).toHaveBeenCalledWith(basePath, {
           withFileTypes: true,
         });
       });
@@ -423,7 +420,7 @@ describe('electron-node-api filesystem adapter', () => {
         //   .gitignore (hidden)
         //   .DS_Store (hidden)
         //   .git/ (hidden)
-        mockReaddirFn.mockImplementation((dirPath: string) => {
+        mockReaddir.mockImplementation((dirPath) => {
           if (dirPath === basePath) {
             return Promise.resolve([
               makeDirent('README.md', true, basePath),
@@ -487,7 +484,7 @@ describe('electron-node-api filesystem adapter', () => {
         //   guide.md
         //   metadata/
         //     manifest.txt
-        mockReaddirFn.mockImplementation((dirPath: string) => {
+        mockReaddir.mockImplementation((dirPath) => {
           if (dirPath === basePath) {
             return Promise.resolve([
               makeDirent('README.md', true, basePath),
@@ -549,7 +546,7 @@ describe('electron-node-api filesystem adapter', () => {
         //     document.pdf
         //     notes.txt
         //     guide.md
-        mockReaddirFn.mockImplementation((dirPath: string) => {
+        mockReaddir.mockImplementation((dirPath) => {
           if (dirPath === basePath) {
             return Promise.resolve([makeDirent('archive', false, basePath)]);
           }
@@ -605,7 +602,7 @@ describe('electron-node-api filesystem adapter', () => {
         // Folder structure:
         // /Users/alice/Documents/
         //   empty-folder/ (empty)
-        mockReaddirFn.mockImplementation((dirPath: string) => {
+        mockReaddir.mockImplementation((dirPath) => {
           if (dirPath === basePath) {
             return Promise.resolve([
               makeDirent('empty-folder', false, basePath),
@@ -645,7 +642,7 @@ describe('electron-node-api filesystem adapter', () => {
           makeDirent('docs', false, basePath),
           makeDirent('README.md', true, basePath),
         ];
-        mockReaddirFn.mockResolvedValue(entries);
+        mockReaddir.mockResolvedValue(entries);
 
         const result = await Effect.runPromise(
           adapter.listDirectoryTree({
@@ -673,7 +670,7 @@ describe('electron-node-api filesystem adapter', () => {
           },
         ]);
 
-        expect(fs.readdir).toHaveBeenCalledWith(basePath, {
+        expect(mockReaddir).toHaveBeenCalledWith(basePath, {
           withFileTypes: true,
         });
       });
@@ -691,7 +688,7 @@ describe('electron-node-api filesystem adapter', () => {
         //   metadata/
         //     manifest.txt
         // Mock fs.readdir to return different entries based on the path parameter
-        mockReaddirFn.mockImplementation((dirPath: string) => {
+        mockReaddir.mockImplementation((dirPath) => {
           if (dirPath === basePath) {
             return Promise.resolve([
               makeDirent('README.md', true, basePath),
@@ -797,7 +794,7 @@ describe('electron-node-api filesystem adapter', () => {
         //     intro.md
         //     templates/
         //       guide.pdf
-        mockReaddirFn.mockImplementation((dirPath: string) => {
+        mockReaddir.mockImplementation((dirPath) => {
           if (dirPath === basePath) {
             return Promise.resolve([
               makeDirent('README.md', true, basePath),
@@ -877,7 +874,7 @@ describe('electron-node-api filesystem adapter', () => {
         //   docs/
         //     intro.md
         //     templates/ (not traversed due to depth: 2)
-        mockReaddirFn.mockImplementation((dirPath: string) => {
+        mockReaddir.mockImplementation((dirPath) => {
           if (dirPath === basePath) {
             return Promise.resolve([
               makeDirent('docs', false, basePath),
@@ -947,7 +944,7 @@ describe('electron-node-api filesystem adapter', () => {
         //     data/ (different from root data/)
         //       notes.txt
         // This ensures the implementation uses full paths, not just names
-        mockReaddirFn.mockImplementation((dirPath: string) => {
+        mockReaddir.mockImplementation((dirPath) => {
           if (dirPath === basePath) {
             return Promise.resolve([
               makeDirent('index.md', true, basePath),
@@ -1114,23 +1111,20 @@ describe('electron-node-api filesystem adapter', () => {
     const mockNodeError = (code: string) =>
       Object.assign(new Error(code), { code });
 
-    const mockAccessFn = fs.access as jest.Mock;
-    const mockRenameFn = fs.rename as jest.Mock;
-
     const oldPath = path.join(basePath, 'notes.md');
     const newPath = path.join(basePath, 'renamed.md');
 
     it('renames the file when the target does not exist', async () => {
-      mockAccessFn.mockRejectedValue(mockNodeError('ENOENT'));
-      mockRenameFn.mockResolvedValue(undefined);
+      mockAccess.mockRejectedValue(mockNodeError('ENOENT'));
+      mockRename.mockResolvedValue(undefined);
 
       await Effect.runPromise(adapter.renameFile({ oldPath, newPath }));
 
-      expect(mockRenameFn).toHaveBeenCalledWith(oldPath, newPath);
+      expect(mockRename).toHaveBeenCalledWith(oldPath, newPath);
     });
 
     it('fails with AlreadyExistsError when the target already exists', async () => {
-      mockAccessFn.mockResolvedValue(undefined);
+      mockAccess.mockResolvedValue(undefined);
 
       // Effect.flip swaps the error and success channels, letting us
       // assert on the failure value via runPromise
@@ -1139,12 +1133,12 @@ describe('electron-node-api filesystem adapter', () => {
       );
 
       expect(err).toBeInstanceOf(AlreadyExistsError);
-      expect(mockRenameFn).not.toHaveBeenCalled();
+      expect(mockRename).not.toHaveBeenCalled();
     });
 
     it('fails with NotFoundError when the source file does not exist', async () => {
-      mockAccessFn.mockRejectedValue(mockNodeError('ENOENT'));
-      mockRenameFn.mockRejectedValue(mockNodeError('ENOENT'));
+      mockAccess.mockRejectedValue(mockNodeError('ENOENT'));
+      mockRename.mockRejectedValue(mockNodeError('ENOENT'));
 
       const err = await Effect.runPromise(
         Effect.flip(adapter.renameFile({ oldPath, newPath }))
@@ -1154,8 +1148,8 @@ describe('electron-node-api filesystem adapter', () => {
     });
 
     it('fails with AccessControlError on permission denied', async () => {
-      mockAccessFn.mockRejectedValue(mockNodeError('ENOENT'));
-      mockRenameFn.mockRejectedValue(mockNodeError('EACCES'));
+      mockAccess.mockRejectedValue(mockNodeError('ENOENT'));
+      mockRename.mockRejectedValue(mockNodeError('EACCES'));
 
       const err = await Effect.runPromise(
         Effect.flip(adapter.renameFile({ oldPath, newPath }))
@@ -1165,8 +1159,8 @@ describe('electron-node-api filesystem adapter', () => {
     });
 
     it('fails with RepositoryError for other Node.js errors', async () => {
-      mockAccessFn.mockRejectedValue(mockNodeError('ENOENT'));
-      mockRenameFn.mockRejectedValue(mockNodeError('EIO'));
+      mockAccess.mockRejectedValue(mockNodeError('ENOENT'));
+      mockRename.mockRejectedValue(mockNodeError('EIO'));
 
       const err = await Effect.runPromise(
         Effect.flip(adapter.renameFile({ oldPath, newPath }))
@@ -1176,8 +1170,8 @@ describe('electron-node-api filesystem adapter', () => {
     });
 
     it('fails with RepositoryError for non-Node.js errors', async () => {
-      mockAccessFn.mockRejectedValue(mockNodeError('ENOENT'));
-      mockRenameFn.mockRejectedValue(new TypeError('unexpected'));
+      mockAccess.mockRejectedValue(mockNodeError('ENOENT'));
+      mockRename.mockRejectedValue(new TypeError('unexpected'));
 
       const err = await Effect.runPromise(
         Effect.flip(adapter.renameFile({ oldPath, newPath }))
