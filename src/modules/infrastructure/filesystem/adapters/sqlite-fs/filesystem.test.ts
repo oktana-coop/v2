@@ -1,5 +1,4 @@
 import * as Effect from 'effect/Effect';
-import { describe, expect, it, vi } from 'vitest';
 
 import {
   AlreadyExistsError,

@@ -1,5 +1,3 @@
-import { describe, expect, it } from 'vitest';
-
 import { isMarkdown } from './detection';
 
 describe('isMarkdown', () => {

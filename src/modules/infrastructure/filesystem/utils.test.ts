@@ -1,5 +1,3 @@
-import { describe, expect, it } from 'vitest';
-
 import { getDirectoryName, removeExtension, removePath } from './utils';
 
 describe('filesystem/utils', () => {

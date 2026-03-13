@@ -2,16 +2,6 @@ import { type Dirent, promises as fs } from 'node:fs';
 import path from 'node:path';
 
 import * as Effect from 'effect/Effect';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-vi.mock('node:fs', () => {
-  const promises = {
-    access: vi.fn(),
-    readdir: vi.fn(),
-    rename: vi.fn(),
-  };
-  return { default: { promises }, promises };
-});
 
 import { filesystemItemTypes } from '../../constants/filesystem-item-types';
 import {
@@ -21,6 +11,15 @@ import {
   RepositoryError,
 } from '../../errors';
 import { createAdapter } from './index';
+
+vi.mock('node:fs', () => {
+  const promises = {
+    access: vi.fn(),
+    readdir: vi.fn(),
+    rename: vi.fn(),
+  };
+  return { default: { promises }, promises };
+});
 
 // Helper that mimics the Dirent objects returned by fs.readdir
 // when called with { withFileTypes: true }

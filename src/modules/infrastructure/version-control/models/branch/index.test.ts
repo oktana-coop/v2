@@ -1,5 +1,3 @@
-import { describe, expect, it } from 'vitest';
-
 import { isValidBranchOrTagName, parseBranch } from './index';
 
 describe('Branch', () => {

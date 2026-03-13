@@ -1,5 +1,3 @@
-import { describe, expect, it } from 'vitest';
-
 import { isHidden, isNodeError, pathContainsHiddenEntries } from './utils';
 
 describe('pathContainsHiddenEntries', () => {

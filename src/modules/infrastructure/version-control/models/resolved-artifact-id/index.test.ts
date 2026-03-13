@@ -1,5 +1,3 @@
-import { describe, expect, it } from 'vitest';
-
 import { isGitBlobRef, isValidResolvedArtifactId } from './index';
 import { createGitBlobRef, decomposeGitBlobRef } from './utils';
 
