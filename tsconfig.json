@@ -23,13 +23,9 @@
 
     /* Types */
     // https://stackoverflow.com/a/71343465
-    "types": [
-      "jest",
-      "@testing-library/jest-dom",
-      "@types/wicg-file-system-access"
-    ],
+    "types": ["vitest/globals", "@types/wicg-file-system-access"],
     "sourceMap": true
   },
-  "include": ["src", "./jest.setup.ts", "./renderer.d.ts"],
+  "include": ["src", "./vitest.setup.ts", "./renderer.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

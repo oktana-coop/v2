@@ -1,11 +1,3 @@
-jest.mock('node:fs', () => ({
-  promises: {
-    access: jest.fn(),
-    readdir: jest.fn(),
-    rename: jest.fn(),
-  },
-}));
-
 import { type Dirent, promises as fs } from 'node:fs';
 import path from 'node:path';
 
@@ -19,6 +11,15 @@ import {
   RepositoryError,
 } from '../../errors';
 import { createAdapter } from './index';
+
+vi.mock('node:fs', () => {
+  const promises = {
+    access: vi.fn(),
+    readdir: vi.fn(),
+    rename: vi.fn(),
+  };
+  return { default: { promises }, promises };
+});
 
 // Helper that mimics the Dirent objects returned by fs.readdir
 // when called with { withFileTypes: true }
@@ -42,12 +43,12 @@ describe('electron-node-api filesystem adapter', () => {
       ? 'C:\\Users\\alice\\Documents'
       : '/Users/alice/Documents';
 
-  const mockAccess = jest.mocked(fs.access);
-  const mockReaddir = jest.mocked(fs.readdir);
-  const mockRename = jest.mocked(fs.rename);
+  const mockAccess = vi.mocked(fs.access);
+  const mockReaddir = vi.mocked(fs.readdir);
+  const mockRename = vi.mocked(fs.rename);
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('listDirectoryFiles', () => {
