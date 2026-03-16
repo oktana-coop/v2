@@ -1,4 +1,11 @@
 import { ElectronApplication, Page } from '@playwright/test';
+import * as os from 'os';
+
+/**
+ * Returns the platform-appropriate modifier key for keyboard shortcuts.
+ * macOS uses Meta (Cmd), Linux/Windows use Control.
+ */
+export const modKey = os.platform() === 'darwin' ? 'Meta' : 'Control';
 
 /**
  * Opens a project folder in the app by:
@@ -182,7 +189,7 @@ export const clearEditor = async ({
 }): Promise<void> => {
   const editor = window.locator('.ProseMirror');
   await editor.click();
-  await window.keyboard.press('Meta+a');
+  await window.keyboard.press(`${modKey}+a`);
   await window.keyboard.press('Backspace');
 };
 

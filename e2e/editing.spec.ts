@@ -5,6 +5,7 @@ import {
   clearEditor,
   clickToolbarButton,
   getEditorHTML,
+  modKey,
   openEditorToolbar,
   openHelloMd,
   openProjectFolder,
@@ -374,7 +375,7 @@ test.describe('undo', () => {
       'temporary text'
     );
 
-    await window.keyboard.press('Meta+z');
+    await window.keyboard.press(`${modKey}+z`);
 
     await expect(window.locator('.ProseMirror')).not.toContainText(
       'temporary text'
@@ -390,14 +391,14 @@ test.describe('undo', () => {
     await clearEditor({ window });
 
     await typeInEditor({ window, text: 'plain text' });
-    await window.keyboard.press('Meta+a');
-    await window.keyboard.press('Meta+b');
+    await window.keyboard.press(`${modKey}+a`);
+    await window.keyboard.press(`${modKey}+b`);
 
     await expect(window.locator('.ProseMirror strong')).toContainText(
       'plain text'
     );
 
-    await window.keyboard.press('Meta+z');
+    await window.keyboard.press(`${modKey}+z`);
 
     await expect(window.locator('.ProseMirror')).toContainText('plain text');
     await expect(window.locator('.ProseMirror strong')).toHaveCount(0);
@@ -414,10 +415,10 @@ test.describe('undo', () => {
     await typeInEditor({ window, text: 'redo me' });
     await expect(window.locator('.ProseMirror')).toContainText('redo me');
 
-    await window.keyboard.press('Meta+z');
+    await window.keyboard.press(`${modKey}+z`);
     await expect(window.locator('.ProseMirror')).not.toContainText('redo me');
 
-    await window.keyboard.press('Meta+Shift+z');
+    await window.keyboard.press(`${modKey}+Shift+z`);
     await expect(window.locator('.ProseMirror')).toContainText('redo me');
   });
 });
@@ -478,7 +479,7 @@ test.describe('links', () => {
     await typeInEditorAndWaitForDebounce({ window, text });
     await window.keyboard.press('Home');
     await window.keyboard.press('Shift+End');
-    await window.keyboard.press('Meta+Shift+l');
+    await window.keyboard.press(`${modKey}+Shift+l`);
 
     const titleInput = window.locator('input[name="title"]');
     await titleInput.waitFor({ state: 'visible', timeout: 2_000 });
@@ -631,15 +632,15 @@ test.describe('additional editing', () => {
     await clearEditor({ window });
 
     await typeInEditor({ window, text: 'bold text' });
-    await window.keyboard.press('Meta+a');
-    await window.keyboard.press('Meta+b');
+    await window.keyboard.press(`${modKey}+a`);
+    await window.keyboard.press(`${modKey}+b`);
 
     await expect(window.locator('.ProseMirror strong')).toContainText(
       'bold text'
     );
 
     // Toggle off
-    await window.keyboard.press('Meta+b');
+    await window.keyboard.press(`${modKey}+b`);
     await expect(window.locator('.ProseMirror strong')).toHaveCount(0);
     await expect(window.locator('.ProseMirror')).toContainText('bold text');
   });
@@ -653,15 +654,15 @@ test.describe('additional editing', () => {
     await clearEditor({ window });
 
     await typeInEditor({ window, text: 'italic text' });
-    await window.keyboard.press('Meta+a');
-    await window.keyboard.press('Meta+i');
+    await window.keyboard.press(`${modKey}+a`);
+    await window.keyboard.press(`${modKey}+i`);
 
     await expect(window.locator('.ProseMirror em')).toContainText(
       'italic text'
     );
 
     // Toggle off
-    await window.keyboard.press('Meta+i');
+    await window.keyboard.press(`${modKey}+i`);
     await expect(window.locator('.ProseMirror em')).toHaveCount(0);
     await expect(window.locator('.ProseMirror')).toContainText('italic text');
   });
