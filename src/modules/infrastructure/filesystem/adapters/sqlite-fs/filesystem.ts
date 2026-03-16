@@ -276,6 +276,28 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
       catch: mapErrorTo(RepositoryError, 'Could not compute renamed path'),
     });
 
+  // Inside the SQLite filesystem, we use posix paths independently of the host OS.
+  const isDescendantPath: Filesystem['isDescendantPath'] = ({
+    parent,
+    possibleDescendant,
+  }) =>
+    Effect.try({
+      try: () => {
+        const rel = path.posix.relative(
+          path.posix.resolve(parent),
+          path.posix.resolve(possibleDescendant)
+        );
+
+        return (
+          rel !== '' &&
+          !path.posix.isAbsolute(rel) &&
+          !rel.startsWith('..' + path.posix.sep) &&
+          rel !== '..'
+        );
+      },
+      catch: mapErrorTo(RepositoryError, 'Could not check path ancestry'),
+    });
+
   const deleteDirectory: Filesystem['deleteDirectory'] = ({ path: dirPath }) =>
     Effect.tryPromise({
       try: () => fs.rmdir(dirPath),
@@ -324,6 +346,7 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
     getRelativePath,
     getAbsolutePath,
     getRenamedPath,
+    isDescendantPath,
     createDirectory,
   };
 };

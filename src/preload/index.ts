@@ -156,6 +156,8 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
     ipcRenderer.invoke('get-absolute-path', { ...args }),
   getRenamedPath: (args: GetRenamedPathArgs) =>
     ipcRenderer.invoke('get-renamed-path', { ...args }),
+  isDescendantPath: (args) =>
+    ipcRenderer.invoke('is-descendant-path', { ...args }),
 } as FilesystemPromiseAPI);
 
 contextBridge.exposeInMainWorld('versionedDocumentStoreAPI', {

@@ -81,6 +81,11 @@ export type GetRenamedPathArgs = {
   newName: string;
 };
 
+export type IsDescendantPathArgs = {
+  parent: string;
+  possibleDescendant: string;
+};
+
 export type Filesystem = {
   openDirectory: () => Effect.Effect<
     Directory,
@@ -178,4 +183,7 @@ export type Filesystem = {
   getRenamedPath: (
     args: GetRenamedPathArgs
   ) => Effect.Effect<string, RepositoryError, never>;
+  isDescendantPath: (
+    args: IsDescendantPathArgs
+  ) => Effect.Effect<boolean, RepositoryError, never>;
 };

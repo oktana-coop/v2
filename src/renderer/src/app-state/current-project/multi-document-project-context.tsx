@@ -799,15 +799,25 @@ export const MultiDocumentProjectProvider = ({
               ),
               // If the currently selected file was inside the deleted directory,
               // clear selection and navigate away
-              Effect.tap(() =>
-                Effect.sync(() => {
-                  if (selectedFileInfo?.path?.startsWith(relativePath + '/')) {
-                    setSelectedFileInfo(null);
-                    navigate(
-                      `/projects/${urlEncodeProjectId(projectId)}/documents`
-                    );
-                  }
-                })
+              Effect.tap(
+                selectedFileInfo?.path
+                  ? pipe(
+                      filesystem.isDescendantPath({
+                        parent: relativePath,
+                        possibleDescendant: selectedFileInfo.path,
+                      }),
+                      Effect.flatMap((isDescendant) =>
+                        isDescendant
+                          ? Effect.sync(() => {
+                              setSelectedFileInfo(null);
+                              navigate(
+                                `/projects/${urlEncodeProjectId(projectId)}/documents`
+                              );
+                            })
+                          : Effect.void
+                      )
+                    )
+                  : Effect.void
               ),
               Effect.tap(() => Effect.sync(() => setDirectoryToDelete(null)))
             )

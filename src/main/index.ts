@@ -30,6 +30,7 @@ import {
   type GetAbsolutePathArgs,
   type GetRelativePathArgs,
   type GetRenamedPathArgs,
+  type IsDescendantPathArgs,
   type ListDirectoryFilesArgs,
   type ListDirectoryTreeArgs,
   type OpenFileArgs,
@@ -276,6 +277,9 @@ async function createWindow() {
   );
   ipcMain.handle('get-renamed-path', (_, args: GetRenamedPathArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.getRenamedPath(args))
+  );
+  ipcMain.handle('is-descendant-path', (_, args: IsDescendantPathArgs) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.isDescendantPath(args))
   );
   ipcMain.handle('create-directory', (_, args: CreateDirectoryArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.createDirectory(args))

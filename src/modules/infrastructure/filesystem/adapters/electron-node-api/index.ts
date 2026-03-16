@@ -627,6 +627,26 @@ export const createAdapter = (): Filesystem => {
       catch: mapErrorTo(RepositoryError, 'Could not compute renamed path'),
     });
 
+  const isDescendantPath: Filesystem['isDescendantPath'] = ({
+    parent,
+    possibleDescendant,
+  }) =>
+    Effect.try({
+      try: () => {
+        const rel = path.relative(
+          path.resolve(parent),
+          path.resolve(possibleDescendant)
+        );
+        return (
+          rel !== '' &&
+          !path.isAbsolute(rel) &&
+          !rel.startsWith('..' + path.sep) &&
+          rel !== '..'
+        );
+      },
+      catch: mapErrorTo(RepositoryError, 'Could not check path ancestry'),
+    });
+
   return {
     openDirectory,
     getDirectory,
@@ -645,6 +665,7 @@ export const createAdapter = (): Filesystem => {
     getRelativePath,
     getAbsolutePath,
     getRenamedPath,
+    isDescendantPath,
     createDirectory,
   };
 };

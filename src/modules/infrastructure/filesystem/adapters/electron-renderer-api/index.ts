@@ -211,4 +211,13 @@ export const createAdapter = (): Filesystem => ({
       >,
       RepositoryError
     )(window.filesystemAPI.getRenamedPath(...args)),
+  isDescendantPath: (...args: Parameters<Filesystem['isDescendantPath']>) =>
+    effectifyIPCPromise(
+      {
+        [FilesystemRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<Filesystem['isDescendantPath']>>
+      >,
+      RepositoryError
+    )(window.filesystemAPI.isDescendantPath(...args)),
 });

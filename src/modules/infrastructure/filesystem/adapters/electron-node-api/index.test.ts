@@ -1238,4 +1238,111 @@ describe('electron-node-api filesystem adapter', () => {
       expect(err).toBeInstanceOf(RepositoryError);
     });
   });
+
+  describe('isDescendantPath', () => {
+    const parent = path.join(basePath, 'alpha-folder');
+
+    it('returns true for a direct child file', async () => {
+      const result = await Effect.runPromise(
+        adapter.isDescendantPath({
+          parent,
+          possibleDescendant: path.join(parent, 'notes.md'),
+        })
+      );
+      expect(result).toBe(true);
+    });
+
+    it('returns true for a deeply nested file', async () => {
+      const result = await Effect.runPromise(
+        adapter.isDescendantPath({
+          parent,
+          possibleDescendant: path.join(parent, 'notes', 'nested-note.md'),
+        })
+      );
+      expect(result).toBe(true);
+    });
+
+    it('returns true for a nested directory', async () => {
+      const result = await Effect.runPromise(
+        adapter.isDescendantPath({
+          parent,
+          possibleDescendant: path.join(parent, 'subdir'),
+        })
+      );
+      expect(result).toBe(true);
+    });
+
+    it('returns false for the parent itself', async () => {
+      const result = await Effect.runPromise(
+        adapter.isDescendantPath({ parent, possibleDescendant: parent })
+      );
+      expect(result).toBe(false);
+    });
+
+    it('returns false for a sibling path sharing a name prefix', async () => {
+      const result = await Effect.runPromise(
+        adapter.isDescendantPath({
+          parent: path.join(basePath, 'alpha'),
+          possibleDescendant: path.join(basePath, 'alpha-folder', 'file.md'),
+        })
+      );
+      expect(result).toBe(false);
+    });
+
+    it('returns false for an unrelated path', async () => {
+      const result = await Effect.runPromise(
+        adapter.isDescendantPath({
+          parent,
+          possibleDescendant: path.join(basePath, 'beta-folder', 'file.md'),
+        })
+      );
+      expect(result).toBe(false);
+    });
+
+    it('returns false when possibleDescendant is the direct parent (rel = "..")', async () => {
+      const result = await Effect.runPromise(
+        adapter.isDescendantPath({
+          parent: path.join(parent, 'sub'),
+          possibleDescendant: parent,
+        })
+      );
+      expect(result).toBe(false);
+    });
+
+    it('returns false for an ancestor further up the tree', async () => {
+      const result = await Effect.runPromise(
+        adapter.isDescendantPath({
+          parent,
+          possibleDescendant: basePath,
+        })
+      );
+      expect(result).toBe(false);
+    });
+
+    it('handles redundant "." segments in paths', async () => {
+      const result = await Effect.runPromise(
+        adapter.isDescendantPath({
+          parent: path.join(parent, '.'),
+          possibleDescendant: path.join(parent, 'notes', '.', 'file.md'),
+        })
+      );
+      expect(result).toBe(true);
+    });
+
+    it('handles ".." segments that cancel out in paths', async () => {
+      const result = await Effect.runPromise(
+        adapter.isDescendantPath({
+          parent,
+          possibleDescendant: path.join(
+            parent,
+            'sub',
+            '..',
+            'notes',
+            'file.md'
+          ),
+        })
+      );
+      expect(result).toBe(true);
+    });
+  });
 });
