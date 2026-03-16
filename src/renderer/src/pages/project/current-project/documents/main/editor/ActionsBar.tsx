@@ -55,6 +55,7 @@ export const ActionsBar = ({
         <IconButton
           icon={<ToolbarToggleIcon />}
           onClick={handleToolbarToggle}
+          tooltip="Toggle Toolbar"
         />
         <IconButton
           onClick={handleCheckIconClick}

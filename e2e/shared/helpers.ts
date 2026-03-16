@@ -154,6 +154,84 @@ export const typeInEditor = async ({
 };
 
 /**
+ * Types text in the editor with a simulated delay between keystrokes,
+ * mimicking real user typing behavior.
+ */
+export const typeInEditorSlowly = async ({
+  window,
+  text,
+  delay = 50,
+}: {
+  window: Page;
+  text: string;
+  delay?: number;
+}): Promise<void> => {
+  const editor = window.locator('.ProseMirror');
+  await editor.click();
+  await window.keyboard.press('End');
+  await window.keyboard.type(text, { delay });
+};
+
+/**
+ * Clears all content in the ProseMirror editor by selecting all and deleting.
+ */
+export const clearEditor = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  const editor = window.locator('.ProseMirror');
+  await editor.click();
+  await window.keyboard.press('Meta+a');
+  await window.keyboard.press('Backspace');
+};
+
+/**
+ * Returns the inner HTML of the ProseMirror editor.
+ */
+export const getEditorHTML = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<string> => {
+  const editor = window.locator('.ProseMirror');
+  return editor.innerHTML();
+};
+
+/**
+ * Opens the editor toolbar by clicking the "Toggle Toolbar" button.
+ *
+ * Note: The toolbar uses absolute positioning with a CSS transition
+ * (bottom: -3rem → bottom: 1rem) inside an overflow-hidden container.
+ * Playwright may not consider the toolbar buttons "visible" due to
+ * clipping. Use clickToolbarButton() to interact with toolbar buttons.
+ */
+export const openEditorToolbar = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  await window.getByRole('button', { name: /toggle toolbar/i }).click();
+};
+
+/**
+ * Clicks a toolbar button by its aria-label.
+ *
+ * The toolbar is inside an overflow-hidden container (may be clipped) and
+ * the editor may remount due to debounce save cycles (destroying toolbar
+ * elements temporarily). This helper retries the click to handle both issues.
+ */
+export const clickToolbarButton = async ({
+  window,
+  label,
+}: {
+  window: Page;
+  label: string;
+}): Promise<void> => {
+  await window.getByRole('button', { name: label }).click();
+};
+
+/**
  * There is a debounce of (at the time of writing this) 300ms as the user is typing.
  * This function waits for this debounce period before returning.
  */
@@ -168,6 +246,33 @@ export const typeInEditorAndWaitForDebounce = async ({
 }): Promise<void> => {
   await typeInEditor({ window, text });
   await window.waitForTimeout(waitFor);
+};
+
+/**
+ * Pastes markdown text into the ProseMirror editor by dispatching a synthetic
+ * paste event. Waits briefly for the async paste plugin to process.
+ */
+export const pasteMarkdown = async ({
+  window,
+  text,
+}: {
+  window: Page;
+  text: string;
+}): Promise<void> => {
+  const editor = window.locator('.ProseMirror');
+  await editor.focus();
+  await window.evaluate((md: string) => {
+    const clipboardData = new DataTransfer();
+    clipboardData.setData('text/plain', md);
+    const event = new ClipboardEvent('paste', {
+      clipboardData,
+      bubbles: true,
+      cancelable: true,
+    });
+    document.querySelector('.ProseMirror')!.dispatchEvent(event);
+  }, text);
+  // The paste plugin is async (uses setTimeout(..., 0))
+  await window.waitForTimeout(200);
 };
 
 /**
