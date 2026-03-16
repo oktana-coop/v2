@@ -8,6 +8,7 @@ import {
   createNewSubfolderFromContextMenu,
   deleteFileFromContextMenu,
   deleteFolderFromContextMenu,
+  deleteKey,
   openHelloMd,
   openProjectFolder,
   renameFileFromContextMenu,
@@ -440,6 +441,32 @@ test.describe('file deletion', () => {
 
   // TODO: Test that deletion creates a VCS commit once we have a
   // project-commits view that can be asserted against in the UI.
+  test('delete a file via keyboard shortcut', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    // Click the file to focus it in the tree
+    await window.getByText('armadillo.md').click();
+
+    // Press the platform-appropriate delete shortcut
+    await window.keyboard.press(deleteKey);
+
+    await confirmDeletion({ window });
+
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer.getByText('armadillo.md')).not.toBeVisible({
+      timeout: 2_000,
+    });
+    // Other files should remain
+    await expect(explorer.getByText('zebra.md')).toBeVisible();
+  });
 
   test('cancel deletion keeps the file', async ({
     electronApp,
@@ -600,6 +627,37 @@ test.describe('folder deletion', () => {
     await confirmDeletion({ window });
 
     const explorer = window.getByTestId('file-explorer');
+    await expect(explorer.getByText('beta-folder')).not.toBeVisible({
+      timeout: 2_000,
+    });
+    await expect(explorer.getByText('beta-doc.md')).not.toBeVisible({
+      timeout: 2_000,
+    });
+    // Other folders should remain
+    await expect(explorer.getByText('alpha-folder')).toBeVisible();
+  });
+
+  test('delete a folder via keyboard shortcut', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    const explorer = window.getByTestId('file-explorer');
+
+    // Click the folder to focus it in the tree
+    await explorer.getByText('beta-folder').click();
+
+    // Press the platform-appropriate delete shortcut
+    await window.keyboard.press(deleteKey);
+
+    await confirmDeletion({ window });
+
     await expect(explorer.getByText('beta-folder')).not.toBeVisible({
       timeout: 2_000,
     });

@@ -14,6 +14,12 @@ export const modKey = os.platform() === 'darwin' ? 'Meta' : 'Control';
 export const renameKey = os.platform() === 'darwin' ? 'Enter' : 'F2';
 
 /**
+ * Returns the platform-appropriate shortcut for deleting a file/folder in the tree.
+ * macOS uses Cmd+Backspace, Linux/Windows use Ctrl+Backspace.
+ */
+export const deleteKey = `${modKey}+Backspace`;
+
+/**
  * Opens a project folder in the app by:
  * 1. Mocking Electron's showOpenDialog to return the given path
  * 2. Clicking the "Open Folder" button in the UI to trigger the flow

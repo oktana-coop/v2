@@ -35,6 +35,8 @@ const DirectoryTree = ({
   onClearRenameDirectoryError,
   directoryPathToRename,
   renameDirectoryError,
+  onStartDeleteDocument,
+  onStartDeleteDirectory,
 }: {
   directory: Directory | null;
   data: ExplorerTreeNode[];
@@ -55,6 +57,8 @@ const DirectoryTree = ({
   onClearRenameDirectoryError: () => void;
   directoryPathToRename: string | null;
   renameDirectoryError: string | null;
+  onStartDeleteDocument: (path: string) => void;
+  onStartDeleteDirectory: (path: string) => void;
 }) => {
   if (data.length > 0) {
     return (
@@ -82,6 +86,8 @@ const DirectoryTree = ({
           onClearRenameDirectoryError={onClearRenameDirectoryError}
           directoryPathToRename={directoryPathToRename}
           renameDirectoryError={renameDirectoryError}
+          onStartDeleteDocument={onStartDeleteDocument}
+          onStartDeleteDirectory={onStartDeleteDirectory}
         />
       </div>
     );
@@ -115,6 +121,8 @@ export const DirectoryTreeView = ({
     clearRenameDirectoryError,
     renameDirectory,
     cancelRenameDirectory,
+    startDeleteDocument,
+    startDeleteDirectory,
   } = useDocumentExplorerTree();
   const { canCreateDocument } = useCreateDocument();
 
@@ -165,6 +173,8 @@ export const DirectoryTreeView = ({
           onClearRenameDirectoryError={clearRenameDirectoryError}
           directoryPathToRename={directoryPathToRename}
           renameDirectoryError={renameDirectoryError}
+          onStartDeleteDocument={startDeleteDocument}
+          onStartDeleteDirectory={startDeleteDirectory}
         />
       ) : (
         <NoActiveDirectoryView />

@@ -137,9 +137,11 @@ export type MultiDocumentProjectContextType = {
   createDirectory: (name: string) => Promise<void>;
   cancelCreateDirectory: () => void;
   filePathToDelete: string | null;
+  startDeleteDocument: (path: string) => void;
   deleteDocument: (args: { relativePath: string }) => Promise<void>;
   cancelDeleteDocument: () => void;
   directoryPathToDelete: string | null;
+  startDeleteDirectory: (path: string) => void;
   deleteDirectory: (args: { relativePath: string }) => Promise<void>;
   cancelDeleteDirectory: () => void;
   filePathToRename: string | null;
@@ -186,9 +188,11 @@ export const MultiDocumentProjectContext =
     createDirectory: async () => null,
     cancelCreateDirectory: () => {},
     filePathToDelete: null,
+    startDeleteDocument: () => {},
     deleteDocument: async () => {},
     cancelDeleteDocument: () => {},
     directoryPathToDelete: null,
+    startDeleteDirectory: () => {},
     deleteDirectory: async () => {},
     cancelDeleteDirectory: () => {},
     filePathToRename: null,
@@ -1727,9 +1731,11 @@ export const MultiDocumentProjectProvider = ({
         createDirectory: handleCreateDirectory,
         cancelCreateDirectory,
         filePathToDelete,
+        startDeleteDocument: setFileToDelete,
         deleteDocument: handleDeleteDocument,
         cancelDeleteDocument: () => setFileToDelete(null),
         directoryPathToDelete,
+        startDeleteDirectory: setDirectoryToDelete,
         deleteDirectory: handleDeleteDirectory,
         cancelDeleteDirectory: () => setDirectoryToDelete(null),
         filePathToRename,

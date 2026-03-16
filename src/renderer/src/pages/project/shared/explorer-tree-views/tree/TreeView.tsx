@@ -62,6 +62,8 @@ export const TreeView = ({
   onClearRenameDirectoryError = () => {},
   directoryPathToRename = null,
   renameDirectoryError = null,
+  onStartDeleteDocument,
+  onStartDeleteDirectory,
 }: {
   data: ExplorerTreeNode[];
   selection: string | null;
@@ -80,6 +82,8 @@ export const TreeView = ({
   onClearRenameDirectoryError?: () => void;
   directoryPathToRename?: string | null;
   renameDirectoryError?: string | null;
+  onStartDeleteDocument?: (path: string) => void;
+  onStartDeleteDirectory?: (path: string) => void;
 }) => {
   const { isMac } = useContext(ElectronContext);
   const treeRef = useRef<TreeApi<ExplorerTreeNode>>(null);
@@ -98,13 +102,31 @@ export const TreeView = ({
     if (filePathToRename || directoryPathToRename) return;
 
     const isRenameKey = isMac ? e.key === 'Enter' : e.key === 'F2';
-    if (!isRenameKey) return;
+    const isDeleteKey =
+      e.key === 'Backspace' && (isMac ? e.metaKey : e.ctrlKey);
+
+    if (!isRenameKey && !isDeleteKey) return;
 
     const focused = treeRef.current?.focusedNode;
     if (!focused) return;
 
     e.preventDefault();
     e.stopPropagation();
+
+    if (isDeleteKey) {
+      if (
+        focused.data.type === filesystemItemTypes.FILE &&
+        onStartDeleteDocument
+      ) {
+        onStartDeleteDocument(focused.id);
+      } else if (
+        focused.data.type === filesystemItemTypes.DIRECTORY &&
+        onStartDeleteDirectory
+      ) {
+        onStartDeleteDirectory(focused.id);
+      }
+      return;
+    }
 
     if (
       focused.data.type === filesystemItemTypes.FILE &&
