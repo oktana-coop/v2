@@ -1,0 +1,63 @@
+name: E2E Tests
+on:
+  workflow_call:
+    secrets:
+      OKTANA_NPM_TOKEN:
+        required: true
+jobs:
+  e2e:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          lfs: true
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --shamefully-hoist
+        env:
+          OKTANA_NPM_TOKEN: ${{ secrets.OKTANA_NPM_TOKEN }}
+      # Required on Ubuntu runners: Electron's chrome-sandbox binary must be owned by root with setuid (4755).
+      # https://github.com/electron/electron/issues/42510
+      - name: Fix Electron sandbox permissions
+        if: runner.os == 'Linux'
+        run: sudo chown root:root node_modules/electron/dist/chrome-sandbox && sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
+      # Only needed on Linux; macOS/Windows bundle their own browser dependencies.
+      - name: Install Playwright system dependencies
+        if: runner.os == 'Linux'
+        run: npx playwright install-deps
+      - name: Build app
+        run: pnpm run build
+        env:
+          OKTANA_NPM_TOKEN: ${{ secrets.OKTANA_NPM_TOKEN }}
+          NODE_OPTIONS: '--max-old-space-size=4096'
+          VITE_USE_HISTORY_WORKER: 'false'
+          VITE_PRIMARY_RICH_TEXT_REPRESENTATION: 'MARKDOWN'
+          VITE_SINGLE_DOCUMENT_PROJECT_VCS: 'GIT'
+          VITE_MULTI_DOCUMENT_PROJECT_VCS: 'GIT'
+          VITE_PROJECT_TYPE: 'MULTI_DOCUMENT_PROJECT'
+          VITE_GITHUB_APP_CLIENT_ID: 'Iv23lin5DIAsGGXyb2XO'
+      # Linux has no display server in CI, so xvfb-run provides a virtual framebuffer.
+      # Other operating systems (Windows, macOS) can run Playwright directly.
+      - name: Run E2E tests (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum pnpm exec playwright test
+      - name: Run E2E tests
+        if: runner.os != 'Linux'
+        run: pnpm exec playwright test
+      - name: Upload E2E results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results-${{ matrix.os }}
+          path: e2e-results/
+          retention-days: 3
