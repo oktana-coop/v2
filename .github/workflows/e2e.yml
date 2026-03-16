@@ -10,6 +10,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      OKTANA_NPM_TOKEN: ${{ secrets.OKTANA_NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,8 +26,6 @@ jobs:
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install --shamefully-hoist
-        env:
-          OKTANA_NPM_TOKEN: ${{ secrets.OKTANA_NPM_TOKEN }}
       # Required on Ubuntu runners: Electron's chrome-sandbox binary must be owned by root with setuid (4755).
       # https://github.com/electron/electron/issues/42510
       - name: Fix Electron sandbox permissions
@@ -38,7 +38,6 @@ jobs:
       - name: Build app
         run: pnpm run build
         env:
-          OKTANA_NPM_TOKEN: ${{ secrets.OKTANA_NPM_TOKEN }}
           NODE_OPTIONS: '--max-old-space-size=4096'
           VITE_USE_HISTORY_WORKER: 'false'
           VITE_PRIMARY_RICH_TEXT_REPRESENTATION: 'MARKDOWN'
