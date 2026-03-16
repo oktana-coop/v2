@@ -143,6 +143,7 @@ export type MultiDocumentProjectContextType = {
   deleteDirectory: (args: { relativePath: string }) => Promise<void>;
   cancelDeleteDirectory: () => void;
   filePathToRename: string | null;
+  startRenameDocument: (path: string) => void;
   renameDocumentError: string | null;
   clearRenameDocumentError: () => void;
   renameDocument: (args: {
@@ -151,6 +152,7 @@ export type MultiDocumentProjectContextType = {
   }) => Promise<void>;
   cancelRenameDocument: () => void;
   directoryPathToRename: string | null;
+  startRenameDirectory: (path: string) => void;
   renameDirectoryError: string | null;
   clearRenameDirectoryError: () => void;
   renameDirectory: (args: {
@@ -190,11 +192,13 @@ export const MultiDocumentProjectContext =
     deleteDirectory: async () => {},
     cancelDeleteDirectory: () => {},
     filePathToRename: null,
+    startRenameDocument: () => {},
     renameDocumentError: null,
     clearRenameDocumentError: () => {},
     renameDocument: async () => {},
     cancelRenameDocument: () => {},
     directoryPathToRename: null,
+    startRenameDirectory: () => {},
     renameDirectoryError: null,
     clearRenameDirectoryError: () => {},
     renameDirectory: async () => {},
@@ -260,6 +264,17 @@ export const MultiDocumentProjectProvider = ({
   const [renameDirectoryError, setRenameDirectoryError] = useState<
     string | null
   >(null);
+
+  const startRenameDocument = useCallback((path: string) => {
+    setDocumentPathToRename(path);
+    setRenameDocumentError(null);
+  }, []);
+
+  const startRenameDirectory = useCallback((path: string) => {
+    setDirectoryPathToRename(path);
+    setRenameDirectoryError(null);
+  }, []);
+
   const navigate = useNavigate();
   const navigateToResolveMergeConflicts = useNavigateToResolveConflicts();
 
@@ -1718,11 +1733,13 @@ export const MultiDocumentProjectProvider = ({
         deleteDirectory: handleDeleteDirectory,
         cancelDeleteDirectory: () => setDirectoryToDelete(null),
         filePathToRename,
+        startRenameDocument,
         renameDocumentError,
         clearRenameDocumentError,
         renameDocument: handleRenameDocument,
         cancelRenameDocument,
         directoryPathToRename,
+        startRenameDirectory,
         renameDirectoryError,
         clearRenameDirectoryError,
         renameDirectory: handleRenameDirectory,

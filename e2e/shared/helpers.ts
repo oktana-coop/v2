@@ -8,6 +8,12 @@ import * as os from 'os';
 export const modKey = os.platform() === 'darwin' ? 'Meta' : 'Control';
 
 /**
+ * Returns the platform-appropriate key for triggering rename in the file tree.
+ * macOS uses Enter (like Finder), Linux/Windows use F2 (like File Explorer).
+ */
+export const renameKey = os.platform() === 'darwin' ? 'Enter' : 'F2';
+
+/**
  * Opens a project folder in the app by:
  * 1. Mocking Electron's showOpenDialog to return the given path
  * 2. Clicking the "Open Folder" button in the UI to trigger the flow

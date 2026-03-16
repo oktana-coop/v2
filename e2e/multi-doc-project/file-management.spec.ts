@@ -12,6 +12,7 @@ import {
   openProjectFolder,
   renameFileFromContextMenu,
   renameFolderFromContextMenu,
+  renameKey,
   typeInEditor,
   typeInEditorAndWaitForDebounce,
 } from '../shared/helpers';
@@ -799,6 +800,38 @@ test.describe('file rename', () => {
     await expect(input).toHaveAttribute('title');
     await expect(explorer.getByText('world')).toBeVisible();
   });
+
+  test('rename a file via keyboard shortcut', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    // Click the file to select it (left click)
+    await window.getByText('beta-doc.md').click();
+
+    // Press the platform-appropriate rename key (Enter on Mac, F2 on Linux/Windows)
+    await window.keyboard.press(renameKey);
+
+    const input = window.locator('input[type="text"]');
+    await input.waitFor({ state: 'visible', timeout: 500 });
+
+    await input.fill('keyboard-renamed');
+    await window.keyboard.press('Enter');
+
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer.getByText('keyboard-renamed')).toBeVisible({
+      timeout: 2_000,
+    });
+    await expect(explorer.getByText('beta-doc.md')).not.toBeVisible({
+      timeout: 2_000,
+    });
+  });
 });
 
 test.describe('folder rename', () => {
@@ -953,5 +986,39 @@ test.describe('folder rename', () => {
     // The conflicting folder still exists (alpha-folder is in rename mode so its
     // text is inside the input, not a text node — check beta-folder instead)
     await expect(explorer.getByText('beta-folder')).toBeVisible();
+  });
+
+  test('rename a folder via keyboard shortcut', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    const explorer = window.getByTestId('file-explorer');
+
+    // Click the folder to select it (left click)
+    await explorer.getByText('beta-folder').click();
+
+    // Press the platform-appropriate rename key (Enter on Mac, F2 on Linux/Windows)
+    await window.keyboard.press(renameKey);
+
+    const input = window.locator('input[type="text"]');
+    await input.waitFor({ state: 'visible', timeout: 500 });
+
+    await input.clear();
+    await input.fill('keyboard-renamed-folder');
+    await window.keyboard.press('Enter');
+
+    await expect(explorer.getByText('keyboard-renamed-folder')).toBeVisible({
+      timeout: 2_000,
+    });
+    await expect(explorer.getByText('beta-folder')).not.toBeVisible({
+      timeout: 2_000,
+    });
   });
 });

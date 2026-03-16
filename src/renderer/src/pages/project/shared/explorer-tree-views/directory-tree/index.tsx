@@ -23,11 +23,13 @@ const DirectoryTree = ({
   onSelectItem,
   onCreateDirectory,
   onCancelCreateDirectory,
+  onStartRenameDocument,
   onRenameDocument,
   onCancelRenameDocument,
   onClearRenameDocumentError,
   filePathToRename,
   renameDocumentError,
+  onStartRenameDirectory,
   onRenameDirectory,
   onCancelRenameDirectory,
   onClearRenameDirectoryError,
@@ -41,11 +43,13 @@ const DirectoryTree = ({
   onSelectItem: (id: string) => Promise<void>;
   onCreateDirectory: (name: string) => Promise<void>;
   onCancelCreateDirectory: () => void;
+  onStartRenameDocument: (path: string) => void;
   onRenameDocument: (oldPath: string, newName: string) => Promise<void>;
   onCancelRenameDocument: () => void;
   onClearRenameDocumentError: () => void;
   filePathToRename: string | null;
   renameDocumentError: string | null;
+  onStartRenameDirectory: (path: string) => void;
   onRenameDirectory: (oldPath: string, newName: string) => Promise<void>;
   onCancelRenameDirectory: () => void;
   onClearRenameDirectoryError: () => void;
@@ -66,11 +70,13 @@ const DirectoryTree = ({
           onSelectItem={onSelectItem}
           onCreateDirectory={onCreateDirectory}
           onCancelCreateDirectory={onCancelCreateDirectory}
+          onStartRenameDocument={onStartRenameDocument}
           onRenameDocument={onRenameDocument}
           onCancelRenameDocument={onCancelRenameDocument}
           onClearRenameDocumentError={onClearRenameDocumentError}
           filePathToRename={filePathToRename}
           renameDocumentError={renameDocumentError}
+          onStartRenameDirectory={onStartRenameDirectory}
           onRenameDirectory={onRenameDirectory}
           onCancelRenameDirectory={onCancelRenameDirectory}
           onClearRenameDirectoryError={onClearRenameDirectoryError}
@@ -98,11 +104,13 @@ export const DirectoryTreeView = ({
     createDirectory,
     cancelCreateDirectory,
     filePathToRename,
+    startRenameDocument,
     renameDocumentError,
     clearRenameDocumentError,
     renameDocument,
     cancelRenameDocument,
     directoryPathToRename,
+    startRenameDirectory,
     renameDirectoryError,
     clearRenameDirectoryError,
     renameDirectory,
@@ -145,11 +153,13 @@ export const DirectoryTreeView = ({
           onSelectItem={handleDocumentSelection}
           onCreateDirectory={createDirectory}
           onCancelCreateDirectory={cancelCreateDirectory}
+          onStartRenameDocument={startRenameDocument}
           onRenameDocument={handleRenameDocument}
           onCancelRenameDocument={cancelRenameDocument}
           onClearRenameDocumentError={clearRenameDocumentError}
           filePathToRename={filePathToRename}
           renameDocumentError={renameDocumentError}
+          onStartRenameDirectory={startRenameDirectory}
           onRenameDirectory={handleRenameDirectory}
           onCancelRenameDirectory={cancelRenameDirectory}
           onClearRenameDirectoryError={clearRenameDirectoryError}

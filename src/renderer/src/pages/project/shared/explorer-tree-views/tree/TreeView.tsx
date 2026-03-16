@@ -1,7 +1,8 @@
-import { createContext, useContext } from 'react';
-import { type NodeApi, Tree } from 'react-arborist';
+import { createContext, useContext, useRef } from 'react';
+import { type NodeApi, Tree, type TreeApi } from 'react-arborist';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 
+import { ElectronContext } from '../../../../../../../modules/infrastructure/cross-platform/browser';
 import { filesystemItemTypes } from '../../../../../../../modules/infrastructure/filesystem';
 import {
   type ExplorerTreeNode,
@@ -49,11 +50,13 @@ export const TreeView = ({
   onSelectItem,
   onCreateDirectory = async () => {},
   onCancelCreateDirectory = () => {},
+  onStartRenameDocument,
   onRenameDocument = async () => {},
   onCancelRenameDocument = () => {},
   onClearRenameDocumentError = () => {},
   filePathToRename = null,
   renameDocumentError = null,
+  onStartRenameDirectory,
   onRenameDirectory = async () => {},
   onCancelRenameDirectory = () => {},
   onClearRenameDirectoryError = () => {},
@@ -65,23 +68,54 @@ export const TreeView = ({
   onSelectItem: (id: string) => Promise<void>;
   onCreateDirectory?: (name: string) => Promise<void>;
   onCancelCreateDirectory?: () => void;
+  onStartRenameDocument?: (path: string) => void;
   onRenameDocument?: (oldPath: string, newName: string) => Promise<void>;
   onCancelRenameDocument?: () => void;
   onClearRenameDocumentError?: () => void;
   filePathToRename?: string | null;
   renameDocumentError?: string | null;
+  onStartRenameDirectory?: (path: string) => void;
   onRenameDirectory?: (oldPath: string, newName: string) => Promise<void>;
   onCancelRenameDirectory?: () => void;
   onClearRenameDirectoryError?: () => void;
   directoryPathToRename?: string | null;
   renameDirectoryError?: string | null;
 }) => {
+  const { isMac } = useContext(ElectronContext);
+  const treeRef = useRef<TreeApi<ExplorerTreeNode>>(null);
+
   const handleActivate = (node: NodeApi<ExplorerTreeNode>) => {
     if (
       node.data.type === filesystemItemTypes.FILE ||
       node.data.type === STRUCTURAL_CONFLICTS_NODE_TYPE
     ) {
       onSelectItem(node.id);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Don't intercept when a rename is already in progress
+    if (filePathToRename || directoryPathToRename) return;
+
+    const isRenameKey = isMac ? e.key === 'Enter' : e.key === 'F2';
+    if (!isRenameKey) return;
+
+    const focused = treeRef.current?.focusedNode;
+    if (!focused) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (
+      focused.data.type === filesystemItemTypes.FILE &&
+      onStartRenameDocument
+    ) {
+      onStartRenameDocument(focused.id);
+    } else if (
+      focused.data.type === filesystemItemTypes.DIRECTORY &&
+      onStartRenameDirectory
+    ) {
+      onStartRenameDirectory(focused.id);
     }
   };
 
@@ -105,10 +139,12 @@ export const TreeView = ({
       <div
         className="flex-1 overflow-hidden"
         style={{ scrollbarColor: 'inherit', scrollbarWidth: 'inherit' }}
+        onKeyDownCapture={handleKeyDown}
       >
         <AutoSizer
           renderProp={({ width, height }) => (
             <Tree
+              ref={treeRef}
               data={data}
               selection={selection ?? undefined}
               width={width ?? '100%'}
