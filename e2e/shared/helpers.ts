@@ -26,6 +26,12 @@ export const deleteKey = `${modKey}+Backspace`;
 export const newFileKey = `${modKey}+n`;
 
 /**
+ * Returns the platform-appropriate shortcut for creating a new folder.
+ * macOS uses Cmd+Option+N, Linux/Windows use Ctrl+Alt+N.
+ */
+export const newFolderKey = `${modKey}+Alt+n`;
+
+/**
  * Opens a project folder in the app by:
  * 1. Mocking Electron's showOpenDialog to return the given path
  * 2. Clicking the "Open Folder" button in the UI to trigger the flow

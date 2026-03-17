@@ -65,6 +65,8 @@ export const TreeView = ({
   onStartDeleteDocument,
   onStartDeleteDirectory,
   onCreateNewFile,
+  onStartCreateDirectory,
+  hasPendingNewDirectory = false,
 }: {
   data: ExplorerTreeNode[];
   selection: string | null;
@@ -86,6 +88,8 @@ export const TreeView = ({
   onStartDeleteDocument?: (path: string) => void;
   onStartDeleteDirectory?: (path: string) => void;
   onCreateNewFile?: (parentPath?: string) => Promise<void>;
+  onStartCreateDirectory?: (parentPath?: string) => void;
+  hasPendingNewDirectory?: boolean;
 }) => {
   const { isMac } = useContext(ElectronContext);
   const treeRef = useRef<TreeApi<ExplorerTreeNode>>(null);
@@ -104,18 +108,24 @@ export const TreeView = ({
   ): string | undefined => {
     if (!focused) return undefined;
     if (focused.data.type === filesystemItemTypes.DIRECTORY) return focused.id;
-    return focused.parent?.id ?? undefined;
+    const parentId = focused.parent?.id;
+    if (!parentId || focused.parent?.isRoot) return undefined;
+    return parentId;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (filePathToRename || directoryPathToRename) return;
+    if (filePathToRename || directoryPathToRename || hasPendingNewDirectory)
+      return;
 
     const modKey = isMac ? e.metaKey : e.ctrlKey;
     const isNewFileKey = e.key === 'n' && modKey && !e.shiftKey && !e.altKey;
+    const isNewDirectoryKey =
+      e.code === 'KeyN' && modKey && !e.shiftKey && e.altKey;
     const isDeleteKey = e.key === 'Backspace' && modKey;
     const isRenameKey = isMac ? e.key === 'Enter' : e.key === 'F2';
 
-    if (!isNewFileKey && !isDeleteKey && !isRenameKey) return;
+    if (!isNewFileKey && !isNewDirectoryKey && !isDeleteKey && !isRenameKey)
+      return;
 
     const focused = treeRef.current?.focusedNode ?? null;
 
@@ -124,6 +134,21 @@ export const TreeView = ({
       e.preventDefault();
       e.stopPropagation();
       onCreateNewFile(getNewFileParentPath(focused));
+      return;
+    }
+
+    // New directory: works with or without a focused node
+    if (isNewDirectoryKey && onStartCreateDirectory) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const parentPath = getNewFileParentPath(focused);
+      if (parentPath) {
+        // Expand the parent directory
+        treeRef.current?.open(parentPath);
+      }
+      onStartCreateDirectory(parentPath);
+
       return;
     }
 

@@ -81,7 +81,7 @@ type CreateNewDocumentArgs = {
 };
 
 type PendingNewDirectory = {
-  parentPath: string;
+  parentPath?: string;
 };
 
 export type MultiDocumentProjectContextType = {
@@ -134,6 +134,7 @@ export type MultiDocumentProjectContextType = {
   pulledUpstreamChanges: boolean;
   onHandlePulledUpstreamChanges: () => void;
   pendingNewDirectory: PendingNewDirectory | null;
+  startCreateDirectory: (parentPath?: string) => void;
   createDirectory: (name: string) => Promise<void>;
   cancelCreateDirectory: () => void;
   filePathToDelete: string | null;
@@ -184,6 +185,7 @@ export const MultiDocumentProjectContext =
     setSelectedFileInfo: async () => {},
     clearFileSelection: async () => {},
     pendingNewDirectory: null,
+    startCreateDirectory: () => {},
     // @ts-expect-error will get overriden below
     createDirectory: async () => null,
     cancelCreateDirectory: () => {},
@@ -584,15 +586,17 @@ export const MultiDocumentProjectProvider = ({
   );
 
   const handleCreateDirectory = useCallback(
-    async (name: string) => {
-      if (!directory || !pendingNewDirectory) return;
+    (name: string) => {
+      if (!directory || !pendingNewDirectory) return Promise.resolve();
 
-      await Effect.runPromise(
+      return Effect.runPromise(
         pipe(
-          filesystem.getAbsolutePath({
-            path: pendingNewDirectory.parentPath,
-            dirPath: directory.path,
-          }),
+          pendingNewDirectory.parentPath
+            ? filesystem.getAbsolutePath({
+                path: pendingNewDirectory.parentPath,
+                dirPath: directory.path,
+              })
+            : Effect.succeed(directory.path),
           Effect.flatMap((parentAbsolutePath) =>
             filesystem.createDirectory({
               name,
@@ -603,32 +607,34 @@ export const MultiDocumentProjectProvider = ({
                 permissionState: 'granted' as PermissionState,
               },
             })
-          )
+          ),
+          Effect.tap(() =>
+            directory.permissionState === 'granted' && directory.path
+              ? pipe(
+                  filesystem.listDirectoryTree({
+                    path: directory.path,
+                    extensions: [
+                      richTextRepresentationExtensions[
+                        PRIMARY_RICH_TEXT_REPRESENTATION
+                      ],
+                    ],
+                    useRelativePathTo: directory.path,
+                  }),
+                  Effect.map((dirTree) => setDirectoryTree(dirTree))
+                )
+              : Effect.void
+          ),
+          Effect.tap(() => Effect.sync(() => setPendingNewDirectory(null))),
+          Effect.asVoid
         )
       );
-
-      setPendingNewDirectory(null);
-
-      if (
-        directory &&
-        directory.permissionState === 'granted' &&
-        directory.path
-      ) {
-        const dirTree = await Effect.runPromise(
-          filesystem.listDirectoryTree({
-            path: directory.path,
-            extensions: [
-              richTextRepresentationExtensions[
-                PRIMARY_RICH_TEXT_REPRESENTATION
-              ],
-            ],
-            useRelativePathTo: directory.path,
-          })
-        );
-        setDirectoryTree(dirTree);
-      }
     },
     [filesystem, directory, pendingNewDirectory]
+  );
+
+  const startCreateDirectory = useCallback(
+    (parentPath?: string) => setPendingNewDirectory({ parentPath }),
+    []
   );
 
   const cancelCreateDirectory = useCallback(() => {
@@ -1728,6 +1734,7 @@ export const MultiDocumentProjectProvider = ({
         pulledUpstreamChanges,
         onHandlePulledUpstreamChanges: resetPulledUpstreamChanges,
         pendingNewDirectory,
+        startCreateDirectory,
         createDirectory: handleCreateDirectory,
         cancelCreateDirectory,
         filePathToDelete,

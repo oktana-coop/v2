@@ -11,6 +11,7 @@ import {
   deleteKey,
   mockCreateNewFile,
   newFileKey,
+  newFolderKey,
   openHelloMd,
   openProjectFolder,
   renameFileFromContextMenu,
@@ -448,6 +449,88 @@ test.describe('nested directory structure', () => {
 
     const explorer = window.getByTestId('file-explorer');
     await expect(explorer).toContainText('sibling-new');
+  });
+
+  test('create a new folder via keyboard shortcut with no tree focus', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    // Click the sidebar heading to give the window focus without focusing any tree node
+    await window.getByText('File Explorer').click();
+
+    await window.keyboard.press(newFolderKey);
+
+    const input = window.locator('input[type="text"]');
+    await input.waitFor({ state: 'visible', timeout: 500 });
+
+    await input.fill('root-folder');
+    await window.keyboard.press('Enter');
+
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer).toContainText('root-folder', { timeout: 500 });
+  });
+
+  test('create a new folder via keyboard shortcut on a directory', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    // Click a directory to focus it in the tree
+    await window.getByText('beta-folder').click();
+
+    await window.keyboard.press(newFolderKey);
+
+    const input = window.locator('input[type="text"]');
+    await input.waitFor({ state: 'visible', timeout: 500 });
+
+    await input.fill('sub-in-beta');
+    await window.keyboard.press('Enter');
+
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer).toContainText('sub-in-beta', { timeout: 500 });
+  });
+
+  test('create a new folder via keyboard shortcut on a file', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    const explorer = window.getByTestId('file-explorer');
+
+    // Click the file to open it, then click again to move focus back
+    // from the editor to the tree node.
+    await explorer.getByText('armadillo.md').click();
+    await window.waitForSelector('.ProseMirror', { timeout: 2_000 });
+    await explorer.getByText('armadillo.md').click();
+
+    await window.keyboard.press(newFolderKey);
+
+    const input = window.locator('input[type="text"]');
+    await input.waitFor({ state: 'visible', timeout: 1_000 });
+
+    await input.fill('new-from-file');
+    await window.keyboard.press('Enter');
+
+    await expect(explorer).toContainText('new-from-file', { timeout: 1_000 });
   });
 });
 

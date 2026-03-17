@@ -38,6 +38,8 @@ const DirectoryTree = ({
   onStartDeleteDocument,
   onStartDeleteDirectory,
   onCreateNewFile,
+  onStartCreateDirectory,
+  hasPendingNewDirectory,
 }: {
   directory: Directory | null;
   data: ExplorerTreeNode[];
@@ -61,6 +63,8 @@ const DirectoryTree = ({
   onStartDeleteDocument: (path: string) => void;
   onStartDeleteDirectory: (path: string) => void;
   onCreateNewFile?: (parentPath?: string) => Promise<void>;
+  onStartCreateDirectory?: (parentPath?: string) => void;
+  hasPendingNewDirectory?: boolean;
 }) => {
   if (data.length > 0) {
     return (
@@ -91,6 +95,8 @@ const DirectoryTree = ({
           onStartDeleteDocument={onStartDeleteDocument}
           onStartDeleteDirectory={onStartDeleteDirectory}
           onCreateNewFile={onCreateNewFile}
+          onStartCreateDirectory={onStartCreateDirectory}
+          hasPendingNewDirectory={hasPendingNewDirectory}
         />
       </div>
     );
@@ -110,6 +116,8 @@ export const DirectoryTreeView = ({
     explorerTree: documents,
     canShowTree,
     selection,
+    hasPendingNewDirectory,
+    startCreateDirectory,
     createDirectory,
     cancelCreateDirectory,
     filePathToRename,
@@ -183,6 +191,8 @@ export const DirectoryTreeView = ({
           onStartDeleteDocument={startDeleteDocument}
           onStartDeleteDirectory={startDeleteDirectory}
           onCreateNewFile={handleCreateNewFile}
+          onStartCreateDirectory={startCreateDirectory}
+          hasPendingNewDirectory={hasPendingNewDirectory}
         />
       ) : (
         <NoActiveDirectoryView />

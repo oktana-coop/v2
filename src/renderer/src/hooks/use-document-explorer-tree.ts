@@ -36,19 +36,22 @@ export type DocumentListItem = {
 
 const injectPendingDirectoryNode = (
   nodes: ExplorerTreeNode[],
-  parentPath: string
-): ExplorerTreeNode[] =>
-  nodes.map((node) => {
+  parentPath?: string
+): ExplorerTreeNode[] => {
+  const pendingDirectoryNode: ExplorerTreeNode = {
+    id: NEW_DIRECTORY_NODE_ID,
+    name: '',
+    type: filesystemItemTypes.DIRECTORY,
+    children: [],
+  };
+
+  if (!parentPath) return [pendingDirectoryNode, ...nodes];
+
+  return nodes.map((node) => {
     if (node.type === filesystemItemTypes.DIRECTORY && node.id === parentPath) {
-      const pendingNode: ExplorerTreeNode = {
-        id: NEW_DIRECTORY_NODE_ID,
-        name: '',
-        type: filesystemItemTypes.DIRECTORY,
-        children: [],
-      };
       return {
         ...node,
-        children: [pendingNode, ...(node.children ?? [])],
+        children: [pendingDirectoryNode, ...(node.children ?? [])],
       };
     }
 
@@ -61,6 +64,7 @@ const injectPendingDirectoryNode = (
 
     return node;
   });
+};
 
 const getExplorerTreeInMultiDocumentProject = (
   directoryTree: MultiDocumentProjectContextType['directoryTree']
@@ -119,6 +123,7 @@ export const useDocumentExplorerTree = () => {
     directoryTree,
     selectedFileInfo,
     pendingNewDirectory,
+    startCreateDirectory,
     createDirectory,
     cancelCreateDirectory,
     filePathToRename,
@@ -141,6 +146,7 @@ export const useDocumentExplorerTree = () => {
   );
   const { recentProjects } = useContext(RecentProjectsContext);
   const [explorerTree, setExplorerTree] = useState<ExplorerTreeNode[]>([]);
+  const [hasPendingNewDirectory, setHasPendingNewDirectory] = useState(false);
   const [canShowTree, setCanShowTree] = useState<boolean>(false);
   const [selection, setSelection] = useState<string | null>(null);
   const documentId = useCurrentDocumentId();
@@ -178,6 +184,10 @@ export const useDocumentExplorerTree = () => {
   ]);
 
   useEffect(() => {
+    setHasPendingNewDirectory(pendingNewDirectory !== null);
+  }, [pendingNewDirectory]);
+
+  useEffect(() => {
     const canShowDocumentList =
       projectType === projectTypes.MULTI_DOCUMENT_PROJECT
         ? Boolean(directory && directory.permissionState === 'granted')
@@ -190,6 +200,8 @@ export const useDocumentExplorerTree = () => {
     canShowTree,
     explorerTree,
     selection,
+    hasPendingNewDirectory,
+    startCreateDirectory,
     createDirectory,
     cancelCreateDirectory,
     filePathToRename,
