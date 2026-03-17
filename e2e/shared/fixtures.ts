@@ -19,7 +19,16 @@ type Fixtures = {
 export const test = base.extend<Fixtures>({
   electronApp: async ({}, use) => {
     const app = await electron.launch({
-      args: [path.join(process.cwd(), 'dist/main/index.js')],
+      args: [
+        path.join(process.cwd(), 'dist/main/index.js'),
+        // Pass --headless-window so the main process creates the BrowserWindow
+        // with show:false. We use a custom argv flag rather than an env var
+        // because electron-vite bakes process.env into the bundle at build time,
+        // making runtime env vars invisible to the main process. A separate
+        // E2E-specific build would work around this but adds complexity we
+        // want to avoid.
+        ...(process.env.HEADLESS === 'true' ? ['--headless-window'] : []),
+      ],
       timeout: 30_000,
     });
     await use(app);

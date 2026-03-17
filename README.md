@@ -80,7 +80,17 @@ End-to-end tests use [Playwright](https://playwright.dev/) with its Electron int
 pnpm run test:e2e
 ```
 
-> Note: Electron doesn't support a true headless mode — Electron windows will appear briefly during the run on macOS. On Linux CI, use a virtual display (Xvfb) to suppress them.
+**Run all tests without the window appearing** (useful when working in parallel):
+
+```sh
+pnpm run test:e2e:headless
+```
+
+> This passes `--headless-window` to the Electron process, which creates the
+> `BrowserWindow` with `show: false`. Playwright can still interact with the
+> renderer normally. We use a CLI flag instead of an env var because
+> electron-vite bakes `process.env` into the bundle at build time; a runtime
+> env var would require a separate E2E-specific build, which we want to avoid.
 
 **Open the Playwright UI** (test timeline, action logs, attachments):
 

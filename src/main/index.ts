@@ -179,6 +179,8 @@ async function createWindow() {
       preload,
     },
     ...(isMac() && { titleBarStyle: 'hidden' }),
+    // Hide the window when running E2E tests headlessly.
+    ...(process.argv.includes('--headless-window') && { show: false }),
   });
 
   if (url) {
