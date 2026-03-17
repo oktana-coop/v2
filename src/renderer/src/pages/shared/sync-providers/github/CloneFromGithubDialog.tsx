@@ -43,7 +43,9 @@ export const CloneFromGithubDialog = ({
       if (window.config.projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
         await openDirectory(selectedRepository.cloneUrl);
       } else {
-        await triggerDocumentCreationDialog(selectedRepository.cloneUrl);
+        await triggerDocumentCreationDialog({
+          cloneUrl: selectedRepository.cloneUrl,
+        });
       }
 
       closeCloneFromGithubModal();

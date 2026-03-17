@@ -20,6 +20,12 @@ export const renameKey = os.platform() === 'darwin' ? 'Enter' : 'F2';
 export const deleteKey = `${modKey}+Backspace`;
 
 /**
+ * Returns the platform-appropriate shortcut for creating a new file.
+ * macOS uses Cmd+N, Linux/Windows use Ctrl+N.
+ */
+export const newFileKey = `${modKey}+n`;
+
+/**
  * Opens a project folder in the app by:
  * 1. Mocking Electron's showOpenDialog to return the given path
  * 2. Clicking the "Open Folder" button in the UI to trigger the flow
@@ -55,20 +61,15 @@ export const openProjectFolder = async ({
 };
 
 /**
- * Mocks Electron's showSaveDialog to return a specific file path, then clicks
- * the create-file button.
- *
- * Note: this helper does NOT create the file on disk. The app itself is
- * responsible for writing the file as part of its "new document" flow — this
- * helper only drives the UI.
+ * Mocks Electron's showSaveDialog so the next "new document" flow
+ * (button click, keyboard shortcut, or context menu) will create a file
+ * at the given path without showing the native OS dialog.
  */
-export const createNewFile = async ({
+export const mockCreateNewFile = async ({
   electronApp,
-  window,
   filePath,
 }: {
   electronApp: ElectronApplication;
-  window: Page;
   filePath: string;
 }): Promise<void> => {
   await electronApp.evaluate(async ({ dialog }, fp) => {
@@ -77,6 +78,22 @@ export const createNewFile = async ({
       filePath: fp,
     });
   }, filePath);
+};
+
+/**
+ * Prepares a new file via {@link mockCreateNewFile}, then clicks the
+ * "New Document" button and waits for the editor to open.
+ */
+export const createNewFileFromButton = async ({
+  electronApp,
+  window,
+  filePath,
+}: {
+  electronApp: ElectronApplication;
+  window: Page;
+  filePath: string;
+}): Promise<void> => {
+  await mockCreateNewFile({ electronApp, filePath });
 
   await window.getByRole('button', { name: /new document/i }).click();
 
@@ -97,12 +114,7 @@ export const createNewFileFromContextMenu = async ({
   electronApp: ElectronApplication;
   newFilePath: string;
 }): Promise<void> => {
-  await electronApp.evaluate(async ({ dialog }, fp) => {
-    dialog.showSaveDialog = async () => ({
-      canceled: false,
-      filePath: fp,
-    });
-  }, newFilePath);
+  await mockCreateNewFile({ electronApp, filePath: newFilePath });
 
   await electronApp.evaluate(async ({ ipcMain, BrowserWindow }) => {
     ipcMain.removeHandler('context-menu:show');

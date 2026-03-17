@@ -78,8 +78,8 @@ export const ProjectCommandPalette = ({
 
   const generalActions = [
     {
-      name: keyBindings.ctrlT.command,
-      shortcut: keyBindings.ctrlT.keyBinding,
+      name: keyBindings.ctrlN.command,
+      shortcut: keyBindings.ctrlN.keyBinding,
       onActionSelection: onCreateDocument,
     },
     {

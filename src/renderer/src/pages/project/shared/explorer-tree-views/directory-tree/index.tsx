@@ -37,6 +37,7 @@ const DirectoryTree = ({
   renameDirectoryError,
   onStartDeleteDocument,
   onStartDeleteDirectory,
+  onCreateNewFile,
 }: {
   directory: Directory | null;
   data: ExplorerTreeNode[];
@@ -59,6 +60,7 @@ const DirectoryTree = ({
   renameDirectoryError: string | null;
   onStartDeleteDocument: (path: string) => void;
   onStartDeleteDirectory: (path: string) => void;
+  onCreateNewFile?: (parentPath?: string) => Promise<void>;
 }) => {
   if (data.length > 0) {
     return (
@@ -88,6 +90,7 @@ const DirectoryTree = ({
           renameDirectoryError={renameDirectoryError}
           onStartDeleteDocument={onStartDeleteDocument}
           onStartDeleteDirectory={onStartDeleteDirectory}
+          onCreateNewFile={onCreateNewFile}
         />
       </div>
     );
@@ -124,13 +127,17 @@ export const DirectoryTreeView = ({
     startDeleteDocument,
     startDeleteDirectory,
   } = useDocumentExplorerTree();
-  const { canCreateDocument } = useCreateDocument();
+  const { canCreateDocument, triggerDocumentCreationDialog } =
+    useCreateDocument();
 
   const handleRenameDocument = (oldPath: string, newName: string) =>
     renameDocument({ oldRelativePath: oldPath, newName });
 
   const handleRenameDirectory = (oldPath: string, newName: string) =>
     renameDirectory({ oldRelativePath: oldPath, newName });
+
+  const handleCreateNewFile = (parentPath: string | undefined) =>
+    triggerDocumentCreationDialog({ parentPath });
 
   return (
     <div
@@ -175,6 +182,7 @@ export const DirectoryTreeView = ({
           renameDirectoryError={renameDirectoryError}
           onStartDeleteDocument={startDeleteDocument}
           onStartDeleteDirectory={startDeleteDirectory}
+          onCreateNewFile={handleCreateNewFile}
         />
       ) : (
         <NoActiveDirectoryView />

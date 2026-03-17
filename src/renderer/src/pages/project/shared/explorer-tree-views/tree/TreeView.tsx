@@ -64,6 +64,7 @@ export const TreeView = ({
   renameDirectoryError = null,
   onStartDeleteDocument,
   onStartDeleteDirectory,
+  onCreateNewFile,
 }: {
   data: ExplorerTreeNode[];
   selection: string | null;
@@ -84,6 +85,7 @@ export const TreeView = ({
   renameDirectoryError?: string | null;
   onStartDeleteDocument?: (path: string) => void;
   onStartDeleteDirectory?: (path: string) => void;
+  onCreateNewFile?: (parentPath?: string) => Promise<void>;
 }) => {
   const { isMac } = useContext(ElectronContext);
   const treeRef = useRef<TreeApi<ExplorerTreeNode>>(null);
@@ -97,48 +99,53 @@ export const TreeView = ({
     }
   };
 
+  const getNewFileParentPath = (
+    focused: NodeApi<ExplorerTreeNode> | null
+  ): string | undefined => {
+    if (!focused) return undefined;
+    if (focused.data.type === filesystemItemTypes.DIRECTORY) return focused.id;
+    return focused.parent?.id ?? undefined;
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Don't intercept when a rename is already in progress
     if (filePathToRename || directoryPathToRename) return;
 
+    const modKey = isMac ? e.metaKey : e.ctrlKey;
+    const isNewFileKey = e.key === 'n' && modKey && !e.shiftKey && !e.altKey;
+    const isDeleteKey = e.key === 'Backspace' && modKey;
     const isRenameKey = isMac ? e.key === 'Enter' : e.key === 'F2';
-    const isDeleteKey =
-      e.key === 'Backspace' && (isMac ? e.metaKey : e.ctrlKey);
 
-    if (!isRenameKey && !isDeleteKey) return;
+    if (!isNewFileKey && !isDeleteKey && !isRenameKey) return;
 
-    const focused = treeRef.current?.focusedNode;
-    if (!focused) return;
+    const focused = treeRef.current?.focusedNode ?? null;
 
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (isDeleteKey) {
-      if (
-        focused.data.type === filesystemItemTypes.FILE &&
-        onStartDeleteDocument
-      ) {
-        onStartDeleteDocument(focused.id);
-      } else if (
-        focused.data.type === filesystemItemTypes.DIRECTORY &&
-        onStartDeleteDirectory
-      ) {
-        onStartDeleteDirectory(focused.id);
-      }
+    // New file: works with or without a focused node
+    if (isNewFileKey && onCreateNewFile) {
+      e.preventDefault();
+      e.stopPropagation();
+      onCreateNewFile(getNewFileParentPath(focused));
       return;
     }
 
-    if (
-      focused.data.type === filesystemItemTypes.FILE &&
-      onStartRenameDocument
-    ) {
-      onStartRenameDocument(focused.id);
-    } else if (
-      focused.data.type === filesystemItemTypes.DIRECTORY &&
-      onStartRenameDirectory
-    ) {
-      onStartRenameDirectory(focused.id);
-    }
+    // Delete and rename require a focused node
+    if (!focused) return;
+
+    const isFile = focused.data.type === filesystemItemTypes.FILE;
+    const isDirectory = focused.data.type === filesystemItemTypes.DIRECTORY;
+
+    const action = isDeleteKey
+      ? // Delete
+        (isFile && onStartDeleteDocument) ||
+        (isDirectory && onStartDeleteDirectory)
+      : // Rename
+        (isFile && onStartRenameDocument) ||
+        (isDirectory && onStartRenameDirectory);
+
+    if (!action) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    action(focused.id);
   };
 
   return (

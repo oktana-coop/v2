@@ -3,12 +3,14 @@ import path from 'path';
 import { expect, test } from '../shared/fixtures';
 import {
   confirmDeletion,
-  createNewFile,
+  createNewFileFromButton,
   createNewFileFromContextMenu,
   createNewSubfolderFromContextMenu,
   deleteFileFromContextMenu,
   deleteFolderFromContextMenu,
   deleteKey,
+  mockCreateNewFile,
+  newFileKey,
   openHelloMd,
   openProjectFolder,
   renameFileFromContextMenu,
@@ -102,7 +104,11 @@ test.describe('flat directory structure', () => {
 
     // Mock showSaveDialog so we control the filename, then click create-file-button
     const newFilePath = path.join(testProjectDir, 'my-new-doc.md');
-    await createNewFile({ electronApp, window, filePath: newFilePath });
+    await createNewFileFromButton({
+      electronApp,
+      window,
+      filePath: newFilePath,
+    });
 
     // The new file should appear in the explorer sidebar
     await expect(window.getByTestId('file-explorer')).toContainText(
@@ -141,6 +147,30 @@ test.describe('flat directory structure', () => {
 
     // The unsaved edit should still be there
     await expect(window.locator('.ProseMirror')).toContainText('hello edit');
+  });
+
+  test('create a new file via keyboard shortcut with no tree focus', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    await mockCreateNewFile({
+      electronApp,
+      filePath: path.join(testProjectDir, 'root-new.md'),
+    });
+
+    await window.keyboard.press(newFileKey);
+
+    await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
+
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer).toContainText('root-new');
   });
 });
 
@@ -359,6 +389,62 @@ test.describe('nested directory structure', () => {
     await expect(window.locator('.ProseMirror')).toContainText(
       'Created in subfolder'
     );
+  });
+
+  test('create a new file via keyboard shortcut on a directory', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    await mockCreateNewFile({
+      electronApp,
+      filePath: path.join(nestedProjectDir, 'beta-folder', 'shortcut-new.md'),
+    });
+
+    // Click a directory to focus it in the tree
+    await window.getByText('beta-folder').click();
+
+    await window.keyboard.press(newFileKey);
+
+    await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
+
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer).toContainText('shortcut-new');
+  });
+
+  test('create a new file via keyboard shortcut on a file', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    // File is inside beta-folder; shortcut should create under the parent directory
+    await mockCreateNewFile({
+      electronApp,
+      filePath: path.join(nestedProjectDir, 'beta-folder', 'sibling-new.md'),
+    });
+
+    // Click a file inside a subdirectory to focus it
+    await window.getByText('beta-doc.md').click();
+    await window.waitForSelector('.ProseMirror', { timeout: 2_000 });
+
+    await window.keyboard.press(newFileKey);
+
+    await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
+
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer).toContainText('sibling-new');
   });
 });
 

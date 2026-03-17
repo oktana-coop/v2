@@ -27,12 +27,16 @@ export const useCreateDocument = () => {
       ? createNewDocumentInMultiFileProject
       : createNewDocumentInSingleFileProject;
 
-  const triggerDocumentCreationDialog = async (cloneUrl?: string) => {
+  const triggerDocumentCreationDialog = async ({
+    cloneUrl,
+    parentPath,
+  }: { cloneUrl?: string; parentPath?: string } = {}) => {
     if (!isElectron && projectType === projectTypes.SINGLE_DOCUMENT_PROJECT) {
       openCreateDocumentModal();
     } else {
       const { projectId, documentId, path } = await createNewDocument({
         cloneUrl,
+        parentPath,
       });
       navigateToDocument({ projectId, documentId, path });
     }

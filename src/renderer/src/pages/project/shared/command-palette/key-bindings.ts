@@ -22,9 +22,9 @@ export const keyBindings: Record<
     command: 'Open document',
     keyBinding: 'ctrl+o',
   },
-  ctrlT: {
+  ctrlN: {
     command: 'Create a new document',
-    keyBinding: 'ctrl+t',
+    keyBinding: 'ctrl+n',
   },
   ctrlS: {
     // aka save
