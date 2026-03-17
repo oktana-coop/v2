@@ -1190,23 +1190,6 @@ test.describe('unsupported file types', () => {
     await expect(window.locator('.ProseMirror')).not.toBeVisible();
   });
 
-  test('clicking a .md file still opens the editor normally', async ({
-    electronApp,
-    window,
-    testProjectDir,
-  }) => {
-    await openProjectFolder({
-      electronApp,
-      window,
-      folderPath: testProjectDir,
-    });
-
-    await openHelloMd({ window });
-
-    await expect(window.locator('.ProseMirror')).toBeVisible();
-    await expect(window.getByText('Preview not available')).not.toBeVisible();
-  });
-
   test('switching from unsupported file to .md file shows the editor', async ({
     electronApp,
     window,
