@@ -51,6 +51,7 @@ export const test = base.extend<Fixtures>({
       path.join(dir, 'world.md'),
       '# World\n\nAnother document.\n'
     );
+    fs.writeFileSync(path.join(dir, 'config.json'), '{ "key": "value" }\n');
     await use(dir);
 
     // The Electron app is torn down after this fixture (Playwright teardown

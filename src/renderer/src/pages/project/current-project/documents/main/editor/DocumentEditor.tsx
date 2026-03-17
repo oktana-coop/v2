@@ -7,6 +7,8 @@ import {
 } from '../../../../../../app-state';
 import { RichTextEditor } from '../../../../../../components/editing/RichTextEditor';
 import { LongTextSkeleton } from '../../../../../../components/progress/skeletons/LongText';
+import { useCurrentDocumentExtension } from '../../../../../../hooks/use-current-document-extension';
+import { UnsupportedDocumentView } from '../../../../shared/unsupported-document-view';
 import { ActionsBar } from './ActionsBar';
 
 export const DocumentEditor = () => {
@@ -20,11 +22,16 @@ export const DocumentEditor = () => {
     canCommit,
   } = useContext(CurrentDocumentContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
+  const { isUnsupported } = useCurrentDocumentExtension();
 
   const handleEditorToolbarToggle = useCallback(() => {
     toggleEditorToolbar(!isEditorToolbarOpen);
     editorView?.focus();
   }, [editorView, isEditorToolbarOpen]);
+
+  if (isUnsupported) {
+    return <UnsupportedDocumentView />;
+  }
 
   return (
     <div className="relative flex flex-auto flex-col items-center overflow-hidden">

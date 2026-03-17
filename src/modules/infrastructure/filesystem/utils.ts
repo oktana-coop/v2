@@ -6,7 +6,7 @@ export const removeExtension = (filename: string) => {
 };
 
 export const getExtension = (filename: string) => {
-  const match = filename.match(/\.([^.]+)$/);
+  const match = filename.match(/\.([^./\\]+)$/);
   return match ? match[1] : '';
 };
 

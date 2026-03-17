@@ -1169,3 +1169,102 @@ test.describe('folder rename', () => {
     });
   });
 });
+
+test.describe('unsupported file types', () => {
+  test('clicking an unsupported file shows the placeholder instead of the editor', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    await window.getByText('config.json').click();
+
+    await expect(window.getByText('Preview not available')).toBeVisible({
+      timeout: 2_000,
+    });
+    await expect(window.locator('.ProseMirror')).not.toBeVisible();
+  });
+
+  test('clicking a .md file still opens the editor normally', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    await openHelloMd({ window });
+
+    await expect(window.locator('.ProseMirror')).toBeVisible();
+    await expect(window.getByText('Preview not available')).not.toBeVisible();
+  });
+
+  test('switching from unsupported file to .md file shows the editor', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    await window.getByText('config.json').click();
+    await expect(window.getByText('Preview not available')).toBeVisible({
+      timeout: 2_000,
+    });
+
+    await window.getByText('hello').click();
+    await expect(window.locator('.ProseMirror')).toBeVisible();
+    await expect(window.getByText('Preview not available')).not.toBeVisible();
+  });
+
+  test('switching from .md file to unsupported file shows the placeholder', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    await openHelloMd({ window });
+    await expect(window.locator('.ProseMirror')).toBeVisible();
+
+    await window.getByText('config.json').click();
+    await expect(window.getByText('Preview not available')).toBeVisible({
+      timeout: 2_000,
+    });
+    await expect(window.locator('.ProseMirror')).not.toBeVisible();
+  });
+
+  test('unsupported file in a subdirectory shows the placeholder', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    await window.getByText('image1.png').click();
+
+    await expect(window.getByText('Preview not available')).toBeVisible({
+      timeout: 2_000,
+    });
+    await expect(window.locator('.ProseMirror')).not.toBeVisible();
+  });
+});

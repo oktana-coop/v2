@@ -26,6 +26,8 @@ import {
   useCurrentDocumentName,
   useNavigateToDocument,
 } from '../../../../../../hooks';
+import { useCurrentDocumentExtension } from '../../../../../../hooks/use-current-document-extension';
+import { UnsupportedDocumentView } from '../../../../shared/unsupported-document-view';
 import { ActionsBar } from './ActionsBar';
 import { type DiffViewProps, ReadOnlyView } from './ReadOnlyView';
 
@@ -51,6 +53,8 @@ export const DocumentHistoricalView = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigateToDocument = useNavigateToDocument();
   const currentDocumentName = useCurrentDocumentName();
+
+  const { isUnsupported } = useCurrentDocumentExtension();
 
   const { showDiffInHistoryView, setShowDiffInHistoryView } = useContext(
     FunctionalityConfigContext
@@ -247,6 +251,10 @@ export const DocumentHistoricalView = () => {
     commits: ChangeWithUrlInfo[];
     selectedCommitIndex: number | null;
   }) => selectedCommitIndex === 0 && !isCommit(commits[selectedCommitIndex]);
+
+  if (isUnsupported) {
+    return <UnsupportedDocumentView />;
+  }
 
   return (
     <div className="flex flex-auto flex-col items-center">
