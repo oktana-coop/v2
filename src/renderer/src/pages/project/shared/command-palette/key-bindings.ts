@@ -57,4 +57,8 @@ export const keyBindings: Record<
     command: 'Insert or edit link',
     keyBinding: 'ctrl+shift+l',
   },
+  ctrlAltN: {
+    command: 'Create a new folder',
+    keyBinding: 'ctrl+alt+n',
+  },
 } as const;

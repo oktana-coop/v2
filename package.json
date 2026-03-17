@@ -34,6 +34,8 @@
     "test:watch": "vitest ./src",
     "test:e2e": "pnpm run build && playwright test",
     "test:e2e:headless": "pnpm run build && HEADLESS=true playwright test",
+    "test:e2e:only": "playwright test",
+    "test:e2e:only:headless": "HEADLESS=true playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --headed --debug",
     "test:e2e:report": "playwright show-report e2e-results/html"

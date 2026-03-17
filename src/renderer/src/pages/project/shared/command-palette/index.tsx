@@ -45,7 +45,11 @@ export const ProjectCommandPalette = ({
   const handleDocumentSelectionInSingleDocumentProject =
     useDocumentSelectionInSingleDocumentProject();
   const currentDocumentName = useCurrentDocumentName();
-  const { explorerTree: documents, selection } = useDocumentExplorerTree();
+  const {
+    explorerTree: documents,
+    selection,
+    startCreateDirectory,
+  } = useDocumentExplorerTree();
   const clearWebStorage = useClearWebStorage();
 
   const handleDocumentSelection =
@@ -60,6 +64,14 @@ export const ProjectCommandPalette = ({
       name: keyBindings.ctrlO.command,
       shortcut: keyBindings.ctrlO.keyBinding,
       onActionSelection: onOpenDocument,
+    },
+  ];
+
+  const multiDocumentProjectActions = [
+    {
+      name: keyBindings.ctrlAltN.command,
+      shortcut: keyBindings.ctrlAltN.keyBinding,
+      onActionSelection: () => startCreateDirectory(),
     },
   ];
 
@@ -88,7 +100,7 @@ export const ProjectCommandPalette = ({
       onActionSelection: onOpenProjectSettings,
     },
     ...(projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-      ? []
+      ? multiDocumentProjectActions
       : singleDocumentProjectActions),
     ...(isElectron ? electronSpecificActions : browserSpecificActions),
   ];
