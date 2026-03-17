@@ -165,6 +165,9 @@ test.describe('flat directory structure', () => {
       filePath: path.join(testProjectDir, 'root-new.md'),
     });
 
+    // Click the sidebar heading to give the window focus without focusing any tree node
+    await window.getByText('File Explorer').click();
+
     await window.keyboard.press(newFileKey);
 
     await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
