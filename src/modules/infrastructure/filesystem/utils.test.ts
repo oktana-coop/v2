@@ -1,4 +1,9 @@
-import { getDirectoryName, removeExtension, removePath } from './utils';
+import {
+  getDirectoryName,
+  getExtension,
+  removeExtension,
+  removePath,
+} from './utils';
 
 describe('filesystem/utils', () => {
   describe('removeExtension', () => {
@@ -16,6 +21,62 @@ describe('filesystem/utils', () => {
 
     it('does not remove an extension if it is not present', () => {
       expect(removeExtension('file')).toBe('file');
+    });
+  });
+
+  describe('getExtension', () => {
+    it('returns the extension of a simple file name', () => {
+      expect(getExtension('file.md')).toBe('md');
+    });
+
+    it('returns the last extension when there are multiple dots', () => {
+      expect(getExtension('archive.tar.gz')).toBe('gz');
+    });
+
+    it('returns an empty string when there is no extension', () => {
+      expect(getExtension('README')).toBe('');
+    });
+
+    it('returns the extension for a POSIX absolute path', () => {
+      expect(getExtension('/Users/alice/documents/notes.txt')).toBe('txt');
+    });
+
+    it('returns the extension for a POSIX relative path', () => {
+      expect(getExtension('src/components/App.tsx')).toBe('tsx');
+    });
+
+    it('returns the extension for a Windows absolute path', () => {
+      expect(getExtension('C:\\Users\\alice\\documents\\notes.txt')).toBe(
+        'txt'
+      );
+    });
+
+    it('returns the extension for a Windows relative path', () => {
+      expect(getExtension('src\\components\\App.tsx')).toBe('tsx');
+    });
+
+    it('does not match a dot in a POSIX directory name', () => {
+      expect(getExtension('folder.backup/file')).toBe('');
+    });
+
+    it('does not match a dot in a Windows directory name', () => {
+      expect(getExtension('folder.backup\\file')).toBe('');
+    });
+
+    it('returns the file extension when a POSIX directory has a dot', () => {
+      expect(getExtension('folder.backup/file.md')).toBe('md');
+    });
+
+    it('returns the file extension when a Windows directory has a dot', () => {
+      expect(getExtension('folder.backup\\file.md')).toBe('md');
+    });
+
+    it('returns an empty string for a dotfile without an extension', () => {
+      expect(getExtension('.gitignore')).toBe('gitignore');
+    });
+
+    it('returns an empty string for an empty string', () => {
+      expect(getExtension('')).toBe('');
     });
   });
 
