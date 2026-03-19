@@ -19,7 +19,7 @@ const compat = new FlatCompat({
 
 export default [
   {
-    ignores: ['**/dist', '**/.eslintrc.cjs'],
+    ignores: ['**/dist/**', '**/.eslintrc.cjs', 'e2e-results/**'],
   },
   ...fixupConfigRules(
     compat.extends(
