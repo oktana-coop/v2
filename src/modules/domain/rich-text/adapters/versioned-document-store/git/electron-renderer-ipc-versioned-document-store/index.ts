@@ -10,9 +10,11 @@ import {
 } from '../../../../../../../modules/infrastructure/version-control';
 import { type EffectErrorType } from '../../../../../../../utils/effect';
 import {
+  DeletedDocumentError,
   NotFoundError,
   RepositoryError,
   ValidationError,
+  VersionedDocumentDeletedDocumentErrorTag,
   VersionedDocumentNotFoundErrorTag,
   VersionedDocumentRepositoryErrorTag,
   VersionedDocumentValidationErrorTag,
@@ -175,6 +177,7 @@ export const createAdapter = ({
           [VersionedDocumentRepositoryErrorTag]: RepositoryError,
           [VersionedDocumentNotFoundErrorTag]: NotFoundError,
           [VersionControlMigrationErrorTag]: MigrationError,
+          [VersionedDocumentDeletedDocumentErrorTag]: DeletedDocumentError,
         } as ErrorRegistry<
           EffectErrorType<
             ReturnType<VersionedDocumentStore['getDocumentAtChange']>
@@ -193,6 +196,7 @@ export const createAdapter = ({
           [VersionedDocumentRepositoryErrorTag]: RepositoryError,
           [VersionedDocumentNotFoundErrorTag]: NotFoundError,
           [VersionControlMigrationErrorTag]: MigrationError,
+          [VersionedDocumentDeletedDocumentErrorTag]: DeletedDocumentError,
         } as ErrorRegistry<
           EffectErrorType<ReturnType<VersionedDocumentStore['restoreCommit']>>
         >,

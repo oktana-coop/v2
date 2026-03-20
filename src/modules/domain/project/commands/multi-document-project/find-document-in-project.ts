@@ -8,7 +8,10 @@ import {
   ValidationError as VersionedDocumentValidationError,
   type VersionedDocumentStore,
 } from '../../../../../modules/domain/rich-text';
-import { MigrationError } from '../../../../../modules/infrastructure/version-control';
+import {
+  type ChangeId,
+  MigrationError,
+} from '../../../../../modules/infrastructure/version-control';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
@@ -20,6 +23,7 @@ import { type MultiDocumentProjectStore } from '../../ports/multi-document-proje
 export type FindDocumentInProjectArgs = {
   documentPath: string;
   projectId: ProjectId;
+  changeId?: ChangeId;
 };
 
 export type FindDocumentInProjectDeps = {
@@ -35,6 +39,7 @@ export const findDocumentInProject =
   ({
     documentPath,
     projectId,
+    changeId,
   }: FindDocumentInProjectArgs): Effect.Effect<
     ResolvedDocument,
     | VersionedProjectRepositoryError
@@ -47,7 +52,7 @@ export const findDocumentInProject =
     never
   > =>
     pipe(
-      findDocumentInProjectStore({ documentPath, projectId }),
+      findDocumentInProjectStore({ documentPath, projectId, changeId }),
       // TODO: Return the document instead of the docHandle
       // This will also handle migrating the document if needed
       Effect.flatMap((artifactId) => findDocumentById(artifactId))

@@ -8,7 +8,12 @@ import {
   type ResolvedArtifactId,
 } from '../../../../modules/infrastructure/version-control';
 import { RichTextRepresentation } from '../constants';
-import { NotFoundError, RepositoryError, ValidationError } from '../errors';
+import {
+  DeletedDocumentError,
+  NotFoundError,
+  RepositoryError,
+  ValidationError,
+} from '../errors';
 import {
   type ResolvedDocument,
   type VersionedDocument,
@@ -147,7 +152,11 @@ export type VersionedDocumentStore = {
     args: GetDocumentAtChangeArgs
   ) => Effect.Effect<
     VersionedDocument,
-    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    | ValidationError
+    | RepositoryError
+    | NotFoundError
+    | MigrationError
+    | DeletedDocumentError,
     never
   >;
   isContentSameAtChanges: (
@@ -161,7 +170,11 @@ export type VersionedDocumentStore = {
     args: RestoreCommitArgs
   ) => Effect.Effect<
     Commit['id'],
-    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    | ValidationError
+    | RepositoryError
+    | NotFoundError
+    | MigrationError
+    | DeletedDocumentError,
     never
   >;
   discardUncommittedChanges: (

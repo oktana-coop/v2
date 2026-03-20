@@ -34,3 +34,15 @@ export const VersionedDocumentResolveMergeConflictsErrorTag =
 export class ResolveMergeConflictsError extends Cause.YieldableError {
   readonly _tag = VersionedDocumentResolveMergeConflictsErrorTag;
 }
+
+export const VersionedDocumentDeletedDocumentErrorTag =
+  'VersionedDocumentDeletedDocumentError';
+export class DeletedDocumentError extends Cause.YieldableError {
+  readonly _tag = VersionedDocumentDeletedDocumentErrorTag;
+  readonly data;
+
+  constructor(message: string, data: { parentCommitId: string | null }) {
+    super(message);
+    this.data = data;
+  }
+}

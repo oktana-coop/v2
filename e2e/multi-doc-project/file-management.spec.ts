@@ -1042,7 +1042,9 @@ test.describe('file rename', () => {
       folderPath: nestedProjectDir,
     });
 
-    // Click the file to select it (left click)
+    // Click the file to select it
+    await window.getByText('beta-doc.md').click();
+    // A second click on the file name because focus has moved to the editor
     await window.getByText('beta-doc.md').click();
 
     // Press the platform-appropriate rename key (Enter on Mac, F2 on Linux/Windows)
@@ -1051,6 +1053,7 @@ test.describe('file rename', () => {
     const input = window.locator('input[type="text"]');
     await input.waitFor({ state: 'visible', timeout: 500 });
 
+    await input.clear();
     await input.fill('keyboard-renamed');
     await window.keyboard.press('Enter');
 

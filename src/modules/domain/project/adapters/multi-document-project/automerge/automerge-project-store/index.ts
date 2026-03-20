@@ -357,6 +357,24 @@ export const createAdapter = (
         )
       );
 
+  // TODO: Implement project commit history in Automerge
+  const getProjectCommitHistory: MultiDocumentProjectStore['getProjectCommitHistory'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Project commit history is not yet supported when the app is configured with Automerge'
+        )
+      );
+
+  // TODO: Implement changed documents at change in Automerge
+  const getChangedDocumentsAtChange: MultiDocumentProjectStore['getChangedDocumentsAtChange'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Changed documents at change is not yet supported when the app is configured with Automerge'
+        )
+      );
+
   return {
     // TODO: Implement branching in Automerge
     supportsBranching: false,
@@ -388,5 +406,7 @@ export const createAdapter = (
     pushToRemoteProject,
     pullFromRemoteProject,
     getRemoteBranchInfo,
+    getProjectCommitHistory,
+    getChangedDocumentsAtChange,
   };
 };

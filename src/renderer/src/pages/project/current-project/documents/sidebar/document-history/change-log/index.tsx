@@ -15,6 +15,7 @@ import {
 } from '../../../../../../../../../modules/personalization/browser';
 import { TimelinePoint } from '../../../../../../../components/icons/TimelinePoint';
 import { UserAvatar } from '../../../../../../../components/user/UserAvatar';
+import { formatCommitDate } from '../../../../../shared/historical-view';
 
 const Commit = ({
   commit,
@@ -30,10 +31,12 @@ const Commit = ({
   isLast?: boolean;
 }) => {
   const { resolvedTheme } = useContext(ThemeContext);
-  const themeStyles = isSelected ? 'font-bold' : '';
+  const timelineColor = resolvedTheme === themes.light ? '#9352FF' : '#C8B1FF';
+  const firstLine = commit.message.split('\n')[0];
+
   return (
     <div
-      className="cursor-pointer text-left"
+      className="cursor-pointer text-left hover:bg-zinc-50 dark:hover:bg-neutral-800"
       data-testid="history-commit"
       onClick={() => onClick(commit.id)}
     >
@@ -41,20 +44,21 @@ const Commit = ({
         <div className="h-full w-14 flex-shrink-0">
           <TimelinePoint
             circleSize={7.5}
-            color={resolvedTheme === themes.light ? '#9352FF' : '#C8B1FF'}
+            color={timelineColor}
             hasTopStem={!isFirst}
             hasBottomStem={!isLast}
           />
         </div>
-        <div className="flex items-center gap-2 overflow-y-hidden">
+        <div className="flex flex-1 items-center gap-2 overflow-hidden py-1 pr-2">
           {commit.author?.username && (
             <UserAvatar username={commit.author.username} />
           )}
-          <span
-            className={clsx('max-h-10 cursor-pointer text-sm', themeStyles)}
-          >
-            {commit.message}
-          </span>
+          <div className={clsx('min-w-0 flex-1', isSelected && 'font-bold')}>
+            <p className="truncate text-sm">{firstLine}</p>
+            <p className="text-xs text-zinc-400 dark:text-neutral-500">
+              {formatCommitDate(commit.time)}
+            </p>
+          </div>
         </div>
       </div>
     </div>

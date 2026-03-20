@@ -2,6 +2,8 @@ import * as Effect from 'effect/Effect';
 
 import {
   type Branch,
+  type ChangedDocument,
+  type ChangeId,
   type Commit,
   MergeConflictError,
   type MergeConflictInfo,
@@ -61,6 +63,7 @@ export type RenameDocumentsInMultiDocumentProjectArgs = {
 export type FindDocumentInMultiDocumentProjectArgs = {
   projectId: ProjectId;
   documentPath: string;
+  changeId?: ChangeId;
 };
 
 export type MultiDocumentProjectCommitChangesArgs = {
@@ -160,6 +163,17 @@ export type MultiDocumentProjectPullFromRemoteProjectArgs = {
   projectId: ProjectId;
   remoteName?: string;
   authToken?: string;
+};
+
+export type MultiDocumentProjectGetProjectCommitHistoryArgs = {
+  projectId: ProjectId;
+  branch: Branch;
+  limit?: number;
+};
+
+export type MultiDocumentProjectGetChangedDocumentsAtChangeArgs = {
+  projectId: ProjectId;
+  changeId: ChangeId;
 };
 
 export type MultiDocumentProjectGetRemoteBranchInfoArgs = {
@@ -317,6 +331,20 @@ export type MultiDocumentProjectStore = {
   pullFromRemoteProject: (
     args: MultiDocumentProjectPullFromRemoteProjectArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  getProjectCommitHistory: (
+    args: MultiDocumentProjectGetProjectCommitHistoryArgs
+  ) => Effect.Effect<
+    Commit[],
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
+  getChangedDocumentsAtChange: (
+    args: MultiDocumentProjectGetChangedDocumentsAtChangeArgs
+  ) => Effect.Effect<
+    ChangedDocument[],
+    ValidationError | RepositoryError,
+    never
+  >;
   getRemoteBranchInfo: (
     args: MultiDocumentProjectGetRemoteBranchInfoArgs
   ) => Effect.Effect<
