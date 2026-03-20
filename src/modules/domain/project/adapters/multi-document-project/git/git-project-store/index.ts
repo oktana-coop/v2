@@ -17,13 +17,21 @@ import {
   DEFAULT_AUTHOR_NAME,
   DEFAULT_BRANCH,
   deleteBranch as deleteBranchWithGit,
+  fileExistsAtCommit,
   findRemoteByName as findGitRemoteByName,
+  getBranchCommitHistory,
+  getChangedFilesForCommit,
   getCurrentBranch as getCurrentBranchWithGit,
   getMergeConflictInfo as getGitRepoMergeConflictInfo,
   getRemoteBranchInfo as getRemoteBranchInfoWithGit,
+  getUncommittedFileChanges,
   getUserInfo as getUserInfoFromConfig,
   type GitBlobRef,
+  type GitCommitHash,
+  hasStagedChanges,
   isGitBlobRef,
+  isGitCommitHash,
+  isUncommittedChangeId,
   listBranches as listBranchesWithGit,
   listRemotes as listGitRemotes,
   mergeAndDeleteBranch as mergeAndDeleteBranchWithGit,
@@ -291,19 +299,29 @@ export const createAdapter = ({
               )
             ),
             Effect.flatMap(() =>
-              Effect.tryPromise({
-                try: () =>
-                  git.commit({
-                    fs: isoGitFs,
-                    dir: projectPath,
-                    author: {
-                      name: repoUserInfo.username ?? DEFAULT_AUTHOR_NAME,
-                      email: repoUserInfo.email ?? undefined,
-                    },
-                    message: `Removed ${documentPath}`,
-                  }),
-                catch: mapErrorTo(RepositoryError, 'Git repo error'),
-              })
+              pipe(
+                hasStagedChanges({ isoGitFs, dir: projectPath }),
+                Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+                  Effect.fail(new RepositoryError(err.message))
+                )
+              )
+            ),
+            Effect.flatMap((hasChanges) =>
+              hasChanges
+                ? Effect.tryPromise({
+                    try: () =>
+                      git.commit({
+                        fs: isoGitFs,
+                        dir: projectPath,
+                        author: {
+                          name: repoUserInfo.username ?? DEFAULT_AUTHOR_NAME,
+                          email: repoUserInfo.email ?? undefined,
+                        },
+                        message: `Removed ${documentPath}`,
+                      }),
+                    catch: mapErrorTo(RepositoryError, 'Git repo error'),
+                  })
+                : Effect.succeed(undefined)
             )
           )
         )
@@ -339,22 +357,32 @@ export const createAdapter = ({
               )
             ),
             Effect.flatMap(() =>
-              Effect.tryPromise({
-                try: () =>
-                  git.commit({
-                    fs: isoGitFs,
-                    dir: projectPath,
-                    author: {
-                      name: repoUserInfo.username ?? DEFAULT_AUTHOR_NAME,
-                      email: repoUserInfo.email ?? undefined,
-                    },
-                    message:
-                      documentPaths.length === 1
-                        ? `Removed ${documentPaths[0]}`
-                        : `Removed ${documentPaths.length} documents`,
-                  }),
-                catch: mapErrorTo(RepositoryError, 'Git repo error'),
-              })
+              pipe(
+                hasStagedChanges({ isoGitFs, dir: projectPath }),
+                Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+                  Effect.fail(new RepositoryError(err.message))
+                )
+              )
+            ),
+            Effect.flatMap((hasChanges) =>
+              hasChanges
+                ? Effect.tryPromise({
+                    try: () =>
+                      git.commit({
+                        fs: isoGitFs,
+                        dir: projectPath,
+                        author: {
+                          name: repoUserInfo.username ?? DEFAULT_AUTHOR_NAME,
+                          email: repoUserInfo.email ?? undefined,
+                        },
+                        message:
+                          documentPaths.length === 1
+                            ? `Removed ${documentPaths[0]}`
+                            : `Removed ${documentPaths.length} documents`,
+                      }),
+                    catch: mapErrorTo(RepositoryError, 'Git repo error'),
+                  })
+                : Effect.succeed(undefined)
             ),
             Effect.map(() => undefined)
           )
@@ -413,9 +441,47 @@ export const createAdapter = ({
         )
       );
 
+  const findDocumentInProjectHistory = (
+    projectId: ProjectId,
+    documentPath: string,
+    commitId: GitCommitHash
+  ): Effect.Effect<
+    ResolvedArtifactId,
+    NotFoundError | RepositoryError | ValidationError,
+    never
+  > =>
+    pipe(
+      ensureProjectIdIsFsPath(projectId),
+      Effect.flatMap((projectPath) =>
+        pipe(
+          fileExistsAtCommit({
+            isoGitFs,
+            dir: projectPath,
+            commitId,
+            filepath: documentPath,
+          }),
+          Effect.catchTag(VersionControlNotFoundErrorTag, () =>
+            Effect.fail(
+              new NotFoundError(
+                `Document with path ${documentPath} not found at commit ${commitId}`
+              )
+            )
+          ),
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      ),
+      Effect.map(() => createGitBlobRef({ ref: commitId, path: documentPath }))
+    );
+
   const findDocumentInProject: MultiDocumentProjectStore['findDocumentInProject'] =
-    ({ projectId, documentPath }) =>
-      pipe(
+    ({ projectId, documentPath, changeId }) => {
+      if (changeId && isGitCommitHash(changeId)) {
+        return findDocumentInProjectHistory(projectId, documentPath, changeId);
+      }
+
+      return pipe(
         listProjectDocuments(projectId),
         Effect.flatMap((projectDocuments) =>
           pipe(
@@ -436,6 +502,7 @@ export const createAdapter = ({
           )
         )
       );
+    };
 
   const commitChanges: MultiDocumentProjectStore['commitChanges'] = ({
     projectId,
@@ -872,6 +939,64 @@ export const createAdapter = ({
         )
       );
 
+  const getProjectCommitHistory: MultiDocumentProjectStore['getProjectCommitHistory'] =
+    ({ projectId, branch, limit }) =>
+      pipe(
+        ensureProjectIdIsFsPath(projectId),
+        Effect.flatMap((projectPath) =>
+          pipe(
+            getBranchCommitHistory({
+              isoGitFs,
+              dir: projectPath,
+              branch,
+              limit,
+            }),
+            Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
+              Effect.fail(new NotFoundError(err.message))
+            ),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            )
+          )
+        )
+      );
+
+  const getChangedDocumentsAtChange: MultiDocumentProjectStore['getChangedDocumentsAtChange'] =
+    ({ projectId, changeId }) =>
+      pipe(
+        ensureProjectIdIsFsPath(projectId),
+        Effect.flatMap((projectPath) =>
+          isUncommittedChangeId(changeId)
+            ? pipe(
+                getUncommittedFileChanges({
+                  isoGitFs,
+                  dir: projectPath,
+                }),
+                Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+                  Effect.fail(new RepositoryError(err.message))
+                )
+              )
+            : pipe(
+                Effect.succeed(changeId),
+                Effect.filterOrFail(
+                  isGitCommitHash,
+                  (val) =>
+                    new ValidationError(`Invalid commit hash: ${String(val)}`)
+                ),
+                Effect.flatMap((commitHash) =>
+                  getChangedFilesForCommit({
+                    isoGitFs,
+                    dir: projectPath,
+                    commitId: commitHash,
+                  })
+                ),
+                Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+                  Effect.fail(new RepositoryError(err.message))
+                )
+              )
+        )
+      );
+
   return {
     supportsBranching: true,
     createProject,
@@ -902,5 +1027,7 @@ export const createAdapter = ({
     pushToRemoteProject,
     pullFromRemoteProject,
     getRemoteBranchInfo,
+    getProjectCommitHistory,
+    getChangedDocumentsAtChange,
   };
 };
