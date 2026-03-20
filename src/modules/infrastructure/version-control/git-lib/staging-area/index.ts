@@ -5,9 +5,25 @@ import { mapErrorTo } from '../../../../../utils/errors';
 import { RepositoryError } from '../../errors';
 import { type IsoGitDeps } from '../types';
 
-export type RemoveFileArgs = Omit<IsoGitDeps, 'isoGitHttp'> & {
+type StagingAreaDeps = Omit<IsoGitDeps, 'isoGitHttp'>;
+
+export type RemoveFileArgs = StagingAreaDeps & {
   path: string;
 };
+
+export const hasStagedChanges = ({
+  isoGitFs,
+  dir,
+}: StagingAreaDeps): Effect.Effect<boolean, RepositoryError, never> =>
+  Effect.tryPromise({
+    try: async () => {
+      const matrix = await git.statusMatrix({ fs: isoGitFs, dir });
+      // statusMatrix returns [filepath, HEAD, WORKDIR, STAGE]
+      // A file has staged changes when HEAD !== STAGE (index 0 !== index 2)
+      return matrix.some(([, head, , stage]) => head !== stage);
+    },
+    catch: mapErrorTo(RepositoryError, 'Error checking staged changes'),
+  });
 
 export const removeFile = ({
   isoGitFs,

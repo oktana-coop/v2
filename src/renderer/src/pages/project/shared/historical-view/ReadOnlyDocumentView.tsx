@@ -7,14 +7,14 @@ import {
   prosemirror,
   type RichTextDocument,
   richTextRepresentations,
-} from '../../../../../../../../modules/domain/rich-text';
-import { ProseMirrorContext } from '../../../../../../../../modules/domain/rich-text/react/prosemirror-context';
-import { ElectronContext } from '../../../../../../../../modules/infrastructure/cross-platform/browser';
+} from '../../../../../../modules/domain/rich-text';
+import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/react/prosemirror-context';
+import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
 import {
   diffDelete,
   diffInsert,
   diffModify,
-} from '../../../../../../components/editing/marks';
+} from '../../../../components/editing/marks';
 
 const {
   schema,
@@ -49,9 +49,9 @@ const isSingleDocViewProps = (
   return (props as SingleDocViewProps).doc !== undefined;
 };
 
-type ReadOnlyViewProps = DiffViewProps | SingleDocViewProps;
+type ReadOnlyDocumentViewProps = DiffViewProps | SingleDocViewProps;
 
-export const ReadOnlyView = (props: ReadOnlyViewProps) => {
+export const ReadOnlyDocumentView = (props: ReadOnlyDocumentViewProps) => {
   const { openExternalLink } = useContext(ElectronContext);
   const editorRoot = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);

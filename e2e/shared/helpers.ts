@@ -1,4 +1,4 @@
-import { ElectronApplication, Page } from '@playwright/test';
+import { ElectronApplication, expect, Page } from '@playwright/test';
 import * as os from 'os';
 
 /**
@@ -326,19 +326,31 @@ export const commitChanges = async ({
   window: Page;
   message: string;
 }): Promise<void> => {
-  // Click the commit button in either the editor or history ActionsBar
-  await window.getByRole('button', { name: /commit changes/i }).click();
+  const commitBtn = window.getByRole('button', { name: /commit changes/i });
+  await expect(commitBtn).toBeEnabled({ timeout: 1_000 });
+  await commitBtn.click();
 
   // Wait for the commit message textarea to be visible (autofocused in dialog)
   const textarea = window.getByRole('textbox');
-  await textarea.waitFor({ state: 'visible', timeout: 500 });
+  await textarea.waitFor({ state: 'visible', timeout: 1_000 });
   await textarea.fill(message);
 
   // Click the "Commit" button in the dialog
   await window.getByRole('button', { name: /^Commit$/i }).click();
 
-  // Wait for dialog to close (textarea disappears)
-  await textarea.waitFor({ state: 'hidden', timeout: 500 });
+  // Wait for dialog to close (textarea disappears) — git operations can be
+  // slow on Windows CI, so allow more time than the default.
+  await textarea.waitFor({ state: 'hidden', timeout: 5_000 });
+};
+
+export const enableShowDiff = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  const checkbox = window.getByLabel(/show diff with/i);
+  await checkbox.check();
+  await expect(checkbox).toBeChecked();
 };
 
 export const selectUncommittedChanges = async ({
@@ -394,6 +406,24 @@ export const discardChanges = async ({
 
   // Wait for dialog to close
   await discardBtn.waitFor({ state: 'hidden', timeout: 500 });
+};
+
+/**
+ * With a committed change selected, clicks the "Revert to this State" button
+ * and confirms the restore dialog (which auto-fills a commit message).
+ */
+export const restoreCommit = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  await window.getByRole('button', { name: /revert to this state/i }).click();
+
+  const restoreBtn = window.getByRole('button', { name: /^Restore$/i });
+  await restoreBtn.waitFor({ state: 'visible', timeout: 500 });
+  await restoreBtn.click();
+
+  await restoreBtn.waitFor({ state: 'hidden', timeout: 500 });
 };
 
 /**
@@ -521,4 +551,80 @@ export const confirmDeletion = async ({
   await deleteBtn.waitFor({ state: 'visible', timeout: 2_000 });
   await deleteBtn.click();
   await deleteBtn.waitFor({ state: 'hidden', timeout: 2_000 });
+};
+
+/**
+ * Navigates to the project history view by clicking the History icon
+ * in the navigation bar and waits for the commit history panel to appear.
+ */
+export const navigateToProjectHistory = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  await window
+    .getByTestId('nav-bar')
+    .getByRole('link', { name: /history/i })
+    .click();
+  await window.waitForSelector('[data-testid="commit-history-panel"]', {
+    timeout: 2_000,
+  });
+};
+
+/**
+ * Clicks a commit row in the project history sidebar to expand/collapse it.
+ * Matches the first commit row containing the given message text.
+ */
+export const toggleProjectCommit = async ({
+  window,
+  commitMessage,
+}: {
+  window: Page;
+  commitMessage: string;
+}): Promise<void> => {
+  await window
+    .getByTestId('project-commit-row')
+    .filter({ hasText: commitMessage })
+    .first()
+    .click();
+};
+
+/**
+ * Clicks a changed document row inside an expanded commit in project history.
+ * The document is identified by its file name text.
+ */
+export const selectChangedDocument = async ({
+  window,
+  fileName,
+}: {
+  window: Page;
+  fileName: string;
+}): Promise<void> => {
+  // dispatchEvent bypasses Playwright's coordinate-based hit-testing, which
+  // fails on Windows CI where the panel header visually overlaps the row.
+  await window
+    .getByTestId('changed-document-row')
+    .filter({ hasText: fileName })
+    .first()
+    .locator('button')
+    .dispatchEvent('click');
+};
+
+/**
+ * Clicks an uncommitted file in the project history uncommitted changes panel.
+ */
+export const selectUncommittedDocument = async ({
+  window,
+  fileName,
+}: {
+  window: Page;
+  fileName: string;
+}): Promise<void> => {
+  await window
+    .getByTestId('uncommitted-changes-panel')
+    .getByTestId('changed-document-row')
+    .filter({ hasText: fileName })
+    .first()
+    .locator('button')
+    .dispatchEvent('click');
 };

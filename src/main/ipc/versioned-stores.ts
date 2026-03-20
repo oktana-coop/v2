@@ -25,8 +25,10 @@ import {
   type MultiDocumentProjectCreateAndSwitchToBranchArgs,
   type MultiDocumentProjectDeleteBranchArgs,
   type MultiDocumentProjectFindRemoteProjectByNameArgs,
+  type MultiDocumentProjectGetChangedDocumentsAtChangeArgs,
   type MultiDocumentProjectGetCurrentBranchArgs,
   type MultiDocumentProjectGetMergeConflictInfoArgs,
+  type MultiDocumentProjectGetProjectCommitHistoryArgs,
   type MultiDocumentProjectGetRemoteBranchInfoArgs,
   type MultiDocumentProjectListBranchesArgs,
   type MultiDocumentProjectListRemoteProjectsArgs,
@@ -1380,6 +1382,46 @@ const registerMultiDocumentProjectStoreEvents = ({
                 })
               )
             )
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:get-project-commit-history',
+    async (_, args: MultiDocumentProjectGetProjectCommitHistoryArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.getProjectCommitHistory(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:get-changed-documents-at-change',
+    async (_, args: MultiDocumentProjectGetChangedDocumentsAtChangeArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.getChangedDocumentsAtChange(args)
           )
         )
       )

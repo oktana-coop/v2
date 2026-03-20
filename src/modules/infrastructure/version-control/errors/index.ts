@@ -34,6 +34,18 @@ export class MergeConflictError extends Cause.YieldableError {
   }
 }
 
+export const VersionControlDeletedDocumentErrorTag =
+  'VersionControlDeletedDocumentError';
+export class DeletedDocumentError extends Cause.YieldableError {
+  readonly _tag = VersionControlDeletedDocumentErrorTag;
+  readonly data;
+
+  constructor(message: string, data: { parentCommitId: string | null }) {
+    super(message);
+    this.data = data;
+  }
+}
+
 export const VersionControlSyncProviderErrorTag =
   'VersionControlSyncProviderError';
 export class SyncProviderError extends Cause.YieldableError {

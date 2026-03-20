@@ -488,6 +488,20 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
     ipcRenderer.invoke('multi-document-project-store:get-remote-branch-info', {
       ...args,
     }),
+  getProjectCommitHistory: (args) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:get-project-commit-history',
+      {
+        ...args,
+      }
+    ),
+  getChangedDocumentsAtChange: (args) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:get-changed-documents-at-change',
+      {
+        ...args,
+      }
+    ),
 } as MultiDocumentProjectStorePromiseAPI);
 
 // TODO: Namespace IPC messages

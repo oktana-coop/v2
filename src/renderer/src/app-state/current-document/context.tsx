@@ -23,9 +23,7 @@ import {
 } from '../../../../modules/domain/project';
 import {
   type BinaryRichTextRepresentation,
-  type GetDocumentAtChangeArgs,
   getDocumentRichTextContent,
-  type IsContentSameAtChangesArgs,
   isEmpty,
   processDocumentChange,
   type RichTextDocument,
@@ -70,7 +68,7 @@ export type CurrentDocumentContextType = {
   loadingHistory: boolean;
   versionedDocumentHistory: ChangeWithUrlInfo[];
   canCommit: boolean;
-  onCommit: (message: string) => Promise<void>;
+  commitChangesToDocument: (message: string) => Promise<void>;
   onRestoreCommit: (args: { message: string; commit: Commit }) => Promise<void>;
   onDiscardChanges: () => Promise<void>;
   isCommitDialogOpen: boolean;
@@ -85,12 +83,6 @@ export type CurrentDocumentContextType = {
   onCloseDiscardChangesDialog: () => void;
   selectedCommitIndex: number | null;
   onSelectChange: (commitId: ChangeId) => void;
-  getDocumentAtChange: (
-    args: GetDocumentAtChangeArgs
-  ) => Promise<VersionedDocument>;
-  isContentSameAtChanges: (
-    args: IsContentSameAtChangesArgs
-  ) => Promise<boolean>;
   getExportText: (
     representation: TextRichTextRepresentation
   ) => Promise<string>;
@@ -108,7 +100,7 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     loadingHistory: false,
     versionedDocumentHistory: [],
     canCommit: false,
-    onCommit: async () => {},
+    commitChangesToDocument: async () => {},
     onRestoreCommit: async () => {},
     onDiscardChanges: async () => {},
     isCommitDialogOpen: false,
@@ -123,8 +115,6 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     onCloseDiscardChangesDialog: () => {},
     selectedCommitIndex: null,
     onSelectChange: () => {},
-    // @ts-expect-error will get overriden below
-    getDocumentAtChange: async () => null,
     getExportText: async () => '',
     // @ts-expect-error will get overriden below
     getExportBinaryData: async () => null,
@@ -639,42 +629,6 @@ export const CurrentDocumentProvider = ({
     ]
   );
 
-  const handleGetDocumentAtChange = useCallback(
-    async (args: GetDocumentAtChangeArgs) => {
-      if (
-        !versionedDocumentStore ||
-        versionedDocumentStore.projectId !== projectIdParam
-      ) {
-        throw new Error(
-          'Versioned document store not ready yet or mismatched project.'
-        );
-      }
-
-      return Effect.runPromise(
-        versionedDocumentStore.getDocumentAtChange(args)
-      );
-    },
-    [versionedDocumentStore, projectIdParam]
-  );
-
-  const handleIsContentSameAtChanges = useCallback(
-    (args: IsContentSameAtChangesArgs) => {
-      if (
-        !versionedDocumentStore ||
-        versionedDocumentStore.projectId !== projectIdParam
-      ) {
-        throw new Error(
-          'Versioned document store not ready yet or mismatched project.'
-        );
-      }
-
-      return Effect.runPromise(
-        versionedDocumentStore.isContentSameAtChanges(args)
-      );
-    },
-    [versionedDocumentStore, projectIdParam]
-  );
-
   const handleDocumentContentChange = useCallback(
     async (doc: RichTextDocument) => {
       if (
@@ -869,7 +823,7 @@ export const CurrentDocumentProvider = ({
         loadingHistory,
         versionedDocumentHistory,
         canCommit,
-        onCommit: handleCommit,
+        commitChangesToDocument: handleCommit,
         onRestoreCommit: handleRestoreCommit,
         onDiscardChanges: handleDiscardChanges,
         isCommitDialogOpen,
@@ -884,8 +838,6 @@ export const CurrentDocumentProvider = ({
         onCloseDiscardChangesDialog: handleCloseDiscardChangesDialog,
         selectedCommitIndex,
         onSelectChange: handleSelectChange,
-        getDocumentAtChange: handleGetDocumentAtChange,
-        isContentSameAtChanges: handleIsContentSameAtChanges,
         getExportText: exportToTextRepresentation,
         getExportBinaryData: exportToBinaryRepresentation,
       }}
