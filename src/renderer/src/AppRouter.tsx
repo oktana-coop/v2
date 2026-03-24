@@ -18,7 +18,10 @@ import {
   DocumentEditor,
   DocumentHistoricalView,
   DocumentSelection,
+  HistoryNoProject,
   ProjectDocuments,
+  ProjectHistory,
+  ProjectHistoryDocumentView,
   ProjectMergeConflictResolution,
   ProjectProviders,
   ProjectSelection,
@@ -59,9 +62,16 @@ export const AppRouter = () => {
                   element={<CompareContentConflictResolution />}
                 />
               </Route>
+              <Route path="history" element={<ProjectHistory />}>
+                <Route
+                  path=":documentId/changes/:changeId"
+                  element={<ProjectHistoryDocumentView />}
+                />
+              </Route>
               <Route path="settings" element={<ProjectSettings />} />
             </Route>
           </Route>
+          <Route path="/history" element={<HistoryNoProject />} />
           <Route path="/options" element={<Options />} />
         </Routes>
       </Layout>

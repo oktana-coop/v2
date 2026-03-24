@@ -1,6 +1,7 @@
 import {
   getDirectoryName,
   getExtension,
+  getParentPath,
   removeExtension,
   removePath,
 } from './utils';
@@ -105,6 +106,64 @@ describe('filesystem/utils', () => {
       expect(removePath('/some/ odd/path////my file name.v2')).toBe(
         'my file name.v2'
       );
+    });
+
+    it('removes the path from a Windows absolute path', () => {
+      expect(removePath('C:\\Users\\alice\\notes.txt')).toBe('notes.txt');
+    });
+
+    it('removes the path from a Windows relative path', () => {
+      expect(removePath('src\\components\\App.tsx')).toBe('App.tsx');
+    });
+
+    it('handles mixed separators', () => {
+      expect(removePath('src/components\\App.tsx')).toBe('App.tsx');
+    });
+
+    it('returns an empty string for an empty string', () => {
+      expect(removePath('')).toBe('');
+    });
+  });
+
+  describe('getParentPath', () => {
+    it('returns the parent for a POSIX relative path', () => {
+      expect(getParentPath('src/components/App.tsx')).toBe('src/components');
+    });
+
+    it('returns the parent for a POSIX absolute path', () => {
+      expect(getParentPath('/Users/alice/documents/notes.txt')).toBe(
+        '/Users/alice/documents'
+      );
+    });
+
+    it('returns the parent for a Windows absolute path', () => {
+      expect(getParentPath('C:\\Users\\alice\\documents\\notes.txt')).toBe(
+        'C:\\Users\\alice\\documents'
+      );
+    });
+
+    it('returns the parent for a Windows relative path', () => {
+      expect(getParentPath('src\\components\\App.tsx')).toBe('src\\components');
+    });
+
+    it('preserves separators in mixed-separator paths', () => {
+      expect(getParentPath('src/components\\App.tsx')).toBe('src/components');
+    });
+
+    it('returns an empty string for a file with no parent', () => {
+      expect(getParentPath('file.txt')).toBe('');
+    });
+
+    it('returns an empty string for an empty string', () => {
+      expect(getParentPath('')).toBe('');
+    });
+
+    it('returns the parent for a deeply nested POSIX path', () => {
+      expect(getParentPath('a/b/c/d/e.txt')).toBe('a/b/c/d');
+    });
+
+    it('returns the parent for a deeply nested Windows path', () => {
+      expect(getParentPath('a\\b\\c\\d\\e.txt')).toBe('a\\b\\c\\d');
     });
   });
 

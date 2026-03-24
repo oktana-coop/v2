@@ -448,6 +448,11 @@ export const createAdapter = ({
               documentId,
               changeId: lastCommit.id,
             }),
+            // TODO: Restore from the parent commit when the document was
+            // deleted, similar to the Git implementation.
+            Effect.catchTag('VersionedDocumentDeletedDocumentError', (e) =>
+              Effect.fail(new RepositoryError(e.message))
+            ),
             Effect.flatMap((documentAtCommit) =>
               documentAtCommit.representation ===
               richTextRepresentations.AUTOMERGE

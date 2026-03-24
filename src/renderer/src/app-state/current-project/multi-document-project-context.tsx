@@ -7,7 +7,7 @@ import {
   useEffect,
   useState,
 } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useLocation, useNavigate, useParams } from 'react-router';
 
 import { AuthContext } from '../../../../modules/auth/browser';
 import {
@@ -51,11 +51,14 @@ import {
 } from '../../../../modules/infrastructure/notifications/browser';
 import {
   type Branch,
+  type ChangedDocument,
+  type ChangeId,
   type Commit,
   DEFAULT_BRANCH,
   type MergeConflictInfo,
   parseBranch,
   type ResolvedArtifactId,
+  UNCOMMITTED_CHANGE_ID,
   urlEncodeArtifactId,
   VersionControlMergeConflictErrorTag,
 } from '../../../../modules/infrastructure/version-control';
@@ -89,6 +92,7 @@ export type MultiDocumentProjectContextType = {
   projectId: ProjectId | null;
   directory: Directory | null;
   currentBranch: Branch | null;
+  versionedProjectStore: MultiDocumentProjectStore | null;
   directoryTree: Array<Directory | File>;
   openDirectory: (cloneUrl?: string) => Promise<Directory>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
@@ -100,6 +104,7 @@ export type MultiDocumentProjectContextType = {
   findDocumentInProject: (args: {
     projectId: ProjectId;
     documentPath: string;
+    changeId?: ChangeId;
   }) => Promise<ResolvedDocument>;
   selectedFileInfo: SelectedFileInfo | null;
   selectedFileName: string | null;
@@ -163,6 +168,12 @@ export type MultiDocumentProjectContextType = {
     newName: string;
   }) => Promise<void>;
   cancelRenameDirectory: () => void;
+  getProjectHistory: () => Promise<Commit[]>;
+  getProjectChangedDocuments: (
+    changeId: Commit['id']
+  ) => Promise<ChangedDocument[]>;
+  getProjectUncommittedChanges: () => Promise<ChangedDocument[]>;
+  commitChanges: (message: string) => Promise<void>;
 };
 
 export const MultiDocumentProjectContext =
@@ -171,6 +182,7 @@ export const MultiDocumentProjectContext =
     projectId: null,
     directory: null,
     branch: null,
+    versionedProjectStore: null,
     directoryFiles: [],
     // @ts-expect-error will get overriden below
     openDirectory: async () => null,
@@ -209,6 +221,10 @@ export const MultiDocumentProjectContext =
     clearRenameDirectoryError: () => {},
     renameDirectory: async () => {},
     cancelRenameDirectory: () => {},
+    getProjectHistory: async () => [],
+    getProjectChangedDocuments: async () => [],
+    getProjectUncommittedChanges: async () => [],
+    commitChanges: async () => {},
   });
 
 export const MultiDocumentProjectProvider = ({
@@ -271,6 +287,65 @@ export const MultiDocumentProjectProvider = ({
     string | null
   >(null);
 
+  const getProjectHistory = useCallback(async () => {
+    if (!versionedProjectStore || !projectId || !currentBranch) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot get project history.'
+      );
+    }
+    return Effect.runPromise(
+      versionedProjectStore.getProjectCommitHistory({
+        projectId,
+        branch: currentBranch,
+      })
+    );
+  }, [versionedProjectStore, projectId, currentBranch]);
+
+  const getProjectChangedDocuments = useCallback(
+    async (changeId: Commit['id']) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot get changed documents.'
+        );
+      }
+      return Effect.runPromise(
+        versionedProjectStore.getChangedDocumentsAtChange({
+          projectId,
+          changeId,
+        })
+      );
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const getProjectUncommittedChanges = useCallback(async () => {
+    if (!versionedProjectStore || !projectId) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot get uncommitted changes.'
+      );
+    }
+    return Effect.runPromise(
+      versionedProjectStore.getChangedDocumentsAtChange({
+        projectId,
+        changeId: UNCOMMITTED_CHANGE_ID,
+      })
+    );
+  }, [versionedProjectStore, projectId]);
+
+  const commitChanges = useCallback(
+    async (message: string) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot commit changes.'
+        );
+      }
+      await Effect.runPromise(
+        versionedProjectStore.commitChanges({ projectId, message })
+      );
+    },
+    [versionedProjectStore, projectId]
+  );
+
   const startRenameDocument = useCallback((path: string) => {
     setDocumentPathToRename(path);
     setRenameDocumentError(null);
@@ -282,6 +357,7 @@ export const MultiDocumentProjectProvider = ({
   }, []);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const navigateToResolveMergeConflicts = useNavigateToResolveConflicts();
 
   useEffect(() => {
@@ -336,9 +412,18 @@ export const MultiDocumentProjectProvider = ({
             mergeConflictInfo,
           });
         } else {
-          navigate(
-            `/projects/${urlEncodeProjectId(browserStorageProjectData.projectId)}/documents`
+          // Only redirect to /documents if the user isn't already on a
+          // project subroute (e.g. /history). This effect runs on mount,
+          // so when navigating from /options back to project routes the
+          // current location already reflects the target subroute.
+          const projectBase = `/projects/${urlEncodeProjectId(browserStorageProjectData.projectId)}`;
+          const isAlreadyOnProjectSubroute = location.pathname.startsWith(
+            `${projectBase}/`
           );
+
+          if (!isAlreadyOnProjectSubroute) {
+            navigate(`${projectBase}/documents`);
+          }
         }
       }
     };
@@ -1198,6 +1283,7 @@ export const MultiDocumentProjectProvider = ({
   const handleFindDocumentInProject = async (args: {
     projectId: ProjectId;
     documentPath: string;
+    changeId?: ChangeId;
   }) => {
     if (!versionedDocumentStore || !versionedProjectStore) {
       throw new Error(
@@ -1212,6 +1298,7 @@ export const MultiDocumentProjectProvider = ({
       })({
         projectId: args.projectId,
         documentPath: args.documentPath,
+        changeId: args.changeId,
       })
     );
   };
@@ -1698,6 +1785,7 @@ export const MultiDocumentProjectProvider = ({
         directory,
         directoryTree,
         currentBranch,
+        versionedProjectStore,
         openDirectory: handleOpenDirectory,
         requestPermissionForSelectedDirectory,
         createNewDocument: handleCreateNewDocument,
@@ -1757,6 +1845,10 @@ export const MultiDocumentProjectProvider = ({
         clearRenameDirectoryError,
         renameDirectory: handleRenameDirectory,
         cancelRenameDirectory,
+        getProjectHistory,
+        getProjectChangedDocuments,
+        getProjectUncommittedChanges,
+        commitChanges,
       }}
     >
       {children}

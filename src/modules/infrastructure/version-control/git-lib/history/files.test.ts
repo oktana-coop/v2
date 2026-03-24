@@ -1,5 +1,5 @@
 import * as Effect from 'effect/Effect';
-import git from 'isomorphic-git';
+import git, { Errors as IsoGitErrors } from 'isomorphic-git';
 import { type PromiseFsClient as IsoGitFsApi } from 'isomorphic-git';
 
 import { documentChangeTypes } from '../../models';
@@ -16,6 +16,9 @@ vi.mock('isomorphic-git', () => ({
     statusMatrix: vi.fn(),
     readBlob: vi.fn(),
     TREE: vi.fn((args) => args),
+  },
+  Errors: {
+    NotFoundError: class NotFoundError extends Error {},
   },
 }));
 
@@ -399,9 +402,9 @@ describe('fileExistsAtCommit', () => {
   });
 
   it('fails with NotFoundError when the file does not exist', async () => {
-    const notFoundError = new Error('File not found');
-    notFoundError.name = 'NotFoundError';
-    mockReadBlob.mockRejectedValue(notFoundError);
+    mockReadBlob.mockRejectedValue(
+      new IsoGitErrors.NotFoundError('File not found')
+    );
 
     const error = await Effect.runPromise(
       Effect.flip(

@@ -38,9 +38,11 @@ import {
 } from '../../../../../../infrastructure/filesystem';
 import { PRIMARY_RICH_TEXT_REPRESENTATION } from '../../../../constants';
 import {
+  DeletedDocumentError,
   NotFoundError,
   RepositoryError,
   ValidationError,
+  VersionedDocumentDeletedDocumentErrorTag,
   VersionedDocumentNotFoundErrorTag,
 } from '../../../../errors';
 import {
@@ -520,11 +522,11 @@ export const createAdapter = ({
     projectDir: string;
     documentPath: string;
     commitHash: GitCommitHash;
-  }) => Effect.Effect<RichTextDocument, RepositoryError, never> = ({
-    projectDir,
-    documentPath,
-    commitHash,
-  }) =>
+  }) => Effect.Effect<
+    RichTextDocument,
+    RepositoryError | NotFoundError | DeletedDocumentError,
+    never
+  > = ({ projectDir, documentPath, commitHash }) =>
     pipe(
       Effect.tryPromise({
         try: () =>
@@ -541,15 +543,63 @@ export const createAdapter = ({
                 oid: commitOid,
                 filepath: documentPath,
               }),
-            catch: mapErrorTo(RepositoryError, 'Git repo error'),
+            catch: (error) =>
+              error instanceof Errors.NotFoundError
+                ? new NotFoundError(
+                    `Document "${documentPath}" not found at commit ${commitHash}`
+                  )
+                : new RepositoryError('Git repo error'),
           }),
-          Effect.flatMap(({ blob }) =>
-            Effect.try({
-              try: () => Buffer.from(blob).toString('utf8'),
-              catch: mapErrorTo(RepositoryError, 'Git repo error'),
-            })
+          // When the document is not found at this commit, check whether it
+          // existed in the parent commit. If it did, this is a deletion
+          // (DeletedDocumentError); otherwise the document never existed here
+          // (NotFoundError).
+          Effect.catchTag(VersionedDocumentNotFoundErrorTag, (notFoundError) =>
+            pipe(
+              Effect.tryPromise({
+                try: () =>
+                  git.readCommit({
+                    fs: isoGitFs,
+                    dir: projectDir,
+                    oid: commitOid,
+                  }),
+                catch: () => notFoundError,
+              }),
+              Effect.flatMap((commitResult) => {
+                const parentOid = commitResult.commit.parent[0] ?? null;
+                if (!parentOid) return Effect.fail(notFoundError);
+
+                return pipe(
+                  Effect.tryPromise({
+                    try: () =>
+                      git.readBlob({
+                        fs: isoGitFs,
+                        dir: projectDir,
+                        oid: parentOid,
+                        filepath: documentPath,
+                      }),
+                    // Document not in parent either — never existed here.
+                    catch: () => notFoundError,
+                  }),
+                  // Document exists in parent but not in this commit — deleted.
+                  Effect.flatMap(() =>
+                    Effect.fail(
+                      new DeletedDocumentError(notFoundError.message, {
+                        parentCommitId: parentOid,
+                      })
+                    )
+                  )
+                );
+              })
+            )
           )
         )
+      ),
+      Effect.flatMap(({ blob }) =>
+        Effect.try({
+          try: () => Buffer.from(blob).toString('utf8'),
+          catch: mapErrorTo(RepositoryError, 'Git repo error'),
+        })
       ),
       Effect.map((content) => ({
         type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
@@ -749,6 +799,34 @@ export const createAdapter = ({
                     documentPath,
                     commitHash,
                   })
+                ),
+                // If the document was deleted in the last commit, restore
+                // from the parent commit instead.
+                Effect.catchTag(
+                  VersionedDocumentDeletedDocumentErrorTag,
+                  (e) =>
+                    e.data.parentCommitId
+                      ? pipe(
+                          getDocumentAtCommit({
+                            projectDir,
+                            documentPath,
+                            commitHash: parseGitCommitHash(
+                              e.data.parentCommitId
+                            ),
+                          }),
+                          // The parent commit itself may also not contain the
+                          // document (e.g. consecutive deletions). We don't
+                          // recurse further — treat this as unrecoverable.
+                          Effect.catchTag(
+                            VersionedDocumentDeletedDocumentErrorTag,
+                            (e) => Effect.fail(new RepositoryError(e.message))
+                          )
+                        )
+                      : Effect.fail(
+                          new RepositoryError(
+                            'Document was deleted but has no parent commit to restore from.'
+                          )
+                        )
                 )
               )
             ),

@@ -1,8 +1,14 @@
 import { clsx } from 'clsx';
-import { NavLink } from 'react-router';
+import { useEffect, useMemo, useState } from 'react';
+import { NavLink, useMatch } from 'react-router';
 
+import {
+  projectTypes,
+  urlEncodeProjectId,
+} from '../../../../modules/domain/project';
+import { type ProjectId } from '../../../../modules/domain/project/models';
 import { Logo } from '../brand/Logo';
-import { OptionsIcon, PenIcon } from '../icons';
+import { BranchIcon, OptionsIcon, PenIcon } from '../icons';
 import { IconProps } from '../icons/types';
 
 const ICON_SIZE = 32;
@@ -14,20 +20,18 @@ type NavItem = {
   current: boolean;
 };
 
-const navigation: NavItem[] = [
-  {
-    name: 'Edit',
-    href: '/projects',
-    icon: PenIcon,
-    current: true,
-  },
-  {
-    name: 'Options',
-    href: '/options',
-    icon: OptionsIcon,
-    current: false,
-  },
-];
+const getProjectSubroute = ({
+  subpath,
+  fallback,
+  projectId,
+}: {
+  subpath: string;
+  fallback: string;
+  projectId: ProjectId | null;
+}) =>
+  projectId
+    ? `/projects/${urlEncodeProjectId(projectId)}/${subpath}`
+    : fallback;
 
 export const NavBarItem = ({ item }: { item: NavItem }) => {
   const Icon = item.icon;
@@ -53,6 +57,56 @@ export const NavBarItem = ({ item }: { item: NavItem }) => {
 };
 
 export function NavBar() {
+  const projectMatch = useMatch('/projects/:projectId/*');
+  const [projectId, setProjectId] = useState<ProjectId | null>(null);
+
+  useEffect(() => {
+    const projId = (projectMatch?.params.projectId ?? null) as ProjectId | null;
+    setProjectId(projId);
+  }, [projectMatch?.params.projectId]);
+
+  const isMultiDocumentProject =
+    window.config.projectType === projectTypes.MULTI_DOCUMENT_PROJECT;
+
+  const projectSpecificNavItems: NavItem[] = useMemo(
+    () => [
+      {
+        name: 'Edit',
+        href: getProjectSubroute({
+          subpath: 'documents',
+          fallback: '/projects',
+          projectId,
+        }),
+        icon: PenIcon,
+        current: true,
+      },
+      ...(isMultiDocumentProject
+        ? [
+            {
+              name: 'History',
+              href: getProjectSubroute({
+                subpath: 'history',
+                fallback: '/history',
+                projectId,
+              }),
+              icon: BranchIcon,
+              current: false,
+            },
+          ]
+        : []),
+    ],
+    [projectId, isMultiDocumentProject]
+  );
+
+  const appWideNavItems: NavItem[] = [
+    {
+      name: 'Options',
+      href: '/options',
+      icon: OptionsIcon,
+      current: false,
+    },
+  ];
+
   return (
     <div
       className="flex h-full w-12 flex-none flex-col items-center gap-y-5 overflow-y-auto border-r border-gray-300 bg-transparent py-4 dark:border-neutral-600"
@@ -64,9 +118,16 @@ export function NavBar() {
 
       <nav className="flex flex-1 flex-col self-stretch">
         <ul role="list" className="flex flex-1 flex-col">
-          {navigation.map((item) => (
-            <NavBarItem key={item.href} item={item} />
+          {projectSpecificNavItems.map((item) => (
+            <NavBarItem key={item.name} item={item} />
           ))}
+          <li className={projectSpecificNavItems.length > 1 ? 'mt-auto' : ''}>
+            <ul role="list">
+              {appWideNavItems.map((item) => (
+                <NavBarItem key={item.name} item={item} />
+              ))}
+            </ul>
+          </li>
         </ul>
       </nav>
     </div>

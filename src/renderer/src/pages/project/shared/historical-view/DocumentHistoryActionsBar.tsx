@@ -6,62 +6,44 @@ import {
   decodeUrlEncodedCommitId,
   isCommitWithUrlInfo,
   urlEncodeChangeId,
-} from '../../../../../../../../modules/infrastructure/version-control';
-import { IconButton } from '../../../../../../components/actions/IconButton';
-import {
-  CheckIcon,
-  PenIcon,
-  RestoreCommitIcon,
-  SidebarIcon,
-  SidebarOpenIcon,
-  TrashIcon,
-} from '../../../../../../components/icons';
+} from '../../../../../../modules/infrastructure/version-control';
+import { IconButton } from '../../../../components/actions/IconButton';
+import { SidebarIcon, SidebarOpenIcon } from '../../../../components/icons';
 import {
   Checkbox,
   CheckboxField,
-} from '../../../../../../components/inputs/Checkbox';
-import { Label } from '../../../../../../components/inputs/Fieldset';
+} from '../../../../components/inputs/Checkbox';
+import { Label } from '../../../../components/inputs/Fieldset';
 import {
   Listbox,
   ListboxLabel,
   ListboxOption,
-} from '../../../../../../components/inputs/Listbox';
+} from '../../../../components/inputs/Listbox';
 
-export const ActionsBar = ({
+export const DocumentHistoryActionsBar = ({
   title,
+  titleComponent,
   isSidebarOpen,
   onSidebarToggle,
-  onRestoreCommitIconClick,
   canShowDiff,
   showDiff,
   onSetShowDiffChecked,
-  diffWith,
+  diffCommitId,
   history,
   onDiffCommitSelect,
-  canShowDiscardChanges,
-  lastChangeIsCommitAndSelected,
-  uncommittedChangesSelected,
-  onEditIconClick,
-  onTrashIconClick,
-  onCommitIconClick,
+  actions,
 }: {
   title: string;
+  titleComponent?: React.ReactNode;
   isSidebarOpen: boolean;
   onSidebarToggle: () => void;
-  onRestoreCommitIconClick: () => void;
   canShowDiff: boolean;
   showDiff: boolean;
   onSetShowDiffChecked: (value: boolean) => void;
-  diffWith: CommitId | null;
+  diffCommitId: CommitId | null;
   history: Array<ChangeWithUrlInfo>;
   onDiffCommitSelect: (commitId: CommitId) => void;
-  canCommit: boolean;
-  canShowDiscardChanges: boolean;
-  lastChangeIsCommitAndSelected: boolean;
-  uncommittedChangesSelected: boolean;
-  onEditIconClick: () => void;
-  onTrashIconClick: () => void;
-  onCommitIconClick: () => void;
+  actions?: React.ReactNode;
 }) => {
   const sidebarButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -74,16 +56,6 @@ export const ActionsBar = ({
       sidebarButtonRef.current.removeAttribute('data-headlessui-state');
       sidebarButtonRef.current.removeAttribute('data-hover');
     }
-  };
-
-  const handleRestoreCommitIconClick = (ev: React.MouseEvent) => {
-    ev.preventDefault();
-    onRestoreCommitIconClick();
-  };
-
-  const handleCheckIconClick = (ev: React.MouseEvent) => {
-    ev.preventDefault();
-    onCommitIconClick();
   };
 
   const handleDiffCommitSelect = (commitId: string) => {
@@ -100,9 +72,9 @@ export const ActionsBar = ({
         icon={isSidebarOpen ? <SidebarOpenIcon /> : <SidebarIcon />}
         onClick={handleSidebarToggle}
       />
-      <h3 className="max-h-14 flex-auto overflow-y-hidden px-4 text-left text-base/7">
-        {title}
-      </h3>
+      <div className="flex max-h-14 flex-auto items-center overflow-y-hidden px-4">
+        {titleComponent ?? <h3 className="text-left text-base/7">{title}</h3>}
+      </div>
       <div className="flex flex-initial items-center gap-3">
         {canShowDiff && (
           <div className="flex items-center gap-2">
@@ -119,7 +91,7 @@ export const ActionsBar = ({
             <div className="max-w-64">
               <Listbox
                 name="diff commits"
-                value={diffWith ? urlEncodeChangeId(diffWith) : null}
+                value={diffCommitId ? urlEncodeChangeId(diffCommitId) : null}
                 onChange={handleDiffCommitSelect}
                 disabled={!showDiff}
               >
@@ -139,42 +111,7 @@ export const ActionsBar = ({
           </div>
         )}
 
-        {uncommittedChangesSelected ? (
-          <>
-            <IconButton
-              icon={<PenIcon />}
-              onClick={onEditIconClick}
-              tooltip="Edit Document"
-            />
-            {canShowDiscardChanges && (
-              <IconButton
-                icon={<TrashIcon />}
-                onClick={onTrashIconClick}
-                tooltip="Discard Changes"
-              />
-            )}
-            <IconButton
-              onClick={handleCheckIconClick}
-              icon={<CheckIcon />}
-              color="purple"
-              tooltip="Commit Changes"
-            />
-          </>
-        ) : (
-          <>
-            <IconButton
-              icon={<PenIcon />}
-              onClick={onEditIconClick}
-              tooltip="Edit Document (Current State)"
-            />
-            <IconButton
-              onClick={handleRestoreCommitIconClick}
-              icon={<RestoreCommitIcon />}
-              disabled={lastChangeIsCommitAndSelected}
-              tooltip="Revert to this State"
-            />
-          </>
-        )}
+        {actions}
       </div>
     </div>
   );

@@ -49,7 +49,7 @@ const Project = () => {
     isRestoreCommitDialogOpen,
     isDiscardChangesDialogOpen,
     canCommit,
-    onCommit,
+    commitChangesToDocument,
     onCloseRestoreCommitDialog,
     onCloseDiscardChangesDialog,
     onRestoreCommit,
@@ -115,7 +115,7 @@ const Project = () => {
           isOpen={isCommitDialogOpen}
           onCancel={onCloseCommitDialog}
           canCommit={canCommit}
-          onCommit={(message: string) => onCommit(message)}
+          onCommit={(message: string) => commitChangesToDocument(message)}
         />
         <RestoreCommitDialog
           isOpen={isRestoreCommitDialogOpen}
@@ -184,6 +184,7 @@ export {
   DocumentHistoricalView,
   ProjectDocuments,
 } from './documents';
+export { ProjectHistory, ProjectHistoryDocumentView } from './history';
 export { ProjectSettings } from './settings';
 export {
   ProjectMergeConflictResolution,
