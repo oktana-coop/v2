@@ -603,7 +603,9 @@ export const selectChangedDocument = async ({
     .getByTestId('changed-document-row')
     .filter({ hasText: fileName })
     .first()
-    .click();
+    // force: the row can be visually overlapped by the panel header on
+    // smaller viewports (e.g. Windows CI) while still being present in the DOM.
+    .click({ force: true });
 };
 
 /**
@@ -621,5 +623,5 @@ export const selectUncommittedDocument = async ({
     .getByTestId('changed-document-row')
     .filter({ hasText: fileName })
     .first()
-    .click();
+    .click({ force: true });
 };
