@@ -21,7 +21,7 @@ export const ChangedDocumentRow = ({
   const parentPath = getParentPath(file.path);
 
   return (
-    <li>
+    <li data-testid="changed-document-row">
       <button
         className={clsx(
           'flex h-[32px] w-full cursor-pointer items-center overflow-hidden text-ellipsis text-nowrap py-0.5 pr-2 text-left text-sm hover:bg-zinc-950/5 dark:hover:bg-white/5',

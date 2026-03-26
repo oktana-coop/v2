@@ -31,7 +31,10 @@ export const CommitHistoryPanel = ({
   }) => void;
 }) => {
   return (
-    <div className="flex h-full flex-col overflow-hidden py-6">
+    <div
+      className="flex h-full flex-col overflow-hidden py-6"
+      data-testid="commit-history-panel"
+    >
       <div className="flex items-center px-4 pb-4">
         <div className="flex-auto">
           <SidebarHeading icon={CommitHistoryIcon} text="Commit History" />

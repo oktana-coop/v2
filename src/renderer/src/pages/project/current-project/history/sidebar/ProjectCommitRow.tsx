@@ -101,7 +101,7 @@ export const ProjectCommitRow = ({
     (loadingDocuments || (changedDocuments && changedDocuments.length > 0));
 
   return (
-    <div>
+    <div data-testid="project-commit-row">
       <div
         className="flex cursor-pointer text-left hover:bg-zinc-50 dark:hover:bg-neutral-800"
         onClick={onToggleExpand}

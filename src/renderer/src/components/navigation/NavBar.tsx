@@ -38,7 +38,7 @@ export const NavBarItem = ({ item }: { item: NavItem }) => {
 
   return (
     <li key={item.name} className="mb-2">
-      <NavLink to={item.href}>
+      <NavLink to={item.href} aria-label={item.name}>
         {({ isActive }) => (
           <div
             className={clsx(
