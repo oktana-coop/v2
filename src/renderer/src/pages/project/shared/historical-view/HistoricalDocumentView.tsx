@@ -2,8 +2,8 @@ import { useContext, useMemo } from 'react';
 
 import { type VersionedDocument } from '../../../../../../modules/domain/rich-text';
 import {
-  type ChangeWithUrlInfo,
   type CommitId,
+  type CommitWithUrlInfo,
 } from '../../../../../../modules/infrastructure/version-control';
 import { SidebarLayoutContext } from '../../../../app-state';
 import { isUnsupportedExtension } from '../../../../hooks/use-current-document-extension';
@@ -23,7 +23,7 @@ export type HistoricalDocumentViewProps = {
   diffCommitId: CommitId | null;
   onDiffCommitSelect: (id: CommitId) => void;
   canShowDiff: boolean;
-  diffSelectorCommits: ChangeWithUrlInfo[];
+  diffSelectorCommits: CommitWithUrlInfo[];
   title: string;
   titleComponent?: React.ReactNode;
   actions?: React.ReactNode;

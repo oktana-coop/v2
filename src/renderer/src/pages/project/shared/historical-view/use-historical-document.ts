@@ -13,10 +13,12 @@ import {
   changeIdsAreSame,
   type ChangeWithUrlInfo,
   type CommitId,
+  type CommitWithUrlInfo,
   decodeUrlEncodedArtifactId,
   decodeUrlEncodedChangeId,
   decodeUrlEncodedCommitId,
   decomposeGitBlobRef,
+  isCommitWithUrlInfo,
   isGitBlobRef,
   isUncommittedChangeId,
   parseGitCommitHash,
@@ -30,47 +32,46 @@ import { useProjectId } from '../../../../hooks/use-project-id';
 import { type DiffViewProps } from './ReadOnlyDocumentView';
 
 const resolveDiffState = ({
-  changes,
+  commits,
   changeId,
   userWantsDiff,
   diffWithParam,
 }: {
-  changes: ChangeWithUrlInfo[];
+  commits: CommitWithUrlInfo[];
   changeId: ChangeId | null;
   userWantsDiff: boolean;
   diffWithParam: CommitId | null;
 }): {
   diffCommitId: CommitId | null;
   canShowDiff: boolean;
-  diffSelectorCommits: ChangeWithUrlInfo[];
+  diffSelectorCommits: CommitWithUrlInfo[];
 } => {
   const noDiff = {
     diffCommitId: null,
     canShowDiff: false,
-    diffSelectorCommits: [] as ChangeWithUrlInfo[],
+    diffSelectorCommits: [] as CommitWithUrlInfo[],
   };
 
   if (!changeId) return noDiff;
 
   const key = urlEncodeChangeId(changeId);
-  const currentIndex = changes.findIndex((c) => c.urlEncodedChangeId === key);
+  const currentIndex = commits.findIndex((c) => c.urlEncodedChangeId === key);
 
   let defaultDiffCommitId: CommitId | null;
-  let diffSelectorCommits: ChangeWithUrlInfo[];
+  let diffSelectorCommits: CommitWithUrlInfo[];
 
   if (currentIndex < 0) {
     // Current change not in list (e.g. uncommitted in project history) —
-    // diff against the most recent commit; all changes are eligible.
-    defaultDiffCommitId =
-      changes.length > 0 ? (changes[0].id as CommitId) : null;
-    diffSelectorCommits = changes;
-  } else if (currentIndex >= changes.length - 1) {
+    // diff against the most recent commit; all commits are eligible.
+    defaultDiffCommitId = commits.length > 0 ? commits[0].id : null;
+    diffSelectorCommits = commits;
+  } else if (currentIndex >= commits.length - 1) {
     // Current change is the oldest in the list — nothing to diff against.
     return noDiff;
   } else {
-    // Normal case — diff against the next (older) change.
-    defaultDiffCommitId = changes[currentIndex + 1].id as CommitId;
-    diffSelectorCommits = changes.slice(currentIndex + 1);
+    // Normal case — diff against the next (older) commit.
+    defaultDiffCommitId = commits[currentIndex + 1].id;
+    diffSelectorCommits = commits.slice(currentIndex + 1);
   }
 
   if (!defaultDiffCommitId) return noDiff;
@@ -104,7 +105,7 @@ export type UseHistoricalDocumentResult = {
   diffCommitId: CommitId | null;
   onDiffCommitSelect: (id: CommitId) => void;
   canShowDiff: boolean;
-  diffSelectorCommits: ChangeWithUrlInfo[];
+  diffSelectorCommits: CommitWithUrlInfo[];
 };
 
 export const useHistoricalDocument = ({
@@ -163,15 +164,17 @@ export const useHistoricalDocument = ({
     return param ? decodeUrlEncodedCommitId(param) : null;
   }, [searchParams]);
 
+  const commits = useMemo(() => changes.filter(isCommitWithUrlInfo), [changes]);
+
   const { diffCommitId, canShowDiff, diffSelectorCommits } = useMemo(
     () =>
       resolveDiffState({
-        changes,
+        commits,
         changeId,
         userWantsDiff: showDiffInHistoryView,
         diffWithParam,
       }),
-    [changes, changeId, showDiffInHistoryView, diffWithParam]
+    [commits, changeId, showDiffInHistoryView, diffWithParam]
   );
 
   const onSetShowDiff = useCallback(
@@ -264,7 +267,6 @@ export const useHistoricalDocument = ({
 
       setLoading(true);
       setError(null);
-      setDoc(null);
       setDiffProps(null);
 
       try {

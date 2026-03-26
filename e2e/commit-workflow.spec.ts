@@ -117,6 +117,31 @@ test('first commit shows its content', async ({
   });
 });
 
+test('second commit shows diff controls but initial commit does not', async ({
+  electronApp,
+  window,
+  testProjectDir,
+}) => {
+  await openProjectFolder({ electronApp, window, folderPath: testProjectDir });
+  await openHelloMd({ window });
+
+  await typeInEditorAndWaitForDebounce({ window, text: ' first' });
+  await commitChanges({ window, message: 'first commit' });
+
+  await typeInEditorAndWaitForDebounce({ window, text: ' second' });
+  await commitChanges({ window, message: 'second commit' });
+
+  // The latest (second) commit should show the diff controls
+  await selectFirstCommit({ window, commitMessage: 'second commit' });
+  await expect(window.locator('.ProseMirror')).toBeVisible({ timeout: 1_000 });
+  await expect(window.getByLabel(/show diff with/i)).toBeVisible();
+
+  // The initial (first) commit should hide the diff controls
+  await selectFirstCommit({ window, commitMessage: 'first commit' });
+  await expect(window.locator('.ProseMirror')).toBeVisible({ timeout: 1_000 });
+  await expect(window.getByLabel(/show diff with/i)).toBeHidden();
+});
+
 test('discard: edit → commit → edit → discard → content reverted', async ({
   electronApp,
   window,

@@ -1,7 +1,10 @@
 import { useContext, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router';
 
-import { isCommit } from '../../../../../../../../modules/infrastructure/version-control';
+import {
+  changeIdsAreSame,
+  isCommit,
+} from '../../../../../../../../modules/infrastructure/version-control';
 import { CurrentDocumentContext } from '../../../../../../app-state';
 import { IconButton } from '../../../../../../components/actions/IconButton';
 import {
@@ -123,7 +126,7 @@ export const DocumentHistoricalView = () => {
     isCommit(selectedChange) &&
     commits.length > 0 &&
     isCommit(commits[0]) &&
-    selectedChange.id === commits[0].id;
+    changeIdsAreSame(selectedChange.id, commits[0].id);
 
   const actions = isUncommitted ? (
     <UncommittedChangesActions
