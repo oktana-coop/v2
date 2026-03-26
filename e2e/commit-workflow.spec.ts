@@ -249,7 +249,9 @@ test('bolding text shows modify annotation in diff', async ({
   // Place cursor at end of paragraph, select last word, bold it
   await focusParagraph(window);
   await window.keyboard.press('End');
-  await window.keyboard.press('Alt+Shift+ArrowLeft');
+  // macOS uses Alt (Option) for word-level selection, Linux/Windows use Ctrl
+  const wordSelectKey = process.platform === 'darwin' ? 'Alt' : 'Control';
+  await window.keyboard.press(`${wordSelectKey}+Shift+ArrowLeft`);
   await clickToolbarButton({ window, label: 'Bold' });
   await commitChanges({ window, message: 'after bold' });
 
