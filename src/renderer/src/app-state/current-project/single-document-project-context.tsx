@@ -41,14 +41,12 @@ import {
 } from '../../../../modules/infrastructure/version-control';
 import { useNavigateToResolveConflicts } from '../../hooks/use-navigate-to-resolve-merge-conflicts';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
+import {
+  SINGLE_DOCUMENT_PROJECT_BROWSER_STORAGE_KEY,
+  type SingleDocumentBrowserStorageProjectData,
+} from './browser-storage';
 
-export type BrowserStorageProjectData = {
-  projectId: ProjectId;
-  documentId: ResolvedArtifactId;
-  file: File | null;
-};
-
-export const BROWSER_STORAGE_PROJECT_DATA_KEY = 'single-document-project';
+type BrowserStorageProjectData = SingleDocumentBrowserStorageProjectData;
 
 type CreateNewDocumentArgs = {
   name?: string;
@@ -217,7 +215,7 @@ export const SingleDocumentProjectProvider = ({
     setLoading(true);
     // Check if we have a project ID in the browser storage
     const browserStorageBrowserDataValue = localStorage.getItem(
-      BROWSER_STORAGE_PROJECT_DATA_KEY
+      SINGLE_DOCUMENT_PROJECT_BROWSER_STORAGE_KEY
     );
     const browserStorageProjectData = browserStorageBrowserDataValue
       ? (JSON.parse(
@@ -310,7 +308,7 @@ export const SingleDocumentProjectProvider = ({
         file,
       };
       localStorage.setItem(
-        BROWSER_STORAGE_PROJECT_DATA_KEY,
+        SINGLE_DOCUMENT_PROJECT_BROWSER_STORAGE_KEY,
         JSON.stringify(browserStorageProjectData)
       );
 
@@ -393,7 +391,7 @@ export const SingleDocumentProjectProvider = ({
           file,
         };
         localStorage.setItem(
-          BROWSER_STORAGE_PROJECT_DATA_KEY,
+          SINGLE_DOCUMENT_PROJECT_BROWSER_STORAGE_KEY,
           JSON.stringify(browserStorageProjectData)
         );
 

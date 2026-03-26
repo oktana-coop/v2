@@ -65,13 +65,12 @@ import {
 import { useNavigateToResolveConflicts } from '../../hooks';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 
-type BrowserStorageProjectData = {
-  directoryName: Directory['name'];
-  directoryPath: Directory['path'];
-  projectId: ProjectId;
-};
+type BrowserStorageProjectData = MultiDocumentBrowserStorageProjectData;
 
-const BROWSER_STORAGE_PROJECT_DATA_KEY = 'multi-document-project';
+import {
+  MULTI_DOCUMENT_PROJECT_BROWSER_STORAGE_KEY,
+  type MultiDocumentBrowserStorageProjectData,
+} from './browser-storage';
 
 export type SelectedFileInfo = {
   documentId: ResolvedArtifactId;
@@ -364,7 +363,7 @@ export const MultiDocumentProjectProvider = ({
     const getSelectedDirectory = async () => {
       // Check if we have a project ID in the browser storage
       const browserStorageBrowserDataValue = localStorage.getItem(
-        BROWSER_STORAGE_PROJECT_DATA_KEY
+        MULTI_DOCUMENT_PROJECT_BROWSER_STORAGE_KEY
       );
       const browserStorageProjectData = browserStorageBrowserDataValue
         ? (JSON.parse(
@@ -576,7 +575,7 @@ export const MultiDocumentProjectProvider = ({
       setVersionedDocumentStore(documentStore);
 
       localStorage.setItem(
-        BROWSER_STORAGE_PROJECT_DATA_KEY,
+        MULTI_DOCUMENT_PROJECT_BROWSER_STORAGE_KEY,
         JSON.stringify({
           directoryName: dir.name,
           directoryPath: dir.path,
