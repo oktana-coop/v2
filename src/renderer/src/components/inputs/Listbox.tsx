@@ -8,6 +8,7 @@ export function Listbox<T>({
   className,
   placeholder,
   autoFocus,
+  modal = true,
   'aria-label': ariaLabel,
   children: options,
   button,
@@ -16,6 +17,7 @@ export function Listbox<T>({
   className?: string;
   placeholder?: React.ReactNode;
   autoFocus?: boolean;
+  modal?: boolean;
   'aria-label'?: string;
   children?: React.ReactNode;
   button?: React.ReactNode;
@@ -101,6 +103,7 @@ export function Listbox<T>({
         leaveTo="opacity-0"
       >
         <Headless.ListboxOptions
+          modal={modal}
           anchor="top start"
           className={clsx(
             // Anchor positioning

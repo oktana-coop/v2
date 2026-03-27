@@ -7,6 +7,7 @@ import {
   type ResolvedArtifactId,
 } from '../../../infrastructure/version-control';
 import {
+  DeletedDocumentError,
   NotFoundError,
   RepositoryError,
   RepresentationTransformError,
@@ -56,6 +57,7 @@ export const suggestMerge =
     | NotFoundError
     | MigrationError
     | ValidationError
+    | DeletedDocumentError
     | ResolveMergeConflictsError,
     never
   > =>

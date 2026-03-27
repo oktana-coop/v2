@@ -19,6 +19,11 @@ const SUPPORTED_EXTENSIONS = new Set([
   PROJECT_FILE_EXTENSION,
 ]);
 
+export const isUnsupportedExtension = (path: string): boolean => {
+  const extension = getExtension(path).toLowerCase();
+  return !SUPPORTED_EXTENSIONS.has(extension);
+};
+
 export const useCurrentDocumentExtension = () => {
   const { projectType } = useContext(CurrentProjectContext);
   const { selectedFileInfo } = useContext(MultiDocumentProjectContext);

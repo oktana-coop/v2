@@ -11,11 +11,16 @@ export const getExtension = (filename: string) => {
 };
 
 export const removePath = (filepath: string) => {
-  const parts = filepath.split('/');
+  // Split on both / and \ to support POSIX and Windows paths.
+  const parts = filepath.split(/[/\\]/);
+  return parts[parts.length - 1];
+};
 
-  const [filename] = parts.slice(-1);
-
-  return filename;
+export const getParentPath = (filepath: string) => {
+  // Find the last path separator (/ or \) by matching a separator
+  // followed by any non-separator characters until the end of the string.
+  const lastSep = filepath.search(/[/\\][^/\\]*$/);
+  return lastSep > 0 ? filepath.slice(0, lastSep) : '';
 };
 
 export const getDirectoryName = (dirPath: string) => {

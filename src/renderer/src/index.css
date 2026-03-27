@@ -6,6 +6,13 @@
   -webkit-text-size-adjust: 100%;
 }
 
+html {
+  /* Scrolling is managed by inner containers. Without this, HeadlessUI's
+     modal scroll lock adds padding-right to <html> to compensate for the
+     disappearing scrollbar, causing layout shifts. */
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   min-width: 320px;

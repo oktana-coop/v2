@@ -445,4 +445,35 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.multiDocumentProjectStoreAPI.getRemoteBranchInfo(...args)),
+  getProjectCommitHistory: (
+    ...args: Parameters<MultiDocumentProjectStore['getProjectCommitHistory']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['getProjectCommitHistory']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.getProjectCommitHistory(...args)),
+  getChangedDocumentsAtChange: (
+    ...args: Parameters<
+      MultiDocumentProjectStore['getChangedDocumentsAtChange']
+    >
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['getChangedDocumentsAtChange']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.getChangedDocumentsAtChange(...args)),
 });

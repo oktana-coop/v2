@@ -1051,6 +1051,7 @@ test.describe('file rename', () => {
     const input = window.locator('input[type="text"]');
     await input.waitFor({ state: 'visible', timeout: 500 });
 
+    await input.clear();
     await input.fill('keyboard-renamed');
     await window.keyboard.press('Enter');
 
