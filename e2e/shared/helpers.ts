@@ -327,19 +327,20 @@ export const commitChanges = async ({
   message: string;
 }): Promise<void> => {
   const commitBtn = window.getByRole('button', { name: /commit changes/i });
-  await expect(commitBtn).toBeEnabled({ timeout: 500 });
+  await expect(commitBtn).toBeEnabled({ timeout: 1_000 });
   await commitBtn.click();
 
   // Wait for the commit message textarea to be visible (autofocused in dialog)
   const textarea = window.getByRole('textbox');
-  await textarea.waitFor({ state: 'visible', timeout: 500 });
+  await textarea.waitFor({ state: 'visible', timeout: 1_000 });
   await textarea.fill(message);
 
   // Click the "Commit" button in the dialog
   await window.getByRole('button', { name: /^Commit$/i }).click();
 
-  // Wait for dialog to close (textarea disappears)
-  await textarea.waitFor({ state: 'hidden', timeout: 500 });
+  // Wait for dialog to close (textarea disappears) — git operations can be
+  // slow on Windows CI, so allow more time than the default.
+  await textarea.waitFor({ state: 'hidden', timeout: 2_000 });
 };
 
 export const enableShowDiff = async ({
@@ -599,13 +600,14 @@ export const selectChangedDocument = async ({
   window: Page;
   fileName: string;
 }): Promise<void> => {
+  // dispatchEvent bypasses Playwright's coordinate-based hit-testing, which
+  // fails on Windows CI where the panel header visually overlaps the row.
   await window
     .getByTestId('changed-document-row')
     .filter({ hasText: fileName })
     .first()
-    // force: the row can be visually overlapped by the panel header on
-    // smaller viewports (e.g. Windows CI) while still being present in the DOM.
-    .click({ force: true });
+    .locator('button')
+    .dispatchEvent('click');
 };
 
 /**
@@ -623,5 +625,6 @@ export const selectUncommittedDocument = async ({
     .getByTestId('changed-document-row')
     .filter({ hasText: fileName })
     .first()
-    .click({ force: true });
+    .locator('button')
+    .dispatchEvent('click');
 };
