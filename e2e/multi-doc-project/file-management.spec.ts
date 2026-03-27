@@ -1044,16 +1044,15 @@ test.describe('file rename', () => {
 
     // Click the file to select it (left click)
     await window.getByText('beta-doc.md').click();
-
-    // Press the platform-appropriate rename key (Enter on Mac, F2 on Linux/Windows)
     await window.keyboard.press(renameKey);
 
     const input = window.locator('input[type="text"]');
     await input.waitFor({ state: 'visible', timeout: 500 });
 
-    await input.clear();
+    // fill() replaces the input value; press Enter on the input directly so
+    // the event reaches the input's onKeyDown handler (not the tree's).
     await input.fill('keyboard-renamed');
-    await window.keyboard.press('Enter');
+    await input.press('Enter');
 
     const explorer = window.getByTestId('file-explorer');
     await expect(explorer.getByText('keyboard-renamed')).toBeVisible({
@@ -1234,16 +1233,13 @@ test.describe('folder rename', () => {
 
     // Click the folder to select it (left click)
     await explorer.getByText('beta-folder').click();
-
-    // Press the platform-appropriate rename key (Enter on Mac, F2 on Linux/Windows)
     await window.keyboard.press(renameKey);
 
     const input = window.locator('input[type="text"]');
     await input.waitFor({ state: 'visible', timeout: 500 });
 
-    await input.clear();
     await input.fill('keyboard-renamed-folder');
-    await window.keyboard.press('Enter');
+    await input.press('Enter');
 
     await expect(explorer.getByText('keyboard-renamed-folder')).toBeVisible({
       timeout: 2_000,
