@@ -12,12 +12,6 @@ import {
 import { ElectronContext } from '../../modules/infrastructure/cross-platform/browser';
 import { Layout } from './components/layout/Layout';
 import {
-  AppearanceSettings,
-  GeneralSettings,
-  Settings,
-  SyncSettings,
-} from './pages/settings';
-import {
   CompareContentConflictResolution,
   CurrentProject,
   DocumentEditor,
@@ -33,6 +27,12 @@ import {
   ProjectSettings,
   StructuralConflictResolution,
 } from './pages/project';
+import {
+  AppearanceSettings,
+  GeneralSettings,
+  Settings,
+  SyncSettings,
+} from './pages/settings';
 
 export const AppRouter = () => {
   const { isElectron } = useContext(ElectronContext);
