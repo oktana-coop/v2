@@ -10,15 +10,17 @@ type BreadcrumbProps = {
   segments: BreadcrumbSegment[];
 };
 
+const Separator = () => (
+  <span className="text-gray-400 dark:text-gray-500"> / </span>
+);
+
 export const Breadcrumb = ({ segments }: BreadcrumbProps) => (
   <nav className="text-sm">
     {segments.map((segment, index) => {
       const isLast = index === segments.length - 1;
       return (
         <span key={segment.label}>
-          {index > 0 && (
-            <span className="text-gray-400 dark:text-gray-500"> / </span>
-          )}
+          {index > 0 && <Separator />}
           {segment.href && !isLast ? (
             <Link
               to={segment.href}
