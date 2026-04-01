@@ -56,7 +56,7 @@ export const SingleDocumentProject: Story = {
           element: <div />,
         },
         {
-          path: '/options',
+          path: '/settings',
           element: <div />,
         },
       ]),
@@ -89,7 +89,7 @@ export const MultiDocumentProject: Story = {
           element: <div />,
         },
         {
-          path: '/options',
+          path: '/settings',
           element: <div />,
         },
       ]),

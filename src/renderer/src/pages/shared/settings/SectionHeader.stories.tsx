@@ -5,7 +5,7 @@ import { SunIcon } from '../../../components/icons';
 import { SectionHeader } from './SectionHeader';
 
 const meta: Meta<typeof SectionHeader> = {
-  title: 'pages/options/SectionHeader',
+  title: 'pages/settings/SectionHeader',
   component: SectionHeader,
   parameters: {
     layout: 'centered',

@@ -14,9 +14,9 @@ import { Layout } from './components/layout/Layout';
 import {
   AppearanceSettings,
   GeneralSettings,
-  Options,
+  Settings,
   SyncSettings,
-} from './pages/options';
+} from './pages/settings';
 import {
   CompareContentConflictResolution,
   CurrentProject,
@@ -77,7 +77,7 @@ export const AppRouter = () => {
             </Route>
           </Route>
           <Route path="/history" element={<HistoryNoProject />} />
-          <Route path="/options" element={<Options />}>
+          <Route path="/settings" element={<Settings />}>
             <Route index element={<Navigate to="general" replace />} />
             <Route path="general" element={<GeneralSettings />} />
             <Route path="sync" element={<SyncSettings />} />

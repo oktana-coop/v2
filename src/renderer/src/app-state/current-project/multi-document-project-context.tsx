@@ -413,7 +413,7 @@ export const MultiDocumentProjectProvider = ({
         } else {
           // Only redirect to /documents if the user isn't already on a
           // project subroute (e.g. /history). This effect runs on mount,
-          // so when navigating from /options back to project routes the
+          // so when navigating from /settings back to project routes the
           // current location already reflects the target subroute.
           const projectBase = `/projects/${urlEncodeProjectId(browserStorageProjectData.projectId)}`;
           const isAlreadyOnProjectSubroute = location.pathname.startsWith(

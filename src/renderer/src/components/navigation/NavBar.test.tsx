@@ -49,7 +49,7 @@ describe('NavBar', () => {
       expect(hrefs).toContain(
         `/projects/${encodeURIComponent(projectId)}/documents`
       );
-      expect(hrefs).toContain('/options');
+      expect(hrefs).toContain('/settings');
     });
   });
 
@@ -92,7 +92,7 @@ describe('NavBar', () => {
       expect(hrefs).toContain(
         `/projects/${encodeURIComponent(projectId)}/history`
       );
-      expect(hrefs).toContain('/options');
+      expect(hrefs).toContain('/settings');
     });
   });
 });

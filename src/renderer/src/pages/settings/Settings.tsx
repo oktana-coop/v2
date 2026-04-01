@@ -47,7 +47,7 @@ const SettingsSidebar = () => (
   </div>
 );
 
-export const Options = () => {
+export const Settings = () => {
   const location = useLocation();
   const tabName = getTabName(location.pathname);
 
@@ -64,7 +64,7 @@ export const Options = () => {
               <div className="flex flex-initial items-center justify-between px-4 py-2">
                 <Breadcrumb
                   segments={[
-                    { label: 'Settings', href: '/options' },
+                    { label: 'Settings', href: '/settings' },
                     { label: tabName },
                   ]}
                 />

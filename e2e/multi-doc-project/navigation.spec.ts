@@ -7,7 +7,7 @@ import {
   openProjectFolder,
 } from '../shared/helpers';
 
-const navigateToOptions = async ({
+const navigateToSettings = async ({
   window,
 }: {
   window: Page;
@@ -16,7 +16,7 @@ const navigateToOptions = async ({
     .getByTestId('nav-bar')
     .getByRole('link', { name: /options/i })
     .click();
-  await expect(window).toHaveTitle(/options/i, { timeout: 2_000 });
+  await expect(window).toHaveTitle(/settings/i, { timeout: 2_000 });
 };
 
 const navigateToEdit = async ({ window }: { window: Page }): Promise<void> => {
@@ -42,7 +42,7 @@ test.describe('multi-document project navigation', () => {
     });
     await openHelloMd({ window });
 
-    await navigateToOptions({ window });
+    await navigateToSettings({ window });
 
     const historyHref = await window
       .getByTestId('nav-bar')
@@ -70,7 +70,7 @@ test.describe('multi-document project navigation', () => {
     });
     await openHelloMd({ window });
 
-    await navigateToOptions({ window });
+    await navigateToSettings({ window });
 
     const editHref = await window
       .getByTestId('nav-bar')

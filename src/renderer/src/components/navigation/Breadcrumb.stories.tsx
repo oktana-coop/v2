@@ -16,8 +16,8 @@ const meta: Meta<typeof Breadcrumb> = {
     layout: 'centered',
     reactRouter: reactRouterParameters({
       routing: reactRouterOutlets([
-        { path: '/options', element: <div /> },
-        { path: '/options/appearance', element: <div /> },
+        { path: '/settings', element: <div /> },
+        { path: '/settings/appearance', element: <div /> },
       ]),
     }),
   },
@@ -35,15 +35,15 @@ export const SingleSegment: Story = {
 
 export const TwoSegments: Story = {
   args: {
-    segments: [{ label: 'Settings', href: '/options' }, { label: 'General' }],
+    segments: [{ label: 'Settings', href: '/settings' }, { label: 'General' }],
   },
 };
 
 export const ThreeSegments: Story = {
   args: {
     segments: [
-      { label: 'Settings', href: '/options' },
-      { label: 'Appearance', href: '/options/appearance' },
+      { label: 'Settings', href: '/settings' },
+      { label: 'Appearance', href: '/settings/appearance' },
       { label: 'Theme' },
     ],
   },
