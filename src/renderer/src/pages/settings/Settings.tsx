@@ -6,8 +6,8 @@ import { SidebarLayoutProvider } from '../../app-state';
 import { GenericCommandPalette } from '../../components/dialogs/command-palette';
 import { OptionsIcon } from '../../components/icons';
 import { SidebarLayout } from '../../components/layout/SidebarLayout';
-import { Breadcrumb } from '../../components/navigation/Breadcrumb';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
+import { SettingsActionsBar } from './SettingsActionsBar';
 
 const tabs = [
   { name: 'General', path: 'general' },
@@ -47,7 +47,7 @@ const SettingsSidebar = () => (
   </div>
 );
 
-export const Settings = () => {
+const SettingsMain = () => {
   const location = useLocation();
   const tabName = getTabName(location.pathname);
 
@@ -56,29 +56,24 @@ export const Settings = () => {
   }, [tabName]);
 
   return (
-    <>
-      <SidebarLayoutProvider>
-        <SidebarLayout sidebar={<SettingsSidebar />}>
-          <div className="flex flex-1 flex-col overflow-hidden">
-            {tabName && (
-              <div className="flex flex-initial items-center justify-between px-4 py-2">
-                <Breadcrumb
-                  segments={[
-                    { label: 'Settings', href: '/settings' },
-                    { label: tabName },
-                  ]}
-                />
-              </div>
-            )}
-            <div className="flex-1 overflow-y-auto">
-              <div className="container mx-auto my-6 max-w-2xl">
-                <Outlet />
-              </div>
-            </div>
-          </div>
-        </SidebarLayout>
-      </SidebarLayoutProvider>
-      <GenericCommandPalette />
-    </>
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <SettingsActionsBar tabName={tabName} />
+      <div className="flex-1 overflow-y-auto">
+        <div className="container mx-auto my-6 max-w-2xl">
+          <Outlet />
+        </div>
+      </div>
+    </div>
   );
 };
+
+export const Settings = () => (
+  <>
+    <SidebarLayoutProvider>
+      <SidebarLayout sidebar={<SettingsSidebar />}>
+        <SettingsMain />
+      </SidebarLayout>
+    </SidebarLayoutProvider>
+    <GenericCommandPalette />
+  </>
+);
