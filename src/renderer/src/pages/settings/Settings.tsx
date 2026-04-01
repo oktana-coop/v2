@@ -59,7 +59,7 @@ const SettingsMain = () => {
     <div className="flex flex-1 flex-col overflow-hidden">
       <SettingsActionsBar tabName={tabName} />
       <div className="flex-1 overflow-y-auto">
-        <div className="container mx-auto my-6 max-w-2xl">
+        <div className="container mx-auto my-6 max-w-2xl px-4">
           <Outlet />
         </div>
       </div>
