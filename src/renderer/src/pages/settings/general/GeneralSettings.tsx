@@ -1,3 +1,3 @@
-import { AuthorInfoSection } from '../AuthorInfoSection';
+import { AuthorInfoSection } from './AuthorInfoSection';
 
 export const GeneralSettings = () => <AuthorInfoSection />;

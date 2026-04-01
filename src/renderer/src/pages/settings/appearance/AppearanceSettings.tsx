@@ -1,3 +1,3 @@
-import { ThemeSection } from '../ThemeSection';
+import { ThemeSection } from './ThemeSection';
 
 export const AppearanceSettings = () => <ThemeSection />;
