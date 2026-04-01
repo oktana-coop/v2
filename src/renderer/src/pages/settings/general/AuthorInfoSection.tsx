@@ -4,16 +4,16 @@ import {
   AuthContext,
   parseEmail,
   parseUsername,
-} from '../../../../modules/auth/browser';
-import { UserIcon } from '../../components/icons';
+} from '../../../../../modules/auth/browser';
+import { UserIcon } from '../../../components/icons';
 import {
   ErrorMessage,
   Field,
   FieldGroup,
   Label,
-} from '../../components/inputs/Fieldset';
-import { Input } from '../../components/inputs/Input';
-import { SectionHeader } from '../shared/settings/SectionHeader';
+} from '../../../components/inputs/Fieldset';
+import { Input } from '../../../components/inputs/Input';
+import { SectionHeader } from '../../shared/settings/SectionHeader';
 
 export const AuthorInfoSection = () => {
   const {

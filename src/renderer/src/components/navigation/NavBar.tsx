@@ -119,7 +119,7 @@ export function NavBar() {
   const appWideNavItems: NavItem[] = [
     {
       name: 'Options',
-      href: '/options',
+      href: '/settings',
       icon: OptionsIcon,
       current: false,
     },

@@ -11,7 +11,6 @@ import {
 
 import { ElectronContext } from '../../modules/infrastructure/cross-platform/browser';
 import { Layout } from './components/layout/Layout';
-import { Options } from './pages/options/Options';
 import {
   CompareContentConflictResolution,
   CurrentProject,
@@ -28,6 +27,12 @@ import {
   ProjectSettings,
   StructuralConflictResolution,
 } from './pages/project';
+import {
+  AppearanceSettings,
+  GeneralSettings,
+  Settings,
+  SyncSettings,
+} from './pages/settings';
 
 export const AppRouter = () => {
   const { isElectron } = useContext(ElectronContext);
@@ -72,7 +77,12 @@ export const AppRouter = () => {
             </Route>
           </Route>
           <Route path="/history" element={<HistoryNoProject />} />
-          <Route path="/options" element={<Options />} />
+          <Route path="/settings" element={<Settings />}>
+            <Route index element={<Navigate to="general" replace />} />
+            <Route path="general" element={<GeneralSettings />} />
+            <Route path="sync" element={<SyncSettings />} />
+            <Route path="appearance" element={<AppearanceSettings />} />
+          </Route>
         </Routes>
       </Layout>
     </Router>
