@@ -97,10 +97,10 @@ contextBridge.exposeInMainWorld('personalizationAPI', {
   onSystemThemeUpdate: (callback) =>
     registerIpcListener<ResolvedTheme>('system-theme-update', callback),
   setUIAppearance: (uiAppearance: UIAppearancePreferences) =>
-    ipcRenderer.send('set-ui-appearance', uiAppearance),
+    ipcRenderer.invoke('set-ui-appearance', uiAppearance),
   getUIAppearance: () => ipcRenderer.invoke('get-ui-appearance'),
   setEditorAppearance: (editorAppearance: EditorAppearancePreferences) =>
-    ipcRenderer.send('set-editor-appearance', editorAppearance),
+    ipcRenderer.invoke('set-editor-appearance', editorAppearance),
   getEditorAppearance: () => ipcRenderer.invoke('get-editor-appearance'),
 } as PersonalizationAPI);
 

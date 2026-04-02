@@ -33,6 +33,15 @@
   margin-bottom: 50vh;
 }
 
+.editor h1,
+.editor h2,
+.editor h3,
+.editor h4,
+.editor h5,
+.editor h6 {
+  font-family: var(--font-editor-heading), sans-serif;
+}
+
 .light .ProseMirror pre {
   background-color: var(--shiki-light-bg, inherit);
 }

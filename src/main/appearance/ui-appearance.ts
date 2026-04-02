@@ -9,7 +9,7 @@ export const registerUIAppearanceIPCHandlers = ({
 }: {
   store: Store<UserPreferences>;
 }) => {
-  ipcMain.on(
+  ipcMain.handle(
     'set-ui-appearance',
     (_, uiAppearance: UIAppearancePreferences) => {
       store.set('appearance.ui', uiAppearance);

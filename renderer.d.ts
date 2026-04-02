@@ -73,9 +73,11 @@ export type PersonalizationAPI = {
   getTheme: () => Promise<Theme>;
   getSystemTheme: () => Promise<Exclude<Theme, 'system'>>;
   onSystemThemeUpdate: (callback: (theme: ResolvedTheme) => void) => () => void;
-  setUIAppearance: (uiAppearance: UIAppearancePreferences) => void;
+  setUIAppearance: (uiAppearance: UIAppearancePreferences) => Promise<void>;
   getUIAppearance: () => Promise<UIAppearancePreferences>;
-  setEditorAppearance: (editorAppearance: EditorAppearancePreferences) => void;
+  setEditorAppearance: (
+    editorAppearance: EditorAppearancePreferences
+  ) => Promise<void>;
   getEditorAppearance: () => Promise<EditorAppearancePreferences>;
 };
 

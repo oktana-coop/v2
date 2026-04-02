@@ -9,7 +9,7 @@ export const registerEditorAppearanceIPCHandlers = ({
 }: {
   store: Store<UserPreferences>;
 }) => {
-  ipcMain.on(
+  ipcMain.handle(
     'set-editor-appearance',
     (_, editorAppearance: EditorAppearancePreferences) => {
       store.set('appearance.editor', editorAppearance);
