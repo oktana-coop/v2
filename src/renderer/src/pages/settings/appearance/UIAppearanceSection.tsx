@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 
 import { UIAppearanceContext } from '../../../../../modules/personalization/browser';
-import { OptionsIcon } from '../../../components/icons';
+import { ToggleOffIcon } from '../../../components/icons';
 import { FontSelector } from '../../shared/settings/FontSelector';
 import { SectionHeader } from '../../shared/settings/SectionHeader';
 
@@ -11,7 +11,7 @@ export const UIAppearanceSection = () => {
 
   return (
     <div>
-      <SectionHeader icon={OptionsIcon} heading="User Interface" />
+      <SectionHeader icon={ToggleOffIcon} heading="User Interface" />
       <FontSelector
         label="User Interface Font"
         value={uiAppearance.fontFamily}

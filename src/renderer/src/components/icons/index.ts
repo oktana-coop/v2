@@ -46,6 +46,7 @@ export { SidebarIcon } from './Sidebar';
 export { SidebarOpenIcon } from './SidebarOpen';
 export { SunIcon } from './Sun';
 export { SyncIcon } from './Sync';
+export { ToggleOffIcon } from './ToggleOff';
 export { ToolbarToggleIcon } from './ToolbarToggle';
 export { TrashIcon } from './Trash';
 export { UpdateIcon } from './Update';
