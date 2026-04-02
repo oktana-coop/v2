@@ -2,8 +2,8 @@ import { useContext } from 'react';
 
 import { UIAppearanceContext } from '../../../../../modules/personalization/browser';
 import { OptionsIcon } from '../../../components/icons';
-import { SectionHeader } from '../../shared/settings/SectionHeader';
 import { FontSelector } from '../../shared/settings/FontSelector';
+import { SectionHeader } from '../../shared/settings/SectionHeader';
 
 export const UIAppearanceSection = () => {
   const { uiAppearance, setUIFontFamily, availableFonts } =

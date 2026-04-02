@@ -2,8 +2,8 @@ import { useContext } from 'react';
 
 import { EditorAppearanceContext } from '../../../../../modules/personalization/browser';
 import { PenIcon } from '../../../components/icons';
-import { SectionHeader } from '../../shared/settings/SectionHeader';
 import { FontSelector } from '../../shared/settings/FontSelector';
+import { SectionHeader } from '../../shared/settings/SectionHeader';
 
 export const EditorAppearanceSection = () => {
   const {
@@ -16,7 +16,7 @@ export const EditorAppearanceSection = () => {
   return (
     <div>
       <SectionHeader icon={PenIcon} heading="Editor" />
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-4">
         <FontSelector
           label="Heading Font"
           value={editorAppearance.headingFontFamily}
