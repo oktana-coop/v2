@@ -1,12 +1,8 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import { ElectronContext } from '../../../infrastructure/cross-platform/browser';
-import { extractSystemFontFamilies } from './font-families';
-import {
-  bundledFonts,
-  defaultUIAppearance,
-  type UIAppearancePreferences,
-} from './ui';
+import { bundledFonts, extractSystemFontFamilies } from '../font-families';
+import { defaultUIAppearance, type UIAppearancePreferences } from './ui';
 
 const UI_FONT_FAMILY_STORAGE_KEY = 'appearance.ui.fontFamily';
 

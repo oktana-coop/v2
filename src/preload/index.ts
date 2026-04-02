@@ -49,6 +49,7 @@ import type {
   Wasm as WasmAPI,
 } from '../modules/infrastructure/wasm';
 import {
+  type EditorAppearancePreferences,
   type ResolvedTheme,
   type UIAppearancePreferences,
 } from '../modules/personalization';
@@ -98,6 +99,9 @@ contextBridge.exposeInMainWorld('personalizationAPI', {
   setUIAppearance: (uiAppearance: UIAppearancePreferences) =>
     ipcRenderer.send('set-ui-appearance', uiAppearance),
   getUIAppearance: () => ipcRenderer.invoke('get-ui-appearance'),
+  setEditorAppearance: (editorAppearance: EditorAppearancePreferences) =>
+    ipcRenderer.send('set-editor-appearance', editorAppearance),
+  getEditorAppearance: () => ipcRenderer.invoke('get-editor-appearance'),
 } as PersonalizationAPI);
 
 contextBridge.exposeInMainWorld('authAPI', {

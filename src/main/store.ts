@@ -6,6 +6,10 @@ import {
   type Username,
 } from '../modules/auth/node';
 import {
+  defaultEditorAppearance,
+  type EditorAppearancePreferences,
+} from '../modules/personalization/appearance/editor';
+import {
   type Theme,
   themes,
 } from '../modules/personalization/appearance/theme';
@@ -19,6 +23,7 @@ export type UserPreferencesStore = Store<UserPreferences>;
 export type UserPreferences = {
   appearance: {
     theme: Theme;
+    editor: EditorAppearancePreferences;
     ui: UIAppearancePreferences;
   };
   auth: {
@@ -30,6 +35,7 @@ export type UserPreferences = {
 
 const defaultAppearance = {
   theme: themes.system,
+  editor: defaultEditorAppearance,
   ui: defaultUIAppearance,
 };
 
@@ -42,6 +48,20 @@ const schema = {
         type: 'string',
         enum: [themes.system, themes.light, themes.dark],
         default: defaultAppearance.theme,
+      },
+      editor: {
+        type: 'object',
+        default: defaultAppearance.editor,
+        properties: {
+          headingFontFamily: {
+            type: 'string',
+            default: defaultAppearance.editor.headingFontFamily,
+          },
+          bodyFontFamily: {
+            type: 'string',
+            default: defaultAppearance.editor.bodyFontFamily,
+          },
+        },
       },
       ui: {
         type: 'object',

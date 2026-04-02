@@ -1,4 +1,4 @@
-import { extractSystemFontFamilies } from './font-families';
+import { extractSystemFontFamilies } from '../font-families';
 
 const makeFontData = (family: string): FontData => ({
   family,

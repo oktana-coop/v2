@@ -1,3 +1,9 @@
+:root {
+  --font-ui: 'Noto Sans';
+  --font-editor-heading: 'Noto Sans';
+  --font-editor-body: 'Noto Sans';
+}
+
 body.dark {
   background-color: #262626;
 }
