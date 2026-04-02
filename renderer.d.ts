@@ -223,14 +223,14 @@ export type VersionControlSyncProvidersAPI = {
 
 export { type RendererConfig } from './src/modules/config/browser';
 
-type FontData = {
-  family: string;
-  fullName: string;
-  postscriptName: string;
-  style: string;
-};
-
 declare global {
+  type FontData = {
+    family: string;
+    fullName: string;
+    postscriptName: string;
+    style: string;
+  };
+
   // https://developer.mozilla.org/en-US/docs/Web/API/Window/queryLocalFonts
   function queryLocalFonts(): Promise<FontData[]>;
 

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import { ElectronContext } from '../../../infrastructure/cross-platform/browser';
+import { extractSystemFontFamilies } from './font-families';
 import {
   bundledFonts,
   defaultUIAppearance,
@@ -41,16 +42,7 @@ const getSystemFonts = async (): Promise<string[]> => {
   }
 
   try {
-    const localFontData = await queryLocalFonts();
-    const localFontFamilies = Array.from(
-      new Set(localFontData.map((f) => f.family))
-    ).sort();
-    const bundledFontFamiliesSet = new Set<string>(bundledFonts);
-
-    // Filter-out fonts that are also included in the bundled ones we include with the app.
-    return localFontFamilies.filter(
-      (family) => !bundledFontFamiliesSet.has(family)
-    );
+    return extractSystemFontFamilies({ fontData: await queryLocalFonts() });
   } catch {
     return [];
   }
