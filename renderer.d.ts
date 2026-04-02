@@ -41,7 +41,8 @@ import { type Wasm as WasmAPI } from './src/modules/infrastructure/wasm';
 import {
   type ResolvedTheme,
   type Theme,
-} from './src/modules/personalization/theme';
+} from './src/modules/personalization/appearance/theme';
+import { type UIAppearancePreferences } from './src/modules/personalization/appearance/ui';
 
 export type UnregisterListenerFn = () => void;
 
@@ -71,6 +72,8 @@ export type PersonalizationAPI = {
   getTheme: () => Promise<Theme>;
   getSystemTheme: () => Promise<Exclude<Theme, 'system'>>;
   onSystemThemeUpdate: (callback: (theme: ResolvedTheme) => void) => () => void;
+  setUIAppearance: (uiAppearance: UIAppearancePreferences) => void;
+  getUIAppearance: () => Promise<UIAppearancePreferences>;
 };
 
 export type AuthAPI = {
@@ -221,6 +224,16 @@ export type VersionControlSyncProvidersAPI = {
 export { type RendererConfig } from './src/modules/config/browser';
 
 declare global {
+  type FontData = {
+    family: string;
+    fullName: string;
+    postscriptName: string;
+    style: string;
+  };
+
+  // https://developer.mozilla.org/en-US/docs/Web/API/Window/queryLocalFonts
+  function queryLocalFonts(): Promise<FontData[]>;
+
   interface Window {
     electronAPI: ElectronAPI;
     config: RendererConfig;

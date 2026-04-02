@@ -5,12 +5,22 @@ import {
   type GithubUserInfo,
   type Username,
 } from '../modules/auth/node';
-import { type Theme, themes } from '../modules/personalization/theme';
+import {
+  type Theme,
+  themes,
+} from '../modules/personalization/appearance/theme';
+import {
+  defaultUIAppearance,
+  type UIAppearancePreferences,
+} from '../modules/personalization/appearance/ui';
 
 export type UserPreferencesStore = Store<UserPreferences>;
 
 export type UserPreferences = {
-  theme: Theme;
+  appearance: {
+    theme: Theme;
+    ui: UIAppearancePreferences;
+  };
   auth: {
     username: Username | null;
     email: Email | null;
@@ -18,11 +28,32 @@ export type UserPreferences = {
   };
 };
 
+const defaultAppearance = {
+  theme: themes.system,
+  ui: defaultUIAppearance,
+};
+
 const schema = {
-  theme: {
-    type: 'string',
-    enum: [themes.system, themes.light, themes.dark],
-    default: themes.system,
+  appearance: {
+    type: 'object',
+    default: defaultAppearance,
+    properties: {
+      theme: {
+        type: 'string',
+        enum: [themes.system, themes.light, themes.dark],
+        default: defaultAppearance.theme,
+      },
+      ui: {
+        type: 'object',
+        default: defaultAppearance.ui,
+        properties: {
+          fontFamily: {
+            type: 'string',
+            default: defaultAppearance.ui.fontFamily,
+          },
+        },
+      },
+    },
   },
   auth: {
     type: 'object',

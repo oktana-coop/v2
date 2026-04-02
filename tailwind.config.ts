@@ -34,12 +34,12 @@ export default {
       },
       fontFamily: {
         mono: ['FiraCode-Regular', 'SFMono-Regular', 'monospace'],
-        ui: ['Montserrat', 'sans-serif'],
+        ui: ['var(--font-ui)', 'sans-serif'],
         editor: ['Noto Sans', 'sans-serif'],
       },
     },
     fontFamily: {
-      sans: ['Montserrat', 'sans-serif'],
+      sans: ['var(--font-ui)', 'sans-serif'],
     },
   },
   plugins: [tailwindScrollbar],

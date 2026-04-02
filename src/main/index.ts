@@ -40,6 +40,10 @@ import {
 import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/infrastructure/filesystem/adapters/electron-node-api';
 import { type RunWasiCLIArgs } from '../modules/infrastructure/wasm';
 import { createAdapter as createNodeWasmAdapter } from '../modules/infrastructure/wasm/adapters/node-wasm';
+import {
+  registerAppearanceIPCHandlers,
+  setSavedOrDefaultTheme,
+} from './appearance';
 import { registerAuthInfoIPCHandlers } from './auth';
 import {
   registerContextMenusIPCHandlers,
@@ -47,7 +51,6 @@ import {
 } from './ipc';
 import { buildAppMenu } from './menus';
 import { initializeStore } from './store';
-import { registerThemeIPCHandlers, setSavedOrDefaultTheme } from './theme';
 import { update } from './update';
 
 const store = initializeStore();
@@ -312,13 +315,19 @@ async function createWindow() {
   );
 
   registerAuthInfoIPCHandlers({ store, win, encryptedStore });
-  registerThemeIPCHandlers({ store, win });
+  registerAppearanceIPCHandlers({ store, win });
   registerContextMenusIPCHandlers({ win });
 }
 
 app.whenReady().then(() => {
   const appMenu = buildAppMenu();
   Menu.setApplicationMenu(appMenu);
+
+  session.defaultSession.setPermissionRequestHandler(
+    (_webContents, permission, callback) => {
+      callback((permission as string) === 'local-fonts');
+    }
+  );
 
   setSavedOrDefaultTheme(store);
 
