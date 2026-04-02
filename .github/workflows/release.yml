@@ -168,7 +168,12 @@ jobs:
 
   release:
     needs: [versioning, build]
-    if: needs.versioning.outputs.new_tag
+    # always() is needed so GitHub doesn't auto-skip this job when e2e (a transitive dependency via build) was skipped.
+    if: |
+      always() &&
+      needs.versioning.result == 'success' &&
+      needs.build.result == 'success' &&
+      needs.versioning.outputs.new_tag
     runs-on: ubuntu-latest
     permissions:
       contents: write
