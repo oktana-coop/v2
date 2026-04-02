@@ -57,6 +57,14 @@ const schema = {
             type: 'string',
             default: defaultAppearance.editor.headingFontFamily,
           },
+          headingFontWeight: {
+            type: 'string',
+            default: defaultAppearance.editor.headingFontWeight,
+          },
+          headingTextSize: {
+            type: 'string',
+            default: defaultAppearance.editor.headingTextSize,
+          },
           bodyFontFamily: {
             type: 'string',
             default: defaultAppearance.editor.bodyFontFamily,

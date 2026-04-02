@@ -6,24 +6,36 @@ import { type AvailableFonts } from '../ui/context';
 import {
   defaultEditorAppearance,
   type EditorAppearancePreferences,
+  type FontWeight,
+  type HeadingTextSize,
+  headingTextSizeScale,
 } from './editor';
 
 const HEADING_FONT_STORAGE_KEY = 'appearance.editor.headingFontFamily';
+const HEADING_WEIGHT_STORAGE_KEY = 'appearance.editor.headingFontWeight';
+const HEADING_TEXT_SIZE_STORAGE_KEY = 'appearance.editor.headingTextSize';
 const BODY_FONT_STORAGE_KEY = 'appearance.editor.bodyFontFamily';
 
-const getDefaultEditorAppearance = (): EditorAppearancePreferences => {
-  const headingFontFamily = localStorage.getItem(HEADING_FONT_STORAGE_KEY);
-  const bodyFontFamily = localStorage.getItem(BODY_FONT_STORAGE_KEY);
-  return {
-    headingFontFamily:
-      headingFontFamily ?? defaultEditorAppearance.headingFontFamily,
-    bodyFontFamily: bodyFontFamily ?? defaultEditorAppearance.bodyFontFamily,
-  };
-};
+const getDefaultEditorAppearance = (): EditorAppearancePreferences => ({
+  headingFontFamily:
+    localStorage.getItem(HEADING_FONT_STORAGE_KEY) ??
+    defaultEditorAppearance.headingFontFamily,
+  headingFontWeight:
+    (localStorage.getItem(HEADING_WEIGHT_STORAGE_KEY) as FontWeight) ??
+    defaultEditorAppearance.headingFontWeight,
+  headingTextSize:
+    (localStorage.getItem(HEADING_TEXT_SIZE_STORAGE_KEY) as HeadingTextSize) ??
+    defaultEditorAppearance.headingTextSize,
+  bodyFontFamily:
+    localStorage.getItem(BODY_FONT_STORAGE_KEY) ??
+    defaultEditorAppearance.bodyFontFamily,
+});
 
 export type EditorAppearanceContextType = {
   editorAppearance: EditorAppearancePreferences;
   setEditorHeadingFontFamily: (fontFamily: string) => void;
+  setEditorHeadingFontWeight: (fontWeight: FontWeight) => void;
+  setEditorHeadingTextSize: (textSize: HeadingTextSize) => void;
   setEditorBodyFontFamily: (fontFamily: string) => void;
   availableFonts: AvailableFonts;
 };
@@ -32,6 +44,8 @@ export const EditorAppearanceContext =
   createContext<EditorAppearanceContextType>({
     editorAppearance: getDefaultEditorAppearance(),
     setEditorHeadingFontFamily: () => {},
+    setEditorHeadingFontWeight: () => {},
+    setEditorHeadingTextSize: () => {},
     setEditorBodyFontFamily: () => {},
     availableFonts: { bundled: bundledFonts, system: [] },
   });
@@ -40,6 +54,14 @@ const applyEditorFonts = (prefs: EditorAppearancePreferences) => {
   document.documentElement.style.setProperty(
     '--font-editor-heading',
     prefs.headingFontFamily
+  );
+  document.documentElement.style.setProperty(
+    '--font-editor-heading-weight',
+    prefs.headingFontWeight
+  );
+  document.documentElement.style.setProperty(
+    '--font-editor-heading-scale',
+    headingTextSizeScale[prefs.headingTextSize]
   );
   document.documentElement.style.setProperty(
     '--font-editor-body',
@@ -94,11 +116,21 @@ export const EditorAppearanceProvider = ({
 
   useEffect(() => {
     applyEditorFonts(editorAppearance);
-  }, [editorAppearance.headingFontFamily, editorAppearance.bodyFontFamily]);
+  }, [
+    editorAppearance.headingFontFamily,
+    editorAppearance.headingFontWeight,
+    editorAppearance.headingTextSize,
+    editorAppearance.bodyFontFamily,
+  ]);
 
   const persistAndSync = (updated: EditorAppearancePreferences) => {
     setEditorAppearance(updated);
     localStorage.setItem(HEADING_FONT_STORAGE_KEY, updated.headingFontFamily);
+    localStorage.setItem(HEADING_WEIGHT_STORAGE_KEY, updated.headingFontWeight);
+    localStorage.setItem(
+      HEADING_TEXT_SIZE_STORAGE_KEY,
+      updated.headingTextSize
+    );
     localStorage.setItem(BODY_FONT_STORAGE_KEY, updated.bodyFontFamily);
     if (isElectron) {
       window.personalizationAPI.setEditorAppearance(updated);
@@ -107,6 +139,14 @@ export const EditorAppearanceProvider = ({
 
   const handleSetHeadingFontFamily = (fontFamily: string) => {
     persistAndSync({ ...editorAppearance, headingFontFamily: fontFamily });
+  };
+
+  const handleSetHeadingFontWeight = (fontWeight: FontWeight) => {
+    persistAndSync({ ...editorAppearance, headingFontWeight: fontWeight });
+  };
+
+  const handleSetHeadingTextSize = (textSize: HeadingTextSize) => {
+    persistAndSync({ ...editorAppearance, headingTextSize: textSize });
   };
 
   const handleSetBodyFontFamily = (fontFamily: string) => {
@@ -118,6 +158,8 @@ export const EditorAppearanceProvider = ({
       value={{
         editorAppearance,
         setEditorHeadingFontFamily: handleSetHeadingFontFamily,
+        setEditorHeadingFontWeight: handleSetHeadingFontWeight,
+        setEditorHeadingTextSize: handleSetHeadingTextSize,
         setEditorBodyFontFamily: handleSetBodyFontFamily,
         availableFonts: { bundled: bundledFonts, system: systemFonts },
       }}

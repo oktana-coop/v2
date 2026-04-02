@@ -89,6 +89,17 @@
           'Noto Sans'
       );
       document.documentElement.style.setProperty(
+        '--font-editor-heading-weight',
+        localStorage.getItem('appearance.editor.headingFontWeight') || '700'
+      );
+      var sizeMap = { small: '0.85', medium: '1', large: '1.15' };
+      var size =
+        localStorage.getItem('appearance.editor.headingTextSize') || 'medium';
+      document.documentElement.style.setProperty(
+        '--font-editor-heading-scale',
+        sizeMap[size] || '1'
+      );
+      document.documentElement.style.setProperty(
         '--font-editor-body',
         localStorage.getItem('appearance.editor.bodyFontFamily') || 'Noto Sans'
       );

@@ -1,6 +1,8 @@
 :root {
   --font-ui: 'Noto Sans';
   --font-editor-heading: 'Noto Sans';
+  --font-editor-heading-weight: 700;
+  --font-editor-heading-scale: 1;
   --font-editor-body: 'Noto Sans';
 }
 

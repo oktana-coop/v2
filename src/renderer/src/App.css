@@ -40,6 +40,26 @@
 .editor h5,
 .editor h6 {
   font-family: var(--font-editor-heading), sans-serif;
+  font-weight: var(--font-editor-heading-weight, 700);
+}
+
+.editor h1 {
+  font-size: calc(2.4rem * var(--font-editor-heading-scale, 1));
+}
+.editor h2 {
+  font-size: calc(1.6rem * var(--font-editor-heading-scale, 1));
+}
+.editor h3 {
+  font-size: calc(1.25rem * var(--font-editor-heading-scale, 1));
+}
+.editor h4 {
+  font-size: calc(1.1rem * var(--font-editor-heading-scale, 1));
+}
+.editor h5 {
+  font-size: calc(0.95rem * var(--font-editor-heading-scale, 1));
+}
+.editor h6 {
+  font-size: calc(0.85rem * var(--font-editor-heading-scale, 1));
 }
 
 .light .ProseMirror pre {

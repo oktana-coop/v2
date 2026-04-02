@@ -36,7 +36,6 @@ export default {
         mono: ['FiraCode-Regular', 'SFMono-Regular', 'monospace'],
         ui: ['var(--font-ui)', 'sans-serif'],
         editor: ['var(--font-editor-body)', 'sans-serif'],
-        'editor-heading': ['var(--font-editor-heading)', 'sans-serif'],
       },
     },
     fontFamily: {
