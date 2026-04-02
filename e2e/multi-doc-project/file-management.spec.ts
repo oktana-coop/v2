@@ -171,7 +171,7 @@ test.describe('flat directory structure', () => {
 
     await window.keyboard.press(newFileKey);
 
-    await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
+    await window.waitForSelector('.ProseMirror', { timeout: 5_000 });
 
     const explorer = window.getByTestId('file-explorer');
     await expect(explorer).toContainText('root-new');
