@@ -6,6 +6,7 @@ import { WasmProvider } from '../../modules/infrastructure/wasm/react/wasm-conte
 import {
   FunctionalityConfigProvider,
   ThemeProvider,
+  UIAppearanceProvider,
 } from '../../modules/personalization/browser';
 import {
   CommandPaletteStateProvider,
@@ -20,13 +21,15 @@ export const App = () => (
         <MergeConflictResolverProvider>
           <AuthProvider>
             <ThemeProvider>
-              <FunctionalityConfigProvider>
-                <NotificationsProvider>
-                  <CommandPaletteStateProvider>
-                    <AppRouter />
-                  </CommandPaletteStateProvider>
-                </NotificationsProvider>
-              </FunctionalityConfigProvider>
+              <UIAppearanceProvider>
+                <FunctionalityConfigProvider>
+                  <NotificationsProvider>
+                    <CommandPaletteStateProvider>
+                      <AppRouter />
+                    </CommandPaletteStateProvider>
+                  </NotificationsProvider>
+                </FunctionalityConfigProvider>
+              </UIAppearanceProvider>
             </ThemeProvider>
           </AuthProvider>
         </MergeConflictResolverProvider>

@@ -48,7 +48,10 @@ import type {
   RunWasiCLIArgs,
   Wasm as WasmAPI,
 } from '../modules/infrastructure/wasm';
-import { type ResolvedTheme } from '../modules/personalization/theme';
+import {
+  type ResolvedTheme,
+  type UIAppearancePreferences,
+} from '../modules/personalization';
 import { registerIpcListener } from './utils';
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -92,6 +95,9 @@ contextBridge.exposeInMainWorld('personalizationAPI', {
   getSystemTheme: () => ipcRenderer.invoke('get-system-theme'),
   onSystemThemeUpdate: (callback) =>
     registerIpcListener<ResolvedTheme>('system-theme-update', callback),
+  setUIAppearance: (uiAppearance: UIAppearancePreferences) =>
+    ipcRenderer.send('set-ui-appearance', uiAppearance),
+  getUIAppearance: () => ipcRenderer.invoke('get-ui-appearance'),
 } as PersonalizationAPI);
 
 contextBridge.exposeInMainWorld('authAPI', {

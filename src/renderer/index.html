@@ -77,6 +77,13 @@
         font-style: italic;
       }
     </style>
+    <!-- Set the UI font before first paint to prevent a flash of the default font -->
+    <script>
+      document.documentElement.style.setProperty(
+        '--font-ui',
+        localStorage.getItem('appearance.ui.fontFamily') || 'Noto Sans'
+      );
+    </script>
   </head>
   <body>
     <div id="root"></div>

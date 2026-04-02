@@ -1,10 +1,10 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-import { ElectronContext } from '../../infrastructure/cross-platform/browser';
+import { ElectronContext } from '../../../infrastructure/cross-platform/browser';
 import { type ResolvedTheme, type Theme, themes } from './theme';
 
 const getDefaultTheme = () =>
-  (localStorage.getItem('theme') ?? themes.light) as Theme;
+  (localStorage.getItem('appearance.theme') ?? themes.light) as Theme;
 
 type ThemeContextType = {
   theme: Theme;
@@ -81,7 +81,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   }, [resolvedTheme]);
 
   const handleSetTheme = (theme: Theme) => {
-    localStorage.setItem('theme', theme);
+    localStorage.setItem('appearance.theme', theme);
 
     if (isElectron) {
       window.personalizationAPI.setTheme(theme);
