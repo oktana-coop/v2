@@ -38,6 +38,7 @@ import {
   type ResolvedArtifactId,
 } from './src/modules/infrastructure/version-control';
 import { type Wasm as WasmAPI } from './src/modules/infrastructure/wasm';
+import { type EditorAppearancePreferences } from './src/modules/personalization/appearance/editor';
 import {
   type ResolvedTheme,
   type Theme,
@@ -72,8 +73,12 @@ export type PersonalizationAPI = {
   getTheme: () => Promise<Theme>;
   getSystemTheme: () => Promise<Exclude<Theme, 'system'>>;
   onSystemThemeUpdate: (callback: (theme: ResolvedTheme) => void) => () => void;
-  setUIAppearance: (uiAppearance: UIAppearancePreferences) => void;
+  setUIAppearance: (uiAppearance: UIAppearancePreferences) => Promise<void>;
   getUIAppearance: () => Promise<UIAppearancePreferences>;
+  setEditorAppearance: (
+    editorAppearance: EditorAppearancePreferences
+  ) => Promise<void>;
+  getEditorAppearance: () => Promise<EditorAppearancePreferences>;
 };
 
 export type AuthAPI = {

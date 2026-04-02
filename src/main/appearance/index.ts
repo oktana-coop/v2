@@ -2,6 +2,7 @@ import { BrowserWindow } from 'electron';
 import Store from 'electron-store';
 
 import { type UserPreferences } from '../store';
+import { registerEditorAppearanceIPCHandlers } from './editor-appearance';
 import { registerThemeIPCHandlers, setSavedOrDefaultTheme } from './theme';
 import { registerUIAppearanceIPCHandlers } from './ui-appearance';
 
@@ -15,5 +16,6 @@ export const registerAppearanceIPCHandlers = ({
   win: BrowserWindow;
 }) => {
   registerThemeIPCHandlers({ store, win });
+  registerEditorAppearanceIPCHandlers({ store });
   registerUIAppearanceIPCHandlers({ store });
 };

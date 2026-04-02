@@ -4,6 +4,7 @@ import { RepresentationTransformProvider } from '../../modules/domain/rich-text/
 import { NotificationsProvider } from '../../modules/infrastructure/notifications/browser';
 import { WasmProvider } from '../../modules/infrastructure/wasm/react/wasm-context';
 import {
+  EditorAppearanceProvider,
   FunctionalityConfigProvider,
   ThemeProvider,
   UIAppearanceProvider,
@@ -22,13 +23,15 @@ export const App = () => (
           <AuthProvider>
             <ThemeProvider>
               <UIAppearanceProvider>
-                <FunctionalityConfigProvider>
-                  <NotificationsProvider>
-                    <CommandPaletteStateProvider>
-                      <AppRouter />
-                    </CommandPaletteStateProvider>
-                  </NotificationsProvider>
-                </FunctionalityConfigProvider>
+                <EditorAppearanceProvider>
+                  <FunctionalityConfigProvider>
+                    <NotificationsProvider>
+                      <CommandPaletteStateProvider>
+                        <AppRouter />
+                      </CommandPaletteStateProvider>
+                    </NotificationsProvider>
+                  </FunctionalityConfigProvider>
+                </EditorAppearanceProvider>
               </UIAppearanceProvider>
             </ThemeProvider>
           </AuthProvider>

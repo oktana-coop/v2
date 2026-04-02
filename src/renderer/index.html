@@ -77,11 +77,20 @@
         font-style: italic;
       }
     </style>
-    <!-- Set the UI font before first paint to prevent a flash of the default font -->
+    <!-- Set fonts before first paint to prevent a flash of the default font -->
     <script>
       document.documentElement.style.setProperty(
         '--font-ui',
         localStorage.getItem('appearance.ui.fontFamily') || 'Noto Sans'
+      );
+      document.documentElement.style.setProperty(
+        '--font-editor-heading',
+        localStorage.getItem('appearance.editor.headingFontFamily') ||
+          'Noto Sans'
+      );
+      document.documentElement.style.setProperty(
+        '--font-editor-body',
+        localStorage.getItem('appearance.editor.bodyFontFamily') || 'Noto Sans'
       );
     </script>
   </head>

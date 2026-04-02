@@ -1,7 +1,12 @@
 export * from './index';
 
+export {
+  EditorAppearanceContext,
+  EditorAppearanceProvider,
+} from './appearance/editor/context';
 export { ThemeContext, ThemeProvider } from './appearance/theme/context';
 export {
+  type AvailableFonts,
   UIAppearanceContext,
   UIAppearanceProvider,
 } from './appearance/ui/context';

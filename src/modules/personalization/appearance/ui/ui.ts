@@ -1,3 +1,5 @@
+export { bundledFonts } from '../font-families';
+
 export type UIAppearancePreferences = {
   fontFamily: string;
 };
@@ -5,5 +7,3 @@ export type UIAppearancePreferences = {
 export const defaultUIAppearance: UIAppearancePreferences = {
   fontFamily: 'Noto Sans',
 };
-
-export const bundledFonts = ['Noto Sans', 'Montserrat'] as const;

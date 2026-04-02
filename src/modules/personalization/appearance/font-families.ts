@@ -1,4 +1,4 @@
-import { bundledFonts } from './ui';
+export const bundledFonts = ['Noto Sans', 'Montserrat'] as const;
 
 export const extractSystemFontFamilies = ({
   fontData,
