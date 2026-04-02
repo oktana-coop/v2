@@ -4,12 +4,7 @@ import {
   blockquote as blockquoteClasses,
   bulletList as bulletListClasses,
   codeBlock as codeBlockClasses,
-  heading1 as heading1Classes,
-  heading2 as heading2Classes,
-  heading3 as heading3Classes,
-  heading4 as heading4Classes,
-  heading5 as heading5Classes,
-  heading6 as heading6Classes,
+  heading as headingClasses,
   noteContent as noteContentClasses,
   orderedList as orderedListClasses,
   paragraph as paragraphClasses,
@@ -41,24 +36,6 @@ const codeDOM: DOMOutputSpec = [
 
 // lists
 const liDOM: DOMOutputSpec = ['li', 0];
-
-const getHeadingLevelClasses = (level: number) => {
-  switch (level) {
-    case 1:
-    default:
-      return heading1Classes;
-    case 2:
-      return heading2Classes;
-    case 3:
-      return heading3Classes;
-    case 4:
-      return heading4Classes;
-    case 5:
-      return heading5Classes;
-    case 6:
-      return heading6Classes;
-  }
-};
 
 const schemaSpec: SchemaSpec = {
   nodes: {
@@ -127,9 +104,7 @@ const schemaSpec: SchemaSpec = {
         { tag: 'h6', attrs: { level: 6 } },
       ],
       toDOM(node) {
-        const classes = getHeadingLevelClasses(node.attrs.level);
-
-        return ['h' + node.attrs.level, { class: classes }, 0];
+        return ['h' + node.attrs.level, { class: headingClasses }, 0];
       },
     },
 
