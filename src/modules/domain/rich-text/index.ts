@@ -1,7 +1,7 @@
 export * from './constants';
 export * from './models/heading';
 export * from './models/link';
-export { createAdapter as createAutomergePandocAdapter } from './adapters/automerge-pandoc-cli';
+export { createAdapter as createPandocRepresentationTransformAdapter } from './adapters/pandoc-representation-transform';
 export { createAdapter as createAutomergeDocumentStoreAdapter } from './adapters/versioned-document-store/automerge/automerge-versioned-document-store';
 export { createAdapter as createGitDocumentStoreAdapter } from './adapters/versioned-document-store/git/git-versioned-document-store';
 export * as prosemirror from './prosemirror';

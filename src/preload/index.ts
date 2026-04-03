@@ -79,6 +79,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('context-menu:show', payload),
   onContextMenuAction: (callback) =>
     registerIpcListener<ContextMenuAction>('context-menu:action', callback),
+  printToPDF: (html: string) => ipcRenderer.invoke('print-to-pdf', html),
 } as ElectronAPI);
 
 contextBridge.exposeInMainWorld('config', {

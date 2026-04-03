@@ -47,6 +47,7 @@ import {
 import { registerAuthInfoIPCHandlers } from './auth';
 import {
   registerContextMenusIPCHandlers,
+  registerPdfIPCHandlers,
   registerVersionedStoresEvents,
 } from './ipc';
 import { buildAppMenu } from './menus';
@@ -317,6 +318,7 @@ async function createWindow() {
   registerAuthInfoIPCHandlers({ store, win, encryptedStore });
   registerAppearanceIPCHandlers({ store, win });
   registerContextMenusIPCHandlers({ win });
+  registerPdfIPCHandlers();
 }
 
 app.whenReady().then(() => {

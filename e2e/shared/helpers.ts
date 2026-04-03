@@ -168,6 +168,18 @@ export const createNewSubfolderFromContextMenu = async ({
   });
 };
 
+/**
+ * Opens the command palette using the platform-appropriate shortcut (Cmd+K / Ctrl+K).
+ */
+export const openCommandPalette = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  await window.keyboard.press(`${modKey}+k`);
+  await window.waitForTimeout(300);
+};
+
 export const openHelloMd = async ({
   window,
 }: {

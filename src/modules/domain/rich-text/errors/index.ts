@@ -35,6 +35,11 @@ export class ResolveMergeConflictsError extends Cause.YieldableError {
   readonly _tag = VersionedDocumentResolveMergeConflictsErrorTag;
 }
 
+export const PdfExportErrorTag = 'PdfExportError';
+export class PdfExportError extends Cause.YieldableError {
+  readonly _tag = PdfExportErrorTag;
+}
+
 export const VersionedDocumentDeletedDocumentErrorTag =
   'VersionedDocumentDeletedDocumentError';
 export class DeletedDocumentError extends Cause.YieldableError {

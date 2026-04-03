@@ -66,6 +66,7 @@ export type ElectronAPI = {
   onContextMenuAction: (
     callback: (action: ContextMenuAction) => void
   ) => () => void;
+  printToPDF: (html: string) => Promise<Uint8Array>;
 };
 
 export type PersonalizationAPI = {
