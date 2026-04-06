@@ -1,7 +1,7 @@
 export const getDefaultExportStylesheet = (): string => `
   @page {
-    size: letter portrait;
-    margin: 0.75in 1in;
+    size: A4 portrait;
+    margin: 0.5in 0.75in;
   }
 
   body {

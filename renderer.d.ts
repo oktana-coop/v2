@@ -255,5 +255,7 @@ declare global {
     versionControlSyncProvidersAPI: VersionControlSyncProvidersAPI;
     wasmAPI: WasmAPI;
     osEventsAPI: OsEventsAPI;
+    // Used by the /print page for PDF export via Paged.js
+    setContent: (html: string) => Promise<void>;
   }
 }
