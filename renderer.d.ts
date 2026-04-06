@@ -23,6 +23,7 @@ import {
   type AppendParam,
   type ContextMenuAction,
   type ContextMenuPayload,
+  type IPCResult,
   type PromisifyEffects,
   type UpdateState,
 } from './src/modules/infrastructure/cross-platform';
@@ -66,6 +67,7 @@ export type ElectronAPI = {
   onContextMenuAction: (
     callback: (action: ContextMenuAction) => void
   ) => () => void;
+  printToPDF: (html: string) => Promise<IPCResult<Uint8Array>>;
 };
 
 export type PersonalizationAPI = {
@@ -254,5 +256,7 @@ declare global {
     versionControlSyncProvidersAPI: VersionControlSyncProvidersAPI;
     wasmAPI: WasmAPI;
     osEventsAPI: OsEventsAPI;
+    // Used by the /print page for PDF export via Paged.js
+    setContent: (html: string) => Promise<void>;
   }
 }

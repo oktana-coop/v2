@@ -1,7 +1,12 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
+import { isElectron } from '../../../infrastructure/cross-platform/browser-env';
 import { WasmContext } from '../../../infrastructure/wasm/react/wasm-context';
-import { createAdapter as createAutomergePandocAdapter } from '../adapters/automerge-pandoc-cli';
+import { createAdapter as createPandocRepresentationTransformAdapter } from '../adapters/pandoc-representation-transform';
+import {
+  createPagedJsBrowserAdapter,
+  createPagedJsElectronRendererAdapter,
+} from '../browser';
 import { type RepresentationTransform } from '../ports/representation-transform';
 
 type RepresentationTransformContextType = {
@@ -24,12 +29,17 @@ export const RepresentationTransformProvider = ({
   const [adapter, setAdapter] = useState<RepresentationTransform | null>(null);
 
   useEffect(() => {
-    const automergePandocAdapter = createAutomergePandocAdapter({
+    const pdfEngine = isElectron()
+      ? createPagedJsElectronRendererAdapter()
+      : createPagedJsBrowserAdapter();
+
+    const adapter = createPandocRepresentationTransformAdapter({
       runWasiCLIOutputingText,
       runWasiCLIOutputingBinary,
+      pdfEngine,
     });
 
-    setAdapter(automergePandocAdapter);
+    setAdapter(adapter);
   }, [runWasiCLIOutputingText]);
 
   return (

@@ -19,6 +19,7 @@ import { buildConfig } from '../modules/config';
 import {
   type ContextMenuAction,
   type ContextMenuPayload,
+  PDF_IPC_CHANNEL,
 } from '../modules/infrastructure/cross-platform';
 import {
   isLinux,
@@ -79,6 +80,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('context-menu:show', payload),
   onContextMenuAction: (callback) =>
     registerIpcListener<ContextMenuAction>('context-menu:action', callback),
+  printToPDF: (html: string) => ipcRenderer.invoke(PDF_IPC_CHANNEL, html),
 } as ElectronAPI);
 
 contextBridge.exposeInMainWorld('config', {

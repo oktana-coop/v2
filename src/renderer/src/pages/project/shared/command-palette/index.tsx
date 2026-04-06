@@ -57,7 +57,7 @@ export const ProjectCommandPalette = ({
       ? handleDocumentSelectionInMultiDocumentProject
       : handleDocumentSelectionInSingleDocumentProject;
 
-  const { exportToText, exportToBinary } = useExport();
+  const { exportToText, exportToBinary, exportToPDF } = useExport();
 
   const singleDocumentProjectActions = [
     {
@@ -133,6 +133,11 @@ export const ProjectCommandPalette = ({
       name: keyBindings.ctrlShiftW.command,
       shortcut: keyBindings.ctrlShiftW.keyBinding,
       onActionSelection: exportToBinary(richTextRepresentations.DOCX),
+    },
+    {
+      name: keyBindings.ctrlShiftP.command,
+      shortcut: keyBindings.ctrlShiftP.keyBinding,
+      onActionSelection: exportToPDF,
     },
     {
       name: 'Export to Pandoc',

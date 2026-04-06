@@ -16,6 +16,7 @@ import os from 'os';
 
 import { createElectronMainEncryptedStoreAdapter } from '../modules/auth/node';
 import { PROJECT_FILE_EXTENSION } from '../modules/domain/project';
+import { createPagedJsElectronNodeAdapter } from '../modules/domain/rich-text/node';
 import {
   isMac,
   runPromiseSerializingErrorsForIPC,
@@ -47,6 +48,7 @@ import {
 import { registerAuthInfoIPCHandlers } from './auth';
 import {
   registerContextMenusIPCHandlers,
+  registerPdfIPCHandlers,
   registerVersionedStoresEvents,
 } from './ipc';
 import { buildAppMenu } from './menus';
@@ -58,6 +60,7 @@ const filesystemAPI = createElectronNodeFilesystemAPIAdapter();
 const encryptedStore = createElectronMainEncryptedStoreAdapter({
   filesystem: filesystemAPI,
 });
+const pdfEngine = createPagedJsElectronNodeAdapter();
 
 globalThis.__filename = fileURLToPath(import.meta.url);
 globalThis.__dirname = dirname(__filename);
@@ -317,6 +320,7 @@ async function createWindow() {
   registerAuthInfoIPCHandlers({ store, win, encryptedStore });
   registerAppearanceIPCHandlers({ store, win });
   registerContextMenusIPCHandlers({ win });
+  registerPdfIPCHandlers({ pdfEngine });
 }
 
 app.whenReady().then(() => {

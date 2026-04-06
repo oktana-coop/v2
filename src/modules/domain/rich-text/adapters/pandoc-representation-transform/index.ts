@@ -1,7 +1,14 @@
+import * as Effect from 'effect/Effect';
+
 import {
   cliTypes,
   type Wasm,
 } from '../../../../../modules/infrastructure/wasm';
+import {
+  binaryRichTextRepresentations,
+  richTextRepresentations,
+} from '../../constants/representations';
+import { type PdfEngine } from '../../ports/pdf-engine';
 import { type RepresentationTransform } from '../../ports/representation-transform';
 import { representationToCliArg } from './cli-args';
 
@@ -28,9 +35,11 @@ const isHSLibFailureOutput = (
 export const createAdapter = ({
   runWasiCLIOutputingText,
   runWasiCLIOutputingBinary,
+  pdfEngine,
 }: {
   runWasiCLIOutputingText: Wasm['runWasiCLIOutputingText'];
   runWasiCLIOutputingBinary: Wasm['runWasiCLIOutputingBinary'];
+  pdfEngine: PdfEngine;
 }): RepresentationTransform => {
   const transformToText: RepresentationTransform['transformToText'] = async ({
     from,
@@ -73,6 +82,15 @@ export const createAdapter = ({
 
   const transformToBinary: RepresentationTransform['transformToBinary'] =
     async ({ from, to, input }) => {
+      if (to === binaryRichTextRepresentations.PDF) {
+        const html = await transformToText({
+          from,
+          to: richTextRepresentations.HTML,
+          input,
+        });
+        return Effect.runPromise(pdfEngine.printToPdf(html));
+      }
+
       const output = await runWasiCLIOutputingBinary({
         type: cliTypes.HS_LIB,
         args: [

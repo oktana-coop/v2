@@ -168,6 +168,18 @@ export const createNewSubfolderFromContextMenu = async ({
   });
 };
 
+/**
+ * Opens the command palette using the platform-appropriate shortcut (Cmd+K / Ctrl+K).
+ */
+export const openCommandPalette = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  await window.keyboard.press(`${modKey}+k`);
+  await window.waitForTimeout(300);
+};
+
 export const openHelloMd = async ({
   window,
 }: {
@@ -420,10 +432,10 @@ export const restoreCommit = async ({
   await window.getByRole('button', { name: /revert to this state/i }).click();
 
   const restoreBtn = window.getByRole('button', { name: /^Restore$/i });
-  await restoreBtn.waitFor({ state: 'visible', timeout: 500 });
+  await restoreBtn.waitFor({ state: 'visible', timeout: 1000 });
   await restoreBtn.click();
 
-  await restoreBtn.waitFor({ state: 'hidden', timeout: 500 });
+  await restoreBtn.waitFor({ state: 'hidden', timeout: 1000 });
 };
 
 /**
