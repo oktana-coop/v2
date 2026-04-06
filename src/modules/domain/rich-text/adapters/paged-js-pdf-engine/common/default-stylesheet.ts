@@ -11,6 +11,7 @@ export const getDefaultExportStylesheet = (): string => `
     color: #000;
   }
 
+  h1, h2, h3, h4, h5, h6 { break-after: avoid; }
   h1 { font-size: 24pt; font-weight: bold; margin-bottom: 12pt; }
   h2 { font-size: 18pt; font-weight: bold; margin-bottom: 10pt; }
   h3 { font-size: 14pt; font-weight: bold; margin-bottom: 8pt; }
@@ -49,6 +50,7 @@ export const getDefaultExportStylesheet = (): string => `
   blockquote {
     border-left: 3pt solid #ccc;
     padding-left: 12pt;
+    margin-left: 0;
     margin-bottom: 8pt;
     color: #333;
   }
