@@ -1,16 +1,18 @@
-import * as Effect from 'effect/Effect';
-
-import { PdfExportError } from '../../../errors';
+import { type EffectErrorType } from '../../../../../../utils/effect';
+import {
+  effectifyIPCPromise,
+  type ErrorRegistry,
+} from '../../../../../infrastructure/cross-platform';
+import { PdfExportError, PdfExportErrorTag } from '../../../errors';
+export { initPrintPage } from './print-page-entry';
 import { type PdfEngine } from '../../../ports/pdf-engine';
 
-export const createPagedJsElectronRendererAdapter = ({
-  electronPrintToPdf,
-}: {
-  electronPrintToPdf: (html: string) => Promise<Uint8Array>;
-}): PdfEngine => ({
+export const createPagedJsElectronRendererAdapter = (): PdfEngine => ({
   printToPdf: (html) =>
-    Effect.tryPromise({
-      try: () => electronPrintToPdf(html),
-      catch: (error) => new PdfExportError(String(error)),
-    }),
+    effectifyIPCPromise(
+      {
+        [PdfExportErrorTag]: PdfExportError,
+      } as ErrorRegistry<EffectErrorType<ReturnType<PdfEngine['printToPdf']>>>,
+      PdfExportError
+    )(window.electronAPI.printToPDF(html)),
 });

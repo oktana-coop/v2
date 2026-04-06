@@ -23,6 +23,7 @@ import {
   type AppendParam,
   type ContextMenuAction,
   type ContextMenuPayload,
+  type IPCResult,
   type PromisifyEffects,
   type UpdateState,
 } from './src/modules/infrastructure/cross-platform';
@@ -66,7 +67,7 @@ export type ElectronAPI = {
   onContextMenuAction: (
     callback: (action: ContextMenuAction) => void
   ) => () => void;
-  printToPDF: (html: string) => Promise<Uint8Array>;
+  printToPDF: (html: string) => Promise<IPCResult<Uint8Array>>;
 };
 
 export type PersonalizationAPI = {
