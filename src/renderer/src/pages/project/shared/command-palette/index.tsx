@@ -135,7 +135,8 @@ export const ProjectCommandPalette = ({
       onActionSelection: exportToBinary(richTextRepresentations.DOCX),
     },
     {
-      name: 'Export to PDF',
+      name: keyBindings.ctrlShiftP.command,
+      shortcut: keyBindings.ctrlShiftP.keyBinding,
       onActionSelection: exportToPDF,
     },
     {
