@@ -1,10 +1,8 @@
 import * as Effect from 'effect/Effect';
-// @ts-expect-error No types available in pagedjs
-import { Previewer } from 'pagedjs';
 
 import { PdfExportError } from '../../../errors';
 import { type PdfEngine } from '../../../ports/pdf-engine';
-import { getDefaultExportStylesheet } from '../common/default-stylesheet';
+import { paginateHtml } from '../common/paginate-html';
 
 export const createPagedJsBrowserAdapter = (): PdfEngine => ({
   printToPdf: (html) =>
@@ -20,23 +18,21 @@ export const createPagedJsBrowserAdapter = (): PdfEngine => ({
           throw new Error('Could not access iframe document');
         }
 
-        const css = getDefaultExportStylesheet();
-
         iframeDoc.open();
         iframeDoc.write(`
           <!DOCTYPE html>
           <html>
-            <head>
-              <meta charset="utf-8">
-              <style>${css}</style>
-            </head>
+            <head><meta charset="utf-8"></head>
             <body></body>
           </html>
         `);
         iframeDoc.close();
 
-        const previewer = new Previewer();
-        await previewer.preview(html, [], iframeDoc.body);
+        await paginateHtml({
+          html,
+          container: iframeDoc.body,
+          document: iframeDoc,
+        });
 
         await new Promise<void>((resolve) => {
           iframe.contentWindow?.addEventListener(
