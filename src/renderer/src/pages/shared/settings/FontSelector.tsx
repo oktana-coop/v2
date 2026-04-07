@@ -7,7 +7,7 @@ import {
 } from '../../../components/inputs/Listbox';
 
 type FontSelectorProps = {
-  label: string;
+  label?: string;
   value: string;
   onChange: (fontFamily: string) => void;
   availableFonts: AvailableFonts;
@@ -20,7 +20,7 @@ export const FontSelector = ({
   availableFonts,
 }: FontSelectorProps) => (
   <Field className="text-left">
-    <Label>{label}</Label>
+    {label ? <Label>{label}</Label> : <Label className="sr-only">Font</Label>}
     <Listbox value={value} onChange={onChange} modal={false}>
       {availableFonts.bundled.map((font) => (
         <ListboxOption key={font} value={font}>

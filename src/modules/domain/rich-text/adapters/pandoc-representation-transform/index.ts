@@ -81,14 +81,14 @@ export const createAdapter = ({
   };
 
   const transformToBinary: RepresentationTransform['transformToBinary'] =
-    async ({ from, to, input }) => {
+    async ({ from, to, input, stylesheet }) => {
       if (to === binaryRichTextRepresentations.PDF) {
         const html = await transformToText({
           from,
           to: richTextRepresentations.HTML,
           input,
         });
-        return Effect.runPromise(pdfEngine.printToPdf(html));
+        return Effect.runPromise(pdfEngine.printToPdf({ html, stylesheet }));
       }
 
       const output = await runWasiCLIOutputingBinary({

@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import { ElectronContext } from '../../../infrastructure/cross-platform/browser';
+import { type ExportTemplate } from '../../export-templates';
+import { ExportTemplatesContext } from '../../export-templates/context';
 import { bundledFonts, extractSystemFontFamilies } from '../font-families';
 import { type AvailableFonts } from '../ui/context';
 import {
@@ -15,6 +17,7 @@ const HEADING_FONT_STORAGE_KEY = 'appearance.editor.headingFontFamily';
 const HEADING_WEIGHT_STORAGE_KEY = 'appearance.editor.headingFontWeight';
 const HEADING_TEXT_SIZE_STORAGE_KEY = 'appearance.editor.headingTextSize';
 const BODY_FONT_STORAGE_KEY = 'appearance.editor.bodyFontFamily';
+const MATCH_EXPORT_TEMPLATE_KEY = 'appearance.editor.matchExportTemplate';
 
 const getDefaultEditorAppearance = (): EditorAppearancePreferences => ({
   headingFontFamily:
@@ -29,6 +32,8 @@ const getDefaultEditorAppearance = (): EditorAppearancePreferences => ({
   bodyFontFamily:
     localStorage.getItem(BODY_FONT_STORAGE_KEY) ??
     defaultEditorAppearance.bodyFontFamily,
+  matchExportTemplate:
+    localStorage.getItem(MATCH_EXPORT_TEMPLATE_KEY) === 'true',
 });
 
 export type EditorAppearanceContextType = {
@@ -37,6 +42,7 @@ export type EditorAppearanceContextType = {
   setEditorHeadingFontWeight: (fontWeight: FontWeight) => void;
   setEditorHeadingTextSize: (textSize: HeadingTextSize) => void;
   setEditorBodyFontFamily: (fontFamily: string) => void;
+  setMatchExportTemplate: (match: boolean) => void;
   availableFonts: AvailableFonts;
 };
 
@@ -47,8 +53,95 @@ export const EditorAppearanceContext =
     setEditorHeadingFontWeight: () => {},
     setEditorHeadingTextSize: () => {},
     setEditorBodyFontFamily: () => {},
+    setMatchExportTemplate: () => {},
     availableFonts: { bundled: bundledFonts, system: [] },
   });
+
+const pt = (value: number) => `${value}pt`;
+
+const templateCssVars = (template: ExportTemplate): Record<string, string> => {
+  const { styles } = template;
+  const headingKeys = [
+    'heading1',
+    'heading2',
+    'heading3',
+    'heading4',
+    'heading5',
+    'heading6',
+  ] as const;
+
+  return {
+    '--editor-link-color': styles.link.color,
+    '--editor-link-decoration': styles.link.textDecoration,
+    '--editor-code-font': styles.inlineCode.fontFamily,
+    '--editor-code-size': pt(styles.inlineCode.fontSize),
+    '--editor-code-color': styles.inlineCode.color,
+    '--editor-code-bg': styles.inlineCode.backgroundColor,
+    '--editor-p-space-before': pt(styles.paragraph.spaceBefore),
+    '--editor-p-space-after': pt(styles.paragraph.spaceAfter),
+    '--editor-p-text-indent': pt(styles.paragraph.firstLineIndent),
+    '--editor-ul-space-before': pt(styles.unorderedList.spaceBefore),
+    '--editor-ul-space-after': pt(styles.unorderedList.spaceAfter),
+    '--editor-ol-space-before': pt(styles.orderedList.spaceBefore),
+    '--editor-ol-space-after': pt(styles.orderedList.spaceAfter),
+    '--editor-blockquote-space-before': pt(styles.blockquote.spaceBefore),
+    '--editor-blockquote-space-after': pt(styles.blockquote.spaceAfter),
+    ...Object.fromEntries(
+      headingKeys.flatMap((key) => {
+        const level = key.replace('heading', '');
+        return [
+          [`--editor-h${level}-space-before`, pt(styles[key].spaceBefore)],
+          [`--editor-h${level}-space-after`, pt(styles[key].spaceAfter)],
+        ];
+      })
+    ),
+  };
+};
+
+const applyTemplateStyles = (template: ExportTemplate) => {
+  document.documentElement.classList.add('match-export');
+  const vars = templateCssVars(template);
+  for (const [key, value] of Object.entries(vars)) {
+    document.documentElement.style.setProperty(key, value);
+  }
+};
+
+const templateCssVarKeys = [
+  '--editor-link-color',
+  '--editor-link-decoration',
+  '--editor-code-font',
+  '--editor-code-size',
+  '--editor-code-color',
+  '--editor-code-bg',
+  '--editor-p-space-before',
+  '--editor-p-space-after',
+  '--editor-p-text-indent',
+  '--editor-ul-space-before',
+  '--editor-ul-space-after',
+  '--editor-ol-space-before',
+  '--editor-ol-space-after',
+  '--editor-blockquote-space-before',
+  '--editor-blockquote-space-after',
+  '--editor-h1-space-before',
+  '--editor-h1-space-after',
+  '--editor-h2-space-before',
+  '--editor-h2-space-after',
+  '--editor-h3-space-before',
+  '--editor-h3-space-after',
+  '--editor-h4-space-before',
+  '--editor-h4-space-after',
+  '--editor-h5-space-before',
+  '--editor-h5-space-after',
+  '--editor-h6-space-before',
+  '--editor-h6-space-after',
+];
+
+const removeTemplateStyles = () => {
+  document.documentElement.classList.remove('match-export');
+  for (const key of templateCssVarKeys) {
+    document.documentElement.style.removeProperty(key);
+  }
+};
 
 const applyEditorFonts = (prefs: EditorAppearancePreferences) => {
   document.documentElement.style.setProperty(
@@ -91,6 +184,7 @@ export const EditorAppearanceProvider = ({
   );
   const [systemFonts, setSystemFonts] = useState<string[]>([]);
   const { isElectron } = useContext(ElectronContext);
+  const { activeTemplate } = useContext(ExportTemplatesContext);
 
   useEffect(() => {
     const loadFromMain = async () => {
@@ -115,12 +209,26 @@ export const EditorAppearanceProvider = ({
   }, []);
 
   useEffect(() => {
-    applyEditorFonts(editorAppearance);
+    if (editorAppearance.matchExportTemplate && activeTemplate) {
+      applyEditorFonts({
+        ...editorAppearance,
+        headingFontFamily: activeTemplate.styles.heading1.fontFamily,
+        headingFontWeight: activeTemplate.styles.heading1
+          .fontWeight as FontWeight,
+        bodyFontFamily: activeTemplate.styles.paragraph.fontFamily,
+      });
+      applyTemplateStyles(activeTemplate);
+    } else {
+      applyEditorFonts(editorAppearance);
+      removeTemplateStyles();
+    }
   }, [
     editorAppearance.headingFontFamily,
     editorAppearance.headingFontWeight,
     editorAppearance.headingTextSize,
     editorAppearance.bodyFontFamily,
+    editorAppearance.matchExportTemplate,
+    activeTemplate,
   ]);
 
   const persistAndSync = (updated: EditorAppearancePreferences) => {
@@ -132,6 +240,10 @@ export const EditorAppearanceProvider = ({
       updated.headingTextSize
     );
     localStorage.setItem(BODY_FONT_STORAGE_KEY, updated.bodyFontFamily);
+    localStorage.setItem(
+      MATCH_EXPORT_TEMPLATE_KEY,
+      String(updated.matchExportTemplate)
+    );
     if (isElectron) {
       window.personalizationAPI.setEditorAppearance(updated);
     }
@@ -153,6 +265,10 @@ export const EditorAppearanceProvider = ({
     persistAndSync({ ...editorAppearance, bodyFontFamily: fontFamily });
   };
 
+  const handleSetMatchExportTemplate = (match: boolean) => {
+    persistAndSync({ ...editorAppearance, matchExportTemplate: match });
+  };
+
   return (
     <EditorAppearanceContext.Provider
       value={{
@@ -161,6 +277,7 @@ export const EditorAppearanceProvider = ({
         setEditorHeadingFontWeight: handleSetHeadingFontWeight,
         setEditorHeadingTextSize: handleSetHeadingTextSize,
         setEditorBodyFontFamily: handleSetBodyFontFamily,
+        setMatchExportTemplate: handleSetMatchExportTemplate,
         availableFonts: { bundled: bundledFonts, system: systemFonts },
       }}
     >

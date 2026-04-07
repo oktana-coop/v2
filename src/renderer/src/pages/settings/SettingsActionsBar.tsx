@@ -3,9 +3,12 @@ import { useContext, useRef } from 'react';
 import { SidebarLayoutContext } from '../../app-state';
 import { IconButton } from '../../components/actions/IconButton';
 import { SidebarIcon, SidebarOpenIcon } from '../../components/icons';
-import { Breadcrumb } from '../../components/navigation/Breadcrumb';
 
-export const SettingsActionsBar = ({ tabName }: { tabName: string }) => {
+export const SettingsActionsBar = ({
+  children,
+}: {
+  children?: React.ReactNode;
+}) => {
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const sidebarButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -26,14 +29,7 @@ export const SettingsActionsBar = ({ tabName }: { tabName: string }) => {
         icon={isSidebarOpen ? <SidebarOpenIcon /> : <SidebarIcon />}
         onClick={handleSidebarToggle}
       />
-      {tabName && (
-        <Breadcrumb
-          segments={[
-            { label: 'Settings', href: '/settings' },
-            { label: tabName },
-          ]}
-        />
-      )}
+      {children}
     </div>
   );
 };

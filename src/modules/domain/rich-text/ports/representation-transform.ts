@@ -14,6 +14,7 @@ export type TransformToBinaryArgs = {
   from: RichTextRepresentation;
   to: BinaryRichTextRepresentation;
   input: string;
+  stylesheet?: string;
 };
 
 export type RepresentationTransform = {

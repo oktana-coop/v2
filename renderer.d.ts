@@ -45,6 +45,7 @@ import {
   type Theme,
 } from './src/modules/personalization/appearance/theme';
 import { type UIAppearancePreferences } from './src/modules/personalization/appearance/ui';
+import { type ExportTemplatePreferences } from './src/modules/personalization/export-templates';
 
 export type UnregisterListenerFn = () => void;
 
@@ -67,7 +68,10 @@ export type ElectronAPI = {
   onContextMenuAction: (
     callback: (action: ContextMenuAction) => void
   ) => () => void;
-  printToPDF: (html: string) => Promise<IPCResult<Uint8Array>>;
+  printToPDF: (args: {
+    html: string;
+    stylesheet?: string;
+  }) => Promise<IPCResult<Uint8Array>>;
 };
 
 export type PersonalizationAPI = {
@@ -81,6 +85,10 @@ export type PersonalizationAPI = {
     editorAppearance: EditorAppearancePreferences
   ) => Promise<void>;
   getEditorAppearance: () => Promise<EditorAppearancePreferences>;
+  setExportTemplates: (
+    exportTemplates: ExportTemplatePreferences
+  ) => Promise<void>;
+  getExportTemplates: () => Promise<ExportTemplatePreferences>;
 };
 
 export type AuthAPI = {
@@ -256,7 +264,7 @@ declare global {
     versionControlSyncProvidersAPI: VersionControlSyncProvidersAPI;
     wasmAPI: WasmAPI;
     osEventsAPI: OsEventsAPI;
-    // Used by the /print page for PDF export via Paged.js
-    setContent: (html: string) => Promise<void>;
+    // Used by /print and /preview pages for Paged.js rendering
+    setContent: (args: { html: string; stylesheet?: string }) => Promise<void>;
   }
 }

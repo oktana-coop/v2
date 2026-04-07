@@ -12,6 +12,11 @@ export {
 } from './appearance/ui/context';
 
 export {
+  ExportTemplatesContext,
+  ExportTemplatesProvider,
+} from './export-templates/context';
+
+export {
   FunctionalityConfigContext,
   FunctionalityConfigProvider,
 } from './functionality-config/context';

@@ -584,6 +584,35 @@ export const navigateToProjectHistory = async ({
 };
 
 /**
+ * Navigates to the Settings page by clicking the options link in the nav bar
+ * and waiting for the Settings title.
+ */
+export const navigateToSettings = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  await window
+    .getByTestId('nav-bar')
+    .getByRole('link', { name: /options/i })
+    .click();
+  await expect(window).toHaveTitle(/settings/i, { timeout: 2_000 });
+};
+
+/**
+ * Clicks a settings tab by its exact name (e.g. "General", "Appearance", "Exports").
+ */
+export const clickSettingsTab = async ({
+  window,
+  tabName,
+}: {
+  window: Page;
+  tabName: string;
+}): Promise<void> => {
+  await window.getByRole('link', { name: tabName, exact: true }).click();
+};
+
+/**
  * Clicks a commit row in the project history sidebar to expand/collapse it.
  * Matches the first commit row containing the given message text.
  */

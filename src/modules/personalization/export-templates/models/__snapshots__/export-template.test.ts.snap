@@ -1,0 +1,186 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`defaultExportTemplate > produces expected default CSS 1`] = `
+"
+  @page {
+    size: 210mm 297mm;
+    margin: 25.4mm 25.4mm 25.4mm 25.4mm;
+  }
+
+  /* Reset browser default margins/padding so only the template's
+     explicit spacing applies (e.g. heading margin-top would otherwise
+     add unexpected space at the top of each page). */
+  body, h1, h2, h3, h4, h5, h6, p, ul, ol, pre, blockquote {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: Noto Sans;
+    font-size: 12pt;
+    line-height: 1.5;
+    color: #000000;
+    letter-spacing: normal;
+    text-align: left;
+  }
+
+  h1, h2, h3, h4, h5, h6 { break-after: avoid; }
+  h1:first-child, h2:first-child, h3:first-child,
+  h4:first-child, h5:first-child, h6:first-child { margin-top: 0; }
+  h1 {
+    font-family: Noto Sans;
+    font-weight: 700;
+    font-size: 24pt;
+    color: #000000;
+    line-height: 1.5;
+    letter-spacing: normal;
+    text-align: left;
+    margin-top: 24pt;
+    margin-bottom: 12pt;
+  }
+  h2 {
+    font-family: Noto Sans;
+    font-weight: 700;
+    font-size: 18pt;
+    color: #000000;
+    line-height: 1.5;
+    letter-spacing: normal;
+    text-align: left;
+    margin-top: 20pt;
+    margin-bottom: 10pt;
+  }
+  h3 {
+    font-family: Noto Sans;
+    font-weight: 700;
+    font-size: 14pt;
+    color: #000000;
+    line-height: 1.5;
+    letter-spacing: normal;
+    text-align: left;
+    margin-top: 16pt;
+    margin-bottom: 8pt;
+  }
+  h4 {
+    font-family: Noto Sans;
+    font-weight: 700;
+    font-size: 12pt;
+    color: #000000;
+    line-height: 1.5;
+    letter-spacing: normal;
+    text-align: left;
+    margin-top: 12pt;
+    margin-bottom: 6pt;
+  }
+  h5 {
+    font-family: Noto Sans;
+    font-weight: 700;
+    font-size: 11pt;
+    color: #000000;
+    line-height: 1.5;
+    letter-spacing: normal;
+    text-align: left;
+    margin-top: 12pt;
+    margin-bottom: 6pt;
+  }
+  h6 {
+    font-family: Noto Sans;
+    font-weight: 700;
+    font-size: 10pt;
+    color: #000000;
+    line-height: 1.5;
+    letter-spacing: normal;
+    text-align: left;
+    margin-top: 12pt;
+    margin-bottom: 6pt;
+  }
+
+  p {
+    font-weight: 400;
+    margin-top: 0pt;
+    margin-bottom: 8pt;
+    text-indent: 0pt;
+  }
+
+  ul {
+    list-style-type: disc;
+    list-style-position: outside;
+    padding-left: 24pt;
+    margin-left: 0;
+    margin-top: 0pt;
+    margin-bottom: 8pt;
+    font-family: Noto Sans;
+    font-weight: 400;
+    font-size: 12pt;
+    color: #000000;
+    line-height: 1.5;
+    letter-spacing: normal;
+    text-align: left;
+  }
+  ol {
+    list-style-type: decimal;
+    list-style-position: outside;
+    padding-left: 24pt;
+    margin-left: 0;
+    margin-top: 0pt;
+    margin-bottom: 8pt;
+    font-family: Noto Sans;
+    font-weight: 400;
+    font-size: 12pt;
+    color: #000000;
+    line-height: 1.5;
+    letter-spacing: normal;
+    text-align: left;
+  }
+  li { line-height: 1.5; }
+
+  pre {
+    font-family: Fira Code;
+    font-weight: 400;
+    font-size: 10pt;
+    color: #000000;
+    line-height: 1.5;
+    letter-spacing: normal;
+    text-align: left;
+    background-color: #f5f5f5;
+    padding: 8pt;
+    white-space: pre-wrap;
+    break-inside: avoid;
+  }
+
+  :not(pre) > code {
+    font-family: Fira Code;
+    font-size: 10pt;
+    color: #000000;
+    background-color: #f5f5f5;
+    padding: 0.2em 0.375em;
+    border-radius: 0.25em;
+    border: 1px solid #e0e0e0;
+  }
+
+  blockquote {
+    border-left: 3pt solid #cccccc;
+    padding-left: 12pt;
+    margin-left: 0pt;
+    margin-top: 0pt;
+    margin-bottom: 8pt;
+    font-family: Noto Sans;
+    font-weight: 400;
+    font-size: 12pt;
+    color: #000000;
+    line-height: 1.5;
+    letter-spacing: normal;
+    text-align: left;
+  }
+
+  a { color: #1a0dab; text-decoration: underline; }
+
+  img { max-width: 100%; break-inside: avoid; }
+
+  hr {
+    border: none;
+    border-top: 1pt solid #cccccc;
+    margin-top: 12pt;
+    margin-bottom: 12pt;
+  }
+"
+`;

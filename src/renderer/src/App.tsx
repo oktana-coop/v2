@@ -5,6 +5,7 @@ import { NotificationsProvider } from '../../modules/infrastructure/notification
 import { WasmProvider } from '../../modules/infrastructure/wasm/react/wasm-context';
 import {
   EditorAppearanceProvider,
+  ExportTemplatesProvider,
   FunctionalityConfigProvider,
   ThemeProvider,
   UIAppearanceProvider,
@@ -18,25 +19,27 @@ import { AppRouter } from './AppRouter';
 export const App = () => (
   <InfrastructureAdaptersProvider>
     <WasmProvider>
-      <RepresentationTransformProvider>
-        <MergeConflictResolverProvider>
-          <AuthProvider>
-            <ThemeProvider>
-              <UIAppearanceProvider>
-                <EditorAppearanceProvider>
-                  <FunctionalityConfigProvider>
-                    <NotificationsProvider>
-                      <CommandPaletteStateProvider>
-                        <AppRouter />
-                      </CommandPaletteStateProvider>
-                    </NotificationsProvider>
-                  </FunctionalityConfigProvider>
-                </EditorAppearanceProvider>
-              </UIAppearanceProvider>
-            </ThemeProvider>
-          </AuthProvider>
-        </MergeConflictResolverProvider>
-      </RepresentationTransformProvider>
+      <ExportTemplatesProvider>
+        <RepresentationTransformProvider>
+          <MergeConflictResolverProvider>
+            <AuthProvider>
+              <ThemeProvider>
+                <UIAppearanceProvider>
+                  <EditorAppearanceProvider>
+                    <FunctionalityConfigProvider>
+                      <NotificationsProvider>
+                        <CommandPaletteStateProvider>
+                          <AppRouter />
+                        </CommandPaletteStateProvider>
+                      </NotificationsProvider>
+                    </FunctionalityConfigProvider>
+                  </EditorAppearanceProvider>
+                </UIAppearanceProvider>
+              </ThemeProvider>
+            </AuthProvider>
+          </MergeConflictResolverProvider>
+        </RepresentationTransformProvider>
+      </ExportTemplatesProvider>
     </WasmProvider>
   </InfrastructureAdaptersProvider>
 );

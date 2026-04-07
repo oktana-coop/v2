@@ -87,10 +87,36 @@ export const IconButtonWithTooltip: Story = {
   ),
 };
 
+export const InheritColor: Story = {
+  render: () => (
+    <div className="flex gap-8">
+      <div className="text-purple-500">
+        <Button variant="plain" color="inherit">
+          <CheckIcon />
+          Purple parent
+        </Button>
+      </div>
+      <div className="text-red-500">
+        <Button variant="plain" color="inherit">
+          <CheckIcon />
+          Red parent
+        </Button>
+      </div>
+      <div className="text-emerald-500">
+        <IconButtonComponent
+          icon={<CheckIcon />}
+          color="inherit"
+          tooltip="Inherits green"
+        />
+      </div>
+    </div>
+  ),
+};
+
 export const VariantsColorsAndSizes: Story = {
   render: () => {
     const variants = ['solid', 'outline', 'plain'] as const;
-    const colors = [undefined, 'purple', 'red'] as const;
+    const colors = [undefined, 'purple', 'red', 'inherit'] as const;
     const sizes = ['sm', 'md', 'lg'] as const;
 
     return (
@@ -109,16 +135,22 @@ export const VariantsColorsAndSizes: Story = {
                   </div>
 
                   <div className="flex gap-4">
-                    {colors.map((color) => (
-                      <Button
-                        key={`${variant}-${size}-${color ?? 'default'}`}
-                        variant={variant}
-                        color={color}
-                        size={size}
-                      >
-                        {color ?? 'default'}
-                      </Button>
-                    ))}
+                    {colors
+                      .filter(
+                        (color) => color !== 'inherit' || variant === 'plain'
+                      )
+                      .map((color) => (
+                        <span
+                          key={`${variant}-${size}-${color ?? 'default'}`}
+                          className={
+                            color === 'inherit' ? 'text-emerald-500' : undefined
+                          }
+                        >
+                          <Button variant={variant} color={color} size={size}>
+                            {color ?? 'default'}
+                          </Button>
+                        </span>
+                      ))}
                   </div>
                 </div>
               ))}

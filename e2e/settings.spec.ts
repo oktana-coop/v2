@@ -1,34 +1,11 @@
-import { type Page } from '@playwright/test';
-
 import { expect, test } from './shared/fixtures';
-
-const navigateToSettings = async ({
-  window,
-}: {
-  window: Page;
-}): Promise<void> => {
-  await window
-    .getByTestId('nav-bar')
-    .getByRole('link', { name: /options/i })
-    .click();
-  await expect(window).toHaveTitle(/settings/i, { timeout: 2_000 });
-};
-
-const clickSettingsTab = async ({
-  window,
-  tabName,
-}: {
-  window: Page;
-  tabName: string;
-}): Promise<void> => {
-  await window.getByRole('link', { name: tabName, exact: true }).click();
-};
+import { clickSettingsTab, navigateToSettings } from './shared/helpers';
 
 test.describe('settings page', () => {
   test('navigating to settings defaults to General tab', async ({ window }) => {
     await navigateToSettings({ window });
 
-    await expect(window).toHaveTitle(/Settings \/ General/i);
+    await expect(window).toHaveTitle(/General Settings/i);
     await expect(window.getByText('Author Info')).toBeVisible();
   });
 
@@ -44,7 +21,7 @@ test.describe('settings page', () => {
     await navigateToSettings({ window });
     await clickSettingsTab({ window, tabName: 'Sync' });
 
-    await expect(window).toHaveTitle(/Settings \/ Sync/i);
+    await expect(window).toHaveTitle(/Sync Settings/i);
     await expect(window.getByText('Sync Providers')).toBeVisible();
   });
 
@@ -52,7 +29,7 @@ test.describe('settings page', () => {
     await navigateToSettings({ window });
     await clickSettingsTab({ window, tabName: 'Appearance' });
 
-    await expect(window).toHaveTitle(/Settings \/ Appearance/i);
+    await expect(window).toHaveTitle(/Appearance Settings/i);
     await expect(window.getByText('Theme')).toBeVisible();
     await expect(window.getByLabel('Light')).toBeVisible();
     await expect(window.getByLabel('Dark')).toBeVisible();
@@ -61,15 +38,35 @@ test.describe('settings page', () => {
   test('switching between tabs updates breadcrumb', async ({ window }) => {
     await navigateToSettings({ window });
 
-    await expect(window).toHaveTitle(/Settings \/ General/i);
+    await expect(window).toHaveTitle(/General Settings/i);
 
     await clickSettingsTab({ window, tabName: 'Sync' });
-    await expect(window).toHaveTitle(/Settings \/ Sync/i);
+    await expect(window).toHaveTitle(/Sync Settings/i);
 
     await clickSettingsTab({ window, tabName: 'Appearance' });
-    await expect(window).toHaveTitle(/Settings \/ Appearance/i);
+    await expect(window).toHaveTitle(/Appearance Settings/i);
 
     await clickSettingsTab({ window, tabName: 'General' });
-    await expect(window).toHaveTitle(/Settings \/ General/i);
+    await expect(window).toHaveTitle(/General Settings/i);
+  });
+
+  test('Exports tab shows export templates section', async ({ window }) => {
+    await navigateToSettings({ window });
+    await clickSettingsTab({ window, tabName: 'Exports' });
+
+    await expect(window).toHaveTitle(/Export Templates/i);
+    await expect(
+      window.getByRole('heading', { name: 'Export Templates' })
+    ).toBeVisible();
+    await expect(
+      window.getByRole('button', { name: /new template/i })
+    ).toBeVisible();
+  });
+
+  test('Exports tab shows default template in listbox', async ({ window }) => {
+    await navigateToSettings({ window });
+    await clickSettingsTab({ window, tabName: 'Exports' });
+
+    await expect(window.getByText('Default Template')).toBeVisible();
   });
 });

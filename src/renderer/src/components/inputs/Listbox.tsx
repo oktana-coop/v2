@@ -12,6 +12,7 @@ export function Listbox<T>({
   'aria-label': ariaLabel,
   children: options,
   button,
+  icon,
   ...props
 }: {
   className?: string;
@@ -21,6 +22,7 @@ export function Listbox<T>({
   'aria-label'?: string;
   children?: React.ReactNode;
   button?: React.ReactNode;
+  icon?: React.ReactNode;
 } & Omit<Headless.ListboxProps<typeof Fragment, T>, 'multiple'>) {
   return (
     <Headless.Listbox {...props} multiple={false}>
@@ -45,6 +47,11 @@ export function Listbox<T>({
             'data-[disabled]:opacity-50 before:data-[disabled]:bg-zinc-950/5 before:data-[disabled]:shadow-none',
           ])}
         >
+          {icon && (
+            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5 sm:pl-2">
+              {icon}
+            </span>
+          )}
           <Headless.ListboxSelectedOption
             as="span"
             options={options}
@@ -61,7 +68,9 @@ export function Listbox<T>({
               // Set minimum height for when no value is selected
               'min-h-11 sm:min-h-9',
               // Horizontal padding
-              'pl-[calc(theme(spacing[3.5])-1px)] pr-[calc(theme(spacing.7)-1px)] sm:pl-[calc(theme(spacing.3)-1px)]',
+              icon
+                ? 'pl-[calc(theme(spacing[9])-1px)] pr-[calc(theme(spacing.7)-1px)] sm:pl-[calc(theme(spacing[8])-1px)]'
+                : 'pl-[calc(theme(spacing[3.5])-1px)] pr-[calc(theme(spacing.7)-1px)] sm:pl-[calc(theme(spacing.3)-1px)]',
               // Typography
               'text-left text-base/6 text-zinc-950 placeholder:text-zinc-500 sm:text-sm/6 dark:text-white forced-colors:text-[CanvasText]',
               // Border
@@ -140,7 +149,7 @@ export function ListboxOption<T>({
     'flex min-w-0 items-center',
     // Icons
     '[&>[data-slot=icon]]:size-5 [&>[data-slot=icon]]:shrink-0 sm:[&>[data-slot=icon]]:size-4',
-    '[&>[data-slot=icon]]:text-zinc-500 [&>[data-slot=icon]]:group-data-[focus]/option:text-white [&>[data-slot=icon]]:dark:text-zinc-400',
+    '[&>[data-slot=icon]]:text-zinc-500 [&>[data-slot=icon]]:group-data-[focus]/option:text-white [&>[data-slot=icon]]:dark:text-zinc-400 [&>[data-slot=icon]]:dark:group-data-[focus]/option:text-zinc-900',
     'forced-colors:[&>[data-slot=icon]]:text-[CanvasText] forced-colors:[&>[data-slot=icon]]:group-data-[focus]/option:text-[Canvas]',
     // Avatars
     '[&>[data-slot=avatar]]:-mx-0.5 [&>[data-slot=avatar]]:size-6 sm:[&>[data-slot=avatar]]:size-5'
@@ -163,7 +172,7 @@ export function ListboxOption<T>({
               // Typography
               'text-base/6 text-zinc-950 sm:text-sm/6 dark:text-white forced-colors:text-[CanvasText]',
               // Focus
-              'outline-none data-[focus]:bg-purple-500 data-[focus]:text-white',
+              'outline-none data-[focus]:bg-purple-500 data-[focus]:text-white dark:data-[focus]:bg-purple-300 dark:data-[focus]:text-zinc-900',
               // Forced colors mode
               'forced-color-adjust-none forced-colors:data-[focus]:bg-[Highlight] forced-colors:data-[focus]:text-[HighlightText]',
               // Disabled
@@ -219,7 +228,7 @@ export function ListboxDescription({
       {...props}
       className={clsx(
         className,
-        'flex flex-1 overflow-hidden text-zinc-500 before:w-2 before:min-w-0 before:shrink group-data-[focus]/option:text-white dark:text-zinc-400'
+        'flex flex-1 overflow-hidden text-zinc-500 before:w-2 before:min-w-0 before:shrink group-data-[focus]/option:text-white dark:text-zinc-400 dark:group-data-[focus]/option:text-zinc-900'
       )}
     >
       <span className="flex-1 truncate">{children}</span>

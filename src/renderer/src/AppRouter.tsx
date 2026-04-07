@@ -29,10 +29,12 @@ import {
 } from './pages/project';
 import {
   AppearanceSettings,
+  ExportsSettings,
   GeneralSettings,
   Settings,
   SyncSettings,
 } from './pages/settings';
+import { TemplateEditor } from './pages/settings/exports';
 
 export const AppRouter = () => {
   const { isElectron } = useContext(ElectronContext);
@@ -82,6 +84,8 @@ export const AppRouter = () => {
             <Route path="general" element={<GeneralSettings />} />
             <Route path="sync" element={<SyncSettings />} />
             <Route path="appearance" element={<AppearanceSettings />} />
+            <Route path="exports" element={<ExportsSettings />} />
+            <Route path="exports/:templateId" element={<TemplateEditor />} />
           </Route>
         </Routes>
       </Layout>

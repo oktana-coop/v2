@@ -85,7 +85,7 @@ export const EmptyMainView = ({
         <Button
           onClick={openCloneFromGithubModal}
           variant="plain"
-          color="dark/zinc"
+          color="neutral"
           className="w-64"
         >
           <GithubIcon className="mr-1" />

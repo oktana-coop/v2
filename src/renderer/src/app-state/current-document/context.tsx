@@ -49,7 +49,11 @@ import {
   urlEncodeChangeId,
   urlEncodeChangeIdForChange,
 } from '../../../../modules/infrastructure/version-control';
-import { FunctionalityConfigContext } from '../../../../modules/personalization/browser';
+import {
+  ExportTemplatesContext,
+  exportTemplateToCss,
+  FunctionalityConfigContext,
+} from '../../../../modules/personalization/browser';
 import { useCurrentDocumentId } from '../../hooks/use-current-document-id';
 import { usePulledUpstreamChanges } from '../../hooks/use-pulled-upstream-changes';
 import {
@@ -165,6 +169,7 @@ export const CurrentDocumentProvider = ({
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
   );
+  const { activeTemplate } = useContext(ExportTemplatesContext);
   const loadHistoryFromWorker = config.useHistoryWorker
     ? createWorkerClient()
     : undefined;
@@ -801,6 +806,7 @@ export const CurrentDocumentProvider = ({
         from: document.representation,
         to: representation,
         input: documentContent,
+        stylesheet: exportTemplateToCss(activeTemplate),
       });
 
       return str;
@@ -810,6 +816,7 @@ export const CurrentDocumentProvider = ({
       projectIdParam,
       representationTransformAdapter,
       documentId,
+      activeTemplate,
     ]
   );
 
