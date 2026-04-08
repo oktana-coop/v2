@@ -9,6 +9,7 @@ import {
   ipcMain,
   Menu,
   nativeImage,
+  safeStorage,
   session,
   shell,
 } from 'electron';
@@ -67,6 +68,11 @@ process.env.VITE_PUBLIC = process.env.VITE_DEV_SERVER_URL
 
 // Disable GPU Acceleration for Windows 7
 if (release().startsWith('6.1')) app.disableHardwareAcceleration();
+
+// Allow safeStorage to fall back to Chromium's OSCrypt when no native keyring
+// (gnome-keyring, kwallet, macOS Keychain, Windows DPAPI) is available.
+// https://www.electronjs.org/docs/latest/api/safe-storage#safestoragesetuseplaintextencryptionuseplaintext
+safeStorage.setUsePlainTextEncryption(true);
 
 // Set application name for Windows 10+ notifications
 if (process.platform === 'win32') app.setAppUserModelId(app.getName());
