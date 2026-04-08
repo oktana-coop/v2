@@ -75,6 +75,7 @@ export const DirectoryTreeView = ({
           <IconButton
             onClick={() => openDirectory()}
             icon={<FolderIcon size={20} />}
+            tooltip="Open Folder"
           />
           {canCreateDocument && (
             <IconButton
