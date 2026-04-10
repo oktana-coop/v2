@@ -110,7 +110,7 @@ export const DirectoryTreeView = ({
 }: {
   onCreateDocument: () => void;
 }) => {
-  const { directory } = useContext(MultiDocumentProjectContext);
+  const { directory, openDirectory } = useContext(MultiDocumentProjectContext);
   const handleDocumentSelection = useDocumentSelectionInMultiDocumentProject();
   const {
     explorerTree: documents,
@@ -157,6 +157,11 @@ export const DirectoryTreeView = ({
           <SidebarHeading icon={FolderIcon} text="File Explorer" />
         </div>
         <div className="flex gap-1">
+          <IconButton
+            onClick={() => openDirectory()}
+            icon={<FolderIcon size={20} />}
+            tooltip="Open Folder"
+          />
           {canCreateDocument && (
             <IconButton
               onClick={onCreateDocument}
