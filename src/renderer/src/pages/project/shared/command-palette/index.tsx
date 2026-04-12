@@ -1,9 +1,17 @@
 import { useContext } from 'react';
 
 import { projectTypes } from '../../../../../../modules/domain/project';
-import { richTextRepresentations } from '../../../../../../modules/domain/rich-text';
+import {
+  PRIMARY_RICH_TEXT_REPRESENTATION,
+  richTextRepresentationExtensions,
+  richTextRepresentations,
+} from '../../../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
-import { removeExtension } from '../../../../../../modules/infrastructure/filesystem';
+import {
+  getExtension,
+  removeExtension,
+} from '../../../../../../modules/infrastructure/filesystem';
+import { filesystemItemTypes } from '../../../../../../modules/infrastructure/filesystem';
 import {
   CommandPaletteContext,
   CurrentDocumentContext,
@@ -14,6 +22,7 @@ import {
   CommandPalette,
 } from '../../../../components/dialogs/command-palette';
 import {
+  type ExplorerTreeNode,
   useClearWebStorage,
   useCurrentDocumentName,
   useDocumentExplorerTree,
@@ -22,6 +31,23 @@ import {
 import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../../hooks/multi-document-project';
 import { useDocumentSelection as useDocumentSelectionInSingleDocumentProject } from '../../../../hooks/single-document-project';
 import { keyBindings } from './key-bindings';
+
+const openableExtension =
+  richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION];
+
+const collectOpenableFiles = (nodes: ExplorerTreeNode[]): ExplorerTreeNode[] =>
+  nodes.flatMap((node) => {
+    if (
+      node.type === filesystemItemTypes.FILE &&
+      getExtension(node.name) === openableExtension
+    ) {
+      return [node];
+    }
+    if (node.children) {
+      return collectOpenableFiles(node.children);
+    }
+    return [];
+  });
 
 export const ProjectCommandPalette = ({
   onCreateDocument,
@@ -158,7 +184,7 @@ export const ProjectCommandPalette = ({
             }
           : undefined
       }
-      documents={documents
+      documents={collectOpenableFiles(documents)
         .filter((doc) => doc.id !== selection)
         .map((doc) => ({
           title: removeExtension(doc.name),
