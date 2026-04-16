@@ -1,42 +1,19 @@
+import * as Effect from 'effect/Effect';
 import Store from 'electron-store';
 
-import {
-  type Email,
-  type GithubUserInfo,
-  type Username,
-} from '../modules/auth/node';
-import {
-  defaultEditorAppearance,
-  type EditorAppearancePreferences,
-} from '../modules/personalization/appearance/editor';
-import {
-  type Theme,
-  themes,
-} from '../modules/personalization/appearance/theme';
-import {
-  defaultUIAppearance,
-  type UIAppearancePreferences,
-} from '../modules/personalization/appearance/ui';
-import {
-  defaultExportTemplatePreferences,
-  type ExportTemplatePreferences,
-} from '../modules/personalization/export-templates';
+import { defaultEditorAppearance } from '../../modules/personalization/appearance/editor';
+import { themes } from '../../modules/personalization/appearance/theme';
+import { defaultUIAppearance } from '../../modules/personalization/appearance/ui';
+import { defaultExportTemplatePreferences } from '../../modules/personalization/export-templates';
+import { CURRENT_SCHEMA_VERSION, migrateStore } from './migrations';
+import { type UserPreferences } from './types';
 
-export type UserPreferencesStore = Store<UserPreferences>;
-
-export type UserPreferences = {
-  appearance: {
-    theme: Theme;
-    editor: EditorAppearancePreferences;
-    ui: UIAppearancePreferences;
-  };
-  auth: {
-    username: Username | null;
-    email: Email | null;
-    githubUserInfo: GithubUserInfo | null;
-  };
-  exports: ExportTemplatePreferences;
-};
+export {
+  CURRENT_SCHEMA_VERSION,
+  migrations,
+  migrateStore,
+  type Migration,
+} from './migrations';
 
 const defaultAppearance = {
   theme: themes.system,
@@ -137,9 +114,16 @@ const schema = {
       },
     },
   },
+  schemaVersion: {
+    type: 'number',
+    default: CURRENT_SCHEMA_VERSION,
+  },
 };
 
 export const initializeStore = () => {
   const store = new Store<UserPreferences>({ schema });
+  Effect.runSync(migrateStore(store));
   return store;
 };
+
+export * from './types';
