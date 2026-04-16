@@ -239,6 +239,27 @@ export type VersionControlSyncProvidersAPI = {
 export { type RendererConfig } from './src/modules/config/browser';
 
 declare global {
+  // https://developer.mozilla.org/en-US/docs/Web/API/Keyboard_API
+  interface KeyboardLayoutMap {
+    get(key: string): string | undefined;
+    has(key: string): boolean;
+    readonly size: number;
+    entries(): IterableIterator<[string, string]>;
+    keys(): IterableIterator<string>;
+    values(): IterableIterator<string>;
+    forEach(
+      callbackfn: (value: string, key: string, map: KeyboardLayoutMap) => void
+    ): void;
+  }
+
+  interface Keyboard {
+    getLayoutMap(): Promise<KeyboardLayoutMap>;
+  }
+
+  interface Navigator {
+    readonly keyboard?: Keyboard;
+  }
+
   type FontData = {
     family: string;
     fullName: string;

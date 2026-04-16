@@ -27,10 +27,12 @@ export const ProjectCommandPalette = ({
   onCreateDocument,
   onOpenDocument,
   onOpenProjectSettings,
+  onOpenPrintPreview,
 }: {
   onCreateDocument: () => void;
   onOpenDocument: () => void;
   onOpenProjectSettings: () => void;
+  onOpenPrintPreview: () => void;
 }) => {
   const { isOpen: isCommandPaletteOpen, closeCommandPalette } = useContext(
     CommandPaletteContext
@@ -138,6 +140,11 @@ export const ProjectCommandPalette = ({
       name: keyBindings.ctrlShiftP.command,
       shortcut: keyBindings.ctrlShiftP.keyBinding,
       onActionSelection: exportToPDF,
+    },
+    {
+      name: keyBindings.ctrlAltP.command,
+      shortcut: keyBindings.ctrlAltP.keyBinding,
+      onActionSelection: onOpenPrintPreview,
     },
     {
       name: 'Export to Pandoc',

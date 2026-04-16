@@ -10,6 +10,7 @@ import {
   lineHeightSchema,
   textAlignmentSchema,
 } from '../../models';
+import { mmToPx } from './units';
 
 const ptSchema = z.number().nonnegative();
 
@@ -335,4 +336,11 @@ export const defaultExportTemplate: ExportTemplate = {
 export const defaultExportTemplatePreferences: ExportTemplatePreferences = {
   activeTemplateId: DEFAULT_TEMPLATE_ID,
   templates: [defaultExportTemplate],
+};
+
+export const getPageWidthPx = (template: ExportTemplate): number => {
+  const { paperSize, orientation } = template.pageSetup;
+  const widthMm =
+    orientation === 'landscape' ? paperSize.height : paperSize.width;
+  return mmToPx(widthMm);
 };
