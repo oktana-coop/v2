@@ -8,19 +8,21 @@ import { Button, type ButtonColor } from './Button';
 export type IconButtonProps = {
   icon: ReactNode;
   color?: ButtonColor;
-  onClick?: HeadlessButtonProps['onClick'];
+  as?: React.ElementType;
+  onClick?: HeadlessButtonProps<React.ElementType>['onClick'];
   disabled?: boolean;
   tooltip?: string;
 };
 
 export const IconButton = forwardRef(function IconButton(
-  { icon, color, onClick, disabled, tooltip }: IconButtonProps,
+  { icon, color, as, onClick, disabled, tooltip }: IconButtonProps,
   ref: React.ForwardedRef<HTMLElement>
 ) {
   const button = (
     <Button
       variant="plain"
       color={color}
+      as={as}
       className="!sm:px-0 !sm:py-0 !px-0 !py-0"
       onClick={onClick}
       ref={ref}

@@ -37,7 +37,7 @@ export const EmptyView = ({
       <Button
         onClick={onCloneFromGithubButtonClick}
         variant="solid"
-        color="dark/zinc"
+        color="neutral"
         className="w-64"
       >
         <GithubIcon className="mr-1" />

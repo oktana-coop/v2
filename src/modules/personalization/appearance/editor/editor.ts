@@ -1,12 +1,19 @@
-export type FontWeight = '300' | '400' | '500' | '600' | '700';
+import { type FontWeight, fontWeights } from '../../models';
 
-export const fontWeightOptions: { value: FontWeight; label: string }[] = [
-  { value: '300', label: 'Light' },
-  { value: '400', label: 'Regular' },
-  { value: '500', label: 'Medium' },
-  { value: '600', label: 'SemiBold' },
-  { value: '700', label: 'Bold' },
-];
+const fontWeightLabels: Record<FontWeight, string> = {
+  '300': 'Light',
+  '400': 'Regular',
+  '500': 'Medium',
+  '600': 'SemiBold',
+  '700': 'Bold',
+};
+
+export { type FontWeight };
+
+export const fontWeightOptions = fontWeights.map((value) => ({
+  value,
+  label: fontWeightLabels[value],
+}));
 
 export type HeadingTextSize = 'small' | 'medium' | 'large';
 
@@ -30,6 +37,7 @@ export type EditorAppearancePreferences = {
   headingFontWeight: FontWeight;
   headingTextSize: HeadingTextSize;
   bodyFontFamily: string;
+  matchExportTemplate: boolean;
 };
 
 export const defaultEditorAppearance: EditorAppearancePreferences = {
@@ -37,4 +45,5 @@ export const defaultEditorAppearance: EditorAppearancePreferences = {
   headingFontWeight: '700',
   headingTextSize: 'medium',
   bodyFontFamily: 'Noto Sans',
+  matchExportTemplate: false,
 };

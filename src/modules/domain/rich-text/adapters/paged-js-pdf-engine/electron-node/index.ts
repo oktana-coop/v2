@@ -26,9 +26,11 @@ const loadPrintPage = async (win: BrowserWindow): Promise<void> => {
 const setPrintPageHtmlAndWaitForRendering = async ({
   win,
   html,
+  stylesheet,
 }: {
   win: BrowserWindow;
   html: string;
+  stylesheet?: string;
 }): Promise<void> => {
   await win.webContents.executeJavaScript(`
     new Promise((resolve, reject) => {
@@ -37,13 +39,13 @@ const setPrintPageHtmlAndWaitForRendering = async ({
         clearTimeout(timeout);
         resolve();
       });
-      window.setContent(${JSON.stringify(html)});
+      window.setContent({ html: ${JSON.stringify(html)}, stylesheet: ${JSON.stringify(stylesheet)} });
     });
   `);
 };
 
 export const createAdapter = (): PdfEngine => ({
-  printToPdf: (html) =>
+  printToPdf: ({ html, stylesheet }) =>
     Effect.tryPromise({
       try: async () => {
         const win = new BrowserWindow({
@@ -53,7 +55,7 @@ export const createAdapter = (): PdfEngine => ({
 
         try {
           await loadPrintPage(win);
-          await setPrintPageHtmlAndWaitForRendering({ win, html });
+          await setPrintPageHtmlAndWaitForRendering({ win, html, stylesheet });
 
           const pdfBuffer = await win.webContents.printToPDF({
             printBackground: true,

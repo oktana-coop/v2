@@ -51,6 +51,7 @@ import type {
 } from '../modules/infrastructure/wasm';
 import {
   type EditorAppearancePreferences,
+  type ExportTemplatePreferences,
   type ResolvedTheme,
   type UIAppearancePreferences,
 } from '../modules/personalization';
@@ -80,7 +81,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('context-menu:show', payload),
   onContextMenuAction: (callback) =>
     registerIpcListener<ContextMenuAction>('context-menu:action', callback),
-  printToPDF: (html: string) => ipcRenderer.invoke(PDF_IPC_CHANNEL, html),
+  printToPDF: (args: { html: string; stylesheet?: string }) =>
+    ipcRenderer.invoke(PDF_IPC_CHANNEL, args),
 } as ElectronAPI);
 
 contextBridge.exposeInMainWorld('config', {
@@ -104,6 +106,9 @@ contextBridge.exposeInMainWorld('personalizationAPI', {
   setEditorAppearance: (editorAppearance: EditorAppearancePreferences) =>
     ipcRenderer.invoke('set-editor-appearance', editorAppearance),
   getEditorAppearance: () => ipcRenderer.invoke('get-editor-appearance'),
+  setExportTemplates: (exportTemplates: ExportTemplatePreferences) =>
+    ipcRenderer.invoke('set-export-templates', exportTemplates),
+  getExportTemplates: () => ipcRenderer.invoke('get-export-templates'),
 } as PersonalizationAPI);
 
 contextBridge.exposeInMainWorld('authAPI', {

@@ -43,23 +43,102 @@
   font-weight: var(--font-editor-heading-weight, 700);
 }
 
+.editor h1:first-child,
+.editor h2:first-child,
+.editor h3:first-child,
+.editor h4:first-child,
+.editor h5:first-child,
+.editor h6:first-child {
+  margin-top: 0;
+}
+
 .editor h1 {
   font-size: calc(2.4rem * var(--font-editor-heading-scale, 1));
+  margin-top: 24pt;
+  margin-bottom: 12pt;
 }
 .editor h2 {
   font-size: calc(1.6rem * var(--font-editor-heading-scale, 1));
+  margin-top: 20pt;
+  margin-bottom: 10pt;
 }
 .editor h3 {
   font-size: calc(1.25rem * var(--font-editor-heading-scale, 1));
+  margin-top: 16pt;
+  margin-bottom: 8pt;
 }
 .editor h4 {
   font-size: calc(1.1rem * var(--font-editor-heading-scale, 1));
+  margin-top: 12pt;
+  margin-bottom: 6pt;
 }
 .editor h5 {
   font-size: calc(0.95rem * var(--font-editor-heading-scale, 1));
+  margin-top: 12pt;
+  margin-bottom: 6pt;
 }
 .editor h6 {
   font-size: calc(0.85rem * var(--font-editor-heading-scale, 1));
+  margin-top: 12pt;
+  margin-bottom: 6pt;
+}
+
+.match-export .editor a {
+  color: var(--editor-link-color);
+  text-decoration: var(--editor-link-decoration);
+}
+
+.match-export .editor code {
+  font-family: var(--editor-code-font);
+  font-size: var(--editor-code-size);
+  color: var(--editor-code-color);
+  background-color: var(--editor-code-bg);
+}
+
+.match-export .editor h1 {
+  margin-top: var(--editor-h1-space-before);
+  margin-bottom: var(--editor-h1-space-after);
+}
+.match-export .editor h2 {
+  margin-top: var(--editor-h2-space-before);
+  margin-bottom: var(--editor-h2-space-after);
+}
+.match-export .editor h3 {
+  margin-top: var(--editor-h3-space-before);
+  margin-bottom: var(--editor-h3-space-after);
+}
+.match-export .editor h4 {
+  margin-top: var(--editor-h4-space-before);
+  margin-bottom: var(--editor-h4-space-after);
+}
+.match-export .editor h5 {
+  margin-top: var(--editor-h5-space-before);
+  margin-bottom: var(--editor-h5-space-after);
+}
+.match-export .editor h6 {
+  margin-top: var(--editor-h6-space-before);
+  margin-bottom: var(--editor-h6-space-after);
+}
+
+.match-export .editor p {
+  margin-top: var(--editor-p-space-before);
+  margin-bottom: var(--editor-p-space-after);
+  text-indent: var(--editor-p-text-indent);
+}
+
+.match-export .editor ul {
+  margin-top: var(--editor-ul-space-before);
+  margin-bottom: var(--editor-ul-space-after);
+}
+
+.match-export .editor ol {
+  margin-top: var(--editor-ol-space-before);
+  margin-bottom: var(--editor-ol-space-after);
+}
+
+.match-export .editor blockquote {
+  margin-top: var(--editor-blockquote-space-before);
+  margin-bottom: var(--editor-blockquote-space-after);
 }
 
 .light .ProseMirror pre {

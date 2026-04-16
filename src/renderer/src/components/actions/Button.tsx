@@ -72,19 +72,9 @@ const styles = {
   },
   colors: {
     solid: {
-      'dark/zinc': [
+      neutral: [
         'text-white [--btn-bg:theme(colors.zinc.900)] [--btn-border:theme(colors.zinc.950/90%)] [--btn-hover-overlay:theme(colors.white/10%)]',
         'dark:text-white dark:[--btn-bg:theme(colors.zinc.600)] dark:[--btn-hover-overlay:theme(colors.white/5%)]',
-        '[--btn-icon:theme(colors.zinc.400)]',
-      ],
-      light: [
-        'text-zinc-950 [--btn-bg:white] [--btn-border:theme(colors.zinc.950/10%)] [--btn-hover-overlay:theme(colors.zinc.950/2.5%)] data-[active]:[--btn-border:theme(colors.zinc.950/15%)] data-[hover]:[--btn-border:theme(colors.zinc.950/15%)]',
-        'dark:text-white dark:[--btn-hover-overlay:theme(colors.white/5%)] dark:[--btn-bg:theme(colors.zinc.800)]',
-        '[--btn-icon:theme(colors.zinc.500)]',
-      ],
-      'dark/white': [
-        'text-white [--btn-bg:theme(colors.zinc.900)] [--btn-border:theme(colors.zinc.950/90%)] [--btn-hover-overlay:theme(colors.white/10%)]',
-        'dark:text-zinc-950 dark:[--btn-bg:white] dark:[--btn-hover-overlay:theme(colors.zinc.950/5%)]',
         '[--btn-icon:theme(colors.zinc.400)]',
       ],
       purple: [
@@ -97,19 +87,10 @@ const styles = {
       ],
     },
     outline: {
-      'dark/zinc': [
+      neutral: [
         'data-[active]:bg-zinc-950/[2.5%] data-[hover]:bg-zinc-950/[2.5%]',
         'dark:border-white/15 dark:text-white dark:[--btn-bg:transparent] dark:data-[active]:bg-white/5 dark:data-[hover]:bg-white/5',
         '[--btn-icon:theme(colors.zinc.500)]',
-      ],
-      // same with dark/zinc
-      light: [
-        'dark:border-white/15 dark:text-white dark:[--btn-bg:transparent] dark:data-[active]:bg-white/5 dark:data-[hover]:bg-white/5',
-        '[--btn-icon:theme(colors.zinc.500)]',
-      ],
-      'dark/white': [
-        'dark:border-white/15 dark:text-white dark:[--btn-bg:transparent] dark:data-[active]:bg-white/5 dark:data-[hover]:bg-white/5',
-        '[--btn-icon:white]',
       ],
       purple: [
         // Base
@@ -133,19 +114,12 @@ const styles = {
       ],
     },
     plain: {
-      'dark/zinc': [
+      neutral: [
         'text-black text-opacity-75 dark:text-white dark:data-[active]:bg-white/10 dark:data-[hover]:bg-white/10',
         '[--btn-icon:rgba(0,0,0,0.75)] dark:[--btn-icon:theme(colors.white)]',
       ],
-      // same with dark/zinc
-      light: [
-        'text-black text-opacity-75 dark:text-white dark:data-[active]:bg-white/10 dark:data-[hover]:bg-white/10',
-        '[--btn-icon:rgba(0,0,0,0.75)] dark:[--btn-icon:theme(colors.white)]',
-      ],
-      'dark/white': [
-        'text-black text-opacity-75 dark:text-white dark:data-[active]:bg-white/10 dark:data-[hover]:bg-white/10',
-        '[--btn-icon:rgba(0,0,0,0.75)] dark:[--btn-icon:theme(colors.white)]',
-      ],
+      // Inherits text color from parent — only makes sense for plain variant
+      inherit: ['text-current', '[--btn-icon:currentColor]'],
       purple: [
         'text-purple-500 text-opacity-100 dark:text-purple-300 dark:data-[active]:bg-purple-50 dark:data-[hover]:bg-purple-50',
         '[--btn-icon:theme(colors.purple.500)] dark:[--btn-icon:theme(colors.purple.300)]',
@@ -172,11 +146,14 @@ type ButtonProps = {
   size?: ButtonSize;
 } & {
   children: React.ReactNode;
-} & (HeadlessButtonProps | React.ComponentPropsWithoutRef<typeof Link>);
+} & (
+    | HeadlessButtonProps<React.ElementType>
+    | React.ComponentPropsWithoutRef<typeof Link>
+  );
 
 export const Button = React.forwardRef(function Button(
   {
-    color = 'dark/zinc',
+    color = 'neutral',
     variant = 'solid',
     size = 'md',
     className,
@@ -185,12 +162,16 @@ export const Button = React.forwardRef(function Button(
   }: ButtonProps,
   ref: React.ForwardedRef<HTMLElement>
 ) {
+  const isCustomElement = 'as' in props && props.as !== undefined;
   const classes = clsx(
     className,
     styles.base,
     styles.size[size],
     styles.variant[variant],
-    styles.colors[variant][color ?? 'dark/zinc']
+    styles.colors[variant][
+      color as keyof (typeof styles.colors)[typeof variant]
+    ] ?? styles.colors[variant]['neutral'],
+    isCustomElement && 'cursor-pointer'
   );
 
   // TODO: Use 'href' instead of 'to'
@@ -203,7 +184,12 @@ export const Button = React.forwardRef(function Button(
       <TouchTarget>{children}</TouchTarget>
     </Link>
   ) : (
-    <HeadlessButton {...props} className={classes} ref={ref}>
+    <HeadlessButton
+      role={isCustomElement ? 'button' : undefined}
+      {...props}
+      className={classes}
+      ref={ref}
+    >
       <TouchTarget>{children}</TouchTarget>
     </HeadlessButton>
   );

@@ -38,7 +38,7 @@ export const NoActiveDirectoryView = () => {
       <Button
         onClick={openCloneFromGithubModal}
         variant="solid"
-        color="dark/zinc"
+        color="neutral"
         className="w-64"
       >
         <GithubIcon className="mr-1" />

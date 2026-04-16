@@ -1,6 +1,9 @@
 import { ipcMain } from 'electron';
 
-import { type PdfEngine } from '../../modules/domain/rich-text';
+import {
+  type PdfEngine,
+  type PrintToPdfArgs,
+} from '../../modules/domain/rich-text';
 import {
   PDF_IPC_CHANNEL,
   runPromiseSerializingErrorsForIPC,
@@ -11,7 +14,7 @@ export const registerPdfIPCHandlers = ({
 }: {
   pdfEngine: PdfEngine;
 }) => {
-  ipcMain.handle(PDF_IPC_CHANNEL, async (_, html: string) =>
-    runPromiseSerializingErrorsForIPC(pdfEngine.printToPdf(html))
+  ipcMain.handle(PDF_IPC_CHANNEL, async (_, args: PrintToPdfArgs) =>
+    runPromiseSerializingErrorsForIPC(pdfEngine.printToPdf(args))
   );
 };

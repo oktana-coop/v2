@@ -8,11 +8,11 @@ export { initPrintPage } from './print-page-entry';
 import { type PdfEngine } from '../../../ports/pdf-engine';
 
 export const createPagedJsElectronRendererAdapter = (): PdfEngine => ({
-  printToPdf: (html) =>
+  printToPdf: ({ html, stylesheet }) =>
     effectifyIPCPromise(
       {
         [PdfExportErrorTag]: PdfExportError,
       } as ErrorRegistry<EffectErrorType<ReturnType<PdfEngine['printToPdf']>>>,
       PdfExportError
-    )(window.electronAPI.printToPDF(html)),
+    )(window.electronAPI.printToPDF({ html, stylesheet })),
 });

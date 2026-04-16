@@ -1,22 +1,23 @@
 // @ts-expect-error No types available in pagedjs
 import { Previewer } from 'pagedjs';
 
-import { getDefaultExportStylesheet } from './default-stylesheet';
-
 export const paginateHtml = async ({
   html,
+  stylesheet,
   container,
   document: doc,
 }: {
   html: string;
+  stylesheet?: string;
   container: HTMLElement;
   document: Document;
 }): Promise<void> => {
-  const css = getDefaultExportStylesheet();
-  const style = doc.createElement('style');
-  style.textContent = css;
-  doc.head.appendChild(style);
+  if (stylesheet) {
+    const style = doc.createElement('style');
+    style.textContent = stylesheet;
+    doc.head.appendChild(style);
+  }
 
   const previewer = new Previewer();
-  await previewer.preview(html, [], container);
+  await previewer.preview(html, undefined, container);
 };

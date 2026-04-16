@@ -17,6 +17,10 @@ import {
   defaultUIAppearance,
   type UIAppearancePreferences,
 } from '../modules/personalization/appearance/ui';
+import {
+  defaultExportTemplatePreferences,
+  type ExportTemplatePreferences,
+} from '../modules/personalization/export-templates';
 
 export type UserPreferencesStore = Store<UserPreferences>;
 
@@ -31,6 +35,7 @@ export type UserPreferences = {
     email: Email | null;
     githubUserInfo: GithubUserInfo | null;
   };
+  exports: ExportTemplatePreferences;
 };
 
 const defaultAppearance = {
@@ -69,6 +74,10 @@ const schema = {
             type: 'string',
             default: defaultAppearance.editor.bodyFontFamily,
           },
+          matchExportTemplate: {
+            type: 'boolean',
+            default: defaultAppearance.editor.matchExportTemplate,
+          },
         },
       },
       ui: {
@@ -80,6 +89,20 @@ const schema = {
             default: defaultAppearance.ui.fontFamily,
           },
         },
+      },
+    },
+  },
+  exports: {
+    type: 'object',
+    default: defaultExportTemplatePreferences,
+    properties: {
+      activeTemplateId: {
+        type: 'string',
+        default: defaultExportTemplatePreferences.activeTemplateId,
+      },
+      templates: {
+        type: 'array',
+        default: defaultExportTemplatePreferences.templates,
       },
     },
   },

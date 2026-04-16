@@ -5,7 +5,7 @@ import { type PdfEngine } from '../../../ports/pdf-engine';
 import { paginateHtml } from '../common/paginate-html';
 
 export const createPagedJsBrowserAdapter = (): PdfEngine => ({
-  printToPdf: (html) =>
+  printToPdf: ({ html, stylesheet }) =>
     Effect.tryPromise({
       try: async () => {
         const iframe = document.createElement('iframe');
@@ -30,6 +30,7 @@ export const createPagedJsBrowserAdapter = (): PdfEngine => ({
 
         await paginateHtml({
           html,
+          stylesheet,
           container: iframeDoc.body,
           document: iframeDoc,
         });

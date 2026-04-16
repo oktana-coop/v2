@@ -1,25 +1,18 @@
 import { clsx } from 'clsx';
-import { useEffect } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router';
+import { NavLink, Outlet } from 'react-router';
 
 import { SidebarLayoutProvider } from '../../app-state';
 import { GenericCommandPalette } from '../../components/dialogs/command-palette';
 import { OptionsIcon } from '../../components/icons';
 import { SidebarLayout } from '../../components/layout/SidebarLayout';
 import { SidebarHeading } from '../../components/sidebar/SidebarHeading';
-import { SettingsActionsBar } from './SettingsActionsBar';
 
 const tabs = [
   { name: 'General', path: 'general' },
   { name: 'Sync', path: 'sync' },
   { name: 'Appearance', path: 'appearance' },
+  { name: 'Exports', path: 'exports' },
 ] as const;
-
-const getTabName = (pathname: string): string => {
-  const lastSegment = pathname.split('/').pop() ?? '';
-  const tab = tabs.find((t) => t.path === lastSegment);
-  return tab?.name ?? '';
-};
 
 const SettingsSidebar = () => (
   <div className="py-4">
@@ -47,31 +40,13 @@ const SettingsSidebar = () => (
   </div>
 );
 
-const SettingsMain = () => {
-  const location = useLocation();
-  const tabName = getTabName(location.pathname);
-
-  useEffect(() => {
-    document.title = tabName ? `v2 | Settings / ${tabName}` : 'v2 | Settings';
-  }, [tabName]);
-
-  return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      <SettingsActionsBar tabName={tabName} />
-      <div className="flex-1 overflow-y-auto">
-        <div className="container mx-auto my-6 max-w-2xl px-4">
-          <Outlet />
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export const Settings = () => (
   <>
     <SidebarLayoutProvider>
       <SidebarLayout sidebar={<SettingsSidebar />}>
-        <SettingsMain />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <Outlet />
+        </div>
       </SidebarLayout>
     </SidebarLayoutProvider>
     <GenericCommandPalette />
