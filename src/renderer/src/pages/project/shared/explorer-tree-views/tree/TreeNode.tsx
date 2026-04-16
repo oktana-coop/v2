@@ -3,8 +3,15 @@ import { useContext, useEffect, useRef } from 'react';
 import { type NodeApi, type NodeRendererProps } from 'react-arborist';
 
 import { projectTypes } from '../../../../../../../modules/domain/project';
+import {
+  PRIMARY_RICH_TEXT_REPRESENTATION,
+  richTextRepresentationExtensions,
+} from '../../../../../../../modules/domain/rich-text';
 import { EXPLORER_TREE_NODE } from '../../../../../../../modules/infrastructure/cross-platform';
-import { filesystemItemTypes } from '../../../../../../../modules/infrastructure/filesystem';
+import {
+  filesystemItemTypes,
+  getExtension,
+} from '../../../../../../../modules/infrastructure/filesystem';
 import { CurrentProjectContext } from '../../../../../app-state';
 import { ChevronDownIcon, DiffIcon } from '../../../../../components/icons';
 import { FileExtensionIcon } from '../../../../../components/navigation';
@@ -258,6 +265,12 @@ const DirectoryNode = ({
   );
 };
 
+const openableExtension =
+  richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION];
+
+const isOpenableFile = (fileName: string) =>
+  getExtension(fileName) === openableExtension;
+
 const FileNode = ({
   node,
   style,
@@ -272,6 +285,8 @@ const FileNode = ({
   if (filePathToRename === node.data.id) {
     return <RenamingFileNode node={node} style={style} {...rest} />;
   }
+
+  const openable = isOpenableFile(node.data.name);
 
   const handleContextMenu = (ev: React.MouseEvent) => {
     ev.preventDefault();
@@ -288,12 +303,13 @@ const FileNode = ({
 
   return (
     <div
-      onClick={onClick}
+      onClick={openable ? onClick : undefined}
       onContextMenu={handleContextMenu}
-      className={nodeClasses(node)}
+      className={clsx(nodeClasses(node), !openable && 'opacity-50')}
       style={{
         ...style,
         paddingLeft: node.level * 24 + 40,
+        cursor: openable ? undefined : 'default',
       }}
     >
       <FileExtensionIcon fileName={node.data.name} />
