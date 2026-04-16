@@ -1,4 +1,5 @@
-import { useContext, useEffect, useRef, useState } from 'react';
+import debounce from 'debounce';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router';
 
 import { type ExportTemplate } from '../../../../../modules/personalization/export-templates';
@@ -92,12 +93,17 @@ export const TemplateEditor = () => {
     }
   }, [templateId]);
 
+  const updateTemplateWithDebounce = useMemo(
+    () => debounce(updateTemplate, 300),
+    [updateTemplate]
+  );
+
   useEffect(() => {
     if (localTemplate) {
-      updateTemplate(localTemplate);
       document.title = `v2 | ${localTemplate.name}`;
+      updateTemplateWithDebounce(localTemplate);
     }
-  }, [localTemplate]);
+  }, [localTemplate, updateTemplateWithDebounce]);
 
   if (!localTemplate) {
     return (

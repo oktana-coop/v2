@@ -1,7 +1,10 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import { ElectronContext } from '../../../infrastructure/cross-platform/browser';
-import { type ExportTemplate } from '../../export-templates';
+import {
+  defaultExportTemplate,
+  type ExportTemplate,
+} from '../../export-templates';
 import { ExportTemplatesContext } from '../../export-templates/context';
 import { bundledFonts, extractSystemFontFamilies } from '../font-families';
 import { type AvailableFonts } from '../ui/context';
@@ -106,35 +109,7 @@ const applyTemplateStyles = (template: ExportTemplate) => {
   }
 };
 
-const templateCssVarKeys = [
-  '--editor-link-color',
-  '--editor-link-decoration',
-  '--editor-code-font',
-  '--editor-code-size',
-  '--editor-code-color',
-  '--editor-code-bg',
-  '--editor-p-space-before',
-  '--editor-p-space-after',
-  '--editor-p-text-indent',
-  '--editor-ul-space-before',
-  '--editor-ul-space-after',
-  '--editor-ol-space-before',
-  '--editor-ol-space-after',
-  '--editor-blockquote-space-before',
-  '--editor-blockquote-space-after',
-  '--editor-h1-space-before',
-  '--editor-h1-space-after',
-  '--editor-h2-space-before',
-  '--editor-h2-space-after',
-  '--editor-h3-space-before',
-  '--editor-h3-space-after',
-  '--editor-h4-space-before',
-  '--editor-h4-space-after',
-  '--editor-h5-space-before',
-  '--editor-h5-space-after',
-  '--editor-h6-space-before',
-  '--editor-h6-space-after',
-];
+const templateCssVarKeys = Object.keys(templateCssVars(defaultExportTemplate));
 
 const removeTemplateStyles = () => {
   document.documentElement.classList.remove('match-export');
