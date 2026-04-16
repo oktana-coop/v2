@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 type Modifier = 'ctrl' | 'shift' | 'alt';
 type Letters =
@@ -26,88 +26,127 @@ export type KeyBindings = {
   [K in KeyBinding]?: () => void;
 };
 
-// On macOS, pressing Option (Alt) with a letter key enters a compose mode for accented
+// Resolve the logical letter for a physical key code (e.g. 'KeyP').
+// Bindings are defined by logical letter (e.g. ctrl+alt+p), and the layout map
+// translates physical keys to logical letters — so the user always presses the
+// key labeled "P" on their layout, regardless of where it sits physically.
+// Without a layout map, falls back to QWERTY (where code and letter coincide).
+export const logicalKey =
+  (layoutMap: KeyboardLayoutMap | null) =>
+  (code: string): string | null => {
+    const fromLayout = layoutMap?.get(code);
+    if (fromLayout?.length === 1) return fromLayout.toLowerCase();
+
+    // QWERTY fallback
+    return code.startsWith('Key') ? code.slice(3).toLowerCase() : null;
+  };
+
+// On macOS, pressing Alt/Option with a letter key enters a compose mode for accented
 // characters (e.g. Option+N starts a tilde for ñ). The browser reports event.key === 'Dead'
-// instead of the actual letter, so we fall back to the physical key via event.code (e.g. 'KeyN').
-// Note: event.code uses QWERTY positions, so this fallback assumes a QWERTY layout.
-export const normalizeKey = (
-  event: Pick<KeyboardEvent, 'key' | 'code'>
-): string =>
-  event.key === 'Dead' && event.code.startsWith('Key')
-    ? event.code
-        // strip 'Key' prefix: 'KeyN' → 'n'
-        .slice(3)
-        .toLowerCase()
-    : event.key.toLowerCase();
+// instead of the actual letter. We fall back to the physical key in that case.
+export const normalizeKey =
+  (layoutMap: KeyboardLayoutMap | null) =>
+  (event: Pick<KeyboardEvent, 'key' | 'code'>): string => {
+    if (event.key === 'Dead') {
+      return logicalKey(layoutMap)(event.code) ?? 'dead';
+    }
+    return event.key.toLowerCase();
+  };
 
 type KeyEvent = Pick<
   KeyboardEvent,
   'key' | 'code' | 'ctrlKey' | 'metaKey' | 'shiftKey' | 'altKey'
 >;
 
-export const matchBinding = (
-  keyBindings: KeyBindings,
-  event: KeyEvent
-): KeyBinding | null => {
-  const key = normalizeKey(event);
-  const meta = event.ctrlKey || event.metaKey;
+export const matchBinding =
+  (layoutMap: KeyboardLayoutMap | null) =>
+  ({
+    keyBindings,
+    event,
+  }: {
+    keyBindings: KeyBindings;
+    event: KeyEvent;
+  }): KeyBinding | null => {
+    const key = normalizeKey(layoutMap)(event);
+    const meta = event.ctrlKey || event.metaKey;
 
-  const singleKeyBindings = Object.keys(keyBindings).filter((b) => {
-    return !b.includes('+');
-  });
-  const metaKeyBindings = Object.keys(keyBindings).filter((b) => {
-    return (
-      b.startsWith('ctrl+') &&
-      !b.startsWith('ctrl+shift+') &&
-      !b.startsWith('ctrl+alt+')
-    );
-  });
-  const metaShiftKeyBindings = Object.keys(keyBindings).filter((b) => {
-    return b.startsWith('ctrl+shift+');
-  });
-  const metaAltKeyBindings = Object.keys(keyBindings).filter((b) => {
-    return b.startsWith('ctrl+alt+');
-  });
+    const singleKeyBindings = Object.keys(keyBindings).filter((b) => {
+      return !b.includes('+');
+    });
+    const metaKeyBindings = Object.keys(keyBindings).filter((b) => {
+      return (
+        b.startsWith('ctrl+') &&
+        !b.startsWith('ctrl+shift+') &&
+        !b.startsWith('ctrl+alt+')
+      );
+    });
+    const metaShiftKeyBindings = Object.keys(keyBindings).filter((b) => {
+      return b.startsWith('ctrl+shift+');
+    });
+    const metaAltKeyBindings = Object.keys(keyBindings).filter((b) => {
+      return b.startsWith('ctrl+alt+');
+    });
 
-  if (
-    meta &&
-    event.shiftKey &&
-    metaShiftKeyBindings
-      .map((b) => b.split('ctrl+shift+').slice(1)[0])
-      .includes(key)
-  ) {
-    return `ctrl+shift+${key}` as KeyBinding;
-  }
+    if (
+      meta &&
+      event.shiftKey &&
+      metaShiftKeyBindings
+        .map((b) => b.split('ctrl+shift+').slice(1)[0])
+        .includes(key)
+    ) {
+      return `ctrl+shift+${key}` as KeyBinding;
+    }
 
-  if (
-    meta &&
-    event.altKey &&
-    metaAltKeyBindings
-      .map((b) => b.split('ctrl+alt+').slice(1)[0])
-      .includes(key)
-  ) {
-    return `ctrl+alt+${key}` as KeyBinding;
-  }
+    // When Alt is held, event.key may be a special character (e.g. Option+P → π)
+    // rather than the intended letter. Use the physical key to match the binding.
+    const resolvedKey = logicalKey(layoutMap)(event.code) ?? key;
 
-  if (
-    meta &&
-    !event.shiftKey &&
-    metaKeyBindings.map((b) => b.split('ctrl+').slice(1)[0]).includes(key)
-  ) {
-    return `ctrl+${key}` as KeyBinding;
-  }
+    if (
+      meta &&
+      event.altKey &&
+      metaAltKeyBindings
+        .map((b) => b.split('ctrl+alt+').slice(1)[0])
+        .includes(resolvedKey)
+    ) {
+      return `ctrl+alt+${resolvedKey}` as KeyBinding;
+    }
 
-  if (singleKeyBindings.includes(key)) {
-    return key as KeyBinding;
-  }
+    if (
+      meta &&
+      !event.shiftKey &&
+      metaKeyBindings.map((b) => b.split('ctrl+').slice(1)[0]).includes(key)
+    ) {
+      return `ctrl+${key}` as KeyBinding;
+    }
 
-  return null;
-};
+    if (singleKeyBindings.includes(key)) {
+      return key as KeyBinding;
+    }
+
+    return null;
+  };
 
 export const useKeyBindings = (keyBindings: KeyBindings) => {
+  const [layoutMap, setLayoutMap] = useState<KeyboardLayoutMap | null>(null);
+
+  useEffect(() => {
+    const fetchLayoutMap = async () => {
+      const map = await navigator.keyboard?.getLayoutMap();
+      if (map) setLayoutMap(map);
+    };
+
+    fetchLayoutMap();
+  }, []);
+
+  const match = useCallback(
+    (args: { keyBindings: KeyBindings; event: KeyEvent }) =>
+      matchBinding(layoutMap)(args),
+    [layoutMap]
+  );
+
   useEffect(() => {
     const handleGenericKeyDown = (event: KeyboardEvent) => {
-      const binding = matchBinding(keyBindings, event);
+      const binding = match({ keyBindings, event });
       if (binding) {
         event.preventDefault();
         keyBindings[binding]?.();
@@ -118,5 +157,5 @@ export const useKeyBindings = (keyBindings: KeyBindings) => {
     return () => {
       window.removeEventListener('keydown', handleGenericKeyDown);
     };
-  }, [keyBindings]);
+  }, [keyBindings, match]);
 };

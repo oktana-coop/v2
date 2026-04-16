@@ -3,6 +3,7 @@ import { Outlet, useNavigate } from 'react-router';
 
 import { urlEncodeProjectId } from '../../../../../modules/domain/project';
 import { removePath } from '../../../../../modules/infrastructure/filesystem';
+import { urlEncodeArtifactId } from '../../../../../modules/infrastructure/version-control';
 import {
   BranchingCommandPaletteContext,
   CreateDocumentModalContext,
@@ -44,6 +45,7 @@ export const CurrentProject = () => {
 
 const Project = () => {
   const {
+    versionedDocumentId,
     onCloseCommitDialog,
     isCommitDialogOpen,
     isRestoreCommitDialogOpen,
@@ -103,6 +105,14 @@ const Project = () => {
     }
   };
 
+  const handleOpenPrintPreview = () => {
+    if (projectId && versionedDocumentId) {
+      navigate(
+        `/projects/${urlEncodeProjectId(projectId)}/documents/${urlEncodeArtifactId(versionedDocumentId)}/print-preview`
+      );
+    }
+  };
+
   return (
     <div className="flex h-full flex-auto flex-col">
       <div className="flex flex-auto overflow-y-auto">
@@ -145,6 +155,7 @@ const Project = () => {
           onCreateDocument={handleCreateDocument}
           onOpenDocument={handleOpenDocument}
           onOpenProjectSettings={handleOpenProjectSettings}
+          onOpenPrintPreview={handleOpenPrintPreview}
         />
         <CreateBranchDialog
           isOpen={isCreateBranchDialogOpen}
@@ -191,3 +202,4 @@ export {
   StructuralConflictResolution,
   CompareContentConflictResolution,
 } from './merge-conflict-resolution';
+export { PrintPreview } from './print-preview';

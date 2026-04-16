@@ -61,6 +61,10 @@ export const keyBindings: Record<
     command: 'Insert or edit link',
     keyBinding: 'ctrl+shift+l',
   },
+  ctrlAltP: {
+    command: 'Print Preview',
+    keyBinding: 'ctrl+alt+p',
+  },
   ctrlAltN: {
     command: 'Create a new folder',
     keyBinding: 'ctrl+alt+n',

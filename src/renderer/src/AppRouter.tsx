@@ -18,6 +18,7 @@ import {
   DocumentHistoricalView,
   DocumentSelection,
   HistoryNoProject,
+  PrintPreview,
   ProjectDocuments,
   ProjectHistory,
   ProjectHistoryDocumentView,
@@ -57,6 +58,7 @@ export const AppRouter = () => {
                     path="changes/:changeId"
                     element={<DocumentHistoricalView />}
                   />
+                  <Route path="print-preview" element={<PrintPreview />} />
                 </Route>
               </Route>
               <Route path="merge" element={<ProjectMergeConflictResolution />}>
