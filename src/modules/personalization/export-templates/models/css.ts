@@ -285,5 +285,7 @@ export const exportTemplateToCss = (template: ExportTemplate): string => {
   img { max-width: 100%; break-inside: avoid; }
 
   ${horizontalRuleCss(styles.horizontalRule)}
+
+  section.footnotes > hr { display: none; }
 `;
 };

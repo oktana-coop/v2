@@ -182,5 +182,7 @@ exports[`defaultExportTemplate > produces expected default CSS 1`] = `
     margin-top: 12pt;
     margin-bottom: 12pt;
   }
+
+  section.footnotes > hr { display: none; }
 "
 `;
