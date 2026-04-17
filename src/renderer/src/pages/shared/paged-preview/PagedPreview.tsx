@@ -31,7 +31,7 @@ const getPreviewUrl = (): string => {
   const devServerUrl = import.meta.env.VITE_DEV_SERVER_URL as
     | string
     | undefined;
-  return devServerUrl ? `${devServerUrl}/preview.html` : '/preview.html';
+  return devServerUrl ? `${devServerUrl}/preview.html` : './preview.html';
 };
 
 const loadIframe = (iframe: HTMLIFrameElement): Promise<void> =>
