@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { matchBinding, normalizeKey, logicalKey } from './use-key-bindings';
+import { logicalKey, matchBinding, normalizeKey } from './use-key-bindings';
 
 const event = (
   overrides: Partial<{
@@ -171,6 +171,36 @@ describe('matchBinding', () => {
         event: event({ ctrlKey: true, shiftKey: true }),
       })
     ).toBeNull();
+  });
+
+  it('falls through to ctrl+alt when ctrl+shift is not registered', () => {
+    const noShiftBinding = { 'ctrl+alt+n': () => {}, 'ctrl+n': () => {} };
+    expect(
+      match({
+        keyBindings: noShiftBinding,
+        event: event({ ctrlKey: true, shiftKey: true }),
+      })
+    ).toBeNull();
+  });
+
+  it('falls through to ctrl when ctrl+alt is not registered', () => {
+    const noAltBinding = { 'ctrl+n': () => {} };
+    expect(
+      match({
+        keyBindings: noAltBinding,
+        event: event({ ctrlKey: true, altKey: true }),
+      })
+    ).toBe('ctrl+n');
+  });
+
+  it('falls through to single key when no modifier binding is registered', () => {
+    const singleOnly = { n: () => {} };
+    expect(
+      match({
+        keyBindings: singleOnly,
+        event: event({ ctrlKey: false }),
+      })
+    ).toBe('n');
   });
 
   it('handles dead key with ctrl+alt', () => {

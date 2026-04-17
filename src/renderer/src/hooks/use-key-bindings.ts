@@ -58,6 +58,31 @@ type KeyEvent = Pick<
   'key' | 'code' | 'ctrlKey' | 'metaKey' | 'shiftKey' | 'altKey'
 >;
 
+// Candidate key bindings in priority order: most-specific modifier combo first.
+// When Alt is held, event.key may be a special character (e.g. Option+P → π)
+// rather than the intended letter. Use the logical key to resolve it.
+const candidateBindings = ({
+  layoutMap,
+  event,
+}: {
+  layoutMap: KeyboardLayoutMap | null;
+  event: KeyEvent;
+}) => {
+  const key = normalizeKey(layoutMap)(event);
+  const meta = event.ctrlKey || event.metaKey;
+  const resolvedKey = logicalKey(layoutMap)(event.code) ?? key;
+
+  return [
+    meta && event.shiftKey ? (`ctrl+shift+${key}` as KeyBinding) : null,
+    meta && event.altKey ? (`ctrl+alt+${resolvedKey}` as KeyBinding) : null,
+    meta && !event.shiftKey ? (`ctrl+${key}` as KeyBinding) : null,
+    key as KeyBinding,
+  ].filter(
+    (potentialCandidate): potentialCandidate is KeyBinding =>
+      potentialCandidate !== null
+  );
+};
+
 export const matchBinding =
   (layoutMap: KeyboardLayoutMap | null) =>
   ({
@@ -66,65 +91,10 @@ export const matchBinding =
   }: {
     keyBindings: KeyBindings;
     event: KeyEvent;
-  }): KeyBinding | null => {
-    const key = normalizeKey(layoutMap)(event);
-    const meta = event.ctrlKey || event.metaKey;
-
-    const singleKeyBindings = Object.keys(keyBindings).filter((b) => {
-      return !b.includes('+');
-    });
-    const metaKeyBindings = Object.keys(keyBindings).filter((b) => {
-      return (
-        b.startsWith('ctrl+') &&
-        !b.startsWith('ctrl+shift+') &&
-        !b.startsWith('ctrl+alt+')
-      );
-    });
-    const metaShiftKeyBindings = Object.keys(keyBindings).filter((b) => {
-      return b.startsWith('ctrl+shift+');
-    });
-    const metaAltKeyBindings = Object.keys(keyBindings).filter((b) => {
-      return b.startsWith('ctrl+alt+');
-    });
-
-    if (
-      meta &&
-      event.shiftKey &&
-      metaShiftKeyBindings
-        .map((b) => b.split('ctrl+shift+').slice(1)[0])
-        .includes(key)
-    ) {
-      return `ctrl+shift+${key}` as KeyBinding;
-    }
-
-    // When Alt is held, event.key may be a special character (e.g. Option+P → π)
-    // rather than the intended letter. Use the physical key to match the binding.
-    const resolvedKey = logicalKey(layoutMap)(event.code) ?? key;
-
-    if (
-      meta &&
-      event.altKey &&
-      metaAltKeyBindings
-        .map((b) => b.split('ctrl+alt+').slice(1)[0])
-        .includes(resolvedKey)
-    ) {
-      return `ctrl+alt+${resolvedKey}` as KeyBinding;
-    }
-
-    if (
-      meta &&
-      !event.shiftKey &&
-      metaKeyBindings.map((b) => b.split('ctrl+').slice(1)[0]).includes(key)
-    ) {
-      return `ctrl+${key}` as KeyBinding;
-    }
-
-    if (singleKeyBindings.includes(key)) {
-      return key as KeyBinding;
-    }
-
-    return null;
-  };
+  }): KeyBinding | null =>
+    candidateBindings({ layoutMap, event }).find(
+      (candidate) => candidate in keyBindings
+    ) ?? null;
 
 export const useKeyBindings = (keyBindings: KeyBindings) => {
   const [layoutMap, setLayoutMap] = useState<KeyboardLayoutMap | null>(null);
