@@ -103,6 +103,12 @@
           ]
         }
       ],
+      "azureSignOptions": {
+        "publisherName": "Oktana Lab IKE",
+        "endpoint": "${env.AZURE_ENDPOINT}",
+        "codeSigningAccountName": "${env.AZURE_CODE_SIGNING_NAME}",
+        "certificateProfileName": "${env.AZURE_CERT_PROFILE_NAME}"
+      },
       "fileAssociations": [
         {
           "ext": "v2",
