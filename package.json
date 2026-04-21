@@ -105,9 +105,9 @@
       ],
       "azureSignOptions": {
         "publisherName": "Oktana Lab IKE",
-        "endpoint": "${env.AZURE_ENDPOINT}",
-        "codeSigningAccountName": "${env.AZURE_CODE_SIGNING_NAME}",
-        "certificateProfileName": "${env.AZURE_CERT_PROFILE_NAME}"
+        "endpoint": "https://weu.codesigning.azure.net/",
+        "codeSigningAccountName": "default-artifact-signing",
+        "certificateProfileName": "v2-public-trust"
       },
       "fileAssociations": [
         {
