@@ -58,6 +58,7 @@
     ],
     "mac": {
       "icon": "public/macos-dock-icon.png",
+      "x64ArchFiles": "Contents/Resources/app.asar.unpacked/**/*.node",
       "fileAssociations": [
         {
           "ext": "v2",
