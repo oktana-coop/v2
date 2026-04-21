@@ -10,6 +10,12 @@ Semantic version, in a nutshell, is the `vMAJOR.MINOR.PATCH` (f.e. `v0.1.1`) fou
 
 Additionally, pre-release tags indicate alpha or beta software versions (as `v0.2.0-alpha` or `v5.9-beta.3`.)
 
+## Release Configuration
+
+Build and packaging settings for [electron-builder](https://www.electron.build/) live in [`electron-builder.yml`](../electron-builder.yml) at the repo root. This covers per-OS targets and architectures, file associations, icons, code-signing hooks (macOS entitlements, Azure Trusted Signing for Windows), and the GitHub publish provider used to upload release artifacts.
+
+Credentials for signing and publishing are **not** in this file — they're injected as environment variables from GitHub Actions secrets (see [Publishing the Release](#publishing-the-release) below).
+
 ## Release Workflow (GitHub CI)
 
 There is a release workflow available in GitHub CI, which:
