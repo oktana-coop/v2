@@ -9,7 +9,7 @@ jobs:
     env:
       OKTANA_NPM_TOKEN: ${{ secrets.OKTANA_NPM_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Quality assuring submitted code

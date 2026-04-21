@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.release.tag_name }}
 
@@ -25,14 +25,14 @@ jobs:
           commit_username: ${{ secrets.AUR_USERNAME }}
           commit_email: ${{ secrets.AUR_EMAIL }}
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          commit_message: "Update to ${{ github.event.release.tag_name }}"
+          commit_message: 'Update to ${{ github.event.release.tag_name }}'
           updpkgsums: false
 
   publish-ubuntu:
     runs-on: ubuntu-latest
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.release.tag_name }}
 
@@ -54,7 +54,7 @@ jobs:
           ./scripts/ubuntu/generate-apt-repo.sh ${{ github.event.release.tag_name }}
 
       - name: Clone v2-deb repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: oktana-coop/v2-deb
           token: ${{ secrets.GH_PAT }}

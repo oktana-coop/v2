@@ -4,7 +4,7 @@ runs:
   using: composite
   steps:
     - name: Install pnpm
-      uses: pnpm/action-setup@v4
+      uses: pnpm/action-setup@v5
     - name: Configure Node 20 with pnpm & caching setup
       uses: actions/setup-node@v4
       with:
