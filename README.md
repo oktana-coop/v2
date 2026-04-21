@@ -158,13 +158,36 @@ By default, the release worfklow performs a **patch** update from the previous v
 
 After the draft release is created, you can review and edit the release notes, then publish the release on GitHub.
 
-**macOS**
+##### macOS
 
 Code signing and notarization are performed during the build process. No separate publish step is required.
 
-Required secrets: `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_TEAM_ID`, `APPLE_APP_SPECIFIC_PASSWORD`
+Required secrets:
 
-**Arch Linux**
+- `CSC_LINK` — Base64-encoded Developer ID Application `.p12` certificate. Used by electron-builder to sign the `.app` and `.dmg`. Export from Keychain Access on a Mac enrolled in the Apple Developer Program, then `base64 -i cert.p12 | pbcopy`.
+- `CSC_KEY_PASSWORD` — Password set when exporting the `.p12` above.
+- `APPLE_ID` — Apple ID email of the Apple Developer Program account. Used for notarization (sending the signed `.app` to Apple for malware scanning).
+- `APPLE_TEAM_ID` — 10-character Team ID from https://developer.apple.com/account (membership page). Required because an Apple ID can belong to multiple teams.
+- `APPLE_APP_SPECIFIC_PASSWORD` — App-specific password (not the Apple ID's real password) generated at https://appleid.apple.com → Sign-In and Security → App-Specific Passwords. Used by the notarization tool to authenticate non-interactively.
+
+Rotation: certificates expire yearly, app-specific passwords don't expire but should be rotated if leaked. When rotating, regenerate `CSC_LINK` from the new `.p12` and update `CSC_KEY_PASSWORD` to match.
+
+##### Windows
+
+Note: Setting up code signing for Windows and GitHub CI was implemented based on [this guide](https://melatonin.dev/blog/code-signing-on-windows-with-azure-trusted-signing/).
+
+Code signing is performed during the build process via [Azure Artifact Signing](https://learn.microsoft.com/en-us/azure/artifact-signing/) (Microsoft's cloud code-signing service, replacement for EV certificates). This gives signed `.exe` installers instant Microsoft SmartScreen reputation — no blue "Windows protected your PC" warning on download. No separate publish step is required.
+
+Required secrets:
+
+- `AZURE_TENANT_ID` — Microsoft Entra (Azure AD) tenant ID. Find it in the Azure portal on the App Registration's Overview page, labeled "Directory (tenant) ID". Shared across every Azure resource in the account.
+- `AZURE_CLIENT_ID` — App Registration's "Application (client) ID" from the same Overview page. Identifies _which_ service principal is authenticating.
+- `AZURE_CLIENT_SECRET` — Client secret generated under the App Registration's "Certificates & secrets" page.
+- `AZURE_ENDPOINT` — Regional signing endpoint URL, e.g. `https://weu.codesigning.azure.net/` for West Europe. Labeled "Account URI" on the Trusted Signing Account's Overview page in Azure.
+- `AZURE_CODE_SIGNING_NAME` — Name of the Trusted Signing Account itself (not the App Registration).
+- `AZURE_CERT_PROFILE_NAME` — Name of the Certificate Profile created inside the Trusted Signing Account. The profile binds to the validated business identity and determines the CN on issued certs.
+
+##### Arch Linux
 
 When a release is published, a separate `Publish Packages` workflow automatically triggers and publishes to AUR (Arch User Repository):
 
@@ -174,7 +197,7 @@ When a release is published, a separate `Publish Packages` workflow automaticall
 
 Required secrets: `AUR_USERNAME`, `AUR_EMAIL`, `AUR_SSH_PRIVATE_KEY`
 
-**Ubuntu/Debian**
+##### Ubuntu/Debian
 
 When a release is published, the `Publish Packages` workflow also publishes to a custom APT repository:
 
