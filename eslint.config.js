@@ -19,7 +19,13 @@ const compat = new FlatCompat({
 
 export default [
   {
-    ignores: ['**/dist/**', '**/.eslintrc.cjs', 'e2e-results/**'],
+    ignores: [
+      '**/dist/**',
+      '**/.eslintrc.cjs',
+      'e2e-results/**',
+      'storybook-static/**',
+      'automerge-repo-data/**',
+    ],
   },
   ...fixupConfigRules(
     compat.extends(
