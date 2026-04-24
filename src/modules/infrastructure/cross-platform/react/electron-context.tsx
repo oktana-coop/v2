@@ -12,6 +12,7 @@ type ElectronContextType = {
   isElectron: boolean;
   openExternalLink: (url: string) => void;
   updateState: UpdateState | null;
+  userInitiatedUpdateCheck: boolean;
   checkForUpdate: () => void;
   downloadUpdate: () => void;
   dismissUpdateNotification: () => void;
@@ -27,6 +28,7 @@ export const ElectronContext = createContext<ElectronContextType>({
   isElectron: isElectron(),
   openExternalLink: () => {},
   updateState: null,
+  userInitiatedUpdateCheck: false,
   checkForUpdate: () => {},
   downloadUpdate: () => {},
   dismissUpdateNotification: () => {},
@@ -42,6 +44,8 @@ export const ElectronProvider = ({
 }) => {
   const [processId, setProcessId] = useState<string | null>(null);
   const [updateState, setUpdateState] = useState<UpdateState | null>(null);
+  const [userInitiatedUpdateCheck, setUserInitiatedUpdateCheck] =
+    useState(false);
   const config: RendererConfig = isElectron()
     ? window.config
     : browserBuildConfig;
@@ -60,6 +64,18 @@ export const ElectronProvider = ({
       window.electronAPI?.onUpdateStateChange((updateState) => {
         setUpdateState(updateState);
       });
+
+    const checkForUpdateOnStartup = async () => {
+      try {
+        await window.electronAPI.checkForUpdate();
+      } catch (error) {
+        console.error('Startup update check failed:', error);
+      }
+    };
+
+    if (isElectron() && !window.electronAPI.isLinux) {
+      checkForUpdateOnStartup();
+    }
 
     return () => {
       unsubscribeFromUpdateStateChange?.();
@@ -82,6 +98,7 @@ export const ElectronProvider = ({
 
   const handleCheckForUpdate = () => {
     if (isElectron()) {
+      setUserInitiatedUpdateCheck(true);
       window.electronAPI.checkForUpdate();
     }
   };
@@ -105,6 +122,7 @@ export const ElectronProvider = ({
         isElectron: isElectron(),
         openExternalLink: handleOpenExternalLink,
         updateState,
+        userInitiatedUpdateCheck,
         checkForUpdate: handleCheckForUpdate,
         downloadUpdate: handleDownloadUpdate,
         dismissUpdateNotification: handleDismissUpdateNotification,

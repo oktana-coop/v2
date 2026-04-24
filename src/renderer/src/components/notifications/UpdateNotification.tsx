@@ -9,6 +9,7 @@ import { SimpleNotification } from './SimpleNotification';
 export const UpdateNotification = () => {
   const {
     updateState,
+    userInitiatedUpdateCheck,
     dismissUpdateNotification,
     downloadUpdate,
     restartToInstallUpdate,
@@ -16,6 +17,10 @@ export const UpdateNotification = () => {
 
   switch (updateState?.status) {
     case 'update-not-available':
+      if (!userInitiatedUpdateCheck) {
+        return null;
+      }
+
       return (
         <SimpleNotification
           show={true}
@@ -66,6 +71,10 @@ export const UpdateNotification = () => {
         />
       );
     case 'update-error':
+      if (!userInitiatedUpdateCheck) {
+        return null;
+      }
+
       return (
         <SimpleNotification
           show={true}
