@@ -1,5 +1,4 @@
-export const allowedPermissionsSet = new Set<string>([
+export const allowedPermissions = [
   'local-fonts',
-  'clipboard-read',
   'clipboard-sanitized-write',
-]);
+] as const;

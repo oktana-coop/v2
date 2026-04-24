@@ -18,7 +18,7 @@ import os from 'os';
 import { createElectronMainEncryptedStoreAdapter } from '../modules/auth/node';
 import { PROJECT_FILE_EXTENSION } from '../modules/domain/project';
 import { createPagedJsElectronNodeAdapter } from '../modules/domain/rich-text/node';
-import { allowedPermissionsSet } from '../modules/infrastructure/cross-platform';
+import { allowedPermissions } from '../modules/infrastructure/cross-platform';
 import {
   isMac,
   runPromiseSerializingErrorsForIPC,
@@ -334,6 +334,7 @@ app.whenReady().then(() => {
   const appMenu = buildAppMenu();
   Menu.setApplicationMenu(appMenu);
 
+  const allowedPermissionsSet = new Set<string>(allowedPermissions);
   session.defaultSession.setPermissionRequestHandler(
     (_, permission, callback) => {
       callback(allowedPermissionsSet.has(permission as string));
