@@ -28,13 +28,13 @@ function makeDirent(
   name: string,
   isFile: boolean,
   parentPath: string
-): Dirent<Buffer> {
+): Dirent<Buffer<ArrayBuffer>> {
   return {
     name,
     parentPath,
     isFile: () => isFile,
     isDirectory: () => !isFile,
-  } as unknown as Dirent<Buffer>;
+  } as unknown as Dirent<Buffer<ArrayBuffer>>;
 }
 
 describe('electron-node-api filesystem adapter', () => {

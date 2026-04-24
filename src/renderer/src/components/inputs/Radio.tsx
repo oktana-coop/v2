@@ -8,9 +8,12 @@ import {
 } from '@headlessui/react';
 import { clsx } from 'clsx';
 
-export function RadioGroup({ className, ...props }: HeadlessRadioGroupProps) {
+export function RadioGroup<TType>({
+  className,
+  ...props
+}: HeadlessRadioGroupProps<'div', TType>) {
   return (
-    <HeadlessRadioGroup
+    <HeadlessRadioGroup<'div', TType>
       data-slot="control"
       {...props}
       className={clsx(

@@ -90,7 +90,9 @@ export const DocumentHistoryActionsBar = ({
             <div className="max-w-64">
               <Listbox
                 name="diff commits"
-                value={diffCommitId ? urlEncodeChangeId(diffCommitId) : null}
+                value={
+                  diffCommitId ? urlEncodeChangeId(diffCommitId) : undefined
+                }
                 onChange={handleDiffCommitSelect}
                 disabled={!showDiff}
               >

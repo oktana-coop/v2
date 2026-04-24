@@ -648,7 +648,7 @@ export const createAdapter = (): Filesystem => {
             const writable = await fileHandle.createWritable();
 
             // Write initial content to the file
-            await writable.write(content);
+            await writable.write(content as FileSystemWriteChunkType);
             await writable.close();
           },
           catch: mapErrorTo(RepositoryError, 'Browser filesystem API error'),
