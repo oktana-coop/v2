@@ -141,7 +141,7 @@ jobs:
       # OS-specific uploads
       - name: Upload macOS artifacts
         if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: macos-build-${{ needs.versioning.outputs.new_tag }}
           path: |
@@ -151,7 +151,7 @@ jobs:
 
       - name: Upload Windows artifacts
         if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-build-${{ needs.versioning.outputs.new_tag }}
           path: |
@@ -161,7 +161,7 @@ jobs:
 
       - name: Upload Linux artifacts
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-build-${{ needs.versioning.outputs.new_tag }}
           path: |
@@ -188,7 +188,7 @@ jobs:
         with:
           ref: ${{ needs.versioning.outputs.new_tag }}
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: ./artifacts
       - name: Organize artifacts by OS

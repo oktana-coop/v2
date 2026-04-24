@@ -55,7 +55,7 @@ jobs:
         run: pnpm exec playwright test
       - name: Upload E2E results
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-results-${{ matrix.os }}
           path: e2e-results/
