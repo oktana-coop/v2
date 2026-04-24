@@ -13,6 +13,9 @@
   "type": "module",
   "main": "./dist/main/index.js",
   "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "app:dir": "electron-builder --dir --publish=never",
     "package": "electron-builder --publish=never",

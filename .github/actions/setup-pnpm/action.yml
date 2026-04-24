@@ -5,8 +5,8 @@ runs:
   steps:
     - name: Install pnpm
       uses: pnpm/action-setup@v5
-    - name: Configure Node 20 with pnpm & caching setup
-      uses: actions/setup-node@v4
+    - name: Setup Node.js with pnpm caching
+      uses: actions/setup-node@v5
       with:
-        node-version: 20
+        node-version-file: '.nvmrc'
         cache: 'pnpm'
