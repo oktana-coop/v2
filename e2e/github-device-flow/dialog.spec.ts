@@ -1,12 +1,12 @@
-import { expect, test } from './shared/fixtures';
+import { expect, test } from '../shared/fixtures';
+import { clickSettingsTab, navigateToSettings } from '../shared/helpers';
 import {
   getOpenedExternalLinks,
   type GithubDeviceFlowMock,
   installGithubDeviceFlowMock,
   readMainClipboard,
   uninstallGithubDeviceFlowMock,
-} from './shared/github-device-flow-mock';
-import { clickSettingsTab, navigateToSettings } from './shared/helpers';
+} from './mock';
 
 const userCode = 'WDJB-MJHT';
 const verificationUri = 'https://example.com/device';
