@@ -4,6 +4,7 @@ import {
   type GithubDeviceFlowMock,
   installGithubDeviceFlowMock,
   readMainClipboard,
+  uninstallGithubDeviceFlowMock,
 } from './shared/github-device-flow-mock';
 import { clickSettingsTab, navigateToSettings } from './shared/helpers';
 
@@ -20,6 +21,10 @@ test.describe('GitHub device flow dialog', () => {
     });
     // Clear the clipboard so post-click assertions start from a known state.
     await electronApp.evaluate(({ clipboard }) => clipboard.writeText(''));
+  });
+
+  test.afterEach(async () => {
+    await uninstallGithubDeviceFlowMock(mock);
   });
 
   test('copy writes user code to clipboard and Open GitHub triggers external link', async ({

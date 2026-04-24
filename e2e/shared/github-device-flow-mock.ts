@@ -5,7 +5,10 @@ export type DeviceCodeStub = {
   verificationUri: string;
 };
 
-export type GithubDeviceFlowMock = JSHandle<{ openedLinks: string[] }>;
+export type GithubDeviceFlowMock = JSHandle<{
+  openedLinks: string[];
+  uninstall: () => void;
+}>;
 
 /**
  * Stubs main-process GitHub device-flow fetches and captures
@@ -31,6 +34,7 @@ export const installGithubDeviceFlowMock = async (
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
 
+      const originalListeners = ipcMain.listeners('open-external-link');
       const openedLinks: string[] = [];
       ipcMain.removeAllListeners('open-external-link');
       ipcMain.on('open-external-link', (_event, url: string) => {
@@ -64,7 +68,18 @@ export const installGithubDeviceFlowMock = async (
             });
       }) as typeof fetch;
 
-      return { openedLinks };
+      const uninstall = () => {
+        globalThis.fetch = realFetch;
+        ipcMain.removeAllListeners('open-external-link');
+        for (const listener of originalListeners) {
+          ipcMain.on(
+            'open-external-link',
+            listener as (...args: unknown[]) => void
+          );
+        }
+      };
+
+      return { openedLinks, uninstall };
     },
     { userCode, verificationUri }
   );
@@ -72,6 +87,10 @@ export const installGithubDeviceFlowMock = async (
 export const getOpenedExternalLinks = async (
   mock: GithubDeviceFlowMock
 ): Promise<string[]> => mock.evaluate((state) => state.openedLinks);
+
+export const uninstallGithubDeviceFlowMock = async (
+  mock: GithubDeviceFlowMock
+): Promise<void> => mock.evaluate((state) => state.uninstall());
 
 /**
  * Reads the OS clipboard via main-process Electron APIs, bypassing Chromium
