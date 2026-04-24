@@ -16,7 +16,7 @@ const isValidGitRef = (ref: string): boolean =>
 export const gitBlobRefSchema = z
   .string()
   .refine(
-    (val): val is GitBlobRef => {
+    (val) => {
       // Must start with /blob/
       if (!val.startsWith('/blob/')) return false;
 

@@ -27,14 +27,9 @@ export const isValidBranchOrTagName = (ref: string): boolean => {
 
 const branchSchema = z
   .string()
-  .refine(
-    (val): val is Branch => {
-      return isValidBranchOrTagName(val);
-    },
-    {
-      message: 'Invalid branch name',
-    }
-  )
+  .refine((val) => isValidBranchOrTagName(val), {
+    message: 'Invalid branch name',
+  })
   .brand<'Branch'>();
 
 export type Branch = z.infer<typeof branchSchema>;
