@@ -18,6 +18,7 @@ import {
   FormatItalicIcon,
   FormatQuoteIcon,
   FormatTextIcon,
+  HorizontalRuleIcon,
   ImageIcon,
   LinkIcon,
   OrderedListIcon,
@@ -81,6 +82,8 @@ export const EditorToolbar = ({
   onLinkToggle,
   onCodeToggle,
   onNoteClick,
+  onHorizontalRuleClick,
+  horizontalRuleEnabled,
 }: {
   leafBlockType: LeafBlockType;
   containerBlockType: ContainerBlockType | null;
@@ -94,6 +97,8 @@ export const EditorToolbar = ({
   onLinkToggle: () => void;
   onCodeToggle: () => void;
   onNoteClick: () => void;
+  onHorizontalRuleClick: () => void;
+  horizontalRuleEnabled: boolean;
 }) => {
   const handleContainerBlockSelect = (type: ContainerBlockType) => () => {
     onBlockSelect(type);
@@ -168,6 +173,12 @@ export const EditorToolbar = ({
           icon={<NoteIcon />}
           onClick={onNoteClick}
           tooltip="Footnote"
+        />
+        <IconButton
+          icon={<HorizontalRuleIcon />}
+          onClick={onHorizontalRuleClick}
+          disabled={!horizontalRuleEnabled}
+          tooltip="Horizontal Rule"
         />
       </div>
     </div>

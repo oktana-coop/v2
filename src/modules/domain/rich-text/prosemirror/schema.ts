@@ -5,6 +5,7 @@ import {
   bulletList as bulletListClasses,
   codeBlock as codeBlockClasses,
   heading as headingClasses,
+  horizontalRule as horizontalRuleClasses,
   noteContent as noteContentClasses,
   orderedList as orderedListClasses,
   paragraph as paragraphClasses,
@@ -23,7 +24,7 @@ const blockquoteDOM: DOMOutputSpec = [
   { class: blockquoteClasses },
   0,
 ];
-const hrDOM: DOMOutputSpec = ['hr'];
+const hrDOM: DOMOutputSpec = ['hr', { class: horizontalRuleClasses }];
 
 // marks
 const emDOM: DOMOutputSpec = ['em', 0];

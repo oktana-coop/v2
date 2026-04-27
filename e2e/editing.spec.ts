@@ -4,6 +4,7 @@ import { expect, test } from './shared/fixtures';
 import {
   clearEditor,
   clickToolbarButton,
+  focusAndTypeInEditor,
   getEditorHTML,
   modKey,
   openEditorToolbar,
@@ -51,11 +52,11 @@ test.describe('typing', () => {
     await setupEditor({ electronApp, window, testProjectDir });
     await clearEditor({ window });
 
-    await typeInEditor({ window, text: 'First paragraph' });
+    await focusAndTypeInEditor({ window, text: 'First paragraph' });
     await window.keyboard.press('Enter');
-    await typeInEditor({ window, text: 'Second paragraph' });
+    await focusAndTypeInEditor({ window, text: 'Second paragraph' });
     await window.keyboard.press('Enter');
-    await typeInEditor({ window, text: 'Third paragraph' });
+    await focusAndTypeInEditor({ window, text: 'Third paragraph' });
 
     const paragraphs = window.locator('.ProseMirror p');
     await expect(paragraphs).toHaveCount(3);
@@ -71,7 +72,7 @@ test.describe('markdown input rules', () => {
     await setupEditor({ electronApp, window, testProjectDir });
     await clearEditor({ window });
 
-    await typeInEditor({ window, text: '# Heading One' });
+    await focusAndTypeInEditor({ window, text: '# Heading One' });
 
     await expect(window.locator('.ProseMirror h1')).toContainText(
       'Heading One'
@@ -86,7 +87,7 @@ test.describe('markdown input rules', () => {
     await setupEditor({ electronApp, window, testProjectDir });
     await clearEditor({ window });
 
-    await typeInEditor({ window, text: '## Heading Two' });
+    await focusAndTypeInEditor({ window, text: '## Heading Two' });
 
     await expect(window.locator('.ProseMirror h2')).toContainText(
       'Heading Two'
@@ -101,7 +102,7 @@ test.describe('markdown input rules', () => {
     await setupEditor({ electronApp, window, testProjectDir });
     await clearEditor({ window });
 
-    await typeInEditor({ window, text: '### Heading Three' });
+    await focusAndTypeInEditor({ window, text: '### Heading Three' });
 
     await expect(window.locator('.ProseMirror h3')).toContainText(
       'Heading Three'
@@ -116,7 +117,7 @@ test.describe('markdown input rules', () => {
     await setupEditor({ electronApp, window, testProjectDir });
     await clearEditor({ window });
 
-    await typeInEditor({ window, text: '> Quoted text' });
+    await focusAndTypeInEditor({ window, text: '> Quoted text' });
 
     await expect(window.locator('.ProseMirror blockquote')).toContainText(
       'Quoted text'
@@ -131,7 +132,7 @@ test.describe('markdown input rules', () => {
     await setupEditor({ electronApp, window, testProjectDir });
     await clearEditor({ window });
 
-    await typeInEditor({ window, text: '```' });
+    await focusAndTypeInEditor({ window, text: '```' });
     await window.keyboard.press('Enter');
 
     await expect(window.locator('.ProseMirror pre')).toBeVisible();
@@ -145,7 +146,7 @@ test.describe('markdown input rules', () => {
     await setupEditor({ electronApp, window, testProjectDir });
     await clearEditor({ window });
 
-    await typeInEditor({ window, text: '- List item' });
+    await focusAndTypeInEditor({ window, text: '- List item' });
 
     await expect(window.locator('.ProseMirror ul')).toContainText('List item');
   });
@@ -158,7 +159,7 @@ test.describe('markdown input rules', () => {
     await setupEditor({ electronApp, window, testProjectDir });
     await clearEditor({ window });
 
-    await typeInEditor({ window, text: '1. First item' });
+    await focusAndTypeInEditor({ window, text: '1. First item' });
 
     await expect(window.locator('.ProseMirror ol')).toContainText('First item');
   });
@@ -370,7 +371,7 @@ test.describe('undo', () => {
     await setupEditor({ electronApp, window, testProjectDir });
     await clearEditor({ window });
 
-    await typeInEditor({ window, text: 'temporary text' });
+    await focusAndTypeInEditor({ window, text: 'temporary text' });
     await expect(window.locator('.ProseMirror')).toContainText(
       'temporary text'
     );
@@ -390,7 +391,7 @@ test.describe('undo', () => {
     await setupEditor({ electronApp, window, testProjectDir });
     await clearEditor({ window });
 
-    await typeInEditor({ window, text: 'plain text' });
+    await focusAndTypeInEditor({ window, text: 'plain text' });
     await window.keyboard.press(`${modKey}+a`);
     await window.keyboard.press(`${modKey}+b`);
 
@@ -412,7 +413,7 @@ test.describe('undo', () => {
     await setupEditor({ electronApp, window, testProjectDir });
     await clearEditor({ window });
 
-    await typeInEditor({ window, text: 'redo me' });
+    await focusAndTypeInEditor({ window, text: 'redo me' });
     await expect(window.locator('.ProseMirror')).toContainText('redo me');
 
     await window.keyboard.press(`${modKey}+z`);
@@ -631,7 +632,7 @@ test.describe('additional editing', () => {
     await setupEditor({ electronApp, window, testProjectDir });
     await clearEditor({ window });
 
-    await typeInEditor({ window, text: 'bold text' });
+    await focusAndTypeInEditor({ window, text: 'bold text' });
     await window.keyboard.press(`${modKey}+a`);
     await window.keyboard.press(`${modKey}+b`);
 
@@ -653,7 +654,7 @@ test.describe('additional editing', () => {
     await setupEditor({ electronApp, window, testProjectDir });
     await clearEditor({ window });
 
-    await typeInEditor({ window, text: 'italic text' });
+    await focusAndTypeInEditor({ window, text: 'italic text' });
     await window.keyboard.press(`${modKey}+a`);
     await window.keyboard.press(`${modKey}+i`);
 
@@ -680,7 +681,7 @@ test.describe('additional editing', () => {
     await clearEditor({ window });
 
     // After clearing, typing new text should work
-    await typeInEditor({ window, text: 'New content' });
+    await focusAndTypeInEditor({ window, text: 'New content' });
     await expect(window.locator('.ProseMirror')).toContainText('New content');
     await expect(window.locator('.ProseMirror')).not.toContainText(
       'test document'
@@ -709,9 +710,181 @@ test.describe('additional editing', () => {
     await setupEditor({ electronApp, window, testProjectDir });
     await clearEditor({ window });
 
-    await typeInEditor({ window, text: 'Starting from scratch' });
+    await focusAndTypeInEditor({ window, text: 'Starting from scratch' });
     await expect(window.locator('.ProseMirror')).toContainText(
       'Starting from scratch'
     );
+  });
+});
+
+test.describe('horizontal rule', () => {
+  test('typing --- on an empty line creates an hr', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await setupEditor({ electronApp, window, testProjectDir });
+    await clearEditor({ window });
+
+    await focusAndTypeInEditor({ window, text: '---' });
+
+    await expect(window.locator('.ProseMirror hr')).toHaveCount(1);
+  });
+
+  test('typing --- inside a non-empty paragraph produces an em dash, not an hr', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await setupEditor({ electronApp, window, testProjectDir });
+    await clearEditor({ window });
+
+    await focusAndTypeInEditor({ window, text: 'abc---' });
+
+    await expect(window.locator('.ProseMirror hr')).toHaveCount(0);
+    await expect(window.locator('.ProseMirror p').first()).toContainText(
+      'abc—'
+    );
+  });
+
+  test('typing -- followed by a space produces an en dash', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await setupEditor({ electronApp, window, testProjectDir });
+    await clearEditor({ window });
+
+    await focusAndTypeInEditor({ window, text: 'abc-- ' });
+
+    await expect(window.locator('.ProseMirror hr')).toHaveCount(0);
+    await expect(window.locator('.ProseMirror p').first()).toContainText(
+      'abc–'
+    );
+  });
+
+  test('typing --- in an empty paragraph between two paragraphs reuses the next block', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await setupEditor({ electronApp, window, testProjectDir });
+    await clearEditor({ window });
+
+    // alpha / [empty] / beta. After typing 'alpha' + Enter+Enter the cursor is
+    // already in the third (empty) paragraph, so use `typeInEditor` (no click)
+    // to keep it there.
+    await focusAndTypeInEditor({ window, text: 'alpha' });
+    await window.keyboard.press('Enter');
+    await window.keyboard.press('Enter');
+    await typeInEditor({ window, text: 'beta' });
+
+    // Move cursor to the empty middle paragraph
+    await window.keyboard.press('Home');
+    await window.keyboard.press('ArrowUp');
+
+    await typeInEditor({ window, text: '---' });
+
+    // Result: alpha / hr / beta — exactly two paragraphs, no auto-trailing
+    await expect(window.locator('.ProseMirror hr')).toHaveCount(1);
+    await expect(window.locator('.ProseMirror p')).toHaveCount(2);
+
+    // Cursor was moved into the existing "beta" paragraph at offset 0
+    // (PM's `Selection.near` lands at the start of the next text block);
+    // typing prepends to the existing content.
+    await typeInEditor({ window, text: '-extra' });
+    await expect(window.locator('.ProseMirror p').last()).toContainText(
+      '-extrabeta'
+    );
+  });
+
+  test('hr at end of document gets an auto-trailing paragraph and the cursor lands in it', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await setupEditor({ electronApp, window, testProjectDir });
+    await clearEditor({ window });
+
+    await focusAndTypeInEditor({ window, text: '---' });
+
+    await expect(window.locator('.ProseMirror hr')).toHaveCount(1);
+    // ensureTrailingParagraphPlugin always leaves an editable paragraph after the hr
+    await expect(window.locator('.ProseMirror p')).toHaveCount(1);
+
+    // Cursor should be in the trailing paragraph, not on the hr
+    await typeInEditor({ window, text: 'after' });
+    await expect(window.locator('.ProseMirror p').last()).toContainText(
+      'after'
+    );
+  });
+
+  test('toolbar hr button inserts an hr in an empty paragraph', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await setupEditor({ electronApp, window, testProjectDir });
+    await openEditorToolbar({ window });
+    await clearEditor({ window });
+
+    await clickToolbarButton({ window, label: 'Horizontal Rule' });
+
+    await expect(window.locator('.ProseMirror hr')).toHaveCount(1);
+  });
+
+  test('toolbar hr button is disabled when cursor is in a non-empty paragraph', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await setupEditor({ electronApp, window, testProjectDir });
+    await openEditorToolbar({ window });
+
+    // hello.md's paragraph has content; click into it
+    await window.locator('.ProseMirror p').first().click();
+
+    await expect(
+      window.getByRole('button', { name: 'Horizontal Rule' })
+    ).toBeDisabled();
+  });
+
+  test('toolbar hr button enables when cursor moves to an empty paragraph', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await setupEditor({ electronApp, window, testProjectDir });
+    await openEditorToolbar({ window });
+    await clearEditor({ window });
+
+    // After clearing, the cursor is in an empty paragraph
+    await expect(
+      window.getByRole('button', { name: 'Horizontal Rule' })
+    ).toBeEnabled();
+  });
+
+  test('Backspace at start of paragraph after hr selects the hr; second Backspace removes it', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await setupEditor({ electronApp, window, testProjectDir });
+    await clearEditor({ window });
+
+    await focusAndTypeInEditor({ window, text: '---' });
+    await expect(window.locator('.ProseMirror hr')).toHaveCount(1);
+
+    // First Backspace: empty trailing paragraph is removed and the hr becomes
+    // a NodeSelection. The trailing-paragraph plugin then re-adds an empty
+    // paragraph so the doc still has hr + p, but selection stays on the hr.
+    await window.keyboard.press('Backspace');
+    await expect(window.locator('.ProseMirror hr')).toHaveClass(
+      /ProseMirror-selectednode/
+    );
+
+    // Second Backspace deletes the selected hr
+    await window.keyboard.press('Backspace');
+    await expect(window.locator('.ProseMirror hr')).toHaveCount(0);
   });
 });

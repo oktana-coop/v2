@@ -196,10 +196,20 @@ export const typeInEditor = async ({
   window: Page;
   text: string;
 }): Promise<void> => {
+  await window.keyboard.type(text);
+};
+
+export const focusAndTypeInEditor = async ({
+  window,
+  text,
+}: {
+  window: Page;
+  text: string;
+}): Promise<void> => {
   const editor = window.locator('.ProseMirror');
   await editor.click();
   await window.keyboard.press('End');
-  await window.keyboard.type(text);
+  await typeInEditor({ window, text });
 };
 
 /**
@@ -293,7 +303,7 @@ export const typeInEditorAndWaitForDebounce = async ({
   text: string;
   waitFor?: number;
 }): Promise<void> => {
-  await typeInEditor({ window, text });
+  await focusAndTypeInEditor({ window, text });
   await window.waitForTimeout(waitFor);
 };
 
