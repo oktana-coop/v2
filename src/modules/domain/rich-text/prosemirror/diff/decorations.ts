@@ -88,7 +88,15 @@ const createDeletedBlockElement =
       textNode.replaceWith(span);
     };
 
-    getTextNodes(element).forEach(wrapNode);
+    const textNodes = getTextNodes(element);
+
+    if (textNodes.length === 0) {
+      // Leaf block (e.g. horizontal_rule) has no text content to wrap. Mark
+      // the wrapper itself so the delete styling still appears.
+      element.className = decorationClasses.delete;
+    } else {
+      textNodes.forEach(wrapNode);
+    }
 
     return element;
   };

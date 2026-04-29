@@ -9,6 +9,7 @@ import {
   deleteFileFromContextMenu,
   deleteFolderFromContextMenu,
   deleteKey,
+  focusAndTypeInEditor,
   mockCreateNewFile,
   newFileKey,
   newFolderKey,
@@ -17,7 +18,6 @@ import {
   renameFileFromContextMenu,
   renameFolderFromContextMenu,
   renameKey,
-  typeInEditor,
   typeInEditorAndWaitForDebounce,
 } from '../shared/helpers';
 
@@ -82,7 +82,7 @@ test.describe('flat directory structure', () => {
     await expect(editor.locator('h1')).toHaveText('Hello');
 
     // Type some new content
-    await typeInEditor({ window, text: ' — edited' });
+    await focusAndTypeInEditor({ window, text: ' — edited' });
 
     // Verify the DOM reflects the edit
     await expect(editor).toContainText('Hello — edited');

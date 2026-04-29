@@ -1,4 +1,5 @@
 import {
+  InputRule,
   textblockTypeInputRule,
   wrappingInputRule,
 } from 'prosemirror-inputrules';
@@ -39,3 +40,34 @@ export function orderedListRule(nodeType: NodeType) {
     (match, node) => node.childCount + node.attrs.order == +match[1]
   );
 }
+
+export const horizontalRuleRule = (nodeType: NodeType) =>
+  new InputRule(/^---$/, (state, _match, start, end) => {
+    const $start = state.doc.resolve(start);
+    // The regex matches `textBefore` (textblock-start → cursor); it can't see
+    // content after the cursor. Without this guard, typing `---` at the start
+    // of a non-empty paragraph would also fire and wipe the trailing content.
+    if (end - start !== $start.parent.content.size) {
+      return null;
+    }
+
+    return state.tr.replaceRangeWith(
+      $start.before(),
+      $start.after(),
+      nodeType.create()
+    );
+  });
+
+export const emDashRule = () =>
+  new InputRule(/---$/, (state, _match, start, end) =>
+    state.tr.replaceWith(start, end, state.schema.text('—'))
+  );
+
+export const enDashRule = () =>
+  new InputRule(/(?<=[^-])--\s$/, (state, _match, start, end) =>
+    // HTML collapses trailing whitespace at the end of a block element and the
+    // en dash is typically added after the user types a space after 2 dashes.
+    // We want to preserve this trailing space so that they continue typing, this is why
+    // we add an non-breaking space at the end.
+    state.tr.replaceWith(start, end, state.schema.text('–\u00a0'))
+  );

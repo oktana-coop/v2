@@ -33,6 +33,7 @@ export { FormatTextIcon } from './FormatText';
 export { FormatUnderlineIcon } from './FormatUnderline';
 export { GithubIcon } from './Github';
 export { HomeIcon } from './Home';
+export { HorizontalRuleIcon } from './HorizontalRule';
 export { ImageIcon } from './Image';
 export { InfoIcon } from './Info';
 export { LineHeightIcon } from './LineHeight';

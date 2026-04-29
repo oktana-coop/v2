@@ -16,3 +16,12 @@ export const bulletList = 'list-disc pl-6 mb-4';
 export const orderedList = 'list-decimal pl-6 mb-4';
 
 export const noteContent = 'block text-sm mb-4';
+
+// The <hr> element itself is a transparent block — just padding, no border.
+// The "line" is a 1px-tall background-image (a `currentcolor → currentcolor`
+// gradient) constrained to 100% width and pinned to `bg-center`, so it sits
+// vertically centered. Drawing the line this way (instead of `border-top`,
+// which would anchor it to the top of the box) lets the selection
+// background-color fill symmetrically above and below it.
+export const horizontalRule =
+  'py-2 mb-4 border-0 text-gray-200 dark:text-gray-700 bg-[linear-gradient(currentcolor,currentcolor)] bg-no-repeat bg-center bg-[length:100%_1px] [&.ProseMirror-selectednode]:bg-black/5 dark:[&.ProseMirror-selectednode]:bg-white/10 [&.ProseMirror-selectednode]:outline-none';

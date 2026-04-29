@@ -89,6 +89,10 @@ const templateCssVars = (template: ExportTemplate): Record<string, string> => {
     '--editor-ol-space-after': pt(styles.orderedList.spaceAfter),
     '--editor-blockquote-space-before': pt(styles.blockquote.spaceBefore),
     '--editor-blockquote-space-after': pt(styles.blockquote.spaceAfter),
+    '--editor-hr-border-width': pt(styles.horizontalRule.borderWidth),
+    '--editor-hr-border-color': styles.horizontalRule.borderColor,
+    '--editor-hr-space-before': pt(styles.horizontalRule.spaceBefore),
+    '--editor-hr-space-after': pt(styles.horizontalRule.spaceAfter),
     ...Object.fromEntries(
       headingKeys.flatMap((key) => {
         const level = key.replace('heading', '');

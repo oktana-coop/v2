@@ -141,6 +141,15 @@
   margin-bottom: var(--editor-blockquote-space-after);
 }
 
+/* Replace the editor's centered-gradient hr with a real border-top so it matches the export. */
+.match-export .editor hr {
+  padding: 0;
+  background-image: none;
+  border-top: var(--editor-hr-border-width) solid var(--editor-hr-border-color);
+  margin-top: var(--editor-hr-space-before);
+  margin-bottom: var(--editor-hr-space-after);
+}
+
 .light .ProseMirror pre {
   background-color: var(--shiki-light-bg, inherit);
 }

@@ -53,6 +53,7 @@ const {
   findLinkAtSelection,
   ensureTrailingParagraphPlugin,
   ensureTrailingSpaceAfterAtomPlugin,
+  moveCursorToNextBlockOnInsertionPlugin,
   wrapInList,
   wrapIn,
   splitListItem,
@@ -62,6 +63,8 @@ const {
   markdownMarkPlugins,
   insertNote,
   notesPlugin,
+  insertHorizontalRule,
+  canInsertHorizontalRule,
   numberNotes,
   placeholderPlugin,
   syncPlugin,
@@ -108,6 +111,8 @@ export const RichTextEditor = ({
   const [codeSelected, setCodeSelected] = useState<boolean>(false);
   const [emSelected, setEmSelected] = useState<boolean>(false);
   const [selectionIsLink, setSelectionIsLink] = useState<boolean>(false);
+  const [horizontalRuleEnabled, setHorizontalRuleEnabled] =
+    useState<boolean>(false);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState<boolean>(false);
   const [linkDialogInitialAttrs, setLinkDialogInitialAttrs] =
     useState<LinkAttrs>({ title: '', href: '' });
@@ -166,6 +171,7 @@ export const RichTextEditor = ({
     linkSelectionPlugin,
     selectionChangePlugin(onSelectionChange(schema)),
     ensureTrailingParagraphPlugin(schema),
+    moveCursorToNextBlockOnInsertionPlugin(schema),
     ensureTrailingSpaceAfterAtomPlugin(),
   ];
 
@@ -284,6 +290,7 @@ export const RichTextEditor = ({
           // React state updates
           setLeafBlockType(getCurrentLeafBlockType(newState));
           setContainerBlockType(getCurrentContainerBlockType(newState));
+          setHorizontalRuleEnabled(canInsertHorizontalRule(newState));
 
           if (tx.selectionSet || transactionUpdatesMarks(tx)) {
             setStrongSelected(isMarkActive(schema.marks.strong)(newState));
@@ -306,6 +313,7 @@ export const RichTextEditor = ({
         editorViewRef.current?.focus();
         setLeafBlockType(getCurrentLeafBlockType(state));
         setContainerBlockType(getCurrentContainerBlockType(state));
+        setHorizontalRuleEnabled(canInsertHorizontalRule(state));
       }
     };
 
@@ -525,6 +533,13 @@ export const RichTextEditor = ({
     }
   };
 
+  const handleHorizontalRuleClick = () => {
+    if (view && schema) {
+      insertHorizontalRule(view.state, view.dispatch);
+      view.focus();
+    }
+  };
+
   return (
     <>
       <div
@@ -558,6 +573,8 @@ export const RichTextEditor = ({
             onLinkToggle={handleLinkToggle}
             onCodeToggle={handleCodeToggle}
             onNoteClick={handleNoteClick}
+            onHorizontalRuleClick={handleHorizontalRuleClick}
+            horizontalRuleEnabled={horizontalRuleEnabled}
           />
         </div>
       )}
