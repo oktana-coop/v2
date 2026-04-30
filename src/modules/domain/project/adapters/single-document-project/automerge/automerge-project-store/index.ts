@@ -274,6 +274,14 @@ export const createAdapter = (
         )
       );
 
+  // TODO: Implement explicit commit in Automerge
+  const commitChanges: SingleDocumentProjectStore['commitChanges'] = () =>
+    Effect.fail(
+      new RepositoryError(
+        'Explicit commit is not yet supported when the app is configured with Automerge'
+      )
+    );
+
   return {
     // TODO: Implement branching in Automerge
     supportsBranching: false,
@@ -289,6 +297,7 @@ export const createAdapter = (
     mergeAndDeleteBranch,
     getMergeConflictInfo,
     abortMerge,
+    commitChanges,
     commitMergeConflictsResolution,
     setAuthorInfo,
     addRemoteProject,

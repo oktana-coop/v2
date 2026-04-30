@@ -228,7 +228,11 @@ export const ProjectHistoryPage = () => {
         isOpen={isCommitDialogOpen}
         onCancel={handleCancelCommitDialog}
         canCommit={uncommittedChanges.length > 0}
-        onCommit={handleCommit}
+        primaryAction={{
+          label: 'Commit all project changes',
+          description: 'Commit every modified file in the project',
+          onCommit: handleCommit,
+        }}
       />
     </>
   );

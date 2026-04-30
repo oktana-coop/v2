@@ -48,6 +48,12 @@ export {
 } from './create-document-modal/context';
 
 export {
+  CommitModalContext,
+  type CommitModalContextType,
+  CommitModalProvider,
+} from './commit-modal/context';
+
+export {
   SidebarLayoutContext,
   type SidebarLayoutContextType,
   SidebarLayoutProvider,

@@ -325,6 +325,10 @@ contextBridge.exposeInMainWorld('singleDocumentProjectStoreAPI', {
     ipcRenderer.invoke('single-document-project-store:abort-merge', {
       ...args,
     }),
+  commitChanges: (args) =>
+    ipcRenderer.invoke('single-document-project-store:commit-changes', {
+      ...args,
+    }),
   commitMergeConflictsResolution: (args) =>
     ipcRenderer.invoke(
       'single-document-project-store:commit-merge-conflicts-resolution',

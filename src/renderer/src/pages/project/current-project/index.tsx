@@ -1,17 +1,23 @@
 import { useContext, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 
-import { urlEncodeProjectId } from '../../../../../modules/domain/project';
+import {
+  projectTypes,
+  urlEncodeProjectId,
+} from '../../../../../modules/domain/project';
 import { removePath } from '../../../../../modules/infrastructure/filesystem';
 import { urlEncodeArtifactId } from '../../../../../modules/infrastructure/version-control';
 import {
   BranchingCommandPaletteContext,
+  CommitModalContext,
   CreateDocumentModalContext,
   CurrentDocumentContext,
+  CurrentProjectContext,
 } from '../../../app-state';
 import { BranchingCommandPaletteStateProvider } from '../../../app-state';
 import {
   useBranchInfo,
+  useCommitToProject,
   useCreateDocument,
   useDeleteDirectory,
   useDeleteDocument,
@@ -46,8 +52,6 @@ export const CurrentProject = () => {
 const Project = () => {
   const {
     versionedDocumentId,
-    onCloseCommitDialog,
-    isCommitDialogOpen,
     isRestoreCommitDialogOpen,
     isDiscardChangesDialogOpen,
     canCommit,
@@ -57,6 +61,15 @@ const Project = () => {
     onRestoreCommit,
     onDiscardChanges,
   } = useContext(CurrentDocumentContext);
+  const { isOpen: isCommitDialogOpen, closeCommitModal } =
+    useContext(CommitModalContext);
+  const commitChangesToProject = useCommitToProject();
+  const { projectType } = useContext(CurrentProjectContext);
+  // For single-document projects the project-level commit is the same
+  // operation as committing the (sole) document, so we don't surface it as
+  // a separate option in the commit dialog.
+  const showProjectCommitOption =
+    projectType === projectTypes.MULTI_DOCUMENT_PROJECT;
   const navigate = useNavigate();
   const {
     isOpen: isBranchingCommandPaletteOpen,
@@ -123,9 +136,26 @@ const Project = () => {
         />
         <CommitDialog
           isOpen={isCommitDialogOpen}
-          onCancel={onCloseCommitDialog}
+          onCancel={closeCommitModal}
           canCommit={canCommit}
-          onCommit={(message: string) => commitChangesToDocument(message)}
+          primaryAction={{
+            label: 'Commit document',
+            description:
+              'Commit changes to this document and its referenced assets',
+            onCommit: (message: string) => commitChangesToDocument(message),
+          }}
+          secondaryActions={
+            showProjectCommitOption
+              ? [
+                  {
+                    label: 'Commit all project changes',
+                    description: 'Commit every modified file in the project',
+                    onCommit: (message: string) =>
+                      commitChangesToProject(message),
+                  },
+                ]
+              : []
+          }
         />
         <RestoreCommitDialog
           isOpen={isRestoreCommitDialogOpen}

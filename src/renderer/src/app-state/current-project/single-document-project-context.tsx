@@ -95,6 +95,7 @@ export type SingleDocumentProjectContextType = {
   pullFromRemoteProject: () => Promise<void>;
   pulledUpstreamChanges: boolean;
   onHandlePulledUpstreamChanges: () => void;
+  commitChanges: (message: string) => Promise<void>;
 };
 
 export const SingleDocumentProjectContext =
@@ -111,6 +112,7 @@ export const SingleDocumentProjectContext =
     openDocument: () => null,
     versionedProjectStore: null,
     isCreateBranchDialogOpen: false,
+    commitChanges: async () => {},
   });
 
 const getFileToBeOpenedFromSessionStorage = (): File | null => {
@@ -808,6 +810,20 @@ export const SingleDocumentProjectProvider = ({
     setPulledUpstreamChanges(false);
   };
 
+  const handleCommitChanges = useCallback(
+    async (message: string) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot commit changes.'
+        );
+      }
+      await Effect.runPromise(
+        versionedProjectStore.commitChanges({ projectId, message })
+      );
+    },
+    [versionedProjectStore, projectId]
+  );
+
   return (
     <SingleDocumentProjectContext.Provider
       value={{
@@ -844,6 +860,7 @@ export const SingleDocumentProjectProvider = ({
         pullFromRemoteProject: handlePullFromRemoteProject,
         pulledUpstreamChanges,
         onHandlePulledUpstreamChanges: resetPulledUpstreamChanges,
+        commitChanges: handleCommitChanges,
       }}
     >
       {children}

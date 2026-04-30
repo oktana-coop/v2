@@ -6,6 +6,7 @@ import { ElectronContext } from '../../../../../../modules/infrastructure/cross-
 import { removeExtension } from '../../../../../../modules/infrastructure/filesystem';
 import {
   CommandPaletteContext,
+  CommitModalContext,
   CurrentDocumentContext,
   CurrentProjectContext,
 } from '../../../../app-state';
@@ -38,8 +39,10 @@ export const ProjectCommandPalette = ({
     CommandPaletteContext
   );
   const { projectType } = useContext(CurrentProjectContext);
-  const { canCommit, onOpenCommitDialog, onOpenDiscardChangesDialog } =
-    useContext(CurrentDocumentContext);
+  const { canCommit, onOpenDiscardChangesDialog } = useContext(
+    CurrentDocumentContext
+  );
+  const { openCommitModal } = useContext(CommitModalContext);
   const { isElectron, checkForUpdate } = useContext(ElectronContext);
 
   const handleDocumentSelectionInMultiDocumentProject =
@@ -113,7 +116,7 @@ export const ProjectCommandPalette = ({
           {
             name: keyBindings.ctrlS.command,
             shortcut: keyBindings.ctrlS.keyBinding,
-            onActionSelection: onOpenCommitDialog,
+            onActionSelection: openCommitModal,
           },
           {
             name: 'Discard changes',

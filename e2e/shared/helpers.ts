@@ -365,6 +365,38 @@ export const commitChanges = async ({
   await textarea.waitFor({ state: 'hidden', timeout: 5_000 });
 };
 
+/**
+ * Opens the commit dialog from the editor, fills the message, opens the
+ * SplitButton dropdown, and clicks "Commit all project changes" — the
+ * project-scoped commit option exposed for multi-document projects.
+ */
+export const commitAllProjectChanges = async ({
+  window,
+  message,
+}: {
+  window: Page;
+  message: string;
+}): Promise<void> => {
+  const commitBtn = window.getByRole('button', { name: /commit changes/i });
+  await expect(commitBtn).toBeEnabled({ timeout: 1_000 });
+  await commitBtn.click();
+
+  const textarea = window.getByRole('textbox');
+  await textarea.waitFor({ state: 'visible', timeout: 1_000 });
+  await textarea.fill(message);
+
+  // Open the SplitButton's dropdown (chevron next to the primary Commit button)
+  await window.getByRole('button', { name: /more commit options/i }).click();
+
+  // Click the "Commit all project changes" menu item
+  await window
+    .getByRole('menuitem', { name: /commit all project changes/i })
+    .click();
+
+  // Wait for the dialog to close
+  await textarea.waitFor({ state: 'hidden', timeout: 5_000 });
+};
+
 export const enableShowDiff = async ({
   window,
 }: {
