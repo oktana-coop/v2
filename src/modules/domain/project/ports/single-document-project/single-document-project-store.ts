@@ -29,6 +29,11 @@ export type CreateSingleDocumentProjectArgs = {
   authToken?: string;
 } & UserInfo;
 
+export type SingleDocumentProjectCommitChangesArgs = {
+  projectId: ProjectId;
+  message: string;
+};
+
 export type SingleDocumentProjectCreateAndSwitchToBranchArgs = {
   projectId: ProjectId;
   branch: Branch;
@@ -148,6 +153,9 @@ export type SingleDocumentProjectStore = {
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
+  commitChanges: (
+    args: SingleDocumentProjectCommitChangesArgs
+  ) => Effect.Effect<Commit['id'], ValidationError | RepositoryError, never>;
   createAndSwitchToBranch: (
     args: SingleDocumentProjectCreateAndSwitchToBranchArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;

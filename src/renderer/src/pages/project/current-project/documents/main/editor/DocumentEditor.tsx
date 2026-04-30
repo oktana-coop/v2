@@ -2,6 +2,7 @@ import { useCallback, useContext, useState } from 'react';
 
 import { ProseMirrorContext } from '../../../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import {
+  CommitModalContext,
   CurrentDocumentContext,
   SidebarLayoutContext,
 } from '../../../../../../app-state';
@@ -18,9 +19,9 @@ export const DocumentEditor = () => {
     versionedDocument,
     versionedDocumentHandle,
     onDocumentContentChange,
-    onOpenCommitDialog,
     canCommit,
   } = useContext(CurrentDocumentContext);
+  const { openCommitModal } = useContext(CommitModalContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const { isUnsupported } = useCurrentDocumentExtension();
 
@@ -41,7 +42,7 @@ export const DocumentEditor = () => {
           onSidebarToggle={toggleSidebar}
           onEditorToolbarToggle={handleEditorToolbarToggle}
           canCommit={canCommit}
-          onCheckIconClick={onOpenCommitDialog}
+          onCheckIconClick={openCommitModal}
         />
       </div>
 

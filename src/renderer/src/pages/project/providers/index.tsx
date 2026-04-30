@@ -5,6 +5,7 @@ import { ProseMirrorProvider } from '../../../../../modules/domain/rich-text/rea
 import { ElectronContext } from '../../../../../modules/infrastructure/cross-platform/browser';
 import {
   CloneFromGithubModalProvider,
+  CommitModalProvider,
   CreateDocumentModalProvider,
   CurrentDocumentProvider,
   CurrentProjectProvider,
@@ -16,17 +17,19 @@ export const ProjectProviders = () => {
 
   return (
     <CurrentProjectProvider projectType={config.projectType}>
-      <CurrentDocumentProvider>
-        <CloneFromGithubModalProvider>
-          <CreateDocumentModalProvider>
-            <ProseMirrorProvider>
-              <SidebarLayoutProvider>
-                <Outlet />
-              </SidebarLayoutProvider>
-            </ProseMirrorProvider>
-          </CreateDocumentModalProvider>
-        </CloneFromGithubModalProvider>
-      </CurrentDocumentProvider>
+      <CommitModalProvider>
+        <CurrentDocumentProvider>
+          <CloneFromGithubModalProvider>
+            <CreateDocumentModalProvider>
+              <ProseMirrorProvider>
+                <SidebarLayoutProvider>
+                  <Outlet />
+                </SidebarLayoutProvider>
+              </ProseMirrorProvider>
+            </CreateDocumentModalProvider>
+          </CloneFromGithubModalProvider>
+        </CurrentDocumentProvider>
+      </CommitModalProvider>
     </CurrentProjectProvider>
   );
 };

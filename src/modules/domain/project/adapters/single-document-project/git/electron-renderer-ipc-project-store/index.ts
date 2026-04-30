@@ -199,6 +199,18 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.singleDocumentProjectStoreAPI.abortMerge(...args)),
+  commitChanges: (
+    ...args: Parameters<SingleDocumentProjectStore['commitChanges']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<SingleDocumentProjectStore['commitChanges']>>
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.commitChanges(...args)),
   commitMergeConflictsResolution: (
     ...args: Parameters<
       SingleDocumentProjectStore['commitMergeConflictsResolution']

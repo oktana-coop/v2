@@ -1,33 +1,44 @@
 import React, { useState } from 'react';
 
 import { Button } from '../../../../components/actions/Button';
+import { SplitButton } from '../../../../components/actions/SplitButton';
 import { Modal } from '../../../../components/dialogs/Modal';
 import { CheckIcon } from '../../../../components/icons/Check';
 import { Textarea } from '../../../../components/inputs/Textarea';
+
+export type CommitOption = {
+  label: string;
+  description?: string;
+  onCommit: (message: string) => void;
+};
 
 type CommitDialogProps = {
   isOpen?: boolean;
   onCancel?: () => void;
   canCommit: boolean;
-  onCommit: (message: string) => void;
+  primaryAction: CommitOption;
+  secondaryActions?: CommitOption[];
 };
 
 export const CommitDialog = ({
   isOpen = false,
   onCancel,
   canCommit,
-  onCommit,
+  primaryAction,
+  secondaryActions = [],
 }: CommitDialogProps) => {
   const [commitMessage, setCommitMessage] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
 
-  const handleCommitSubmission = () => {
+  const submit = (handler: (message: string) => void) => {
     if (commitMessage.length === 0) {
       return setErrorMessage('Commit message cannot be empty.');
     }
-    onCommit(commitMessage);
+    handler(commitMessage);
     setCommitMessage('');
   };
+
+  const handlePrimary = () => submit(primaryAction.onCommit);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // on Escape key press
@@ -35,12 +46,41 @@ export const CommitDialog = ({
       setCommitMessage('');
       onCancel();
     }
-    // on cmd/ctrl + enter --> submit the commit
+    // on cmd/ctrl + enter --> submit the primary commit action
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
-      handleCommitSubmission();
+      handlePrimary();
     }
   };
+
+  const primaryButton =
+    secondaryActions.length > 0 ? (
+      <SplitButton
+        primaryLabel={
+          <>
+            <CheckIcon />
+            Commit
+          </>
+        }
+        onPrimaryClick={handlePrimary}
+        primaryTooltip={primaryAction.description ?? primaryAction.label}
+        disabled={!canCommit}
+        color="purple"
+        toggleAriaLabel="More commit options"
+        menuLabel="Other commit options"
+        menuItems={secondaryActions.map((action) => ({
+          label: action.label,
+          description: action.description,
+          onClick: () => submit(action.onCommit),
+          disabled: !canCommit,
+        }))}
+      />
+    ) : (
+      <Button onClick={handlePrimary} color="purple" disabled={!canCommit}>
+        <CheckIcon />
+        Commit
+      </Button>
+    );
 
   return (
     <Modal
@@ -51,16 +91,7 @@ export const CommitDialog = ({
           Cancel
         </Button>
       }
-      primaryButton={
-        <Button
-          onClick={handleCommitSubmission}
-          color="purple"
-          disabled={!canCommit}
-        >
-          <CheckIcon />
-          Commit
-        </Button>
-      }
+      primaryButton={primaryButton}
     >
       <Textarea
         className="h-full w-full resize-none border-gray-400 shadow-inner outline-none"

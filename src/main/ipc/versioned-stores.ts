@@ -49,6 +49,7 @@ import {
   type SetupSingleDocumentProjectStoreArgs,
   type SingleDocumentProjectAbortMergeArgs,
   type SingleDocumentProjectAddRemoteProjectArgs,
+  type SingleDocumentProjectCommitChangesArgs,
   type SingleDocumentProjectCommitMergeConflictsResolutionArgs,
   type SingleDocumentProjectCreateAndSwitchToBranchArgs,
   type SingleDocumentProjectDeleteBranchArgs,
@@ -569,6 +570,26 @@ const registerSingleDocumentProjectStoreEvents = ({
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.abortMerge(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:commit-changes',
+    async (_, args: SingleDocumentProjectCommitChangesArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.commitChanges(args)
           )
         )
       )

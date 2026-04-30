@@ -5,7 +5,10 @@ import {
   changeIdsAreSame,
   isCommit,
 } from '../../../../../../../../modules/infrastructure/version-control';
-import { CurrentDocumentContext } from '../../../../../../app-state';
+import {
+  CommitModalContext,
+  CurrentDocumentContext,
+} from '../../../../../../app-state';
 import { IconButton } from '../../../../../../components/actions/IconButton';
 import {
   CheckIcon,
@@ -77,10 +80,10 @@ export const DocumentHistoricalView = () => {
   const {
     versionedDocumentHistory: commits,
     onSelectChange,
-    onOpenCommitDialog,
     onOpenRestoreCommitDialog,
     onOpenDiscardChangesDialog,
   } = useContext(CurrentDocumentContext);
+  const { openCommitModal } = useContext(CommitModalContext);
   const currentDocumentName = useCurrentDocumentName();
 
   const {
@@ -132,7 +135,7 @@ export const DocumentHistoricalView = () => {
     <UncommittedChangesActions
       onEdit={navigateToEdit}
       onDiscard={onOpenDiscardChangesDialog}
-      onCommit={onOpenCommitDialog}
+      onCommit={openCommitModal}
       canDiscard={commits.length > 1}
     />
   ) : (

@@ -29,6 +29,7 @@ import {
   pullFromRemote as pullFromRemoteGitRepo,
   pushToRemote as pushToRemoteGitRepo,
   setUserInfo as setUserInfoInGit,
+  stageAndCommitWorkdirChanges,
   switchToBranch as switchToBranchWithGit,
   validateAndAddRemote,
   VersionControlNotFoundErrorTag,
@@ -313,6 +314,20 @@ export const createAdapter = ({
         )
       );
 
+  const commitChanges: SingleDocumentProjectStore['commitChanges'] = ({
+    message,
+  }) =>
+    pipe(
+      stageAndCommitWorkdirChanges({
+        isoGitFs,
+        dir: internalProjectDir,
+        message,
+      }),
+      Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+        Effect.fail(new RepositoryError(err.message))
+      )
+    );
+
   const setAuthorInfo: SingleDocumentProjectStore['setAuthorInfo'] = ({
     username,
     email,
@@ -500,6 +515,7 @@ export const createAdapter = ({
     mergeAndDeleteBranch,
     getMergeConflictInfo,
     abortMerge,
+    commitChanges,
     commitMergeConflictsResolution,
     setAuthorInfo,
     addRemoteProject,

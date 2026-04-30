@@ -57,6 +57,7 @@ import {
 import { useCurrentDocumentId } from '../../hooks/use-current-document-id';
 import { usePulledUpstreamChanges } from '../../hooks/use-pulled-upstream-changes';
 import {
+  CommitModalContext,
   CurrentProjectContext,
   InfrastructureAdaptersContext,
   MultiDocumentProjectContext,
@@ -73,14 +74,12 @@ export type CurrentDocumentContextType = {
   versionedDocumentHistory: ChangeWithUrlInfo[];
   canCommit: boolean;
   commitChangesToDocument: (message: string) => Promise<void>;
+  reloadDocumentHistory: () => Promise<void>;
   onRestoreCommit: (args: { message: string; commit: Commit }) => Promise<void>;
   onDiscardChanges: () => Promise<void>;
-  isCommitDialogOpen: boolean;
   commitToRestore: Commit | null;
   isRestoreCommitDialogOpen: boolean;
   isDiscardChangesDialogOpen: boolean;
-  onOpenCommitDialog: () => void;
-  onCloseCommitDialog: () => void;
   onOpenRestoreCommitDialog: (commit: Commit) => void;
   onCloseRestoreCommitDialog: () => void;
   onOpenDiscardChangesDialog: () => void;
@@ -105,14 +104,12 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     versionedDocumentHistory: [],
     canCommit: false,
     commitChangesToDocument: async () => {},
+    reloadDocumentHistory: async () => {},
     onRestoreCommit: async () => {},
     onDiscardChanges: async () => {},
-    isCommitDialogOpen: false,
     isRestoreCommitDialogOpen: false,
     isDiscardChangesDialogOpen: false,
     commitToRestore: null,
-    onOpenCommitDialog: () => {},
-    onCloseCommitDialog: () => {},
     onOpenRestoreCommitDialog: () => {},
     onCloseRestoreCommitDialog: () => {},
     onOpenDiscardChangesDialog: () => {},
@@ -148,7 +145,7 @@ export const CurrentDocumentProvider = ({
   >([]);
   const [lastCommit, setLastCommit] = useState<Commit | null>(null);
   const [canCommit, setCanCommit] = useState(false);
-  const [isCommitDialogOpen, setIsCommitDialogOpen] = useState<boolean>(false);
+  const { closeCommitModal } = useContext(CommitModalContext);
   const [isRestoreCommitDialogOpen, setIsRestoreCommitDialogOpen] =
     useState<boolean>(false);
   const [isDiscardChangesDialogOpen, setIsDiscardChangesDialogOpen] =
@@ -397,6 +394,14 @@ export const CurrentDocumentProvider = ({
     }
   }, [versionedDocumentHistory, changeIdParam]);
 
+  const reloadDocumentHistory = useCallback(async () => {
+    if (!versionedDocumentStore || !versionedDocument || !documentId) return;
+    await loadHistory(versionedDocumentStore)({
+      doc: versionedDocument,
+      docId: documentId,
+    });
+  }, [versionedDocumentStore, versionedDocument, documentId]);
+
   const handleCommit = useCallback(
     async (message: string) => {
       if (!documentId || !versionedDocumentStore) {
@@ -410,16 +415,16 @@ export const CurrentDocumentProvider = ({
         })
       );
 
-      setIsCommitDialogOpen(false);
+      closeCommitModal();
 
-      if (versionedDocument) {
-        await loadHistory(versionedDocumentStore)({
-          doc: versionedDocument,
-          docId: documentId,
-        });
-      }
+      await reloadDocumentHistory();
     },
-    [documentId, versionedDocument, versionedDocumentStore]
+    [
+      documentId,
+      versionedDocumentStore,
+      closeCommitModal,
+      reloadDocumentHistory,
+    ]
   );
 
   const handleRestoreCommit = useCallback(
@@ -539,14 +544,6 @@ export const CurrentDocumentProvider = ({
     documentChangeSubRouteMatch,
     documentRouteMatch,
   ]);
-
-  const handleOpenCommitDialog = useCallback(() => {
-    setIsCommitDialogOpen(true);
-  }, []);
-
-  const handleCloseCommitDialog = useCallback(() => {
-    setIsCommitDialogOpen(false);
-  }, []);
 
   const handleOpenRestoreCommitDialog = useCallback((commit: Commit) => {
     setIsRestoreCommitDialogOpen(true);
@@ -831,14 +828,12 @@ export const CurrentDocumentProvider = ({
         versionedDocumentHistory,
         canCommit,
         commitChangesToDocument: handleCommit,
+        reloadDocumentHistory,
         onRestoreCommit: handleRestoreCommit,
         onDiscardChanges: handleDiscardChanges,
-        isCommitDialogOpen,
         commitToRestore,
         isRestoreCommitDialogOpen,
         isDiscardChangesDialogOpen,
-        onOpenCommitDialog: handleOpenCommitDialog,
-        onCloseCommitDialog: handleCloseCommitDialog,
         onOpenRestoreCommitDialog: handleOpenRestoreCommitDialog,
         onCloseRestoreCommitDialog: handleCloseRestoreCommitDialog,
         onOpenDiscardChangesDialog: handleOpenDiscardChangesDialog,
