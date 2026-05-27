@@ -57,3 +57,37 @@ export const stageFile = ({
       'Error in adding file to the Git index.'
     ),
   });
+
+export type StageFilesArgs = StagingAreaDeps & {
+  paths: string[];
+};
+
+export const stageFiles = ({
+  isoGitFs,
+  dir,
+  paths,
+}: StageFilesArgs): Effect.Effect<void, RepositoryError, never> =>
+  Effect.tryPromise({
+    try: () =>
+      git.add({
+        fs: isoGitFs,
+        dir,
+        filepath: paths,
+      }),
+    catch: mapErrorTo(
+      RepositoryError,
+      'Error in adding files to the Git index.'
+    ),
+  });
+
+export const stageWorkdirChanges = ({
+  isoGitFs,
+  dir,
+}: StagingAreaDeps): Effect.Effect<void, RepositoryError, never> =>
+  Effect.tryPromise({
+    try: () => git.add({ fs: isoGitFs, dir, filepath: '.' }),
+    catch: mapErrorTo(
+      RepositoryError,
+      'Error in adding changes to the Git index.'
+    ),
+  });
