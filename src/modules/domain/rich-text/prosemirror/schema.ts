@@ -3,7 +3,9 @@ import { type DOMOutputSpec, Schema, type SchemaSpec } from 'prosemirror-model';
 import {
   blockquote as blockquoteClasses,
   bulletList as bulletListClasses,
+  caption as captionClasses,
   codeBlock as codeBlockClasses,
+  figure as figureClasses,
   heading as headingClasses,
   horizontalRule as horizontalRuleClasses,
   noteContent as noteContentClasses,
@@ -183,6 +185,60 @@ const schemaSpec: SchemaSpec = {
       toDOM(node) {
         const { src, alt, title } = node.attrs;
         return ['img', { src, alt, title }];
+      },
+    },
+
+    /// A block-level figure backed by Pandoc's `Figure Attr Caption [Block]`.
+    /// `Attr` is dropped for now. The figure body is a `figure_content`
+    /// (a thin block-level wrapper around the inline `image`) plus an
+    /// optional caption. `figure_content` mirrors Pandoc's `[Block]` body
+    /// (typically `Plain [Image]`) and lets PM's content rule satisfy its
+    /// all-block-or-all-inline constraint without allowing the user to
+    /// type prose alongside the image.
+    figure: {
+      group: 'block',
+      content: 'figure_content caption?',
+      defining: true,
+      draggable: true,
+      parseDOM: [{ tag: 'figure' }],
+      toDOM() {
+        return ['figure', { class: figureClasses }, 0];
+      },
+    },
+
+    /// A block-level holder for a single inline `image`, mirroring Pandoc's
+    /// `Plain [Image]`. Restricting content to exactly `image` (no text)
+    /// keeps the figure body atomic for editing while still reusing the
+    /// existing inline `image` node.
+    figure_content: {
+      // `image?` (rather than `image`) sidesteps PM's "required position
+      // must be generatable" rule, since `image` has no default `src`.
+      // In practice the body always has an image — `insertFigure` always
+      // provides one and the Haskell mapping always emits one.
+      content: 'image?',
+      defining: true,
+      // `atom: true` keeps PM from treating this as an editable textblock.
+      // Without it, having inline content (`image?`) makes PM render
+      // trailing-edit artifacts (`ProseMirror-separator` / `ProseMirror-trailingBreak`)
+      // alongside the image, which look like an empty editable strip below
+      // the image — clickable but un-typeable, since the schema only allows
+      // `image` content.
+      atom: true,
+      parseDOM: [{ tag: 'div[data-figure-content]' }],
+      toDOM() {
+        return ['div', { 'data-figure-content': 'true' }, 0];
+      },
+    },
+
+    /// A caption block matching Pandoc's `Caption (Maybe ShortCaption) [Block]`.
+    /// Used by `figure` today and `table` once that lands. The
+    /// optional ShortCaption isn't modelled yet.
+    caption: {
+      content: 'block+',
+      defining: true,
+      parseDOM: [{ tag: 'figcaption' }, { tag: 'caption' }],
+      toDOM() {
+        return ['figcaption', { class: captionClasses }, 0];
       },
     },
 

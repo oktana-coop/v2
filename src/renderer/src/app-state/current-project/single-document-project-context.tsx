@@ -96,6 +96,12 @@ export type SingleDocumentProjectContextType = {
   pulledUpstreamChanges: boolean;
   onHandlePulledUpstreamChanges: () => void;
   commitChanges: (message: string) => Promise<void>;
+  // Restores the document and its referenced assets to an earlier commit,
+  // then commits the restoration. Returns the new commit id.
+  restoreChanges: (args: {
+    commit: Commit;
+    message?: string;
+  }) => Promise<Commit['id']>;
 };
 
 export const SingleDocumentProjectContext =
@@ -113,6 +119,9 @@ export const SingleDocumentProjectContext =
     versionedProjectStore: null,
     isCreateBranchDialogOpen: false,
     commitChanges: async () => {},
+    restoreChanges: async () => {
+      throw new Error('restoreChanges not initialized');
+    },
   });
 
 const getFileToBeOpenedFromSessionStorage = (): File | null => {
@@ -824,6 +833,20 @@ export const SingleDocumentProjectProvider = ({
     [versionedProjectStore, projectId]
   );
 
+  const handleRestoreChanges = useCallback(
+    async ({ commit, message }: { commit: Commit; message?: string }) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot restore document.'
+        );
+      }
+      return Effect.runPromise(
+        versionedProjectStore.restoreChanges({ projectId, commit, message })
+      );
+    },
+    [versionedProjectStore, projectId]
+  );
+
   return (
     <SingleDocumentProjectContext.Provider
       value={{
@@ -861,6 +884,7 @@ export const SingleDocumentProjectProvider = ({
         pulledUpstreamChanges,
         onHandlePulledUpstreamChanges: resetPulledUpstreamChanges,
         commitChanges: handleCommitChanges,
+        restoreChanges: handleRestoreChanges,
       }}
     >
       {children}

@@ -136,20 +136,6 @@ export const createAdapter = ({
         >,
         RepositoryError
       )(window.versionedDocumentStoreAPI.deleteDocument(...args, projectId)),
-    commitChanges: (
-      ...args: Parameters<VersionedDocumentStore['commitChanges']>
-    ) =>
-      effectifyIPCPromise(
-        {
-          [VersionedDocumentValidationErrorTag]: ValidationError,
-          [VersionedDocumentRepositoryErrorTag]: RepositoryError,
-          [VersionedDocumentNotFoundErrorTag]: NotFoundError,
-          [VersionControlMigrationErrorTag]: MigrationError,
-        } as ErrorRegistry<
-          EffectErrorType<ReturnType<VersionedDocumentStore['commitChanges']>>
-        >,
-        RepositoryError
-      )(window.versionedDocumentStoreAPI.commitChanges(...args, projectId)),
     getDocumentHistory: (
       ...args: Parameters<VersionedDocumentStore['getDocumentHistory']>
     ) =>
@@ -187,21 +173,6 @@ export const createAdapter = ({
       )(
         window.versionedDocumentStoreAPI.getDocumentAtChange(...args, projectId)
       ),
-    restoreCommit: (
-      ...args: Parameters<VersionedDocumentStore['restoreCommit']>
-    ) =>
-      effectifyIPCPromise(
-        {
-          [VersionedDocumentValidationErrorTag]: ValidationError,
-          [VersionedDocumentRepositoryErrorTag]: RepositoryError,
-          [VersionedDocumentNotFoundErrorTag]: NotFoundError,
-          [VersionControlMigrationErrorTag]: MigrationError,
-          [VersionedDocumentDeletedDocumentErrorTag]: DeletedDocumentError,
-        } as ErrorRegistry<
-          EffectErrorType<ReturnType<VersionedDocumentStore['restoreCommit']>>
-        >,
-        RepositoryError
-      )(window.versionedDocumentStoreAPI.restoreCommit(...args, projectId)),
     discardUncommittedChanges: (
       ...args: Parameters<VersionedDocumentStore['discardUncommittedChanges']>
     ) =>

@@ -2,6 +2,7 @@ import { clsx } from 'clsx';
 import debounce from 'debounce';
 import {
   baseKeymap,
+  chainCommands,
   setBlockType as setProsemirrorBlockType,
 } from 'prosemirror-commands';
 import { history, redo, undo } from 'prosemirror-history';
@@ -51,9 +52,11 @@ const {
   selectionChangePlugin,
   getSelectedText,
   findLinkAtSelection,
+  ensureTrailingParagraphInDoc,
   ensureTrailingParagraphPlugin,
   ensureTrailingSpaceAfterAtomPlugin,
   moveCursorToNextBlockOnInsertionPlugin,
+  removeEmptyFiguresPlugin,
   wrapInList,
   wrapIn,
   splitListItem,
@@ -65,6 +68,12 @@ const {
   notesPlugin,
   insertHorizontalRule,
   canInsertHorizontalRule,
+  canInsertFigure,
+  deleteFigureBeforeCursor,
+  deleteFigureAfterCursor,
+  createParagraphAfterSelectedFigure,
+  figureInsertPlugin,
+  triggerFigureInsert,
   numberNotes,
   placeholderPlugin,
   syncPlugin,
@@ -82,6 +91,16 @@ type RichTextEditorProps = {
   isEditable?: boolean;
   isToolbarOpen?: boolean;
   showDiffWith?: RichTextDocument;
+  // Resolves the user-picked asset for the figure-insert toolbar action.
+  // Owned by the caller so this component stays presentational — it doesn't
+  // touch project context, filesystem adapters, or IPC. If omitted, the
+  // image toolbar button is disabled.
+  pickAsset?: prosemirror.FigureAssetPicker;
+  // Maps `node.attrs.src` (as stored in the PM doc / on-disk Markdown) to
+  // a renderable URL for `<img>` rendering and diff overlays. Owned by the
+  // caller — the editor doesn't know whether the result is an http URL, a
+  // custom protocol URL, or identity. Omit for contexts without a project.
+  resolveAssetSrc?: prosemirror.ResolveAssetSrc;
 };
 
 export const RichTextEditor = ({
@@ -91,6 +110,8 @@ export const RichTextEditor = ({
   isEditable = true,
   isToolbarOpen = false,
   showDiffWith,
+  pickAsset,
+  resolveAssetSrc,
 }: RichTextEditorProps) => {
   const editorRoot = useRef<HTMLDivElement>(null);
   const editorViewRef = useRef<EditorView | null>(null);
@@ -113,6 +134,7 @@ export const RichTextEditor = ({
   const [selectionIsLink, setSelectionIsLink] = useState<boolean>(false);
   const [horizontalRuleEnabled, setHorizontalRuleEnabled] =
     useState<boolean>(false);
+  const [imageEnabled, setImageEnabled] = useState<boolean>(false);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState<boolean>(false);
   const [linkDialogInitialAttrs, setLinkDialogInitialAttrs] =
     useState<LinkAttrs>({ title: '', href: '' });
@@ -150,16 +172,26 @@ export const RichTextEditor = ({
     placeholderPlugin('Start writing...'),
     ...markdownMarkPlugins(schema),
     pasteMarkdownPlugin(parseMarkdown(schema)),
-    notesPlugin(),
-    codeBlockHighlightPlugin,
-    history(),
+    // Must come before `notesPlugin`, which installs a `handleKeyDown`
+    // for Backspace/Delete that falls back to PM's default chain —
+    // swallowing the keystroke before any later keymap can see it. The
+    // remaining (non-Backspace/Delete) bindings don't conflict with
+    // notesPlugin, but live here too so we keep a single keymap.
     keymap({
+      Backspace: deleteFigureBeforeCursor,
+      Delete: deleteFigureAfterCursor,
+      // Both figure (selected) and list-item (inside list) commands
+      // return false when inapplicable, so chaining covers either case
+      // and falls through to `baseKeymap` otherwise.
+      Enter: chainCommands(
+        createParagraphAfterSelectedFigure,
+        splitListItem(schema.nodes.list_item)
+      ),
       'Mod-b': toggleStrong(schema),
       'Mod-i': toggleEm(schema),
       'Mod-z': undo,
       'Mod-y': redo,
       'Shift-Mod-z': redo,
-      Enter: splitListItem(schema.nodes.list_item),
       'Mod-[': liftListItem(schema.nodes.list_item),
       'Mod-]': sinkListItem(schema.nodes.list_item),
       'Mod-Alt-f': insertNote,
@@ -167,12 +199,19 @@ export const RichTextEditor = ({
       // to the next focusable element
       Tab: () => true,
     }),
+    // Only registered when the caller has supplied a picker. Without it,
+    // `triggerFigureInsert` is a no-op and the image button is disabled.
+    ...(pickAsset ? [figureInsertPlugin({ pickAsset })] : []),
+    notesPlugin(),
+    codeBlockHighlightPlugin,
+    history(),
     keymap(baseKeymap),
     linkSelectionPlugin,
     selectionChangePlugin(onSelectionChange(schema)),
     ensureTrailingParagraphPlugin(schema),
     moveCursorToNextBlockOnInsertionPlugin(schema),
     ensureTrailingSpaceAfterAtomPlugin(),
+    removeEmptyFiguresPlugin(schema),
   ];
 
   useKeyBindings({
@@ -206,6 +245,7 @@ export const RichTextEditor = ({
       decorationClasses,
       docBefore: contentBefore,
       docAfter: contentAfter,
+      transformImageSrc: resolveAssetSrc,
     });
 
     return diffPlugin({
@@ -276,13 +316,17 @@ export const RichTextEditor = ({
       const editorConfig = {
         schema,
         plugins,
-        doc: pmDoc,
+        // Apply the trailing-paragraph invariant up-front so docs that end
+        // in a figure (or other block that needs one) are typeable on
+        // first load. The plugin alone only handles `docChanged`
+        // transactions, which don't fire on initial state creation.
+        doc: ensureTrailingParagraphInDoc(pmDoc, schema),
       };
 
       const state = EditorState.create(editorConfig);
       const editorView = new EditorView(editorRoot.current, {
         state,
-        nodeViews: registerNodeViews(),
+        nodeViews: registerNodeViews({ resolveAssetSrc }),
         dispatchTransaction: (tx: Transaction) => {
           const newState = editorView.state.apply(tx);
           editorView.updateState(newState);
@@ -291,6 +335,7 @@ export const RichTextEditor = ({
           setLeafBlockType(getCurrentLeafBlockType(newState));
           setContainerBlockType(getCurrentContainerBlockType(newState));
           setHorizontalRuleEnabled(canInsertHorizontalRule(newState));
+          setImageEnabled(canInsertFigure(newState));
 
           if (tx.selectionSet || transactionUpdatesMarks(tx)) {
             setStrongSelected(isMarkActive(schema.marks.strong)(newState));
@@ -314,6 +359,7 @@ export const RichTextEditor = ({
         setLeafBlockType(getCurrentLeafBlockType(state));
         setContainerBlockType(getCurrentContainerBlockType(state));
         setHorizontalRuleEnabled(canInsertHorizontalRule(state));
+        setImageEnabled(canInsertFigure(state));
       }
     };
 
@@ -540,6 +586,16 @@ export const RichTextEditor = ({
     }
   };
 
+  const handleImageClick = async () => {
+    if (!view) return;
+    try {
+      await triggerFigureInsert(view);
+      view.focus();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <>
       <div
@@ -575,6 +631,8 @@ export const RichTextEditor = ({
             onNoteClick={handleNoteClick}
             onHorizontalRuleClick={handleHorizontalRuleClick}
             horizontalRuleEnabled={horizontalRuleEnabled}
+            onImageClick={handleImageClick}
+            imageEnabled={imageEnabled && !!pickAsset}
           />
         </div>
       )}

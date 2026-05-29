@@ -1,4 +1,5 @@
 import * as Effect from 'effect/Effect';
+import * as Option from 'effect/Option';
 
 import {
   type Branch,
@@ -16,6 +17,7 @@ import {
   type ArtifactMetaData,
   type MultiDocumentProject,
   type ProjectId,
+  type ProjectRelPath,
   type RemoteProjectInfo,
   type VersionedMultiDocumentProject,
 } from '../../models';
@@ -37,6 +39,32 @@ export type AddDocumentToMultiDocumentProjectArgs = {
   name: string;
   path: string;
   projectId: ProjectId;
+};
+
+export type AddAssetToMultiDocumentProjectArgs = {
+  projectId: ProjectId;
+  name: string;
+  content: Uint8Array;
+};
+
+export type DeleteAssetFromMultiDocumentProjectArgs = {
+  projectId: ProjectId;
+  assetId: ResolvedArtifactId;
+};
+
+export type LookupAssetByNameInMultiDocumentProjectArgs = {
+  projectId: ProjectId;
+  name: string;
+};
+
+export type ReadAssetBytesFromMultiDocumentProjectArgs = {
+  projectId: ProjectId;
+  relPath: ProjectRelPath;
+};
+
+export type GetProjectRelativePathArgs = {
+  projectId: ProjectId;
+  absolutePath: string;
 };
 
 export type DeleteDocumentFromMultiDocumentProjectArgs = {
@@ -69,6 +97,19 @@ export type FindDocumentInMultiDocumentProjectArgs = {
 export type MultiDocumentProjectCommitChangesArgs = {
   projectId: ProjectId;
   message: string;
+};
+
+export type MultiDocumentProjectCommitDocumentChangesArgs = {
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
+  message: string;
+};
+
+export type MultiDocumentProjectRestoreDocumentChangesArgs = {
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
+  commit: Commit;
+  message?: string;
 };
 
 export type MultiDocumentProjectCreateAndSwitchToBranchArgs = {
@@ -189,6 +230,7 @@ export type MultiDocumentProjectGetRemoteBranchInfoResult = Record<
 
 export type MultiDocumentProjectStore = {
   supportsBranching: boolean;
+  assetsDirName: string;
   createProject: (
     args: CreateMultiDocumentProjectArgs
   ) => Effect.Effect<ProjectId, ValidationError | RepositoryError, never>;
@@ -248,9 +290,72 @@ export type MultiDocumentProjectStore = {
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
+  addAssetToProject: (
+    args: AddAssetToMultiDocumentProjectArgs
+  ) => Effect.Effect<
+    ResolvedArtifactId,
+    ValidationError | MigrationError | RepositoryError | NotFoundError,
+    never
+  >;
+  deleteAssetFromProject: (
+    args: DeleteAssetFromMultiDocumentProjectArgs
+  ) => Effect.Effect<
+    void,
+    ValidationError | MigrationError | RepositoryError | NotFoundError,
+    never
+  >;
+  lookupAssetByName: (
+    args: LookupAssetByNameInMultiDocumentProjectArgs
+  ) => Effect.Effect<
+    ResolvedArtifactId,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  listProjectAssets: (
+    id: ProjectId
+  ) => Effect.Effect<
+    ArtifactMetaData[],
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  readAssetBytes: (
+    args: ReadAssetBytesFromMultiDocumentProjectArgs
+  ) => Effect.Effect<
+    Uint8Array,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
+  getProjectRelativePath: (
+    args: GetProjectRelativePathArgs
+  ) => Effect.Effect<Option.Option<string>, RepositoryError, never>;
   commitChanges: (
     args: MultiDocumentProjectCommitChangesArgs
   ) => Effect.Effect<Commit['id'], ValidationError | RepositoryError, never>;
+  // Commits a single document alongside any assets it currently
+  // references — so HEAD never holds a `.md` with a broken image link.
+  // The implementation determines the asset set by reading the document's
+  // on-disk content and scanning its image references.
+  commitDocumentChanges: (
+    args: MultiDocumentProjectCommitDocumentChangesArgs
+  ) => Effect.Effect<
+    Commit['id'],
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
+  // Restores a document and its referenced assets to an earlier commit,
+  // then makes a new commit recording the restoration. Reads doc + asset
+  // bytes from the historical commit (not the current working tree),
+  // writes them back to disk, stages, and commits. Assets referenced by
+  // the historical doc that aren't present in that commit are skipped —
+  // the restored doc on disk will carry a broken ref for those, but the
+  // restoration as a whole succeeds.
+  restoreDocumentChanges: (
+    args: MultiDocumentProjectRestoreDocumentChangesArgs
+  ) => Effect.Effect<
+    Commit['id'],
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
   createAndSwitchToBranch: (
     args: MultiDocumentProjectCreateAndSwitchToBranchArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;

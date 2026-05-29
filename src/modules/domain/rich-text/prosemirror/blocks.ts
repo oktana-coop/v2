@@ -1,4 +1,4 @@
-import { type Fragment, NodeType, Schema } from 'prosemirror-model';
+import { Fragment, type Node, NodeType, Schema } from 'prosemirror-model';
 import {
   NodeSelection,
   Plugin,
@@ -15,7 +15,25 @@ const blocksThatNeedTrailingParagraph: (schema: Schema) => Array<NodeType> = (
   schema.nodes.code_block,
   schema.nodes.blockquote,
   schema.nodes.horizontal_rule,
+  schema.nodes.figure,
 ];
+
+// Equivalent of `ensureTrailingParagraphPlugin` for first-load docs. The
+// plugin only fires on `docChanged` transactions, so it never runs when an
+// EditorState is created directly from a doc (initial load). Use this to
+// pre-process the doc before constructing the state.
+export const ensureTrailingParagraphInDoc = (
+  doc: Node,
+  schema: Schema
+): Node => {
+  const lastChild = doc.lastChild;
+  if (!lastChild) return doc;
+  if (!blocksThatNeedTrailingParagraph(schema).includes(lastChild.type))
+    return doc;
+  return doc.copy(
+    doc.content.append(Fragment.from(schema.nodes.paragraph.create()))
+  );
+};
 
 export const ensureTrailingParagraphPlugin = (schema: Schema) => {
   return new Plugin({
@@ -49,7 +67,10 @@ export const ensureTrailingParagraphPlugin = (schema: Schema) => {
 // the cursor moves out of it and into the following block.
 const blocksForWhichCursorMovesToNextBlockOnInsertion: (
   schema: Schema
-) => Array<NodeType> = (schema) => [schema.nodes.horizontal_rule];
+) => Array<NodeType> = (schema) => [
+  schema.nodes.horizontal_rule,
+  schema.nodes.figure,
+];
 
 const fragmentContainsNodeOfType = ({
   fragment,
@@ -106,6 +127,42 @@ export const moveCursorToNextBlockOnInsertionPlugin = (schema: Schema) =>
       if (!next) return null;
 
       return newState.tr.setSelection(next);
+    },
+  });
+
+/**
+ * Drops figures whose body has no image after a transaction. Deleting an
+ * image inside a figure leaves the `figure_content` node empty (its content
+ * rule is `image?`, image is optional), and Pandoc serializes such empty
+ * figures as raw `<figure></figure>` HTML — visible "traces" in the saved
+ * Markdown. Cleaning them up here keeps deletion behavior intuitive.
+ */
+export const removeEmptyFiguresPlugin = (schema: Schema) =>
+  new Plugin({
+    appendTransaction(transactions, _, newState) {
+      if (!transactions.some((tr) => tr.docChanged)) return null;
+
+      const positions: { from: number; size: number }[] = [];
+      newState.doc.descendants((node, pos) => {
+        if (node.type !== schema.nodes.figure) return true;
+        const body = node.firstChild;
+        const isEmpty =
+          !body ||
+          body.type !== schema.nodes.figure_content ||
+          body.childCount === 0;
+        if (isEmpty) positions.push({ from: pos, size: node.nodeSize });
+        // Don't descend into figures.
+        return false;
+      });
+
+      if (positions.length === 0) return null;
+
+      // Delete bottom-up so earlier positions remain valid.
+      const tr = newState.tr;
+      for (let i = positions.length - 1; i >= 0; i--) {
+        tr.delete(positions[i].from, positions[i].from + positions[i].size);
+      }
+      return tr;
     },
   });
 

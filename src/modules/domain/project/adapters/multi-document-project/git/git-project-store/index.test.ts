@@ -78,6 +78,7 @@ vi.mock('isomorphic-git', () => ({
     log: vi.fn(),
     readBlob: vi.fn(),
     statusMatrix: vi.fn(),
+    getConfig: vi.fn(),
   },
   Errors: {
     NotFoundError: class NotFoundError extends Error {},
@@ -85,6 +86,7 @@ vi.mock('isomorphic-git', () => ({
 }));
 
 const mockCommit = vi.mocked(git.commit);
+const mockGetConfig = vi.mocked(git.getConfig);
 
 const mockFs = {} as IsoGitFsApi;
 const mockHttp = {} as IsoGitHttpApi;
@@ -112,9 +114,15 @@ const store = createAdapter({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // Default: getUserInfo succeeds with a test author
   mockGetUserInfo.mockReturnValue(
     Effect.succeed({ username: 'Test', email: 'test@test.com' })
+  );
+  mockGetConfig.mockImplementation(async ({ path }) =>
+    path === 'user.name'
+      ? 'Test'
+      : path === 'user.email'
+        ? 'test@test.com'
+        : undefined
   );
 });
 

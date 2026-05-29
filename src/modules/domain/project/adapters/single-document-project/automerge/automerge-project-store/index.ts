@@ -14,6 +14,7 @@ import {
 } from '../../../../../../../modules/infrastructure/version-control';
 import { fromNullable } from '../../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../../utils/errors';
+import { DEFAULT_ASSETS_DIR_NAME } from '../../../../constants';
 import {
   NotFoundError,
   RepositoryError,
@@ -62,6 +63,7 @@ export const createAdapter = (
               type: versionedArtifactTypes.SINGLE_DOCUMENT_PROJECT,
               schemaVersion: CURRENT_SINGLE_DOCUMENT_PROJECT_SCHEMA_VERSION,
               document: documentMetaData,
+              assets: {},
               name,
             }),
           catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
@@ -274,6 +276,43 @@ export const createAdapter = (
         )
       );
 
+  // Assets aren't implemented for Automerge yet — every asset op fails
+  // with a "not yet supported" RepositoryError.
+  const addAssetToProject: SingleDocumentProjectStore['addAssetToProject'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Assets are not yet supported when the app is configured with Automerge'
+        )
+      );
+  const deleteAssetFromProject: SingleDocumentProjectStore['deleteAssetFromProject'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Assets are not yet supported when the app is configured with Automerge'
+        )
+      );
+  const lookupAssetByName: SingleDocumentProjectStore['lookupAssetByName'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Assets are not yet supported when the app is configured with Automerge'
+        )
+      );
+  const listProjectAssets: SingleDocumentProjectStore['listProjectAssets'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Assets are not yet supported when the app is configured with Automerge'
+        )
+      );
+  const readAssetBytes: SingleDocumentProjectStore['readAssetBytes'] = () =>
+    Effect.fail(
+      new RepositoryError(
+        'Assets are not yet supported when the app is configured with Automerge'
+      )
+    );
+
   // TODO: Implement explicit commit in Automerge
   const commitChanges: SingleDocumentProjectStore['commitChanges'] = () =>
     Effect.fail(
@@ -282,13 +321,29 @@ export const createAdapter = (
       )
     );
 
+  const restoreChanges: SingleDocumentProjectStore['restoreChanges'] = () =>
+    Effect.fail(
+      new RepositoryError(
+        'Restoring a document to an earlier commit is not yet supported when the app is configured with Automerge'
+      )
+    );
+
   return {
     // TODO: Implement branching in Automerge
     supportsBranching: false,
+    // Assets aren't implemented in Automerge yet — the field is required by
+    // the port. None of the asset ops actually work on this adapter (they
+    // return "not supported").
+    assetsDirName: DEFAULT_ASSETS_DIR_NAME,
     createSingleDocumentProject,
     findProjectById,
     findDocumentInProject,
     getProjectName,
+    addAssetToProject,
+    deleteAssetFromProject,
+    lookupAssetByName,
+    listProjectAssets,
+    readAssetBytes,
     createAndSwitchToBranch,
     switchToBranch,
     getCurrentBranch,
@@ -298,6 +353,7 @@ export const createAdapter = (
     getMergeConflictInfo,
     abortMerge,
     commitChanges,
+    restoreChanges,
     commitMergeConflictsResolution,
     setAuthorInfo,
     addRemoteProject,

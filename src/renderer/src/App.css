@@ -187,4 +187,83 @@
     min-width: var(--size);
     padding-inline: 0em;
   }
+
+  /* Figure diff annotations.
+   *
+   * The diff plugin applies the same `bg-*` class it uses for inline diffs
+   * (`diffInsert`/`diffModify`/`diffDelete`) to the figure or one of its
+   * descendants. Those background colors are invisible on figures because
+   * the image fills the box — the same problem the selection overlay
+   * solves. Re-render each diff state as an ::after overlay with the
+   * matching tint. The Tailwind classes are detected by name; if any of
+   * the diff class names in `marks/index.ts` change, update them here. */
+  .ProseMirror figure.bg-green-300::after,
+  .ProseMirror figure:has(.bg-green-300)::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgb(34 197 94 / 0.3); /* tw green-500/30 */
+    pointer-events: none;
+  }
+  .ProseMirror figure.bg-purple-100::after,
+  .ProseMirror figure:has(.bg-purple-100)::after,
+  .ProseMirror figure.bg-purple-200::after,
+  .ProseMirror figure:has(.bg-purple-200)::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgb(168 85 247 / 0.3); /* tw purple-500/30 */
+    pointer-events: none;
+  }
+  /* Deleted figures are rendered via a delete-widget that wraps the
+   * serialized figure in `<div class="bg-red-200"><figure>…</figure></div>`.
+   * The figure inside the widget is the only one that should get the
+   * delete overlay — using a `:has(.bg-red-200)` selector here would also
+   * paint any *ancestor* figure that happens to contain a delete widget
+   * (e.g. an inserted figure whose body contains a deleted one), turning
+   * an insert visually into a delete. Target the direct widget child
+   * only. */
+  .ProseMirror .bg-red-200 > figure::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgb(239 68 68 / 0.3); /* tw red-500/30 */
+    pointer-events: none;
+  }
+
+  /* Delete-widget blocks rendered inside an inserted/modified figure must
+   * paint above the host figure's `::after` diff overlay, otherwise the
+   * host's tint (insert green / modify purple) covers them and they look
+   * like part of the host. Promoting the widget into its own stacking
+   * context lifts it above the overlay. */
+  .ProseMirror figure > [data-figure-content] > .bg-red-200 {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* When the deleted thing is the inline `image` inside a figure_content
+   * (the common case for "image replaced with another image"), the delete
+   * widget renders as `<span class="bg-red-200"><img></span>` rather than a
+   * block + figure. The plain `bg-red-200` background is invisible behind an
+   * opaque image, so we lay the span out as an inline-block, lift it above
+   * the host figure's `::after` overlay, and tint it red via its own
+   * `::after`. */
+  .ProseMirror
+    figure
+    [data-figure-content]
+    > span.bg-red-200:has(> img:not(.ProseMirror-separator)) {
+    display: inline-block;
+    position: relative;
+    z-index: 1;
+  }
+  .ProseMirror
+    figure
+    [data-figure-content]
+    > span.bg-red-200:has(> img:not(.ProseMirror-separator))::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgb(239 68 68 / 0.3);
+    pointer-events: none;
+  }
 }

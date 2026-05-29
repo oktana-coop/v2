@@ -9,6 +9,7 @@ import {
   VersionControlMigrationErrorTag,
 } from '../../../../../../../modules/infrastructure/version-control';
 import { type EffectErrorType } from '../../../../../../../utils/effect';
+import { DEFAULT_ASSETS_DIR_NAME } from '../../../../constants';
 import {
   NotFoundError,
   RepositoryError,
@@ -23,6 +24,7 @@ import { SingleDocumentProjectStore } from '../../../../ports/single-document-pr
 // to send the messages to the main Electron process which will do the heavy lifting.
 export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
   supportsBranching: true,
+  assetsDirName: DEFAULT_ASSETS_DIR_NAME,
   createSingleDocumentProject: (
     ...args: Parameters<
       SingleDocumentProjectStore['createSingleDocumentProject']
@@ -92,6 +94,85 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.singleDocumentProjectStoreAPI.getProjectName(...args)),
+  addAssetToProject: (
+    ...args: Parameters<SingleDocumentProjectStore['addAssetToProject']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['addAssetToProject']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.addAssetToProject(...args)),
+  deleteAssetFromProject: (
+    ...args: Parameters<SingleDocumentProjectStore['deleteAssetFromProject']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['deleteAssetFromProject']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.deleteAssetFromProject(...args)),
+  lookupAssetByName: (
+    ...args: Parameters<SingleDocumentProjectStore['lookupAssetByName']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['lookupAssetByName']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.lookupAssetByName(...args)),
+  listProjectAssets: (
+    ...args: Parameters<SingleDocumentProjectStore['listProjectAssets']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['listProjectAssets']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.listProjectAssets(...args)),
+  readAssetBytes: (
+    ...args: Parameters<SingleDocumentProjectStore['readAssetBytes']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['readAssetBytes']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.readAssetBytes(...args)),
   createAndSwitchToBranch: (
     ...args: Parameters<SingleDocumentProjectStore['createAndSwitchToBranch']>
   ) =>
@@ -211,6 +292,22 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.singleDocumentProjectStoreAPI.commitChanges(...args)),
+  restoreChanges: (
+    ...args: Parameters<SingleDocumentProjectStore['restoreChanges']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['restoreChanges']>
+        >
+      >,
+      RepositoryError
+    )(window.singleDocumentProjectStoreAPI.restoreChanges(...args)),
   commitMergeConflictsResolution: (
     ...args: Parameters<
       SingleDocumentProjectStore['commitMergeConflictsResolution']

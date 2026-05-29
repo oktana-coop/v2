@@ -3,8 +3,8 @@ import {
   type VersionedArtifact,
   type VersionedArtifactHandle,
   versionedArtifactTypes,
-} from '../../../../modules/infrastructure/version-control';
-import { type ProjectId } from './project-id';
+} from '../../../../../modules/infrastructure/version-control';
+import { type ProjectId } from '../project-id';
 
 export const CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION = 1;
 export const CURRENT_SINGLE_DOCUMENT_PROJECT_SCHEMA_VERSION = 1;
@@ -23,6 +23,7 @@ export type MultiDocumentProject = {
   schemaVersion: number;
   path: string;
   documents: Record<ResolvedArtifactId, ArtifactMetaData>;
+  assets: Record<ResolvedArtifactId, ArtifactMetaData>;
 };
 
 export type VersionedMultiDocumentProject =
@@ -41,6 +42,7 @@ export type SingleDocumentProject = {
   type: typeof versionedArtifactTypes.SINGLE_DOCUMENT_PROJECT;
   schemaVersion: number;
   document: BaseArtifactMetaData;
+  assets: Record<ResolvedArtifactId, ArtifactMetaData>;
   name: string | null;
 };
 

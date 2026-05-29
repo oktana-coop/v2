@@ -8,6 +8,10 @@ import {
 } from '../../../../../../app-state';
 import { RichTextEditor } from '../../../../../../components/editing/RichTextEditor';
 import { LongTextSkeleton } from '../../../../../../components/progress/skeletons/LongText';
+import {
+  useAssetSrcResolver,
+  useInsertAssetIntoProject,
+} from '../../../../../../hooks';
 import { useCurrentDocumentExtension } from '../../../../../../hooks/use-current-document-extension';
 import { UnsupportedDocumentView } from '../../../../shared/unsupported-document-view';
 import { ActionsBar } from './ActionsBar';
@@ -24,11 +28,18 @@ export const DocumentEditor = () => {
   const { openCommitModal } = useContext(CommitModalContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const { isUnsupported } = useCurrentDocumentExtension();
+  const insertAssetIntoProject = useInsertAssetIntoProject();
+  const resolveAssetSrc = useAssetSrcResolver();
 
   const handleEditorToolbarToggle = useCallback(() => {
     toggleEditorToolbar(!isEditorToolbarOpen);
     editorView?.focus();
   }, [editorView, isEditorToolbarOpen]);
+
+  const pickAsset = useCallback(async () => {
+    const result = await insertAssetIntoProject();
+    return result ? { src: result.relPath, alt: result.alt } : null;
+  }, [insertAssetIntoProject]);
 
   if (isUnsupported) {
     return <UnsupportedDocumentView />;
@@ -54,6 +65,8 @@ export const DocumentEditor = () => {
               docHandle={versionedDocumentHandle}
               isToolbarOpen={isEditorToolbarOpen}
               onDocChange={onDocumentContentChange}
+              pickAsset={pickAsset}
+              resolveAssetSrc={resolveAssetSrc}
             />
           ) : (
             <LongTextSkeleton />
