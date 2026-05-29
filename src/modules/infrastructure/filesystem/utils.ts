@@ -28,3 +28,22 @@ export const getDirectoryName = (dirPath: string) => {
   const parts = dirPath.replace(/\/$/, '').split('/');
   return parts[parts.length - 1];
 };
+
+export const toPosixPath = (p: string) => p.replace(/\\/g, '/');
+
+// Splits a POSIX path into segments, discarding empty parts (leading
+// slashes, `//`) and `.` segments. Returns [] for the empty/`./` path.
+export const splitPosixPath = (p: string): string[] =>
+  toPosixPath(p)
+    .split('/')
+    .filter((segment) => segment.length > 0 && segment !== '.');
+
+// POSIX directory portion of a path, normalized (no leading slash, no `.`).
+// `"a/b/notes.md"` → `"a/b"`. `"notes.md"` → `""`.
+// Differs from `getParentPath` in that it normalizes via POSIX segments
+// rather than preserving the original separator style.
+export const parentDir = (p: string): string => {
+  const parts = splitPosixPath(p);
+  parts.pop();
+  return parts.join('/');
+};
