@@ -47,6 +47,10 @@ import {
   registerAppearanceIPCHandlers,
   setSavedOrDefaultTheme,
 } from './appearance';
+import {
+  createAssetUrlProtocol,
+  installProjectAssetProtocolHandler,
+} from './asset-protocol';
 import { registerAuthInfoIPCHandlers } from './auth';
 import {
   registerContextMenusIPCHandlers,
@@ -63,6 +67,7 @@ const encryptedStore = createElectronMainEncryptedStoreAdapter({
   filesystem: filesystemAPI,
 });
 const pdfEngine = createPagedJsElectronNodeAdapter();
+const assetUrlProtocol = createAssetUrlProtocol();
 
 globalThis.__filename = fileURLToPath(import.meta.url);
 globalThis.__dirname = dirname(__filename);
@@ -299,6 +304,9 @@ async function createWindow() {
   ipcMain.handle('create-directory', (_, args: CreateDirectoryArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.createDirectory(args))
   );
+  ipcMain.handle('ensure-directory', (_, args: { path: string }) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.ensureDirectory(args))
+  );
 
   ipcMain.on('open-external-link', (_, url: string) => {
     if (os.platform() === 'darwin') {
@@ -340,6 +348,8 @@ app.whenReady().then(() => {
       callback(allowedPermissionsSet.has(permission as string));
     }
   );
+
+  installProjectAssetProtocolHandler({ assetUrlProtocol });
 
   setSavedOrDefaultTheme(store);
 
