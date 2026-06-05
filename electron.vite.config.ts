@@ -40,6 +40,12 @@ export default defineConfig(({ mode }) => {
           path: 'path-browserify',
         },
       },
+      // @wasmer/wasi and buffer are only imported from the wasi-cli-worker web worker, so Vite's
+      // initial dep scan misses them and re-optimizes on first worker load,
+      // triggering a reload that breaks the Electron renderer. Pre-bundle them.
+      optimizeDeps: {
+        include: ['@wasmer/wasi', 'buffer'],
+      },
       plugins: [topLevelAwait(), wasm(), react()],
       build: {
         rollupOptions: {
