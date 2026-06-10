@@ -14,6 +14,7 @@ import {
 } from '../../../../../../../modules/infrastructure/version-control';
 import { fromNullable } from '../../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../../utils/errors';
+import { DEFAULT_ASSETS_DIR_NAME } from '../../../../constants';
 import {
   NotFoundError,
   RepositoryError,
@@ -70,6 +71,7 @@ export const createAdapter = (
             schemaVersion: CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION,
             path,
             documents: {},
+            assets: {},
           }),
         catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
       }),
@@ -220,6 +222,22 @@ export const createAdapter = (
         'Committing changes to a project has not yet been implemented in Automerge'
       )
     );
+
+  const commitDocumentChanges: MultiDocumentProjectStore['commitDocumentChanges'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Committing changes to a document has not yet been implemented in Automerge'
+        )
+      );
+
+  const restoreDocumentChanges: MultiDocumentProjectStore['restoreDocumentChanges'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Restoring a document to an earlier commit has not yet been implemented in Automerge'
+        )
+      );
 
   // TODO: Implement branching in Automerge
   const createAndSwitchToBranch: MultiDocumentProjectStore['createAndSwitchToBranch'] =
@@ -375,9 +393,55 @@ export const createAdapter = (
         )
       );
 
+  // Assets aren't implemented for Automerge yet — every asset op fails
+  // with a "not yet supported" RepositoryError.
+  const addAssetToProject: MultiDocumentProjectStore['addAssetToProject'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Assets are not yet supported when the app is configured with Automerge'
+        )
+      );
+  const deleteAssetFromProject: MultiDocumentProjectStore['deleteAssetFromProject'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Assets are not yet supported when the app is configured with Automerge'
+        )
+      );
+  const lookupAssetByName: MultiDocumentProjectStore['lookupAssetByName'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Assets are not yet supported when the app is configured with Automerge'
+        )
+      );
+  const listProjectAssets: MultiDocumentProjectStore['listProjectAssets'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Assets are not yet supported when the app is configured with Automerge'
+        )
+      );
+  const readAssetBytes: MultiDocumentProjectStore['readAssetBytes'] = () =>
+    Effect.fail(
+      new RepositoryError(
+        'Assets are not yet supported when the app is configured with Automerge'
+      )
+    );
+
+  const getProjectRelativePath: MultiDocumentProjectStore['getProjectRelativePath'] =
+    () =>
+      Effect.fail(
+        new RepositoryError(
+          'Assets are not yet supported when the app is configured with Automerge'
+        )
+      );
+
   return {
     // TODO: Implement branching in Automerge
     supportsBranching: false,
+    assetsDirName: DEFAULT_ASSETS_DIR_NAME,
     createProject,
     findProjectById,
     listProjectDocuments,
@@ -387,7 +451,15 @@ export const createAdapter = (
     renameDocumentInProject,
     renameDocumentsInProject,
     findDocumentInProject,
+    addAssetToProject,
+    deleteAssetFromProject,
+    lookupAssetByName,
+    listProjectAssets,
+    readAssetBytes,
+    getProjectRelativePath,
     commitChanges,
+    commitDocumentChanges,
+    restoreDocumentChanges,
     createAndSwitchToBranch,
     switchToBranch,
     getCurrentBranch,

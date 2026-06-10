@@ -8,7 +8,12 @@ import {
 } from '../../../../../../../modules/infrastructure/version-control';
 import { RichTextEditor } from '../../../../../components/editing/RichTextEditor';
 import { LongTextSkeleton } from '../../../../../components/progress/skeletons/LongText';
-import { useMergeConflictResolution, useProjectId } from '../../../../../hooks';
+import {
+  useAssetInsertion,
+  useAssetSrcResolver,
+  useMergeConflictResolution,
+  useProjectId,
+} from '../../../../../hooks';
 import { SuggestedMergeInfoPanel } from './SuggestedMergeInfoPanel';
 
 export type ContentConflictProps = {
@@ -27,6 +32,8 @@ export const ContentConflict = ({
   onDocChange,
 }: ContentConflictProps) => {
   const projectId = useProjectId();
+  const resolveAssetSrc = useAssetSrcResolver(conflict.path);
+  const pickAsset = useAssetInsertion(conflict.path);
   const [suggestedResolution, setSuggestedResolution] = useState<{
     docBefore: RichTextDocument;
     docAfter: RichTextDocument;
@@ -70,7 +77,9 @@ export const ContentConflict = ({
         docHandle={null}
         isToolbarOpen={isEditorToolbarOpen}
         onDocChange={onDocChange}
+        pickAsset={pickAsset}
         showDiffWith={showDiff ? suggestedResolution.docBefore : undefined}
+        resolveAssetSrc={resolveAssetSrc}
       />
     </div>
   );

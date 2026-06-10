@@ -10,6 +10,8 @@ export type ProseMirrorDiffArgs = {
   decorationClasses: DiffDecorationClasses;
   docBefore: string;
   docAfter: string;
+  // Required to transform/normalize asset src URLs.
+  transformImageSrc: (src: string) => string;
 };
 
 export type ProseMirrorDiffResult = {

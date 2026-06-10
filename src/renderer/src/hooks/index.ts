@@ -17,3 +17,6 @@ export * from './use-project-id';
 export * from './use-pulled-upstream-changes';
 export * from './use-remote-project-info';
 export * from './use-commit-to-project';
+export * from './use-commit-document-changes';
+export * from './use-asset-insertion';
+export * from './use-asset-src-resolver';

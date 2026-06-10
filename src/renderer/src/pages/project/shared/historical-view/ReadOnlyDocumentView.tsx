@@ -15,6 +15,7 @@ import {
   diffInsert,
   diffModify,
 } from '../../../../components/editing/marks';
+import { useAssetSrcResolver } from '../../../../hooks';
 
 const {
   schema,
@@ -23,6 +24,7 @@ const {
   numberNotes,
   openExternalLinkPlugin,
   codeBlockHighlightPlugin,
+  registerNodeViews,
 } = prosemirror;
 
 export type DiffViewProps = {
@@ -55,6 +57,7 @@ export const ReadOnlyDocumentView = (props: ReadOnlyDocumentViewProps) => {
   const { openExternalLink } = useContext(ElectronContext);
   const editorRoot = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const resolveAssetSrc = useAssetSrcResolver();
   const {
     proseMirrorDiff,
     diffAdapterReady,
@@ -77,6 +80,7 @@ export const ReadOnlyDocumentView = (props: ReadOnlyDocumentViewProps) => {
     viewRef.current = new EditorView(editorRoot.current, {
       state,
       editable: () => false,
+      nodeViews: registerNodeViews({ resolveAssetSrc }),
     });
 
     return () => {
@@ -109,6 +113,7 @@ export const ReadOnlyDocumentView = (props: ReadOnlyDocumentViewProps) => {
         decorationClasses,
         docBefore: contentBefore,
         docAfter: contentAfter,
+        transformImageSrc: resolveAssetSrc,
       });
 
       if (destroyed) return;
@@ -123,6 +128,7 @@ export const ReadOnlyDocumentView = (props: ReadOnlyDocumentViewProps) => {
             proseMirrorDiff,
             convertFromProseMirror,
             decorationClasses,
+            transformImageSrc: resolveAssetSrc,
           }),
           notesPlugin(),
         ],

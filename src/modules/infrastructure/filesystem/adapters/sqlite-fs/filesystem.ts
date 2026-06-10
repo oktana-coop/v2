@@ -57,6 +57,10 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
       )
     );
 
+  // TODO: honor the `recursive` flag — currently always returns immediate
+  // children only. No consumer requires recursive listing in SQLite-fs yet,
+  // but the port allows it; passing `recursive: true` here will silently
+  // produce a top-level-only result.
   const listDirectoryFiles: Filesystem['listDirectoryFiles'] = ({
     path: directoryPath,
     useRelativePath,
@@ -328,6 +332,11 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
       )
     );
 
+  // Directories are implicit from filenames in the SQLite filesystem,
+  // so ensuring a directory exists is a no-op.
+  const ensureDirectory: Filesystem['ensureDirectory'] = () =>
+    Effect.succeed(undefined);
+
   return {
     openDirectory,
     getDirectory,
@@ -348,5 +357,6 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
     getRenamedPath,
     isDescendantPath,
     createDirectory,
+    ensureDirectory,
   };
 };

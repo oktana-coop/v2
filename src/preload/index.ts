@@ -167,6 +167,8 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
   rename: (args: RenameArgs) => ipcRenderer.invoke('rename', { ...args }),
   createDirectory: (args: CreateDirectoryArgs) =>
     ipcRenderer.invoke('create-directory', { ...args }),
+  ensureDirectory: (args) =>
+    ipcRenderer.invoke('ensure-directory', { ...args }),
   getRelativePath: (args) =>
     ipcRenderer.invoke('get-relative-path', { ...args }),
   getAbsolutePath: (args) =>
@@ -210,12 +212,6 @@ contextBridge.exposeInMainWorld('versionedDocumentStoreAPI', {
       args,
       projectId
     ),
-  commitChanges: (args, projectId) =>
-    ipcRenderer.invoke(
-      'versioned-document-store:commit-changes',
-      { ...args },
-      projectId
-    ),
   getDocumentHistory: (id, projectId) =>
     ipcRenderer.invoke(
       'versioned-document-store:get-document-history',
@@ -233,14 +229,6 @@ contextBridge.exposeInMainWorld('versionedDocumentStoreAPI', {
   isContentSameAtChanges: (args, projectId) =>
     ipcRenderer.invoke(
       'versioned-document-store:is-content-same-at-changes',
-      {
-        ...args,
-      },
-      projectId
-    ),
-  restoreCommit: (args, projectId) =>
-    ipcRenderer.invoke(
-      'versioned-document-store:restore-commit',
       {
         ...args,
       },
@@ -280,6 +268,14 @@ contextBridge.exposeInMainWorld('singleDocumentProjectStoreAPI', {
       'single-document-project-store:find-document-in-project',
       id
     ),
+  addAssetToProject: (args) =>
+    ipcRenderer.invoke('single-document-project-store:add-asset-to-project', {
+      ...args,
+    }),
+  lookupAssetByName: (args) =>
+    ipcRenderer.invoke('single-document-project-store:lookup-asset-by-name', {
+      ...args,
+    }),
   findProjectById: (id) =>
     ipcRenderer.invoke('single-document-project-store:find-project-by-id', id),
   getProjectName: (id) =>
@@ -327,6 +323,10 @@ contextBridge.exposeInMainWorld('singleDocumentProjectStoreAPI', {
     }),
   commitChanges: (args) =>
     ipcRenderer.invoke('single-document-project-store:commit-changes', {
+      ...args,
+    }),
+  restoreChanges: (args) =>
+    ipcRenderer.invoke('single-document-project-store:restore-changes', {
       ...args,
     }),
   commitMergeConflictsResolution: (args) =>
@@ -415,10 +415,32 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
       'multi-document-project-store:find-document-in-project',
       { ...args }
     ),
+  addAssetToProject: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:add-asset-to-project', {
+      ...args,
+    }),
+  lookupAssetByName: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:lookup-asset-by-name', {
+      ...args,
+    }),
+  getProjectRelativePath: (args) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:get-project-relative-path',
+      { ...args }
+    ),
   commitChanges: (args) =>
     ipcRenderer.invoke('multi-document-project-store:commit-changes', {
       ...args,
     }),
+  commitDocumentChanges: (args) =>
+    ipcRenderer.invoke('multi-document-project-store:commit-document-changes', {
+      ...args,
+    }),
+  restoreDocumentChanges: (args) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:restore-document-changes',
+      { ...args }
+    ),
   createAndSwitchToBranch: (args) =>
     ipcRenderer.invoke(
       'multi-document-project-store:create-and-switch-to-branch',

@@ -908,6 +908,15 @@ export const createAdapter = (): Filesystem => {
       catch: mapErrorTo(RepositoryError, 'Could not compute renamed path'),
     });
 
+  // TODO: implement using File System Access API (traverse path segments,
+  // calling getDirectoryHandle({ create: true }) for each).
+  const ensureDirectory: Filesystem['ensureDirectory'] = () =>
+    Effect.fail(
+      new RepositoryError(
+        'ensureDirectory is not yet implemented for the browser filesystem API.'
+      )
+    );
+
   const isDescendantPath: Filesystem['isDescendantPath'] = ({
     parent,
     possibleDescendant,
@@ -949,5 +958,6 @@ export const createAdapter = (): Filesystem => {
     getRenamedPath,
     isDescendantPath,
     createDirectory,
+    ensureDirectory,
   };
 };

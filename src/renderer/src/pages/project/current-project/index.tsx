@@ -17,6 +17,7 @@ import {
 import { BranchingCommandPaletteStateProvider } from '../../../app-state';
 import {
   useBranchInfo,
+  useCommitDocumentChanges,
   useCommitToProject,
   useCreateDocument,
   useDeleteDirectory,
@@ -55,7 +56,6 @@ const Project = () => {
     isRestoreCommitDialogOpen,
     isDiscardChangesDialogOpen,
     canCommit,
-    commitChangesToDocument,
     onCloseRestoreCommitDialog,
     onCloseDiscardChangesDialog,
     onRestoreCommit,
@@ -64,6 +64,7 @@ const Project = () => {
   const { isOpen: isCommitDialogOpen, closeCommitModal } =
     useContext(CommitModalContext);
   const commitChangesToProject = useCommitToProject();
+  const commitChangesToDocument = useCommitDocumentChanges();
   const { projectType } = useContext(CurrentProjectContext);
   // For single-document projects the project-level commit is the same
   // operation as committing the (sole) document, so we don't surface it as

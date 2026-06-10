@@ -66,18 +66,6 @@ export type IsContentSameAtChangesArgs = {
   change2: Change['id'];
 };
 
-export type CommitChangesArgs = {
-  documentId: ResolvedArtifactId;
-  message: string;
-};
-
-export type RestoreCommitArgs = {
-  documentId: ResolvedArtifactId;
-  commit: Commit;
-  message?: string;
-  writeToFileWithPath?: string;
-};
-
 export type DiscardUncommittedChangesArgs = {
   documentId: ResolvedArtifactId;
   writeToFileWithPath?: string;
@@ -134,13 +122,6 @@ export type VersionedDocumentStore = {
     ValidationError | MigrationError | RepositoryError | NotFoundError,
     never
   >;
-  commitChanges: (
-    args: CommitChangesArgs
-  ) => Effect.Effect<
-    Commit['id'],
-    ValidationError | RepositoryError | NotFoundError | MigrationError,
-    never
-  >;
   getDocumentHistory: (
     documentId: ResolvedArtifactId
   ) => Effect.Effect<
@@ -164,17 +145,6 @@ export type VersionedDocumentStore = {
   ) => Effect.Effect<
     boolean,
     ValidationError | RepositoryError | NotFoundError | MigrationError,
-    never
-  >;
-  restoreCommit: (
-    args: RestoreCommitArgs
-  ) => Effect.Effect<
-    Commit['id'],
-    | ValidationError
-    | RepositoryError
-    | NotFoundError
-    | MigrationError
-    | DeletedDocumentError,
     never
   >;
   discardUncommittedChanges: (

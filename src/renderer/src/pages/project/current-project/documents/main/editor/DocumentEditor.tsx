@@ -8,6 +8,10 @@ import {
 } from '../../../../../../app-state';
 import { RichTextEditor } from '../../../../../../components/editing/RichTextEditor';
 import { LongTextSkeleton } from '../../../../../../components/progress/skeletons/LongText';
+import {
+  useAssetInsertion,
+  useAssetSrcResolver,
+} from '../../../../../../hooks';
 import { useCurrentDocumentExtension } from '../../../../../../hooks/use-current-document-extension';
 import { UnsupportedDocumentView } from '../../../../shared/unsupported-document-view';
 import { ActionsBar } from './ActionsBar';
@@ -24,6 +28,8 @@ export const DocumentEditor = () => {
   const { openCommitModal } = useContext(CommitModalContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const { isUnsupported } = useCurrentDocumentExtension();
+  const resolveAssetSrc = useAssetSrcResolver();
+  const pickAsset = useAssetInsertion();
 
   const handleEditorToolbarToggle = useCallback(() => {
     toggleEditorToolbar(!isEditorToolbarOpen);
@@ -54,6 +60,8 @@ export const DocumentEditor = () => {
               docHandle={versionedDocumentHandle}
               isToolbarOpen={isEditorToolbarOpen}
               onDocChange={onDocumentContentChange}
+              pickAsset={pickAsset}
+              resolveAssetSrc={resolveAssetSrc}
             />
           ) : (
             <LongTextSkeleton />

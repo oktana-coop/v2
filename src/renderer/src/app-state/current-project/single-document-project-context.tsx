@@ -58,6 +58,8 @@ export type SingleDocumentProjectContextType = {
   projectId: ProjectId | null;
   documentId: ResolvedArtifactId | null;
   documentInternalPath: string | null;
+  // The project-relative doc path.
+  documentProjectRelPath: string | null;
   projectFile: File | null;
   projectName: string | null;
   currentBranch: Branch | null;
@@ -96,6 +98,10 @@ export type SingleDocumentProjectContextType = {
   pulledUpstreamChanges: boolean;
   onHandlePulledUpstreamChanges: () => void;
   commitChanges: (message: string) => Promise<void>;
+  restoreChanges: (args: {
+    commit: Commit;
+    message?: string;
+  }) => Promise<Commit['id']>;
 };
 
 export const SingleDocumentProjectContext =
@@ -104,6 +110,7 @@ export const SingleDocumentProjectContext =
     projectId: null,
     documentId: null,
     documentInternalPath: null,
+    documentProjectRelPath: null,
     projectFile: null,
     projectName: null,
     // @ts-expect-error will get overriden below
@@ -113,6 +120,8 @@ export const SingleDocumentProjectContext =
     versionedProjectStore: null,
     isCreateBranchDialogOpen: false,
     commitChanges: async () => {},
+    // @ts-expect-error will get overriden below
+    restoreChanges: async () => null,
   });
 
 const getFileToBeOpenedFromSessionStorage = (): File | null => {
@@ -175,6 +184,11 @@ export const SingleDocumentProjectProvider = ({
     versionControlSystems.GIT
       ? DOCUMENT_INTERNAL_PATH
       : null;
+  // `documentInternalPath` is workdir-absolute (e.g. `/document.md`); a single-doc
+  // project's workdir root is the project root, so dropping the leading slash yields
+  // the project-relative doc path.
+  const documentProjectRelPath =
+    documentInternalPath?.replace(/^\/+/, '') ?? null;
 
   useEffect(() => {
     if (!isElectron()) {
@@ -824,6 +838,20 @@ export const SingleDocumentProjectProvider = ({
     [versionedProjectStore, projectId]
   );
 
+  const handleRestoreChanges = useCallback(
+    async ({ commit, message }: { commit: Commit; message?: string }) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot restore document.'
+        );
+      }
+      return Effect.runPromise(
+        versionedProjectStore.restoreChanges({ projectId, commit, message })
+      );
+    },
+    [versionedProjectStore, projectId]
+  );
+
   return (
     <SingleDocumentProjectContext.Provider
       value={{
@@ -831,6 +859,7 @@ export const SingleDocumentProjectProvider = ({
         projectId,
         documentId,
         documentInternalPath,
+        documentProjectRelPath,
         projectFile,
         projectName,
         currentBranch,
@@ -861,6 +890,7 @@ export const SingleDocumentProjectProvider = ({
         pulledUpstreamChanges,
         onHandlePulledUpstreamChanges: resetPulledUpstreamChanges,
         commitChanges: handleCommitChanges,
+        restoreChanges: handleRestoreChanges,
       }}
     >
       {children}

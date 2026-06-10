@@ -57,7 +57,6 @@ import {
 import { useCurrentDocumentId } from '../../hooks/use-current-document-id';
 import { usePulledUpstreamChanges } from '../../hooks/use-pulled-upstream-changes';
 import {
-  CommitModalContext,
   CurrentProjectContext,
   InfrastructureAdaptersContext,
   MultiDocumentProjectContext,
@@ -73,7 +72,6 @@ export type CurrentDocumentContextType = {
   loadingHistory: boolean;
   versionedDocumentHistory: ChangeWithUrlInfo[];
   canCommit: boolean;
-  commitChangesToDocument: (message: string) => Promise<void>;
   reloadDocumentHistory: () => Promise<void>;
   onRestoreCommit: (args: { message: string; commit: Commit }) => Promise<void>;
   onDiscardChanges: () => Promise<void>;
@@ -103,7 +101,6 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     loadingHistory: false,
     versionedDocumentHistory: [],
     canCommit: false,
-    commitChangesToDocument: async () => {},
     reloadDocumentHistory: async () => {},
     onRestoreCommit: async () => {},
     onDiscardChanges: async () => {},
@@ -145,7 +142,6 @@ export const CurrentDocumentProvider = ({
   >([]);
   const [lastCommit, setLastCommit] = useState<Commit | null>(null);
   const [canCommit, setCanCommit] = useState(false);
-  const { closeCommitModal } = useContext(CommitModalContext);
   const [isRestoreCommitDialogOpen, setIsRestoreCommitDialogOpen] =
     useState<boolean>(false);
   const [isDiscardChangesDialogOpen, setIsDiscardChangesDialogOpen] =
@@ -161,8 +157,10 @@ export const CurrentDocumentProvider = ({
     setSelectedFileInfo,
     clearFileSelection,
     directory,
+    restoreDocumentChanges,
   } = useContext(MultiDocumentProjectContext);
-  const { documentInternalPath } = useContext(SingleDocumentProjectContext);
+  const { documentInternalPath, restoreChanges: restoreSingleDocProject } =
+    useContext(SingleDocumentProjectContext);
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
   );
@@ -402,31 +400,6 @@ export const CurrentDocumentProvider = ({
     });
   }, [versionedDocumentStore, versionedDocument, documentId]);
 
-  const handleCommit = useCallback(
-    async (message: string) => {
-      if (!documentId || !versionedDocumentStore) {
-        return;
-      }
-
-      await Effect.runPromise(
-        versionedDocumentStore.commitChanges({
-          documentId,
-          message,
-        })
-      );
-
-      closeCommitModal();
-
-      await reloadDocumentHistory();
-    },
-    [
-      documentId,
-      versionedDocumentStore,
-      closeCommitModal,
-      reloadDocumentHistory,
-    ]
-  );
-
   const handleRestoreCommit = useCallback(
     async ({ message, commit }: { message: string; commit: Commit }) => {
       if (!documentId || !versionedDocument || !versionedDocumentStore) {
@@ -435,42 +408,10 @@ export const CurrentDocumentProvider = ({
         );
       }
 
-      let restoreCommitId: Commit['id'];
-      if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
-        if (!directory || !selectedFileInfo?.path) {
-          throw new Error(
-            'Cannot write to file when restoring commit in multi-doc project'
-          );
-        }
-
-        restoreCommitId = await Effect.runPromise(
-          pipe(
-            filesystem.getAbsolutePath({
-              path: selectedFileInfo.path,
-              dirPath: directory.path,
-            }),
-            Effect.flatMap((absoluteFilePath) =>
-              versionedDocumentStore.restoreCommit({
-                documentId,
-                message,
-                commit,
-                writeToFileWithPath: absoluteFilePath,
-              })
-            )
-          )
-        );
-      } else {
-        restoreCommitId = await Effect.runPromise(
-          versionedDocumentStore.restoreCommit({
-            documentId,
-            message,
-            commit,
-            writeToFileWithPath: versionedDocumentStore.managesFilesystemWorkdir
-              ? (documentInternalPath ?? undefined)
-              : undefined,
-          })
-        );
-      }
+      const restoreCommitId =
+        projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+          ? await restoreDocumentChanges({ documentId, commit, message })
+          : await restoreSingleDocProject({ commit, message });
 
       const newHistory = await loadHistory(versionedDocumentStore)({
         doc: versionedDocument,
@@ -481,7 +422,14 @@ export const CurrentDocumentProvider = ({
       setCanCommit(false);
       handleSelectChange(restoreCommitId, newHistory);
     },
-    [documentId, versionedDocument, versionedDocumentStore]
+    [
+      documentId,
+      versionedDocument,
+      versionedDocumentStore,
+      projectType,
+      restoreDocumentChanges,
+      restoreSingleDocProject,
+    ]
   );
 
   const handleDiscardChanges = useCallback(async () => {
@@ -827,7 +775,6 @@ export const CurrentDocumentProvider = ({
         loadingHistory,
         versionedDocumentHistory,
         canCommit,
-        commitChangesToDocument: handleCommit,
         reloadDocumentHistory,
         onRestoreCommit: handleRestoreCommit,
         onDiscardChanges: handleDiscardChanges,

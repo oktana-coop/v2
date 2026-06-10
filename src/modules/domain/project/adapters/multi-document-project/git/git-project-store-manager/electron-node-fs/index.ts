@@ -4,10 +4,15 @@ import * as Effect from 'effect/Effect';
 import http from 'isomorphic-git/http/node';
 
 import { createAdapter as createVersionedDocumentStoreAdapter } from '../../../../../../../../modules/domain/rich-text/adapters/versioned-document-store/git/git-versioned-document-store';
+import { DEFAULT_ASSETS_DIR_NAME } from '../../../../../constants';
 import { type MultiDocumentProjectStoreManager } from '../../../../../ports';
 import { createAdapter as createMultiDocumentProjectStoreAdapter } from '../../git-project-store';
 
-export const createAdapter = (): MultiDocumentProjectStoreManager => {
+export const createAdapter = ({
+  assetsDirName = DEFAULT_ASSETS_DIR_NAME,
+}: {
+  assetsDirName?: string;
+} = {}): MultiDocumentProjectStoreManager => {
   const openOrCreateMultiDocumentProject: MultiDocumentProjectStoreManager['openOrCreateMultiDocumentProject'] =
 
       ({ filesystem }) =>
@@ -20,6 +25,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                 isoGitFs: fs,
                 isoGitHttp: http,
                 filesystem,
+                assetsDirName,
               })
             )
           ),
@@ -85,6 +91,7 @@ export const createAdapter = (): MultiDocumentProjectStoreManager => {
                 isoGitFs: fs,
                 isoGitHttp: http,
                 filesystem,
+                assetsDirName,
               })
             )
           ),

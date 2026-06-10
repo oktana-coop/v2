@@ -187,4 +187,80 @@
     min-width: var(--size);
     padding-inline: 0em;
   }
+
+  /* Figure overlays (selection + diff).
+   *
+   * A figure's image fills its box, so a flat `bg-*` tint — whether the
+   * selection highlight or a diff color — is invisible behind it. Instead we
+   * paint a translucent ::after over the whole figure. Only the color varies,
+   * so the box is defined once and each state sets `--figure-overlay`.
+   *
+   * Triggers:
+   *  - Selection: PM puts `.ProseMirror-selectednode` on the figure, or on the inline <img>. 
+   *    `:has()` lifts the overlay up to the figure.
+   *  - Diff insert/modify: the diff plugin's bg-* classes land on the figure or a descendant.
+   *  - Diff delete: the figure is wrapped from outside in `<div class="bg-red-200"><figure>` (block) 
+   *    or `<span class="bg-red-200">` (inline image).
+   *
+   * TODO: Replace the diff bg-* triggers below with a semantic marker (e.g. data-diff="insert|modify|delete")
+   */
+  .ProseMirror
+    figure:is(
+      .ProseMirror-selectednode,
+      :has(.ProseMirror-selectednode)
+    )::after,
+  .ProseMirror figure.bg-green-300::after,
+  .ProseMirror figure:has(.bg-green-300)::after,
+  .ProseMirror figure.bg-purple-100::after,
+  .ProseMirror figure:has(.bg-purple-100)::after,
+  .ProseMirror figure.bg-purple-200::after,
+  .ProseMirror figure:has(.bg-purple-200)::after,
+  .ProseMirror .bg-red-200 > figure::after,
+  .ProseMirror
+    figure
+    [data-figure-content]
+    > span.bg-red-200:has(> img:not(.ProseMirror-separator))::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--figure-overlay);
+    pointer-events: none;
+  }
+  .ProseMirror
+    figure:is(.ProseMirror-selectednode, :has(.ProseMirror-selectednode)) {
+    --figure-overlay: rgb(0 0 0 / 0.25); /* selection */
+  }
+  .ProseMirror figure.bg-green-300,
+  .ProseMirror figure:has(.bg-green-300) {
+    --figure-overlay: rgb(34 197 94 / 0.3); /* Tailwind green-500/30 */
+  }
+  .ProseMirror figure.bg-purple-100,
+  .ProseMirror figure:has(.bg-purple-100),
+  .ProseMirror figure.bg-purple-200,
+  .ProseMirror figure:has(.bg-purple-200) {
+    --figure-overlay: rgb(168 85 247 / 0.3); /* Tailwind purple-500/30 */
+  }
+  .ProseMirror .bg-red-200 > figure,
+  .ProseMirror
+    figure
+    [data-figure-content]
+    > span.bg-red-200:has(> img:not(.ProseMirror-separator)) {
+    --figure-overlay: rgb(239 68 68 / 0.3); /* Tailwind red-500/30 */
+  }
+
+  /* Delete widgets nested inside an insert/modify figure must paint above the
+   * host's overlay (own stacking context), else the host tint covers them.
+   * The inline-image span also needs to be a box so its own ::after shows. */
+  .ProseMirror figure > [data-figure-content] > .bg-red-200 {
+    position: relative;
+    z-index: 1;
+  }
+  .ProseMirror
+    figure
+    [data-figure-content]
+    > span.bg-red-200:has(> img:not(.ProseMirror-separator)) {
+    display: inline-block;
+    position: relative;
+    z-index: 1;
+  }
 }

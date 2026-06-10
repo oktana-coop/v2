@@ -541,6 +541,14 @@ export const createAdapter = (): Filesystem => {
     );
   };
 
+  const ensureDirectory: Filesystem['ensureDirectory'] = ({ path: dirPath }) =>
+    Effect.tryPromise({
+      try: async () => {
+        await fs.mkdir(dirPath, { recursive: true });
+      },
+      catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
+    });
+
   const rename: Filesystem['rename'] = ({ oldPath, newPath }) => {
     // On POSIX (macOS/Linux), fs.rename silently overwrites the target, so
     // we check existence upfront to produce a consistent typed error
@@ -667,5 +675,6 @@ export const createAdapter = (): Filesystem => {
     getRenamedPath,
     isDescendantPath,
     createDirectory,
+    ensureDirectory,
   };
 };

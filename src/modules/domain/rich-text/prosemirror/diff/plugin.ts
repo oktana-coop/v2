@@ -29,6 +29,7 @@ type DiffPluginArgs = {
   proseMirrorDiff: ProseMirrorDiffFn;
   convertFromProseMirror: (args: ConvertFromProseMirrorArgs) => Promise<string>;
   decorationClasses: DiffDecorationClasses;
+  transformImageSrc: (src: string) => string;
   diffWith?: RichTextDocument;
 };
 
@@ -64,6 +65,7 @@ export const diffPlugin = (args: DiffPluginArgs) =>
           decorationClasses: args.decorationClasses,
           docBefore: contentBefore,
           docAfter: contentAfter,
+          transformImageSrc: args.transformImageSrc,
         });
 
         if (aborted) return;

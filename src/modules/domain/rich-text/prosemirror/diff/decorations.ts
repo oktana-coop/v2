@@ -40,6 +40,29 @@ export type CreateWidgetDeleteDecorationArgs = {
   node: Node;
   proseMirrorSchema: Schema;
   decorationClasses: DiffDecorationClasses;
+  transformImageSrc: (src: string) => string;
+};
+
+const transformImageSources = ({
+  fragment,
+  transform,
+}: {
+  fragment: DOMNode;
+  transform: (src: string) => string;
+}) => {
+  // `fragment` may itself be the <img> element when the deleted node is an
+  // inline image — querySelectorAll only walks descendants, so handle the
+  // root case explicitly.
+  if (fragment instanceof HTMLImageElement) {
+    fragment.src = transform(fragment.getAttribute('src') ?? '');
+    return;
+  }
+
+  if (fragment instanceof Element) {
+    fragment.querySelectorAll('img').forEach((img) => {
+      img.src = transform(img.getAttribute('src') ?? '');
+    });
+  }
 };
 
 export const createWidgetDeleteDecoration = ({
@@ -47,10 +70,16 @@ export const createWidgetDeleteDecoration = ({
   node,
   proseMirrorSchema,
   decorationClasses,
+  transformImageSrc,
 }: CreateWidgetDeleteDecorationArgs) =>
   Decoration.widget(pos, () => {
     const domSerializer = DOMSerializer.fromSchema(proseMirrorSchema);
     const docFragment = domSerializer.serializeNode(node);
+
+    transformImageSources({
+      fragment: docFragment,
+      transform: transformImageSrc,
+    });
 
     if (node.isInline) {
       return createDeletedInlineElement(decorationClasses)(docFragment);

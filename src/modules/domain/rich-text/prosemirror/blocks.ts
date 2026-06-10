@@ -1,11 +1,7 @@
-import { type Fragment, NodeType, Schema } from 'prosemirror-model';
-import {
-  NodeSelection,
-  Plugin,
-  TextSelection,
-  type Transaction,
-} from 'prosemirror-state';
-import { ReplaceAroundStep, ReplaceStep } from 'prosemirror-transform';
+import { Fragment, type Node, NodeType, Schema } from 'prosemirror-model';
+import { NodeSelection, Plugin, TextSelection } from 'prosemirror-state';
+
+import { transactionsInsertedNodeOfType } from './transactions';
 
 // When any of these blocks is the last block in the document, we add an extra paragraph to
 // make it easier for users to exit the block and continue typing.
@@ -15,7 +11,36 @@ const blocksThatNeedTrailingParagraph: (schema: Schema) => Array<NodeType> = (
   schema.nodes.code_block,
   schema.nodes.blockquote,
   schema.nodes.horizontal_rule,
+  schema.nodes.figure,
 ];
+
+const docNeedsTrailingParagraph = ({
+  doc,
+  schema,
+}: {
+  doc: Node;
+  schema: Schema;
+}): boolean => {
+  const lastChild = doc.lastChild;
+  return (
+    !!lastChild &&
+    blocksThatNeedTrailingParagraph(schema).includes(lastChild.type)
+  );
+};
+
+// Equivalent of `ensureTrailingParagraphPlugin` for first-load docs. The
+// plugin only fires on `docChanged` transactions, so it never runs when an
+// EditorState is created directly from a doc (initial load). Use this to
+// pre-process the doc before constructing the state.
+export const ensureTrailingParagraphInDoc = (
+  doc: Node,
+  schema: Schema
+): Node => {
+  if (!docNeedsTrailingParagraph({ doc, schema })) return doc;
+  return doc.copy(
+    doc.content.append(Fragment.from(schema.nodes.paragraph.create()))
+  );
+};
 
 export const ensureTrailingParagraphPlugin = (schema: Schema) => {
   return new Plugin({
@@ -26,21 +51,12 @@ export const ensureTrailingParagraphPlugin = (schema: Schema) => {
       }
 
       const { doc } = newState;
-      const lastNode = doc.lastChild;
+      if (!docNeedsTrailingParagraph({ doc, schema })) return null;
 
-      // Ensure that the last node needs a trailing paragraph to facilitate editing.
-      if (
-        lastNode &&
-        blocksThatNeedTrailingParagraph(schema).includes(lastNode.type)
-      ) {
-        const { tr } = newState;
-
-        // Append a paragraph to the end of the document
-        tr.insert(doc.content.size, schema.nodes.paragraph.create());
-        return tr;
-      }
-
-      return null;
+      // Append a paragraph to the end of the document
+      const { tr } = newState;
+      tr.insert(doc.content.size, schema.nodes.paragraph.create());
+      return tr;
     },
   });
 };
@@ -49,35 +65,10 @@ export const ensureTrailingParagraphPlugin = (schema: Schema) => {
 // the cursor moves out of it and into the following block.
 const blocksForWhichCursorMovesToNextBlockOnInsertion: (
   schema: Schema
-) => Array<NodeType> = (schema) => [schema.nodes.horizontal_rule];
-
-const fragmentContainsNodeOfType = ({
-  fragment,
-  types,
-}: {
-  fragment: Fragment;
-  types: Array<NodeType>;
-}): boolean =>
-  fragment.content.some(
-    (node) =>
-      types.includes(node.type) ||
-      fragmentContainsNodeOfType({ fragment: node.content, types })
-  );
-
-const transactionsInsertedNodeOfType = ({
-  transactions,
-  types,
-}: {
-  transactions: readonly Transaction[];
-  types: Array<NodeType>;
-}): boolean =>
-  transactions.some((tr) =>
-    tr.steps.some(
-      (step) =>
-        (step instanceof ReplaceStep || step instanceof ReplaceAroundStep) &&
-        fragmentContainsNodeOfType({ fragment: step.slice.content, types })
-    )
-  );
+) => Array<NodeType> = (schema) => [
+  schema.nodes.horizontal_rule,
+  schema.nodes.figure,
+];
 
 export const moveCursorToNextBlockOnInsertionPlugin = (schema: Schema) =>
   new Plugin({

@@ -173,6 +173,15 @@ export type MultiDocumentProjectContextType = {
   ) => Promise<ChangedDocument[]>;
   getProjectUncommittedChanges: () => Promise<ChangedDocument[]>;
   commitChanges: (message: string) => Promise<void>;
+  commitDocumentChanges: (args: {
+    documentId: ResolvedArtifactId;
+    message: string;
+  }) => Promise<void>;
+  restoreDocumentChanges: (args: {
+    documentId: ResolvedArtifactId;
+    commit: Commit;
+    message?: string;
+  }) => Promise<Commit['id']>;
 };
 
 export const MultiDocumentProjectContext =
@@ -224,6 +233,9 @@ export const MultiDocumentProjectContext =
     getProjectChangedDocuments: async () => [],
     getProjectUncommittedChanges: async () => [],
     commitChanges: async () => {},
+    commitDocumentChanges: async () => {},
+    // @ts-expect-error will get overriden below
+    restoreDocumentChanges: async () => null,
   });
 
 export const MultiDocumentProjectProvider = ({
@@ -340,6 +352,57 @@ export const MultiDocumentProjectProvider = ({
       }
       await Effect.runPromise(
         versionedProjectStore.commitChanges({ projectId, message })
+      );
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const commitDocumentChanges = useCallback(
+    async ({
+      documentId,
+      message,
+    }: {
+      documentId: ResolvedArtifactId;
+      message: string;
+    }) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot commit changes.'
+        );
+      }
+      await Effect.runPromise(
+        versionedProjectStore.commitDocumentChanges({
+          projectId,
+          documentId,
+          message,
+        })
+      );
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const restoreDocumentChanges = useCallback(
+    async ({
+      documentId,
+      commit,
+      message,
+    }: {
+      documentId: ResolvedArtifactId;
+      commit: Commit;
+      message?: string;
+    }) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot restore document.'
+        );
+      }
+      return Effect.runPromise(
+        versionedProjectStore.restoreDocumentChanges({
+          projectId,
+          documentId,
+          commit,
+          message,
+        })
       );
     },
     [versionedProjectStore, projectId]
@@ -1848,6 +1911,8 @@ export const MultiDocumentProjectProvider = ({
         getProjectChangedDocuments,
         getProjectUncommittedChanges,
         commitChanges,
+        commitDocumentChanges,
+        restoreDocumentChanges,
       }}
     >
       {children}

@@ -1,6 +1,6 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext } from 'react';
 
-import { ProjectId, projectTypes } from '../../../modules/domain/project';
+import { projectTypes } from '../../../modules/domain/project';
 import {
   CurrentProjectContext,
   MultiDocumentProjectContext,
@@ -16,15 +16,7 @@ export const useProjectId = () => {
     SingleDocumentProjectContext
   );
 
-  const [projectId, setProjectId] = useState<ProjectId | null>(null);
-
-  useEffect(() => {
-    const id =
-      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-        ? multiDocumentProjectId
-        : singleDocumentProjectId;
-    setProjectId(id);
-  }, [multiDocumentProjectId, singleDocumentProjectId, projectType]);
-
-  return projectId;
+  return projectType === projectTypes.MULTI_DOCUMENT_PROJECT
+    ? multiDocumentProjectId
+    : singleDocumentProjectId;
 };

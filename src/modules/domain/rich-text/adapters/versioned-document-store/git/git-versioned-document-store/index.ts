@@ -12,9 +12,7 @@ import {
   type Commit,
   createGitBlobRef,
   decomposeGitBlobRef,
-  DEFAULT_AUTHOR_NAME,
   getFileCommitHistory,
-  getUserInfo as getUserInfoFromConfig,
   type GitBlobRef,
   type GitCommitHash,
   isGitBlobRef,
@@ -344,58 +342,6 @@ export const createAdapter = ({
         )
       : Effect.succeed(undefined);
 
-  const commitChanges: VersionedDocumentStore['commitChanges'] = ({
-    documentId,
-    message,
-  }) =>
-    Effect.Do.pipe(
-      Effect.bind('documentPath', () =>
-        extractDocumentRelativePathFromId(documentId)
-      ),
-      Effect.bind('repoUserInfo', () =>
-        pipe(
-          getUserInfoFromConfig({ isoGitFs, dir: projectDir }),
-          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
-            Effect.fail(new RepositoryError(err.message))
-          )
-        )
-      ),
-      Effect.flatMap(({ documentPath, repoUserInfo }) =>
-        pipe(
-          Effect.tryPromise({
-            try: () =>
-              git.add({
-                fs: isoGitFs,
-                dir: projectDir,
-                filepath: documentPath,
-              }),
-            catch: mapErrorTo(RepositoryError, 'Git repo error'),
-          }),
-          Effect.flatMap(() =>
-            Effect.tryPromise({
-              try: () =>
-                git.commit({
-                  fs: isoGitFs,
-                  dir: projectDir,
-                  author: {
-                    name: repoUserInfo.username ?? DEFAULT_AUTHOR_NAME,
-                    email: repoUserInfo.email ?? undefined,
-                  },
-                  message,
-                }),
-              catch: mapErrorTo(RepositoryError, 'Git repo error'),
-            })
-          ),
-          Effect.flatMap((commitHashStr) =>
-            Effect.try({
-              try: () => parseGitCommitHash(commitHashStr),
-              catch: mapErrorTo(RepositoryError, 'Git repo error'),
-            })
-          )
-        )
-      )
-    );
-
   const getDocumentHistory: VersionedDocumentStore['getDocumentHistory'] = (
     documentId
   ) => {
@@ -715,35 +661,6 @@ export const createAdapter = ({
       );
     };
 
-  // TODO: Make this pipeline transactional
-  const restoreCommit: VersionedDocumentStore['restoreCommit'] = ({
-    documentId,
-    commit,
-    message,
-    writeToFileWithPath,
-  }) =>
-    Effect.Do.pipe(
-      Effect.bind('documentAtCommit', () =>
-        getDocumentAtChange({ documentId, changeId: commit.id })
-      ),
-      Effect.flatMap(({ documentAtCommit }) =>
-        pipe(
-          updateRichTextDocumentContent({
-            documentId,
-            representation: documentAtCommit.representation,
-            content: documentAtCommit.content,
-            writeToFileWithPath,
-          }),
-          Effect.flatMap(() =>
-            commitChanges({
-              documentId,
-              message: message ?? `Restore ${commit.message}`,
-            })
-          )
-        )
-      )
-    );
-
   const discardUncommittedChanges: VersionedDocumentStore['discardUncommittedChanges'] =
     ({ documentId, writeToFileWithPath }) =>
       pipe(
@@ -884,11 +801,9 @@ export const createAdapter = ({
     getDocumentLastChangeId,
     updateRichTextDocumentContent,
     deleteDocument,
-    commitChanges,
     getDocumentHistory,
     getDocumentAtChange,
     isContentSameAtChanges,
-    restoreCommit,
     discardUncommittedChanges,
     resolveContentConflict,
     disconnect,

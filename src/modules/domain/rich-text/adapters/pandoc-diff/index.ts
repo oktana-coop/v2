@@ -72,10 +72,15 @@ const toNodeDecoration = (decoration: NodeDiffDecoration): Decoration => {
 type ToWidgetDecorationDeps = {
   proseMirrorSchema: Schema;
   decorationClasses: DiffDecorationClasses;
+  transformImageSrc: (src: string) => string;
 };
 
 const toWidgetDeleteDecoration =
-  ({ proseMirrorSchema, decorationClasses }: ToWidgetDecorationDeps) =>
+  ({
+    proseMirrorSchema,
+    decorationClasses,
+    transformImageSrc,
+  }: ToWidgetDecorationDeps) =>
   (decoration: WidgetDiffDecoration): Decoration => {
     const node = Node.fromJSON(proseMirrorSchema, decoration.node);
 
@@ -84,6 +89,7 @@ const toWidgetDeleteDecoration =
       node,
       proseMirrorSchema,
       decorationClasses,
+      transformImageSrc,
     });
   };
 
@@ -98,6 +104,7 @@ export const createAdapter = ({
     decorationClasses,
     docBefore,
     docAfter,
+    transformImageSrc,
   }) => {
     const output = await runWasiCLIOutputingText({
       type: cliTypes.HS_LIB,
@@ -131,6 +138,7 @@ export const createAdapter = ({
           return toWidgetDeleteDecoration({
             proseMirrorSchema,
             decorationClasses,
+            transformImageSrc,
           })(decoration);
       }
     });
