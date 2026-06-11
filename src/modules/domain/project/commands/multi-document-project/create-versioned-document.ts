@@ -79,21 +79,19 @@ export const createVersionedDocument =
           ],
         });
       }),
-      Effect.bind('documentId', ({ newFile }) =>
-        pipe(
-          projectDirectory
-            ? getRelativePath({
-                path: newFile.path,
-                relativeTo: projectDirectory.path,
-              })
-            : Effect.succeed(newFile.path),
-          Effect.flatMap((filePath) =>
-            createDocument({
-              content,
-              filePath,
+      Effect.bind('filePath', ({ newFile }) =>
+        projectDirectory
+          ? getRelativePath({
+              path: newFile.path,
+              relativeTo: projectDirectory.path,
             })
-          )
-        )
+          : Effect.succeed(newFile.path)
+      ),
+      Effect.bind('documentId', ({ filePath }) =>
+        createDocument({
+          content,
+          filePath,
+        })
       ),
       Effect.tap(({ documentId, newFile }) =>
         pipe(
@@ -110,7 +108,7 @@ export const createVersionedDocument =
           })
         )
       ),
-      Effect.flatMap(({ documentId, newFile }) =>
-        Effect.succeed({ documentId, filePath: newFile.path })
+      Effect.flatMap(({ documentId, filePath }) =>
+        Effect.succeed({ documentId, filePath })
       )
     );
