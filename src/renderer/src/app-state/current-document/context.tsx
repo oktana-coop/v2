@@ -155,7 +155,6 @@ export const CurrentDocumentProvider = ({
   const {
     selectedFileInfo,
     setSelectedFileInfo,
-    clearFileSelection,
     directory,
     restoreDocumentChanges,
   } = useContext(MultiDocumentProjectContext);
@@ -174,10 +173,10 @@ export const CurrentDocumentProvider = ({
     usePulledUpstreamChanges();
   const [documentNeedsReload, setDocumentNeedsReload] = useState(false);
   const documentRouteMatch = useMatch(
-    '/projects/:projectId/documents/:documentId'
+    '/projects/:projectId/artifacts/:artifactId'
   );
   const documentChangeSubRouteMatch = useMatch(
-    '/projects/:projectId/documents/:documentId/changes/:changeId'
+    '/projects/:projectId/artifacts/:artifactId/changes/:changeId'
   );
 
   useEffect(() => {
@@ -196,7 +195,6 @@ export const CurrentDocumentProvider = ({
       versionedDocumentStore: VersionedDocumentStore;
     }) => {
       if (!documentId) {
-        clearFileSelection();
         setVersionedDocumentHandle(null);
         setVersionedDocument(null);
         resetPulledUpstreamChanges();
@@ -541,7 +539,7 @@ export const CurrentDocumentProvider = ({
 
     const diffCommit = isFirstCommit ? null : history[selectedCommitIndex + 1];
 
-    let newUrl = `/projects/${urlEncodeProjectId(projectId)}/documents/${urlEncodeArtifactId(documentId)}/changes/${urlEncodeChangeId(changeId)}`;
+    let newUrl = `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(documentId)}/changes/${urlEncodeChangeId(changeId)}`;
     if (diffCommit) {
       const diffChangeURLEncodedId = urlEncodeChangeIdForChange(diffCommit);
       newUrl += `?diffWith=${diffChangeURLEncodedId}`;

@@ -20,7 +20,7 @@ import {
   useDocumentExplorerTree,
   useExport,
 } from '../../../../hooks';
-import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../../hooks/multi-document-project';
+import { useArtifactSelection as useArtifactSelectionInMultiDocumentProject } from '../../../../hooks/multi-document-project';
 import { useDocumentSelection as useDocumentSelectionInSingleDocumentProject } from '../../../../hooks/single-document-project';
 import { keyBindings } from './key-bindings';
 
@@ -45,8 +45,8 @@ export const ProjectCommandPalette = ({
   const { openCommitModal } = useContext(CommitModalContext);
   const { isElectron, checkForUpdate } = useContext(ElectronContext);
 
-  const handleDocumentSelectionInMultiDocumentProject =
-    useDocumentSelectionInMultiDocumentProject();
+  const handleArtifactSelectionInMultiDocumentProject =
+    useArtifactSelectionInMultiDocumentProject();
   const handleDocumentSelectionInSingleDocumentProject =
     useDocumentSelectionInSingleDocumentProject();
   const currentDocumentName = useCurrentDocumentName();
@@ -59,7 +59,7 @@ export const ProjectCommandPalette = ({
 
   const handleDocumentSelection =
     projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-      ? handleDocumentSelectionInMultiDocumentProject
+      ? handleArtifactSelectionInMultiDocumentProject
       : handleDocumentSelectionInSingleDocumentProject;
 
   const { exportToText, exportToBinary, exportToPDF } = useExport();

@@ -1,4 +1,4 @@
-import { useContext, useEffect } from 'react';
+import { type ComponentProps, useContext, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 
 import {
@@ -22,7 +22,7 @@ import {
   useCreateDocument,
   useDeleteDirectory,
   useDeleteDocument,
-  useNavigateToDocument,
+  useNavigateToArtifact,
   useProjectId,
 } from '../../../hooks';
 import { useOpenDocument } from '../../../hooks/single-document-project';
@@ -106,11 +106,17 @@ const Project = () => {
     BranchingCommandPaletteContext
   );
 
-  const navigateToDocument = useNavigateToDocument();
+  const navigateToArtifact = useNavigateToArtifact();
 
   const handleOpenDocument = () => openDocument();
 
-  const handleCreateDocument = () => triggerDocumentCreationDialog();
+  const handleOpenCreateDocumentDialog = () => triggerDocumentCreationDialog();
+
+  const handleCreateDocument: ComponentProps<
+    typeof CreateDocumentModal
+  >['onCreateDocument'] = ({ projectId, documentId, path }) => {
+    navigateToArtifact({ projectId, artifactId: documentId, path });
+  };
 
   const handleOpenProjectSettings = () => {
     if (projectId) {
@@ -122,7 +128,7 @@ const Project = () => {
   const handleOpenPrintPreview = () => {
     if (projectId && versionedDocumentId) {
       navigate(
-        `/projects/${urlEncodeProjectId(projectId)}/documents/${urlEncodeArtifactId(versionedDocumentId)}/print-preview`
+        `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(versionedDocumentId)}/print-preview`
       );
     }
   };
@@ -133,7 +139,7 @@ const Project = () => {
         <CreateDocumentModal
           isOpen={isDocumentCreationModalOpen}
           onClose={closeCreateDocumentModal}
-          onCreateDocument={navigateToDocument}
+          onCreateDocument={handleCreateDocument}
         />
         <CommitDialog
           isOpen={isCommitDialogOpen}
@@ -183,7 +189,7 @@ const Project = () => {
           onConfirm={confirmDeleteDirectory}
         />
         <ProjectCommandPalette
-          onCreateDocument={handleCreateDocument}
+          onCreateDocument={handleOpenCreateDocumentDialog}
           onOpenDocument={handleOpenDocument}
           onOpenProjectSettings={handleOpenProjectSettings}
           onOpenPrintPreview={handleOpenPrintPreview}
@@ -226,6 +232,7 @@ export {
   DocumentHistoricalView,
   ProjectDocuments,
 } from './documents';
+export { ArtifactRoute } from './artifact-route';
 export { ProjectHistory, ProjectHistoryDocumentView } from './history';
 export { ProjectSettings } from './settings';
 export {

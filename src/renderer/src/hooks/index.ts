@@ -8,7 +8,7 @@ export * from './use-document-explorer-tree';
 export * from './use-key-bindings';
 export * from './use-loading-project';
 export * from './use-merge-conflict-resolution';
-export * from './use-navigate-to-document';
+export * from './use-navigate-to-artifact';
 export * from './use-navigate-to-resolve-merge-conflicts';
 export * from './use-export';
 export * from './use-clear-web-storage';

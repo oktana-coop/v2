@@ -78,7 +78,7 @@ test.describe('multi-document project navigation', () => {
       .getAttribute('href');
 
     expect(editHref).toContain(
-      `/projects/${encodeURIComponent(testProjectDir)}/documents`
+      `/projects/${encodeURIComponent(testProjectDir)}/artifacts`
     );
 
     await navigateToEdit({ window });

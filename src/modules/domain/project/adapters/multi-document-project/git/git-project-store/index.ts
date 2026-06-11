@@ -9,7 +9,6 @@ import git, {
 import {
   extractAssetReferencesFromMarkdown,
   PRIMARY_RICH_TEXT_REPRESENTATION,
-  richTextRepresentationExtensions,
   richTextRepresentations,
 } from '../../../../../../../modules/domain/rich-text';
 import {
@@ -20,7 +19,6 @@ import {
   FilesystemDataIntegrityErrorTag,
   FilesystemNotFoundErrorTag,
   FilesystemRepositoryErrorTag,
-  getExtension,
   getParentPath,
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
@@ -82,6 +80,7 @@ import {
   type ArtifactMetaData,
   CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION,
   docRelToProjectRel,
+  inferArtifactTypeFromExtension,
   isProjectFsPath,
   parseProjectFsPath,
   parseProjectRelPath,
@@ -198,11 +197,6 @@ export const createAdapter = ({
       Effect.bind('files', () => getDirectoryFiles(id)),
       Effect.bind('currentBranch', () => getCurrentBranch({ projectId: id })),
       Effect.map(({ files, currentBranch }) => {
-        const documentExtension =
-          richTextRepresentationExtensions[
-            PRIMARY_RICH_TEXT_REPRESENTATION
-          ].toLowerCase();
-
         return files.reduce<{
           documents: Record<ResolvedArtifactId, ArtifactMetaData>;
           assets: Record<ResolvedArtifactId, ArtifactMetaData>;
@@ -214,7 +208,8 @@ export const createAdapter = ({
               path: file.path,
             });
             const isDocument =
-              getExtension(file.name).toLowerCase() === documentExtension;
+              inferArtifactTypeFromExtension(file.path) ===
+              versionedArtifactTypes.RICH_TEXT_DOCUMENT;
             const target = isDocument ? acc.documents : acc.assets;
             target[artifactId] = {
               id: artifactId,

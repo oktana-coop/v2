@@ -27,7 +27,7 @@ import {
 } from '../../../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../../../modules/personalization/browser';
 import { InfrastructureAdaptersContext } from '../../../../app-state';
-import { useNavigateToDocument } from '../../../../hooks/use-navigate-to-document';
+import { useNavigateToArtifact } from '../../../../hooks/use-navigate-to-artifact';
 import { useProjectId } from '../../../../hooks/use-project-id';
 import { type DiffViewProps } from './ReadOnlyDocumentView';
 
@@ -111,7 +111,7 @@ export type UseHistoricalDocumentResult = {
 export const useHistoricalDocument = ({
   changes,
 }: UseHistoricalDocumentArgs): UseHistoricalDocumentResult => {
-  const { documentId: encodedDocumentId, changeId: encodedChangeId } =
+  const { artifactId: encodedDocumentId, changeId: encodedChangeId } =
     useParams();
   const projectId = useProjectId();
   const { versionedDocumentStore } = useContext(InfrastructureAdaptersContext);
@@ -119,7 +119,7 @@ export const useHistoricalDocument = ({
     FunctionalityConfigContext
   );
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigateToDocument = useNavigateToDocument();
+  const navigateToArtifact = useNavigateToArtifact();
 
   const documentId = useMemo(
     () =>
@@ -155,9 +155,13 @@ export const useHistoricalDocument = ({
 
   const navigateToEdit = useCallback(() => {
     if (projectId && documentId) {
-      navigateToDocument({ projectId, documentId, path: documentPath });
+      navigateToArtifact({
+        projectId,
+        artifactId: documentId,
+        path: documentPath,
+      });
     }
-  }, [projectId, documentId, documentPath, navigateToDocument]);
+  }, [projectId, documentId, documentPath, navigateToArtifact]);
 
   const diffWithParam = useMemo((): CommitId | null => {
     const param = searchParams.get('diffWith');

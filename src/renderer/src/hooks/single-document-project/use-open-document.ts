@@ -1,11 +1,11 @@
 import { useContext } from 'react';
 
 import { SingleDocumentProjectContext } from '../../app-state';
-import { useNavigateToDocument } from '../use-navigate-to-document';
+import { useNavigateToArtifact } from '../use-navigate-to-artifact';
 import { useNavigateToResolveConflicts } from '../use-navigate-to-resolve-merge-conflicts';
 
 export const useOpenDocument = () => {
-  const navigateToDocument = useNavigateToDocument();
+  const navigateToArtifact = useNavigateToArtifact();
   const navigateToResolveMergeConflicts = useNavigateToResolveConflicts();
 
   const { openDocument } = useContext(SingleDocumentProjectContext);
@@ -16,7 +16,7 @@ export const useOpenDocument = () => {
 
     if (projectId && documentId) {
       if (!mergeConflictInfo) {
-        navigateToDocument({ projectId, documentId, path });
+        navigateToArtifact({ projectId, artifactId: documentId, path });
       } else {
         navigateToResolveMergeConflicts({ projectId, mergeConflictInfo });
       }

@@ -8,14 +8,14 @@ import {
   MultiDocumentProjectContext,
   SingleDocumentProjectContext,
 } from '../app-state';
-import { useNavigateToDocument } from './use-navigate-to-document';
+import { useNavigateToArtifact } from './use-navigate-to-artifact';
 
 export const useCreateDocument = () => {
   const { isElectron } = useContext(ElectronContext);
   const { projectType } = useContext(CurrentProjectContext);
   const { openCreateDocumentModal } = useContext(CreateDocumentModalContext);
   const [canCreateDocument, setCanCreateDocument] = useState<boolean>(false);
-  const navigateToDocument = useNavigateToDocument();
+  const navigateToArtifact = useNavigateToArtifact();
 
   const { createNewDocument: createNewDocumentInMultiFileProject, directory } =
     useContext(MultiDocumentProjectContext);
@@ -38,7 +38,7 @@ export const useCreateDocument = () => {
         cloneUrl,
         parentPath,
       });
-      navigateToDocument({ projectId, documentId, path });
+      navigateToArtifact({ projectId, artifactId: documentId, path });
     }
   };
 

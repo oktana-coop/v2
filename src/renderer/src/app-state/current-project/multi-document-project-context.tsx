@@ -259,7 +259,7 @@ export const MultiDocumentProjectProvider = ({
   const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
   const [mergeConflictInfo, setMergeConflictInfo] =
     useState<MergeConflictInfo | null>(null);
-  const { documentId: documentIdInPath } = useParams();
+  const { artifactId: documentIdInPath } = useParams();
   const [versionedProjectStore, setVersionedProjectStore] =
     useState<MultiDocumentProjectStore | null>(null);
   const [selectedFileInfo, setSelectedFileInfo] =
@@ -474,7 +474,7 @@ export const MultiDocumentProjectProvider = ({
             mergeConflictInfo,
           });
         } else {
-          // Only redirect to /documents if the user isn't already on a
+          // Only redirect to /artifacts if the user isn't already on a
           // project subroute (e.g. /history). This effect runs on mount,
           // so when navigating from /settings back to project routes the
           // current location already reflects the target subroute.
@@ -484,7 +484,7 @@ export const MultiDocumentProjectProvider = ({
           );
 
           if (!isAlreadyOnProjectSubroute) {
-            navigate(`${projectBase}/documents`);
+            navigate(`${projectBase}/artifacts`);
           }
         }
       }
@@ -534,7 +534,7 @@ export const MultiDocumentProjectProvider = ({
 
         setSelectedFileInfo({ documentId: doc.id, path: selectedFilePath });
 
-        const newUrl = `/projects/${urlEncodeProjectId(projId)}/documents/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(selectedFilePath)}`;
+        const newUrl = `/projects/${urlEncodeProjectId(projId)}/artifacts/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(selectedFilePath)}`;
         setPulledUpstreamChanges(false);
         navigate(newUrl);
 
@@ -654,7 +654,7 @@ export const MultiDocumentProjectProvider = ({
           mergeConflictInfo,
         });
       } else {
-        navigate(`/projects/${urlEncodeProjectId(projId)}/documents`);
+        navigate(`/projects/${urlEncodeProjectId(projId)}/artifacts`);
       }
 
       return dir;
@@ -844,7 +844,7 @@ export const MultiDocumentProjectProvider = ({
         // If the deleted file was currently selected, clear selection and navigate away
         if (selectedFileInfo?.path === relativePath) {
           await clearFileSelection();
-          navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
+          navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
         }
 
         setFileToDelete(null);
@@ -983,7 +983,7 @@ export const MultiDocumentProjectProvider = ({
                           ? Effect.sync(() => {
                               setSelectedFileInfo(null);
                               navigate(
-                                `/projects/${urlEncodeProjectId(projectId)}/documents`
+                                `/projects/${urlEncodeProjectId(projectId)}/artifacts`
                               );
                             })
                           : Effect.void
@@ -1098,12 +1098,12 @@ export const MultiDocumentProjectProvider = ({
               path: newRelativePath,
             });
             navigate(
-              `/projects/${urlEncodeProjectId(projectId)}/documents/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(newRelativePath)}`
+              `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(newRelativePath)}`
             );
           } catch {
             // Document not found at new path — clear selection
             await clearFileSelection();
-            navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
+            navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
           }
         }
 
@@ -1228,11 +1228,11 @@ export const MultiDocumentProjectProvider = ({
               path: newFilePath,
             });
             navigate(
-              `/projects/${urlEncodeProjectId(projectId)}/documents/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(newFilePath)}`
+              `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(newFilePath)}`
             );
           } catch {
             await clearFileSelection();
-            navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
+            navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
           }
         }
 
@@ -1290,7 +1290,7 @@ export const MultiDocumentProjectProvider = ({
 
           handleSetSelectedFileInfo({ documentId, path: filePath });
           navigate(
-            `/projects/${urlEncodeProjectId(projId)}/documents/${urlEncodeArtifactId(documentId)}?path=${encodeURIComponent(filePath)}`
+            `/projects/${urlEncodeProjectId(projId)}/artifacts/${urlEncodeArtifactId(documentId)}?path=${encodeURIComponent(filePath)}`
           );
         }
 
@@ -1572,7 +1572,7 @@ export const MultiDocumentProjectProvider = ({
     if (notification) {
       dispatchNotification(notification);
     } else {
-      navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
+      navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
     }
   }, [versionedProjectStore, projectId]);
 
@@ -1636,7 +1636,7 @@ export const MultiDocumentProjectProvider = ({
         });
         dispatchNotification(notification);
         setMergeConflictInfo(null);
-        navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
+        navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
       }
     }
   }, [versionedProjectStore, projectId, navigateToResolveMergeConflicts]);

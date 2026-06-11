@@ -141,11 +141,11 @@ export const ProjectHistoryPage = () => {
   );
 
   const documentChangeMatch = useMatch(
-    '/projects/:projectId/history/:documentId/changes/:changeId'
+    '/projects/:projectId/history/:artifactId/changes/:changeId'
   );
 
   const selectedDocumentPath = useMemo(() => {
-    const encodedDocumentId = documentChangeMatch?.params.documentId;
+    const encodedDocumentId = documentChangeMatch?.params.artifactId;
     if (!encodedDocumentId) return null;
     const documentId = decodeUrlEncodedArtifactId(encodedDocumentId);
     if (!documentId || !isGitBlobRef(documentId)) return null;

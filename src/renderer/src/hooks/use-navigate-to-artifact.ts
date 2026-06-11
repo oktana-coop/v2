@@ -15,7 +15,7 @@ import {
   MultiDocumentProjectContext,
 } from '../app-state';
 
-export const useNavigateToDocument = () => {
+export const useNavigateToArtifact = () => {
   const navigate = useNavigate();
 
   const { projectType } = useContext(CurrentProjectContext);
@@ -23,20 +23,20 @@ export const useNavigateToDocument = () => {
 
   return ({
     projectId,
-    documentId,
+    artifactId,
     path,
   }: {
     projectId: ProjectId;
-    documentId: ResolvedArtifactId;
+    artifactId: ResolvedArtifactId;
     path: string | null;
   }) => {
     if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
-      setSelectedFileInfo({ documentId, path });
+      setSelectedFileInfo({ documentId: artifactId, path });
     }
 
     const newUrl = path
-      ? `/projects/${urlEncodeProjectId(projectId)}/documents/${urlEncodeArtifactId(documentId)}?path=${encodeURIComponent(path)}`
-      : `/projects/${urlEncodeProjectId(projectId)}/documents/${urlEncodeArtifactId(documentId)}`;
+      ? `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(artifactId)}?path=${encodeURIComponent(path)}`
+      : `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(artifactId)}`;
 
     navigate(newUrl);
   };

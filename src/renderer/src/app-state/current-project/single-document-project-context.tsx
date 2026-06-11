@@ -215,7 +215,7 @@ export const SingleDocumentProjectProvider = ({
 
       if (openedDocument.projectId && openedDocument.documentId) {
         navigate(
-          `/projects/${urlEncodeProjectId(openedDocument.projectId)}/documents/${urlEncodeArtifactId(openedDocument.documentId)}`
+          `/projects/${urlEncodeProjectId(openedDocument.projectId)}/artifacts/${urlEncodeArtifactId(openedDocument.documentId)}`
         );
       }
     };
@@ -277,7 +277,7 @@ export const SingleDocumentProjectProvider = ({
         });
       } else {
         navigate(
-          `/projects/${urlEncodeProjectId(browserStorageProjectData.projectId)}/documents/${urlEncodeArtifactId(docId)}`
+          `/projects/${urlEncodeProjectId(browserStorageProjectData.projectId)}/artifacts/${urlEncodeArtifactId(docId)}`
         );
       }
     }
@@ -660,7 +660,7 @@ export const SingleDocumentProjectProvider = ({
     if (notification) {
       dispatchNotification(notification);
     } else {
-      navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
+      navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
     }
   }, [versionedProjectStore, projectId]);
 
@@ -708,7 +708,7 @@ export const SingleDocumentProjectProvider = ({
       });
       dispatchNotification(notification);
       setMergeConflictInfo(null);
-      navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
+      navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
     }
   }, [versionedProjectStore, projectId]);
 

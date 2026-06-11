@@ -91,7 +91,7 @@ export function NavBar() {
       {
         name: 'Edit',
         href: getProjectSubroute({
-          subpath: 'documents',
+          subpath: 'artifacts',
           fallback: '/projects',
           projectId,
         }),

@@ -10,7 +10,7 @@ import {
   useCreateDocument,
   useDocumentExplorerTree,
 } from '../../../../../hooks';
-import { useDocumentSelection as useDocumentSelectionInMultiDocumentProject } from '../../../../../hooks/multi-document-project';
+import { useArtifactSelection as useArtifactSelectionInMultiDocumentProject } from '../../../../../hooks/multi-document-project';
 import { TreeView } from '../tree';
 import { EmptyView } from './EmptyView';
 import { NoActiveDirectoryView } from './NoActiveDirectoryView';
@@ -111,7 +111,7 @@ export const DirectoryTreeView = ({
   onCreateDocument: () => void;
 }) => {
   const { directory, openDirectory } = useContext(MultiDocumentProjectContext);
-  const handleDocumentSelection = useDocumentSelectionInMultiDocumentProject();
+  const handleArtifactSelection = useArtifactSelectionInMultiDocumentProject();
   const {
     explorerTree: documents,
     canShowTree,
@@ -178,7 +178,7 @@ export const DirectoryTreeView = ({
           data={documents}
           selection={selection}
           onCreateDocument={onCreateDocument}
-          onSelectItem={handleDocumentSelection}
+          onSelectItem={handleArtifactSelection}
           onCreateDirectory={createDirectory}
           onCancelCreateDirectory={cancelCreateDirectory}
           onStartRenameDocument={startRenameDocument}

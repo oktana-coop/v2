@@ -12,8 +12,6 @@ import {
   useAssetInsertion,
   useAssetSrcResolver,
 } from '../../../../../../hooks';
-import { useCurrentDocumentExtension } from '../../../../../../hooks/use-current-document-extension';
-import { UnsupportedDocumentView } from '../../../../shared/unsupported-document-view';
 import { ActionsBar } from './ActionsBar';
 
 export const DocumentEditor = () => {
@@ -27,7 +25,6 @@ export const DocumentEditor = () => {
   } = useContext(CurrentDocumentContext);
   const { openCommitModal } = useContext(CommitModalContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
-  const { isUnsupported } = useCurrentDocumentExtension();
   const resolveAssetSrc = useAssetSrcResolver();
   const pickAsset = useAssetInsertion();
 
@@ -35,10 +32,6 @@ export const DocumentEditor = () => {
     toggleEditorToolbar(!isEditorToolbarOpen);
     editorView?.focus();
   }, [editorView, isEditorToolbarOpen]);
-
-  if (isUnsupported) {
-    return <UnsupportedDocumentView />;
-  }
 
   return (
     <div className="relative flex flex-auto flex-col items-center overflow-hidden">
