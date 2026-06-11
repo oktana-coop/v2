@@ -79,6 +79,7 @@ export const HistoricalDocumentView = ({
           <HistoricalViewContent
             doc={doc}
             diffProps={diffProps}
+            documentPath={documentPath}
             loading={loading}
             error={error}
           />

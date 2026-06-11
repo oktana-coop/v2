@@ -30,10 +30,12 @@ const {
 export type DiffViewProps = {
   docBefore: RichTextDocument;
   docAfter: RichTextDocument;
+  documentPath: string | null;
 };
 
 export type SingleDocViewProps = {
   doc: RichTextDocument;
+  documentPath: string | null;
 };
 
 const isDiffViewProps = (
@@ -57,7 +59,7 @@ export const ReadOnlyDocumentView = (props: ReadOnlyDocumentViewProps) => {
   const { openExternalLink } = useContext(ElectronContext);
   const editorRoot = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
-  const resolveAssetSrc = useAssetSrcResolver();
+  const resolveAssetSrc = useAssetSrcResolver(props.documentPath ?? undefined);
   const {
     proseMirrorDiff,
     diffAdapterReady,

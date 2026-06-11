@@ -8,11 +8,13 @@ import {
 export const HistoricalViewContent = ({
   doc,
   diffProps,
+  documentPath,
   loading,
   error,
 }: {
   doc: VersionedDocument | null;
   diffProps: DiffViewProps | null;
+  documentPath: string | null;
   loading: boolean;
   error: string | null;
 }) => {
@@ -36,5 +38,5 @@ export const HistoricalViewContent = ({
     return <ReadOnlyDocumentView {...diffProps} />;
   }
 
-  return <ReadOnlyDocumentView doc={doc} />;
+  return <ReadOnlyDocumentView doc={doc} documentPath={documentPath} />;
 };

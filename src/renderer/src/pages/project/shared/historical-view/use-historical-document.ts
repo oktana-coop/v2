@@ -303,6 +303,7 @@ export const useHistoricalDocument = ({
                 setDiffProps({
                   docBefore: diffTargetDoc,
                   docAfter: currentDoc,
+                  documentPath,
                 });
               }
             } catch (error) {
@@ -333,6 +334,7 @@ export const useHistoricalDocument = ({
     };
   }, [
     documentId,
+    documentPath,
     changeId,
     diffCommitId,
     getDocumentAtChange,
