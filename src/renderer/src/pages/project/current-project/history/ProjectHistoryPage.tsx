@@ -15,7 +15,7 @@ import { MultiDocumentProjectContext } from '../../../../app-state';
 import { PersonalFile } from '../../../../components/illustrations/PersonalFile';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
-import { useProjectHistoryDocumentSelection } from '../../../../hooks/multi-document-project';
+import { useProjectHistoryArtifactSelection } from '../../../../hooks/multi-document-project';
 import { CommitDialog } from '../change-dialogs';
 import { type ProjectHistoryOutletContext } from './main/ProjectHistoryDocumentView';
 import { CommitHistoryPanel } from './sidebar/CommitHistoryPanel';
@@ -38,7 +38,7 @@ export const ProjectHistoryPage = () => {
     commitChanges,
   } = useContext(MultiDocumentProjectContext);
 
-  const selectDocument = useProjectHistoryDocumentSelection();
+  const selectArtifact = useProjectHistoryArtifactSelection();
 
   const [commits, setCommits] = useState<Commit[]>([]);
   const [uncommittedChanges, setUncommittedChanges] = useState<
@@ -163,7 +163,7 @@ export const ProjectHistoryPage = () => {
   const handleCancelCommitDialog = () => setIsCommitDialogOpen(false);
 
   const handleSelectUncommittedDocument = (path: string) => {
-    selectDocument(path);
+    selectArtifact(path);
   };
 
   const handleSelectCommitDocument = ({
@@ -173,7 +173,7 @@ export const ProjectHistoryPage = () => {
     document: ChangedDocument;
     commitId: Commit['id'];
   }) => {
-    selectDocument(document.path, commitId);
+    selectArtifact(document.path, commitId);
   };
 
   if (loadingCommits && loadingUncommitted) {
