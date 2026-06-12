@@ -11,11 +11,6 @@ export type ReadBlobAtCommitArgs = Omit<IsoGitDeps, 'isoGitHttp'> & {
   filepath: string;
 };
 
-// Reads a blob's bytes at a specific commit. Fails with `NotFoundError`
-// when the file is genuinely absent from that commit, and `RepositoryError`
-// for any other failure (bad hash, fs error, repo corruption). Callers
-// that want "skip if missing" semantics recover NotFoundError explicitly;
-// real errors propagate so they aren't silently misclassified.
 export const readBlobAtCommit = ({
   isoGitFs,
   dir,

@@ -195,23 +195,7 @@ describe('git-versioned-document-store', () => {
         expect(error._tag).toBe(VersionedDocumentNotFoundErrorTag);
       });
 
-      it('fails with RepositoryError when resolveRef fails with a non-NotFoundError', async () => {
-        mockResolveRef.mockRejectedValue(new Error('repo corrupted'));
-
-        const error = await Effect.runPromise(
-          store
-            .getDocumentAtChange({
-              documentId: docId,
-              changeId: commitHash as ChangeId,
-            })
-            .pipe(Effect.flip)
-        );
-
-        expect(error._tag).toBe(VersionedDocumentRepositoryErrorTag);
-      });
-
       it('fails with RepositoryError when readBlob fails with a non-NotFoundError', async () => {
-        mockResolveRef.mockResolvedValue(commitOid);
         mockReadBlob.mockRejectedValue(new Error('read error'));
 
         const error = await Effect.runPromise(
