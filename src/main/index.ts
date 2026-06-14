@@ -17,6 +17,7 @@ import os from 'os';
 
 import { createElectronMainEncryptedStoreAdapter } from '../modules/auth/node';
 import { PROJECT_FILE_EXTENSION } from '../modules/domain/project';
+import { createPandocDocumentAnalyzerAdapter } from '../modules/domain/rich-text';
 import { createPagedJsElectronNodeAdapter } from '../modules/domain/rich-text/node';
 import { allowedPermissions } from '../modules/infrastructure/cross-platform';
 import {
@@ -190,6 +191,10 @@ async function createWindow() {
 
   const wasmAPI = await createNodeWasmAdapter();
 
+  const documentAnalyzer = createPandocDocumentAnalyzerAdapter({
+    runWasiCLIOutputingText: wasmAPI.runWasiCLIOutputingText,
+  });
+
   win = new BrowserWindow({
     title: 'Main window',
     icon,
@@ -215,6 +220,7 @@ async function createWindow() {
 
   registerVersionedStoresEvents({
     filesystem: filesystemAPI,
+    documentAnalyzer,
     rendererProcessId,
     browserWindow: win,
     encryptedStore,

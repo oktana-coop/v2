@@ -7,7 +7,8 @@ import git, {
 } from 'isomorphic-git';
 
 import {
-  extractAssetReferencesFromMarkdown,
+  DocumentAnalysisErrorTag,
+  type DocumentAnalyzer,
   PRIMARY_RICH_TEXT_REPRESENTATION,
   richTextRepresentations,
 } from '../../../../../../../modules/domain/rich-text';
@@ -50,8 +51,8 @@ import {
   VersionControlRepositoryErrorTag,
   writeGitignore,
 } from '../../../../../../../modules/infrastructure/version-control';
+import { unique } from '../../../../../../../utils/array';
 import { mapErrorTo } from '../../../../../../../utils/errors';
-import { parseAssetDocRelPath } from '../../../../../rich-text/models';
 import { DEFAULT_ASSETS_DIR_NAME, projectTypes } from '../../../../constants';
 import {
   NotFoundError,
@@ -74,6 +75,7 @@ export const createAdapter = ({
   isoGitFs,
   filesystem,
   isoGitHttp,
+  documentAnalyzer,
   projectFilePath,
   internalProjectDir,
   projectName,
@@ -87,6 +89,7 @@ export const createAdapter = ({
   isoGitFs: IsoGitFsApi;
   filesystem: Filesystem;
   isoGitHttp: IsoGitHttpApi;
+  documentAnalyzer: DocumentAnalyzer;
   projectFilePath: ProjectFsPath;
   internalProjectDir: string;
   projectName: string;
@@ -97,7 +100,9 @@ export const createAdapter = ({
   assetsDirName?: string;
 }): SingleDocumentProjectStore => {
   // Strip the leading `/` - isomorphic-git's `filepath` arg wants a project-relative POSIX path.
-  const projectRelativeDocumentPath = documentInternalPath.replace(/^\/+/, '');
+  const projectRelativeDocumentPath = parseProjectRelPath(
+    documentInternalPath.replace(/^\/+/, '')
+  );
 
   const createSingleDocumentProject: SingleDocumentProjectStore['createSingleDocumentProject'] =
     ({ username, email, cloneUrl, authToken: authTokenInput }) =>
@@ -420,54 +425,65 @@ export const createAdapter = ({
               )
             )
           ),
-          Effect.bind('assetsToRestore', ({ commitHash, docBytes }) => {
-            const brandedDocPath = parseProjectRelPath(
-              projectRelativeDocumentPath
-            );
-            const referencedAssetPaths =
-              PRIMARY_RICH_TEXT_REPRESENTATION ===
-              richTextRepresentations.MARKDOWN
-                ? extractAssetReferencesFromMarkdown(
-                    new TextDecoder().decode(docBytes)
-                  ).map((docRel) =>
-                    docRelToProjectRel({
-                      docRel: parseAssetDocRelPath(docRel),
-                      docPath: brandedDocPath,
-                    })
-                  )
-                : [];
-            return pipe(
-              Effect.forEach(referencedAssetPaths, (path) =>
-                pipe(
-                  readBlobAtCommit({
-                    isoGitFs,
-                    dir: internalProjectDir,
-                    commitHash,
-                    filepath: path,
+          Effect.bind('referencedAssetPaths', ({ docBytes }) =>
+            PRIMARY_RICH_TEXT_REPRESENTATION ===
+            richTextRepresentations.MARKDOWN
+              ? pipe(
+                  documentAnalyzer.extractLocalAssetReferences({
+                    representation: PRIMARY_RICH_TEXT_REPRESENTATION,
+                    content: new TextDecoder().decode(docBytes),
                   }),
-                  Effect.map((bytes) => ({ path, bytes }) as const),
-                  Effect.catchTag(VersionControlNotFoundErrorTag, () =>
-                    Effect.succeed(null)
+                  Effect.map((assetRefs) =>
+                    unique(
+                      assetRefs.map((docRel) =>
+                        docRelToProjectRel({
+                          docRel,
+                          docPath: projectRelativeDocumentPath,
+                        })
+                      )
+                    )
+                  ),
+                  Effect.catchTag(DocumentAnalysisErrorTag, (err) =>
+                    Effect.fail(new RepositoryError(err.message))
                   )
                 )
-              ),
-              // Filter-out not-found assets (these become dead refs in the document).
-              Effect.map((entries) =>
-                entries.filter(
-                  (
-                    entry
-                  ): entry is { path: ProjectRelPath; bytes: Uint8Array } =>
-                    entry !== null
+              : Effect.succeed([] as ProjectRelPath[])
+          ),
+          Effect.bind(
+            'assetsToRestore',
+            ({ commitHash, referencedAssetPaths }) =>
+              pipe(
+                Effect.forEach(referencedAssetPaths, (path) =>
+                  pipe(
+                    readBlobAtCommit({
+                      isoGitFs,
+                      dir: internalProjectDir,
+                      commitHash,
+                      filepath: path,
+                    }),
+                    Effect.map((bytes) => ({ path, bytes }) as const),
+                    Effect.catchTag(VersionControlNotFoundErrorTag, () =>
+                      Effect.succeed(null)
+                    )
+                  )
+                ),
+                // Filter-out not-found assets (these become dead refs in the document).
+                Effect.map((entries) =>
+                  entries.filter(
+                    (
+                      entry
+                    ): entry is { path: ProjectRelPath; bytes: Uint8Array } =>
+                      entry !== null
+                  )
+                ),
+                Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+                  Effect.fail(new RepositoryError(err.message))
                 )
-              ),
-              Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
-                Effect.fail(new RepositoryError(err.message))
               )
-            );
-          }),
+          ),
           Effect.map(({ docBytes, assetsToRestore }) => [
             {
-              path: parseProjectRelPath(projectRelativeDocumentPath),
+              path: projectRelativeDocumentPath,
               bytes: docBytes,
             },
             ...assetsToRestore,

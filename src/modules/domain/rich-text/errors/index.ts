@@ -51,3 +51,8 @@ export class DeletedDocumentError extends Cause.YieldableError {
     this.data = data;
   }
 }
+
+export const DocumentAnalysisErrorTag = 'DocumentAnalysisError';
+export class DocumentAnalysisError extends Cause.YieldableError {
+  readonly _tag = DocumentAnalysisErrorTag;
+}

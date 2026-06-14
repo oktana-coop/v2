@@ -1,7 +1,7 @@
 import {
   RichTextRepresentation,
   richTextRepresentations,
-} from '../../constants/representations';
+} from '../constants/representations';
 
 export const representationToCliArg = (
   representation: RichTextRepresentation
@@ -21,4 +21,24 @@ export const representationToCliArg = (
     default:
       return 'pandoc';
   }
+};
+
+export type HSLibError = {
+  message: string;
+};
+
+export type HSLibSuccessOutput<T> = {
+  data: T;
+};
+
+export type HSLibFailureOutput = {
+  errors: HSLibError[];
+};
+
+export type HSLibOutput<T> = HSLibSuccessOutput<T> | HSLibFailureOutput;
+
+export const isHSLibFailureOutput = <T>(
+  output: HSLibOutput<T>
+): output is HSLibFailureOutput => {
+  return 'errors' in output;
 };

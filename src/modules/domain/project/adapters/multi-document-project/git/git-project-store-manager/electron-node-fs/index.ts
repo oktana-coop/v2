@@ -3,16 +3,19 @@ import fs from 'node:fs';
 import * as Effect from 'effect/Effect';
 import http from 'isomorphic-git/http/node';
 
+import { type DocumentAnalyzer } from '../../../../../../../../modules/domain/rich-text';
 import { createAdapter as createVersionedDocumentStoreAdapter } from '../../../../../../../../modules/domain/rich-text/adapters/versioned-document-store/git/git-versioned-document-store';
 import { DEFAULT_ASSETS_DIR_NAME } from '../../../../../constants';
 import { type MultiDocumentProjectStoreManager } from '../../../../../ports';
 import { createAdapter as createMultiDocumentProjectStoreAdapter } from '../../git-project-store';
 
 export const createAdapter = ({
+  documentAnalyzer,
   assetsDirName = DEFAULT_ASSETS_DIR_NAME,
 }: {
+  documentAnalyzer: DocumentAnalyzer;
   assetsDirName?: string;
-} = {}): MultiDocumentProjectStoreManager => {
+}): MultiDocumentProjectStoreManager => {
   const openOrCreateMultiDocumentProject: MultiDocumentProjectStoreManager['openOrCreateMultiDocumentProject'] =
 
       ({ filesystem }) =>
@@ -25,6 +28,7 @@ export const createAdapter = ({
                 isoGitFs: fs,
                 isoGitHttp: http,
                 filesystem,
+                documentAnalyzer,
                 assetsDirName,
               })
             )
@@ -91,6 +95,7 @@ export const createAdapter = ({
                 isoGitFs: fs,
                 isoGitHttp: http,
                 filesystem,
+                documentAnalyzer,
                 assetsDirName,
               })
             )

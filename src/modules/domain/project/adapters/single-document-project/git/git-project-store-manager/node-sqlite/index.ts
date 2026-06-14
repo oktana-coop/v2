@@ -3,6 +3,7 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import http from 'isomorphic-git/http/node';
 
+import { type DocumentAnalyzer } from '../../../../../../../../modules/domain/rich-text';
 import { createAdapter as createVersionedDocumentStoreAdapter } from '../../../../../../../../modules/domain/rich-text/adapters/versioned-document-store/git/git-versioned-document-store';
 import {
   createAdapter as createSQLiteFilesystemAdapter,
@@ -50,10 +51,12 @@ const openSingleDocumentProjectStoreSemaphore = Effect.runSync(
 );
 
 export const createAdapter = ({
+  documentAnalyzer,
   assetsDirName = DEFAULT_ASSETS_DIR_NAME,
 }: {
+  documentAnalyzer: DocumentAnalyzer;
   assetsDirName?: string;
-} = {}): SingleDocumentProjectStoreManager => {
+}): SingleDocumentProjectStoreManager => {
   const setupSingleDocumentProjectStore: SingleDocumentProjectStoreManager['setupSingleDocumentProjectStore'] =
 
       ({ filesystem }: SetupSingleDocumentProjectStoreDeps) =>
@@ -93,6 +96,7 @@ export const createAdapter = ({
                   isoGitFs,
                   filesystem,
                   isoGitHttp: http,
+                  documentAnalyzer,
                   projectFilePath,
                   internalProjectDir: INTERNAL_PROJECT_DIR,
                   projectName: newFile.name,
@@ -185,6 +189,7 @@ export const createAdapter = ({
                     isoGitFs,
                     filesystem,
                     isoGitHttp: http,
+                    documentAnalyzer,
                     projectFilePath,
                     internalProjectDir: INTERNAL_PROJECT_DIR,
                     projectName: file.name,

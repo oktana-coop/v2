@@ -5,6 +5,7 @@ import git, {
 } from 'isomorphic-git';
 
 import { type Username } from '../../../../../../auth';
+import { type DocumentAnalyzer } from '../../../../../../domain/rich-text';
 import { type Filesystem } from '../../../../../../infrastructure/filesystem';
 import {
   type Branch,
@@ -106,10 +107,15 @@ const mockFilesystem: Partial<Filesystem> = {
 
 const PROJECT_PATH = '/projects/my-project' as ProjectId;
 
+const mockDocumentAnalyzer: DocumentAnalyzer = {
+  extractLocalAssetReferences: () => Effect.succeed([]),
+};
+
 const store = createAdapter({
   isoGitFs: mockFs,
   filesystem: mockFilesystem as Filesystem,
   isoGitHttp: mockHttp,
+  documentAnalyzer: mockDocumentAnalyzer,
 });
 
 beforeEach(() => {

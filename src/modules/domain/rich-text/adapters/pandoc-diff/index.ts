@@ -5,6 +5,11 @@ import {
   cliTypes,
   type Wasm,
 } from '../../../../../modules/infrastructure/wasm';
+import {
+  type HSLibOutput,
+  isHSLibFailureOutput,
+  representationToCliArg,
+} from '../../hs-lib-cli';
 import { type Diff } from '../../ports/diff';
 import {
   createInlineDecoration,
@@ -20,29 +25,10 @@ import {
   type PMNode,
   type WidgetDiffDecoration,
 } from '../../prosemirror/hs-lib';
-import { representationToCliArg } from './cli-args';
 
-type HSLibDiffSuccessOutput = {
-  data: {
-    doc: PMNode;
-    decorations: DiffDecoration[];
-  };
-};
-
-type HSLibError = {
-  message: string;
-};
-
-type HSLibFailureOutput = {
-  errors: HSLibError[];
-};
-
-type HSLibDiffOutput = HSLibDiffSuccessOutput | HSLibFailureOutput;
-
-const isHSLibFailureOutput = (
-  output: HSLibDiffOutput
-): output is HSLibFailureOutput => {
-  return 'errors' in output;
+type HSLibDiffData = {
+  doc: PMNode;
+  decorations: DiffDecoration[];
 };
 
 const toInlineDecoration = (decoration: InlineDiffDecoration): Decoration => {
@@ -120,7 +106,7 @@ export const createAdapter = ({
     });
 
     // TODO: Perform proper validation & handle error cases
-    const parsedOutput = JSON.parse(output) as HSLibDiffOutput;
+    const parsedOutput = JSON.parse(output) as HSLibOutput<HSLibDiffData>;
 
     if (isHSLibFailureOutput(parsedOutput)) {
       throw new Error(

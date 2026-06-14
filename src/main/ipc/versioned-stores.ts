@@ -79,6 +79,7 @@ import {
   type CreateDocumentArgs,
   type DeleteDocumentArgs,
   DiscardUncommittedChangesArgs,
+  type DocumentAnalyzer,
   type GetDocumentAtChangeArgs,
   type IsContentSameAtChangesArgs,
   type UpdateRichTextDocumentContentArgs,
@@ -100,11 +101,13 @@ import {
 
 export const registerVersionedStoresEvents = ({
   filesystem,
+  documentAnalyzer,
   rendererProcessId,
   browserWindow,
   encryptedStore,
 }: {
   filesystem: Filesystem;
+  documentAnalyzer: DocumentAnalyzer;
   rendererProcessId: string;
   browserWindow: BrowserWindow;
   encryptedStore: EncryptedStore;
@@ -116,7 +119,9 @@ export const registerVersionedStoresEvents = ({
           rendererProcessId,
           browserWindow,
         })
-      : createNodeGitSingleDocumentProjectStoreManagerAdapter();
+      : createNodeGitSingleDocumentProjectStoreManagerAdapter({
+          documentAnalyzer,
+        });
 
   const multiDocumentProjectStoreManager =
     buildConfig.multiDocumentProjectVersionControlSystem ===
@@ -125,7 +130,9 @@ export const registerVersionedStoresEvents = ({
           rendererProcessId,
           browserWindow,
         })
-      : createNodeGitMultiDocumentProjectStoreManagerAdapter();
+      : createNodeGitMultiDocumentProjectStoreManagerAdapter({
+          documentAnalyzer,
+        });
 
   registerStoreManagerEvents({
     singleDocumentProjectStoreManager,
