@@ -1,6 +1,6 @@
 import * as Effect from 'effect/Effect';
 
-import { splitPosixPath } from '../../../../../infrastructure/filesystem';
+import { toPosixSegments } from '../../../../../infrastructure/filesystem';
 import { ValidationError } from '../../../errors';
 import {
   parseProjectRelPathEffect,
@@ -18,7 +18,7 @@ export const PROJECT_ASSET_SCHEME = 'project-asset';
 const HOST = 'project';
 
 const encodePathSegments = (relPath: string) =>
-  splitPosixPath(relPath).map(encodeURIComponent).join('/');
+  toPosixSegments(relPath).map(encodeURIComponent).join('/');
 
 export const buildProjectAssetUrl = ({
   projectId,
