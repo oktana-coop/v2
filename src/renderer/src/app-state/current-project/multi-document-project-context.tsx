@@ -239,6 +239,42 @@ export const MultiDocumentProjectContext =
     restoreDocumentChanges: async () => null,
   });
 
+const formatSkippedAssetNames = (skippedAssetPaths: string[]): string =>
+  skippedAssetPaths.map(removePath).join(', ');
+
+const buildSkippedAssetsOnCommitNotification = (
+  skippedAssetPaths: string[]
+) => {
+  const isSingular = skippedAssetPaths.length === 1;
+
+  return createInfoNotification({
+    title: 'Some images were not saved',
+    message: `${skippedAssetPaths.length} referenced ${
+      isSingular ? 'file is' : 'files are'
+    } missing from disk and ${
+      isSingular ? 'was' : 'were'
+    } left out of this commit: ${formatSkippedAssetNames(skippedAssetPaths)}`.slice(
+      0,
+      255
+    ),
+  });
+};
+
+const buildSkippedAssetsOnRestoreNotification = (
+  skippedAssetPaths: string[]
+) => {
+  const isSingular = skippedAssetPaths.length === 1;
+
+  return createInfoNotification({
+    title: 'Some images were not restored',
+    message: `${skippedAssetPaths.length} referenced ${
+      isSingular ? 'file' : 'files'
+    } could not be read from this version and ${
+      isSingular ? 'was' : 'were'
+    } left out: ${formatSkippedAssetNames(skippedAssetPaths)}`.slice(0, 255),
+  });
+};
+
 export const MultiDocumentProjectProvider = ({
   children,
 }: {
@@ -381,14 +417,7 @@ export const MultiDocumentProjectProvider = ({
 
       if (skippedAssetPaths.length > 0) {
         dispatchNotification(
-          createInfoNotification({
-            title: 'Some images were not saved',
-            message: `${skippedAssetPaths.length} referenced ${
-              skippedAssetPaths.length === 1 ? 'file is' : 'files are'
-            } missing from disk and were left out of this commit: ${skippedAssetPaths
-              .map(removePath)
-              .join(', ')}`.slice(0, 255),
-          })
+          buildSkippedAssetsOnCommitNotification(skippedAssetPaths)
         );
       }
     },
@@ -410,7 +439,7 @@ export const MultiDocumentProjectProvider = ({
           'Project store is not ready or project has not been set yet. Cannot restore document.'
         );
       }
-      return Effect.runPromise(
+      const { commitId, skippedAssetPaths } = await Effect.runPromise(
         versionedProjectStore.restoreDocumentChanges({
           projectId,
           documentId,
@@ -418,8 +447,16 @@ export const MultiDocumentProjectProvider = ({
           message,
         })
       );
+
+      if (skippedAssetPaths.length > 0) {
+        dispatchNotification(
+          buildSkippedAssetsOnRestoreNotification(skippedAssetPaths)
+        );
+      }
+
+      return commitId;
     },
-    [versionedProjectStore, projectId]
+    [versionedProjectStore, projectId, dispatchNotification]
   );
 
   const startRenameDocument = useCallback((path: string) => {

@@ -575,7 +575,7 @@ export const createAdapter = ({
                 }>(
                   (acc, { assetPath, fileExists }) =>
                     fileExists
-                      ? { ...acc, present: [...acc.existing, assetPath] }
+                      ? { ...acc, existing: [...acc.existing, assetPath] }
                       : { ...acc, skipped: [...acc.skipped, assetPath] },
                   { existing: [], skipped: [] }
                 )
@@ -633,7 +633,7 @@ export const createAdapter = ({
         Effect.bind('documentPath', () =>
           extractDocumentRelativePathFromId(documentId)
         ),
-        Effect.bind('filesToRestore', ({ projectPath, documentPath }) =>
+        Effect.bind('restoreData', ({ projectPath, documentPath }) =>
           Effect.Do.pipe(
             Effect.bind('commitHash', () =>
               pipe(
@@ -685,47 +685,64 @@ export const createAdapter = ({
                   )
                 : Effect.succeed([] as ProjectRelPath[])
             ),
-            Effect.bind(
-              'assetsToRestore',
-              ({ commitHash, referencedAssetPaths }) =>
-                pipe(
-                  Effect.forEach(referencedAssetPaths, (path) =>
-                    pipe(
-                      readBlobAtCommit({
-                        isoGitFs,
-                        dir: projectPath,
-                        commitHash,
-                        filepath: path,
-                      }),
-                      Effect.map((bytes) => ({ path, bytes }) as const),
-                      Effect.catchTag(VersionControlNotFoundErrorTag, () =>
-                        Effect.succeed(null)
-                      )
-                    )
-                  ),
-                  // Filter-out not-found assets (these become dead refs in the document).
-                  Effect.map((entries) =>
-                    entries.filter(
-                      (
-                        entry
-                      ): entry is { path: ProjectRelPath; bytes: Uint8Array } =>
-                        entry !== null
-                    )
-                  ),
-                  Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
-                    Effect.fail(new RepositoryError(err.message))
+            // An asset referenced by the historical document may be absent from
+            // the commit, or fail to read (e.g. a corrupt object). A single bad
+            // asset must not abort the whole restore, so we skip any we cannot
+            // read and restore the document plus the assets that are present,
+            // reporting the rest.
+            Effect.bind('assets', ({ commitHash, referencedAssetPaths }) =>
+              pipe(
+                Effect.forEach(referencedAssetPaths, (path) =>
+                  pipe(
+                    readBlobAtCommit({
+                      isoGitFs,
+                      dir: projectPath,
+                      commitHash,
+                      filepath: path,
+                    }),
+                    Effect.map(
+                      (bytes) => ({ path, bytes, restored: true }) as const
+                    ),
+                    Effect.catchTags({
+                      [VersionControlNotFoundErrorTag]: () =>
+                        Effect.succeed({ path, restored: false } as const),
+                      [VersionControlRepositoryErrorTag]: () =>
+                        Effect.succeed({ path, restored: false } as const),
+                    })
+                  )
+                ),
+                Effect.map((entries) =>
+                  entries.reduce<{
+                    toRestore: { path: ProjectRelPath; bytes: Uint8Array }[];
+                    skipped: ProjectRelPath[];
+                  }>(
+                    (acc, entry) =>
+                      entry.restored
+                        ? {
+                            ...acc,
+                            toRestore: [
+                              ...acc.toRestore,
+                              { path: entry.path, bytes: entry.bytes },
+                            ],
+                          }
+                        : { ...acc, skipped: [...acc.skipped, entry.path] },
+                    { toRestore: [], skipped: [] }
                   )
                 )
+              )
             ),
-            Effect.map(({ docBytes, assetsToRestore }) => [
-              { path: documentPath, bytes: docBytes },
-              ...assetsToRestore,
-            ])
+            Effect.map(({ docBytes, assets }) => ({
+              filesToRestore: [
+                { path: documentPath, bytes: docBytes },
+                ...assets.toRestore,
+              ],
+              skippedAssetPaths: assets.skipped,
+            }))
           )
         ),
-        Effect.tap(({ projectPath, filesToRestore }) =>
+        Effect.tap(({ projectPath, restoreData }) =>
           Effect.forEach(
-            filesToRestore,
+            restoreData.filesToRestore,
             ({ path, bytes }) =>
               pipe(
                 filesystem.getAbsolutePath({ path, dirPath: projectPath }),
@@ -744,13 +761,17 @@ export const createAdapter = ({
             { discard: true }
           )
         ),
-        Effect.flatMap(({ projectPath, filesToRestore }) =>
+        Effect.bind('commitId', ({ projectPath, restoreData }) =>
           stageAndCommitChangesToFiles({
             projectPath,
-            paths: filesToRestore.map((f) => f.path),
+            paths: restoreData.filesToRestore.map((f) => f.path),
             message: message ?? `Restore ${commit.message}`,
           })
-        )
+        ),
+        Effect.map(({ commitId, restoreData }) => ({
+          commitId,
+          skippedAssetPaths: restoreData.skippedAssetPaths,
+        }))
       );
 
   const createAndSwitchToBranch: MultiDocumentProjectStore['createAndSwitchToBranch'] =

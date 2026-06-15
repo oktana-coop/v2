@@ -98,6 +98,7 @@ const mockReadTextFile = vi.fn();
 const mockWriteFile = vi.fn();
 const mockDeleteFile = vi.fn();
 const mockExists = vi.fn();
+const mockEnsureDirectory = vi.fn();
 const mockFilesystem: Partial<Filesystem> = {
   listDirectoryFiles: mockListDirectoryFiles,
   getAbsolutePath: mockGetAbsolutePath,
@@ -105,6 +106,7 @@ const mockFilesystem: Partial<Filesystem> = {
   writeFile: mockWriteFile,
   deleteFile: mockDeleteFile,
   exists: mockExists,
+  ensureDirectory: mockEnsureDirectory,
 };
 
 const PROJECT_PATH = '/projects/my-project' as ProjectId;
@@ -306,6 +308,79 @@ describe('git-project-store', () => {
 
       expect(result.skippedAssetPaths).toEqual([]);
       expect(mockCommit).toHaveBeenCalled();
+    });
+  });
+
+  describe('restoreDocumentChanges', () => {
+    const docPath = 'doc.md';
+    const docId = `/blob/main/${docPath}` as ResolvedArtifactId;
+    const sourceCommitOid = 'aabbccddaabbccddaabbccddaabbccddaabbccdd';
+    const restoreCommitOid = 'ffeeddccffeeddccffeeddccffeeddccffeeddcc';
+    const commit = { id: sourceCommitOid, message: 'old' } as Commit;
+
+    beforeEach(() => {
+      mockGetAbsolutePath.mockImplementation(({ path, dirPath }) =>
+        Effect.succeed(`${dirPath}/${path}`)
+      );
+      mockEnsureDirectory.mockReturnValue(Effect.succeed(undefined));
+      mockWriteFile.mockReturnValue(Effect.succeed(undefined));
+      vi.mocked(git.add).mockResolvedValue(undefined);
+      mockCommit.mockResolvedValue(restoreCommitOid);
+    });
+
+    it('restores readable assets and reports those that are missing or unreadable', async () => {
+      mockExtractLocalAssetReferences.mockReturnValue(
+        Effect.succeed([
+          'assets/present.png',
+          'assets/missing.png',
+          'assets/corrupt.png',
+        ])
+      );
+      vi.mocked(git.readBlob).mockImplementation(async ({ filepath }) => {
+        if (filepath === 'assets/missing.png') {
+          throw new git.Errors.NotFoundError('not found');
+        }
+        if (filepath === 'assets/corrupt.png') {
+          throw new Error('corrupt object');
+        }
+        return { oid: sourceCommitOid, blob: new Uint8Array([1, 2, 3]) };
+      });
+
+      const result = await Effect.runPromise(
+        store.restoreDocumentChanges({
+          projectId: PROJECT_PATH,
+          documentId: docId,
+          commit,
+        })
+      );
+
+      expect(result.commitId).toBe(restoreCommitOid);
+      expect(result.skippedAssetPaths).toEqual([
+        'assets/missing.png',
+        'assets/corrupt.png',
+      ]);
+      const writtenPaths = mockWriteFile.mock.calls.map(([args]) => args.path);
+      expect(writtenPaths).toContain(`${PROJECT_PATH}/${docPath}`);
+      expect(writtenPaths).toContain(`${PROJECT_PATH}/assets/present.png`);
+      expect(writtenPaths).not.toContain(`${PROJECT_PATH}/assets/corrupt.png`);
+      expect(mockCommit).toHaveBeenCalled();
+    });
+
+    it('aborts when the document blob itself cannot be read', async () => {
+      vi.mocked(git.readBlob).mockRejectedValue(new Error('doc read failed'));
+
+      const error = await Effect.runPromise(
+        store
+          .restoreDocumentChanges({
+            projectId: PROJECT_PATH,
+            documentId: docId,
+            commit,
+          })
+          .pipe(Effect.flip)
+      );
+
+      expect(error._tag).toBe(VersionedProjectRepositoryErrorTag);
+      expect(mockCommit).not.toHaveBeenCalled();
     });
   });
 

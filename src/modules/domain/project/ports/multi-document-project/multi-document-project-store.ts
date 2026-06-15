@@ -117,6 +117,13 @@ export type MultiDocumentProjectRestoreDocumentChangesArgs = {
   message?: string;
 };
 
+export type RestoreDocumentChangesResult = {
+  commitId: Commit['id'];
+  // Referenced assets that could not be read from the restored commit and so
+  // were left out (the restored document keeps a dangling reference to them).
+  skippedAssetPaths: ProjectRelPath[];
+};
+
 export type MultiDocumentProjectCreateAndSwitchToBranchArgs = {
   projectId: ProjectId;
   branch: Branch;
@@ -346,7 +353,7 @@ export type MultiDocumentProjectStore = {
   restoreDocumentChanges: (
     args: MultiDocumentProjectRestoreDocumentChangesArgs
   ) => Effect.Effect<
-    Commit['id'],
+    RestoreDocumentChangesResult,
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
