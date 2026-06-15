@@ -189,4 +189,5 @@ export type Filesystem = {
   isDescendantPath: (
     args: IsDescendantPathArgs
   ) => Effect.Effect<boolean, RepositoryError, never>;
+  exists: (path: string) => Effect.Effect<boolean, RepositoryError, never>;
 };

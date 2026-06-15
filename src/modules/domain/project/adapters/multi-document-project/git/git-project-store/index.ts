@@ -549,17 +549,50 @@ export const createAdapter = ({
           Effect.bind('documentPath', () =>
             extractDocumentRelativePathFromId(documentId)
           ),
-          Effect.bind('referencedAssetPaths', ({ projectPath, documentPath }) =>
-            getDocumentReferencedAssetPaths({ projectPath, documentPath })
+          // A document can reference an asset that is no longer on disk (a
+          // deleted file, or a hand-authored/pasted dangling link). Staging a
+          // missing path would fail the whole commit, so we check existence and
+          // commit only the assets that are present, reporting the rest.
+          Effect.bind('assets', ({ projectPath, documentPath }) =>
+            pipe(
+              getDocumentReferencedAssetPaths({ projectPath, documentPath }),
+              Effect.flatMap((referencedAssetPaths) =>
+                Effect.forEach(referencedAssetPaths, (assetPath) =>
+                  pipe(
+                    filesystem.getAbsolutePath({
+                      path: assetPath,
+                      dirPath: projectPath,
+                    }),
+                    Effect.flatMap(filesystem.exists),
+                    Effect.map((fileExists) => ({ assetPath, fileExists }))
+                  )
+                )
+              ),
+              Effect.map((referencedAssetPathsWithExistsInfo) =>
+                referencedAssetPathsWithExistsInfo.reduce<{
+                  existing: ProjectRelPath[];
+                  skipped: ProjectRelPath[];
+                }>(
+                  (acc, { assetPath, fileExists }) =>
+                    fileExists
+                      ? { ...acc, present: [...acc.existing, assetPath] }
+                      : { ...acc, skipped: [...acc.skipped, assetPath] },
+                  { existing: [], skipped: [] }
+                )
+              )
+            )
           ),
-          Effect.flatMap(
-            ({ projectPath, documentPath, referencedAssetPaths }) =>
-              stageAndCommitChangesToFiles({
-                projectPath,
-                paths: [documentPath, ...referencedAssetPaths],
-                message,
-              })
-          )
+          Effect.bind('commitId', ({ projectPath, documentPath, assets }) =>
+            stageAndCommitChangesToFiles({
+              projectPath,
+              paths: [documentPath, ...assets.existing],
+              message,
+            })
+          ),
+          Effect.map(({ commitId, assets }) => ({
+            commitId,
+            skippedAssetPaths: assets.skipped,
+          }))
         ),
         Effect.catchTags({
           [FilesystemNotFoundErrorTag]: (err) =>

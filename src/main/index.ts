@@ -307,6 +307,9 @@ async function createWindow() {
   ipcMain.handle('is-descendant-path', (_, args: IsDescendantPathArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.isDescendantPath(args))
   );
+  ipcMain.handle('file-exists', (_, path: string) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.exists(path))
+  );
   ipcMain.handle('create-directory', (_, args: CreateDirectoryArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.createDirectory(args))
   );

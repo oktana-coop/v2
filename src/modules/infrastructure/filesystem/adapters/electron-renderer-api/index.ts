@@ -229,4 +229,11 @@ export const createAdapter = (): Filesystem => ({
       >,
       RepositoryError
     )(window.filesystemAPI.isDescendantPath(...args)),
+  exists: (...args: Parameters<Filesystem['exists']>) =>
+    effectifyIPCPromise(
+      {
+        [FilesystemRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<EffectErrorType<ReturnType<Filesystem['exists']>>>,
+      RepositoryError
+    )(window.filesystemAPI.exists(...args)),
 });

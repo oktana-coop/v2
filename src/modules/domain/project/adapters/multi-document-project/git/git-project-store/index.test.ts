@@ -97,18 +97,21 @@ const mockGetAbsolutePath = vi.fn();
 const mockReadTextFile = vi.fn();
 const mockWriteFile = vi.fn();
 const mockDeleteFile = vi.fn();
+const mockExists = vi.fn();
 const mockFilesystem: Partial<Filesystem> = {
   listDirectoryFiles: mockListDirectoryFiles,
   getAbsolutePath: mockGetAbsolutePath,
   readTextFile: mockReadTextFile,
   writeFile: mockWriteFile,
   deleteFile: mockDeleteFile,
+  exists: mockExists,
 };
 
 const PROJECT_PATH = '/projects/my-project' as ProjectId;
 
+const mockExtractLocalAssetReferences = vi.fn();
 const mockDocumentAnalyzer: DocumentAnalyzer = {
-  extractLocalAssetReferences: () => Effect.succeed([]),
+  extractLocalAssetReferences: mockExtractLocalAssetReferences,
 };
 
 const store = createAdapter({
@@ -120,6 +123,7 @@ const store = createAdapter({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockExtractLocalAssetReferences.mockReturnValue(Effect.succeed([]));
   mockGetUserInfo.mockReturnValue(
     Effect.succeed({ username: 'Test', email: 'test@test.com' })
   );
@@ -238,6 +242,70 @@ describe('git-project-store', () => {
       );
 
       expect(error._tag).toBe(VersionedProjectRepositoryErrorTag);
+    });
+  });
+
+  describe('commitDocumentChanges', () => {
+    const docPath = 'doc.md';
+    const docId = `/blob/main/${docPath}` as ResolvedArtifactId;
+    const commitOid = 'aabbccddaabbccddaabbccddaabbccddaabbccdd';
+
+    beforeEach(() => {
+      mockGetAbsolutePath.mockImplementation(({ path, dirPath }) =>
+        Effect.succeed(`${dirPath}/${path}`)
+      );
+      mockReadTextFile.mockReturnValue(
+        Effect.succeed({
+          type: 'FILE',
+          name: docPath,
+          path: docPath,
+          content: '',
+        })
+      );
+      vi.mocked(git.add).mockResolvedValue(undefined);
+      mockCommit.mockResolvedValue(commitOid);
+    });
+
+    it('stages only the assets that exist on disk and reports the skipped ones', async () => {
+      mockExtractLocalAssetReferences.mockReturnValue(
+        Effect.succeed(['assets/present.png', 'assets/missing.png'])
+      );
+      mockExists.mockImplementation((path: string) =>
+        Effect.succeed(path.endsWith('present.png'))
+      );
+
+      const result = await Effect.runPromise(
+        store.commitDocumentChanges({
+          projectId: PROJECT_PATH,
+          documentId: docId,
+          message: 'msg',
+        })
+      );
+
+      expect(result.skippedAssetPaths).toEqual(['assets/missing.png']);
+      const stagedPaths = (
+        vi.mocked(git.add).mock.calls[0][0] as { filepath: string[] }
+      ).filepath;
+      expect(stagedPaths).toEqual([docPath, 'assets/present.png']);
+      expect(mockCommit).toHaveBeenCalled();
+    });
+
+    it('reports no skipped assets when every referenced asset exists', async () => {
+      mockExtractLocalAssetReferences.mockReturnValue(
+        Effect.succeed(['assets/present.png'])
+      );
+      mockExists.mockReturnValue(Effect.succeed(true));
+
+      const result = await Effect.runPromise(
+        store.commitDocumentChanges({
+          projectId: PROJECT_PATH,
+          documentId: docId,
+          message: 'msg',
+        })
+      );
+
+      expect(result.skippedAssetPaths).toEqual([]);
+      expect(mockCommit).toHaveBeenCalled();
     });
   });
 

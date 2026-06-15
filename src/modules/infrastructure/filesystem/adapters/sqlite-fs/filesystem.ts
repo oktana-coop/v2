@@ -302,6 +302,22 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
       catch: mapErrorTo(RepositoryError, 'Could not check path ancestry'),
     });
 
+  const exists: Filesystem['exists'] = (filePath) =>
+    Effect.tryPromise({
+      try: async () => {
+        try {
+          await fs.stat(filePath);
+          return true;
+        } catch (err) {
+          if (isNodeError(err) && err.code === 'ENOENT') {
+            return false;
+          }
+          throw err;
+        }
+      },
+      catch: mapErrorTo(RepositoryError, 'Could not check file existence'),
+    });
+
   const deleteDirectory: Filesystem['deleteDirectory'] = ({ path: dirPath }) =>
     Effect.tryPromise({
       try: () => fs.rmdir(dirPath),
@@ -356,6 +372,7 @@ export const createAdapter = (fs: NodeLikeFsApi): Filesystem => {
     getAbsolutePath,
     getRenamedPath,
     isDescendantPath,
+    exists,
     createDirectory,
     ensureDirectory,
   };

@@ -938,6 +938,13 @@ export const createAdapter = (): Filesystem => {
       catch: mapErrorTo(RepositoryError, 'Could not check path ancestry'),
     });
 
+  const exists: Filesystem['exists'] = (filePath) =>
+    pipe(
+      getFileHandleFromStorage(filePath),
+      Effect.as(true),
+      Effect.catchTag(FilesystemNotFoundErrorTag, () => Effect.succeed(false))
+    );
+
   return {
     openDirectory,
     getDirectory,
@@ -957,6 +964,7 @@ export const createAdapter = (): Filesystem => {
     getAbsolutePath,
     getRenamedPath,
     isDescendantPath,
+    exists,
     createDirectory,
     ensureDirectory,
   };

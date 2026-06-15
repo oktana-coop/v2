@@ -104,6 +104,12 @@ export type MultiDocumentProjectCommitDocumentChangesArgs = {
   message: string;
 };
 
+export type CommitDocumentChangesResult = {
+  commitId: Commit['id'];
+  // Referenced assets that were not on disk and so were left out of the commit.
+  skippedAssetPaths: ProjectRelPath[];
+};
+
 export type MultiDocumentProjectRestoreDocumentChangesArgs = {
   projectId: ProjectId;
   documentId: ResolvedArtifactId;
@@ -333,7 +339,7 @@ export type MultiDocumentProjectStore = {
   commitDocumentChanges: (
     args: MultiDocumentProjectCommitDocumentChangesArgs
   ) => Effect.Effect<
-    Commit['id'],
+    CommitDocumentChangesResult,
     ValidationError | RepositoryError | NotFoundError,
     never
   >;
