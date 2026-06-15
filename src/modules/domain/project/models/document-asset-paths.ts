@@ -1,6 +1,6 @@
 import {
   getExtension,
-  parentDir,
+  getParentPath,
   splitPosixPath,
 } from '../../../infrastructure/filesystem';
 import {
@@ -54,7 +54,7 @@ export const projectRelToDocRel = ({
   docPath: ProjectRelPath;
 }): AssetDocRelPath => {
   const target = splitPosixPath(projectRel);
-  const docDir = splitPosixPath(parentDir(docPath));
+  const docDir = splitPosixPath(getParentPath(docPath));
   const shared = commonPrefixLength(target, docDir);
   const ups = docDir.slice(shared).map(() => '..');
   const remaining = target.slice(shared);
@@ -76,7 +76,7 @@ export const docRelToProjectRel = ({
     splitPosixPath(docRel)
       .reduce(
         (acc, seg) => (seg === '..' ? acc.slice(0, -1) : [...acc, seg]),
-        splitPosixPath(parentDir(docPath))
+        splitPosixPath(getParentPath(docPath))
       )
       .join('/')
   );
