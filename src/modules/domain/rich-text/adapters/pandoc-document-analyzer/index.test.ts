@@ -6,7 +6,7 @@ import {
   type Wasm,
 } from '../../../../../modules/infrastructure/wasm';
 import { richTextRepresentations } from '../../constants/representations';
-import { DocumentAnalysisErrorTag } from '../../errors';
+import { DocumentAnalysisErrorTag, RichTextLibErrorTag } from '../../errors';
 import { createAdapter } from './index';
 
 const mockContent = 'some doc';
@@ -118,23 +118,23 @@ describe('pandoc-document-analyzer', () => {
     expect(error.message).toContain('boom');
   });
 
-  it('fails with DocumentAnalysisError on invalid JSON output', async () => {
+  it('fails with RichTextLibError on invalid JSON output', async () => {
     const mockedCliRun = vi.fn().mockResolvedValue('not json');
 
     const error = await Effect.runPromise(
       extract({ mockedCliRun }).pipe(Effect.flip)
     );
 
-    expect(error._tag).toBe(DocumentAnalysisErrorTag);
+    expect(error._tag).toBe(RichTextLibErrorTag);
   });
 
-  it('fails with DocumentAnalysisError when the CLI call rejects', async () => {
+  it('fails with RichTextLibError when the CLI call rejects', async () => {
     const mockedCliRun = vi.fn().mockRejectedValue(new Error('wasm exploded'));
 
     const error = await Effect.runPromise(
       extract({ mockedCliRun }).pipe(Effect.flip)
     );
 
-    expect(error._tag).toBe(DocumentAnalysisErrorTag);
+    expect(error._tag).toBe(RichTextLibErrorTag);
   });
 });

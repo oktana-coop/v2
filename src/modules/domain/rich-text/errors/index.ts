@@ -56,3 +56,8 @@ export const DocumentAnalysisErrorTag = 'DocumentAnalysisError';
 export class DocumentAnalysisError extends Cause.YieldableError {
   readonly _tag = DocumentAnalysisErrorTag;
 }
+
+export const RichTextLibErrorTag = 'RichTextLibError';
+export class RichTextLibError extends Cause.YieldableError {
+  readonly _tag = RichTextLibErrorTag;
+}

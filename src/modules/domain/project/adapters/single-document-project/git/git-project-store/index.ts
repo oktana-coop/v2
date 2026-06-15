@@ -10,6 +10,7 @@ import {
   DocumentAnalysisErrorTag,
   type DocumentAnalyzer,
   PRIMARY_RICH_TEXT_REPRESENTATION,
+  RichTextLibErrorTag,
   richTextRepresentations,
 } from '../../../../../../../modules/domain/rich-text';
 import {
@@ -443,9 +444,12 @@ export const createAdapter = ({
                       )
                     )
                   ),
-                  Effect.catchTag(DocumentAnalysisErrorTag, (err) =>
-                    Effect.fail(new RepositoryError(err.message))
-                  )
+                  Effect.catchTags({
+                    [DocumentAnalysisErrorTag]: (err) =>
+                      Effect.fail(new RepositoryError(err.message)),
+                    [RichTextLibErrorTag]: (err) =>
+                      Effect.fail(new RepositoryError(err.message)),
+                  })
                 )
               : Effect.succeed([] as ProjectRelPath[])
           ),

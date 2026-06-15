@@ -11,6 +11,8 @@ import {
   DocumentAnalysisErrorTag,
   type DocumentAnalyzer,
   PRIMARY_RICH_TEXT_REPRESENTATION,
+  type RichTextLibError,
+  RichTextLibErrorTag,
   richTextRepresentations,
 } from '../../../../../../../modules/domain/rich-text';
 import {
@@ -494,7 +496,8 @@ export const createAdapter = ({
     | FilesystemNotFoundError
     | FilesystemRepositoryError
     | FilesystemDataIntegrityError
-    | DocumentAnalysisError,
+    | DocumentAnalysisError
+    | RichTextLibError,
     never
   > => {
     if (PRIMARY_RICH_TEXT_REPRESENTATION !== richTextRepresentations.MARKDOWN) {
@@ -605,6 +608,8 @@ export const createAdapter = ({
             Effect.fail(new RepositoryError(err.message)),
           [DocumentAnalysisErrorTag]: (err) =>
             Effect.fail(new RepositoryError(err.message)),
+          [RichTextLibErrorTag]: (err) =>
+            Effect.fail(new RepositoryError(err.message)),
         })
       );
 
@@ -679,9 +684,12 @@ export const createAdapter = ({
                         )
                       )
                     ),
-                    Effect.catchTag(DocumentAnalysisErrorTag, (err) =>
-                      Effect.fail(new RepositoryError(err.message))
-                    )
+                    Effect.catchTags({
+                      [DocumentAnalysisErrorTag]: (err) =>
+                        Effect.fail(new RepositoryError(err.message)),
+                      [RichTextLibErrorTag]: (err) =>
+                        Effect.fail(new RepositoryError(err.message)),
+                    })
                   )
                 : Effect.succeed([] as ProjectRelPath[])
             ),

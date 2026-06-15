@@ -7,7 +7,7 @@ import {
   type Wasm,
 } from '../../../../../modules/infrastructure/wasm';
 import { mapErrorTo } from '../../../../../utils/errors';
-import { DocumentAnalysisError } from '../../errors';
+import { DocumentAnalysisError, RichTextLibError } from '../../errors';
 import {
   type HSLibOutput,
   isHSLibFailureOutput,
@@ -42,7 +42,7 @@ export const createAdapter = ({
               ],
             }),
           catch: mapErrorTo(
-            DocumentAnalysisError,
+            RichTextLibError,
             'Failed to extract asset references'
           ),
         }),
@@ -50,7 +50,7 @@ export const createAdapter = ({
           Effect.try({
             try: () => JSON.parse(output) as HSLibOutput<string[]>,
             catch: mapErrorTo(
-              DocumentAnalysisError,
+              RichTextLibError,
               'Failed to parse asset extraction output'
             ),
           })
