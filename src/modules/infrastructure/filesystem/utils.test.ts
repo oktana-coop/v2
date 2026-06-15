@@ -4,6 +4,7 @@ import {
   getParentPath,
   removeExtension,
   removePath,
+  toPosixPath,
   toPosixSegments,
 } from './utils';
 
@@ -183,6 +184,32 @@ describe('filesystem/utils', () => {
 
     it('returns the name as-is when there is no separator', () => {
       expect(getDirectoryName('folder')).toBe('folder');
+    });
+  });
+
+  describe('toPosixPath', () => {
+    it('converts backslashes to forward slashes', () => {
+      expect(toPosixPath('a\\b\\c.txt')).toBe('a/b/c.txt');
+    });
+
+    it('converts a Windows absolute path', () => {
+      expect(toPosixPath('C:\\Users\\alice\\notes.txt')).toBe(
+        'C:/Users/alice/notes.txt'
+      );
+    });
+
+    it('leaves a POSIX path unchanged', () => {
+      expect(toPosixPath('/Users/alice/notes.txt')).toBe(
+        '/Users/alice/notes.txt'
+      );
+    });
+
+    it('converts only backslashes in a mixed-separator path', () => {
+      expect(toPosixPath('a/b\\c/d.txt')).toBe('a/b/c/d.txt');
+    });
+
+    it('returns an empty string unchanged', () => {
+      expect(toPosixPath('')).toBe('');
     });
   });
 
