@@ -1,8 +1,8 @@
 import * as Effect from 'effect/Effect';
 import { z } from 'zod';
 
-import { mapErrorTo } from '../../../../utils/errors';
-import { ValidationError } from '../errors';
+import { mapErrorTo } from '../../../../../utils/errors';
+import { ValidationError } from '../../errors';
 
 // An asset src that the project module should leave untouched when resolving
 // references — anything with a URL scheme (e.g. `https://`, `data:`,

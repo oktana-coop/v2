@@ -1,7 +1,7 @@
 import * as Effect from 'effect/Effect';
 import { describe, expect, it } from 'vitest';
 
-import { VersionedDocumentValidationErrorTag } from '../errors';
+import { VersionedDocumentValidationErrorTag } from '../../errors';
 import {
   isAbsoluteAssetSrc,
   parseAssetDocRelPath,
@@ -10,7 +10,7 @@ import {
   parseDocumentAssetSrcEffect,
   safeParseAssetDocRelPath,
   safeParseDocumentAssetSrc,
-} from './document-asset-src';
+} from './src';
 
 describe('isAbsoluteAssetSrc', () => {
   it('returns true for http(s) URLs', () => {
