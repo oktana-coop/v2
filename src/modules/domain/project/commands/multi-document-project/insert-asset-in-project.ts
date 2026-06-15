@@ -7,7 +7,6 @@ import {
   DataIntegrityError as FilesystemDataIntegrityError,
   type Filesystem,
   FilesystemAbortErrorTag,
-  getExtension,
   NotFoundError as FilesystemNotFoundError,
   removeExtension,
   removePath,
@@ -19,10 +18,10 @@ import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
   ValidationError as VersionedProjectValidationError,
-  VersionedProjectNotFoundErrorTag,
 } from '../../errors';
 import { type ProjectId } from '../../models';
 import { type MultiDocumentProjectStore } from '../../ports/multi-document-project';
+import { findAvailableAssetName } from '../find-available-asset-name';
 
 export type InsertAssetInProjectArgs = {
   projectId: ProjectId;
@@ -40,49 +39,6 @@ export type InsertAssetInProjectDeps = {
   addAssetToProject: MultiDocumentProjectStore['addAssetToProject'];
   getProjectRelativePath: MultiDocumentProjectStore['getProjectRelativePath'];
   assetsDirName: MultiDocumentProjectStore['assetsDirName'];
-};
-
-const findAvailableName = ({
-  projectId,
-  desiredName,
-  lookupAssetByName,
-}: {
-  projectId: ProjectId;
-  desiredName: string;
-  lookupAssetByName: MultiDocumentProjectStore['lookupAssetByName'];
-}): Effect.Effect<
-  string,
-  | VersionedProjectValidationError
-  | VersionedProjectRepositoryError
-  | MigrationError,
-  never
-> => {
-  const base = removeExtension(desiredName);
-  const extension = getExtension(desiredName);
-  const ext = extension ? `.${extension}` : '';
-
-  const tryName = (
-    name: string,
-    attempt: number
-  ): Effect.Effect<
-    string,
-    | VersionedProjectValidationError
-    | VersionedProjectRepositoryError
-    | MigrationError,
-    never
-  > =>
-    // Inverted semantics: lookupAssetByName succeeding means a collision (an asset by
-    // this name exists) and we must retry; failing with NotFound means the name is free.
-    // So `flatMap` (success branch) recurses, and `catchTag` (failure branch) terminates.
-    pipe(
-      lookupAssetByName({ projectId, name }),
-      Effect.flatMap(() => tryName(`${base}-${attempt}${ext}`, attempt + 1)),
-      Effect.catchTag(VersionedProjectNotFoundErrorTag, () =>
-        Effect.succeed(name)
-      )
-    );
-
-  return tryName(desiredName, 1);
 };
 
 export const insertAssetInProject =
@@ -127,7 +83,7 @@ export const insertAssetInProject =
               : Effect.Do.pipe(
                   Effect.bind('fileData', () => readBinaryFile(file.path)),
                   Effect.bind('resolvedName', () =>
-                    findAvailableName({
+                    findAvailableAssetName({
                       projectId,
                       desiredName: removePath(file.path),
                       lookupAssetByName,
