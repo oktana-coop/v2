@@ -1,17 +1,77 @@
 import * as fs from 'node:fs';
+import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { Page } from '@playwright/test';
+import git from 'isomorphic-git';
 
 import { expect, test } from './shared/fixtures';
 import {
   clearEditor,
   clickToolbarButton,
+  commitChanges,
+  navigateToProjectHistory,
   openEditorToolbar,
   openHelloMd,
   openProjectFolder,
   pasteMarkdown,
+  selectChangedDocument,
+  toggleProjectCommit,
 } from './shared/helpers';
+
+// A real, minimal 1x1 PNG.
+const PNG_1x1 = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64'
+);
+
+// Creates a throwaway directory outside the project to hold a source image,
+// exercising the "pick a file from elsewhere → copy it into the project" flow.
+const seedExternalImage = (name: string, bytes: Buffer): string => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'v2-e2e-ext-'));
+  const filePath = path.join(dir, name);
+  fs.writeFileSync(filePath, bytes);
+  return filePath;
+};
+
+const mockPickFile = async ({
+  electronApp,
+  filePath,
+}: {
+  electronApp: Parameters<typeof openProjectFolder>[0]['electronApp'];
+  filePath: string;
+}): Promise<void> => {
+  await electronApp.evaluate(async ({ dialog }, p) => {
+    dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [p] });
+  }, filePath);
+};
+
+const insertImageFromToolbar = async (window: Page): Promise<void> => {
+  await openEditorToolbar({ window });
+  await clickToolbarButton({ window, label: 'Image' });
+  await window.waitForSelector('.ProseMirror figure img', { timeout: 2_000 });
+  await window.waitForTimeout(300);
+};
+
+const figureImageSrc = (doc: PMNode | null): string | undefined => {
+  const figure = doc?.content?.find((c) => c.type === 'figure');
+  const image = figure?.content?.[0]?.content?.[0];
+  return (image as unknown as { attrs?: { src?: string } } | undefined)?.attrs
+    ?.src;
+};
+
+// Asserts the figure's <img> actually loaded its bytes through the
+// project-asset:// protocol (naturalWidth stays 0 for a broken/unresolved src).
+const expectFigureImageRendered = async (window: Page): Promise<void> => {
+  const img = window.locator('.ProseMirror figure img').first();
+  const src = await img.getAttribute('src');
+  expect(src?.startsWith('project-asset://')).toBe(true);
+  await expect
+    .poll(() => img.evaluate((el) => (el as HTMLImageElement).naturalWidth), {
+      timeout: 3_000,
+    })
+    .toBeGreaterThan(0);
+};
 
 const setupEditor = async ({
   electronApp,
@@ -338,5 +398,167 @@ test.describe('figure', () => {
     expect(figureAfter?.content?.[0].content?.map((c) => c.type)).toEqual([
       'image',
     ]);
+  });
+
+  test('copies an image picked from outside the project and renders it', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    // The primary insert flow: the picked file lives outside the project, so
+    // it must be copied into the assets folder (not referenced in place).
+    const externalImage = seedExternalImage('photo.png', PNG_1x1);
+
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    await clearEditor({ window });
+
+    await mockPickFile({ electronApp, filePath: externalImage });
+    await insertImageFromToolbar(window);
+
+    // The asset was copied into the project's assets folder, byte-for-byte.
+    const copiedPath = path.join(testProjectDir, 'assets', 'photo.png');
+    expect(fs.existsSync(copiedPath)).toBe(true);
+    expect(fs.readFileSync(copiedPath)).toEqual(PNG_1x1);
+
+    // hello.md is at the project root, so the src is a plain assets/ path.
+    expect(figureImageSrc(await dumpEditorDoc(window))).toBe(
+      'assets/photo.png'
+    );
+
+    // The whole asset-protocol → store → readAssetBytes chain resolves and the
+    // image actually decodes in the editor.
+    await expectFigureImageRendered(window);
+
+    fs.rmSync(path.dirname(externalImage), { recursive: true, force: true });
+  });
+
+  test('collision-suffixes when copying an image whose name already exists', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    // An asset named photo.png already lives in the project...
+    const assetsDir = path.join(testProjectDir, 'assets');
+    fs.mkdirSync(assetsDir, { recursive: true });
+    fs.writeFileSync(path.join(assetsDir, 'photo.png'), PNG_1x1);
+
+    // ...and we copy in a *different* external file that shares the basename.
+    const otherBytes = Buffer.concat([PNG_1x1, Buffer.from([0x2a])]);
+    const externalImage = seedExternalImage('photo.png', otherBytes);
+
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    await clearEditor({ window });
+
+    await mockPickFile({ electronApp, filePath: externalImage });
+    await insertImageFromToolbar(window);
+
+    // The new file lands under a numeric suffix; the original is untouched.
+    expect(fs.readdirSync(assetsDir).sort()).toEqual([
+      'photo-1.png',
+      'photo.png',
+    ]);
+    expect(fs.readFileSync(path.join(assetsDir, 'photo.png'))).toEqual(PNG_1x1);
+    expect(fs.readFileSync(path.join(assetsDir, 'photo-1.png'))).toEqual(
+      otherBytes
+    );
+
+    expect(figureImageSrc(await dumpEditorDoc(window))).toBe(
+      'assets/photo-1.png'
+    );
+
+    fs.rmSync(path.dirname(externalImage), { recursive: true, force: true });
+  });
+
+  test('an inserted image is written to markdown and survives a reload', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const externalImage = seedExternalImage('photo.png', PNG_1x1);
+
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    await clearEditor({ window });
+
+    await mockPickFile({ electronApp, filePath: externalImage });
+    await insertImageFromToolbar(window);
+    // Let the debounced save flush the figure to hello.md.
+    await window.waitForTimeout(600);
+
+    // The figure serializes back to a Markdown image reference on disk.
+    const md = fs.readFileSync(path.join(testProjectDir, 'hello.md'), 'utf8');
+    expect(md).toContain('](assets/photo.png)');
+
+    // Cold reload: the doc must round-trip Pandoc → PM with its src intact.
+    await window.reload();
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    await window.waitForSelector('.ProseMirror figure img', { timeout: 2_000 });
+
+    expect(figureImageSrc(await dumpEditorDoc(window))).toBe(
+      'assets/photo.png'
+    );
+    await expectFigureImageRendered(window);
+
+    fs.rmSync(path.dirname(externalImage), { recursive: true, force: true });
+  });
+
+  test('committing a doc with a new image stages the asset in the same commit', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const externalImage = seedExternalImage('photo.png', PNG_1x1);
+
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    await clearEditor({ window });
+
+    await mockPickFile({ electronApp, filePath: externalImage });
+    await insertImageFromToolbar(window);
+    await window.waitForTimeout(600);
+
+    await commitChanges({ window, message: 'add image' });
+
+    // The committed tree holds both the document and the asset it references —
+    // the asset-staging path includes existing referenced files in the commit.
+    const committed = await git.listFiles({
+      fs,
+      dir: testProjectDir,
+      ref: 'HEAD',
+    });
+    expect(committed).toContain('hello.md');
+    expect(committed).toContain('assets/photo.png');
+
+    // The committed document is viewable in project history with its image.
+    await navigateToProjectHistory({ window });
+    await toggleProjectCommit({ window, commitMessage: 'add image' });
+    await selectChangedDocument({ window, fileName: 'hello' });
+    await window.waitForSelector('.ProseMirror figure img', { timeout: 2_000 });
+    await expectFigureImageRendered(window);
+
+    fs.rmSync(path.dirname(externalImage), { recursive: true, force: true });
   });
 });
