@@ -207,8 +207,8 @@ test('diff annotations appear on a committed change', async ({
 
   await enableShowDiff({ window });
 
-  // The inserted text "second" should be highlighted with the green diff class
-  const insertAnnotation = window.locator('.ProseMirror .bg-green-300');
+  // The inserted text "second" should be highlighted with the insert diff class
+  const insertAnnotation = window.locator('.ProseMirror .diff-insert');
   await expect(insertAnnotation).toBeVisible({ timeout: 1_000 });
   await expect(insertAnnotation).toContainText('second');
 });
@@ -229,8 +229,8 @@ test('diff annotations appear on uncommitted changes', async ({
 
   await enableShowDiff({ window });
 
-  // The inserted text "new addition" should be highlighted green
-  const insertAnnotation = window.locator('.ProseMirror .bg-green-300');
+  // The inserted text "new addition" should be highlighted as an insert
+  const insertAnnotation = window.locator('.ProseMirror .diff-insert');
   await expect(insertAnnotation).toBeVisible({ timeout: 1_000 });
   await expect(insertAnnotation).toContainText('new addition');
 });
@@ -258,8 +258,8 @@ test('bolding text shows modify annotation in diff', async ({
 
   await enableShowDiff({ window });
 
-  // The bolded word should be highlighted with the purple modify class
-  const modifyAnnotation = window.locator('.ProseMirror .bg-purple-100');
+  // The bolded word should be highlighted with the modify class
+  const modifyAnnotation = window.locator('.ProseMirror .diff-modify');
   await expect(modifyAnnotation).toBeVisible({ timeout: 1_000 });
   await expect(modifyAnnotation).toContainText('three');
 });
@@ -287,8 +287,8 @@ test('changing heading type shows modify annotation in diff', async ({
 
   await enableShowDiff({ window });
 
-  // The heading text should be highlighted with the purple modify class
-  const modifyAnnotation = window.locator('.ProseMirror .bg-purple-100');
+  // The heading text should be highlighted with the modify class
+  const modifyAnnotation = window.locator('.ProseMirror .diff-modify');
   await expect(modifyAnnotation).toBeVisible({ timeout: 1_000 });
   await expect(modifyAnnotation).toContainText('Hello');
 });

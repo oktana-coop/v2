@@ -15,7 +15,6 @@ import {
   createInlineDecoration,
   createNodeDecoration,
   createWidgetDeleteDecoration,
-  type DiffDecorationClasses,
   pmDocFromJSONString,
 } from '../../prosemirror';
 import {
@@ -57,16 +56,11 @@ const toNodeDecoration = (decoration: NodeDiffDecoration): Decoration => {
 
 type ToWidgetDecorationDeps = {
   proseMirrorSchema: Schema;
-  decorationClasses: DiffDecorationClasses;
   transformImageSrc: (src: string) => string;
 };
 
 const toWidgetDeleteDecoration =
-  ({
-    proseMirrorSchema,
-    decorationClasses,
-    transformImageSrc,
-  }: ToWidgetDecorationDeps) =>
+  ({ proseMirrorSchema, transformImageSrc }: ToWidgetDecorationDeps) =>
   (decoration: WidgetDiffDecoration): Decoration => {
     const node = Node.fromJSON(proseMirrorSchema, decoration.node);
 
@@ -74,7 +68,6 @@ const toWidgetDeleteDecoration =
       pos: decoration.pos,
       node,
       proseMirrorSchema,
-      decorationClasses,
       transformImageSrc,
     });
   };
@@ -87,7 +80,6 @@ export const createAdapter = ({
   const proseMirrorDiff: Diff['proseMirrorDiff'] = async ({
     representation,
     proseMirrorSchema,
-    decorationClasses,
     docBefore,
     docAfter,
     transformImageSrc,
@@ -123,7 +115,6 @@ export const createAdapter = ({
         case 'widget':
           return toWidgetDeleteDecoration({
             proseMirrorSchema,
-            decorationClasses,
             transformImageSrc,
           })(decoration);
       }

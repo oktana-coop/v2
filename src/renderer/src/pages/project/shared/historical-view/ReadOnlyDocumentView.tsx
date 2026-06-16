@@ -10,11 +10,6 @@ import {
 } from '../../../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
-import {
-  diffDelete,
-  diffInsert,
-  diffModify,
-} from '../../../../components/editing/marks';
 import { useAssetSrcResolver } from '../../../../hooks';
 
 const {
@@ -100,19 +95,12 @@ export const ReadOnlyDocumentView = (props: ReadOnlyDocumentViewProps) => {
       const contentBefore = getDocumentRichTextContent(props.docBefore);
       const contentAfter = getDocumentRichTextContent(props.docAfter);
 
-      const decorationClasses = {
-        insert: diffInsert,
-        modify: diffModify,
-        delete: diffDelete,
-      };
-
       const { pmDocAfter: pmDoc, decorations } = await proseMirrorDiff({
         representation:
           // There are some old document versions without the representataion set. The representation is Automerge in that case.
           // TODO: Remove this fallback when we no longer expect documents without representation set.
           props.docAfter.representation ?? richTextRepresentations.AUTOMERGE,
         proseMirrorSchema: schema,
-        decorationClasses,
         docBefore: contentBefore,
         docAfter: contentAfter,
         transformImageSrc: resolveAssetSrc,
@@ -129,7 +117,6 @@ export const ReadOnlyDocumentView = (props: ReadOnlyDocumentViewProps) => {
             decorations,
             proseMirrorDiff,
             convertFromProseMirror,
-            decorationClasses,
             transformImageSrc: resolveAssetSrc,
           }),
           notesPlugin(),

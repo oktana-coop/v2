@@ -11,7 +11,6 @@ import {
   type ProseMirrorDiffArgs,
   type ProseMirrorDiffResult,
 } from '../../ports';
-import { type DiffDecorationClasses } from './decorations';
 
 export const diffPluginKey = new PluginKey('pm-diff');
 
@@ -28,7 +27,6 @@ type DiffPluginArgs = {
   decorations: DecorationSet;
   proseMirrorDiff: ProseMirrorDiffFn;
   convertFromProseMirror: (args: ConvertFromProseMirrorArgs) => Promise<string>;
-  decorationClasses: DiffDecorationClasses;
   transformImageSrc: (src: string) => string;
   diffWith?: RichTextDocument;
 };
@@ -62,7 +60,6 @@ export const diffPlugin = (args: DiffPluginArgs) =>
         const { decorations } = await args.proseMirrorDiff({
           representation: diffWith.representation,
           proseMirrorSchema: editorView.state.schema,
-          decorationClasses: args.decorationClasses,
           docBefore: contentBefore,
           docAfter: contentAfter,
           transformImageSrc: args.transformImageSrc,

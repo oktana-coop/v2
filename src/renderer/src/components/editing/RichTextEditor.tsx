@@ -33,7 +33,6 @@ import { keyBindings } from '../../pages/project/shared/command-palette/key-bind
 import { EditorToolbar } from './editor-toolbar';
 import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';
-import { diffDelete, diffInsert, diffModify } from './marks';
 
 const {
   schema,
@@ -209,12 +208,6 @@ export const RichTextEditor = ({
     currentDoc: RichTextDocument;
     diffWith: RichTextDocument;
   }) => {
-    const decorationClasses = {
-      insert: diffInsert,
-      modify: diffModify,
-      delete: diffDelete,
-    };
-
     const contentBefore = getDocumentRichTextContent(diffWith);
     const contentAfter = getDocumentRichTextContent(currentDoc);
 
@@ -224,7 +217,6 @@ export const RichTextEditor = ({
         // TODO: Remove this fallback when we no longer expect documents without representation set.
         doc.representation ?? richTextRepresentations.AUTOMERGE,
       proseMirrorSchema: schema,
-      decorationClasses,
       docBefore: contentBefore,
       docAfter: contentAfter,
       transformImageSrc: resolveAssetSrc,
@@ -234,7 +226,6 @@ export const RichTextEditor = ({
       decorations,
       proseMirrorDiff,
       convertFromProseMirror,
-      decorationClasses,
       transformImageSrc: resolveAssetSrc,
       diffWith: showDiffWith,
     });
