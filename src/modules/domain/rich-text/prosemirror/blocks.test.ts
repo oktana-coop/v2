@@ -23,7 +23,11 @@ describe('ensureTrailingParagraphInDoc', () => {
   });
 
   it('leaves docs whose last block is a paragraph untouched', () => {
-    const input = doc([heading({ text: 'Foo' }), figureWith({ src: 'a.jpg' }), para()]);
+    const input = doc([
+      heading({ text: 'Foo' }),
+      figureWith({ src: 'a.jpg' }),
+      para(),
+    ]);
     const fixed = ensureTrailingParagraphInDoc(input, schema);
     expect(fixed).toBe(input);
   });
