@@ -34,14 +34,14 @@ describe('removeEmptyFiguresPlugin', () => {
     editorState(children, [removeEmptyFiguresPlugin(schema)]);
 
   it('removes a figure once its image is deleted', () => {
-    const state = withPlugin([figureWith('a.jpg'), para()]);
+    const state = withPlugin([figureWith({ src: 'a.jpg' }), para()]);
     // The image sits at doc pos 2 (figure open + figure_content open).
     const next = state.apply(state.tr.delete(2, 3));
     expect(topLevelTypes(next)).toEqual(['paragraph']);
   });
 
   it('leaves a figure with an image untouched while typing', () => {
-    const state = withPlugin([figureWith('a.jpg'), para()]);
+    const state = withPlugin([figureWith({ src: 'a.jpg' }), para()]);
     // Insert into the trailing paragraph (its content starts at pos 6).
     const next = state.apply(state.tr.insertText('a', 6));
     expect(topLevelTypes(next)).toEqual(['figure', 'paragraph']);
@@ -52,8 +52,8 @@ describe('removeEmptyFiguresPlugin', () => {
 
   it('removes multiple emptied figures and keeps surrounding content', () => {
     const state = withPlugin([
-      figureWith('a.jpg'),
-      figureWith('b.jpg'),
+      figureWith({ src: 'a.jpg' }),
+      figureWith({ src: 'b.jpg' }),
       para('xy'),
     ]);
     // Delete both images in one transaction (img2 at 7, img1 at 2),
@@ -74,7 +74,7 @@ describe('moveToParagraphAfterSelectedFigure', () => {
 
   it('moves the cursor into the existing paragraph below the figure', () => {
     const { handled, next } = run(
-      selectFigure(editorState([figureWith('a.jpg'), para()]))
+      selectFigure(editorState([figureWith({ src: 'a.jpg' }), para()]))
     );
 
     expect(handled).toBe(true);
@@ -87,7 +87,7 @@ describe('moveToParagraphAfterSelectedFigure', () => {
 
   it('inserts a paragraph when none follows the figure', () => {
     const { handled, next } = run(
-      selectFigure(editorState([figureWith('a.jpg')]))
+      selectFigure(editorState([figureWith({ src: 'a.jpg' })]))
     );
 
     expect(handled).toBe(true);
@@ -106,7 +106,7 @@ describe('deleteFigureBeforeCursor', () => {
   it('deletes the figure when the cursor is at the start of the next block', () => {
     // figure spans 0–5, paragraph starts at 5, its content at pos 6.
     const state = withCursorAt({
-      state: editorState([figureWith('a.jpg'), para('hi')]),
+      state: editorState([figureWith({ src: 'a.jpg' }), para('hi')]),
       pos: 6,
     });
     const { handled, next } = runCommand({
@@ -121,7 +121,7 @@ describe('deleteFigureBeforeCursor', () => {
 
   it('returns false mid-paragraph', () => {
     const state = withCursorAt({
-      state: editorState([figureWith('a.jpg'), para('hi')]),
+      state: editorState([figureWith({ src: 'a.jpg' }), para('hi')]),
       pos: 7,
     });
     expect(
@@ -145,7 +145,7 @@ describe('deleteFigureAfterCursor', () => {
   it('deletes the figure when the cursor is at the end of the previous block', () => {
     // para('hi') spans 0–4, its content ends at pos 3; figure follows at 4.
     const state = withCursorAt({
-      state: editorState([para('hi'), figureWith('a.jpg')]),
+      state: editorState([para('hi'), figureWith({ src: 'a.jpg' })]),
       pos: 3,
     });
     const { handled, next } = runCommand({
@@ -160,7 +160,7 @@ describe('deleteFigureAfterCursor', () => {
 
   it('returns false mid-paragraph', () => {
     const state = withCursorAt({
-      state: editorState([para('hi'), figureWith('a.jpg')]),
+      state: editorState([para('hi'), figureWith({ src: 'a.jpg' })]),
       pos: 2,
     });
     expect(

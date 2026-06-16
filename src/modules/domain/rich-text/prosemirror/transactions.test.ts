@@ -50,7 +50,7 @@ describe('transactionsMayHaveRemovedContent', () => {
 describe('transactionsInsertedNodeOfType', () => {
   it('detects an inserted node of the target type', () => {
     const state = editorState([para()]);
-    const tr = state.tr.insert(0, figureWith('a.jpg'));
+    const tr = state.tr.insert(0, figureWith({ src: 'a.jpg' }));
     expect(
       transactionsInsertedNodeOfType({
         transactions: [tr],
@@ -61,7 +61,7 @@ describe('transactionsInsertedNodeOfType', () => {
 
   it('detects a target type nested inside the inserted slice', () => {
     const state = editorState([para()]);
-    const tr = state.tr.insert(0, figureWith('a.jpg'));
+    const tr = state.tr.insert(0, figureWith({ src: 'a.jpg' }));
     expect(
       transactionsInsertedNodeOfType({
         transactions: [tr],

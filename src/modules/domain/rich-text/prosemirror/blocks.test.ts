@@ -4,7 +4,7 @@ import { doc, figureWith, heading, para } from './test-utils';
 
 describe('ensureTrailingParagraphInDoc', () => {
   it('appends a paragraph when the last block is a figure', () => {
-    const input = doc([heading('Foo'), figureWith('a.jpg')]);
+    const input = doc([heading({ text: 'Foo' }), figureWith({ src: 'a.jpg' })]);
     const fixed = ensureTrailingParagraphInDoc(input, schema);
     expect(fixed.content.content.map((n) => n.type.name)).toEqual([
       'heading',
@@ -23,7 +23,7 @@ describe('ensureTrailingParagraphInDoc', () => {
   });
 
   it('leaves docs whose last block is a paragraph untouched', () => {
-    const input = doc([heading('Foo'), figureWith('a.jpg'), para()]);
+    const input = doc([heading({ text: 'Foo' }), figureWith({ src: 'a.jpg' }), para()]);
     const fixed = ensureTrailingParagraphInDoc(input, schema);
     expect(fixed).toBe(input);
   });

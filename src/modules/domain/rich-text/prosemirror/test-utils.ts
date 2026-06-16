@@ -10,19 +10,22 @@ import { type EditorView } from 'prosemirror-view';
 
 import { schema } from './schema';
 
-export const image = (src: string): Node =>
+export const image = ({ src }: { src: string }): Node =>
   schema.node('image', { src, alt: null, title: null });
 
-export const figureWith = (src: string): Node =>
+export const figureWith = ({ src }: { src: string }): Node =>
   schema.node('figure', null, [
-    schema.node('figure_content', null, [image(src)]),
+    schema.node('figure_content', null, [image({ src })]),
   ]);
 
 export const para = (text?: string): Node =>
   schema.node('paragraph', null, text ? [schema.text(text)] : []);
 
-export const heading = (text?: string): Node =>
-  schema.node('heading', { level: 1 }, text ? [schema.text(text)] : []);
+export const heading = ({
+  text,
+  level = 1,
+}: { text?: string; level?: number } = {}): Node =>
+  schema.node('heading', { level }, text ? [schema.text(text)] : []);
 
 export const doc = (children: Node[]): Node =>
   schema.node('doc', { pandocMeta: null }, children);
