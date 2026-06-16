@@ -25,9 +25,11 @@ export const useAssetInsertion = (
   const { projectType } = useContext(CurrentProjectContext);
   const projectId = useProjectId();
   const { filesystem } = useContext(InfrastructureAdaptersContext);
-  const { versionedProjectStore: multiDocStore, selectedFileInfo } = useContext(
-    MultiDocumentProjectContext
-  );
+  const {
+    versionedProjectStore: multiDocStore,
+    selectedFileInfo,
+    refreshDirectoryTree,
+  } = useContext(MultiDocumentProjectContext);
   const { versionedProjectStore: singleDocStore, documentProjectRelPath } =
     useContext(SingleDocumentProjectContext);
 
@@ -37,7 +39,7 @@ export const useAssetInsertion = (
     docPath ??
     (isMultiDocProject ? selectedFileInfo?.path : documentProjectRelPath);
 
-  return useCallback((): Promise<DocumentAsset | null> => {
+  return useCallback(async (): Promise<DocumentAsset | null> => {
     if (!projectId) {
       throw new Error('Cannot insert asset: no current project.');
     }
@@ -69,7 +71,7 @@ export const useAssetInsertion = (
           assetsDirName: singleDocStore!.assetsDirName,
         });
 
-    return Effect.runPromise(
+    const result = await Effect.runPromise(
       pipe(
         parseProjectRelPathEffect(docPathString),
         Effect.flatMap((resolvedDocPath) =>
@@ -96,6 +98,12 @@ export const useAssetInsertion = (
         )
       )
     );
+
+    if (result && isMultiDocProject) {
+      await refreshDirectoryTree();
+    }
+
+    return result;
   }, [
     isMultiDocProject,
     projectId,
@@ -103,5 +111,6 @@ export const useAssetInsertion = (
     multiDocStore,
     singleDocStore,
     docPathString,
+    refreshDirectoryTree,
   ]);
 };

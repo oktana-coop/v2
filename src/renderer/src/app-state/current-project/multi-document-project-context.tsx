@@ -94,6 +94,7 @@ export type MultiDocumentProjectContextType = {
   currentBranch: Branch | null;
   versionedProjectStore: MultiDocumentProjectStore | null;
   directoryTree: Array<Directory | File>;
+  refreshDirectoryTree: () => Promise<void>;
   openDirectory: (cloneUrl?: string) => Promise<Directory>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
   createNewDocument: (args?: CreateNewDocumentArgs) => Promise<{
@@ -544,24 +545,26 @@ export const MultiDocumentProjectProvider = ({
     getSelectedDirectory();
   }, []);
 
-  useEffect(() => {
-    const getDirTree = async (dir: Directory) => {
-      const dirTree = await Effect.runPromise(
-        filesystem.listDirectoryTree({
-          path: dir.path,
-          extensions: [
-            richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
-          ],
-          useRelativePathTo: dir.path,
-        })
-      );
-      setDirectoryTree(dirTree);
-    };
-
-    if (directory && directory.permissionState === 'granted') {
-      getDirTree(directory);
+  const refreshDirectoryTree = useCallback(async () => {
+    if (!directory || directory.permissionState !== 'granted') {
+      return;
     }
-  }, [directory, filesystem, currentBranch, pulledUpstreamChanges]);
+
+    const dirTree = await Effect.runPromise(
+      filesystem.listDirectoryTree({
+        path: directory.path,
+        extensions: [
+          richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
+        ],
+        useRelativePathTo: directory.path,
+      })
+    );
+    setDirectoryTree(dirTree);
+  }, [directory, filesystem]);
+
+  useEffect(() => {
+    refreshDirectoryTree();
+  }, [refreshDirectoryTree, currentBranch, pulledUpstreamChanges]);
 
   useEffect(() => {
     const navigateToProjectsList = () => {
@@ -1897,6 +1900,7 @@ export const MultiDocumentProjectProvider = ({
         projectId,
         directory,
         directoryTree,
+        refreshDirectoryTree,
         currentBranch,
         versionedProjectStore,
         openDirectory: handleOpenDirectory,
