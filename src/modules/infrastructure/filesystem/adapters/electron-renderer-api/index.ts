@@ -184,6 +184,15 @@ export const createAdapter = (): Filesystem => ({
       >,
       RepositoryError
     )(window.filesystemAPI.createDirectory(...args)),
+  ensureDirectory: (...args: Parameters<Filesystem['ensureDirectory']>) =>
+    effectifyIPCPromise(
+      {
+        [FilesystemRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<Filesystem['ensureDirectory']>>
+      >,
+      RepositoryError
+    )(window.filesystemAPI.ensureDirectory(...args)),
   getRelativePath: (...args: Parameters<Filesystem['getRelativePath']>) =>
     effectifyIPCPromise(
       {
@@ -220,4 +229,11 @@ export const createAdapter = (): Filesystem => ({
       >,
       RepositoryError
     )(window.filesystemAPI.isDescendantPath(...args)),
+  exists: (...args: Parameters<Filesystem['exists']>) =>
+    effectifyIPCPromise(
+      {
+        [FilesystemRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<EffectErrorType<ReturnType<Filesystem['exists']>>>,
+      RepositoryError
+    )(window.filesystemAPI.exists(...args)),
 });

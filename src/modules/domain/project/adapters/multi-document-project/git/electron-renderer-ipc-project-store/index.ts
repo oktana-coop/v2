@@ -9,6 +9,7 @@ import {
   VersionControlMigrationErrorTag,
 } from '../../../../../../../modules/infrastructure/version-control';
 import { type EffectErrorType } from '../../../../../../../utils/effect';
+import { DEFAULT_ASSETS_DIR_NAME } from '../../../../constants';
 import {
   NotFoundError,
   RepositoryError,
@@ -23,6 +24,7 @@ import { MultiDocumentProjectStore } from '../../../../ports/multi-document-proj
 // to send the messages to the main Electron process which will do the heavy lifting.
 export const createAdapter = (): MultiDocumentProjectStore => ({
   supportsBranching: true,
+  assetsDirName: DEFAULT_ASSETS_DIR_NAME,
   createProject: (
     ...args: Parameters<MultiDocumentProjectStore['createProject']>
   ) =>
@@ -163,6 +165,94 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.multiDocumentProjectStoreAPI.findDocumentInProject(...args)),
+  addAssetToProject: (
+    ...args: Parameters<MultiDocumentProjectStore['addAssetToProject']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['addAssetToProject']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.addAssetToProject(...args)),
+  deleteAssetFromProject: (
+    ...args: Parameters<MultiDocumentProjectStore['deleteAssetFromProject']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['deleteAssetFromProject']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.deleteAssetFromProject(...args)),
+  lookupAssetByName: (
+    ...args: Parameters<MultiDocumentProjectStore['lookupAssetByName']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['lookupAssetByName']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.lookupAssetByName(...args)),
+  listProjectAssets: (
+    ...args: Parameters<MultiDocumentProjectStore['listProjectAssets']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['listProjectAssets']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.listProjectAssets(...args)),
+  readAssetBytes: (
+    ...args: Parameters<MultiDocumentProjectStore['readAssetBytes']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<MultiDocumentProjectStore['readAssetBytes']>>
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.readAssetBytes(...args)),
+  getProjectRelativePath: (
+    ...args: Parameters<MultiDocumentProjectStore['getProjectRelativePath']>
+  ) =>
+    effectifyIPCPromise(
+      {} as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['getProjectRelativePath']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.getProjectRelativePath(...args)),
   commitChanges: (
     ...args: Parameters<MultiDocumentProjectStore['commitChanges']>
   ) =>
@@ -175,6 +265,37 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.multiDocumentProjectStoreAPI.commitChanges(...args)),
+  commitDocumentChanges: (
+    ...args: Parameters<MultiDocumentProjectStore['commitDocumentChanges']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['commitDocumentChanges']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.commitDocumentChanges(...args)),
+  restoreDocumentChanges: (
+    ...args: Parameters<MultiDocumentProjectStore['restoreDocumentChanges']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['restoreDocumentChanges']>
+        >
+      >,
+      RepositoryError
+    )(window.multiDocumentProjectStoreAPI.restoreDocumentChanges(...args)),
   createAndSwitchToBranch: (
     ...args: Parameters<MultiDocumentProjectStore['createAndSwitchToBranch']>
   ) =>

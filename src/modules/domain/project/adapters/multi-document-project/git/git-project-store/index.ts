@@ -6,15 +6,36 @@ import git, {
   type PromiseFsClient as IsoGitFsApi,
 } from 'isomorphic-git';
 
-import { type Filesystem } from '../../../../../../../modules/infrastructure/filesystem';
+import {
+  type DocumentAnalysisError,
+  DocumentAnalysisErrorTag,
+  type DocumentAnalyzer,
+  PRIMARY_RICH_TEXT_REPRESENTATION,
+  type RichTextLibError,
+  RichTextLibErrorTag,
+  richTextRepresentations,
+} from '../../../../../../../modules/domain/rich-text';
+import {
+  AccessControlError as FilesystemAccessControlError,
+  DataIntegrityError as FilesystemDataIntegrityError,
+  type Filesystem,
+  FilesystemAccessControlErrorTag,
+  FilesystemDataIntegrityErrorTag,
+  FilesystemNotFoundErrorTag,
+  FilesystemRepositoryErrorTag,
+  getParentPath,
+  NotFoundError as FilesystemNotFoundError,
+  RepositoryError as FilesystemRepositoryError,
+} from '../../../../../../../modules/infrastructure/filesystem';
 import {
   abortMerge as abortGitMerge,
   cloneRepository as cloneGitRepo,
+  type Commit,
   commitMergeConflictsResolution as commitMergeConflictsResolutionToGit,
+  commitStagedChanges as commitStagedChangesInGit,
   createAndSwitchToBranch as createAndSwitchToBranchWithGit,
   createGitBlobRef,
   decomposeGitBlobRef,
-  DEFAULT_AUTHOR_NAME,
   DEFAULT_BRANCH,
   deleteBranch as deleteBranchWithGit,
   fileExistsAtCommit,
@@ -25,7 +46,6 @@ import {
   getMergeConflictInfo as getGitRepoMergeConflictInfo,
   getRemoteBranchInfo as getRemoteBranchInfoWithGit,
   getUncommittedFileChanges,
-  getUserInfo as getUserInfoFromConfig,
   type GitBlobRef,
   type GitCommitHash,
   hasStagedChanges,
@@ -37,10 +57,12 @@ import {
   mergeAndDeleteBranch as mergeAndDeleteBranchWithGit,
   pullFromRemote as pullFromRemoteGitRepo,
   pushToRemote as pushToRemoteGitRepo,
+  readBlobAtCommit,
   removeFile as removeFileFromGit,
   renameFile as renameFileInGit,
   type ResolvedArtifactId,
   setUserInfo as setUserInfoInGit,
+  stageAndCommitChangesToFiles as stageAndCommitChangesToFilesInGit,
   stageAndCommitWorkdirChanges,
   stageFile as stageFileInGit,
   switchToBranch as switchToBranchWithGit,
@@ -50,7 +72,9 @@ import {
   versionedArtifactTypes,
   writeGitignore,
 } from '../../../../../../../modules/infrastructure/version-control';
+import { unique } from '../../../../../../../utils/array';
 import { mapErrorTo } from '../../../../../../../utils/errors';
+import { DEFAULT_ASSETS_DIR_NAME } from '../../../../constants';
 import {
   NotFoundError,
   RepositoryError,
@@ -59,10 +83,14 @@ import {
 import {
   type ArtifactMetaData,
   CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION,
+  docRelToProjectRel,
+  inferArtifactTypeFromExtension,
   isProjectFsPath,
   parseProjectFsPath,
+  parseProjectRelPathEffect,
   type ProjectFsPath,
   type ProjectId,
+  type ProjectRelPath,
 } from '../../../../models';
 import { MultiDocumentProjectStore } from '../../../../ports/multi-document-project';
 
@@ -70,6 +98,8 @@ export const createAdapter = ({
   isoGitFs,
   filesystem,
   isoGitHttp,
+  documentAnalyzer,
+  assetsDirName = DEFAULT_ASSETS_DIR_NAME,
 }: {
   // We have 2 filesystem APIs because isomorphic-git works well in both browser in Node.js
   // with its own implemented fs APIs, which more or less comply to the Node.js API.
@@ -78,6 +108,11 @@ export const createAdapter = ({
   isoGitFs: IsoGitFsApi;
   filesystem: Filesystem;
   isoGitHttp: IsoGitHttpApi;
+  documentAnalyzer: DocumentAnalyzer;
+  // Folder for new asset insertions, relative to the project root. Defaults
+  // to DEFAULT_ASSETS_DIR_NAME; will eventually be sourced from a user
+  // setting.
+  assetsDirName?: string;
 }): MultiDocumentProjectStore => {
   const ensureProjectIdIsFsPath: (
     projectId: ProjectId
@@ -167,31 +202,37 @@ export const createAdapter = ({
     Effect.Do.pipe(
       Effect.bind('files', () => getDirectoryFiles(id)),
       Effect.bind('currentBranch', () => getCurrentBranch({ projectId: id })),
-      Effect.map(({ files, currentBranch }) =>
-        files.reduce<Record<ResolvedArtifactId, ArtifactMetaData>>(
+      Effect.map(({ files, currentBranch }) => {
+        return files.reduce<{
+          documents: Record<ResolvedArtifactId, ArtifactMetaData>;
+          assets: Record<ResolvedArtifactId, ArtifactMetaData>;
+        }>(
           (acc, file) => {
             // TODO: Handle errors returned by createGitBlobRef
-            const documentId = createGitBlobRef({
+            const artifactId = createGitBlobRef({
               ref: currentBranch,
               path: file.path,
             });
-
-            acc[documentId] = {
-              id: documentId,
+            const isDocument =
+              inferArtifactTypeFromExtension(file.path) ===
+              versionedArtifactTypes.RICH_TEXT_DOCUMENT;
+            const target = isDocument ? acc.documents : acc.assets;
+            target[artifactId] = {
+              id: artifactId,
               name: file.name,
               path: file.path,
             };
-
             return acc;
           },
-          {}
-        )
-      ),
-      Effect.map((documents) => ({
+          { documents: {}, assets: {} }
+        );
+      }),
+      Effect.map(({ documents, assets }) => ({
         type: versionedArtifactTypes.MULTI_DOCUMENT_PROJECT,
         schemaVersion: CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION,
         path: id,
         documents,
+        assets,
       }))
     );
 
@@ -220,28 +261,19 @@ export const createAdapter = ({
 
   const extractDocumentRelativePathFromId: (
     id: ResolvedArtifactId
-  ) => Effect.Effect<string, ValidationError, never> = (id) =>
+  ) => Effect.Effect<ProjectRelPath, ValidationError, never> = (id) =>
     pipe(
       ensureDocumentIdIsGitRef(id),
-      Effect.map((gitBlobRef) => {
-        const { path: documentPath } = decomposeGitBlobRef(gitBlobRef);
-        return documentPath;
-      })
+      Effect.flatMap((gitBlobRef) =>
+        parseProjectRelPathEffect(decomposeGitBlobRef(gitBlobRef).path)
+      )
     );
 
   const renameDocumentInProject: MultiDocumentProjectStore['renameDocumentInProject'] =
     ({ projectId, oldDocumentPath, newDocumentPath }) =>
-      Effect.Do.pipe(
-        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
-        Effect.bind('repoUserInfo', ({ projectPath }) =>
-          pipe(
-            getUserInfoFromConfig({ isoGitFs, dir: projectPath }),
-            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
-              Effect.fail(new RepositoryError(err.message))
-            )
-          )
-        ),
-        Effect.flatMap(({ projectPath, repoUserInfo }) =>
+      pipe(
+        ensureProjectIdIsFsPath(projectId),
+        Effect.flatMap((projectPath) =>
           pipe(
             renameFileInGit({
               isoGitFs,
@@ -249,23 +281,15 @@ export const createAdapter = ({
               oldPath: oldDocumentPath,
               newPath: newDocumentPath,
             }),
+            Effect.flatMap(() =>
+              commitStagedChangesInGit({
+                isoGitFs,
+                dir: projectPath,
+                message: `Renamed ${oldDocumentPath} to ${newDocumentPath}`,
+              })
+            ),
             Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
               Effect.fail(new RepositoryError(err.message))
-            ),
-            Effect.flatMap(() =>
-              Effect.tryPromise({
-                try: () =>
-                  git.commit({
-                    fs: isoGitFs,
-                    dir: projectPath,
-                    author: {
-                      name: repoUserInfo.username ?? DEFAULT_AUTHOR_NAME,
-                      email: repoUserInfo.email ?? undefined,
-                    },
-                    message: `Renamed ${oldDocumentPath} to ${newDocumentPath}`,
-                  }),
-                catch: mapErrorTo(RepositoryError, 'Git repo error'),
-              })
             )
           )
         )
@@ -278,50 +302,27 @@ export const createAdapter = ({
         Effect.bind('documentPath', () =>
           extractDocumentRelativePathFromId(documentId)
         ),
-        Effect.bind('repoUserInfo', ({ projectPath }) =>
+        Effect.flatMap(({ projectPath, documentPath }) =>
           pipe(
-            getUserInfoFromConfig({ isoGitFs, dir: projectPath }),
-            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
-              Effect.fail(new RepositoryError(err.message))
-            )
-          )
-        ),
-        Effect.flatMap(({ projectPath, documentPath, repoUserInfo }) =>
-          pipe(
-            pipe(
-              removeFileFromGit({
-                isoGitFs,
-                dir: projectPath,
-                path: documentPath,
-              }),
-              Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
-                Effect.fail(new RepositoryError(err.message))
-              )
-            ),
+            removeFileFromGit({
+              isoGitFs,
+              dir: projectPath,
+              path: documentPath,
+            }),
             Effect.flatMap(() =>
-              pipe(
-                hasStagedChanges({ isoGitFs, dir: projectPath }),
-                Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
-                  Effect.fail(new RepositoryError(err.message))
-                )
-              )
+              hasStagedChanges({ isoGitFs, dir: projectPath })
             ),
             Effect.flatMap((hasChanges) =>
               hasChanges
-                ? Effect.tryPromise({
-                    try: () =>
-                      git.commit({
-                        fs: isoGitFs,
-                        dir: projectPath,
-                        author: {
-                          name: repoUserInfo.username ?? DEFAULT_AUTHOR_NAME,
-                          email: repoUserInfo.email ?? undefined,
-                        },
-                        message: `Removed ${documentPath}`,
-                      }),
-                    catch: mapErrorTo(RepositoryError, 'Git repo error'),
+                ? commitStagedChangesInGit({
+                    isoGitFs,
+                    dir: projectPath,
+                    message: `Removed ${documentPath}`,
                   })
                 : Effect.succeed(undefined)
+            ),
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
             )
           )
         )
@@ -334,109 +335,68 @@ export const createAdapter = ({
         Effect.bind('documentPaths', () =>
           Effect.forEach(documentIds, extractDocumentRelativePathFromId)
         ),
-        Effect.bind('repoUserInfo', ({ projectPath }) =>
-          pipe(
-            getUserInfoFromConfig({ isoGitFs, dir: projectPath }),
-            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
-              Effect.fail(new RepositoryError(err.message))
-            )
-          )
-        ),
-        Effect.flatMap(({ projectPath, documentPaths, repoUserInfo }) =>
+        Effect.flatMap(({ projectPath, documentPaths }) =>
           pipe(
             Effect.forEach(documentPaths, (docPath) =>
-              pipe(
-                removeFileFromGit({
-                  isoGitFs,
-                  dir: projectPath,
-                  path: docPath,
-                }),
-                Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
-                  Effect.fail(new RepositoryError(err.message))
-                )
-              )
+              removeFileFromGit({
+                isoGitFs,
+                dir: projectPath,
+                path: docPath,
+              })
             ),
             Effect.flatMap(() =>
-              pipe(
-                hasStagedChanges({ isoGitFs, dir: projectPath }),
-                Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
-                  Effect.fail(new RepositoryError(err.message))
-                )
-              )
+              hasStagedChanges({ isoGitFs, dir: projectPath })
             ),
             Effect.flatMap((hasChanges) =>
               hasChanges
-                ? Effect.tryPromise({
-                    try: () =>
-                      git.commit({
-                        fs: isoGitFs,
-                        dir: projectPath,
-                        author: {
-                          name: repoUserInfo.username ?? DEFAULT_AUTHOR_NAME,
-                          email: repoUserInfo.email ?? undefined,
-                        },
-                        message:
-                          documentPaths.length === 1
-                            ? `Removed ${documentPaths[0]}`
-                            : `Removed ${documentPaths.length} documents`,
-                      }),
-                    catch: mapErrorTo(RepositoryError, 'Git repo error'),
+                ? commitStagedChangesInGit({
+                    isoGitFs,
+                    dir: projectPath,
+                    message:
+                      documentPaths.length === 1
+                        ? `Removed ${documentPaths[0]}`
+                        : `Removed ${documentPaths.length} documents`,
                   })
                 : Effect.succeed(undefined)
             ),
-            Effect.map(() => undefined)
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            ),
+            Effect.asVoid
           )
         )
       );
 
   const renameDocumentsInProject: MultiDocumentProjectStore['renameDocumentsInProject'] =
     ({ projectId, documentRenames }) =>
-      Effect.Do.pipe(
-        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
-        Effect.bind('repoUserInfo', ({ projectPath }) =>
-          pipe(
-            getUserInfoFromConfig({ isoGitFs, dir: projectPath }),
-            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
-              Effect.fail(new RepositoryError(err.message))
-            )
-          )
-        ),
-        Effect.flatMap(({ projectPath, repoUserInfo }) =>
+      pipe(
+        ensureProjectIdIsFsPath(projectId),
+        Effect.flatMap((projectPath) =>
           pipe(
             Effect.forEach(
               documentRenames,
               ({ oldDocumentPath, newDocumentPath }) =>
-                pipe(
-                  renameFileInGit({
-                    isoGitFs,
-                    dir: projectPath,
-                    oldPath: oldDocumentPath,
-                    newPath: newDocumentPath,
-                  }),
-                  Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
-                    Effect.fail(new RepositoryError(err.message))
-                  )
-                )
+                renameFileInGit({
+                  isoGitFs,
+                  dir: projectPath,
+                  oldPath: oldDocumentPath,
+                  newPath: newDocumentPath,
+                })
             ),
             Effect.flatMap(() =>
-              Effect.tryPromise({
-                try: () =>
-                  git.commit({
-                    fs: isoGitFs,
-                    dir: projectPath,
-                    author: {
-                      name: repoUserInfo.username ?? DEFAULT_AUTHOR_NAME,
-                      email: repoUserInfo.email ?? undefined,
-                    },
-                    message:
-                      documentRenames.length === 1
-                        ? `Renamed ${documentRenames[0].oldDocumentPath} to ${documentRenames[0].newDocumentPath}`
-                        : `Renamed ${documentRenames.length} documents`,
-                  }),
-                catch: mapErrorTo(RepositoryError, 'Git repo error'),
+              commitStagedChangesInGit({
+                isoGitFs,
+                dir: projectPath,
+                message:
+                  documentRenames.length === 1
+                    ? `Renamed ${documentRenames[0].oldDocumentPath} to ${documentRenames[0].newDocumentPath}`
+                    : `Renamed ${documentRenames.length} documents`,
               })
             ),
-            Effect.map(() => undefined)
+            Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            ),
+            Effect.asVoid
           )
         )
       );
@@ -523,6 +483,304 @@ export const createAdapter = ({
         )
       )
     );
+
+  const getDocumentReferencedAssetPaths = ({
+    projectPath,
+    documentPath,
+  }: {
+    projectPath: ProjectFsPath;
+    documentPath: ProjectRelPath;
+  }): Effect.Effect<
+    ProjectRelPath[],
+    | FilesystemAccessControlError
+    | FilesystemNotFoundError
+    | FilesystemRepositoryError
+    | FilesystemDataIntegrityError
+    | DocumentAnalysisError
+    | RichTextLibError,
+    never
+  > => {
+    if (PRIMARY_RICH_TEXT_REPRESENTATION !== richTextRepresentations.MARKDOWN) {
+      return Effect.succeed([]);
+    }
+
+    return pipe(
+      filesystem.getAbsolutePath({ path: documentPath, dirPath: projectPath }),
+      Effect.flatMap((absolutePath) => filesystem.readTextFile(absolutePath)),
+      Effect.flatMap((file) =>
+        documentAnalyzer.extractLocalAssetReferences({
+          representation: PRIMARY_RICH_TEXT_REPRESENTATION,
+          content: file.content,
+        })
+      ),
+      Effect.map((assetRefs) =>
+        unique(
+          assetRefs.map((docRel) =>
+            docRelToProjectRel({ docRel, docPath: documentPath })
+          )
+        )
+      )
+    );
+  };
+
+  const stageAndCommitChangesToFiles = ({
+    projectPath,
+    paths,
+    message,
+  }: {
+    projectPath: ProjectFsPath;
+    paths: string[];
+    message: string;
+  }): Effect.Effect<Commit['id'], RepositoryError, never> =>
+    pipe(
+      stageAndCommitChangesToFilesInGit({
+        isoGitFs,
+        dir: projectPath,
+        paths,
+        message,
+      }),
+      Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+        Effect.fail(new RepositoryError(err.message))
+      )
+    );
+
+  const commitDocumentChanges: MultiDocumentProjectStore['commitDocumentChanges'] =
+    ({ projectId, documentId, message }) =>
+      pipe(
+        Effect.Do.pipe(
+          Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
+          Effect.bind('documentPath', () =>
+            extractDocumentRelativePathFromId(documentId)
+          ),
+          // A document can reference an asset that is no longer on disk (a
+          // deleted file, or a hand-authored/pasted dangling link). Staging a
+          // missing path would fail the whole commit, so we check existence and
+          // commit only the assets that are present, reporting the rest.
+          Effect.bind('assets', ({ projectPath, documentPath }) =>
+            pipe(
+              getDocumentReferencedAssetPaths({ projectPath, documentPath }),
+              Effect.flatMap((referencedAssetPaths) =>
+                Effect.forEach(referencedAssetPaths, (assetPath) =>
+                  pipe(
+                    filesystem.getAbsolutePath({
+                      path: assetPath,
+                      dirPath: projectPath,
+                    }),
+                    Effect.flatMap(filesystem.exists),
+                    Effect.map((fileExists) => ({ assetPath, fileExists }))
+                  )
+                )
+              ),
+              Effect.map((referencedAssetPathsWithExistsInfo) =>
+                referencedAssetPathsWithExistsInfo.reduce<{
+                  existing: ProjectRelPath[];
+                  skipped: ProjectRelPath[];
+                }>(
+                  (acc, { assetPath, fileExists }) =>
+                    fileExists
+                      ? { ...acc, existing: [...acc.existing, assetPath] }
+                      : { ...acc, skipped: [...acc.skipped, assetPath] },
+                  { existing: [], skipped: [] }
+                )
+              )
+            )
+          ),
+          Effect.bind('commitId', ({ projectPath, documentPath, assets }) =>
+            stageAndCommitChangesToFiles({
+              projectPath,
+              paths: [documentPath, ...assets.existing],
+              message,
+            })
+          ),
+          Effect.map(({ commitId, assets }) => ({
+            commitId,
+            skippedAssetPaths: assets.skipped,
+          }))
+        ),
+        Effect.catchTags({
+          [FilesystemNotFoundErrorTag]: (err) =>
+            Effect.fail(new NotFoundError(err.message)),
+          [FilesystemAccessControlErrorTag]: (err) =>
+            Effect.fail(new RepositoryError(err.message)),
+          [FilesystemRepositoryErrorTag]: (err) =>
+            Effect.fail(new RepositoryError(err.message)),
+          [FilesystemDataIntegrityErrorTag]: (err) =>
+            Effect.fail(new RepositoryError(err.message)),
+          [DocumentAnalysisErrorTag]: (err) =>
+            Effect.fail(new RepositoryError(err.message)),
+          [RichTextLibErrorTag]: (err) =>
+            Effect.fail(new RepositoryError(err.message)),
+        })
+      );
+
+  const writeFileEnsuringParent = ({
+    absolutePath,
+    content,
+  }: {
+    absolutePath: string;
+    content: Uint8Array | string;
+  }): Effect.Effect<void, RepositoryError, never> => {
+    return pipe(
+      filesystem.ensureDirectory({ path: getParentPath(absolutePath) }),
+      Effect.flatMap(() =>
+        filesystem.writeFile({ path: absolutePath, content })
+      ),
+      Effect.catchAll(() =>
+        Effect.fail(new RepositoryError('Failed to write restored file'))
+      )
+    );
+  };
+
+  const restoreDocumentChanges: MultiDocumentProjectStore['restoreDocumentChanges'] =
+    ({ projectId, documentId, commit, message }) =>
+      Effect.Do.pipe(
+        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
+        Effect.bind('documentPath', () =>
+          extractDocumentRelativePathFromId(documentId)
+        ),
+        Effect.bind('restoreData', ({ projectPath, documentPath }) =>
+          Effect.Do.pipe(
+            Effect.bind('commitHash', () =>
+              pipe(
+                Effect.succeed(commit.id),
+                Effect.filterOrFail(
+                  isGitCommitHash,
+                  (val) => new ValidationError(`Invalid commit hash: ${val}`)
+                )
+              )
+            ),
+            Effect.bind('docBytes', ({ commitHash }) =>
+              pipe(
+                readBlobAtCommit({
+                  isoGitFs,
+                  dir: projectPath,
+                  commitHash,
+                  filepath: documentPath,
+                }),
+                Effect.catchTag(VersionControlNotFoundErrorTag, (err) =>
+                  Effect.fail(new NotFoundError(err.message))
+                ),
+                Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+                  Effect.fail(new RepositoryError(err.message))
+                )
+              )
+            ),
+            // Scan the historical doc content for asset refs.
+            Effect.bind('referencedAssetPaths', ({ docBytes }) =>
+              PRIMARY_RICH_TEXT_REPRESENTATION ===
+              richTextRepresentations.MARKDOWN
+                ? pipe(
+                    documentAnalyzer.extractLocalAssetReferences({
+                      representation: PRIMARY_RICH_TEXT_REPRESENTATION,
+                      content: new TextDecoder().decode(docBytes),
+                    }),
+                    Effect.map((assetRefs) =>
+                      unique(
+                        assetRefs.map((docRel) =>
+                          docRelToProjectRel({
+                            docRel,
+                            docPath: documentPath,
+                          })
+                        )
+                      )
+                    ),
+                    Effect.catchTags({
+                      [DocumentAnalysisErrorTag]: (err) =>
+                        Effect.fail(new RepositoryError(err.message)),
+                      [RichTextLibErrorTag]: (err) =>
+                        Effect.fail(new RepositoryError(err.message)),
+                    })
+                  )
+                : Effect.succeed([] as ProjectRelPath[])
+            ),
+            // An asset referenced by the historical document may be absent from
+            // the commit, or fail to read (e.g. a corrupt object). A single bad
+            // asset must not abort the whole restore, so we skip any we cannot
+            // read and restore the document plus the assets that are present,
+            // reporting the rest.
+            Effect.bind('assets', ({ commitHash, referencedAssetPaths }) =>
+              pipe(
+                Effect.forEach(referencedAssetPaths, (path) =>
+                  pipe(
+                    readBlobAtCommit({
+                      isoGitFs,
+                      dir: projectPath,
+                      commitHash,
+                      filepath: path,
+                    }),
+                    Effect.map(
+                      (bytes) => ({ path, bytes, restored: true }) as const
+                    ),
+                    Effect.catchTags({
+                      [VersionControlNotFoundErrorTag]: () =>
+                        Effect.succeed({ path, restored: false } as const),
+                      [VersionControlRepositoryErrorTag]: () =>
+                        Effect.succeed({ path, restored: false } as const),
+                    })
+                  )
+                ),
+                Effect.map((entries) =>
+                  entries.reduce<{
+                    toRestore: { path: ProjectRelPath; bytes: Uint8Array }[];
+                    skipped: ProjectRelPath[];
+                  }>(
+                    (acc, entry) =>
+                      entry.restored
+                        ? {
+                            ...acc,
+                            toRestore: [
+                              ...acc.toRestore,
+                              { path: entry.path, bytes: entry.bytes },
+                            ],
+                          }
+                        : { ...acc, skipped: [...acc.skipped, entry.path] },
+                    { toRestore: [], skipped: [] }
+                  )
+                )
+              )
+            ),
+            Effect.map(({ docBytes, assets }) => ({
+              filesToRestore: [
+                { path: documentPath, bytes: docBytes },
+                ...assets.toRestore,
+              ],
+              skippedAssetPaths: assets.skipped,
+            }))
+          )
+        ),
+        Effect.tap(({ projectPath, restoreData }) =>
+          Effect.forEach(
+            restoreData.filesToRestore,
+            ({ path, bytes }) =>
+              pipe(
+                filesystem.getAbsolutePath({ path, dirPath: projectPath }),
+                Effect.flatMap((absPath) =>
+                  writeFileEnsuringParent({
+                    absolutePath: absPath,
+                    content: bytes,
+                  })
+                ),
+                Effect.catchAll(() =>
+                  Effect.fail(
+                    new RepositoryError('Failed to write restored file')
+                  )
+                )
+              ),
+            { discard: true }
+          )
+        ),
+        Effect.bind('commitId', ({ projectPath, restoreData }) =>
+          stageAndCommitChangesToFiles({
+            projectPath,
+            paths: restoreData.filesToRestore.map((f) => f.path),
+            message: message ?? `Restore ${commit.message}`,
+          })
+        ),
+        Effect.map(({ commitId, restoreData }) => ({
+          commitId,
+          skippedAssetPaths: restoreData.skippedAssetPaths,
+        }))
+      );
 
   const createAndSwitchToBranch: MultiDocumentProjectStore['createAndSwitchToBranch'] =
     ({ projectId, branch }) =>
@@ -997,8 +1255,181 @@ export const createAdapter = ({
         )
       );
 
+  const addAssetToProject: MultiDocumentProjectStore['addAssetToProject'] = ({
+    projectId,
+    name,
+    content,
+  }) =>
+    pipe(
+      Effect.Do.pipe(
+        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
+        Effect.bind('currentBranch', () => getCurrentBranch({ projectId })),
+        Effect.bind('relPath', () =>
+          Effect.succeed(`${assetsDirName}/${name}`)
+        ),
+        // Make sure the assets directory exists before writing into it.
+        Effect.tap(({ projectPath }) =>
+          pipe(
+            filesystem.getAbsolutePath({
+              path: assetsDirName,
+              dirPath: projectPath,
+            }),
+            Effect.flatMap((absDir) =>
+              filesystem.ensureDirectory({ path: absDir })
+            )
+          )
+        ),
+        // Resolve the asset's absolute path and write the bytes.
+        Effect.tap(({ projectPath, relPath }) =>
+          pipe(
+            filesystem.getAbsolutePath({ path: relPath, dirPath: projectPath }),
+            Effect.flatMap((absPath) =>
+              filesystem.writeFile({ path: absPath, content })
+            )
+          )
+        ),
+        // Stage the new file.
+        Effect.tap(({ projectPath, relPath }) =>
+          stageFileInGit({ isoGitFs, dir: projectPath, path: relPath })
+        ),
+        // Produce the asset's git blob ref.
+        Effect.flatMap(({ currentBranch, relPath }) =>
+          Effect.try({
+            try: () => createGitBlobRef({ ref: currentBranch, path: relPath }),
+            catch: mapErrorTo(
+              ValidationError,
+              'Cannot create the Git blob ref for the asset'
+            ),
+          })
+        )
+      ),
+      Effect.catchTags({
+        [FilesystemNotFoundErrorTag]: (err) =>
+          Effect.fail(new NotFoundError(err.message)),
+        [FilesystemAccessControlErrorTag]: (err) =>
+          Effect.fail(new RepositoryError(err.message)),
+        [FilesystemRepositoryErrorTag]: (err) =>
+          Effect.fail(new RepositoryError(err.message)),
+        [VersionControlRepositoryErrorTag]: (err) =>
+          Effect.fail(new RepositoryError(err.message)),
+      })
+    );
+
+  const lookupAssetByName: MultiDocumentProjectStore['lookupAssetByName'] = ({
+    projectId,
+    name,
+  }) =>
+    pipe(
+      Effect.Do.pipe(
+        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
+        Effect.bind('currentBranch', () => getCurrentBranch({ projectId })),
+        Effect.bind('relPath', () =>
+          Effect.succeed(`${assetsDirName}/${name}`)
+        ),
+        Effect.bind('absolutePath', ({ projectPath, relPath }) =>
+          filesystem.getAbsolutePath({ path: relPath, dirPath: projectPath })
+        ),
+        Effect.flatMap(({ absolutePath, currentBranch, relPath }) =>
+          pipe(
+            filesystem.readBinaryFile(absolutePath),
+            Effect.map(() =>
+              createGitBlobRef({ ref: currentBranch, path: relPath })
+            )
+          )
+        )
+      ),
+      Effect.catchTags({
+        [FilesystemNotFoundErrorTag]: () =>
+          Effect.fail(
+            new NotFoundError(`No asset named "${name}" in project assets.`)
+          ),
+        [FilesystemAccessControlErrorTag]: (err) =>
+          Effect.fail(new RepositoryError(err.message)),
+        [FilesystemRepositoryErrorTag]: (err) =>
+          Effect.fail(new RepositoryError(err.message)),
+        [FilesystemDataIntegrityErrorTag]: (err) =>
+          Effect.fail(new RepositoryError(err.message)),
+      })
+    );
+
+  const listProjectAssets: MultiDocumentProjectStore['listProjectAssets'] = (
+    id
+  ) =>
+    pipe(
+      findProjectById(id),
+      Effect.map((project) => Object.values(project.assets))
+    );
+
+  const readAssetBytes: MultiDocumentProjectStore['readAssetBytes'] = ({
+    projectId,
+    relPath,
+  }) =>
+    pipe(
+      Effect.Do.pipe(
+        Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
+        Effect.bind('absolutePath', ({ projectPath }) =>
+          filesystem.getAbsolutePath({ path: relPath, dirPath: projectPath })
+        ),
+        Effect.tap(({ projectPath, absolutePath }) =>
+          pipe(
+            filesystem.isDescendantPath({
+              parent: projectPath,
+              possibleDescendant: absolutePath,
+            }),
+            Effect.filterOrFail(
+              (isInside) => isInside,
+              () => new ValidationError('Asset path escapes project root')
+            )
+          )
+        ),
+        Effect.flatMap(({ absolutePath }) =>
+          pipe(
+            filesystem.readBinaryFile(absolutePath),
+            Effect.map((file) => file.content)
+          )
+        )
+      ),
+      Effect.catchTags({
+        [FilesystemNotFoundErrorTag]: (err) =>
+          Effect.fail(new NotFoundError(err.message)),
+        [FilesystemAccessControlErrorTag]: (err) =>
+          Effect.fail(new RepositoryError(err.message)),
+        [FilesystemRepositoryErrorTag]: (err) =>
+          Effect.fail(new RepositoryError(err.message)),
+        [FilesystemDataIntegrityErrorTag]: (err) =>
+          Effect.fail(new RepositoryError(err.message)),
+      })
+    );
+
+  const getProjectRelativePath: MultiDocumentProjectStore['getProjectRelativePath'] =
+    ({ projectId, absolutePath }) =>
+      pipe(
+        filesystem.isDescendantPath({
+          parent: projectId,
+          possibleDescendant: absolutePath,
+        }),
+        Effect.flatMap((isInside) =>
+          isInside
+            ? filesystem.getRelativePath({
+                path: absolutePath,
+                relativeTo: projectId,
+              })
+            : Effect.succeed(null)
+        ),
+        Effect.catchTag(FilesystemRepositoryErrorTag, (err) =>
+          Effect.fail(new RepositoryError(err.message))
+        )
+      );
+
+  // TODO(assets): explicit asset deletion is deferred — orphan cleanup will
+  // be handled by a later "prune unreferenced assets" pass.
+  const deleteAssetFromProject: MultiDocumentProjectStore['deleteAssetFromProject'] =
+    () =>
+      Effect.fail(new RepositoryError('Asset deletion is not yet implemented'));
+
   return {
     supportsBranching: true,
+    assetsDirName,
     createProject,
     findProjectById,
     listProjectDocuments,
@@ -1008,7 +1439,15 @@ export const createAdapter = ({
     renameDocumentInProject,
     renameDocumentsInProject,
     findDocumentInProject,
+    addAssetToProject,
+    deleteAssetFromProject,
+    lookupAssetByName,
+    listProjectAssets,
+    readAssetBytes,
+    getProjectRelativePath,
     commitChanges,
+    commitDocumentChanges,
+    restoreDocumentChanges,
     createAndSwitchToBranch,
     switchToBranch,
     getCurrentBranch,

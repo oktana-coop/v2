@@ -4,7 +4,6 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import {
-  type Commit,
   exportToBinary,
   getArtifactAtCommit,
   getArtifactFromHandle,
@@ -343,85 +342,6 @@ export const createAdapter = ({
         )
       );
 
-  const commitChanges: VersionedDocumentStore['commitChanges'] = ({
-    documentId,
-    message,
-  }) =>
-    pipe(
-      findDocumentHandleById(documentId),
-      Effect.tap((documentHandle) =>
-        Effect.try({
-          try: () =>
-            documentHandle.change(
-              (doc) => {
-                // this is effectively a no-op, but it triggers a change event
-                // (not) changing the title of the document, as interfering with the
-                // content outside the Prosemirror API will cause loss of formatting
-                // eslint-disable-next-line no-self-assign
-                doc.type = doc.type;
-              },
-              {
-                message,
-                time: new Date().getTime(),
-              }
-            ),
-          catch: mapErrorTo(RepositoryError, 'Automerge repo error'),
-        })
-      ),
-      Effect.flatMap(
-        () =>
-          // TODO: This is not ideal, we should get the change id from the change operation above.
-          // Arguably, using getLastLocalChange would be preferable.
-          getDocumentLastChangeId(documentId) as Effect.Effect<
-            Commit['id'],
-            ValidationError | RepositoryError | NotFoundError | MigrationError,
-            never
-          >
-      )
-    );
-
-  const restoreCommit: VersionedDocumentStore['restoreCommit'] = ({
-    documentId,
-    commit,
-    message,
-    writeToFileWithPath,
-  }) =>
-    pipe(
-      getDocumentAtChange({
-        documentId,
-        changeId: commit.id,
-      }),
-      Effect.flatMap((documentAtCommit) =>
-        documentAtCommit.representation === richTextRepresentations.AUTOMERGE
-          ? Effect.try({
-              try: () => getSpansString(documentAtCommit),
-              catch: mapErrorTo(
-                RepositoryError,
-                'Error getting spans from Automerge document'
-              ),
-            })
-          : Effect.fail(
-              new RepositoryError(
-                'Only Automerge representation is supported for restore'
-              )
-            )
-      ),
-      Effect.tap((documentContentAtCommit) =>
-        updateRichTextDocumentContent({
-          documentId,
-          representation: richTextRepresentations.AUTOMERGE,
-          content: documentContentAtCommit,
-          writeToFileWithPath,
-        })
-      ),
-      Effect.flatMap(() =>
-        commitChanges({
-          documentId,
-          message: message ?? `Restore ${commit.message}`,
-        })
-      )
-    );
-
   const discardUncommittedChanges: VersionedDocumentStore['discardUncommittedChanges'] =
     ({ documentId, writeToFileWithPath }) =>
       pipe(
@@ -535,8 +455,6 @@ export const createAdapter = ({
     getDocumentHandleHistory,
     isContentSameAtChanges,
     getDocumentLastChangeId,
-    commitChanges,
-    restoreCommit,
     discardUncommittedChanges,
     resolveContentConflict,
     exportDocumentHandleToBinary,

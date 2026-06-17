@@ -11,8 +11,10 @@ import {
 } from '../../../../infrastructure/version-control';
 import { NotFoundError, RepositoryError, ValidationError } from '../../errors';
 import {
+  type ArtifactMetaData,
   type BaseArtifactMetaData,
   type ProjectId,
+  type ProjectRelPath,
   type RemoteProjectInfo,
   type VersionedSingleDocumentProject,
 } from '../../models';
@@ -29,9 +31,36 @@ export type CreateSingleDocumentProjectArgs = {
   authToken?: string;
 } & UserInfo;
 
+export type AddAssetToSingleDocumentProjectArgs = {
+  projectId: ProjectId;
+  name: string;
+  content: Uint8Array;
+};
+
+export type DeleteAssetFromSingleDocumentProjectArgs = {
+  projectId: ProjectId;
+  assetId: ResolvedArtifactId;
+};
+
+export type LookupAssetByNameInSingleDocumentProjectArgs = {
+  projectId: ProjectId;
+  name: string;
+};
+
+export type ReadAssetBytesFromSingleDocumentProjectArgs = {
+  projectId: ProjectId;
+  relPath: ProjectRelPath;
+};
+
 export type SingleDocumentProjectCommitChangesArgs = {
   projectId: ProjectId;
   message: string;
+};
+
+export type SingleDocumentProjectRestoreChangesArgs = {
+  projectId: ProjectId;
+  commit: Commit;
+  message?: string;
 };
 
 export type SingleDocumentProjectCreateAndSwitchToBranchArgs = {
@@ -129,6 +158,7 @@ export type SingleDocumentProjectGetRemoteBranchInfoResult = Record<
 
 export type SingleDocumentProjectStore = {
   supportsBranching: boolean;
+  assetsDirName: string;
   createSingleDocumentProject: (
     args: CreateSingleDocumentProjectArgs
   ) => Effect.Effect<ProjectId, ValidationError | RepositoryError, never>;
@@ -153,9 +183,51 @@ export type SingleDocumentProjectStore = {
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
+  addAssetToProject: (
+    args: AddAssetToSingleDocumentProjectArgs
+  ) => Effect.Effect<
+    ResolvedArtifactId,
+    ValidationError | MigrationError | RepositoryError | NotFoundError,
+    never
+  >;
+  deleteAssetFromProject: (
+    args: DeleteAssetFromSingleDocumentProjectArgs
+  ) => Effect.Effect<
+    void,
+    ValidationError | MigrationError | RepositoryError | NotFoundError,
+    never
+  >;
+  lookupAssetByName: (
+    args: LookupAssetByNameInSingleDocumentProjectArgs
+  ) => Effect.Effect<
+    ResolvedArtifactId,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  listProjectAssets: (
+    projectId: ProjectId
+  ) => Effect.Effect<
+    ArtifactMetaData[],
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  readAssetBytes: (
+    args: ReadAssetBytesFromSingleDocumentProjectArgs
+  ) => Effect.Effect<
+    Uint8Array,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
   commitChanges: (
     args: SingleDocumentProjectCommitChangesArgs
   ) => Effect.Effect<Commit['id'], ValidationError | RepositoryError, never>;
+  restoreChanges: (
+    args: SingleDocumentProjectRestoreChangesArgs
+  ) => Effect.Effect<
+    Commit['id'],
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
   createAndSwitchToBranch: (
     args: SingleDocumentProjectCreateAndSwitchToBranchArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;

@@ -1,9 +1,6 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
-import git, {
-  Errors,
-  type PromiseFsClient as IsoGitFsApi,
-} from 'isomorphic-git';
+import git, { type PromiseFsClient as IsoGitFsApi } from 'isomorphic-git';
 
 import {
   type Branch,
@@ -12,9 +9,7 @@ import {
   type Commit,
   createGitBlobRef,
   decomposeGitBlobRef,
-  DEFAULT_AUTHOR_NAME,
   getFileCommitHistory,
-  getUserInfo as getUserInfoFromConfig,
   type GitBlobRef,
   type GitCommitHash,
   isGitBlobRef,
@@ -23,9 +18,12 @@ import {
   MigrationError,
   parseBranch,
   parseGitCommitHash,
+  parseGitCommitHashEffect,
+  readBlobAtCommit,
   type ResolvedArtifactId,
   type UncommitedChange,
   UNCOMMITTED_CHANGE_ID,
+  VersionControlNotFoundErrorTag,
   VersionControlRepositoryErrorTag,
   versionedArtifactTypes,
 } from '../../../../../../../modules/infrastructure/version-control';
@@ -344,58 +342,6 @@ export const createAdapter = ({
         )
       : Effect.succeed(undefined);
 
-  const commitChanges: VersionedDocumentStore['commitChanges'] = ({
-    documentId,
-    message,
-  }) =>
-    Effect.Do.pipe(
-      Effect.bind('documentPath', () =>
-        extractDocumentRelativePathFromId(documentId)
-      ),
-      Effect.bind('repoUserInfo', () =>
-        pipe(
-          getUserInfoFromConfig({ isoGitFs, dir: projectDir }),
-          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
-            Effect.fail(new RepositoryError(err.message))
-          )
-        )
-      ),
-      Effect.flatMap(({ documentPath, repoUserInfo }) =>
-        pipe(
-          Effect.tryPromise({
-            try: () =>
-              git.add({
-                fs: isoGitFs,
-                dir: projectDir,
-                filepath: documentPath,
-              }),
-            catch: mapErrorTo(RepositoryError, 'Git repo error'),
-          }),
-          Effect.flatMap(() =>
-            Effect.tryPromise({
-              try: () =>
-                git.commit({
-                  fs: isoGitFs,
-                  dir: projectDir,
-                  author: {
-                    name: repoUserInfo.username ?? DEFAULT_AUTHOR_NAME,
-                    email: repoUserInfo.email ?? undefined,
-                  },
-                  message,
-                }),
-              catch: mapErrorTo(RepositoryError, 'Git repo error'),
-            })
-          ),
-          Effect.flatMap((commitHashStr) =>
-            Effect.try({
-              try: () => parseGitCommitHash(commitHashStr),
-              catch: mapErrorTo(RepositoryError, 'Git repo error'),
-            })
-          )
-        )
-      )
-    );
-
   const getDocumentHistory: VersionedDocumentStore['getDocumentHistory'] = (
     documentId
   ) => {
@@ -507,76 +453,63 @@ export const createAdapter = ({
     RichTextDocument,
     RepositoryError | NotFoundError | DeletedDocumentError,
     never
-  > = ({ projectDir, documentPath, commitHash }) =>
-    pipe(
-      Effect.tryPromise({
-        try: () =>
-          git.resolveRef({ fs: isoGitFs, dir: projectDir, ref: commitHash }),
-        catch: mapErrorTo(RepositoryError, 'Git repo error'),
-      }),
-      Effect.flatMap((commitOid) =>
+  > = ({ projectDir, documentPath, commitHash }) => {
+    const readDocumentBlobAtCommit = (hash: GitCommitHash) =>
+      pipe(
+        readBlobAtCommit({
+          isoGitFs,
+          dir: projectDir,
+          commitHash: hash,
+          filepath: documentPath,
+        }),
+        Effect.mapError((error) =>
+          error._tag === VersionControlNotFoundErrorTag
+            ? new NotFoundError(
+                `Document "${documentPath}" not found at commit ${hash}`
+              )
+            : new RepositoryError('Git repo error')
+        )
+      );
+
+    return pipe(
+      readDocumentBlobAtCommit(commitHash),
+      // When the document is not found at this commit, check whether it
+      // existed in the parent commit. If it did, this is a deletion
+      // (DeletedDocumentError); otherwise the document never existed here
+      // (NotFoundError).
+      Effect.catchTag(VersionedDocumentNotFoundErrorTag, (notFoundError) =>
         pipe(
           Effect.tryPromise({
             try: () =>
-              git.readBlob({
+              git.readCommit({
                 fs: isoGitFs,
                 dir: projectDir,
-                oid: commitOid,
-                filepath: documentPath,
+                oid: commitHash,
               }),
-            catch: (error) =>
-              error instanceof Errors.NotFoundError
-                ? new NotFoundError(
-                    `Document "${documentPath}" not found at commit ${commitHash}`
-                  )
-                : new RepositoryError('Git repo error'),
+            catch: () => notFoundError,
           }),
-          // When the document is not found at this commit, check whether it
-          // existed in the parent commit. If it did, this is a deletion
-          // (DeletedDocumentError); otherwise the document never existed here
-          // (NotFoundError).
-          Effect.catchTag(VersionedDocumentNotFoundErrorTag, (notFoundError) =>
-            pipe(
-              Effect.tryPromise({
-                try: () =>
-                  git.readCommit({
-                    fs: isoGitFs,
-                    dir: projectDir,
-                    oid: commitOid,
-                  }),
-                catch: () => notFoundError,
-              }),
-              Effect.flatMap((commitResult) => {
-                const parentOid = commitResult.commit.parent[0] ?? null;
-                if (!parentOid) return Effect.fail(notFoundError);
+          Effect.flatMap((commitResult) => {
+            const parentOid = commitResult.commit.parent[0] ?? null;
+            if (!parentOid) return Effect.fail(notFoundError);
 
-                return pipe(
-                  Effect.tryPromise({
-                    try: () =>
-                      git.readBlob({
-                        fs: isoGitFs,
-                        dir: projectDir,
-                        oid: parentOid,
-                        filepath: documentPath,
-                      }),
-                    // Document not in parent either — never existed here.
-                    catch: () => notFoundError,
-                  }),
-                  // Document exists in parent but not in this commit — deleted.
-                  Effect.flatMap(() =>
-                    Effect.fail(
-                      new DeletedDocumentError(notFoundError.message, {
-                        parentCommitId: parentOid,
-                      })
-                    )
-                  )
-                );
-              })
-            )
-          )
+            return pipe(
+              parseGitCommitHashEffect(parentOid),
+              Effect.flatMap(readDocumentBlobAtCommit),
+              // Document not in parent either — never existed here.
+              Effect.catchAll(() => Effect.fail(notFoundError)),
+              // Document exists in parent but not in this commit — deleted.
+              Effect.flatMap(() =>
+                Effect.fail(
+                  new DeletedDocumentError(notFoundError.message, {
+                    parentCommitId: parentOid,
+                  })
+                )
+              )
+            );
+          })
         )
       ),
-      Effect.flatMap(({ blob }) =>
+      Effect.flatMap((blob) =>
         Effect.try({
           try: () => Buffer.from(blob).toString('utf8'),
           catch: mapErrorTo(RepositoryError, 'Git repo error'),
@@ -589,6 +522,7 @@ export const createAdapter = ({
         content,
       }))
     );
+  };
 
   const getDocumentAtChange: VersionedDocumentStore['getDocumentAtChange'] = ({
     documentId,
@@ -714,35 +648,6 @@ export const createAdapter = ({
         Effect.map(({ hash1, hash2 }) => hash1 === hash2)
       );
     };
-
-  // TODO: Make this pipeline transactional
-  const restoreCommit: VersionedDocumentStore['restoreCommit'] = ({
-    documentId,
-    commit,
-    message,
-    writeToFileWithPath,
-  }) =>
-    Effect.Do.pipe(
-      Effect.bind('documentAtCommit', () =>
-        getDocumentAtChange({ documentId, changeId: commit.id })
-      ),
-      Effect.flatMap(({ documentAtCommit }) =>
-        pipe(
-          updateRichTextDocumentContent({
-            documentId,
-            representation: documentAtCommit.representation,
-            content: documentAtCommit.content,
-            writeToFileWithPath,
-          }),
-          Effect.flatMap(() =>
-            commitChanges({
-              documentId,
-              message: message ?? `Restore ${commit.message}`,
-            })
-          )
-        )
-      )
-    );
 
   const discardUncommittedChanges: VersionedDocumentStore['discardUncommittedChanges'] =
     ({ documentId, writeToFileWithPath }) =>
@@ -884,11 +789,9 @@ export const createAdapter = ({
     getDocumentLastChangeId,
     updateRichTextDocumentContent,
     deleteDocument,
-    commitChanges,
     getDocumentHistory,
     getDocumentAtChange,
     isContentSameAtChanges,
-    restoreCommit,
     discardUncommittedChanges,
     resolveContentConflict,
     disconnect,

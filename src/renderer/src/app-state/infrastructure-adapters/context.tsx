@@ -2,12 +2,14 @@ import * as Effect from 'effect/Effect';
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import {
+  type AssetUrlProtocol,
   type MultiDocumentProjectStoreManager,
   type SingleDocumentProjectStoreManager,
 } from '../../../../modules/domain/project';
 import {
   createBrowserAutomergeMultiDocumentProjectStoreManagerAdapter,
   createBrowserAutomergeSingleDocumentProjectStoreManagerAdapter,
+  createElectronAssetProtocolAdapter,
   createElectronRendererAutomergeMultiDocumentProjectStoreManagerAdapter,
   createElectronRendererAutomergeSingleDocumentProjectStoreManagerAdapter,
   createElectronRendererIpcSingleDocumentProjectStoreManagerAdapter,
@@ -25,6 +27,7 @@ export type InfrastructureAdaptersContextType = {
   filesystem: Filesystem;
   singleDocumentProjectStoreManager: SingleDocumentProjectStoreManager;
   multiDocumentProjectStoreManager: MultiDocumentProjectStoreManager;
+  assetUrlProtocol: AssetUrlProtocol;
   versionedDocumentStore: VersionedDocumentStore | null;
   setVersionedDocumentStore: (
     documentStore: VersionedDocumentStore | null
@@ -39,6 +42,8 @@ export const InfrastructureAdaptersContext =
     singleDocumentProjectStoreManager: null,
     // @ts-expect-error will get overriden below
     multiDocumentProjectStoreManager: null,
+    // @ts-expect-error will get overriden below
+    assetUrlProtocol: null,
     versionedDocumentStore: null,
     setVersionedDocumentStore: () => {},
   });
@@ -55,6 +60,9 @@ export const InfrastructureAdaptersProvider = ({
   const filesystem = isElectron
     ? createElectronRendererFilesystemAPIAdapter()
     : createBrowserFilesystemAPIAdapter();
+
+  // TODO: Browser build will need its own AssetUrlProtocol adapter.
+  const assetUrlProtocol = createElectronAssetProtocolAdapter();
 
   const [
     singleDocumentProjectStoreManager,
@@ -125,6 +133,7 @@ export const InfrastructureAdaptersProvider = ({
         filesystem,
         singleDocumentProjectStoreManager,
         multiDocumentProjectStoreManager,
+        assetUrlProtocol,
         versionedDocumentStore,
         setVersionedDocumentStore: handleSetDocumentStore,
       }}

@@ -84,6 +84,8 @@ export const EditorToolbar = ({
   onNoteClick,
   onHorizontalRuleClick,
   horizontalRuleEnabled,
+  onImageClick,
+  imageEnabled,
 }: {
   leafBlockType: LeafBlockType;
   containerBlockType: ContainerBlockType | null;
@@ -99,6 +101,8 @@ export const EditorToolbar = ({
   onNoteClick: () => void;
   onHorizontalRuleClick: () => void;
   horizontalRuleEnabled: boolean;
+  onImageClick: () => void;
+  imageEnabled: boolean;
 }) => {
   const handleContainerBlockSelect = (type: ContainerBlockType) => () => {
     onBlockSelect(type);
@@ -168,7 +172,12 @@ export const EditorToolbar = ({
         />
       </div>
       <div className="flex flex-initial gap-x-1">
-        <IconButton icon={<ImageIcon />} tooltip="Image" />
+        <IconButton
+          icon={<ImageIcon />}
+          onClick={onImageClick}
+          disabled={!imageEnabled}
+          tooltip="Image"
+        />
         <IconButton
           icon={<NoteIcon />}
           onClick={onNoteClick}

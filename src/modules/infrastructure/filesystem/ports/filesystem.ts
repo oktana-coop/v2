@@ -174,6 +174,9 @@ export type Filesystem = {
   createDirectory: (
     args: CreateDirectoryArgs
   ) => Effect.Effect<Directory, NotFoundError | RepositoryError, never>;
+  ensureDirectory: (args: {
+    path: string;
+  }) => Effect.Effect<void, RepositoryError, never>;
   getRelativePath: (
     args: GetRelativePathArgs
   ) => Effect.Effect<string, RepositoryError, never>;
@@ -186,4 +189,5 @@ export type Filesystem = {
   isDescendantPath: (
     args: IsDescendantPathArgs
   ) => Effect.Effect<boolean, RepositoryError, never>;
+  exists: (path: string) => Effect.Effect<boolean, RepositoryError, never>;
 };

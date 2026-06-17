@@ -8,29 +8,13 @@ import {
   binaryRichTextRepresentations,
   richTextRepresentations,
 } from '../../constants/representations';
+import {
+  type HSLibOutput,
+  isHSLibFailureOutput,
+  representationToCliArg,
+} from '../../hs-lib-cli';
 import { type PdfEngine } from '../../ports/pdf-engine';
 import { type RepresentationTransform } from '../../ports/representation-transform';
-import { representationToCliArg } from './cli-args';
-
-type HSLibConversionSuccessOutput = {
-  data: string;
-};
-
-type HSLibError = {
-  message: string;
-};
-
-type HSLibFailureOutput = {
-  errors: HSLibError[];
-};
-
-type HSLibConversionOutput = HSLibConversionSuccessOutput | HSLibFailureOutput;
-
-const isHSLibFailureOutput = (
-  output: HSLibConversionOutput
-): output is HSLibFailureOutput => {
-  return 'errors' in output;
-};
 
 export const createAdapter = ({
   runWasiCLIOutputingText,
@@ -69,7 +53,7 @@ export const createAdapter = ({
     }
 
     // TODO: Perform proper validation & handle error cases
-    const parsedOutput = JSON.parse(output) as HSLibConversionOutput;
+    const parsedOutput = JSON.parse(output) as HSLibOutput<string>;
 
     if (isHSLibFailureOutput(parsedOutput)) {
       throw new Error(

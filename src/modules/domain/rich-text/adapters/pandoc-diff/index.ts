@@ -5,12 +5,16 @@ import {
   cliTypes,
   type Wasm,
 } from '../../../../../modules/infrastructure/wasm';
+import {
+  type HSLibOutput,
+  isHSLibFailureOutput,
+  representationToCliArg,
+} from '../../hs-lib-cli';
 import { type Diff } from '../../ports/diff';
 import {
   createInlineDecoration,
   createNodeDecoration,
   createWidgetDeleteDecoration,
-  type DiffDecorationClasses,
   pmDocFromJSONString,
 } from '../../prosemirror';
 import {
@@ -20,29 +24,10 @@ import {
   type PMNode,
   type WidgetDiffDecoration,
 } from '../../prosemirror/hs-lib';
-import { representationToCliArg } from './cli-args';
 
-type HSLibDiffSuccessOutput = {
-  data: {
-    doc: PMNode;
-    decorations: DiffDecoration[];
-  };
-};
-
-type HSLibError = {
-  message: string;
-};
-
-type HSLibFailureOutput = {
-  errors: HSLibError[];
-};
-
-type HSLibDiffOutput = HSLibDiffSuccessOutput | HSLibFailureOutput;
-
-const isHSLibFailureOutput = (
-  output: HSLibDiffOutput
-): output is HSLibFailureOutput => {
-  return 'errors' in output;
+type HSLibDiffData = {
+  doc: PMNode;
+  decorations: DiffDecoration[];
 };
 
 const toInlineDecoration = (decoration: InlineDiffDecoration): Decoration => {
@@ -71,11 +56,11 @@ const toNodeDecoration = (decoration: NodeDiffDecoration): Decoration => {
 
 type ToWidgetDecorationDeps = {
   proseMirrorSchema: Schema;
-  decorationClasses: DiffDecorationClasses;
+  transformImageSrc: (src: string) => string;
 };
 
 const toWidgetDeleteDecoration =
-  ({ proseMirrorSchema, decorationClasses }: ToWidgetDecorationDeps) =>
+  ({ proseMirrorSchema, transformImageSrc }: ToWidgetDecorationDeps) =>
   (decoration: WidgetDiffDecoration): Decoration => {
     const node = Node.fromJSON(proseMirrorSchema, decoration.node);
 
@@ -83,7 +68,7 @@ const toWidgetDeleteDecoration =
       pos: decoration.pos,
       node,
       proseMirrorSchema,
-      decorationClasses,
+      transformImageSrc,
     });
   };
 
@@ -95,9 +80,9 @@ export const createAdapter = ({
   const proseMirrorDiff: Diff['proseMirrorDiff'] = async ({
     representation,
     proseMirrorSchema,
-    decorationClasses,
     docBefore,
     docAfter,
+    transformImageSrc,
   }) => {
     const output = await runWasiCLIOutputingText({
       type: cliTypes.HS_LIB,
@@ -113,7 +98,7 @@ export const createAdapter = ({
     });
 
     // TODO: Perform proper validation & handle error cases
-    const parsedOutput = JSON.parse(output) as HSLibDiffOutput;
+    const parsedOutput = JSON.parse(output) as HSLibOutput<HSLibDiffData>;
 
     if (isHSLibFailureOutput(parsedOutput)) {
       throw new Error(
@@ -130,7 +115,7 @@ export const createAdapter = ({
         case 'widget':
           return toWidgetDeleteDecoration({
             proseMirrorSchema,
-            decorationClasses,
+            transformImageSrc,
           })(decoration);
       }
     });

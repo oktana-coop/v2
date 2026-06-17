@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { type ComponentProps, useContext } from 'react';
 
 import { projectTypes } from '../../../../../../modules/domain/project';
 import {
@@ -7,7 +7,7 @@ import {
 } from '../../../../app-state';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
-import { useCreateDocument, useNavigateToDocument } from '../../../../hooks';
+import { useCreateDocument, useNavigateToArtifact } from '../../../../hooks';
 import { useOpenDirectory } from '../../../../hooks/multi-document-project';
 import { useOpenDocument } from '../../../../hooks/single-document-project';
 import { CloneFromGithubDialog } from '../../../shared/sync-providers/github/CloneFromGithubDialog';
@@ -27,10 +27,16 @@ export const ProjectSelection = () => {
   const { isOpen: isCloneFromGithubModalOpen, closeCloneFromGithubModal } =
     useContext(CloneFromGithubModalContext);
 
-  const navigateToDocument = useNavigateToDocument();
+  const navigateToArtifact = useNavigateToArtifact();
 
   const handleOpenDocument = () => openDocument();
   const handleOpenDirectory = () => openDirectory();
+
+  const handleCreateDocument: ComponentProps<
+    typeof CreateDocumentModal
+  >['onCreateDocument'] = ({ projectId, documentId, path }) => {
+    navigateToArtifact({ projectId, artifactId: documentId, path });
+  };
 
   return (
     <SidebarLayout
@@ -54,7 +60,7 @@ export const ProjectSelection = () => {
       <CreateDocumentModal
         isOpen={isDocumentCreationModalOpen}
         onClose={closeCreateDocumentModal}
-        onCreateDocument={navigateToDocument}
+        onCreateDocument={handleCreateDocument}
       />
       <CloneFromGithubDialog
         isOpen={isCloneFromGithubModalOpen}

@@ -10,11 +10,7 @@ import {
 } from '../../../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
-import {
-  diffDelete,
-  diffInsert,
-  diffModify,
-} from '../../../../components/editing/marks';
+import { useAssetSrcResolver } from '../../../../hooks';
 
 const {
   schema,
@@ -23,15 +19,18 @@ const {
   numberNotes,
   openExternalLinkPlugin,
   codeBlockHighlightPlugin,
+  registerNodeViews,
 } = prosemirror;
 
 export type DiffViewProps = {
   docBefore: RichTextDocument;
   docAfter: RichTextDocument;
+  documentPath: string | null;
 };
 
 export type SingleDocViewProps = {
   doc: RichTextDocument;
+  documentPath: string | null;
 };
 
 const isDiffViewProps = (
@@ -55,6 +54,7 @@ export const ReadOnlyDocumentView = (props: ReadOnlyDocumentViewProps) => {
   const { openExternalLink } = useContext(ElectronContext);
   const editorRoot = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const resolveAssetSrc = useAssetSrcResolver(props.documentPath ?? undefined);
   const {
     proseMirrorDiff,
     diffAdapterReady,
@@ -77,6 +77,7 @@ export const ReadOnlyDocumentView = (props: ReadOnlyDocumentViewProps) => {
     viewRef.current = new EditorView(editorRoot.current, {
       state,
       editable: () => false,
+      nodeViews: registerNodeViews({ resolveAssetSrc }),
     });
 
     return () => {
@@ -94,21 +95,15 @@ export const ReadOnlyDocumentView = (props: ReadOnlyDocumentViewProps) => {
       const contentBefore = getDocumentRichTextContent(props.docBefore);
       const contentAfter = getDocumentRichTextContent(props.docAfter);
 
-      const decorationClasses = {
-        insert: diffInsert,
-        modify: diffModify,
-        delete: diffDelete,
-      };
-
       const { pmDocAfter: pmDoc, decorations } = await proseMirrorDiff({
         representation:
           // There are some old document versions without the representataion set. The representation is Automerge in that case.
           // TODO: Remove this fallback when we no longer expect documents without representation set.
           props.docAfter.representation ?? richTextRepresentations.AUTOMERGE,
         proseMirrorSchema: schema,
-        decorationClasses,
         docBefore: contentBefore,
         docAfter: contentAfter,
+        transformImageSrc: resolveAssetSrc,
       });
 
       if (destroyed) return;
@@ -122,7 +117,7 @@ export const ReadOnlyDocumentView = (props: ReadOnlyDocumentViewProps) => {
             decorations,
             proseMirrorDiff,
             convertFromProseMirror,
-            decorationClasses,
+            transformImageSrc: resolveAssetSrc,
           }),
           notesPlugin(),
         ],

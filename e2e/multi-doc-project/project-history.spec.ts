@@ -235,8 +235,8 @@ test.describe('project history', () => {
 
     await enableShowDiff({ window });
 
-    // The inserted text "version two" should be highlighted green
-    const insertAnnotation = window.locator('.ProseMirror .bg-green-300');
+    // The inserted text "version two" should be highlighted as an insert
+    const insertAnnotation = window.locator('.ProseMirror .diff-insert');
     await expect(insertAnnotation).toBeVisible({ timeout: 1_000 });
     await expect(insertAnnotation).toContainText('version two');
   });

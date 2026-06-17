@@ -17,6 +17,7 @@ import os from 'os';
 
 import { createElectronMainEncryptedStoreAdapter } from '../modules/auth/node';
 import { PROJECT_FILE_EXTENSION } from '../modules/domain/project';
+import { createPandocDocumentAnalyzerAdapter } from '../modules/domain/rich-text';
 import { createPagedJsElectronNodeAdapter } from '../modules/domain/rich-text/node';
 import { allowedPermissions } from '../modules/infrastructure/cross-platform';
 import {
@@ -47,6 +48,10 @@ import {
   registerAppearanceIPCHandlers,
   setSavedOrDefaultTheme,
 } from './appearance';
+import {
+  createAssetUrlProtocol,
+  installProjectAssetProtocolHandler,
+} from './asset-protocol';
 import { registerAuthInfoIPCHandlers } from './auth';
 import {
   registerContextMenusIPCHandlers,
@@ -63,6 +68,7 @@ const encryptedStore = createElectronMainEncryptedStoreAdapter({
   filesystem: filesystemAPI,
 });
 const pdfEngine = createPagedJsElectronNodeAdapter();
+const assetUrlProtocol = createAssetUrlProtocol();
 
 globalThis.__filename = fileURLToPath(import.meta.url);
 globalThis.__dirname = dirname(__filename);
@@ -185,6 +191,10 @@ async function createWindow() {
 
   const wasmAPI = await createNodeWasmAdapter();
 
+  const documentAnalyzer = createPandocDocumentAnalyzerAdapter({
+    runWasiCLIOutputingText: wasmAPI.runWasiCLIOutputingText,
+  });
+
   win = new BrowserWindow({
     title: 'Main window',
     icon,
@@ -210,6 +220,7 @@ async function createWindow() {
 
   registerVersionedStoresEvents({
     filesystem: filesystemAPI,
+    documentAnalyzer,
     rendererProcessId,
     browserWindow: win,
     encryptedStore,
@@ -296,8 +307,14 @@ async function createWindow() {
   ipcMain.handle('is-descendant-path', (_, args: IsDescendantPathArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.isDescendantPath(args))
   );
+  ipcMain.handle('file-exists', (_, path: string) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.exists(path))
+  );
   ipcMain.handle('create-directory', (_, args: CreateDirectoryArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.createDirectory(args))
+  );
+  ipcMain.handle('ensure-directory', (_, args: { path: string }) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.ensureDirectory(args))
   );
 
   ipcMain.on('open-external-link', (_, url: string) => {
@@ -340,6 +357,8 @@ app.whenReady().then(() => {
       callback(allowedPermissionsSet.has(permission as string));
     }
   );
+
+  installProjectAssetProtocolHandler({ assetUrlProtocol });
 
   setSavedOrDefaultTheme(store);
 

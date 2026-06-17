@@ -3,7 +3,9 @@ import { type DOMOutputSpec, Schema, type SchemaSpec } from 'prosemirror-model';
 import {
   blockquote as blockquoteClasses,
   bulletList as bulletListClasses,
+  caption as captionClasses,
   codeBlock as codeBlockClasses,
+  figure as figureClasses,
   heading as headingClasses,
   horizontalRule as horizontalRuleClasses,
   noteContent as noteContentClasses,
@@ -183,6 +185,42 @@ const schemaSpec: SchemaSpec = {
       toDOM(node) {
         const { src, alt, title } = node.attrs;
         return ['img', { src, alt, title }];
+      },
+    },
+
+    /// A block-level figure.
+    figure: {
+      group: 'block',
+      content: 'figure_content caption?',
+      defining: true,
+      draggable: true,
+      parseDOM: [{ tag: 'figure' }],
+      toDOM() {
+        return ['figure', { class: figureClasses }, 0];
+      },
+    },
+
+    /// A block-level holder for a single inline `image`. Restricting content to exactly
+    /// `image` (no text) keeps the figure body atomic for editing while still reusing the
+    /// existing inline `image` node.
+    figure_content: {
+      // `image?` (rather than `image`) sidesteps PM's "required position
+      // must be generatable" rule, since `image` has no default `src`.
+      content: 'image?',
+      defining: true,
+      atom: true,
+      parseDOM: [{ tag: 'div[data-figure-content]' }],
+      toDOM() {
+        return ['div', { 'data-figure-content': 'true' }, 0];
+      },
+    },
+
+    caption: {
+      content: 'block+',
+      defining: true,
+      parseDOM: [{ tag: 'figcaption' }, { tag: 'caption' }],
+      toDOM() {
+        return ['figcaption', { class: captionClasses }, 0];
       },
     },
 

@@ -47,7 +47,7 @@ describe('NavBar', () => {
       // Logo + Edit + Options = 3 links
       expect(links).toHaveLength(3);
       expect(hrefs).toContain(
-        `/projects/${encodeURIComponent(projectId)}/documents`
+        `/projects/${encodeURIComponent(projectId)}/artifacts`
       );
       expect(hrefs).toContain('/settings');
     });
@@ -87,7 +87,7 @@ describe('NavBar', () => {
       // Logo + Edit + History + Options = 4 links
       expect(links).toHaveLength(4);
       expect(hrefs).toContain(
-        `/projects/${encodeURIComponent(projectId)}/documents`
+        `/projects/${encodeURIComponent(projectId)}/artifacts`
       );
       expect(hrefs).toContain(
         `/projects/${encodeURIComponent(projectId)}/history`

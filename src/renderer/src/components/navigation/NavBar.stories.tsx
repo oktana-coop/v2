@@ -44,7 +44,7 @@ export const SingleDocumentProject: Story = {
   parameters: {
     reactRouter: reactRouterParameters({
       location: {
-        path: `/projects/${encodeURIComponent(TEST_PROJECT_ID)}/documents`,
+        path: `/projects/${encodeURIComponent(TEST_PROJECT_ID)}/artifacts`,
       },
       routing: reactRouterOutlets([
         {
@@ -52,7 +52,7 @@ export const SingleDocumentProject: Story = {
           element: <div />,
         },
         {
-          path: `/projects/${encodeURIComponent(TEST_PROJECT_ID)}/documents`,
+          path: `/projects/${encodeURIComponent(TEST_PROJECT_ID)}/artifacts`,
           element: <div />,
         },
         {
@@ -69,7 +69,7 @@ export const MultiDocumentProject: Story = {
   parameters: {
     reactRouter: reactRouterParameters({
       location: {
-        path: `/projects/${encodeURIComponent(TEST_PROJECT_ID)}/documents`,
+        path: `/projects/${encodeURIComponent(TEST_PROJECT_ID)}/artifacts`,
       },
       routing: reactRouterOutlets([
         {
@@ -77,7 +77,7 @@ export const MultiDocumentProject: Story = {
           element: <div />,
         },
         {
-          path: `/projects/${encodeURIComponent(TEST_PROJECT_ID)}/documents`,
+          path: `/projects/${encodeURIComponent(TEST_PROJECT_ID)}/artifacts`,
           element: <div />,
         },
         {

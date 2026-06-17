@@ -541,6 +541,14 @@ export const createAdapter = (): Filesystem => {
     );
   };
 
+  const ensureDirectory: Filesystem['ensureDirectory'] = ({ path: dirPath }) =>
+    Effect.tryPromise({
+      try: async () => {
+        await fs.mkdir(dirPath, { recursive: true });
+      },
+      catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
+    });
+
   const rename: Filesystem['rename'] = ({ oldPath, newPath }) => {
     // On POSIX (macOS/Linux), fs.rename silently overwrites the target, so
     // we check existence upfront to produce a consistent typed error
@@ -647,6 +655,22 @@ export const createAdapter = (): Filesystem => {
       catch: mapErrorTo(RepositoryError, 'Could not check path ancestry'),
     });
 
+  const exists: Filesystem['exists'] = (filePath) =>
+    Effect.tryPromise({
+      try: async () => {
+        try {
+          await fs.access(filePath, fs.constants.F_OK);
+          return true;
+        } catch (err) {
+          if (isNodeError(err) && err.code === 'ENOENT') {
+            return false;
+          }
+          throw err;
+        }
+      },
+      catch: mapErrorTo(RepositoryError, 'Could not check file existence'),
+    });
+
   return {
     openDirectory,
     getDirectory,
@@ -666,6 +690,8 @@ export const createAdapter = (): Filesystem => {
     getAbsolutePath,
     getRenamedPath,
     isDescendantPath,
+    exists,
     createDirectory,
+    ensureDirectory,
   };
 };

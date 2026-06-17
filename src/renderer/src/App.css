@@ -178,6 +178,20 @@
   text-decoration: var(--shiki-dark-text-decoration) !important;
 }
 
+/* Diff annotations. These live at the top level (not in `@layer components`) 
+ * so Tailwind doesn't tree-shake them - the class names only appear at runtime, 
+ * never in scanned source. 
+ */
+.diff-insert {
+  @apply bg-green-300 dark:text-black;
+}
+.diff-modify {
+  @apply bg-purple-100 dark:bg-purple-200 dark:text-black;
+}
+.diff-delete {
+  @apply bg-red-200 dark:text-black;
+}
+
 @layer components {
   .kbd {
     @apply m-0.5 inline-flex items-center justify-center rounded-md border border-zinc-300 bg-zinc-100 px-1 py-0.5 font-sans text-xs font-medium text-zinc-900 shadow-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100;
@@ -186,5 +200,75 @@
     height: var(--size);
     min-width: var(--size);
     padding-inline: 0em;
+  }
+
+  /* Figure overlays (selection + diff).
+   *
+   * A figure's image fills its box, so a flat background tint — whether the
+   * selection highlight or a diff color — is invisible behind it. Instead we
+   * paint a translucent ::after over the whole figure. Only the color varies,
+   * so the box is defined once and each state sets `--figure-overlay`.
+   *
+   * Triggers:
+   *  - Selection: PM puts `.ProseMirror-selectednode` on the figure, or on the inline <img>.
+   *    `:has()` lifts the overlay up to the figure.
+   *  - Diff insert/modify: the `.diff-insert`/`.diff-modify` class lands on the figure or a descendant.
+   *  - Diff delete: the figure is wrapped from outside in `<div class="diff-delete"><figure>` (block)
+   *    or `<span class="diff-delete">` (inline image).
+   */
+  .ProseMirror
+    figure:is(
+      .ProseMirror-selectednode,
+      :has(.ProseMirror-selectednode)
+    )::after,
+  .ProseMirror figure.diff-insert::after,
+  .ProseMirror figure:has(.diff-insert)::after,
+  .ProseMirror figure.diff-modify::after,
+  .ProseMirror figure:has(.diff-modify)::after,
+  .ProseMirror .diff-delete > figure::after,
+  .ProseMirror
+    figure
+    [data-figure-content]
+    > span.diff-delete:has(> img:not(.ProseMirror-separator))::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--figure-overlay);
+    pointer-events: none;
+  }
+  .ProseMirror
+    figure:is(.ProseMirror-selectednode, :has(.ProseMirror-selectednode)) {
+    --figure-overlay: rgb(0 0 0 / 0.25); /* selection */
+  }
+  .ProseMirror figure.diff-insert,
+  .ProseMirror figure:has(.diff-insert) {
+    --figure-overlay: rgb(34 197 94 / 0.3); /* Tailwind green-500/30 */
+  }
+  .ProseMirror figure.diff-modify,
+  .ProseMirror figure:has(.diff-modify) {
+    --figure-overlay: rgb(168 85 247 / 0.3); /* Tailwind purple-500/30 */
+  }
+  .ProseMirror .diff-delete > figure,
+  .ProseMirror
+    figure
+    [data-figure-content]
+    > span.diff-delete:has(> img:not(.ProseMirror-separator)) {
+    --figure-overlay: rgb(239 68 68 / 0.3); /* Tailwind red-500/30 */
+  }
+
+  /* Delete widgets nested inside an insert/modify figure must paint above the
+   * host's overlay (own stacking context), else the host tint covers them.
+   * The inline-image span also needs to be a box so its own ::after shows. */
+  .ProseMirror figure > [data-figure-content] > .diff-delete {
+    position: relative;
+    z-index: 1;
+  }
+  .ProseMirror
+    figure
+    [data-figure-content]
+    > span.diff-delete:has(> img:not(.ProseMirror-separator)) {
+    display: inline-block;
+    position: relative;
+    z-index: 1;
   }
 }

@@ -3,6 +3,7 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import http from 'isomorphic-git/http/node';
 
+import { type DocumentAnalyzer } from '../../../../../../../../modules/domain/rich-text';
 import { createAdapter as createVersionedDocumentStoreAdapter } from '../../../../../../../../modules/domain/rich-text/adapters/versioned-document-store/git/git-versioned-document-store';
 import {
   createAdapter as createSQLiteFilesystemAdapter,
@@ -12,6 +13,7 @@ import { SQLite3IsoGitFs } from '../../../../../../../../modules/infrastructure/
 import { mapErrorTo } from '../../../../../../../../utils/errors';
 import { createDocumentAndProject } from '../../../../../commands/single-document-project';
 import {
+  DEFAULT_ASSETS_DIR_NAME,
   DOCUMENT_INTERNAL_PATH,
   PROJECT_FILE_EXTENSION,
 } from '../../../../../constants';
@@ -48,7 +50,13 @@ const openSingleDocumentProjectStoreSemaphore = Effect.runSync(
   Effect.makeSemaphore(1)
 );
 
-export const createAdapter = (): SingleDocumentProjectStoreManager => {
+export const createAdapter = ({
+  documentAnalyzer,
+  assetsDirName = DEFAULT_ASSETS_DIR_NAME,
+}: {
+  documentAnalyzer: DocumentAnalyzer;
+  assetsDirName?: string;
+}): SingleDocumentProjectStoreManager => {
   const setupSingleDocumentProjectStore: SingleDocumentProjectStoreManager['setupSingleDocumentProjectStore'] =
 
       ({ filesystem }: SetupSingleDocumentProjectStoreDeps) =>
@@ -88,10 +96,12 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                   isoGitFs,
                   filesystem,
                   isoGitHttp: http,
+                  documentAnalyzer,
                   projectFilePath,
                   internalProjectDir: INTERNAL_PROJECT_DIR,
                   projectName: newFile.name,
                   documentInternalPath: DOCUMENT_INTERNAL_PATH,
+                  assetsDirName,
                 })
               )
           ),
@@ -179,10 +189,12 @@ export const createAdapter = (): SingleDocumentProjectStoreManager => {
                     isoGitFs,
                     filesystem,
                     isoGitHttp: http,
+                    documentAnalyzer,
                     projectFilePath,
                     internalProjectDir: INTERNAL_PROJECT_DIR,
                     projectName: file.name,
                     documentInternalPath: DOCUMENT_INTERNAL_PATH,
+                    assetsDirName,
                   })
                 )
             ),

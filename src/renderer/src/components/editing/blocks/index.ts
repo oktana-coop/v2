@@ -25,3 +25,10 @@ export const noteContent = 'block text-sm mb-4';
 // background-color fill symmetrically above and below it.
 export const horizontalRule =
   'py-2 mb-4 border-0 text-gray-200 dark:text-gray-700 bg-[linear-gradient(currentcolor,currentcolor)] bg-no-repeat bg-center bg-[length:100%_1px] [&.ProseMirror-selectednode]:bg-black/5 dark:[&.ProseMirror-selectednode]:bg-white/10 [&.ProseMirror-selectednode]:outline-none';
+
+// PM appends a `ProseMirror-trailingBreak` <br> we don't need.
+// Selection and diff styles are defined in CSS.
+export const figure =
+  'block relative mb-4 [&_.ProseMirror-trailingBreak]:hidden';
+
+export const caption = 'block text-sm text-neutral-600 dark:text-neutral-400';

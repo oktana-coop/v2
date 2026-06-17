@@ -12,6 +12,7 @@ import {
 import { ElectronContext } from '../../modules/infrastructure/cross-platform/browser';
 import { Layout } from './components/layout/Layout';
 import {
+  ArtifactRoute,
   CompareContentConflictResolution,
   CurrentProject,
   DocumentEditor,
@@ -50,9 +51,9 @@ export const AppRouter = () => {
           <Route path="/projects" element={<ProjectProviders />}>
             <Route index element={<ProjectSelection />} />
             <Route path=":projectId" element={<CurrentProject />}>
-              <Route path="documents" element={<ProjectDocuments />}>
+              <Route path="artifacts" element={<ProjectDocuments />}>
                 <Route index element={<DocumentSelection />} />
-                <Route path=":documentId">
+                <Route path=":artifactId" element={<ArtifactRoute />}>
                   <Route index element={<DocumentEditor />} />
                   <Route
                     path="changes/:changeId"
@@ -73,7 +74,7 @@ export const AppRouter = () => {
               </Route>
               <Route path="history" element={<ProjectHistory />}>
                 <Route
-                  path=":documentId/changes/:changeId"
+                  path=":artifactId/changes/:changeId"
                   element={<ProjectHistoryDocumentView />}
                 />
               </Route>

@@ -1,6 +1,9 @@
 import { type UrlHeads as AutomergeUrlHeads } from '@automerge/automerge-repo/slim';
+import * as Effect from 'effect/Effect';
 import deepEqual from 'fast-deep-equal';
 import { z } from 'zod';
+
+import { ValidationError } from '../../errors';
 
 export const UNCOMMITTED_CHANGE_ID = 'uncommitted';
 
@@ -13,6 +16,14 @@ export type GitCommitHash = z.infer<typeof gitCommitHashSchema>;
 
 export const parseGitCommitHash = (input: string): GitCommitHash =>
   gitCommitHashSchema.parse(input);
+
+export const parseGitCommitHashEffect = (
+  input: string
+): Effect.Effect<GitCommitHash, ValidationError, never> =>
+  Effect.try({
+    try: () => parseGitCommitHash(input),
+    catch: () => new ValidationError(`Invalid git commit hash: ${input}`),
+  });
 
 export const isGitCommitHash = (id: ChangeId): id is GitCommitHash =>
   !Array.isArray(id) &&
@@ -30,6 +41,17 @@ export const automergeUrlHeadsSchema = z
 export const parseAutomergeUrlHeads = (input: string[]): AutomergeUrlHeads =>
   automergeUrlHeadsSchema.parse(input);
 
+export const parseAutomergeUrlHeadsEffect = (
+  input: string[]
+): Effect.Effect<AutomergeUrlHeads, ValidationError, never> =>
+  Effect.try({
+    try: () => parseAutomergeUrlHeads(input),
+    catch: () =>
+      new ValidationError(
+        `Invalid Automerge URL heads: ${JSON.stringify(input)}`
+      ),
+  });
+
 export const isAutomergeUrlHeads = (id: ChangeId): id is AutomergeUrlHeads =>
   Array.isArray(id);
 
@@ -40,6 +62,15 @@ export const commitIdSchema = z.union([
 
 export const parseCommitId = (input: string | string[]): CommitId =>
   commitIdSchema.parse(input);
+
+export const parseCommitIdEffect = (
+  input: string | string[]
+): Effect.Effect<CommitId, ValidationError, never> =>
+  Effect.try({
+    try: () => parseCommitId(input),
+    catch: () =>
+      new ValidationError(`Invalid commit id: ${JSON.stringify(input)}`),
+  });
 
 export type CommitId = z.infer<typeof commitIdSchema>;
 
@@ -54,6 +85,15 @@ export type ChangeId = z.infer<typeof changeIdSchema>;
 
 export const parseChangeId = (input: string | string[]): ChangeId =>
   changeIdSchema.parse(input);
+
+export const parseChangeIdEffect = (
+  input: string | string[]
+): Effect.Effect<ChangeId, ValidationError, never> =>
+  Effect.try({
+    try: () => parseChangeId(input),
+    catch: () =>
+      new ValidationError(`Invalid change id: ${JSON.stringify(input)}`),
+  });
 
 export const urlEncodeChangeId = (id: ChangeId): string => {
   if (isAutomergeUrlHeads(id)) {

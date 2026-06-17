@@ -8,6 +8,8 @@ import {
 } from '../../modules/auth/node';
 import { buildConfig } from '../../modules/config';
 import {
+  type AddAssetToMultiDocumentProjectArgs,
+  type AddAssetToSingleDocumentProjectArgs,
   type AddDocumentToMultiDocumentProjectArgs,
   type CreateMultiDocumentProjectArgs,
   createNodeAutomergeMultiDocumentProjectStoreManagerAdapter,
@@ -18,9 +20,13 @@ import {
   type DeleteDocumentFromMultiDocumentProjectArgs,
   type DeleteDocumentsFromMultiDocumentProjectArgs,
   type FindDocumentInMultiDocumentProjectArgs,
+  type GetProjectRelativePathArgs,
+  type LookupAssetByNameInMultiDocumentProjectArgs,
+  type LookupAssetByNameInSingleDocumentProjectArgs,
   type MultiDocumentProjectAbortMergeArgs,
   type MultiDocumentProjectAddRemoteProjectArgs,
   type MultiDocumentProjectCommitChangesArgs,
+  type MultiDocumentProjectCommitDocumentChangesArgs,
   type MultiDocumentProjectCommitMergeConflictsResolutionArgs,
   type MultiDocumentProjectCreateAndSwitchToBranchArgs,
   type MultiDocumentProjectDeleteBranchArgs,
@@ -37,6 +43,7 @@ import {
   type MultiDocumentProjectPushToRemoteProjectArgs,
   type MultiDocumentProjectResolveConflictByDeletingDocumentArgs,
   type MultiDocumentProjectResolveConflictByKeepingDocumentArgs,
+  type MultiDocumentProjectRestoreDocumentChangesArgs,
   type MultiDocumentProjectSetAuthorInfoArgs,
   type MultiDocumentProjectStoreManager,
   type MultiDocumentProjectSwitchToBranchArgs,
@@ -62,19 +69,19 @@ import {
   type SingleDocumentProjectMergeAndDeleteBranchArgs,
   type SingleDocumentProjectPullFromRemoteProjectArgs,
   type SingleDocumentProjectPushToRemoteProjectArgs,
+  type SingleDocumentProjectRestoreChangesArgs,
   type SingleDocumentProjectSetAuthorInfoArgs,
   type SingleDocumentProjectStoreManager,
   type SingleDocumentProjectSwitchToBranchArgs,
   ValidationError as VersionedProjectValidationError,
 } from '../../modules/domain/project/node';
 import {
-  type CommitChangesArgs,
   type CreateDocumentArgs,
   type DeleteDocumentArgs,
   DiscardUncommittedChangesArgs,
+  type DocumentAnalyzer,
   type GetDocumentAtChangeArgs,
   type IsContentSameAtChangesArgs,
-  RestoreCommitArgs,
   type UpdateRichTextDocumentContentArgs,
 } from '../../modules/domain/rich-text';
 import { runPromiseSerializingErrorsForIPC } from '../../modules/infrastructure/cross-platform';
@@ -94,11 +101,13 @@ import {
 
 export const registerVersionedStoresEvents = ({
   filesystem,
+  documentAnalyzer,
   rendererProcessId,
   browserWindow,
   encryptedStore,
 }: {
   filesystem: Filesystem;
+  documentAnalyzer: DocumentAnalyzer;
   rendererProcessId: string;
   browserWindow: BrowserWindow;
   encryptedStore: EncryptedStore;
@@ -110,7 +119,9 @@ export const registerVersionedStoresEvents = ({
           rendererProcessId,
           browserWindow,
         })
-      : createNodeGitSingleDocumentProjectStoreManagerAdapter();
+      : createNodeGitSingleDocumentProjectStoreManagerAdapter({
+          documentAnalyzer,
+        });
 
   const multiDocumentProjectStoreManager =
     buildConfig.multiDocumentProjectVersionControlSystem ===
@@ -119,7 +130,9 @@ export const registerVersionedStoresEvents = ({
           rendererProcessId,
           browserWindow,
         })
-      : createNodeGitMultiDocumentProjectStoreManagerAdapter();
+      : createNodeGitMultiDocumentProjectStoreManagerAdapter({
+          documentAnalyzer,
+        });
 
   registerStoreManagerEvents({
     singleDocumentProjectStoreManager,
@@ -376,6 +389,46 @@ const registerSingleDocumentProjectStoreEvents = ({
   );
 
   ipcMain.handle(
+    'single-document-project-store:add-asset-to-project',
+    async (_, args: AddAssetToSingleDocumentProjectArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.addAssetToProject(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:lookup-asset-by-name',
+    async (_, args: LookupAssetByNameInSingleDocumentProjectArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.lookupAssetByName(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
     'single-document-project-store:find-project-by-id',
     async (_, id: ProjectId) =>
       runPromiseSerializingErrorsForIPC(
@@ -590,6 +643,26 @@ const registerSingleDocumentProjectStoreEvents = ({
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.commitChanges(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:restore-changes',
+    async (_, args: SingleDocumentProjectRestoreChangesArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.restoreChanges(args)
           )
         )
       )
@@ -994,6 +1067,66 @@ const registerMultiDocumentProjectStoreEvents = ({
   );
 
   ipcMain.handle(
+    'multi-document-project-store:add-asset-to-project',
+    async (_, args: AddAssetToMultiDocumentProjectArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.addAssetToProject(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:lookup-asset-by-name',
+    async (_, args: LookupAssetByNameInMultiDocumentProjectArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.lookupAssetByName(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:get-project-relative-path',
+    async (_, args: GetProjectRelativePathArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.getProjectRelativePath(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
     'multi-document-project-store:commit-changes',
     async (_, args: MultiDocumentProjectCommitChangesArgs) =>
       runPromiseSerializingErrorsForIPC(
@@ -1008,6 +1141,46 @@ const registerMultiDocumentProjectStoreEvents = ({
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.commitChanges(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:commit-document-changes',
+    async (_, args: MultiDocumentProjectCommitDocumentChangesArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.commitDocumentChanges(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:restore-document-changes',
+    async (_, args: MultiDocumentProjectRestoreDocumentChangesArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.restoreDocumentChanges(args)
           )
         )
       )
@@ -1529,19 +1702,6 @@ const registerVersionedDocumentStoreEvents = () => {
   );
 
   ipcMain.handle(
-    'versioned-document-store:commit-changes',
-    async (_, args: CommitChangesArgs, projectId: string) =>
-      runPromiseSerializingErrorsForIPC(
-        pipe(
-          validateProjectIdAndGetVersionedStores(projectId),
-          Effect.flatMap(({ versionedDocumentStore }) =>
-            versionedDocumentStore.commitChanges(args)
-          )
-        )
-      )
-  );
-
-  ipcMain.handle(
     'versioned-document-store:get-document-history',
     async (_, id: ResolvedArtifactId, projectId: string) =>
       runPromiseSerializingErrorsForIPC(
@@ -1575,19 +1735,6 @@ const registerVersionedDocumentStoreEvents = () => {
           validateProjectIdAndGetVersionedStores(projectId),
           Effect.flatMap(({ versionedDocumentStore }) =>
             versionedDocumentStore.isContentSameAtChanges(args)
-          )
-        )
-      )
-  );
-
-  ipcMain.handle(
-    'versioned-document-store:restore-commit',
-    async (_, args: RestoreCommitArgs, projectId: string) =>
-      runPromiseSerializingErrorsForIPC(
-        pipe(
-          validateProjectIdAndGetVersionedStores(projectId),
-          Effect.flatMap(({ versionedDocumentStore }) =>
-            versionedDocumentStore.restoreCommit(args)
           )
         )
       )

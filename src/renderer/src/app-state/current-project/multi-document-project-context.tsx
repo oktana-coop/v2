@@ -46,6 +46,7 @@ import {
 } from '../../../../modules/infrastructure/filesystem';
 import {
   createErrorNotification,
+  createInfoNotification,
   createSuccessNotification,
   NotificationsContext,
 } from '../../../../modules/infrastructure/notifications/browser';
@@ -93,6 +94,7 @@ export type MultiDocumentProjectContextType = {
   currentBranch: Branch | null;
   versionedProjectStore: MultiDocumentProjectStore | null;
   directoryTree: Array<Directory | File>;
+  refreshDirectoryTree: () => Promise<void>;
   openDirectory: (cloneUrl?: string) => Promise<Directory>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
   createNewDocument: (args?: CreateNewDocumentArgs) => Promise<{
@@ -173,6 +175,15 @@ export type MultiDocumentProjectContextType = {
   ) => Promise<ChangedDocument[]>;
   getProjectUncommittedChanges: () => Promise<ChangedDocument[]>;
   commitChanges: (message: string) => Promise<void>;
+  commitDocumentChanges: (args: {
+    documentId: ResolvedArtifactId;
+    message: string;
+  }) => Promise<void>;
+  restoreDocumentChanges: (args: {
+    documentId: ResolvedArtifactId;
+    commit: Commit;
+    message?: string;
+  }) => Promise<Commit['id']>;
 };
 
 export const MultiDocumentProjectContext =
@@ -224,7 +235,46 @@ export const MultiDocumentProjectContext =
     getProjectChangedDocuments: async () => [],
     getProjectUncommittedChanges: async () => [],
     commitChanges: async () => {},
+    commitDocumentChanges: async () => {},
+    // @ts-expect-error will get overriden below
+    restoreDocumentChanges: async () => null,
   });
+
+const formatSkippedAssetNames = (skippedAssetPaths: string[]): string =>
+  skippedAssetPaths.map(removePath).join(', ');
+
+const buildSkippedAssetsOnCommitNotification = (
+  skippedAssetPaths: string[]
+) => {
+  const isSingular = skippedAssetPaths.length === 1;
+
+  return createInfoNotification({
+    title: 'Some images were not saved',
+    message: `${skippedAssetPaths.length} referenced ${
+      isSingular ? 'file is' : 'files are'
+    } missing from disk and ${
+      isSingular ? 'was' : 'were'
+    } left out of this commit: ${formatSkippedAssetNames(skippedAssetPaths)}`.slice(
+      0,
+      255
+    ),
+  });
+};
+
+const buildSkippedAssetsOnRestoreNotification = (
+  skippedAssetPaths: string[]
+) => {
+  const isSingular = skippedAssetPaths.length === 1;
+
+  return createInfoNotification({
+    title: 'Some images were not restored',
+    message: `${skippedAssetPaths.length} referenced ${
+      isSingular ? 'file' : 'files'
+    } could not be read from this version and ${
+      isSingular ? 'was' : 'were'
+    } left out: ${formatSkippedAssetNames(skippedAssetPaths)}`.slice(0, 255),
+  });
+};
 
 export const MultiDocumentProjectProvider = ({
   children,
@@ -247,7 +297,7 @@ export const MultiDocumentProjectProvider = ({
   const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
   const [mergeConflictInfo, setMergeConflictInfo] =
     useState<MergeConflictInfo | null>(null);
-  const { documentId: documentIdInPath } = useParams();
+  const { artifactId: documentIdInPath } = useParams();
   const [versionedProjectStore, setVersionedProjectStore] =
     useState<MultiDocumentProjectStore | null>(null);
   const [selectedFileInfo, setSelectedFileInfo] =
@@ -345,6 +395,71 @@ export const MultiDocumentProjectProvider = ({
     [versionedProjectStore, projectId]
   );
 
+  const commitDocumentChanges = useCallback(
+    async ({
+      documentId,
+      message,
+    }: {
+      documentId: ResolvedArtifactId;
+      message: string;
+    }) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot commit changes.'
+        );
+      }
+      const { skippedAssetPaths } = await Effect.runPromise(
+        versionedProjectStore.commitDocumentChanges({
+          projectId,
+          documentId,
+          message,
+        })
+      );
+
+      if (skippedAssetPaths.length > 0) {
+        dispatchNotification(
+          buildSkippedAssetsOnCommitNotification(skippedAssetPaths)
+        );
+      }
+    },
+    [versionedProjectStore, projectId, dispatchNotification]
+  );
+
+  const restoreDocumentChanges = useCallback(
+    async ({
+      documentId,
+      commit,
+      message,
+    }: {
+      documentId: ResolvedArtifactId;
+      commit: Commit;
+      message?: string;
+    }) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot restore document.'
+        );
+      }
+      const { commitId, skippedAssetPaths } = await Effect.runPromise(
+        versionedProjectStore.restoreDocumentChanges({
+          projectId,
+          documentId,
+          commit,
+          message,
+        })
+      );
+
+      if (skippedAssetPaths.length > 0) {
+        dispatchNotification(
+          buildSkippedAssetsOnRestoreNotification(skippedAssetPaths)
+        );
+      }
+
+      return commitId;
+    },
+    [versionedProjectStore, projectId, dispatchNotification]
+  );
+
   const startRenameDocument = useCallback((path: string) => {
     setDocumentPathToRename(path);
     setRenameDocumentError(null);
@@ -411,7 +526,7 @@ export const MultiDocumentProjectProvider = ({
             mergeConflictInfo,
           });
         } else {
-          // Only redirect to /documents if the user isn't already on a
+          // Only redirect to /artifacts if the user isn't already on a
           // project subroute (e.g. /history). This effect runs on mount,
           // so when navigating from /settings back to project routes the
           // current location already reflects the target subroute.
@@ -421,7 +536,7 @@ export const MultiDocumentProjectProvider = ({
           );
 
           if (!isAlreadyOnProjectSubroute) {
-            navigate(`${projectBase}/documents`);
+            navigate(`${projectBase}/artifacts`);
           }
         }
       }
@@ -430,24 +545,26 @@ export const MultiDocumentProjectProvider = ({
     getSelectedDirectory();
   }, []);
 
-  useEffect(() => {
-    const getDirTree = async (dir: Directory) => {
-      const dirTree = await Effect.runPromise(
-        filesystem.listDirectoryTree({
-          path: dir.path,
-          extensions: [
-            richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
-          ],
-          useRelativePathTo: dir.path,
-        })
-      );
-      setDirectoryTree(dirTree);
-    };
-
-    if (directory && directory.permissionState === 'granted') {
-      getDirTree(directory);
+  const refreshDirectoryTree = useCallback(async () => {
+    if (!directory || directory.permissionState !== 'granted') {
+      return;
     }
-  }, [directory, filesystem, currentBranch, pulledUpstreamChanges]);
+
+    const dirTree = await Effect.runPromise(
+      filesystem.listDirectoryTree({
+        path: directory.path,
+        extensions: [
+          richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
+        ],
+        useRelativePathTo: directory.path,
+      })
+    );
+    setDirectoryTree(dirTree);
+  }, [directory, filesystem]);
+
+  useEffect(() => {
+    refreshDirectoryTree();
+  }, [refreshDirectoryTree, currentBranch, pulledUpstreamChanges]);
 
   useEffect(() => {
     const navigateToProjectsList = () => {
@@ -471,7 +588,7 @@ export const MultiDocumentProjectProvider = ({
 
         setSelectedFileInfo({ documentId: doc.id, path: selectedFilePath });
 
-        const newUrl = `/projects/${urlEncodeProjectId(projId)}/documents/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(selectedFilePath)}`;
+        const newUrl = `/projects/${urlEncodeProjectId(projId)}/artifacts/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(selectedFilePath)}`;
         setPulledUpstreamChanges(false);
         navigate(newUrl);
 
@@ -591,7 +708,7 @@ export const MultiDocumentProjectProvider = ({
           mergeConflictInfo,
         });
       } else {
-        navigate(`/projects/${urlEncodeProjectId(projId)}/documents`);
+        navigate(`/projects/${urlEncodeProjectId(projId)}/artifacts`);
       }
 
       return dir;
@@ -781,7 +898,7 @@ export const MultiDocumentProjectProvider = ({
         // If the deleted file was currently selected, clear selection and navigate away
         if (selectedFileInfo?.path === relativePath) {
           await clearFileSelection();
-          navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
+          navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
         }
 
         setFileToDelete(null);
@@ -920,7 +1037,7 @@ export const MultiDocumentProjectProvider = ({
                           ? Effect.sync(() => {
                               setSelectedFileInfo(null);
                               navigate(
-                                `/projects/${urlEncodeProjectId(projectId)}/documents`
+                                `/projects/${urlEncodeProjectId(projectId)}/artifacts`
                               );
                             })
                           : Effect.void
@@ -1035,12 +1152,12 @@ export const MultiDocumentProjectProvider = ({
               path: newRelativePath,
             });
             navigate(
-              `/projects/${urlEncodeProjectId(projectId)}/documents/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(newRelativePath)}`
+              `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(newRelativePath)}`
             );
           } catch {
             // Document not found at new path — clear selection
             await clearFileSelection();
-            navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
+            navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
           }
         }
 
@@ -1165,11 +1282,11 @@ export const MultiDocumentProjectProvider = ({
               path: newFilePath,
             });
             navigate(
-              `/projects/${urlEncodeProjectId(projectId)}/documents/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(newFilePath)}`
+              `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(newFilePath)}`
             );
           } catch {
             await clearFileSelection();
-            navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
+            navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
           }
         }
 
@@ -1227,7 +1344,7 @@ export const MultiDocumentProjectProvider = ({
 
           handleSetSelectedFileInfo({ documentId, path: filePath });
           navigate(
-            `/projects/${urlEncodeProjectId(projId)}/documents/${urlEncodeArtifactId(documentId)}?path=${encodeURIComponent(filePath)}`
+            `/projects/${urlEncodeProjectId(projId)}/artifacts/${urlEncodeArtifactId(documentId)}?path=${encodeURIComponent(filePath)}`
           );
         }
 
@@ -1509,7 +1626,7 @@ export const MultiDocumentProjectProvider = ({
     if (notification) {
       dispatchNotification(notification);
     } else {
-      navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
+      navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
     }
   }, [versionedProjectStore, projectId]);
 
@@ -1573,7 +1690,7 @@ export const MultiDocumentProjectProvider = ({
         });
         dispatchNotification(notification);
         setMergeConflictInfo(null);
-        navigate(`/projects/${urlEncodeProjectId(projectId)}/documents`);
+        navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
       }
     }
   }, [versionedProjectStore, projectId, navigateToResolveMergeConflicts]);
@@ -1783,6 +1900,7 @@ export const MultiDocumentProjectProvider = ({
         projectId,
         directory,
         directoryTree,
+        refreshDirectoryTree,
         currentBranch,
         versionedProjectStore,
         openDirectory: handleOpenDirectory,
@@ -1848,6 +1966,8 @@ export const MultiDocumentProjectProvider = ({
         getProjectChangedDocuments,
         getProjectUncommittedChanges,
         commitChanges,
+        commitDocumentChanges,
+        restoreDocumentChanges,
       }}
     >
       {children}

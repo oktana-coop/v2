@@ -4,6 +4,8 @@ import {
   getParentPath,
   removeExtension,
   removePath,
+  toPosixPath,
+  toPosixSegments,
 } from './utils';
 
 describe('filesystem/utils', () => {
@@ -182,6 +184,83 @@ describe('filesystem/utils', () => {
 
     it('returns the name as-is when there is no separator', () => {
       expect(getDirectoryName('folder')).toBe('folder');
+    });
+  });
+
+  describe('toPosixPath', () => {
+    it('converts backslashes to forward slashes', () => {
+      expect(toPosixPath('a\\b\\c.txt')).toBe('a/b/c.txt');
+    });
+
+    it('converts a Windows absolute path', () => {
+      expect(toPosixPath('C:\\Users\\alice\\notes.txt')).toBe(
+        'C:/Users/alice/notes.txt'
+      );
+    });
+
+    it('leaves a POSIX path unchanged', () => {
+      expect(toPosixPath('/Users/alice/notes.txt')).toBe(
+        '/Users/alice/notes.txt'
+      );
+    });
+
+    it('converts only backslashes in a mixed-separator path', () => {
+      expect(toPosixPath('a/b\\c/d.txt')).toBe('a/b/c/d.txt');
+    });
+
+    it('returns an empty string unchanged', () => {
+      expect(toPosixPath('')).toBe('');
+    });
+  });
+
+  describe('toPosixSegments', () => {
+    it('splits a POSIX relative path into segments', () => {
+      expect(toPosixSegments('a/b/c.txt')).toEqual(['a', 'b', 'c.txt']);
+    });
+
+    it('drops the leading slash of a POSIX absolute path', () => {
+      expect(toPosixSegments('/Users/alice/notes.txt')).toEqual([
+        'Users',
+        'alice',
+        'notes.txt',
+      ]);
+    });
+
+    it('splits a Windows relative path into segments', () => {
+      expect(toPosixSegments('a\\b\\c.txt')).toEqual(['a', 'b', 'c.txt']);
+    });
+
+    it('splits a Windows absolute path, keeping the drive segment', () => {
+      expect(toPosixSegments('C:\\Users\\alice\\notes.txt')).toEqual([
+        'C:',
+        'Users',
+        'alice',
+        'notes.txt',
+      ]);
+    });
+
+    it('handles mixed separators', () => {
+      expect(toPosixSegments('a/b\\c/d.txt')).toEqual(['a', 'b', 'c', 'd.txt']);
+    });
+
+    it('discards empty segments from repeated separators', () => {
+      expect(toPosixSegments('a//b\\\\c')).toEqual(['a', 'b', 'c']);
+    });
+
+    it('discards `.` segments', () => {
+      expect(toPosixSegments('./a/./b')).toEqual(['a', 'b']);
+    });
+
+    it('returns a single-segment array when there is no separator', () => {
+      expect(toPosixSegments('file.txt')).toEqual(['file.txt']);
+    });
+
+    it('returns an empty array for an empty string', () => {
+      expect(toPosixSegments('')).toEqual([]);
+    });
+
+    it('returns an empty array for the current-directory path', () => {
+      expect(toPosixSegments('./')).toEqual([]);
     });
   });
 });

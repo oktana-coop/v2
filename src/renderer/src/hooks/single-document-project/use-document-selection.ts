@@ -11,10 +11,10 @@ import {
   RecentProjectsContext,
   SingleDocumentProjectContext,
 } from '../../app-state';
-import { useNavigateToDocument } from '../use-navigate-to-document';
+import { useNavigateToArtifact } from '../use-navigate-to-artifact';
 
 export const useDocumentSelection = () => {
-  const navigateToDocument = useNavigateToDocument();
+  const navigateToArtifact = useNavigateToArtifact();
   const { isElectron } = useContext(ElectronContext);
   const { openDocument } = useContext(SingleDocumentProjectContext);
   const { recentProjects } = useContext(RecentProjectsContext);
@@ -40,7 +40,11 @@ export const useDocumentSelection = () => {
       await openDocument({ projectId });
     }
 
-    navigateToDocument({ projectId, documentId, path: file?.path ?? null });
+    navigateToArtifact({
+      projectId,
+      artifactId: documentId,
+      path: file?.path ?? null,
+    });
   };
 
   return useCallback(
