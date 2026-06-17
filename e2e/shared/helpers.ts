@@ -87,6 +87,23 @@ export const mockCreateNewFile = async ({
 };
 
 /**
+ * Mocks Electron's showOpenDialog so the next file-picker flow (e.g. inserting
+ * an image) resolves to the given file path without showing the native OS
+ * dialog. The open-file counterpart to {@link mockCreateNewFile}.
+ */
+export const mockPickFile = async ({
+  electronApp,
+  filePath,
+}: {
+  electronApp: ElectronApplication;
+  filePath: string;
+}): Promise<void> => {
+  await electronApp.evaluate(async ({ dialog }, fp) => {
+    dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [fp] });
+  }, filePath);
+};
+
+/**
  * Prepares a new file via {@link mockCreateNewFile}, then clicks the
  * "New Document" button and waits for the editor to open.
  */
