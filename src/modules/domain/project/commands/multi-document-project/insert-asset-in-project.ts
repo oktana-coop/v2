@@ -8,7 +8,6 @@ import {
   type Filesystem,
   FilesystemAbortErrorTag,
   NotFoundError as FilesystemNotFoundError,
-  removeExtension,
   removePath,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
@@ -29,7 +28,6 @@ export type InsertAssetInProjectArgs = {
 
 export type InsertAssetInProjectResult = {
   relPath: string;
-  alt: string;
 };
 
 export type InsertAssetInProjectDeps = {
@@ -78,7 +76,6 @@ export const insertAssetInProject =
               ? // If the asset is already inside the project tree, reuse it.
                 Effect.succeed({
                   relPath: assetRelativePath,
-                  alt: removeExtension(removePath(assetRelativePath)),
                 })
               : Effect.Do.pipe(
                   Effect.bind('fileData', () => readBinaryFile(file.path)),
@@ -98,7 +95,6 @@ export const insertAssetInProject =
                   ),
                   Effect.map(({ resolvedName }) => ({
                     relPath: `${assetsDirName}/${resolvedName}`,
-                    alt: removeExtension(resolvedName),
                   }))
                 )
           )

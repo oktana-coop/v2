@@ -98,7 +98,6 @@ describe('insertAssetInProject (multi-doc)', () => {
     );
     expect(Option.getOrNull(result)).toEqual({
       relPath: 'assets/photo.jpg',
-      alt: 'photo',
     });
     expect(deps.openFile).toHaveBeenCalledOnce();
     expect(deps.readBinaryFile).not.toHaveBeenCalled();
@@ -116,7 +115,6 @@ describe('insertAssetInProject (multi-doc)', () => {
     );
     expect(Option.getOrNull(result)).toEqual({
       relPath: 'assets/2024/photo.jpg',
-      alt: 'photo',
     });
     expect(deps.addAssetToProject).not.toHaveBeenCalled();
   });
@@ -141,7 +139,6 @@ describe('insertAssetInProject (multi-doc)', () => {
     );
     expect(Option.getOrNull(result)).toEqual({
       relPath: 'notes/pic.jpg',
-      alt: 'pic',
     });
     expect(deps.readBinaryFile).not.toHaveBeenCalled();
     expect(deps.addAssetToProject).not.toHaveBeenCalled();
@@ -157,7 +154,6 @@ describe('insertAssetInProject (multi-doc)', () => {
     );
     expect(Option.getOrNull(result)).toEqual({
       relPath: 'photo.jpg',
-      alt: 'photo',
     });
     expect(deps.addAssetToProject).not.toHaveBeenCalled();
   });

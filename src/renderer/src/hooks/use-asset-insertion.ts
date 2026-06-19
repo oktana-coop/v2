@@ -80,7 +80,7 @@ export const useAssetInsertion = (
             Effect.flatMap((inserted) =>
               Option.match(inserted, {
                 onNone: () => Effect.succeed(null),
-                onSome: ({ relPath, alt }) =>
+                onSome: ({ relPath }) =>
                   pipe(
                     parseProjectRelPathEffect(relPath),
                     Effect.map((projectRel) => ({
@@ -88,7 +88,9 @@ export const useAssetInsertion = (
                         projectRel,
                         docPath: resolvedDocPath,
                       }),
-                      alt,
+                      // No default alt/caption — an asset only gets one when the
+                      // user authors it, so implicit figures stay caption-less.
+                      alt: null,
                       title: null,
                     }))
                   ),

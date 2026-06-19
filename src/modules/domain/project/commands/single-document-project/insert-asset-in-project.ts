@@ -8,7 +8,6 @@ import {
   type Filesystem,
   FilesystemAbortErrorTag,
   NotFoundError as FilesystemNotFoundError,
-  removeExtension,
   removePath,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../modules/infrastructure/filesystem';
@@ -29,7 +28,6 @@ export type InsertAssetInProjectArgs = {
 
 export type InsertAssetInProjectResult = {
   relPath: string;
-  alt: string;
 };
 
 export type InsertAssetInProjectDeps = {
@@ -87,7 +85,6 @@ export const insertAssetInProject =
           ),
           Effect.map(({ resolvedName }) => ({
             relPath: `${assetsDirName}/${resolvedName}`,
-            alt: removeExtension(resolvedName),
           }))
         );
       }),
