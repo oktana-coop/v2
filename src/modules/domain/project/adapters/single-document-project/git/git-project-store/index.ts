@@ -59,6 +59,7 @@ import {
   NotFoundError,
   RepositoryError,
   ValidationError,
+  VersionedProjectNotFoundErrorTag,
 } from '../../../../errors';
 import {
   type ArtifactMetaData,
@@ -69,6 +70,7 @@ import {
   ProjectFsPath,
   type ProjectId,
   type ProjectRelPath,
+  type ReferencedAsset,
 } from '../../../../models';
 import { type SingleDocumentProjectStore } from '../../../../ports';
 
@@ -867,6 +869,73 @@ export const createAdapter = ({
       })
     );
 
+  const readDocumentReferencedAssets: SingleDocumentProjectStore['readDocumentReferencedAssets'] =
+    ({ projectId }) =>
+      pipe(
+        Effect.Do.pipe(
+          Effect.bind('referencedAssetPaths', () =>
+            PRIMARY_RICH_TEXT_REPRESENTATION ===
+            richTextRepresentations.MARKDOWN
+              ? pipe(
+                  filesystem.getAbsolutePath({
+                    path: projectRelativeDocumentPath,
+                    dirPath: internalProjectDir,
+                  }),
+                  Effect.flatMap((absolutePath) =>
+                    filesystem.readTextFile(absolutePath)
+                  ),
+                  Effect.flatMap((file) =>
+                    documentAnalyzer.extractLocalAssetReferences({
+                      representation: PRIMARY_RICH_TEXT_REPRESENTATION,
+                      content: file.content,
+                    })
+                  ),
+                  Effect.map((assetRefs) =>
+                    unique(
+                      assetRefs.map((docRel) =>
+                        docRelToProjectRel({
+                          docRel,
+                          docPath: projectRelativeDocumentPath,
+                        })
+                      )
+                    )
+                  )
+                )
+              : Effect.succeed([] as ProjectRelPath[])
+          ),
+          Effect.flatMap(({ referencedAssetPaths }) =>
+            Effect.forEach(referencedAssetPaths, (relPath) =>
+              pipe(
+                readAssetBytes({ projectId, relPath }),
+                Effect.map((bytes) => ({ relPath, bytes }) as ReferencedAsset),
+                // A referenced asset can be a dangling link (missing on disk);
+                // skip it rather than failing the whole read.
+                Effect.catchTag(VersionedProjectNotFoundErrorTag, () =>
+                  Effect.succeed(null)
+                )
+              )
+            )
+          ),
+          Effect.map((assets) =>
+            assets.filter((asset): asset is ReferencedAsset => asset !== null)
+          )
+        ),
+        Effect.catchTags({
+          [FilesystemNotFoundErrorTag]: (err) =>
+            Effect.fail(new NotFoundError(err.message)),
+          [FilesystemAccessControlErrorTag]: (err) =>
+            Effect.fail(new RepositoryError(err.message)),
+          [FilesystemRepositoryErrorTag]: (err) =>
+            Effect.fail(new RepositoryError(err.message)),
+          [FilesystemDataIntegrityErrorTag]: (err) =>
+            Effect.fail(new RepositoryError(err.message)),
+          [DocumentAnalysisErrorTag]: (err) =>
+            Effect.fail(new RepositoryError(err.message)),
+          [RichTextLibErrorTag]: (err) =>
+            Effect.fail(new RepositoryError(err.message)),
+        })
+      );
+
   // TODO(assets): explicit asset deletion is deferred — orphan cleanup will
   // be handled by a later "prune unreferenced assets" pass.
   const deleteAssetFromProject: SingleDocumentProjectStore['deleteAssetFromProject'] =
@@ -885,6 +954,7 @@ export const createAdapter = ({
     lookupAssetByName,
     listProjectAssets,
     readAssetBytes,
+    readDocumentReferencedAssets,
     createAndSwitchToBranch,
     switchToBranch,
     getCurrentBranch,

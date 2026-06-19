@@ -14,7 +14,30 @@ import {
   representationToCliArg,
 } from '../../hs-lib-cli';
 import { type PdfEngine } from '../../ports/pdf-engine';
-import { type RepresentationTransform } from '../../ports/representation-transform';
+import {
+  type RepresentationTransform,
+  type RepresentationTransformAssetFile,
+} from '../../ports/representation-transform';
+
+// Pandoc resolves a document's relative asset refs within a virtual filesystem
+// rooted at the project root, so the assets and the resource path are mounted at
+// absolute paths in the WASI filesystem (`/` is the project root).
+const toWasiFsPath = (path: string): string => `/${path}`;
+
+const toWasiFsFiles = (
+  assetFiles: ReadonlyArray<RepresentationTransformAssetFile> | undefined
+) =>
+  assetFiles?.map(({ relativePath, bytes }) => ({
+    path: toWasiFsPath(relativePath),
+    bytes,
+  }));
+
+// A root-level document's resource path is the empty string (the project root),
+// which must still be passed as `/`, so check with `undefined`, not truthiness.
+const resourcePathArgs = (resourcePath: string | undefined): string[] =>
+  resourcePath !== undefined
+    ? ['--resource-path', toWasiFsPath(resourcePath)]
+    : [];
 
 export const createAdapter = ({
   runWasiCLIOutputingText,
@@ -45,11 +68,11 @@ export const createAdapter = ({
         representationToCliArg(from),
         '--to',
         representationToCliArg(to),
-        ...(resourcePath ? ['--resource-path', resourcePath] : []),
+        ...resourcePathArgs(resourcePath),
         '--',
         input,
       ],
-      files: assetFiles,
+      files: toWasiFsFiles(assetFiles),
     });
 
     if (!output) {
@@ -90,11 +113,11 @@ export const createAdapter = ({
           representationToCliArg(from),
           '--to',
           representationToCliArg(to),
-          ...(resourcePath ? ['--resource-path', resourcePath] : []),
+          ...resourcePathArgs(resourcePath),
           '--',
           input,
         ],
-        files: assetFiles,
+        files: toWasiFsFiles(assetFiles),
       });
 
       return output;

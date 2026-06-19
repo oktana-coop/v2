@@ -173,6 +173,25 @@ export const createAdapter = (projId: string): SingleDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.singleDocumentProjectStoreAPI.readAssetBytes(...args)),
+  readDocumentReferencedAssets: (
+    ...args: Parameters<
+      SingleDocumentProjectStore['readDocumentReferencedAssets']
+    >
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<SingleDocumentProjectStore['readDocumentReferencedAssets']>
+        >
+      >,
+      RepositoryError
+    )(
+      window.singleDocumentProjectStoreAPI.readDocumentReferencedAssets(...args)
+    ),
   createAndSwitchToBranch: (
     ...args: Parameters<SingleDocumentProjectStore['createAndSwitchToBranch']>
   ) =>

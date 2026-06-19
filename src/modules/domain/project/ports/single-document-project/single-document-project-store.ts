@@ -15,6 +15,7 @@ import {
   type BaseArtifactMetaData,
   type ProjectId,
   type ProjectRelPath,
+  type ReferencedAsset,
   type RemoteProjectInfo,
   type VersionedSingleDocumentProject,
 } from '../../models';
@@ -50,6 +51,10 @@ export type LookupAssetByNameInSingleDocumentProjectArgs = {
 export type ReadAssetBytesFromSingleDocumentProjectArgs = {
   projectId: ProjectId;
   relPath: ProjectRelPath;
+};
+
+export type ReadDocumentReferencedAssetsFromSingleDocumentProjectArgs = {
+  projectId: ProjectId;
 };
 
 export type SingleDocumentProjectCommitChangesArgs = {
@@ -215,6 +220,13 @@ export type SingleDocumentProjectStore = {
     args: ReadAssetBytesFromSingleDocumentProjectArgs
   ) => Effect.Effect<
     Uint8Array,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
+  readDocumentReferencedAssets: (
+    args: ReadDocumentReferencedAssetsFromSingleDocumentProjectArgs
+  ) => Effect.Effect<
+    ReferencedAsset[],
     ValidationError | RepositoryError | NotFoundError,
     never
   >;

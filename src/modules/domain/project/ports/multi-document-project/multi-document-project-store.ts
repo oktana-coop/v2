@@ -17,6 +17,7 @@ import {
   type MultiDocumentProject,
   type ProjectId,
   type ProjectRelPath,
+  type ReferencedAsset,
   type RemoteProjectInfo,
   type VersionedMultiDocumentProject,
 } from '../../models';
@@ -59,6 +60,11 @@ export type LookupAssetByNameInMultiDocumentProjectArgs = {
 export type ReadAssetBytesFromMultiDocumentProjectArgs = {
   projectId: ProjectId;
   relPath: ProjectRelPath;
+};
+
+export type ReadDocumentReferencedAssetsFromMultiDocumentProjectArgs = {
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
 };
 
 export type GetProjectRelativePathArgs = {
@@ -334,6 +340,13 @@ export type MultiDocumentProjectStore = {
     args: ReadAssetBytesFromMultiDocumentProjectArgs
   ) => Effect.Effect<
     Uint8Array,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
+  readDocumentReferencedAssets: (
+    args: ReadDocumentReferencedAssetsFromMultiDocumentProjectArgs
+  ) => Effect.Effect<
+    ReferencedAsset[],
     ValidationError | RepositoryError | NotFoundError,
     never
   >;

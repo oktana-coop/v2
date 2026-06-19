@@ -51,6 +51,8 @@ import {
   type OpenOrCreateMultiDocumentProjectArgs,
   type OpenSingleDocumentProjectStoreArgs,
   type ProjectId,
+  type ReadDocumentReferencedAssetsFromMultiDocumentProjectArgs,
+  type ReadDocumentReferencedAssetsFromSingleDocumentProjectArgs,
   type RenameDocumentInMultiDocumentProjectArgs,
   type RenameDocumentsInMultiDocumentProjectArgs,
   type SetupSingleDocumentProjectStoreArgs,
@@ -423,6 +425,29 @@ const registerSingleDocumentProjectStoreEvents = ({
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.lookupAssetByName(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'single-document-project-store:read-document-referenced-assets',
+    async (
+      _,
+      args: ReadDocumentReferencedAssetsFromSingleDocumentProjectArgs
+    ) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isSingleDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a single-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.readDocumentReferencedAssets(args)
           )
         )
       )
@@ -1121,6 +1146,26 @@ const registerMultiDocumentProjectStoreEvents = ({
           ),
           Effect.flatMap(({ versionedProjectStore }) =>
             versionedProjectStore.getProjectRelativePath(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'multi-document-project-store:read-document-referenced-assets',
+    async (_, args: ReadDocumentReferencedAssetsFromMultiDocumentProjectArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getVersionedStores(args.projectId),
+          Effect.filterOrFail(
+            isMultiDocumentProjectVersionedStores,
+            () =>
+              new VersionedProjectValidationError(
+                `Invalid project store type. Expected a multi-document project store for the given project ID.`
+              )
+          ),
+          Effect.flatMap(({ versionedProjectStore }) =>
+            versionedProjectStore.readDocumentReferencedAssets(args)
           )
         )
       )

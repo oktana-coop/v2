@@ -14,13 +14,11 @@ import { PagedPreview } from '../../../shared/paged-preview/PagedPreview';
 import { PrintPreviewActionsBar } from './PrintPreviewActionsBar';
 
 export const PrintPreview = () => {
-  const { versionedDocumentId, getExportText } = useContext(
-    CurrentDocumentContext
-  );
+  const { versionedDocumentId } = useContext(CurrentDocumentContext);
   const { activeTemplate } = useContext(ExportTemplatesContext);
   const { isOpen: isCommandPaletteOpen } = useContext(CommandPaletteContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
-  const { exportToPDF } = useExport();
+  const { exportToPDF, getExportText } = useExport();
   const navigate = useNavigate();
 
   const [html, setHtml] = useState<string | null>(null);

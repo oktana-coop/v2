@@ -79,6 +79,7 @@ import {
   NotFoundError,
   RepositoryError,
   ValidationError,
+  VersionedProjectNotFoundErrorTag,
 } from '../../../../errors';
 import {
   type ArtifactMetaData,
@@ -91,6 +92,7 @@ import {
   type ProjectFsPath,
   type ProjectId,
   type ProjectRelPath,
+  type ReferencedAsset,
 } from '../../../../models';
 import { MultiDocumentProjectStore } from '../../../../ports/multi-document-project';
 
@@ -1401,6 +1403,50 @@ export const createAdapter = ({
       })
     );
 
+  const readDocumentReferencedAssets: MultiDocumentProjectStore['readDocumentReferencedAssets'] =
+    ({ projectId, documentId }) =>
+      pipe(
+        Effect.Do.pipe(
+          Effect.bind('projectPath', () => ensureProjectIdIsFsPath(projectId)),
+          Effect.bind('documentPath', () =>
+            extractDocumentRelativePathFromId(documentId)
+          ),
+          Effect.bind('referencedAssetPaths', ({ projectPath, documentPath }) =>
+            getDocumentReferencedAssetPaths({ projectPath, documentPath })
+          ),
+          Effect.flatMap(({ referencedAssetPaths }) =>
+            Effect.forEach(referencedAssetPaths, (relPath) =>
+              pipe(
+                readAssetBytes({ projectId, relPath }),
+                Effect.map((bytes) => ({ relPath, bytes }) as ReferencedAsset),
+                // A referenced asset can be a dangling link (missing on disk);
+                // skip it rather than failing the whole read.
+                Effect.catchTag(VersionedProjectNotFoundErrorTag, () =>
+                  Effect.succeed(null)
+                )
+              )
+            )
+          ),
+          Effect.map((assets) =>
+            assets.filter((asset): asset is ReferencedAsset => asset !== null)
+          )
+        ),
+        Effect.catchTags({
+          [FilesystemNotFoundErrorTag]: (err) =>
+            Effect.fail(new NotFoundError(err.message)),
+          [FilesystemAccessControlErrorTag]: (err) =>
+            Effect.fail(new RepositoryError(err.message)),
+          [FilesystemRepositoryErrorTag]: (err) =>
+            Effect.fail(new RepositoryError(err.message)),
+          [FilesystemDataIntegrityErrorTag]: (err) =>
+            Effect.fail(new RepositoryError(err.message)),
+          [DocumentAnalysisErrorTag]: (err) =>
+            Effect.fail(new RepositoryError(err.message)),
+          [RichTextLibErrorTag]: (err) =>
+            Effect.fail(new RepositoryError(err.message)),
+        })
+      );
+
   const getProjectRelativePath: MultiDocumentProjectStore['getProjectRelativePath'] =
     ({ projectId, absolutePath }) =>
       pipe(
@@ -1444,6 +1490,7 @@ export const createAdapter = ({
     lookupAssetByName,
     listProjectAssets,
     readAssetBytes,
+    readDocumentReferencedAssets,
     getProjectRelativePath,
     commitChanges,
     commitDocumentChanges,

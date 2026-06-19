@@ -22,12 +22,9 @@ import {
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
 import {
-  type BinaryRichTextRepresentation,
-  getDocumentRichTextContent,
   isEmpty,
   processDocumentChange,
   type RichTextDocument,
-  type TextRichTextRepresentation,
   type VersionedDocument,
   type VersionedDocumentHandle,
   type VersionedDocumentStore,
@@ -49,11 +46,7 @@ import {
   urlEncodeChangeId,
   urlEncodeChangeIdForChange,
 } from '../../../../modules/infrastructure/version-control';
-import {
-  ExportTemplatesContext,
-  exportTemplateToCss,
-  FunctionalityConfigContext,
-} from '../../../../modules/personalization/browser';
+import { FunctionalityConfigContext } from '../../../../modules/personalization/browser';
 import { useCurrentDocumentId } from '../../hooks/use-current-document-id';
 import { usePulledUpstreamChanges } from '../../hooks/use-pulled-upstream-changes';
 import {
@@ -84,12 +77,6 @@ export type CurrentDocumentContextType = {
   onCloseDiscardChangesDialog: () => void;
   selectedCommitIndex: number | null;
   onSelectChange: (commitId: ChangeId) => void;
-  getExportText: (
-    representation: TextRichTextRepresentation
-  ) => Promise<string>;
-  getExportBinaryData: (
-    representation: BinaryRichTextRepresentation
-  ) => Promise<Uint8Array>;
 };
 
 export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
@@ -113,9 +100,6 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     onCloseDiscardChangesDialog: () => {},
     selectedCommitIndex: null,
     onSelectChange: () => {},
-    getExportText: async () => '',
-    // @ts-expect-error will get overriden below
-    getExportBinaryData: async () => null,
   }
 );
 
@@ -163,7 +147,6 @@ export const CurrentDocumentProvider = ({
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
   );
-  const { activeTemplate } = useContext(ExportTemplatesContext);
   const loadHistoryFromWorker = config.useHistoryWorker
     ? createWorkerClient()
     : undefined;
@@ -669,100 +652,6 @@ export const CurrentDocumentProvider = ({
     ]
   );
 
-  const exportToTextRepresentation = useCallback(
-    async (representation: TextRichTextRepresentation) => {
-      if (!documentId) {
-        throw new Error(
-          'Document ID not set when trying to export to text representation'
-        );
-      }
-
-      if (
-        !versionedDocumentStore ||
-        versionedDocumentStore.projectId !== projectIdParam
-      ) {
-        throw new Error(
-          'Versioned document store not ready yet or mismatched project.'
-        );
-      }
-
-      if (!representationTransformAdapter) {
-        throw new Error(
-          'No representation transform adapter found when trying to convert to text representation'
-        );
-      }
-
-      // We fetch the latest version of the document to ensure we have the most up-to-date content
-      const { artifact: document } = await Effect.runPromise(
-        versionedDocumentStore.findDocumentById(documentId)
-      );
-
-      const documentContent = getDocumentRichTextContent(document);
-
-      const str = await representationTransformAdapter.transformToText({
-        from: document.representation,
-        to: representation,
-        input: documentContent,
-      });
-
-      return str;
-    },
-    [
-      versionedDocumentStore,
-      projectIdParam,
-      representationTransformAdapter,
-      documentId,
-    ]
-  );
-
-  const exportToBinaryRepresentation = useCallback(
-    async (representation: BinaryRichTextRepresentation) => {
-      if (!documentId) {
-        throw new Error(
-          'Document ID not set when trying to export to binary representation'
-        );
-      }
-
-      if (
-        !versionedDocumentStore ||
-        versionedDocumentStore.projectId !== projectIdParam
-      ) {
-        throw new Error(
-          'Versioned document store not ready yet or mismatched project.'
-        );
-      }
-
-      if (!representationTransformAdapter) {
-        throw new Error(
-          'No representation transform adapter found when trying to convert to binary representation'
-        );
-      }
-
-      // We fetch the latest version of the document to ensure we have the most up-to-date content
-      const { artifact: document } = await Effect.runPromise(
-        versionedDocumentStore.findDocumentById(documentId)
-      );
-
-      const documentContent = getDocumentRichTextContent(document);
-
-      const str = await representationTransformAdapter.transformToBinary({
-        from: document.representation,
-        to: representation,
-        input: documentContent,
-        stylesheet: exportTemplateToCss(activeTemplate),
-      });
-
-      return str;
-    },
-    [
-      versionedDocumentStore,
-      projectIdParam,
-      representationTransformAdapter,
-      documentId,
-      activeTemplate,
-    ]
-  );
-
   return (
     <CurrentDocumentContext.Provider
       value={{
@@ -785,8 +674,6 @@ export const CurrentDocumentProvider = ({
         onCloseDiscardChangesDialog: handleCloseDiscardChangesDialog,
         selectedCommitIndex,
         onSelectChange: handleSelectChange,
-        getExportText: exportToTextRepresentation,
-        getExportBinaryData: exportToBinaryRepresentation,
       }}
     >
       {children}

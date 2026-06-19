@@ -277,6 +277,11 @@ contextBridge.exposeInMainWorld('singleDocumentProjectStoreAPI', {
     ipcRenderer.invoke('single-document-project-store:lookup-asset-by-name', {
       ...args,
     }),
+  readDocumentReferencedAssets: (args) =>
+    ipcRenderer.invoke(
+      'single-document-project-store:read-document-referenced-assets',
+      { ...args }
+    ),
   findProjectById: (id) =>
     ipcRenderer.invoke('single-document-project-store:find-project-by-id', id),
   getProjectName: (id) =>
@@ -427,6 +432,11 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
   getProjectRelativePath: (args) =>
     ipcRenderer.invoke(
       'multi-document-project-store:get-project-relative-path',
+      { ...args }
+    ),
+  readDocumentReferencedAssets: (args) =>
+    ipcRenderer.invoke(
+      'multi-document-project-store:read-document-referenced-assets',
       { ...args }
     ),
   commitChanges: (args) =>

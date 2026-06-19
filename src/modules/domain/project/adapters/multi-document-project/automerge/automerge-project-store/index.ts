@@ -430,6 +430,9 @@ export const createAdapter = (
       )
     );
 
+  const readDocumentReferencedAssets: MultiDocumentProjectStore['readDocumentReferencedAssets'] =
+    () => Effect.succeed([]);
+
   const getProjectRelativePath: MultiDocumentProjectStore['getProjectRelativePath'] =
     () =>
       Effect.fail(
@@ -456,6 +459,7 @@ export const createAdapter = (
     lookupAssetByName,
     listProjectAssets,
     readAssetBytes,
+    readDocumentReferencedAssets,
     getProjectRelativePath,
     commitChanges,
     commitDocumentChanges,

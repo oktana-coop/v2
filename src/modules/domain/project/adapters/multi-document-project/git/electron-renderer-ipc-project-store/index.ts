@@ -242,6 +242,25 @@ export const createAdapter = (): MultiDocumentProjectStore => ({
       >,
       RepositoryError
     )(window.multiDocumentProjectStoreAPI.readAssetBytes(...args)),
+  readDocumentReferencedAssets: (
+    ...args: Parameters<
+      MultiDocumentProjectStore['readDocumentReferencedAssets']
+    >
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<MultiDocumentProjectStore['readDocumentReferencedAssets']>
+        >
+      >,
+      RepositoryError
+    )(
+      window.multiDocumentProjectStoreAPI.readDocumentReferencedAssets(...args)
+    ),
   getProjectRelativePath: (
     ...args: Parameters<MultiDocumentProjectStore['getProjectRelativePath']>
   ) =>

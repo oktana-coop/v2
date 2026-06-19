@@ -5,7 +5,8 @@ import {
 } from '../constants/representations';
 
 export type RepresentationTransformAssetFile = {
-  path: string;
+  // Relative to the same root as `resourcePath`.
+  relativePath: string;
   bytes: Uint8Array;
 };
 

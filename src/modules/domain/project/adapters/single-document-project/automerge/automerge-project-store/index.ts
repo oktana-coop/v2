@@ -313,6 +313,9 @@ export const createAdapter = (
       )
     );
 
+  const readDocumentReferencedAssets: SingleDocumentProjectStore['readDocumentReferencedAssets'] =
+    () => Effect.succeed([]);
+
   // TODO: Implement explicit commit in Automerge
   const commitChanges: SingleDocumentProjectStore['commitChanges'] = () =>
     Effect.fail(
@@ -344,6 +347,7 @@ export const createAdapter = (
     lookupAssetByName,
     listProjectAssets,
     readAssetBytes,
+    readDocumentReferencedAssets,
     createAndSwitchToBranch,
     switchToBranch,
     getCurrentBranch,
