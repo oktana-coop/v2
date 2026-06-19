@@ -1,9 +1,11 @@
 import { type CLIOutputType } from '../../../constants';
+import { type WasiFile } from '../../../ports/wasm';
 
 export type RunWasiCLIMessage = {
   messageId: number;
   wasmModule: WebAssembly.Module;
   args: Array<string>;
+  files?: ReadonlyArray<WasiFile>;
   outputType: CLIOutputType;
 };
 

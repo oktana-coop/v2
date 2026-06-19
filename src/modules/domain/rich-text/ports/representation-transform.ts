@@ -4,10 +4,18 @@ import {
   type TextRichTextRepresentation,
 } from '../constants/representations';
 
+export type RepresentationTransformAssetFile = {
+  path: string;
+  bytes: Uint8Array;
+};
+
 export type TransformToTextArgs = {
   from: RichTextRepresentation;
   to: TextRichTextRepresentation;
   input: string;
+  assetFiles?: ReadonlyArray<RepresentationTransformAssetFile>;
+  // The base directory document relative asset paths are resolved against.
+  resourcePath?: string;
 };
 
 export type TransformToBinaryArgs = {
@@ -15,6 +23,9 @@ export type TransformToBinaryArgs = {
   to: BinaryRichTextRepresentation;
   input: string;
   stylesheet?: string;
+  assetFiles?: ReadonlyArray<RepresentationTransformAssetFile>;
+  // The base directory document relative asset paths are resolved against.
+  resourcePath?: string;
 };
 
 export type RepresentationTransform = {

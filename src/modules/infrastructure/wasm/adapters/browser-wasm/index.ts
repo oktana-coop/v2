@@ -56,6 +56,7 @@ export const createAdapter = async (): Promise<Wasm> => {
   const runWasiCLIOutputingText: Wasm['runWasiCLIOutputingText'] = async ({
     type,
     args,
+    files,
   }: RunWasiCLIArgs) => {
     return new Promise((resolve, reject) => {
       const currentMessageId = messageId++;
@@ -80,6 +81,7 @@ export const createAdapter = async (): Promise<Wasm> => {
         messageId: currentMessageId,
         wasmModule: wasmCLIModules[type],
         args,
+        files,
         outputType: cliOutputTypes.TEXT,
       };
 
@@ -91,6 +93,7 @@ export const createAdapter = async (): Promise<Wasm> => {
   const runWasiCLIOutputingBinary: Wasm['runWasiCLIOutputingBinary'] = async ({
     type,
     args,
+    files,
   }: RunWasiCLIArgs) => {
     return new Promise((resolve, reject) => {
       const currentMessageId = messageId++;
@@ -115,6 +118,7 @@ export const createAdapter = async (): Promise<Wasm> => {
         messageId: currentMessageId,
         wasmModule: wasmCLIModules[type],
         args,
+        files,
         outputType: cliOutputTypes.TEXT,
       };
 

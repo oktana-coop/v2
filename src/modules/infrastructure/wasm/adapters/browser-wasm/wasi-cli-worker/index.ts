@@ -1,8 +1,9 @@
 import './polyfills';
 
-import { init, WASI } from '@wasmer/wasi';
+import { init, MemFS, WASI } from '@wasmer/wasi';
 
 import { cliOutputTypes } from '../../../constants';
+import { writeFilesToMemFS } from './ephemeral-wasi-files';
 import {
   type FailureResult,
   type RunWasiCLIMessage,
@@ -11,14 +12,21 @@ import {
 } from './types';
 
 self.onmessage = async (event) => {
-  const { wasmModule, args, messageId, outputType } =
+  const { wasmModule, args, files, messageId, outputType } =
     event.data as RunWasiCLIMessage;
 
   try {
     await init();
 
+    const fs = new MemFS();
+    if (files?.length) {
+      writeFilesToMemFS({ fs, files });
+    }
+
     const wasi = new WASI({
       args,
+      fs,
+      preopens: files?.length ? { '/': '/' } : {},
     });
 
     await wasi.instantiate(wasmModule, {});

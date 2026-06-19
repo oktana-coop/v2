@@ -1,4 +1,4 @@
-import { open, readFile, unlink } from 'node:fs/promises';
+import { open, readFile, rm, unlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { WASI } from 'node:wasi';
@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { cliTypes, type WasmCLIType } from '../../constants/cli-types';
 import hsLibWasm from '../../files/v2-hs-lib.wasm?url';
 import type { RunWasiCLIArgs, Wasm } from '../../ports/wasm';
+import { writeFilesToTempDir } from './ephemeral-wasi-files';
 
 const getFilePath = ({ type }: { type: WasmCLIType }) => {
   switch (type) {
@@ -47,6 +48,7 @@ export const createAdapter = async (): Promise<Wasm> => {
   const runWasiCLI = async ({
     type,
     args,
+    files,
   }: RunWasiCLIArgs): Promise<Buffer<ArrayBufferLike>> => {
     // Create a temporary file to capture WASI output.
     // This is needed because the WASI constructor takes a file descriptor, not a stream.
@@ -54,27 +56,40 @@ export const createAdapter = async (): Promise<Wasm> => {
     const tempFilePath = join(tmpdir(), tempFileName);
     const tempFileHandle = await open(tempFilePath, 'w+');
 
-    const wasi = new WASI({
-      version: 'preview1',
-      args,
-      env: {},
-      stdout: tempFileHandle.fd,
-    });
+    // Staged in a temp dir, preopened as the guest root below.
+    const mountDir = files?.length
+      ? await writeFilesToTempDir(files)
+      : undefined;
 
-    const instance = await WebAssembly.instantiate(wasmCLIModules[type], {
-      wasi_snapshot_preview1: wasi.wasiImport,
-    });
+    try {
+      const wasi = new WASI({
+        version: 'preview1',
+        args,
+        env: {},
+        preopens: mountDir ? { '/': mountDir } : {},
+        stdout: tempFileHandle.fd,
+      });
 
-    wasi.start(instance);
+      const instance = await WebAssembly.instantiate(wasmCLIModules[type], {
+        wasi_snapshot_preview1: wasi.wasiImport,
+      });
 
-    await tempFileHandle.close();
+      wasi.start(instance);
 
-    const buffer = await readFile(tempFilePath);
+      await tempFileHandle.close();
 
-    // Clean up: delete the temporary file
-    await unlink(tempFilePath).catch(console.error);
-
-    return buffer;
+      return await readFile(tempFilePath);
+    } finally {
+      // Clean up: close the handle (no-op if already closed above), then delete
+      // the temporary output file and any mounted assets.
+      await tempFileHandle.close().catch(() => {});
+      await unlink(tempFilePath).catch(console.error);
+      if (mountDir) {
+        await rm(mountDir, { recursive: true, force: true }).catch(
+          console.error
+        );
+      }
+    }
   };
 
   const runWasiCLIOutputingText: Wasm['runWasiCLIOutputingText'] = async (

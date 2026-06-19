@@ -29,6 +29,8 @@ export const createAdapter = ({
     from,
     to,
     input,
+    assetFiles,
+    resourcePath,
   }) => {
     if (input === '') {
       return '';
@@ -43,9 +45,11 @@ export const createAdapter = ({
         representationToCliArg(from),
         '--to',
         representationToCliArg(to),
+        ...(resourcePath ? ['--resource-path', resourcePath] : []),
         '--',
         input,
       ],
+      files: assetFiles,
     });
 
     if (!output) {
@@ -65,12 +69,14 @@ export const createAdapter = ({
   };
 
   const transformToBinary: RepresentationTransform['transformToBinary'] =
-    async ({ from, to, input, stylesheet }) => {
+    async ({ from, to, input, stylesheet, assetFiles, resourcePath }) => {
       if (to === binaryRichTextRepresentations.PDF) {
         const html = await transformToText({
           from,
           to: richTextRepresentations.HTML,
           input,
+          assetFiles,
+          resourcePath,
         });
         return Effect.runPromise(pdfEngine.printToPdf({ html, stylesheet }));
       }
@@ -84,8 +90,11 @@ export const createAdapter = ({
           representationToCliArg(from),
           '--to',
           representationToCliArg(to),
+          ...(resourcePath ? ['--resource-path', resourcePath] : []),
+          '--',
           input,
         ],
+        files: assetFiles,
       });
 
       return output;
