@@ -63,13 +63,11 @@ Required secrets:
 
 #### Arch Linux
 
-When a release is published, a separate `Publish Packages` workflow automatically triggers and publishes to AUR (Arch User Repository):
+Arch packaging lives in the [AUR](https://aur.archlinux.org/) and is **community-maintained**. We do not publish to the AUR from this repository. The AUR convention is that packages are recipes (`PKGBUILD`s) that build from source and are reviewed, built and tested by their maintainer on Arch before each bump; pushing prebuilt or untested packaging from upstream CI inverts that flow, so we don't.
 
-1. Generates a PKGBUILD file for the new version
-2. Commits the PKGBUILD to the separate AUR package repository (`v2-bin` on aur.archlinux.org)
-3. This is independent from the main source code repository
+If you maintain an AUR package for v2 and need to build it from source, the build is `pnpm install --frozen-lockfile && pnpm run build`. The app's behaviour is baked in at build time from `VITE_*` env vars (see `src/modules/config/build.ts`). The required values are committed in `.env.production` and loaded automatically by the production build, so a clean `pnpm run build` produces a correct app with no extra configuration. CI passes the same values as real env vars, which take precedence over the file.
 
-Required secrets: `AUR_USERNAME`, `AUR_EMAIL`, `AUR_SSH_PRIVATE_KEY`
+Note: the Pandoc/Haskell rich-text engine is shipped as a prebuilt `src/modules/infrastructure/wasm/files/v2-hs-lib.wasm` blob committed to the tree, so a source build does not need a Haskell to WASM toolchain.
 
 #### Ubuntu/Debian
 
