@@ -1,6 +1,5 @@
 import { useContext } from 'react';
 
-import { PROJECT_FILE_EXTENSION } from '../../../modules/domain/project';
 import {
   PRIMARY_RICH_TEXT_REPRESENTATION,
   richTextRepresentationExtensions,
@@ -10,7 +9,6 @@ import { ProjectContext } from '../app-state';
 
 const SUPPORTED_EXTENSIONS = new Set([
   richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
-  PROJECT_FILE_EXTENSION,
 ]);
 
 export const isUnsupportedExtension = (path: string): boolean => {

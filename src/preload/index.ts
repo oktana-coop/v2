@@ -4,7 +4,6 @@ import {
   type AuthAPI,
   type ElectronAPI,
   type FilesystemPromiseAPI,
-  type OsEventsAPI,
   type PersonalizationAPI,
   type ProjectStoreManagerAPI,
   type ProjectStorePromiseAPI,
@@ -30,7 +29,6 @@ import {
   type CreateNewFileArgs,
   type DeleteDirectoryArgs,
   type DeleteFileArgs,
-  type File,
   type GetRenamedPathArgs,
   type ListDirectoryFilesArgs,
   type ListDirectoryTreeArgs,
@@ -405,8 +403,3 @@ contextBridge.exposeInMainWorld('wasmAPI', {
   runWasiCLIOutputingBinary: (args: RunWasiCLIArgs) =>
     ipcRenderer.invoke('run-wasi-cli-outputing-binary', args),
 } as WasmAPI);
-
-contextBridge.exposeInMainWorld('osEventsAPI', {
-  onOpenFileFromFilesystem: (callback) =>
-    registerIpcListener<File>('open-file-from-os', callback),
-} as OsEventsAPI);

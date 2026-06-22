@@ -22,10 +22,7 @@ import {
   type PromisifyEffects,
   type UpdateState,
 } from './src/modules/infrastructure/cross-platform';
-import {
-  type File,
-  type Filesystem as FilesystemAPI,
-} from './src/modules/infrastructure/filesystem';
+import { type Filesystem as FilesystemAPI } from './src/modules/infrastructure/filesystem';
 import {
   type FromMainMessage as AutomergeRepoNetworkFromMainIPCMessage,
   type FromRendererMessage as AutomergeRepoNetworkFromRendererIPCMessage,
@@ -181,10 +178,6 @@ type VersionedDocumentStoreIPCAPI = VersionedDocumentStore & {
 export type VersionedDocumentStorePromiseAPI =
   PromisifyEffects<VersionedDocumentStoreIPCAPI>;
 
-export type OsEventsAPI = {
-  onOpenFileFromFilesystem: (callback: (file: File) => void) => () => void;
-};
-
 export type VersionControlSyncProvidersAPI = {
   getGithubUserRepositories: () => Promise<GithubRepositoryInfo[]>;
 };
@@ -235,7 +228,6 @@ declare global {
     projectStoreManagerAPI: ProjectStoreManagerAPI;
     versionControlSyncProvidersAPI: VersionControlSyncProvidersAPI;
     wasmAPI: WasmAPI;
-    osEventsAPI: OsEventsAPI;
     // Used by /print and /preview pages for Paged.js rendering
     setContent: (args: { html: string; stylesheet?: string }) => Promise<void>;
   }
