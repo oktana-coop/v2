@@ -7,10 +7,7 @@ import {
   resolveDocumentAssetUrl,
 } from '../../../modules/domain/project';
 import { parseDocumentAssetSrcEffect } from '../../../modules/domain/rich-text';
-import {
-  InfrastructureAdaptersContext,
-  MultiDocumentProjectContext,
-} from '../app-state';
+import { InfrastructureAdaptersContext, ProjectContext } from '../app-state';
 import { useProjectId } from './use-project-id';
 
 // Resolves a document's asset `src` values to renderable URLs. Asset srcs are
@@ -19,7 +16,7 @@ import { useProjectId } from './use-project-id';
 // document (e.g. a specific merge conflict) pass `docPathOverride`.
 export const useAssetSrcResolver = (docPathOverride?: string) => {
   const projectId = useProjectId();
-  const { selectedFileInfo } = useContext(MultiDocumentProjectContext);
+  const { selectedFileInfo } = useContext(ProjectContext);
   const { assetUrlProtocol } = useContext(InfrastructureAdaptersContext);
 
   const rawDocPath = docPathOverride ?? selectedFileInfo?.path;

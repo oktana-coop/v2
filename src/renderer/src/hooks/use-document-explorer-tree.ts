@@ -7,10 +7,7 @@ import {
   filesystemItemTypes,
   isDirectory,
 } from '../../../modules/infrastructure/filesystem';
-import {
-  MultiDocumentProjectContext,
-  MultiDocumentProjectContextType,
-} from '../app-state';
+import { ProjectContext, ProjectContextType } from '../app-state';
 import { useCurrentDocumentId } from './use-current-document-id';
 
 export const STRUCTURAL_CONFLICTS_NODE_TYPE = 'STRUCTURAL_CONFLICTS' as const;
@@ -61,8 +58,8 @@ const injectPendingDirectoryNode = (
   });
 };
 
-const getExplorerTreeInMultiDocumentProject = (
-  directoryTree: MultiDocumentProjectContextType['directoryTree']
+const getExplorerTreeInProject = (
+  directoryTree: ProjectContextType['directoryTree']
 ): ExplorerTreeNode[] => {
   const mapFileToTreeNode = (file: File): ExplorerTreeNode => ({
     id: file.path,
@@ -121,7 +118,7 @@ export const useDocumentExplorerTree = () => {
     cancelRenameDirectory,
     startDeleteDocument,
     startDeleteDirectory,
-  } = useContext(MultiDocumentProjectContext);
+  } = useContext(ProjectContext);
   const [explorerTree, setExplorerTree] = useState<ExplorerTreeNode[]>([]);
   const [hasPendingNewDirectory, setHasPendingNewDirectory] = useState(false);
   const [canShowTree, setCanShowTree] = useState<boolean>(false);
@@ -129,7 +126,7 @@ export const useDocumentExplorerTree = () => {
   const documentId = useCurrentDocumentId();
 
   useEffect(() => {
-    let newTree = getExplorerTreeInMultiDocumentProject(directoryTree);
+    let newTree = getExplorerTreeInProject(directoryTree);
 
     if (pendingNewDirectory) {
       newTree = injectPendingDirectoryNode(

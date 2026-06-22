@@ -22,10 +22,7 @@ import {
   type ResolvedArtifactId,
   type StructuralConflict,
 } from '../../../modules/infrastructure/version-control';
-import {
-  InfrastructureAdaptersContext,
-  MultiDocumentProjectContext,
-} from '../app-state';
+import { InfrastructureAdaptersContext, ProjectContext } from '../app-state';
 
 export const useMergeConflictResolution = () => {
   const {
@@ -35,7 +32,7 @@ export const useMergeConflictResolution = () => {
     directory,
     resolveConflictByKeepingDocument,
     resolveConflictByDeletingDocument,
-  } = useContext(MultiDocumentProjectContext);
+  } = useContext(ProjectContext);
   const { versionedDocumentStore, filesystem } = useContext(
     InfrastructureAdaptersContext
   );

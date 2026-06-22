@@ -7,7 +7,7 @@ import {
 } from '../../../../modules/domain/project';
 import { type RepresentationTransformAssetFile } from '../../../../modules/domain/rich-text';
 import { getParentPath } from '../../../../modules/infrastructure/filesystem';
-import { MultiDocumentProjectContext } from '../../app-state';
+import { ProjectContext } from '../../app-state';
 import { useProjectId } from '../use-project-id';
 
 export type ExportAssetMounts = {
@@ -25,9 +25,8 @@ export const emptyExportAssetMounts: ExportAssetMounts = {
 // representation transform to embed.
 export const useExportAssetMounts = () => {
   const projectId = useProjectId();
-  const { selectedFileInfo, versionedProjectStore: projectStore } = useContext(
-    MultiDocumentProjectContext
-  );
+  const { selectedFileInfo, versionedProjectStore: projectStore } =
+    useContext(ProjectContext);
 
   const rawDocPath = selectedFileInfo?.path;
   const docPath = rawDocPath ? parseProjectRelPath(rawDocPath) : null;

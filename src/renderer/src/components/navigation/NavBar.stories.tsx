@@ -29,7 +29,7 @@ const meta: Meta<typeof NavBar> = {
 
 type Story = StoryObj<ComponentProps<typeof NavBar>>;
 
-export const MultiDocumentProject: Story = {
+export const Project: Story = {
   parameters: {
     reactRouter: reactRouterParameters({
       location: {

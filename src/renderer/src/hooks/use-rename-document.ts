@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 
-import { MultiDocumentProjectContext } from '../app-state';
+import { ProjectContext } from '../app-state';
 
 export const useRenameDocument = () => {
   const {
@@ -8,7 +8,7 @@ export const useRenameDocument = () => {
     renameDocumentError,
     renameDocument,
     cancelRenameDocument,
-  } = useContext(MultiDocumentProjectContext);
+  } = useContext(ProjectContext);
 
   return {
     filePathToRename,

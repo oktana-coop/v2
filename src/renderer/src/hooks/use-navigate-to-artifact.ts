@@ -9,12 +9,12 @@ import {
   type ResolvedArtifactId,
   urlEncodeArtifactId,
 } from '../../../modules/infrastructure/version-control';
-import { MultiDocumentProjectContext } from '../app-state';
+import { ProjectContext } from '../app-state';
 
 export const useNavigateToArtifact = () => {
   const navigate = useNavigate();
 
-  const { setSelectedFileInfo } = useContext(MultiDocumentProjectContext);
+  const { setSelectedFileInfo } = useContext(ProjectContext);
 
   return ({
     projectId,

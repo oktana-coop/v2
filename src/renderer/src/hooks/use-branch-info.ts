@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 
-import { MultiDocumentProjectContext } from '../app-state';
+import { ProjectContext } from '../app-state';
 import { useRemoteProjectInfo } from './use-remote-project-info';
 
 export const useBranchInfo = () => {
@@ -20,7 +20,7 @@ export const useBranchInfo = () => {
     supportsBranching,
     pushToRemoteProject,
     pullFromRemoteProject,
-  } = useContext(MultiDocumentProjectContext);
+  } = useContext(ProjectContext);
   const { remoteProject } = useRemoteProjectInfo();
 
   return {

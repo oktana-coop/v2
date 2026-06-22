@@ -1,10 +1,10 @@
 import { useContext } from 'react';
 
-import { MultiDocumentProjectContext } from '../app-state';
+import { ProjectContext } from '../app-state';
 
 export const useDeleteDirectory = () => {
   const { directoryPathToDelete, deleteDirectory, cancelDeleteDirectory } =
-    useContext(MultiDocumentProjectContext);
+    useContext(ProjectContext);
 
   const confirmDeleteDirectory = () => {
     if (directoryPathToDelete) {

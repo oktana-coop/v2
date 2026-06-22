@@ -6,7 +6,7 @@ import {
   richTextRepresentationExtensions,
 } from '../../../modules/domain/rich-text';
 import { getExtension } from '../../../modules/infrastructure/filesystem';
-import { MultiDocumentProjectContext } from '../app-state';
+import { ProjectContext } from '../app-state';
 
 const SUPPORTED_EXTENSIONS = new Set([
   richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
@@ -19,7 +19,7 @@ export const isUnsupportedExtension = (path: string): boolean => {
 };
 
 export const useCurrentDocumentExtension = () => {
-  const { selectedFileInfo } = useContext(MultiDocumentProjectContext);
+  const { selectedFileInfo } = useContext(ProjectContext);
 
   const extension = selectedFileInfo?.path
     ? getExtension(selectedFileInfo.path).toLowerCase()

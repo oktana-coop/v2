@@ -4,24 +4,24 @@ import { render, screen } from '@testing-library/react';
 import { type ProjectId } from '../../../../modules/domain/project/models';
 import * as NavBarStories from './NavBar.stories';
 
-const { MultiDocumentProject } = composeStories(NavBarStories);
+const { Project } = composeStories(NavBarStories);
 
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
 describe('NavBar', () => {
-  describe('multi-document project', () => {
+  describe('project', () => {
     const projectId = '/path/to/project' as ProjectId;
 
     it('renders the nav bar', () => {
-      render(<MultiDocumentProject />);
+      render(<Project />);
 
       expect(screen.getByTestId('nav-bar')).toBeInTheDocument();
     });
 
     it('renders the logo linking to projects', () => {
-      render(<MultiDocumentProject />);
+      render(<Project />);
 
       const logoLink = screen
         .getByTestId('nav-bar')
@@ -31,7 +31,7 @@ describe('NavBar', () => {
     });
 
     it('renders Edit, History, and Options linking to project-specific routes', () => {
-      render(<MultiDocumentProject />);
+      render(<Project />);
 
       const links = screen.getByTestId('nav-bar').querySelectorAll('a[href]');
       const hrefs = Array.from(links).map((link) => link.getAttribute('href'));

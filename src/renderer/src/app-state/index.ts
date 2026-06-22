@@ -4,14 +4,12 @@ export {
   CurrentDocumentProvider,
 } from './current-document/context';
 
-export { CurrentProjectProvider } from './current-project/context';
-
 export {
-  MultiDocumentProjectContext,
-  type MultiDocumentProjectContextType,
-  MultiDocumentProjectProvider,
+  ProjectContext,
+  type ProjectContextType,
+  ProjectProvider,
   type SelectedFileInfo,
-} from './current-project/multi-document-project-context';
+} from './current-project/context';
 
 export {
   CommandPaletteContext,

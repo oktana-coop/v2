@@ -6,7 +6,7 @@ import { urlEncodeProjectId } from '../../../../modules/domain/project';
 import { type ProjectId } from '../../../../modules/domain/project/models';
 import {
   type BrowserStorageProjectData,
-  MULTI_DOCUMENT_PROJECT_BROWSER_STORAGE_KEY,
+  PROJECT_BROWSER_STORAGE_KEY,
 } from '../../app-state/current-project/browser-storage';
 import { Logo } from '../brand/Logo';
 import { BranchIcon, OptionsIcon, PenIcon } from '../icons';
@@ -58,9 +58,7 @@ export const NavBarItem = ({ item }: { item: NavItem }) => {
 };
 
 const getStoredProjectId = (): ProjectId | null => {
-  const stored = localStorage.getItem(
-    MULTI_DOCUMENT_PROJECT_BROWSER_STORAGE_KEY
-  );
+  const stored = localStorage.getItem(PROJECT_BROWSER_STORAGE_KEY);
   if (!stored) return null;
 
   try {

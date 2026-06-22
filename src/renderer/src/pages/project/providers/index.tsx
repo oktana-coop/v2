@@ -5,13 +5,13 @@ import {
   CloneFromGithubModalProvider,
   CommitModalProvider,
   CurrentDocumentProvider,
-  CurrentProjectProvider,
+  ProjectProvider,
   SidebarLayoutProvider,
 } from '../../../app-state';
 
 export const ProjectProviders = () => {
   return (
-    <CurrentProjectProvider>
+    <ProjectProvider>
       <CommitModalProvider>
         <CurrentDocumentProvider>
           <CloneFromGithubModalProvider>
@@ -23,6 +23,6 @@ export const ProjectProviders = () => {
           </CloneFromGithubModalProvider>
         </CurrentDocumentProvider>
       </CommitModalProvider>
-    </CurrentProjectProvider>
+    </ProjectProvider>
   );
 };

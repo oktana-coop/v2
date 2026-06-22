@@ -1,11 +1,9 @@
 import { useContext } from 'react';
 
-import { MultiDocumentProjectContext } from '../app-state';
+import { ProjectContext } from '../app-state';
 
 export const useRemoteProjectInfo = () => {
-  const { remoteProject, addRemoteProject } = useContext(
-    MultiDocumentProjectContext
-  );
+  const { remoteProject, addRemoteProject } = useContext(ProjectContext);
 
   return {
     remoteProject,

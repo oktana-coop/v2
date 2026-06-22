@@ -6,7 +6,7 @@ import {
 } from '../../../../../modules/infrastructure/version-control';
 import { type ProjectId } from '../project-id';
 
-export const CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION = 1;
+export const CURRENT_PROJECT_SCHEMA_VERSION = 1;
 
 export type BaseArtifactMetaData = {
   id: ResolvedArtifactId;
@@ -17,22 +17,20 @@ export type ArtifactMetaData = BaseArtifactMetaData & {
   path: string;
 };
 
-export type MultiDocumentProject = {
-  type: typeof versionedArtifactTypes.MULTI_DOCUMENT_PROJECT;
+export type Project = {
+  type: typeof versionedArtifactTypes.PROJECT;
   schemaVersion: number;
   path: string;
   documents: Record<ResolvedArtifactId, ArtifactMetaData>;
   assets: Record<ResolvedArtifactId, ArtifactMetaData>;
 };
 
-export type VersionedMultiDocumentProject =
-  VersionedArtifact<MultiDocumentProject>;
+export type VersionedProject = VersionedArtifact<Project>;
 
-export type VersionedMultiDocumentProjectHandle =
-  VersionedArtifactHandle<MultiDocumentProject>;
+export type VersionedProjectHandle = VersionedArtifactHandle<Project>;
 
-export type ResolvedMultiDocumentProject = {
+export type ResolvedProject = {
   id: ProjectId;
-  project: VersionedMultiDocumentProject;
-  handle: VersionedMultiDocumentProjectHandle | null;
+  project: VersionedProject;
+  handle: VersionedProjectHandle | null;
 };

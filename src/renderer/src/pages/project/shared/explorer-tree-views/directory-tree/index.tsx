@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 
 import { type Directory } from '../../../../../../../modules/infrastructure/filesystem';
-import { MultiDocumentProjectContext } from '../../../../../app-state';
+import { ProjectContext } from '../../../../../app-state';
 import { IconButton } from '../../../../../components/actions/IconButton';
 import { FolderIcon, PlusIcon } from '../../../../../components/icons';
 import { SidebarHeading } from '../../../../../components/sidebar/SidebarHeading';
@@ -10,7 +10,7 @@ import {
   useCreateDocument,
   useDocumentExplorerTree,
 } from '../../../../../hooks';
-import { useArtifactSelection as useArtifactSelectionInMultiDocumentProject } from '../../../../../hooks/multi-document-project';
+import { useArtifactSelection as useArtifactSelectionInProject } from '../../../../../hooks';
 import { TreeView } from '../tree';
 import { EmptyView } from './EmptyView';
 import { NoActiveDirectoryView } from './NoActiveDirectoryView';
@@ -110,8 +110,8 @@ export const DirectoryTreeView = ({
 }: {
   onCreateDocument: () => void;
 }) => {
-  const { directory, openDirectory } = useContext(MultiDocumentProjectContext);
-  const handleArtifactSelection = useArtifactSelectionInMultiDocumentProject();
+  const { directory, openDirectory } = useContext(ProjectContext);
+  const handleArtifactSelection = useArtifactSelectionInProject();
   const {
     explorerTree: documents,
     canShowTree,

@@ -9,7 +9,7 @@ import { CloneFromGithubModalContext } from '../../../../app-state';
 import { Button } from '../../../../components/actions/Button';
 import { Modal } from '../../../../components/dialogs/Modal';
 import { GithubIcon } from '../../../../components/icons';
-import { useOpenDirectory } from '../../../../hooks/multi-document-project';
+import { useOpenDirectory } from '../../../../hooks';
 import { SelectRepository } from './SelectRepository';
 import { GithubVerificationInfoDialog } from './VerificationInfoDialog';
 

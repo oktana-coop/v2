@@ -4,10 +4,10 @@ import {
   type AuthAPI,
   type ElectronAPI,
   type FilesystemPromiseAPI,
-  type MultiDocumentProjectStoreManagerAPI,
-  type MultiDocumentProjectStorePromiseAPI,
   type OsEventsAPI,
   type PersonalizationAPI,
+  type ProjectStoreManagerAPI,
+  type ProjectStorePromiseAPI,
   type RendererConfig,
   type VersionControlSyncProvidersAPI,
   type VersionedDocumentStorePromiseAPI,
@@ -85,8 +85,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 contextBridge.exposeInMainWorld('config', {
   useHistoryWorker: buildConfig.useHistoryWorker,
-  multiDocumentProjectVersionControlSystem:
-    buildConfig.multiDocumentProjectVersionControlSystem,
+  projectVersionControlSystem: buildConfig.projectVersionControlSystem,
 } as RendererConfig);
 
 contextBridge.exposeInMainWorld('personalizationAPI', {
@@ -250,191 +249,148 @@ contextBridge.exposeInMainWorld('versionedDocumentStoreAPI', {
     ipcRenderer.invoke('versioned-document-store:disconnect', projectId),
 } as VersionedDocumentStorePromiseAPI);
 
-contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
+contextBridge.exposeInMainWorld('projectStoreAPI', {
   createProject: (args) =>
-    ipcRenderer.invoke('multi-document-project-store:create-project', {
+    ipcRenderer.invoke('project-store:create-project', {
       ...args,
     }),
   findProjectById: (id) =>
-    ipcRenderer.invoke('multi-document-project-store:find-project-by-id', id),
+    ipcRenderer.invoke('project-store:find-project-by-id', id),
   listProjectDocuments: (id) =>
-    ipcRenderer.invoke(
-      'multi-document-project-store:list-project-documents',
-      id
-    ),
+    ipcRenderer.invoke('project-store:list-project-documents', id),
   addDocumentToProject: (args) =>
-    ipcRenderer.invoke('multi-document-project-store:add-document-to-project', {
+    ipcRenderer.invoke('project-store:add-document-to-project', {
       ...args,
     }),
   deleteDocumentFromProject: (args) =>
-    ipcRenderer.invoke(
-      'multi-document-project-store:delete-document-from-project',
-      { ...args }
-    ),
+    ipcRenderer.invoke('project-store:delete-document-from-project', {
+      ...args,
+    }),
   deleteDocumentsFromProject: (args) =>
-    ipcRenderer.invoke(
-      'multi-document-project-store:delete-documents-from-project',
-      { ...args }
-    ),
+    ipcRenderer.invoke('project-store:delete-documents-from-project', {
+      ...args,
+    }),
   renameDocumentInProject: (args) =>
-    ipcRenderer.invoke(
-      'multi-document-project-store:rename-document-in-project',
-      { ...args }
-    ),
+    ipcRenderer.invoke('project-store:rename-document-in-project', { ...args }),
   renameDocumentsInProject: (args) =>
-    ipcRenderer.invoke(
-      'multi-document-project-store:rename-documents-in-project',
-      { ...args }
-    ),
+    ipcRenderer.invoke('project-store:rename-documents-in-project', {
+      ...args,
+    }),
   findDocumentInProject: (args) =>
-    ipcRenderer.invoke(
-      'multi-document-project-store:find-document-in-project',
-      { ...args }
-    ),
+    ipcRenderer.invoke('project-store:find-document-in-project', { ...args }),
   addAssetToProject: (args) =>
-    ipcRenderer.invoke('multi-document-project-store:add-asset-to-project', {
+    ipcRenderer.invoke('project-store:add-asset-to-project', {
       ...args,
     }),
   lookupAssetByName: (args) =>
-    ipcRenderer.invoke('multi-document-project-store:lookup-asset-by-name', {
+    ipcRenderer.invoke('project-store:lookup-asset-by-name', {
       ...args,
     }),
   getProjectRelativePath: (args) =>
-    ipcRenderer.invoke(
-      'multi-document-project-store:get-project-relative-path',
-      { ...args }
-    ),
+    ipcRenderer.invoke('project-store:get-project-relative-path', { ...args }),
   readDocumentReferencedAssets: (args) =>
-    ipcRenderer.invoke(
-      'multi-document-project-store:read-document-referenced-assets',
-      { ...args }
-    ),
+    ipcRenderer.invoke('project-store:read-document-referenced-assets', {
+      ...args,
+    }),
   commitChanges: (args) =>
-    ipcRenderer.invoke('multi-document-project-store:commit-changes', {
+    ipcRenderer.invoke('project-store:commit-changes', {
       ...args,
     }),
   commitDocumentChanges: (args) =>
-    ipcRenderer.invoke('multi-document-project-store:commit-document-changes', {
+    ipcRenderer.invoke('project-store:commit-document-changes', {
       ...args,
     }),
   restoreDocumentChanges: (args) =>
-    ipcRenderer.invoke(
-      'multi-document-project-store:restore-document-changes',
-      { ...args }
-    ),
+    ipcRenderer.invoke('project-store:restore-document-changes', { ...args }),
   createAndSwitchToBranch: (args) =>
-    ipcRenderer.invoke(
-      'multi-document-project-store:create-and-switch-to-branch',
-      {
-        ...args,
-      }
-    ),
+    ipcRenderer.invoke('project-store:create-and-switch-to-branch', {
+      ...args,
+    }),
   switchToBranch: (args) =>
-    ipcRenderer.invoke('multi-document-project-store:switch-to-branch', {
+    ipcRenderer.invoke('project-store:switch-to-branch', {
       ...args,
     }),
   getCurrentBranch: (args) =>
-    ipcRenderer.invoke('multi-document-project-store:get-current-branch', {
+    ipcRenderer.invoke('project-store:get-current-branch', {
       ...args,
     }),
   listBranches: (args) =>
-    ipcRenderer.invoke('multi-document-project-store:list-branches', {
+    ipcRenderer.invoke('project-store:list-branches', {
       ...args,
     }),
   deleteBranch: (args) =>
-    ipcRenderer.invoke('multi-document-project-store:delete-branch', {
+    ipcRenderer.invoke('project-store:delete-branch', {
       ...args,
     }),
   mergeAndDeleteBranch: (args) =>
-    ipcRenderer.invoke('multi-document-project-store:merge-and-delete-branch', {
+    ipcRenderer.invoke('project-store:merge-and-delete-branch', {
       ...args,
     }),
   getMergeConflictInfo: (args) =>
-    ipcRenderer.invoke('multi-document-project-store:get-merge-conflict-info', {
+    ipcRenderer.invoke('project-store:get-merge-conflict-info', {
       ...args,
     }),
   abortMerge: (args) =>
-    ipcRenderer.invoke('multi-document-project-store:abort-merge', {
+    ipcRenderer.invoke('project-store:abort-merge', {
       ...args,
     }),
   commitMergeConflictsResolution: (args) =>
-    ipcRenderer.invoke(
-      'multi-document-project-store:commit-merge-conflicts-resolution',
-      {
-        ...args,
-      }
-    ),
+    ipcRenderer.invoke('project-store:commit-merge-conflicts-resolution', {
+      ...args,
+    }),
   resolveConflictByKeepingDocument: (args) =>
-    ipcRenderer.invoke(
-      'multi-document-project-store:resolve-conflict-by-keeping-document',
-      {
-        ...args,
-      }
-    ),
+    ipcRenderer.invoke('project-store:resolve-conflict-by-keeping-document', {
+      ...args,
+    }),
   resolveConflictByDeletingDocument: (args) =>
-    ipcRenderer.invoke(
-      'multi-document-project-store:resolve-conflict-by-deleting-document',
-      {
-        ...args,
-      }
-    ),
+    ipcRenderer.invoke('project-store:resolve-conflict-by-deleting-document', {
+      ...args,
+    }),
   setAuthorInfo: (args) =>
-    ipcRenderer.invoke('multi-document-project-store:set-author-info', {
+    ipcRenderer.invoke('project-store:set-author-info', {
       ...args,
     }),
   addRemoteProject: (args) =>
-    ipcRenderer.invoke('multi-document-project-store:add-remote-project', {
+    ipcRenderer.invoke('project-store:add-remote-project', {
       ...args,
     }),
   listRemoteProjects: (args) =>
-    ipcRenderer.invoke('multi-document-project-store:list-remote-projects', {
+    ipcRenderer.invoke('project-store:list-remote-projects', {
       ...args,
     }),
   findRemoteProjectByName: (args) =>
-    ipcRenderer.invoke(
-      'multi-document-project-store:find-remote-project-by-name',
-      {
-        ...args,
-      }
-    ),
+    ipcRenderer.invoke('project-store:find-remote-project-by-name', {
+      ...args,
+    }),
   pushToRemoteProject: (args) =>
-    ipcRenderer.invoke('multi-document-project-store:push-to-remote-project', {
+    ipcRenderer.invoke('project-store:push-to-remote-project', {
       ...args,
     }),
   pullFromRemoteProject: (args) =>
-    ipcRenderer.invoke(
-      'multi-document-project-store:pull-from-remote-project',
-      {
-        ...args,
-      }
-    ),
+    ipcRenderer.invoke('project-store:pull-from-remote-project', {
+      ...args,
+    }),
   getRemoteBranchInfo: (args) =>
-    ipcRenderer.invoke('multi-document-project-store:get-remote-branch-info', {
+    ipcRenderer.invoke('project-store:get-remote-branch-info', {
       ...args,
     }),
   getProjectCommitHistory: (args) =>
-    ipcRenderer.invoke(
-      'multi-document-project-store:get-project-commit-history',
-      {
-        ...args,
-      }
-    ),
+    ipcRenderer.invoke('project-store:get-project-commit-history', {
+      ...args,
+    }),
   getChangedDocumentsAtChange: (args) =>
-    ipcRenderer.invoke(
-      'multi-document-project-store:get-changed-documents-at-change',
-      {
-        ...args,
-      }
-    ),
-} as MultiDocumentProjectStorePromiseAPI);
+    ipcRenderer.invoke('project-store:get-changed-documents-at-change', {
+      ...args,
+    }),
+} as ProjectStorePromiseAPI);
 
 // TODO: Namespace IPC messages
-contextBridge.exposeInMainWorld('multiDocumentProjectStoreManagerAPI', {
-  openOrCreateMultiDocumentProject: (args) =>
-    ipcRenderer.invoke('open-or-create-multi-document-project', { ...args }),
-  openMultiDocumentProjectById: (args) =>
-    ipcRenderer.invoke('open-multi-document-project-by-id', { ...args }),
-} as MultiDocumentProjectStoreManagerAPI);
+contextBridge.exposeInMainWorld('projectStoreManagerAPI', {
+  openOrCreateProject: (args) =>
+    ipcRenderer.invoke('open-or-create-project', { ...args }),
+  openProjectById: (args) =>
+    ipcRenderer.invoke('open-project-by-id', { ...args }),
+} as ProjectStoreManagerAPI);
 
 contextBridge.exposeInMainWorld('versionControlSyncProvidersAPI', {
   getGithubUserRepositories: () =>

@@ -7,11 +7,11 @@ import {
 } from './src/modules/auth';
 import { type RendererConfig } from './src/modules/config/browser';
 import {
-  type MultiDocumentProjectStore,
-  type OpenMultiDocumentProjectByIdArgs,
-  type OpenMultiDocumentProjectByIdResult,
-  OpenOrCreateMultiDocumentProjectArgs,
-  type OpenOrCreateMultiDocumentProjectResult,
+  OpenOrCreateProjectArgs,
+  type OpenOrCreateProjectResult,
+  type OpenProjectByIdArgs,
+  type OpenProjectByIdResult,
+  type ProjectStore,
 } from './src/modules/domain/project';
 import { type VersionedDocumentStore } from './src/modules/domain/rich-text';
 import {
@@ -111,12 +111,12 @@ export type AutomergeRepoNetworkAdapter = {
   ) => UnregisterListenerFn;
 };
 
-export type MultiDocumentProjectStoreManagerAPI = {
-  openOrCreateMultiDocumentProject: (
-    args: OpenOrCreateMultiDocumentProjectArgs
+export type ProjectStoreManagerAPI = {
+  openOrCreateProject: (
+    args: OpenOrCreateProjectArgs
   ) => Promise<
     Pick<
-      OpenOrCreateMultiDocumentProjectResult,
+      OpenOrCreateProjectResult,
       | 'projectId'
       | 'directory'
       | 'currentBranch'
@@ -124,11 +124,11 @@ export type MultiDocumentProjectStoreManagerAPI = {
       | 'remoteProjects'
     >
   >;
-  openMultiDocumentProjectById: (
-    args: OpenMultiDocumentProjectByIdArgs
+  openProjectById: (
+    args: OpenProjectByIdArgs
   ) => Promise<
     Pick<
-      OpenMultiDocumentProjectByIdResult,
+      OpenProjectByIdResult,
       'directory' | 'currentBranch' | 'mergeConflictInfo' | 'remoteProjects'
     >
   >;
@@ -136,8 +136,7 @@ export type MultiDocumentProjectStoreManagerAPI = {
 
 export type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
 
-export type MultiDocumentProjectStorePromiseAPI =
-  PromisifyEffects<MultiDocumentProjectStore>;
+export type ProjectStorePromiseAPI = PromisifyEffects<ProjectStore>;
 
 type VersionedDocumentStoreIPCAPI = VersionedDocumentStore & {
   createDocument: AppendParam<VersionedDocumentStore['createDocument'], string>;
@@ -232,8 +231,8 @@ declare global {
     automergeRepoNetworkAdapter: AutomergeRepoNetworkAdapter;
     filesystemAPI: FilesystemPromiseAPI;
     versionedDocumentStoreAPI: VersionedDocumentStorePromiseAPI;
-    multiDocumentProjectStoreAPI: MultiDocumentProjectStorePromiseAPI;
-    multiDocumentProjectStoreManagerAPI: MultiDocumentProjectStoreManagerAPI;
+    projectStoreAPI: ProjectStorePromiseAPI;
+    projectStoreManagerAPI: ProjectStoreManagerAPI;
     versionControlSyncProvidersAPI: VersionControlSyncProvidersAPI;
     wasmAPI: WasmAPI;
     osEventsAPI: OsEventsAPI;

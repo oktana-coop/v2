@@ -48,10 +48,7 @@ import {
 import { FunctionalityConfigContext } from '../../../../modules/personalization/browser';
 import { useCurrentDocumentId } from '../../hooks/use-current-document-id';
 import { usePulledUpstreamChanges } from '../../hooks/use-pulled-upstream-changes';
-import {
-  InfrastructureAdaptersContext,
-  MultiDocumentProjectContext,
-} from '../';
+import { InfrastructureAdaptersContext, ProjectContext } from '../';
 import { createWorkerClient } from './history-worker/client';
 
 export type CurrentDocumentContextType = {
@@ -137,7 +134,7 @@ export const CurrentDocumentProvider = ({
     setSelectedFileInfo,
     directory,
     restoreDocumentChanges,
-  } = useContext(MultiDocumentProjectContext);
+  } = useContext(ProjectContext);
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
   );

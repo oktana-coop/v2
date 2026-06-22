@@ -4,15 +4,12 @@ import * as Option from 'effect/Option';
 import { useCallback, useContext } from 'react';
 
 import {
-  insertAssetInMultiDocumentProject,
+  insertAssetInProject,
   parseProjectRelPathEffect,
   projectRelToDocRel,
 } from '../../../modules/domain/project';
 import { type DocumentAsset } from '../../../modules/domain/rich-text';
-import {
-  InfrastructureAdaptersContext,
-  MultiDocumentProjectContext,
-} from '../app-state';
+import { InfrastructureAdaptersContext, ProjectContext } from '../app-state';
 import { useProjectId } from './use-project-id';
 
 export const useAssetInsertion = (
@@ -24,7 +21,7 @@ export const useAssetInsertion = (
     versionedProjectStore: projectStore,
     selectedFileInfo,
     refreshDirectoryTree,
-  } = useContext(MultiDocumentProjectContext);
+  } = useContext(ProjectContext);
 
   const docPathString = docPath ?? selectedFileInfo?.path;
 
@@ -40,7 +37,7 @@ export const useAssetInsertion = (
       throw new Error('Cannot insert asset: project store not ready.');
     }
 
-    const insertAssetInProject = insertAssetInMultiDocumentProject({
+    const insertAsset = insertAssetInProject({
       openFile: filesystem.openFile,
       readBinaryFile: filesystem.readBinaryFile,
       lookupAssetByName: projectStore.lookupAssetByName,
@@ -54,7 +51,7 @@ export const useAssetInsertion = (
         parseProjectRelPathEffect(docPathString),
         Effect.flatMap((resolvedDocPath) =>
           pipe(
-            insertAssetInProject({ projectId }),
+            insertAsset({ projectId }),
             Effect.flatMap((inserted) =>
               Option.match(inserted, {
                 onNone: () => Effect.succeed(null),

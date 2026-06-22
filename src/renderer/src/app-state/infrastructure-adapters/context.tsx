@@ -3,13 +3,13 @@ import { createContext, useContext, useEffect, useState } from 'react';
 
 import {
   type AssetUrlProtocol,
-  type MultiDocumentProjectStoreManager,
+  type ProjectStoreManager,
 } from '../../../../modules/domain/project';
 import {
-  createBrowserAutomergeMultiDocumentProjectStoreManagerAdapter,
+  createBrowserAutomergeProjectStoreManagerAdapter,
   createElectronAssetProtocolAdapter,
-  createElectronRendererAutomergeMultiDocumentProjectStoreManagerAdapter,
-  createElectronRendererMultiDocumentProjectStoreManagerAdapter,
+  createElectronRendererAutomergeProjectStoreManagerAdapter,
+  createElectronRendererProjectStoreManagerAdapter,
 } from '../../../../modules/domain/project/browser';
 import { type VersionedDocumentStore } from '../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
@@ -21,7 +21,7 @@ import { LoadingText } from '../../components/progress/LoadingText';
 
 export type InfrastructureAdaptersContextType = {
   filesystem: Filesystem;
-  multiDocumentProjectStoreManager: MultiDocumentProjectStoreManager;
+  projectStoreManager: ProjectStoreManager;
   assetUrlProtocol: AssetUrlProtocol;
   versionedDocumentStore: VersionedDocumentStore | null;
   setVersionedDocumentStore: (
@@ -34,7 +34,7 @@ export const InfrastructureAdaptersContext =
     // @ts-expect-error will get overriden below
     filesystem: null,
     // @ts-expect-error will get overriden below
-    multiDocumentProjectStoreManager: null,
+    projectStoreManager: null,
     // @ts-expect-error will get overriden below
     assetUrlProtocol: null,
     versionedDocumentStore: null,
@@ -57,38 +57,36 @@ export const InfrastructureAdaptersProvider = ({
   // TODO: Browser build will need its own AssetUrlProtocol adapter.
   const assetUrlProtocol = createElectronAssetProtocolAdapter();
 
-  const [
-    multiDocumentProjectStoreManager,
-    setMultiDocumentProjectStoreManager,
-  ] = useState<MultiDocumentProjectStoreManager | null>(null);
+  const [projectStoreManager, setProjectStoreManager] =
+    useState<ProjectStoreManager | null>(null);
 
   useEffect(() => {
     const setupProjectStoreManagers = async () => {
       if (isElectron) {
         if (processId) {
           const multiDocProjectStoreManager =
-            config.multiDocumentProjectVersionControlSystem ===
+            config.projectVersionControlSystem ===
             versionControlSystems.AUTOMERGE
-              ? createElectronRendererAutomergeMultiDocumentProjectStoreManagerAdapter(
-                  { processId }
-                )
+              ? createElectronRendererAutomergeProjectStoreManagerAdapter({
+                  processId,
+                })
               : // Currently used for Git. This adapter is really generic, it just delegates to the main process via IPC.
-                createElectronRendererMultiDocumentProjectStoreManagerAdapter();
+                createElectronRendererProjectStoreManagerAdapter();
 
-          setMultiDocumentProjectStoreManager(multiDocProjectStoreManager);
+          setProjectStoreManager(multiDocProjectStoreManager);
         }
       } else {
         // Only Automerge is supported in browser environment for now
         const multiDocProjectStoreManager =
-          createBrowserAutomergeMultiDocumentProjectStoreManagerAdapter();
-        setMultiDocumentProjectStoreManager(multiDocProjectStoreManager);
+          createBrowserAutomergeProjectStoreManagerAdapter();
+        setProjectStoreManager(multiDocProjectStoreManager);
       }
     };
 
     setupProjectStoreManagers();
   }, [processId, isElectron]);
 
-  if (!multiDocumentProjectStoreManager) {
+  if (!projectStoreManager) {
     // TODO: Replace with skeleton or spinner
     return <LoadingText />;
   }
@@ -106,7 +104,7 @@ export const InfrastructureAdaptersProvider = ({
     <InfrastructureAdaptersContext.Provider
       value={{
         filesystem,
-        multiDocumentProjectStoreManager,
+        projectStoreManager,
         assetUrlProtocol,
         versionedDocumentStore,
         setVersionedDocumentStore: handleSetDocumentStore,

@@ -1,12 +1,12 @@
 import { useCallback, useContext, useEffect, useState } from 'react';
 
-import { MultiDocumentProjectContext } from '../app-state';
+import { ProjectContext } from '../app-state';
 
 export const usePulledUpstreamChanges = () => {
   const {
     pulledUpstreamChanges: projectPulledUpstreamChanges,
     onHandlePulledUpstreamChanges,
-  } = useContext(MultiDocumentProjectContext);
+  } = useContext(ProjectContext);
 
   const [pulledUpstreamChanges, setPulledUpstreamChanges] =
     useState<boolean>(false);

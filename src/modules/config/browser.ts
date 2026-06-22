@@ -6,6 +6,5 @@ export * from './types';
 export const config: RendererConfig = {
   useHistoryWorker: buildConfig.useHistoryWorker,
   primaryRichTextRepresentation: buildConfig.primaryRichTextRepresentation,
-  multiDocumentProjectVersionControlSystem:
-    buildConfig.multiDocumentProjectVersionControlSystem,
+  projectVersionControlSystem: buildConfig.projectVersionControlSystem,
 };

@@ -1,8 +1,8 @@
 import { useContext } from 'react';
 
-import { MultiDocumentProjectContext } from '../app-state';
+import { ProjectContext } from '../app-state';
 
 export const useProjectId = () => {
-  const { projectId } = useContext(MultiDocumentProjectContext);
+  const { projectId } = useContext(ProjectContext);
   return projectId;
 };

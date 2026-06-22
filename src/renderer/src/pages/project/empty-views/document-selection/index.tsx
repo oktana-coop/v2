@@ -1,5 +1,5 @@
 import { useCreateDocument } from '../../../../hooks';
-import { useOpenDirectory } from '../../../../hooks/multi-document-project';
+import { useOpenDirectory } from '../../../../hooks';
 import { EmptyMainView } from '../empty-main-view';
 
 export const DocumentSelection = () => {

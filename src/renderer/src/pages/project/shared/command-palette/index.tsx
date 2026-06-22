@@ -18,7 +18,7 @@ import {
   useDocumentExplorerTree,
   useExport,
 } from '../../../../hooks';
-import { useArtifactSelection as useArtifactSelectionInMultiDocumentProject } from '../../../../hooks/multi-document-project';
+import { useArtifactSelection as useArtifactSelectionInProject } from '../../../../hooks';
 import { keyBindings } from './key-bindings';
 
 export const ProjectCommandPalette = ({
@@ -39,7 +39,7 @@ export const ProjectCommandPalette = ({
   const { openCommitModal } = useContext(CommitModalContext);
   const { isElectron, checkForUpdate } = useContext(ElectronContext);
 
-  const handleDocumentSelection = useArtifactSelectionInMultiDocumentProject();
+  const handleDocumentSelection = useArtifactSelectionInProject();
   const currentDocumentName = useCurrentDocumentName();
   const {
     explorerTree: documents,
@@ -50,7 +50,7 @@ export const ProjectCommandPalette = ({
 
   const { exportToText, exportToBinary, exportToPDF } = useExport();
 
-  const multiDocumentProjectActions = [
+  const projectActions = [
     {
       name: keyBindings.ctrlAltN.command,
       shortcut: keyBindings.ctrlAltN.keyBinding,
@@ -82,7 +82,7 @@ export const ProjectCommandPalette = ({
       shortcut: keyBindings.ctrlComma.keyBinding,
       onActionSelection: onOpenProjectSettings,
     },
-    ...multiDocumentProjectActions,
+    ...projectActions,
     ...(isElectron ? electronSpecificActions : browserSpecificActions),
   ];
 

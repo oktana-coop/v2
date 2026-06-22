@@ -1,15 +1,13 @@
 import { useContext, useEffect, useState } from 'react';
 
-import { MultiDocumentProjectContext } from '../app-state';
+import { ProjectContext } from '../app-state';
 import { useNavigateToArtifact } from './use-navigate-to-artifact';
 
 export const useCreateDocument = () => {
   const [canCreateDocument, setCanCreateDocument] = useState<boolean>(false);
   const navigateToArtifact = useNavigateToArtifact();
 
-  const { createNewDocument, directory } = useContext(
-    MultiDocumentProjectContext
-  );
+  const { createNewDocument, directory } = useContext(ProjectContext);
 
   const triggerDocumentCreationDialog = async ({
     parentPath,

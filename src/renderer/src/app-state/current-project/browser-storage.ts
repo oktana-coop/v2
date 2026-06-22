@@ -1,13 +1,10 @@
 import { type ProjectId } from '../../../../modules/domain/project';
 import { type Directory } from '../../../../modules/infrastructure/filesystem';
 
-export const MULTI_DOCUMENT_PROJECT_BROWSER_STORAGE_KEY =
-  'multi-document-project';
+export const PROJECT_BROWSER_STORAGE_KEY = 'project';
 
-export type MultiDocumentBrowserStorageProjectData = {
+export type BrowserStorageProjectData = {
   directoryName: Directory['name'];
   directoryPath: Directory['path'];
   projectId: ProjectId;
 };
-
-export type BrowserStorageProjectData = MultiDocumentBrowserStorageProjectData;

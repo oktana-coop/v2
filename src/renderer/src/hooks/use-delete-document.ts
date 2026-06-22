@@ -1,13 +1,13 @@
 import { useContext } from 'react';
 
-import { MultiDocumentProjectContext } from '../app-state';
+import { ProjectContext } from '../app-state';
 
 export const useDeleteDocument = () => {
   const {
     filePathToDelete,
     deleteDocument: deleteDocumentInProject,
     cancelDeleteDocument,
-  } = useContext(MultiDocumentProjectContext);
+  } = useContext(ProjectContext);
 
   const deleteDocument = () => {
     if (filePathToDelete) {

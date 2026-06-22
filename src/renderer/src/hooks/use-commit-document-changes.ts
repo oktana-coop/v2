@@ -3,12 +3,12 @@ import { useCallback, useContext } from 'react';
 import {
   CommitModalContext,
   CurrentDocumentContext,
-  MultiDocumentProjectContext,
+  ProjectContext,
 } from '../app-state';
 
 export const useCommitDocumentChanges = () => {
   const { versionedDocumentId } = useContext(CurrentDocumentContext);
-  const { commitDocumentChanges } = useContext(MultiDocumentProjectContext);
+  const { commitDocumentChanges } = useContext(ProjectContext);
   const { closeCommitModal } = useContext(CommitModalContext);
   const { reloadDocumentHistory } = useContext(CurrentDocumentContext);
 

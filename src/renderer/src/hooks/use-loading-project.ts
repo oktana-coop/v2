@@ -1,8 +1,8 @@
 import { useContext } from 'react';
 
-import { MultiDocumentProjectContext } from '../app-state';
+import { ProjectContext } from '../app-state';
 
 export const useLoadingProject = () => {
-  const { loading } = useContext(MultiDocumentProjectContext);
+  const { loading } = useContext(ProjectContext);
   return loading;
 };

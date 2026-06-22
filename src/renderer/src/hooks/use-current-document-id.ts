@@ -5,10 +5,10 @@ import {
   type ResolvedArtifactId,
   versionedArtifactTypes,
 } from '../../../modules/infrastructure/version-control';
-import { MultiDocumentProjectContext } from '../app-state';
+import { ProjectContext } from '../app-state';
 
 export const useCurrentDocumentId = () => {
-  const { selectedFileInfo } = useContext(MultiDocumentProjectContext);
+  const { selectedFileInfo } = useContext(ProjectContext);
 
   const [id, setId] = useState<ResolvedArtifactId | null>(null);
 

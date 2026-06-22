@@ -1,9 +1,9 @@
 import { useContext, useEffect, useState } from 'react';
 
-import { MultiDocumentProjectContext } from '../app-state';
+import { ProjectContext } from '../app-state';
 
 export const useCurrentDocumentName = () => {
-  const { selectedFileName } = useContext(MultiDocumentProjectContext);
+  const { selectedFileName } = useContext(ProjectContext);
 
   const [documentName, setDocumentName] = useState<string | null>(null);
 

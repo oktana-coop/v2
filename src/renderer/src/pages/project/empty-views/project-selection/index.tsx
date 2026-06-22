@@ -4,7 +4,7 @@ import { CloneFromGithubModalContext } from '../../../../app-state';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
 import { useCreateDocument } from '../../../../hooks';
-import { useOpenDirectory } from '../../../../hooks/multi-document-project';
+import { useOpenDirectory } from '../../../../hooks';
 import { CloneFromGithubDialog } from '../../../shared/sync-providers/github/CloneFromGithubDialog';
 import { DirectoryTreeView } from '../../shared/explorer-tree-views';
 import { EmptyMainView } from '../empty-main-view';
