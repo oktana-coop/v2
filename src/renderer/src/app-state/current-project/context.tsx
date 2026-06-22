@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
@@ -303,7 +304,13 @@ export const ProjectProvider = ({
     useState<ProjectStore | null>(null);
   const [selectedFileInfo, setSelectedFileInfo] =
     useState<SelectedFileInfo | null>(null);
-  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const selectedFileName = useMemo(
+    () =>
+      selectedFileInfo?.path
+        ? removeExtension(removePath(selectedFileInfo.path))
+        : null,
+    [selectedFileInfo?.path]
+  );
   const [isCreateBranchDialogOpen, setIsCreateBranchDialogOpen] =
     useState<boolean>(false);
   const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
@@ -1459,14 +1466,6 @@ export const ProjectProvider = ({
       path: path,
     });
   };
-
-  useEffect(() => {
-    if (selectedFileInfo && selectedFileInfo.path) {
-      const fullFileName = removePath(selectedFileInfo.path);
-      const cleanFileName = removeExtension(fullFileName);
-      setSelectedFileName(cleanFileName);
-    }
-  }, [selectedFileInfo]);
 
   const handleListBranches = useCallback(async () => {
     if (!versionedProjectStore || !projectId) {
