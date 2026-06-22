@@ -15,10 +15,10 @@ import {
 import { WasmContext } from '../../../../modules/infrastructure/wasm/react/wasm-context';
 import { createAdapter as createPandocDiffAdapter } from '../adapters/pandoc-diff';
 import {
+  RichTextDocument,
   richTextRepresentations,
   type TextRichTextRepresentation,
-} from '../constants/representations';
-import { RichTextDocument } from '../models';
+} from '../models';
 import {
   type Diff,
   type ProseMirrorDiffArgs,

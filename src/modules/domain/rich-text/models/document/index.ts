@@ -1,4 +1,4 @@
-import { richTextRepresentations } from '../../constants';
+import { richTextRepresentations } from '../representation';
 import { getSpansString } from './automerge';
 import { type RichTextDocument, type VersionedDocument } from './types';
 

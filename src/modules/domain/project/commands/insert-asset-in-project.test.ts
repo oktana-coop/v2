@@ -87,7 +87,7 @@ const buildDeps = (
   };
 };
 
-describe('insertAssetInProject (multi-doc)', () => {
+describe('insertAssetInProject', () => {
   it('reuses an existing asset when the source is already in the assets folder', async () => {
     const deps = buildDeps({
       pickedFilePath: `${PROJECT_ROOT}/assets/photo.jpg`,

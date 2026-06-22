@@ -7,7 +7,6 @@ import {
   type MigrationError,
   type ResolvedArtifactId,
 } from '../../../../modules/infrastructure/version-control';
-import { RichTextRepresentation } from '../constants';
 import {
   DeletedDocumentError,
   NotFoundError,
@@ -16,6 +15,7 @@ import {
 } from '../errors';
 import {
   type ResolvedDocument,
+  RichTextRepresentation,
   type VersionedDocument,
   type VersionedDocumentHandle,
 } from '../models';

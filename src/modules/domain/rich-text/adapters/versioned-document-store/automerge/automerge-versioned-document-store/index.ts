@@ -25,7 +25,6 @@ import {
 import { fromNullable } from '../../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../../utils/errors';
 import { type Filesystem } from '../../../../../../infrastructure/filesystem';
-import { richTextRepresentations } from '../../../../constants';
 import {
   NotFoundError,
   RepositoryError,
@@ -34,6 +33,7 @@ import {
 import {
   CURRENT_SCHEMA_VERSION,
   type RichTextDocument,
+  richTextRepresentations,
   type VersionedDocument,
   type VersionedDocumentHandle,
 } from '../../../../models';

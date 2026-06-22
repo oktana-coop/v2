@@ -2,9 +2,9 @@ import {
   type HandleMigration,
   type VersionedArtifactHandle,
 } from '../../../../../../infrastructure/version-control';
-import { richTextRepresentations } from '../../../../constants';
 import {
   type RichTextDocument,
+  richTextRepresentations,
   VersionedDocument,
   type VersionedDocumentHandle,
 } from '../../../../models';

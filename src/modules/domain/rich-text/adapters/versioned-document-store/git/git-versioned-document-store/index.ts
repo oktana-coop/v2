@@ -33,7 +33,6 @@ import {
   type Filesystem,
   FilesystemNotFoundErrorTag,
 } from '../../../../../../infrastructure/filesystem';
-import { PRIMARY_RICH_TEXT_REPRESENTATION } from '../../../../constants';
 import {
   DeletedDocumentError,
   NotFoundError,
@@ -44,6 +43,7 @@ import {
 } from '../../../../errors';
 import {
   CURRENT_SCHEMA_VERSION,
+  PRIMARY_RICH_TEXT_REPRESENTATION,
   type ResolvedDocument,
   type RichTextDocument,
 } from '../../../../models';

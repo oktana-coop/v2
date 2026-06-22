@@ -11,14 +11,16 @@ import {
   MigrationError,
   type ResolvedArtifactId,
 } from '../../../infrastructure/version-control';
-import { PRIMARY_RICH_TEXT_REPRESENTATION } from '../constants';
 import {
   NotFoundError,
   RepositoryError,
   RepresentationTransformError,
   ValidationError,
 } from '../errors';
-import { type RichTextDocument } from '../models';
+import {
+  PRIMARY_RICH_TEXT_REPRESENTATION,
+  type RichTextDocument,
+} from '../models';
 import {
   type RepresentationTransform,
   type VersionedDocumentStore,

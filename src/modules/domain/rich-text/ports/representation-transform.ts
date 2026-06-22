@@ -2,7 +2,7 @@ import {
   type BinaryRichTextRepresentation,
   type RichTextRepresentation,
   type TextRichTextRepresentation,
-} from '../constants/representations';
+} from '../models';
 
 export type RepresentationTransformAssetFile = {
   // Relative to the same root as `resourcePath`.
