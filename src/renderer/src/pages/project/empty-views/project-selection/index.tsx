@@ -1,17 +1,19 @@
 import { useContext } from 'react';
 
-import { CloneFromGithubModalContext } from '../../../../app-state';
+import {
+  CloneFromGithubModalContext,
+  ProjectContext,
+} from '../../../../app-state';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
 import { useCreateDocument } from '../../../../hooks';
-import { useOpenDirectory } from '../../../../hooks';
 import { CloneFromGithubDialog } from '../../../shared/sync-providers/github/CloneFromGithubDialog';
 import { DirectoryTreeView } from '../../shared/explorer-tree-views';
 import { EmptyMainView } from '../empty-main-view';
 
 export const ProjectSelection = () => {
   const { triggerDocumentCreationDialog } = useCreateDocument();
-  const openDirectory = useOpenDirectory();
+  const { openDirectory } = useContext(ProjectContext);
   const { isOpen: isCloneFromGithubModalOpen, closeCloneFromGithubModal } =
     useContext(CloneFromGithubModalContext);
 

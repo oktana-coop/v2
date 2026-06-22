@@ -128,6 +128,7 @@ export type ProjectContextType = {
   openDeleteBranchDialog: (branch: Branch) => void;
   closeDeleteBranchDialog: () => void;
   supportsBranching: boolean;
+  supportsSync: boolean;
   mergeConflictInfo: MergeConflictInfo | null;
   remoteProject: RemoteProjectInfo | null;
   addRemoteProject: (url: string) => Promise<void>;
@@ -143,10 +144,12 @@ export type ProjectContextType = {
   filePathToDelete: string | null;
   startDeleteDocument: (path: string) => void;
   deleteDocument: (args: { relativePath: string }) => Promise<void>;
+  confirmDeleteDocument: () => void;
   cancelDeleteDocument: () => void;
   directoryPathToDelete: string | null;
   startDeleteDirectory: (path: string) => void;
   deleteDirectory: (args: { relativePath: string }) => Promise<void>;
+  confirmDeleteDirectory: () => void;
   cancelDeleteDirectory: () => void;
   filePathToRename: string | null;
   startRenameDocument: (path: string) => void;
@@ -210,10 +213,12 @@ export const ProjectContext = createContext<ProjectContextType>({
   filePathToDelete: null,
   startDeleteDocument: () => {},
   deleteDocument: async () => {},
+  confirmDeleteDocument: () => {},
   cancelDeleteDocument: () => {},
   directoryPathToDelete: null,
   startDeleteDirectory: () => {},
   deleteDirectory: async () => {},
+  confirmDeleteDirectory: () => {},
   cancelDeleteDirectory: () => {},
   filePathToRename: null,
   startRenameDocument: () => {},
@@ -1067,6 +1072,28 @@ export const ProjectProvider = ({
       navigate,
       dispatchNotification,
     ]
+  );
+
+  const handleConfirmDeleteDocument = useCallback(() => {
+    if (filePathToDelete) {
+      handleDeleteDocument({ relativePath: filePathToDelete });
+    }
+  }, [filePathToDelete, handleDeleteDocument]);
+
+  const handleCancelDeleteDocument = useCallback(
+    () => setFileToDelete(null),
+    []
+  );
+
+  const handleConfirmDeleteDirectory = useCallback(() => {
+    if (directoryPathToDelete) {
+      handleDeleteDirectory({ relativePath: directoryPathToDelete });
+    }
+  }, [directoryPathToDelete, handleDeleteDirectory]);
+
+  const handleCancelDeleteDirectory = useCallback(
+    () => setDirectoryToDelete(null),
+    []
   );
 
   const handleRenameDocument = useCallback(
@@ -1926,6 +1953,7 @@ export const ProjectProvider = ({
         openDeleteBranchDialog: handleOpenDeleteBranchDialog,
         closeDeleteBranchDialog: handleCloseDeleteBranchDialog,
         supportsBranching,
+        supportsSync: Boolean(remoteProject),
         mergeConflictInfo,
         remoteProject,
         addRemoteProject: handleAddRemoteProject,
@@ -1941,11 +1969,13 @@ export const ProjectProvider = ({
         filePathToDelete,
         startDeleteDocument: setFileToDelete,
         deleteDocument: handleDeleteDocument,
-        cancelDeleteDocument: () => setFileToDelete(null),
+        confirmDeleteDocument: handleConfirmDeleteDocument,
+        cancelDeleteDocument: handleCancelDeleteDocument,
         directoryPathToDelete,
         startDeleteDirectory: setDirectoryToDelete,
         deleteDirectory: handleDeleteDirectory,
-        cancelDeleteDirectory: () => setDirectoryToDelete(null),
+        confirmDeleteDirectory: handleConfirmDeleteDirectory,
+        cancelDeleteDirectory: handleCancelDeleteDirectory,
         filePathToRename,
         startRenameDocument,
         renameDocumentError,

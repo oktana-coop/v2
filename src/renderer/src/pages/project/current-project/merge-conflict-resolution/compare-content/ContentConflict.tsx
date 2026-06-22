@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 
 import { type ProjectId } from '../../../../../../../modules/domain/project';
 import { type RichTextDocument } from '../../../../../../../modules/domain/rich-text';
@@ -6,13 +6,13 @@ import {
   ContentConflict as ContentConflictType,
   type MergeConflictInfo,
 } from '../../../../../../../modules/infrastructure/version-control';
+import { ProjectContext } from '../../../../../app-state';
 import { RichTextEditor } from '../../../../../components/editing/RichTextEditor';
 import { LongTextSkeleton } from '../../../../../components/progress/skeletons/LongText';
 import {
   useAssetInsertion,
   useAssetSrcResolver,
   useMergeConflictResolution,
-  useProjectId,
 } from '../../../../../hooks';
 import { SuggestedMergeInfoPanel } from './SuggestedMergeInfoPanel';
 
@@ -31,7 +31,7 @@ export const ContentConflict = ({
   showDiff,
   onDocChange,
 }: ContentConflictProps) => {
-  const projectId = useProjectId();
+  const { projectId } = useContext(ProjectContext);
   const resolveAssetSrc = useAssetSrcResolver(conflict.path);
   const pickAsset = useAssetInsertion(conflict.path);
   const [suggestedResolution, setSuggestedResolution] = useState<{

@@ -8,16 +8,13 @@ import {
   BranchingCommandPaletteContext,
   CommitModalContext,
   CurrentDocumentContext,
+  ProjectContext,
 } from '../../../app-state';
 import { BranchingCommandPaletteStateProvider } from '../../../app-state';
 import {
-  useBranchInfo,
   useCommitDocumentChanges,
   useCommitToProject,
   useCreateDocument,
-  useDeleteDirectory,
-  useDeleteDocument,
-  useProjectId,
 } from '../../../hooks';
 import { ProjectCommandPalette } from '../shared/command-palette';
 import { BottomBar } from './bottom-bar';
@@ -62,17 +59,15 @@ const Project = () => {
     isOpen: isBranchingCommandPaletteOpen,
     closeBranchingCommandPalette,
   } = useContext(BranchingCommandPaletteContext);
-  const projectId = useProjectId();
-
-  const { filePathToDelete, deleteDocument, cancelDeleteDocument } =
-    useDeleteDocument();
+  const { triggerDocumentCreationDialog } = useCreateDocument();
   const {
+    projectId,
+    filePathToDelete,
+    confirmDeleteDocument,
+    cancelDeleteDocument,
     directoryPathToDelete,
     confirmDeleteDirectory,
     cancelDeleteDirectory,
-  } = useDeleteDirectory();
-  const { triggerDocumentCreationDialog } = useCreateDocument();
-  const {
     supportsBranching,
     currentBranch,
     createAndSwitchToBranch,
@@ -80,7 +75,7 @@ const Project = () => {
     closeCreateBranchDialog,
     branchToDelete,
     closeDeleteBranchDialog,
-  } = useBranchInfo();
+  } = useContext(ProjectContext);
 
   useEffect(() => {
     window.document.title = 'v2 | Editor';
@@ -141,7 +136,7 @@ const Project = () => {
           isOpen={filePathToDelete !== null}
           documentName={filePathToDelete ? removePath(filePathToDelete) : null}
           onCancel={cancelDeleteDocument}
-          onConfirm={deleteDocument}
+          onConfirm={confirmDeleteDocument}
         />
         <DeleteDirectoryDialog
           isOpen={directoryPathToDelete !== null}

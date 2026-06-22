@@ -8,15 +8,13 @@ import {
 } from '../../../modules/domain/project';
 import { parseDocumentAssetSrcEffect } from '../../../modules/domain/rich-text';
 import { InfrastructureAdaptersContext, ProjectContext } from '../app-state';
-import { useProjectId } from './use-project-id';
 
 // Resolves a document's asset `src` values to renderable URLs. Asset srcs are
 // document-relative, so resolution needs the path of the doc being rendered.
 // By default that's the currently-selected file; callers rendering a different
 // document (e.g. a specific merge conflict) pass `docPathOverride`.
 export const useAssetSrcResolver = (docPathOverride?: string) => {
-  const projectId = useProjectId();
-  const { selectedFileInfo } = useContext(ProjectContext);
+  const { projectId, selectedFileInfo } = useContext(ProjectContext);
   const { assetUrlProtocol } = useContext(InfrastructureAdaptersContext);
 
   const rawDocPath = docPathOverride ?? selectedFileInfo?.path;

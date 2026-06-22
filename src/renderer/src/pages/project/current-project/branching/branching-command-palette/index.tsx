@@ -1,10 +1,11 @@
 import { Combobox, Dialog, DialogPanel } from '@headlessui/react';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 
 import {
   type Branch,
   DEFAULT_BRANCH,
 } from '../../../../../../../modules/infrastructure/version-control';
+import { ProjectContext } from '../../../../../app-state';
 import {
   type ActionOption,
   CommandPaletteInput,
@@ -23,7 +24,6 @@ import {
   PushIcon,
   TrashIcon,
 } from '../../../../../components/icons';
-import { useBranchInfo } from '../../../../../hooks';
 
 export type BranchingCommandPaletteProps = {
   open?: boolean;
@@ -55,7 +55,7 @@ export const BranchingCommandPalette = ({
     pushToRemoteProject,
     pullFromRemoteProject,
     supportsSync,
-  } = useBranchInfo();
+  } = useContext(ProjectContext);
 
   useEffect(() => {
     if (branches) {

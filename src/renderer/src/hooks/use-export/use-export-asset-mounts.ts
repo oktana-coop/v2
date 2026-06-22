@@ -8,7 +8,6 @@ import {
 import { type RepresentationTransformAssetFile } from '../../../../modules/domain/rich-text';
 import { getParentPath } from '../../../../modules/infrastructure/filesystem';
 import { ProjectContext } from '../../app-state';
-import { useProjectId } from '../use-project-id';
 
 export type ExportAssetMounts = {
   assetFiles: RepresentationTransformAssetFile[];
@@ -24,9 +23,11 @@ export const emptyExportAssetMounts: ExportAssetMounts = {
 // bytes — plus the document's directory (the resource path), for the
 // representation transform to embed.
 export const useExportAssetMounts = () => {
-  const projectId = useProjectId();
-  const { selectedFileInfo, versionedProjectStore: projectStore } =
-    useContext(ProjectContext);
+  const {
+    projectId,
+    selectedFileInfo,
+    versionedProjectStore: projectStore,
+  } = useContext(ProjectContext);
 
   const rawDocPath = selectedFileInfo?.path;
   const docPath = rawDocPath ? parseProjectRelPath(rawDocPath) : null;

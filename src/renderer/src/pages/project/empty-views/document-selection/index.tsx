@@ -1,10 +1,12 @@
+import { useContext } from 'react';
+
+import { ProjectContext } from '../../../../app-state';
 import { useCreateDocument } from '../../../../hooks';
-import { useOpenDirectory } from '../../../../hooks';
 import { EmptyMainView } from '../empty-main-view';
 
 export const DocumentSelection = () => {
   const { triggerDocumentCreationDialog } = useCreateDocument();
-  const openDirectory = useOpenDirectory();
+  const { openDirectory } = useContext(ProjectContext);
 
   const handleOpenDirectory = () => openDirectory();
 

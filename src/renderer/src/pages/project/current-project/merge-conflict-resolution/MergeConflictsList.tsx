@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { useMatch, useParams } from 'react-router';
 
 import {
   filesystemItemTypes,
   removeExtension,
 } from '../../../../../../modules/infrastructure/filesystem';
+import { ProjectContext } from '../../../../app-state';
 import { MergeIcon } from '../../../../components/icons';
 import { SidebarHeading } from '../../../../components/sidebar/SidebarHeading';
 import {
@@ -12,13 +13,12 @@ import {
   STRUCTURAL_CONFLICTS_NODE_TYPE,
   useMergeConflictResolution,
   useNavigateToResolveConflicts,
-  useProjectId,
 } from '../../../../hooks';
 import { TreeView } from '../../shared/explorer-tree-views/tree';
 import { EmptyView } from './EmptyView';
 
 export const MergeConflictsList = () => {
-  const projectId = useProjectId();
+  const { projectId } = useContext(ProjectContext);
   const [documentsList, setDocumentsList] = useState<ExplorerTreeNode[]>([]);
   const structuralSubRouteMatch = useMatch(
     '/projects/:projectId/merge/structural'

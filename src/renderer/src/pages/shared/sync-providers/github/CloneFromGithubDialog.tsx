@@ -5,11 +5,13 @@ import {
   GITHUB_COLOR,
 } from '../../../../../../modules/auth/browser';
 import { type GithubRepositoryInfo } from '../../../../../../modules/infrastructure/version-control';
-import { CloneFromGithubModalContext } from '../../../../app-state';
+import {
+  CloneFromGithubModalContext,
+  ProjectContext,
+} from '../../../../app-state';
 import { Button } from '../../../../components/actions/Button';
 import { Modal } from '../../../../components/dialogs/Modal';
 import { GithubIcon } from '../../../../components/icons';
-import { useOpenDirectory } from '../../../../hooks';
 import { SelectRepository } from './SelectRepository';
 import { GithubVerificationInfoDialog } from './VerificationInfoDialog';
 
@@ -32,8 +34,7 @@ export const CloneFromGithubDialog = ({
     cancelConnectingToGithub,
   } = useContext(AuthContext);
   const { closeCloneFromGithubModal } = useContext(CloneFromGithubModalContext);
-
-  const openDirectory = useOpenDirectory();
+  const { openDirectory } = useContext(ProjectContext);
 
   const handlePrimaryAction = async () => {
     if (selectedRepository) {

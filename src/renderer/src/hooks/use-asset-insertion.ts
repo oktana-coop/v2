@@ -10,14 +10,13 @@ import {
 } from '../../../modules/domain/project';
 import { type DocumentAsset } from '../../../modules/domain/rich-text';
 import { InfrastructureAdaptersContext, ProjectContext } from '../app-state';
-import { useProjectId } from './use-project-id';
 
 export const useAssetInsertion = (
   docPath?: string
 ): (() => Promise<DocumentAsset | null>) => {
-  const projectId = useProjectId();
   const { filesystem } = useContext(InfrastructureAdaptersContext);
   const {
+    projectId,
     versionedProjectStore: projectStore,
     selectedFileInfo,
     refreshDirectoryTree,

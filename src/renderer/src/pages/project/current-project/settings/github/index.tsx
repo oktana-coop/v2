@@ -5,9 +5,9 @@ import {
   GITHUB_COLOR,
 } from '../../../../../../../modules/auth/browser';
 import { type GithubRepositoryInfo } from '../../../../../../../modules/infrastructure/version-control';
+import { ProjectContext } from '../../../../../app-state';
 import { Button } from '../../../../../components/actions/Button';
 import { GithubIcon } from '../../../../../components/icons';
-import { useRemoteProjectInfo } from '../../../../../hooks';
 import { SelectRepository } from '../../../../shared/sync-providers/github/SelectRepository';
 import { GithubVerificationInfoDialog } from '../../../../shared/sync-providers/github/VerificationInfoDialog';
 
@@ -27,7 +27,7 @@ export const GithubProjectSettings = () => {
     cancelConnectingToGithub,
   } = useContext(AuthContext);
 
-  const { remoteProject, addRemoteProject } = useRemoteProjectInfo();
+  const { remoteProject, addRemoteProject } = useContext(ProjectContext);
 
   const handleSelectRepository = (repository: GithubRepositoryInfo) => {
     setSelectedRepository(repository);
