@@ -1,27 +1,10 @@
 import { type ProjectId } from '../../../../modules/domain/project';
-import {
-  type Directory,
-  type File,
-} from '../../../../modules/infrastructure/filesystem';
-import { type ResolvedArtifactId } from '../../../../modules/infrastructure/version-control';
+import { type Directory } from '../../../../modules/infrastructure/filesystem';
 
-export const MULTI_DOCUMENT_PROJECT_BROWSER_STORAGE_KEY =
-  'multi-document-project';
-export const SINGLE_DOCUMENT_PROJECT_BROWSER_STORAGE_KEY =
-  'single-document-project';
+export const PROJECT_BROWSER_STORAGE_KEY = 'project';
 
-export type MultiDocumentBrowserStorageProjectData = {
+export type BrowserStorageProjectData = {
   directoryName: Directory['name'];
   directoryPath: Directory['path'];
   projectId: ProjectId;
 };
-
-export type SingleDocumentBrowserStorageProjectData = {
-  projectId: ProjectId;
-  documentId: ResolvedArtifactId;
-  file: File | null;
-};
-
-export type BrowserStorageProjectData =
-  | MultiDocumentBrowserStorageProjectData
-  | SingleDocumentBrowserStorageProjectData;

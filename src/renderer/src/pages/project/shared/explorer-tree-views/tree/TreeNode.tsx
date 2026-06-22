@@ -1,11 +1,9 @@
 import { clsx } from 'clsx';
-import { useContext, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { type NodeApi, type NodeRendererProps } from 'react-arborist';
 
-import { projectTypes } from '../../../../../../../modules/domain/project';
 import { EXPLORER_TREE_NODE } from '../../../../../../../modules/infrastructure/cross-platform';
 import { filesystemItemTypes } from '../../../../../../../modules/infrastructure/filesystem';
-import { CurrentProjectContext } from '../../../../../app-state';
 import { ChevronDownIcon, DiffIcon } from '../../../../../components/icons';
 import { FileExtensionIcon } from '../../../../../components/navigation';
 import {
@@ -266,7 +264,6 @@ const FileNode = ({
 }: NodeRendererProps<ExplorerTreeNode> & {
   onClick: (ev: React.MouseEvent) => void;
 }) => {
-  const { projectType } = useContext(CurrentProjectContext);
   const { filePathToRename } = useTreeCallbacks();
 
   if (filePathToRename === node.data.id) {
@@ -275,9 +272,6 @@ const FileNode = ({
 
   const handleContextMenu = (ev: React.MouseEvent) => {
     ev.preventDefault();
-
-    // TODO: support context menu for single-document projects
-    if (projectType !== projectTypes.MULTI_DOCUMENT_PROJECT) return;
 
     window.electronAPI.showContextMenu({
       context: EXPLORER_TREE_NODE,

@@ -2,15 +2,11 @@ import { clsx } from 'clsx';
 import { useMemo } from 'react';
 import { NavLink, useMatch } from 'react-router';
 
-import {
-  projectTypes,
-  urlEncodeProjectId,
-} from '../../../../modules/domain/project';
+import { urlEncodeProjectId } from '../../../../modules/domain/project';
 import { type ProjectId } from '../../../../modules/domain/project/models';
 import {
   type BrowserStorageProjectData,
-  MULTI_DOCUMENT_PROJECT_BROWSER_STORAGE_KEY,
-  SINGLE_DOCUMENT_PROJECT_BROWSER_STORAGE_KEY,
+  PROJECT_BROWSER_STORAGE_KEY,
 } from '../../app-state/current-project/browser-storage';
 import { Logo } from '../brand/Logo';
 import { BranchIcon, OptionsIcon, PenIcon } from '../icons';
@@ -62,12 +58,7 @@ export const NavBarItem = ({ item }: { item: NavItem }) => {
 };
 
 const getStoredProjectId = (): ProjectId | null => {
-  const storageKey =
-    window.config.projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-      ? MULTI_DOCUMENT_PROJECT_BROWSER_STORAGE_KEY
-      : SINGLE_DOCUMENT_PROJECT_BROWSER_STORAGE_KEY;
-
-  const stored = localStorage.getItem(storageKey);
+  const stored = localStorage.getItem(PROJECT_BROWSER_STORAGE_KEY);
   if (!stored) return null;
 
   try {
@@ -83,9 +74,6 @@ export function NavBar() {
     (projectMatch?.params.projectId as ProjectId | undefined) ?? null;
   const projectId = projectIdFromUrl ?? getStoredProjectId();
 
-  const isMultiDocumentProject =
-    window.config.projectType === projectTypes.MULTI_DOCUMENT_PROJECT;
-
   const projectSpecificNavItems: NavItem[] = useMemo(
     () => [
       {
@@ -98,22 +86,18 @@ export function NavBar() {
         icon: PenIcon,
         current: true,
       },
-      ...(isMultiDocumentProject
-        ? [
-            {
-              name: 'History',
-              href: getProjectSubroute({
-                subpath: 'history',
-                fallback: '/history',
-                projectId,
-              }),
-              icon: BranchIcon,
-              current: false,
-            },
-          ]
-        : []),
+      {
+        name: 'History',
+        href: getProjectSubroute({
+          subpath: 'history',
+          fallback: '/history',
+          projectId,
+        }),
+        icon: BranchIcon,
+        current: false,
+      },
     ],
-    [projectId, isMultiDocumentProject]
+    [projectId]
   );
 
   const appWideNavItems: NavItem[] = [

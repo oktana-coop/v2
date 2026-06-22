@@ -3,39 +3,18 @@ import { pipe } from 'effect/Function';
 
 import {
   isValidProjectId,
-  type MultiDocumentProjectStore,
   NotFoundError,
   type ProjectId,
-  type SingleDocumentProjectStore,
+  type ProjectStore,
   ValidationError,
 } from '../modules/domain/project';
 import { type VersionedDocumentStore } from '../modules/domain/rich-text';
 import { fromNullable } from '../utils/effect';
 
 export type VersionedStores = {
-  versionedProjectStore: MultiDocumentProjectStore | SingleDocumentProjectStore;
+  versionedProjectStore: ProjectStore;
   versionedDocumentStore: VersionedDocumentStore;
 };
-
-export type MultiDocumentProjectVersionedStores = {
-  versionedProjectStore: MultiDocumentProjectStore;
-  versionedDocumentStore: VersionedDocumentStore;
-};
-
-export type SingleDocumentProjectVersionedStores = {
-  versionedProjectStore: SingleDocumentProjectStore;
-  versionedDocumentStore: VersionedDocumentStore;
-};
-
-export const isMultiDocumentProjectVersionedStores = (
-  versionedStores: VersionedStores
-): versionedStores is MultiDocumentProjectVersionedStores =>
-  'listProjectDocuments' in versionedStores.versionedProjectStore;
-
-export const isSingleDocumentProjectVersionedStores = (
-  versionedStores: VersionedStores
-): versionedStores is SingleDocumentProjectVersionedStores =>
-  'findDocumentInProject' in versionedStores.versionedProjectStore;
 
 export type VersionedStoresMap = Map<ProjectId, VersionedStores>;
 

@@ -1,35 +1,28 @@
-import { useContext } from 'react';
 import { Outlet } from 'react-router';
 
 import { ProseMirrorProvider } from '../../../../../modules/domain/rich-text/react/prosemirror-context';
-import { ElectronContext } from '../../../../../modules/infrastructure/cross-platform/browser';
 import {
   CloneFromGithubModalProvider,
   CommitModalProvider,
-  CreateDocumentModalProvider,
   CurrentDocumentProvider,
-  CurrentProjectProvider,
+  ProjectProvider,
   SidebarLayoutProvider,
 } from '../../../app-state';
 
 export const ProjectProviders = () => {
-  const { config } = useContext(ElectronContext);
-
   return (
-    <CurrentProjectProvider projectType={config.projectType}>
+    <ProjectProvider>
       <CommitModalProvider>
         <CurrentDocumentProvider>
           <CloneFromGithubModalProvider>
-            <CreateDocumentModalProvider>
-              <ProseMirrorProvider>
-                <SidebarLayoutProvider>
-                  <Outlet />
-                </SidebarLayoutProvider>
-              </ProseMirrorProvider>
-            </CreateDocumentModalProvider>
+            <ProseMirrorProvider>
+              <SidebarLayoutProvider>
+                <Outlet />
+              </SidebarLayoutProvider>
+            </ProseMirrorProvider>
           </CloneFromGithubModalProvider>
         </CurrentDocumentProvider>
       </CommitModalProvider>
-    </CurrentProjectProvider>
+    </ProjectProvider>
   );
 };

@@ -1,12 +1,14 @@
 import { useContext, useMemo } from 'react';
 
-import { type VersionedDocument } from '../../../../../../modules/domain/rich-text';
+import {
+  isUnsupportedExtension,
+  type VersionedDocument,
+} from '../../../../../../modules/domain/rich-text';
 import {
   type CommitId,
   type CommitWithUrlInfo,
 } from '../../../../../../modules/infrastructure/version-control';
 import { SidebarLayoutContext } from '../../../../app-state';
-import { isUnsupportedExtension } from '../../../../hooks/use-current-document-extension';
 import { UnsupportedDocumentView } from '../../shared/unsupported-document-view';
 import { DocumentHistoryActionsBar } from './DocumentHistoryActionsBar';
 import { HistoricalViewContent } from './HistoricalViewContent';

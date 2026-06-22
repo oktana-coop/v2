@@ -11,11 +11,11 @@ import {
   isUncommittedChangeId,
   urlEncodeChangeId,
 } from '../../../../../../modules/infrastructure/version-control';
-import { MultiDocumentProjectContext } from '../../../../app-state';
+import { ProjectContext } from '../../../../app-state';
 import { PersonalFile } from '../../../../components/illustrations/PersonalFile';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
-import { useProjectHistoryArtifactSelection } from '../../../../hooks/multi-document-project';
+import { useProjectHistoryArtifactSelection } from '../../../../hooks';
 import { CommitDialog } from '../change-dialogs';
 import { type ProjectHistoryOutletContext } from './main/ProjectHistoryDocumentView';
 import { CommitHistoryPanel } from './sidebar/CommitHistoryPanel';
@@ -36,7 +36,7 @@ export const ProjectHistoryPage = () => {
     getProjectChangedDocuments,
     getProjectUncommittedChanges,
     commitChanges,
-  } = useContext(MultiDocumentProjectContext);
+  } = useContext(ProjectContext);
 
   const selectArtifact = useProjectHistoryArtifactSelection();
 

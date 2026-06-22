@@ -26,9 +26,11 @@ import {
   urlEncodeChangeId,
 } from '../../../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../../../modules/personalization/browser';
-import { InfrastructureAdaptersContext } from '../../../../app-state';
+import {
+  InfrastructureAdaptersContext,
+  ProjectContext,
+} from '../../../../app-state';
 import { useNavigateToArtifact } from '../../../../hooks/use-navigate-to-artifact';
-import { useProjectId } from '../../../../hooks/use-project-id';
 import { type DiffViewProps } from './ReadOnlyDocumentView';
 
 const resolveDiffState = ({
@@ -113,7 +115,7 @@ export const useHistoricalDocument = ({
 }: UseHistoricalDocumentArgs): UseHistoricalDocumentResult => {
   const { artifactId: encodedDocumentId, changeId: encodedChangeId } =
     useParams();
-  const projectId = useProjectId();
+  const { projectId } = useContext(ProjectContext);
   const { versionedDocumentStore } = useContext(InfrastructureAdaptersContext);
   const { showDiffInHistoryView, setShowDiffInHistoryView } = useContext(
     FunctionalityConfigContext

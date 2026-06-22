@@ -1,8 +1,10 @@
+import { useContext } from 'react';
+
 import { type Branch } from '../../../../../../modules/infrastructure/version-control';
+import { ProjectContext } from '../../../../app-state';
 import { Button } from '../../../../components/actions/Button';
 import { Modal } from '../../../../components/dialogs/Modal';
 import { TrashIcon } from '../../../../components/icons';
-import { useBranchInfo } from '../../../../hooks';
 
 type DeleteBranchDialogProps = {
   branch: Branch | null;
@@ -13,7 +15,7 @@ export const DeleteBranchDialog = ({
   branch,
   onCancel,
 }: DeleteBranchDialogProps) => {
-  const { deleteBranch } = useBranchInfo();
+  const { deleteBranch } = useContext(ProjectContext);
 
   const handleDeleteBranch = () => {
     if (branch) {

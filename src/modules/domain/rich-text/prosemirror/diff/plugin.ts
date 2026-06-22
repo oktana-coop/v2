@@ -2,10 +2,10 @@ import { type Node } from 'prosemirror-model';
 import { Plugin, PluginKey } from 'prosemirror-state';
 import { DecorationSet } from 'prosemirror-view';
 
-import { type TextRichTextRepresentation } from '../../constants';
 import {
   getDocumentRichTextContent,
   type RichTextDocument,
+  type TextRichTextRepresentation,
 } from '../../models';
 import {
   type ProseMirrorDiffArgs,

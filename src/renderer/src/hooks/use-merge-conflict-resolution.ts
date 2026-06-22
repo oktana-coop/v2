@@ -2,7 +2,7 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import { useCallback, useContext, useEffect, useState } from 'react';
 
-import { type ProjectId, projectTypes } from '../../../modules/domain/project';
+import { type ProjectId } from '../../../modules/domain/project';
 import {
   processDocumentChange,
   type RichTextDocument,
@@ -22,31 +22,17 @@ import {
   type ResolvedArtifactId,
   type StructuralConflict,
 } from '../../../modules/infrastructure/version-control';
-import {
-  CurrentProjectContext,
-  InfrastructureAdaptersContext,
-  MultiDocumentProjectContext,
-  SingleDocumentProjectContext,
-} from '../app-state';
+import { InfrastructureAdaptersContext, ProjectContext } from '../app-state';
 
 export const useMergeConflictResolution = () => {
-  const { projectType } = useContext(CurrentProjectContext);
   const {
-    mergeConflictInfo: multiDocumentProjectMergeConflictInfo,
-    abortMerge: abortMergeInMultiDocumentProject,
-    refreshConflictsAndMergeIfPossible:
-      refreshConflictsAndMergeIfPossibleInMultiDocProject,
+    mergeConflictInfo: projectMergeConflictInfo,
+    abortMerge,
+    refreshConflictsAndMergeIfPossible,
     directory,
     resolveConflictByKeepingDocument,
     resolveConflictByDeletingDocument,
-  } = useContext(MultiDocumentProjectContext);
-  const {
-    mergeConflictInfo: singleDocumentProjectMergeConflictInfo,
-    abortMerge: abortMergeInSingleDocumentProject,
-    refreshConflictsAndMergeIfPossible:
-      refreshConflictsAndMergeIfPossibleInSingleDocProject,
-    documentInternalPath,
-  } = useContext(SingleDocumentProjectContext);
+  } = useContext(ProjectContext);
   const { versionedDocumentStore, filesystem } = useContext(
     InfrastructureAdaptersContext
   );
@@ -68,10 +54,7 @@ export const useMergeConflictResolution = () => {
   >([]);
 
   useEffect(() => {
-    const conflictInfo =
-      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-        ? multiDocumentProjectMergeConflictInfo
-        : singleDocumentProjectMergeConflictInfo;
+    const conflictInfo = projectMergeConflictInfo;
 
     if (conflictInfo) {
       const structuralConflicts = conflictInfo.conflicts.filter((conflict) =>
@@ -88,35 +71,7 @@ export const useMergeConflictResolution = () => {
     }
 
     setMergeConflictInfo(conflictInfo);
-  }, [
-    multiDocumentProjectMergeConflictInfo,
-    singleDocumentProjectMergeConflictInfo,
-    projectType,
-  ]);
-
-  const abortMerge = useCallback(
-    () =>
-      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-        ? abortMergeInMultiDocumentProject()
-        : abortMergeInSingleDocumentProject(),
-    [
-      projectType,
-      abortMergeInMultiDocumentProject,
-      abortMergeInSingleDocumentProject,
-    ]
-  );
-
-  const refreshConflictsAndMergeIfPossible = useCallback(
-    () =>
-      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-        ? refreshConflictsAndMergeIfPossibleInMultiDocProject()
-        : refreshConflictsAndMergeIfPossibleInSingleDocProject(),
-    [
-      projectType,
-      refreshConflictsAndMergeIfPossibleInMultiDocProject,
-      refreshConflictsAndMergeIfPossibleInSingleDocProject,
-    ]
-  );
+  }, [projectMergeConflictInfo]);
 
   const suggestContentMerge = useCallback(
     async ({
@@ -195,78 +150,46 @@ export const useMergeConflictResolution = () => {
         );
       }
 
-      if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
-        if (!directory || !relativePath) {
-          throw new Error('Cannot update file in multi-doc project');
-        }
+      if (!directory || !relativePath) {
+        throw new Error('Cannot update file in project');
+      }
 
-        try {
-          await Effect.runPromise(
-            pipe(
-              filesystem.getAbsolutePath({
-                path: relativePath,
-                dirPath: directory.path,
-              }),
-              Effect.flatMap((absoluteFilePath) =>
-                processDocumentChange({
-                  transformToText:
-                    representationTransformAdapter.transformToText,
-                  updateRichTextDocumentContent:
-                    versionedDocumentStore.updateRichTextDocumentContent,
-                  writeFile: filesystem.writeFile,
-                })({
-                  documentId,
-                  updatedDocument: doc,
-                  writeToFileWithPath:
-                    versionedDocumentStore.managesFilesystemWorkdir
-                      ? absoluteFilePath
-                      : null,
-                  projectType,
-                })
-              ),
-              Effect.flatMap(() =>
-                versionedDocumentStore.resolveContentConflict({ documentId })
-              )
+      try {
+        await Effect.runPromise(
+          pipe(
+            filesystem.getAbsolutePath({
+              path: relativePath,
+              dirPath: directory.path,
+            }),
+            Effect.flatMap((absoluteFilePath) =>
+              processDocumentChange({
+                transformToText: representationTransformAdapter.transformToText,
+                updateRichTextDocumentContent:
+                  versionedDocumentStore.updateRichTextDocumentContent,
+                writeFile: filesystem.writeFile,
+              })({
+                documentId,
+                updatedDocument: doc,
+                writeToFileWithPath:
+                  versionedDocumentStore.managesFilesystemWorkdir
+                    ? absoluteFilePath
+                    : null,
+              })
+            ),
+            Effect.flatMap(() =>
+              versionedDocumentStore.resolveContentConflict({ documentId })
             )
-          );
-        } catch (err) {
-          console.error(err);
-          const notification = createErrorNotification({
-            title: 'Resolve Conflict Error',
-            message:
-              'An error happened when trying to resolve the conflict. Please try again and if the error persists contact us for support.',
-          });
+          )
+        );
+      } catch (err) {
+        console.error(err);
+        const notification = createErrorNotification({
+          title: 'Resolve Conflict Error',
+          message:
+            'An error happened when trying to resolve the conflict. Please try again and if the error persists contact us for support.',
+        });
 
-          dispatchNotification(notification);
-        }
-      } else {
-        try {
-          await Effect.runPromise(
-            processDocumentChange({
-              transformToText: representationTransformAdapter.transformToText,
-              updateRichTextDocumentContent:
-                versionedDocumentStore.updateRichTextDocumentContent,
-              writeFile: filesystem.writeFile,
-            })({
-              documentId,
-              updatedDocument: doc,
-              writeToFileWithPath:
-                versionedDocumentStore.managesFilesystemWorkdir
-                  ? documentInternalPath
-                  : null,
-              projectType,
-            })
-          );
-        } catch (err) {
-          console.error(err);
-          const notification = createErrorNotification({
-            title: 'Resolve Conflict Error',
-            message:
-              'An error happened when trying to resolve the conflict. Please try again and if the error persists contact us for support.',
-          });
-
-          dispatchNotification(notification);
-        }
+        dispatchNotification(notification);
       }
 
       refreshConflictsAndMergeIfPossible();
@@ -276,8 +199,6 @@ export const useMergeConflictResolution = () => {
       representationTransformAdapter,
       filesystem,
       directory,
-      projectType,
-      documentInternalPath,
       mergeConflictInfo,
       refreshConflictsAndMergeIfPossible,
       dispatchNotification,

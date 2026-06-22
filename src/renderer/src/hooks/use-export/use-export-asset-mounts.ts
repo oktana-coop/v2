@@ -3,17 +3,11 @@ import { useCallback, useContext } from 'react';
 
 import {
   parseProjectRelPath,
-  projectTypes,
   type ReferencedAsset,
 } from '../../../../modules/domain/project';
 import { type RepresentationTransformAssetFile } from '../../../../modules/domain/rich-text';
 import { getParentPath } from '../../../../modules/infrastructure/filesystem';
-import {
-  CurrentProjectContext,
-  MultiDocumentProjectContext,
-  SingleDocumentProjectContext,
-} from '../../app-state';
-import { useProjectId } from '../use-project-id';
+import { ProjectContext } from '../../app-state';
 
 export type ExportAssetMounts = {
   assetFiles: RepresentationTransformAssetFile[];
@@ -29,18 +23,13 @@ export const emptyExportAssetMounts: ExportAssetMounts = {
 // bytes — plus the document's directory (the resource path), for the
 // representation transform to embed.
 export const useExportAssetMounts = () => {
-  const { projectType } = useContext(CurrentProjectContext);
-  const projectId = useProjectId();
-  const { selectedFileInfo, versionedProjectStore: multiDocStore } = useContext(
-    MultiDocumentProjectContext
-  );
-  const { documentProjectRelPath, versionedProjectStore: singleDocStore } =
-    useContext(SingleDocumentProjectContext);
+  const {
+    projectId,
+    selectedFileInfo,
+    versionedProjectStore: projectStore,
+  } = useContext(ProjectContext);
 
-  const isMultiDocProject = projectType === projectTypes.MULTI_DOCUMENT_PROJECT;
-  const rawDocPath = isMultiDocProject
-    ? selectedFileInfo?.path
-    : documentProjectRelPath;
+  const rawDocPath = selectedFileInfo?.path;
   const docPath = rawDocPath ? parseProjectRelPath(rawDocPath) : null;
 
   return useCallback(async (): Promise<ExportAssetMounts> => {
@@ -48,24 +37,15 @@ export const useExportAssetMounts = () => {
       return emptyExportAssetMounts;
     }
 
-    const readReferencedAssets = (): Promise<ReferencedAsset[]> => {
-      if (!isMultiDocProject) {
-        return singleDocStore
-          ? Effect.runPromise(
-              singleDocStore.readDocumentReferencedAssets({ projectId })
-            )
-          : Promise.resolve([]);
-      }
-
-      return multiDocStore && selectedFileInfo
+    const readReferencedAssets = (): Promise<ReferencedAsset[]> =>
+      projectStore && selectedFileInfo
         ? Effect.runPromise(
-            multiDocStore.readDocumentReferencedAssets({
+            projectStore.readDocumentReferencedAssets({
               projectId,
               documentId: selectedFileInfo.documentId,
             })
           )
         : Promise.resolve([]);
-    };
 
     // A failed read shouldn't break the export; degrade to no mounts.
     const referencedAssets = await readReferencedAssets().catch(() => []);
@@ -80,12 +60,5 @@ export const useExportAssetMounts = () => {
     }));
 
     return { assetFiles, resourcePath: getParentPath(docPath) };
-  }, [
-    projectId,
-    docPath,
-    isMultiDocProject,
-    multiDocStore,
-    singleDocStore,
-    selectedFileInfo,
-  ]);
+  }, [projectId, docPath, projectStore, selectedFileInfo]);
 };

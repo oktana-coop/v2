@@ -1,22 +1,14 @@
 import { useContext } from 'react';
 
-import { projectTypes } from '../../../../../../modules/domain/project';
-import {
-  CurrentProjectContext,
-  SidebarLayoutContext,
-} from '../../../../app-state';
+import { SidebarLayoutContext } from '../../../../app-state';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
 import { useCreateDocument } from '../../../../hooks';
 import { DefaultActionsBar } from '../../../shared/default-actions-bar';
-import {
-  DirectoryTreeView,
-  RecentProjects,
-} from '../../shared/explorer-tree-views';
+import { DirectoryTreeView } from '../../shared/explorer-tree-views';
 import { ProjectSync } from './ProjectSync';
 
 export const ProjectSettings = () => {
-  const { projectType } = useContext(CurrentProjectContext);
   const { triggerDocumentCreationDialog } = useCreateDocument();
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
 
@@ -24,13 +16,7 @@ export const ProjectSettings = () => {
     <SidebarLayout
       sidebar={
         <StackedResizablePanelsLayout autoSaveId="project-settings-panel-group">
-          {projectType === projectTypes.MULTI_DOCUMENT_PROJECT ? (
-            <DirectoryTreeView
-              onCreateDocument={triggerDocumentCreationDialog}
-            />
-          ) : (
-            <RecentProjects onCreateDocument={triggerDocumentCreationDialog} />
-          )}
+          <DirectoryTreeView onCreateDocument={triggerDocumentCreationDialog} />
         </StackedResizablePanelsLayout>
       }
     >

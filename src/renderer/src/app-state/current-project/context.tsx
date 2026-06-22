@@ -1,72 +1,2001 @@
-import { createContext } from 'react';
-
+import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 import {
-  type ProjectType,
-  projectTypes,
-} from '../../../../modules/domain/project';
-import { RecentProjectsProvider } from '../recent-projects/context';
-import { MultiDocumentProjectProvider } from './multi-document-project-context';
-import { SingleDocumentProjectProvider } from './single-document-project-context';
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router';
 
-export type CurrentProjectContextType = {
-  projectType: ProjectType;
+import { AuthContext } from '../../../../modules/auth/browser';
+import {
+  createVersionedDocument,
+  DEFAULT_REMOTE_PROJECT_NAME,
+  deleteDocumentFromProject,
+  deleteDocumentsFromProject,
+  findDocumentInProject,
+  type ProjectStore,
+  type RemoteProjectInfo,
+  renameDirectoryInProject,
+  renameDocumentInProject,
+  urlEncodeProjectId,
+  VersionedProjectNotFoundErrorTag,
+} from '../../../../modules/domain/project';
+import { type ProjectId } from '../../../../modules/domain/project';
+import {
+  PRIMARY_RICH_TEXT_REPRESENTATION,
+  type ResolvedDocument,
+  richTextRepresentationExtensions,
+  VersionedDocumentNotFoundErrorTag,
+} from '../../../../modules/domain/rich-text';
+import {
+  EXPLORER_TREE_DIRECTORY,
+  EXPLORER_TREE_FILE,
+} from '../../../../modules/infrastructure/cross-platform';
+import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
+import {
+  type Directory,
+  type File,
+  FilesystemAlreadyExistsErrorTag,
+  filesystemItemTypes,
+  getDirectoryName,
+  removeExtension,
+  removePath,
+} from '../../../../modules/infrastructure/filesystem';
+import {
+  createErrorNotification,
+  createInfoNotification,
+  createSuccessNotification,
+  NotificationsContext,
+} from '../../../../modules/infrastructure/notifications/browser';
+import {
+  type Branch,
+  type ChangedDocument,
+  type ChangeId,
+  type Commit,
+  DEFAULT_BRANCH,
+  type MergeConflictInfo,
+  parseBranch,
+  type ResolvedArtifactId,
+  UNCOMMITTED_CHANGE_ID,
+  urlEncodeArtifactId,
+  VersionControlMergeConflictErrorTag,
+} from '../../../../modules/infrastructure/version-control';
+import { useNavigateToResolveConflicts } from '../../hooks';
+import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
+import {
+  type BrowserStorageProjectData,
+  PROJECT_BROWSER_STORAGE_KEY,
+} from './browser-storage';
+
+export type SelectedFileInfo = {
+  documentId: ResolvedArtifactId;
+  path: string | null;
 };
 
-export const CurrentProjectContext = createContext<CurrentProjectContextType>({
-  projectType: projectTypes.SINGLE_DOCUMENT_PROJECT,
+type CreateNewDocumentArgs = {
+  name?: string;
+  parentPath?: string;
+};
+
+type PendingNewDirectory = {
+  parentPath?: string;
+};
+
+export type ProjectContextType = {
+  loading: boolean;
+  projectId: ProjectId | null;
+  directory: Directory | null;
+  currentBranch: Branch | null;
+  versionedProjectStore: ProjectStore | null;
+  directoryTree: Array<Directory | File>;
+  refreshDirectoryTree: () => Promise<void>;
+  openDirectory: (cloneUrl?: string) => Promise<Directory>;
+  requestPermissionForSelectedDirectory: () => Promise<void>;
+  createNewDocument: (args?: CreateNewDocumentArgs) => Promise<{
+    projectId: ProjectId;
+    documentId: ResolvedArtifactId;
+    path: string;
+  }>;
+  findDocumentInProject: (args: {
+    projectId: ProjectId;
+    documentPath: string;
+    changeId?: ChangeId;
+  }) => Promise<ResolvedDocument>;
+  selectedFileInfo: SelectedFileInfo | null;
+  selectedFileName: string | null;
+  setSelectedFileInfo: (file: SelectedFileInfo) => void;
+  clearFileSelection: () => Promise<void>;
+  listBranches: () => Promise<Branch[]>;
+  createAndSwitchToBranch: (branchName: string) => Promise<void>;
+  switchToBranch: (branch: Branch) => Promise<void>;
+  isCreateBranchDialogOpen: boolean;
+  openCreateBranchDialog: () => void;
+  closeCreateBranchDialog: () => void;
+  deleteBranch: (branch: Branch) => Promise<void>;
+  mergeAndDeleteBranch: (branch: Branch) => Promise<void>;
+  abortMerge: () => Promise<void>;
+  refreshConflictsAndMergeIfPossible: () => Promise<void>;
+  resolveConflictByKeepingDocument: (
+    documentId: ResolvedArtifactId
+  ) => Promise<void>;
+  resolveConflictByDeletingDocument: (
+    documentId: ResolvedArtifactId
+  ) => Promise<void>;
+  branchToDelete: Branch | null;
+  openDeleteBranchDialog: (branch: Branch) => void;
+  closeDeleteBranchDialog: () => void;
+  supportsBranching: boolean;
+  supportsSync: boolean;
+  mergeConflictInfo: MergeConflictInfo | null;
+  remoteProject: RemoteProjectInfo | null;
+  addRemoteProject: (url: string) => Promise<void>;
+  remoteBranchInfo: Record<Branch, Commit['id']>;
+  pushToRemoteProject: () => Promise<void>;
+  pullFromRemoteProject: () => Promise<void>;
+  pulledUpstreamChanges: boolean;
+  onHandlePulledUpstreamChanges: () => void;
+  pendingNewDirectory: PendingNewDirectory | null;
+  startCreateDirectory: (parentPath?: string) => void;
+  createDirectory: (name: string) => Promise<void>;
+  cancelCreateDirectory: () => void;
+  filePathToDelete: string | null;
+  startDeleteDocument: (path: string) => void;
+  deleteDocument: (args: { relativePath: string }) => Promise<void>;
+  confirmDeleteDocument: () => void;
+  cancelDeleteDocument: () => void;
+  directoryPathToDelete: string | null;
+  startDeleteDirectory: (path: string) => void;
+  deleteDirectory: (args: { relativePath: string }) => Promise<void>;
+  confirmDeleteDirectory: () => void;
+  cancelDeleteDirectory: () => void;
+  filePathToRename: string | null;
+  startRenameDocument: (path: string) => void;
+  renameDocumentError: string | null;
+  clearRenameDocumentError: () => void;
+  renameDocument: (args: {
+    oldRelativePath: string;
+    newName: string;
+  }) => Promise<void>;
+  cancelRenameDocument: () => void;
+  directoryPathToRename: string | null;
+  startRenameDirectory: (path: string) => void;
+  renameDirectoryError: string | null;
+  clearRenameDirectoryError: () => void;
+  renameDirectory: (args: {
+    oldRelativePath: string;
+    newName: string;
+  }) => Promise<void>;
+  cancelRenameDirectory: () => void;
+  getProjectHistory: () => Promise<Commit[]>;
+  getProjectChangedDocuments: (
+    changeId: Commit['id']
+  ) => Promise<ChangedDocument[]>;
+  getProjectUncommittedChanges: () => Promise<ChangedDocument[]>;
+  commitChanges: (message: string) => Promise<void>;
+  commitDocumentChanges: (args: {
+    documentId: ResolvedArtifactId;
+    message: string;
+  }) => Promise<void>;
+  restoreDocumentChanges: (args: {
+    documentId: ResolvedArtifactId;
+    commit: Commit;
+    message?: string;
+  }) => Promise<Commit['id']>;
+};
+
+export const ProjectContext = createContext<ProjectContextType>({
+  loading: false,
+  projectId: null,
+  directory: null,
+  currentBranch: null,
+  versionedProjectStore: null,
+  directoryTree: [],
   // @ts-expect-error will get overriden below
-  createNewDocument: async () => {},
+  openDirectory: async () => null,
+  // @ts-expect-error will get overriden below
+  requestPermissionForSelectedDirectory: async () => null,
+  // @ts-expect-error will get overriden below
+  createNewDocument: () => null,
+  // @ts-expect-error will get overriden below
+  findDocumentInProject: async () => null,
+  selectedFileInfo: null,
+  selectedFileName: null,
+  setSelectedFileInfo: async () => {},
+  clearFileSelection: async () => {},
+  pendingNewDirectory: null,
+  startCreateDirectory: () => {},
+  // @ts-expect-error will get overriden below
+  createDirectory: async () => null,
+  cancelCreateDirectory: () => {},
+  filePathToDelete: null,
+  startDeleteDocument: () => {},
+  deleteDocument: async () => {},
+  confirmDeleteDocument: () => {},
+  cancelDeleteDocument: () => {},
+  directoryPathToDelete: null,
+  startDeleteDirectory: () => {},
+  deleteDirectory: async () => {},
+  confirmDeleteDirectory: () => {},
+  cancelDeleteDirectory: () => {},
+  filePathToRename: null,
+  startRenameDocument: () => {},
+  renameDocumentError: null,
+  clearRenameDocumentError: () => {},
+  renameDocument: async () => {},
+  cancelRenameDocument: () => {},
+  directoryPathToRename: null,
+  startRenameDirectory: () => {},
+  renameDirectoryError: null,
+  clearRenameDirectoryError: () => {},
+  renameDirectory: async () => {},
+  cancelRenameDirectory: () => {},
+  getProjectHistory: async () => [],
+  getProjectChangedDocuments: async () => [],
+  getProjectUncommittedChanges: async () => [],
+  commitChanges: async () => {},
+  commitDocumentChanges: async () => {},
+  // @ts-expect-error will get overriden below
+  restoreDocumentChanges: async () => null,
 });
 
-const ProjectProviderSelector = ({
-  projectType,
-  children,
-}: {
-  projectType: ProjectType;
-  children: React.ReactNode;
-}) =>
-  projectType === projectTypes.SINGLE_DOCUMENT_PROJECT ? (
-    <SingleDocumentProjectProvider>
-      <RecentProjectsProvider>{children}</RecentProjectsProvider>
-    </SingleDocumentProjectProvider>
-  ) : (
-    <MultiDocumentProjectProvider>{children}</MultiDocumentProjectProvider>
-  );
+const formatSkippedAssetNames = (skippedAssetPaths: string[]): string =>
+  skippedAssetPaths.map(removePath).join(', ');
 
-// The responsibilities of this provider are to:
-// 1. Pick the correct underlying provider (multi/single-document project)
-// 2. Expose a common interface between the two providers.
-// This way, the components can be more agnostic to what type of project they're using.
-const ProjectInterfaceProvider = ({
-  projectType,
+const buildSkippedAssetsOnCommitNotification = (
+  skippedAssetPaths: string[]
+) => {
+  const isSingular = skippedAssetPaths.length === 1;
+
+  return createInfoNotification({
+    title: 'Some images were not saved',
+    message: `${skippedAssetPaths.length} referenced ${
+      isSingular ? 'file is' : 'files are'
+    } missing from disk and ${
+      isSingular ? 'was' : 'were'
+    } left out of this commit: ${formatSkippedAssetNames(skippedAssetPaths)}`.slice(
+      0,
+      255
+    ),
+  });
+};
+
+const buildSkippedAssetsOnRestoreNotification = (
+  skippedAssetPaths: string[]
+) => {
+  const isSingular = skippedAssetPaths.length === 1;
+
+  return createInfoNotification({
+    title: 'Some images were not restored',
+    message: `${skippedAssetPaths.length} referenced ${
+      isSingular ? 'file' : 'files'
+    } could not be read from this version and ${
+      isSingular ? 'was' : 'were'
+    } left out: ${formatSkippedAssetNames(skippedAssetPaths)}`.slice(0, 255),
+  });
+};
+
+export const ProjectProvider = ({
   children,
 }: {
-  projectType: ProjectType;
   children: React.ReactNode;
 }) => {
+  const { isElectron } = useContext(ElectronContext);
+  const {
+    filesystem,
+    versionedDocumentStore,
+    projectStoreManager,
+    setVersionedDocumentStore,
+  } = useContext(InfrastructureAdaptersContext);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [projectId, setProjectId] = useState<ProjectId | null>(null);
+  const [directory, setDirectory] = useState<Directory | null>(null);
+  const [directoryTree, setDirectoryTree] = useState<Array<Directory | File>>(
+    []
+  );
+  const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
+  const [mergeConflictInfo, setMergeConflictInfo] =
+    useState<MergeConflictInfo | null>(null);
+  const { artifactId: documentIdInPath } = useParams();
+  const [versionedProjectStore, setVersionedProjectStore] =
+    useState<ProjectStore | null>(null);
+  const [selectedFileInfo, setSelectedFileInfo] =
+    useState<SelectedFileInfo | null>(null);
+  const selectedFileName = useMemo(
+    () =>
+      selectedFileInfo?.path
+        ? removeExtension(removePath(selectedFileInfo.path))
+        : null,
+    [selectedFileInfo?.path]
+  );
+  const [isCreateBranchDialogOpen, setIsCreateBranchDialogOpen] =
+    useState<boolean>(false);
+  const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
+  const { dispatchNotification } = useContext(NotificationsContext);
+  const [supportsBranching, setSupportsBranching] = useState<boolean>(false);
+  const { username, email } = useContext(AuthContext);
+  const [remoteProject, setRemoteProject] = useState<RemoteProjectInfo | null>(
+    null
+  );
+  const [remoteBranchInfo, setRemoteBranchInfo] = useState<
+    Record<Branch, Commit['id']>
+  >({});
+  const [pulledUpstreamChanges, setPulledUpstreamChanges] =
+    useState<boolean>(false);
+  const [pendingNewDirectory, setPendingNewDirectory] =
+    useState<PendingNewDirectory | null>(null);
+  const [filePathToDelete, setFileToDelete] = useState<string | null>(null);
+  const [directoryPathToDelete, setDirectoryToDelete] = useState<string | null>(
+    null
+  );
+  const [filePathToRename, setDocumentPathToRename] = useState<string | null>(
+    null
+  );
+  const [renameDocumentError, setRenameDocumentError] = useState<string | null>(
+    null
+  );
+  const [directoryPathToRename, setDirectoryPathToRename] = useState<
+    string | null
+  >(null);
+  const [renameDirectoryError, setRenameDirectoryError] = useState<
+    string | null
+  >(null);
+
+  const getProjectHistory = useCallback(async () => {
+    if (!versionedProjectStore || !projectId || !currentBranch) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot get project history.'
+      );
+    }
+    return Effect.runPromise(
+      versionedProjectStore.getProjectCommitHistory({
+        projectId,
+        branch: currentBranch,
+      })
+    );
+  }, [versionedProjectStore, projectId, currentBranch]);
+
+  const getProjectChangedDocuments = useCallback(
+    async (changeId: Commit['id']) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot get changed documents.'
+        );
+      }
+      return Effect.runPromise(
+        versionedProjectStore.getChangedDocumentsAtChange({
+          projectId,
+          changeId,
+        })
+      );
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const getProjectUncommittedChanges = useCallback(async () => {
+    if (!versionedProjectStore || !projectId) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot get uncommitted changes.'
+      );
+    }
+    return Effect.runPromise(
+      versionedProjectStore.getChangedDocumentsAtChange({
+        projectId,
+        changeId: UNCOMMITTED_CHANGE_ID,
+      })
+    );
+  }, [versionedProjectStore, projectId]);
+
+  const commitChanges = useCallback(
+    async (message: string) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot commit changes.'
+        );
+      }
+      await Effect.runPromise(
+        versionedProjectStore.commitChanges({ projectId, message })
+      );
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const commitDocumentChanges = useCallback(
+    async ({
+      documentId,
+      message,
+    }: {
+      documentId: ResolvedArtifactId;
+      message: string;
+    }) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot commit changes.'
+        );
+      }
+      const { skippedAssetPaths } = await Effect.runPromise(
+        versionedProjectStore.commitDocumentChanges({
+          projectId,
+          documentId,
+          message,
+        })
+      );
+
+      if (skippedAssetPaths.length > 0) {
+        dispatchNotification(
+          buildSkippedAssetsOnCommitNotification(skippedAssetPaths)
+        );
+      }
+    },
+    [versionedProjectStore, projectId, dispatchNotification]
+  );
+
+  const restoreDocumentChanges = useCallback(
+    async ({
+      documentId,
+      commit,
+      message,
+    }: {
+      documentId: ResolvedArtifactId;
+      commit: Commit;
+      message?: string;
+    }) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot restore document.'
+        );
+      }
+      const { commitId, skippedAssetPaths } = await Effect.runPromise(
+        versionedProjectStore.restoreDocumentChanges({
+          projectId,
+          documentId,
+          commit,
+          message,
+        })
+      );
+
+      if (skippedAssetPaths.length > 0) {
+        dispatchNotification(
+          buildSkippedAssetsOnRestoreNotification(skippedAssetPaths)
+        );
+      }
+
+      return commitId;
+    },
+    [versionedProjectStore, projectId, dispatchNotification]
+  );
+
+  const startRenameDocument = useCallback((path: string) => {
+    setDocumentPathToRename(path);
+    setRenameDocumentError(null);
+  }, []);
+
+  const startRenameDirectory = useCallback((path: string) => {
+    setDirectoryPathToRename(path);
+    setRenameDirectoryError(null);
+  }, []);
+
+  const navigate = useNavigate();
+  const location = useLocation();
+  const navigateToResolveMergeConflicts = useNavigateToResolveConflicts();
+
+  useEffect(() => {
+    const getSelectedDirectory = async () => {
+      // Check if we have a project ID in the browser storage
+      const browserStorageBrowserDataValue = localStorage.getItem(
+        PROJECT_BROWSER_STORAGE_KEY
+      );
+      const browserStorageProjectData = browserStorageBrowserDataValue
+        ? (JSON.parse(
+            browserStorageBrowserDataValue
+          ) as BrowserStorageProjectData)
+        : null;
+
+      if (
+        browserStorageProjectData?.directoryPath &&
+        browserStorageProjectData?.projectId
+      ) {
+        setLoading(true);
+
+        const {
+          versionedDocumentStore: documentStore,
+          versionedProjectStore: projectStore,
+          directory,
+          currentBranch,
+          mergeConflictInfo,
+          remoteProjects,
+        } = await Effect.runPromise(
+          projectStoreManager.openProjectById({
+            filesystem,
+          })({
+            projectId: browserStorageProjectData.projectId,
+            directoryPath: browserStorageProjectData.directoryPath,
+            username,
+            email,
+          })
+        );
+
+        setProjectId(browserStorageProjectData.projectId);
+        setDirectory(directory);
+        setCurrentBranch(currentBranch);
+        setMergeConflictInfo(mergeConflictInfo);
+        setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
+        setVersionedProjectStore(projectStore);
+        setVersionedDocumentStore(documentStore);
+
+        setLoading(false);
+
+        if (mergeConflictInfo) {
+          navigateToResolveMergeConflicts({
+            projectId: browserStorageProjectData.projectId,
+            mergeConflictInfo,
+          });
+        } else {
+          // Only redirect to /artifacts if the user isn't already on a
+          // project subroute (e.g. /history). This effect runs on mount,
+          // so when navigating from /settings back to project routes the
+          // current location already reflects the target subroute.
+          const projectBase = `/projects/${urlEncodeProjectId(browserStorageProjectData.projectId)}`;
+          const isAlreadyOnProjectSubroute = location.pathname.startsWith(
+            `${projectBase}/`
+          );
+
+          if (!isAlreadyOnProjectSubroute) {
+            navigate(`${projectBase}/artifacts`);
+          }
+        }
+      }
+    };
+
+    getSelectedDirectory();
+  }, []);
+
+  const refreshDirectoryTree = useCallback(async () => {
+    if (!directory || directory.permissionState !== 'granted') {
+      return;
+    }
+
+    const dirTree = await Effect.runPromise(
+      filesystem.listDirectoryTree({
+        path: directory.path,
+        extensions: [
+          richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
+        ],
+        useRelativePathTo: directory.path,
+      })
+    );
+    setDirectoryTree(dirTree);
+  }, [directory, filesystem]);
+
+  useEffect(() => {
+    refreshDirectoryTree();
+  }, [refreshDirectoryTree, currentBranch, pulledUpstreamChanges]);
+
+  useEffect(() => {
+    const navigateToProjectsList = () => {
+      const newUrl = `/projects`;
+      setPulledUpstreamChanges(false);
+      navigate(newUrl);
+    };
+
+    const reloadSelectedDocumentOrReset = async ({
+      projId,
+      selectedFilePath,
+    }: {
+      projId: ProjectId;
+      selectedFilePath: string;
+    }) => {
+      try {
+        const doc = await handleFindDocumentInProject({
+          projectId: projId,
+          documentPath: selectedFilePath,
+        });
+
+        setSelectedFileInfo({ documentId: doc.id, path: selectedFilePath });
+
+        const newUrl = `/projects/${urlEncodeProjectId(projId)}/artifacts/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(selectedFilePath)}`;
+        setPulledUpstreamChanges(false);
+        navigate(newUrl);
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (err) {
+        // TODO: Only do this on NotFoundError.
+        // TODO: Navigate to the specific project route (doesn't exist at the time of writing) this.
+        navigateToProjectsList();
+      }
+    };
+
+    if (projectId && selectedFileInfo?.path && !mergeConflictInfo) {
+      if (selectedFileInfo) {
+        reloadSelectedDocumentOrReset({
+          projId: projectId,
+          selectedFilePath: selectedFileInfo.path,
+        });
+      } else {
+        // TODO: Navigate to the specific project route (doesn't exist at the time of writing) this.
+        navigateToProjectsList();
+      }
+    }
+  }, [currentBranch, pulledUpstreamChanges, mergeConflictInfo]);
+
+  useEffect(() => {
+    if (!documentIdInPath) {
+      clearFileSelection();
+    }
+  }, [documentIdInPath]);
+
+  const requestPermissionForDirectory = async (dir: Directory) =>
+    Effect.runPromise(filesystem.requestPermissionForDirectory(dir.path));
+
+  const requestPermissionForSelectedDirectory = async () => {
+    if (!directory) {
+      throw new Error(
+        'There is no current directory to request permissions for'
+      );
+    }
+
+    const permissionState = await requestPermissionForDirectory(directory);
+
+    if (directory) {
+      setDirectory({ ...directory, permissionState });
+    }
+  };
+
+  useEffect(() => {
+    const fetchRemoteBranchInfo = async ({
+      versionedProjectStore,
+      projectId,
+      remoteProject,
+    }: {
+      versionedProjectStore: ProjectStore;
+      projectId: ProjectId;
+      remoteProject: RemoteProjectInfo;
+    }) => {
+      const branchInfo = await Effect.runPromise(
+        versionedProjectStore.getRemoteBranchInfo({
+          projectId,
+          remoteName: remoteProject.name,
+        })
+      );
+
+      setRemoteBranchInfo(branchInfo);
+    };
+
+    if (versionedProjectStore && projectId && remoteProject) {
+      fetchRemoteBranchInfo({
+        versionedProjectStore,
+        projectId,
+        remoteProject,
+      });
+    }
+  }, [versionedProjectStore, projectId, remoteProject]);
+
+  const handleOpenDirectory = useCallback(
+    async (cloneUrl?: string) => {
+      setLoading(true);
+
+      const {
+        versionedDocumentStore: documentStore,
+        versionedProjectStore: projectStore,
+        projectId: projId,
+        directory: dir,
+        currentBranch,
+        mergeConflictInfo,
+        remoteProjects,
+      } = await Effect.runPromise(
+        projectStoreManager.openOrCreateProject({
+          filesystem,
+        })({ username, email, cloneUrl })
+      );
+
+      setProjectId(projId);
+      setDirectory(dir);
+      setCurrentBranch(currentBranch);
+      setMergeConflictInfo(mergeConflictInfo);
+      setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
+      setVersionedProjectStore(projectStore);
+      setVersionedDocumentStore(documentStore);
+
+      localStorage.setItem(
+        PROJECT_BROWSER_STORAGE_KEY,
+        JSON.stringify({
+          directoryName: dir.name,
+          directoryPath: dir.path,
+          projectId: projId,
+        })
+      );
+
+      setLoading(false);
+
+      if (mergeConflictInfo) {
+        navigateToResolveMergeConflicts({
+          projectId: projId,
+          mergeConflictInfo,
+        });
+      } else {
+        navigate(`/projects/${urlEncodeProjectId(projId)}/artifacts`);
+      }
+
+      return dir;
+    },
+    [projectStoreManager, username, email]
+  );
+
+  const handleCreateNewDocument = useCallback(
+    async (args?: CreateNewDocumentArgs) => {
+      if (!versionedDocumentStore || !versionedProjectStore || !projectId) {
+        throw new Error(
+          'Cannot create document. Document and project store have not been initialized yet.'
+        );
+      }
+
+      const { documentId: newDocumentId, filePath: newFilePath } =
+        await Effect.runPromise(
+          pipe(
+            args?.parentPath && directory
+              ? pipe(
+                  filesystem.getAbsolutePath({
+                    path: args.parentPath,
+                    dirPath: directory.path,
+                  }),
+                  Effect.map(
+                    (parentAbsolutePath) =>
+                      ({
+                        type: filesystemItemTypes.DIRECTORY,
+                        path: parentAbsolutePath,
+                        name: getDirectoryName(parentAbsolutePath),
+                        permissionState: 'granted',
+                      }) as Directory | null
+                  )
+                )
+              : Effect.succeed(null),
+            Effect.flatMap((parentDirectory) =>
+              createVersionedDocument({
+                createNewFile: filesystem.createNewFile,
+                getRelativePath: filesystem.getRelativePath,
+                createDocument: versionedDocumentStore.createDocument,
+                addDocumentToProject:
+                  versionedProjectStore.addDocumentToProject,
+              })({
+                projectId,
+                content: null,
+                projectDirectory: directory,
+                parentDirectory,
+              })
+            )
+          )
+        );
+
+      // Refresh directory files if a directory is selected
+      if (
+        directory &&
+        directory.permissionState === 'granted' &&
+        directory.path
+      ) {
+        const dirTree = await Effect.runPromise(
+          filesystem.listDirectoryTree({
+            path: directory.path,
+            extensions: [
+              richTextRepresentationExtensions[
+                PRIMARY_RICH_TEXT_REPRESENTATION
+              ],
+            ],
+            useRelativePathTo: directory.path,
+          })
+        );
+        setDirectoryTree(dirTree);
+      }
+
+      return { projectId, documentId: newDocumentId, path: newFilePath };
+    },
+    [versionedDocumentStore, versionedProjectStore]
+  );
+
+  const handleCreateDirectory = useCallback(
+    (name: string) => {
+      if (!directory || !pendingNewDirectory) return Promise.resolve();
+
+      return Effect.runPromise(
+        pipe(
+          pendingNewDirectory.parentPath
+            ? filesystem.getAbsolutePath({
+                path: pendingNewDirectory.parentPath,
+                dirPath: directory.path,
+              })
+            : Effect.succeed(directory.path),
+          Effect.flatMap((parentAbsolutePath) =>
+            filesystem.createDirectory({
+              name,
+              parentDirectory: {
+                type: filesystemItemTypes.DIRECTORY,
+                path: parentAbsolutePath,
+                name,
+                permissionState: 'granted' as PermissionState,
+              },
+            })
+          ),
+          Effect.tap(() =>
+            directory.permissionState === 'granted' && directory.path
+              ? pipe(
+                  filesystem.listDirectoryTree({
+                    path: directory.path,
+                    extensions: [
+                      richTextRepresentationExtensions[
+                        PRIMARY_RICH_TEXT_REPRESENTATION
+                      ],
+                    ],
+                    useRelativePathTo: directory.path,
+                  }),
+                  Effect.map((dirTree) => setDirectoryTree(dirTree))
+                )
+              : Effect.void
+          ),
+          Effect.tap(() => Effect.sync(() => setPendingNewDirectory(null))),
+          Effect.asVoid
+        )
+      );
+    },
+    [filesystem, directory, pendingNewDirectory]
+  );
+
+  const startCreateDirectory = useCallback(
+    (parentPath?: string) => setPendingNewDirectory({ parentPath }),
+    []
+  );
+
+  const cancelCreateDirectory = useCallback(() => {
+    setPendingNewDirectory(null);
+  }, []);
+
+  const handleDeleteDocument = useCallback(
+    async ({ relativePath }: { relativePath: string }) => {
+      if (!directory) {
+        return;
+      }
+
+      if (!versionedDocumentStore || !versionedProjectStore || !projectId) {
+        throw new Error(
+          'Cannot delete file. Document and project store have not been initialized yet.'
+        );
+      }
+
+      try {
+        await Effect.runPromise(
+          pipe(
+            findDocumentInProject({
+              findDocumentById: versionedDocumentStore.findDocumentById,
+              findDocumentInProjectStore:
+                versionedProjectStore.findDocumentInProject,
+            })({
+              projectId,
+              documentPath: relativePath,
+            }),
+            Effect.flatMap((doc) =>
+              deleteDocumentFromProject({
+                deleteDocument: versionedDocumentStore.deleteDocument,
+                deleteDocumentFromProjectStore:
+                  versionedProjectStore.deleteDocumentFromProject,
+              })({
+                documentId: doc.id,
+                projectId,
+                deleteFromFilesystem: true,
+              })
+            )
+          )
+        );
+
+        // Refresh directory tree
+        if (directory.permissionState === 'granted' && directory.path) {
+          const dirTree = await Effect.runPromise(
+            filesystem.listDirectoryTree({
+              path: directory.path,
+              extensions: [
+                richTextRepresentationExtensions[
+                  PRIMARY_RICH_TEXT_REPRESENTATION
+                ],
+              ],
+              useRelativePathTo: directory.path,
+            })
+          );
+          setDirectoryTree(dirTree);
+        }
+
+        // If the deleted file was currently selected, clear selection and navigate away
+        if (selectedFileInfo?.path === relativePath) {
+          await clearFileSelection();
+          navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
+        }
+
+        setFileToDelete(null);
+      } catch (err) {
+        console.error(err);
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Delete File Error',
+            message:
+              'An error happened when trying to delete the file. Please try again.',
+          })
+        );
+        setFileToDelete(null);
+      }
+    },
+    [
+      versionedDocumentStore,
+      versionedProjectStore,
+      projectId,
+      directory,
+      filesystem,
+      selectedFileInfo,
+      navigate,
+      dispatchNotification,
+    ]
+  );
+
+  const handleDeleteDirectory = useCallback(
+    ({ relativePath }: { relativePath: string }): Promise<void> => {
+      if (!directory) {
+        return Promise.resolve();
+      }
+
+      if (!versionedDocumentStore || !versionedProjectStore || !projectId) {
+        throw new Error(
+          'Cannot delete folder. Document and project store have not been initialized yet.'
+        );
+      }
+
+      return Effect.runPromise(
+        pipe(
+          filesystem.getAbsolutePath({
+            path: relativePath,
+            dirPath: directory.path,
+          }),
+          Effect.flatMap((absoluteDirPath) =>
+            pipe(
+              filesystem.listDirectoryFiles({
+                path: absoluteDirPath,
+                recursive: true,
+                extensions: [
+                  richTextRepresentationExtensions[
+                    PRIMARY_RICH_TEXT_REPRESENTATION
+                  ],
+                ],
+              }),
+              // Find only tracked documents (untracked files are silently skipped)
+              Effect.flatMap((files) =>
+                Effect.forEach(files, (file) =>
+                  pipe(
+                    filesystem.getRelativePath({
+                      path: file.path,
+                      relativeTo: directory.path,
+                    }),
+                    Effect.flatMap((fileRelativePath) =>
+                      pipe(
+                        findDocumentInProject({
+                          findDocumentById:
+                            versionedDocumentStore.findDocumentById,
+                          findDocumentInProjectStore:
+                            versionedProjectStore.findDocumentInProject,
+                        })({ projectId, documentPath: fileRelativePath }),
+                        Effect.map((doc) => doc.id),
+                        Effect.catchTag(VersionedProjectNotFoundErrorTag, () =>
+                          Effect.succeed(null)
+                        ),
+                        Effect.catchTag(VersionedDocumentNotFoundErrorTag, () =>
+                          Effect.succeed(null)
+                        )
+                      )
+                    )
+                  )
+                )
+              ),
+              Effect.map((ids) =>
+                ids.filter((id): id is NonNullable<typeof id> => id !== null)
+              ),
+              Effect.flatMap((documentIds) =>
+                Effect.if(documentIds.length > 0, {
+                  onTrue: () =>
+                    deleteDocumentsFromProject({
+                      deleteDocument: versionedDocumentStore.deleteDocument,
+                      deleteDocumentsFromProjectStore:
+                        versionedProjectStore.deleteDocumentsFromProject,
+                      deleteDirectory: filesystem.deleteDirectory,
+                    })({
+                      documentIds,
+                      projectId,
+                      deleteFromFilesystem: true,
+                      directoryPath: absoluteDirPath,
+                    }),
+                  // None of the directory documents is tracked in version control.
+                  // Just delete the directory in this case.
+                  onFalse: () =>
+                    filesystem.deleteDirectory({ path: absoluteDirPath }),
+                })
+              ),
+              // Refresh directory tree
+              Effect.tap(() =>
+                directory.permissionState === 'granted' && directory.path
+                  ? pipe(
+                      filesystem.listDirectoryTree({
+                        path: directory.path,
+                        extensions: [
+                          richTextRepresentationExtensions[
+                            PRIMARY_RICH_TEXT_REPRESENTATION
+                          ],
+                        ],
+                        useRelativePathTo: directory.path,
+                      }),
+                      Effect.map((dirTree) => setDirectoryTree(dirTree))
+                    )
+                  : Effect.void
+              ),
+              // If the currently selected file was inside the deleted directory,
+              // clear selection and navigate away
+              Effect.tap(
+                selectedFileInfo?.path
+                  ? pipe(
+                      filesystem.isDescendantPath({
+                        parent: relativePath,
+                        possibleDescendant: selectedFileInfo.path,
+                      }),
+                      Effect.flatMap((isDescendant) =>
+                        isDescendant
+                          ? Effect.sync(() => {
+                              setSelectedFileInfo(null);
+                              navigate(
+                                `/projects/${urlEncodeProjectId(projectId)}/artifacts`
+                              );
+                            })
+                          : Effect.void
+                      )
+                    )
+                  : Effect.void
+              ),
+              Effect.tap(() => Effect.sync(() => setDirectoryToDelete(null)))
+            )
+          )
+        )
+      ).catch((err) => {
+        console.error(err);
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Delete Folder Error',
+            message:
+              'An error happened when trying to delete the folder. Please try again.',
+          })
+        );
+        setDirectoryToDelete(null);
+      });
+    },
+    [
+      versionedDocumentStore,
+      versionedProjectStore,
+      projectId,
+      directory,
+      filesystem,
+      selectedFileInfo,
+      navigate,
+      dispatchNotification,
+    ]
+  );
+
+  const handleConfirmDeleteDocument = useCallback(() => {
+    if (filePathToDelete) {
+      handleDeleteDocument({ relativePath: filePathToDelete });
+    }
+  }, [filePathToDelete, handleDeleteDocument]);
+
+  const handleCancelDeleteDocument = useCallback(
+    () => setFileToDelete(null),
+    []
+  );
+
+  const handleConfirmDeleteDirectory = useCallback(() => {
+    if (directoryPathToDelete) {
+      handleDeleteDirectory({ relativePath: directoryPathToDelete });
+    }
+  }, [directoryPathToDelete, handleDeleteDirectory]);
+
+  const handleCancelDeleteDirectory = useCallback(
+    () => setDirectoryToDelete(null),
+    []
+  );
+
+  const handleRenameDocument = useCallback(
+    async ({
+      oldRelativePath,
+      newName,
+    }: {
+      oldRelativePath: string;
+      newName: string;
+    }) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Cannot rename document. The project store has not been initialized yet.'
+        );
+      }
+
+      if (!directory || !newName.trim()) {
+        return;
+      }
+
+      try {
+        const result = await Effect.runPromise(
+          pipe(
+            renameDocumentInProject({
+              rename: filesystem.rename,
+              renameDocumentInProjectStore:
+                versionedProjectStore.renameDocumentInProject,
+              getAbsolutePath: filesystem.getAbsolutePath,
+              getRenamedPath: filesystem.getRenamedPath,
+            })({
+              projectId,
+              oldDocumentPath: oldRelativePath,
+              newName,
+              renameInFilesystem: true,
+              projectDirectoryPath: directory.path,
+            }),
+            Effect.map(({ newDocumentPath }) => ({
+              collision: false,
+              newDocumentPath,
+            })),
+            Effect.catchTag(FilesystemAlreadyExistsErrorTag, () =>
+              Effect.succeed({ collision: true, newDocumentPath: '' })
+            )
+          )
+        );
+
+        if (result.collision) {
+          setRenameDocumentError('A document with this name already exists');
+          return;
+        }
+
+        const newRelativePath = result.newDocumentPath;
+
+        // Refresh directory tree
+        if (directory.permissionState === 'granted' && directory.path) {
+          const dirTree = await Effect.runPromise(
+            filesystem.listDirectoryTree({
+              path: directory.path,
+              extensions: [
+                richTextRepresentationExtensions[
+                  PRIMARY_RICH_TEXT_REPRESENTATION
+                ],
+              ],
+              useRelativePathTo: directory.path,
+            })
+          );
+          setDirectoryTree(dirTree);
+        }
+
+        // If the renamed file was currently selected, update selection to new path
+        if (selectedFileInfo?.path === oldRelativePath) {
+          try {
+            const doc = await handleFindDocumentInProject({
+              projectId,
+              documentPath: newRelativePath,
+            });
+            handleSetSelectedFileInfo({
+              documentId: doc.id,
+              path: newRelativePath,
+            });
+            navigate(
+              `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(newRelativePath)}`
+            );
+          } catch {
+            // Document not found at new path — clear selection
+            await clearFileSelection();
+            navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
+          }
+        }
+
+        setDocumentPathToRename(null);
+        setRenameDocumentError(null);
+      } catch (err) {
+        console.error(err);
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Rename Document Error',
+            message:
+              'An error happened when trying to rename the document. Please try again.',
+          })
+        );
+        setDocumentPathToRename(null);
+        setRenameDocumentError(null);
+      }
+    },
+    [
+      versionedProjectStore,
+      projectId,
+      directory,
+      filesystem,
+      selectedFileInfo,
+      navigate,
+      dispatchNotification,
+    ]
+  );
+
+  const clearRenameDocumentError = useCallback(() => {
+    setRenameDocumentError(null);
+  }, []);
+
+  const cancelRenameDocument = useCallback(() => {
+    setDocumentPathToRename(null);
+    setRenameDocumentError(null);
+  }, []);
+
+  const handleRenameDirectory = useCallback(
+    async ({
+      oldRelativePath,
+      newName,
+    }: {
+      oldRelativePath: string;
+      newName: string;
+    }) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Cannot rename directory. The project store has not been initialized yet.'
+        );
+      }
+
+      if (!directory || !newName.trim()) {
+        return;
+      }
+
+      try {
+        const result = await Effect.runPromise(
+          pipe(
+            renameDirectoryInProject({
+              rename: filesystem.rename,
+              renameDocumentsInProjectStore:
+                versionedProjectStore.renameDocumentsInProject,
+              getAbsolutePath: filesystem.getAbsolutePath,
+              listDirectoryFiles: filesystem.listDirectoryFiles,
+              getRelativePath: filesystem.getRelativePath,
+              getRenamedPath: filesystem.getRenamedPath,
+            })({
+              projectId,
+              oldDirectoryPath: oldRelativePath,
+              newDirectoryName: newName,
+              projectDirectoryPath: directory.path,
+            }),
+            Effect.map(({ newDirectoryPath }) => ({
+              collision: false,
+              newDirectoryPath,
+            })),
+            Effect.catchTag(FilesystemAlreadyExistsErrorTag, () =>
+              Effect.succeed({ collision: true, newDirectoryPath: '' })
+            )
+          )
+        );
+
+        if (result.collision) {
+          setRenameDirectoryError('A folder with this name already exists');
+          return;
+        }
+
+        const newDirectoryPath = result.newDirectoryPath;
+
+        // Refresh directory tree
+        if (directory.permissionState === 'granted' && directory.path) {
+          const dirTree = await Effect.runPromise(
+            filesystem.listDirectoryTree({
+              path: directory.path,
+              extensions: [
+                richTextRepresentationExtensions[
+                  PRIMARY_RICH_TEXT_REPRESENTATION
+                ],
+              ],
+              useRelativePathTo: directory.path,
+            })
+          );
+          setDirectoryTree(dirTree);
+        }
+
+        // If the currently-selected file was inside the renamed directory, update selection
+        if (
+          selectedFileInfo?.path &&
+          selectedFileInfo.path.startsWith(oldRelativePath)
+        ) {
+          const newFilePath =
+            newDirectoryPath +
+            selectedFileInfo.path.slice(oldRelativePath.length);
+          try {
+            const doc = await handleFindDocumentInProject({
+              projectId,
+              documentPath: newFilePath,
+            });
+            handleSetSelectedFileInfo({
+              documentId: doc.id,
+              path: newFilePath,
+            });
+            navigate(
+              `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(newFilePath)}`
+            );
+          } catch {
+            await clearFileSelection();
+            navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
+          }
+        }
+
+        setDirectoryPathToRename(null);
+        setRenameDirectoryError(null);
+      } catch (err) {
+        console.error(err);
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Rename Folder Error',
+            message:
+              'An error happened when trying to rename the folder. Please try again.',
+          })
+        );
+        setDirectoryPathToRename(null);
+        setRenameDirectoryError(null);
+      }
+    },
+    [
+      versionedProjectStore,
+      projectId,
+      directory,
+      filesystem,
+      selectedFileInfo,
+      navigate,
+      dispatchNotification,
+    ]
+  );
+
+  const clearRenameDirectoryError = useCallback(() => {
+    setRenameDirectoryError(null);
+  }, []);
+
+  const cancelRenameDirectory = useCallback(() => {
+    setDirectoryPathToRename(null);
+    setRenameDirectoryError(null);
+  }, []);
+
+  useEffect(() => {
+    if (!isElectron) return;
+
+    const unsubscribe = window.electronAPI.onContextMenuAction(
+      async (action) => {
+        if (
+          action.context === EXPLORER_TREE_DIRECTORY &&
+          action.action.type === 'NEW_FILE'
+        ) {
+          const {
+            documentId,
+            projectId: projId,
+            path: filePath,
+          } = await handleCreateNewDocument({
+            parentPath: action.action.parentPath,
+          });
+
+          handleSetSelectedFileInfo({ documentId, path: filePath });
+          navigate(
+            `/projects/${urlEncodeProjectId(projId)}/artifacts/${urlEncodeArtifactId(documentId)}?path=${encodeURIComponent(filePath)}`
+          );
+        }
+
+        if (
+          action.context === EXPLORER_TREE_DIRECTORY &&
+          action.action.type === 'NEW_DIRECTORY'
+        ) {
+          setPendingNewDirectory({ parentPath: action.action.parentPath });
+        }
+
+        if (
+          action.context === EXPLORER_TREE_FILE &&
+          action.action.type === 'DELETE'
+        ) {
+          setFileToDelete(action.action.path);
+        }
+
+        if (
+          action.context === EXPLORER_TREE_DIRECTORY &&
+          action.action.type === 'DELETE'
+        ) {
+          setDirectoryToDelete(action.action.path);
+        }
+
+        if (
+          action.context === EXPLORER_TREE_FILE &&
+          action.action.type === 'RENAME'
+        ) {
+          setDocumentPathToRename(action.action.path);
+          setRenameDocumentError(null);
+        }
+
+        if (
+          action.context === EXPLORER_TREE_DIRECTORY &&
+          action.action.type === 'RENAME'
+        ) {
+          setDirectoryPathToRename(action.action.path);
+          setRenameDirectoryError(null);
+        }
+      }
+    );
+
+    return unsubscribe;
+  }, [isElectron, handleCreateNewDocument, navigate]);
+
+  useEffect(() => {
+    if (versionedProjectStore) {
+      setSupportsBranching(versionedProjectStore.supportsBranching);
+    }
+  }, [versionedProjectStore]);
+
+  const handleFindDocumentInProject = async (args: {
+    projectId: ProjectId;
+    documentPath: string;
+    changeId?: ChangeId;
+  }) => {
+    if (!versionedDocumentStore || !versionedProjectStore) {
+      throw new Error(
+        'Cannot create document. Document and project store have not been initialized yet.'
+      );
+    }
+
+    return Effect.runPromise(
+      findDocumentInProject({
+        findDocumentById: versionedDocumentStore.findDocumentById,
+        findDocumentInProjectStore: versionedProjectStore.findDocumentInProject,
+      })({
+        projectId: args.projectId,
+        documentPath: args.documentPath,
+        changeId: args.changeId,
+      })
+    );
+  };
+
+  const clearFileSelection = async () => {
+    setSelectedFileInfo(null);
+  };
+
+  const handleSetSelectedFileInfo = async ({
+    documentId,
+    path,
+  }: SelectedFileInfo) => {
+    if (isElectron) {
+      window.electronAPI.sendCurrentDocumentId(documentId);
+    }
+
+    setSelectedFileInfo({
+      documentId,
+      path: path,
+    });
+  };
+
+  const handleListBranches = useCallback(async () => {
+    if (!versionedProjectStore || !projectId) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot list branches'
+      );
+    }
+
+    const branches = await Effect.runPromise(
+      versionedProjectStore.listBranches({ projectId })
+    );
+
+    return branches;
+  }, [versionedProjectStore, projectId]);
+
+  const handleCreateAndSwitchToBranch = useCallback(
+    async (branchName: string) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot create branch.'
+        );
+      }
+
+      let branch: Branch;
+      try {
+        branch = parseBranch(branchName);
+      } catch (err) {
+        console.error(err);
+        throw new Error('Invalid branch name');
+      }
+
+      await Effect.runPromise(
+        versionedProjectStore.createAndSwitchToBranch({ projectId, branch })
+      );
+
+      setCurrentBranch(branch);
+      setIsCreateBranchDialogOpen(false);
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const handleSwitchToBranch = useCallback(
+    async (branch: Branch) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot create branch.'
+        );
+      }
+
+      await Effect.runPromise(
+        versionedProjectStore.switchToBranch({ projectId, branch })
+      );
+
+      setCurrentBranch(branch);
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const handleOpenCreateBranchDialog = useCallback(() => {
+    setIsCreateBranchDialogOpen(true);
+  }, []);
+
+  const handleCloseCreateBranchDialog = useCallback(() => {
+    setIsCreateBranchDialogOpen(false);
+  }, []);
+
+  const handleDeleteBranch = useCallback(
+    async (branch: Branch) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot delete branch.'
+        );
+      }
+
+      const { currentBranch: resultingCurrentBranch } = await Effect.runPromise(
+        versionedProjectStore.deleteBranch({ projectId, branch })
+      );
+
+      setBranchToDelete(null);
+      setCurrentBranch(resultingCurrentBranch);
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const handleMergeAndDeleteBranch = useCallback(
+    async (branch: Branch) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot delete branch.'
+        );
+      }
+
+      const { notification, mergeConflictInfo: conflictInfo } =
+        await Effect.runPromise(
+          pipe(
+            pipe(
+              versionedProjectStore.mergeAndDeleteBranch({
+                projectId,
+                from: branch,
+                into: DEFAULT_BRANCH as Branch,
+              }),
+              Effect.map((lastCommitId) => ({
+                result: lastCommitId,
+                notification: null,
+                mergeConflictInfo: null,
+              }))
+            ),
+            Effect.catchTag(VersionControlMergeConflictErrorTag, (err) =>
+              Effect.succeed({
+                result: null,
+                notification: null,
+                mergeConflictInfo: err.data,
+              })
+            ),
+            Effect.catchAll((err) => {
+              console.error(err);
+              const notification = createErrorNotification({
+                title: 'Merge Error',
+                message: `An error happened when trying to merge "${branch}" into "${DEFAULT_BRANCH}" branch`,
+              });
+
+              return Effect.succeed({
+                result: null,
+                notification,
+                mergeConflictInfo: null,
+              });
+            })
+          )
+        );
+
+      if (notification) {
+        dispatchNotification(notification);
+      }
+
+      setCurrentBranch(DEFAULT_BRANCH as Branch);
+
+      if (conflictInfo) {
+        setMergeConflictInfo(conflictInfo);
+        navigateToResolveMergeConflicts({
+          projectId,
+          mergeConflictInfo: conflictInfo,
+        });
+      }
+    },
+    [versionedProjectStore, projectId, navigateToResolveMergeConflicts]
+  );
+
+  const handleAbortMerge = useCallback(async () => {
+    if (!versionedProjectStore || !projectId) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot abort merge.'
+      );
+    }
+
+    const { notification } = await Effect.runPromise(
+      pipe(
+        pipe(
+          versionedProjectStore.abortMerge({
+            projectId,
+          }),
+          Effect.map(() => ({
+            notification: null,
+          }))
+        ),
+        Effect.catchAll((err) => {
+          console.error(err);
+          const notification = createErrorNotification({
+            title: 'Abort Merge Error',
+            message:
+              'An error happened when trying to abort the merge operation. Please contact us for support.',
+          });
+
+          return Effect.succeed({
+            notification,
+          });
+        })
+      )
+    );
+
+    if (notification) {
+      dispatchNotification(notification);
+    } else {
+      navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
+    }
+  }, [versionedProjectStore, projectId]);
+
+  const handleRefreshConflictsAndMergeIfPossible = useCallback(async () => {
+    if (!versionedProjectStore || !projectId) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot get merge conflict info.'
+      );
+    }
+
+    const { notification, conflictInfo } = await Effect.runPromise(
+      pipe(
+        pipe(
+          versionedProjectStore.getMergeConflictInfo({
+            projectId,
+          }),
+          Effect.tap((conflictInfo) => {
+            const conflicts = conflictInfo?.conflicts;
+
+            return conflicts && conflicts.length > 0
+              ? Effect.succeed(undefined)
+              : versionedProjectStore.commitMergeConflictsResolution({
+                  projectId,
+                });
+          }),
+          Effect.map((conflictInfo) => ({
+            conflictInfo,
+            notification: null,
+          }))
+        ),
+        Effect.catchAll((err) => {
+          console.error(err);
+          const notification = createErrorNotification({
+            title: 'Get Merge Conflict Info Error',
+            message:
+              'An error happened when trying to get the merge conflict info. Please refresh and, if the problem is not resolved, contact us for support.',
+          });
+
+          return Effect.succeed({
+            conflictInfo: null,
+            notification,
+          });
+        })
+      )
+    );
+
+    if (notification) {
+      dispatchNotification(notification);
+    } else {
+      if (conflictInfo && conflictInfo.conflicts.length > 0) {
+        setMergeConflictInfo(conflictInfo);
+        navigateToResolveMergeConflicts({
+          projectId,
+          mergeConflictInfo: conflictInfo,
+        });
+      } else {
+        const notification = createSuccessNotification({
+          title: 'Successful Merge',
+          message:
+            'The branch was merged successfully. You are back in the main branch.',
+        });
+        dispatchNotification(notification);
+        setMergeConflictInfo(null);
+        navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
+      }
+    }
+  }, [versionedProjectStore, projectId, navigateToResolveMergeConflicts]);
+
+  const handleResolveConflictByKeepingDocument = useCallback(
+    async (documentId: ResolvedArtifactId) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot resolve the conflict.'
+        );
+      }
+
+      try {
+        await Effect.runPromise(
+          versionedProjectStore.resolveConflictByKeepingDocument({
+            projectId,
+            documentId,
+          })
+        );
+      } catch (err) {
+        console.error(err);
+
+        const notification = createErrorNotification({
+          title: 'Resolve Conflict Error',
+          message: `An error happened when trying to resolve the conflict. Please try again and if the error persists contact us for support.`,
+        });
+        dispatchNotification(notification);
+      }
+
+      handleRefreshConflictsAndMergeIfPossible();
+    },
+    [versionedProjectStore, projectId, handleRefreshConflictsAndMergeIfPossible]
+  );
+
+  const handleResolveConflictByDeletingDocument = useCallback(
+    async (documentId: ResolvedArtifactId) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot resolve the conflict.'
+        );
+      }
+
+      try {
+        await Effect.runPromise(
+          versionedProjectStore.resolveConflictByDeletingDocument({
+            projectId,
+            documentId,
+          })
+        );
+      } catch (err) {
+        console.error(err);
+
+        const notification = createErrorNotification({
+          title: 'Resolve Conflict Error',
+          message: `An error happened when trying to resolve the conflict. Please try again and if the error persists contact us for support.`,
+        });
+        dispatchNotification(notification);
+      }
+
+      handleRefreshConflictsAndMergeIfPossible();
+    },
+    [versionedProjectStore, projectId, handleRefreshConflictsAndMergeIfPossible]
+  );
+
+  const handleOpenDeleteBranchDialog = useCallback((branch: Branch) => {
+    setBranchToDelete(branch);
+  }, []);
+
+  const handleCloseDeleteBranchDialog = useCallback(() => {
+    setBranchToDelete(null);
+  }, []);
+
+  useEffect(() => {
+    const updateAuthorInfoInProjectStore = async ({
+      versionedProjectStore,
+      projectId,
+    }: {
+      versionedProjectStore: ProjectStore;
+      projectId: ProjectId;
+    }) => {
+      versionedProjectStore.setAuthorInfo({
+        projectId,
+        username,
+        email,
+      });
+    };
+
+    if (versionedProjectStore && projectId) {
+      updateAuthorInfoInProjectStore({
+        versionedProjectStore,
+        projectId,
+      });
+    }
+  }, [username, email, versionedProjectStore, projectId]);
+
+  const handleAddRemoteProject = useCallback(
+    async (url: string) => {
+      if (!versionedProjectStore || !projectId) {
+        throw new Error(
+          'Project store is not ready or project has not been set yet. Cannot add remote project.'
+        );
+      }
+
+      const { notification, result } = await Effect.runPromise(
+        pipe(
+          pipe(
+            versionedProjectStore.addRemoteProject({
+              projectId,
+              remoteName: DEFAULT_REMOTE_PROJECT_NAME,
+              remoteUrl: url,
+            }),
+            Effect.map(() => ({
+              result: {
+                name: DEFAULT_REMOTE_PROJECT_NAME,
+                url,
+              },
+              notification: null,
+            }))
+          ),
+          Effect.catchAll((err) => {
+            console.error(err);
+            const notification = createErrorNotification({
+              title: 'Remote Project Error',
+              message: `An error happened when trying to connect the remote project.`,
+            });
+
+            return Effect.succeed({ result: null, notification });
+          })
+        )
+      );
+
+      if (notification) {
+        dispatchNotification(notification);
+      }
+
+      setRemoteProject(result);
+    },
+    [versionedProjectStore, projectId]
+  );
+
+  const handlePushToRemoteProject = useCallback(async () => {
+    if (!versionedProjectStore || !projectId || !remoteProject) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot push to remote project.'
+      );
+    }
+
+    try {
+      await Effect.runPromise(
+        versionedProjectStore.pushToRemoteProject({
+          projectId,
+          remoteName: remoteProject.name,
+        })
+      );
+
+      const notification = createSuccessNotification({
+        title: 'Push Successful',
+        message: `Changes have been successfully pushed to the remote project.`,
+      });
+      dispatchNotification(notification);
+    } catch (err) {
+      console.error(err);
+
+      const notification = createErrorNotification({
+        title: 'Push Error',
+        message: `An error happened when trying to push to the remote project.`,
+      });
+      dispatchNotification(notification);
+    }
+  }, [versionedProjectStore, projectId, remoteProject]);
+
+  const handlePullFromRemoteProject = useCallback(async () => {
+    if (!versionedProjectStore || !projectId || !remoteProject) {
+      throw new Error(
+        'Project store is not ready or project has not been set yet. Cannot pull from remote project.'
+      );
+    }
+
+    try {
+      await Effect.runPromise(
+        versionedProjectStore.pullFromRemoteProject({
+          projectId,
+          remoteName: remoteProject.name,
+        })
+      );
+
+      setPulledUpstreamChanges(true);
+    } catch (err) {
+      console.error(err);
+
+      const notification = createErrorNotification({
+        title: 'Pull Error',
+        message: `An error happened when trying to pull changes from the remote project.`,
+      });
+      dispatchNotification(notification);
+    }
+  }, [versionedProjectStore, projectId, remoteProject]);
+
+  const resetPulledUpstreamChanges = () => {
+    setPulledUpstreamChanges(false);
+  };
+
   return (
-    <CurrentProjectContext.Provider
+    <ProjectContext.Provider
       value={{
-        projectType,
+        loading,
+        projectId,
+        directory,
+        directoryTree,
+        refreshDirectoryTree,
+        currentBranch,
+        versionedProjectStore,
+        openDirectory: handleOpenDirectory,
+        requestPermissionForSelectedDirectory,
+        createNewDocument: handleCreateNewDocument,
+        findDocumentInProject: handleFindDocumentInProject,
+        selectedFileInfo,
+        selectedFileName,
+        setSelectedFileInfo: handleSetSelectedFileInfo,
+        clearFileSelection,
+        listBranches: handleListBranches,
+        createAndSwitchToBranch: handleCreateAndSwitchToBranch,
+        switchToBranch: handleSwitchToBranch,
+        isCreateBranchDialogOpen,
+        openCreateBranchDialog: handleOpenCreateBranchDialog,
+        closeCreateBranchDialog: handleCloseCreateBranchDialog,
+        deleteBranch: handleDeleteBranch,
+        mergeAndDeleteBranch: handleMergeAndDeleteBranch,
+        abortMerge: handleAbortMerge,
+        refreshConflictsAndMergeIfPossible:
+          handleRefreshConflictsAndMergeIfPossible,
+        resolveConflictByKeepingDocument:
+          handleResolveConflictByKeepingDocument,
+        resolveConflictByDeletingDocument:
+          handleResolveConflictByDeletingDocument,
+        branchToDelete,
+        openDeleteBranchDialog: handleOpenDeleteBranchDialog,
+        closeDeleteBranchDialog: handleCloseDeleteBranchDialog,
+        supportsBranching,
+        supportsSync: Boolean(remoteProject),
+        mergeConflictInfo,
+        remoteProject,
+        addRemoteProject: handleAddRemoteProject,
+        remoteBranchInfo,
+        pushToRemoteProject: handlePushToRemoteProject,
+        pullFromRemoteProject: handlePullFromRemoteProject,
+        pulledUpstreamChanges,
+        onHandlePulledUpstreamChanges: resetPulledUpstreamChanges,
+        pendingNewDirectory,
+        startCreateDirectory,
+        createDirectory: handleCreateDirectory,
+        cancelCreateDirectory,
+        filePathToDelete,
+        startDeleteDocument: setFileToDelete,
+        deleteDocument: handleDeleteDocument,
+        confirmDeleteDocument: handleConfirmDeleteDocument,
+        cancelDeleteDocument: handleCancelDeleteDocument,
+        directoryPathToDelete,
+        startDeleteDirectory: setDirectoryToDelete,
+        deleteDirectory: handleDeleteDirectory,
+        confirmDeleteDirectory: handleConfirmDeleteDirectory,
+        cancelDeleteDirectory: handleCancelDeleteDirectory,
+        filePathToRename,
+        startRenameDocument,
+        renameDocumentError,
+        clearRenameDocumentError,
+        renameDocument: handleRenameDocument,
+        cancelRenameDocument,
+        directoryPathToRename,
+        startRenameDirectory,
+        renameDirectoryError,
+        clearRenameDirectoryError,
+        renameDirectory: handleRenameDirectory,
+        cancelRenameDirectory,
+        getProjectHistory,
+        getProjectChangedDocuments,
+        getProjectUncommittedChanges,
+        commitChanges,
+        commitDocumentChanges,
+        restoreDocumentChanges,
       }}
     >
       {children}
-    </CurrentProjectContext.Provider>
-  );
-};
-
-export const CurrentProjectProvider = ({
-  projectType,
-  children,
-}: {
-  projectType: ProjectType;
-  children: React.ReactNode;
-}) => {
-  return (
-    <ProjectProviderSelector projectType={projectType}>
-      <ProjectInterfaceProvider projectType={projectType}>
-        {children}
-      </ProjectInterfaceProvider>
-    </ProjectProviderSelector>
+    </ProjectContext.Provider>
   );
 };

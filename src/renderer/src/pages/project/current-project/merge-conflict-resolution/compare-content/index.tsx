@@ -4,15 +4,15 @@ import { useParams } from 'react-router';
 import { type RichTextDocument } from '../../../../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { type CompareContentConflict as CompareContentConflictType } from '../../../../../../../modules/infrastructure/version-control';
-import { SidebarLayoutContext } from '../../../../../app-state';
+import { ProjectContext, SidebarLayoutContext } from '../../../../../app-state';
 import { LongTextSkeleton } from '../../../../../components/progress/skeletons/LongText';
-import { useMergeConflictResolution, useProjectId } from '../../../../../hooks';
+import { useMergeConflictResolution } from '../../../../../hooks';
 import { MergeConflictResolutionActionsBar } from '../ActionsBar';
 import { CompareContentConflict } from './CompareContentConflict';
 
 export const CompareContentConflictResolution = () => {
   const { compareContentPath } = useParams();
-  const projectId = useProjectId();
+  const { projectId } = useContext(ProjectContext);
   const { view: editorView } = useContext(ProseMirrorContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const {

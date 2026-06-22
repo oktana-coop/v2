@@ -2,14 +2,14 @@ import { useContext } from 'react';
 
 import {
   CloneFromGithubModalContext,
-  MultiDocumentProjectContext,
+  ProjectContext,
 } from '../../../../../app-state';
 import { Button } from '../../../../../components/actions/Button';
 import { FolderIcon, GithubIcon } from '../../../../../components/icons';
 
 export const NoActiveDirectoryView = () => {
   const { directory, openDirectory, requestPermissionForSelectedDirectory } =
-    useContext(MultiDocumentProjectContext);
+    useContext(ProjectContext);
   const { openCloneFromGithubModal } = useContext(CloneFromGithubModalContext);
 
   const handleOpenDirectory = async () => {

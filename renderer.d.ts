@@ -7,16 +7,11 @@ import {
 } from './src/modules/auth';
 import { type RendererConfig } from './src/modules/config/browser';
 import {
-  type MultiDocumentProjectStore,
-  type OpenMultiDocumentProjectByIdArgs,
-  type OpenMultiDocumentProjectByIdResult,
-  OpenOrCreateMultiDocumentProjectArgs,
-  type OpenOrCreateMultiDocumentProjectResult,
-  type OpenSingleDocumentProjectStoreArgs,
-  type OpenSingleDocumentProjectStoreResult,
-  type SetupSingleDocumentProjectStoreArgs,
-  type SetupSingleDocumentProjectStoreResult,
-  type SingleDocumentProjectStore,
+  OpenOrCreateProjectArgs,
+  type OpenOrCreateProjectResult,
+  type OpenProjectByIdArgs,
+  type OpenProjectByIdResult,
+  type ProjectStore,
 } from './src/modules/domain/project';
 import { type VersionedDocumentStore } from './src/modules/domain/rich-text';
 import {
@@ -27,10 +22,7 @@ import {
   type PromisifyEffects,
   type UpdateState,
 } from './src/modules/infrastructure/cross-platform';
-import {
-  type File,
-  type Filesystem as FilesystemAPI,
-} from './src/modules/infrastructure/filesystem';
+import { type Filesystem as FilesystemAPI } from './src/modules/infrastructure/filesystem';
 import {
   type FromMainMessage as AutomergeRepoNetworkFromMainIPCMessage,
   type FromRendererMessage as AutomergeRepoNetworkFromRendererIPCMessage,
@@ -116,42 +108,12 @@ export type AutomergeRepoNetworkAdapter = {
   ) => UnregisterListenerFn;
 };
 
-export type SingleDocumentProjectStoreManagerAPI = {
-  setupSingleDocumentProjectStore: (
-    args: SetupSingleDocumentProjectStoreArgs
+export type ProjectStoreManagerAPI = {
+  openOrCreateProject: (
+    args: OpenOrCreateProjectArgs
   ) => Promise<
     Pick<
-      SetupSingleDocumentProjectStoreResult,
-      | 'projectId'
-      | 'documentId'
-      | 'currentBranch'
-      | 'remoteProjects'
-      | 'file'
-      | 'name'
-    >
-  >;
-  openSingleDocumentProjectStore: (
-    args: OpenSingleDocumentProjectStoreArgs
-  ) => Promise<
-    Pick<
-      OpenSingleDocumentProjectStoreResult,
-      | 'projectId'
-      | 'documentId'
-      | 'currentBranch'
-      | 'mergeConflictInfo'
-      | 'remoteProjects'
-      | 'file'
-      | 'name'
-    >
-  >;
-};
-
-export type MultiDocumentProjectStoreManagerAPI = {
-  openOrCreateMultiDocumentProject: (
-    args: OpenOrCreateMultiDocumentProjectArgs
-  ) => Promise<
-    Pick<
-      OpenOrCreateMultiDocumentProjectResult,
+      OpenOrCreateProjectResult,
       | 'projectId'
       | 'directory'
       | 'currentBranch'
@@ -159,11 +121,11 @@ export type MultiDocumentProjectStoreManagerAPI = {
       | 'remoteProjects'
     >
   >;
-  openMultiDocumentProjectById: (
-    args: OpenMultiDocumentProjectByIdArgs
+  openProjectById: (
+    args: OpenProjectByIdArgs
   ) => Promise<
     Pick<
-      OpenMultiDocumentProjectByIdResult,
+      OpenProjectByIdResult,
       'directory' | 'currentBranch' | 'mergeConflictInfo' | 'remoteProjects'
     >
   >;
@@ -171,19 +133,7 @@ export type MultiDocumentProjectStoreManagerAPI = {
 
 export type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
 
-export type MultiDocumentProjectStorePromiseAPI =
-  PromisifyEffects<MultiDocumentProjectStore>;
-
-export type SingleDocumentProjectStoreIPCAPI = SingleDocumentProjectStore & {
-  createSingleDocumentProject: AppendParam<
-    SingleDocumentProjectStore['createSingleDocumentProject'],
-    string
-  >;
-  disconnect: AppendParam<SingleDocumentProjectStore['disconnect'], string>;
-};
-
-export type SingleDocumentProjectStorePromiseAPI =
-  PromisifyEffects<SingleDocumentProjectStoreIPCAPI>;
+export type ProjectStorePromiseAPI = PromisifyEffects<ProjectStore>;
 
 type VersionedDocumentStoreIPCAPI = VersionedDocumentStore & {
   createDocument: AppendParam<VersionedDocumentStore['createDocument'], string>;
@@ -227,10 +177,6 @@ type VersionedDocumentStoreIPCAPI = VersionedDocumentStore & {
 
 export type VersionedDocumentStorePromiseAPI =
   PromisifyEffects<VersionedDocumentStoreIPCAPI>;
-
-export type OsEventsAPI = {
-  onOpenFileFromFilesystem: (callback: (file: File) => void) => () => void;
-};
 
 export type VersionControlSyncProvidersAPI = {
   getGithubUserRepositories: () => Promise<GithubRepositoryInfo[]>;
@@ -278,13 +224,10 @@ declare global {
     automergeRepoNetworkAdapter: AutomergeRepoNetworkAdapter;
     filesystemAPI: FilesystemPromiseAPI;
     versionedDocumentStoreAPI: VersionedDocumentStorePromiseAPI;
-    singleDocumentProjectStoreAPI: SingleDocumentProjectStorePromiseAPI;
-    multiDocumentProjectStoreAPI: MultiDocumentProjectStorePromiseAPI;
-    singleDocumentProjectStoreManagerAPI: SingleDocumentProjectStoreManagerAPI;
-    multiDocumentProjectStoreManagerAPI: MultiDocumentProjectStoreManagerAPI;
+    projectStoreAPI: ProjectStorePromiseAPI;
+    projectStoreManagerAPI: ProjectStoreManagerAPI;
     versionControlSyncProvidersAPI: VersionControlSyncProvidersAPI;
     wasmAPI: WasmAPI;
-    osEventsAPI: OsEventsAPI;
     // Used by /print and /preview pages for Paged.js rendering
     setContent: (args: { html: string; stylesheet?: string }) => Promise<void>;
   }

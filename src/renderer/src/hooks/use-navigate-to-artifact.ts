@@ -3,23 +3,18 @@ import { useNavigate } from 'react-router';
 
 import {
   type ProjectId,
-  projectTypes,
   urlEncodeProjectId,
 } from '../../../modules/domain/project';
 import {
   type ResolvedArtifactId,
   urlEncodeArtifactId,
 } from '../../../modules/infrastructure/version-control';
-import {
-  CurrentProjectContext,
-  MultiDocumentProjectContext,
-} from '../app-state';
+import { ProjectContext } from '../app-state';
 
 export const useNavigateToArtifact = () => {
   const navigate = useNavigate();
 
-  const { projectType } = useContext(CurrentProjectContext);
-  const { setSelectedFileInfo } = useContext(MultiDocumentProjectContext);
+  const { setSelectedFileInfo } = useContext(ProjectContext);
 
   return ({
     projectId,
@@ -30,9 +25,7 @@ export const useNavigateToArtifact = () => {
     artifactId: ResolvedArtifactId;
     path: string | null;
   }) => {
-    if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
-      setSelectedFileInfo({ documentId: artifactId, path });
-    }
+    setSelectedFileInfo({ documentId: artifactId, path });
 
     const newUrl = path
       ? `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(artifactId)}?path=${encodeURIComponent(path)}`

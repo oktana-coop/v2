@@ -1,7 +1,7 @@
 import { type Node, type Schema } from 'prosemirror-model';
 import { type DecorationSet } from 'prosemirror-view';
 
-import { type RichTextRepresentation } from '../constants/representations';
+import { type RichTextRepresentation } from '../models';
 
 export type ProseMirrorDiffArgs = {
   representation: RichTextRepresentation;

@@ -5,23 +5,11 @@ export {
 } from './current-document/context';
 
 export {
-  CurrentProjectContext,
-  type CurrentProjectContextType,
-  CurrentProjectProvider,
-} from './current-project/context';
-
-export {
-  MultiDocumentProjectContext,
-  type MultiDocumentProjectContextType,
-  MultiDocumentProjectProvider,
+  ProjectContext,
+  type ProjectContextType,
+  ProjectProvider,
   type SelectedFileInfo,
-} from './current-project/multi-document-project-context';
-
-export {
-  SingleDocumentProjectContext,
-  type SingleDocumentProjectContextType,
-  SingleDocumentProjectProvider,
-} from './current-project/single-document-project-context';
+} from './current-project/context';
 
 export {
   CommandPaletteContext,
@@ -42,12 +30,6 @@ export {
 } from './clone-from-github-modal/context';
 
 export {
-  CreateDocumentModalContext,
-  type CreateDocumentModalContextType,
-  CreateDocumentModalProvider,
-} from './create-document-modal/context';
-
-export {
   CommitModalContext,
   type CommitModalContextType,
   CommitModalProvider,
@@ -64,9 +46,3 @@ export {
   type InfrastructureAdaptersContextType,
   InfrastructureAdaptersProvider,
 } from './infrastructure-adapters/context';
-
-export {
-  RecentProjectsContext,
-  type RecentProjectsContextType,
-  RecentProjectsProvider,
-} from './recent-projects/context';

@@ -6,12 +6,15 @@ import { pipe } from 'effect/Function';
 
 import { mapErrorTo } from '../../../../../utils/errors';
 import { versionedArtifactTypes } from '../../../../infrastructure/version-control';
-import { richTextRepresentations } from '../../constants';
 import {
   RepresentationTransformError,
   ResolveMergeConflictsError,
 } from '../../errors';
-import { CURRENT_SCHEMA_VERSION, RichTextDocument } from '../../models';
+import {
+  CURRENT_SCHEMA_VERSION,
+  RichTextDocument,
+  richTextRepresentations,
+} from '../../models';
 import {
   getSpansString,
   type RichTextDocumentSpan,

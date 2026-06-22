@@ -1,6 +1,5 @@
 import { useContext, useEffect, useState } from 'react';
 
-import { projectTypes } from '../../../modules/domain/project';
 import {
   type Directory,
   type File,
@@ -8,14 +7,7 @@ import {
   filesystemItemTypes,
   isDirectory,
 } from '../../../modules/infrastructure/filesystem';
-import {
-  CurrentProjectContext,
-  MultiDocumentProjectContext,
-  MultiDocumentProjectContextType,
-  RecentProjectsContext,
-  RecentProjectsContextType,
-  SingleDocumentProjectContext,
-} from '../app-state';
+import { ProjectContext, ProjectContextType } from '../app-state';
 import { useCurrentDocumentId } from './use-current-document-id';
 
 export const STRUCTURAL_CONFLICTS_NODE_TYPE = 'STRUCTURAL_CONFLICTS' as const;
@@ -66,8 +58,8 @@ const injectPendingDirectoryNode = (
   });
 };
 
-const getExplorerTreeInMultiDocumentProject = (
-  directoryTree: MultiDocumentProjectContextType['directoryTree']
+const getExplorerTreeInProject = (
+  directoryTree: ProjectContextType['directoryTree']
 ): ExplorerTreeNode[] => {
   const mapFileToTreeNode = (file: File): ExplorerTreeNode => ({
     id: file.path,
@@ -103,21 +95,7 @@ const getExplorerTreeInMultiDocumentProject = (
   return rootNodes;
 };
 
-const getExplorerTreeInSingleDocumentProject = (
-  recentProjects: RecentProjectsContextType['recentProjects']
-): ExplorerTreeNode[] =>
-  recentProjects.map((projectInfo) => {
-    const explorerTreeNode: ExplorerTreeNode = {
-      id: projectInfo.projectId,
-      name: projectInfo.projectName ?? 'Untitled Document',
-      type: filesystemItemTypes.FILE,
-    };
-
-    return explorerTreeNode;
-  });
-
 export const useDocumentExplorerTree = () => {
-  const { projectType } = useContext(CurrentProjectContext);
   const {
     directory,
     directoryTree,
@@ -140,11 +118,7 @@ export const useDocumentExplorerTree = () => {
     cancelRenameDirectory,
     startDeleteDocument,
     startDeleteDirectory,
-  } = useContext(MultiDocumentProjectContext);
-  const { projectId: singleDocumentProjectId } = useContext(
-    SingleDocumentProjectContext
-  );
-  const { recentProjects } = useContext(RecentProjectsContext);
+  } = useContext(ProjectContext);
   const [explorerTree, setExplorerTree] = useState<ExplorerTreeNode[]>([]);
   const [hasPendingNewDirectory, setHasPendingNewDirectory] = useState(false);
   const [canShowTree, setCanShowTree] = useState<boolean>(false);
@@ -152,49 +126,28 @@ export const useDocumentExplorerTree = () => {
   const documentId = useCurrentDocumentId();
 
   useEffect(() => {
-    let newTree =
-      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-        ? getExplorerTreeInMultiDocumentProject(directoryTree)
-        : getExplorerTreeInSingleDocumentProject(recentProjects);
+    let newTree = getExplorerTreeInProject(directoryTree);
 
-    if (
-      projectType === projectTypes.MULTI_DOCUMENT_PROJECT &&
-      pendingNewDirectory
-    ) {
+    if (pendingNewDirectory) {
       newTree = injectPendingDirectoryNode(
         newTree,
         pendingNewDirectory.parentPath
       );
     }
 
-    const selection =
-      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-        ? (selectedFileInfo?.path ?? null)
-        : singleDocumentProjectId;
-
     setExplorerTree(newTree);
-    setSelection(selection);
-  }, [
-    documentId,
-    projectType,
-    recentProjects,
-    directoryTree,
-    selectedFileInfo,
-    pendingNewDirectory,
-  ]);
+    setSelection(selectedFileInfo?.path ?? null);
+  }, [documentId, directoryTree, selectedFileInfo, pendingNewDirectory]);
 
   useEffect(() => {
     setHasPendingNewDirectory(pendingNewDirectory !== null);
   }, [pendingNewDirectory]);
 
   useEffect(() => {
-    const canShowDocumentList =
-      projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-        ? Boolean(directory && directory.permissionState === 'granted')
-        : true;
-
-    setCanShowTree(canShowDocumentList);
-  }, [projectType, directory]);
+    setCanShowTree(
+      Boolean(directory && directory.permissionState === 'granted')
+    );
+  }, [directory]);
 
   return {
     canShowTree,

@@ -2,23 +2,15 @@ import { useContext } from 'react';
 import { Outlet, useParams } from 'react-router';
 
 export { DocumentEditor, DocumentHistoricalView } from './main';
-import { projectTypes } from '../../../../../../modules/domain/project';
 import { decodeUrlEncodedChangeId } from '../../../../../../modules/infrastructure/version-control';
-import {
-  CurrentDocumentContext,
-  CurrentProjectContext,
-} from '../../../../app-state';
+import { CurrentDocumentContext } from '../../../../app-state';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
 import { useCreateDocument } from '../../../../hooks';
-import {
-  DirectoryTreeView,
-  RecentProjects,
-} from '../../shared/explorer-tree-views';
+import { DirectoryTreeView } from '../../shared/explorer-tree-views';
 import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
 
 export const ProjectDocuments = () => {
-  const { projectType } = useContext(CurrentProjectContext);
   const { versionedDocumentHistory: changes, onSelectChange } = useContext(
     CurrentDocumentContext
   );
@@ -29,13 +21,7 @@ export const ProjectDocuments = () => {
     <SidebarLayout
       sidebar={
         <StackedResizablePanelsLayout autoSaveId="project-documents-panel-group">
-          {projectType === projectTypes.MULTI_DOCUMENT_PROJECT ? (
-            <DirectoryTreeView
-              onCreateDocument={triggerDocumentCreationDialog}
-            />
-          ) : (
-            <RecentProjects onCreateDocument={triggerDocumentCreationDialog} />
-          )}
+          <DirectoryTreeView onCreateDocument={triggerDocumentCreationDialog} />
 
           <DocumentHistory
             changes={changes}

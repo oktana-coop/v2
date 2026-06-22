@@ -1,33 +1,22 @@
-import { type ComponentProps, useContext, useEffect } from 'react';
+import { useContext, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 
-import {
-  projectTypes,
-  urlEncodeProjectId,
-} from '../../../../../modules/domain/project';
+import { urlEncodeProjectId } from '../../../../../modules/domain/project';
 import { removePath } from '../../../../../modules/infrastructure/filesystem';
 import { urlEncodeArtifactId } from '../../../../../modules/infrastructure/version-control';
 import {
   BranchingCommandPaletteContext,
   CommitModalContext,
-  CreateDocumentModalContext,
   CurrentDocumentContext,
-  CurrentProjectContext,
+  ProjectContext,
 } from '../../../app-state';
 import { BranchingCommandPaletteStateProvider } from '../../../app-state';
 import {
-  useBranchInfo,
   useCommitDocumentChanges,
   useCommitToProject,
   useCreateDocument,
-  useDeleteDirectory,
-  useDeleteDocument,
-  useNavigateToArtifact,
-  useProjectId,
 } from '../../../hooks';
-import { useOpenDocument } from '../../../hooks/single-document-project';
 import { ProjectCommandPalette } from '../shared/command-palette';
-import { CreateDocumentModal } from '../shared/create-document/CreateDocumentModal';
 import { BottomBar } from './bottom-bar';
 import {
   BranchingCommandPalette,
@@ -65,31 +54,20 @@ const Project = () => {
     useContext(CommitModalContext);
   const commitChangesToProject = useCommitToProject();
   const commitChangesToDocument = useCommitDocumentChanges();
-  const { projectType } = useContext(CurrentProjectContext);
-  // For single-document projects the project-level commit is the same
-  // operation as committing the (sole) document, so we don't surface it as
-  // a separate option in the commit dialog.
-  const showProjectCommitOption =
-    projectType === projectTypes.MULTI_DOCUMENT_PROJECT;
   const navigate = useNavigate();
   const {
     isOpen: isBranchingCommandPaletteOpen,
     closeBranchingCommandPalette,
   } = useContext(BranchingCommandPaletteContext);
-  const projectId = useProjectId();
-  const { isOpen: isDocumentCreationModalOpen, closeCreateDocumentModal } =
-    useContext(CreateDocumentModalContext);
-
-  const { filePathToDelete, deleteDocument, cancelDeleteDocument } =
-    useDeleteDocument();
+  const { triggerDocumentCreationDialog } = useCreateDocument();
   const {
+    projectId,
+    filePathToDelete,
+    confirmDeleteDocument,
+    cancelDeleteDocument,
     directoryPathToDelete,
     confirmDeleteDirectory,
     cancelDeleteDirectory,
-  } = useDeleteDirectory();
-  const { triggerDocumentCreationDialog } = useCreateDocument();
-  const openDocument = useOpenDocument();
-  const {
     supportsBranching,
     currentBranch,
     createAndSwitchToBranch,
@@ -97,7 +75,7 @@ const Project = () => {
     closeCreateBranchDialog,
     branchToDelete,
     closeDeleteBranchDialog,
-  } = useBranchInfo();
+  } = useContext(ProjectContext);
 
   useEffect(() => {
     window.document.title = 'v2 | Editor';
@@ -106,17 +84,7 @@ const Project = () => {
     BranchingCommandPaletteContext
   );
 
-  const navigateToArtifact = useNavigateToArtifact();
-
-  const handleOpenDocument = () => openDocument();
-
   const handleOpenCreateDocumentDialog = () => triggerDocumentCreationDialog();
-
-  const handleCreateDocument: ComponentProps<
-    typeof CreateDocumentModal
-  >['onCreateDocument'] = ({ projectId, documentId, path }) => {
-    navigateToArtifact({ projectId, artifactId: documentId, path });
-  };
 
   const handleOpenProjectSettings = () => {
     if (projectId) {
@@ -136,11 +104,6 @@ const Project = () => {
   return (
     <div className="flex h-full flex-auto flex-col">
       <div className="flex flex-auto overflow-y-auto">
-        <CreateDocumentModal
-          isOpen={isDocumentCreationModalOpen}
-          onClose={closeCreateDocumentModal}
-          onCreateDocument={handleCreateDocument}
-        />
         <CommitDialog
           isOpen={isCommitDialogOpen}
           onCancel={closeCommitModal}
@@ -151,18 +114,13 @@ const Project = () => {
               'Commit changes to this document and its referenced assets',
             onCommit: (message: string) => commitChangesToDocument(message),
           }}
-          secondaryActions={
-            showProjectCommitOption
-              ? [
-                  {
-                    label: 'Commit all project changes',
-                    description: 'Commit every modified file in the project',
-                    onCommit: (message: string) =>
-                      commitChangesToProject(message),
-                  },
-                ]
-              : []
-          }
+          secondaryActions={[
+            {
+              label: 'Commit all project changes',
+              description: 'Commit every modified file in the project',
+              onCommit: (message: string) => commitChangesToProject(message),
+            },
+          ]}
         />
         <RestoreCommitDialog
           isOpen={isRestoreCommitDialogOpen}
@@ -178,7 +136,7 @@ const Project = () => {
           isOpen={filePathToDelete !== null}
           documentName={filePathToDelete ? removePath(filePathToDelete) : null}
           onCancel={cancelDeleteDocument}
-          onConfirm={deleteDocument}
+          onConfirm={confirmDeleteDocument}
         />
         <DeleteDirectoryDialog
           isOpen={directoryPathToDelete !== null}
@@ -190,7 +148,6 @@ const Project = () => {
         />
         <ProjectCommandPalette
           onCreateDocument={handleOpenCreateDocumentDialog}
-          onOpenDocument={handleOpenDocument}
           onOpenProjectSettings={handleOpenProjectSettings}
           onOpenPrintPreview={handleOpenPrintPreview}
         />

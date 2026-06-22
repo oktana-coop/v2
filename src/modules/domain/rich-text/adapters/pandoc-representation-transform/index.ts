@@ -5,14 +5,14 @@ import {
   type Wasm,
 } from '../../../../../modules/infrastructure/wasm';
 import {
-  binaryRichTextRepresentations,
-  richTextRepresentations,
-} from '../../constants/representations';
-import {
   type HSLibOutput,
   isHSLibFailureOutput,
   representationToCliArg,
 } from '../../hs-lib-cli';
+import {
+  binaryRichTextRepresentations,
+  richTextRepresentations,
+} from '../../models';
 import { type PdfEngine } from '../../ports/pdf-engine';
 import {
   type RepresentationTransform,

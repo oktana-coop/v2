@@ -5,8 +5,8 @@ import {
   cliTypes,
   type Wasm,
 } from '../../../../../modules/infrastructure/wasm';
-import { richTextRepresentations } from '../../constants/representations';
 import { DocumentAnalysisErrorTag, RichTextLibErrorTag } from '../../errors';
+import { richTextRepresentations } from '../../models';
 import { createAdapter } from './index';
 
 const mockContent = 'some doc';

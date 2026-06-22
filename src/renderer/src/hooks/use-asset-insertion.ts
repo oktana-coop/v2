@@ -4,79 +4,53 @@ import * as Option from 'effect/Option';
 import { useCallback, useContext } from 'react';
 
 import {
-  insertAssetInMultiDocumentProject,
-  insertAssetInSingleDocumentProject,
+  insertAssetInProject,
   parseProjectRelPathEffect,
   projectRelToDocRel,
-  projectTypes,
 } from '../../../modules/domain/project';
 import { type DocumentAsset } from '../../../modules/domain/rich-text';
-import {
-  CurrentProjectContext,
-  InfrastructureAdaptersContext,
-  MultiDocumentProjectContext,
-  SingleDocumentProjectContext,
-} from '../app-state';
-import { useProjectId } from './use-project-id';
+import { InfrastructureAdaptersContext, ProjectContext } from '../app-state';
 
 export const useAssetInsertion = (
   docPath?: string
 ): (() => Promise<DocumentAsset | null>) => {
-  const { projectType } = useContext(CurrentProjectContext);
-  const projectId = useProjectId();
   const { filesystem } = useContext(InfrastructureAdaptersContext);
   const {
-    versionedProjectStore: multiDocStore,
+    projectId,
+    versionedProjectStore: projectStore,
     selectedFileInfo,
     refreshDirectoryTree,
-  } = useContext(MultiDocumentProjectContext);
-  const { versionedProjectStore: singleDocStore, documentProjectRelPath } =
-    useContext(SingleDocumentProjectContext);
+  } = useContext(ProjectContext);
 
-  const isMultiDocProject = projectType === projectTypes.MULTI_DOCUMENT_PROJECT;
-
-  const docPathString =
-    docPath ??
-    (isMultiDocProject ? selectedFileInfo?.path : documentProjectRelPath);
+  const docPathString = docPath ?? selectedFileInfo?.path;
 
   return useCallback(async (): Promise<DocumentAsset | null> => {
     if (!projectId) {
       throw new Error('Cannot insert asset: no current project.');
     }
     if (!docPathString) {
-      // No doc path to anchor the asset's relative src — e.g. an automerge
-      // single-doc project, which exposes no filesystem workdir path.
       throw new Error('Cannot insert asset: no doc path.');
     }
 
-    const store = isMultiDocProject ? multiDocStore : singleDocStore;
-    if (!store) {
+    if (!projectStore) {
       throw new Error('Cannot insert asset: project store not ready.');
     }
 
-    const insertAssetInProject = isMultiDocProject
-      ? insertAssetInMultiDocumentProject({
-          openFile: filesystem.openFile,
-          readBinaryFile: filesystem.readBinaryFile,
-          lookupAssetByName: multiDocStore!.lookupAssetByName,
-          addAssetToProject: multiDocStore!.addAssetToProject,
-          getProjectRelativePath: multiDocStore!.getProjectRelativePath,
-          assetsDirName: multiDocStore!.assetsDirName,
-        })
-      : insertAssetInSingleDocumentProject({
-          openFile: filesystem.openFile,
-          readBinaryFile: filesystem.readBinaryFile,
-          lookupAssetByName: singleDocStore!.lookupAssetByName,
-          addAssetToProject: singleDocStore!.addAssetToProject,
-          assetsDirName: singleDocStore!.assetsDirName,
-        });
+    const insertAsset = insertAssetInProject({
+      openFile: filesystem.openFile,
+      readBinaryFile: filesystem.readBinaryFile,
+      lookupAssetByName: projectStore.lookupAssetByName,
+      addAssetToProject: projectStore.addAssetToProject,
+      getProjectRelativePath: projectStore.getProjectRelativePath,
+      assetsDirName: projectStore.assetsDirName,
+    });
 
     const result = await Effect.runPromise(
       pipe(
         parseProjectRelPathEffect(docPathString),
         Effect.flatMap((resolvedDocPath) =>
           pipe(
-            insertAssetInProject({ projectId }),
+            insertAsset({ projectId }),
             Effect.flatMap((inserted) =>
               Option.match(inserted, {
                 onNone: () => Effect.succeed(null),
@@ -101,17 +75,15 @@ export const useAssetInsertion = (
       )
     );
 
-    if (result && isMultiDocProject) {
+    if (result) {
       await refreshDirectoryTree();
     }
 
     return result;
   }, [
-    isMultiDocProject,
     projectId,
     filesystem,
-    multiDocStore,
-    singleDocStore,
+    projectStore,
     docPathString,
     refreshDirectoryTree,
   ]);

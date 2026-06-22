@@ -5,7 +5,7 @@ import {
   type VersionedArtifactHandle,
   versionedArtifactTypes,
 } from '../../../../../modules/infrastructure/version-control';
-import { type TextRichTextRepresentation } from '../../constants';
+import { type TextRichTextRepresentation } from '../representation';
 
 export const CURRENT_SCHEMA_VERSION = 1;
 

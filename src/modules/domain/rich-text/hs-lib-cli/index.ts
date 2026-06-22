@@ -1,7 +1,4 @@
-import {
-  RichTextRepresentation,
-  richTextRepresentations,
-} from '../constants/representations';
+import { RichTextRepresentation, richTextRepresentations } from '../models';
 
 export const representationToCliArg = (
   representation: RichTextRepresentation
