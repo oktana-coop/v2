@@ -1,56 +1,30 @@
 import { useContext, useEffect, useState } from 'react';
 
-import { projectTypes } from '../../../modules/domain/project';
-import { ElectronContext } from '../../../modules/infrastructure/cross-platform/browser';
-import {
-  CreateDocumentModalContext,
-  CurrentProjectContext,
-  MultiDocumentProjectContext,
-  SingleDocumentProjectContext,
-} from '../app-state';
+import { MultiDocumentProjectContext } from '../app-state';
 import { useNavigateToArtifact } from './use-navigate-to-artifact';
 
 export const useCreateDocument = () => {
-  const { isElectron } = useContext(ElectronContext);
-  const { projectType } = useContext(CurrentProjectContext);
-  const { openCreateDocumentModal } = useContext(CreateDocumentModalContext);
   const [canCreateDocument, setCanCreateDocument] = useState<boolean>(false);
   const navigateToArtifact = useNavigateToArtifact();
 
-  const { createNewDocument: createNewDocumentInMultiFileProject, directory } =
-    useContext(MultiDocumentProjectContext);
-  const { createNewDocument: createNewDocumentInSingleFileProject } =
-    useContext(SingleDocumentProjectContext);
-
-  const createNewDocument =
-    projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-      ? createNewDocumentInMultiFileProject
-      : createNewDocumentInSingleFileProject;
+  const { createNewDocument, directory } = useContext(
+    MultiDocumentProjectContext
+  );
 
   const triggerDocumentCreationDialog = async ({
-    cloneUrl,
     parentPath,
-  }: { cloneUrl?: string; parentPath?: string } = {}) => {
-    if (!isElectron && projectType === projectTypes.SINGLE_DOCUMENT_PROJECT) {
-      openCreateDocumentModal();
-    } else {
-      const { projectId, documentId, path } = await createNewDocument({
-        cloneUrl,
-        parentPath,
-      });
-      navigateToArtifact({ projectId, artifactId: documentId, path });
-    }
+  }: { parentPath?: string } = {}) => {
+    const { projectId, documentId, path } = await createNewDocument({
+      parentPath,
+    });
+    navigateToArtifact({ projectId, artifactId: documentId, path });
   };
 
   useEffect(() => {
-    if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
-      setCanCreateDocument(
-        Boolean(directory && directory.permissionState === 'granted')
-      );
-    } else {
-      setCanCreateDocument(true);
-    }
-  }, [directory, projectType]);
+    setCanCreateDocument(
+      Boolean(directory && directory.permissionState === 'granted')
+    );
+  }, [directory]);
 
   return {
     canCreateDocument,

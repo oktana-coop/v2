@@ -4,13 +4,11 @@ import {
   AuthContext,
   GITHUB_COLOR,
 } from '../../../../../../modules/auth/browser';
-import { projectTypes } from '../../../../../../modules/domain/project';
 import { type GithubRepositoryInfo } from '../../../../../../modules/infrastructure/version-control';
 import { CloneFromGithubModalContext } from '../../../../app-state';
 import { Button } from '../../../../components/actions/Button';
 import { Modal } from '../../../../components/dialogs/Modal';
 import { GithubIcon } from '../../../../components/icons';
-import { useCreateDocument } from '../../../../hooks';
 import { useOpenDirectory } from '../../../../hooks/multi-document-project';
 import { SelectRepository } from './SelectRepository';
 import { GithubVerificationInfoDialog } from './VerificationInfoDialog';
@@ -35,19 +33,11 @@ export const CloneFromGithubDialog = ({
   } = useContext(AuthContext);
   const { closeCloneFromGithubModal } = useContext(CloneFromGithubModalContext);
 
-  const { triggerDocumentCreationDialog } = useCreateDocument();
   const openDirectory = useOpenDirectory();
 
   const handlePrimaryAction = async () => {
     if (selectedRepository) {
-      if (window.config.projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
-        await openDirectory(selectedRepository.cloneUrl);
-      } else {
-        await triggerDocumentCreationDialog({
-          cloneUrl: selectedRepository.cloneUrl,
-        });
-      }
-
+      await openDirectory(selectedRepository.cloneUrl);
       closeCloneFromGithubModal();
     }
   };
@@ -71,9 +61,7 @@ export const CloneFromGithubDialog = ({
             onClick={handlePrimaryAction}
             disabled={!selectedRepository?.cloneUrl}
           >
-            {window.config.projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-              ? 'Select Local Folder'
-              : 'Write to Document'}
+            Select Local Folder
           </Button>
         }
       >

@@ -12,11 +12,6 @@ import {
   type OpenMultiDocumentProjectByIdResult,
   OpenOrCreateMultiDocumentProjectArgs,
   type OpenOrCreateMultiDocumentProjectResult,
-  type OpenSingleDocumentProjectStoreArgs,
-  type OpenSingleDocumentProjectStoreResult,
-  type SetupSingleDocumentProjectStoreArgs,
-  type SetupSingleDocumentProjectStoreResult,
-  type SingleDocumentProjectStore,
 } from './src/modules/domain/project';
 import { type VersionedDocumentStore } from './src/modules/domain/rich-text';
 import {
@@ -116,36 +111,6 @@ export type AutomergeRepoNetworkAdapter = {
   ) => UnregisterListenerFn;
 };
 
-export type SingleDocumentProjectStoreManagerAPI = {
-  setupSingleDocumentProjectStore: (
-    args: SetupSingleDocumentProjectStoreArgs
-  ) => Promise<
-    Pick<
-      SetupSingleDocumentProjectStoreResult,
-      | 'projectId'
-      | 'documentId'
-      | 'currentBranch'
-      | 'remoteProjects'
-      | 'file'
-      | 'name'
-    >
-  >;
-  openSingleDocumentProjectStore: (
-    args: OpenSingleDocumentProjectStoreArgs
-  ) => Promise<
-    Pick<
-      OpenSingleDocumentProjectStoreResult,
-      | 'projectId'
-      | 'documentId'
-      | 'currentBranch'
-      | 'mergeConflictInfo'
-      | 'remoteProjects'
-      | 'file'
-      | 'name'
-    >
-  >;
-};
-
 export type MultiDocumentProjectStoreManagerAPI = {
   openOrCreateMultiDocumentProject: (
     args: OpenOrCreateMultiDocumentProjectArgs
@@ -173,17 +138,6 @@ export type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
 
 export type MultiDocumentProjectStorePromiseAPI =
   PromisifyEffects<MultiDocumentProjectStore>;
-
-export type SingleDocumentProjectStoreIPCAPI = SingleDocumentProjectStore & {
-  createSingleDocumentProject: AppendParam<
-    SingleDocumentProjectStore['createSingleDocumentProject'],
-    string
-  >;
-  disconnect: AppendParam<SingleDocumentProjectStore['disconnect'], string>;
-};
-
-export type SingleDocumentProjectStorePromiseAPI =
-  PromisifyEffects<SingleDocumentProjectStoreIPCAPI>;
 
 type VersionedDocumentStoreIPCAPI = VersionedDocumentStore & {
   createDocument: AppendParam<VersionedDocumentStore['createDocument'], string>;
@@ -278,9 +232,7 @@ declare global {
     automergeRepoNetworkAdapter: AutomergeRepoNetworkAdapter;
     filesystemAPI: FilesystemPromiseAPI;
     versionedDocumentStoreAPI: VersionedDocumentStorePromiseAPI;
-    singleDocumentProjectStoreAPI: SingleDocumentProjectStorePromiseAPI;
     multiDocumentProjectStoreAPI: MultiDocumentProjectStorePromiseAPI;
-    singleDocumentProjectStoreManagerAPI: SingleDocumentProjectStoreManagerAPI;
     multiDocumentProjectStoreManagerAPI: MultiDocumentProjectStoreManagerAPI;
     versionControlSyncProvidersAPI: VersionControlSyncProvidersAPI;
     wasmAPI: WasmAPI;

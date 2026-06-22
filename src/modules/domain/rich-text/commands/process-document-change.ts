@@ -1,7 +1,6 @@
 import * as Effect from 'effect/Effect';
 
 import { mapErrorTo } from '../../../../utils/errors';
-import { type ProjectType } from '../../../domain/project';
 import {
   AccessControlError as FilesystemAccessControlError,
   type Filesystem,
@@ -29,7 +28,6 @@ export type ProcessDocumentChangeArgs = {
   documentId: ResolvedArtifactId;
   updatedDocument: RichTextDocument;
   writeToFileWithPath: string | null;
-  projectType: ProjectType;
 };
 
 export type ProcessDocumentChangeDeps = {

@@ -9,8 +9,6 @@ import {
   type OsEventsAPI,
   type PersonalizationAPI,
   type RendererConfig,
-  type SingleDocumentProjectStoreManagerAPI,
-  type SingleDocumentProjectStorePromiseAPI,
   type VersionControlSyncProvidersAPI,
   type VersionedDocumentStorePromiseAPI,
 } from '../../renderer';
@@ -87,11 +85,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 contextBridge.exposeInMainWorld('config', {
   useHistoryWorker: buildConfig.useHistoryWorker,
-  singleDocumentProjectVersionControlSystem:
-    buildConfig.singleDocumentProjectVersionControlSystem,
   multiDocumentProjectVersionControlSystem:
     buildConfig.multiDocumentProjectVersionControlSystem,
-  projectType: buildConfig.projectType,
 } as RendererConfig);
 
 contextBridge.exposeInMainWorld('personalizationAPI', {
@@ -254,131 +249,6 @@ contextBridge.exposeInMainWorld('versionedDocumentStoreAPI', {
   disconnect: (projectId) =>
     ipcRenderer.invoke('versioned-document-store:disconnect', projectId),
 } as VersionedDocumentStorePromiseAPI);
-
-contextBridge.exposeInMainWorld('singleDocumentProjectStoreAPI', {
-  createSingleDocumentProject: (args, projectId) =>
-    ipcRenderer.invoke(
-      'single-document-project-store:create-single-document-project',
-      {
-        ...args,
-      },
-      projectId
-    ),
-  findDocumentInProject: (id) =>
-    ipcRenderer.invoke(
-      'single-document-project-store:find-document-in-project',
-      id
-    ),
-  addAssetToProject: (args) =>
-    ipcRenderer.invoke('single-document-project-store:add-asset-to-project', {
-      ...args,
-    }),
-  lookupAssetByName: (args) =>
-    ipcRenderer.invoke('single-document-project-store:lookup-asset-by-name', {
-      ...args,
-    }),
-  readDocumentReferencedAssets: (args) =>
-    ipcRenderer.invoke(
-      'single-document-project-store:read-document-referenced-assets',
-      { ...args }
-    ),
-  findProjectById: (id) =>
-    ipcRenderer.invoke('single-document-project-store:find-project-by-id', id),
-  getProjectName: (id) =>
-    ipcRenderer.invoke('single-document-project-store:get-project-name', id),
-  createAndSwitchToBranch: (args) =>
-    ipcRenderer.invoke(
-      'single-document-project-store:create-and-switch-to-branch',
-      {
-        ...args,
-      }
-    ),
-  switchToBranch: (args) =>
-    ipcRenderer.invoke('single-document-project-store:switch-to-branch', {
-      ...args,
-    }),
-  getCurrentBranch: (args) =>
-    ipcRenderer.invoke('single-document-project-store:get-current-branch', {
-      ...args,
-    }),
-  listBranches: (args) =>
-    ipcRenderer.invoke('single-document-project-store:list-branches', {
-      ...args,
-    }),
-  deleteBranch: (args) =>
-    ipcRenderer.invoke('single-document-project-store:delete-branch', {
-      ...args,
-    }),
-  mergeAndDeleteBranch: (args) =>
-    ipcRenderer.invoke(
-      'single-document-project-store:merge-and-delete-branch',
-      {
-        ...args,
-      }
-    ),
-  getMergeConflictInfo: (args) =>
-    ipcRenderer.invoke(
-      'single-document-project-store:get-merge-conflict-info',
-      {
-        ...args,
-      }
-    ),
-  abortMerge: (args) =>
-    ipcRenderer.invoke('single-document-project-store:abort-merge', {
-      ...args,
-    }),
-  commitChanges: (args) =>
-    ipcRenderer.invoke('single-document-project-store:commit-changes', {
-      ...args,
-    }),
-  restoreChanges: (args) =>
-    ipcRenderer.invoke('single-document-project-store:restore-changes', {
-      ...args,
-    }),
-  commitMergeConflictsResolution: (args) =>
-    ipcRenderer.invoke(
-      'single-document-project-store:commit-merge-conflicts-resolution',
-      {
-        ...args,
-      }
-    ),
-  setAuthorInfo: (args) =>
-    ipcRenderer.invoke('single-document-project-store:set-author-info', {
-      ...args,
-    }),
-  addRemoteProject: (args) =>
-    ipcRenderer.invoke('single-document-project-store:add-remote-project', {
-      ...args,
-    }),
-  listRemoteProjects: (args) =>
-    ipcRenderer.invoke('single-document-project-store:list-remote-projects', {
-      ...args,
-    }),
-  findRemoteProjectByName: (args) =>
-    ipcRenderer.invoke(
-      'single-document-project-store:find-remote-project-by-name',
-      {
-        ...args,
-      }
-    ),
-  pushToRemoteProject: (args) =>
-    ipcRenderer.invoke('single-document-project-store:push-to-remote-project', {
-      ...args,
-    }),
-  pullFromRemoteProject: (args) =>
-    ipcRenderer.invoke(
-      'single-document-project-store:pull-from-remote-project',
-      {
-        ...args,
-      }
-    ),
-  getRemoteBranchInfo: (args) =>
-    ipcRenderer.invoke('single-document-project-store:get-remote-branch-info', {
-      ...args,
-    }),
-  disconnect: (projectId) =>
-    ipcRenderer.invoke('single-document-project-store:disconnect', projectId),
-} as SingleDocumentProjectStorePromiseAPI);
 
 contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
   createProject: (args) =>
@@ -557,14 +427,6 @@ contextBridge.exposeInMainWorld('multiDocumentProjectStoreAPI', {
       }
     ),
 } as MultiDocumentProjectStorePromiseAPI);
-
-// TODO: Namespace IPC messages
-contextBridge.exposeInMainWorld('singleDocumentProjectStoreManagerAPI', {
-  setupSingleDocumentProjectStore: (args) =>
-    ipcRenderer.invoke('create-single-document-project', { ...args }),
-  openSingleDocumentProjectStore: (args) =>
-    ipcRenderer.invoke('open-single-document-project', { ...args }),
-} as SingleDocumentProjectStoreManagerAPI);
 
 // TODO: Namespace IPC messages
 contextBridge.exposeInMainWorld('multiDocumentProjectStoreManagerAPI', {

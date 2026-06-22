@@ -18,7 +18,6 @@ import {
 import {
   isValidProjectId,
   type ProjectId,
-  projectTypes,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
 import {
@@ -50,10 +49,8 @@ import { FunctionalityConfigContext } from '../../../../modules/personalization/
 import { useCurrentDocumentId } from '../../hooks/use-current-document-id';
 import { usePulledUpstreamChanges } from '../../hooks/use-pulled-upstream-changes';
 import {
-  CurrentProjectContext,
   InfrastructureAdaptersContext,
   MultiDocumentProjectContext,
-  SingleDocumentProjectContext,
 } from '../';
 import { createWorkerClient } from './history-worker/client';
 
@@ -112,7 +109,6 @@ export const CurrentDocumentProvider = ({
   const { filesystem, versionedDocumentStore } = useContext(
     InfrastructureAdaptersContext
   );
-  const { projectType } = useContext(CurrentProjectContext);
   const [versionedDocumentHandle, setVersionedDocumentHandle] =
     useState<VersionedDocumentHandle | null>(null);
   const [versionedDocument, setVersionedDocument] =
@@ -142,8 +138,6 @@ export const CurrentDocumentProvider = ({
     directory,
     restoreDocumentChanges,
   } = useContext(MultiDocumentProjectContext);
-  const { documentInternalPath, restoreChanges: restoreSingleDocProject } =
-    useContext(SingleDocumentProjectContext);
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
   );
@@ -199,29 +193,27 @@ export const CurrentDocumentProvider = ({
         // TODO: Clean this up. The ID in the Automerge case is not the file path, so we need to get it from somewhere else.
         // This is why we use the path query param, which must be set.
         // But this introduces potential race conditions (e.g. documentId and searchParams getting out-of-sync)
-        if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
-          let path: string | null;
+        let path: string | null;
 
-          if (isGitBlobRef(documentId)) {
-            const decomposedBlobRef = decomposeGitBlobRef(documentId);
-            path = decomposedBlobRef.path;
-          } else {
-            const pathParam = searchParams.get('path');
-            path = pathParam ? decodeURIComponent(pathParam) : null;
-          }
-
-          if (!path) {
-            throw new Error(
-              'Cannot propagate changes to file since path is not provided'
-            );
-          }
-
-          setSelectedFileInfo({
-            documentId,
-            path,
-          });
-          resetPulledUpstreamChanges();
+        if (isGitBlobRef(documentId)) {
+          const decomposedBlobRef = decomposeGitBlobRef(documentId);
+          path = decomposedBlobRef.path;
+        } else {
+          const pathParam = searchParams.get('path');
+          path = pathParam ? decodeURIComponent(pathParam) : null;
         }
+
+        if (!path) {
+          throw new Error(
+            'Cannot propagate changes to file since path is not provided'
+          );
+        }
+
+        setSelectedFileInfo({
+          documentId,
+          path,
+        });
+        resetPulledUpstreamChanges();
 
         prevProjectId.current = projectIdParam;
         prevDocumentId.current = documentId;
@@ -389,10 +381,11 @@ export const CurrentDocumentProvider = ({
         );
       }
 
-      const restoreCommitId =
-        projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-          ? await restoreDocumentChanges({ documentId, commit, message })
-          : await restoreSingleDocProject({ commit, message });
+      const restoreCommitId = await restoreDocumentChanges({
+        documentId,
+        commit,
+        message,
+      });
 
       const newHistory = await loadHistory(versionedDocumentStore)({
         doc: versionedDocument,
@@ -407,9 +400,7 @@ export const CurrentDocumentProvider = ({
       documentId,
       versionedDocument,
       versionedDocumentStore,
-      projectType,
       restoreDocumentChanges,
-      restoreSingleDocProject,
     ]
   );
 
@@ -420,37 +411,24 @@ export const CurrentDocumentProvider = ({
       );
     }
 
-    if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
-      if (!directory || !selectedFileInfo?.path) {
-        throw new Error(
-          'Cannot write to file when restoring commit in multi-doc project'
-        );
-      }
-
-      await Effect.runPromise(
-        pipe(
-          filesystem.getAbsolutePath({
-            path: selectedFileInfo.path,
-            dirPath: directory.path,
-          }),
-          Effect.flatMap((absoluteFilePath) =>
-            versionedDocumentStore.discardUncommittedChanges({
-              documentId,
-              writeToFileWithPath: absoluteFilePath,
-            })
-          )
-        )
-      );
-    } else {
-      await Effect.runPromise(
-        versionedDocumentStore.discardUncommittedChanges({
-          documentId,
-          writeToFileWithPath: versionedDocumentStore.managesFilesystemWorkdir
-            ? (documentInternalPath ?? undefined)
-            : undefined,
-        })
-      );
+    if (!directory || !selectedFileInfo?.path) {
+      throw new Error('Cannot write to file when restoring commit in project');
     }
+
+    await Effect.runPromise(
+      pipe(
+        filesystem.getAbsolutePath({
+          path: selectedFileInfo.path,
+          dirPath: directory.path,
+        }),
+        Effect.flatMap((absoluteFilePath) =>
+          versionedDocumentStore.discardUncommittedChanges({
+            documentId,
+            writeToFileWithPath: absoluteFilePath,
+          })
+        )
+      )
+    );
 
     const newHistory = await loadHistory(versionedDocumentStore)({
       doc: versionedDocument,
@@ -585,52 +563,33 @@ export const CurrentDocumentProvider = ({
         );
       }
 
-      if (projectType === projectTypes.MULTI_DOCUMENT_PROJECT) {
-        if (!directory || !selectedFileInfo?.path) {
-          throw new Error('Cannot update file in multi-doc project');
-        }
-
-        await Effect.runPromise(
-          pipe(
-            filesystem.getAbsolutePath({
-              path: selectedFileInfo.path,
-              dirPath: directory.path,
-            }),
-            Effect.flatMap((absoluteFilePath) =>
-              processDocumentChange({
-                transformToText: representationTransformAdapter.transformToText,
-                updateRichTextDocumentContent:
-                  versionedDocumentStore.updateRichTextDocumentContent,
-                writeFile: filesystem.writeFile,
-              })({
-                documentId,
-                updatedDocument: doc,
-                writeToFileWithPath:
-                  versionedDocumentStore.managesFilesystemWorkdir
-                    ? absoluteFilePath
-                    : null,
-                projectType,
-              })
-            )
-          )
-        );
-      } else {
-        await Effect.runPromise(
-          processDocumentChange({
-            transformToText: representationTransformAdapter.transformToText,
-            updateRichTextDocumentContent:
-              versionedDocumentStore.updateRichTextDocumentContent,
-            writeFile: filesystem.writeFile,
-          })({
-            documentId,
-            updatedDocument: doc,
-            writeToFileWithPath: versionedDocumentStore.managesFilesystemWorkdir
-              ? documentInternalPath
-              : null,
-            projectType,
-          })
-        );
+      if (!directory || !selectedFileInfo?.path) {
+        throw new Error('Cannot update file in project');
       }
+
+      await Effect.runPromise(
+        pipe(
+          filesystem.getAbsolutePath({
+            path: selectedFileInfo.path,
+            dirPath: directory.path,
+          }),
+          Effect.flatMap((absoluteFilePath) =>
+            processDocumentChange({
+              transformToText: representationTransformAdapter.transformToText,
+              updateRichTextDocumentContent:
+                versionedDocumentStore.updateRichTextDocumentContent,
+              writeFile: filesystem.writeFile,
+            })({
+              documentId,
+              updatedDocument: doc,
+              writeToFileWithPath:
+                versionedDocumentStore.managesFilesystemWorkdir
+                  ? absoluteFilePath
+                  : null,
+            })
+          )
+        )
+      );
 
       await loadHistory(versionedDocumentStore)({
         docId: documentId,
@@ -641,12 +600,10 @@ export const CurrentDocumentProvider = ({
       versionedDocumentStore,
       projectIdParam,
       documentId,
-      documentInternalPath,
       representationTransformAdapter,
       filesystem,
       selectedFileInfo,
       directory,
-      projectType,
       versionedDocument,
       lastCommit,
     ]

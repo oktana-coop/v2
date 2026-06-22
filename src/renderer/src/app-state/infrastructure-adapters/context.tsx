@@ -4,15 +4,11 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import {
   type AssetUrlProtocol,
   type MultiDocumentProjectStoreManager,
-  type SingleDocumentProjectStoreManager,
 } from '../../../../modules/domain/project';
 import {
   createBrowserAutomergeMultiDocumentProjectStoreManagerAdapter,
-  createBrowserAutomergeSingleDocumentProjectStoreManagerAdapter,
   createElectronAssetProtocolAdapter,
   createElectronRendererAutomergeMultiDocumentProjectStoreManagerAdapter,
-  createElectronRendererAutomergeSingleDocumentProjectStoreManagerAdapter,
-  createElectronRendererIpcSingleDocumentProjectStoreManagerAdapter,
   createElectronRendererMultiDocumentProjectStoreManagerAdapter,
 } from '../../../../modules/domain/project/browser';
 import { type VersionedDocumentStore } from '../../../../modules/domain/rich-text';
@@ -25,7 +21,6 @@ import { LoadingText } from '../../components/progress/LoadingText';
 
 export type InfrastructureAdaptersContextType = {
   filesystem: Filesystem;
-  singleDocumentProjectStoreManager: SingleDocumentProjectStoreManager;
   multiDocumentProjectStoreManager: MultiDocumentProjectStoreManager;
   assetUrlProtocol: AssetUrlProtocol;
   versionedDocumentStore: VersionedDocumentStore | null;
@@ -38,8 +33,6 @@ export const InfrastructureAdaptersContext =
   createContext<InfrastructureAdaptersContextType>({
     // @ts-expect-error will get overriden below
     filesystem: null,
-    // @ts-expect-error will get overriden below
-    singleDocumentProjectStoreManager: null,
     // @ts-expect-error will get overriden below
     multiDocumentProjectStoreManager: null,
     // @ts-expect-error will get overriden below
@@ -65,11 +58,6 @@ export const InfrastructureAdaptersProvider = ({
   const assetUrlProtocol = createElectronAssetProtocolAdapter();
 
   const [
-    singleDocumentProjectStoreManager,
-    setSingleDocumentProjectStoreManager,
-  ] = useState<SingleDocumentProjectStoreManager | null>(null);
-
-  const [
     multiDocumentProjectStoreManager,
     setMultiDocumentProjectStoreManager,
   ] = useState<MultiDocumentProjectStoreManager | null>(null);
@@ -78,17 +66,8 @@ export const InfrastructureAdaptersProvider = ({
     const setupProjectStoreManagers = async () => {
       if (isElectron) {
         if (processId) {
-          const singleDocProjectStoreManager =
-            config.singleDocumentProjectVersionControlSystem ===
-            versionControlSystems.AUTOMERGE
-              ? createElectronRendererAutomergeSingleDocumentProjectStoreManagerAdapter(
-                  { processId }
-                )
-              : // Currently used for Git. This adapter is really generic, it just delegates to the main process via IPC.
-                createElectronRendererIpcSingleDocumentProjectStoreManagerAdapter();
-
           const multiDocProjectStoreManager =
-            config.singleDocumentProjectVersionControlSystem ===
+            config.multiDocumentProjectVersionControlSystem ===
             versionControlSystems.AUTOMERGE
               ? createElectronRendererAutomergeMultiDocumentProjectStoreManagerAdapter(
                   { processId }
@@ -96,16 +75,12 @@ export const InfrastructureAdaptersProvider = ({
               : // Currently used for Git. This adapter is really generic, it just delegates to the main process via IPC.
                 createElectronRendererMultiDocumentProjectStoreManagerAdapter();
 
-          setSingleDocumentProjectStoreManager(singleDocProjectStoreManager);
           setMultiDocumentProjectStoreManager(multiDocProjectStoreManager);
         }
       } else {
         // Only Automerge is supported in browser environment for now
-        const singleDocProjectStoreManager =
-          createBrowserAutomergeSingleDocumentProjectStoreManagerAdapter();
         const multiDocProjectStoreManager =
           createBrowserAutomergeMultiDocumentProjectStoreManagerAdapter();
-        setSingleDocumentProjectStoreManager(singleDocProjectStoreManager);
         setMultiDocumentProjectStoreManager(multiDocProjectStoreManager);
       }
     };
@@ -113,7 +88,7 @@ export const InfrastructureAdaptersProvider = ({
     setupProjectStoreManagers();
   }, [processId, isElectron]);
 
-  if (!singleDocumentProjectStoreManager || !multiDocumentProjectStoreManager) {
+  if (!multiDocumentProjectStoreManager) {
     // TODO: Replace with skeleton or spinner
     return <LoadingText />;
   }
@@ -131,7 +106,6 @@ export const InfrastructureAdaptersProvider = ({
     <InfrastructureAdaptersContext.Provider
       value={{
         filesystem,
-        singleDocumentProjectStoreManager,
         multiDocumentProjectStoreManager,
         assetUrlProtocol,
         versionedDocumentStore,

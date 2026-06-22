@@ -7,7 +7,6 @@ import {
 import { type ProjectId } from '../project-id';
 
 export const CURRENT_MULTI_DOCUMENT_PROJECT_SCHEMA_VERSION = 1;
-export const CURRENT_SINGLE_DOCUMENT_PROJECT_SCHEMA_VERSION = 1;
 
 export type BaseArtifactMetaData = {
   id: ResolvedArtifactId;
@@ -36,24 +35,4 @@ export type ResolvedMultiDocumentProject = {
   id: ProjectId;
   project: VersionedMultiDocumentProject;
   handle: VersionedMultiDocumentProjectHandle | null;
-};
-
-export type SingleDocumentProject = {
-  type: typeof versionedArtifactTypes.SINGLE_DOCUMENT_PROJECT;
-  schemaVersion: number;
-  document: BaseArtifactMetaData;
-  assets: Record<ResolvedArtifactId, ArtifactMetaData>;
-  name: string | null;
-};
-
-export type VersionedSingleDocumentProject =
-  VersionedArtifact<SingleDocumentProject>;
-
-export type VersionedSingleDocumentProjectHandle =
-  VersionedArtifactHandle<SingleDocumentProject>;
-
-export type ResolvedSingleDocumentProject = {
-  id: ProjectId;
-  project: VersionedSingleDocumentProject;
-  handle: VersionedSingleDocumentProjectHandle | null;
 };

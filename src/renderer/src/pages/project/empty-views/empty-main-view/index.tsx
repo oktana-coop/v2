@@ -1,32 +1,22 @@
 import { useContext } from 'react';
 
-import { projectTypes } from '../../../../../../modules/domain/project';
 import {
   CloneFromGithubModalContext,
-  CurrentProjectContext,
   SidebarLayoutContext,
 } from '../../../../app-state';
 import { Button } from '../../../../components/actions/Button';
 import { EmptyDocument } from '../../../../components/document-views/EmptyDocument';
-import {
-  FileDocumentIcon,
-  FolderIcon,
-  GithubIcon,
-  PenIcon,
-} from '../../../../components/icons';
+import { FolderIcon, GithubIcon, PenIcon } from '../../../../components/icons';
 import { useCreateDocument, useDocumentExplorerTree } from '../../../../hooks';
 import { DefaultActionsBar } from '../../../shared/default-actions-bar';
 
 export const EmptyMainView = ({
   onCreateDocumentButtonClick,
-  onOpenDocumentButtonClick,
   onOpenDirectoryButtonClick,
 }: {
   onCreateDocumentButtonClick: () => void;
-  onOpenDocumentButtonClick: () => void;
   onOpenDirectoryButtonClick: () => void;
 }) => {
-  const { projectType } = useContext(CurrentProjectContext);
   const { openCloneFromGithubModal } = useContext(CloneFromGithubModalContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
 
@@ -34,9 +24,7 @@ export const EmptyMainView = ({
   const { canCreateDocument } = useCreateDocument();
 
   const openProjectPrompt =
-    projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-      ? 'Open a folder to organize your versioned documents'
-      : 'Create a new document';
+    'Open a folder to organize your versioned documents';
 
   return (
     <div className="flex w-full flex-col">
@@ -53,25 +41,14 @@ export const EmptyMainView = ({
             : openProjectPrompt
         }
       >
-        {projectType === projectTypes.MULTI_DOCUMENT_PROJECT ? (
-          <Button
-            onClick={onOpenDirectoryButtonClick}
-            variant="plain"
-            color="purple"
-          >
-            <FolderIcon className="mr-1" />
-            Open folder
-          </Button>
-        ) : (
-          <Button
-            onClick={onOpenDocumentButtonClick}
-            variant="plain"
-            color="purple"
-          >
-            <FileDocumentIcon className="mr-1" />
-            Open document
-          </Button>
-        )}
+        <Button
+          onClick={onOpenDirectoryButtonClick}
+          variant="plain"
+          color="purple"
+        >
+          <FolderIcon className="mr-1" />
+          Open folder
+        </Button>
         {canCreateDocument && (
           <Button
             onClick={onCreateDocumentButtonClick}

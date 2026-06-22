@@ -14,8 +14,7 @@ import {
 } from '../errors';
 import { type ProjectId } from '../models';
 
-// Structural shape of a store's `lookupAssetByName`. Both the multi- and
-// single-document stores satisfy this, so the helper works for either.
+// Structural shape of a store's `lookupAssetByName`.
 type LookupAssetByName = (args: {
   projectId: ProjectId;
   name: string;

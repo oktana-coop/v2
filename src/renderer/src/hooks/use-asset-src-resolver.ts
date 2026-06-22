@@ -4,15 +4,12 @@ import { useCallback, useContext } from 'react';
 
 import {
   parseProjectRelPath,
-  projectTypes,
   resolveDocumentAssetUrl,
 } from '../../../modules/domain/project';
 import { parseDocumentAssetSrcEffect } from '../../../modules/domain/rich-text';
 import {
-  CurrentProjectContext,
   InfrastructureAdaptersContext,
   MultiDocumentProjectContext,
-  SingleDocumentProjectContext,
 } from '../app-state';
 import { useProjectId } from './use-project-id';
 
@@ -21,16 +18,11 @@ import { useProjectId } from './use-project-id';
 // By default that's the currently-selected file; callers rendering a different
 // document (e.g. a specific merge conflict) pass `docPathOverride`.
 export const useAssetSrcResolver = (docPathOverride?: string) => {
-  const { projectType } = useContext(CurrentProjectContext);
   const projectId = useProjectId();
   const { selectedFileInfo } = useContext(MultiDocumentProjectContext);
-  const { documentProjectRelPath } = useContext(SingleDocumentProjectContext);
   const { assetUrlProtocol } = useContext(InfrastructureAdaptersContext);
 
-  const isMultiDocProject = projectType === projectTypes.MULTI_DOCUMENT_PROJECT;
-  const rawDocPath =
-    docPathOverride ??
-    (isMultiDocProject ? selectedFileInfo?.path : documentProjectRelPath);
+  const rawDocPath = docPathOverride ?? selectedFileInfo?.path;
   const docPath = rawDocPath ? parseProjectRelPath(rawDocPath) : null;
 
   return useCallback(

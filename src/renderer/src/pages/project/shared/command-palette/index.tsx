@@ -1,6 +1,5 @@
 import { useContext } from 'react';
 
-import { projectTypes } from '../../../../../../modules/domain/project';
 import { richTextRepresentations } from '../../../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
 import { removeExtension } from '../../../../../../modules/infrastructure/filesystem';
@@ -8,7 +7,6 @@ import {
   CommandPaletteContext,
   CommitModalContext,
   CurrentDocumentContext,
-  CurrentProjectContext,
 } from '../../../../app-state';
 import {
   type ActionOption,
@@ -21,34 +19,27 @@ import {
   useExport,
 } from '../../../../hooks';
 import { useArtifactSelection as useArtifactSelectionInMultiDocumentProject } from '../../../../hooks/multi-document-project';
-import { useDocumentSelection as useDocumentSelectionInSingleDocumentProject } from '../../../../hooks/single-document-project';
 import { keyBindings } from './key-bindings';
 
 export const ProjectCommandPalette = ({
   onCreateDocument,
-  onOpenDocument,
   onOpenProjectSettings,
   onOpenPrintPreview,
 }: {
   onCreateDocument: () => void;
-  onOpenDocument: () => void;
   onOpenProjectSettings: () => void;
   onOpenPrintPreview: () => void;
 }) => {
   const { isOpen: isCommandPaletteOpen, closeCommandPalette } = useContext(
     CommandPaletteContext
   );
-  const { projectType } = useContext(CurrentProjectContext);
   const { canCommit, onOpenDiscardChangesDialog } = useContext(
     CurrentDocumentContext
   );
   const { openCommitModal } = useContext(CommitModalContext);
   const { isElectron, checkForUpdate } = useContext(ElectronContext);
 
-  const handleArtifactSelectionInMultiDocumentProject =
-    useArtifactSelectionInMultiDocumentProject();
-  const handleDocumentSelectionInSingleDocumentProject =
-    useDocumentSelectionInSingleDocumentProject();
+  const handleDocumentSelection = useArtifactSelectionInMultiDocumentProject();
   const currentDocumentName = useCurrentDocumentName();
   const {
     explorerTree: documents,
@@ -57,20 +48,7 @@ export const ProjectCommandPalette = ({
   } = useDocumentExplorerTree();
   const clearWebStorage = useClearWebStorage();
 
-  const handleDocumentSelection =
-    projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-      ? handleArtifactSelectionInMultiDocumentProject
-      : handleDocumentSelectionInSingleDocumentProject;
-
   const { exportToText, exportToBinary, exportToPDF } = useExport();
-
-  const singleDocumentProjectActions = [
-    {
-      name: keyBindings.ctrlO.command,
-      shortcut: keyBindings.ctrlO.keyBinding,
-      onActionSelection: onOpenDocument,
-    },
-  ];
 
   const multiDocumentProjectActions = [
     {
@@ -104,9 +82,7 @@ export const ProjectCommandPalette = ({
       shortcut: keyBindings.ctrlComma.keyBinding,
       onActionSelection: onOpenProjectSettings,
     },
-    ...(projectType === projectTypes.MULTI_DOCUMENT_PROJECT
-      ? multiDocumentProjectActions
-      : singleDocumentProjectActions),
+    ...multiDocumentProjectActions,
     ...(isElectron ? electronSpecificActions : browserSpecificActions),
   ];
 
@@ -159,7 +135,7 @@ export const ProjectCommandPalette = ({
     <CommandPalette
       open={isCommandPaletteOpen}
       onClose={closeCommandPalette}
-      documentsGroupTitle={`${projectType === projectTypes.SINGLE_DOCUMENT_PROJECT ? 'Other' : 'Project'}  documents`}
+      documentsGroupTitle="Project documents"
       contextualSection={
         currentDocumentName
           ? {
