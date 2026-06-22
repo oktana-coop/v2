@@ -13,12 +13,12 @@ import {
   CommandPalette,
 } from '../../../../components/dialogs/command-palette';
 import {
+  useArtifactSelection,
   useClearWebStorage,
   useCurrentDocumentName,
   useDocumentExplorerTree,
   useExport,
 } from '../../../../hooks';
-import { useArtifactSelection as useArtifactSelectionInProject } from '../../../../hooks';
 import { keyBindings } from './key-bindings';
 
 export const ProjectCommandPalette = ({
@@ -39,7 +39,7 @@ export const ProjectCommandPalette = ({
   const { openCommitModal } = useContext(CommitModalContext);
   const { isElectron, checkForUpdate } = useContext(ElectronContext);
 
-  const handleDocumentSelection = useArtifactSelectionInProject();
+  const handleArtifactSelection = useArtifactSelection();
   const currentDocumentName = useCurrentDocumentName();
   const {
     explorerTree: documents,
@@ -149,7 +149,7 @@ export const ProjectCommandPalette = ({
         .map((doc) => ({
           title: removeExtension(doc.name),
           onDocumentSelection: () => {
-            handleDocumentSelection(doc.id);
+            handleArtifactSelection(doc.id);
             closeCommandPalette();
           },
         }))}

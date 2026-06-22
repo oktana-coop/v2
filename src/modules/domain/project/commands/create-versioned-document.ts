@@ -108,7 +108,5 @@ export const createVersionedDocument =
           })
         )
       ),
-      Effect.flatMap(({ documentId, filePath }) =>
-        Effect.succeed({ documentId, filePath })
-      )
+      Effect.map(({ documentId, filePath }) => ({ documentId, filePath }))
     );

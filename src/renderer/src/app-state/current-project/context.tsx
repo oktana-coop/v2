@@ -191,9 +191,9 @@ export const ProjectContext = createContext<ProjectContextType>({
   loading: false,
   projectId: null,
   directory: null,
-  branch: null,
+  currentBranch: null,
   versionedProjectStore: null,
-  directoryFiles: [],
+  directoryTree: [],
   // @ts-expect-error will get overriden below
   openDirectory: async () => null,
   // @ts-expect-error will get overriden below

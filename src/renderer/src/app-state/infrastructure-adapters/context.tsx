@@ -64,7 +64,7 @@ export const InfrastructureAdaptersProvider = ({
     const setupProjectStoreManagers = async () => {
       if (isElectron) {
         if (processId) {
-          const multiDocProjectStoreManager =
+          const manager =
             config.projectVersionControlSystem ===
             versionControlSystems.AUTOMERGE
               ? createElectronRendererAutomergeProjectStoreManagerAdapter({
@@ -73,13 +73,12 @@ export const InfrastructureAdaptersProvider = ({
               : // Currently used for Git. This adapter is really generic, it just delegates to the main process via IPC.
                 createElectronRendererProjectStoreManagerAdapter();
 
-          setProjectStoreManager(multiDocProjectStoreManager);
+          setProjectStoreManager(manager);
         }
       } else {
         // Only Automerge is supported in browser environment for now
-        const multiDocProjectStoreManager =
-          createBrowserAutomergeProjectStoreManagerAdapter();
-        setProjectStoreManager(multiDocProjectStoreManager);
+        const manager = createBrowserAutomergeProjectStoreManagerAdapter();
+        setProjectStoreManager(manager);
       }
     };
 

@@ -7,10 +7,10 @@ import { FolderIcon, PlusIcon } from '../../../../../components/icons';
 import { SidebarHeading } from '../../../../../components/sidebar/SidebarHeading';
 import {
   type ExplorerTreeNode,
+  useArtifactSelection,
   useCreateDocument,
   useDocumentExplorerTree,
 } from '../../../../../hooks';
-import { useArtifactSelection as useArtifactSelectionInProject } from '../../../../../hooks';
 import { TreeView } from '../tree';
 import { EmptyView } from './EmptyView';
 import { NoActiveDirectoryView } from './NoActiveDirectoryView';
@@ -111,7 +111,7 @@ export const DirectoryTreeView = ({
   onCreateDocument: () => void;
 }) => {
   const { directory, openDirectory } = useContext(ProjectContext);
-  const handleArtifactSelection = useArtifactSelectionInProject();
+  const handleArtifactSelection = useArtifactSelection();
   const {
     explorerTree: documents,
     canShowTree,
