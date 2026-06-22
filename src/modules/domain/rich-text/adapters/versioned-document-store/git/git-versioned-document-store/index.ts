@@ -63,9 +63,8 @@ export const createAdapter = ({
   isoGitFs: IsoGitFsApi;
   filesystem: Filesystem;
   projectId: string;
-  // Project dir is the same with projectId in real filesystem setups.
-  // But it is the current directory ('.') in virtual filesystems like the SQLite fs (so that all paths stay relative).
-  // We still want to keep the projectId separate to be able to identify the document store's project correctly.
+  // projectDir is the repo root handed to isomorphic-git: it equals projectId on a real filesystem,
+  // but a virtual filesystem could root the repo elsewhere (e.g. '.').
   projectDir: string;
   managesFilesystemWorkdir: boolean;
 }): VersionedDocumentStore => {
