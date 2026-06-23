@@ -1,10 +1,1 @@
-import { buildConfig } from './build';
-import { type RendererConfig } from './types';
-
 export * from './types';
-
-export const config: RendererConfig = {
-  useHistoryWorker: buildConfig.useHistoryWorker,
-  primaryRichTextRepresentation: buildConfig.primaryRichTextRepresentation,
-  projectVersionControlSystem: buildConfig.projectVersionControlSystem,
-};

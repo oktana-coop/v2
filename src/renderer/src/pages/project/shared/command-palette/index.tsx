@@ -37,7 +37,7 @@ export const ProjectCommandPalette = ({
     CurrentDocumentContext
   );
   const { openCommitModal } = useContext(CommitModalContext);
-  const { isElectron, checkForUpdate } = useContext(ElectronContext);
+  const { checkForUpdate } = useContext(ElectronContext);
 
   const handleArtifactSelection = useArtifactSelection();
   const currentDocumentName = useCurrentDocumentName();
@@ -69,8 +69,6 @@ export const ProjectCommandPalette = ({
     },
   ];
 
-  const browserSpecificActions: ActionOption[] = [];
-
   const generalActions = [
     {
       name: keyBindings.ctrlN.command,
@@ -83,7 +81,7 @@ export const ProjectCommandPalette = ({
       onActionSelection: onOpenProjectSettings,
     },
     ...projectActions,
-    ...(isElectron ? electronSpecificActions : browserSpecificActions),
+    ...electronSpecificActions,
   ];
 
   const documentActions = [

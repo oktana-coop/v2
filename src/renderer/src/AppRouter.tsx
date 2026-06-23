@@ -1,15 +1,7 @@
 import './App.css';
 
-import { useContext } from 'react';
-import {
-  BrowserRouter,
-  MemoryRouter,
-  Navigate,
-  Route,
-  Routes,
-} from 'react-router';
+import { MemoryRouter, Navigate, Route, Routes } from 'react-router';
 
-import { ElectronContext } from '../../modules/infrastructure/cross-platform/browser';
 import { Layout } from './components/layout/Layout';
 import {
   ArtifactRoute,
@@ -39,12 +31,8 @@ import {
 import { TemplateEditor } from './pages/settings/exports';
 
 export const AppRouter = () => {
-  const { isElectron } = useContext(ElectronContext);
-
-  const Router = isElectron ? MemoryRouter : BrowserRouter;
-
   return (
-    <Router>
+    <MemoryRouter>
       <Layout>
         <Routes>
           <Route path="/" element={<Navigate to="/projects" replace />} />
@@ -92,6 +80,6 @@ export const AppRouter = () => {
           </Route>
         </Routes>
       </Layout>
-    </Router>
+    </MemoryRouter>
   );
 };

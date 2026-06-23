@@ -6,7 +6,6 @@ import {
   useState,
 } from 'react';
 
-import { ElectronContext } from '../../infrastructure/cross-platform/browser';
 import {
   createErrorNotification,
   NotificationsContext,
@@ -15,8 +14,6 @@ import {
   type Email,
   type GithubDeviceFlowVerificationInfo,
   type GithubUserInfo,
-  parseEmail,
-  parseUsername,
   type Username,
 } from '../models';
 
@@ -44,23 +41,7 @@ export const AuthContext = createContext<AuthContextType>({
   disconnectFromGithub: async () => {},
 });
 
-const getAuthInfoFromLocalStorage = () => {
-  const localStorageUsername = localStorage.getItem('username');
-  const username = localStorageUsername
-    ? parseUsername(localStorageUsername)
-    : null;
-
-  const localStorageEmail = localStorage.getItem('email');
-  const email = localStorageEmail ? parseEmail(localStorageEmail) : null;
-
-  return {
-    username,
-    email,
-  };
-};
-
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const { isElectron } = useContext(ElectronContext);
   const { dispatchNotification } = useContext(NotificationsContext);
   const [username, setUsername] = useState<Username | null>(null);
   const [email, setEmail] = useState<Email | null>(null);
@@ -72,31 +53,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setGithubDeviceFlowVerificationInfo,
   ] = useState<GithubDeviceFlowVerificationInfo | null>(null);
 
-  const handleSetUsername = useCallback(
-    (name: Username | null) => {
-      setUsername(name);
+  const handleSetUsername = useCallback((name: Username | null) => {
+    setUsername(name);
+    window.authAPI.setUsername(name);
+  }, []);
 
-      if (isElectron) {
-        window.authAPI.setUsername(name);
-      } else {
-        localStorage.setItem('username', name ?? '');
-      }
-    },
-    [isElectron]
-  );
-
-  const handleSetEmail = useCallback(
-    (mail: Email | null) => {
-      setEmail(mail);
-
-      if (isElectron) {
-        window.authAPI.setEmail(mail);
-      } else {
-        localStorage.setItem('email', mail ?? '');
-      }
-    },
-    [isElectron]
-  );
+  const handleSetEmail = useCallback((mail: Email | null) => {
+    setEmail(mail);
+    window.authAPI.setEmail(mail);
+  }, []);
 
   useEffect(() => {
     const readAuthInfoFromMain = async () => {
@@ -107,64 +72,48 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setGithubUserInfo(githubUserInfo);
     };
 
-    const readAuthInfoFromLocalStorage = async () => {
-      const { username, email } = await getAuthInfoFromLocalStorage();
-      setUsername(username);
-      setEmail(email);
-    };
-
     const unsubscribeFromGithubVerificationInfoAvailability =
-      window.authAPI?.onDeviceVerificationInfoAvailable((verificationInfo) => {
+      window.authAPI.onDeviceVerificationInfoAvailable((verificationInfo) => {
         setGithubDeviceFlowVerificationInfo(verificationInfo);
       });
 
-    if (isElectron) {
-      readAuthInfoFromMain();
-    } else {
-      readAuthInfoFromLocalStorage();
-    }
+    readAuthInfoFromMain();
 
     return () => {
       unsubscribeFromGithubVerificationInfoAvailability?.();
       setGithubDeviceFlowVerificationInfo(null);
     };
-  }, [isElectron]);
+  }, []);
 
   const handleConnectToGithub = useCallback(async () => {
-    if (isElectron) {
-      try {
-        const githubUserInfo = await window.authAPI.githubAuthUsingDeviceFlow();
-        setGithubUserInfo(githubUserInfo);
-        setGithubDeviceFlowVerificationInfo(null);
-      } catch (err) {
-        console.error(err);
-
-        setGithubUserInfo(null);
-        setGithubDeviceFlowVerificationInfo(null);
-
-        const notification = createErrorNotification({
-          title: 'Sync Provider Error',
-          message: 'An error occured when trying to connect with GitHub',
-        });
-        dispatchNotification(notification);
-      }
-    }
-  }, [isElectron, dispatchNotification]);
-
-  const handleCancelConnectingToGithub = useCallback(async () => {
-    if (isElectron) {
-      await window.authAPI.cancelGithubDeviceFlowAuth();
+    try {
+      const githubUserInfo = await window.authAPI.githubAuthUsingDeviceFlow();
+      setGithubUserInfo(githubUserInfo);
       setGithubDeviceFlowVerificationInfo(null);
-    }
-  }, [isElectron]);
+    } catch (err) {
+      console.error(err);
 
-  const handleDisconnectFromGithub = useCallback(async () => {
-    if (isElectron) {
-      await window.authAPI.disconnectFromGithub();
       setGithubUserInfo(null);
       setGithubDeviceFlowVerificationInfo(null);
+
+      const notification = createErrorNotification({
+        title: 'Sync Provider Error',
+        message: 'An error occured when trying to connect with GitHub',
+      });
+      dispatchNotification(notification);
     }
-  }, [isElectron]);
+  }, [dispatchNotification]);
+
+  const handleCancelConnectingToGithub = useCallback(async () => {
+    await window.authAPI.cancelGithubDeviceFlowAuth();
+    setGithubDeviceFlowVerificationInfo(null);
+  }, []);
+
+  const handleDisconnectFromGithub = useCallback(async () => {
+    await window.authAPI.disconnectFromGithub();
+    setGithubUserInfo(null);
+    setGithubDeviceFlowVerificationInfo(null);
+  }, []);
 
   return (
     <AuthContext.Provider

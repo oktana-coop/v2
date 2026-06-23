@@ -1,6 +1,5 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useEffect, useState } from 'react';
 
-import { ElectronContext } from '../../../infrastructure/cross-platform/browser';
 import { type ResolvedTheme, type Theme, themes } from './theme';
 
 const getDefaultTheme = () =>
@@ -19,22 +18,13 @@ export const ThemeContext = createContext<ThemeContextType>({
   setTheme: () => {},
 });
 
-const getSystemTheme = async (isElectron: boolean) => {
-  if (isElectron) {
-    return window.personalizationAPI.getSystemTheme();
-  }
-
-  // Fallback for non-Electron environments (e.g., web)
-  const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  return isDarkMode ? themes.dark : themes.light;
-};
+const getSystemTheme = async () => window.personalizationAPI.getSystemTheme();
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [theme, setTheme] = useState(getDefaultTheme());
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme | null>(
     null
   );
-  const { isElectron } = useContext(ElectronContext);
 
   useEffect(() => {
     const getThemeFromMain = async () => {
@@ -43,23 +33,21 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const unsubscribeFromThemeUpdates =
-      window.personalizationAPI?.onSystemThemeUpdate((newTheme) => {
+      window.personalizationAPI.onSystemThemeUpdate((newTheme) => {
         setResolvedTheme(newTheme);
       });
 
-    if (isElectron) {
-      getThemeFromMain();
-    }
+    getThemeFromMain();
 
     return () => {
       unsubscribeFromThemeUpdates?.();
     };
-  }, [isElectron]);
+  }, []);
 
   useEffect(() => {
     const updateResolvedTheme = async (newTheme: Theme) => {
       if (newTheme === themes.system) {
-        const systemTheme = await getSystemTheme(isElectron);
+        const systemTheme = await getSystemTheme();
         setResolvedTheme(systemTheme);
       } else {
         setResolvedTheme(newTheme);
@@ -82,11 +70,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
   const handleSetTheme = (theme: Theme) => {
     localStorage.setItem('appearance.theme', theme);
-
-    if (isElectron) {
-      window.personalizationAPI.setTheme(theme);
-    }
-
+    window.personalizationAPI.setTheme(theme);
     setTheme(theme);
   };
 

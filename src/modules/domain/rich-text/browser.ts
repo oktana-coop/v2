@@ -4,5 +4,4 @@ export {
   createPagedJsElectronRendererAdapter,
   initPrintPage,
 } from './adapters/paged-js-pdf-engine/electron-renderer';
-export { createPagedJsBrowserAdapter } from './adapters/paged-js-pdf-engine/browser';
 export { initPreviewPage } from './adapters/paged-js-pdf-engine/common/preview-page-entry';

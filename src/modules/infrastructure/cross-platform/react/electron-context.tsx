@@ -1,15 +1,10 @@
 import { createContext, useEffect, useState } from 'react';
 
-import {
-  config as browserBuildConfig,
-  type RendererConfig,
-} from '../../../config/browser';
-import { isElectron } from '../browser-env';
+import { type RendererConfig } from '../../../config/browser';
 import { type UpdateState } from '../update';
 
 type ElectronContextType = {
   processId: string | null;
-  isElectron: boolean;
   openExternalLink: (url: string) => void;
   updateState: UpdateState | null;
   userInitiatedUpdateCheck: boolean;
@@ -25,7 +20,6 @@ type ElectronContextType = {
 
 export const ElectronContext = createContext<ElectronContextType>({
   processId: null,
-  isElectron: isElectron(),
   openExternalLink: () => {},
   updateState: null,
   userInitiatedUpdateCheck: false,
@@ -46,22 +40,18 @@ export const ElectronProvider = ({
   const [updateState, setUpdateState] = useState<UpdateState | null>(null);
   const [userInitiatedUpdateCheck, setUserInitiatedUpdateCheck] =
     useState(false);
-  const config: RendererConfig = isElectron()
-    ? window.config
-    : browserBuildConfig;
-  const isMac = isElectron() && window.electronAPI.isMac;
-  const isWindows = isElectron() && window.electronAPI.isWindows;
-  const isLinux = isElectron() && window.electronAPI.isLinux;
+  const config: RendererConfig = window.config;
+  const isMac = window.electronAPI.isMac;
+  const isWindows = window.electronAPI.isWindows;
+  const isLinux = window.electronAPI.isLinux;
 
   useEffect(() => {
-    if (isElectron()) {
-      window.electronAPI.onReceiveProcessId((processId: string) => {
-        setProcessId(processId);
-      });
-    }
+    window.electronAPI.onReceiveProcessId((processId: string) => {
+      setProcessId(processId);
+    });
 
     const unsubscribeFromUpdateStateChange =
-      window.electronAPI?.onUpdateStateChange((updateState) => {
+      window.electronAPI.onUpdateStateChange((updateState) => {
         setUpdateState(updateState);
       });
 
@@ -73,7 +63,7 @@ export const ElectronProvider = ({
       }
     };
 
-    if (isElectron() && !window.electronAPI.isLinux) {
+    if (!window.electronAPI.isLinux) {
       checkForUpdateOnStartup();
     }
 
@@ -84,11 +74,7 @@ export const ElectronProvider = ({
 
   const handleOpenExternalLink = (url: string) => {
     if (url) {
-      if (isElectron()) {
-        window.electronAPI.openExternalLink(url);
-      } else {
-        window.open(url, '_blank', 'noopener,noreferrer');
-      }
+      window.electronAPI.openExternalLink(url);
     }
   };
 
@@ -97,29 +83,22 @@ export const ElectronProvider = ({
   };
 
   const handleCheckForUpdate = () => {
-    if (isElectron()) {
-      setUserInitiatedUpdateCheck(true);
-      window.electronAPI.checkForUpdate();
-    }
+    setUserInitiatedUpdateCheck(true);
+    window.electronAPI.checkForUpdate();
   };
 
   const handleDownloadUpdate = () => {
-    if (isElectron()) {
-      window.electronAPI.downloadUpdate();
-    }
+    window.electronAPI.downloadUpdate();
   };
 
   const handleRestartToInstallUpdate = () => {
-    if (isElectron()) {
-      window.electronAPI.restartToInstallUpdate();
-    }
+    window.electronAPI.restartToInstallUpdate();
   };
 
   return (
     <ElectronContext.Provider
       value={{
         processId,
-        isElectron: isElectron(),
         openExternalLink: handleOpenExternalLink,
         updateState,
         userInitiatedUpdateCheck,

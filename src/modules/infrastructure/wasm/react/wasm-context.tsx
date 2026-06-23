@@ -1,13 +1,5 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
+import { createContext, useCallback, useEffect, useState } from 'react';
 
-import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
-import { createAdapter as createBrowserWasmAdapter } from '../adapters/browser-wasm';
 import { createAdapter as createElectronRendererWasmAdapter } from '../adapters/electron-renderer-wasm';
 import type { RunWasiCLIArgs, Wasm } from '../ports/wasm';
 
@@ -22,18 +14,12 @@ export const WasmContext = createContext<WasmContextType>({
 
 export const WasmProvider = ({ children }: { children: React.ReactNode }) => {
   const [wasm, setWasm] = useState<Wasm | null>(null);
-  const { isElectron } = useContext(ElectronContext);
 
   useEffect(() => {
     const loadWasmModules = async () => {
       try {
-        if (isElectron) {
-          const adapter = createElectronRendererWasmAdapter();
-          setWasm(adapter);
-        } else {
-          const adapter = await createBrowserWasmAdapter();
-          setWasm(adapter);
-        }
+        const adapter = createElectronRendererWasmAdapter();
+        setWasm(adapter);
       } catch (error) {
         setWasm(null);
         console.error('Failed to load WASM modules:', error);
@@ -41,7 +27,7 @@ export const WasmProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     loadWasmModules();
-  }, [isElectron]);
+  }, []);
 
   const handleRunWasiCLIOutputingText = useCallback(
     async (args: RunWasiCLIArgs) => {
