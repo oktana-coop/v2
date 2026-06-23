@@ -35,7 +35,6 @@ import {
   EXPLORER_TREE_DIRECTORY,
   EXPLORER_TREE_FILE,
 } from '../../../../modules/infrastructure/cross-platform';
-import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import {
   type Directory,
   type File,
@@ -283,7 +282,6 @@ export const ProjectProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { isElectron } = useContext(ElectronContext);
   const {
     filesystem,
     versionedDocumentStore,
@@ -1356,8 +1354,6 @@ export const ProjectProvider = ({
   }, []);
 
   useEffect(() => {
-    if (!isElectron) return;
-
     const unsubscribe = window.electronAPI.onContextMenuAction(
       async (action) => {
         if (
@@ -1418,7 +1414,7 @@ export const ProjectProvider = ({
     );
 
     return unsubscribe;
-  }, [isElectron, handleCreateNewDocument, navigate]);
+  }, [handleCreateNewDocument, navigate]);
 
   useEffect(() => {
     if (versionedProjectStore) {
@@ -1457,9 +1453,7 @@ export const ProjectProvider = ({
     documentId,
     path,
   }: SelectedFileInfo) => {
-    if (isElectron) {
-      window.electronAPI.sendCurrentDocumentId(documentId);
-    }
+    window.electronAPI.sendCurrentDocumentId(documentId);
 
     setSelectedFileInfo({
       documentId,

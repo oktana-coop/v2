@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-import { ElectronContext } from '../../../infrastructure/cross-platform/browser';
 import {
   defaultExportTemplate,
   type ExportTemplate,
@@ -162,7 +161,6 @@ export const EditorAppearanceProvider = ({
     getDefaultEditorAppearance
   );
   const [systemFonts, setSystemFonts] = useState<string[]>([]);
-  const { isElectron } = useContext(ElectronContext);
   const { activeTemplate } = useContext(ExportTemplatesContext);
 
   useEffect(() => {
@@ -173,10 +171,8 @@ export const EditorAppearanceProvider = ({
       }
     };
 
-    if (isElectron) {
-      loadFromMain();
-    }
-  }, [isElectron]);
+    loadFromMain();
+  }, []);
 
   useEffect(() => {
     const loadSystemFonts = async () => {
@@ -223,9 +219,7 @@ export const EditorAppearanceProvider = ({
       MATCH_EXPORT_TEMPLATE_KEY,
       String(updated.matchExportTemplate)
     );
-    if (isElectron) {
-      window.personalizationAPI.setEditorAppearance(updated);
-    }
+    window.personalizationAPI.setEditorAppearance(updated);
   };
 
   const handleSetHeadingFontFamily = (fontFamily: string) => {

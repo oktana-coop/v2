@@ -10,10 +10,6 @@ import { UpdateNotification } from '../../../../renderer/src/components/notifica
 import { type UpdateState } from '../update';
 import { ElectronContext, ElectronProvider } from './electron-context';
 
-vi.mock('../browser-env', () => ({
-  isElectron: () => true,
-}));
-
 let updateStateCallback: ((state: UpdateState) => void) | null = null;
 const mockCheckForUpdate = vi.fn();
 

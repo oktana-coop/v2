@@ -6,7 +6,6 @@ import {
   type ProjectStoreManager,
 } from '../../../../modules/domain/project';
 import {
-  createBrowserAutomergeProjectStoreManagerAdapter,
   createElectronAssetProtocolAdapter,
   createElectronRendererAutomergeProjectStoreManagerAdapter,
   createElectronRendererProjectStoreManagerAdapter,
@@ -14,7 +13,6 @@ import {
 import { type VersionedDocumentStore } from '../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import { type Filesystem } from '../../../../modules/infrastructure/filesystem';
-import { createAdapter as createBrowserFilesystemAPIAdapter } from '../../../../modules/infrastructure/filesystem/adapters/browser-api';
 import { createAdapter as createElectronRendererFilesystemAPIAdapter } from '../../../../modules/infrastructure/filesystem/adapters/electron-renderer-api';
 import { versionControlSystems } from '../../../../modules/infrastructure/version-control';
 import { LoadingText } from '../../components/progress/LoadingText';
@@ -46,15 +44,12 @@ export const InfrastructureAdaptersProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { processId, isElectron, config } = useContext(ElectronContext);
+  const { processId, config } = useContext(ElectronContext);
   const [versionedDocumentStore, setVersionedDocumentStore] =
     useState<VersionedDocumentStore | null>(null);
 
-  const filesystem = isElectron
-    ? createElectronRendererFilesystemAPIAdapter()
-    : createBrowserFilesystemAPIAdapter();
+  const filesystem = createElectronRendererFilesystemAPIAdapter();
 
-  // TODO: Browser build will need its own AssetUrlProtocol adapter.
   const assetUrlProtocol = createElectronAssetProtocolAdapter();
 
   const [projectStoreManager, setProjectStoreManager] =
@@ -62,28 +57,21 @@ export const InfrastructureAdaptersProvider = ({
 
   useEffect(() => {
     const setupProjectStoreManagers = async () => {
-      if (isElectron) {
-        if (processId) {
-          const manager =
-            config.projectVersionControlSystem ===
-            versionControlSystems.AUTOMERGE
-              ? createElectronRendererAutomergeProjectStoreManagerAdapter({
-                  processId,
-                })
-              : // Currently used for Git. This adapter is really generic, it just delegates to the main process via IPC.
-                createElectronRendererProjectStoreManagerAdapter();
+      if (processId) {
+        const manager =
+          config.projectVersionControlSystem === versionControlSystems.AUTOMERGE
+            ? createElectronRendererAutomergeProjectStoreManagerAdapter({
+                processId,
+              })
+            : // Currently used for Git. This adapter is really generic, it just delegates to the main process via IPC.
+              createElectronRendererProjectStoreManagerAdapter();
 
-          setProjectStoreManager(manager);
-        }
-      } else {
-        // Only Automerge is supported in browser environment for now
-        const manager = createBrowserAutomergeProjectStoreManagerAdapter();
         setProjectStoreManager(manager);
       }
     };
 
     setupProjectStoreManagers();
-  }, [processId, isElectron]);
+  }, [processId]);
 
   if (!projectStoreManager) {
     // TODO: Replace with skeleton or spinner

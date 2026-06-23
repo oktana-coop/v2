@@ -1,7 +1,6 @@
 import { useContext, useEffect, useState } from 'react';
 
 import { AuthContext } from '../../../../../../modules/auth/browser';
-import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
 import { GithubRepositoryInfo } from '../../../../../../modules/infrastructure/version-control';
 import {
   Listbox,
@@ -14,7 +13,6 @@ export const SelectRepository = ({
 }: {
   onSelect: (repository: GithubRepositoryInfo) => void;
 }) => {
-  const { isElectron } = useContext(ElectronContext);
   const [githubRepositories, setGithubRepositories] = useState<
     GithubRepositoryInfo[]
   >([]);
@@ -37,10 +35,10 @@ export const SelectRepository = ({
       setGithubRepositories(repos);
     };
 
-    if (githubUserInfo && isElectron) {
+    if (githubUserInfo) {
       fetchRepositories();
     }
-  }, [githubUserInfo, isElectron]);
+  }, [githubUserInfo]);
 
   return (
     <div className="max-w-64">

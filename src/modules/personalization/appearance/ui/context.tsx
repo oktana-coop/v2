@@ -1,6 +1,5 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useEffect, useState } from 'react';
 
-import { ElectronContext } from '../../../infrastructure/cross-platform/browser';
 import { bundledFonts, extractSystemFontFamilies } from '../font-families';
 import { defaultUIAppearance, type UIAppearancePreferences } from './ui';
 
@@ -51,7 +50,6 @@ export const UIAppearanceProvider = ({
 }) => {
   const [uiAppearance, setUIAppearance] = useState(getDefaultUIAppearance);
   const [systemFonts, setSystemFonts] = useState<string[]>([]);
-  const { isElectron } = useContext(ElectronContext);
 
   useEffect(() => {
     const loadFromMain = async () => {
@@ -61,10 +59,8 @@ export const UIAppearanceProvider = ({
       }
     };
 
-    if (isElectron) {
-      loadFromMain();
-    }
-  }, [isElectron]);
+    loadFromMain();
+  }, []);
 
   useEffect(() => {
     const loadSystemFonts = async () => {
@@ -84,9 +80,7 @@ export const UIAppearanceProvider = ({
     setUIAppearance(updated);
 
     localStorage.setItem(UI_FONT_FAMILY_STORAGE_KEY, updated.fontFamily);
-    if (isElectron) {
-      window.personalizationAPI.setUIAppearance(updated);
-    }
+    window.personalizationAPI.setUIAppearance(updated);
   };
 
   return (

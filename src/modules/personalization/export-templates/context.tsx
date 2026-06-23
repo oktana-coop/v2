@@ -1,8 +1,7 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useEffect, useState } from 'react';
 
-import { ElectronContext } from '../../infrastructure/cross-platform/browser';
 import {
   DEFAULT_TEMPLATE_ID,
   defaultExportTemplate,
@@ -74,7 +73,6 @@ export const ExportTemplatesProvider = ({
   children: React.ReactNode;
 }) => {
   const [preferences, setPreferences] = useState(getLocalStoragePreferences);
-  const { isElectron } = useContext(ElectronContext);
 
   useEffect(() => {
     const loadFromMain = async () => {
@@ -84,18 +82,14 @@ export const ExportTemplatesProvider = ({
       }
     };
 
-    if (isElectron) {
-      loadFromMain();
-    }
-  }, [isElectron]);
+    loadFromMain();
+  }, []);
 
   const persistAndSync = (updated: ExportTemplatePreferences) => {
     setPreferences(updated);
     localStorage.setItem(ACTIVE_TEMPLATE_ID_KEY, updated.activeTemplateId);
     localStorage.setItem(TEMPLATES_KEY, JSON.stringify(updated.templates));
-    if (isElectron) {
-      window.personalizationAPI.setExportTemplates(updated);
-    }
+    window.personalizationAPI.setExportTemplates(updated);
   };
 
   const handleSetActiveTemplateId = (id: string) => {
