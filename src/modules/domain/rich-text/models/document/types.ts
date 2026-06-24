@@ -2,7 +2,6 @@ import {
   type ResolvedArtifact,
   type ResolvedArtifactId,
   type VersionedArtifact,
-  type VersionedArtifactHandle,
   versionedArtifactTypes,
 } from '../../../../../modules/infrastructure/version-control';
 import { type TextRichTextRepresentation } from '../representation';
@@ -22,5 +21,3 @@ export type ResolvedDocument = ResolvedArtifact<
   ResolvedArtifactId,
   RichTextDocument
 >;
-
-export type VersionedDocumentHandle = VersionedArtifactHandle<RichTextDocument>;

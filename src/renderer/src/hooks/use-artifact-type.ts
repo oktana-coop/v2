@@ -9,8 +9,8 @@ import {
 } from '../../../modules/infrastructure/version-control';
 
 // Derives the type of the artifact currently in the route, or null when it
-// cannot be determined. Classification is by path, which both git (encoded in
-// the blob ref) and Automerge (provided via the `path` query param) supply.
+// cannot be determined. Classification is by path, taken from the git blob ref
+// or the `path` query param.
 export const useArtifactType = (): VersionedArtifactType | null => {
   const { artifactId: urlEncodedArtifactId } = useParams();
   const [searchParams] = useSearchParams();

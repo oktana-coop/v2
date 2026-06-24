@@ -74,7 +74,6 @@ export const ContentConflict = ({
       </div>
       <RichTextEditor
         doc={suggestedResolution.docAfter}
-        docHandle={null}
         isToolbarOpen={isEditorToolbarOpen}
         onDocChange={onDocChange}
         pickAsset={pickAsset}

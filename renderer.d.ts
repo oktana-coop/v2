@@ -24,8 +24,6 @@ import {
 } from './src/modules/infrastructure/cross-platform';
 import { type Filesystem as FilesystemAPI } from './src/modules/infrastructure/filesystem';
 import {
-  type FromMainMessage as AutomergeRepoNetworkFromMainIPCMessage,
-  type FromRendererMessage as AutomergeRepoNetworkFromRendererIPCMessage,
   GithubDeviceFlowVerificationInfo,
   type GithubRepositoryInfo,
   type ResolvedArtifactId,
@@ -97,15 +95,6 @@ export type AuthAPI = {
   ) => UnregisterListenerFn;
   cancelGithubDeviceFlowAuth: () => Promise<void>;
   disconnectFromGithub: () => Promise<void>;
-};
-
-export type AutomergeRepoNetworkAdapter = {
-  sendRendererProcessMessage: (
-    message: AutomergeRepoNetworkFromRendererIPCMessage
-  ) => void;
-  onReceiveMainProcessMessage: (
-    callback: (message: AutomergeRepoNetworkFromMainIPCMessage) => void
-  ) => UnregisterListenerFn;
 };
 
 export type ProjectStoreManagerAPI = {
@@ -221,7 +210,6 @@ declare global {
     config: RendererConfig;
     personalizationAPI: PersonalizationAPI;
     authAPI: AuthAPI;
-    automergeRepoNetworkAdapter: AutomergeRepoNetworkAdapter;
     filesystemAPI: FilesystemPromiseAPI;
     versionedDocumentStoreAPI: VersionedDocumentStorePromiseAPI;
     projectStoreAPI: ProjectStorePromiseAPI;

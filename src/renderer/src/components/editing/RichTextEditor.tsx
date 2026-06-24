@@ -24,7 +24,6 @@ import {
   prosemirror,
   type RichTextDocument,
   richTextRepresentations,
-  type VersionedDocumentHandle,
 } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
 import { versionedArtifactTypes } from '../../../../modules/infrastructure/version-control';
@@ -84,7 +83,6 @@ const {
 
 type RichTextEditorProps = {
   doc: RichTextDocument;
-  docHandle: VersionedDocumentHandle | null;
   onDocChange?: (doc: RichTextDocument) => Promise<void>;
   isEditable?: boolean;
   isToolbarOpen?: boolean;
@@ -94,7 +92,6 @@ type RichTextEditorProps = {
 };
 
 export const RichTextEditor = ({
-  docHandle,
   doc,
   onDocChange,
   isEditable = true,
@@ -249,7 +246,6 @@ export const RichTextEditor = ({
 
     return syncPlugin({
       onPMDocChange: handlePMDocChange,
-      docHandle,
     });
   };
 
@@ -353,7 +349,7 @@ export const RichTextEditor = ({
         editorViewRef.current = null;
       }
     };
-  }, [doc, docHandle, isEditable, schema, setView]);
+  }, [doc, isEditable, schema, setView]);
 
   useEffect(() => {
     const reconfigurePlugins = async ({

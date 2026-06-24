@@ -17,12 +17,9 @@ import { ActionsBar } from './ActionsBar';
 export const DocumentEditor = () => {
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
   const { view: editorView } = useContext(ProseMirrorContext);
-  const {
-    versionedDocument,
-    versionedDocumentHandle,
-    onDocumentContentChange,
-    canCommit,
-  } = useContext(CurrentDocumentContext);
+  const { versionedDocument, onDocumentContentChange, canCommit } = useContext(
+    CurrentDocumentContext
+  );
   const { openCommitModal } = useContext(CommitModalContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const resolveAssetSrc = useAssetSrcResolver();
@@ -50,7 +47,6 @@ export const DocumentEditor = () => {
           {versionedDocument ? (
             <RichTextEditor
               doc={versionedDocument}
-              docHandle={versionedDocumentHandle}
               isToolbarOpen={isEditorToolbarOpen}
               onDocChange={onDocumentContentChange}
               pickAsset={pickAsset}

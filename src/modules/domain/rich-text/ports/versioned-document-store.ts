@@ -17,7 +17,6 @@ import {
   type ResolvedDocument,
   RichTextRepresentation,
   type VersionedDocument,
-  type VersionedDocumentHandle,
 } from '../models';
 
 export type CreateDocumentArgs = {
@@ -25,11 +24,6 @@ export type CreateDocumentArgs = {
   filePath?: string;
   writeToFile?: boolean;
   branch?: Branch;
-};
-
-export type GetDocumentHandleAtChangeArgs = {
-  documentHandle: VersionedDocumentHandle;
-  changeId: Change['id'];
 };
 
 export type GetDocumentAtChangeArgs = {
@@ -45,14 +39,6 @@ export type UpdateRichTextDocumentContentArgs = {
 };
 
 export type GetDocumentHistoryResponse = {
-  history: Change[];
-  current: VersionedDocument;
-  latestChange: Change;
-  lastCommit: Commit | null;
-  hasUncommittedChanges: boolean;
-};
-
-export type GetDocumentHandleHistoryResponse = {
   history: Change[];
   current: VersionedDocument;
   latestChange: Change;
@@ -82,8 +68,8 @@ export type ResolveContentConflictArgs = {
 
 export type VersionedDocumentStore = {
   // This is not an ideal model but we want to be able to tell that the document store we are searching in is the desired one.
-  // Without this we are risking registering interest in documents from other repositories (and therefore polluting our stores).
-  // TODO: Remove this when we have a good solution with data integrity when switching automerge repos.
+  // Without this we are risking reading documents from other repositories (and therefore polluting our stores).
+  // TODO: Remove this when we have a good solution with data integrity when switching project stores.
   projectId: string | null;
   setProjectId: (id: string) => Effect.Effect<void, never, never>;
   managesFilesystemWorkdir: boolean;
@@ -157,45 +143,5 @@ export type VersionedDocumentStore = {
   resolveContentConflict: (
     args: ResolveContentConflictArgs
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
-  exportDocumentToBinary?: (
-    document: VersionedDocument
-  ) => Effect.Effect<Uint8Array, RepositoryError, never>;
-  importDocumentFromBinary?: (
-    data: Uint8Array
-  ) => Effect.Effect<VersionedDocument, RepositoryError, never>;
   disconnect: () => Effect.Effect<void, RepositoryError, never>;
-};
-
-export type RealtimeVersionedDocumentStore = VersionedDocumentStore & {
-  getDocumentHandleAtChange: (
-    args: GetDocumentHandleAtChangeArgs
-  ) => Effect.Effect<
-    VersionedDocumentHandle,
-    ValidationError | RepositoryError,
-    never
-  >;
-  findDocumentHandleById: (
-    id: ResolvedArtifactId
-  ) => Effect.Effect<
-    VersionedDocumentHandle,
-    ValidationError | MigrationError | RepositoryError | NotFoundError,
-    never
-  >;
-  getDocumentFromHandle: (
-    handle: VersionedDocumentHandle
-  ) => Effect.Effect<
-    VersionedDocument,
-    RepositoryError | NotFoundError | MigrationError,
-    never
-  >;
-  getDocumentHandleHistory: (
-    handle: VersionedDocumentHandle
-  ) => Effect.Effect<GetDocumentHandleHistoryResponse, RepositoryError, never>;
-  exportDocumentHandleToBinary: (
-    documentHandle: VersionedDocumentHandle
-  ) => Effect.Effect<
-    Uint8Array,
-    RepositoryError | NotFoundError | MigrationError,
-    never
-  >;
 };
