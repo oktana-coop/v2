@@ -25,13 +25,10 @@ import {
   processDocumentChange,
   type RichTextDocument,
   type VersionedDocument,
-  type VersionedDocumentHandle,
   type VersionedDocumentStore,
 } from '../../../../modules/domain/rich-text';
 import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
-import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import {
-  type ArtifactHistoryInfo,
   type Change,
   type ChangeId,
   changeIdsAreSame,
@@ -49,11 +46,9 @@ import { FunctionalityConfigContext } from '../../../../modules/personalization/
 import { useCurrentDocumentId } from '../../hooks/use-current-document-id';
 import { usePulledUpstreamChanges } from '../../hooks/use-pulled-upstream-changes';
 import { InfrastructureAdaptersContext, ProjectContext } from '../';
-import { createWorkerClient } from './history-worker/client';
 
 export type CurrentDocumentContextType = {
   versionedDocumentId: ResolvedArtifactId | null;
-  versionedDocumentHandle: VersionedDocumentHandle | null;
   versionedDocument: VersionedDocument | null;
   onDocumentContentChange: (doc: RichTextDocument) => Promise<void>;
   loadingHistory: boolean;
@@ -76,7 +71,6 @@ export type CurrentDocumentContextType = {
 export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
   {
     versionedDocumentId: null,
-    versionedDocumentHandle: null,
     versionedDocument: null,
     onDocumentContentChange: async () => {},
     loadingHistory: false,
@@ -102,12 +96,9 @@ export const CurrentDocumentProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { config } = useContext(ElectronContext);
   const { filesystem, versionedDocumentStore } = useContext(
     InfrastructureAdaptersContext
   );
-  const [versionedDocumentHandle, setVersionedDocumentHandle] =
-    useState<VersionedDocumentHandle | null>(null);
   const [versionedDocument, setVersionedDocument] =
     useState<VersionedDocument | null>(null);
   const { projectId: projectIdParam, changeId: changeIdParam } = useParams();
@@ -138,9 +129,6 @@ export const CurrentDocumentProvider = ({
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
   );
-  const loadHistoryFromWorker = config.useHistoryWorker
-    ? createWorkerClient()
-    : undefined;
   const prevProjectId = useRef(projectIdParam);
   const prevDocumentId = useRef(documentId);
   const { pulledUpstreamChanges, resetPulledUpstreamChanges } =
@@ -169,27 +157,24 @@ export const CurrentDocumentProvider = ({
       versionedDocumentStore: VersionedDocumentStore;
     }) => {
       if (!documentId) {
-        setVersionedDocumentHandle(null);
         setVersionedDocument(null);
         resetPulledUpstreamChanges();
         setDocumentNeedsReload(false);
       } else {
-        setVersionedDocumentHandle(null);
         setVersionedDocument(null);
 
-        const { artifact: document, handle: documentHandle } =
-          await Effect.runPromise(
-            versionedDocumentStore.findDocumentById(documentId)
-          );
+        const { artifact: document } = await Effect.runPromise(
+          versionedDocumentStore.findDocumentById(documentId)
+        );
 
-        setVersionedDocumentHandle(documentHandle);
         setVersionedDocument(document);
         setLoadingHistory(true);
         setDocumentNeedsReload(false);
 
-        // TODO: Clean this up. The ID in the Automerge case is not the file path, so we need to get it from somewhere else.
-        // This is why we use the path query param, which must be set.
-        // But this introduces potential race conditions (e.g. documentId and searchParams getting out-of-sync)
+        // The document path comes from the git blob ref when available, falling
+        // back to the path query param.
+        // TODO: relying on the query param can race (documentId and searchParams
+        // getting out-of-sync).
         let path: string | null;
 
         if (isGitBlobRef(documentId)) {
@@ -219,9 +204,9 @@ export const CurrentDocumentProvider = ({
 
     if (
       versionedDocumentStore &&
-      // This is a very important safeguard. We don't want to ask the document from a document store that belongs to another project
-      // due to how Automerge repo syncing works at the moment. If this happens, the repo registers interest in the wrong document
-      // and can potentially get it if we are not careful when switching projects. Change with caution.
+      // Safeguard: don't read from a document store that belongs to another
+      // project, so we don't return a document from the wrong repository when
+      // switching projects. Change with caution.
       versionedDocumentStore.projectId === projectIdParam &&
       (projectOrDocumentHasChanged ||
         returningToSelectedDocumentEditMode ||
@@ -297,30 +282,10 @@ export const CurrentDocumentProvider = ({
 
   const loadHistory =
     (documentStore: VersionedDocumentStore) =>
-    async ({
-      docId,
-      doc,
-    }: {
-      docId: ResolvedArtifactId;
-      doc: VersionedDocument;
-    }) => {
-      let historyInfo: ArtifactHistoryInfo<RichTextDocument>;
-
-      if (
-        config.useHistoryWorker &&
-        loadHistoryFromWorker &&
-        documentStore.exportDocumentToBinary
-      ) {
-        const documentData = await Effect.runPromise(
-          documentStore.exportDocumentToBinary(doc)
-        );
-
-        historyInfo = await loadHistoryFromWorker(documentData);
-      } else {
-        historyInfo = await Effect.runPromise(
-          documentStore.getDocumentHistory(docId)
-        );
-      }
+    async ({ docId }: { docId: ResolvedArtifactId }) => {
+      const historyInfo = await Effect.runPromise(
+        documentStore.getDocumentHistory(docId)
+      );
 
       const historyWithURLInfo = historyInfo.history.map((commit) => ({
         ...commit,
@@ -343,7 +308,6 @@ export const CurrentDocumentProvider = ({
   useEffect(() => {
     if (versionedDocumentStore && documentId && versionedDocument) {
       loadHistory(versionedDocumentStore)({
-        doc: versionedDocument,
         docId: documentId,
       });
     }
@@ -365,7 +329,6 @@ export const CurrentDocumentProvider = ({
   const reloadDocumentHistory = useCallback(async () => {
     if (!versionedDocumentStore || !versionedDocument || !documentId) return;
     await loadHistory(versionedDocumentStore)({
-      doc: versionedDocument,
       docId: documentId,
     });
   }, [versionedDocumentStore, versionedDocument, documentId]);
@@ -385,7 +348,6 @@ export const CurrentDocumentProvider = ({
       });
 
       const newHistory = await loadHistory(versionedDocumentStore)({
-        doc: versionedDocument,
         docId: documentId,
       });
 
@@ -428,7 +390,6 @@ export const CurrentDocumentProvider = ({
     );
 
     const newHistory = await loadHistory(versionedDocumentStore)({
-      doc: versionedDocument,
       docId: documentId,
     });
 
@@ -590,7 +551,6 @@ export const CurrentDocumentProvider = ({
 
       await loadHistory(versionedDocumentStore)({
         docId: documentId,
-        doc: versionedDocument,
       });
     },
     [
@@ -610,7 +570,6 @@ export const CurrentDocumentProvider = ({
     <CurrentDocumentContext.Provider
       value={{
         versionedDocumentId: documentId,
-        versionedDocumentHandle,
         versionedDocument,
         onDocumentContentChange: handleDocumentContentChange,
         loadingHistory,

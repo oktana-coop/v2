@@ -157,8 +157,6 @@ async function createWindow() {
   registerVersionedStoresEvents({
     filesystem: filesystemAPI,
     documentAnalyzer,
-    rendererProcessId,
-    browserWindow: win,
     encryptedStore,
   });
 

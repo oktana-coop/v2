@@ -1,13 +1,10 @@
 import { Node } from 'prosemirror-model';
 import { Plugin, PluginKey } from 'prosemirror-state';
 
-import { type VersionedDocumentHandle } from '../../models';
-
 const pluginKey = new PluginKey('pm-sync');
 
 type SyncPluginArgs = {
   onPMDocChange: (doc: Node) => void;
-  docHandle: VersionedDocumentHandle | null;
 };
 
 export const syncPlugin = ({ onPMDocChange }: SyncPluginArgs) =>

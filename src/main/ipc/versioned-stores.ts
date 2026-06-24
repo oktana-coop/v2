@@ -1,16 +1,14 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
-import { type BrowserWindow, ipcMain } from 'electron';
+import { ipcMain } from 'electron';
 
 import {
   type EncryptedStore,
   getValidGithubAccessToken,
 } from '../../modules/auth/node';
-import { buildConfig } from '../../modules/config';
 import {
   type AddAssetToProjectArgs,
   type AddDocumentToProjectArgs,
-  createNodeAutomergeProjectStoreManagerAdapter,
   createNodeGitProjectStoreManagerAdapter,
   type CreateProjectArgs,
   type DeleteDocumentFromProjectArgs,
@@ -63,7 +61,6 @@ import { Filesystem } from '../../modules/infrastructure/filesystem';
 import {
   getGithubUserRepositories,
   type ResolvedArtifactId,
-  versionControlSystems,
 } from '../../modules/infrastructure/version-control';
 import {
   getVersionedStores,
@@ -74,25 +71,15 @@ import {
 export const registerVersionedStoresEvents = ({
   filesystem,
   documentAnalyzer,
-  rendererProcessId,
-  browserWindow,
   encryptedStore,
 }: {
   filesystem: Filesystem;
   documentAnalyzer: DocumentAnalyzer;
-  rendererProcessId: string;
-  browserWindow: BrowserWindow;
   encryptedStore: EncryptedStore;
 }) => {
-  const projectStoreManager =
-    buildConfig.projectVersionControlSystem === versionControlSystems.AUTOMERGE
-      ? createNodeAutomergeProjectStoreManagerAdapter({
-          rendererProcessId,
-          browserWindow,
-        })
-      : createNodeGitProjectStoreManagerAdapter({
-          documentAnalyzer,
-        });
+  const projectStoreManager = createNodeGitProjectStoreManagerAdapter({
+    documentAnalyzer,
+  });
 
   registerStoreManagerEvents({
     projectStoreManager,

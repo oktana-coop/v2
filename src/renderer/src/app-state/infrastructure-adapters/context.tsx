@@ -7,14 +7,12 @@ import {
 } from '../../../../modules/domain/project';
 import {
   createElectronAssetProtocolAdapter,
-  createElectronRendererAutomergeProjectStoreManagerAdapter,
   createElectronRendererProjectStoreManagerAdapter,
 } from '../../../../modules/domain/project/browser';
 import { type VersionedDocumentStore } from '../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import { type Filesystem } from '../../../../modules/infrastructure/filesystem';
 import { createAdapter as createElectronRendererFilesystemAPIAdapter } from '../../../../modules/infrastructure/filesystem/adapters/electron-renderer-api';
-import { versionControlSystems } from '../../../../modules/infrastructure/version-control';
 import { LoadingText } from '../../components/progress/LoadingText';
 
 export type InfrastructureAdaptersContextType = {
@@ -44,7 +42,7 @@ export const InfrastructureAdaptersProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { processId, config } = useContext(ElectronContext);
+  const { processId } = useContext(ElectronContext);
   const [versionedDocumentStore, setVersionedDocumentStore] =
     useState<VersionedDocumentStore | null>(null);
 
@@ -56,21 +54,12 @@ export const InfrastructureAdaptersProvider = ({
     useState<ProjectStoreManager | null>(null);
 
   useEffect(() => {
-    const setupProjectStoreManagers = async () => {
-      if (processId) {
-        const manager =
-          config.projectVersionControlSystem === versionControlSystems.AUTOMERGE
-            ? createElectronRendererAutomergeProjectStoreManagerAdapter({
-                processId,
-              })
-            : // Currently used for Git. This adapter is really generic, it just delegates to the main process via IPC.
-              createElectronRendererProjectStoreManagerAdapter();
-
-        setProjectStoreManager(manager);
-      }
-    };
-
-    setupProjectStoreManagers();
+    if (processId) {
+      // This adapter just delegates to the main process via IPC.
+      setProjectStoreManager(
+        createElectronRendererProjectStoreManagerAdapter()
+      );
+    }
   }, [processId]);
 
   if (!projectStoreManager) {

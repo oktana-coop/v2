@@ -1,8 +1,3 @@
-import {
-  type DocHandle as AutomergeDocHandle,
-  type DocHandleChangePayload as AutomergeDocHandleChangePayload,
-} from '@automerge/automerge-repo/slim';
-
 import { type ResolvedArtifactId } from './resolved-artifact-id';
 
 // This is the same with Automerge.Doc
@@ -18,11 +13,4 @@ export type ResolvedArtifact<
 > = {
   id: ArtifactId;
   artifact: VersionedArtifact<ArtifactType>;
-  handle: VersionedArtifactHandle<ArtifactType> | null;
 };
-
-export type VersionedArtifactHandle<ArtifactType> =
-  AutomergeDocHandle<ArtifactType>;
-
-export type VersionedArtifactHandleChangePayload<T> =
-  AutomergeDocHandleChangePayload<T>;

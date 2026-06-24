@@ -1,35 +1,17 @@
-import {
-  type AutomergeUrl,
-  isValidAutomergeUrl,
-} from '@automerge/automerge-repo/slim';
 import { z } from 'zod';
 
 import { type GitBlobRef, gitBlobRefSchema } from './git-blob-ref';
 
-// Automerge URL schema
-const automergeUrlSchema = z.custom<AutomergeUrl>(
-  (val): val is AutomergeUrl => {
-    return typeof val === 'string' && isValidAutomergeUrl(val);
-  },
-  {
-    message: 'Invalid Automerge URL',
-  }
-);
-
-// Union type for version control IDs
-export const resolvedArtifactIdSchema = z.union([
-  automergeUrlSchema,
-  gitBlobRefSchema,
-]);
+// TODO: this id should be opaque. It currently encodes the branch + path (a git
+// blob ref) and callers derive the document path by decomposing it directly.
+// That git-specific decomposition should be encapsulated (e.g. behind a store)
+// so callers can treat the id as an opaque token.
+export const resolvedArtifactIdSchema = gitBlobRefSchema;
 
 export type ResolvedArtifactId = z.infer<typeof resolvedArtifactIdSchema>;
 
 export const isGitBlobRef = (id: ResolvedArtifactId): id is GitBlobRef => {
   return typeof id === 'string' && id.startsWith('/blob/');
-};
-
-export const isAutomergeUrl = (id: ResolvedArtifactId): id is AutomergeUrl => {
-  return typeof id === 'string' && isValidAutomergeUrl(id);
 };
 
 export const parseResolvedArtifactId = (input: string) =>
@@ -41,13 +23,8 @@ export const isValidResolvedArtifactId = (
   return resolvedArtifactIdSchema.safeParse(val).success;
 };
 
-export const urlEncodeArtifactId = (id: ResolvedArtifactId) => {
-  if (isAutomergeUrl(id)) {
-    return id;
-  }
-
-  return encodeURIComponent(id);
-};
+export const urlEncodeArtifactId = (id: ResolvedArtifactId) =>
+  encodeURIComponent(id);
 
 export const decodeUrlEncodedArtifactId = (
   urlEncodedArtifactId: string
@@ -63,6 +40,5 @@ export const decodeUrlEncodedArtifactId = (
   }
 };
 
-export { type AutomergeUrl } from '@automerge/automerge-repo/slim';
 export { type GitBlobRef } from './git-blob-ref';
 export * from './utils';

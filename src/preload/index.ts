@@ -36,11 +36,7 @@ import {
   type RenameArgs,
   type WriteFileArgs,
 } from '../modules/infrastructure/filesystem';
-import type {
-  FromMainMessage as AutomergeRepoNetworkFromMainIPCMessage,
-  FromRendererMessage as AutomergeRepoNetworkFromRendererIPCMessage,
-  ResolvedArtifactId,
-} from '../modules/infrastructure/version-control';
+import type { ResolvedArtifactId } from '../modules/infrastructure/version-control';
 import type {
   RunWasiCLIArgs,
   Wasm as WasmAPI,
@@ -82,8 +78,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 } as ElectronAPI);
 
 contextBridge.exposeInMainWorld('config', {
-  useHistoryWorker: buildConfig.useHistoryWorker,
-  projectVersionControlSystem: buildConfig.projectVersionControlSystem,
+  primaryRichTextRepresentation: buildConfig.primaryRichTextRepresentation,
 } as RendererConfig);
 
 contextBridge.exposeInMainWorld('personalizationAPI', {
@@ -118,19 +113,6 @@ contextBridge.exposeInMainWorld('authAPI', {
     ipcRenderer.invoke('auth:cancel-github-device-flow'),
   disconnectFromGithub: () => ipcRenderer.invoke('auth:disconnect-from-github'),
 } as AuthAPI);
-
-contextBridge.exposeInMainWorld('automergeRepoNetworkAdapter', {
-  sendRendererProcessMessage: (
-    message: AutomergeRepoNetworkFromRendererIPCMessage
-  ) => ipcRenderer.send('automerge-repo-renderer-process-message', message),
-  onReceiveMainProcessMessage: (
-    callback: (message: AutomergeRepoNetworkFromMainIPCMessage) => void
-  ) =>
-    registerIpcListener<AutomergeRepoNetworkFromMainIPCMessage>(
-      'automerge-repo-main-process-message',
-      callback
-    ),
-});
 
 contextBridge.exposeInMainWorld('filesystemAPI', {
   openDirectory: () => ipcRenderer.invoke('open-directory'),

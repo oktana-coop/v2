@@ -86,7 +86,6 @@ import {
   CURRENT_PROJECT_SCHEMA_VERSION,
   docRelToProjectRel,
   inferArtifactTypeFromExtension,
-  isProjectFsPath,
   parseProjectFsPath,
   parseProjectRelPathEffect,
   type ProjectFsPath,
@@ -116,16 +115,12 @@ export const createAdapter = ({
   // setting.
   assetsDirName?: string;
 }): ProjectStore => {
+  // ProjectId is currently always a filesystem path (Git-coupled). See the
+  // VCS-agnostic IDs TODO in models/project-id.
   const ensureProjectIdIsFsPath: (
     projectId: ProjectId
   ) => Effect.Effect<ProjectFsPath, ValidationError, never> = (projectId) =>
-    pipe(
-      Effect.succeed(projectId),
-      Effect.filterOrFail(
-        isProjectFsPath,
-        (val) => new ValidationError(`Invalid project id: ${val}`)
-      )
-    );
+    Effect.succeed(projectId);
 
   const createProject: ProjectStore['createProject'] = ({
     path,
