@@ -18,9 +18,14 @@ type Fixtures = {
 
 export const test = base.extend<Fixtures>({
   electronApp: async ({}, use) => {
+    const userDataDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'v2-e2e-userdata-')
+    );
+
     const app = await electron.launch({
       args: [
         path.join(process.cwd(), 'dist/main/index.js'),
+        `--user-data-dir=${userDataDir}`,
         // Pass --headless-window so the main process creates the BrowserWindow
         // with show:false. We use a custom argv flag rather than an env var
         // because electron-vite bakes process.env into the bundle at build time,
@@ -33,6 +38,10 @@ export const test = base.extend<Fixtures>({
     });
     await use(app);
     await app.close();
+
+    try {
+      fs.rmSync(userDataDir, { recursive: true, force: true });
+    } catch {}
   },
 
   window: async ({ electronApp }, use) => {
