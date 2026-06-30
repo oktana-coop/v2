@@ -1,5 +1,6 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
+import * as Option from 'effect/Option';
 import {
   createContext,
   useCallback,
@@ -12,11 +13,8 @@ import { useLocation, useNavigate, useParams } from 'react-router';
 
 import { AuthContext } from '../../../../modules/auth/browser';
 import {
-  createVersionedDocument,
+  createDocumentInProject,
   DEFAULT_REMOTE_PROJECT_NAME,
-  deleteDocumentFromProject,
-  deleteDocumentsFromProject,
-  findDocumentInProject,
   type ProjectStore,
   type RemoteProjectInfo,
   renameDirectoryInProject,
@@ -29,7 +27,6 @@ import {
   PRIMARY_RICH_TEXT_REPRESENTATION,
   type ResolvedDocument,
   richTextRepresentationExtensions,
-  VersionedDocumentNotFoundErrorTag,
 } from '../../../../modules/domain/rich-text';
 import {
   EXPLORER_TREE_DIRECTORY,
@@ -89,7 +86,7 @@ export type ProjectContextType = {
   projectId: ProjectId | null;
   directory: Directory | null;
   currentBranch: Branch | null;
-  versionedProjectStore: ProjectStore | null;
+  projectStore: ProjectStore | null;
   directoryTree: Array<Directory | File>;
   refreshDirectoryTree: () => Promise<void>;
   openDirectory: (cloneUrl?: string) => Promise<Directory>;
@@ -98,7 +95,7 @@ export type ProjectContextType = {
     projectId: ProjectId;
     documentId: ResolvedArtifactId;
     path: string;
-  }>;
+  } | null>;
   findDocumentInProject: (args: {
     projectId: ProjectId;
     documentPath: string;
@@ -191,7 +188,7 @@ export const ProjectContext = createContext<ProjectContextType>({
   projectId: null,
   directory: null,
   currentBranch: null,
-  versionedProjectStore: null,
+  projectStore: null,
   directoryTree: [],
   // @ts-expect-error will get overriden below
   openDirectory: async () => null,
@@ -284,9 +281,8 @@ export const ProjectProvider = ({
 }) => {
   const {
     filesystem,
-    versionedDocumentStore,
     projectStoreManager,
-    setVersionedDocumentStore,
+    setProjectStore: registerProjectStore,
   } = useContext(InfrastructureAdaptersContext);
   const [loading, setLoading] = useState<boolean>(false);
   const [projectId, setProjectId] = useState<ProjectId | null>(null);
@@ -298,8 +294,7 @@ export const ProjectProvider = ({
   const [mergeConflictInfo, setMergeConflictInfo] =
     useState<MergeConflictInfo | null>(null);
   const { artifactId: documentIdInPath } = useParams();
-  const [versionedProjectStore, setVersionedProjectStore] =
-    useState<ProjectStore | null>(null);
+  const [projectStore, setProjectStore] = useState<ProjectStore | null>(null);
   const [selectedFileInfo, setSelectedFileInfo] =
     useState<SelectedFileInfo | null>(null);
   const selectedFileName = useMemo(
@@ -343,62 +338,62 @@ export const ProjectProvider = ({
   >(null);
 
   const getProjectHistory = useCallback(async () => {
-    if (!versionedProjectStore || !projectId || !currentBranch) {
+    if (!projectStore || !projectId || !currentBranch) {
       throw new Error(
         'Project store is not ready or project has not been set yet. Cannot get project history.'
       );
     }
     return Effect.runPromise(
-      versionedProjectStore.getProjectCommitHistory({
+      projectStore.getProjectCommitHistory({
         projectId,
         branch: currentBranch,
       })
     );
-  }, [versionedProjectStore, projectId, currentBranch]);
+  }, [projectStore, projectId, currentBranch]);
 
   const getProjectChangedDocuments = useCallback(
     async (changeId: Commit['id']) => {
-      if (!versionedProjectStore || !projectId) {
+      if (!projectStore || !projectId) {
         throw new Error(
           'Project store is not ready or project has not been set yet. Cannot get changed documents.'
         );
       }
       return Effect.runPromise(
-        versionedProjectStore.getChangedDocumentsAtChange({
+        projectStore.getChangedDocumentsAtChange({
           projectId,
           changeId,
         })
       );
     },
-    [versionedProjectStore, projectId]
+    [projectStore, projectId]
   );
 
   const getProjectUncommittedChanges = useCallback(async () => {
-    if (!versionedProjectStore || !projectId) {
+    if (!projectStore || !projectId) {
       throw new Error(
         'Project store is not ready or project has not been set yet. Cannot get uncommitted changes.'
       );
     }
     return Effect.runPromise(
-      versionedProjectStore.getChangedDocumentsAtChange({
+      projectStore.getChangedDocumentsAtChange({
         projectId,
         changeId: UNCOMMITTED_CHANGE_ID,
       })
     );
-  }, [versionedProjectStore, projectId]);
+  }, [projectStore, projectId]);
 
   const commitChanges = useCallback(
     async (message: string) => {
-      if (!versionedProjectStore || !projectId) {
+      if (!projectStore || !projectId) {
         throw new Error(
           'Project store is not ready or project has not been set yet. Cannot commit changes.'
         );
       }
       await Effect.runPromise(
-        versionedProjectStore.commitChanges({ projectId, message })
+        projectStore.commitChanges({ projectId, message })
       );
     },
-    [versionedProjectStore, projectId]
+    [projectStore, projectId]
   );
 
   const commitDocumentChanges = useCallback(
@@ -409,13 +404,13 @@ export const ProjectProvider = ({
       documentId: ResolvedArtifactId;
       message: string;
     }) => {
-      if (!versionedProjectStore || !projectId) {
+      if (!projectStore || !projectId) {
         throw new Error(
           'Project store is not ready or project has not been set yet. Cannot commit changes.'
         );
       }
       const { skippedAssetPaths } = await Effect.runPromise(
-        versionedProjectStore.commitDocumentChanges({
+        projectStore.commitDocumentChanges({
           projectId,
           documentId,
           message,
@@ -428,7 +423,7 @@ export const ProjectProvider = ({
         );
       }
     },
-    [versionedProjectStore, projectId, dispatchNotification]
+    [projectStore, projectId, dispatchNotification]
   );
 
   const restoreDocumentChanges = useCallback(
@@ -441,13 +436,13 @@ export const ProjectProvider = ({
       commit: Commit;
       message?: string;
     }) => {
-      if (!versionedProjectStore || !projectId) {
+      if (!projectStore || !projectId) {
         throw new Error(
           'Project store is not ready or project has not been set yet. Cannot restore document.'
         );
       }
       const { commitId, skippedAssetPaths } = await Effect.runPromise(
-        versionedProjectStore.restoreDocumentChanges({
+        projectStore.restoreDocumentChanges({
           projectId,
           documentId,
           commit,
@@ -463,7 +458,7 @@ export const ProjectProvider = ({
 
       return commitId;
     },
-    [versionedProjectStore, projectId, dispatchNotification]
+    [projectStore, projectId, dispatchNotification]
   );
 
   const startRenameDocument = useCallback((path: string) => {
@@ -499,8 +494,7 @@ export const ProjectProvider = ({
         setLoading(true);
 
         const {
-          versionedDocumentStore: documentStore,
-          versionedProjectStore: projectStore,
+          projectStore: openedProjectStore,
           directory,
           currentBranch,
           mergeConflictInfo,
@@ -521,8 +515,8 @@ export const ProjectProvider = ({
         setCurrentBranch(currentBranch);
         setMergeConflictInfo(mergeConflictInfo);
         setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
-        setVersionedProjectStore(projectStore);
-        setVersionedDocumentStore(documentStore);
+        setProjectStore(openedProjectStore);
+        registerProjectStore(openedProjectStore);
 
         setLoading(false);
 
@@ -644,16 +638,16 @@ export const ProjectProvider = ({
 
   useEffect(() => {
     const fetchRemoteBranchInfo = async ({
-      versionedProjectStore,
+      projectStore,
       projectId,
       remoteProject,
     }: {
-      versionedProjectStore: ProjectStore;
+      projectStore: ProjectStore;
       projectId: ProjectId;
       remoteProject: RemoteProjectInfo;
     }) => {
       const branchInfo = await Effect.runPromise(
-        versionedProjectStore.getRemoteBranchInfo({
+        projectStore.getRemoteBranchInfo({
           projectId,
           remoteName: remoteProject.name,
         })
@@ -662,22 +656,21 @@ export const ProjectProvider = ({
       setRemoteBranchInfo(branchInfo);
     };
 
-    if (versionedProjectStore && projectId && remoteProject) {
+    if (projectStore && projectId && remoteProject) {
       fetchRemoteBranchInfo({
-        versionedProjectStore,
+        projectStore,
         projectId,
         remoteProject,
       });
     }
-  }, [versionedProjectStore, projectId, remoteProject]);
+  }, [projectStore, projectId, remoteProject]);
 
   const handleOpenDirectory = useCallback(
     async (cloneUrl?: string) => {
       setLoading(true);
 
       const {
-        versionedDocumentStore: documentStore,
-        versionedProjectStore: projectStore,
+        projectStore: openedProjectStore,
         projectId: projId,
         directory: dir,
         currentBranch,
@@ -694,8 +687,8 @@ export const ProjectProvider = ({
       setCurrentBranch(currentBranch);
       setMergeConflictInfo(mergeConflictInfo);
       setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
-      setVersionedProjectStore(projectStore);
-      setVersionedDocumentStore(documentStore);
+      setProjectStore(openedProjectStore);
+      registerProjectStore(openedProjectStore);
 
       localStorage.setItem(
         PROJECT_BROWSER_STORAGE_KEY,
@@ -724,48 +717,53 @@ export const ProjectProvider = ({
 
   const handleCreateNewDocument = useCallback(
     async (args?: CreateNewDocumentArgs) => {
-      if (!versionedDocumentStore || !versionedProjectStore || !projectId) {
+      if (!projectStore || !projectId) {
         throw new Error(
           'Cannot create document. Document and project store have not been initialized yet.'
         );
       }
 
-      const { documentId: newDocumentId, filePath: newFilePath } =
-        await Effect.runPromise(
-          pipe(
-            args?.parentPath && directory
-              ? pipe(
-                  filesystem.getAbsolutePath({
-                    path: args.parentPath,
-                    dirPath: directory.path,
-                  }),
-                  Effect.map(
-                    (parentAbsolutePath) =>
-                      ({
-                        type: filesystemItemTypes.DIRECTORY,
-                        path: parentAbsolutePath,
-                        name: getDirectoryName(parentAbsolutePath),
-                        permissionState: 'granted',
-                      }) as Directory | null
-                  )
+      const created = await Effect.runPromise(
+        pipe(
+          args?.parentPath && directory
+            ? pipe(
+                filesystem.getAbsolutePath({
+                  path: args.parentPath,
+                  dirPath: directory.path,
+                }),
+                Effect.map(
+                  (parentAbsolutePath) =>
+                    ({
+                      type: filesystemItemTypes.DIRECTORY,
+                      path: parentAbsolutePath,
+                      name: getDirectoryName(parentAbsolutePath),
+                      permissionState: 'granted',
+                    }) as Directory | null
                 )
-              : Effect.succeed(null),
-            Effect.flatMap((parentDirectory) =>
-              createVersionedDocument({
-                createNewFile: filesystem.createNewFile,
-                getRelativePath: filesystem.getRelativePath,
-                createDocument: versionedDocumentStore.createDocument,
-                addDocumentToProject:
-                  versionedProjectStore.addDocumentToProject,
-              })({
-                projectId,
-                content: null,
-                projectDirectory: directory,
-                parentDirectory,
-              })
-            )
+              )
+            : Effect.succeed(null),
+          Effect.flatMap((parentDirectory) =>
+            createDocumentInProject({
+              createNewFile: filesystem.createNewFile,
+              getRelativePath: filesystem.getRelativePath,
+              createDocument: projectStore.createDocument,
+            })({
+              projectId,
+              content: null,
+              projectDirectory: directory,
+              parentDirectory,
+            })
           )
-        );
+        )
+      );
+
+      // Save dialog was cancelled.
+      if (Option.isNone(created)) {
+        return null;
+      }
+
+      const { documentId: newDocumentId, filePath: newFilePath } =
+        created.value;
 
       // Refresh directory files if a directory is selected
       if (
@@ -789,7 +787,7 @@ export const ProjectProvider = ({
 
       return { projectId, documentId: newDocumentId, path: newFilePath };
     },
-    [versionedDocumentStore, versionedProjectStore]
+    [projectStore, projectStore]
   );
 
   const handleCreateDirectory = useCallback(
@@ -854,7 +852,7 @@ export const ProjectProvider = ({
         return;
       }
 
-      if (!versionedDocumentStore || !versionedProjectStore || !projectId) {
+      if (!projectStore || !projectId) {
         throw new Error(
           'Cannot delete file. Document and project store have not been initialized yet.'
         );
@@ -863,20 +861,12 @@ export const ProjectProvider = ({
       try {
         await Effect.runPromise(
           pipe(
-            findDocumentInProject({
-              findDocumentById: versionedDocumentStore.findDocumentById,
-              findDocumentInProjectStore:
-                versionedProjectStore.findDocumentInProject,
-            })({
+            projectStore.findDocumentByPath({
               projectId,
               documentPath: relativePath,
             }),
             Effect.flatMap((doc) =>
-              deleteDocumentFromProject({
-                deleteDocument: versionedDocumentStore.deleteDocument,
-                deleteDocumentFromProjectStore:
-                  versionedProjectStore.deleteDocumentFromProject,
-              })({
+              projectStore.deleteDocument({
                 documentId: doc.id,
                 projectId,
                 deleteFromFilesystem: true,
@@ -921,8 +911,7 @@ export const ProjectProvider = ({
       }
     },
     [
-      versionedDocumentStore,
-      versionedProjectStore,
+      projectStore,
       projectId,
       directory,
       filesystem,
@@ -938,7 +927,7 @@ export const ProjectProvider = ({
         return Promise.resolve();
       }
 
-      if (!versionedDocumentStore || !versionedProjectStore || !projectId) {
+      if (!projectStore || !projectId) {
         throw new Error(
           'Cannot delete folder. Document and project store have not been initialized yet.'
         );
@@ -971,17 +960,12 @@ export const ProjectProvider = ({
                     }),
                     Effect.flatMap((fileRelativePath) =>
                       pipe(
-                        findDocumentInProject({
-                          findDocumentById:
-                            versionedDocumentStore.findDocumentById,
-                          findDocumentInProjectStore:
-                            versionedProjectStore.findDocumentInProject,
-                        })({ projectId, documentPath: fileRelativePath }),
+                        projectStore.findDocumentByPath({
+                          projectId,
+                          documentPath: fileRelativePath,
+                        }),
                         Effect.map((doc) => doc.id),
                         Effect.catchTag(VersionedProjectNotFoundErrorTag, () =>
-                          Effect.succeed(null)
-                        ),
-                        Effect.catchTag(VersionedDocumentNotFoundErrorTag, () =>
                           Effect.succeed(null)
                         )
                       )
@@ -995,12 +979,7 @@ export const ProjectProvider = ({
               Effect.flatMap((documentIds) =>
                 Effect.if(documentIds.length > 0, {
                   onTrue: () =>
-                    deleteDocumentsFromProject({
-                      deleteDocument: versionedDocumentStore.deleteDocument,
-                      deleteDocumentsFromProjectStore:
-                        versionedProjectStore.deleteDocumentsFromProject,
-                      deleteDirectory: filesystem.deleteDirectory,
-                    })({
+                    projectStore.deleteDocuments({
                       documentIds,
                       projectId,
                       deleteFromFilesystem: true,
@@ -1068,8 +1047,7 @@ export const ProjectProvider = ({
       });
     },
     [
-      versionedDocumentStore,
-      versionedProjectStore,
+      projectStore,
       projectId,
       directory,
       filesystem,
@@ -1109,7 +1087,7 @@ export const ProjectProvider = ({
       oldRelativePath: string;
       newName: string;
     }) => {
-      if (!versionedProjectStore || !projectId) {
+      if (!projectStore || !projectId) {
         throw new Error(
           'Cannot rename document. The project store has not been initialized yet.'
         );
@@ -1125,7 +1103,7 @@ export const ProjectProvider = ({
             renameDocumentInProject({
               rename: filesystem.rename,
               renameDocumentInProjectStore:
-                versionedProjectStore.renameDocumentInProject,
+                projectStore.renameDocumentInProject,
               getAbsolutePath: filesystem.getAbsolutePath,
               getRenamedPath: filesystem.getRenamedPath,
             })({
@@ -1205,7 +1183,7 @@ export const ProjectProvider = ({
       }
     },
     [
-      versionedProjectStore,
+      projectStore,
       projectId,
       directory,
       filesystem,
@@ -1232,7 +1210,7 @@ export const ProjectProvider = ({
       oldRelativePath: string;
       newName: string;
     }) => {
-      if (!versionedProjectStore || !projectId) {
+      if (!projectStore || !projectId) {
         throw new Error(
           'Cannot rename directory. The project store has not been initialized yet.'
         );
@@ -1248,7 +1226,7 @@ export const ProjectProvider = ({
             renameDirectoryInProject({
               rename: filesystem.rename,
               renameDocumentsInProjectStore:
-                versionedProjectStore.renameDocumentsInProject,
+                projectStore.renameDocumentsInProject,
               getAbsolutePath: filesystem.getAbsolutePath,
               listDirectoryFiles: filesystem.listDirectoryFiles,
               getRelativePath: filesystem.getRelativePath,
@@ -1334,7 +1312,7 @@ export const ProjectProvider = ({
       }
     },
     [
-      versionedProjectStore,
+      projectStore,
       projectId,
       directory,
       filesystem,
@@ -1360,13 +1338,13 @@ export const ProjectProvider = ({
           action.context === EXPLORER_TREE_DIRECTORY &&
           action.action.type === 'NEW_FILE'
         ) {
-          const {
-            documentId,
-            projectId: projId,
-            path: filePath,
-          } = await handleCreateNewDocument({
+          const result = await handleCreateNewDocument({
             parentPath: action.action.parentPath,
           });
+
+          if (!result) return;
+
+          const { documentId, projectId: projId, path: filePath } = result;
 
           handleSetSelectedFileInfo({ documentId, path: filePath });
           navigate(
@@ -1417,27 +1395,24 @@ export const ProjectProvider = ({
   }, [handleCreateNewDocument, navigate]);
 
   useEffect(() => {
-    if (versionedProjectStore) {
-      setSupportsBranching(versionedProjectStore.supportsBranching);
+    if (projectStore) {
+      setSupportsBranching(projectStore.supportsBranching);
     }
-  }, [versionedProjectStore]);
+  }, [projectStore]);
 
   const handleFindDocumentInProject = async (args: {
     projectId: ProjectId;
     documentPath: string;
     changeId?: ChangeId;
   }) => {
-    if (!versionedDocumentStore || !versionedProjectStore) {
+    if (!projectStore) {
       throw new Error(
         'Cannot create document. Document and project store have not been initialized yet.'
       );
     }
 
     return Effect.runPromise(
-      findDocumentInProject({
-        findDocumentById: versionedDocumentStore.findDocumentById,
-        findDocumentInProjectStore: versionedProjectStore.findDocumentInProject,
-      })({
+      projectStore.findDocumentByPath({
         projectId: args.projectId,
         documentPath: args.documentPath,
         changeId: args.changeId,
@@ -1462,22 +1437,22 @@ export const ProjectProvider = ({
   };
 
   const handleListBranches = useCallback(async () => {
-    if (!versionedProjectStore || !projectId) {
+    if (!projectStore || !projectId) {
       throw new Error(
         'Project store is not ready or project has not been set yet. Cannot list branches'
       );
     }
 
     const branches = await Effect.runPromise(
-      versionedProjectStore.listBranches({ projectId })
+      projectStore.listBranches({ projectId })
     );
 
     return branches;
-  }, [versionedProjectStore, projectId]);
+  }, [projectStore, projectId]);
 
   const handleCreateAndSwitchToBranch = useCallback(
     async (branchName: string) => {
-      if (!versionedProjectStore || !projectId) {
+      if (!projectStore || !projectId) {
         throw new Error(
           'Project store is not ready or project has not been set yet. Cannot create branch.'
         );
@@ -1492,30 +1467,30 @@ export const ProjectProvider = ({
       }
 
       await Effect.runPromise(
-        versionedProjectStore.createAndSwitchToBranch({ projectId, branch })
+        projectStore.createAndSwitchToBranch({ projectId, branch })
       );
 
       setCurrentBranch(branch);
       setIsCreateBranchDialogOpen(false);
     },
-    [versionedProjectStore, projectId]
+    [projectStore, projectId]
   );
 
   const handleSwitchToBranch = useCallback(
     async (branch: Branch) => {
-      if (!versionedProjectStore || !projectId) {
+      if (!projectStore || !projectId) {
         throw new Error(
           'Project store is not ready or project has not been set yet. Cannot create branch.'
         );
       }
 
       await Effect.runPromise(
-        versionedProjectStore.switchToBranch({ projectId, branch })
+        projectStore.switchToBranch({ projectId, branch })
       );
 
       setCurrentBranch(branch);
     },
-    [versionedProjectStore, projectId]
+    [projectStore, projectId]
   );
 
   const handleOpenCreateBranchDialog = useCallback(() => {
@@ -1528,25 +1503,25 @@ export const ProjectProvider = ({
 
   const handleDeleteBranch = useCallback(
     async (branch: Branch) => {
-      if (!versionedProjectStore || !projectId) {
+      if (!projectStore || !projectId) {
         throw new Error(
           'Project store is not ready or project has not been set yet. Cannot delete branch.'
         );
       }
 
       const { currentBranch: resultingCurrentBranch } = await Effect.runPromise(
-        versionedProjectStore.deleteBranch({ projectId, branch })
+        projectStore.deleteBranch({ projectId, branch })
       );
 
       setBranchToDelete(null);
       setCurrentBranch(resultingCurrentBranch);
     },
-    [versionedProjectStore, projectId]
+    [projectStore, projectId]
   );
 
   const handleMergeAndDeleteBranch = useCallback(
     async (branch: Branch) => {
-      if (!versionedProjectStore || !projectId) {
+      if (!projectStore || !projectId) {
         throw new Error(
           'Project store is not ready or project has not been set yet. Cannot delete branch.'
         );
@@ -1556,7 +1531,7 @@ export const ProjectProvider = ({
         await Effect.runPromise(
           pipe(
             pipe(
-              versionedProjectStore.mergeAndDeleteBranch({
+              projectStore.mergeAndDeleteBranch({
                 projectId,
                 from: branch,
                 into: DEFAULT_BRANCH as Branch,
@@ -1604,11 +1579,11 @@ export const ProjectProvider = ({
         });
       }
     },
-    [versionedProjectStore, projectId, navigateToResolveMergeConflicts]
+    [projectStore, projectId, navigateToResolveMergeConflicts]
   );
 
   const handleAbortMerge = useCallback(async () => {
-    if (!versionedProjectStore || !projectId) {
+    if (!projectStore || !projectId) {
       throw new Error(
         'Project store is not ready or project has not been set yet. Cannot abort merge.'
       );
@@ -1617,7 +1592,7 @@ export const ProjectProvider = ({
     const { notification } = await Effect.runPromise(
       pipe(
         pipe(
-          versionedProjectStore.abortMerge({
+          projectStore.abortMerge({
             projectId,
           }),
           Effect.map(() => ({
@@ -1644,10 +1619,10 @@ export const ProjectProvider = ({
     } else {
       navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
     }
-  }, [versionedProjectStore, projectId]);
+  }, [projectStore, projectId]);
 
   const handleRefreshConflictsAndMergeIfPossible = useCallback(async () => {
-    if (!versionedProjectStore || !projectId) {
+    if (!projectStore || !projectId) {
       throw new Error(
         'Project store is not ready or project has not been set yet. Cannot get merge conflict info.'
       );
@@ -1656,7 +1631,7 @@ export const ProjectProvider = ({
     const { notification, conflictInfo } = await Effect.runPromise(
       pipe(
         pipe(
-          versionedProjectStore.getMergeConflictInfo({
+          projectStore.getMergeConflictInfo({
             projectId,
           }),
           Effect.tap((conflictInfo) => {
@@ -1664,7 +1639,7 @@ export const ProjectProvider = ({
 
             return conflicts && conflicts.length > 0
               ? Effect.succeed(undefined)
-              : versionedProjectStore.commitMergeConflictsResolution({
+              : projectStore.commitMergeConflictsResolution({
                   projectId,
                 });
           }),
@@ -1709,11 +1684,11 @@ export const ProjectProvider = ({
         navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
       }
     }
-  }, [versionedProjectStore, projectId, navigateToResolveMergeConflicts]);
+  }, [projectStore, projectId, navigateToResolveMergeConflicts]);
 
   const handleResolveConflictByKeepingDocument = useCallback(
     async (documentId: ResolvedArtifactId) => {
-      if (!versionedProjectStore || !projectId) {
+      if (!projectStore || !projectId) {
         throw new Error(
           'Project store is not ready or project has not been set yet. Cannot resolve the conflict.'
         );
@@ -1721,7 +1696,7 @@ export const ProjectProvider = ({
 
       try {
         await Effect.runPromise(
-          versionedProjectStore.resolveConflictByKeepingDocument({
+          projectStore.resolveConflictByKeepingDocument({
             projectId,
             documentId,
           })
@@ -1738,12 +1713,12 @@ export const ProjectProvider = ({
 
       handleRefreshConflictsAndMergeIfPossible();
     },
-    [versionedProjectStore, projectId, handleRefreshConflictsAndMergeIfPossible]
+    [projectStore, projectId, handleRefreshConflictsAndMergeIfPossible]
   );
 
   const handleResolveConflictByDeletingDocument = useCallback(
     async (documentId: ResolvedArtifactId) => {
-      if (!versionedProjectStore || !projectId) {
+      if (!projectStore || !projectId) {
         throw new Error(
           'Project store is not ready or project has not been set yet. Cannot resolve the conflict.'
         );
@@ -1751,7 +1726,7 @@ export const ProjectProvider = ({
 
       try {
         await Effect.runPromise(
-          versionedProjectStore.resolveConflictByDeletingDocument({
+          projectStore.resolveConflictByDeletingDocument({
             projectId,
             documentId,
           })
@@ -1768,7 +1743,7 @@ export const ProjectProvider = ({
 
       handleRefreshConflictsAndMergeIfPossible();
     },
-    [versionedProjectStore, projectId, handleRefreshConflictsAndMergeIfPossible]
+    [projectStore, projectId, handleRefreshConflictsAndMergeIfPossible]
   );
 
   const handleOpenDeleteBranchDialog = useCallback((branch: Branch) => {
@@ -1781,30 +1756,30 @@ export const ProjectProvider = ({
 
   useEffect(() => {
     const updateAuthorInfoInProjectStore = async ({
-      versionedProjectStore,
+      projectStore,
       projectId,
     }: {
-      versionedProjectStore: ProjectStore;
+      projectStore: ProjectStore;
       projectId: ProjectId;
     }) => {
-      versionedProjectStore.setAuthorInfo({
+      projectStore.setAuthorInfo({
         projectId,
         username,
         email,
       });
     };
 
-    if (versionedProjectStore && projectId) {
+    if (projectStore && projectId) {
       updateAuthorInfoInProjectStore({
-        versionedProjectStore,
+        projectStore,
         projectId,
       });
     }
-  }, [username, email, versionedProjectStore, projectId]);
+  }, [username, email, projectStore, projectId]);
 
   const handleAddRemoteProject = useCallback(
     async (url: string) => {
-      if (!versionedProjectStore || !projectId) {
+      if (!projectStore || !projectId) {
         throw new Error(
           'Project store is not ready or project has not been set yet. Cannot add remote project.'
         );
@@ -1813,7 +1788,7 @@ export const ProjectProvider = ({
       const { notification, result } = await Effect.runPromise(
         pipe(
           pipe(
-            versionedProjectStore.addRemoteProject({
+            projectStore.addRemoteProject({
               projectId,
               remoteName: DEFAULT_REMOTE_PROJECT_NAME,
               remoteUrl: url,
@@ -1844,11 +1819,11 @@ export const ProjectProvider = ({
 
       setRemoteProject(result);
     },
-    [versionedProjectStore, projectId]
+    [projectStore, projectId]
   );
 
   const handlePushToRemoteProject = useCallback(async () => {
-    if (!versionedProjectStore || !projectId || !remoteProject) {
+    if (!projectStore || !projectId || !remoteProject) {
       throw new Error(
         'Project store is not ready or project has not been set yet. Cannot push to remote project.'
       );
@@ -1856,7 +1831,7 @@ export const ProjectProvider = ({
 
     try {
       await Effect.runPromise(
-        versionedProjectStore.pushToRemoteProject({
+        projectStore.pushToRemoteProject({
           projectId,
           remoteName: remoteProject.name,
         })
@@ -1876,10 +1851,10 @@ export const ProjectProvider = ({
       });
       dispatchNotification(notification);
     }
-  }, [versionedProjectStore, projectId, remoteProject]);
+  }, [projectStore, projectId, remoteProject]);
 
   const handlePullFromRemoteProject = useCallback(async () => {
-    if (!versionedProjectStore || !projectId || !remoteProject) {
+    if (!projectStore || !projectId || !remoteProject) {
       throw new Error(
         'Project store is not ready or project has not been set yet. Cannot pull from remote project.'
       );
@@ -1887,7 +1862,7 @@ export const ProjectProvider = ({
 
     try {
       await Effect.runPromise(
-        versionedProjectStore.pullFromRemoteProject({
+        projectStore.pullFromRemoteProject({
           projectId,
           remoteName: remoteProject.name,
         })
@@ -1903,7 +1878,7 @@ export const ProjectProvider = ({
       });
       dispatchNotification(notification);
     }
-  }, [versionedProjectStore, projectId, remoteProject]);
+  }, [projectStore, projectId, remoteProject]);
 
   const resetPulledUpstreamChanges = () => {
     setPulledUpstreamChanges(false);
@@ -1918,7 +1893,7 @@ export const ProjectProvider = ({
         directoryTree,
         refreshDirectoryTree,
         currentBranch,
-        versionedProjectStore,
+        projectStore,
         openDirectory: handleOpenDirectory,
         requestPermissionForSelectedDirectory,
         createNewDocument: handleCreateNewDocument,

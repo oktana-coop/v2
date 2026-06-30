@@ -26,7 +26,7 @@ export const useExportAssetMounts = () => {
   const {
     projectId,
     selectedFileInfo,
-    versionedProjectStore: projectStore,
+    projectStore: projectStore,
   } = useContext(ProjectContext);
 
   const rawDocPath = selectedFileInfo?.path;

@@ -1,32 +1,22 @@
 import * as Effect from 'effect/Effect';
 
-import { mapErrorTo } from '../../../../utils/errors';
 import {
-  AccessControlError as FilesystemAccessControlError,
-  type Filesystem,
-  NotFoundError as FilesystemNotFoundError,
-  RepositoryError as FilesystemRepositoryError,
-} from '../../../infrastructure/filesystem';
+  PRIMARY_RICH_TEXT_REPRESENTATION,
+  type RepresentationTransform,
+  RepresentationTransformError,
+  type RichTextDocument,
+} from '../../../../modules/domain/rich-text';
 import {
   MigrationError,
   type ResolvedArtifactId,
-} from '../../../infrastructure/version-control';
-import {
-  NotFoundError,
-  RepositoryError,
-  RepresentationTransformError,
-  ValidationError,
-} from '../errors';
-import {
-  PRIMARY_RICH_TEXT_REPRESENTATION,
-  type RichTextDocument,
-} from '../models';
-import {
-  type RepresentationTransform,
-  type VersionedDocumentStore,
-} from '../ports';
+} from '../../../../modules/infrastructure/version-control';
+import { mapErrorTo } from '../../../../utils/errors';
+import { NotFoundError, RepositoryError, ValidationError } from '../errors';
+import { type ProjectId } from '../models';
+import { type ProjectStore } from '../ports';
 
 export type ProcessDocumentChangeArgs = {
+  projectId: ProjectId;
   documentId: ResolvedArtifactId;
   updatedDocument: RichTextDocument;
   writeToFileWithPath: string | null;
@@ -34,8 +24,7 @@ export type ProcessDocumentChangeArgs = {
 
 export type ProcessDocumentChangeDeps = {
   transformToText: RepresentationTransform['transformToText'];
-  updateRichTextDocumentContent: VersionedDocumentStore['updateRichTextDocumentContent'];
-  writeFile: Filesystem['writeFile'];
+  updateRichTextDocumentContent: ProjectStore['updateRichTextDocumentContent'];
 };
 
 export const processDocumentChange =
@@ -44,19 +33,17 @@ export const processDocumentChange =
     updateRichTextDocumentContent,
   }: ProcessDocumentChangeDeps) =>
   ({
+    projectId,
     documentId,
     updatedDocument,
     writeToFileWithPath,
   }: ProcessDocumentChangeArgs): Effect.Effect<
     void,
-    | RepresentationTransformError
+    | ValidationError
     | RepositoryError
     | NotFoundError
     | MigrationError
-    | ValidationError
-    | FilesystemAccessControlError
-    | FilesystemNotFoundError
-    | FilesystemRepositoryError,
+    | RepresentationTransformError,
     never
   > =>
     Effect.Do.pipe(
@@ -76,6 +63,7 @@ export const processDocumentChange =
       ),
       Effect.tap(({ textContent }) =>
         updateRichTextDocumentContent({
+          projectId,
           documentId,
           representation: PRIMARY_RICH_TEXT_REPRESENTATION,
           content: textContent,

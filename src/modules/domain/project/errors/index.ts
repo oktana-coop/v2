@@ -28,3 +28,15 @@ export const VersionedProjectValidationErrorTag =
 export class ValidationError extends Cause.YieldableError {
   readonly _tag = VersionedProjectValidationErrorTag;
 }
+
+export const VersionedProjectDeletedDocumentErrorTag =
+  'VersionedProjectDeletedDocumentError';
+export class DeletedDocumentError extends Cause.YieldableError {
+  readonly _tag = VersionedProjectDeletedDocumentErrorTag;
+  readonly data;
+
+  constructor(message: string, data: { parentCommitId: string | null }) {
+    super(message);
+    this.data = data;
+  }
+}

@@ -2,21 +2,23 @@ import * as Effect from 'effect/Effect';
 import git, { Errors as IsoGitErrors } from 'isomorphic-git';
 import { type PromiseFsClient as IsoGitFsApi } from 'isomorphic-git';
 
-import { type Username } from '../../../../../../auth';
-import { type Filesystem } from '../../../../../../infrastructure/filesystem';
+import { type Username } from '../../../../../../modules/auth';
+import { type ProjectId } from '../../../../../../modules/domain/project';
+import { type DocumentAnalyzer } from '../../../../../../modules/domain/rich-text';
+import { type Filesystem } from '../../../../../../modules/infrastructure/filesystem';
 import {
   type ChangeId,
   type CommitId,
   type ResolvedArtifactId,
   UNCOMMITTED_CHANGE_ID,
-} from '../../../../../../infrastructure/version-control';
+} from '../../../../../../modules/infrastructure/version-control';
 import {
-  VersionedDocumentDeletedDocumentErrorTag,
-  VersionedDocumentNotFoundErrorTag,
-  VersionedDocumentRepositoryErrorTag,
-  VersionedDocumentValidationErrorTag,
-} from '../../../../errors';
-import { createAdapter } from './index';
+  VersionedProjectDeletedDocumentErrorTag,
+  VersionedProjectNotFoundErrorTag,
+  VersionedProjectRepositoryErrorTag,
+  VersionedProjectValidationErrorTag,
+} from '../../../errors';
+import { createDocumentOps } from './documents';
 
 // We mock the git-lib functions so that these tests focus on store behavior, not version-control module internals.
 // vi.hoisted ensures these are available when the hoisted vi.mock factory runs.
@@ -25,11 +27,11 @@ const { mockGetFileCommitHistory } = vi.hoisted(() => ({
 }));
 
 vi.mock(
-  '../../../../../../../modules/infrastructure/version-control',
+  '../../../../../../modules/infrastructure/version-control',
   async (importOriginal) => {
     const actual =
       await importOriginal<
-        typeof import('../../../../../../../modules/infrastructure/version-control')
+        typeof import('../../../../../../modules/infrastructure/version-control')
       >();
     return {
       ...actual,
@@ -54,6 +56,13 @@ vi.mock('isomorphic-git', () => ({
   },
 }));
 
+vi.mock('./project', async () => {
+  const Effect = await import('effect/Effect');
+  return {
+    listProjectDocuments: () => Effect.succeed([]),
+  };
+});
+
 const mockResolveRef = vi.mocked(git.resolveRef);
 const mockReadBlob = vi.mocked(git.readBlob);
 const mockReadCommit = vi.mocked(git.readCommit);
@@ -61,7 +70,7 @@ const mockStatus = vi.mocked(git.status);
 
 const mockFs = {} as IsoGitFsApi;
 const projectDir = '/test-repo';
-const projectId = '/test-repo';
+const projectId = '/test-repo' as ProjectId;
 
 const mockReadTextFile = vi.fn();
 const mockWriteFile = vi.fn();
@@ -74,12 +83,11 @@ const mockFilesystem: Partial<Filesystem> = {
   getAbsolutePath: mockGetAbsolutePath,
 };
 
-const store = createAdapter({
+const store = createDocumentOps({
   isoGitFs: mockFs,
   filesystem: mockFilesystem as Filesystem,
-  projectId,
-  projectDir,
   managesFilesystemWorkdir: true,
+  documentAnalyzer: {} as DocumentAnalyzer,
 });
 
 const textEncoder = new TextEncoder();
@@ -88,7 +96,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe('git-versioned-document-store', () => {
+describe('documents', () => {
   describe('getDocumentAtChange', () => {
     const docPath = 'doc.md';
 
@@ -108,6 +116,7 @@ describe('git-versioned-document-store', () => {
 
         const result = await Effect.runPromise(
           store.getDocumentAtChange({
+            projectId,
             documentId: docId,
             changeId: commitHash as ChangeId,
           })
@@ -130,13 +139,14 @@ describe('git-versioned-document-store', () => {
         const error = await Effect.runPromise(
           store
             .getDocumentAtChange({
+              projectId,
               documentId: docId,
               changeId: commitHash as ChangeId,
             })
             .pipe(Effect.flip)
         );
 
-        expect(error._tag).toBe(VersionedDocumentNotFoundErrorTag);
+        expect(error._tag).toBe(VersionedProjectNotFoundErrorTag);
       });
 
       it('fails with DeletedDocumentError when document existed in parent but not at commit', async () => {
@@ -158,13 +168,14 @@ describe('git-versioned-document-store', () => {
         const error = await Effect.runPromise(
           store
             .getDocumentAtChange({
+              projectId,
               documentId: docId,
               changeId: commitHash as ChangeId,
             })
             .pipe(Effect.flip)
         );
 
-        expect(error._tag).toBe(VersionedDocumentDeletedDocumentErrorTag);
+        expect(error._tag).toBe(VersionedProjectDeletedDocumentErrorTag);
         expect(
           (error as { data: { parentCommitId: string } }).data.parentCommitId
         ).toBe(parentOid);
@@ -186,13 +197,14 @@ describe('git-versioned-document-store', () => {
         const error = await Effect.runPromise(
           store
             .getDocumentAtChange({
+              projectId,
               documentId: docId,
               changeId: commitHash as ChangeId,
             })
             .pipe(Effect.flip)
         );
 
-        expect(error._tag).toBe(VersionedDocumentNotFoundErrorTag);
+        expect(error._tag).toBe(VersionedProjectNotFoundErrorTag);
       });
 
       it('fails with RepositoryError when readBlob fails with a non-NotFoundError', async () => {
@@ -201,13 +213,14 @@ describe('git-versioned-document-store', () => {
         const error = await Effect.runPromise(
           store
             .getDocumentAtChange({
+              projectId,
               documentId: docId,
               changeId: commitHash as ChangeId,
             })
             .pipe(Effect.flip)
         );
 
-        expect(error._tag).toBe(VersionedDocumentRepositoryErrorTag);
+        expect(error._tag).toBe(VersionedProjectRepositoryErrorTag);
       });
     });
 
@@ -224,6 +237,7 @@ describe('git-versioned-document-store', () => {
 
         const result = await Effect.runPromise(
           store.getDocumentAtChange({
+            projectId,
             documentId: docId,
             changeId: UNCOMMITTED_CHANGE_ID,
           })
@@ -238,26 +252,28 @@ describe('git-versioned-document-store', () => {
         const error = await Effect.runPromise(
           store
             .getDocumentAtChange({
+              projectId,
               documentId: 'not-a-blob-ref' as ResolvedArtifactId,
               changeId: 'abc1234' as ChangeId,
             })
             .pipe(Effect.flip)
         );
 
-        expect(error._tag).toBe(VersionedDocumentValidationErrorTag);
+        expect(error._tag).toBe(VersionedProjectValidationErrorTag);
       });
 
       it('fails with ValidationError for an invalid commit hash', async () => {
         const error = await Effect.runPromise(
           store
             .getDocumentAtChange({
+              projectId,
               documentId: `/blob/abc1234/${docPath}` as ResolvedArtifactId,
               changeId: 'not-a-hash!' as ChangeId,
             })
             .pipe(Effect.flip)
         );
 
-        expect(error._tag).toBe(VersionedDocumentValidationErrorTag);
+        expect(error._tag).toBe(VersionedProjectValidationErrorTag);
       });
     });
   });
@@ -299,6 +315,7 @@ describe('git-versioned-document-store', () => {
 
       await Effect.runPromise(
         store.discardUncommittedChanges({
+          projectId,
           documentId: docId,
           writeToFileWithPath: `${projectDir}/${docPath}`,
         })
@@ -348,6 +365,7 @@ describe('git-versioned-document-store', () => {
 
       await Effect.runPromise(
         store.discardUncommittedChanges({
+          projectId,
           documentId: docId,
           writeToFileWithPath: `${projectDir}/${docPath}`,
         })
@@ -382,13 +400,14 @@ describe('git-versioned-document-store', () => {
       const error = await Effect.runPromise(
         store
           .discardUncommittedChanges({
+            projectId,
             documentId: docId,
             writeToFileWithPath: `${projectDir}/${docPath}`,
           })
           .pipe(Effect.flip)
       );
 
-      expect(error._tag).toBe(VersionedDocumentNotFoundErrorTag);
+      expect(error._tag).toBe(VersionedProjectNotFoundErrorTag);
     });
 
     it('fails with NotFoundError when there are no uncommitted changes', async () => {
@@ -407,13 +426,14 @@ describe('git-versioned-document-store', () => {
       const error = await Effect.runPromise(
         store
           .discardUncommittedChanges({
+            projectId,
             documentId: docId,
             writeToFileWithPath: `${projectDir}/${docPath}`,
           })
           .pipe(Effect.flip)
       );
 
-      expect(error._tag).toBe(VersionedDocumentNotFoundErrorTag);
+      expect(error._tag).toBe(VersionedProjectNotFoundErrorTag);
     });
 
     it('fails with RepositoryError when there are only uncommitted changes and no commits', async () => {
@@ -423,13 +443,14 @@ describe('git-versioned-document-store', () => {
       const error = await Effect.runPromise(
         store
           .discardUncommittedChanges({
+            projectId,
             documentId: docId,
             writeToFileWithPath: `${projectDir}/${docPath}`,
           })
           .pipe(Effect.flip)
       );
 
-      expect(error._tag).toBe(VersionedDocumentRepositoryErrorTag);
+      expect(error._tag).toBe(VersionedProjectRepositoryErrorTag);
     });
   });
 });

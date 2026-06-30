@@ -3,10 +3,8 @@ import { pipe } from 'effect/Function';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router';
 
-import {
-  type VersionedDocument,
-  VersionedDocumentDeletedDocumentErrorTag,
-} from '../../../../../../modules/domain/rich-text';
+import { VersionedProjectDeletedDocumentErrorTag } from '../../../../../../modules/domain/project';
+import { type VersionedDocument } from '../../../../../../modules/domain/rich-text';
 import {
   type Change,
   type ChangeId,
@@ -116,7 +114,7 @@ export const useHistoricalDocument = ({
   const { artifactId: encodedDocumentId, changeId: encodedChangeId } =
     useParams();
   const { projectId } = useContext(ProjectContext);
-  const { versionedDocumentStore } = useContext(InfrastructureAdaptersContext);
+  const { projectStore } = useContext(InfrastructureAdaptersContext);
   const { showDiffInHistoryView, setShowDiffInHistoryView } = useContext(
     FunctionalityConfigContext
   );
@@ -217,22 +215,20 @@ export const useHistoricalDocument = ({
 
   const getDocumentAtChange = useCallback(
     async (args: { documentId: ResolvedArtifactId; changeId: ChangeId }) => {
-      if (
-        !versionedDocumentStore ||
-        versionedDocumentStore.projectId !== projectId
-      ) {
+      if (!projectStore || !projectId) {
         throw new Error(
           'Versioned document store not ready yet or mismatched project.'
         );
       }
       return Effect.runPromise(
         pipe(
-          versionedDocumentStore.getDocumentAtChange(args),
+          projectStore.getDocumentAtChange({ projectId, ...args }),
           // When the document was deleted in this commit, fall back to the
           // parent commit to show the last known content.
-          Effect.catchTag(VersionedDocumentDeletedDocumentErrorTag, (e) =>
+          Effect.catchTag(VersionedProjectDeletedDocumentErrorTag, (e) =>
             e.data.parentCommitId
-              ? versionedDocumentStore.getDocumentAtChange({
+              ? projectStore.getDocumentAtChange({
+                  projectId,
                   ...args,
                   changeId: parseGitCommitHash(e.data.parentCommitId),
                 })
@@ -241,7 +237,7 @@ export const useHistoricalDocument = ({
         )
       );
     },
-    [versionedDocumentStore, projectId]
+    [projectStore, projectId]
   );
 
   const isContentSameAtChanges = useCallback(
@@ -250,19 +246,16 @@ export const useHistoricalDocument = ({
       change1: ChangeId;
       change2: ChangeId;
     }) => {
-      if (
-        !versionedDocumentStore ||
-        versionedDocumentStore.projectId !== projectId
-      ) {
+      if (!projectStore || !projectId) {
         throw new Error(
           'Versioned document store not ready yet or mismatched project.'
         );
       }
       return Effect.runPromise(
-        versionedDocumentStore.isContentSameAtChanges(args)
+        projectStore.isContentSameAtChanges({ projectId, ...args })
       );
     },
-    [versionedDocumentStore, projectId]
+    [projectStore, projectId]
   );
 
   useEffect(() => {

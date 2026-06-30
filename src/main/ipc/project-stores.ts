@@ -8,14 +8,20 @@ import {
 } from '../../modules/auth/node';
 import {
   type AddAssetToProjectArgs,
-  type AddDocumentToProjectArgs,
+  type CreateDocumentArgs,
   createNodeGitProjectStoreManagerAdapter,
   type CreateProjectArgs,
-  type DeleteDocumentFromProjectArgs,
-  type DeleteDocumentsFromProjectArgs,
-  type FindDocumentInProjectArgs,
+  type DeleteDocumentArgs,
+  type DeleteDocumentsArgs,
+  type DiscardUncommittedChangesArgs,
+  type FindDocumentByIdArgs,
+  type GetDocumentAtChangeArgs,
+  type GetDocumentHistoryArgs,
+  type GetDocumentLastChangeIdArgs,
   type GetProjectRelativePathArgs,
+  type IsContentSameAtChangesArgs,
   type LookupAssetByNameInProjectArgs,
+  type LookupDocumentInProjectArgs,
   type OpenOrCreateProjectArgs,
   type OpenProjectByIdArgs,
   type ProjectAbortMergeArgs,
@@ -46,29 +52,20 @@ import {
   type ReadDocumentReferencedAssetsFromProjectArgs,
   type RenameDocumentInProjectArgs,
   type RenameDocumentsInProjectArgs,
-} from '../../modules/domain/project/node';
-import {
-  type CreateDocumentArgs,
-  type DeleteDocumentArgs,
-  DiscardUncommittedChangesArgs,
-  type DocumentAnalyzer,
-  type GetDocumentAtChangeArgs,
-  type IsContentSameAtChangesArgs,
+  type ResolveContentConflictArgs,
   type UpdateRichTextDocumentContentArgs,
-} from '../../modules/domain/rich-text';
+} from '../../modules/domain/project/node';
+import { type DocumentAnalyzer } from '../../modules/domain/rich-text';
 import { runPromiseSerializingErrorsForIPC } from '../../modules/infrastructure/cross-platform';
 import { Filesystem } from '../../modules/infrastructure/filesystem';
+import { getGithubUserRepositories } from '../../modules/infrastructure/version-control';
 import {
-  getGithubUserRepositories,
-  type ResolvedArtifactId,
-} from '../../modules/infrastructure/version-control';
-import {
-  getVersionedStores,
-  setVersionedStores,
-  validateProjectIdAndGetVersionedStores,
-} from '../versioned-stores';
+  getProjectStore,
+  setProjectStore,
+  validateProjectIdAndGetProjectStore,
+} from '../project-stores';
 
-export const registerVersionedStoresEvents = ({
+export const registerProjectStoresEvents = ({
   filesystem,
   documentAnalyzer,
   encryptedStore,
@@ -87,7 +84,6 @@ export const registerVersionedStoresEvents = ({
     encryptedStore,
   });
   registerProjectStoreEvents({ encryptedStore });
-  registerVersionedDocumentStoreEvents();
   registerVersionControlSyncProvidersEvents({ encryptedStore });
 };
 
@@ -117,12 +113,8 @@ const registerStoreManagerEvents = ({
             : projectStoreManager.openOrCreateProject({
                 filesystem,
               })({ username, email }),
-          Effect.tap(
-            ({ projectId, versionedProjectStore, versionedDocumentStore }) =>
-              setVersionedStores(projectId, {
-                versionedProjectStore,
-                versionedDocumentStore,
-              })
+          Effect.tap(({ projectId, projectStore }) =>
+            setProjectStore(projectId, projectStore)
           ),
           Effect.map(
             ({
@@ -154,12 +146,8 @@ const registerStoreManagerEvents = ({
           projectStoreManager.openProjectById({
             filesystem,
           })({ projectId, directoryPath, username, email }),
-          Effect.tap(
-            ({ projectId, versionedProjectStore, versionedDocumentStore }) =>
-              setVersionedStores(projectId, {
-                versionedProjectStore,
-                versionedDocumentStore,
-              })
+          Effect.tap(({ projectId, projectStore }) =>
+            setProjectStore(projectId, projectStore)
           ),
           Effect.map(
             ({
@@ -191,10 +179,8 @@ const registerProjectStoreEvents = ({
     async (_, args: CreateProjectArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          validateProjectIdAndGetVersionedStores(args.path),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.createProject(args)
-          )
+          validateProjectIdAndGetProjectStore(args.path),
+          Effect.flatMap((projectStore) => projectStore.createProject(args))
         )
       )
   );
@@ -202,10 +188,8 @@ const registerProjectStoreEvents = ({
   ipcMain.handle('project-store:find-project-by-id', async (_, id: ProjectId) =>
     runPromiseSerializingErrorsForIPC(
       pipe(
-        getVersionedStores(id),
-        Effect.flatMap(({ versionedProjectStore }) =>
-          versionedProjectStore.findProjectById(id)
-        )
+        getProjectStore(id),
+        Effect.flatMap((projectStore) => projectStore.findProjectById(id))
       )
     )
   );
@@ -215,49 +199,21 @@ const registerProjectStoreEvents = ({
     async (_, id: ProjectId) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(id),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.listProjectDocuments(id)
+          getProjectStore(id),
+          Effect.flatMap((projectStore) =>
+            projectStore.listProjectDocuments(id)
           )
         )
       )
   );
 
   ipcMain.handle(
-    'project-store:add-document-to-project',
-    async (_, args: AddDocumentToProjectArgs) =>
+    'project-store:delete-documents',
+    async (_, args: DeleteDocumentsArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.addDocumentToProject(args)
-          )
-        )
-      )
-  );
-
-  ipcMain.handle(
-    'project-store:delete-document-from-project',
-    async (_, args: DeleteDocumentFromProjectArgs) =>
-      runPromiseSerializingErrorsForIPC(
-        pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.deleteDocumentFromProject(args)
-          )
-        )
-      )
-  );
-
-  ipcMain.handle(
-    'project-store:delete-documents-from-project',
-    async (_, args: DeleteDocumentsFromProjectArgs) =>
-      runPromiseSerializingErrorsForIPC(
-        pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.deleteDocumentsFromProject(args)
-          )
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) => projectStore.deleteDocuments(args))
         )
       )
   );
@@ -267,9 +223,9 @@ const registerProjectStoreEvents = ({
     async (_, args: RenameDocumentInProjectArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.renameDocumentInProject(args)
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.renameDocumentInProject(args)
           )
         )
       )
@@ -280,22 +236,35 @@ const registerProjectStoreEvents = ({
     async (_, args: RenameDocumentsInProjectArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.renameDocumentsInProject(args)
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.renameDocumentsInProject(args)
           )
         )
       )
   );
 
   ipcMain.handle(
-    'project-store:find-document-in-project',
-    async (_, args: FindDocumentInProjectArgs) =>
+    'project-store:lookup-document-in-project',
+    async (_, args: LookupDocumentInProjectArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.findDocumentInProject(args)
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.lookupDocumentInProject(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'project-store:find-document-by-path',
+    async (_, args: LookupDocumentInProjectArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.findDocumentByPath(args)
           )
         )
       )
@@ -306,10 +275,8 @@ const registerProjectStoreEvents = ({
     async (_, args: AddAssetToProjectArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.addAssetToProject(args)
-          )
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) => projectStore.addAssetToProject(args))
         )
       )
   );
@@ -319,10 +286,8 @@ const registerProjectStoreEvents = ({
     async (_, args: LookupAssetByNameInProjectArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.lookupAssetByName(args)
-          )
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) => projectStore.lookupAssetByName(args))
         )
       )
   );
@@ -332,9 +297,9 @@ const registerProjectStoreEvents = ({
     async (_, args: GetProjectRelativePathArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.getProjectRelativePath(args)
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.getProjectRelativePath(args)
           )
         )
       )
@@ -345,9 +310,9 @@ const registerProjectStoreEvents = ({
     async (_, args: ReadDocumentReferencedAssetsFromProjectArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.readDocumentReferencedAssets(args)
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.readDocumentReferencedAssets(args)
           )
         )
       )
@@ -358,10 +323,8 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectCommitChangesArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.commitChanges(args)
-          )
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) => projectStore.commitChanges(args))
         )
       )
   );
@@ -371,9 +334,9 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectCommitDocumentChangesArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.commitDocumentChanges(args)
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.commitDocumentChanges(args)
           )
         )
       )
@@ -384,9 +347,9 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectRestoreDocumentChangesArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.restoreDocumentChanges(args)
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.restoreDocumentChanges(args)
           )
         )
       )
@@ -397,9 +360,9 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectCreateAndSwitchToBranchArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.createAndSwitchToBranch(args)
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.createAndSwitchToBranch(args)
           )
         )
       )
@@ -410,10 +373,8 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectSwitchToBranchArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.switchToBranch(args)
-          )
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) => projectStore.switchToBranch(args))
         )
       )
   );
@@ -423,10 +384,8 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectGetCurrentBranchArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.getCurrentBranch(args)
-          )
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) => projectStore.getCurrentBranch(args))
         )
       )
   );
@@ -436,10 +395,8 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectListBranchesArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.listBranches(args)
-          )
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) => projectStore.listBranches(args))
         )
       )
   );
@@ -449,10 +406,8 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectDeleteBranchArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.deleteBranch(args)
-          )
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) => projectStore.deleteBranch(args))
         )
       )
   );
@@ -462,9 +417,9 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectMergeAndDeleteBranchArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.mergeAndDeleteBranch(args)
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.mergeAndDeleteBranch(args)
           )
         )
       )
@@ -475,9 +430,9 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectGetMergeConflictInfoArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.getMergeConflictInfo(args)
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.getMergeConflictInfo(args)
           )
         )
       )
@@ -488,10 +443,8 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectAbortMergeArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.abortMerge(args)
-          )
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) => projectStore.abortMerge(args))
         )
       )
   );
@@ -501,9 +454,9 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectCommitMergeConflictsResolutionArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.commitMergeConflictsResolution(args)
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.commitMergeConflictsResolution(args)
           )
         )
       )
@@ -514,9 +467,9 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectResolveConflictByKeepingDocumentArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.resolveConflictByKeepingDocument(args)
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.resolveConflictByKeepingDocument(args)
           )
         )
       )
@@ -527,9 +480,9 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectResolveConflictByDeletingDocumentArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.resolveConflictByDeletingDocument(args)
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.resolveConflictByDeletingDocument(args)
           )
         )
       )
@@ -540,10 +493,8 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectSetAuthorInfoArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.setAuthorInfo(args)
-          )
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) => projectStore.setAuthorInfo(args))
         )
       )
   );
@@ -553,12 +504,12 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectAddRemoteProjectArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
             pipe(
               getValidGithubAccessToken({ encryptedStore })(),
               Effect.flatMap((userToken) =>
-                versionedProjectStore.addRemoteProject({
+                projectStore.addRemoteProject({
                   ...args,
                   authToken: userToken,
                 })
@@ -574,9 +525,9 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectListRemoteProjectsArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.listRemoteProjects(args)
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.listRemoteProjects(args)
           )
         )
       )
@@ -587,9 +538,9 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectFindRemoteProjectByNameArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.findRemoteProjectByName(args)
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.findRemoteProjectByName(args)
           )
         )
       )
@@ -600,12 +551,12 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectPushToRemoteProjectArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
             pipe(
               getValidGithubAccessToken({ encryptedStore })(),
               Effect.flatMap((userToken) =>
-                versionedProjectStore.pushToRemoteProject({
+                projectStore.pushToRemoteProject({
                   ...args,
                   authToken: userToken,
                 })
@@ -621,12 +572,12 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectPullFromRemoteProjectArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
             pipe(
               getValidGithubAccessToken({ encryptedStore })(),
               Effect.flatMap((userToken) =>
-                versionedProjectStore.pullFromRemoteProject({
+                projectStore.pullFromRemoteProject({
                   ...args,
                   authToken: userToken,
                 })
@@ -642,12 +593,12 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectGetRemoteBranchInfoArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
             pipe(
               getValidGithubAccessToken({ encryptedStore })(),
               Effect.flatMap((userToken) =>
-                versionedProjectStore.getRemoteBranchInfo({
+                projectStore.getRemoteBranchInfo({
                   ...args,
                   authToken: userToken,
                 })
@@ -663,9 +614,9 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectGetProjectCommitHistoryArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.getProjectCommitHistory(args)
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.getProjectCommitHistory(args)
           )
         )
       )
@@ -676,167 +627,132 @@ const registerProjectStoreEvents = ({
     async (_, args: ProjectGetChangedDocumentsAtChangeArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          getVersionedStores(args.projectId),
-          Effect.flatMap(({ versionedProjectStore }) =>
-            versionedProjectStore.getChangedDocumentsAtChange(args)
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.getChangedDocumentsAtChange(args)
           )
         )
       )
   );
-};
-
-const registerVersionedDocumentStoreEvents = () => {
   ipcMain.handle(
-    'versioned-document-store:set-project-id',
-    async (_, id: string) =>
+    'project-store:create-document',
+    async (_, args: CreateDocumentArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          validateProjectIdAndGetVersionedStores(id),
-          Effect.flatMap(({ versionedDocumentStore }) =>
-            versionedDocumentStore.setProjectId(id)
-          )
+          validateProjectIdAndGetProjectStore(args.projectId),
+          Effect.flatMap((projectStore) => projectStore.createDocument(args))
         )
       )
   );
 
   ipcMain.handle(
-    'versioned-document-store:create-document',
-    async (_, args: CreateDocumentArgs, projectId: string) =>
+    'project-store:find-document-by-id',
+    async (_, args: FindDocumentByIdArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          validateProjectIdAndGetVersionedStores(projectId),
-          Effect.flatMap(({ versionedDocumentStore }) =>
-            versionedDocumentStore.createDocument(args)
-          )
+          validateProjectIdAndGetProjectStore(args.projectId),
+          Effect.flatMap((projectStore) => projectStore.findDocumentById(args))
         )
       )
   );
 
   ipcMain.handle(
-    'versioned-document-store:find-document-by-id',
-    async (_, id: ResolvedArtifactId, projectId: string) =>
+    'project-store:get-document-last-change-id',
+    async (_, args: GetDocumentLastChangeIdArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          validateProjectIdAndGetVersionedStores(projectId),
-          Effect.flatMap(({ versionedDocumentStore }) =>
-            versionedDocumentStore.findDocumentById(id)
+          validateProjectIdAndGetProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.getDocumentLastChangeId(args)
           )
         )
       )
   );
 
   ipcMain.handle(
-    'versioned-document-store:get-document-last-change-id',
-    async (_, id: ResolvedArtifactId, projectId: string) =>
+    'project-store:update-rich-text-document-content',
+    async (_, args: UpdateRichTextDocumentContentArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          validateProjectIdAndGetVersionedStores(projectId),
-          Effect.flatMap(({ versionedDocumentStore }) =>
-            versionedDocumentStore.getDocumentLastChangeId(id)
+          validateProjectIdAndGetProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.updateRichTextDocumentContent(args)
           )
         )
       )
   );
 
   ipcMain.handle(
-    'versioned-document-store:update-rich-text-document-content',
-    async (_, args: UpdateRichTextDocumentContentArgs, projectId: string) =>
+    'project-store:delete-document',
+    async (_, args: DeleteDocumentArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          validateProjectIdAndGetVersionedStores(projectId),
-          Effect.flatMap(({ versionedDocumentStore }) =>
-            versionedDocumentStore.updateRichTextDocumentContent(args)
+          validateProjectIdAndGetProjectStore(args.projectId),
+          Effect.flatMap((projectStore) => projectStore.deleteDocument(args))
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'project-store:get-document-history',
+    async (_, args: GetDocumentHistoryArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.getDocumentHistory(args)
           )
         )
       )
   );
 
   ipcMain.handle(
-    'versioned-document-store:delete-document',
-    async (_, args: DeleteDocumentArgs, projectId: string) =>
+    'project-store:get-document-at-change',
+    async (_, args: GetDocumentAtChangeArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          validateProjectIdAndGetVersionedStores(projectId),
-          Effect.flatMap(({ versionedDocumentStore }) =>
-            versionedDocumentStore.deleteDocument(args)
+          validateProjectIdAndGetProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.getDocumentAtChange(args)
           )
         )
       )
   );
 
   ipcMain.handle(
-    'versioned-document-store:get-document-history',
-    async (_, id: ResolvedArtifactId, projectId: string) =>
+    'project-store:is-content-same-at-changes',
+    async (_, args: IsContentSameAtChangesArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          validateProjectIdAndGetVersionedStores(projectId),
-          Effect.flatMap(({ versionedDocumentStore }) =>
-            versionedDocumentStore.getDocumentHistory(id)
+          validateProjectIdAndGetProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.isContentSameAtChanges(args)
           )
         )
       )
   );
 
   ipcMain.handle(
-    'versioned-document-store:get-document-at-change',
-    async (_, args: GetDocumentAtChangeArgs, projectId: string) =>
+    'project-store:discard-uncommitted-changes',
+    async (_, args: DiscardUncommittedChangesArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          validateProjectIdAndGetVersionedStores(projectId),
-          Effect.flatMap(({ versionedDocumentStore }) =>
-            versionedDocumentStore.getDocumentAtChange(args)
+          validateProjectIdAndGetProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.discardUncommittedChanges(args)
           )
         )
       )
   );
 
   ipcMain.handle(
-    'versioned-document-store:is-content-same-at-changes',
-    async (_, args: IsContentSameAtChangesArgs, projectId: string) =>
+    'project-store:resolve-content-conflict',
+    async (_, args: ResolveContentConflictArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
-          validateProjectIdAndGetVersionedStores(projectId),
-          Effect.flatMap(({ versionedDocumentStore }) =>
-            versionedDocumentStore.isContentSameAtChanges(args)
-          )
-        )
-      )
-  );
-
-  ipcMain.handle(
-    'versioned-document-store:discard-uncommitted-changes',
-    async (_, args: DiscardUncommittedChangesArgs, projectId: string) =>
-      runPromiseSerializingErrorsForIPC(
-        pipe(
-          validateProjectIdAndGetVersionedStores(projectId),
-          Effect.flatMap(({ versionedDocumentStore }) =>
-            versionedDocumentStore.discardUncommittedChanges(args)
-          )
-        )
-      )
-  );
-
-  ipcMain.handle(
-    'versioned-document-store:resolve-content-conflict',
-    async (_, args: DiscardUncommittedChangesArgs, projectId: string) =>
-      runPromiseSerializingErrorsForIPC(
-        pipe(
-          validateProjectIdAndGetVersionedStores(projectId),
-          Effect.flatMap(({ versionedDocumentStore }) =>
-            versionedDocumentStore.resolveContentConflict(args)
-          )
-        )
-      )
-  );
-
-  ipcMain.handle(
-    'versioned-document-store:disconnect',
-    async (_, projectId: string) =>
-      runPromiseSerializingErrorsForIPC(
-        pipe(
-          validateProjectIdAndGetVersionedStores(projectId),
-          Effect.flatMap(({ versionedDocumentStore }) =>
-            versionedDocumentStore.disconnect()
+          validateProjectIdAndGetProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.resolveContentConflict(args)
           )
         )
       )

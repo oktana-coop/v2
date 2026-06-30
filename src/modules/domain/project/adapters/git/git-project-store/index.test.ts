@@ -121,6 +121,7 @@ const store = createAdapter({
   filesystem: mockFilesystem as Filesystem,
   isoGitHttp: mockHttp,
   documentAnalyzer: mockDocumentAnalyzer,
+  managesFilesystemWorkdir: true,
 });
 
 beforeEach(() => {
@@ -139,7 +140,7 @@ beforeEach(() => {
 });
 
 describe('git-project-store', () => {
-  describe('deleteDocumentFromProject', () => {
+  describe('deleteDocument', () => {
     const docPath = 'doc.md';
     const docId = `/blob/main/${docPath}` as ResolvedArtifactId;
     const commitOid = 'aabbccddaabbccddaabbccddaabbccddaabbccdd';
@@ -150,7 +151,7 @@ describe('git-project-store', () => {
       mockCommit.mockResolvedValue(commitOid);
 
       await Effect.runPromise(
-        store.deleteDocumentFromProject({
+        store.deleteDocument({
           projectId: PROJECT_PATH,
           documentId: docId,
         })
@@ -170,7 +171,7 @@ describe('git-project-store', () => {
       mockHasStagedChanges.mockReturnValue(Effect.succeed(false));
 
       await Effect.runPromise(
-        store.deleteDocumentFromProject({
+        store.deleteDocument({
           projectId: PROJECT_PATH,
           documentId: docId,
         })
@@ -184,7 +185,7 @@ describe('git-project-store', () => {
     it('fails with ValidationError for an invalid document id', async () => {
       const error = await Effect.runPromise(
         store
-          .deleteDocumentFromProject({
+          .deleteDocument({
             projectId: PROJECT_PATH,
             documentId: 'not-a-blob-ref' as ResolvedArtifactId,
           })
@@ -201,7 +202,7 @@ describe('git-project-store', () => {
 
       const error = await Effect.runPromise(
         store
-          .deleteDocumentFromProject({
+          .deleteDocument({
             projectId: PROJECT_PATH,
             documentId: docId,
           })
@@ -219,7 +220,7 @@ describe('git-project-store', () => {
 
       const error = await Effect.runPromise(
         store
-          .deleteDocumentFromProject({
+          .deleteDocument({
             projectId: PROJECT_PATH,
             documentId: docId,
           })
@@ -236,7 +237,7 @@ describe('git-project-store', () => {
 
       const error = await Effect.runPromise(
         store
-          .deleteDocumentFromProject({
+          .deleteDocument({
             projectId: PROJECT_PATH,
             documentId: docId,
           })
@@ -384,7 +385,7 @@ describe('git-project-store', () => {
     });
   });
 
-  describe('deleteDocumentsFromProject', () => {
+  describe('deleteDocuments', () => {
     const commitOid = 'aabbccddaabbccddaabbccddaabbccddaabbccdd';
     const docIdA = `/blob/main/a.md` as ResolvedArtifactId;
     const docIdB = `/blob/main/b.md` as ResolvedArtifactId;
@@ -396,7 +397,7 @@ describe('git-project-store', () => {
       mockCommit.mockResolvedValue(commitOid);
 
       await Effect.runPromise(
-        store.deleteDocumentsFromProject({
+        store.deleteDocuments({
           projectId: PROJECT_PATH,
           documentIds: docIds,
         })
@@ -416,7 +417,7 @@ describe('git-project-store', () => {
       mockCommit.mockResolvedValue(commitOid);
 
       await Effect.runPromise(
-        store.deleteDocumentsFromProject({
+        store.deleteDocuments({
           projectId: PROJECT_PATH,
           documentIds: [docIdA],
         })
@@ -434,7 +435,7 @@ describe('git-project-store', () => {
       mockHasStagedChanges.mockReturnValue(Effect.succeed(false));
 
       await Effect.runPromise(
-        store.deleteDocumentsFromProject({
+        store.deleteDocuments({
           projectId: PROJECT_PATH,
           documentIds: docIds,
         })
@@ -451,7 +452,7 @@ describe('git-project-store', () => {
 
       const error = await Effect.runPromise(
         store
-          .deleteDocumentsFromProject({
+          .deleteDocuments({
             projectId: PROJECT_PATH,
             documentIds: docIds,
           })
@@ -469,7 +470,7 @@ describe('git-project-store', () => {
 
       const error = await Effect.runPromise(
         store
-          .deleteDocumentsFromProject({
+          .deleteDocuments({
             projectId: PROJECT_PATH,
             documentIds: docIds,
           })
@@ -486,7 +487,7 @@ describe('git-project-store', () => {
 
       const error = await Effect.runPromise(
         store
-          .deleteDocumentsFromProject({
+          .deleteDocuments({
             projectId: PROJECT_PATH,
             documentIds: docIds,
           })
@@ -497,7 +498,7 @@ describe('git-project-store', () => {
     });
   });
 
-  describe('findDocumentInProject', () => {
+  describe('lookupDocumentInProject', () => {
     const docPath = 'doc.md';
 
     describe('at a specific commit', () => {
@@ -507,7 +508,7 @@ describe('git-project-store', () => {
         mockFileExistsAtCommit.mockReturnValue(Effect.succeed(undefined));
 
         const result = await Effect.runPromise(
-          store.findDocumentInProject({
+          store.lookupDocumentInProject({
             projectId: PROJECT_PATH,
             documentPath: docPath,
             changeId: commitHash as ChangeId,
@@ -530,7 +531,7 @@ describe('git-project-store', () => {
 
         const error = await Effect.runPromise(
           store
-            .findDocumentInProject({
+            .lookupDocumentInProject({
               projectId: PROJECT_PATH,
               documentPath: docPath,
               changeId: commitHash as ChangeId,
@@ -548,7 +549,7 @@ describe('git-project-store', () => {
 
         const error = await Effect.runPromise(
           store
-            .findDocumentInProject({
+            .lookupDocumentInProject({
               projectId: PROJECT_PATH,
               documentPath: docPath,
               changeId: commitHash as ChangeId,
@@ -571,7 +572,7 @@ describe('git-project-store', () => {
         );
 
         const result = await Effect.runPromise(
-          store.findDocumentInProject({
+          store.lookupDocumentInProject({
             projectId: PROJECT_PATH,
             documentPath: docPath,
           })
@@ -590,7 +591,7 @@ describe('git-project-store', () => {
         );
 
         const result = await Effect.runPromise(
-          store.findDocumentInProject({
+          store.lookupDocumentInProject({
             projectId: PROJECT_PATH,
             documentPath: docPath,
           })
@@ -607,7 +608,7 @@ describe('git-project-store', () => {
 
         const error = await Effect.runPromise(
           store
-            .findDocumentInProject({
+            .lookupDocumentInProject({
               projectId: PROJECT_PATH,
               documentPath: docPath,
             })
@@ -624,7 +625,7 @@ describe('git-project-store', () => {
         );
 
         const result = await Effect.runPromise(
-          store.findDocumentInProject({
+          store.lookupDocumentInProject({
             projectId: PROJECT_PATH,
             documentPath: docPath,
             changeId: UNCOMMITTED_CHANGE_ID,

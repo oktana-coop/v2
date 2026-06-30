@@ -13,9 +13,7 @@ import {
   type OpenProjectByIdResult,
   type ProjectStore,
 } from './src/modules/domain/project';
-import { type VersionedDocumentStore } from './src/modules/domain/rich-text';
 import {
-  type AppendParam,
   type ContextMenuAction,
   type ContextMenuPayload,
   type IPCResult,
@@ -124,49 +122,6 @@ export type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
 
 export type ProjectStorePromiseAPI = PromisifyEffects<ProjectStore>;
 
-type VersionedDocumentStoreIPCAPI = VersionedDocumentStore & {
-  createDocument: AppendParam<VersionedDocumentStore['createDocument'], string>;
-  findDocumentById: AppendParam<
-    VersionedDocumentStore['findDocumentById'],
-    string
-  >;
-  getDocumentLastChangeId: AppendParam<
-    VersionedDocumentStore['getDocumentLastChangeId'],
-    string
-  >;
-  updateRichTextDocumentContent: AppendParam<
-    VersionedDocumentStore['updateRichTextDocumentContent'],
-    string
-  >;
-  deleteDocument: AppendParam<VersionedDocumentStore['deleteDocument'], string>;
-  commitChanges: AppendParam<VersionedDocumentStore['commitChanges'], string>;
-  getDocumentHistory: AppendParam<
-    VersionedDocumentStore['getDocumentHistory'],
-    string
-  >;
-  getDocumentAtChange: AppendParam<
-    VersionedDocumentStore['getDocumentAtChange'],
-    string
-  >;
-  isContentSameAtChanges: AppendParam<
-    VersionedDocumentStore['isContentSameAtChanges'],
-    string
-  >;
-  restoreCommit: AppendParam<VersionedDocumentStore['restoreCommit'], string>;
-  discardUncommittedChanges: AppendParam<
-    VersionedDocumentStore['discardUncommittedChanges'],
-    string
-  >;
-  resolveContentConflict: AppendParam<
-    VersionedDocumentStore['resolveContentConflict'],
-    string
-  >;
-  disconnect: AppendParam<VersionedDocumentStore['disconnect'], string>;
-};
-
-export type VersionedDocumentStorePromiseAPI =
-  PromisifyEffects<VersionedDocumentStoreIPCAPI>;
-
 export type VersionControlSyncProvidersAPI = {
   getGithubUserRepositories: () => Promise<GithubRepositoryInfo[]>;
 };
@@ -211,7 +166,6 @@ declare global {
     personalizationAPI: PersonalizationAPI;
     authAPI: AuthAPI;
     filesystemAPI: FilesystemPromiseAPI;
-    versionedDocumentStoreAPI: VersionedDocumentStorePromiseAPI;
     projectStoreAPI: ProjectStorePromiseAPI;
     projectStoreManagerAPI: ProjectStoreManagerAPI;
     versionControlSyncProvidersAPI: VersionControlSyncProvidersAPI;

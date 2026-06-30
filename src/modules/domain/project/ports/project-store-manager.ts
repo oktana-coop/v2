@@ -4,7 +4,6 @@ import {
   NotFoundError as VersionedDocumentNotFoundError,
   RepositoryError as VersionedDocumentRepositoryError,
   ValidationError as VersionedDocumentValidationError,
-  VersionedDocumentStore,
 } from '../../../../modules/domain/rich-text';
 import {
   AbortError as FilesystemAbortError,
@@ -46,8 +45,7 @@ export type OpenOrCreateProjectArgs = UserInfo & {
 };
 
 export type OpenOrCreateProjectResult = {
-  versionedProjectStore: ProjectStore;
-  versionedDocumentStore: VersionedDocumentStore;
+  projectStore: ProjectStore;
   projectId: ProjectId;
   directory: Directory;
   currentBranch: Branch;
@@ -65,8 +63,7 @@ export type OpenProjectByIdArgs = UserInfo & {
 };
 
 export type OpenProjectByIdResult = {
-  versionedProjectStore: ProjectStore;
-  versionedDocumentStore: VersionedDocumentStore;
+  projectStore: ProjectStore;
   projectId: ProjectId;
   directory: Directory;
   currentBranch: Branch;
