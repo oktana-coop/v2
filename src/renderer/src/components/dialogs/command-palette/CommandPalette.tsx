@@ -16,6 +16,12 @@ import { useKeyBindings } from '../../../hooks';
 import { FileDocumentIcon } from '../../icons';
 import { type IconProps } from '../../icons/types';
 
+// The document option list is not virtualized and headlessui's per-option
+// registration is superlinear, so rendering an unbounded list (e.g. every
+// document in a large project) freezes the palette when it opens. We render at
+// most this many documents at once; the rest stay reachable by searching.
+const MAX_VISIBLE_DOCUMENTS = 50;
+
 export const NoMatchingResults = () => {
   return (
     <div className="px-6 py-14 text-center sm:px-14">
@@ -189,6 +195,9 @@ export const CommandPalette = ({
           return document.title.toLowerCase().includes(query.toLowerCase());
         });
 
+  const visibleDocuments = filteredDocuments.slice(0, MAX_VISIBLE_DOCUMENTS);
+  const hasMoreDocuments = filteredDocuments.length > visibleDocuments.length;
+
   const filteredContextualActions = contextualSection
     ? (contextualSection.actions || []).filter((actions) => {
         return actions.name.toLowerCase().includes(query.toLowerCase());
@@ -262,9 +271,9 @@ export const CommandPalette = ({
                   ))}
                 </CommandPaletteListSection>
               )}
-              {filteredDocuments.length > 0 && (
+              {visibleDocuments.length > 0 && (
                 <CommandPaletteListSection title={documentsGroupTitle}>
-                  {filteredDocuments.map((project) => (
+                  {visibleDocuments.map((project) => (
                     <CommandPaletteOption
                       key={project.id || uuidv4()}
                       label={project.title}
@@ -272,6 +281,12 @@ export const CommandPalette = ({
                       icon={FileDocumentIcon}
                     />
                   ))}
+                  {hasMoreDocuments && (
+                    <li className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
+                      Showing the first {MAX_VISIBLE_DOCUMENTS} documents - keep
+                      typing to narrow the results.
+                    </li>
+                  )}
                 </CommandPaletteListSection>
               )}
               {filteredActions.length > 0 && (

@@ -13,6 +13,7 @@ import {
   CommandPalette,
 } from '../../../../components/dialogs/command-palette';
 import {
+  getOpenableDocuments,
   useArtifactSelection,
   useClearWebStorage,
   useCurrentDocumentName,
@@ -142,9 +143,10 @@ export const ProjectCommandPalette = ({
             }
           : undefined
       }
-      documents={documents
+      documents={getOpenableDocuments(documents)
         .filter((doc) => doc.id !== selection)
         .map((doc) => ({
+          id: doc.id,
           title: removeExtension(doc.name),
           onDocumentSelection: () => {
             handleArtifactSelection(doc.id);

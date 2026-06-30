@@ -1,5 +1,6 @@
 import { useContext, useEffect, useState } from 'react';
 
+import { isUnsupportedExtension } from '../../../modules/domain/rich-text';
 import {
   type Directory,
   type File,
@@ -94,6 +95,33 @@ const getExplorerTreeInProject = (
 
   return rootNodes;
 };
+
+// Flattens the explorer tree into the list of file nodes the editor can
+// actually open as documents, descending into directories so documents in
+// subfolders are reachable too. Directories and assets with unsupported
+// extensions (which would otherwise open the unsupported-document view) are
+// dropped. Used to populate the command palette's document list.
+//
+// The command palette caps how many of these it renders at once (see
+// MAX_VISIBLE_DOCUMENTS), so a large project's full document set does not have
+// to be rendered even though every document remains reachable via search.
+export const getOpenableDocuments = (
+  nodes: ExplorerTreeNode[]
+): ExplorerTreeNode[] =>
+  nodes.flatMap((node) => {
+    if (node.type === filesystemItemTypes.DIRECTORY) {
+      return node.children ? getOpenableDocuments(node.children) : [];
+    }
+
+    if (
+      node.type === filesystemItemTypes.FILE &&
+      !isUnsupportedExtension(node.name)
+    ) {
+      return [node];
+    }
+
+    return [];
+  });
 
 export const useDocumentExplorerTree = () => {
   const {
