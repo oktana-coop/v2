@@ -1,7 +1,13 @@
 import * as Effect from 'effect/Effect';
 
+import type {
+  ResolvedDocument,
+  RichTextRepresentation,
+  VersionedDocument,
+} from '../../../../modules/domain/rich-text';
 import {
   type Branch,
+  type Change,
   type ChangedDocument,
   type ChangeId,
   type Commit,
@@ -11,7 +17,12 @@ import {
   type ResolvedArtifactId,
 } from '../../../../modules/infrastructure/version-control';
 import { type Email, type Username } from '../../../auth';
-import { NotFoundError, RepositoryError, ValidationError } from '../errors';
+import {
+  DeletedDocumentError,
+  NotFoundError,
+  RepositoryError,
+  ValidationError,
+} from '../errors';
 import {
   type ArtifactMetaData,
   type Project,
@@ -33,13 +44,6 @@ export type CreateProjectArgs = {
   cloneUrl?: string;
   authToken?: string;
 } & UserInfo;
-
-export type AddDocumentToProjectArgs = {
-  documentId: ResolvedArtifactId;
-  name: string;
-  path: string;
-  projectId: ProjectId;
-};
 
 export type AddAssetToProjectArgs = {
   projectId: ProjectId;
@@ -72,14 +76,11 @@ export type GetProjectRelativePathArgs = {
   absolutePath: string;
 };
 
-export type DeleteDocumentFromProjectArgs = {
-  projectId: ProjectId;
-  documentId: ResolvedArtifactId;
-};
-
-export type DeleteDocumentsFromProjectArgs = {
+export type DeleteDocumentsArgs = {
   projectId: ProjectId;
   documentIds: ResolvedArtifactId[];
+  deleteFromFilesystem?: boolean;
+  directoryPath?: string;
 };
 
 export type RenameDocumentInProjectArgs = {
@@ -93,7 +94,7 @@ export type RenameDocumentsInProjectArgs = {
   documentRenames: Array<{ oldDocumentPath: string; newDocumentPath: string }>;
 };
 
-export type FindDocumentInProjectArgs = {
+export type LookupDocumentInProjectArgs = {
   projectId: ProjectId;
   documentPath: string;
   changeId?: ChangeId;
@@ -243,8 +244,78 @@ export type ProjectGetRemoteBranchInfoArgs = {
 
 export type ProjectGetRemoteBranchInfoResult = Record<Branch, Commit['id']>;
 
+export type CreateDocumentArgs = {
+  projectId: ProjectId;
+  content: string | null;
+  filePath?: string;
+  writeToFile?: boolean;
+  branch?: Branch;
+};
+
+export type FindDocumentByIdArgs = {
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
+};
+
+export type GetDocumentLastChangeIdArgs = {
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
+};
+
+export type UpdateRichTextDocumentContentArgs = {
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
+  representation: RichTextRepresentation;
+  content: string;
+  writeToFileWithPath?: string;
+};
+
+export type DeleteDocumentArgs = {
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
+  deleteFromFilesystem?: boolean;
+};
+
+export type GetDocumentHistoryArgs = {
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
+};
+
+export type GetDocumentHistoryResponse = {
+  history: Change[];
+  current: VersionedDocument;
+  latestChange: Change;
+  lastCommit: Commit | null;
+  hasUncommittedChanges: boolean;
+};
+
+export type GetDocumentAtChangeArgs = {
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
+  changeId: Change['id'];
+};
+
+export type IsContentSameAtChangesArgs = {
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
+  change1: Change['id'];
+  change2: Change['id'];
+};
+
+export type DiscardUncommittedChangesArgs = {
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
+  writeToFileWithPath?: string;
+};
+
+export type ResolveContentConflictArgs = {
+  projectId: ProjectId;
+  documentId: ResolvedArtifactId;
+};
+
 export type ProjectStore = {
   supportsBranching: boolean;
+  managesFilesystemWorkdir: boolean;
   assetsDirName: string;
   createProject: (
     args: CreateProjectArgs
@@ -263,22 +334,8 @@ export type ProjectStore = {
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
-  addDocumentToProject: (
-    args: AddDocumentToProjectArgs
-  ) => Effect.Effect<
-    void,
-    ValidationError | MigrationError | RepositoryError | NotFoundError,
-    never
-  >;
-  deleteDocumentFromProject: (
-    args: DeleteDocumentFromProjectArgs
-  ) => Effect.Effect<
-    void,
-    ValidationError | MigrationError | RepositoryError | NotFoundError,
-    never
-  >;
-  deleteDocumentsFromProject: (
-    args: DeleteDocumentsFromProjectArgs
+  deleteDocuments: (
+    args: DeleteDocumentsArgs
   ) => Effect.Effect<
     void,
     ValidationError | MigrationError | RepositoryError | NotFoundError,
@@ -298,10 +355,17 @@ export type ProjectStore = {
     ValidationError | MigrationError | RepositoryError | NotFoundError,
     never
   >;
-  findDocumentInProject: (
-    args: FindDocumentInProjectArgs
+  lookupDocumentInProject: (
+    args: LookupDocumentInProjectArgs
   ) => Effect.Effect<
     ResolvedArtifactId,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  findDocumentByPath: (
+    args: LookupDocumentInProjectArgs
+  ) => Effect.Effect<
+    ResolvedDocument,
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
@@ -468,4 +532,74 @@ export type ProjectStore = {
     ValidationError | RepositoryError | NotFoundError,
     never
   >;
+  createDocument: (
+    args: CreateDocumentArgs
+  ) => Effect.Effect<
+    ResolvedArtifactId,
+    ValidationError | RepositoryError,
+    never
+  >;
+  findDocumentById: (
+    args: FindDocumentByIdArgs
+  ) => Effect.Effect<
+    ResolvedDocument,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  getDocumentLastChangeId: (
+    args: GetDocumentLastChangeIdArgs
+  ) => Effect.Effect<
+    Change['id'],
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  updateRichTextDocumentContent: (
+    args: UpdateRichTextDocumentContentArgs
+  ) => Effect.Effect<
+    void,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  deleteDocument: (
+    args: DeleteDocumentArgs
+  ) => Effect.Effect<
+    void,
+    ValidationError | MigrationError | RepositoryError | NotFoundError,
+    never
+  >;
+  getDocumentHistory: (
+    args: GetDocumentHistoryArgs
+  ) => Effect.Effect<
+    GetDocumentHistoryResponse,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  getDocumentAtChange: (
+    args: GetDocumentAtChangeArgs
+  ) => Effect.Effect<
+    VersionedDocument,
+    | ValidationError
+    | RepositoryError
+    | NotFoundError
+    | MigrationError
+    | DeletedDocumentError,
+    never
+  >;
+  isContentSameAtChanges: (
+    args: IsContentSameAtChangesArgs
+  ) => Effect.Effect<
+    boolean,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  discardUncommittedChanges: (
+    args: DiscardUncommittedChangesArgs
+  ) => Effect.Effect<
+    void,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
+  resolveContentConflict: (
+    args: ResolveContentConflictArgs
+  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
 };

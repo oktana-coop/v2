@@ -15,12 +15,8 @@ export const useAssetInsertion = (
   docPath?: string
 ): (() => Promise<DocumentAsset | null>) => {
   const { filesystem } = useContext(InfrastructureAdaptersContext);
-  const {
-    projectId,
-    versionedProjectStore: projectStore,
-    selectedFileInfo,
-    refreshDirectoryTree,
-  } = useContext(ProjectContext);
+  const { projectId, projectStore, selectedFileInfo, refreshDirectoryTree } =
+    useContext(ProjectContext);
 
   const docPathString = docPath ?? selectedFileInfo?.path;
 

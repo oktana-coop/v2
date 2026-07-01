@@ -17,15 +17,15 @@ import {
 
 import {
   isValidProjectId,
+  processDocumentChange,
   type ProjectId,
+  type ProjectStore,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
 import {
   isEmpty,
-  processDocumentChange,
   type RichTextDocument,
   type VersionedDocument,
-  type VersionedDocumentStore,
 } from '../../../../modules/domain/rich-text';
 import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
 import {
@@ -96,7 +96,7 @@ export const CurrentDocumentProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { filesystem, versionedDocumentStore } = useContext(
+  const { filesystem, projectStore } = useContext(
     InfrastructureAdaptersContext
   );
   const [versionedDocument, setVersionedDocument] =
@@ -152,9 +152,9 @@ export const CurrentDocumentProvider = ({
       !changeIdParam;
 
     const updateDocumentHandleAndSelectedFile = async ({
-      versionedDocumentStore,
+      projectStore,
     }: {
-      versionedDocumentStore: VersionedDocumentStore;
+      projectStore: ProjectStore;
     }) => {
       if (!documentId) {
         setVersionedDocument(null);
@@ -164,7 +164,10 @@ export const CurrentDocumentProvider = ({
         setVersionedDocument(null);
 
         const { artifact: document } = await Effect.runPromise(
-          versionedDocumentStore.findDocumentById(documentId)
+          projectStore.findDocumentById({
+            projectId: projectIdParam as ProjectId,
+            documentId,
+          })
         );
 
         setVersionedDocument(document);
@@ -203,17 +206,14 @@ export const CurrentDocumentProvider = ({
     };
 
     if (
-      versionedDocumentStore &&
-      // Safeguard: don't read from a document store that belongs to another
-      // project, so we don't return a document from the wrong repository when
-      // switching projects. Change with caution.
-      versionedDocumentStore.projectId === projectIdParam &&
+      projectStore &&
+      projectIdParam &&
       (projectOrDocumentHasChanged ||
         returningToSelectedDocumentEditMode ||
         pulledUpstreamChanges ||
         documentNeedsReload)
     ) {
-      updateDocumentHandleAndSelectedFile({ versionedDocumentStore });
+      updateDocumentHandleAndSelectedFile({ projectStore });
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -221,13 +221,13 @@ export const CurrentDocumentProvider = ({
     documentId,
     projectIdParam,
     changeIdParam,
-    versionedDocumentStore,
+    projectStore,
     pulledUpstreamChanges,
     documentNeedsReload,
   ]);
 
   const checkIfContentChangedFromLastCommit =
-    (documentStore: VersionedDocumentStore) =>
+    (projectStore: ProjectStore) =>
     async (
       documentId: ResolvedArtifactId,
       latestChangeId: ChangeId,
@@ -235,7 +235,8 @@ export const CurrentDocumentProvider = ({
     ) => {
       if (!changeIdsAreSame(latestChangeId, lastCommitId)) {
         const isContentSame = await Effect.runPromise(
-          documentStore.isContentSameAtChanges({
+          projectStore.isContentSameAtChanges({
+            projectId: projectIdParam as ProjectId,
             documentId,
             change1: latestChangeId,
             change2: lastCommitId,
@@ -253,7 +254,7 @@ export const CurrentDocumentProvider = ({
     };
 
   const checkIfCanCommit =
-    (documentStore: VersionedDocumentStore) =>
+    (projectStore: ProjectStore) =>
     async ({
       docId,
       doc,
@@ -266,7 +267,7 @@ export const CurrentDocumentProvider = ({
       lastCommitId?: ChangeId;
     }) => {
       if (lastCommitId) {
-        return checkIfContentChangedFromLastCommit(documentStore)(
+        return checkIfContentChangedFromLastCommit(projectStore)(
           docId,
           latestChangeId,
           lastCommitId
@@ -281,10 +282,13 @@ export const CurrentDocumentProvider = ({
     };
 
   const loadHistory =
-    (documentStore: VersionedDocumentStore) =>
+    (projectStore: ProjectStore) =>
     async ({ docId }: { docId: ResolvedArtifactId }) => {
       const historyInfo = await Effect.runPromise(
-        documentStore.getDocumentHistory(docId)
+        projectStore.getDocumentHistory({
+          projectId: projectIdParam as ProjectId,
+          documentId: docId,
+        })
       );
 
       const historyWithURLInfo = historyInfo.history.map((commit) => ({
@@ -295,7 +299,7 @@ export const CurrentDocumentProvider = ({
       setVersionedDocumentHistory(historyWithURLInfo);
       setLastCommit(historyInfo.lastCommit);
       setLoadingHistory(false);
-      await checkIfCanCommit(documentStore)({
+      await checkIfCanCommit(projectStore)({
         docId,
         doc: historyInfo.current,
         latestChangeId: historyInfo.latestChange.id,
@@ -306,8 +310,8 @@ export const CurrentDocumentProvider = ({
     };
 
   useEffect(() => {
-    if (versionedDocumentStore && documentId && versionedDocument) {
-      loadHistory(versionedDocumentStore)({
+    if (projectStore && documentId && versionedDocument) {
+      loadHistory(projectStore)({
         docId: documentId,
       });
     }
@@ -327,17 +331,17 @@ export const CurrentDocumentProvider = ({
   }, [versionedDocumentHistory, changeIdParam]);
 
   const reloadDocumentHistory = useCallback(async () => {
-    if (!versionedDocumentStore || !versionedDocument || !documentId) return;
-    await loadHistory(versionedDocumentStore)({
+    if (!projectStore || !versionedDocument || !documentId) return;
+    await loadHistory(projectStore)({
       docId: documentId,
     });
-  }, [versionedDocumentStore, versionedDocument, documentId]);
+  }, [projectStore, versionedDocument, documentId]);
 
   const handleRestoreCommit = useCallback(
     async ({ message, commit }: { message: string; commit: Commit }) => {
-      if (!documentId || !versionedDocument || !versionedDocumentStore) {
+      if (!documentId || !versionedDocument || !projectStore) {
         throw new Error(
-          'Cannot restore commit. Either the document or its store is not initialized yet.'
+          'Cannot restore commit. Either the document or the project store is not initialized yet.'
         );
       }
 
@@ -347,7 +351,7 @@ export const CurrentDocumentProvider = ({
         message,
       });
 
-      const newHistory = await loadHistory(versionedDocumentStore)({
+      const newHistory = await loadHistory(projectStore)({
         docId: documentId,
       });
 
@@ -355,18 +359,13 @@ export const CurrentDocumentProvider = ({
       setCanCommit(false);
       handleSelectChange(restoreCommitId, newHistory);
     },
-    [
-      documentId,
-      versionedDocument,
-      versionedDocumentStore,
-      restoreDocumentChanges,
-    ]
+    [documentId, versionedDocument, projectStore, restoreDocumentChanges]
   );
 
   const handleDiscardChanges = useCallback(async () => {
-    if (!documentId || !versionedDocument || !versionedDocumentStore) {
+    if (!documentId || !versionedDocument || !projectStore) {
       throw new Error(
-        'Cannot discard changes. Either the document or its store is not initialized yet.'
+        'Cannot discard changes. Either the document or the project store is not initialized yet.'
       );
     }
 
@@ -381,7 +380,8 @@ export const CurrentDocumentProvider = ({
           dirPath: directory.path,
         }),
         Effect.flatMap((absoluteFilePath) =>
-          versionedDocumentStore.discardUncommittedChanges({
+          projectStore.discardUncommittedChanges({
+            projectId: projectIdParam as ProjectId,
             documentId,
             writeToFileWithPath: absoluteFilePath,
           })
@@ -389,7 +389,7 @@ export const CurrentDocumentProvider = ({
       )
     );
 
-    const newHistory = await loadHistory(versionedDocumentStore)({
+    const newHistory = await loadHistory(projectStore)({
       docId: documentId,
     });
 
@@ -405,7 +405,7 @@ export const CurrentDocumentProvider = ({
   }, [
     documentId,
     versionedDocument,
-    versionedDocumentStore,
+    projectStore,
     documentChangeSubRouteMatch,
     documentRouteMatch,
   ]);
@@ -498,13 +498,8 @@ export const CurrentDocumentProvider = ({
 
   const handleDocumentContentChange = useCallback(
     async (doc: RichTextDocument) => {
-      if (
-        !versionedDocumentStore ||
-        versionedDocumentStore.projectId !== projectIdParam
-      ) {
-        throw new Error(
-          'Versioned document store not ready yet or mismatched project.'
-        );
+      if (!projectStore || !projectIdParam) {
+        throw new Error('Project store not ready yet or mismatched project.');
       }
 
       if (!documentId) {
@@ -535,26 +530,25 @@ export const CurrentDocumentProvider = ({
             processDocumentChange({
               transformToText: representationTransformAdapter.transformToText,
               updateRichTextDocumentContent:
-                versionedDocumentStore.updateRichTextDocumentContent,
-              writeFile: filesystem.writeFile,
+                projectStore.updateRichTextDocumentContent,
             })({
+              projectId: projectIdParam as ProjectId,
               documentId,
               updatedDocument: doc,
-              writeToFileWithPath:
-                versionedDocumentStore.managesFilesystemWorkdir
-                  ? absoluteFilePath
-                  : null,
+              writeToFileWithPath: projectStore.managesFilesystemWorkdir
+                ? absoluteFilePath
+                : null,
             })
           )
         )
       );
 
-      await loadHistory(versionedDocumentStore)({
+      await loadHistory(projectStore)({
         docId: documentId,
       });
     },
     [
-      versionedDocumentStore,
+      projectStore,
       projectIdParam,
       documentId,
       representationTransformAdapter,

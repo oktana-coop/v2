@@ -1,15 +1,14 @@
-import * as Effect from 'effect/Effect';
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import {
   type AssetUrlProtocol,
+  type ProjectStore,
   type ProjectStoreManager,
 } from '../../../../modules/domain/project';
 import {
   createElectronAssetProtocolAdapter,
   createElectronRendererProjectStoreManagerAdapter,
 } from '../../../../modules/domain/project/browser';
-import { type VersionedDocumentStore } from '../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import { type Filesystem } from '../../../../modules/infrastructure/filesystem';
 import { createAdapter as createElectronRendererFilesystemAPIAdapter } from '../../../../modules/infrastructure/filesystem/adapters/electron-renderer-api';
@@ -19,10 +18,8 @@ export type InfrastructureAdaptersContextType = {
   filesystem: Filesystem;
   projectStoreManager: ProjectStoreManager;
   assetUrlProtocol: AssetUrlProtocol;
-  versionedDocumentStore: VersionedDocumentStore | null;
-  setVersionedDocumentStore: (
-    documentStore: VersionedDocumentStore | null
-  ) => void;
+  projectStore: ProjectStore | null;
+  setProjectStore: (store: ProjectStore | null) => void;
 };
 
 export const InfrastructureAdaptersContext =
@@ -33,8 +30,8 @@ export const InfrastructureAdaptersContext =
     projectStoreManager: null,
     // @ts-expect-error will get overriden below
     assetUrlProtocol: null,
-    versionedDocumentStore: null,
-    setVersionedDocumentStore: () => {},
+    projectStore: null,
+    setProjectStore: () => {},
   });
 
 export const InfrastructureAdaptersProvider = ({
@@ -43,8 +40,7 @@ export const InfrastructureAdaptersProvider = ({
   children: React.ReactNode;
 }) => {
   const { processId } = useContext(ElectronContext);
-  const [versionedDocumentStore, setVersionedDocumentStore] =
-    useState<VersionedDocumentStore | null>(null);
+  const [projectStore, setProjectStore] = useState<ProjectStore | null>(null);
 
   const filesystem = createElectronRendererFilesystemAPIAdapter();
 
@@ -67,13 +63,8 @@ export const InfrastructureAdaptersProvider = ({
     return <LoadingText />;
   }
 
-  const handleSetDocumentStore = async (
-    documentStore: VersionedDocumentStore | null
-  ) => {
-    if (versionedDocumentStore) {
-      await Effect.runPromise(versionedDocumentStore.disconnect());
-    }
-    setVersionedDocumentStore(documentStore);
+  const handleSetProjectStore = (store: ProjectStore | null) => {
+    setProjectStore(store);
   };
 
   return (
@@ -82,8 +73,8 @@ export const InfrastructureAdaptersProvider = ({
         filesystem,
         projectStoreManager,
         assetUrlProtocol,
-        versionedDocumentStore,
-        setVersionedDocumentStore: handleSetDocumentStore,
+        projectStore,
+        setProjectStore: handleSetProjectStore,
       }}
     >
       {children}

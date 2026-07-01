@@ -20,12 +20,11 @@ import {
 import { ProjectContext } from '../app-state';
 
 export const useProjectHistoryArtifactSelection = () => {
-  const { projectId, versionedProjectStore, currentBranch } =
-    useContext(ProjectContext);
+  const { projectId, projectStore, currentBranch } = useContext(ProjectContext);
   const navigate = useNavigate();
 
   return async (path: string, changeId?: ChangeId) => {
-    if (!projectId || !versionedProjectStore) return;
+    if (!projectId || !projectStore) return;
 
     const resolvedChangeId = changeId ?? UNCOMMITTED_CHANGE_ID;
 
@@ -53,7 +52,7 @@ export const useProjectHistoryArtifactSelection = () => {
       // can still display the deletion.
       return Effect.runPromise(
         pipe(
-          versionedProjectStore.findDocumentInProject({
+          projectStore.lookupDocumentInProject({
             projectId,
             documentPath: path,
             changeId: resolvedChangeId,

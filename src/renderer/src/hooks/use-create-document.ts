@@ -12,9 +12,11 @@ export const useCreateDocument = () => {
   const triggerDocumentCreationDialog = async ({
     parentPath,
   }: { parentPath?: string } = {}) => {
-    const { projectId, documentId, path } = await createNewDocument({
-      parentPath,
-    });
+    const result = await createNewDocument({ parentPath });
+
+    if (!result) return;
+
+    const { projectId, documentId, path } = result;
     navigateToArtifact({ projectId, artifactId: documentId, path });
   };
 

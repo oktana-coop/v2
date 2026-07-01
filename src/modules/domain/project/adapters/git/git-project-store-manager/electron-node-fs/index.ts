@@ -4,7 +4,6 @@ import * as Effect from 'effect/Effect';
 import http from 'isomorphic-git/http/node';
 
 import { type DocumentAnalyzer } from '../../../../../../../modules/domain/rich-text';
-import { createAdapter as createVersionedDocumentStoreAdapter } from '../../../../../../../modules/domain/rich-text/adapters/versioned-document-store/git/git-versioned-document-store';
 import { DEFAULT_ASSETS_DIR_NAME } from '../../../../constants';
 import { type ProjectStoreManager } from '../../../../ports';
 import { createAdapter as createProjectStoreAdapter } from '../../git-project-store';
@@ -21,19 +20,20 @@ export const createAdapter = ({
     ({ username, email, cloneUrl, authToken }) =>
       Effect.Do.pipe(
         Effect.bind('directory', () => filesystem.openDirectory()),
-        Effect.bind('versionedProjectStore', () =>
+        Effect.bind('projectStore', () =>
           Effect.succeed(
             createProjectStoreAdapter({
               isoGitFs: fs,
               isoGitHttp: http,
               filesystem,
               documentAnalyzer,
+              managesFilesystemWorkdir: true,
               assetsDirName,
             })
           )
         ),
-        Effect.bind('projectId', ({ directory, versionedProjectStore }) =>
-          versionedProjectStore.createProject({
+        Effect.bind('projectId', ({ directory, projectStore }) =>
+          projectStore.createProject({
             path: directory.path,
             cloneUrl,
             authToken,
@@ -41,34 +41,25 @@ export const createAdapter = ({
             email,
           })
         ),
-        Effect.bind('currentBranch', ({ versionedProjectStore, projectId }) =>
-          versionedProjectStore.getCurrentBranch({ projectId })
+        Effect.bind('currentBranch', ({ projectStore, projectId }) =>
+          projectStore.getCurrentBranch({ projectId })
         ),
-        Effect.bind(
-          'mergeConflictInfo',
-          ({ versionedProjectStore, projectId }) =>
-            versionedProjectStore.getMergeConflictInfo({ projectId })
+        Effect.bind('mergeConflictInfo', ({ projectStore, projectId }) =>
+          projectStore.getMergeConflictInfo({ projectId })
         ),
-        Effect.bind('remoteProjects', ({ versionedProjectStore, projectId }) =>
-          versionedProjectStore.listRemoteProjects({ projectId })
+        Effect.bind('remoteProjects', ({ projectStore, projectId }) =>
+          projectStore.listRemoteProjects({ projectId })
         ),
         Effect.map(
           ({
             directory,
-            versionedProjectStore,
+            projectStore,
             projectId,
             currentBranch,
             mergeConflictInfo,
             remoteProjects,
           }) => ({
-            versionedProjectStore,
-            versionedDocumentStore: createVersionedDocumentStoreAdapter({
-              isoGitFs: fs,
-              filesystem,
-              projectId,
-              projectDir: projectId,
-              managesFilesystemWorkdir: true,
-            }),
+            projectStore,
             projectId,
             directory,
             currentBranch,
@@ -83,49 +74,43 @@ export const createAdapter = ({
     ({ projectId, directoryPath, username, email }) =>
       Effect.Do.pipe(
         Effect.bind('directory', () => filesystem.getDirectory(directoryPath)),
-        Effect.bind('versionedProjectStore', () =>
+        Effect.bind('projectStore', () =>
           Effect.succeed(
             createProjectStoreAdapter({
               isoGitFs: fs,
               isoGitHttp: http,
               filesystem,
               documentAnalyzer,
+              managesFilesystemWorkdir: true,
               assetsDirName,
             })
           )
         ),
-        Effect.tap(({ versionedProjectStore }) =>
-          versionedProjectStore.setAuthorInfo({
+        Effect.tap(({ projectStore }) =>
+          projectStore.setAuthorInfo({
             projectId,
             username,
             email,
           })
         ),
-        Effect.bind('currentBranch', ({ versionedProjectStore }) =>
-          versionedProjectStore.getCurrentBranch({ projectId })
+        Effect.bind('currentBranch', ({ projectStore }) =>
+          projectStore.getCurrentBranch({ projectId })
         ),
-        Effect.bind('mergeConflictInfo', ({ versionedProjectStore }) =>
-          versionedProjectStore.getMergeConflictInfo({ projectId })
+        Effect.bind('mergeConflictInfo', ({ projectStore }) =>
+          projectStore.getMergeConflictInfo({ projectId })
         ),
-        Effect.bind('remoteProjects', ({ versionedProjectStore }) =>
-          versionedProjectStore.listRemoteProjects({ projectId })
+        Effect.bind('remoteProjects', ({ projectStore }) =>
+          projectStore.listRemoteProjects({ projectId })
         ),
         Effect.map(
           ({
             directory,
-            versionedProjectStore,
+            projectStore,
             currentBranch,
             mergeConflictInfo,
             remoteProjects,
           }) => ({
-            versionedProjectStore,
-            versionedDocumentStore: createVersionedDocumentStoreAdapter({
-              isoGitFs: fs,
-              filesystem,
-              projectId,
-              projectDir: projectId,
-              managesFilesystemWorkdir: true,
-            }),
+            projectStore,
             projectId,
             directory,
             currentBranch,

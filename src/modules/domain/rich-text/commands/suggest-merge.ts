@@ -2,23 +2,16 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import {
+  type Change,
   CommitId,
-  MigrationError,
   type ResolvedArtifactId,
 } from '../../../infrastructure/version-control';
 import {
-  DeletedDocumentError,
-  NotFoundError,
-  RepositoryError,
   RepresentationTransformError,
   ResolveMergeConflictsError,
-  ValidationError,
 } from '../errors';
-import { RichTextDocument } from '../models';
-import {
-  type MergeConflictResolver,
-  type VersionedDocumentStore,
-} from '../ports';
+import { RichTextDocument, type VersionedDocument } from '../models';
+import { type MergeConflictResolver } from '../ports';
 
 export type SuggestMergeArgs = {
   sourceDocumentId: ResolvedArtifactId;
@@ -29,8 +22,13 @@ export type SuggestMergeArgs = {
   commonAncestorCommitId: CommitId;
 };
 
-export type SuggestMergeDeps = {
-  getDocumentAtChange: VersionedDocumentStore['getDocumentAtChange'];
+type GetDocumentAtChange<E> = (args: {
+  documentId: ResolvedArtifactId;
+  changeId: Change['id'];
+}) => Effect.Effect<VersionedDocument, E, never>;
+
+export type SuggestMergeDeps<E> = {
+  getDocumentAtChange: GetDocumentAtChange<E>;
   resolveMergeConflicts: MergeConflictResolver['resolveMergeConflicts'];
 };
 
@@ -42,7 +40,7 @@ export type SuggestMergeResult = {
 };
 
 export const suggestMerge =
-  ({ getDocumentAtChange, resolveMergeConflicts }: SuggestMergeDeps) =>
+  <E>({ getDocumentAtChange, resolveMergeConflicts }: SuggestMergeDeps<E>) =>
   ({
     sourceDocumentId,
     targetDocumentId,
@@ -52,13 +50,7 @@ export const suggestMerge =
     commonAncestorCommitId,
   }: SuggestMergeArgs): Effect.Effect<
     SuggestMergeResult,
-    | RepresentationTransformError
-    | RepositoryError
-    | NotFoundError
-    | MigrationError
-    | ValidationError
-    | DeletedDocumentError
-    | ResolveMergeConflictsError,
+    E | RepresentationTransformError | ResolveMergeConflictsError,
     never
   > =>
     Effect.Do.pipe(

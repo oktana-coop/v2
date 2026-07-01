@@ -2,6 +2,7 @@ import * as Effect from 'effect/Effect';
 import { useContext } from 'react';
 import { useParams } from 'react-router';
 
+import { type ProjectId } from '../../../../modules/domain/project';
 import {
   type BinaryRichTextRepresentation,
   binaryRichTextRepresentations,
@@ -25,7 +26,7 @@ import {
 } from './use-export-asset-mounts';
 
 export const useExport = () => {
-  const { filesystem, versionedDocumentStore } = useContext(
+  const { filesystem, projectStore } = useContext(
     InfrastructureAdaptersContext
   );
   const { adapter } = useContext(RepresentationTransformContext);
@@ -42,10 +43,7 @@ export const useExport = () => {
       throw new Error('Document ID not set when trying to export');
     }
 
-    if (
-      !versionedDocumentStore ||
-      versionedDocumentStore.projectId !== projectIdParam
-    ) {
+    if (!projectStore || !projectIdParam) {
       throw new Error(
         'Versioned document store not ready yet or mismatched project.'
       );
@@ -58,7 +56,10 @@ export const useExport = () => {
     }
 
     const { artifact: document } = await Effect.runPromise(
-      versionedDocumentStore.findDocumentById(documentId)
+      projectStore.findDocumentById({
+        projectId: projectIdParam as ProjectId,
+        documentId,
+      })
     );
 
     return { document, adapter };

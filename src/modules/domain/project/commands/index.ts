@@ -1,9 +1,6 @@
-export { createVersionedDocument } from './create-versioned-document';
-export { deleteDocumentFromProject } from './delete-document-from-project';
-export { deleteDocumentsFromProject } from './delete-documents-from-project';
+export { createDocumentInProject } from './create-document-in-project';
 export { renameDocumentInProject } from './rename-document-in-project';
 export { renameDirectoryInProject } from './rename-directory-in-project';
-export { findDocumentInProject } from './find-document-in-project';
 export {
   insertAssetInProject,
   type InsertAssetInProjectArgs,
@@ -11,3 +8,4 @@ export {
   type InsertAssetInProjectResult,
 } from './insert-asset-in-project';
 export * from './resolve-document-asset-url';
+export { processDocumentChange } from './process-document-change';

@@ -53,7 +53,7 @@ import { registerAuthInfoIPCHandlers } from './auth';
 import {
   registerContextMenusIPCHandlers,
   registerPdfIPCHandlers,
-  registerVersionedStoresEvents,
+  registerProjectStoresEvents,
 } from './ipc';
 import { buildAppMenu } from './menus';
 import { initializeStore } from './store';
@@ -154,7 +154,7 @@ async function createWindow() {
 
   const rendererProcessId = String(win.webContents.id);
 
-  registerVersionedStoresEvents({
+  registerProjectStoresEvents({
     filesystem: filesystemAPI,
     documentAnalyzer,
     encryptedStore,

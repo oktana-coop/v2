@@ -1,17 +1,9 @@
 import * as Effect from 'effect/Effect';
-import git, {
-  type HttpClient as IsoGitHttpApi,
-  type PromiseFsClient as IsoGitFsApi,
-} from 'isomorphic-git';
+import git, { Errors as IsoGitErrors } from 'isomorphic-git';
 
 import { type Username } from '../../../../../auth';
-import { type DocumentAnalyzer } from '../../../../../domain/rich-text';
-import { type Filesystem } from '../../../../../infrastructure/filesystem';
 import {
-  type Branch,
-  type ChangedDocument,
   type ChangeId,
-  type Commit,
   type CommitId,
   NotFoundError as VersionControlNotFoundError,
   RepositoryError as VersionControlRepositoryError,
@@ -19,12 +11,20 @@ import {
   UNCOMMITTED_CHANGE_ID,
 } from '../../../../../infrastructure/version-control';
 import {
+  VersionedProjectDeletedDocumentErrorTag,
   VersionedProjectNotFoundErrorTag,
   VersionedProjectRepositoryErrorTag,
   VersionedProjectValidationErrorTag,
 } from '../../../errors';
 import { type ProjectId } from '../../../models';
-import { createAdapter } from './index';
+import {
+  buildTestStore,
+  mockGetAbsolutePath,
+  mockListDirectoryFiles,
+  mockReadTextFile,
+  mockWriteFile,
+  PROJECT_PATH,
+} from './test-utils';
 
 // We mock the git-lib functions so that these tests focus on store behavior, not version-control module internals.
 // vi.hoisted ensures these are available when the hoisted vi.mock factory runs.
@@ -32,20 +32,16 @@ const {
   mockRemoveFile,
   mockHasStagedChanges,
   mockFileExistsAtCommit,
-  mockGetBranchCommitHistory,
-  mockGetChangedFilesForCommit,
-  mockGetUncommittedFileChanges,
-  mockGetUserInfo,
   mockGetCurrentBranch,
+  mockGetFileCommitHistory,
+  mockGetUserInfo,
 } = vi.hoisted(() => ({
   mockRemoveFile: vi.fn(),
   mockHasStagedChanges: vi.fn(),
   mockFileExistsAtCommit: vi.fn(),
-  mockGetBranchCommitHistory: vi.fn(),
-  mockGetChangedFilesForCommit: vi.fn(),
-  mockGetUncommittedFileChanges: vi.fn(),
-  mockGetUserInfo: vi.fn(),
   mockGetCurrentBranch: vi.fn(),
+  mockGetFileCommitHistory: vi.fn(),
+  mockGetUserInfo: vi.fn(),
 }));
 
 vi.mock(
@@ -61,11 +57,9 @@ vi.mock(
       removeFile: mockRemoveFile,
       hasStagedChanges: mockHasStagedChanges,
       fileExistsAtCommit: mockFileExistsAtCommit,
-      getBranchCommitHistory: mockGetBranchCommitHistory,
-      getChangedFilesForCommit: mockGetChangedFilesForCommit,
-      getUncommittedFileChanges: mockGetUncommittedFileChanges,
-      getUserInfo: mockGetUserInfo,
       getCurrentBranch: mockGetCurrentBranch,
+      getFileCommitHistory: mockGetFileCommitHistory,
+      getUserInfo: mockGetUserInfo,
     };
   }
 );
@@ -78,8 +72,12 @@ vi.mock('isomorphic-git', () => ({
     status: vi.fn(),
     log: vi.fn(),
     readBlob: vi.fn(),
+    readCommit: vi.fn(),
+    resolveRef: vi.fn(),
+    currentBranch: vi.fn(),
     statusMatrix: vi.fn(),
     getConfig: vi.fn(),
+    hashBlob: vi.fn(),
   },
   Errors: {
     NotFoundError: class NotFoundError extends Error {},
@@ -88,44 +86,20 @@ vi.mock('isomorphic-git', () => ({
 
 const mockCommit = vi.mocked(git.commit);
 const mockGetConfig = vi.mocked(git.getConfig);
+const mockResolveRef = vi.mocked(git.resolveRef);
+const mockReadBlob = vi.mocked(git.readBlob);
+const mockReadCommit = vi.mocked(git.readCommit);
+const mockStatus = vi.mocked(git.status);
 
-const mockFs = {} as IsoGitFsApi;
-const mockHttp = {} as IsoGitHttpApi;
+const store = buildTestStore();
 
-const mockListDirectoryFiles = vi.fn();
-const mockGetAbsolutePath = vi.fn();
-const mockReadTextFile = vi.fn();
-const mockWriteFile = vi.fn();
-const mockDeleteFile = vi.fn();
-const mockExists = vi.fn();
-const mockEnsureDirectory = vi.fn();
-const mockFilesystem: Partial<Filesystem> = {
-  listDirectoryFiles: mockListDirectoryFiles,
-  getAbsolutePath: mockGetAbsolutePath,
-  readTextFile: mockReadTextFile,
-  writeFile: mockWriteFile,
-  deleteFile: mockDeleteFile,
-  exists: mockExists,
-  ensureDirectory: mockEnsureDirectory,
-};
+const projectDir = '/test-repo';
+const projectId = '/test-repo' as ProjectId;
 
-const PROJECT_PATH = '/projects/my-project' as ProjectId;
-
-const mockExtractLocalAssetReferences = vi.fn();
-const mockDocumentAnalyzer: DocumentAnalyzer = {
-  extractLocalAssetReferences: mockExtractLocalAssetReferences,
-};
-
-const store = createAdapter({
-  isoGitFs: mockFs,
-  filesystem: mockFilesystem as Filesystem,
-  isoGitHttp: mockHttp,
-  documentAnalyzer: mockDocumentAnalyzer,
-});
+const textEncoder = new TextEncoder();
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockExtractLocalAssetReferences.mockReturnValue(Effect.succeed([]));
   mockGetUserInfo.mockReturnValue(
     Effect.succeed({ username: 'Test', email: 'test@test.com' })
   );
@@ -138,8 +112,8 @@ beforeEach(() => {
   );
 });
 
-describe('git-project-store', () => {
-  describe('deleteDocumentFromProject', () => {
+describe('documents', () => {
+  describe('deleteDocument', () => {
     const docPath = 'doc.md';
     const docId = `/blob/main/${docPath}` as ResolvedArtifactId;
     const commitOid = 'aabbccddaabbccddaabbccddaabbccddaabbccdd';
@@ -150,7 +124,7 @@ describe('git-project-store', () => {
       mockCommit.mockResolvedValue(commitOid);
 
       await Effect.runPromise(
-        store.deleteDocumentFromProject({
+        store.deleteDocument({
           projectId: PROJECT_PATH,
           documentId: docId,
         })
@@ -170,7 +144,7 @@ describe('git-project-store', () => {
       mockHasStagedChanges.mockReturnValue(Effect.succeed(false));
 
       await Effect.runPromise(
-        store.deleteDocumentFromProject({
+        store.deleteDocument({
           projectId: PROJECT_PATH,
           documentId: docId,
         })
@@ -184,7 +158,7 @@ describe('git-project-store', () => {
     it('fails with ValidationError for an invalid document id', async () => {
       const error = await Effect.runPromise(
         store
-          .deleteDocumentFromProject({
+          .deleteDocument({
             projectId: PROJECT_PATH,
             documentId: 'not-a-blob-ref' as ResolvedArtifactId,
           })
@@ -201,7 +175,7 @@ describe('git-project-store', () => {
 
       const error = await Effect.runPromise(
         store
-          .deleteDocumentFromProject({
+          .deleteDocument({
             projectId: PROJECT_PATH,
             documentId: docId,
           })
@@ -219,7 +193,7 @@ describe('git-project-store', () => {
 
       const error = await Effect.runPromise(
         store
-          .deleteDocumentFromProject({
+          .deleteDocument({
             projectId: PROJECT_PATH,
             documentId: docId,
           })
@@ -236,7 +210,7 @@ describe('git-project-store', () => {
 
       const error = await Effect.runPromise(
         store
-          .deleteDocumentFromProject({
+          .deleteDocument({
             projectId: PROJECT_PATH,
             documentId: docId,
           })
@@ -247,144 +221,7 @@ describe('git-project-store', () => {
     });
   });
 
-  describe('commitDocumentChanges', () => {
-    const docPath = 'doc.md';
-    const docId = `/blob/main/${docPath}` as ResolvedArtifactId;
-    const commitOid = 'aabbccddaabbccddaabbccddaabbccddaabbccdd';
-
-    beforeEach(() => {
-      mockGetAbsolutePath.mockImplementation(({ path, dirPath }) =>
-        Effect.succeed(`${dirPath}/${path}`)
-      );
-      mockReadTextFile.mockReturnValue(
-        Effect.succeed({
-          type: 'FILE',
-          name: docPath,
-          path: docPath,
-          content: '',
-        })
-      );
-      vi.mocked(git.add).mockResolvedValue(undefined);
-      mockCommit.mockResolvedValue(commitOid);
-    });
-
-    it('stages only the assets that exist on disk and reports the skipped ones', async () => {
-      mockExtractLocalAssetReferences.mockReturnValue(
-        Effect.succeed(['assets/present.png', 'assets/missing.png'])
-      );
-      mockExists.mockImplementation((path: string) =>
-        Effect.succeed(path.endsWith('present.png'))
-      );
-
-      const result = await Effect.runPromise(
-        store.commitDocumentChanges({
-          projectId: PROJECT_PATH,
-          documentId: docId,
-          message: 'msg',
-        })
-      );
-
-      expect(result.skippedAssetPaths).toEqual(['assets/missing.png']);
-      const stagedPaths = (
-        vi.mocked(git.add).mock.calls[0][0] as { filepath: string[] }
-      ).filepath;
-      expect(stagedPaths).toEqual([docPath, 'assets/present.png']);
-      expect(mockCommit).toHaveBeenCalled();
-    });
-
-    it('reports no skipped assets when every referenced asset exists', async () => {
-      mockExtractLocalAssetReferences.mockReturnValue(
-        Effect.succeed(['assets/present.png'])
-      );
-      mockExists.mockReturnValue(Effect.succeed(true));
-
-      const result = await Effect.runPromise(
-        store.commitDocumentChanges({
-          projectId: PROJECT_PATH,
-          documentId: docId,
-          message: 'msg',
-        })
-      );
-
-      expect(result.skippedAssetPaths).toEqual([]);
-      expect(mockCommit).toHaveBeenCalled();
-    });
-  });
-
-  describe('restoreDocumentChanges', () => {
-    const docPath = 'doc.md';
-    const docId = `/blob/main/${docPath}` as ResolvedArtifactId;
-    const sourceCommitOid = 'aabbccddaabbccddaabbccddaabbccddaabbccdd';
-    const restoreCommitOid = 'ffeeddccffeeddccffeeddccffeeddccffeeddcc';
-    const commit = { id: sourceCommitOid, message: 'old' } as Commit;
-
-    beforeEach(() => {
-      mockGetAbsolutePath.mockImplementation(({ path, dirPath }) =>
-        Effect.succeed(`${dirPath}/${path}`)
-      );
-      mockEnsureDirectory.mockReturnValue(Effect.succeed(undefined));
-      mockWriteFile.mockReturnValue(Effect.succeed(undefined));
-      vi.mocked(git.add).mockResolvedValue(undefined);
-      mockCommit.mockResolvedValue(restoreCommitOid);
-    });
-
-    it('restores readable assets and reports those that are missing or unreadable', async () => {
-      mockExtractLocalAssetReferences.mockReturnValue(
-        Effect.succeed([
-          'assets/present.png',
-          'assets/missing.png',
-          'assets/corrupt.png',
-        ])
-      );
-      vi.mocked(git.readBlob).mockImplementation(async ({ filepath }) => {
-        if (filepath === 'assets/missing.png') {
-          throw new git.Errors.NotFoundError('not found');
-        }
-        if (filepath === 'assets/corrupt.png') {
-          throw new Error('corrupt object');
-        }
-        return { oid: sourceCommitOid, blob: new Uint8Array([1, 2, 3]) };
-      });
-
-      const result = await Effect.runPromise(
-        store.restoreDocumentChanges({
-          projectId: PROJECT_PATH,
-          documentId: docId,
-          commit,
-        })
-      );
-
-      expect(result.commitId).toBe(restoreCommitOid);
-      expect(result.skippedAssetPaths).toEqual([
-        'assets/missing.png',
-        'assets/corrupt.png',
-      ]);
-      const writtenPaths = mockWriteFile.mock.calls.map(([args]) => args.path);
-      expect(writtenPaths).toContain(`${PROJECT_PATH}/${docPath}`);
-      expect(writtenPaths).toContain(`${PROJECT_PATH}/assets/present.png`);
-      expect(writtenPaths).not.toContain(`${PROJECT_PATH}/assets/corrupt.png`);
-      expect(mockCommit).toHaveBeenCalled();
-    });
-
-    it('aborts when the document blob itself cannot be read', async () => {
-      vi.mocked(git.readBlob).mockRejectedValue(new Error('doc read failed'));
-
-      const error = await Effect.runPromise(
-        store
-          .restoreDocumentChanges({
-            projectId: PROJECT_PATH,
-            documentId: docId,
-            commit,
-          })
-          .pipe(Effect.flip)
-      );
-
-      expect(error._tag).toBe(VersionedProjectRepositoryErrorTag);
-      expect(mockCommit).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('deleteDocumentsFromProject', () => {
+  describe('deleteDocuments', () => {
     const commitOid = 'aabbccddaabbccddaabbccddaabbccddaabbccdd';
     const docIdA = `/blob/main/a.md` as ResolvedArtifactId;
     const docIdB = `/blob/main/b.md` as ResolvedArtifactId;
@@ -396,7 +233,7 @@ describe('git-project-store', () => {
       mockCommit.mockResolvedValue(commitOid);
 
       await Effect.runPromise(
-        store.deleteDocumentsFromProject({
+        store.deleteDocuments({
           projectId: PROJECT_PATH,
           documentIds: docIds,
         })
@@ -416,7 +253,7 @@ describe('git-project-store', () => {
       mockCommit.mockResolvedValue(commitOid);
 
       await Effect.runPromise(
-        store.deleteDocumentsFromProject({
+        store.deleteDocuments({
           projectId: PROJECT_PATH,
           documentIds: [docIdA],
         })
@@ -434,7 +271,7 @@ describe('git-project-store', () => {
       mockHasStagedChanges.mockReturnValue(Effect.succeed(false));
 
       await Effect.runPromise(
-        store.deleteDocumentsFromProject({
+        store.deleteDocuments({
           projectId: PROJECT_PATH,
           documentIds: docIds,
         })
@@ -451,7 +288,7 @@ describe('git-project-store', () => {
 
       const error = await Effect.runPromise(
         store
-          .deleteDocumentsFromProject({
+          .deleteDocuments({
             projectId: PROJECT_PATH,
             documentIds: docIds,
           })
@@ -469,7 +306,7 @@ describe('git-project-store', () => {
 
       const error = await Effect.runPromise(
         store
-          .deleteDocumentsFromProject({
+          .deleteDocuments({
             projectId: PROJECT_PATH,
             documentIds: docIds,
           })
@@ -486,7 +323,7 @@ describe('git-project-store', () => {
 
       const error = await Effect.runPromise(
         store
-          .deleteDocumentsFromProject({
+          .deleteDocuments({
             projectId: PROJECT_PATH,
             documentIds: docIds,
           })
@@ -497,7 +334,7 @@ describe('git-project-store', () => {
     });
   });
 
-  describe('findDocumentInProject', () => {
+  describe('lookupDocumentInProject', () => {
     const docPath = 'doc.md';
 
     describe('at a specific commit', () => {
@@ -507,7 +344,7 @@ describe('git-project-store', () => {
         mockFileExistsAtCommit.mockReturnValue(Effect.succeed(undefined));
 
         const result = await Effect.runPromise(
-          store.findDocumentInProject({
+          store.lookupDocumentInProject({
             projectId: PROJECT_PATH,
             documentPath: docPath,
             changeId: commitHash as ChangeId,
@@ -530,7 +367,7 @@ describe('git-project-store', () => {
 
         const error = await Effect.runPromise(
           store
-            .findDocumentInProject({
+            .lookupDocumentInProject({
               projectId: PROJECT_PATH,
               documentPath: docPath,
               changeId: commitHash as ChangeId,
@@ -548,7 +385,7 @@ describe('git-project-store', () => {
 
         const error = await Effect.runPromise(
           store
-            .findDocumentInProject({
+            .lookupDocumentInProject({
               projectId: PROJECT_PATH,
               documentPath: docPath,
               changeId: commitHash as ChangeId,
@@ -571,7 +408,7 @@ describe('git-project-store', () => {
         );
 
         const result = await Effect.runPromise(
-          store.findDocumentInProject({
+          store.lookupDocumentInProject({
             projectId: PROJECT_PATH,
             documentPath: docPath,
           })
@@ -590,7 +427,7 @@ describe('git-project-store', () => {
         );
 
         const result = await Effect.runPromise(
-          store.findDocumentInProject({
+          store.lookupDocumentInProject({
             projectId: PROJECT_PATH,
             documentPath: docPath,
           })
@@ -607,7 +444,7 @@ describe('git-project-store', () => {
 
         const error = await Effect.runPromise(
           store
-            .findDocumentInProject({
+            .lookupDocumentInProject({
               projectId: PROJECT_PATH,
               documentPath: docPath,
             })
@@ -624,7 +461,7 @@ describe('git-project-store', () => {
         );
 
         const result = await Effect.runPromise(
-          store.findDocumentInProject({
+          store.lookupDocumentInProject({
             projectId: PROJECT_PATH,
             documentPath: docPath,
             changeId: UNCOMMITTED_CHANGE_ID,
@@ -637,89 +474,312 @@ describe('git-project-store', () => {
     });
   });
 
-  describe('getProjectCommitHistory', () => {
-    const branch = 'main';
+  describe('getDocumentAtChange', () => {
+    const docPath = 'doc.md';
 
-    it('returns the commit history for the given branch', async () => {
-      const mockCommits: Commit[] = [
-        {
-          id: 'cccccccc' as CommitId,
-          message: 'third commit',
-          time: new Date('2025-03-03'),
-          author: { username: 'Test' as Username },
-        },
-        {
-          id: 'bbbbbbbb' as CommitId,
-          message: 'second commit',
-          time: new Date('2025-03-02'),
-          author: { username: 'Test' as Username },
-        },
-        {
-          id: 'aaaaaaaa' as CommitId,
-          message: 'initial commit',
-          time: new Date('2025-03-01'),
-          author: { username: 'Test' as Username },
-        },
-      ];
+    describe('when changeId is a commit hash', () => {
+      const commitHash = 'abc1234';
+      const docId = `/blob/${commitHash}/${docPath}` as ResolvedArtifactId;
+      const commitOid = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
-      mockGetBranchCommitHistory.mockReturnValue(Effect.succeed(mockCommits));
+      it('returns the document content at the given commit', async () => {
+        const content = '# Hello World';
 
-      const result = await Effect.runPromise(
-        store.getProjectCommitHistory({
-          projectId: PROJECT_PATH,
-          branch: branch as Branch,
-        })
+        mockResolveRef.mockResolvedValue(commitOid);
+        mockReadBlob.mockResolvedValue({
+          oid: 'bloboid',
+          blob: textEncoder.encode(content),
+        } as Awaited<ReturnType<typeof git.readBlob>>);
+
+        const result = await Effect.runPromise(
+          store.getDocumentAtChange({
+            projectId,
+            documentId: docId,
+            changeId: commitHash as ChangeId,
+          })
+        );
+
+        expect(result.content).toBe(content);
+        expect(result.type).toBe('RICH_TEXT_DOCUMENT');
+      });
+
+      it('fails with NotFoundError when document never existed at the commit', async () => {
+        mockResolveRef.mockResolvedValue(commitOid);
+        mockReadBlob.mockRejectedValue(
+          new IsoGitErrors.NotFoundError('not found')
+        );
+        // Initial commit — no parents
+        mockReadCommit.mockResolvedValue({
+          commit: { parent: [] as string[] },
+        } as Awaited<ReturnType<typeof git.readCommit>>);
+
+        const error = await Effect.runPromise(
+          store
+            .getDocumentAtChange({
+              projectId,
+              documentId: docId,
+              changeId: commitHash as ChangeId,
+            })
+            .pipe(Effect.flip)
+        );
+
+        expect(error._tag).toBe(VersionedProjectNotFoundErrorTag);
+      });
+
+      it('fails with DeletedDocumentError when document existed in parent but not at commit', async () => {
+        const parentOid = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+
+        mockResolveRef.mockResolvedValue(commitOid);
+        // First readBlob (for the commit itself) fails — document not found
+        mockReadBlob
+          .mockRejectedValueOnce(new IsoGitErrors.NotFoundError('not found'))
+          // Second readBlob (for the parent commit) succeeds — document existed in parent
+          .mockResolvedValueOnce({
+            oid: 'bloboid',
+            blob: textEncoder.encode('old content'),
+          } as Awaited<ReturnType<typeof git.readBlob>>);
+        mockReadCommit.mockResolvedValue({
+          commit: { parent: [parentOid] },
+        } as Awaited<ReturnType<typeof git.readCommit>>);
+
+        const error = await Effect.runPromise(
+          store
+            .getDocumentAtChange({
+              projectId,
+              documentId: docId,
+              changeId: commitHash as ChangeId,
+            })
+            .pipe(Effect.flip)
+        );
+
+        expect(error._tag).toBe(VersionedProjectDeletedDocumentErrorTag);
+        expect(
+          (error as { data: { parentCommitId: string } }).data.parentCommitId
+        ).toBe(parentOid);
+      });
+
+      it('fails with NotFoundError when document is absent in both commit and parent', async () => {
+        const parentOid = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+
+        mockResolveRef.mockResolvedValue(commitOid);
+        mockReadBlob
+          .mockRejectedValueOnce(new IsoGitErrors.NotFoundError('not found'))
+          .mockRejectedValueOnce(
+            new IsoGitErrors.NotFoundError('not found in parent')
+          );
+        mockReadCommit.mockResolvedValue({
+          commit: { parent: [parentOid] },
+        } as Awaited<ReturnType<typeof git.readCommit>>);
+
+        const error = await Effect.runPromise(
+          store
+            .getDocumentAtChange({
+              projectId,
+              documentId: docId,
+              changeId: commitHash as ChangeId,
+            })
+            .pipe(Effect.flip)
+        );
+
+        expect(error._tag).toBe(VersionedProjectNotFoundErrorTag);
+      });
+
+      it('fails with RepositoryError when readBlob fails with a non-NotFoundError', async () => {
+        mockReadBlob.mockRejectedValue(new Error('read error'));
+
+        const error = await Effect.runPromise(
+          store
+            .getDocumentAtChange({
+              projectId,
+              documentId: docId,
+              changeId: commitHash as ChangeId,
+            })
+            .pipe(Effect.flip)
+        );
+
+        expect(error._tag).toBe(VersionedProjectRepositoryErrorTag);
+      });
+    });
+
+    describe('when changeId is uncommitted', () => {
+      const docId = `/blob/main/${docPath}` as ResolvedArtifactId;
+
+      it('returns the current document from the filesystem', async () => {
+        const content = '# Current content';
+
+        mockGetAbsolutePath.mockReturnValue(
+          Effect.succeed(`${projectDir}/${docPath}`)
+        );
+        mockReadTextFile.mockReturnValue(Effect.succeed({ content }));
+
+        const result = await Effect.runPromise(
+          store.getDocumentAtChange({
+            projectId,
+            documentId: docId,
+            changeId: UNCOMMITTED_CHANGE_ID,
+          })
+        );
+
+        expect(result.content).toBe(content);
+      });
+    });
+
+    describe('validation', () => {
+      it('fails with ValidationError for an invalid document id', async () => {
+        const error = await Effect.runPromise(
+          store
+            .getDocumentAtChange({
+              projectId,
+              documentId: 'not-a-blob-ref' as ResolvedArtifactId,
+              changeId: 'abc1234' as ChangeId,
+            })
+            .pipe(Effect.flip)
+        );
+
+        expect(error._tag).toBe(VersionedProjectValidationErrorTag);
+      });
+
+      it('fails with ValidationError for an invalid commit hash', async () => {
+        const error = await Effect.runPromise(
+          store
+            .getDocumentAtChange({
+              projectId,
+              documentId: `/blob/abc1234/${docPath}` as ResolvedArtifactId,
+              changeId: 'not-a-hash!' as ChangeId,
+            })
+            .pipe(Effect.flip)
+        );
+
+        expect(error._tag).toBe(VersionedProjectValidationErrorTag);
+      });
+    });
+  });
+
+  describe('discardUncommittedChanges', () => {
+    const docPath = 'doc.md';
+    const docId = `/blob/main/${docPath}` as ResolvedArtifactId;
+    const lastCommitOid = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+
+    beforeEach(() => {
+      mockGetAbsolutePath.mockReturnValue(
+        Effect.succeed(`${projectDir}/${docPath}`)
       );
-
-      expect(result).toEqual(mockCommits);
-      expect(result).toHaveLength(3);
-      expect(mockGetBranchCommitHistory).toHaveBeenCalledWith(
-        expect.objectContaining({
-          dir: PROJECT_PATH,
-          branch,
-        })
+      mockReadTextFile.mockReturnValue(
+        Effect.succeed({ content: 'current content' })
       );
     });
 
-    it('returns an empty list when the branch has no commits', async () => {
-      mockGetBranchCommitHistory.mockReturnValue(Effect.succeed([]));
+    it('restores document from the last commit when it exists there', async () => {
+      const restoredContent = '# Committed content';
 
-      const result = await Effect.runPromise(
-        store.getProjectCommitHistory({
-          projectId: PROJECT_PATH,
-          branch: branch as Branch,
-        })
+      mockStatus.mockResolvedValue('*modified');
+      mockGetFileCommitHistory.mockReturnValue(
+        Effect.succeed([
+          {
+            id: lastCommitOid as CommitId,
+            message: 'initial',
+            time: new Date('2025-01-01'),
+            author: { username: 'Test' as Username },
+          },
+        ])
       );
-
-      expect(result).toEqual([]);
-    });
-
-    it('passes limit parameter through', async () => {
-      mockGetBranchCommitHistory.mockReturnValue(Effect.succeed([]));
+      mockResolveRef.mockResolvedValue(lastCommitOid);
+      mockReadBlob.mockResolvedValue({
+        oid: 'bloboid',
+        blob: textEncoder.encode(restoredContent),
+      } as Awaited<ReturnType<typeof git.readBlob>>);
+      mockWriteFile.mockReturnValue(Effect.succeed(undefined));
 
       await Effect.runPromise(
-        store.getProjectCommitHistory({
-          projectId: PROJECT_PATH,
-          branch: branch as Branch,
-          limit: 10,
+        store.discardUncommittedChanges({
+          projectId,
+          documentId: docId,
+          writeToFileWithPath: `${projectDir}/${docPath}`,
         })
       );
 
-      expect(mockGetBranchCommitHistory).toHaveBeenCalledWith(
-        expect.objectContaining({ limit: 10 })
-      );
+      expect(mockWriteFile).toHaveBeenCalledWith({
+        path: `${projectDir}/${docPath}`,
+        content: restoredContent,
+      });
     });
 
-    it('maps VersionControlNotFoundError to project NotFoundError', async () => {
-      mockGetBranchCommitHistory.mockReturnValue(
-        Effect.fail(new VersionControlNotFoundError('branch not found'))
+    it('restores from parent commit when document was deleted in last commit', async () => {
+      const parentOid = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+
+      mockStatus.mockResolvedValue('*modified');
+      mockGetFileCommitHistory.mockReturnValue(
+        Effect.succeed([
+          {
+            id: lastCommitOid as CommitId,
+            message: 'deleted doc',
+            time: new Date('2025-02-01'),
+            author: { username: 'Test' as Username },
+          },
+        ])
       );
+      // getDocumentAtCommit for last commit: document not found → deleted
+      mockResolveRef
+        .mockResolvedValueOnce(lastCommitOid)
+        .mockResolvedValueOnce(parentOid);
+      mockReadBlob
+        // 1. readBlob at last commit — document not found
+        .mockRejectedValueOnce(new IsoGitErrors.NotFoundError('not found'))
+        // 2. readBlob at parent — confirms the document existed (deletion detection)
+        .mockResolvedValueOnce({
+          oid: 'bloboid',
+          blob: textEncoder.encode('parent content'),
+        } as Awaited<ReturnType<typeof git.readBlob>>)
+        // 3. readBlob at parent again — reads the content to restore
+        .mockResolvedValueOnce({
+          oid: 'bloboid',
+          blob: textEncoder.encode('parent content'),
+        } as Awaited<ReturnType<typeof git.readBlob>>);
+      mockReadCommit.mockResolvedValue({
+        commit: { parent: [parentOid] },
+      } as Awaited<ReturnType<typeof git.readCommit>>);
+      mockWriteFile.mockReturnValue(Effect.succeed(undefined));
+
+      await Effect.runPromise(
+        store.discardUncommittedChanges({
+          projectId,
+          documentId: docId,
+          writeToFileWithPath: `${projectDir}/${docPath}`,
+        })
+      );
+
+      expect(mockWriteFile).toHaveBeenCalledWith({
+        path: `${projectDir}/${docPath}`,
+        content: 'parent content',
+      });
+    });
+
+    it('fails when deleted document has no parent commit', async () => {
+      mockStatus.mockResolvedValue('*modified');
+      mockGetFileCommitHistory.mockReturnValue(
+        Effect.succeed([
+          {
+            id: lastCommitOid as CommitId,
+            message: 'deleted doc',
+            time: new Date('2025-02-01'),
+            author: { username: 'Test' as Username },
+          },
+        ])
+      );
+      mockResolveRef.mockResolvedValue(lastCommitOid);
+      mockReadBlob.mockRejectedValueOnce(
+        new IsoGitErrors.NotFoundError('not found')
+      );
+      mockReadCommit.mockResolvedValue({
+        commit: { parent: [] as string[] },
+      } as Awaited<ReturnType<typeof git.readCommit>>);
 
       const error = await Effect.runPromise(
         store
-          .getProjectCommitHistory({
-            projectId: PROJECT_PATH,
-            branch: 'nonexistent' as Branch,
+          .discardUncommittedChanges({
+            projectId,
+            documentId: docId,
+            writeToFileWithPath: `${projectDir}/${docPath}`,
           })
           .pipe(Effect.flip)
       );
@@ -727,122 +787,42 @@ describe('git-project-store', () => {
       expect(error._tag).toBe(VersionedProjectNotFoundErrorTag);
     });
 
-    it('maps VersionControlRepositoryError to project RepositoryError', async () => {
-      mockGetBranchCommitHistory.mockReturnValue(
-        Effect.fail(new VersionControlRepositoryError('repo error'))
+    it('fails with NotFoundError when there are no uncommitted changes', async () => {
+      mockStatus.mockResolvedValue('unmodified');
+      mockGetFileCommitHistory.mockReturnValue(
+        Effect.succeed([
+          {
+            id: lastCommitOid as CommitId,
+            message: 'initial',
+            time: new Date('2025-01-01'),
+            author: { username: 'Test' as Username },
+          },
+        ])
       );
 
       const error = await Effect.runPromise(
         store
-          .getProjectCommitHistory({
-            projectId: PROJECT_PATH,
-            branch: branch as Branch,
+          .discardUncommittedChanges({
+            projectId,
+            documentId: docId,
+            writeToFileWithPath: `${projectDir}/${docPath}`,
           })
           .pipe(Effect.flip)
       );
 
-      expect(error._tag).toBe(VersionedProjectRepositoryErrorTag);
-    });
-  });
-
-  describe('getChangedDocumentsAtChange', () => {
-    const commitHash = 'aabbccdd';
-
-    it('returns changed files for a given commit', async () => {
-      const mockChanges: ChangedDocument[] = [
-        { path: 'doc.md', changeType: 'ADDED' },
-        { path: 'readme.md', changeType: 'MODIFIED' },
-        { path: 'old-notes.md', changeType: 'DELETED' },
-        {
-          path: 'guide.md',
-          changeType: 'RENAMED',
-          previousPath: 'tutorial.md',
-        },
-      ];
-
-      mockGetChangedFilesForCommit.mockReturnValue(Effect.succeed(mockChanges));
-
-      const result = await Effect.runPromise(
-        store.getChangedDocumentsAtChange({
-          projectId: PROJECT_PATH,
-          changeId: commitHash as ChangeId,
-        })
-      );
-
-      expect(result).toEqual(mockChanges);
-      expect(result).toHaveLength(4);
-      expect(mockGetChangedFilesForCommit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          dir: PROJECT_PATH,
-          commitId: commitHash,
-        })
-      );
+      expect(error._tag).toBe(VersionedProjectNotFoundErrorTag);
     });
 
-    it('returns uncommitted file changes when changeId is uncommitted', async () => {
-      const mockChanges: ChangedDocument[] = [
-        { path: 'doc.md', changeType: 'MODIFIED' },
-        { path: 'draft.md', changeType: 'ADDED' },
-      ];
-
-      mockGetUncommittedFileChanges.mockReturnValue(
-        Effect.succeed(mockChanges)
-      );
-
-      const result = await Effect.runPromise(
-        store.getChangedDocumentsAtChange({
-          projectId: PROJECT_PATH,
-          changeId: UNCOMMITTED_CHANGE_ID,
-        })
-      );
-
-      expect(result).toEqual(mockChanges);
-      expect(mockGetUncommittedFileChanges).toHaveBeenCalledWith(
-        expect.objectContaining({ dir: PROJECT_PATH })
-      );
-      expect(mockGetChangedFilesForCommit).not.toHaveBeenCalled();
-    });
-
-    it('maps VersionControlRepositoryError from getUncommittedFileChanges', async () => {
-      mockGetUncommittedFileChanges.mockReturnValue(
-        Effect.fail(new VersionControlRepositoryError('status error'))
-      );
+    it('fails with RepositoryError when there are only uncommitted changes and no commits', async () => {
+      mockStatus.mockResolvedValue('*modified');
+      mockGetFileCommitHistory.mockReturnValue(Effect.succeed([]));
 
       const error = await Effect.runPromise(
         store
-          .getChangedDocumentsAtChange({
-            projectId: PROJECT_PATH,
-            changeId: UNCOMMITTED_CHANGE_ID,
-          })
-          .pipe(Effect.flip)
-      );
-
-      expect(error._tag).toBe(VersionedProjectRepositoryErrorTag);
-    });
-
-    it('fails with ValidationError for invalid changeId', async () => {
-      const error = await Effect.runPromise(
-        store
-          .getChangedDocumentsAtChange({
-            projectId: PROJECT_PATH,
-            changeId: 'not-valid!' as ChangeId,
-          })
-          .pipe(Effect.flip)
-      );
-
-      expect(error._tag).toBe(VersionedProjectValidationErrorTag);
-    });
-
-    it('maps VersionControlRepositoryError to project RepositoryError', async () => {
-      mockGetChangedFilesForCommit.mockReturnValue(
-        Effect.fail(new VersionControlRepositoryError('repo error'))
-      );
-
-      const error = await Effect.runPromise(
-        store
-          .getChangedDocumentsAtChange({
-            projectId: PROJECT_PATH,
-            changeId: commitHash as ChangeId,
+          .discardUncommittedChanges({
+            projectId,
+            documentId: docId,
+            writeToFileWithPath: `${projectDir}/${docPath}`,
           })
           .pipe(Effect.flip)
       );

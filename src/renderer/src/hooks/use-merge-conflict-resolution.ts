@@ -2,9 +2,11 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import { useCallback, useContext, useEffect, useState } from 'react';
 
-import { type ProjectId } from '../../../modules/domain/project';
 import {
   processDocumentChange,
+  type ProjectId,
+} from '../../../modules/domain/project';
+import {
   type RichTextDocument,
   suggestMerge,
 } from '../../../modules/domain/rich-text';
@@ -33,7 +35,7 @@ export const useMergeConflictResolution = () => {
     resolveConflictByKeepingDocument,
     resolveConflictByDeletingDocument,
   } = useContext(ProjectContext);
-  const { versionedDocumentStore, filesystem } = useContext(
+  const { projectStore, filesystem } = useContext(
     InfrastructureAdaptersContext
   );
   const { adapter: representationTransformAdapter } = useContext(
@@ -87,10 +89,7 @@ export const useMergeConflictResolution = () => {
       commonAncestorDocumentId: ResolvedArtifactId;
       mergeConflictInfo: MergeConflictInfo;
     }) => {
-      if (
-        !versionedDocumentStore ||
-        versionedDocumentStore.projectId !== projectId
-      ) {
+      if (!projectStore) {
         throw new Error(
           'Versioned document store not ready yet or mismatched project.'
         );
@@ -102,7 +101,8 @@ export const useMergeConflictResolution = () => {
 
       return Effect.runPromise(
         suggestMerge({
-          getDocumentAtChange: versionedDocumentStore.getDocumentAtChange,
+          getDocumentAtChange: (args) =>
+            projectStore.getDocumentAtChange({ projectId, ...args }),
           resolveMergeConflicts: mergeConflictResolver.resolveMergeConflicts,
         })({
           sourceDocumentId: sourceDocumentId,
@@ -114,7 +114,7 @@ export const useMergeConflictResolution = () => {
         })
       );
     },
-    [versionedDocumentStore, mergeConflictResolver]
+    [projectStore, mergeConflictResolver]
   );
 
   const resolveContentConflict = useCallback(
@@ -129,10 +129,7 @@ export const useMergeConflictResolution = () => {
       projectId: ProjectId;
       doc: RichTextDocument;
     }) => {
-      if (
-        !versionedDocumentStore ||
-        versionedDocumentStore.projectId !== projectId
-      ) {
+      if (!projectStore) {
         throw new Error(
           'Versioned document store not ready yet or mismatched project.'
         );
@@ -165,19 +162,21 @@ export const useMergeConflictResolution = () => {
               processDocumentChange({
                 transformToText: representationTransformAdapter.transformToText,
                 updateRichTextDocumentContent:
-                  versionedDocumentStore.updateRichTextDocumentContent,
-                writeFile: filesystem.writeFile,
+                  projectStore.updateRichTextDocumentContent,
               })({
+                projectId,
                 documentId,
                 updatedDocument: doc,
-                writeToFileWithPath:
-                  versionedDocumentStore.managesFilesystemWorkdir
-                    ? absoluteFilePath
-                    : null,
+                writeToFileWithPath: projectStore.managesFilesystemWorkdir
+                  ? absoluteFilePath
+                  : null,
               })
             ),
             Effect.flatMap(() =>
-              versionedDocumentStore.resolveContentConflict({ documentId })
+              projectStore.resolveContentConflict({
+                projectId,
+                documentId,
+              })
             )
           )
         );
@@ -195,7 +194,7 @@ export const useMergeConflictResolution = () => {
       refreshConflictsAndMergeIfPossible();
     },
     [
-      versionedDocumentStore,
+      projectStore,
       representationTransformAdapter,
       filesystem,
       directory,
