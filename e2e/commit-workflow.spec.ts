@@ -1,4 +1,3 @@
-import { Page } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
@@ -8,6 +7,7 @@ import {
   commitChanges,
   discardChanges,
   enableShowDiff,
+  focusParagraph,
   openEditorToolbar,
   openHelloMd,
   openProjectFolder,
@@ -16,30 +16,8 @@ import {
   selectFirstCommit,
   selectUncommittedChanges,
   typeInEditorAndWaitForDebounce,
+  typeInParagraphAndWaitForDebounce,
 } from './shared/helpers';
-
-// TODO: clicking `.ProseMirror p` directly doesn't move the ProseMirror
-// cursor into the paragraph — it stays at the beginning of the document.
-// Using ArrowDown as a workaround until we understand why.
-const focusParagraph = async (window: Page) => {
-  await window.locator('.ProseMirror').click();
-  await window.keyboard.press('ArrowDown');
-};
-
-const typeInParagraphAndWaitForDebounce = async ({
-  window,
-  text,
-  waitFor = 350,
-}: {
-  window: Page;
-  text: string;
-  waitFor?: number;
-}) => {
-  await focusParagraph(window);
-  await window.keyboard.press('End');
-  await window.keyboard.type(text);
-  await window.waitForTimeout(waitFor);
-};
 
 test('commit flow: edit → commit → one commit in history', async ({
   electronApp,
@@ -247,7 +225,7 @@ test('bolding text shows modify annotation in diff', async ({
   await commitChanges({ window, message: 'before bold' });
 
   // Select the paragraph text and bold it (Home → Shift+End is cross-platform)
-  await focusParagraph(window);
+  await focusParagraph({ window });
   await window.keyboard.press('Home');
   await window.keyboard.press('Shift+End');
   await clickToolbarButton({ window, label: 'Bold' });

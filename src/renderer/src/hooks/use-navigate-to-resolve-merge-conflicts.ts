@@ -29,7 +29,7 @@ const selectDefaultSubRoute = ({
 
   const mergeRoute = hasStructuralConflicts
     ? `${baseMergeRoute}/structural`
-    : `${baseMergeRoute}${firstCompareContentConflictPath ? `/${firstCompareContentConflictPath}` : ''}`;
+    : `${baseMergeRoute}${firstCompareContentConflictPath ? `/${encodeURIComponent(firstCompareContentConflictPath)}` : ''}`;
 
   return mergeRoute;
 };
@@ -45,7 +45,7 @@ const buildResolveConlictsUrl = ({
 }) => {
   const baseMergeRoute = 'merge';
   const mergeRoute = subRoute
-    ? `${baseMergeRoute}/${subRoute}`
+    ? `${baseMergeRoute}/${encodeURIComponent(subRoute)}`
     : selectDefaultSubRoute({ mergeConflictInfo, baseMergeRoute });
   const resolveConflictsBaseUrl = `/projects/${urlEncodeProjectId(projectId)}/${mergeRoute}?source=${mergeConflictInfo.sourceCommitId}&target=${mergeConflictInfo.targetCommitId}&commonAncestor=${mergeConflictInfo.commonAncestorCommitId}`;
 

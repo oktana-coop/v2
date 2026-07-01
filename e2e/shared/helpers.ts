@@ -1,5 +1,6 @@
 import { ElectronApplication, expect, Page } from '@playwright/test';
 import * as os from 'os';
+import * as path from 'path';
 
 /**
  * Returns the platform-appropriate modifier key for keyboard shortcuts.
@@ -206,6 +207,18 @@ export const openHelloMd = async ({
   await window.waitForSelector('.ProseMirror', { timeout: 2_000 });
 };
 
+export const openDocument = async ({
+  window,
+  relativePath,
+}: {
+  window: Page;
+  relativePath: string;
+}): Promise<void> => {
+  const name = path.basename(relativePath, path.extname(relativePath));
+  await window.getByTestId('file-explorer').getByText(name).click();
+  await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
+};
+
 export const typeInEditor = async ({
   window,
   text,
@@ -321,6 +334,40 @@ export const typeInEditorAndWaitForDebounce = async ({
   waitFor?: number;
 }): Promise<void> => {
   await focusAndTypeInEditor({ window, text });
+  await window.waitForTimeout(waitFor);
+};
+
+/**
+ * Focuses the body paragraph (one ArrowDown below the H1); assumes a
+ * title-then-paragraph document.
+ */
+export const focusParagraph = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  // TODO: clicking `.ProseMirror p` directly doesn't move the ProseMirror
+  // cursor into the paragraph — it stays at the beginning of the document.
+  // Using ArrowDown as a workaround until we understand why.
+  await window.locator('.ProseMirror').click();
+  await window.keyboard.press('ArrowDown');
+};
+
+/**
+ * Appends to the body paragraph and waits for the save debounce.
+ */
+export const typeInParagraphAndWaitForDebounce = async ({
+  window,
+  text,
+  waitFor = 350,
+}: {
+  window: Page;
+  text: string;
+  waitFor?: number;
+}): Promise<void> => {
+  await focusParagraph({ window });
+  await window.keyboard.press('End');
+  await window.keyboard.type(text);
   await window.waitForTimeout(waitFor);
 };
 
@@ -727,4 +774,69 @@ export const selectUncommittedDocument = async ({
     .first()
     .locator('button')
     .dispatchEvent('click');
+};
+
+export const openBranchingPalette = async ({
+  window,
+  currentBranch = 'main',
+}: {
+  window: Page;
+  currentBranch?: string;
+}): Promise<void> => {
+  await window.getByRole('button', { name: currentBranch }).click();
+  await expect(
+    window.getByPlaceholder('Search for branches and actions')
+  ).toBeVisible();
+};
+
+export const createAndSwitchToBranch = async ({
+  window,
+  currentBranch = 'main',
+  branchName,
+}: {
+  window: Page;
+  currentBranch?: string;
+  branchName: string;
+}): Promise<void> => {
+  await openBranchingPalette({ window, currentBranch });
+  await window.getByRole('option', { name: 'Create New Branch' }).click();
+
+  // The CreateBranchDialog opens after the palette closes.
+  const createBranchBtn = window.getByRole('button', {
+    name: /create branch/i,
+  });
+  await expect(createBranchBtn).toBeVisible({ timeout: 3_000 });
+  await window.getByRole('textbox').fill(branchName);
+  await createBranchBtn.click();
+
+  await expect(window.getByRole('button', { name: branchName })).toBeVisible({
+    timeout: 5_000,
+  });
+};
+
+export const switchToBranch = async ({
+  window,
+  from = 'main',
+  to,
+}: {
+  window: Page;
+  from?: string;
+  to: string;
+}): Promise<void> => {
+  await openBranchingPalette({ window, currentBranch: from });
+  await window.getByRole('option', { name: to, exact: true }).click();
+  await expect(window.getByRole('button', { name: to })).toBeVisible({
+    timeout: 5_000,
+  });
+};
+
+export const mergeToMainBranch = async ({
+  window,
+  currentBranch = 'main',
+}: {
+  window: Page;
+  currentBranch?: string;
+}): Promise<void> => {
+  await openBranchingPalette({ window, currentBranch });
+  await window.getByRole('option', { name: 'Merge to Main Branch' }).click();
 };
