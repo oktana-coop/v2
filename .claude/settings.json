@@ -13,5 +13,15 @@
         ]
       }
     ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(pnpm compile:*)",
+      "Bash(pnpm run compile:*)",
+      "Bash(pnpm test:*)",
+      "Bash(pnpm run test:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm run lint:*)"
+    ]
   }
 }
