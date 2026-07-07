@@ -1,5 +1,6 @@
 import { useContext, useMemo } from 'react';
 
+import { listOpenableDocuments } from '../../../../../../modules/domain/project';
 import { richTextRepresentations } from '../../../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
 import { removeExtension } from '../../../../../../modules/infrastructure/filesystem';
@@ -7,13 +8,13 @@ import {
   CommandPaletteContext,
   CommitModalContext,
   CurrentDocumentContext,
+  ProjectContext,
 } from '../../../../app-state';
 import {
   type ActionOption,
   CommandPalette,
 } from '../../../../components/dialogs/command-palette';
 import {
-  getOpenableDocuments,
   useArtifactSelection,
   useClearWebStorage,
   useCurrentDocumentName,
@@ -39,21 +40,21 @@ export const ProjectCommandPalette = ({
   );
   const { openCommitModal } = useContext(CommitModalContext);
   const { checkForUpdate } = useContext(ElectronContext);
+  const { directoryTree } = useContext(ProjectContext);
 
   const handleArtifactSelection = useArtifactSelection();
   const currentDocumentName = useCurrentDocumentName();
-  const {
-    explorerTree: documents,
-    selection,
-    startCreateDirectory,
-  } = useDocumentExplorerTree();
+  const { selection, startCreateDirectory } = useDocumentExplorerTree();
   const clearWebStorage = useClearWebStorage();
 
   const { exportToText, exportToBinary, exportToPDF } = useExport();
 
   const openableDocuments = useMemo(
-    () => getOpenableDocuments(documents).filter((doc) => doc.id !== selection),
-    [documents, selection]
+    () =>
+      listOpenableDocuments(directoryTree).filter(
+        (doc) => doc.path !== selection
+      ),
+    [directoryTree, selection]
   );
 
   const projectActions = [
@@ -149,10 +150,10 @@ export const ProjectCommandPalette = ({
           : undefined
       }
       documents={openableDocuments.map((doc) => ({
-        id: doc.id,
+        id: doc.path,
         title: removeExtension(doc.name),
         onDocumentSelection: () => {
-          handleArtifactSelection(doc.id);
+          handleArtifactSelection(doc.path);
           closeCommandPalette();
         },
       }))}

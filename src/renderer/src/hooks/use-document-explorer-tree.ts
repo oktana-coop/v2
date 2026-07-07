@@ -1,6 +1,5 @@
 import { useContext, useEffect, useState } from 'react';
 
-import { isUnsupportedExtension } from '../../../modules/domain/rich-text';
 import {
   type Directory,
   type File,
@@ -95,32 +94,6 @@ const getExplorerTreeInProject = (
 
   return rootNodes;
 };
-
-// Filter function taking an explorer tree and returning only the files that the
-// editor can open, descending into subdirectories and dropping directories and
-// assets with unsupported extensions.
-//
-// TODO: Move this to the project domain models (e.g.
-// src/modules/domain/project/models/project-documents.ts) operating on
-// Array<Directory | File>, and have consumers depend on it directly rather than
-// via this hook module.
-export const getOpenableDocuments = (
-  nodes: ExplorerTreeNode[]
-): ExplorerTreeNode[] =>
-  nodes.flatMap((node) => {
-    if (node.type === filesystemItemTypes.DIRECTORY) {
-      return node.children ? getOpenableDocuments(node.children) : [];
-    }
-
-    if (
-      node.type === filesystemItemTypes.FILE &&
-      !isUnsupportedExtension(node.name)
-    ) {
-      return [node];
-    }
-
-    return [];
-  });
 
 export const useDocumentExplorerTree = () => {
   const {
