@@ -2,7 +2,7 @@
 
 [v2](https://v2editor.com/) is a local-first rich-text editor with versioning capabilities.
 
-Built on top of [Automerge](https://automerge.org/), [ProseMirror](https://prosemirror.net/) and integrated with the [Pandoc](https://pandoc.org/) ecosystem.
+Built on top of [Git](https://git-scm.com), [Automerge](https://automerge.org/), [ProseMirror](https://prosemirror.net/) and integrated with the [Pandoc](https://pandoc.org/) ecosystem.
 
 ## Development
 
