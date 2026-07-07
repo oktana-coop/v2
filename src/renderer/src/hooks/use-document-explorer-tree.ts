@@ -96,15 +96,14 @@ const getExplorerTreeInProject = (
   return rootNodes;
 };
 
-// Flattens the explorer tree into the list of file nodes the editor can
-// actually open as documents, descending into directories so documents in
-// subfolders are reachable too. Directories and assets with unsupported
-// extensions (which would otherwise open the unsupported-document view) are
-// dropped. Used to populate the command palette's document list.
+// Filter function taking an explorer tree and returning only the files that the
+// editor can open, descending into subdirectories and dropping directories and
+// assets with unsupported extensions.
 //
-// The command palette caps how many of these it renders at once (see
-// MAX_VISIBLE_DOCUMENTS), so a large project's full document set does not have
-// to be rendered even though every document remains reachable via search.
+// TODO: Move this to the project domain models (e.g.
+// src/modules/domain/project/models/project-documents.ts) operating on
+// Array<Directory | File>, and have consumers depend on it directly rather than
+// via this hook module.
 export const getOpenableDocuments = (
   nodes: ExplorerTreeNode[]
 ): ExplorerTreeNode[] =>

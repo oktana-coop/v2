@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useMemo } from 'react';
 
 import { richTextRepresentations } from '../../../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
@@ -50,6 +50,11 @@ export const ProjectCommandPalette = ({
   const clearWebStorage = useClearWebStorage();
 
   const { exportToText, exportToBinary, exportToPDF } = useExport();
+
+  const openableDocuments = useMemo(
+    () => getOpenableDocuments(documents).filter((doc) => doc.id !== selection),
+    [documents, selection]
+  );
 
   const projectActions = [
     {
@@ -143,16 +148,14 @@ export const ProjectCommandPalette = ({
             }
           : undefined
       }
-      documents={getOpenableDocuments(documents)
-        .filter((doc) => doc.id !== selection)
-        .map((doc) => ({
-          id: doc.id,
-          title: removeExtension(doc.name),
-          onDocumentSelection: () => {
-            handleArtifactSelection(doc.id);
-            closeCommandPalette();
-          },
-        }))}
+      documents={openableDocuments.map((doc) => ({
+        id: doc.id,
+        title: removeExtension(doc.name),
+        onDocumentSelection: () => {
+          handleArtifactSelection(doc.id);
+          closeCommandPalette();
+        },
+      }))}
       actions={generalActions}
     />
   );

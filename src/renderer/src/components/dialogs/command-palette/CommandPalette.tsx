@@ -16,10 +16,9 @@ import { useKeyBindings } from '../../../hooks';
 import { FileDocumentIcon } from '../../icons';
 import { type IconProps } from '../../icons/types';
 
-// The document option list is not virtualized and headlessui's per-option
-// registration is superlinear, so rendering an unbounded list (e.g. every
-// document in a large project) freezes the palette when it opens. We render at
-// most this many documents at once; the rest stay reachable by searching.
+// The list isn't virtualized and headlessui's per-option registration is
+// superlinear, so rendering every document in a large project freezes the
+// palette on open. Cap the rendered count; the rest stay reachable via search.
 const MAX_VISIBLE_DOCUMENTS = 50;
 
 export const NoMatchingResults = () => {
