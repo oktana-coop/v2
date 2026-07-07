@@ -2,6 +2,7 @@ import { clsx } from 'clsx';
 import { useEffect, useRef } from 'react';
 import { type NodeApi, type NodeRendererProps } from 'react-arborist';
 
+import { isUnsupportedExtension } from '../../../../../../../modules/domain/rich-text';
 import { EXPLORER_TREE_NODE } from '../../../../../../../modules/infrastructure/cross-platform';
 import { filesystemItemTypes } from '../../../../../../../modules/infrastructure/filesystem';
 import { ChevronDownIcon, DiffIcon } from '../../../../../components/icons';
@@ -280,15 +281,21 @@ const FileNode = ({
     });
   };
 
+  // Files the editor cannot open as documents (e.g. images, PDFs) are dimmed to
+  // signal they are not editable. They stay clickable so selecting one still
+  // surfaces the unsupported-document view explaining why.
+  const isUnopenable = isUnsupportedExtension(node.data.name);
+
   return (
     <div
       onClick={onClick}
       onContextMenu={handleContextMenu}
-      className={nodeClasses(node)}
+      className={clsx(nodeClasses(node), isUnopenable && 'opacity-50')}
       style={{
         ...style,
         paddingLeft: node.level * 24 + 40,
       }}
+      title={isUnopenable ? `${node.data.name} can't be opened` : undefined}
     >
       <FileExtensionIcon fileName={node.data.name} />
       {node.data.name}
