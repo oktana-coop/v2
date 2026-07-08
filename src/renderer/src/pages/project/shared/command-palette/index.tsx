@@ -1,5 +1,6 @@
-import { useContext } from 'react';
+import { useContext, useMemo } from 'react';
 
+import { listOpenableDocuments } from '../../../../../../modules/domain/project';
 import { richTextRepresentations } from '../../../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
 import { removeExtension } from '../../../../../../modules/infrastructure/filesystem';
@@ -7,6 +8,7 @@ import {
   CommandPaletteContext,
   CommitModalContext,
   CurrentDocumentContext,
+  ProjectContext,
 } from '../../../../app-state';
 import {
   type ActionOption,
@@ -38,17 +40,22 @@ export const ProjectCommandPalette = ({
   );
   const { openCommitModal } = useContext(CommitModalContext);
   const { checkForUpdate } = useContext(ElectronContext);
+  const { directoryTree } = useContext(ProjectContext);
 
   const handleArtifactSelection = useArtifactSelection();
   const currentDocumentName = useCurrentDocumentName();
-  const {
-    explorerTree: documents,
-    selection,
-    startCreateDirectory,
-  } = useDocumentExplorerTree();
+  const { selection, startCreateDirectory } = useDocumentExplorerTree();
   const clearWebStorage = useClearWebStorage();
 
   const { exportToText, exportToBinary, exportToPDF } = useExport();
+
+  const openableDocuments = useMemo(
+    () =>
+      listOpenableDocuments(directoryTree).filter(
+        (doc) => doc.path !== selection
+      ),
+    [directoryTree, selection]
+  );
 
   const projectActions = [
     {
@@ -142,15 +149,14 @@ export const ProjectCommandPalette = ({
             }
           : undefined
       }
-      documents={documents
-        .filter((doc) => doc.id !== selection)
-        .map((doc) => ({
-          title: removeExtension(doc.name),
-          onDocumentSelection: () => {
-            handleArtifactSelection(doc.id);
-            closeCommandPalette();
-          },
-        }))}
+      documents={openableDocuments.map((doc) => ({
+        id: doc.path,
+        title: removeExtension(doc.name),
+        onDocumentSelection: () => {
+          handleArtifactSelection(doc.path);
+          closeCommandPalette();
+        },
+      }))}
       actions={generalActions}
     />
   );

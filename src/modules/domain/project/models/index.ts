@@ -2,5 +2,6 @@ export * from './project';
 export * from './project-id';
 export * from './project-rel-path';
 export * from './document-asset-paths';
+export * from './project-documents';
 export * from './referenced-asset';
 export * from './remote';
