@@ -9,7 +9,6 @@ import {
 } from '../../../modules/domain/project';
 import {
   type ChangeId,
-  createGitBlobRef,
   isGitCommitHash,
   type ResolvedArtifactId,
   UNCOMMITTED_CHANGE_ID,
@@ -43,13 +42,15 @@ export const useProjectHistoryArtifactSelection = () => {
           );
         }
 
-        return createGitBlobRef({ ref, path });
+        return Effect.runPromise(
+          projectStore.lookupArtifactByPath({ projectId, path, ref })
+        );
       }
 
       // Resolve the artifact ID for this document. When the document was
       // deleted in this commit, the store lookup will fail with NotFoundError.
-      // Fall back to constructing the blob ref directly so the history view
-      // can still display the deletion.
+      // Fall back to a store-minted id at this commit so the history view can
+      // still display the deletion.
       return Effect.runPromise(
         pipe(
           projectStore.lookupDocumentInProject({
@@ -59,9 +60,11 @@ export const useProjectHistoryArtifactSelection = () => {
           }),
           Effect.catchTag('VersionedProjectNotFoundError', () =>
             isGitCommitHash(resolvedChangeId)
-              ? Effect.succeed(
-                  createGitBlobRef({ ref: resolvedChangeId, path })
-                )
+              ? projectStore.lookupArtifactByPath({
+                  projectId,
+                  path,
+                  ref: resolvedChangeId,
+                })
               : Effect.fail(
                   new Error(
                     `Document "${path}" not found and change ID is not a commit hash`

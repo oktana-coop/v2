@@ -13,7 +13,7 @@ import {
   type Directory,
   type File,
   type TextFile,
-} from '../types';
+} from '../models';
 
 export type OpenFileArgs = {
   extensions: Array<string>;

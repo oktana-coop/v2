@@ -694,7 +694,6 @@ describe('documents', () => {
         store.discardUncommittedChanges({
           projectId,
           documentId: docId,
-          writeToFileWithPath: `${projectDir}/${docPath}`,
         })
       );
 
@@ -744,7 +743,6 @@ describe('documents', () => {
         store.discardUncommittedChanges({
           projectId,
           documentId: docId,
-          writeToFileWithPath: `${projectDir}/${docPath}`,
         })
       );
 
@@ -779,7 +777,6 @@ describe('documents', () => {
           .discardUncommittedChanges({
             projectId,
             documentId: docId,
-            writeToFileWithPath: `${projectDir}/${docPath}`,
           })
           .pipe(Effect.flip)
       );
@@ -805,7 +802,6 @@ describe('documents', () => {
           .discardUncommittedChanges({
             projectId,
             documentId: docId,
-            writeToFileWithPath: `${projectDir}/${docPath}`,
           })
           .pipe(Effect.flip)
       );
@@ -822,7 +818,6 @@ describe('documents', () => {
           .discardUncommittedChanges({
             projectId,
             documentId: docId,
-            writeToFileWithPath: `${projectDir}/${docPath}`,
           })
           .pipe(Effect.flip)
       );

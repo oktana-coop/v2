@@ -56,7 +56,6 @@ export const CompareContentConflictResolution = () => {
     if (projectId && conflict && tempConflictDocs[conflict.path]) {
       await resolveContentConflict({
         documentId: conflict.targetArtifactId,
-        relativePath: conflict.path,
         projectId,
         doc: tempConflictDocs[conflict.path],
       });

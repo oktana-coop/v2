@@ -5,6 +5,7 @@ import type {
   RichTextRepresentation,
   VersionedDocument,
 } from '../../../../modules/domain/rich-text';
+import { type AlreadyExistsError } from '../../../../modules/infrastructure/filesystem';
 import {
   type Branch,
   type Change,
@@ -25,6 +26,7 @@ import {
 } from '../errors';
 import {
   type ArtifactMetaData,
+  type ArtifactTreeNode,
   type Project,
   type ProjectId,
   type ProjectRelPath,
@@ -89,9 +91,10 @@ export type RenameDocumentInProjectArgs = {
   newDocumentPath: string;
 };
 
-export type RenameDocumentsInProjectArgs = {
+export type RenameDirectoryArgs = {
   projectId: ProjectId;
-  documentRenames: Array<{ oldDocumentPath: string; newDocumentPath: string }>;
+  oldDirectoryPath: string;
+  newDirectoryName: string;
 };
 
 export type LookupDocumentInProjectArgs = {
@@ -252,6 +255,29 @@ export type CreateDocumentArgs = {
   branch?: Branch;
 };
 
+export type CreateDirectoryArgs = {
+  projectId: ProjectId;
+  parentDirectoryId?: ResolvedArtifactId;
+  name: string;
+};
+
+export type DeleteDirectoryArgs = {
+  projectId: ProjectId;
+  directoryId: ResolvedArtifactId;
+};
+
+export type GetArtifactPathByIdArgs = {
+  projectId: ProjectId;
+  artifactId: ResolvedArtifactId;
+};
+
+export type LookupArtifactByPathArgs = {
+  projectId: ProjectId;
+  path: string;
+  // Store-specific version hint (branch or commit for git).
+  ref: string;
+};
+
 export type FindDocumentByIdArgs = {
   projectId: ProjectId;
   documentId: ResolvedArtifactId;
@@ -267,7 +293,6 @@ export type UpdateRichTextDocumentContentArgs = {
   documentId: ResolvedArtifactId;
   representation: RichTextRepresentation;
   content: string;
-  writeToFileWithPath?: string;
 };
 
 export type DeleteDocumentArgs = {
@@ -305,7 +330,6 @@ export type IsContentSameAtChangesArgs = {
 export type DiscardUncommittedChangesArgs = {
   projectId: ProjectId;
   documentId: ResolvedArtifactId;
-  writeToFileWithPath?: string;
 };
 
 export type ResolveContentConflictArgs = {
@@ -315,8 +339,18 @@ export type ResolveContentConflictArgs = {
 
 export type ProjectStore = {
   supportsBranching: boolean;
-  managesFilesystemWorkdir: boolean;
   assetsDirName: string;
+  // Fails with ValidationError when the id is not a recognized artifact id.
+  getArtifactPathById: (
+    args: GetArtifactPathByIdArgs
+  ) => Effect.Effect<ProjectRelPath, ValidationError | RepositoryError, never>;
+  lookupArtifactByPath: (
+    args: LookupArtifactByPathArgs
+  ) => Effect.Effect<
+    ResolvedArtifactId,
+    ValidationError | RepositoryError,
+    never
+  >;
   createProject: (
     args: CreateProjectArgs
   ) => Effect.Effect<ProjectId, ValidationError | RepositoryError, never>;
@@ -334,6 +368,13 @@ export type ProjectStore = {
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
+  getProjectTree: (
+    id: ProjectId
+  ) => Effect.Effect<
+    ArtifactTreeNode[],
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
   deleteDocuments: (
     args: DeleteDocumentsArgs
   ) => Effect.Effect<
@@ -345,14 +386,24 @@ export type ProjectStore = {
     args: RenameDocumentInProjectArgs
   ) => Effect.Effect<
     void,
-    ValidationError | MigrationError | RepositoryError | NotFoundError,
+    | AlreadyExistsError
+    | ValidationError
+    | MigrationError
+    | RepositoryError
+    | NotFoundError,
     never
   >;
-  renameDocumentsInProject: (
-    args: RenameDocumentsInProjectArgs
+  // Renames a directory: moves it in the working tree and git-renames every
+  // tracked document inside it. Returns the directory's new relative path.
+  renameDirectory: (
+    args: RenameDirectoryArgs
   ) => Effect.Effect<
-    void,
-    ValidationError | MigrationError | RepositoryError | NotFoundError,
+    { newDirectoryPath: string },
+    | AlreadyExistsError
+    | ValidationError
+    | MigrationError
+    | RepositoryError
+    | NotFoundError,
     never
   >;
   lookupDocumentInProject: (
@@ -537,6 +588,20 @@ export type ProjectStore = {
   ) => Effect.Effect<
     ResolvedArtifactId,
     ValidationError | RepositoryError,
+    never
+  >;
+  createDirectory: (
+    args: CreateDirectoryArgs
+  ) => Effect.Effect<
+    void,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
+  deleteDirectory: (
+    args: DeleteDirectoryArgs
+  ) => Effect.Effect<
+    void,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
   findDocumentById: (

@@ -7,15 +7,17 @@ import {
   type File,
   filesystemItemTypes,
 } from '../../../../modules/infrastructure/filesystem';
+import { type ResolvedArtifactId } from '../../../../modules/infrastructure/version-control';
 import { NotFoundError as VersionedProjectNotFoundError } from '../errors';
 import { parseProjectId, type ProjectId } from '../models';
-import {
-  insertAssetInProject,
-  type InsertAssetInProjectDeps,
-} from './insert-asset-in-project';
+import { insertAsset, type InsertAssetDeps } from './insert-asset';
 
 const PROJECT_ROOT = '/tmp/v2-test-project';
 const projectId: ProjectId = parseProjectId(PROJECT_ROOT);
+// The referencing document lives at the project root, so an asset's
+// document-relative src equals its project-relative path. `getArtifactPathById`
+// is mocked, so the id's actual value is irrelevant.
+const documentId = 'note.md' as unknown as ResolvedArtifactId;
 
 const alreadyInProjectAt = (relPath: string) =>
   vi.fn().mockReturnValue(Effect.succeed(relPath));
@@ -28,10 +30,10 @@ const fileAt = (path: string): File => ({
 });
 
 const buildDeps = (
-  overrides: Partial<InsertAssetInProjectDeps> & {
+  overrides: Partial<InsertAssetDeps> & {
     pickedFilePath?: string;
   } = {}
-): InsertAssetInProjectDeps & {
+): InsertAssetDeps & {
   openFile: ReturnType<typeof vi.fn>;
   readBinaryFile: ReturnType<typeof vi.fn>;
   lookupAssetByName: ReturnType<typeof vi.fn>;
@@ -72,14 +74,19 @@ const buildDeps = (
   // exercising the reuse branch override with `alreadyInProjectAt('...')`.
   const getProjectRelativePath =
     overrides.getProjectRelativePath ?? outsideProject();
+  // The referencing document sits at the project root.
+  const getArtifactPathById =
+    overrides.getArtifactPathById ??
+    vi.fn().mockReturnValue(Effect.succeed('note.md'));
   return {
     openFile,
     readBinaryFile,
     lookupAssetByName,
     addAssetToProject,
     getProjectRelativePath,
+    getArtifactPathById,
     assetsDirName: overrides.assetsDirName ?? 'assets',
-  } as unknown as InsertAssetInProjectDeps & {
+  } as unknown as InsertAssetDeps & {
     openFile: ReturnType<typeof vi.fn>;
     readBinaryFile: ReturnType<typeof vi.fn>;
     lookupAssetByName: ReturnType<typeof vi.fn>;
@@ -87,18 +94,16 @@ const buildDeps = (
   };
 };
 
-describe('insertAssetInProject', () => {
+describe('insertAsset', () => {
   it('reuses an existing asset when the source is already in the assets folder', async () => {
     const deps = buildDeps({
       pickedFilePath: `${PROJECT_ROOT}/assets/photo.jpg`,
       getProjectRelativePath: alreadyInProjectAt('assets/photo.jpg'),
     });
     const result = await Effect.runPromise(
-      insertAssetInProject(deps)({ projectId })
+      insertAsset(deps)({ projectId, documentId })
     );
-    expect(Option.getOrNull(result)).toEqual({
-      relPath: 'assets/photo.jpg',
-    });
+    expect(Option.getOrNull(result)).toBe('assets/photo.jpg');
     expect(deps.openFile).toHaveBeenCalledOnce();
     expect(deps.readBinaryFile).not.toHaveBeenCalled();
     expect(deps.addAssetToProject).not.toHaveBeenCalled();
@@ -111,22 +116,20 @@ describe('insertAssetInProject', () => {
       getProjectRelativePath: alreadyInProjectAt('assets/2024/photo.jpg'),
     });
     const result = await Effect.runPromise(
-      insertAssetInProject(deps)({ projectId })
+      insertAsset(deps)({ projectId, documentId })
     );
-    expect(Option.getOrNull(result)).toEqual({
-      relPath: 'assets/2024/photo.jpg',
-    });
+    expect(Option.getOrNull(result)).toBe('assets/2024/photo.jpg');
     expect(deps.addAssetToProject).not.toHaveBeenCalled();
   });
 
   it('does not reuse when the source is outside the project', async () => {
     const deps = buildDeps({ pickedFilePath: '/tmp/elsewhere/pic.jpg' });
     const result = await Effect.runPromise(
-      insertAssetInProject(deps)({ projectId })
+      insertAsset(deps)({ projectId, documentId })
     );
     expect(deps.readBinaryFile).toHaveBeenCalledWith('/tmp/elsewhere/pic.jpg');
     expect(deps.addAssetToProject).toHaveBeenCalledOnce();
-    expect(Option.getOrNull(result)?.relPath).toBe('assets/pic.jpg');
+    expect(Option.getOrNull(result)).toBe('assets/pic.jpg');
   });
 
   it('reuses any file already inside the project, even outside the assets folder', async () => {
@@ -135,11 +138,9 @@ describe('insertAssetInProject', () => {
       getProjectRelativePath: alreadyInProjectAt('notes/pic.jpg'),
     });
     const result = await Effect.runPromise(
-      insertAssetInProject(deps)({ projectId })
+      insertAsset(deps)({ projectId, documentId })
     );
-    expect(Option.getOrNull(result)).toEqual({
-      relPath: 'notes/pic.jpg',
-    });
+    expect(Option.getOrNull(result)).toBe('notes/pic.jpg');
     expect(deps.readBinaryFile).not.toHaveBeenCalled();
     expect(deps.addAssetToProject).not.toHaveBeenCalled();
   });
@@ -150,11 +151,9 @@ describe('insertAssetInProject', () => {
       getProjectRelativePath: alreadyInProjectAt('photo.jpg'),
     });
     const result = await Effect.runPromise(
-      insertAssetInProject(deps)({ projectId })
+      insertAsset(deps)({ projectId, documentId })
     );
-    expect(Option.getOrNull(result)).toEqual({
-      relPath: 'photo.jpg',
-    });
+    expect(Option.getOrNull(result)).toBe('photo.jpg');
     expect(deps.addAssetToProject).not.toHaveBeenCalled();
   });
 
@@ -171,9 +170,9 @@ describe('insertAssetInProject', () => {
         ),
     });
     const result = await Effect.runPromise(
-      insertAssetInProject(deps)({ projectId })
+      insertAsset(deps)({ projectId, documentId })
     );
-    expect(Option.getOrNull(result)?.relPath).toBe('assets/pic-1.jpg');
+    expect(Option.getOrNull(result)).toBe('assets/pic-1.jpg');
     expect(deps.addAssetToProject).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'pic-1.jpg' })
     );
@@ -186,7 +185,7 @@ describe('insertAssetInProject', () => {
         .mockReturnValue(Effect.fail(new AbortError('cancelled'))),
     });
     const result = await Effect.runPromise(
-      insertAssetInProject(deps)({ projectId })
+      insertAsset(deps)({ projectId, documentId })
     );
     expect(Option.isNone(result)).toBe(true);
     expect(deps.readBinaryFile).not.toHaveBeenCalled();

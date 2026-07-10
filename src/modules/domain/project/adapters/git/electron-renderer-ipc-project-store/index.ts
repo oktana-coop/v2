@@ -3,6 +3,10 @@ import {
   type ErrorRegistry,
 } from '../../../../../../modules/infrastructure/cross-platform';
 import {
+  AlreadyExistsError,
+  FilesystemAlreadyExistsErrorTag,
+} from '../../../../../../modules/infrastructure/filesystem';
+import {
   MergeConflictError,
   MigrationError,
   VersionControlMergeConflictErrorTag,
@@ -24,14 +28,33 @@ import { ProjectStore } from '../../../ports';
 
 // This adapter just calls the relevant exposed functions from the preload script
 // to send the messages to the main Electron process which will do the heavy lifting.
-export const createAdapter = ({
-  managesFilesystemWorkdir,
-}: {
-  managesFilesystemWorkdir: boolean;
-}): ProjectStore => ({
+export const createAdapter = (): ProjectStore => ({
   supportsBranching: true,
-  managesFilesystemWorkdir,
   assetsDirName: DEFAULT_ASSETS_DIR_NAME,
+  getArtifactPathById: (
+    ...args: Parameters<ProjectStore['getArtifactPathById']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<ProjectStore['getArtifactPathById']>>
+      >,
+      RepositoryError
+    )(window.projectStoreAPI.getArtifactPathById(...args)),
+  lookupArtifactByPath: (
+    ...args: Parameters<ProjectStore['lookupArtifactByPath']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<ProjectStore['lookupArtifactByPath']>>
+      >,
+      RepositoryError
+    )(window.projectStoreAPI.lookupArtifactByPath(...args)),
   createProject: (...args: Parameters<ProjectStore['createProject']>) =>
     effectifyIPCPromise(
       {
@@ -68,6 +91,18 @@ export const createAdapter = ({
       >,
       RepositoryError
     )(window.projectStoreAPI.listProjectDocuments(...args)),
+  getProjectTree: (...args: Parameters<ProjectStore['getProjectTree']>) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<ProjectStore['getProjectTree']>>
+      >,
+      RepositoryError
+    )(window.projectStoreAPI.getProjectTree(...args)),
   deleteDocuments: (...args: Parameters<ProjectStore['deleteDocuments']>) =>
     effectifyIPCPromise(
       {
@@ -85,6 +120,7 @@ export const createAdapter = ({
   ) =>
     effectifyIPCPromise(
       {
+        [FilesystemAlreadyExistsErrorTag]: AlreadyExistsError,
         [VersionedProjectValidationErrorTag]: ValidationError,
         [VersionedProjectRepositoryErrorTag]: RepositoryError,
         [VersionedProjectNotFoundErrorTag]: NotFoundError,
@@ -94,20 +130,19 @@ export const createAdapter = ({
       >,
       RepositoryError
     )(window.projectStoreAPI.renameDocumentInProject(...args)),
-  renameDocumentsInProject: (
-    ...args: Parameters<ProjectStore['renameDocumentsInProject']>
-  ) =>
+  renameDirectory: (...args: Parameters<ProjectStore['renameDirectory']>) =>
     effectifyIPCPromise(
       {
+        [FilesystemAlreadyExistsErrorTag]: AlreadyExistsError,
         [VersionedProjectValidationErrorTag]: ValidationError,
         [VersionedProjectRepositoryErrorTag]: RepositoryError,
         [VersionedProjectNotFoundErrorTag]: NotFoundError,
         [VersionControlMigrationErrorTag]: MigrationError,
       } as ErrorRegistry<
-        EffectErrorType<ReturnType<ProjectStore['renameDocumentsInProject']>>
+        EffectErrorType<ReturnType<ProjectStore['renameDirectory']>>
       >,
       RepositoryError
-    )(window.projectStoreAPI.renameDocumentsInProject(...args)),
+    )(window.projectStoreAPI.renameDirectory(...args)),
   lookupDocumentInProject: (
     ...args: Parameters<ProjectStore['lookupDocumentInProject']>
   ) =>
@@ -507,6 +542,29 @@ export const createAdapter = ({
       >,
       RepositoryError
     )(window.projectStoreAPI.createDocument(...args)),
+  createDirectory: (...args: Parameters<ProjectStore['createDirectory']>) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<ProjectStore['createDirectory']>>
+      >,
+      RepositoryError
+    )(window.projectStoreAPI.createDirectory(...args)),
+  deleteDirectory: (...args: Parameters<ProjectStore['deleteDirectory']>) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlMigrationErrorTag]: MigrationError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<ProjectStore['deleteDirectory']>>
+      >,
+      RepositoryError
+    )(window.projectStoreAPI.deleteDirectory(...args)),
   findDocumentById: (...args: Parameters<ProjectStore['findDocumentById']>) =>
     effectifyIPCPromise(
       {

@@ -15,9 +15,7 @@ import {
   decodeUrlEncodedArtifactId,
   decodeUrlEncodedChangeId,
   decodeUrlEncodedCommitId,
-  decomposeGitBlobRef,
   isCommitWithUrlInfo,
-  isGitBlobRef,
   isUncommittedChangeId,
   parseGitCommitHash,
   type ResolvedArtifactId,
@@ -132,13 +130,29 @@ export const useHistoricalDocument = ({
     [encodedChangeId]
   );
 
-  const documentPath = useMemo(
-    () =>
-      documentId && isGitBlobRef(documentId)
-        ? decomposeGitBlobRef(documentId).path
-        : null,
-    [documentId]
-  );
+  const [documentPath, setDocumentPath] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!documentId || !projectStore || !projectId) {
+      setDocumentPath(null);
+      return;
+    }
+
+    let cancelled = false;
+    Effect.runPromise(
+      projectStore.getArtifactPathById({ projectId, artifactId: documentId })
+    )
+      .then((path) => {
+        if (!cancelled) setDocumentPath(path);
+      })
+      .catch(() => {
+        if (!cancelled) setDocumentPath(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [documentId, projectStore, projectId]);
 
   const isUncommitted = useMemo(
     () => (changeId ? isUncommittedChangeId(changeId) : false),

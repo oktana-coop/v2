@@ -1,3 +1,4 @@
+import * as Effect from 'effect/Effect';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Outlet, useMatch } from 'react-router';
 
@@ -6,8 +7,6 @@ import {
   type Commit,
   decodeUrlEncodedArtifactId,
   decodeUrlEncodedChangeId,
-  decomposeGitBlobRef,
-  isGitBlobRef,
   isUncommittedChangeId,
   urlEncodeChangeId,
 } from '../../../../../../modules/infrastructure/version-control';
@@ -36,6 +35,8 @@ export const ProjectHistoryPage = () => {
     getProjectChangedDocuments,
     getProjectUncommittedChanges,
     commitChanges,
+    projectStore,
+    projectId,
   } = useContext(ProjectContext);
 
   const selectArtifact = useProjectHistoryArtifactSelection();
@@ -144,13 +145,36 @@ export const ProjectHistoryPage = () => {
     '/projects/:projectId/history/:artifactId/changes/:changeId'
   );
 
-  const selectedDocumentPath = useMemo(() => {
+  const [selectedDocumentPath, setSelectedDocumentPath] = useState<
+    string | null
+  >(null);
+
+  useEffect(() => {
     const encodedDocumentId = documentChangeMatch?.params.artifactId;
-    if (!encodedDocumentId) return null;
-    const documentId = decodeUrlEncodedArtifactId(encodedDocumentId);
-    if (!documentId || !isGitBlobRef(documentId)) return null;
-    return decomposeGitBlobRef(documentId).path;
-  }, [documentChangeMatch]);
+    const documentId = encodedDocumentId
+      ? decodeUrlEncodedArtifactId(encodedDocumentId)
+      : null;
+
+    if (!documentId || !projectStore || !projectId) {
+      setSelectedDocumentPath(null);
+      return;
+    }
+
+    let cancelled = false;
+    Effect.runPromise(
+      projectStore.getArtifactPathById({ projectId, artifactId: documentId })
+    )
+      .then((path) => {
+        if (!cancelled) setSelectedDocumentPath(path);
+      })
+      .catch(() => {
+        if (!cancelled) setSelectedDocumentPath(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [documentChangeMatch, projectStore, projectId]);
 
   const selectedCommitId = useMemo((): Commit['id'] | null => {
     const encodedChangeId = documentChangeMatch?.params.changeId;

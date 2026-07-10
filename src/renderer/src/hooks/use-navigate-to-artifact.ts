@@ -27,10 +27,8 @@ export const useNavigateToArtifact = () => {
   }) => {
     setSelectedFileInfo({ documentId: artifactId, path });
 
-    const newUrl = path
-      ? `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(artifactId)}?path=${encodeURIComponent(path)}`
-      : `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(artifactId)}`;
-
-    navigate(newUrl);
+    navigate(
+      `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(artifactId)}`
+    );
   };
 };

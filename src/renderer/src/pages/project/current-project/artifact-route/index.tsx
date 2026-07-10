@@ -22,6 +22,11 @@ export const ArtifactRoute = () => {
     }
   }, [artifactType]);
 
+  // Still resolving the artifact's type (an async store lookup).
+  if (artifactType === undefined) {
+    return null;
+  }
+
   if (artifactType === null) {
     return <DocumentSelection />;
   }

@@ -3,84 +3,54 @@ import { pipe } from 'effect/Function';
 import * as Option from 'effect/Option';
 import { useCallback, useContext } from 'react';
 
-import {
-  insertAssetInProject,
-  parseProjectRelPathEffect,
-  projectRelToDocRel,
-} from '../../../modules/domain/project';
+import { insertAsset } from '../../../modules/domain/project';
 import { type DocumentAsset } from '../../../modules/domain/rich-text';
+import { type ResolvedArtifactId } from '../../../modules/infrastructure/version-control';
 import { InfrastructureAdaptersContext, ProjectContext } from '../app-state';
 
 export const useAssetInsertion = (
-  docPath?: string
+  documentIdOverride?: ResolvedArtifactId
 ): (() => Promise<DocumentAsset | null>) => {
-  const { filesystem } = useContext(InfrastructureAdaptersContext);
   const { projectId, projectStore, selectedFileInfo, refreshDirectoryTree } =
     useContext(ProjectContext);
+  const { filesystem } = useContext(InfrastructureAdaptersContext);
 
-  const docPathString = docPath ?? selectedFileInfo?.path;
+  const documentId = documentIdOverride ?? selectedFileInfo?.documentId;
 
   return useCallback(async (): Promise<DocumentAsset | null> => {
-    if (!projectId) {
+    if (!projectId || !projectStore) {
       throw new Error('Cannot insert asset: no current project.');
     }
-    if (!docPathString) {
-      throw new Error('Cannot insert asset: no doc path.');
+    if (!documentId) {
+      throw new Error('Cannot insert asset: no current document.');
     }
 
-    if (!projectStore) {
-      throw new Error('Cannot insert asset: project store not ready.');
-    }
-
-    const insertAsset = insertAssetInProject({
-      openFile: filesystem.openFile,
-      readBinaryFile: filesystem.readBinaryFile,
-      lookupAssetByName: projectStore.lookupAssetByName,
-      addAssetToProject: projectStore.addAssetToProject,
-      getProjectRelativePath: projectStore.getProjectRelativePath,
-      assetsDirName: projectStore.assetsDirName,
-    });
-
-    const result = await Effect.runPromise(
+    const src = await Effect.runPromise(
       pipe(
-        parseProjectRelPathEffect(docPathString),
-        Effect.flatMap((resolvedDocPath) =>
-          pipe(
-            insertAsset({ projectId }),
-            Effect.flatMap((inserted) =>
-              Option.match(inserted, {
-                onNone: () => Effect.succeed(null),
-                onSome: ({ relPath }) =>
-                  pipe(
-                    parseProjectRelPathEffect(relPath),
-                    Effect.map((projectRel) => ({
-                      src: projectRelToDocRel({
-                        projectRel,
-                        docPath: resolvedDocPath,
-                      }),
-                      // No default alt/caption — an asset only gets one when the
-                      // user authors it, so implicit figures stay caption-less.
-                      alt: null,
-                      title: null,
-                    }))
-                  ),
-              })
-            )
-          )
-        )
+        insertAsset({
+          openFile: filesystem.openFile,
+          readBinaryFile: filesystem.readBinaryFile,
+          lookupAssetByName: projectStore.lookupAssetByName,
+          addAssetToProject: projectStore.addAssetToProject,
+          getProjectRelativePath: projectStore.getProjectRelativePath,
+          getArtifactPathById: projectStore.getArtifactPathById,
+          assetsDirName: projectStore.assetsDirName,
+        })({ projectId, documentId }),
+        Effect.map(Option.getOrNull)
       )
     );
 
-    if (result) {
-      await refreshDirectoryTree();
-    }
+    // Picker was cancelled.
+    if (!src) return null;
 
-    return result;
-  }, [
-    projectId,
-    filesystem,
-    projectStore,
-    docPathString,
-    refreshDirectoryTree,
-  ]);
+    await refreshDirectoryTree();
+
+    return {
+      src,
+      // No default alt/caption — an asset only gets one when the user authors
+      // it, so implicit figures stay caption-less.
+      alt: null,
+      title: null,
+    };
+  }, [projectId, projectStore, filesystem, documentId, refreshDirectoryTree]);
 };

@@ -13,31 +13,26 @@ import { useLocation, useNavigate, useParams } from 'react-router';
 
 import { AuthContext } from '../../../../modules/auth/browser';
 import {
+  type ArtifactTreeNode,
   createDocumentInProject,
   DEFAULT_REMOTE_PROJECT_NAME,
+  findNodeByPath,
+  isPathInsideDirectory,
+  parseProjectRelPath,
   type ProjectStore,
   type RemoteProjectInfo,
-  renameDirectoryInProject,
   renameDocumentInProject,
   urlEncodeProjectId,
-  VersionedProjectNotFoundErrorTag,
 } from '../../../../modules/domain/project';
 import { type ProjectId } from '../../../../modules/domain/project';
-import {
-  PRIMARY_RICH_TEXT_REPRESENTATION,
-  type ResolvedDocument,
-  richTextRepresentationExtensions,
-} from '../../../../modules/domain/rich-text';
+import { type ResolvedDocument } from '../../../../modules/domain/rich-text';
 import {
   EXPLORER_TREE_DIRECTORY,
   EXPLORER_TREE_FILE,
 } from '../../../../modules/infrastructure/cross-platform';
 import {
   type Directory,
-  type File,
   FilesystemAlreadyExistsErrorTag,
-  filesystemItemTypes,
-  getDirectoryName,
   removeExtension,
   removePath,
 } from '../../../../modules/infrastructure/filesystem';
@@ -69,6 +64,7 @@ import {
 
 export type SelectedFileInfo = {
   documentId: ResolvedArtifactId;
+  // TODO: make this a ProjectRelPath
   path: string | null;
 };
 
@@ -87,7 +83,7 @@ export type ProjectContextType = {
   directory: Directory | null;
   currentBranch: Branch | null;
   projectStore: ProjectStore | null;
-  directoryTree: Array<Directory | File>;
+  directoryTree: ArtifactTreeNode[];
   refreshDirectoryTree: () => Promise<void>;
   openDirectory: (cloneUrl?: string) => Promise<Directory>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
@@ -287,9 +283,7 @@ export const ProjectProvider = ({
   const [loading, setLoading] = useState<boolean>(false);
   const [projectId, setProjectId] = useState<ProjectId | null>(null);
   const [directory, setDirectory] = useState<Directory | null>(null);
-  const [directoryTree, setDirectoryTree] = useState<Array<Directory | File>>(
-    []
-  );
+  const [directoryTree, setDirectoryTree] = useState<ArtifactTreeNode[]>([]);
   const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
   const [mergeConflictInfo, setMergeConflictInfo] =
     useState<MergeConflictInfo | null>(null);
@@ -546,21 +540,20 @@ export const ProjectProvider = ({
   }, []);
 
   const refreshDirectoryTree = useCallback(async () => {
-    if (!directory || directory.permissionState !== 'granted') {
+    if (
+      !projectStore ||
+      !projectId ||
+      !directory ||
+      directory.permissionState !== 'granted'
+    ) {
       return;
     }
 
-    const dirTree = await Effect.runPromise(
-      filesystem.listDirectoryTree({
-        path: directory.path,
-        extensions: [
-          richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
-        ],
-        useRelativePathTo: directory.path,
-      })
+    const tree = await Effect.runPromise(
+      projectStore.getProjectTree(projectId)
     );
-    setDirectoryTree(dirTree);
-  }, [directory, filesystem]);
+    setDirectoryTree(tree);
+  }, [projectStore, projectId, directory]);
 
   useEffect(() => {
     refreshDirectoryTree();
@@ -588,7 +581,7 @@ export const ProjectProvider = ({
 
         setSelectedFileInfo({ documentId: doc.id, path: selectedFilePath });
 
-        const newUrl = `/projects/${urlEncodeProjectId(projId)}/artifacts/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(selectedFilePath)}`;
+        const newUrl = `/projects/${urlEncodeProjectId(projId)}/artifacts/${urlEncodeArtifactId(doc.id)}`;
         setPulledUpstreamChanges(false);
         navigate(newUrl);
 
@@ -717,124 +710,85 @@ export const ProjectProvider = ({
 
   const handleCreateNewDocument = useCallback(
     async (args?: CreateNewDocumentArgs) => {
-      if (!projectStore || !projectId) {
+      if (!projectStore || !projectId || !directory) {
         throw new Error(
           'Cannot create document. Document and project store have not been initialized yet.'
         );
       }
 
-      const created = await Effect.runPromise(
+      const parentDirectoryId = args?.parentPath
+        ? (findNodeByPath({
+            tree: directoryTree,
+            path: parseProjectRelPath(args.parentPath),
+          })?.id ?? undefined)
+        : undefined;
+
+      const result = await Effect.runPromise(
         pipe(
-          args?.parentPath && directory
-            ? pipe(
-                filesystem.getAbsolutePath({
-                  path: args.parentPath,
-                  dirPath: directory.path,
-                }),
-                Effect.map(
-                  (parentAbsolutePath) =>
-                    ({
-                      type: filesystemItemTypes.DIRECTORY,
-                      path: parentAbsolutePath,
-                      name: getDirectoryName(parentAbsolutePath),
-                      permissionState: 'granted',
-                    }) as Directory | null
-                )
-              )
-            : Effect.succeed(null),
-          Effect.flatMap((parentDirectory) =>
-            createDocumentInProject({
-              createNewFile: filesystem.createNewFile,
-              getRelativePath: filesystem.getRelativePath,
-              createDocument: projectStore.createDocument,
-            })({
-              projectId,
-              content: null,
-              projectDirectory: directory,
-              parentDirectory,
-            })
-          )
+          createDocumentInProject({
+            createNewFile: filesystem.createNewFile,
+            getRelativePath: filesystem.getRelativePath,
+            getAbsolutePath: filesystem.getAbsolutePath,
+            getArtifactPathById: projectStore.getArtifactPathById,
+            createDocument: projectStore.createDocument,
+          })({
+            projectId,
+            projectDirectory: directory,
+            parentDirectoryId,
+            content: null,
+          }),
+          Effect.map(Option.getOrNull)
         )
       );
 
       // Save dialog was cancelled.
-      if (Option.isNone(created)) {
+      if (!result) {
         return null;
       }
 
-      const { documentId: newDocumentId, filePath: newFilePath } =
-        created.value;
+      await refreshDirectoryTree();
 
-      // Refresh directory files if a directory is selected
-      if (
-        directory &&
-        directory.permissionState === 'granted' &&
-        directory.path
-      ) {
-        const dirTree = await Effect.runPromise(
-          filesystem.listDirectoryTree({
-            path: directory.path,
-            extensions: [
-              richTextRepresentationExtensions[
-                PRIMARY_RICH_TEXT_REPRESENTATION
-              ],
-            ],
-            useRelativePathTo: directory.path,
-          })
-        );
-        setDirectoryTree(dirTree);
-      }
-
-      return { projectId, documentId: newDocumentId, path: newFilePath };
+      return {
+        projectId,
+        documentId: result.documentId,
+        path: result.filePath,
+      };
     },
-    [projectStore, projectStore]
+    [
+      projectStore,
+      projectId,
+      directory,
+      filesystem,
+      directoryTree,
+      refreshDirectoryTree,
+    ]
   );
 
   const handleCreateDirectory = useCallback(
-    (name: string) => {
-      if (!directory || !pendingNewDirectory) return Promise.resolve();
+    async (name: string) => {
+      if (!projectStore || !projectId || !pendingNewDirectory) return;
 
-      return Effect.runPromise(
-        pipe(
-          pendingNewDirectory.parentPath
-            ? filesystem.getAbsolutePath({
-                path: pendingNewDirectory.parentPath,
-                dirPath: directory.path,
-              })
-            : Effect.succeed(directory.path),
-          Effect.flatMap((parentAbsolutePath) =>
-            filesystem.createDirectory({
-              name,
-              parentDirectory: {
-                type: filesystemItemTypes.DIRECTORY,
-                path: parentAbsolutePath,
-                name,
-                permissionState: 'granted' as PermissionState,
-              },
-            })
-          ),
-          Effect.tap(() =>
-            directory.permissionState === 'granted' && directory.path
-              ? pipe(
-                  filesystem.listDirectoryTree({
-                    path: directory.path,
-                    extensions: [
-                      richTextRepresentationExtensions[
-                        PRIMARY_RICH_TEXT_REPRESENTATION
-                      ],
-                    ],
-                    useRelativePathTo: directory.path,
-                  }),
-                  Effect.map((dirTree) => setDirectoryTree(dirTree))
-                )
-              : Effect.void
-          ),
-          Effect.tap(() => Effect.sync(() => setPendingNewDirectory(null))),
-          Effect.asVoid
-        )
+      const parentDirectoryId = pendingNewDirectory.parentPath
+        ? (findNodeByPath({
+            tree: directoryTree,
+            path: parseProjectRelPath(pendingNewDirectory.parentPath),
+          })?.id ?? undefined)
+        : undefined;
+
+      await Effect.runPromise(
+        projectStore.createDirectory({ projectId, parentDirectoryId, name })
       );
+
+      await refreshDirectoryTree();
+      setPendingNewDirectory(null);
     },
-    [filesystem, directory, pendingNewDirectory]
+    [
+      projectStore,
+      projectId,
+      directoryTree,
+      pendingNewDirectory,
+      refreshDirectoryTree,
+    ]
   );
 
   const startCreateDirectory = useCallback(
@@ -848,48 +802,31 @@ export const ProjectProvider = ({
 
   const handleDeleteDocument = useCallback(
     async ({ relativePath }: { relativePath: string }) => {
-      if (!directory) {
-        return;
-      }
-
       if (!projectStore || !projectId) {
         throw new Error(
           'Cannot delete file. Document and project store have not been initialized yet.'
         );
       }
 
+      const documentId = findNodeByPath({
+        tree: directoryTree,
+        path: parseProjectRelPath(relativePath),
+      })?.id;
+      if (!documentId) {
+        setFileToDelete(null);
+        return;
+      }
+
       try {
         await Effect.runPromise(
-          pipe(
-            projectStore.findDocumentByPath({
-              projectId,
-              documentPath: relativePath,
-            }),
-            Effect.flatMap((doc) =>
-              projectStore.deleteDocument({
-                documentId: doc.id,
-                projectId,
-                deleteFromFilesystem: true,
-              })
-            )
-          )
+          projectStore.deleteDocument({
+            documentId,
+            projectId,
+            deleteFromFilesystem: true,
+          })
         );
 
-        // Refresh directory tree
-        if (directory.permissionState === 'granted' && directory.path) {
-          const dirTree = await Effect.runPromise(
-            filesystem.listDirectoryTree({
-              path: directory.path,
-              extensions: [
-                richTextRepresentationExtensions[
-                  PRIMARY_RICH_TEXT_REPRESENTATION
-                ],
-              ],
-              useRelativePathTo: directory.path,
-            })
-          );
-          setDirectoryTree(dirTree);
-        }
+        await refreshDirectoryTree();
 
         // If the deleted file was currently selected, clear selection and navigate away
         if (selectedFileInfo?.path === relativePath) {
@@ -913,128 +850,53 @@ export const ProjectProvider = ({
     [
       projectStore,
       projectId,
-      directory,
-      filesystem,
+      directoryTree,
       selectedFileInfo,
       navigate,
+      refreshDirectoryTree,
       dispatchNotification,
     ]
   );
 
   const handleDeleteDirectory = useCallback(
-    ({ relativePath }: { relativePath: string }): Promise<void> => {
-      if (!directory) {
-        return Promise.resolve();
-      }
-
+    async ({ relativePath }: { relativePath: string }) => {
       if (!projectStore || !projectId) {
         throw new Error(
           'Cannot delete folder. Document and project store have not been initialized yet.'
         );
       }
 
-      return Effect.runPromise(
-        pipe(
-          filesystem.getAbsolutePath({
-            path: relativePath,
-            dirPath: directory.path,
-          }),
-          Effect.flatMap((absoluteDirPath) =>
-            pipe(
-              filesystem.listDirectoryFiles({
-                path: absoluteDirPath,
-                recursive: true,
-                extensions: [
-                  richTextRepresentationExtensions[
-                    PRIMARY_RICH_TEXT_REPRESENTATION
-                  ],
-                ],
-              }),
-              // Find only tracked documents (untracked files are silently skipped)
-              Effect.flatMap((files) =>
-                Effect.forEach(files, (file) =>
-                  pipe(
-                    filesystem.getRelativePath({
-                      path: file.path,
-                      relativeTo: directory.path,
-                    }),
-                    Effect.flatMap((fileRelativePath) =>
-                      pipe(
-                        projectStore.findDocumentByPath({
-                          projectId,
-                          documentPath: fileRelativePath,
-                        }),
-                        Effect.map((doc) => doc.id),
-                        Effect.catchTag(VersionedProjectNotFoundErrorTag, () =>
-                          Effect.succeed(null)
-                        )
-                      )
-                    )
-                  )
-                )
-              ),
-              Effect.map((ids) =>
-                ids.filter((id): id is NonNullable<typeof id> => id !== null)
-              ),
-              Effect.flatMap((documentIds) =>
-                Effect.if(documentIds.length > 0, {
-                  onTrue: () =>
-                    projectStore.deleteDocuments({
-                      documentIds,
-                      projectId,
-                      deleteFromFilesystem: true,
-                      directoryPath: absoluteDirPath,
-                    }),
-                  // None of the directory documents is tracked in version control.
-                  // Just delete the directory in this case.
-                  onFalse: () =>
-                    filesystem.deleteDirectory({ path: absoluteDirPath }),
-                })
-              ),
-              // Refresh directory tree
-              Effect.tap(() =>
-                directory.permissionState === 'granted' && directory.path
-                  ? pipe(
-                      filesystem.listDirectoryTree({
-                        path: directory.path,
-                        extensions: [
-                          richTextRepresentationExtensions[
-                            PRIMARY_RICH_TEXT_REPRESENTATION
-                          ],
-                        ],
-                        useRelativePathTo: directory.path,
-                      }),
-                      Effect.map((dirTree) => setDirectoryTree(dirTree))
-                    )
-                  : Effect.void
-              ),
-              // If the currently selected file was inside the deleted directory,
-              // clear selection and navigate away
-              Effect.tap(
-                selectedFileInfo?.path
-                  ? pipe(
-                      filesystem.isDescendantPath({
-                        parent: relativePath,
-                        possibleDescendant: selectedFileInfo.path,
-                      }),
-                      Effect.flatMap((isDescendant) =>
-                        isDescendant
-                          ? Effect.sync(() => {
-                              setSelectedFileInfo(null);
-                              navigate(
-                                `/projects/${urlEncodeProjectId(projectId)}/artifacts`
-                              );
-                            })
-                          : Effect.void
-                      )
-                    )
-                  : Effect.void
-              ),
-              Effect.tap(() => Effect.sync(() => setDirectoryToDelete(null)))
-            )
-          )
-        )
-      ).catch((err) => {
+      const directoryId = findNodeByPath({
+        tree: directoryTree,
+        path: parseProjectRelPath(relativePath),
+      })?.id;
+      if (!directoryId) {
+        setDirectoryToDelete(null);
+        return;
+      }
+
+      try {
+        await Effect.runPromise(
+          projectStore.deleteDirectory({ projectId, directoryId })
+        );
+
+        await refreshDirectoryTree();
+
+        // If the currently selected file was inside the deleted directory,
+        // clear selection and navigate away.
+        if (
+          selectedFileInfo?.path &&
+          isPathInsideDirectory({
+            directoryPath: parseProjectRelPath(relativePath),
+            filePath: parseProjectRelPath(selectedFileInfo.path),
+          })
+        ) {
+          setSelectedFileInfo(null);
+          navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
+        }
+
+        setDirectoryToDelete(null);
+      } catch (err) {
         console.error(err);
         dispatchNotification(
           createErrorNotification({
@@ -1044,15 +906,15 @@ export const ProjectProvider = ({
           })
         );
         setDirectoryToDelete(null);
-      });
+      }
     },
     [
       projectStore,
       projectId,
-      directory,
-      filesystem,
+      directoryTree,
       selectedFileInfo,
       navigate,
+      refreshDirectoryTree,
       dispatchNotification,
     ]
   );
@@ -1093,7 +955,7 @@ export const ProjectProvider = ({
         );
       }
 
-      if (!directory || !newName.trim()) {
+      if (!newName.trim()) {
         return;
       }
 
@@ -1101,24 +963,23 @@ export const ProjectProvider = ({
         const result = await Effect.runPromise(
           pipe(
             renameDocumentInProject({
-              rename: filesystem.rename,
               renameDocumentInProjectStore:
                 projectStore.renameDocumentInProject,
-              getAbsolutePath: filesystem.getAbsolutePath,
               getRenamedPath: filesystem.getRenamedPath,
             })({
               projectId,
               oldDocumentPath: oldRelativePath,
               newName,
-              renameInFilesystem: true,
-              projectDirectoryPath: directory.path,
             }),
             Effect.map(({ newDocumentPath }) => ({
-              collision: false,
+              collision: false as const,
               newDocumentPath,
             })),
             Effect.catchTag(FilesystemAlreadyExistsErrorTag, () =>
-              Effect.succeed({ collision: true, newDocumentPath: '' })
+              Effect.succeed({
+                collision: true as const,
+                newDocumentPath: null,
+              })
             )
           )
         );
@@ -1128,43 +989,24 @@ export const ProjectProvider = ({
           return;
         }
 
-        const newRelativePath = result.newDocumentPath;
+        await refreshDirectoryTree();
 
-        // Refresh directory tree
-        if (directory.permissionState === 'granted' && directory.path) {
-          const dirTree = await Effect.runPromise(
-            filesystem.listDirectoryTree({
-              path: directory.path,
-              extensions: [
-                richTextRepresentationExtensions[
-                  PRIMARY_RICH_TEXT_REPRESENTATION
-                ],
-              ],
-              useRelativePathTo: directory.path,
+        // If the renamed file was currently selected, follow it to its new id.
+        if (selectedFileInfo?.path === oldRelativePath && currentBranch) {
+          const newDocumentId = await Effect.runPromise(
+            projectStore.lookupArtifactByPath({
+              projectId,
+              path: result.newDocumentPath,
+              ref: currentBranch,
             })
           );
-          setDirectoryTree(dirTree);
-        }
-
-        // If the renamed file was currently selected, update selection to new path
-        if (selectedFileInfo?.path === oldRelativePath) {
-          try {
-            const doc = await handleFindDocumentInProject({
-              projectId,
-              documentPath: newRelativePath,
-            });
-            handleSetSelectedFileInfo({
-              documentId: doc.id,
-              path: newRelativePath,
-            });
-            navigate(
-              `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(newRelativePath)}`
-            );
-          } catch {
-            // Document not found at new path — clear selection
-            await clearFileSelection();
-            navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
-          }
+          handleSetSelectedFileInfo({
+            documentId: newDocumentId,
+            path: result.newDocumentPath,
+          });
+          navigate(
+            `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(newDocumentId)}`
+          );
         }
 
         setDocumentPathToRename(null);
@@ -1185,10 +1027,11 @@ export const ProjectProvider = ({
     [
       projectStore,
       projectId,
-      directory,
       filesystem,
+      currentBranch,
       selectedFileInfo,
       navigate,
+      refreshDirectoryTree,
       dispatchNotification,
     ]
   );
@@ -1216,33 +1059,27 @@ export const ProjectProvider = ({
         );
       }
 
-      if (!directory || !newName.trim()) {
+      if (!newName.trim()) {
         return;
       }
 
       try {
         const result = await Effect.runPromise(
           pipe(
-            renameDirectoryInProject({
-              rename: filesystem.rename,
-              renameDocumentsInProjectStore:
-                projectStore.renameDocumentsInProject,
-              getAbsolutePath: filesystem.getAbsolutePath,
-              listDirectoryFiles: filesystem.listDirectoryFiles,
-              getRelativePath: filesystem.getRelativePath,
-              getRenamedPath: filesystem.getRenamedPath,
-            })({
+            projectStore.renameDirectory({
               projectId,
               oldDirectoryPath: oldRelativePath,
               newDirectoryName: newName,
-              projectDirectoryPath: directory.path,
             }),
             Effect.map(({ newDirectoryPath }) => ({
-              collision: false,
+              collision: false as const,
               newDirectoryPath,
             })),
             Effect.catchTag(FilesystemAlreadyExistsErrorTag, () =>
-              Effect.succeed({ collision: true, newDirectoryPath: '' })
+              Effect.succeed({
+                collision: true as const,
+                newDirectoryPath: null,
+              })
             )
           )
         );
@@ -1252,31 +1089,19 @@ export const ProjectProvider = ({
           return;
         }
 
-        const newDirectoryPath = result.newDirectoryPath;
+        await refreshDirectoryTree();
 
-        // Refresh directory tree
-        if (directory.permissionState === 'granted' && directory.path) {
-          const dirTree = await Effect.runPromise(
-            filesystem.listDirectoryTree({
-              path: directory.path,
-              extensions: [
-                richTextRepresentationExtensions[
-                  PRIMARY_RICH_TEXT_REPRESENTATION
-                ],
-              ],
-              useRelativePathTo: directory.path,
-            })
-          );
-          setDirectoryTree(dirTree);
-        }
-
-        // If the currently-selected file was inside the renamed directory, update selection
+        // If the currently-selected file was inside the renamed directory,
+        // move the selection to its new path under the renamed directory.
         if (
           selectedFileInfo?.path &&
-          selectedFileInfo.path.startsWith(oldRelativePath)
+          isPathInsideDirectory({
+            directoryPath: parseProjectRelPath(oldRelativePath),
+            filePath: parseProjectRelPath(selectedFileInfo.path),
+          })
         ) {
           const newFilePath =
-            newDirectoryPath +
+            result.newDirectoryPath +
             selectedFileInfo.path.slice(oldRelativePath.length);
           try {
             const doc = await handleFindDocumentInProject({
@@ -1288,7 +1113,7 @@ export const ProjectProvider = ({
               path: newFilePath,
             });
             navigate(
-              `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(doc.id)}?path=${encodeURIComponent(newFilePath)}`
+              `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(doc.id)}`
             );
           } catch {
             await clearFileSelection();
@@ -1314,10 +1139,9 @@ export const ProjectProvider = ({
     [
       projectStore,
       projectId,
-      directory,
-      filesystem,
       selectedFileInfo,
       navigate,
+      refreshDirectoryTree,
       dispatchNotification,
     ]
   );
@@ -1348,7 +1172,7 @@ export const ProjectProvider = ({
 
           handleSetSelectedFileInfo({ documentId, path: filePath });
           navigate(
-            `/projects/${urlEncodeProjectId(projId)}/artifacts/${urlEncodeArtifactId(documentId)}?path=${encodeURIComponent(filePath)}`
+            `/projects/${urlEncodeProjectId(projId)}/artifacts/${urlEncodeArtifactId(documentId)}`
           );
         }
 

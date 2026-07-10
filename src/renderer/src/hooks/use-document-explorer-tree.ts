@@ -1,11 +1,9 @@
 import { useContext, useEffect, useState } from 'react';
 
+import { type ArtifactTreeNode } from '../../../modules/domain/project';
 import {
-  type Directory,
-  type File,
   type FilesystemItemType,
   filesystemItemTypes,
-  isDirectory,
 } from '../../../modules/infrastructure/filesystem';
 import { ProjectContext, ProjectContextType } from '../app-state';
 import { useCurrentDocumentId } from './use-current-document-id';
@@ -61,38 +59,21 @@ const injectPendingDirectoryNode = (
 const getExplorerTreeInProject = (
   directoryTree: ProjectContextType['directoryTree']
 ): ExplorerTreeNode[] => {
-  const mapFileToTreeNode = (file: File): ExplorerTreeNode => ({
-    id: file.path,
-    name: file.name,
-    type: filesystemItemTypes.FILE,
-  });
-
-  const getDirectorySubtree = (directory: Directory): ExplorerTreeNode => {
-    const subtreeNode: ExplorerTreeNode = {
-      id: directory.path,
-      name: directory.name,
-      type: filesystemItemTypes.DIRECTORY,
-      children: directory.children?.map((child) => {
-        if (isDirectory(child)) {
-          return getDirectorySubtree(child);
+  const toExplorerNode = (node: ArtifactTreeNode): ExplorerTreeNode =>
+    node.type === filesystemItemTypes.DIRECTORY
+      ? {
+          id: node.path,
+          name: node.name,
+          type: filesystemItemTypes.DIRECTORY,
+          children: node.children?.map(toExplorerNode),
         }
+      : {
+          id: node.path,
+          name: node.name,
+          type: filesystemItemTypes.FILE,
+        };
 
-        return mapFileToTreeNode(child);
-      }),
-    };
-
-    return subtreeNode;
-  };
-
-  const rootNodes = directoryTree.map((item) => {
-    if (isDirectory(item)) {
-      return getDirectorySubtree(item);
-    }
-
-    return mapFileToTreeNode(item);
-  });
-
-  return rootNodes;
+  return directoryTree.map(toExplorerNode);
 };
 
 export const useDocumentExplorerTree = () => {

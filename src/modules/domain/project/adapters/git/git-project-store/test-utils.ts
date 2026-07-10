@@ -42,5 +42,4 @@ export const buildTestStore = () =>
     filesystem: mockFilesystem as Filesystem,
     isoGitHttp: {} as IsoGitHttpApi,
     documentAnalyzer: mockDocumentAnalyzer,
-    managesFilesystemWorkdir: true,
   });

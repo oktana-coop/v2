@@ -1,4 +1,5 @@
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 import * as Option from 'effect/Option';
 
 import {
@@ -11,6 +12,7 @@ import {
   FilesystemAbortErrorTag,
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
+  toDirectory,
 } from '../../../../modules/infrastructure/filesystem';
 import { type ResolvedArtifactId } from '../../../../modules/infrastructure/version-control';
 import { RepositoryError, ValidationError } from '../errors';
@@ -20,13 +22,15 @@ import { type ProjectStore } from '../ports';
 export type CreateDocumentInProjectArgs = {
   content: string | null;
   projectId: ProjectId;
-  projectDirectory: Directory | null;
-  parentDirectory: Directory | null;
+  projectDirectory: Directory;
+  parentDirectoryId: ResolvedArtifactId | undefined;
 };
 
 export type CreateDocumentInProjectDeps = {
   createNewFile: Filesystem['createNewFile'];
   getRelativePath: Filesystem['getRelativePath'];
+  getAbsolutePath: Filesystem['getAbsolutePath'];
+  getArtifactPathById: ProjectStore['getArtifactPathById'];
   createDocument: ProjectStore['createDocument'];
 };
 
@@ -39,13 +43,15 @@ export const createDocumentInProject =
   ({
     createNewFile,
     getRelativePath,
+    getAbsolutePath,
+    getArtifactPathById,
     createDocument,
   }: CreateDocumentInProjectDeps) =>
   ({
     content,
     projectId,
     projectDirectory,
-    parentDirectory,
+    parentDirectoryId,
   }: CreateDocumentInProjectArgs): Effect.Effect<
     Option.Option<CreateDocumentInProjectResult>,
     | FilesystemNotFoundError
@@ -55,26 +61,45 @@ export const createDocumentInProject =
     never
   > =>
     Effect.Do.pipe(
-      // TODO: Consider handling this in project store
-      // (especially if we get rid of the create-file dialog, which is a UI concern)
-      Effect.bind('newFile', () => {
-        const parentDir = parentDirectory ?? projectDirectory;
-
-        return createNewFile({
-          parentDirectory: parentDir ?? undefined,
-          extensions: [
-            richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
-          ],
-          content: content ?? undefined,
-        });
-      }),
-      Effect.bind('filePath', ({ newFile }) =>
-        projectDirectory
-          ? getRelativePath({
-              path: newFile.path,
-              relativeTo: projectDirectory.path,
+      Effect.bind('newFile', () =>
+        pipe(
+          // Resolve the parent directory to create the file under (the project
+          // root when none is given).
+          parentDirectoryId
+            ? pipe(
+                getArtifactPathById({
+                  projectId,
+                  artifactId: parentDirectoryId,
+                }),
+                Effect.flatMap((relPath) =>
+                  getAbsolutePath({
+                    path: relPath,
+                    dirPath: projectDirectory.path,
+                  })
+                ),
+                Effect.map((absolutePath) =>
+                  toDirectory({ path: absolutePath })
+                )
+              )
+            : Effect.succeed(projectDirectory),
+          Effect.flatMap((parentDirectory) =>
+            createNewFile({
+              parentDirectory,
+              extensions: [
+                richTextRepresentationExtensions[
+                  PRIMARY_RICH_TEXT_REPRESENTATION
+                ],
+              ],
+              content: content ?? undefined,
             })
-          : Effect.succeed(newFile.path)
+          )
+        )
+      ),
+      Effect.bind('filePath', ({ newFile }) =>
+        getRelativePath({
+          path: newFile.path,
+          relativeTo: projectDirectory.path,
+        })
       ),
       Effect.bind('documentId', ({ filePath }) =>
         createDocument({

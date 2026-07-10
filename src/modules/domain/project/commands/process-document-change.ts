@@ -19,7 +19,6 @@ export type ProcessDocumentChangeArgs = {
   projectId: ProjectId;
   documentId: ResolvedArtifactId;
   updatedDocument: RichTextDocument;
-  writeToFileWithPath: string | null;
 };
 
 export type ProcessDocumentChangeDeps = {
@@ -36,7 +35,6 @@ export const processDocumentChange =
     projectId,
     documentId,
     updatedDocument,
-    writeToFileWithPath,
   }: ProcessDocumentChangeArgs): Effect.Effect<
     void,
     | ValidationError
@@ -67,7 +65,6 @@ export const processDocumentChange =
           documentId,
           representation: PRIMARY_RICH_TEXT_REPRESENTATION,
           content: textContent,
-          writeToFileWithPath: writeToFileWithPath ?? undefined,
         })
       )
     );

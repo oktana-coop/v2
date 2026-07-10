@@ -25,6 +25,7 @@ import {
   CURRENT_PROJECT_SCHEMA_VERSION,
   inferArtifactTypeFromExtension,
   parseProjectFsPath,
+  parseProjectRelPathEffect,
   type ProjectId,
 } from '../../../models';
 import { type ProjectStore } from '../../../ports';
@@ -74,31 +75,32 @@ export const findProjectById = ({
         )
       )
     ),
-    Effect.map(({ files, currentBranch }) => {
-      return files.reduce<{
-        documents: Record<ResolvedArtifactId, ArtifactMetaData>;
-        assets: Record<ResolvedArtifactId, ArtifactMetaData>;
-      }>(
-        (acc, file) => {
-          // TODO: Handle errors returned by createGitBlobRef
-          const artifactId = createGitBlobRef({
-            ref: currentBranch,
-            path: file.path,
-          });
-          const isDocument =
-            inferArtifactTypeFromExtension(file.path) ===
-            versionedArtifactTypes.RICH_TEXT_DOCUMENT;
-          const target = isDocument ? acc.documents : acc.assets;
-          target[artifactId] = {
-            id: artifactId,
-            name: file.name,
-            path: file.path,
-          };
-          return acc;
+    Effect.flatMap(({ files, currentBranch }) =>
+      Effect.reduce(
+        files,
+        {
+          documents: {} as Record<ResolvedArtifactId, ArtifactMetaData>,
+          assets: {} as Record<ResolvedArtifactId, ArtifactMetaData>,
         },
-        { documents: {}, assets: {} }
-      );
-    }),
+        (acc, file) =>
+          pipe(
+            parseProjectRelPathEffect(file.path),
+            Effect.map((path) => {
+              // TODO: Handle errors returned by createGitBlobRef
+              const artifactId = createGitBlobRef({
+                ref: currentBranch,
+                path: file.path,
+              });
+              const isDocument =
+                inferArtifactTypeFromExtension(file.path) ===
+                versionedArtifactTypes.RICH_TEXT_DOCUMENT;
+              const target = isDocument ? acc.documents : acc.assets;
+              target[artifactId] = { id: artifactId, name: file.name, path };
+              return acc;
+            })
+          )
+      )
+    ),
     Effect.map(({ documents, assets }) => ({
       type: versionedArtifactTypes.PROJECT,
       schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,

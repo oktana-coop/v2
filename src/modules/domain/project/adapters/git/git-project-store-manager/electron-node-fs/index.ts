@@ -27,7 +27,6 @@ export const createAdapter = ({
               isoGitHttp: http,
               filesystem,
               documentAnalyzer,
-              managesFilesystemWorkdir: true,
               assetsDirName,
             })
           )
@@ -81,7 +80,6 @@ export const createAdapter = ({
               isoGitHttp: http,
               filesystem,
               documentAnalyzer,
-              managesFilesystemWorkdir: true,
               assetsDirName,
             })
           )
