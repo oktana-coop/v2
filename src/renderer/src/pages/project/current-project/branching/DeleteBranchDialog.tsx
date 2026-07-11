@@ -33,7 +33,7 @@ export const DeleteBranchDialog = ({
         </Button>
       }
       primaryButton={
-        <Button onClick={handleDeleteBranch} color="red">
+        <Button onClick={handleDeleteBranch} color="red" autoFocus>
           <TrashIcon />
           Delete
         </Button>

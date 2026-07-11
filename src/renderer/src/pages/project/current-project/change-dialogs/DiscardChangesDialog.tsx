@@ -22,7 +22,7 @@ export const DiscardChangesDialog = ({
       </Button>
     }
     primaryButton={
-      <Button onClick={onDiscardChanges} color="red">
+      <Button onClick={onDiscardChanges} color="red" autoFocus>
         <TrashIcon />
         Discard
       </Button>

@@ -24,7 +24,7 @@ export const DeleteDirectoryDialog = ({
       </Button>
     }
     primaryButton={
-      <Button onClick={onConfirm} color="red">
+      <Button onClick={onConfirm} color="red" autoFocus>
         <TrashIcon />
         Delete
       </Button>
