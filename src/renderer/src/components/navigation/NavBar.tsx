@@ -74,15 +74,17 @@ export function NavBar() {
     (projectMatch?.params.projectId as ProjectId | undefined) ?? null;
   const projectId = projectIdFromUrl ?? getStoredProjectId();
 
+  const editHref = getProjectSubroute({
+    subpath: 'artifacts',
+    fallback: '/projects',
+    projectId,
+  });
+
   const projectSpecificNavItems: NavItem[] = useMemo(
     () => [
       {
         name: 'Edit',
-        href: getProjectSubroute({
-          subpath: 'artifacts',
-          fallback: '/projects',
-          projectId,
-        }),
+        href: editHref,
         icon: PenIcon,
         current: true,
       },
@@ -97,7 +99,7 @@ export function NavBar() {
         current: false,
       },
     ],
-    [projectId]
+    [editHref, projectId]
   );
 
   const appWideNavItems: NavItem[] = [
@@ -114,7 +116,7 @@ export function NavBar() {
       className="flex h-full w-12 flex-none flex-col items-center gap-y-5 overflow-y-auto border-r border-gray-300 bg-transparent py-4 dark:border-neutral-600"
       data-testid="nav-bar"
     >
-      <NavLink to="/projects">
+      <NavLink to={editHref}>
         <Logo />
       </NavLink>
 
