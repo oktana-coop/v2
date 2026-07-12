@@ -9,6 +9,7 @@ export * from './markdown';
 export * from './notes';
 export * from './links';
 export * from './placeholder';
+export * from './search';
 export * from './sync';
 export * from './node-views';
 export * from './code-blocks';

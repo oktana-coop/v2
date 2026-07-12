@@ -47,6 +47,17 @@ export const withCursorAt = ({
 }): EditorState =>
   state.apply(state.tr.setSelection(TextSelection.create(state.doc, pos)));
 
+export const withSelectionAt = ({
+  state,
+  from,
+  to,
+}: {
+  state: EditorState;
+  from: number;
+  to: number;
+}): EditorState =>
+  state.apply(state.tr.setSelection(TextSelection.create(state.doc, from, to)));
+
 // Run a command with a capturing dispatch and return the resulting state.
 export const runCommand = ({
   state,

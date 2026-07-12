@@ -102,7 +102,9 @@ export const getSelectedText = (state: EditorState): string | null => {
     return null;
   }
 
-  return state.doc.textBetween(selection.from, selection.to);
+  // Without a block separator, text from adjacent blocks would be glued
+  // together into a string that doesn't occur in the document.
+  return state.doc.textBetween(selection.from, selection.to, '\n');
 };
 
 export const findLinkAtSelection = ({
