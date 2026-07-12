@@ -15,6 +15,7 @@ import {
   VersionControlRepositoryErrorTag,
 } from '../../../../../../modules/infrastructure/version-control';
 import { NotFoundError, RepositoryError } from '../../../errors';
+import { parseProjectRelPathEffect } from '../../../models';
 import { type ProjectStore } from '../../../ports';
 import { ensureProjectIdIsFsPath } from './project-id';
 
@@ -137,6 +138,7 @@ export const createRenamingOps = ({
             oldPath: oldDirectoryPath,
             newName: newDirectoryName,
           }),
+          Effect.flatMap(parseProjectRelPathEffect),
           Effect.flatMap((newDirectoryPath) =>
             pipe(
               Effect.all([

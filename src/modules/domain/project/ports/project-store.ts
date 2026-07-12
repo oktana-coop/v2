@@ -97,6 +97,10 @@ export type RenameDirectoryArgs = {
   newDirectoryName: string;
 };
 
+export type RenameDirectoryResult = {
+  newDirectoryPath: ProjectRelPath;
+};
+
 export type LookupDocumentInProjectArgs = {
   projectId: ProjectId;
   documentPath: string;
@@ -340,7 +344,6 @@ export type ResolveContentConflictArgs = {
 export type ProjectStore = {
   supportsBranching: boolean;
   assetsDirName: string;
-  // Fails with ValidationError when the id is not a recognized artifact id.
   getArtifactPathById: (
     args: GetArtifactPathByIdArgs
   ) => Effect.Effect<ProjectRelPath, ValidationError | RepositoryError, never>;
@@ -393,12 +396,10 @@ export type ProjectStore = {
     | NotFoundError,
     never
   >;
-  // Renames a directory: moves it in the working tree and git-renames every
-  // tracked document inside it. Returns the directory's new relative path.
   renameDirectory: (
     args: RenameDirectoryArgs
   ) => Effect.Effect<
-    { newDirectoryPath: string },
+    RenameDirectoryResult,
     | AlreadyExistsError
     | ValidationError
     | MigrationError

@@ -17,8 +17,6 @@ export type File = FilesystemItem & {
   content?: string | Uint8Array;
 };
 
-// Builds a Directory value for a path. Defaults to a granted permission
-// state; pass one explicitly when the permission is not yet known.
 export const toDirectory = ({
   path,
   permissionState = 'granted',
