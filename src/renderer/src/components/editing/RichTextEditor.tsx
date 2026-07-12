@@ -26,9 +26,15 @@ import {
   richTextRepresentations,
 } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
+import {
+  BranchingCommandPaletteContext,
+  CommandPaletteContext,
+  CommitModalContext,
+} from '../../app-state';
 import { useKeyBindings } from '../../keyboard';
 import { keyBindings } from '../../pages/project/shared/command-palette/key-bindings';
 import { EditorToolbar } from './editor-toolbar';
+import { FindBar } from './FindBar';
 import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';
 
@@ -78,6 +84,8 @@ const {
   diffPlugin,
   registerNodeViews,
   codeBlockHighlightPlugin,
+  searchPlugin,
+  clearSearchQuery,
 } = prosemirror;
 
 type RichTextEditorProps = {
@@ -109,6 +117,11 @@ export const RichTextEditor = ({
     convertFromProseMirror,
     proseMirrorDiff,
   } = useContext(ProseMirrorContext);
+  const { isOpen: isCommandPaletteOpen } = useContext(CommandPaletteContext);
+  const { isOpen: isBranchingCommandPaletteOpen } = useContext(
+    BranchingCommandPaletteContext
+  );
+  const { isOpen: isCommitModalOpen } = useContext(CommitModalContext);
   const [leafBlockType, setLeafBlockType] = useState<LeafBlockType | null>(
     null
   );
@@ -130,6 +143,17 @@ export const RichTextEditor = ({
     ref: Element;
     linkAttrs: LinkAttrs;
   } | null>(null);
+  const [isFindBarOpen, setIsFindBarOpen] = useState<boolean>(false);
+  const [findBarFocusToken, setFindBarFocusToken] = useState<number>(0);
+  const [searchRefreshToken, setSearchRefreshToken] = useState<number>(0);
+  // Mirrors `isFindBarOpen` for `dispatchTransaction`, which is created once
+  // when the view is set up and would otherwise capture a stale value.
+  const isFindBarOpenRef = useRef<boolean>(false);
+
+  const setFindBarOpen = (open: boolean) => {
+    isFindBarOpenRef.current = open;
+    setIsFindBarOpen(open);
+  };
 
   const onSelectionChange: (
     schema: Schema
@@ -183,6 +207,7 @@ export const RichTextEditor = ({
     codeBlockHighlightPlugin,
     history(),
     keymap(baseKeymap),
+    searchPlugin(),
     linkSelectionPlugin,
     selectionChangePlugin(onSelectionChange(schema)),
     ensureTrailingParagraphPlugin(schema),
@@ -191,10 +216,35 @@ export const RichTextEditor = ({
     removeEmptyFiguresPlugin(schema),
   ];
 
+  const handleOpenFindBar = () => {
+    setFindBarOpen(true);
+    setFindBarFocusToken((token) => token + 1);
+  };
+
+  const handleCloseFindBar = () => {
+    setFindBarOpen(false);
+    if (view) {
+      clearSearchQuery(view.state, view.dispatch);
+      view.focus();
+    }
+  };
+
+  // Escape closes the find bar, unless an overlay that handles Escape itself
+  // (command palette, commit modal, link dialog) is open on top of it.
+  const overlayWithOwnEscapeIsOpen =
+    isCommandPaletteOpen ||
+    isBranchingCommandPaletteOpen ||
+    isCommitModalOpen ||
+    isLinkDialogOpen;
+
   useKeyBindings({
     [keyBindings.ctrlShiftL.keyBinding]: () => {
       handleLinkToggle();
     },
+    [keyBindings.ctrlF.keyBinding]: handleOpenFindBar,
+    ...(isFindBarOpen && !overlayWithOwnEscapeIsOpen
+      ? { escape: handleCloseFindBar }
+      : {}),
   });
 
   const setupDiffPlugin = async ({
@@ -313,6 +363,10 @@ export const RichTextEditor = ({
             setSelectionIsLink(isMarkActive(schema.marks.link)(newState));
             setCodeSelected(isMarkActive(schema.marks.code)(newState));
           }
+
+          if (isFindBarOpenRef.current && (tx.docChanged || tx.selectionSet)) {
+            setSearchRefreshToken((token) => token + 1);
+          }
         },
         editable: () => isEditable,
       });
@@ -350,6 +404,9 @@ export const RichTextEditor = ({
           setView(null);
         }
         editorViewRef.current = null;
+        // The new view starts with an empty search query, so the find bar
+        // would be out of sync with it.
+        setFindBarOpen(false);
       }
     };
   }, [doc, isEditable, schema, setView]);
@@ -393,6 +450,9 @@ export const RichTextEditor = ({
 
       const newState = editorView.state.reconfigure({ plugins });
       editorView.updateState(newState);
+      // Reconfiguring recreates the search plugin with an empty query, so the
+      // find bar would be out of sync with it.
+      setFindBarOpen(false);
     };
 
     if (editorViewRef.current) {
@@ -579,6 +639,14 @@ export const RichTextEditor = ({
           ref={editorRoot}
         />
       </div>
+
+      <FindBar
+        view={view}
+        isOpen={isFindBarOpen}
+        focusToken={findBarFocusToken}
+        refreshToken={searchRefreshToken}
+        onClose={handleCloseFindBar}
+      />
 
       {isEditable && leafBlockType && (
         <div
