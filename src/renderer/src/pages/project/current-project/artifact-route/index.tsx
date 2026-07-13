@@ -12,18 +12,18 @@ import { UnsupportedDocumentView } from '../../shared/unsupported-document-view'
 // type cannot be determined, that is an unexpected state — we surface it in the
 // console and render the empty view rather than guessing.
 export const ArtifactRoute = () => {
-  const artifactType = useArtifactType();
+  const { artifactType, loading } = useArtifactType();
 
   useEffect(() => {
-    if (artifactType === null) {
+    if (!loading && artifactType === null) {
       console.error(
         'Could not determine the artifact type for the current route.'
       );
     }
-  }, [artifactType]);
+  }, [loading, artifactType]);
 
   // Still resolving the artifact's type (an async store lookup).
-  if (artifactType === undefined) {
+  if (loading) {
     return null;
   }
 

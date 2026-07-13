@@ -9,16 +9,21 @@ import {
 } from '../../../modules/infrastructure/version-control';
 import { ProjectContext } from '../app-state';
 
-// Derives the type of the artifact currently in the route. `undefined` while
-// still resolving, `null` when it resolved but couldn't be classified. Ids are
-// opaque here: we ask the store for the artifact's project path and classify by
-// that, rather than parsing the id.
-export const useArtifactType = (): VersionedArtifactType | null | undefined => {
+type UseArtifactTypeResult = {
+  // Once resolved, null means the artifact couldn't be classified.
+  artifactType: VersionedArtifactType | null;
+  loading: boolean;
+};
+
+// Derives the type of the artifact currently in the route, along with a loading
+// flag for the async store lookup. Ids are opaque here: we ask the store for the
+// artifact's project path and classify by that, rather than parsing the id.
+export const useArtifactType = (): UseArtifactTypeResult => {
   const { artifactId: urlEncodedArtifactId } = useParams();
   const { projectId, projectStore } = useContext(ProjectContext);
-  const [type, setType] = useState<VersionedArtifactType | null | undefined>(
-    undefined
-  );
+  const [artifactType, setArtifactType] =
+    useState<VersionedArtifactType | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const artifactId = urlEncodedArtifactId
@@ -26,21 +31,26 @@ export const useArtifactType = (): VersionedArtifactType | null | undefined => {
       : null;
 
     if (!artifactId || !projectId || !projectStore) {
-      setType(null);
+      setArtifactType(null);
+      setLoading(false);
       return;
     }
 
     let cancelled = false;
-    setType(undefined);
+    setLoading(true);
 
     Effect.runPromise(
       projectStore.getArtifactPathById({ projectId, artifactId })
     )
       .then((path) => {
-        if (!cancelled) setType(inferArtifactTypeFromExtension(path));
+        if (cancelled) return;
+        setArtifactType(inferArtifactTypeFromExtension(path));
+        setLoading(false);
       })
       .catch(() => {
-        if (!cancelled) setType(null);
+        if (cancelled) return;
+        setArtifactType(null);
+        setLoading(false);
       });
 
     return () => {
@@ -48,5 +58,5 @@ export const useArtifactType = (): VersionedArtifactType | null | undefined => {
     };
   }, [urlEncodedArtifactId, projectId, projectStore]);
 
-  return type;
+  return { artifactType, loading };
 };
