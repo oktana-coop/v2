@@ -26,7 +26,7 @@ import {
   InfrastructureAdaptersContext,
   ProjectContext,
 } from '../../../../app-state';
-import { useNavigateToArtifact } from '../../../../hooks/use-navigate-to-artifact';
+import { useArtifactPath, useNavigateToArtifact } from '../../../../hooks';
 import { type DiffViewProps } from './ReadOnlyDocumentView';
 
 const resolveDiffState = ({
@@ -130,29 +130,7 @@ export const useHistoricalDocument = ({
     [encodedChangeId]
   );
 
-  const [documentPath, setDocumentPath] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!documentId || !projectStore || !projectId) {
-      setDocumentPath(null);
-      return;
-    }
-
-    let cancelled = false;
-    Effect.runPromise(
-      projectStore.getArtifactPathById({ projectId, artifactId: documentId })
-    )
-      .then((path) => {
-        if (!cancelled) setDocumentPath(path);
-      })
-      .catch(() => {
-        if (!cancelled) setDocumentPath(null);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [documentId, projectStore, projectId]);
+  const { path: documentPath } = useArtifactPath(documentId);
 
   const isUncommitted = useMemo(
     () => (changeId ? isUncommittedChangeId(changeId) : false),

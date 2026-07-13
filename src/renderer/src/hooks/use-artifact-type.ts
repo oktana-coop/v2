@@ -1,5 +1,4 @@
-import * as Effect from 'effect/Effect';
-import { useContext, useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { useParams } from 'react-router';
 
 import { inferArtifactTypeFromExtension } from '../../../modules/domain/project';
@@ -7,7 +6,7 @@ import {
   decodeUrlEncodedArtifactId,
   type VersionedArtifactType,
 } from '../../../modules/infrastructure/version-control';
-import { ProjectContext } from '../app-state';
+import { useArtifactPath } from './use-artifact-path';
 
 type UseArtifactTypeResult = {
   // Once resolved, null means the artifact couldn't be classified.
@@ -15,48 +14,22 @@ type UseArtifactTypeResult = {
   loading: boolean;
 };
 
-// Derives the type of the artifact currently in the route, along with a loading
-// flag for the async store lookup. Ids are opaque here: we ask the store for the
-// artifact's project path and classify by that, rather than parsing the id.
 export const useArtifactType = (): UseArtifactTypeResult => {
   const { artifactId: urlEncodedArtifactId } = useParams();
-  const { projectId, projectStore } = useContext(ProjectContext);
-  const [artifactType, setArtifactType] =
-    useState<VersionedArtifactType | null>(null);
-  const [loading, setLoading] = useState(true);
+  const artifactId = useMemo(
+    () =>
+      urlEncodedArtifactId
+        ? decodeUrlEncodedArtifactId(urlEncodedArtifactId)
+        : null,
+    [urlEncodedArtifactId]
+  );
 
-  useEffect(() => {
-    const artifactId = urlEncodedArtifactId
-      ? decodeUrlEncodedArtifactId(urlEncodedArtifactId)
-      : null;
+  const { path, loading } = useArtifactPath(artifactId);
 
-    if (!artifactId || !projectId || !projectStore) {
-      setArtifactType(null);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-
-    Effect.runPromise(
-      projectStore.getArtifactPathById({ projectId, artifactId })
-    )
-      .then((path) => {
-        if (cancelled) return;
-        setArtifactType(inferArtifactTypeFromExtension(path));
-        setLoading(false);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setArtifactType(null);
-        setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [urlEncodedArtifactId, projectId, projectStore]);
+  const artifactType = useMemo(
+    () => (path === null ? null : inferArtifactTypeFromExtension(path)),
+    [path]
+  );
 
   return { artifactType, loading };
 };
