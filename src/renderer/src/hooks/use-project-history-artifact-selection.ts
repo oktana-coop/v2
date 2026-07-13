@@ -10,7 +10,7 @@ import {
 import {
   type ArtifactId,
   type ChangeId,
-  isGitCommitHash,
+  isCommitId,
   UNCOMMITTED_CHANGE_ID,
   urlEncodeArtifactId,
   urlEncodeChangeId,
@@ -32,7 +32,7 @@ export const useProjectHistoryArtifactSelection = () => {
         inferArtifactTypeFromExtension(path) !==
         versionedArtifactTypes.RICH_TEXT_DOCUMENT
       ) {
-        const ref = isGitCommitHash(resolvedChangeId)
+        const ref = isCommitId(resolvedChangeId)
           ? resolvedChangeId
           : currentBranch;
 
@@ -59,7 +59,7 @@ export const useProjectHistoryArtifactSelection = () => {
             changeId: resolvedChangeId,
           }),
           Effect.catchTag('VersionedProjectNotFoundError', () =>
-            isGitCommitHash(resolvedChangeId)
+            isCommitId(resolvedChangeId)
               ? projectStore.lookupArtifactByPath({
                   projectId,
                   path,
@@ -67,7 +67,7 @@ export const useProjectHistoryArtifactSelection = () => {
                 })
               : Effect.fail(
                   new Error(
-                    `Document "${path}" not found and change ID is not a commit hash`
+                    `Document "${path}" not found in the uncommitted working tree`
                   )
                 )
           )
