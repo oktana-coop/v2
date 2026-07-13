@@ -35,7 +35,7 @@ import {
   type RenameArgs,
   type WriteFileArgs,
 } from '../modules/infrastructure/filesystem';
-import type { ResolvedArtifactId } from '../modules/infrastructure/version-control';
+import type { ArtifactId } from '../modules/infrastructure/version-control';
 import type {
   RunWasiCLIArgs,
   Wasm as WasmAPI,
@@ -56,7 +56,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('renderer-process-id', (_, processId) =>
       callback(processId)
     ),
-  sendCurrentDocumentId: (id: ResolvedArtifactId) =>
+  sendCurrentDocumentId: (id: ArtifactId) =>
     ipcRenderer.send('current-document-id', id),
   openExternalLink: (url: string) =>
     ipcRenderer.send('open-external-link', url),

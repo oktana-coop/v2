@@ -23,13 +23,13 @@ import {
 } from '../../../../modules/domain/rich-text';
 import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
 import {
+  type ArtifactId,
   type Change,
   type ChangeId,
   changeIdsAreSame,
   type ChangeWithUrlInfo,
   type Commit,
   decodeUrlEncodedChangeId,
-  type ResolvedArtifactId,
   urlEncodeArtifactId,
   urlEncodeChangeId,
   urlEncodeChangeIdForChange,
@@ -40,7 +40,7 @@ import { usePulledUpstreamChanges } from '../../hooks/use-pulled-upstream-change
 import { InfrastructureAdaptersContext, ProjectContext } from '../';
 
 export type CurrentDocumentContextType = {
-  versionedDocumentId: ResolvedArtifactId | null;
+  versionedDocumentId: ArtifactId | null;
   versionedDocument: VersionedDocument | null;
   onDocumentContentChange: (doc: RichTextDocument) => Promise<void>;
   loadingHistory: boolean;
@@ -201,7 +201,7 @@ export const CurrentDocumentProvider = ({
   const checkIfContentChangedFromLastCommit =
     (projectStore: ProjectStore) =>
     async (
-      documentId: ResolvedArtifactId,
+      documentId: ArtifactId,
       latestChangeId: ChangeId,
       lastCommitId: ChangeId
     ) => {
@@ -233,7 +233,7 @@ export const CurrentDocumentProvider = ({
       latestChangeId,
       lastCommitId,
     }: {
-      docId: ResolvedArtifactId;
+      docId: ArtifactId;
       doc: VersionedDocument;
       latestChangeId: ChangeId;
       lastCommitId?: ChangeId;
@@ -255,7 +255,7 @@ export const CurrentDocumentProvider = ({
 
   const loadHistory =
     (projectStore: ProjectStore) =>
-    async ({ docId }: { docId: ResolvedArtifactId }) => {
+    async ({ docId }: { docId: ArtifactId }) => {
       const historyInfo = await Effect.runPromise(
         projectStore.getDocumentHistory({
           projectId: projectIdParam as ProjectId,
@@ -403,7 +403,7 @@ export const CurrentDocumentProvider = ({
     showDiffInHistoryView,
   }: {
     projectId: ProjectId;
-    documentId: ResolvedArtifactId;
+    documentId: ArtifactId;
     history: ChangeWithUrlInfo[];
     changeId: ChangeId;
     showDiffInHistoryView: boolean;

@@ -3,11 +3,11 @@ import git, { Errors as IsoGitErrors } from 'isomorphic-git';
 
 import { type Username } from '../../../../../auth';
 import {
+  type ArtifactId,
   type ChangeId,
   type CommitId,
   NotFoundError as VersionControlNotFoundError,
   RepositoryError as VersionControlRepositoryError,
-  type ResolvedArtifactId,
   UNCOMMITTED_CHANGE_ID,
 } from '../../../../../infrastructure/version-control';
 import {
@@ -115,7 +115,7 @@ beforeEach(() => {
 describe('documents', () => {
   describe('deleteDocument', () => {
     const docPath = 'doc.md';
-    const docId = `/blob/main/${docPath}` as ResolvedArtifactId;
+    const docId = `/blob/main/${docPath}` as ArtifactId;
     const commitOid = 'aabbccddaabbccddaabbccddaabbccddaabbccdd';
 
     it('commits the removal when there are staged changes', async () => {
@@ -160,7 +160,7 @@ describe('documents', () => {
         store
           .deleteDocument({
             projectId: PROJECT_PATH,
-            documentId: 'not-a-blob-ref' as ResolvedArtifactId,
+            documentId: 'not-a-blob-ref' as ArtifactId,
           })
           .pipe(Effect.flip)
       );
@@ -223,8 +223,8 @@ describe('documents', () => {
 
   describe('deleteDocuments', () => {
     const commitOid = 'aabbccddaabbccddaabbccddaabbccddaabbccdd';
-    const docIdA = `/blob/main/a.md` as ResolvedArtifactId;
-    const docIdB = `/blob/main/b.md` as ResolvedArtifactId;
+    const docIdA = `/blob/main/a.md` as ArtifactId;
+    const docIdB = `/blob/main/b.md` as ArtifactId;
     const docIds = [docIdA, docIdB];
 
     it('commits removal of multiple documents when there are staged changes', async () => {
@@ -479,7 +479,7 @@ describe('documents', () => {
 
     describe('when changeId is a commit hash', () => {
       const commitHash = 'abc1234';
-      const docId = `/blob/${commitHash}/${docPath}` as ResolvedArtifactId;
+      const docId = `/blob/${commitHash}/${docPath}` as ArtifactId;
       const commitOid = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
       it('returns the document content at the given commit', async () => {
@@ -602,7 +602,7 @@ describe('documents', () => {
     });
 
     describe('when changeId is uncommitted', () => {
-      const docId = `/blob/main/${docPath}` as ResolvedArtifactId;
+      const docId = `/blob/main/${docPath}` as ArtifactId;
 
       it('returns the current document from the filesystem', async () => {
         const content = '# Current content';
@@ -630,7 +630,7 @@ describe('documents', () => {
           store
             .getDocumentAtChange({
               projectId,
-              documentId: 'not-a-blob-ref' as ResolvedArtifactId,
+              documentId: 'not-a-blob-ref' as ArtifactId,
               changeId: 'abc1234' as ChangeId,
             })
             .pipe(Effect.flip)
@@ -644,7 +644,7 @@ describe('documents', () => {
           store
             .getDocumentAtChange({
               projectId,
-              documentId: `/blob/abc1234/${docPath}` as ResolvedArtifactId,
+              documentId: `/blob/abc1234/${docPath}` as ArtifactId,
               changeId: 'not-a-hash!' as ChangeId,
             })
             .pipe(Effect.flip)
@@ -657,7 +657,7 @@ describe('documents', () => {
 
   describe('discardUncommittedChanges', () => {
     const docPath = 'doc.md';
-    const docId = `/blob/main/${docPath}` as ResolvedArtifactId;
+    const docId = `/blob/main/${docPath}` as ArtifactId;
     const lastCommitOid = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
     beforeEach(() => {

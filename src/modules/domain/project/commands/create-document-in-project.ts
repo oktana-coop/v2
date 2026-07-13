@@ -14,7 +14,7 @@ import {
   RepositoryError as FilesystemRepositoryError,
   toDirectory,
 } from '../../../../modules/infrastructure/filesystem';
-import { type ResolvedArtifactId } from '../../../../modules/infrastructure/version-control';
+import { type ArtifactId } from '../../../../modules/infrastructure/version-control';
 import { RepositoryError, ValidationError } from '../errors';
 import { type ProjectId } from '../models';
 import { type ProjectStore } from '../ports';
@@ -23,7 +23,7 @@ export type CreateDocumentInProjectArgs = {
   content: string | null;
   projectId: ProjectId;
   projectDirectory: Directory;
-  parentDirectoryId: ResolvedArtifactId | undefined;
+  parentDirectoryId: ArtifactId | undefined;
 };
 
 export type CreateDocumentInProjectDeps = {
@@ -35,7 +35,7 @@ export type CreateDocumentInProjectDeps = {
 };
 
 export type CreateDocumentInProjectResult = {
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
   filePath: string;
 };
 

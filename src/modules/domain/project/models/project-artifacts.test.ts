@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { filesystemItemTypes } from '../../../infrastructure/filesystem';
-import { type ResolvedArtifactId } from '../../../infrastructure/version-control';
+import { type ArtifactId } from '../../../infrastructure/version-control';
 import {
   type ArtifactTreeNode,
   findNodeByPath,
@@ -16,7 +16,7 @@ const file = ({
   path: string;
   name: string;
 }): ArtifactTreeNode => ({
-  id: path as ResolvedArtifactId,
+  id: path as ArtifactId,
   path: parseProjectRelPath(path),
   name,
   type: filesystemItemTypes.FILE,
@@ -31,7 +31,7 @@ const directory = ({
   name: string;
   children: ArtifactTreeNode[];
 }): ArtifactTreeNode => ({
-  id: path as ResolvedArtifactId,
+  id: path as ArtifactId,
   path: parseProjectRelPath(path),
   name,
   type: filesystemItemTypes.DIRECTORY,

@@ -43,6 +43,7 @@ import {
   NotificationsContext,
 } from '../../../../modules/infrastructure/notifications/browser';
 import {
+  type ArtifactId,
   type Branch,
   type ChangedDocument,
   type ChangeId,
@@ -50,7 +51,6 @@ import {
   DEFAULT_BRANCH,
   type MergeConflictInfo,
   parseBranch,
-  type ResolvedArtifactId,
   UNCOMMITTED_CHANGE_ID,
   urlEncodeArtifactId,
   VersionControlMergeConflictErrorTag,
@@ -63,7 +63,7 @@ import {
 } from './browser-storage';
 
 export type SelectedFileInfo = {
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
   // TODO: make this a ProjectRelPath
   path: string | null;
 };
@@ -89,7 +89,7 @@ export type ProjectContextType = {
   requestPermissionForSelectedDirectory: () => Promise<void>;
   createNewDocument: (args?: CreateNewDocumentArgs) => Promise<{
     projectId: ProjectId;
-    documentId: ResolvedArtifactId;
+    documentId: ArtifactId;
     path: string;
   } | null>;
   findDocumentInProject: (args: {
@@ -111,12 +111,8 @@ export type ProjectContextType = {
   mergeAndDeleteBranch: (branch: Branch) => Promise<void>;
   abortMerge: () => Promise<void>;
   refreshConflictsAndMergeIfPossible: () => Promise<void>;
-  resolveConflictByKeepingDocument: (
-    documentId: ResolvedArtifactId
-  ) => Promise<void>;
-  resolveConflictByDeletingDocument: (
-    documentId: ResolvedArtifactId
-  ) => Promise<void>;
+  resolveConflictByKeepingDocument: (documentId: ArtifactId) => Promise<void>;
+  resolveConflictByDeletingDocument: (documentId: ArtifactId) => Promise<void>;
   branchToDelete: Branch | null;
   openDeleteBranchDialog: (branch: Branch) => void;
   closeDeleteBranchDialog: () => void;
@@ -169,11 +165,11 @@ export type ProjectContextType = {
   getProjectUncommittedChanges: () => Promise<ChangedDocument[]>;
   commitChanges: (message: string) => Promise<void>;
   commitDocumentChanges: (args: {
-    documentId: ResolvedArtifactId;
+    documentId: ArtifactId;
     message: string;
   }) => Promise<void>;
   restoreDocumentChanges: (args: {
-    documentId: ResolvedArtifactId;
+    documentId: ArtifactId;
     commit: Commit;
     message?: string;
   }) => Promise<Commit['id']>;
@@ -395,7 +391,7 @@ export const ProjectProvider = ({
       documentId,
       message,
     }: {
-      documentId: ResolvedArtifactId;
+      documentId: ArtifactId;
       message: string;
     }) => {
       if (!projectStore || !projectId) {
@@ -426,7 +422,7 @@ export const ProjectProvider = ({
       commit,
       message,
     }: {
-      documentId: ResolvedArtifactId;
+      documentId: ArtifactId;
       commit: Commit;
       message?: string;
     }) => {
@@ -1511,7 +1507,7 @@ export const ProjectProvider = ({
   }, [projectStore, projectId, navigateToResolveMergeConflicts]);
 
   const handleResolveConflictByKeepingDocument = useCallback(
-    async (documentId: ResolvedArtifactId) => {
+    async (documentId: ArtifactId) => {
       if (!projectStore || !projectId) {
         throw new Error(
           'Project store is not ready or project has not been set yet. Cannot resolve the conflict.'
@@ -1541,7 +1537,7 @@ export const ProjectProvider = ({
   );
 
   const handleResolveConflictByDeletingDocument = useCallback(
-    async (documentId: ResolvedArtifactId) => {
+    async (documentId: ArtifactId) => {
       if (!projectStore || !projectId) {
         throw new Error(
           'Project store is not ready or project has not been set yet. Cannot resolve the conflict.'

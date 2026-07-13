@@ -1,26 +1,24 @@
 import {
   decodeUrlEncodedArtifactId,
-  isValidResolvedArtifactId,
-  parseResolvedArtifactId,
+  parseArtifactId,
   urlEncodeArtifactId,
 } from './index';
 
-describe('ResolvedArtifactId', () => {
+describe('ArtifactId', () => {
   it.each([
     '/blob/main/src/index.ts', // git blob ref
     'README.md', // path-shaped
     'automerge:2akvvn8kLtfzHmWhBLRryZDif2CE', // non-git store id
   ])('accepts any non-empty opaque id: %s', (id) => {
-    expect(isValidResolvedArtifactId(id)).toBe(true);
+    expect(parseArtifactId(id)).toBe(id);
   });
 
   it('rejects empty ids', () => {
-    expect(isValidResolvedArtifactId('')).toBe(false);
-    expect(() => parseResolvedArtifactId('')).toThrow();
+    expect(() => parseArtifactId('')).toThrow();
   });
 
   it('round-trips ids through URL encoding', () => {
-    const id = parseResolvedArtifactId('/blob/main/notes & drafts/plan.md');
+    const id = parseArtifactId('/blob/main/notes & drafts/plan.md');
 
     expect(decodeUrlEncodedArtifactId(urlEncodeArtifactId(id))).toBe(id);
   });

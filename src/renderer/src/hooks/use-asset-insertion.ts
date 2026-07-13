@@ -5,11 +5,11 @@ import { useCallback, useContext } from 'react';
 
 import { insertAsset } from '../../../modules/domain/project';
 import { type DocumentAsset } from '../../../modules/domain/rich-text';
-import { type ResolvedArtifactId } from '../../../modules/infrastructure/version-control';
+import { type ArtifactId } from '../../../modules/infrastructure/version-control';
 import { InfrastructureAdaptersContext, ProjectContext } from '../app-state';
 
 export const useAssetInsertion = (
-  documentIdOverride?: ResolvedArtifactId
+  documentIdOverride?: ArtifactId
 ): (() => Promise<DocumentAsset | null>) => {
   const { projectId, projectStore, selectedFileInfo, refreshDirectoryTree } =
     useContext(ProjectContext);

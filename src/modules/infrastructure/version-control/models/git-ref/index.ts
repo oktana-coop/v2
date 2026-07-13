@@ -1,10 +1,7 @@
 import { z } from 'zod';
 
+import { type ArtifactId, artifactIdSchema } from '../artifact-id';
 import { isValidBranchOrTagName } from '../branch';
-import {
-  type ResolvedArtifactId,
-  resolvedArtifactIdSchema,
-} from '../resolved-artifact-id';
 
 export const GIT_SHA_REGEX = /^[0-9a-f]{4,40}$/; // Commit SHA (short or full)
 
@@ -16,7 +13,7 @@ const isValidGitRefComponent = (ref: string): boolean =>
 // Git blob reference schema
 // Format: /blob/{ref}/{path}
 // ref can be: commit SHA (4-40 hex chars), branch name, or tag
-export const gitBlobRefSchema = resolvedArtifactIdSchema
+export const gitBlobRefSchema = artifactIdSchema
   .refine(
     (val) => {
       // Must start with /blob/
@@ -48,7 +45,7 @@ export const gitBlobRefSchema = resolvedArtifactIdSchema
 
 export type GitBlobRef = z.infer<typeof gitBlobRefSchema>;
 
-export const isGitBlobRef = (id: ResolvedArtifactId): id is GitBlobRef => {
+export const isGitBlobRef = (id: ArtifactId): id is GitBlobRef => {
   return typeof id === 'string' && id.startsWith('/blob/');
 };
 
@@ -76,7 +73,7 @@ export const createGitBlobRef = ({
 
 // Directory (tree) reference: /tree/{ref}/{path}.
 // ref can be: commit SHA (4-40 hex chars), branch name, or tag
-export const gitTreeRefSchema = resolvedArtifactIdSchema
+export const gitTreeRefSchema = artifactIdSchema
   .refine((val) => {
     if (!val.startsWith('/tree/')) return false;
     const parts = val.split('/');
@@ -89,13 +86,13 @@ export const gitTreeRefSchema = resolvedArtifactIdSchema
 
 export type GitTreeRef = z.infer<typeof gitTreeRefSchema>;
 
-export const isGitTreeRef = (id: ResolvedArtifactId): id is GitTreeRef =>
+export const isGitTreeRef = (id: ArtifactId): id is GitTreeRef =>
   typeof id === 'string' && id.startsWith('/tree/');
 
 // A git artifact id, either a blob (document/asset) or tree (directory) ref.
 export type GitRef = GitBlobRef | GitTreeRef;
 
-export const isGitRef = (id: ResolvedArtifactId): id is GitRef =>
+export const isGitRef = (id: ArtifactId): id is GitRef =>
   isGitBlobRef(id) || isGitTreeRef(id);
 
 // Both /blob/ and /tree/ refs share the {kind}/{ref}/{path} layout, so a single

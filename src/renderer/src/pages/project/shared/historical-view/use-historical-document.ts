@@ -6,6 +6,7 @@ import { useParams, useSearchParams } from 'react-router';
 import { VersionedProjectDeletedDocumentErrorTag } from '../../../../../../modules/domain/project';
 import { type VersionedDocument } from '../../../../../../modules/domain/rich-text';
 import {
+  type ArtifactId,
   type Change,
   type ChangeId,
   changeIdsAreSame,
@@ -18,7 +19,6 @@ import {
   isCommitWithUrlInfo,
   isUncommittedChangeId,
   parseGitCommitHash,
-  type ResolvedArtifactId,
   urlEncodeChangeId,
 } from '../../../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../../../modules/personalization/browser';
@@ -88,7 +88,7 @@ export type UseHistoricalDocumentArgs = {
 };
 
 export type UseHistoricalDocumentResult = {
-  documentId: ResolvedArtifactId | null;
+  documentId: ArtifactId | null;
   changeId: ChangeId | null;
   documentPath: string | null;
   isUncommitted: boolean;
@@ -228,7 +228,7 @@ export const useHistoricalDocument = ({
   const [error, setError] = useState<string | null>(null);
 
   const getDocumentAtChange = useCallback(
-    async (args: { documentId: ResolvedArtifactId; changeId: ChangeId }) => {
+    async (args: { documentId: ArtifactId; changeId: ChangeId }) => {
       if (!projectStore || !projectId) {
         throw new Error(
           'Versioned document store not ready yet or mismatched project.'
@@ -256,7 +256,7 @@ export const useHistoricalDocument = ({
 
   const isContentSameAtChanges = useCallback(
     async (args: {
-      documentId: ResolvedArtifactId;
+      documentId: ArtifactId;
       change1: ChangeId;
       change2: ChangeId;
     }) => {

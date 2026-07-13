@@ -29,6 +29,7 @@ import {
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../../modules/infrastructure/filesystem';
 import {
+  type ArtifactId,
   type Change,
   type ChangeId,
   type Commit,
@@ -45,7 +46,6 @@ import {
   parseGitCommitHashEffect,
   readBlobAtCommit,
   removeFile as removeFileFromGit,
-  type ResolvedArtifactId,
   type UncommitedChange,
   UNCOMMITTED_CHANGE_ID,
   VersionControlNotFoundErrorTag,
@@ -153,7 +153,7 @@ export const createDocumentOps = ({
 }): DocumentOps => {
   const buildDocumentAbsolutePathFromId: (args: {
     projectDir: string;
-    id: ResolvedArtifactId;
+    id: ArtifactId;
   }) => Effect.Effect<string, ValidationError | RepositoryError, never> = ({
     projectDir,
     id,
@@ -408,7 +408,7 @@ export const createDocumentOps = ({
 
   const getDocumentFromFs: (
     projectId: ProjectId,
-    documentId: ResolvedArtifactId
+    documentId: ArtifactId
   ) => Effect.Effect<
     RichTextDocument,
     ValidationError | RepositoryError | NotFoundError | MigrationError,
@@ -504,7 +504,7 @@ export const createDocumentOps = ({
 
   const deleteDocumentFromFilesystem: (args: {
     projectDir: string;
-    documentId: ResolvedArtifactId;
+    documentId: ArtifactId;
     deleteFromFilesystem?: boolean;
   }) => Effect.Effect<void, ValidationError | RepositoryError, never> = ({
     projectDir,
@@ -653,7 +653,7 @@ export const createDocumentOps = ({
 
   const getUncommittedDocumentStateHash: (
     projectId: ProjectId,
-    documentId: ResolvedArtifactId
+    documentId: ArtifactId
   ) => Effect.Effect<
     string,
     ValidationError | RepositoryError | NotFoundError | MigrationError,
@@ -675,7 +675,7 @@ export const createDocumentOps = ({
 
   const getDocumentHashAtChange: (args: {
     projectId: ProjectId;
-    documentId: ResolvedArtifactId;
+    documentId: ArtifactId;
     changeId: Change['id'];
   }) => Effect.Effect<
     string,
@@ -842,7 +842,7 @@ export const createDocumentOps = ({
     documentId,
   }: {
     projectDir: string;
-    documentId: ResolvedArtifactId;
+    documentId: ArtifactId;
   }) =>
     pipe(
       extractArtifactRelativePathFromId(documentId),
@@ -875,7 +875,7 @@ export const createDocumentOps = ({
     documentIds,
   }: {
     projectDir: string;
-    documentIds: ResolvedArtifactId[];
+    documentIds: ArtifactId[];
   }) =>
     pipe(
       Effect.forEach(documentIds, extractArtifactRelativePathFromId),
@@ -914,7 +914,7 @@ export const createDocumentOps = ({
     documentPath: string,
     commitId: GitCommitHash
   ): Effect.Effect<
-    ResolvedArtifactId,
+    ArtifactId,
     NotFoundError | RepositoryError | ValidationError,
     never
   > =>

@@ -8,9 +8,9 @@ import {
   urlEncodeProjectId,
 } from '../../../modules/domain/project';
 import {
+  type ArtifactId,
   type ChangeId,
   isGitCommitHash,
-  type ResolvedArtifactId,
   UNCOMMITTED_CHANGE_ID,
   urlEncodeArtifactId,
   urlEncodeChangeId,
@@ -27,7 +27,7 @@ export const useProjectHistoryArtifactSelection = () => {
 
     const resolvedChangeId = changeId ?? UNCOMMITTED_CHANGE_ID;
 
-    const resolveArtifactId = async (): Promise<ResolvedArtifactId> => {
+    const resolveArtifactId = async (): Promise<ArtifactId> => {
       if (
         inferArtifactTypeFromExtension(path) !==
         versionedArtifactTypes.RICH_TEXT_DOCUMENT

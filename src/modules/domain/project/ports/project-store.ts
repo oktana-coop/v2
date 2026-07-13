@@ -7,6 +7,7 @@ import type {
 } from '../../../../modules/domain/rich-text';
 import { type AlreadyExistsError } from '../../../../modules/infrastructure/filesystem';
 import {
+  type ArtifactId,
   type Branch,
   type Change,
   type ChangedDocument,
@@ -15,7 +16,6 @@ import {
   MergeConflictError,
   type MergeConflictInfo,
   MigrationError,
-  type ResolvedArtifactId,
 } from '../../../../modules/infrastructure/version-control';
 import { type Email, type Username } from '../../../auth';
 import {
@@ -55,7 +55,7 @@ export type AddAssetToProjectArgs = {
 
 export type DeleteAssetFromProjectArgs = {
   projectId: ProjectId;
-  assetId: ResolvedArtifactId;
+  assetId: ArtifactId;
 };
 
 export type LookupAssetByNameInProjectArgs = {
@@ -70,7 +70,7 @@ export type ReadAssetBytesFromProjectArgs = {
 
 export type ReadDocumentReferencedAssetsFromProjectArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
 };
 
 export type GetProjectRelativePathArgs = {
@@ -80,7 +80,7 @@ export type GetProjectRelativePathArgs = {
 
 export type DeleteDocumentsArgs = {
   projectId: ProjectId;
-  documentIds: ResolvedArtifactId[];
+  documentIds: ArtifactId[];
   deleteFromFilesystem?: boolean;
   directoryPath?: string;
 };
@@ -114,7 +114,7 @@ export type ProjectCommitChangesArgs = {
 
 export type ProjectCommitDocumentChangesArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
   message: string;
 };
 
@@ -126,7 +126,7 @@ export type CommitDocumentChangesResult = {
 
 export type ProjectRestoreDocumentChangesArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
   commit: Commit;
   message?: string;
 };
@@ -185,12 +185,12 @@ export type ProjectAbortMergeArgs = {
 
 export type ProjectResolveConflictByKeepingDocumentArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
 };
 
 export type ProjectResolveConflictByDeletingDocumentArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
 };
 
 export type ProjectCommitMergeConflictsResolutionArgs = {
@@ -261,18 +261,18 @@ export type CreateDocumentArgs = {
 
 export type CreateDirectoryArgs = {
   projectId: ProjectId;
-  parentDirectoryId?: ResolvedArtifactId;
+  parentDirectoryId?: ArtifactId;
   name: string;
 };
 
 export type DeleteDirectoryArgs = {
   projectId: ProjectId;
-  directoryId: ResolvedArtifactId;
+  directoryId: ArtifactId;
 };
 
 export type GetArtifactPathByIdArgs = {
   projectId: ProjectId;
-  artifactId: ResolvedArtifactId;
+  artifactId: ArtifactId;
 };
 
 export type LookupArtifactByPathArgs = {
@@ -284,30 +284,30 @@ export type LookupArtifactByPathArgs = {
 
 export type FindDocumentByIdArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
 };
 
 export type GetDocumentLastChangeIdArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
 };
 
 export type UpdateRichTextDocumentContentArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
   representation: RichTextRepresentation;
   content: string;
 };
 
 export type DeleteDocumentArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
   deleteFromFilesystem?: boolean;
 };
 
 export type GetDocumentHistoryArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
 };
 
 export type GetDocumentHistoryResponse = {
@@ -320,25 +320,25 @@ export type GetDocumentHistoryResponse = {
 
 export type GetDocumentAtChangeArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
   changeId: Change['id'];
 };
 
 export type IsContentSameAtChangesArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
   change1: Change['id'];
   change2: Change['id'];
 };
 
 export type DiscardUncommittedChangesArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
 };
 
 export type ResolveContentConflictArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
 };
 
 export type ProjectStore = {
@@ -349,11 +349,7 @@ export type ProjectStore = {
   ) => Effect.Effect<ProjectRelPath, ValidationError | RepositoryError, never>;
   lookupArtifactByPath: (
     args: LookupArtifactByPathArgs
-  ) => Effect.Effect<
-    ResolvedArtifactId,
-    ValidationError | RepositoryError,
-    never
-  >;
+  ) => Effect.Effect<ArtifactId, ValidationError | RepositoryError, never>;
   createProject: (
     args: CreateProjectArgs
   ) => Effect.Effect<ProjectId, ValidationError | RepositoryError, never>;
@@ -410,7 +406,7 @@ export type ProjectStore = {
   lookupDocumentInProject: (
     args: LookupDocumentInProjectArgs
   ) => Effect.Effect<
-    ResolvedArtifactId,
+    ArtifactId,
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
@@ -424,7 +420,7 @@ export type ProjectStore = {
   addAssetToProject: (
     args: AddAssetToProjectArgs
   ) => Effect.Effect<
-    ResolvedArtifactId,
+    ArtifactId,
     ValidationError | MigrationError | RepositoryError | NotFoundError,
     never
   >;
@@ -438,7 +434,7 @@ export type ProjectStore = {
   lookupAssetByName: (
     args: LookupAssetByNameInProjectArgs
   ) => Effect.Effect<
-    ResolvedArtifactId,
+    ArtifactId,
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
@@ -586,11 +582,7 @@ export type ProjectStore = {
   >;
   createDocument: (
     args: CreateDocumentArgs
-  ) => Effect.Effect<
-    ResolvedArtifactId,
-    ValidationError | RepositoryError,
-    never
-  >;
+  ) => Effect.Effect<ArtifactId, ValidationError | RepositoryError, never>;
   createDirectory: (
     args: CreateDirectoryArgs
   ) => Effect.Effect<

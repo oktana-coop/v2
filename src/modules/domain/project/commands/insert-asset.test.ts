@@ -7,7 +7,7 @@ import {
   type File,
   filesystemItemTypes,
 } from '../../../../modules/infrastructure/filesystem';
-import { type ResolvedArtifactId } from '../../../../modules/infrastructure/version-control';
+import { type ArtifactId } from '../../../../modules/infrastructure/version-control';
 import { NotFoundError as VersionedProjectNotFoundError } from '../errors';
 import { parseProjectId, type ProjectId } from '../models';
 import { insertAsset, type InsertAssetDeps } from './insert-asset';
@@ -17,7 +17,7 @@ const projectId: ProjectId = parseProjectId(PROJECT_ROOT);
 // The referencing document lives at the project root, so an asset's
 // document-relative src equals its project-relative path. `getArtifactPathById`
 // is mocked, so the id's actual value is irrelevant.
-const documentId = 'note.md' as unknown as ResolvedArtifactId;
+const documentId = 'note.md' as unknown as ArtifactId;
 
 const alreadyInProjectAt = (relPath: string) =>
   vi.fn().mockReturnValue(Effect.succeed(relPath));

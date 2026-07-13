@@ -6,11 +6,11 @@ import {
   type RepositoryError as FilesystemRepositoryError,
 } from '../../../../../../modules/infrastructure/filesystem';
 import {
+  type ArtifactId,
   createGitBlobRef,
   decomposeGitRef,
   type GitRef,
   isGitRef,
-  type ResolvedArtifactId,
 } from '../../../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../../../utils/errors';
 import { ValidationError } from '../../../errors';
@@ -21,7 +21,7 @@ import {
 import { type ProjectStore } from '../../../ports';
 
 export const ensureArtifactIdIsGitRef: (
-  id: ResolvedArtifactId
+  id: ArtifactId
 ) => Effect.Effect<GitRef, ValidationError, never> = (id) =>
   pipe(
     Effect.succeed(id),
@@ -32,7 +32,7 @@ export const ensureArtifactIdIsGitRef: (
   );
 
 export const extractArtifactRelativePathFromId: (
-  id: ResolvedArtifactId
+  id: ArtifactId
 ) => Effect.Effect<ProjectRelPath, ValidationError, never> = (id) =>
   pipe(
     ensureArtifactIdIsGitRef(id),
@@ -62,7 +62,7 @@ export const resolveAbsolutePath = ({
 }: {
   filesystem: Filesystem;
   projectDir: string;
-  artifactId: ResolvedArtifactId;
+  artifactId: ArtifactId;
 }): Effect.Effect<string, ValidationError | FilesystemRepositoryError> =>
   pipe(
     extractArtifactRelativePathFromId(artifactId),

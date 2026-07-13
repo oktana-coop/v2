@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from 'react';
 
 import { inferArtifactTypeFromExtension } from '../../../modules/domain/project';
 import {
-  type ResolvedArtifactId,
+  type ArtifactId,
   versionedArtifactTypes,
 } from '../../../modules/infrastructure/version-control';
 import { ProjectContext } from '../app-state';
@@ -10,7 +10,7 @@ import { ProjectContext } from '../app-state';
 export const useCurrentDocumentId = () => {
   const { selectedFileInfo } = useContext(ProjectContext);
 
-  const [id, setId] = useState<ResolvedArtifactId | null>(null);
+  const [id, setId] = useState<ArtifactId | null>(null);
 
   useEffect(() => {
     const path = selectedFileInfo?.path;

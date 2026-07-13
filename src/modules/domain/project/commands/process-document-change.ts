@@ -7,8 +7,8 @@ import {
   type RichTextDocument,
 } from '../../../../modules/domain/rich-text';
 import {
+  type ArtifactId,
   MigrationError,
-  type ResolvedArtifactId,
 } from '../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../utils/errors';
 import { NotFoundError, RepositoryError, ValidationError } from '../errors';
@@ -17,7 +17,7 @@ import { type ProjectStore } from '../ports';
 
 export type ProcessDocumentChangeArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
   updatedDocument: RichTextDocument;
 };
 

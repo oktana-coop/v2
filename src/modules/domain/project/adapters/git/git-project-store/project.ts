@@ -10,10 +10,10 @@ import {
   FilesystemRepositoryErrorTag,
 } from '../../../../../../modules/infrastructure/filesystem';
 import {
+  type ArtifactId,
   cloneRepository as cloneGitRepo,
   createGitBlobRef,
   DEFAULT_BRANCH,
-  type ResolvedArtifactId,
   VersionControlRepositoryErrorTag,
   versionedArtifactTypes,
   writeGitignore,
@@ -79,8 +79,8 @@ export const findProjectById = ({
       Effect.reduce(
         files,
         {
-          documents: {} as Record<ResolvedArtifactId, ArtifactMetaData>,
-          assets: {} as Record<ResolvedArtifactId, ArtifactMetaData>,
+          documents: {} as Record<ArtifactId, ArtifactMetaData>,
+          assets: {} as Record<ArtifactId, ArtifactMetaData>,
         },
         (acc, file) =>
           pipe(

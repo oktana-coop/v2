@@ -2,9 +2,9 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import {
+  type ArtifactId,
   type Change,
   CommitId,
-  type ResolvedArtifactId,
 } from '../../../infrastructure/version-control';
 import {
   RepresentationTransformError,
@@ -14,16 +14,16 @@ import { RichTextDocument, type VersionedDocument } from '../models';
 import { type MergeConflictResolver } from '../ports';
 
 export type SuggestMergeArgs = {
-  sourceDocumentId: ResolvedArtifactId;
-  targetDocumentId: ResolvedArtifactId;
-  commonAncestorDocumentId: ResolvedArtifactId;
+  sourceDocumentId: ArtifactId;
+  targetDocumentId: ArtifactId;
+  commonAncestorDocumentId: ArtifactId;
   sourceCommitId: CommitId;
   targetCommitId: CommitId;
   commonAncestorCommitId: CommitId;
 };
 
 type GetDocumentAtChange<E> = (args: {
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
   changeId: Change['id'];
 }) => Effect.Effect<VersionedDocument, E, never>;
 

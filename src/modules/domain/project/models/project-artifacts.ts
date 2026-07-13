@@ -3,14 +3,14 @@ import {
   filesystemItemTypes,
 } from '../../../infrastructure/filesystem';
 import {
-  type ResolvedArtifactId,
+  type ArtifactId,
   versionedArtifactTypes,
 } from '../../../infrastructure/version-control';
 import { inferArtifactTypeFromExtension } from './document-asset-paths';
 import { type ProjectRelPath } from './project-rel-path';
 
 export type BaseArtifactMetaData = {
-  id: ResolvedArtifactId;
+  id: ArtifactId;
 };
 
 export type ArtifactMetaData = BaseArtifactMetaData & {

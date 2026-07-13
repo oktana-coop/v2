@@ -1,4 +1,4 @@
-import { type ResolvedArtifactId } from '../resolved-artifact-id';
+import { type ArtifactId } from '../artifact-id';
 import {
   createGitBlobRef,
   createGitTreeRef,
@@ -203,6 +203,6 @@ describe('isGitRef', () => {
   });
 
   it('rejects a non-git artifact id', () => {
-    expect(isGitRef('automerge:abc123' as ResolvedArtifactId)).toBe(false);
+    expect(isGitRef('automerge:abc123' as ArtifactId)).toBe(false);
   });
 });

@@ -12,8 +12,8 @@ import {
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../modules/infrastructure/filesystem';
 import {
+  type ArtifactId,
   MigrationError,
-  type ResolvedArtifactId,
 } from '../../../../modules/infrastructure/version-control';
 import { type AssetDocRelPath } from '../../rich-text';
 import { ASSET_FILE_EXTENSIONS } from '../constants';
@@ -32,7 +32,7 @@ import { findAvailableAssetName } from './find-available-asset-name';
 
 export type InsertAssetArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
 };
 
 export type InsertAssetDeps = {

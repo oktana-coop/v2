@@ -17,11 +17,11 @@ import {
   NotificationsContext,
 } from '../../../modules/infrastructure/notifications/browser';
 import {
+  type ArtifactId,
   type CompareContentConflict,
   isCompareContentConflict,
   isStructuralConflict,
   type MergeConflictInfo,
-  type ResolvedArtifactId,
   type StructuralConflict,
 } from '../../../modules/infrastructure/version-control';
 import { InfrastructureAdaptersContext, ProjectContext } from '../app-state';
@@ -81,9 +81,9 @@ export const useMergeConflictResolution = () => {
       mergeConflictInfo,
     }: {
       projectId: ProjectId;
-      sourceDocumentId: ResolvedArtifactId;
-      targetDocumentId: ResolvedArtifactId;
-      commonAncestorDocumentId: ResolvedArtifactId;
+      sourceDocumentId: ArtifactId;
+      targetDocumentId: ArtifactId;
+      commonAncestorDocumentId: ArtifactId;
       mergeConflictInfo: MergeConflictInfo;
     }) => {
       if (!projectStore) {
@@ -120,7 +120,7 @@ export const useMergeConflictResolution = () => {
       projectId,
       doc,
     }: {
-      documentId: ResolvedArtifactId;
+      documentId: ArtifactId;
       projectId: ProjectId;
       doc: RichTextDocument;
     }) => {

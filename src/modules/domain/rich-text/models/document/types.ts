@@ -1,6 +1,6 @@
 import {
+  type ArtifactId,
   type ResolvedArtifact,
-  type ResolvedArtifactId,
   type VersionedArtifact,
   versionedArtifactTypes,
 } from '../../../../../modules/infrastructure/version-control';
@@ -17,7 +17,4 @@ export type RichTextDocument = {
 
 export type VersionedDocument = VersionedArtifact<RichTextDocument>;
 
-export type ResolvedDocument = ResolvedArtifact<
-  ResolvedArtifactId,
-  RichTextDocument
->;
+export type ResolvedDocument = ResolvedArtifact<ArtifactId, RichTextDocument>;
