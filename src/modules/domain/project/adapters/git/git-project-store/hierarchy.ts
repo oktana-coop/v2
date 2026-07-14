@@ -38,7 +38,7 @@ const toArtifactTreeNode =
             ? pipe(
                 Effect.forEach(node.children ?? [], toArtifactTreeNode(ref)),
                 Effect.map((children) => ({
-                  id: createGitTreeRef({ ref, path: node.path }),
+                  id: createGitTreeRef({ ref, path }),
                   name: node.name,
                   path,
                   type: node.type,
@@ -46,7 +46,7 @@ const toArtifactTreeNode =
                 }))
               )
             : Effect.succeed({
-                id: createGitBlobRef({ ref, path: node.path }),
+                id: createGitBlobRef({ ref, path }),
                 name: node.name,
                 path,
                 type: node.type,
@@ -62,25 +62,28 @@ export const createHierarchyOps = ({
   filesystem: Filesystem;
 }): HierarchyOps => {
   const getProjectTree: HierarchyOps['getProjectTree'] = (id) =>
-    Effect.Do.pipe(
-      Effect.bind('projectDir', () => ensureProjectIdIsFsPath(id)),
-      Effect.bind('currentBranch', ({ projectDir }) =>
-        getCurrentBranch({ isoGitFs, projectDir })
-      ),
-      Effect.bind('tree', ({ projectDir }) =>
-        pipe(
-          filesystem.listDirectoryTree({
-            path: projectDir,
-            extensions: [
-              richTextRepresentationExtensions[
-                PRIMARY_RICH_TEXT_REPRESENTATION
-              ],
-            ],
-            useRelativePathTo: projectDir,
-          }),
-          Effect.catchAll(() =>
-            Effect.fail(new RepositoryError('Git repo error'))
-          )
+    pipe(
+      ensureProjectIdIsFsPath(id),
+      Effect.flatMap((projectDir) =>
+        Effect.all(
+          {
+            currentBranch: getCurrentBranch({ isoGitFs, projectDir }),
+            tree: pipe(
+              filesystem.listDirectoryTree({
+                path: projectDir,
+                extensions: [
+                  richTextRepresentationExtensions[
+                    PRIMARY_RICH_TEXT_REPRESENTATION
+                  ],
+                ],
+                useRelativePathTo: projectDir,
+              }),
+              Effect.catchAll(() =>
+                Effect.fail(new RepositoryError('Git repo error'))
+              )
+            ),
+          },
+          { concurrency: 'unbounded' }
         )
       ),
       Effect.flatMap(({ tree, currentBranch }) =>

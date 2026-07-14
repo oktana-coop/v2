@@ -89,7 +89,7 @@ export const findProjectById = ({
               // TODO: Handle errors returned by createGitBlobRef
               const artifactId = createGitBlobRef({
                 ref: currentBranch,
-                path: file.path,
+                path,
               });
               const isDocument =
                 inferArtifactTypeFromExtension(file.path) ===
