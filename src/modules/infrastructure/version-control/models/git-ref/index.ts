@@ -104,6 +104,9 @@ export const decomposeGitRef = (
   path: string;
   refType: 'commit' | 'branch-or-tag';
 } => {
+  // TODO: This treats the ref as a single segment, so a slash-containing
+  // branch/tag name (e.g. `feature/x`) is mis-split into the wrong ref and
+  // path.
   const parts = ref.split('/');
   const gitRef = parts[2];
 
