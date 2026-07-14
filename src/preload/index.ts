@@ -35,7 +35,7 @@ import {
   type RenameArgs,
   type WriteFileArgs,
 } from '../modules/infrastructure/filesystem';
-import type { ResolvedArtifactId } from '../modules/infrastructure/version-control';
+import type { ArtifactId } from '../modules/infrastructure/version-control';
 import type {
   RunWasiCLIArgs,
   Wasm as WasmAPI,
@@ -56,7 +56,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('renderer-process-id', (_, processId) =>
       callback(processId)
     ),
-  sendCurrentDocumentId: (id: ResolvedArtifactId) =>
+  sendCurrentDocumentId: (id: ArtifactId) =>
     ipcRenderer.send('current-document-id', id),
   openExternalLink: (url: string) =>
     ipcRenderer.send('open-external-link', url),
@@ -162,16 +162,24 @@ contextBridge.exposeInMainWorld('projectStoreAPI', {
     ipcRenderer.invoke('project-store:find-project-by-id', id),
   listProjectDocuments: (id) =>
     ipcRenderer.invoke('project-store:list-project-documents', id),
+  getProjectTree: (id) =>
+    ipcRenderer.invoke('project-store:get-project-tree', id),
+  createDirectory: (args) =>
+    ipcRenderer.invoke('project-store:create-directory', { ...args }),
+  deleteDirectory: (args) =>
+    ipcRenderer.invoke('project-store:delete-directory', { ...args }),
+  getArtifactPathById: (args) =>
+    ipcRenderer.invoke('project-store:get-artifact-path-by-id', { ...args }),
+  lookupArtifactByPath: (args) =>
+    ipcRenderer.invoke('project-store:lookup-artifact-by-path', { ...args }),
   deleteDocuments: (args) =>
     ipcRenderer.invoke('project-store:delete-documents', {
       ...args,
     }),
   renameDocumentInProject: (args) =>
     ipcRenderer.invoke('project-store:rename-document-in-project', { ...args }),
-  renameDocumentsInProject: (args) =>
-    ipcRenderer.invoke('project-store:rename-documents-in-project', {
-      ...args,
-    }),
+  renameDirectory: (args) =>
+    ipcRenderer.invoke('project-store:rename-directory', { ...args }),
   lookupDocumentInProject: (args) =>
     ipcRenderer.invoke('project-store:lookup-document-in-project', { ...args }),
   findDocumentByPath: (args) =>

@@ -1,6 +1,6 @@
 import { useContext, useMemo } from 'react';
 
-import { listOpenableDocuments } from '../../../../../../modules/domain/project';
+import { listOpenableArtifacts } from '../../../../../../modules/domain/project';
 import { richTextRepresentations } from '../../../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
 import { removeExtension } from '../../../../../../modules/infrastructure/filesystem';
@@ -51,7 +51,7 @@ export const ProjectCommandPalette = ({
 
   const openableDocuments = useMemo(
     () =>
-      listOpenableDocuments(directoryTree).filter(
+      listOpenableArtifacts(directoryTree).filter(
         (doc) => doc.path !== selection
       ),
     [directoryTree, selection]

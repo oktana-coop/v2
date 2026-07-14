@@ -2,8 +2,8 @@ import * as Effect from 'effect/Effect';
 import git from 'isomorphic-git';
 
 import {
+  type ArtifactId,
   type Commit,
-  type ResolvedArtifactId,
 } from '../../../../../infrastructure/version-control';
 import { VersionedProjectRepositoryErrorTag } from '../../../errors';
 import {
@@ -81,7 +81,7 @@ beforeEach(() => {
 describe('committing', () => {
   describe('commitDocumentChanges', () => {
     const docPath = 'doc.md';
-    const docId = `/blob/main/${docPath}` as ResolvedArtifactId;
+    const docId = `/blob/main/${docPath}` as ArtifactId;
     const commitOid = 'aabbccddaabbccddaabbccddaabbccddaabbccdd';
 
     beforeEach(() => {
@@ -145,7 +145,7 @@ describe('committing', () => {
 
   describe('restoreDocumentChanges', () => {
     const docPath = 'doc.md';
-    const docId = `/blob/main/${docPath}` as ResolvedArtifactId;
+    const docId = `/blob/main/${docPath}` as ArtifactId;
     const sourceCommitOid = 'aabbccddaabbccddaabbccddaabbccddaabbccdd';
     const restoreCommitOid = 'ffeeddccffeeddccffeeddccffeeddccffeeddcc';
     const commit = { id: sourceCommitOid, message: 'old' } as Commit;

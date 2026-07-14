@@ -6,8 +6,6 @@ import {
   type Commit,
   decodeUrlEncodedArtifactId,
   decodeUrlEncodedChangeId,
-  decomposeGitBlobRef,
-  isGitBlobRef,
   isUncommittedChangeId,
   urlEncodeChangeId,
 } from '../../../../../../modules/infrastructure/version-control';
@@ -15,7 +13,10 @@ import { ProjectContext } from '../../../../app-state';
 import { PersonalFile } from '../../../../components/illustrations/PersonalFile';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
-import { useProjectHistoryArtifactSelection } from '../../../../hooks';
+import {
+  useArtifactPath,
+  useProjectHistoryArtifactSelection,
+} from '../../../../hooks';
 import { CommitDialog } from '../change-dialogs';
 import { type ProjectHistoryOutletContext } from './main/ProjectHistoryDocumentView';
 import { CommitHistoryPanel } from './sidebar/CommitHistoryPanel';
@@ -144,13 +145,14 @@ export const ProjectHistoryPage = () => {
     '/projects/:projectId/history/:artifactId/changes/:changeId'
   );
 
-  const selectedDocumentPath = useMemo(() => {
+  const selectedDocumentId = useMemo(() => {
     const encodedDocumentId = documentChangeMatch?.params.artifactId;
-    if (!encodedDocumentId) return null;
-    const documentId = decodeUrlEncodedArtifactId(encodedDocumentId);
-    if (!documentId || !isGitBlobRef(documentId)) return null;
-    return decomposeGitBlobRef(documentId).path;
+    return encodedDocumentId
+      ? decodeUrlEncodedArtifactId(encodedDocumentId)
+      : null;
   }, [documentChangeMatch]);
+
+  const { path: selectedDocumentPath } = useArtifactPath(selectedDocumentId);
 
   const selectedCommitId = useMemo((): Commit['id'] | null => {
     const encodedChangeId = documentChangeMatch?.params.changeId;

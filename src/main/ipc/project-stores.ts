@@ -8,18 +8,22 @@ import {
 } from '../../modules/auth/node';
 import {
   type AddAssetToProjectArgs,
+  type CreateDirectoryArgs,
   type CreateDocumentArgs,
   createNodeGitProjectStoreManagerAdapter,
   type CreateProjectArgs,
+  type DeleteDirectoryArgs,
   type DeleteDocumentArgs,
   type DeleteDocumentsArgs,
   type DiscardUncommittedChangesArgs,
   type FindDocumentByIdArgs,
+  type GetArtifactPathByIdArgs,
   type GetDocumentAtChangeArgs,
   type GetDocumentHistoryArgs,
   type GetDocumentLastChangeIdArgs,
   type GetProjectRelativePathArgs,
   type IsContentSameAtChangesArgs,
+  type LookupArtifactByPathArgs,
   type LookupAssetByNameInProjectArgs,
   type LookupDocumentInProjectArgs,
   type OpenOrCreateProjectArgs,
@@ -50,8 +54,8 @@ import {
   type ProjectStoreManager,
   type ProjectSwitchToBranchArgs,
   type ReadDocumentReferencedAssetsFromProjectArgs,
+  type RenameDirectoryArgs,
   type RenameDocumentInProjectArgs,
-  type RenameDocumentsInProjectArgs,
   type ResolveContentConflictArgs,
   type UpdateRichTextDocumentContentArgs,
 } from '../../modules/domain/project/node';
@@ -207,6 +211,63 @@ const registerProjectStoreEvents = ({
       )
   );
 
+  ipcMain.handle('project-store:get-project-tree', async (_, id: ProjectId) =>
+    runPromiseSerializingErrorsForIPC(
+      pipe(
+        getProjectStore(id),
+        Effect.flatMap((projectStore) => projectStore.getProjectTree(id))
+      )
+    )
+  );
+
+  ipcMain.handle(
+    'project-store:create-directory',
+    async (_, args: CreateDirectoryArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) => projectStore.createDirectory(args))
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'project-store:delete-directory',
+    async (_, args: DeleteDirectoryArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) => projectStore.deleteDirectory(args))
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'project-store:get-artifact-path-by-id',
+    async (_, args: GetArtifactPathByIdArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.getArtifactPathById(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'project-store:lookup-artifact-by-path',
+    async (_, args: LookupArtifactByPathArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          getProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.lookupArtifactByPath(args)
+          )
+        )
+      )
+  );
+
   ipcMain.handle(
     'project-store:delete-documents',
     async (_, args: DeleteDocumentsArgs) =>
@@ -232,14 +293,12 @@ const registerProjectStoreEvents = ({
   );
 
   ipcMain.handle(
-    'project-store:rename-documents-in-project',
-    async (_, args: RenameDocumentsInProjectArgs) =>
+    'project-store:rename-directory',
+    async (_, args: RenameDirectoryArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
           getProjectStore(args.projectId),
-          Effect.flatMap((projectStore) =>
-            projectStore.renameDocumentsInProject(args)
-          )
+          Effect.flatMap((projectStore) => projectStore.renameDirectory(args))
         )
       )
   );

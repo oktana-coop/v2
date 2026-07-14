@@ -15,13 +15,14 @@ import {
   NotFoundError,
   RepositoryError,
 } from '../../errors';
-import { type Filesystem } from '../../ports/filesystem';
 import {
   type Directory,
   type File,
   isBinaryFile,
   isTextFile,
-} from '../../types';
+  toDirectory,
+} from '../../models';
+import { type Filesystem } from '../../ports/filesystem';
 import { isHidden, isNodeError, pathContainsHiddenEntries } from './utils';
 
 const showDirPicker = (): Effect.Effect<
@@ -119,30 +120,11 @@ export const createAdapter = (): Filesystem => {
   const openDirectory: Filesystem['openDirectory'] = () =>
     pipe(
       showDirPicker(),
-      Effect.map((result) => {
-        // Get directory path and name
-        const directoryPath = result.filePaths[0];
-        const name = path.basename(directoryPath);
-
-        return {
-          type: filesystemItemTypes.DIRECTORY,
-          name,
-          path: directoryPath,
-          permissionState: 'granted', // TODO: Replace with constant
-        };
-      })
+      Effect.map((result) => toDirectory({ path: result.filePaths[0] }))
     );
 
-  const getDirectory: Filesystem['getDirectory'] = (directoryPath) => {
-    const name = path.basename(directoryPath);
-
-    return Effect.succeed({
-      type: filesystemItemTypes.DIRECTORY,
-      name,
-      path: directoryPath,
-      permissionState: 'granted', // TODO: Replace with constant
-    });
-  };
+  const getDirectory: Filesystem['getDirectory'] = (directoryPath) =>
+    Effect.succeed(toDirectory({ path: directoryPath }));
 
   const listDirectoryFiles: Filesystem['listDirectoryFiles'] = ({
     path: directoryPath,

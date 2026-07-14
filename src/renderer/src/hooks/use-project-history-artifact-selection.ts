@@ -8,10 +8,9 @@ import {
   urlEncodeProjectId,
 } from '../../../modules/domain/project';
 import {
+  type ArtifactId,
   type ChangeId,
-  createGitBlobRef,
-  isGitCommitHash,
-  type ResolvedArtifactId,
+  isCommitId,
   UNCOMMITTED_CHANGE_ID,
   urlEncodeArtifactId,
   urlEncodeChangeId,
@@ -28,12 +27,12 @@ export const useProjectHistoryArtifactSelection = () => {
 
     const resolvedChangeId = changeId ?? UNCOMMITTED_CHANGE_ID;
 
-    const resolveArtifactId = async (): Promise<ResolvedArtifactId> => {
+    const resolveArtifactId = async (): Promise<ArtifactId> => {
       if (
         inferArtifactTypeFromExtension(path) !==
         versionedArtifactTypes.RICH_TEXT_DOCUMENT
       ) {
-        const ref = isGitCommitHash(resolvedChangeId)
+        const ref = isCommitId(resolvedChangeId)
           ? resolvedChangeId
           : currentBranch;
 
@@ -43,13 +42,15 @@ export const useProjectHistoryArtifactSelection = () => {
           );
         }
 
-        return createGitBlobRef({ ref, path });
+        return Effect.runPromise(
+          projectStore.lookupArtifactByPath({ projectId, path, ref })
+        );
       }
 
       // Resolve the artifact ID for this document. When the document was
       // deleted in this commit, the store lookup will fail with NotFoundError.
-      // Fall back to constructing the blob ref directly so the history view
-      // can still display the deletion.
+      // Fall back to a store-minted id at this commit so the history view can
+      // still display the deletion.
       return Effect.runPromise(
         pipe(
           projectStore.lookupDocumentInProject({
@@ -58,13 +59,15 @@ export const useProjectHistoryArtifactSelection = () => {
             changeId: resolvedChangeId,
           }),
           Effect.catchTag('VersionedProjectNotFoundError', () =>
-            isGitCommitHash(resolvedChangeId)
-              ? Effect.succeed(
-                  createGitBlobRef({ ref: resolvedChangeId, path })
-                )
+            isCommitId(resolvedChangeId)
+              ? projectStore.lookupArtifactByPath({
+                  projectId,
+                  path,
+                  ref: resolvedChangeId,
+                })
               : Effect.fail(
                   new Error(
-                    `Document "${path}" not found and change ID is not a commit hash`
+                    `Document "${path}" not found in the uncommitted working tree`
                   )
                 )
           )

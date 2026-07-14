@@ -24,8 +24,9 @@ export const getParentPath = (filepath: string) => {
 };
 
 export const getDirectoryName = (dirPath: string) => {
-  // Remove trailing slash and then split.
-  const parts = dirPath.replace(/\/$/, '').split('/');
+  // Remove a trailing separator (/ or \) and split on both to support
+  // POSIX and Windows paths.
+  const parts = dirPath.replace(/[/\\]$/, '').split(/[/\\]/);
   return parts[parts.length - 1];
 };
 

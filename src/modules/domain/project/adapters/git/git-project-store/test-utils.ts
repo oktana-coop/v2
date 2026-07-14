@@ -12,6 +12,7 @@ import { createAdapter } from './index';
 export const PROJECT_PATH = '/projects/my-project' as ProjectId;
 
 export const mockListDirectoryFiles = vi.fn();
+export const mockListDirectoryTree = vi.fn();
 export const mockGetAbsolutePath = vi.fn();
 export const mockReadTextFile = vi.fn();
 export const mockWriteFile = vi.fn();
@@ -21,6 +22,7 @@ export const mockEnsureDirectory = vi.fn();
 
 export const mockFilesystem: Partial<Filesystem> = {
   listDirectoryFiles: mockListDirectoryFiles,
+  listDirectoryTree: mockListDirectoryTree,
   getAbsolutePath: mockGetAbsolutePath,
   readTextFile: mockReadTextFile,
   writeFile: mockWriteFile,
@@ -42,5 +44,4 @@ export const buildTestStore = () =>
     filesystem: mockFilesystem as Filesystem,
     isoGitHttp: {} as IsoGitHttpApi,
     documentAnalyzer: mockDocumentAnalyzer,
-    managesFilesystemWorkdir: true,
   });

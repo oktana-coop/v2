@@ -33,7 +33,7 @@ export const ContentConflict = ({
 }: ContentConflictProps) => {
   const { projectId } = useContext(ProjectContext);
   const resolveAssetSrc = useAssetSrcResolver(conflict.path);
-  const pickAsset = useAssetInsertion(conflict.path);
+  const pickAsset = useAssetInsertion(conflict.targetArtifactId);
   const [suggestedResolution, setSuggestedResolution] = useState<{
     docBefore: RichTextDocument;
     docAfter: RichTextDocument;

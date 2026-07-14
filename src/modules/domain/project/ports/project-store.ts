@@ -5,7 +5,9 @@ import type {
   RichTextRepresentation,
   VersionedDocument,
 } from '../../../../modules/domain/rich-text';
+import { type AlreadyExistsError } from '../../../../modules/infrastructure/filesystem';
 import {
+  type ArtifactId,
   type Branch,
   type Change,
   type ChangedDocument,
@@ -14,7 +16,6 @@ import {
   MergeConflictError,
   type MergeConflictInfo,
   MigrationError,
-  type ResolvedArtifactId,
 } from '../../../../modules/infrastructure/version-control';
 import { type Email, type Username } from '../../../auth';
 import {
@@ -25,6 +26,7 @@ import {
 } from '../errors';
 import {
   type ArtifactMetaData,
+  type ArtifactTreeNode,
   type Project,
   type ProjectId,
   type ProjectRelPath,
@@ -53,7 +55,7 @@ export type AddAssetToProjectArgs = {
 
 export type DeleteAssetFromProjectArgs = {
   projectId: ProjectId;
-  assetId: ResolvedArtifactId;
+  assetId: ArtifactId;
 };
 
 export type LookupAssetByNameInProjectArgs = {
@@ -68,7 +70,7 @@ export type ReadAssetBytesFromProjectArgs = {
 
 export type ReadDocumentReferencedAssetsFromProjectArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
 };
 
 export type GetProjectRelativePathArgs = {
@@ -78,7 +80,7 @@ export type GetProjectRelativePathArgs = {
 
 export type DeleteDocumentsArgs = {
   projectId: ProjectId;
-  documentIds: ResolvedArtifactId[];
+  documentIds: ArtifactId[];
   deleteFromFilesystem?: boolean;
   directoryPath?: string;
 };
@@ -89,9 +91,14 @@ export type RenameDocumentInProjectArgs = {
   newDocumentPath: string;
 };
 
-export type RenameDocumentsInProjectArgs = {
+export type RenameDirectoryArgs = {
   projectId: ProjectId;
-  documentRenames: Array<{ oldDocumentPath: string; newDocumentPath: string }>;
+  oldDirectoryPath: string;
+  newDirectoryName: string;
+};
+
+export type RenameDirectoryResult = {
+  newDirectoryPath: ProjectRelPath;
 };
 
 export type LookupDocumentInProjectArgs = {
@@ -107,7 +114,7 @@ export type ProjectCommitChangesArgs = {
 
 export type ProjectCommitDocumentChangesArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
   message: string;
 };
 
@@ -119,7 +126,7 @@ export type CommitDocumentChangesResult = {
 
 export type ProjectRestoreDocumentChangesArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
   commit: Commit;
   message?: string;
 };
@@ -178,12 +185,12 @@ export type ProjectAbortMergeArgs = {
 
 export type ProjectResolveConflictByKeepingDocumentArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
 };
 
 export type ProjectResolveConflictByDeletingDocumentArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
 };
 
 export type ProjectCommitMergeConflictsResolutionArgs = {
@@ -252,33 +259,55 @@ export type CreateDocumentArgs = {
   branch?: Branch;
 };
 
+export type CreateDirectoryArgs = {
+  projectId: ProjectId;
+  parentDirectoryId?: ArtifactId;
+  name: string;
+};
+
+export type DeleteDirectoryArgs = {
+  projectId: ProjectId;
+  directoryId: ArtifactId;
+};
+
+export type GetArtifactPathByIdArgs = {
+  projectId: ProjectId;
+  artifactId: ArtifactId;
+};
+
+export type LookupArtifactByPathArgs = {
+  projectId: ProjectId;
+  path: string;
+  // Store-specific version hint (branch or commit for git).
+  ref: string;
+};
+
 export type FindDocumentByIdArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
 };
 
 export type GetDocumentLastChangeIdArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
 };
 
 export type UpdateRichTextDocumentContentArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
   representation: RichTextRepresentation;
   content: string;
-  writeToFileWithPath?: string;
 };
 
 export type DeleteDocumentArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
   deleteFromFilesystem?: boolean;
 };
 
 export type GetDocumentHistoryArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
 };
 
 export type GetDocumentHistoryResponse = {
@@ -291,32 +320,36 @@ export type GetDocumentHistoryResponse = {
 
 export type GetDocumentAtChangeArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
   changeId: Change['id'];
 };
 
 export type IsContentSameAtChangesArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
   change1: Change['id'];
   change2: Change['id'];
 };
 
 export type DiscardUncommittedChangesArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
-  writeToFileWithPath?: string;
+  documentId: ArtifactId;
 };
 
 export type ResolveContentConflictArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
 };
 
 export type ProjectStore = {
   supportsBranching: boolean;
-  managesFilesystemWorkdir: boolean;
   assetsDirName: string;
+  getArtifactPathById: (
+    args: GetArtifactPathByIdArgs
+  ) => Effect.Effect<ProjectRelPath, ValidationError | RepositoryError, never>;
+  lookupArtifactByPath: (
+    args: LookupArtifactByPathArgs
+  ) => Effect.Effect<ArtifactId, ValidationError | RepositoryError, never>;
   createProject: (
     args: CreateProjectArgs
   ) => Effect.Effect<ProjectId, ValidationError | RepositoryError, never>;
@@ -334,6 +367,13 @@ export type ProjectStore = {
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
+  getProjectTree: (
+    id: ProjectId
+  ) => Effect.Effect<
+    ArtifactTreeNode[],
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  >;
   deleteDocuments: (
     args: DeleteDocumentsArgs
   ) => Effect.Effect<
@@ -345,20 +385,28 @@ export type ProjectStore = {
     args: RenameDocumentInProjectArgs
   ) => Effect.Effect<
     void,
-    ValidationError | MigrationError | RepositoryError | NotFoundError,
+    | AlreadyExistsError
+    | ValidationError
+    | MigrationError
+    | RepositoryError
+    | NotFoundError,
     never
   >;
-  renameDocumentsInProject: (
-    args: RenameDocumentsInProjectArgs
+  renameDirectory: (
+    args: RenameDirectoryArgs
   ) => Effect.Effect<
-    void,
-    ValidationError | MigrationError | RepositoryError | NotFoundError,
+    RenameDirectoryResult,
+    | AlreadyExistsError
+    | ValidationError
+    | MigrationError
+    | RepositoryError
+    | NotFoundError,
     never
   >;
   lookupDocumentInProject: (
     args: LookupDocumentInProjectArgs
   ) => Effect.Effect<
-    ResolvedArtifactId,
+    ArtifactId,
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
@@ -372,7 +420,7 @@ export type ProjectStore = {
   addAssetToProject: (
     args: AddAssetToProjectArgs
   ) => Effect.Effect<
-    ResolvedArtifactId,
+    ArtifactId,
     ValidationError | MigrationError | RepositoryError | NotFoundError,
     never
   >;
@@ -386,7 +434,7 @@ export type ProjectStore = {
   lookupAssetByName: (
     args: LookupAssetByNameInProjectArgs
   ) => Effect.Effect<
-    ResolvedArtifactId,
+    ArtifactId,
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
@@ -534,9 +582,19 @@ export type ProjectStore = {
   >;
   createDocument: (
     args: CreateDocumentArgs
+  ) => Effect.Effect<ArtifactId, ValidationError | RepositoryError, never>;
+  createDirectory: (
+    args: CreateDirectoryArgs
   ) => Effect.Effect<
-    ResolvedArtifactId,
-    ValidationError | RepositoryError,
+    void,
+    ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
+  deleteDirectory: (
+    args: DeleteDirectoryArgs
+  ) => Effect.Effect<
+    void,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
   findDocumentById: (

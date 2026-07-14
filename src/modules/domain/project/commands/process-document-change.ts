@@ -7,8 +7,8 @@ import {
   type RichTextDocument,
 } from '../../../../modules/domain/rich-text';
 import {
+  type ArtifactId,
   MigrationError,
-  type ResolvedArtifactId,
 } from '../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../utils/errors';
 import { NotFoundError, RepositoryError, ValidationError } from '../errors';
@@ -17,9 +17,8 @@ import { type ProjectStore } from '../ports';
 
 export type ProcessDocumentChangeArgs = {
   projectId: ProjectId;
-  documentId: ResolvedArtifactId;
+  documentId: ArtifactId;
   updatedDocument: RichTextDocument;
-  writeToFileWithPath: string | null;
 };
 
 export type ProcessDocumentChangeDeps = {
@@ -36,7 +35,6 @@ export const processDocumentChange =
     projectId,
     documentId,
     updatedDocument,
-    writeToFileWithPath,
   }: ProcessDocumentChangeArgs): Effect.Effect<
     void,
     | ValidationError
@@ -67,7 +65,6 @@ export const processDocumentChange =
           documentId,
           representation: PRIMARY_RICH_TEXT_REPRESENTATION,
           content: textContent,
-          writeToFileWithPath: writeToFileWithPath ?? undefined,
         })
       )
     );

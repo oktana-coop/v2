@@ -6,7 +6,7 @@ import {
   urlEncodeProjectId,
 } from '../../../modules/domain/project';
 import {
-  type ResolvedArtifactId,
+  type ArtifactId,
   urlEncodeArtifactId,
 } from '../../../modules/infrastructure/version-control';
 import { ProjectContext } from '../app-state';
@@ -22,15 +22,13 @@ export const useNavigateToArtifact = () => {
     path,
   }: {
     projectId: ProjectId;
-    artifactId: ResolvedArtifactId;
+    artifactId: ArtifactId;
     path: string | null;
   }) => {
     setSelectedFileInfo({ documentId: artifactId, path });
 
-    const newUrl = path
-      ? `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(artifactId)}?path=${encodeURIComponent(path)}`
-      : `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(artifactId)}`;
-
-    navigate(newUrl);
+    navigate(
+      `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(artifactId)}`
+    );
   };
 };

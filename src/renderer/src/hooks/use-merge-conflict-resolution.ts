@@ -17,11 +17,11 @@ import {
   NotificationsContext,
 } from '../../../modules/infrastructure/notifications/browser';
 import {
+  type ArtifactId,
   type CompareContentConflict,
   isCompareContentConflict,
   isStructuralConflict,
   type MergeConflictInfo,
-  type ResolvedArtifactId,
   type StructuralConflict,
 } from '../../../modules/infrastructure/version-control';
 import { InfrastructureAdaptersContext, ProjectContext } from '../app-state';
@@ -31,13 +31,10 @@ export const useMergeConflictResolution = () => {
     mergeConflictInfo: projectMergeConflictInfo,
     abortMerge,
     refreshConflictsAndMergeIfPossible,
-    directory,
     resolveConflictByKeepingDocument,
     resolveConflictByDeletingDocument,
   } = useContext(ProjectContext);
-  const { projectStore, filesystem } = useContext(
-    InfrastructureAdaptersContext
-  );
+  const { projectStore } = useContext(InfrastructureAdaptersContext);
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
   );
@@ -84,9 +81,9 @@ export const useMergeConflictResolution = () => {
       mergeConflictInfo,
     }: {
       projectId: ProjectId;
-      sourceDocumentId: ResolvedArtifactId;
-      targetDocumentId: ResolvedArtifactId;
-      commonAncestorDocumentId: ResolvedArtifactId;
+      sourceDocumentId: ArtifactId;
+      targetDocumentId: ArtifactId;
+      commonAncestorDocumentId: ArtifactId;
       mergeConflictInfo: MergeConflictInfo;
     }) => {
       if (!projectStore) {
@@ -120,12 +117,10 @@ export const useMergeConflictResolution = () => {
   const resolveContentConflict = useCallback(
     async ({
       documentId,
-      relativePath,
       projectId,
       doc,
     }: {
-      documentId: ResolvedArtifactId;
-      relativePath: string;
+      documentId: ArtifactId;
       projectId: ProjectId;
       doc: RichTextDocument;
     }) => {
@@ -147,31 +142,18 @@ export const useMergeConflictResolution = () => {
         );
       }
 
-      if (!directory || !relativePath) {
-        throw new Error('Cannot update file in project');
-      }
-
       try {
         await Effect.runPromise(
           pipe(
-            filesystem.getAbsolutePath({
-              path: relativePath,
-              dirPath: directory.path,
+            processDocumentChange({
+              transformToText: representationTransformAdapter.transformToText,
+              updateRichTextDocumentContent:
+                projectStore.updateRichTextDocumentContent,
+            })({
+              projectId,
+              documentId,
+              updatedDocument: doc,
             }),
-            Effect.flatMap((absoluteFilePath) =>
-              processDocumentChange({
-                transformToText: representationTransformAdapter.transformToText,
-                updateRichTextDocumentContent:
-                  projectStore.updateRichTextDocumentContent,
-              })({
-                projectId,
-                documentId,
-                updatedDocument: doc,
-                writeToFileWithPath: projectStore.managesFilesystemWorkdir
-                  ? absoluteFilePath
-                  : null,
-              })
-            ),
             Effect.flatMap(() =>
               projectStore.resolveContentConflict({
                 projectId,
@@ -196,8 +178,6 @@ export const useMergeConflictResolution = () => {
     [
       projectStore,
       representationTransformAdapter,
-      filesystem,
-      directory,
       mergeConflictInfo,
       refreshConflictsAndMergeIfPossible,
       dispatchNotification,

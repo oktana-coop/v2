@@ -1,5 +1,4 @@
 import * as Effect from 'effect/Effect';
-import { pipe } from 'effect/Function';
 import {
   createContext,
   useCallback,
@@ -8,12 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import {
-  useMatch,
-  useNavigate,
-  useParams,
-  useSearchParams,
-} from 'react-router';
+import { useMatch, useNavigate, useParams } from 'react-router';
 
 import {
   isValidProjectId,
@@ -29,15 +23,13 @@ import {
 } from '../../../../modules/domain/rich-text';
 import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
 import {
+  type ArtifactId,
   type Change,
   type ChangeId,
   changeIdsAreSame,
   type ChangeWithUrlInfo,
   type Commit,
   decodeUrlEncodedChangeId,
-  decomposeGitBlobRef,
-  isGitBlobRef,
-  type ResolvedArtifactId,
   urlEncodeArtifactId,
   urlEncodeChangeId,
   urlEncodeChangeIdForChange,
@@ -48,7 +40,7 @@ import { usePulledUpstreamChanges } from '../../hooks/use-pulled-upstream-change
 import { InfrastructureAdaptersContext, ProjectContext } from '../';
 
 export type CurrentDocumentContextType = {
-  versionedDocumentId: ResolvedArtifactId | null;
+  versionedDocumentId: ArtifactId | null;
   versionedDocument: VersionedDocument | null;
   onDocumentContentChange: (doc: RichTextDocument) => Promise<void>;
   loadingHistory: boolean;
@@ -96,14 +88,11 @@ export const CurrentDocumentProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { filesystem, projectStore } = useContext(
-    InfrastructureAdaptersContext
-  );
+  const { projectStore } = useContext(InfrastructureAdaptersContext);
   const [versionedDocument, setVersionedDocument] =
     useState<VersionedDocument | null>(null);
   const { projectId: projectIdParam, changeId: changeIdParam } = useParams();
   const documentId = useCurrentDocumentId();
-  const [searchParams] = useSearchParams();
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
   const [versionedDocumentHistory, setVersionedDocumentHistory] = useState<
     ChangeWithUrlInfo[]
@@ -120,12 +109,8 @@ export const CurrentDocumentProvider = ({
   );
   const { showDiffInHistoryView } = useContext(FunctionalityConfigContext);
   const navigate = useNavigate();
-  const {
-    selectedFileInfo,
-    setSelectedFileInfo,
-    directory,
-    restoreDocumentChanges,
-  } = useContext(ProjectContext);
+  const { setSelectedFileInfo, restoreDocumentChanges } =
+    useContext(ProjectContext);
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
   );
@@ -174,25 +159,12 @@ export const CurrentDocumentProvider = ({
         setLoadingHistory(true);
         setDocumentNeedsReload(false);
 
-        // The document path comes from the git blob ref when available, falling
-        // back to the path query param.
-        // TODO: relying on the query param can race (documentId and searchParams
-        // getting out-of-sync).
-        let path: string | null;
-
-        if (isGitBlobRef(documentId)) {
-          const decomposedBlobRef = decomposeGitBlobRef(documentId);
-          path = decomposedBlobRef.path;
-        } else {
-          const pathParam = searchParams.get('path');
-          path = pathParam ? decodeURIComponent(pathParam) : null;
-        }
-
-        if (!path) {
-          throw new Error(
-            'Cannot propagate changes to file since path is not provided'
-          );
-        }
+        const path = await Effect.runPromise(
+          projectStore.getArtifactPathById({
+            projectId: projectIdParam as ProjectId,
+            artifactId: documentId,
+          })
+        );
 
         setSelectedFileInfo({
           documentId,
@@ -229,7 +201,7 @@ export const CurrentDocumentProvider = ({
   const checkIfContentChangedFromLastCommit =
     (projectStore: ProjectStore) =>
     async (
-      documentId: ResolvedArtifactId,
+      documentId: ArtifactId,
       latestChangeId: ChangeId,
       lastCommitId: ChangeId
     ) => {
@@ -261,7 +233,7 @@ export const CurrentDocumentProvider = ({
       latestChangeId,
       lastCommitId,
     }: {
-      docId: ResolvedArtifactId;
+      docId: ArtifactId;
       doc: VersionedDocument;
       latestChangeId: ChangeId;
       lastCommitId?: ChangeId;
@@ -283,7 +255,7 @@ export const CurrentDocumentProvider = ({
 
   const loadHistory =
     (projectStore: ProjectStore) =>
-    async ({ docId }: { docId: ResolvedArtifactId }) => {
+    async ({ docId }: { docId: ArtifactId }) => {
       const historyInfo = await Effect.runPromise(
         projectStore.getDocumentHistory({
           projectId: projectIdParam as ProjectId,
@@ -369,24 +341,11 @@ export const CurrentDocumentProvider = ({
       );
     }
 
-    if (!directory || !selectedFileInfo?.path) {
-      throw new Error('Cannot write to file when restoring commit in project');
-    }
-
     await Effect.runPromise(
-      pipe(
-        filesystem.getAbsolutePath({
-          path: selectedFileInfo.path,
-          dirPath: directory.path,
-        }),
-        Effect.flatMap((absoluteFilePath) =>
-          projectStore.discardUncommittedChanges({
-            projectId: projectIdParam as ProjectId,
-            documentId,
-            writeToFileWithPath: absoluteFilePath,
-          })
-        )
-      )
+      projectStore.discardUncommittedChanges({
+        projectId: projectIdParam as ProjectId,
+        documentId,
+      })
     );
 
     const newHistory = await loadHistory(projectStore)({
@@ -444,7 +403,7 @@ export const CurrentDocumentProvider = ({
     showDiffInHistoryView,
   }: {
     projectId: ProjectId;
-    documentId: ResolvedArtifactId;
+    documentId: ArtifactId;
     history: ChangeWithUrlInfo[];
     changeId: ChangeId;
     showDiffInHistoryView: boolean;
@@ -516,31 +475,16 @@ export const CurrentDocumentProvider = ({
         );
       }
 
-      if (!directory || !selectedFileInfo?.path) {
-        throw new Error('Cannot update file in project');
-      }
-
       await Effect.runPromise(
-        pipe(
-          filesystem.getAbsolutePath({
-            path: selectedFileInfo.path,
-            dirPath: directory.path,
-          }),
-          Effect.flatMap((absoluteFilePath) =>
-            processDocumentChange({
-              transformToText: representationTransformAdapter.transformToText,
-              updateRichTextDocumentContent:
-                projectStore.updateRichTextDocumentContent,
-            })({
-              projectId: projectIdParam as ProjectId,
-              documentId,
-              updatedDocument: doc,
-              writeToFileWithPath: projectStore.managesFilesystemWorkdir
-                ? absoluteFilePath
-                : null,
-            })
-          )
-        )
+        processDocumentChange({
+          transformToText: representationTransformAdapter.transformToText,
+          updateRichTextDocumentContent:
+            projectStore.updateRichTextDocumentContent,
+        })({
+          projectId: projectIdParam as ProjectId,
+          documentId,
+          updatedDocument: doc,
+        })
       );
 
       await loadHistory(projectStore)({
@@ -552,9 +496,6 @@ export const CurrentDocumentProvider = ({
       projectIdParam,
       documentId,
       representationTransformAdapter,
-      filesystem,
-      selectedFileInfo,
-      directory,
       versionedDocument,
       lastCommit,
     ]

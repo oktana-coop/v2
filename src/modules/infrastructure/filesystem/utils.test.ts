@@ -185,6 +185,10 @@ describe('filesystem/utils', () => {
     it('returns the name as-is when there is no separator', () => {
       expect(getDirectoryName('folder')).toBe('folder');
     });
+
+    it('handles Windows path separators', () => {
+      expect(getDirectoryName('C:\\Users\\alice\\documents')).toBe('documents');
+    });
   });
 
   describe('toPosixPath', () => {

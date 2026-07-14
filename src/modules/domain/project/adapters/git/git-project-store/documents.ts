@@ -29,6 +29,7 @@ import {
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../../modules/infrastructure/filesystem';
 import {
+  type ArtifactId,
   type Change,
   type ChangeId,
   type Commit,
@@ -45,7 +46,6 @@ import {
   parseGitCommitHashEffect,
   readBlobAtCommit,
   removeFile as removeFileFromGit,
-  type ResolvedArtifactId,
   type UncommitedChange,
   UNCOMMITTED_CHANGE_ID,
   VersionControlNotFoundErrorTag,
@@ -141,7 +141,6 @@ type DocumentOps = Pick<
 export const createDocumentOps = ({
   isoGitFs,
   filesystem,
-  managesFilesystemWorkdir,
   documentAnalyzer,
 }: {
   // We have 2 filesystem APIs because isomorphic-git works well in both browser in Node.js
@@ -150,16 +149,15 @@ export const createDocumentOps = ({
   // we are using our own Filesystem API.
   isoGitFs: IsoGitFsApi;
   filesystem: Filesystem;
-  managesFilesystemWorkdir: boolean;
   documentAnalyzer: DocumentAnalyzer;
 }): DocumentOps => {
-  const buildDocumentAbsolutePathFromId: (
-    projectDir: string,
-    id: ResolvedArtifactId
-  ) => Effect.Effect<string, ValidationError | RepositoryError, never> = (
+  const buildDocumentAbsolutePathFromId: (args: {
+    projectDir: string;
+    id: ArtifactId;
+  }) => Effect.Effect<string, ValidationError | RepositoryError, never> = ({
     projectDir,
-    id
-  ) =>
+    id,
+  }) =>
     pipe(
       extractArtifactRelativePathFromId(id),
       Effect.flatMap((relativeDocumentPath) =>
@@ -360,20 +358,9 @@ export const createDocumentOps = ({
           Effect.tap(() =>
             writeToFile
               ? pipe(
-                  fromNullable(
-                    managesFilesystemWorkdir,
-                    () =>
-                      new RepositoryError(
-                        'This store does not manage a workdir'
-                      )
-                  ),
-                  Effect.flatMap(() =>
-                    pipe(
-                      filesystem.writeFile({ path, content: '' }),
-                      Effect.catchAll(() =>
-                        Effect.fail(new RepositoryError('Git repo error'))
-                      )
-                    )
+                  filesystem.writeFile({ path, content: '' }),
+                  Effect.catchAll(() =>
+                    Effect.fail(new RepositoryError('Git repo error'))
                   )
                 )
               : Effect.succeed(undefined)
@@ -389,7 +376,7 @@ export const createDocumentOps = ({
     pipe(
       ensureProjectIdIsFsPath(projectId),
       Effect.flatMap((projectDir) =>
-        buildDocumentAbsolutePathFromId(projectDir, documentId)
+        buildDocumentAbsolutePathFromId({ projectDir, id: documentId })
       ),
       Effect.flatMap((documentPath) =>
         pipe(
@@ -421,7 +408,7 @@ export const createDocumentOps = ({
 
   const getDocumentFromFs: (
     projectId: ProjectId,
-    documentId: ResolvedArtifactId
+    documentId: ArtifactId
   ) => Effect.Effect<
     RichTextDocument,
     ValidationError | RepositoryError | NotFoundError | MigrationError,
@@ -499,17 +486,15 @@ export const createDocumentOps = ({
     );
   };
 
-  // Note: This function expects an absolute path in writeToFileWithPath.
-  // TODO: Express this accurately in the type system.
+  // Writes the new content to the document's file in the workdir. The store
+  // owns the workdir, so the target path is derived from the document id
+  // rather than supplied by the caller.
   const updateRichTextDocumentContent: DocumentOps['updateRichTextDocumentContent'] =
-    ({ content, writeToFileWithPath }) =>
+    ({ projectId, documentId, content }) =>
       pipe(
-        fromNullable(
-          writeToFileWithPath,
-          () =>
-            new ValidationError(
-              'File path not provided; cannot write to document file'
-            )
+        ensureProjectIdIsFsPath(projectId),
+        Effect.flatMap((projectDir) =>
+          buildDocumentAbsolutePathFromId({ projectDir, id: documentId })
         ),
         Effect.flatMap((path) => filesystem.writeFile({ path, content })),
         Effect.catchAll(() =>
@@ -519,16 +504,16 @@ export const createDocumentOps = ({
 
   const deleteDocumentFromFilesystem: (args: {
     projectDir: string;
-    documentId: ResolvedArtifactId;
+    documentId: ArtifactId;
     deleteFromFilesystem?: boolean;
   }) => Effect.Effect<void, ValidationError | RepositoryError, never> = ({
     projectDir,
     documentId,
     deleteFromFilesystem,
   }) =>
-    deleteFromFilesystem && managesFilesystemWorkdir
+    deleteFromFilesystem
       ? pipe(
-          buildDocumentAbsolutePathFromId(projectDir, documentId),
+          buildDocumentAbsolutePathFromId({ projectDir, id: documentId }),
           Effect.flatMap((documentPath) =>
             pipe(
               filesystem.deleteFile({ path: documentPath }),
@@ -668,7 +653,7 @@ export const createDocumentOps = ({
 
   const getUncommittedDocumentStateHash: (
     projectId: ProjectId,
-    documentId: ResolvedArtifactId
+    documentId: ArtifactId
   ) => Effect.Effect<
     string,
     ValidationError | RepositoryError | NotFoundError | MigrationError,
@@ -690,7 +675,7 @@ export const createDocumentOps = ({
 
   const getDocumentHashAtChange: (args: {
     projectId: ProjectId;
-    documentId: ResolvedArtifactId;
+    documentId: ArtifactId;
     changeId: Change['id'];
   }) => Effect.Effect<
     string,
@@ -747,7 +732,6 @@ export const createDocumentOps = ({
   const discardUncommittedChanges: DocumentOps['discardUncommittedChanges'] = ({
     projectId,
     documentId,
-    writeToFileWithPath,
   }) => {
     return Effect.Do.pipe(
       Effect.bind('projectDir', () => ensureProjectIdIsFsPath(projectId)),
@@ -823,7 +807,6 @@ export const createDocumentOps = ({
                 documentId,
                 representation: documentAtCommit.representation,
                 content: documentAtCommit.content,
-                writeToFileWithPath,
               })
             )
           );
@@ -859,7 +842,7 @@ export const createDocumentOps = ({
     documentId,
   }: {
     projectDir: string;
-    documentId: ResolvedArtifactId;
+    documentId: ArtifactId;
   }) =>
     pipe(
       extractArtifactRelativePathFromId(documentId),
@@ -892,7 +875,7 @@ export const createDocumentOps = ({
     documentIds,
   }: {
     projectDir: string;
-    documentIds: ResolvedArtifactId[];
+    documentIds: ArtifactId[];
   }) =>
     pipe(
       Effect.forEach(documentIds, extractArtifactRelativePathFromId),
@@ -931,7 +914,7 @@ export const createDocumentOps = ({
     documentPath: string,
     commitId: GitCommitHash
   ): Effect.Effect<
-    ResolvedArtifactId,
+    ArtifactId,
     NotFoundError | RepositoryError | ValidationError,
     never
   > =>

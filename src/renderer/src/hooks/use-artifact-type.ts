@@ -1,30 +1,35 @@
-import { useParams, useSearchParams } from 'react-router';
+import { useMemo } from 'react';
+import { useParams } from 'react-router';
 
 import { inferArtifactTypeFromExtension } from '../../../modules/domain/project';
 import {
   decodeUrlEncodedArtifactId,
-  decomposeGitBlobRef,
-  isGitBlobRef,
   type VersionedArtifactType,
 } from '../../../modules/infrastructure/version-control';
+import { useArtifactPath } from './use-artifact-path';
 
-// Derives the type of the artifact currently in the route, or null when it
-// cannot be determined. Classification is by path, taken from the git blob ref
-// or the `path` query param.
-export const useArtifactType = (): VersionedArtifactType | null => {
+type UseArtifactTypeResult = {
+  // Once resolved, null means the artifact couldn't be classified.
+  artifactType: VersionedArtifactType | null;
+  loading: boolean;
+};
+
+export const useArtifactType = (): UseArtifactTypeResult => {
   const { artifactId: urlEncodedArtifactId } = useParams();
-  const [searchParams] = useSearchParams();
+  const artifactId = useMemo(
+    () =>
+      urlEncodedArtifactId
+        ? decodeUrlEncodedArtifactId(urlEncodedArtifactId)
+        : null,
+    [urlEncodedArtifactId]
+  );
 
-  const artifactId = urlEncodedArtifactId
-    ? decodeUrlEncodedArtifactId(urlEncodedArtifactId)
-    : null;
-  const pathParam = searchParams.get('path');
-  const path =
-    artifactId && isGitBlobRef(artifactId)
-      ? decomposeGitBlobRef(artifactId).path
-      : pathParam
-        ? decodeURIComponent(pathParam)
-        : null;
+  const { path, loading } = useArtifactPath(artifactId);
 
-  return path ? inferArtifactTypeFromExtension(path) : null;
+  const artifactType = useMemo(
+    () => (path === null ? null : inferArtifactTypeFromExtension(path)),
+    [path]
+  );
+
+  return { artifactType, loading };
 };

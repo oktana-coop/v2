@@ -32,12 +32,7 @@ export const createAdapter = (): ProjectStoreManager => {
             mergeConflictInfo,
             remoteProjects,
           }) => ({
-            // It's really the main process store that manages the filesystem
-            // workdir here, but from the perspective of the client using this
-            // adapter it should be transparent.
-            projectStore: createProjectStoreAdapter({
-              managesFilesystemWorkdir: true,
-            }),
+            projectStore: createProjectStoreAdapter(),
             projectId,
             directory,
             currentBranch,
@@ -72,12 +67,7 @@ export const createAdapter = (): ProjectStoreManager => {
             mergeConflictInfo,
             remoteProjects,
           }) => ({
-            // It's really the main process store that manages the filesystem
-            // workdir here, but from the perspective of the client using this
-            // adapter it should be transparent.
-            projectStore: createProjectStoreAdapter({
-              managesFilesystemWorkdir: true,
-            }),
+            projectStore: createProjectStoreAdapter(),
             projectId,
             directory,
             currentBranch,

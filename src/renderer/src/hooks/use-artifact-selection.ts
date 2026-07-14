@@ -1,22 +1,20 @@
+import * as Effect from 'effect/Effect';
 import { useContext } from 'react';
 
 import { inferArtifactTypeFromExtension } from '../../../modules/domain/project';
-import {
-  createGitBlobRef,
-  versionedArtifactTypes,
-} from '../../../modules/infrastructure/version-control';
+import { versionedArtifactTypes } from '../../../modules/infrastructure/version-control';
 import { ProjectContext } from '../app-state';
 import { useNavigateToArtifact } from './use-navigate-to-artifact';
 
 export const useArtifactSelection = () => {
-  const { projectId, currentBranch, findDocumentInProject } =
+  const { projectId, projectStore, currentBranch, findDocumentInProject } =
     useContext(ProjectContext);
   const navigateToArtifact = useNavigateToArtifact();
 
   return async (path: string) => {
-    if (!projectId) {
+    if (!projectId || !projectStore) {
       // TODO: Handle more gracefully
-      throw new Error('Could not select file because no project ID was found');
+      throw new Error('Could not select file because no project was found');
     }
 
     if (
@@ -29,14 +27,15 @@ export const useArtifactSelection = () => {
         );
       }
 
-      navigateToArtifact({
-        projectId,
-        artifactId: createGitBlobRef({
+      const artifactId = await Effect.runPromise(
+        projectStore.lookupArtifactByPath({
+          projectId,
+          path,
           ref: currentBranch,
-          path: path,
-        }),
-        path: path,
-      });
+        })
+      );
+
+      navigateToArtifact({ projectId, artifactId, path });
       return;
     }
 

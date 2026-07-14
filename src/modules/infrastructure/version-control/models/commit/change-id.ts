@@ -72,6 +72,9 @@ export const isUncommittedChangeId = (
   id: ChangeId
 ): id is UncommittedChangeId => id === UNCOMMITTED_CHANGE_ID;
 
+export const isCommitId = (id: ChangeId): id is CommitId =>
+  !isUncommittedChangeId(id);
+
 export const decodeUrlEncodedChangeId = (
   urlEncodedCommitId: string
 ): ChangeId => parseChangeId(decodeURIComponent(urlEncodedCommitId));

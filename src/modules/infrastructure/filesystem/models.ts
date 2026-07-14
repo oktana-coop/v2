@@ -1,4 +1,5 @@
 import { filesystemItemTypes } from './constants/filesystem-item-types';
+import { getDirectoryName } from './utils';
 
 export type FilesystemItem = {
   path: string;
@@ -15,6 +16,19 @@ export type File = FilesystemItem & {
   type: typeof filesystemItemTypes.FILE;
   content?: string | Uint8Array;
 };
+
+export const toDirectory = ({
+  path,
+  permissionState = 'granted',
+}: {
+  path: string;
+  permissionState?: PermissionState;
+}): Directory => ({
+  type: filesystemItemTypes.DIRECTORY,
+  path,
+  name: getDirectoryName(path),
+  permissionState,
+});
 
 export const isDirectory = (item: Directory | File): item is Directory =>
   item.type === filesystemItemTypes.DIRECTORY;
