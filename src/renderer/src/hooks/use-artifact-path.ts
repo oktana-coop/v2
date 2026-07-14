@@ -18,9 +18,17 @@ export const useArtifactPath = (
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!artifactId || !projectId || !projectStore) {
+    if (!artifactId) {
       setPath(null);
       setLoading(false);
+      return;
+    }
+
+    // The project store isn't ready yet; stay loading so consumers don't read
+    // this as a resolved "no path".
+    if (!projectId || !projectStore) {
+      setPath(null);
+      setLoading(true);
       return;
     }
 
