@@ -1,4 +1,3 @@
-import * as Effect from 'effect/Effect';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Outlet, useMatch } from 'react-router';
 
@@ -14,7 +13,10 @@ import { ProjectContext } from '../../../../app-state';
 import { PersonalFile } from '../../../../components/illustrations/PersonalFile';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
-import { useProjectHistoryArtifactSelection } from '../../../../hooks';
+import {
+  useArtifactPath,
+  useProjectHistoryArtifactSelection,
+} from '../../../../hooks';
 import { CommitDialog } from '../change-dialogs';
 import { type ProjectHistoryOutletContext } from './main/ProjectHistoryDocumentView';
 import { CommitHistoryPanel } from './sidebar/CommitHistoryPanel';
@@ -35,8 +37,6 @@ export const ProjectHistoryPage = () => {
     getProjectChangedDocuments,
     getProjectUncommittedChanges,
     commitChanges,
-    projectStore,
-    projectId,
   } = useContext(ProjectContext);
 
   const selectArtifact = useProjectHistoryArtifactSelection();
@@ -145,36 +145,14 @@ export const ProjectHistoryPage = () => {
     '/projects/:projectId/history/:artifactId/changes/:changeId'
   );
 
-  const [selectedDocumentPath, setSelectedDocumentPath] = useState<
-    string | null
-  >(null);
-
-  useEffect(() => {
+  const selectedDocumentId = useMemo(() => {
     const encodedDocumentId = documentChangeMatch?.params.artifactId;
-    const documentId = encodedDocumentId
+    return encodedDocumentId
       ? decodeUrlEncodedArtifactId(encodedDocumentId)
       : null;
+  }, [documentChangeMatch]);
 
-    if (!documentId || !projectStore || !projectId) {
-      setSelectedDocumentPath(null);
-      return;
-    }
-
-    let cancelled = false;
-    Effect.runPromise(
-      projectStore.getArtifactPathById({ projectId, artifactId: documentId })
-    )
-      .then((path) => {
-        if (!cancelled) setSelectedDocumentPath(path);
-      })
-      .catch(() => {
-        if (!cancelled) setSelectedDocumentPath(null);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [documentChangeMatch, projectStore, projectId]);
+  const { path: selectedDocumentPath } = useArtifactPath(selectedDocumentId);
 
   const selectedCommitId = useMemo((): Commit['id'] | null => {
     const encodedChangeId = documentChangeMatch?.params.changeId;
