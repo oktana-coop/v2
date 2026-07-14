@@ -12,7 +12,11 @@ import {
   FilesystemRepositoryErrorTag,
   toDirectory,
 } from '../../../../../../modules/infrastructure/filesystem';
-import { NotFoundError, RepositoryError } from '../../../errors';
+import {
+  NotFoundError,
+  RepositoryError,
+  VersionedProjectNotFoundErrorTag,
+} from '../../../errors';
 import {
   type CreateDirectoryArgs,
   type DeleteDirectoryArgs,
@@ -102,7 +106,9 @@ export const createDirectoryOps = ({
                           documentPath: fileRelativePath,
                         }),
                         Effect.map((doc) => doc.id),
-                        Effect.catchAll(() => Effect.succeed(null))
+                        Effect.catchTag(VersionedProjectNotFoundErrorTag, () =>
+                          Effect.succeed(null)
+                        )
                       )
                     )
                   )

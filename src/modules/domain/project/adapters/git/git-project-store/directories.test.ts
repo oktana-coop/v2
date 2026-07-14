@@ -14,6 +14,8 @@ import {
   createGitTreeRef,
 } from '../../../../../infrastructure/version-control';
 import {
+  NotFoundError,
+  RepositoryError,
   VersionedProjectNotFoundErrorTag,
   VersionedProjectRepositoryErrorTag,
 } from '../../../errors';
@@ -183,9 +185,9 @@ describe('deleteDirectory', () => {
         fileNode(`${projectId}/docs/untracked.md`, 'untracked.md'),
       ])
     );
-    // Untracked file — the lookup fails and is silently skipped.
+    // Untracked file — the lookup reports not-found and is silently skipped.
     mockFindDocumentByPath.mockReturnValue(
-      Effect.fail(new Error('not tracked'))
+      Effect.fail(new NotFoundError('Document is ignored or absent'))
     );
     mockDeleteDirectory.mockReturnValue(Effect.void);
 
@@ -194,6 +196,30 @@ describe('deleteDirectory', () => {
     expect(mockDeleteDirectory).toHaveBeenCalledWith({
       path: `${projectId}/docs`,
     });
+    expect(mockDeleteDocuments).not.toHaveBeenCalled();
+  });
+
+  it('aborts the delete when a tracked-document lookup errors', async () => {
+    mockListDirectoryFiles.mockReturnValue(
+      Effect.succeed([fileNode(`${projectId}/docs/a.md`, 'a.md')])
+    );
+    // A real lookup failure (not a not-found) must not be treated as
+    // "untracked" — otherwise the folder, including the tracked file, would be
+    // removed from disk without staging its git removal.
+    mockFindDocumentByPath.mockReturnValue(
+      Effect.fail(new RepositoryError('git index unreadable'))
+    );
+    mockDeleteDirectory.mockReturnValue(Effect.void);
+
+    const result = await Effect.runPromise(
+      Effect.either(ops.deleteDirectory({ projectId, directoryId }))
+    );
+
+    expect(result._tag).toBe('Left');
+    if (result._tag === 'Left') {
+      expect(result.left._tag).toBe(VersionedProjectRepositoryErrorTag);
+    }
+    expect(mockDeleteDirectory).not.toHaveBeenCalled();
     expect(mockDeleteDocuments).not.toHaveBeenCalled();
   });
 
