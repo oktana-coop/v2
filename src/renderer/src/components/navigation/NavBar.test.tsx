@@ -20,12 +20,14 @@ describe('NavBar', () => {
       expect(screen.getByTestId('nav-bar')).toBeInTheDocument();
     });
 
-    it('renders the logo linking to projects', () => {
+    it('renders the logo linking to the edit view', () => {
       render(<Project />);
 
       const logoLink = screen
         .getByTestId('nav-bar')
-        .querySelector('a[href="/projects"]');
+        .querySelector(
+          `a[href="/projects/${encodeURIComponent(projectId)}/artifacts"]`
+        );
       expect(logoLink).toBeInTheDocument();
       expect(logoLink?.querySelector('svg')).toBeInTheDocument();
     });
