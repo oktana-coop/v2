@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => {
         'process.env': env,
       },
       build: {
+        externalizeDeps: false,
         rollupOptions: {
           external: ['better-sqlite3'],
         },
@@ -21,6 +22,7 @@ export default defineConfig(({ mode }) => {
     },
     preload: {
       build: {
+        externalizeDeps: false,
         rollupOptions: {
           output: {
             format: 'cjs', // Set output format to CommonJS

@@ -26,6 +26,8 @@ jobs:
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install --shamefully-hoist
+      - name: Download Electron binary
+        run: pnpm exec install-electron
       # Required on Ubuntu runners: Electron's chrome-sandbox binary must be owned by root with setuid (4755).
       # https://github.com/electron/electron/issues/42510
       - name: Fix Electron sandbox permissions
