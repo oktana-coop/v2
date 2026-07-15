@@ -6,10 +6,9 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useMemo,
   useState,
 } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 
 import { AuthContext } from '../../../../modules/auth/browser';
 import {
@@ -33,7 +32,6 @@ import {
 import {
   type Directory,
   FilesystemAlreadyExistsErrorTag,
-  removeExtension,
   removePath,
 } from '../../../../modules/infrastructure/filesystem';
 import {
@@ -56,18 +54,13 @@ import {
   VersionControlMergeConflictErrorTag,
 } from '../../../../modules/infrastructure/version-control';
 import { useNavigateToResolveConflicts } from '../../hooks';
+import { useResolveArtifactPath } from '../../hooks/use-artifact-path';
 import { useCurrentArtifactId } from '../../hooks/use-current-artifact-id';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 import {
   type BrowserStorageProjectData,
   PROJECT_BROWSER_STORAGE_KEY,
 } from './browser-storage';
-
-export type SelectedFileInfo = {
-  documentId: ArtifactId;
-  // TODO: make this a ProjectRelPath
-  path: string | null;
-};
 
 type CreateNewDocumentArgs = {
   name?: string;
@@ -98,10 +91,6 @@ export type ProjectContextType = {
     documentPath: string;
     changeId?: ChangeId;
   }) => Promise<ResolvedDocument>;
-  selectedFileInfo: SelectedFileInfo | null;
-  selectedFileName: string | null;
-  setSelectedFileInfo: (file: SelectedFileInfo) => void;
-  clearFileSelection: () => Promise<void>;
   listBranches: () => Promise<Branch[]>;
   createAndSwitchToBranch: (branchName: string) => Promise<void>;
   switchToBranch: (branch: Branch) => Promise<void>;
@@ -191,10 +180,6 @@ export const ProjectContext = createContext<ProjectContextType>({
   createNewDocument: () => null,
   // @ts-expect-error will get overriden below
   findDocumentInProject: async () => null,
-  selectedFileInfo: null,
-  selectedFileName: null,
-  setSelectedFileInfo: async () => {},
-  clearFileSelection: async () => {},
   pendingNewDirectory: null,
   startCreateDirectory: () => {},
   // @ts-expect-error will get overriden below
@@ -284,18 +269,13 @@ export const ProjectProvider = ({
   const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
   const [mergeConflictInfo, setMergeConflictInfo] =
     useState<MergeConflictInfo | null>(null);
-  const { artifactId: documentIdInPath } = useParams();
   const currentArtifactId = useCurrentArtifactId();
   const [projectStore, setProjectStore] = useState<ProjectStore | null>(null);
-  const [selectedFileInfo, setSelectedFileInfo] =
-    useState<SelectedFileInfo | null>(null);
-  const selectedFileName = useMemo(
-    () =>
-      selectedFileInfo?.path
-        ? removeExtension(removePath(selectedFileInfo.path))
-        : null,
-    [selectedFileInfo?.path]
-  );
+  const { path: currentArtifactPath } = useResolveArtifactPath({
+    projectId,
+    projectStore,
+    artifactId: currentArtifactId,
+  });
   const [isCreateBranchDialogOpen, setIsCreateBranchDialogOpen] =
     useState<boolean>(false);
   const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
@@ -617,12 +597,6 @@ export const ProjectProvider = ({
     }
   }, [currentArtifactId]);
 
-  useEffect(() => {
-    if (!documentIdInPath) {
-      clearFileSelection();
-    }
-  }, [documentIdInPath]);
-
   const requestPermissionForDirectory = async (dir: Directory) =>
     Effect.runPromise(filesystem.requestPermissionForDirectory(dir.path));
 
@@ -839,9 +813,8 @@ export const ProjectProvider = ({
 
         await refreshDirectoryTree();
 
-        // If the deleted file was currently selected, clear selection and navigate away
-        if (selectedFileInfo?.path === relativePath) {
-          await clearFileSelection();
+        // If the open file was the one deleted, navigate away from it.
+        if (currentArtifactPath === relativePath) {
           navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
         }
 
@@ -862,7 +835,7 @@ export const ProjectProvider = ({
       projectStore,
       projectId,
       directoryTree,
-      selectedFileInfo,
+      currentArtifactPath,
       navigate,
       refreshDirectoryTree,
       dispatchNotification,
@@ -893,16 +866,14 @@ export const ProjectProvider = ({
 
         await refreshDirectoryTree();
 
-        // If the currently selected file was inside the deleted directory,
-        // clear selection and navigate away.
+        // If the open file was inside the deleted directory, navigate away.
         if (
-          selectedFileInfo?.path &&
+          currentArtifactPath &&
           isPathInsideDirectory({
             directoryPath: parseProjectRelPath(relativePath),
-            filePath: parseProjectRelPath(selectedFileInfo.path),
+            filePath: currentArtifactPath,
           })
         ) {
-          setSelectedFileInfo(null);
           navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
         }
 
@@ -923,7 +894,7 @@ export const ProjectProvider = ({
       projectStore,
       projectId,
       directoryTree,
-      selectedFileInfo,
+      currentArtifactPath,
       navigate,
       refreshDirectoryTree,
       dispatchNotification,
@@ -1002,8 +973,8 @@ export const ProjectProvider = ({
 
         await refreshDirectoryTree();
 
-        // If the renamed file was currently selected, follow it to its new id.
-        if (selectedFileInfo?.path === oldRelativePath && currentBranch) {
+        // If the open file was the one renamed, follow it to its new id.
+        if (currentArtifactPath === oldRelativePath && currentBranch) {
           const newDocumentId = await Effect.runPromise(
             projectStore.lookupArtifactByPath({
               projectId,
@@ -1011,10 +982,6 @@ export const ProjectProvider = ({
               ref: currentBranch,
             })
           );
-          handleSetSelectedFileInfo({
-            documentId: newDocumentId,
-            path: result.newDocumentPath,
-          });
           navigate(
             `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(newDocumentId)}`
           );
@@ -1040,7 +1007,7 @@ export const ProjectProvider = ({
       projectId,
       filesystem,
       currentBranch,
-      selectedFileInfo,
+      currentArtifactPath,
       navigate,
       refreshDirectoryTree,
       dispatchNotification,
@@ -1102,32 +1069,27 @@ export const ProjectProvider = ({
 
         await refreshDirectoryTree();
 
-        // If the currently-selected file was inside the renamed directory,
-        // move the selection to its new path under the renamed directory.
+        // If the open file was inside the renamed directory, follow it to its
+        // new path under the renamed directory.
         if (
-          selectedFileInfo?.path &&
+          currentArtifactPath &&
           isPathInsideDirectory({
             directoryPath: parseProjectRelPath(oldRelativePath),
-            filePath: parseProjectRelPath(selectedFileInfo.path),
+            filePath: currentArtifactPath,
           })
         ) {
           const newFilePath =
             result.newDirectoryPath +
-            selectedFileInfo.path.slice(oldRelativePath.length);
+            currentArtifactPath.slice(oldRelativePath.length);
           try {
             const doc = await handleFindDocumentInProject({
               projectId,
               documentPath: newFilePath,
             });
-            handleSetSelectedFileInfo({
-              documentId: doc.id,
-              path: newFilePath,
-            });
             navigate(
               `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(doc.id)}`
             );
           } catch {
-            await clearFileSelection();
             navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
           }
         }
@@ -1150,7 +1112,7 @@ export const ProjectProvider = ({
     [
       projectStore,
       projectId,
-      selectedFileInfo,
+      currentArtifactPath,
       navigate,
       refreshDirectoryTree,
       dispatchNotification,
@@ -1179,9 +1141,8 @@ export const ProjectProvider = ({
 
           if (!result) return;
 
-          const { documentId, projectId: projId, path: filePath } = result;
+          const { documentId, projectId: projId } = result;
 
-          handleSetSelectedFileInfo({ documentId, path: filePath });
           navigate(
             `/projects/${urlEncodeProjectId(projId)}/artifacts/${urlEncodeArtifactId(documentId)}`
           );
@@ -1253,20 +1214,6 @@ export const ProjectProvider = ({
         changeId: args.changeId,
       })
     );
-  };
-
-  const clearFileSelection = async () => {
-    setSelectedFileInfo(null);
-  };
-
-  const handleSetSelectedFileInfo = async ({
-    documentId,
-    path,
-  }: SelectedFileInfo) => {
-    setSelectedFileInfo({
-      documentId,
-      path: path,
-    });
   };
 
   const handleListBranches = useCallback(async () => {
@@ -1731,10 +1678,6 @@ export const ProjectProvider = ({
         requestPermissionForSelectedDirectory,
         createNewDocument: handleCreateNewDocument,
         findDocumentInProject: handleFindDocumentInProject,
-        selectedFileInfo,
-        selectedFileName,
-        setSelectedFileInfo: handleSetSelectedFileInfo,
-        clearFileSelection,
         listBranches: handleListBranches,
         createAndSwitchToBranch: handleCreateAndSwitchToBranch,
         switchToBranch: handleSwitchToBranch,

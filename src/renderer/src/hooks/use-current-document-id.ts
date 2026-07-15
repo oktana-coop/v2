@@ -1,26 +1,20 @@
-import { useContext, useEffect, useState } from 'react';
+import { useMemo } from 'react';
 
 import { inferArtifactTypeFromExtension } from '../../../modules/domain/project';
-import {
-  type ArtifactId,
-  versionedArtifactTypes,
-} from '../../../modules/infrastructure/version-control';
-import { ProjectContext } from '../app-state';
+import { versionedArtifactTypes } from '../../../modules/infrastructure/version-control';
+import { useArtifactPath } from './use-artifact-path';
+import { useCurrentArtifactId } from './use-current-artifact-id';
 
 export const useCurrentDocumentId = () => {
-  const { selectedFileInfo } = useContext(ProjectContext);
+  const artifactId = useCurrentArtifactId();
+  const { path } = useArtifactPath(artifactId);
 
-  const [id, setId] = useState<ArtifactId | null>(null);
-
-  useEffect(() => {
-    const path = selectedFileInfo?.path;
+  return useMemo(() => {
     const isDocument =
       path != null &&
       inferArtifactTypeFromExtension(path) ===
         versionedArtifactTypes.RICH_TEXT_DOCUMENT;
 
-    setId(isDocument ? (selectedFileInfo?.documentId ?? null) : null);
-  }, [selectedFileInfo]);
-
-  return id;
+    return isDocument ? artifactId : null;
+  }, [artifactId, path]);
 };

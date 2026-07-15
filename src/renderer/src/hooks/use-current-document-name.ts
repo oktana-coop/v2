@@ -1,15 +1,18 @@
-import { useContext, useEffect, useState } from 'react';
+import { useMemo } from 'react';
 
-import { ProjectContext } from '../app-state';
+import {
+  removeExtension,
+  removePath,
+} from '../../../modules/infrastructure/filesystem';
+import { useArtifactPath } from './use-artifact-path';
+import { useCurrentArtifactId } from './use-current-artifact-id';
 
 export const useCurrentDocumentName = () => {
-  const { selectedFileName } = useContext(ProjectContext);
+  const currentArtifactId = useCurrentArtifactId();
+  const { path } = useArtifactPath(currentArtifactId);
 
-  const [documentName, setDocumentName] = useState<string | null>(null);
-
-  useEffect(() => {
-    setDocumentName(selectedFileName);
-  }, [selectedFileName]);
-
-  return documentName;
+  return useMemo(
+    () => (path ? removeExtension(removePath(path)) : null),
+    [path]
+  );
 };

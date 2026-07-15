@@ -35,7 +35,7 @@ export const useArtifactSelection = () => {
         })
       );
 
-      navigateToArtifact({ projectId, artifactId, path });
+      navigateToArtifact({ projectId, artifactId });
       return;
     }
 
@@ -54,7 +54,6 @@ export const useArtifactSelection = () => {
     navigateToArtifact({
       projectId,
       artifactId: resolvedDocument.id,
-      path,
     });
   };
 };

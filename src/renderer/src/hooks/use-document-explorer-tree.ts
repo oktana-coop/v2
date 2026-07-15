@@ -6,7 +6,8 @@ import {
   filesystemItemTypes,
 } from '../../../modules/infrastructure/filesystem';
 import { ProjectContext, ProjectContextType } from '../app-state';
-import { useCurrentDocumentId } from './use-current-document-id';
+import { useArtifactPath } from './use-artifact-path';
+import { useCurrentArtifactId } from './use-current-artifact-id';
 
 export const STRUCTURAL_CONFLICTS_NODE_TYPE = 'STRUCTURAL_CONFLICTS' as const;
 export const NEW_DIRECTORY_NODE_ID = 'NEW_DIRECTORY' as const;
@@ -80,7 +81,6 @@ export const useDocumentExplorerTree = () => {
   const {
     directory,
     directoryTree,
-    selectedFileInfo,
     pendingNewDirectory,
     startCreateDirectory,
     createDirectory,
@@ -104,7 +104,8 @@ export const useDocumentExplorerTree = () => {
   const [hasPendingNewDirectory, setHasPendingNewDirectory] = useState(false);
   const [canShowTree, setCanShowTree] = useState<boolean>(false);
   const [selection, setSelection] = useState<string | null>(null);
-  const documentId = useCurrentDocumentId();
+  const currentArtifactId = useCurrentArtifactId();
+  const { path: currentArtifactPath } = useArtifactPath(currentArtifactId);
 
   useEffect(() => {
     let newTree = getExplorerTreeInProject(directoryTree);
@@ -117,8 +118,8 @@ export const useDocumentExplorerTree = () => {
     }
 
     setExplorerTree(newTree);
-    setSelection(selectedFileInfo?.path ?? null);
-  }, [documentId, directoryTree, selectedFileInfo, pendingNewDirectory]);
+    setSelection(currentArtifactPath ?? null);
+  }, [directoryTree, currentArtifactPath, pendingNewDirectory]);
 
   useEffect(() => {
     setHasPendingNewDirectory(pendingNewDirectory !== null);

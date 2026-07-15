@@ -16,8 +16,8 @@ export const useCreateDocument = () => {
 
     if (!result) return;
 
-    const { projectId, documentId, path } = result;
-    navigateToArtifact({ projectId, artifactId: documentId, path });
+    const { projectId, documentId } = result;
+    navigateToArtifact({ projectId, artifactId: documentId });
   };
 
   useEffect(() => {
