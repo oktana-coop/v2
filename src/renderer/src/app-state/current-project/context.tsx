@@ -56,6 +56,7 @@ import {
   VersionControlMergeConflictErrorTag,
 } from '../../../../modules/infrastructure/version-control';
 import { useNavigateToResolveConflicts } from '../../hooks';
+import { useCurrentArtifactId } from '../../hooks/use-current-artifact-id';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 import {
   type BrowserStorageProjectData,
@@ -284,6 +285,7 @@ export const ProjectProvider = ({
   const [mergeConflictInfo, setMergeConflictInfo] =
     useState<MergeConflictInfo | null>(null);
   const { artifactId: documentIdInPath } = useParams();
+  const currentArtifactId = useCurrentArtifactId();
   const [projectStore, setProjectStore] = useState<ProjectStore | null>(null);
   const [selectedFileInfo, setSelectedFileInfo] =
     useState<SelectedFileInfo | null>(null);
@@ -556,51 +558,64 @@ export const ProjectProvider = ({
   }, [refreshDirectoryTree, currentBranch, pulledUpstreamChanges]);
 
   useEffect(() => {
+    if (
+      !projectId ||
+      !projectStore ||
+      !currentArtifactId ||
+      mergeConflictInfo
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+
     const navigateToProjectsList = () => {
-      const newUrl = `/projects`;
       setPulledUpstreamChanges(false);
-      navigate(newUrl);
+      navigate(`/projects`);
     };
 
-    const reloadSelectedDocumentOrReset = async ({
-      projId,
-      selectedFilePath,
-    }: {
-      projId: ProjectId;
-      selectedFilePath: string;
-    }) => {
+    // Re-resolve the open artifact against the store's current branch and follow
+    // it there, or reset if it can't be resolved. The path is derived from the
+    // (opaque) id rather than read from mirrored selection state.
+    const reloadSelectedDocumentOrReset = async () => {
       try {
+        const selectedFilePath = await Effect.runPromise(
+          projectStore.getArtifactPathById({
+            projectId,
+            artifactId: currentArtifactId,
+          })
+        );
+
         const doc = await handleFindDocumentInProject({
-          projectId: projId,
+          projectId,
           documentPath: selectedFilePath,
         });
 
-        setSelectedFileInfo({ documentId: doc.id, path: selectedFilePath });
-
-        const newUrl = `/projects/${urlEncodeProjectId(projId)}/artifacts/${urlEncodeArtifactId(doc.id)}`;
+        if (cancelled) return;
         setPulledUpstreamChanges(false);
-        navigate(newUrl);
-
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (err) {
+        navigate(
+          `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(doc.id)}`
+        );
+      } catch {
+        if (cancelled) return;
         // TODO: Only do this on NotFoundError.
-        // TODO: Navigate to the specific project route (doesn't exist at the time of writing) this.
         navigateToProjectsList();
       }
     };
 
-    if (projectId && selectedFileInfo?.path && !mergeConflictInfo) {
-      if (selectedFileInfo) {
-        reloadSelectedDocumentOrReset({
-          projId: projectId,
-          selectedFilePath: selectedFileInfo.path,
-        });
-      } else {
-        // TODO: Navigate to the specific project route (doesn't exist at the time of writing) this.
-        navigateToProjectsList();
-      }
-    }
+    reloadSelectedDocumentOrReset();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentBranch, pulledUpstreamChanges, mergeConflictInfo]);
+
+  useEffect(() => {
+    if (currentArtifactId) {
+      window.electronAPI.sendCurrentDocumentId(currentArtifactId);
+    }
+  }, [currentArtifactId]);
 
   useEffect(() => {
     if (!documentIdInPath) {
@@ -1248,8 +1263,6 @@ export const ProjectProvider = ({
     documentId,
     path,
   }: SelectedFileInfo) => {
-    window.electronAPI.sendCurrentDocumentId(documentId);
-
     setSelectedFileInfo({
       documentId,
       path: path,

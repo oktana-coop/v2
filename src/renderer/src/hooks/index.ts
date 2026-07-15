@@ -14,5 +14,6 @@ export * from './use-commit-document-changes';
 export * from './use-asset-insertion';
 export * from './use-asset-src-resolver';
 export * from './use-artifact-path';
+export * from './use-current-artifact-id';
 export * from './use-artifact-selection';
 export * from './use-project-history-artifact-selection';
