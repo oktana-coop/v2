@@ -1,5 +1,5 @@
-import { expect, test } from './shared/fixtures';
-import { clickSettingsTab, navigateToSettings } from './shared/helpers';
+import { expect, test } from '../shared/fixtures';
+import { clickSettingsTab, navigateToSettings } from '../shared/helpers';
 
 const navigateToExports = async ({
   window,

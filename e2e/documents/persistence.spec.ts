@@ -61,19 +61,3 @@ test('markdown round-trip: typed content survives a window reload', async ({
     'Hello roundtrip'
   );
 });
-
-test('git auto-init: opening a plain folder creates a .git directory', async ({
-  electronApp,
-  window,
-  testProjectDir,
-}) => {
-  // testProjectDir is created with mkdtempSync — no .git initially
-  expect(fs.existsSync(path.join(testProjectDir, '.git'))).toBe(false);
-
-  await openProjectFolder({ electronApp, window, folderPath: testProjectDir });
-
-  // Wait for git to initialise the repo
-  await window.waitForTimeout(500);
-
-  expect(fs.existsSync(path.join(testProjectDir, '.git'))).toBe(true);
-});

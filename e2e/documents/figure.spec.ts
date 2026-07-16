@@ -5,7 +5,7 @@ import * as path from 'node:path';
 import { Page } from '@playwright/test';
 import git from 'isomorphic-git';
 
-import { expect, test } from './shared/fixtures';
+import { expect, test } from '../shared/fixtures';
 import {
   clearEditor,
   clickToolbarButton,
@@ -19,7 +19,7 @@ import {
   pasteMarkdown,
   selectChangedDocument,
   toggleProjectCommit,
-} from './shared/helpers';
+} from '../shared/helpers';
 
 // A real, minimal 1x1 PNG.
 const PNG_1x1 = Buffer.from(

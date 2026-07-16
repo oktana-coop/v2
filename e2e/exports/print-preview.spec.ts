@@ -1,9 +1,9 @@
-import { expect, test } from './shared/fixtures';
+import { expect, test } from '../shared/fixtures';
 import {
   openCommandPalette,
   openHelloMd,
   openProjectFolder,
-} from './shared/helpers';
+} from '../shared/helpers';
 
 test('navigating to print preview via command palette renders the preview', async ({
   electronApp,

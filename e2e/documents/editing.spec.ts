@@ -1,6 +1,6 @@
 import { Page } from '@playwright/test';
 
-import { expect, test } from './shared/fixtures';
+import { expect, test } from '../shared/fixtures';
 import {
   clearEditor,
   clickToolbarButton,
@@ -14,7 +14,7 @@ import {
   typeInEditor,
   typeInEditorAndWaitForDebounce,
   typeInEditorSlowly,
-} from './shared/helpers';
+} from '../shared/helpers';
 
 const setupEditor = async ({
   electronApp,

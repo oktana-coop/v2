@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import { expect, test } from './shared/fixtures';
+import { expect, test } from '../shared/fixtures';
 import {
   clickToolbarButton,
   commitChanges,
@@ -17,7 +17,7 @@ import {
   selectUncommittedChanges,
   typeInEditorAndWaitForDebounce,
   typeInParagraphAndWaitForDebounce,
-} from './shared/helpers';
+} from '../shared/helpers';
 
 test('commit flow: edit → commit → one commit in history', async ({
   electronApp,
