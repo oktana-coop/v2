@@ -1,4 +1,3 @@
-import { useContext } from 'react';
 import { useNavigate } from 'react-router';
 
 import {
@@ -9,24 +8,17 @@ import {
   type ArtifactId,
   urlEncodeArtifactId,
 } from '../../../modules/infrastructure/version-control';
-import { ProjectContext } from '../app-state';
 
 export const useNavigateToArtifact = () => {
   const navigate = useNavigate();
 
-  const { setSelectedFileInfo } = useContext(ProjectContext);
-
   return ({
     projectId,
     artifactId,
-    path,
   }: {
     projectId: ProjectId;
     artifactId: ArtifactId;
-    path: string | null;
   }) => {
-    setSelectedFileInfo({ documentId: artifactId, path });
-
     navigate(
       `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(artifactId)}`
     );

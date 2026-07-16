@@ -7,15 +7,17 @@ import { insertAsset } from '../../../modules/domain/project';
 import { type DocumentAsset } from '../../../modules/domain/rich-text';
 import { type ArtifactId } from '../../../modules/infrastructure/version-control';
 import { InfrastructureAdaptersContext, ProjectContext } from '../app-state';
+import { useCurrentArtifactId } from './use-current-artifact-id';
 
 export const useAssetInsertion = (
   documentIdOverride?: ArtifactId
 ): (() => Promise<DocumentAsset | null>) => {
-  const { projectId, projectStore, selectedFileInfo, refreshDirectoryTree } =
+  const { projectId, projectStore, refreshDirectoryTree } =
     useContext(ProjectContext);
   const { filesystem } = useContext(InfrastructureAdaptersContext);
+  const currentArtifactId = useCurrentArtifactId();
 
-  const documentId = documentIdOverride ?? selectedFileInfo?.documentId;
+  const documentId = documentIdOverride ?? currentArtifactId;
 
   return useCallback(async (): Promise<DocumentAsset | null> => {
     if (!projectId || !projectStore) {

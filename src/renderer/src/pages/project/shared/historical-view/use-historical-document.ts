@@ -150,10 +150,9 @@ export const useHistoricalDocument = ({
       navigateToArtifact({
         projectId,
         artifactId: documentId,
-        path: documentPath,
       });
     }
-  }, [projectId, documentId, documentPath, navigateToArtifact]);
+  }, [projectId, documentId, navigateToArtifact]);
 
   const diffWithParam = useMemo((): CommitId | null => {
     const param = searchParams.get('diffWith');

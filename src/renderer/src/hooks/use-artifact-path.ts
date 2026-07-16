@@ -1,19 +1,28 @@
 import * as Effect from 'effect/Effect';
 import { useContext, useEffect, useState } from 'react';
 
-import { type ProjectRelPath } from '../../../modules/domain/project';
+import {
+  type ProjectId,
+  type ProjectRelPath,
+  type ProjectStore,
+} from '../../../modules/domain/project';
 import { type ArtifactId } from '../../../modules/infrastructure/version-control';
 import { ProjectContext } from '../app-state';
 
-type UseArtifactPathResult = {
+export type UseArtifactPathResult = {
   path: ProjectRelPath | null;
   loading: boolean;
 };
 
-export const useArtifactPath = (
-  artifactId: ArtifactId | null
-): UseArtifactPathResult => {
-  const { projectId, projectStore } = useContext(ProjectContext);
+export const useResolveArtifactPath = ({
+  projectId,
+  projectStore,
+  artifactId,
+}: {
+  projectId: ProjectId | null;
+  projectStore: ProjectStore | null;
+  artifactId: ArtifactId | null;
+}): UseArtifactPathResult => {
   const [path, setPath] = useState<ProjectRelPath | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -55,4 +64,14 @@ export const useArtifactPath = (
   }, [artifactId, projectId, projectStore]);
 
   return { path, loading };
+};
+
+// Context-bound convenience over useResolveArtifactPath for renderer consumers
+// that read the current project from context.
+export const useArtifactPath = (
+  artifactId: ArtifactId | null
+): UseArtifactPathResult => {
+  const { projectId, projectStore } = useContext(ProjectContext);
+
+  return useResolveArtifactPath({ projectId, projectStore, artifactId });
 };

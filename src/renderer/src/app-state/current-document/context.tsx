@@ -109,8 +109,7 @@ export const CurrentDocumentProvider = ({
   );
   const { showDiffInHistoryView } = useContext(FunctionalityConfigContext);
   const navigate = useNavigate();
-  const { setSelectedFileInfo, restoreDocumentChanges } =
-    useContext(ProjectContext);
+  const { restoreDocumentChanges } = useContext(ProjectContext);
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
   );
@@ -159,17 +158,6 @@ export const CurrentDocumentProvider = ({
         setLoadingHistory(true);
         setDocumentNeedsReload(false);
 
-        const path = await Effect.runPromise(
-          projectStore.getArtifactPathById({
-            projectId: projectIdParam as ProjectId,
-            artifactId: documentId,
-          })
-        );
-
-        setSelectedFileInfo({
-          documentId,
-          path,
-        });
         resetPulledUpstreamChanges();
 
         prevProjectId.current = projectIdParam;

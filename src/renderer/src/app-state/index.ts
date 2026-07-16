@@ -8,7 +8,6 @@ export {
   ProjectContext,
   type ProjectContextType,
   ProjectProvider,
-  type SelectedFileInfo,
 } from './current-project/context';
 
 export {

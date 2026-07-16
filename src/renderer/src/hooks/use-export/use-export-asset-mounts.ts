@@ -1,13 +1,12 @@
 import * as Effect from 'effect/Effect';
 import { useCallback, useContext } from 'react';
 
-import {
-  parseProjectRelPath,
-  type ReferencedAsset,
-} from '../../../../modules/domain/project';
+import { type ReferencedAsset } from '../../../../modules/domain/project';
 import { type RepresentationTransformAssetFile } from '../../../../modules/domain/rich-text';
 import { getParentPath } from '../../../../modules/infrastructure/filesystem';
 import { ProjectContext } from '../../app-state';
+import { useArtifactPath } from '../use-artifact-path';
+import { useCurrentArtifactId } from '../use-current-artifact-id';
 
 export type ExportAssetMounts = {
   assetFiles: RepresentationTransformAssetFile[];
@@ -23,14 +22,9 @@ export const emptyExportAssetMounts: ExportAssetMounts = {
 // bytes — plus the document's directory (the resource path), for the
 // representation transform to embed.
 export const useExportAssetMounts = () => {
-  const {
-    projectId,
-    selectedFileInfo,
-    projectStore: projectStore,
-  } = useContext(ProjectContext);
-
-  const rawDocPath = selectedFileInfo?.path;
-  const docPath = rawDocPath ? parseProjectRelPath(rawDocPath) : null;
+  const { projectId, projectStore } = useContext(ProjectContext);
+  const currentArtifactId = useCurrentArtifactId();
+  const { path: docPath } = useArtifactPath(currentArtifactId);
 
   return useCallback(async (): Promise<ExportAssetMounts> => {
     if (!projectId || !docPath) {
@@ -38,11 +32,11 @@ export const useExportAssetMounts = () => {
     }
 
     const readReferencedAssets = (): Promise<ReferencedAsset[]> =>
-      projectStore && selectedFileInfo
+      projectStore && currentArtifactId
         ? Effect.runPromise(
             projectStore.readDocumentReferencedAssets({
               projectId,
-              documentId: selectedFileInfo.documentId,
+              documentId: currentArtifactId,
             })
           )
         : Promise.resolve([]);
@@ -60,5 +54,5 @@ export const useExportAssetMounts = () => {
     }));
 
     return { assetFiles, resourcePath: getParentPath(docPath) };
-  }, [projectId, docPath, projectStore, selectedFileInfo]);
+  }, [projectId, docPath, projectStore, currentArtifactId]);
 };
