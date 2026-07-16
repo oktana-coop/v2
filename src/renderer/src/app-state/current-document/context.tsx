@@ -29,12 +29,12 @@ import {
   changeIdsAreSame,
   type ChangeWithUrlInfo,
   type Commit,
-  decodeUrlEncodedChangeId,
   urlEncodeArtifactId,
   urlEncodeChangeId,
   urlEncodeChangeIdForChange,
 } from '../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../modules/personalization/browser';
+import { useCurrentChangeId } from '../../hooks/use-current-change-id';
 import { useCurrentDocumentId } from '../../hooks/use-current-document-id';
 import { usePulledUpstreamChanges } from '../../hooks/use-pulled-upstream-changes';
 import { InfrastructureAdaptersContext, ProjectContext } from '../';
@@ -91,7 +91,8 @@ export const CurrentDocumentProvider = ({
   const { projectStore } = useContext(InfrastructureAdaptersContext);
   const [versionedDocument, setVersionedDocument] =
     useState<VersionedDocument | null>(null);
-  const { projectId: projectIdParam, changeId: changeIdParam } = useParams();
+  const { projectId: projectIdParam } = useParams();
+  const changeId = useCurrentChangeId();
   const documentId = useCurrentDocumentId();
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
   const [versionedDocumentHistory, setVersionedDocumentHistory] = useState<
@@ -133,7 +134,7 @@ export const CurrentDocumentProvider = ({
     const returningToSelectedDocumentEditMode =
       prevDocumentId.current === documentId &&
       prevProjectId.current === projectIdParam &&
-      !changeIdParam;
+      !changeId;
 
     const updateDocumentHandleAndSelectedFile = async ({
       projectStore,
@@ -180,7 +181,7 @@ export const CurrentDocumentProvider = ({
   }, [
     documentId,
     projectIdParam,
-    changeIdParam,
+    changeId,
     projectStore,
     pulledUpstreamChanges,
     documentNeedsReload,
@@ -278,9 +279,9 @@ export const CurrentDocumentProvider = ({
   }, [versionedDocument]);
 
   useEffect(() => {
-    if (versionedDocumentHistory.length > 0 && changeIdParam) {
+    if (versionedDocumentHistory.length > 0 && changeId) {
       const selectedCommitIndex = findSelectedCommitIndex({
-        changeId: decodeUrlEncodedChangeId(changeIdParam),
+        changeId,
         history: versionedDocumentHistory,
       });
 
@@ -288,7 +289,7 @@ export const CurrentDocumentProvider = ({
         selectedCommitIndex === -1 ? null : selectedCommitIndex
       );
     }
-  }, [versionedDocumentHistory, changeIdParam]);
+  }, [versionedDocumentHistory, changeId]);
 
   const reloadDocumentHistory = useCallback(async () => {
     if (!projectStore || !versionedDocument || !documentId) return;

@@ -1,5 +1,4 @@
 import { useContext, useEffect, useMemo } from 'react';
-import { useParams } from 'react-router';
 
 import {
   changeIdsAreSame,
@@ -16,7 +15,10 @@ import {
   RestoreCommitIcon,
   TrashIcon,
 } from '../../../../../../components/icons';
-import { useCurrentDocumentName } from '../../../../../../hooks';
+import {
+  useCurrentChangeId,
+  useCurrentDocumentName,
+} from '../../../../../../hooks';
 import {
   HistoricalDocumentView,
   useHistoricalDocument,
@@ -76,7 +78,7 @@ const CommittedChangeActions = ({
 );
 
 export const DocumentHistoricalView = () => {
-  const { changeId: encodedChangeId } = useParams();
+  const changeId = useCurrentChangeId();
   const {
     versionedDocumentHistory: commits,
     onSelectChange,
@@ -105,10 +107,10 @@ export const DocumentHistoricalView = () => {
 
   // Auto-select first change when navigating to history without a changeId
   useEffect(() => {
-    if (commits.length > 0 && !encodedChangeId) {
+    if (commits.length > 0 && !changeId) {
       onSelectChange(commits[0].id);
     }
-  }, [commits, encodedChangeId]);
+  }, [commits, changeId]);
 
   // Set window title
   useEffect(() => {
