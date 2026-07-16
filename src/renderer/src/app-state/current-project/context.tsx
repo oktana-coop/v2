@@ -17,6 +17,8 @@ import {
   DEFAULT_REMOTE_PROJECT_NAME,
   findNodeByPath,
   isPathInsideDirectory,
+  type OpenOrCreateProjectResult,
+  type OpenProjectByIdResult,
   parseProjectRelPath,
   type ProjectStore,
   type RemoteProjectInfo,
@@ -57,10 +59,7 @@ import { useNavigateToResolveConflicts } from '../../hooks';
 import { useResolveArtifactPath } from '../../hooks/use-artifact-path';
 import { useCurrentArtifactId } from '../../hooks/use-current-artifact-id';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
-import {
-  type BrowserStorageProjectData,
-  PROJECT_BROWSER_STORAGE_KEY,
-} from './browser-storage';
+import { readStoredProject, storeProject } from './browser-storage';
 
 type CreateNewDocumentArgs = {
   name?: string;
@@ -447,74 +446,64 @@ export const ProjectProvider = ({
   const location = useLocation();
   const navigateToResolveMergeConflicts = useNavigateToResolveConflicts();
 
+  const applyOpenedProject = (
+    opened: OpenProjectByIdResult | OpenOrCreateProjectResult
+  ) => {
+    setProjectId(opened.projectId);
+    setDirectory(opened.directory);
+    setCurrentBranch(opened.currentBranch);
+    setMergeConflictInfo(opened.mergeConflictInfo);
+    setRemoteProject(
+      opened.remoteProjects.length > 0 ? opened.remoteProjects[0] : null
+    );
+    setProjectStore(opened.projectStore);
+    registerProjectStore(opened.projectStore);
+  };
+
   useEffect(() => {
-    const getSelectedDirectory = async () => {
-      // Check if we have a project ID in the browser storage
-      const browserStorageBrowserDataValue = localStorage.getItem(
-        PROJECT_BROWSER_STORAGE_KEY
+    const openStoredProject = async () => {
+      const storedProject = readStoredProject();
+
+      if (!storedProject?.projectId || !storedProject?.directoryPath) return;
+
+      setLoading(true);
+
+      const opened = await Effect.runPromise(
+        projectStoreManager.openProjectById({
+          filesystem,
+        })({
+          projectId: storedProject.projectId,
+          directoryPath: storedProject.directoryPath,
+          username,
+          email,
+        })
       );
-      const browserStorageProjectData = browserStorageBrowserDataValue
-        ? (JSON.parse(
-            browserStorageBrowserDataValue
-          ) as BrowserStorageProjectData)
-        : null;
 
-      if (
-        browserStorageProjectData?.directoryPath &&
-        browserStorageProjectData?.projectId
-      ) {
-        setLoading(true);
+      applyOpenedProject(opened);
 
-        const {
-          projectStore: openedProjectStore,
-          directory,
-          currentBranch,
-          mergeConflictInfo,
-          remoteProjects,
-        } = await Effect.runPromise(
-          projectStoreManager.openProjectById({
-            filesystem,
-          })({
-            projectId: browserStorageProjectData.projectId,
-            directoryPath: browserStorageProjectData.directoryPath,
-            username,
-            email,
-          })
-        );
+      setLoading(false);
 
-        setProjectId(browserStorageProjectData.projectId);
-        setDirectory(directory);
-        setCurrentBranch(currentBranch);
-        setMergeConflictInfo(mergeConflictInfo);
-        setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
-        setProjectStore(openedProjectStore);
-        registerProjectStore(openedProjectStore);
+      if (opened.mergeConflictInfo) {
+        navigateToResolveMergeConflicts({
+          projectId: opened.projectId,
+          mergeConflictInfo: opened.mergeConflictInfo,
+        });
+        return;
+      }
 
-        setLoading(false);
+      // Only redirect to /artifacts if the user isn't already on a project
+      // subroute (e.g. /history). This effect runs on mount, so when navigating
+      // from /settings back to project routes the current location already
+      // reflects the target subroute.
+      const projectBase = `/projects/${urlEncodeProjectId(opened.projectId)}`;
 
-        if (mergeConflictInfo) {
-          navigateToResolveMergeConflicts({
-            projectId: browserStorageProjectData.projectId,
-            mergeConflictInfo,
-          });
-        } else {
-          // Only redirect to /artifacts if the user isn't already on a
-          // project subroute (e.g. /history). This effect runs on mount,
-          // so when navigating from /settings back to project routes the
-          // current location already reflects the target subroute.
-          const projectBase = `/projects/${urlEncodeProjectId(browserStorageProjectData.projectId)}`;
-          const isAlreadyOnProjectSubroute = location.pathname.startsWith(
-            `${projectBase}/`
-          );
-
-          if (!isAlreadyOnProjectSubroute) {
-            navigate(`${projectBase}/artifacts`);
-          }
-        }
+      if (!location.pathname.startsWith(`${projectBase}/`)) {
+        navigate(`${projectBase}/artifacts`);
       }
     };
 
-    getSelectedDirectory();
+    openStoredProject();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const refreshDirectoryTree = useCallback(async () => {
@@ -647,50 +636,34 @@ export const ProjectProvider = ({
     async (cloneUrl?: string) => {
       setLoading(true);
 
-      const {
-        projectStore: openedProjectStore,
-        projectId: projId,
-        directory: dir,
-        currentBranch,
-        mergeConflictInfo,
-        remoteProjects,
-      } = await Effect.runPromise(
+      const opened = await Effect.runPromise(
         projectStoreManager.openOrCreateProject({
           filesystem,
         })({ username, email, cloneUrl })
       );
 
-      setProjectId(projId);
-      setDirectory(dir);
-      setCurrentBranch(currentBranch);
-      setMergeConflictInfo(mergeConflictInfo);
-      setRemoteProject(remoteProjects.length > 0 ? remoteProjects[0] : null);
-      setProjectStore(openedProjectStore);
-      registerProjectStore(openedProjectStore);
+      applyOpenedProject(opened);
 
-      localStorage.setItem(
-        PROJECT_BROWSER_STORAGE_KEY,
-        JSON.stringify({
-          directoryName: dir.name,
-          directoryPath: dir.path,
-          projectId: projId,
-        })
-      );
+      storeProject({
+        projectId: opened.projectId,
+        directoryPath: opened.directory.path,
+      });
 
       setLoading(false);
 
-      if (mergeConflictInfo) {
+      if (opened.mergeConflictInfo) {
         navigateToResolveMergeConflicts({
-          projectId: projId,
-          mergeConflictInfo,
+          projectId: opened.projectId,
+          mergeConflictInfo: opened.mergeConflictInfo,
         });
       } else {
-        navigate(`/projects/${urlEncodeProjectId(projId)}/artifacts`);
+        navigate(`/projects/${urlEncodeProjectId(opened.projectId)}/artifacts`);
       }
 
-      return dir;
+      return opened.directory;
     },
-    [projectStoreManager, username, email]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [projectStoreManager, filesystem, username, email]
   );
 
   const handleCreateNewDocument = useCallback(
