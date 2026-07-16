@@ -3,13 +3,13 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-import { expect, test } from './shared/fixtures';
+import { expect, test } from '../shared/fixtures';
 import {
   mockCreateNewFile,
   openCommandPalette,
   openHelloMd,
   openProjectFolder,
-} from './shared/helpers';
+} from '../shared/helpers';
 
 const exportToPdf = async ({
   electronApp,
