@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router';
 import {
   isPathInsideDirectory,
   parseProjectRelPath,
+  type ProjectRelPath,
   renameDocumentInProject,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
@@ -26,7 +27,7 @@ type RenamingDeps = Pick<
   | 'refreshDirectoryTree'
   | 'findDocumentInProject'
 > & {
-  currentArtifactPath: string | null;
+  currentArtifactPath: ProjectRelPath | null;
 };
 
 type RenamingOps = Pick<
@@ -232,7 +233,7 @@ export const useRenamingOps = ({
           currentArtifactPath &&
           isPathInsideDirectory({
             directoryPath: parseProjectRelPath(oldRelativePath),
-            filePath: parseProjectRelPath(currentArtifactPath),
+            filePath: currentArtifactPath,
           })
         ) {
           const newFilePath =

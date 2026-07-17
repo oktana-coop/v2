@@ -17,15 +17,13 @@ import {
   type Branch,
   type Commit,
 } from '../../../../modules/infrastructure/version-control';
-import { type ProjectContextType } from './types';
+import { type ProjectContextType, type ProjectStateSetters } from './types';
 
 type RemoteDeps = Pick<
   ProjectContextType,
   'projectId' | 'projectStore' | 'remoteProject'
-> & {
-  setRemoteProject: (remoteProject: RemoteProjectInfo | null) => void;
-  setPulledUpstreamChanges: (pulled: boolean) => void;
-};
+> &
+  Pick<ProjectStateSetters, 'setRemoteProject' | 'setPulledUpstreamChanges'>;
 
 type RemoteOps = Pick<
   ProjectContextType,

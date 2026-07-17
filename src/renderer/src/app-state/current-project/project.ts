@@ -19,7 +19,7 @@ import {
 import { useNavigateToResolveConflicts } from '../../hooks';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 import { readStoredProject, storeProject } from './browser-storage';
-import { type ProjectContextType } from './types';
+import { type ProjectContextType, type ProjectStateSetters } from './types';
 
 type ProjectOps = Pick<
   ProjectContextType,
@@ -36,15 +36,8 @@ type ProjectOps = Pick<
   | 'onHandlePulledUpstreamChanges'
 >;
 
-// State the other concerns mutate. Kept here — where this module's own effects
-// read it — so the dependencies between concerns stay one-directional.
-type ProjectStateSetters = {
-  setCurrentBranch: (branch: Branch) => void;
-  setMergeConflictInfo: (mergeConflictInfo: MergeConflictInfo | null) => void;
-  setRemoteProject: (remoteProject: RemoteProjectInfo | null) => void;
-  setPulledUpstreamChanges: (pulledUpstreamChanges: boolean) => void;
-};
-
+// The setters are kept here — where this module's own effects read the state —
+// so the dependencies between concerns stay one-directional.
 export const useProjectOps = (): ProjectOps & ProjectStateSetters => {
   const {
     filesystem,

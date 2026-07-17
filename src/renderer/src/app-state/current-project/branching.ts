@@ -9,17 +9,14 @@ import {
 import {
   type Branch,
   DEFAULT_BRANCH,
-  type MergeConflictInfo,
   parseBranch,
   VersionControlMergeConflictErrorTag,
 } from '../../../../modules/infrastructure/version-control';
 import { useNavigateToResolveConflicts } from '../../hooks';
-import { type ProjectContextType } from './types';
+import { type ProjectContextType, type ProjectStateSetters } from './types';
 
-type BranchingDeps = Pick<ProjectContextType, 'projectId' | 'projectStore'> & {
-  setCurrentBranch: (branch: Branch) => void;
-  setMergeConflictInfo: (info: MergeConflictInfo | null) => void;
-};
+type BranchingDeps = Pick<ProjectContextType, 'projectId' | 'projectStore'> &
+  Pick<ProjectStateSetters, 'setCurrentBranch' | 'setMergeConflictInfo'>;
 
 type BranchingOps = Pick<
   ProjectContextType,

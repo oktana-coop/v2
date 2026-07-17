@@ -9,16 +9,12 @@ import {
   createSuccessNotification,
   NotificationsContext,
 } from '../../../../modules/infrastructure/notifications/browser';
-import {
-  type ArtifactId,
-  type MergeConflictInfo,
-} from '../../../../modules/infrastructure/version-control';
+import { type ArtifactId } from '../../../../modules/infrastructure/version-control';
 import { useNavigateToResolveConflicts } from '../../hooks';
-import { type ProjectContextType } from './types';
+import { type ProjectContextType, type ProjectStateSetters } from './types';
 
-type MergingDeps = Pick<ProjectContextType, 'projectId' | 'projectStore'> & {
-  setMergeConflictInfo: (info: MergeConflictInfo | null) => void;
-};
+type MergingDeps = Pick<ProjectContextType, 'projectId' | 'projectStore'> &
+  Pick<ProjectStateSetters, 'setMergeConflictInfo'>;
 
 type MergingOps = Pick<
   ProjectContextType,

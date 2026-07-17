@@ -6,6 +6,7 @@ import {
   findNodeByPath,
   isPathInsideDirectory,
   parseProjectRelPath,
+  type ProjectRelPath,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
 import {
@@ -18,7 +19,7 @@ type DirectoryDeps = Pick<
   ProjectContextType,
   'projectId' | 'projectStore' | 'directoryTree' | 'refreshDirectoryTree'
 > & {
-  currentArtifactPath: string | null;
+  currentArtifactPath: ProjectRelPath | null;
 };
 
 type DirectoryOps = Pick<
@@ -115,7 +116,7 @@ export const useDirectoryOps = ({
           currentArtifactPath &&
           isPathInsideDirectory({
             directoryPath: parseProjectRelPath(relativePath),
-            filePath: parseProjectRelPath(currentArtifactPath),
+            filePath: currentArtifactPath,
           })
         ) {
           navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);

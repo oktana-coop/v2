@@ -24,6 +24,13 @@ export type PendingNewDirectory = {
   parentPath?: string;
 };
 
+export type ProjectStateSetters = {
+  setCurrentBranch: (branch: Branch) => void;
+  setMergeConflictInfo: (mergeConflictInfo: MergeConflictInfo | null) => void;
+  setRemoteProject: (remoteProject: RemoteProjectInfo | null) => void;
+  setPulledUpstreamChanges: (pulledUpstreamChanges: boolean) => void;
+};
+
 export type ProjectContextType = {
   loading: boolean;
   projectId: ProjectId | null;

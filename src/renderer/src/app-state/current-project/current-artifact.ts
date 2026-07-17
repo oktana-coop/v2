@@ -7,7 +7,7 @@ import {
   type ArtifactId,
   urlEncodeArtifactId,
 } from '../../../../modules/infrastructure/version-control';
-import { type ProjectContextType } from './types';
+import { type ProjectContextType, type ProjectStateSetters } from './types';
 
 type CurrentArtifactDeps = Pick<
   ProjectContextType,
@@ -17,10 +17,10 @@ type CurrentArtifactDeps = Pick<
   | 'mergeConflictInfo'
   | 'pulledUpstreamChanges'
   | 'findDocumentInProject'
-> & {
-  currentArtifactId: ArtifactId | null;
-  setPulledUpstreamChanges: (pulledUpstreamChanges: boolean) => void;
-};
+> &
+  Pick<ProjectStateSetters, 'setPulledUpstreamChanges'> & {
+    currentArtifactId: ArtifactId | null;
+  };
 
 // Keeps the current artifact ID valid, reacting to events like branch switches
 // and pulling remote changes.

@@ -9,6 +9,7 @@ import {
   findNodeByPath,
   parseProjectRelPath,
   type ProjectId,
+  type ProjectRelPath,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
 import {
@@ -21,10 +22,13 @@ import { type CreateNewDocumentArgs, type ProjectContextType } from './types';
 
 type DocumentDeps = Pick<
   ProjectContextType,
-  'projectId' | 'projectStore' | 'directory' | 'directoryTree'
+  | 'projectId'
+  | 'projectStore'
+  | 'directory'
+  | 'directoryTree'
+  | 'refreshDirectoryTree'
 > & {
-  refreshDirectoryTree: ProjectContextType['refreshDirectoryTree'];
-  currentArtifactPath: string | null;
+  currentArtifactPath: ProjectRelPath | null;
 };
 
 type DocumentOps = Pick<
