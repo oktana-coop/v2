@@ -8,7 +8,7 @@ export {
   ProjectContext,
   type ProjectContextType,
   ProjectProvider,
-} from './current-project/context';
+} from './current-project';
 
 export {
   CommandPaletteContext,

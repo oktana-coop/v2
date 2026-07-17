@@ -4,7 +4,7 @@ import { NavLink, useMatch } from 'react-router';
 
 import { urlEncodeProjectId } from '../../../../modules/domain/project';
 import { type ProjectId } from '../../../../modules/domain/project/models';
-import { readStoredProject } from '../../app-state/current-project/browser-storage';
+import { readStoredProject } from '../../app-state/current-project';
 import { Logo } from '../brand/Logo';
 import { BranchIcon, OptionsIcon, PenIcon } from '../icons';
 import { IconProps } from '../icons/types';
