@@ -2,7 +2,7 @@ export {
   CurrentDocumentContext,
   type CurrentDocumentContextType,
   CurrentDocumentProvider,
-} from './current-document/context';
+} from './current-document';
 
 export {
   ProjectContext,
