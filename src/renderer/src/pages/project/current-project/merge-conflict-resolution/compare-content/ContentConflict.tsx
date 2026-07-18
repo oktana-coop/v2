@@ -6,14 +6,14 @@ import {
   ContentConflict as ContentConflictType,
   type MergeConflictInfo,
 } from '../../../../../../../modules/infrastructure/version-control';
-import { ProjectContext } from '../../../../../app-state';
-import { RichTextEditor } from '../../../../../components/editing/RichTextEditor';
-import { LongTextSkeleton } from '../../../../../components/progress/skeletons/LongText';
 import {
+  ProjectContext,
   useAssetInsertion,
   useAssetSrcResolver,
-  useMergeConflictResolution,
-} from '../../../../../hooks';
+} from '../../../../../app-state';
+import { RichTextEditor } from '../../../../../components/editing/RichTextEditor';
+import { LongTextSkeleton } from '../../../../../components/progress/skeletons/LongText';
+import { useMergeConflictResolution } from '../use-merge-conflict-resolution';
 import { SuggestedMergeInfoPanel } from './SuggestedMergeInfoPanel';
 
 export type ContentConflictProps = {

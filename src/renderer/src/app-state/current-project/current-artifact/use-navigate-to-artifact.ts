@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router';
 import {
   type ProjectId,
   urlEncodeProjectId,
-} from '../../../modules/domain/project';
+} from '../../../../../modules/domain/project';
 import {
   type ArtifactId,
   urlEncodeArtifactId,
-} from '../../../modules/infrastructure/version-control';
+} from '../../../../../modules/infrastructure/version-control';
 
 export const useNavigateToArtifact = () => {
   const navigate = useNavigate();

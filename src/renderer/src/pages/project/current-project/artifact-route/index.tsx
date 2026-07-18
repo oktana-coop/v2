@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Outlet } from 'react-router';
 
 import { versionedArtifactTypes } from '../../../../../../modules/infrastructure/version-control';
-import { useArtifactType } from '../../../../hooks/use-artifact-type';
+import { useArtifactType } from '../../../../app-state';
 import { DocumentSelection } from '../../empty-views/document-selection';
 import { UnsupportedDocumentView } from '../../shared/unsupported-document-view';
 

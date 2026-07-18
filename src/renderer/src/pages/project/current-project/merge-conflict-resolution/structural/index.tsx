@@ -11,9 +11,9 @@ import {
 } from '../../../../../../../modules/infrastructure/version-control';
 import { SidebarLayoutContext } from '../../../../../app-state';
 import { DiffIcon } from '../../../../../components/icons';
-import { useMergeConflictResolution } from '../../../../../hooks';
 import { SectionHeader } from '../../../../shared/settings/SectionHeader';
 import { MergeConflictResolutionActionsBar } from '../ActionsBar';
+import { useMergeConflictResolution } from '../use-merge-conflict-resolution';
 import { StructuralConflict } from './StructuralConflict';
 
 export const StructuralConflictResolution = () => {

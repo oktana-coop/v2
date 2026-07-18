@@ -5,17 +5,17 @@ import { useCallback, useContext, useEffect, useState } from 'react';
 import {
   processDocumentChange,
   type ProjectId,
-} from '../../../modules/domain/project';
+} from '../../../../../../modules/domain/project';
 import {
   type RichTextDocument,
   suggestMerge,
-} from '../../../modules/domain/rich-text';
-import { MergeConflictResolverContext } from '../../../modules/domain/rich-text/react/merge-conflict-resover-context';
-import { RepresentationTransformContext } from '../../../modules/domain/rich-text/react/representation-transform-context';
+} from '../../../../../../modules/domain/rich-text';
+import { MergeConflictResolverContext } from '../../../../../../modules/domain/rich-text/react/merge-conflict-resover-context';
+import { RepresentationTransformContext } from '../../../../../../modules/domain/rich-text/react/representation-transform-context';
 import {
   createErrorNotification,
   NotificationsContext,
-} from '../../../modules/infrastructure/notifications/browser';
+} from '../../../../../../modules/infrastructure/notifications/browser';
 import {
   type ArtifactId,
   type CompareContentConflict,
@@ -23,8 +23,11 @@ import {
   isStructuralConflict,
   type MergeConflictInfo,
   type StructuralConflict,
-} from '../../../modules/infrastructure/version-control';
-import { InfrastructureAdaptersContext, ProjectContext } from '../app-state';
+} from '../../../../../../modules/infrastructure/version-control';
+import {
+  InfrastructureAdaptersContext,
+  ProjectContext,
+} from '../../../../app-state';
 
 export const useMergeConflictResolution = () => {
   const {

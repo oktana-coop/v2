@@ -1,12 +1,12 @@
 import * as Effect from 'effect/Effect';
 import { useCallback, useContext } from 'react';
 
-import { type ReferencedAsset } from '../../../../modules/domain/project';
-import { type RepresentationTransformAssetFile } from '../../../../modules/domain/rich-text';
-import { getParentPath } from '../../../../modules/infrastructure/filesystem';
-import { ProjectContext } from '../../app-state';
-import { useArtifactPath } from '../use-artifact-path';
-import { useCurrentArtifactId } from '../use-current-artifact-id';
+import { type ReferencedAsset } from '../../../../../modules/domain/project';
+import { type RepresentationTransformAssetFile } from '../../../../../modules/domain/rich-text';
+import { getParentPath } from '../../../../../modules/infrastructure/filesystem';
+import { ProjectContext } from '../../current-project/context';
+import { useArtifactPath } from '../../current-project/current-artifact/artifact-path';
+import { useCurrentArtifactId } from '../../current-project/current-artifact/use-current-artifact-id';
 
 export type ExportAssetMounts = {
   assetFiles: RepresentationTransformAssetFile[];

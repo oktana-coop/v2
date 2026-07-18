@@ -24,12 +24,10 @@ import { FunctionalityConfigContext } from '../../../../../../modules/personaliz
 import {
   InfrastructureAdaptersContext,
   ProjectContext,
-} from '../../../../app-state';
-import {
   useArtifactPath,
   useCurrentChangeId,
   useNavigateToArtifact,
-} from '../../../../hooks';
+} from '../../../../app-state';
 import { type DiffViewProps } from './ReadOnlyDocumentView';
 
 const resolveDiffState = ({

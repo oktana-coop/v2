@@ -6,12 +6,12 @@ import { EXPLORER_TREE_NODE } from '../../../../../../../modules/infrastructure/
 import { filesystemItemTypes } from '../../../../../../../modules/infrastructure/filesystem';
 import { ChevronDownIcon, DiffIcon } from '../../../../../components/icons';
 import { FileExtensionIcon } from '../../../../../components/navigation';
+import { useTreeCallbacks } from './TreeView';
 import {
   type ExplorerTreeNode,
   NEW_DIRECTORY_NODE_ID,
   STRUCTURAL_CONFLICTS_NODE_TYPE,
-} from '../../../../../hooks';
-import { useTreeCallbacks } from './TreeView';
+} from './types';
 
 const nodeClasses = (node: NodeApi<ExplorerTreeNode>) =>
   clsx(

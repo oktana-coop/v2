@@ -1,10 +1,8 @@
 import { useCallback, useContext } from 'react';
 
-import {
-  CommitModalContext,
-  CurrentDocumentContext,
-  ProjectContext,
-} from '../app-state';
+import { CurrentDocumentContext } from '../current-document/context';
+import { ProjectContext } from '../current-project/context';
+import { CommitModalContext } from './commit-modal/context';
 
 export const useCommitDocumentChanges = () => {
   const { versionedDocumentId } = useContext(CurrentDocumentContext);

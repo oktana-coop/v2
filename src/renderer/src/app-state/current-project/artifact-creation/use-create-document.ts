@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from 'react';
 
-import { ProjectContext } from '../app-state';
-import { useNavigateToArtifact } from './use-navigate-to-artifact';
+import { ProjectContext } from '../context';
+import { useNavigateToArtifact } from '../current-artifact/use-navigate-to-artifact';
 
 export const useCreateDocument = () => {
   const [canCreateDocument, setCanCreateDocument] = useState<boolean>(false);

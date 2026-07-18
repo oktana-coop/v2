@@ -2,10 +2,13 @@ import { useContext } from 'react';
 import { Outlet } from 'react-router';
 
 export { DocumentEditor, DocumentHistoricalView } from './main';
-import { CurrentDocumentContext } from '../../../../app-state';
+import {
+  CurrentDocumentContext,
+  useCreateDocument,
+  useCurrentChangeId,
+} from '../../../../app-state';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
-import { useCreateDocument, useCurrentChangeId } from '../../../../hooks';
 import { DirectoryTreeView } from '../../shared/explorer-tree-views';
 import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
 

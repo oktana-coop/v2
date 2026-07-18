@@ -4,7 +4,7 @@ import { useParams } from 'react-router';
 import {
   type ChangeId,
   decodeUrlEncodedChangeId,
-} from '../../../modules/infrastructure/version-control';
+} from '../../../../../modules/infrastructure/version-control';
 
 export const useCurrentChangeId = (): ChangeId | null => {
   const { changeId: urlEncodedChangeId } = useParams();

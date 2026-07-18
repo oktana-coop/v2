@@ -10,7 +10,7 @@ import {
 } from '../../../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
-import { useAssetSrcResolver } from '../../../../hooks';
+import { useAssetSrcResolver } from '../../../../app-state';
 
 const {
   schema,

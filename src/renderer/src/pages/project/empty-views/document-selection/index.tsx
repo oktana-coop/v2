@@ -1,7 +1,6 @@
 import { useContext } from 'react';
 
-import { ProjectContext } from '../../../../app-state';
-import { useCreateDocument } from '../../../../hooks';
+import { ProjectContext, useCreateDocument } from '../../../../app-state';
 import { EmptyMainView } from '../empty-main-view';
 
 export const DocumentSelection = () => {

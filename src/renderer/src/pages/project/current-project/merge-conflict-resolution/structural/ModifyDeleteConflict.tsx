@@ -7,8 +7,8 @@ import {
 import { Button } from '../../../../../components/actions/Button';
 import { FileDocumentIcon } from '../../../../../components/icons';
 import { Heading3 } from '../../../../../components/typography/headings/Heading3';
-import { useMergeConflictResolution } from '../../../../../hooks';
 import { MergePole } from '../merge-info/MergePole';
+import { useMergeConflictResolution } from '../use-merge-conflict-resolution';
 
 export const ModifyDeleteConflict = ({
   conflict,

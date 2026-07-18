@@ -2,8 +2,8 @@ import type { Meta, StoryObj } from '@storybook/react';
 import type { ComponentProps } from 'react';
 
 import { filesystemItemTypes } from '../../../../../../../modules/infrastructure/filesystem';
-import { NEW_DIRECTORY_NODE_ID } from '../../../../../hooks';
 import { TreeView } from './TreeView';
+import { NEW_DIRECTORY_NODE_ID } from './types';
 
 const meta: Meta<typeof TreeView> = {
   title: 'navigation/TreeView',

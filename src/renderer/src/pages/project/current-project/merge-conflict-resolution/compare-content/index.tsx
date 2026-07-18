@@ -6,8 +6,8 @@ import { ProseMirrorContext } from '../../../../../../../modules/domain/rich-tex
 import { type CompareContentConflict as CompareContentConflictType } from '../../../../../../../modules/infrastructure/version-control';
 import { ProjectContext, SidebarLayoutContext } from '../../../../../app-state';
 import { LongTextSkeleton } from '../../../../../components/progress/skeletons/LongText';
-import { useMergeConflictResolution } from '../../../../../hooks';
 import { MergeConflictResolutionActionsBar } from '../ActionsBar';
+import { useMergeConflictResolution } from '../use-merge-conflict-resolution';
 import { CompareContentConflict } from './CompareContentConflict';
 
 export const CompareContentConflictResolution = () => {

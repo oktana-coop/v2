@@ -1,6 +1,6 @@
 import { createContext, useEffect, useState } from 'react';
 
-import { useKeyBindings } from '../../hooks';
+import { useKeyBindings } from '../../keyboard';
 import { keyBindings } from '../../pages/project/shared/command-palette/key-bindings';
 
 export type CommandPaletteContextType = {

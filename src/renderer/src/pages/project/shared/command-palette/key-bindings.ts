@@ -3,7 +3,7 @@
 // know where a key binding has already been taken
 // and for what purpose
 
-import type { KeyBinding } from '../../../../hooks/use-key-bindings';
+import type { KeyBinding } from '../../../../keyboard';
 
 // ctrl is used here to represent both ctrl (Windows/Linux) and cmd (Mac)
 export const keyBindings: Record<

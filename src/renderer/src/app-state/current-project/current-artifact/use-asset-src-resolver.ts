@@ -5,10 +5,11 @@ import { useCallback, useContext } from 'react';
 import {
   parseProjectRelPath,
   resolveDocumentAssetUrl,
-} from '../../../modules/domain/project';
-import { parseDocumentAssetSrcEffect } from '../../../modules/domain/rich-text';
-import { InfrastructureAdaptersContext, ProjectContext } from '../app-state';
-import { useArtifactPath } from './use-artifact-path';
+} from '../../../../../modules/domain/project';
+import { parseDocumentAssetSrcEffect } from '../../../../../modules/domain/rich-text';
+import { InfrastructureAdaptersContext } from '../../infrastructure-adapters/context';
+import { ProjectContext } from '../context';
+import { useArtifactPath } from './artifact-path';
 import { useCurrentArtifactId } from './use-current-artifact-id';
 
 // Resolves a document's asset `src` values to renderable URLs. Asset srcs are

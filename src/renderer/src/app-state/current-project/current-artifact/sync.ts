@@ -2,12 +2,12 @@ import * as Effect from 'effect/Effect';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 
-import { urlEncodeProjectId } from '../../../../modules/domain/project';
+import { urlEncodeProjectId } from '../../../../../modules/domain/project';
 import {
   type ArtifactId,
   urlEncodeArtifactId,
-} from '../../../../modules/infrastructure/version-control';
-import { type ProjectContextType, type ProjectStateSetters } from './types';
+} from '../../../../../modules/infrastructure/version-control';
+import { type ProjectContextType, type ProjectStateSetters } from '../types';
 
 type CurrentArtifactDeps = Pick<
   ProjectContextType,

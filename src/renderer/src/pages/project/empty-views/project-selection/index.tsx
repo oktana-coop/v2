@@ -3,10 +3,10 @@ import { useContext } from 'react';
 import {
   CloneFromGithubModalContext,
   ProjectContext,
+  useCreateDocument,
 } from '../../../../app-state';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
-import { useCreateDocument } from '../../../../hooks';
 import { CloneFromGithubDialog } from '../../../shared/sync-providers/github/CloneFromGithubDialog';
 import { DirectoryTreeView } from '../../shared/explorer-tree-views';
 import { EmptyMainView } from '../empty-main-view';

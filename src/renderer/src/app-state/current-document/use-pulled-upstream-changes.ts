@@ -1,6 +1,6 @@
 import { useCallback, useContext, useEffect, useState } from 'react';
 
-import { ProjectContext } from '../app-state';
+import { ProjectContext } from '../current-project/context';
 
 export const usePulledUpstreamChanges = () => {
   const {

@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router';
 import {
   inferArtifactTypeFromExtension,
   urlEncodeProjectId,
-} from '../../../modules/domain/project';
+} from '../../../../../../modules/domain/project';
 import {
   type ArtifactId,
   type ChangeId,
@@ -15,8 +15,8 @@ import {
   urlEncodeArtifactId,
   urlEncodeChangeId,
   versionedArtifactTypes,
-} from '../../../modules/infrastructure/version-control';
-import { ProjectContext } from '../app-state';
+} from '../../../../../../modules/infrastructure/version-control';
+import { ProjectContext } from '../../../../app-state';
 
 export const useProjectHistoryArtifactSelection = () => {
   const { projectId, projectStore, currentBranch } = useContext(ProjectContext);

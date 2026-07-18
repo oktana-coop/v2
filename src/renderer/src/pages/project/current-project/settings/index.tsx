@@ -1,9 +1,8 @@
 import { useContext } from 'react';
 
-import { SidebarLayoutContext } from '../../../../app-state';
+import { SidebarLayoutContext, useCreateDocument } from '../../../../app-state';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
-import { useCreateDocument } from '../../../../hooks';
 import { DefaultActionsBar } from '../../../shared/default-actions-bar';
 import { DirectoryTreeView } from '../../shared/explorer-tree-views';
 import { ProjectSync } from './ProjectSync';

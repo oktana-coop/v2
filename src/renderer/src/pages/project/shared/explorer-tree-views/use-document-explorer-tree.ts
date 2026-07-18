@@ -1,29 +1,14 @@
 import { useContext, useEffect, useState } from 'react';
 
-import { type ArtifactTreeNode } from '../../../modules/domain/project';
+import { type ArtifactTreeNode } from '../../../../../../modules/domain/project';
+import { filesystemItemTypes } from '../../../../../../modules/infrastructure/filesystem';
 import {
-  type FilesystemItemType,
-  filesystemItemTypes,
-} from '../../../modules/infrastructure/filesystem';
-import { ProjectContext, ProjectContextType } from '../app-state';
-import { useArtifactPath } from './use-artifact-path';
-import { useCurrentArtifactId } from './use-current-artifact-id';
-
-export const STRUCTURAL_CONFLICTS_NODE_TYPE = 'STRUCTURAL_CONFLICTS' as const;
-export const NEW_DIRECTORY_NODE_ID = 'NEW_DIRECTORY' as const;
-
-export type ExplorerTreeNode = {
-  id: string;
-  name: string;
-  type: FilesystemItemType | typeof STRUCTURAL_CONFLICTS_NODE_TYPE;
-  children?: ExplorerTreeNode[];
-};
-
-export type DocumentListItem = {
-  id: string;
-  name: string;
-  isSelected: boolean;
-};
+  ProjectContext,
+  ProjectContextType,
+  useArtifactPath,
+  useCurrentArtifactId,
+} from '../../../../app-state';
+import { type ExplorerTreeNode, NEW_DIRECTORY_NODE_ID } from './tree/types';
 
 const injectPendingDirectoryNode = (
   nodes: ExplorerTreeNode[],
