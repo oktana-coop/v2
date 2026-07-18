@@ -2,13 +2,13 @@ export {
   CurrentDocumentContext,
   type CurrentDocumentContextType,
   CurrentDocumentProvider,
-} from './current-document/context';
+} from './current-document';
 
 export {
   ProjectContext,
   type ProjectContextType,
   ProjectProvider,
-} from './current-project/context';
+} from './current-project';
 
 export {
   CommandPaletteContext,

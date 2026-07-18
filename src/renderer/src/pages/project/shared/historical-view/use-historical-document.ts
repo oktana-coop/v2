@@ -14,7 +14,6 @@ import {
   type CommitId,
   type CommitWithUrlInfo,
   decodeUrlEncodedArtifactId,
-  decodeUrlEncodedChangeId,
   decodeUrlEncodedCommitId,
   isCommitWithUrlInfo,
   isUncommittedChangeId,
@@ -26,7 +25,11 @@ import {
   InfrastructureAdaptersContext,
   ProjectContext,
 } from '../../../../app-state';
-import { useArtifactPath, useNavigateToArtifact } from '../../../../hooks';
+import {
+  useArtifactPath,
+  useCurrentChangeId,
+  useNavigateToArtifact,
+} from '../../../../hooks';
 import { type DiffViewProps } from './ReadOnlyDocumentView';
 
 const resolveDiffState = ({
@@ -109,8 +112,8 @@ export type UseHistoricalDocumentResult = {
 export const useHistoricalDocument = ({
   changes,
 }: UseHistoricalDocumentArgs): UseHistoricalDocumentResult => {
-  const { artifactId: encodedDocumentId, changeId: encodedChangeId } =
-    useParams();
+  const { artifactId: encodedDocumentId } = useParams();
+  const changeId = useCurrentChangeId();
   const { projectId } = useContext(ProjectContext);
   const { projectStore } = useContext(InfrastructureAdaptersContext);
   const { showDiffInHistoryView, setShowDiffInHistoryView } = useContext(
@@ -123,11 +126,6 @@ export const useHistoricalDocument = ({
     () =>
       encodedDocumentId ? decodeUrlEncodedArtifactId(encodedDocumentId) : null,
     [encodedDocumentId]
-  );
-
-  const changeId = useMemo(
-    () => (encodedChangeId ? decodeUrlEncodedChangeId(encodedChangeId) : null),
-    [encodedChangeId]
   );
 
   const { path: documentPath } = useArtifactPath(documentId);

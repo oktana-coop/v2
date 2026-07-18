@@ -4,10 +4,7 @@ import { NavLink, useMatch } from 'react-router';
 
 import { urlEncodeProjectId } from '../../../../modules/domain/project';
 import { type ProjectId } from '../../../../modules/domain/project/models';
-import {
-  type BrowserStorageProjectData,
-  PROJECT_BROWSER_STORAGE_KEY,
-} from '../../app-state/current-project/browser-storage';
+import { readStoredProject } from '../../app-state/current-project';
 import { Logo } from '../brand/Logo';
 import { BranchIcon, OptionsIcon, PenIcon } from '../icons';
 import { IconProps } from '../icons/types';
@@ -57,16 +54,8 @@ export const NavBarItem = ({ item }: { item: NavItem }) => {
   );
 };
 
-const getStoredProjectId = (): ProjectId | null => {
-  const stored = localStorage.getItem(PROJECT_BROWSER_STORAGE_KEY);
-  if (!stored) return null;
-
-  try {
-    return (JSON.parse(stored) as BrowserStorageProjectData).projectId ?? null;
-  } catch {
-    return null;
-  }
-};
+const getStoredProjectId = (): ProjectId | null =>
+  readStoredProject()?.projectId ?? null;
 
 export function NavBar() {
   const projectMatch = useMatch('/projects/:projectId/*');

@@ -1,12 +1,11 @@
 import { useContext } from 'react';
-import { Outlet, useParams } from 'react-router';
+import { Outlet } from 'react-router';
 
 export { DocumentEditor, DocumentHistoricalView } from './main';
-import { decodeUrlEncodedChangeId } from '../../../../../../modules/infrastructure/version-control';
 import { CurrentDocumentContext } from '../../../../app-state';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
-import { useCreateDocument } from '../../../../hooks';
+import { useCreateDocument, useCurrentChangeId } from '../../../../hooks';
 import { DirectoryTreeView } from '../../shared/explorer-tree-views';
 import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
 
@@ -14,7 +13,7 @@ export const ProjectDocuments = () => {
   const { versionedDocumentHistory: changes, onSelectChange } = useContext(
     CurrentDocumentContext
   );
-  const { changeId } = useParams();
+  const changeId = useCurrentChangeId();
   const { triggerDocumentCreationDialog } = useCreateDocument();
 
   return (
@@ -26,9 +25,7 @@ export const ProjectDocuments = () => {
           <DocumentHistory
             changes={changes}
             onChangeClick={onSelectChange}
-            selectedChange={
-              changeId ? decodeUrlEncodedChangeId(changeId) : null
-            }
+            selectedChange={changeId}
           />
         </StackedResizablePanelsLayout>
       }

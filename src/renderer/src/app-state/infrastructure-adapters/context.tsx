@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 import {
   type AssetUrlProtocol,
@@ -42,9 +42,15 @@ export const InfrastructureAdaptersProvider = ({
   const { processId } = useContext(ElectronContext);
   const [projectStore, setProjectStore] = useState<ProjectStore | null>(null);
 
-  const filesystem = createElectronRendererFilesystemAPIAdapter();
+  const filesystem = useMemo(
+    () => createElectronRendererFilesystemAPIAdapter(),
+    []
+  );
 
-  const assetUrlProtocol = createElectronAssetProtocolAdapter();
+  const assetUrlProtocol = useMemo(
+    () => createElectronAssetProtocolAdapter(),
+    []
+  );
 
   const [projectStoreManager, setProjectStoreManager] =
     useState<ProjectStoreManager | null>(null);
