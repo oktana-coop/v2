@@ -12,8 +12,8 @@ import {
   parseBranch,
   VersionControlMergeConflictErrorTag,
 } from '../../../../modules/infrastructure/version-control';
+import { useNavigateToResolveConflicts } from './resolve-conflicts-navigation';
 import { type ProjectContextType, type ProjectStateSetters } from './types';
-import { useNavigateToResolveConflicts } from './use-navigate-to-resolve-conflicts';
 
 type BranchingDeps = Pick<ProjectContextType, 'projectId' | 'projectStore'> &
   Pick<ProjectStateSetters, 'setCurrentBranch' | 'setMergeConflictInfo'>;

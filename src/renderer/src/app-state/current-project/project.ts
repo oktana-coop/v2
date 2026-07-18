@@ -18,8 +18,8 @@ import {
 } from '../../../../modules/infrastructure/version-control';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 import { readStoredProject, storeProject } from './browser-storage';
+import { useNavigateToResolveConflicts } from './resolve-conflicts-navigation';
 import { type ProjectContextType, type ProjectStateSetters } from './types';
-import { useNavigateToResolveConflicts } from './use-navigate-to-resolve-conflicts';
 
 type ProjectOps = Pick<
   ProjectContextType,
