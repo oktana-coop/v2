@@ -10,8 +10,8 @@ import {
   NotificationsContext,
 } from '../../../../modules/infrastructure/notifications/browser';
 import { type ArtifactId } from '../../../../modules/infrastructure/version-control';
-import { useNavigateToResolveConflicts } from '../../hooks';
 import { type ProjectContextType, type ProjectStateSetters } from './types';
+import { useNavigateToResolveConflicts } from './use-navigate-to-resolve-conflicts';
 
 type MergingDeps = Pick<ProjectContextType, 'projectId' | 'projectStore'> &
   Pick<ProjectStateSetters, 'setMergeConflictInfo'>;

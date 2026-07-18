@@ -9,13 +9,11 @@ import {
   CommitModalContext,
   CurrentDocumentContext,
   ProjectContext,
-} from '../../../app-state';
-import { BranchingCommandPaletteStateProvider } from '../../../app-state';
-import {
   useCommitDocumentChanges,
   useCommitToProject,
   useCreateDocument,
-} from '../../../hooks';
+} from '../../../app-state';
+import { BranchingCommandPaletteStateProvider } from '../../../app-state';
 import { ProjectCommandPalette } from '../shared/command-palette';
 import { BottomBar } from './bottom-bar';
 import {

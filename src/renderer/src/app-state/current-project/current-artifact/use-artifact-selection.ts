@@ -1,9 +1,9 @@
 import * as Effect from 'effect/Effect';
 import { useContext } from 'react';
 
-import { inferArtifactTypeFromExtension } from '../../../modules/domain/project';
-import { versionedArtifactTypes } from '../../../modules/infrastructure/version-control';
-import { ProjectContext } from '../app-state';
+import { inferArtifactTypeFromExtension } from '../../../../../modules/domain/project';
+import { versionedArtifactTypes } from '../../../../../modules/infrastructure/version-control';
+import { ProjectContext } from '../context';
 import { useNavigateToArtifact } from './use-navigate-to-artifact';
 
 export const useArtifactSelection = () => {

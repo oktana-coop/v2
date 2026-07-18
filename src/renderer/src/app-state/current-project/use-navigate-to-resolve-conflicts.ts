@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router';
 import {
   type ProjectId,
   urlEncodeProjectId,
-} from '../../../modules/domain/project';
+} from '../../../../modules/domain/project';
 import {
   isCompareContentConflict,
   isStructuralConflict,
   type MergeConflictInfo,
-} from '../../../modules/infrastructure/version-control';
+} from '../../../../modules/infrastructure/version-control';
 
 const selectDefaultSubRoute = ({
   mergeConflictInfo,

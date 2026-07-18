@@ -27,7 +27,7 @@ import {
 } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
 import { versionedArtifactTypes } from '../../../../modules/infrastructure/version-control';
-import { useKeyBindings } from '../../hooks';
+import { useKeyBindings } from '../../keyboard';
 import { keyBindings } from '../../pages/project/shared/command-palette/key-bindings';
 import { EditorToolbar } from './editor-toolbar';
 import { LinkDialog } from './LinkDialog';

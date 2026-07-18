@@ -3,11 +3,12 @@ import { pipe } from 'effect/Function';
 import * as Option from 'effect/Option';
 import { useCallback, useContext } from 'react';
 
-import { insertAsset } from '../../../modules/domain/project';
-import { type DocumentAsset } from '../../../modules/domain/rich-text';
-import { type ArtifactId } from '../../../modules/infrastructure/version-control';
-import { InfrastructureAdaptersContext, ProjectContext } from '../app-state';
-import { useCurrentArtifactId } from './use-current-artifact-id';
+import { insertAsset } from '../../../../../modules/domain/project';
+import { type DocumentAsset } from '../../../../../modules/domain/rich-text';
+import { type ArtifactId } from '../../../../../modules/infrastructure/version-control';
+import { InfrastructureAdaptersContext } from '../../infrastructure-adapters/context';
+import { ProjectContext } from '../context';
+import { useCurrentArtifactId } from '../current-artifact/use-current-artifact-id';
 
 export const useAssetInsertion = (
   documentIdOverride?: ArtifactId

@@ -3,12 +3,13 @@ import { useContext } from 'react';
 import {
   CloneFromGithubModalContext,
   SidebarLayoutContext,
+  useCreateDocument,
 } from '../../../../app-state';
 import { Button } from '../../../../components/actions/Button';
 import { EmptyDocument } from '../../../../components/document-views/EmptyDocument';
 import { FolderIcon, GithubIcon, PenIcon } from '../../../../components/icons';
-import { useCreateDocument, useDocumentExplorerTree } from '../../../../hooks';
 import { DefaultActionsBar } from '../../../shared/default-actions-bar';
+import { useDocumentExplorerTree } from '../../shared/explorer-tree-views';
 
 export const EmptyMainView = ({
   onCreateDocumentButtonClick,

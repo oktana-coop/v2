@@ -26,11 +26,11 @@ import {
   urlEncodeChangeIdForChange,
 } from '../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../modules/personalization/browser';
-import { useCurrentChangeId } from '../../hooks/use-current-change-id';
-import { useCurrentDocumentId } from '../../hooks/use-current-document-id';
-import { usePulledUpstreamChanges } from '../../hooks/use-pulled-upstream-changes';
 import { ProjectContext } from '../';
+import { useCurrentChangeId } from '../current-project/current-artifact/use-current-change-id';
 import { CurrentDocumentContext } from './context';
+import { useCurrentDocumentId } from './use-current-document-id';
+import { usePulledUpstreamChanges } from './use-pulled-upstream-changes';
 
 const findSelectedCommitIndex = ({
   changeId,

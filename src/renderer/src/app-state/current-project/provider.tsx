@@ -1,9 +1,9 @@
-import { useResolveArtifactPath } from '../../hooks/use-artifact-path';
-import { useCurrentArtifactId } from '../../hooks/use-current-artifact-id';
 import { useBranchingOps } from './branching';
 import { useCommittingOps } from './committing';
 import { ProjectContext } from './context';
-import { useCurrentArtifactSync } from './current-artifact';
+import { useResolveArtifactPath } from './current-artifact/artifact-path';
+import { useCurrentArtifactSync } from './current-artifact/sync';
+import { useCurrentArtifactId } from './current-artifact/use-current-artifact-id';
 import { useDirectoryOps } from './directories';
 import { useDocumentOps } from './documents';
 import { useExplorerContextMenu } from './explorer-context-menu';

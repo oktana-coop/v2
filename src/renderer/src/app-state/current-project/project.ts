@@ -16,10 +16,10 @@ import {
   type Branch,
   type MergeConflictInfo,
 } from '../../../../modules/infrastructure/version-control';
-import { useNavigateToResolveConflicts } from '../../hooks';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 import { readStoredProject, storeProject } from './browser-storage';
 import { type ProjectContextType, type ProjectStateSetters } from './types';
+import { useNavigateToResolveConflicts } from './use-navigate-to-resolve-conflicts';
 
 type ProjectOps = Pick<
   ProjectContextType,

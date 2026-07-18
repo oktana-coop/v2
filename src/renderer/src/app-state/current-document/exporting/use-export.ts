@@ -2,7 +2,7 @@ import * as Effect from 'effect/Effect';
 import { useContext } from 'react';
 import { useParams } from 'react-router';
 
-import { type ProjectId } from '../../../../modules/domain/project';
+import { type ProjectId } from '../../../../../modules/domain/project';
 import {
   type BinaryRichTextRepresentation,
   binaryRichTextRepresentations,
@@ -10,16 +10,16 @@ import {
   richTextRepresentationExtensions,
   richTextRepresentations,
   type TextRichTextRepresentation,
-} from '../../../../modules/domain/rich-text';
-import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
-import { removeExtension } from '../../../../modules/infrastructure/filesystem';
+} from '../../../../../modules/domain/rich-text';
+import { RepresentationTransformContext } from '../../../../../modules/domain/rich-text/react/representation-transform-context';
+import { removeExtension } from '../../../../../modules/infrastructure/filesystem';
 import {
   ExportTemplatesContext,
   exportTemplateToCss,
-} from '../../../../modules/personalization/browser';
-import { InfrastructureAdaptersContext } from '../../app-state';
+} from '../../../../../modules/personalization/browser';
+import { useCurrentArtifactName } from '../../current-project/current-artifact/use-current-artifact-name';
+import { InfrastructureAdaptersContext } from '../../infrastructure-adapters/context';
 import { useCurrentDocumentId } from '../use-current-document-id';
-import { useCurrentDocumentName } from '../use-current-document-name';
 import {
   emptyExportAssetMounts,
   useExportAssetMounts,
@@ -33,7 +33,7 @@ export const useExport = () => {
   const { activeTemplate } = useContext(ExportTemplatesContext);
   const { projectId: projectIdParam } = useParams();
   const documentId = useCurrentDocumentId();
-  const currentDocumentName = useCurrentDocumentName();
+  const currentDocumentName = useCurrentArtifactName();
   const getExportAssetMounts = useExportAssetMounts();
 
   // Fetches the latest version of the document with the guards the export needs;

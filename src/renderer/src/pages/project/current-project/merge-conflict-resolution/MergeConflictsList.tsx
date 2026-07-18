@@ -5,17 +5,19 @@ import {
   filesystemItemTypes,
   removeExtension,
 } from '../../../../../../modules/infrastructure/filesystem';
-import { ProjectContext } from '../../../../app-state';
+import {
+  ProjectContext,
+  useNavigateToResolveConflicts,
+} from '../../../../app-state';
 import { MergeIcon } from '../../../../components/icons';
 import { SidebarHeading } from '../../../../components/sidebar/SidebarHeading';
 import {
   type ExplorerTreeNode,
   STRUCTURAL_CONFLICTS_NODE_TYPE,
-  useMergeConflictResolution,
-  useNavigateToResolveConflicts,
-} from '../../../../hooks';
-import { TreeView } from '../../shared/explorer-tree-views/tree';
+  TreeView,
+} from '../../shared/explorer-tree-views/tree';
 import { EmptyView } from './EmptyView';
+import { useMergeConflictResolution } from './use-merge-conflict-resolution';
 
 export const MergeConflictsList = () => {
   const { projectId } = useContext(ProjectContext);

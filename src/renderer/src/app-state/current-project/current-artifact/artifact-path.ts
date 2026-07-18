@@ -5,9 +5,9 @@ import {
   type ProjectId,
   type ProjectRelPath,
   type ProjectStore,
-} from '../../../modules/domain/project';
-import { type ArtifactId } from '../../../modules/infrastructure/version-control';
-import { ProjectContext } from '../app-state';
+} from '../../../../../modules/domain/project';
+import { type ArtifactId } from '../../../../../modules/infrastructure/version-control';
+import { ProjectContext } from '../context';
 
 export type UseArtifactPathResult = {
   path: ProjectRelPath | null;

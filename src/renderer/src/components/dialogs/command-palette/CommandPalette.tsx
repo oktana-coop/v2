@@ -11,8 +11,7 @@ import {
 import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import type { KeyBinding } from '../../../hooks';
-import { useKeyBindings } from '../../../hooks';
+import { type KeyBinding, useKeyBindings } from '../../../keyboard';
 import { FileDocumentIcon } from '../../icons';
 import { type IconProps } from '../../icons/types';
 

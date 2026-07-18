@@ -1,14 +1,31 @@
 export {
-  CurrentDocumentContext,
-  type CurrentDocumentContextType,
-  CurrentDocumentProvider,
-} from './current-document';
-
-export {
   ProjectContext,
   type ProjectContextType,
   ProjectProvider,
+  useAssetInsertion,
+  useCreateDocument,
+  useNavigateToResolveConflicts,
 } from './current-project';
+
+export {
+  useArtifactPath,
+  type UseArtifactPathResult,
+  useArtifactSelection,
+  useArtifactType,
+  useAssetSrcResolver,
+  useCurrentArtifactId,
+  useCurrentArtifactName,
+  useCurrentChangeId,
+  useNavigateToArtifact,
+} from './current-project/current-artifact';
+
+export {
+  CurrentDocumentContext,
+  type CurrentDocumentContextType,
+  CurrentDocumentProvider,
+  useCurrentDocumentId,
+  useExport,
+} from './current-document';
 
 export {
   CommandPaletteContext,
@@ -32,7 +49,9 @@ export {
   CommitModalContext,
   type CommitModalContextType,
   CommitModalProvider,
-} from './commit-modal/context';
+  useCommitDocumentChanges,
+  useCommitToProject,
+} from './commit-flow';
 
 export {
   SidebarLayoutContext,
@@ -45,3 +64,5 @@ export {
   type InfrastructureAdaptersContextType,
   InfrastructureAdaptersProvider,
 } from './infrastructure-adapters/context';
+
+export { useClearWebStorage } from './web-storage';

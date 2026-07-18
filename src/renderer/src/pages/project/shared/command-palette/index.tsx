@@ -9,18 +9,16 @@ import {
   CommitModalContext,
   CurrentDocumentContext,
   ProjectContext,
+  useArtifactSelection,
+  useClearWebStorage,
+  useCurrentArtifactName,
+  useExport,
 } from '../../../../app-state';
 import {
   type ActionOption,
   CommandPalette,
 } from '../../../../components/dialogs/command-palette';
-import {
-  useArtifactSelection,
-  useClearWebStorage,
-  useCurrentDocumentName,
-  useDocumentExplorerTree,
-  useExport,
-} from '../../../../hooks';
+import { useDocumentExplorerTree } from '../explorer-tree-views';
 import { keyBindings } from './key-bindings';
 
 export const ProjectCommandPalette = ({
@@ -43,7 +41,7 @@ export const ProjectCommandPalette = ({
   const { directoryTree } = useContext(ProjectContext);
 
   const handleArtifactSelection = useArtifactSelection();
-  const currentDocumentName = useCurrentDocumentName();
+  const currentDocumentName = useCurrentArtifactName();
   const { selection, startCreateDirectory } = useDocumentExplorerTree();
   const clearWebStorage = useClearWebStorage();
 

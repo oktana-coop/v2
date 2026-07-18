@@ -7,6 +7,8 @@ import {
 import {
   CommitModalContext,
   CurrentDocumentContext,
+  useCurrentArtifactName,
+  useCurrentChangeId,
 } from '../../../../../../app-state';
 import { IconButton } from '../../../../../../components/actions/IconButton';
 import {
@@ -15,10 +17,6 @@ import {
   RestoreCommitIcon,
   TrashIcon,
 } from '../../../../../../components/icons';
-import {
-  useCurrentChangeId,
-  useCurrentDocumentName,
-} from '../../../../../../hooks';
 import {
   HistoricalDocumentView,
   useHistoricalDocument,
@@ -86,7 +84,7 @@ export const DocumentHistoricalView = () => {
     onOpenDiscardChangesDialog,
   } = useContext(CurrentDocumentContext);
   const { openCommitModal } = useContext(CommitModalContext);
-  const currentDocumentName = useCurrentDocumentName();
+  const currentDocumentName = useCurrentArtifactName();
 
   const {
     selectedChange,

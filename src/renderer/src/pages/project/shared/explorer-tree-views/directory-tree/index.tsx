@@ -1,17 +1,16 @@
 import { useContext } from 'react';
 
 import { type Directory } from '../../../../../../../modules/infrastructure/filesystem';
-import { ProjectContext } from '../../../../../app-state';
+import {
+  ProjectContext,
+  useArtifactSelection,
+  useCreateDocument,
+} from '../../../../../app-state';
 import { IconButton } from '../../../../../components/actions/IconButton';
 import { FolderIcon, PlusIcon } from '../../../../../components/icons';
 import { SidebarHeading } from '../../../../../components/sidebar/SidebarHeading';
-import {
-  type ExplorerTreeNode,
-  useArtifactSelection,
-  useCreateDocument,
-  useDocumentExplorerTree,
-} from '../../../../../hooks';
-import { TreeView } from '../tree';
+import { type ExplorerTreeNode, TreeView } from '../tree';
+import { useDocumentExplorerTree } from '../use-document-explorer-tree';
 import { EmptyView } from './EmptyView';
 import { NoActiveDirectoryView } from './NoActiveDirectoryView';
 

@@ -9,18 +9,15 @@ import {
   isUncommittedChangeId,
   urlEncodeChangeId,
 } from '../../../../../../modules/infrastructure/version-control';
-import { ProjectContext } from '../../../../app-state';
+import { ProjectContext, useArtifactPath } from '../../../../app-state';
 import { PersonalFile } from '../../../../components/illustrations/PersonalFile';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
-import {
-  useArtifactPath,
-  useProjectHistoryArtifactSelection,
-} from '../../../../hooks';
 import { CommitDialog } from '../change-dialogs';
 import { type ProjectHistoryOutletContext } from './main/ProjectHistoryDocumentView';
 import { CommitHistoryPanel } from './sidebar/CommitHistoryPanel';
 import { UncommittedChangesPanel } from './sidebar/UncommittedChangesPanel';
+import { useProjectHistoryArtifactSelection } from './use-project-history-artifact-selection';
 
 const HIDDEN_FILES = new Set(['.gitignore']);
 

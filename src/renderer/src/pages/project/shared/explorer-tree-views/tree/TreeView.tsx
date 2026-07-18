@@ -4,11 +4,8 @@ import { AutoSizer } from 'react-virtualized-auto-sizer';
 
 import { ElectronContext } from '../../../../../../../modules/infrastructure/cross-platform/browser';
 import { filesystemItemTypes } from '../../../../../../../modules/infrastructure/filesystem';
-import {
-  type ExplorerTreeNode,
-  STRUCTURAL_CONFLICTS_NODE_TYPE,
-} from '../../../../../hooks';
 import { TreeNode } from './TreeNode';
+import { type ExplorerTreeNode, STRUCTURAL_CONFLICTS_NODE_TYPE } from './types';
 
 // Provides callbacks to node renderers without requiring prop-drilling
 // through react-arborist's renderer boundary.

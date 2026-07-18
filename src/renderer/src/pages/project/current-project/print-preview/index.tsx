@@ -7,9 +7,9 @@ import {
   CommandPaletteContext,
   CurrentDocumentContext,
   SidebarLayoutContext,
+  useExport,
 } from '../../../../app-state';
-import { useExport } from '../../../../hooks/use-export';
-import { useKeyBindings } from '../../../../hooks/use-key-bindings';
+import { useKeyBindings } from '../../../../keyboard';
 import { PagedPreview } from '../../../shared/paged-preview/PagedPreview';
 import { PrintPreviewActionsBar } from './PrintPreviewActionsBar';
 

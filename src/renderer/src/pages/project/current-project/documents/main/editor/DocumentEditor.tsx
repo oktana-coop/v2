@@ -5,13 +5,11 @@ import {
   CommitModalContext,
   CurrentDocumentContext,
   SidebarLayoutContext,
+  useAssetInsertion,
+  useAssetSrcResolver,
 } from '../../../../../../app-state';
 import { RichTextEditor } from '../../../../../../components/editing/RichTextEditor';
 import { LongTextSkeleton } from '../../../../../../components/progress/skeletons/LongText';
-import {
-  useAssetInsertion,
-  useAssetSrcResolver,
-} from '../../../../../../hooks';
 import { ActionsBar } from './ActionsBar';
 
 export const DocumentEditor = () => {
