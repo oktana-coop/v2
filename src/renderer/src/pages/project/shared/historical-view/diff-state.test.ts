@@ -19,7 +19,8 @@ const makeCommit = (hex: string): CommitWithUrlInfo => ({
 const c1 = makeCommit('1111111');
 const c2 = makeCommit('2222222');
 const c3 = makeCommit('3333333');
-const commits = [c1, c2, c3];
+const c4 = makeCommit('4444444');
+const commits = [c1, c2, c3, c4];
 
 describe('resolveDiffState', () => {
   it('shows no diff when there is no changeId', () => {
@@ -48,7 +49,7 @@ describe('resolveDiffState', () => {
     ).toEqual({
       diffCommitId: c3.id,
       canShowDiff: true,
-      diffSelectorCommits: [c3],
+      diffSelectorCommits: [c3, c4],
     });
   });
 
@@ -56,7 +57,7 @@ describe('resolveDiffState', () => {
     expect(
       resolveDiffState({
         commits,
-        changeId: parseChangeId('3333333'),
+        changeId: parseChangeId('4444444'),
         userWantsDiff: true,
         diffWithParam: null,
       })
@@ -108,23 +109,23 @@ describe('resolveDiffState', () => {
     ).toEqual({
       diffCommitId: null,
       canShowDiff: true,
-      diffSelectorCommits: [c3],
+      diffSelectorCommits: [c3, c4],
     });
   });
 
   it('honors an explicit diffWith target over the default', () => {
-    const diffWith = parseCommitId('9999999');
+    // c2's default diff target is c3; override it to c4 (further back).
     expect(
       resolveDiffState({
         commits,
         changeId: parseChangeId('2222222'),
         userWantsDiff: true,
-        diffWithParam: diffWith,
+        diffWithParam: c4.id,
       })
     ).toEqual({
-      diffCommitId: diffWith,
+      diffCommitId: c4.id,
       canShowDiff: true,
-      diffSelectorCommits: [c3],
+      diffSelectorCommits: [c3, c4],
     });
   });
 });
