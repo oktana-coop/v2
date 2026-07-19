@@ -57,8 +57,8 @@ export const useCurrentArtifactSync = ({
     // it there, or reset if it can't be resolved.
     const reloadSelectedDocumentOrReset = async () => {
       try {
-        const selectedFilePath = await Effect.runPromise(
-          projectStore.getArtifactPathById({
+        const selectedArtifact = await Effect.runPromise(
+          projectStore.getArtifactMetaDataById({
             projectId,
             artifactId: currentArtifactId,
           })
@@ -66,7 +66,7 @@ export const useCurrentArtifactSync = ({
 
         const doc = await findDocumentInProject({
           projectId,
-          documentPath: selectedFilePath,
+          documentPath: selectedArtifact.path,
         });
 
         if (cancelled) return;

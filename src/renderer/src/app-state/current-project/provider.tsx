@@ -1,7 +1,7 @@
 import { useBranchingOps } from './branching';
 import { useCommittingOps } from './committing';
 import { ProjectContext } from './context';
-import { useResolveArtifactPath } from './current-artifact/artifact-path';
+import { useResolveArtifactMetaData } from './current-artifact/artifact-metadata';
 import { useCurrentArtifactSync } from './current-artifact/sync';
 import { useCurrentArtifactId } from './current-artifact/use-current-artifact-id';
 import { useDirectoryOps } from './directories';
@@ -50,11 +50,13 @@ export const ProjectProvider = ({
   });
 
   const currentArtifactId = useCurrentArtifactId();
-  const { path: currentArtifactPath } = useResolveArtifactPath({
-    projectId,
-    projectStore,
-    artifactId: currentArtifactId,
-  });
+  const { artifact: currentArtifact, resolving: resolvingCurrentArtifact } =
+    useResolveArtifactMetaData({
+      projectId,
+      projectStore,
+      artifactId: currentArtifactId,
+    });
+  const currentArtifactPath = currentArtifact?.path ?? null;
 
   const documentOps = useDocumentOps({
     projectId,
@@ -127,6 +129,8 @@ export const ProjectProvider = ({
     <ProjectContext.Provider
       value={{
         ...projectOps,
+        currentArtifact,
+        resolvingCurrentArtifact,
         directoryTree,
         refreshDirectoryTree,
         ...branchingOps,

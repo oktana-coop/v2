@@ -1,8 +1,10 @@
 import * as Effect from 'effect/Effect';
 import { useContext } from 'react';
 
-import { inferArtifactTypeFromExtension } from '../../../../../modules/domain/project';
-import { versionedArtifactTypes } from '../../../../../modules/infrastructure/version-control';
+import {
+  artifactKinds,
+  inferArtifactKindFromExtension,
+} from '../../../../../modules/domain/project';
 import { ProjectContext } from '../context';
 import { useNavigateToArtifact } from './use-navigate-to-artifact';
 
@@ -18,8 +20,7 @@ export const useArtifactSelection = () => {
     }
 
     if (
-      inferArtifactTypeFromExtension(path) !==
-      versionedArtifactTypes.RICH_TEXT_DOCUMENT
+      inferArtifactKindFromExtension(path) !== artifactKinds.RICH_TEXT_DOCUMENT
     ) {
       if (!currentBranch) {
         throw new Error(

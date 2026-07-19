@@ -26,7 +26,6 @@ import {
   richTextRepresentations,
 } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
-import { versionedArtifactTypes } from '../../../../modules/infrastructure/version-control';
 import { useKeyBindings } from '../../keyboard';
 import { keyBindings } from '../../pages/project/shared/command-palette/key-bindings';
 import { EditorToolbar } from './editor-toolbar';
@@ -237,7 +236,6 @@ export const RichTextEditor = ({
       const pmJSONStr = pmDocToJSONString(pmDoc);
 
       onDocChange({
-        type: doc.type,
         schemaVersion: doc.schemaVersion,
         representation: richTextRepresentations.PROSEMIRROR,
         content: pmJSONStr,
@@ -375,7 +373,6 @@ export const RichTextEditor = ({
         });
 
         const currentDoc: RichTextDocument = {
-          type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
           representation: diffWith.representation,
           schemaVersion: CURRENT_SCHEMA_VERSION,
           content: currentDocContent,

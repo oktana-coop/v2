@@ -1,4 +1,7 @@
-import { type ArtifactTreeNode } from '../../../../../../modules/domain/project';
+import {
+  type ArtifactTreeNode,
+  getArtifactNameWithExtension,
+} from '../../../../../../modules/domain/project';
 import { filesystemItemTypes } from '../../../../../../modules/infrastructure/filesystem';
 import { type ExplorerTreeNode, NEW_DIRECTORY_NODE_ID } from './tree/types';
 
@@ -38,16 +41,16 @@ export const getExplorerTreeInProject = (
   directoryTree: ArtifactTreeNode[]
 ): ExplorerTreeNode[] => {
   const toExplorerNode = (node: ArtifactTreeNode): ExplorerTreeNode =>
-    node.type === filesystemItemTypes.DIRECTORY
+    node.filesystemType === filesystemItemTypes.DIRECTORY
       ? {
           id: node.path,
-          name: node.name,
+          name: getArtifactNameWithExtension(node.path),
           type: filesystemItemTypes.DIRECTORY,
           children: node.children?.map(toExplorerNode),
         }
       : {
           id: node.path,
-          name: node.name,
+          name: getArtifactNameWithExtension(node.path),
           type: filesystemItemTypes.FILE,
         };
 

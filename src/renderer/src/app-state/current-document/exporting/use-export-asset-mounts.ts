@@ -5,7 +5,6 @@ import { type ReferencedAsset } from '../../../../../modules/domain/project';
 import { type RepresentationTransformAssetFile } from '../../../../../modules/domain/rich-text';
 import { getParentPath } from '../../../../../modules/infrastructure/filesystem';
 import { ProjectContext } from '../../current-project/context';
-import { useArtifactPath } from '../../current-project/current-artifact/artifact-path';
 import { useCurrentArtifactId } from '../../current-project/current-artifact/use-current-artifact-id';
 
 export type ExportAssetMounts = {
@@ -22,9 +21,10 @@ export const emptyExportAssetMounts: ExportAssetMounts = {
 // bytes — plus the document's directory (the resource path), for the
 // representation transform to embed.
 export const useExportAssetMounts = () => {
-  const { projectId, projectStore } = useContext(ProjectContext);
+  const { projectId, projectStore, currentArtifact } =
+    useContext(ProjectContext);
   const currentArtifactId = useCurrentArtifactId();
-  const { path: docPath } = useArtifactPath(currentArtifactId);
+  const docPath = currentArtifact?.path ?? null;
 
   return useCallback(async (): Promise<ExportAssetMounts> => {
     if (!projectId || !docPath) {

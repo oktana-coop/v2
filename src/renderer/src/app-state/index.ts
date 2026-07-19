@@ -8,13 +8,11 @@ export {
 } from './current-project';
 
 export {
-  useArtifactPath,
-  type UseArtifactPathResult,
+  useArtifactMetaData,
+  type UseArtifactMetaDataResult,
   useArtifactSelection,
-  useArtifactType,
   useAssetSrcResolver,
   useCurrentArtifactId,
-  useCurrentArtifactName,
   useCurrentChangeId,
   useNavigateToArtifact,
 } from './current-project/current-artifact';

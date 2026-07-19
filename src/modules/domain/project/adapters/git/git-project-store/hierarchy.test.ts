@@ -7,6 +7,7 @@ import {
   filesystemItemTypes,
 } from '../../../../../infrastructure/filesystem';
 import { VersionedProjectRepositoryErrorTag } from '../../../errors';
+import { artifactKinds } from '../../../models';
 import {
   buildTestStore,
   mockListDirectoryTree,
@@ -59,9 +60,9 @@ describe('getProjectTree', () => {
     expect(tree).toEqual([
       {
         id: '/blob/main/readme.md',
-        name: 'readme.md',
+        kind: artifactKinds.RICH_TEXT_DOCUMENT,
         path: 'readme.md',
-        type: filesystemItemTypes.FILE,
+        filesystemType: filesystemItemTypes.FILE,
       },
     ]);
   });
@@ -84,33 +85,33 @@ describe('getProjectTree', () => {
     expect(tree).toEqual([
       {
         id: '/blob/main/readme.md',
-        name: 'readme.md',
+        kind: artifactKinds.RICH_TEXT_DOCUMENT,
         path: 'readme.md',
-        type: filesystemItemTypes.FILE,
+        filesystemType: filesystemItemTypes.FILE,
       },
       {
         id: '/tree/main/docs',
-        name: 'docs',
+        kind: artifactKinds.ASSET,
         path: 'docs',
-        type: filesystemItemTypes.DIRECTORY,
+        filesystemType: filesystemItemTypes.DIRECTORY,
         children: [
           {
             id: '/blob/main/docs/guide.md',
-            name: 'guide.md',
+            kind: artifactKinds.RICH_TEXT_DOCUMENT,
             path: 'docs/guide.md',
-            type: filesystemItemTypes.FILE,
+            filesystemType: filesystemItemTypes.FILE,
           },
           {
             id: '/tree/main/docs/2024',
-            name: '2024',
+            kind: artifactKinds.ASSET,
             path: 'docs/2024',
-            type: filesystemItemTypes.DIRECTORY,
+            filesystemType: filesystemItemTypes.DIRECTORY,
             children: [
               {
                 id: '/blob/main/docs/2024/notes.md',
-                name: 'notes.md',
+                kind: artifactKinds.RICH_TEXT_DOCUMENT,
                 path: 'docs/2024/notes.md',
-                type: filesystemItemTypes.FILE,
+                filesystemType: filesystemItemTypes.FILE,
               },
             ],
           },
@@ -129,9 +130,9 @@ describe('getProjectTree', () => {
     expect(tree).toEqual([
       {
         id: '/tree/main/empty',
-        name: 'empty',
+        kind: artifactKinds.ASSET,
         path: 'empty',
-        type: filesystemItemTypes.DIRECTORY,
+        filesystemType: filesystemItemTypes.DIRECTORY,
         children: [],
       },
     ]);

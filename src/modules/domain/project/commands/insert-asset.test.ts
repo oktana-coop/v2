@@ -9,13 +9,13 @@ import {
 } from '../../../../modules/infrastructure/filesystem';
 import { type ArtifactId } from '../../../../modules/infrastructure/version-control';
 import { NotFoundError as VersionedProjectNotFoundError } from '../errors';
-import { parseProjectId, type ProjectId } from '../models';
+import { artifactKinds, parseProjectId, type ProjectId } from '../models';
 import { insertAsset, type InsertAssetDeps } from './insert-asset';
 
 const PROJECT_ROOT = '/tmp/v2-test-project';
 const projectId: ProjectId = parseProjectId(PROJECT_ROOT);
 // The referencing document lives at the project root, so an asset's
-// document-relative src equals its project-relative path. `getArtifactPathById`
+// document-relative src equals its project-relative path. `getArtifactMetaDataById`
 // is mocked, so the id's actual value is irrelevant.
 const documentId = 'note.md' as unknown as ArtifactId;
 
@@ -75,16 +75,22 @@ const buildDeps = (
   const getProjectRelativePath =
     overrides.getProjectRelativePath ?? outsideProject();
   // The referencing document sits at the project root.
-  const getArtifactPathById =
-    overrides.getArtifactPathById ??
-    vi.fn().mockReturnValue(Effect.succeed('note.md'));
+  const getArtifactMetaDataById =
+    overrides.getArtifactMetaDataById ??
+    vi.fn().mockReturnValue(
+      Effect.succeed({
+        id: documentId,
+        path: 'note.md',
+        kind: artifactKinds.RICH_TEXT_DOCUMENT,
+      })
+    );
   return {
     openFile,
     readBinaryFile,
     lookupAssetByName,
     addAssetToProject,
     getProjectRelativePath,
-    getArtifactPathById,
+    getArtifactMetaDataById,
     assetsDirName: overrides.assetsDirName ?? 'assets',
   } as unknown as InsertAssetDeps & {
     openFile: ReturnType<typeof vi.fn>;

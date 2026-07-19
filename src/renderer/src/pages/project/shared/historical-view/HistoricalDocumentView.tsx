@@ -1,5 +1,6 @@
 import { useContext, useMemo } from 'react';
 
+import { type ProjectRelPath } from '../../../../../../modules/domain/project';
 import {
   isUnsupportedExtension,
   type VersionedDocument,
@@ -15,7 +16,7 @@ import { HistoricalViewContent } from './HistoricalViewContent';
 import { type DiffViewProps } from './ReadOnlyDocumentView';
 
 export type HistoricalDocumentViewProps = {
-  documentPath: string | null;
+  documentPath: ProjectRelPath | null;
   doc: VersionedDocument | null;
   diffProps: DiffViewProps | null;
   loading: boolean;
@@ -54,8 +55,8 @@ export const HistoricalDocumentView = ({
     [documentPath]
   );
 
-  if (isUnsupported) {
-    return <UnsupportedDocumentView />;
+  if (isUnsupported && documentPath) {
+    return <UnsupportedDocumentView path={documentPath} />;
   }
 
   return (

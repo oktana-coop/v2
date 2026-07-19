@@ -77,7 +77,7 @@ export const useDocumentOps = ({
             createNewFile: filesystem.createNewFile,
             getRelativePath: filesystem.getRelativePath,
             getAbsolutePath: filesystem.getAbsolutePath,
-            getArtifactPathById: projectStore.getArtifactPathById,
+            getArtifactMetaDataById: projectStore.getArtifactMetaDataById,
             createDocument: projectStore.createDocument,
           })({
             projectId,

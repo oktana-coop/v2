@@ -3,7 +3,10 @@ import { pipe } from 'effect/Function';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router';
 
-import { VersionedProjectDeletedDocumentErrorTag } from '../../../../../../modules/domain/project';
+import {
+  type ProjectRelPath,
+  VersionedProjectDeletedDocumentErrorTag,
+} from '../../../../../../modules/domain/project';
 import { type VersionedDocument } from '../../../../../../modules/domain/rich-text';
 import {
   type ArtifactId,
@@ -24,7 +27,7 @@ import { FunctionalityConfigContext } from '../../../../../../modules/personaliz
 import {
   InfrastructureAdaptersContext,
   ProjectContext,
-  useArtifactPath,
+  useArtifactMetaData,
   useCurrentChangeId,
   useNavigateToArtifact,
 } from '../../../../app-state';
@@ -38,7 +41,7 @@ export type UseHistoricalDocumentArgs = {
 export type UseHistoricalDocumentResult = {
   documentId: ArtifactId | null;
   changeId: ChangeId | null;
-  documentPath: string | null;
+  documentPath: ProjectRelPath | null;
   isUncommitted: boolean;
   selectedChange: Change | null;
   navigateToEdit: () => void;
@@ -73,7 +76,8 @@ export const useHistoricalDocument = ({
     [encodedDocumentId]
   );
 
-  const { path: documentPath } = useArtifactPath(documentId);
+  const { artifact: historicalArtifact } = useArtifactMetaData(documentId);
+  const documentPath = historicalArtifact?.path ?? null;
 
   const isUncommitted = useMemo(
     () => (changeId ? isUncommittedChangeId(changeId) : false),
@@ -228,7 +232,7 @@ export const useHistoricalDocument = ({
 
               if (!isLatest) return;
 
-              if (diffTargetDoc && currentDoc) {
+              if (diffTargetDoc && currentDoc && documentPath) {
                 setDiffProps({
                   docBefore: diffTargetDoc,
                   docAfter: currentDoc,

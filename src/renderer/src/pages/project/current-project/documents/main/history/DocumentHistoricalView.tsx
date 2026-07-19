@@ -1,5 +1,6 @@
 import { useContext, useEffect, useMemo } from 'react';
 
+import { getArtifactName } from '../../../../../../../../modules/domain/project';
 import {
   changeIdsAreSame,
   isCommit,
@@ -7,7 +8,6 @@ import {
 import {
   CommitModalContext,
   CurrentDocumentContext,
-  useCurrentArtifactName,
   useCurrentChangeId,
 } from '../../../../../../app-state';
 import { IconButton } from '../../../../../../components/actions/IconButton';
@@ -21,6 +21,7 @@ import {
   HistoricalDocumentView,
   useHistoricalDocument,
 } from '../../../../shared/historical-view';
+import { useCurrentArtifact } from '../../../artifact-route';
 
 const UncommittedChangesActions = ({
   onEdit,
@@ -84,7 +85,8 @@ export const DocumentHistoricalView = () => {
     onOpenDiscardChangesDialog,
   } = useContext(CurrentDocumentContext);
   const { openCommitModal } = useContext(CommitModalContext);
-  const currentDocumentName = useCurrentArtifactName();
+  const currentArtifact = useCurrentArtifact();
+  const currentDocumentName = getArtifactName(currentArtifact.path);
 
   const {
     selectedChange,

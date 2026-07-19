@@ -11,21 +11,17 @@ import {
   clickToolbarButton,
   commitChanges,
   enableShowDiff,
+  expectFigureImageRendered,
   mockPickFile,
   navigateToProjectHistory,
   openEditorToolbar,
   openHelloMd,
   openProjectFolder,
   pasteMarkdown,
+  PNG_1x1,
   selectChangedDocument,
   toggleProjectCommit,
 } from '../shared/helpers';
-
-// A real, minimal 1x1 PNG.
-const PNG_1x1 = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-  'base64'
-);
 
 // Creates a throwaway directory outside the project to hold a source image,
 // exercising the "pick a file from elsewhere → copy it into the project" flow.
@@ -41,19 +37,6 @@ const insertImageFromToolbar = async (window: Page): Promise<void> => {
   await clickToolbarButton({ window, label: 'Image' });
   await window.waitForSelector('.ProseMirror figure img', { timeout: 2_000 });
   await window.waitForTimeout(300);
-};
-
-// Asserts the figure's <img> actually loaded its bytes through the
-// project-asset:// protocol (naturalWidth stays 0 for a broken/unresolved src).
-const expectFigureImageRendered = async (window: Page): Promise<void> => {
-  const img = window.locator('.ProseMirror figure img').first();
-  const src = await img.getAttribute('src');
-  expect(src?.startsWith('project-asset://')).toBe(true);
-  await expect
-    .poll(() => img.evaluate((el) => (el as HTMLImageElement).naturalWidth), {
-      timeout: 3_000,
-    })
-    .toBeGreaterThan(0);
 };
 
 const openCommitDiffForHello = async (
@@ -171,7 +154,7 @@ test.describe('figure', () => {
     expect(fs.existsSync(copiedPath)).toBe(true);
     expect(fs.readFileSync(copiedPath)).toEqual(PNG_1x1);
 
-    await expectFigureImageRendered(window);
+    await expectFigureImageRendered({ window });
 
     fs.rmSync(path.dirname(externalImage), { recursive: true, force: true });
   });
@@ -209,7 +192,7 @@ test.describe('figure', () => {
     await openHelloMd({ window });
     await window.waitForSelector('.ProseMirror figure img', { timeout: 2_000 });
 
-    await expectFigureImageRendered(window);
+    await expectFigureImageRendered({ window });
 
     fs.rmSync(path.dirname(externalImage), { recursive: true, force: true });
   });
@@ -248,7 +231,7 @@ test.describe('figure', () => {
     await toggleProjectCommit({ window, commitMessage: 'add image' });
     await selectChangedDocument({ window, fileName: 'hello' });
     await window.waitForSelector('.ProseMirror figure img', { timeout: 2_000 });
-    await expectFigureImageRendered(window);
+    await expectFigureImageRendered({ window });
 
     fs.rmSync(path.dirname(externalImage), { recursive: true, force: true });
   });

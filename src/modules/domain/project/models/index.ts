@@ -1,3 +1,4 @@
+export * from './artifact-kind';
 export * from './project';
 export * from './project-id';
 export * from './project-rel-path';

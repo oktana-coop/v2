@@ -7,7 +7,7 @@ import { type DocumentAnalyzer } from '../../../../../../modules/domain/rich-tex
 import { type Filesystem } from '../../../../../../modules/infrastructure/filesystem';
 import { DEFAULT_ASSETS_DIR_NAME } from '../../../constants';
 import { ProjectStore } from '../../../ports';
-import { getArtifactPathById, lookupArtifactByPath } from './artifacts';
+import { getArtifactMetaDataById, lookupArtifactByPath } from './artifacts';
 import { createAssetOps } from './assets';
 import { createAuthOps } from './auth';
 import { createBranchingOps } from './branching';
@@ -80,7 +80,7 @@ export const createAdapter = ({
   return {
     supportsBranching: true,
     assetsDirName,
-    getArtifactPathById,
+    getArtifactMetaDataById,
     lookupArtifactByPath,
     ...projectOps,
     ...documentOps,

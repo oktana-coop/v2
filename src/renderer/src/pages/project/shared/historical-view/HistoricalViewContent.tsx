@@ -1,3 +1,4 @@
+import { type ProjectRelPath } from '../../../../../../modules/domain/project';
 import { type VersionedDocument } from '../../../../../../modules/domain/rich-text';
 import { LongTextSkeleton } from '../../../../components/progress/skeletons/LongText';
 import {
@@ -14,7 +15,7 @@ export const HistoricalViewContent = ({
 }: {
   doc: VersionedDocument | null;
   diffProps: DiffViewProps | null;
-  documentPath: string | null;
+  documentPath: ProjectRelPath | null;
   loading: boolean;
   error: string | null;
 }) => {
@@ -30,7 +31,7 @@ export const HistoricalViewContent = ({
     );
   }
 
-  if (!doc) {
+  if (!doc || !documentPath) {
     return null;
   }
 

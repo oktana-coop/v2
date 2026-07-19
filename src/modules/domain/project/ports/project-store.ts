@@ -27,6 +27,8 @@ import {
 import {
   type ArtifactMetaData,
   type ArtifactTreeNode,
+  type AssetMetaData,
+  type DocumentMetaData,
   type Project,
   type ProjectId,
   type ProjectRelPath,
@@ -270,7 +272,7 @@ export type DeleteDirectoryArgs = {
   directoryId: ArtifactId;
 };
 
-export type GetArtifactPathByIdArgs = {
+export type GetArtifactMetaDataByIdArgs = {
   projectId: ProjectId;
   artifactId: ArtifactId;
 };
@@ -344,9 +346,16 @@ export type ResolveContentConflictArgs = {
 export type ProjectStore = {
   supportsBranching: boolean;
   assetsDirName: string;
-  getArtifactPathById: (
-    args: GetArtifactPathByIdArgs
-  ) => Effect.Effect<ProjectRelPath, ValidationError | RepositoryError, never>;
+  // Resolves an artifact id to everything needed to render it. Only the store
+  // can do this: a git id embeds its path, but that is an implementation
+  // detail other backends don't share.
+  getArtifactMetaDataById: (
+    args: GetArtifactMetaDataByIdArgs
+  ) => Effect.Effect<
+    ArtifactMetaData,
+    ValidationError | RepositoryError,
+    never
+  >;
   lookupArtifactByPath: (
     args: LookupArtifactByPathArgs
   ) => Effect.Effect<ArtifactId, ValidationError | RepositoryError, never>;
@@ -363,7 +372,7 @@ export type ProjectStore = {
   listProjectDocuments: (
     id: ProjectId
   ) => Effect.Effect<
-    ArtifactMetaData[],
+    DocumentMetaData[],
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
@@ -441,7 +450,7 @@ export type ProjectStore = {
   listProjectAssets: (
     id: ProjectId
   ) => Effect.Effect<
-    ArtifactMetaData[],
+    AssetMetaData[],
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;

@@ -10,6 +10,7 @@ import {
 } from '../../../../../../app-state';
 import { RichTextEditor } from '../../../../../../components/editing/RichTextEditor';
 import { LongTextSkeleton } from '../../../../../../components/progress/skeletons/LongText';
+import { useCurrentArtifact } from '../../../artifact-route';
 import { ActionsBar } from './ActionsBar';
 
 export const DocumentEditor = () => {
@@ -20,7 +21,8 @@ export const DocumentEditor = () => {
   );
   const { openCommitModal } = useContext(CommitModalContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
-  const resolveAssetSrc = useAssetSrcResolver();
+  const artifact = useCurrentArtifact();
+  const resolveAssetSrc = useAssetSrcResolver({ docPath: artifact.path });
   const pickAsset = useAssetInsertion();
 
   const handleEditorToolbarToggle = useCallback(() => {

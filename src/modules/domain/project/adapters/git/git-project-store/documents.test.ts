@@ -10,6 +10,7 @@ import {
   RepositoryError as VersionControlRepositoryError,
   UNCOMMITTED_CHANGE_ID,
 } from '../../../../../infrastructure/version-control';
+import { PRIMARY_RICH_TEXT_REPRESENTATION } from '../../../../rich-text';
 import {
   VersionedProjectDeletedDocumentErrorTag,
   VersionedProjectNotFoundErrorTag,
@@ -500,7 +501,7 @@ describe('documents', () => {
         );
 
         expect(result.content).toBe(content);
-        expect(result.type).toBe('RICH_TEXT_DOCUMENT');
+        expect(result.representation).toBe(PRIMARY_RICH_TEXT_REPRESENTATION);
       });
 
       it('fails with NotFoundError when document never existed at the commit', async () => {

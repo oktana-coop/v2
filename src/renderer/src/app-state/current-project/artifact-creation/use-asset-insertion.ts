@@ -36,7 +36,7 @@ export const useAssetInsertion = (
           lookupAssetByName: projectStore.lookupAssetByName,
           addAssetToProject: projectStore.addAssetToProject,
           getProjectRelativePath: projectStore.getProjectRelativePath,
-          getArtifactPathById: projectStore.getArtifactPathById,
+          getArtifactMetaDataById: projectStore.getArtifactMetaDataById,
           assetsDirName: projectStore.assetsDirName,
         })({ projectId, documentId }),
         Effect.map(Option.getOrNull)
