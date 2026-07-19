@@ -3,7 +3,6 @@ import { useCallback, useContext, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import {
-  findNodeByPath,
   isPathInsideDirectory,
   parseProjectRelPath,
   type ProjectRelPath,
@@ -17,7 +16,7 @@ import { type PendingNewDirectory, type ProjectContextType } from './types';
 
 type DirectoryDeps = Pick<
   ProjectContextType,
-  'projectId' | 'projectStore' | 'directoryTree' | 'refreshDirectoryTree'
+  'projectId' | 'projectStore' | 'refreshDirectoryTree'
 > & {
   currentArtifactPath: ProjectRelPath | null;
 };
@@ -38,7 +37,6 @@ type DirectoryOps = Pick<
 export const useDirectoryOps = ({
   projectId,
   projectStore,
-  directoryTree,
   refreshDirectoryTree,
   currentArtifactPath,
 }: DirectoryDeps): DirectoryOps => {
@@ -55,27 +53,18 @@ export const useDirectoryOps = ({
     async (name: string) => {
       if (!projectStore || !projectId || !pendingNewDirectory) return;
 
-      const parentDirectoryId = pendingNewDirectory.parentPath
-        ? (findNodeByPath({
-            tree: directoryTree,
-            path: parseProjectRelPath(pendingNewDirectory.parentPath),
-          })?.id ?? undefined)
+      const parentDirectoryPath = pendingNewDirectory.parentPath
+        ? parseProjectRelPath(pendingNewDirectory.parentPath)
         : undefined;
 
       await Effect.runPromise(
-        projectStore.createDirectory({ projectId, parentDirectoryId, name })
+        projectStore.createDirectory({ projectId, parentDirectoryPath, name })
       );
 
       await refreshDirectoryTree();
       setPendingNewDirectory(null);
     },
-    [
-      projectStore,
-      projectId,
-      directoryTree,
-      pendingNewDirectory,
-      refreshDirectoryTree,
-    ]
+    [projectStore, projectId, pendingNewDirectory, refreshDirectoryTree]
   );
 
   const startCreateDirectory = useCallback(
@@ -95,18 +84,11 @@ export const useDirectoryOps = ({
         );
       }
 
-      const directoryId = findNodeByPath({
-        tree: directoryTree,
-        path: parseProjectRelPath(relativePath),
-      })?.id;
-      if (!directoryId) {
-        setDirectoryToDelete(null);
-        return;
-      }
+      const directoryPath = parseProjectRelPath(relativePath);
 
       try {
         await Effect.runPromise(
-          projectStore.deleteDirectory({ projectId, directoryId })
+          projectStore.deleteDirectory({ projectId, directoryPath })
         );
 
         await refreshDirectoryTree();
@@ -115,7 +97,7 @@ export const useDirectoryOps = ({
         if (
           currentArtifactPath &&
           isPathInsideDirectory({
-            directoryPath: parseProjectRelPath(relativePath),
+            directoryPath,
             filePath: currentArtifactPath,
           })
         ) {
@@ -138,7 +120,6 @@ export const useDirectoryOps = ({
     [
       projectStore,
       projectId,
-      directoryTree,
       currentArtifactPath,
       navigate,
       refreshDirectoryTree,

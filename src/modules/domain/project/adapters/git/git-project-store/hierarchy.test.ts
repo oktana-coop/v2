@@ -67,7 +67,7 @@ describe('getProjectTree', () => {
     ]);
   });
 
-  it('maps directories to tree-ref nodes with recursively mapped children', async () => {
+  it('maps directories to id-less nodes with recursively mapped children', async () => {
     mockListDirectoryTree.mockReturnValue(
       Effect.succeed([
         file('readme.md', 'readme.md'),
@@ -90,8 +90,6 @@ describe('getProjectTree', () => {
         filesystemType: filesystemItemTypes.FILE,
       },
       {
-        id: '/tree/main/docs',
-        kind: artifactKinds.ASSET,
         path: 'docs',
         filesystemType: filesystemItemTypes.DIRECTORY,
         children: [
@@ -102,8 +100,6 @@ describe('getProjectTree', () => {
             filesystemType: filesystemItemTypes.FILE,
           },
           {
-            id: '/tree/main/docs/2024',
-            kind: artifactKinds.ASSET,
             path: 'docs/2024',
             filesystemType: filesystemItemTypes.DIRECTORY,
             children: [
@@ -129,8 +125,6 @@ describe('getProjectTree', () => {
 
     expect(tree).toEqual([
       {
-        id: '/tree/main/empty',
-        kind: artifactKinds.ASSET,
         path: 'empty',
         filesystemType: filesystemItemTypes.DIRECTORY,
         children: [],
@@ -156,9 +150,11 @@ describe('getProjectTree', () => {
     );
 
     const tree = await Effect.runPromise(store.getProjectTree(PROJECT_PATH));
+    const [fileNode, directoryNode] = tree;
 
-    expect(tree[0].id).toBe('/blob/feature/readme.md');
-    expect(tree[1].id).toBe('/tree/feature/docs');
+    expect(fileNode).toMatchObject({ id: '/blob/feature/readme.md' });
+    // Directories are derived structure, so there is no id to scope to a branch.
+    expect(directoryNode).not.toHaveProperty('id');
   });
 
   it('maps a directory-listing failure to a RepositoryError', async () => {

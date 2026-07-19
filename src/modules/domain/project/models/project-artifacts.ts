@@ -1,5 +1,4 @@
 import {
-  type FilesystemItemType,
   filesystemItemTypes,
   getExtension,
   removeExtension,
@@ -53,14 +52,31 @@ export const isAssetMetaData = (
   artifact: ArtifactMetaData
 ): artifact is AssetMetaData => artifact.kind === artifactKinds.ASSET;
 
-export type ArtifactTreeNode = ArtifactMetaData & {
-  filesystemType: FilesystemItemType;
-  children?: ArtifactTreeNode[];
+// A file in the project tree. Version control tracks these, so a file has an
+// artifact identity of its own.
+export type ProjectFileNode = ArtifactMetaData & {
+  filesystemType: typeof filesystemItemTypes.FILE;
 };
 
-// The artifact's file name, as it exists on disk.
-export const getArtifactNameWithExtension = (path: ProjectRelPath): string =>
-  removePath(path);
+// A directory is structure derived from the paths of the files under it, not
+// something version control tracks. A directory node carries a path and its
+// contents, but no artifact id or kind.
+export type ProjectDirectoryNode = {
+  path: ProjectRelPath;
+  filesystemType: typeof filesystemItemTypes.DIRECTORY;
+  children: ProjectTreeNode[];
+};
+
+export type ProjectTreeNode = ProjectFileNode | ProjectDirectoryNode;
+
+export const isProjectFileNode = (
+  node: ProjectTreeNode
+): node is ProjectFileNode => node.filesystemType === filesystemItemTypes.FILE;
+
+export const isProjectDirectoryNode = (
+  node: ProjectTreeNode
+): node is ProjectDirectoryNode =>
+  node.filesystemType === filesystemItemTypes.DIRECTORY;
 
 // The artifact's name as the editor presents it — the file name without its
 // extension, since the extension is an implementation detail of the format.
@@ -68,38 +84,46 @@ export const getArtifactName = (path: ProjectRelPath): string =>
   removeExtension(removePath(path));
 
 // Flattens a node tree into a depth-first list of all its nodes.
-const flattenTree = (tree: ArtifactTreeNode[]): ArtifactTreeNode[] =>
-  tree.flatMap((node) => [node, ...flattenTree(node.children ?? [])]);
+const flattenTree = (tree: ProjectTreeNode[]): ProjectTreeNode[] =>
+  tree.flatMap((node) =>
+    isProjectDirectoryNode(node)
+      ? [node, ...flattenTree(node.children)]
+      : [node]
+  );
 
-// Locates a tree node by its project-relative path.
-export const findNodeByPath = ({
+// Locates a file node by its project-relative path. Directories are skipped:
+// they have no artifact identity, so there is nothing for a caller to act on.
+export const findFileNodeByPath = ({
   tree,
   path,
 }: {
-  tree: ArtifactTreeNode[];
+  tree: ProjectTreeNode[];
   path: ProjectRelPath;
-}): ArtifactTreeNode | null =>
-  flattenTree(tree).find((node) => node.path === path) ?? null;
+}): ProjectFileNode | null =>
+  flattenTree(tree)
+    .filter(isProjectFileNode)
+    .find((node) => node.path === path) ?? null;
 
-// Locates a tree node by its artifact id.
+// Locates a file node by its artifact id.
 export const findNodeById = ({
   tree,
   id,
 }: {
-  tree: ArtifactTreeNode[];
+  tree: ProjectTreeNode[];
   id: ArtifactId;
-}): ArtifactTreeNode | null =>
-  flattenTree(tree).find((node) => node.id === id) ?? null;
+}): ProjectFileNode | null =>
+  flattenTree(tree)
+    .filter(isProjectFileNode)
+    .find((node) => node.id === id) ?? null;
 
-// Filters a project artifact tree to the nodes the editor can open, descending
-// into subdirectories and dropping directories and assets with unsupported
-// extensions.
+// Filters a project tree to the files the editor can open, descending into
+// subdirectories and dropping assets with unsupported extensions.
 export const listOpenableArtifacts = (
-  tree: ArtifactTreeNode[]
-): ArtifactTreeNode[] =>
+  tree: ProjectTreeNode[]
+): ProjectFileNode[] =>
   tree.flatMap((node) =>
-    node.filesystemType === filesystemItemTypes.DIRECTORY
-      ? listOpenableArtifacts(node.children ?? [])
+    isProjectDirectoryNode(node)
+      ? listOpenableArtifacts(node.children)
       : node.kind === artifactKinds.RICH_TEXT_DOCUMENT
         ? [node]
         : []

@@ -16,21 +16,20 @@ import {
 } from '../../../../modules/infrastructure/filesystem';
 import { type ArtifactId } from '../../../../modules/infrastructure/version-control';
 import { RepositoryError, ValidationError } from '../errors';
-import { type ProjectId } from '../models';
+import { type ProjectId, type ProjectRelPath } from '../models';
 import { type ProjectStore } from '../ports';
 
 export type CreateDocumentInProjectArgs = {
   content: string | null;
   projectId: ProjectId;
   projectDirectory: Directory;
-  parentDirectoryId: ArtifactId | undefined;
+  parentDirectoryPath: ProjectRelPath | undefined;
 };
 
 export type CreateDocumentInProjectDeps = {
   createNewFile: Filesystem['createNewFile'];
   getRelativePath: Filesystem['getRelativePath'];
   getAbsolutePath: Filesystem['getAbsolutePath'];
-  getArtifactMetaDataById: ProjectStore['getArtifactMetaDataById'];
   createDocument: ProjectStore['createDocument'];
 };
 
@@ -44,14 +43,13 @@ export const createDocumentInProject =
     createNewFile,
     getRelativePath,
     getAbsolutePath,
-    getArtifactMetaDataById,
     createDocument,
   }: CreateDocumentInProjectDeps) =>
   ({
     content,
     projectId,
     projectDirectory,
-    parentDirectoryId,
+    parentDirectoryPath,
   }: CreateDocumentInProjectArgs): Effect.Effect<
     Option.Option<CreateDocumentInProjectResult>,
     | FilesystemNotFoundError
@@ -65,18 +63,12 @@ export const createDocumentInProject =
         pipe(
           // Resolve the parent directory to create the file under (the project
           // root when none is given).
-          parentDirectoryId
+          parentDirectoryPath
             ? pipe(
-                getArtifactMetaDataById({
-                  projectId,
-                  artifactId: parentDirectoryId,
+                getAbsolutePath({
+                  path: parentDirectoryPath,
+                  dirPath: projectDirectory.path,
                 }),
-                Effect.flatMap(({ path }) =>
-                  getAbsolutePath({
-                    path,
-                    dirPath: projectDirectory.path,
-                  })
-                ),
                 Effect.map((absolutePath) =>
                   toDirectory({ path: absolutePath })
                 )

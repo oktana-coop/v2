@@ -9,17 +9,14 @@ import {
   RepositoryError as FilesystemRepositoryError,
   toDirectory,
 } from '../../../../../infrastructure/filesystem';
-import {
-  createGitBlobRef,
-  createGitTreeRef,
-} from '../../../../../infrastructure/version-control';
+import { createGitBlobRef } from '../../../../../infrastructure/version-control';
 import {
   NotFoundError,
   RepositoryError,
   VersionedProjectNotFoundErrorTag,
   VersionedProjectRepositoryErrorTag,
 } from '../../../errors';
-import { type ProjectId } from '../../../models';
+import { parseProjectRelPath, type ProjectId } from '../../../models';
 import { type ProjectStore } from '../../../ports';
 import { createDirectoryOps } from './directories';
 
@@ -84,13 +81,12 @@ describe('createDirectory', () => {
   });
 
   it('resolves the parent directory and creates the folder under it', async () => {
-    const parentId = createGitTreeRef({ ref: 'main', path: 'notes' });
     mockCreateDirectory.mockReturnValue(Effect.void);
 
     await Effect.runPromise(
       ops.createDirectory({
         projectId,
-        parentDirectoryId: parentId,
+        parentDirectoryPath: parseProjectRelPath('notes'),
         name: 'sub',
       })
     );
@@ -137,7 +133,7 @@ describe('createDirectory', () => {
 });
 
 describe('deleteDirectory', () => {
-  const directoryId = createGitTreeRef({ ref: 'main', path: 'docs' });
+  const directoryPath = parseProjectRelPath('docs');
 
   it('deletes the tracked documents inside the directory', async () => {
     mockListDirectoryFiles.mockReturnValue(
@@ -153,7 +149,7 @@ describe('deleteDirectory', () => {
     );
     mockDeleteDocuments.mockReturnValue(Effect.void);
 
-    await Effect.runPromise(ops.deleteDirectory({ projectId, directoryId }));
+    await Effect.runPromise(ops.deleteDirectory({ projectId, directoryPath }));
 
     expect(mockDeleteDocuments).toHaveBeenCalledWith({
       documentIds: [
@@ -171,7 +167,7 @@ describe('deleteDirectory', () => {
     mockListDirectoryFiles.mockReturnValue(Effect.succeed([]));
     mockDeleteDirectory.mockReturnValue(Effect.void);
 
-    await Effect.runPromise(ops.deleteDirectory({ projectId, directoryId }));
+    await Effect.runPromise(ops.deleteDirectory({ projectId, directoryPath }));
 
     expect(mockDeleteDirectory).toHaveBeenCalledWith({
       path: `${projectId}/docs`,
@@ -191,7 +187,7 @@ describe('deleteDirectory', () => {
     );
     mockDeleteDirectory.mockReturnValue(Effect.void);
 
-    await Effect.runPromise(ops.deleteDirectory({ projectId, directoryId }));
+    await Effect.runPromise(ops.deleteDirectory({ projectId, directoryPath }));
 
     expect(mockDeleteDirectory).toHaveBeenCalledWith({
       path: `${projectId}/docs`,
@@ -212,7 +208,7 @@ describe('deleteDirectory', () => {
     mockDeleteDirectory.mockReturnValue(Effect.void);
 
     const result = await Effect.runPromise(
-      Effect.either(ops.deleteDirectory({ projectId, directoryId }))
+      Effect.either(ops.deleteDirectory({ projectId, directoryPath }))
     );
 
     expect(result._tag).toBe('Left');
@@ -229,7 +225,7 @@ describe('deleteDirectory', () => {
     );
 
     const result = await Effect.runPromise(
-      Effect.either(ops.deleteDirectory({ projectId, directoryId }))
+      Effect.either(ops.deleteDirectory({ projectId, directoryPath }))
     );
 
     expect(result._tag).toBe('Left');

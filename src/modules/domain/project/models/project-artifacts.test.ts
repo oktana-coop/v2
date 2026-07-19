@@ -3,14 +3,17 @@ import { describe, expect, it } from 'vitest';
 import { filesystemItemTypes } from '../../../infrastructure/filesystem';
 import { type ArtifactId } from '../../../infrastructure/version-control';
 import {
-  type ArtifactTreeNode,
-  findNodeByPath,
+  findFileNodeByPath,
+  findNodeById,
   inferArtifactKindFromExtension,
   listOpenableArtifacts,
+  type ProjectDirectoryNode,
+  type ProjectFileNode,
+  type ProjectTreeNode,
 } from './project-artifacts';
 import { parseProjectRelPath } from './project-rel-path';
 
-const file = ({ path }: { path: string }): ArtifactTreeNode => ({
+const file = ({ path }: { path: string }): ProjectFileNode => ({
   id: path as ArtifactId,
   path: parseProjectRelPath(path),
   kind: inferArtifactKindFromExtension(path),
@@ -22,11 +25,9 @@ const directory = ({
   children,
 }: {
   path: string;
-  children: ArtifactTreeNode[];
-}): ArtifactTreeNode => ({
-  id: path as ArtifactId,
+  children: ProjectTreeNode[];
+}): ProjectDirectoryNode => ({
   path: parseProjectRelPath(path),
-  kind: inferArtifactKindFromExtension(path),
   filesystemType: filesystemItemTypes.DIRECTORY,
   children,
 });
@@ -95,49 +96,72 @@ describe('listOpenableArtifacts', () => {
   });
 });
 
-describe('findNodeByPath', () => {
-  const tree = [
-    file({ path: 'readme.md' }),
-    directory({
-      path: 'docs',
-      children: [
-        file({ path: 'docs/guide.md' }),
-        directory({
-          path: 'docs/2024',
-          children: [file({ path: 'docs/2024/notes.md' })],
-        }),
-      ],
-    }),
-  ];
+const tree: ProjectTreeNode[] = [
+  file({ path: 'readme.md' }),
+  directory({
+    path: 'docs',
+    children: [
+      file({ path: 'docs/guide.md' }),
+      directory({
+        path: 'docs/2024',
+        children: [file({ path: 'docs/2024/notes.md' })],
+      }),
+    ],
+  }),
+];
 
-  it('finds a node at the root', () => {
+describe('findFileNodeByPath', () => {
+  it('finds a file at the root', () => {
     expect(
-      findNodeByPath({ tree, path: parseProjectRelPath('readme.md') })
+      findFileNodeByPath({ tree, path: parseProjectRelPath('readme.md') })
     ).toBe(tree[0]);
   });
 
-  it('finds a directory node by its own path', () => {
-    expect(findNodeByPath({ tree, path: parseProjectRelPath('docs') })).toBe(
-      tree[1]
-    );
+  it('finds a deeply nested file', () => {
+    expect(
+      findFileNodeByPath({
+        tree,
+        path: parseProjectRelPath('docs/2024/notes.md'),
+      })?.path
+    ).toBe('docs/2024/notes.md');
   });
 
-  it('finds a deeply nested node', () => {
+  // Directories aren't tracked artifacts, so there is nothing to hand back.
+  it('returns null for a directory path', () => {
     expect(
-      findNodeByPath({ tree, path: parseProjectRelPath('docs/2024/notes.md') })
-        ?.path
-    ).toBe('docs/2024/notes.md');
+      findFileNodeByPath({ tree, path: parseProjectRelPath('docs') })
+    ).toBeNull();
   });
 
   it('returns null when the path is absent', () => {
     expect(
-      findNodeByPath({ tree, path: parseProjectRelPath('docs/missing.md') })
+      findFileNodeByPath({ tree, path: parseProjectRelPath('docs/missing.md') })
     ).toBeNull();
   });
 
   it('returns null for an empty tree', () => {
     expect(
-      findNodeByPath({ tree: [], path: parseProjectRelPath('readme.md') })
+      findFileNodeByPath({ tree: [], path: parseProjectRelPath('readme.md') })
     ).toBeNull();
+  });
+});
+
+describe('findNodeById', () => {
+  it('finds a deeply nested file by its artifact id', () => {
+    expect(
+      findNodeById({ tree, id: 'docs/2024/notes.md' as ArtifactId })?.path
+    ).toBe('docs/2024/notes.md');
+  });
+
+  it('returns null when no file carries the id', () => {
+    expect(
+      findNodeById({ tree, id: 'docs/absent.md' as ArtifactId })
+    ).toBeNull();
+  });
+
+  // A directory path can never resolve to an artifact, even though the
+  // explorer keys directory nodes by that same path.
+  it('returns null for a path that belongs to a directory', () => {
+    expect(findNodeById({ tree, id: 'docs' as ArtifactId })).toBeNull();
   });
 });
