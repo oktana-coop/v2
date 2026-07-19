@@ -1,8 +1,8 @@
 import {
   type ArtifactMetaData,
-  type ArtifactTreeNode,
   type ProjectId,
   type ProjectStore,
+  type ProjectTreeNode,
   type RemoteProjectInfo,
 } from '../../../../modules/domain/project';
 import { type ResolvedDocument } from '../../../../modules/domain/rich-text';
@@ -40,7 +40,7 @@ export type ProjectContextType = {
   projectStore: ProjectStore | null;
   currentArtifact: ArtifactMetaData | null;
   resolvingCurrentArtifact: boolean;
-  directoryTree: ArtifactTreeNode[];
+  directoryTree: ProjectTreeNode[];
   refreshDirectoryTree: () => Promise<void>;
   openDirectory: (cloneUrl?: string) => Promise<Directory>;
   requestPermissionForSelectedDirectory: () => Promise<void>;

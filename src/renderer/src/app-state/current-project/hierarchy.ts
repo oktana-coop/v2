@@ -1,7 +1,7 @@
 import * as Effect from 'effect/Effect';
 import { useCallback, useEffect, useState } from 'react';
 
-import { type ArtifactTreeNode } from '../../../../modules/domain/project';
+import { type ProjectTreeNode } from '../../../../modules/domain/project';
 import { type ProjectContextType } from './types';
 
 type HierarchyDeps = Pick<
@@ -23,7 +23,7 @@ export const useHierarchyOps = ({
   currentBranch,
   pulledUpstreamChanges,
 }: HierarchyDeps): HierarchyOps => {
-  const [directoryTree, setDirectoryTree] = useState<ArtifactTreeNode[]>([]);
+  const [directoryTree, setDirectoryTree] = useState<ProjectTreeNode[]>([]);
 
   const refreshDirectoryTree = useCallback(async () => {
     if (

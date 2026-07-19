@@ -85,7 +85,6 @@ export const ProjectProvider = ({
   const directoryOps = useDirectoryOps({
     projectId,
     projectStore,
-    directoryTree,
     refreshDirectoryTree,
     currentArtifactPath,
   });

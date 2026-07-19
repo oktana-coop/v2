@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router';
 
 import {
   createDocumentInProject,
-  findNodeByPath,
+  findFileNodeByPath,
   parseProjectRelPath,
   type ProjectId,
   type ProjectRelPath,
@@ -64,11 +64,8 @@ export const useDocumentOps = ({
         );
       }
 
-      const parentDirectoryId = args?.parentPath
-        ? (findNodeByPath({
-            tree: directoryTree,
-            path: parseProjectRelPath(args.parentPath),
-          })?.id ?? undefined)
+      const parentDirectoryPath = args?.parentPath
+        ? parseProjectRelPath(args.parentPath)
         : undefined;
 
       const result = await Effect.runPromise(
@@ -77,12 +74,11 @@ export const useDocumentOps = ({
             createNewFile: filesystem.createNewFile,
             getRelativePath: filesystem.getRelativePath,
             getAbsolutePath: filesystem.getAbsolutePath,
-            getArtifactMetaDataById: projectStore.getArtifactMetaDataById,
             createDocument: projectStore.createDocument,
           })({
             projectId,
             projectDirectory: directory,
-            parentDirectoryId,
+            parentDirectoryPath,
             content: null,
           }),
           Effect.map(Option.getOrNull)
@@ -102,14 +98,7 @@ export const useDocumentOps = ({
         path: result.filePath,
       };
     },
-    [
-      projectStore,
-      projectId,
-      directory,
-      filesystem,
-      directoryTree,
-      refreshDirectoryTree,
-    ]
+    [projectStore, projectId, directory, filesystem, refreshDirectoryTree]
   );
 
   const handleFindDocumentInProject = async (args: {
@@ -140,7 +129,7 @@ export const useDocumentOps = ({
         );
       }
 
-      const documentId = findNodeByPath({
+      const documentId = findFileNodeByPath({
         tree: directoryTree,
         path: parseProjectRelPath(relativePath),
       })?.id;

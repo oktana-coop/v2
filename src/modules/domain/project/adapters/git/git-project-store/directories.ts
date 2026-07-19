@@ -22,7 +22,6 @@ import {
   type DeleteDirectoryArgs,
   type ProjectStore,
 } from '../../../ports';
-import { resolveAbsolutePath } from './artifacts';
 import { ensureProjectIdIsFsPath } from './project-id';
 
 type DocumentOps = Pick<ProjectStore, 'findDocumentByPath' | 'deleteDocuments'>;
@@ -42,18 +41,17 @@ export const createDirectoryOps = ({
 }): DirectoryOps => {
   const createDirectory = ({
     projectId,
-    parentDirectoryId,
+    parentDirectoryPath,
     name,
   }: CreateDirectoryArgs) =>
     pipe(
       ensureProjectIdIsFsPath(projectId),
       Effect.flatMap((projectDir) =>
         pipe(
-          parentDirectoryId
-            ? resolveAbsolutePath({
-                filesystem,
-                projectDir,
-                artifactId: parentDirectoryId,
+          parentDirectoryPath
+            ? filesystem.getAbsolutePath({
+                path: parentDirectoryPath,
+                dirPath: projectDir,
               })
             : Effect.succeed(projectDir),
           Effect.flatMap((parentAbsolutePath) =>
@@ -73,15 +71,14 @@ export const createDirectoryOps = ({
       })
     );
 
-  const deleteDirectory = ({ projectId, directoryId }: DeleteDirectoryArgs) =>
+  const deleteDirectory = ({ projectId, directoryPath }: DeleteDirectoryArgs) =>
     pipe(
       ensureProjectIdIsFsPath(projectId),
       Effect.flatMap((projectDir) =>
         pipe(
-          resolveAbsolutePath({
-            filesystem,
-            projectDir,
-            artifactId: directoryId,
+          filesystem.getAbsolutePath({
+            path: directoryPath,
+            dirPath: projectDir,
           }),
           Effect.flatMap((absoluteDirPath) =>
             pipe(

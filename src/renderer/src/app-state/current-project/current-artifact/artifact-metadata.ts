@@ -3,10 +3,10 @@ import { useContext, useEffect, useMemo, useState } from 'react';
 
 import {
   type ArtifactMetaData,
-  type ArtifactTreeNode,
   findNodeById,
   type ProjectId,
   type ProjectStore,
+  type ProjectTreeNode,
 } from '../../../../../modules/domain/project';
 import { type ArtifactId } from '../../../../../modules/infrastructure/version-control';
 import { ProjectContext } from '../context';
@@ -36,16 +36,13 @@ export const useArtifactMetaDataFromTree = ({
   tree,
   artifactId,
 }: {
-  tree: ArtifactTreeNode[];
+  tree: ProjectTreeNode[];
   artifactId: ArtifactId | null;
 }): ArtifactMetaData | null =>
-  useMemo(() => {
-    if (!artifactId) return null;
-
-    const node = findNodeById({ tree, id: artifactId });
-
-    return node ? { id: node.id, path: node.path, kind: node.kind } : null;
-  }, [tree, artifactId]);
+  useMemo(
+    () => (artifactId ? findNodeById({ tree, id: artifactId }) : null),
+    [tree, artifactId]
+  );
 
 export const useResolveArtifactMetaData = ({
   projectId,

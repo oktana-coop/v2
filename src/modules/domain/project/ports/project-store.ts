@@ -26,12 +26,12 @@ import {
 } from '../errors';
 import {
   type ArtifactMetaData,
-  type ArtifactTreeNode,
   type AssetMetaData,
   type DocumentMetaData,
   type Project,
   type ProjectId,
   type ProjectRelPath,
+  type ProjectTreeNode,
   type ReferencedAsset,
   type RemoteProjectInfo,
   type VersionedProject,
@@ -263,13 +263,13 @@ export type CreateDocumentArgs = {
 
 export type CreateDirectoryArgs = {
   projectId: ProjectId;
-  parentDirectoryId?: ArtifactId;
+  parentDirectoryPath?: ProjectRelPath;
   name: string;
 };
 
 export type DeleteDirectoryArgs = {
   projectId: ProjectId;
-  directoryId: ArtifactId;
+  directoryPath: ProjectRelPath;
 };
 
 export type GetArtifactMetaDataByIdArgs = {
@@ -379,7 +379,7 @@ export type ProjectStore = {
   getProjectTree: (
     id: ProjectId
   ) => Effect.Effect<
-    ArtifactTreeNode[],
+    ProjectTreeNode[],
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;

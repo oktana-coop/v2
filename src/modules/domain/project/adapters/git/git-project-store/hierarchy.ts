@@ -10,17 +10,15 @@ import {
   type Directory,
   type File,
   type Filesystem,
+  filesystemItemTypes,
   isDirectory,
 } from '../../../../../../modules/infrastructure/filesystem';
-import {
-  createGitBlobRef,
-  createGitTreeRef,
-} from '../../../../../../modules/infrastructure/version-control';
+import { createGitBlobRef } from '../../../../../../modules/infrastructure/version-control';
 import { RepositoryError, ValidationError } from '../../../errors';
 import {
-  type ArtifactTreeNode,
   inferArtifactKindFromExtension,
   parseProjectRelPathEffect,
+  type ProjectTreeNode,
 } from '../../../models';
 import { type ProjectStore } from '../../../ports';
 import { getCurrentBranch } from './branching';
@@ -28,21 +26,19 @@ import { ensureProjectIdIsFsPath } from './project-id';
 
 type HierarchyOps = Pick<ProjectStore, 'getProjectTree'>;
 
-const toArtifactTreeNode =
+const toProjectTreeNode =
   (ref: string) =>
-  (node: Directory | File): Effect.Effect<ArtifactTreeNode, ValidationError> =>
+  (node: Directory | File): Effect.Effect<ProjectTreeNode, ValidationError> =>
     pipe(
       parseProjectRelPathEffect(node.path),
       Effect.flatMap(
-        (path): Effect.Effect<ArtifactTreeNode, ValidationError> =>
+        (path): Effect.Effect<ProjectTreeNode, ValidationError> =>
           isDirectory(node)
             ? pipe(
-                Effect.forEach(node.children ?? [], toArtifactTreeNode(ref)),
+                Effect.forEach(node.children ?? [], toProjectTreeNode(ref)),
                 Effect.map((children) => ({
-                  id: createGitTreeRef({ ref, path }),
                   path,
-                  kind: inferArtifactKindFromExtension(path),
-                  filesystemType: node.type,
+                  filesystemType: filesystemItemTypes.DIRECTORY,
                   children,
                 }))
               )
@@ -50,7 +46,7 @@ const toArtifactTreeNode =
                 id: createGitBlobRef({ ref, path }),
                 path,
                 kind: inferArtifactKindFromExtension(path),
-                filesystemType: node.type,
+                filesystemType: filesystemItemTypes.FILE,
               })
       )
     );
@@ -88,7 +84,7 @@ export const createHierarchyOps = ({
         )
       ),
       Effect.flatMap(({ tree, currentBranch }) =>
-        Effect.forEach(tree, toArtifactTreeNode(currentBranch))
+        Effect.forEach(tree, toProjectTreeNode(currentBranch))
       )
     );
 

@@ -1,8 +1,11 @@
 import {
-  type ArtifactTreeNode,
-  getArtifactNameWithExtension,
+  isProjectDirectoryNode,
+  type ProjectTreeNode,
 } from '../../../../../../modules/domain/project';
-import { filesystemItemTypes } from '../../../../../../modules/infrastructure/filesystem';
+import {
+  filesystemItemTypes,
+  removePath,
+} from '../../../../../../modules/infrastructure/filesystem';
 import { type ExplorerTreeNode, NEW_DIRECTORY_NODE_ID } from './tree/types';
 
 export const injectPendingDirectoryNode = (
@@ -38,19 +41,19 @@ export const injectPendingDirectoryNode = (
 };
 
 export const getExplorerTreeInProject = (
-  directoryTree: ArtifactTreeNode[]
+  directoryTree: ProjectTreeNode[]
 ): ExplorerTreeNode[] => {
-  const toExplorerNode = (node: ArtifactTreeNode): ExplorerTreeNode =>
-    node.filesystemType === filesystemItemTypes.DIRECTORY
+  const toExplorerNode = (node: ProjectTreeNode): ExplorerTreeNode =>
+    isProjectDirectoryNode(node)
       ? {
           id: node.path,
-          name: getArtifactNameWithExtension(node.path),
+          name: removePath(node.path),
           type: filesystemItemTypes.DIRECTORY,
-          children: node.children?.map(toExplorerNode),
+          children: node.children.map(toExplorerNode),
         }
       : {
           id: node.path,
-          name: getArtifactNameWithExtension(node.path),
+          name: removePath(node.path),
           type: filesystemItemTypes.FILE,
         };
 
