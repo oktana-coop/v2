@@ -1,6 +1,9 @@
 import { useContext, useEffect, useState } from 'react';
 
-import { type ProjectId } from '../../../../../../../modules/domain/project';
+import {
+  parseProjectRelPath,
+  type ProjectId,
+} from '../../../../../../../modules/domain/project';
 import { type RichTextDocument } from '../../../../../../../modules/domain/rich-text';
 import {
   ContentConflict as ContentConflictType,
@@ -32,7 +35,9 @@ export const ContentConflict = ({
   onDocChange,
 }: ContentConflictProps) => {
   const { projectId } = useContext(ProjectContext);
-  const resolveAssetSrc = useAssetSrcResolver(conflict.path);
+  const resolveAssetSrc = useAssetSrcResolver({
+    docPath: parseProjectRelPath(conflict.path),
+  });
   const pickAsset = useAssetInsertion(conflict.targetArtifactId);
   const [suggestedResolution, setSuggestedResolution] = useState<{
     docBefore: RichTextDocument;

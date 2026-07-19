@@ -1,15 +1,15 @@
 import { useContext } from 'react';
 
 import {
-  SidebarLayoutContext,
-  useCurrentArtifactName,
-} from '../../../../app-state';
+  getArtifactName,
+  type ProjectRelPath,
+} from '../../../../../../modules/domain/project';
+import { SidebarLayoutContext } from '../../../../app-state';
 import { UnsupportedDocument } from '../../../../components/document-views/UnsupportedDocument';
 import { DefaultActionsBar } from '../../../shared/default-actions-bar';
 
-export const UnsupportedDocumentView = () => {
+export const UnsupportedDocumentView = ({ path }: { path: ProjectRelPath }) => {
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
-  const documentName = useCurrentArtifactName();
 
   return (
     <div className="relative flex flex-auto flex-col items-center overflow-hidden">
@@ -19,7 +19,7 @@ export const UnsupportedDocumentView = () => {
           onSidebarToggle={toggleSidebar}
         />
       </div>
-      <UnsupportedDocument fileName={documentName ?? ''} />
+      <UnsupportedDocument fileName={getArtifactName(path)} />
     </div>
   );
 };

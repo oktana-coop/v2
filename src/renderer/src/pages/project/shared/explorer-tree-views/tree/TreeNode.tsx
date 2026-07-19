@@ -3,7 +3,10 @@ import { useEffect, useRef } from 'react';
 import { type NodeApi, type NodeRendererProps } from 'react-arborist';
 
 import { EXPLORER_TREE_NODE } from '../../../../../../../modules/infrastructure/cross-platform';
-import { filesystemItemTypes } from '../../../../../../../modules/infrastructure/filesystem';
+import {
+  filesystemItemTypes,
+  removeExtension,
+} from '../../../../../../../modules/infrastructure/filesystem';
 import { ChevronDownIcon, DiffIcon } from '../../../../../components/icons';
 import { FileExtensionIcon } from '../../../../../components/navigation';
 import { useTreeCallbacks } from './TreeView';
@@ -86,8 +89,7 @@ const RenamingFileNode = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const fileName = node.data.name;
-  const extIndex = fileName.lastIndexOf('.');
-  const nameWithoutExt = extIndex >= 0 ? fileName.slice(0, extIndex) : fileName;
+  const nameWithoutExt = removeExtension(fileName);
 
   useEffect(() => {
     if (inputRef.current) {

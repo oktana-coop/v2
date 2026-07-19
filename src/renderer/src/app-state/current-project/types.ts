@@ -1,4 +1,5 @@
 import {
+  type ArtifactMetaData,
   type ArtifactTreeNode,
   type ProjectId,
   type ProjectStore,
@@ -37,6 +38,8 @@ export type ProjectContextType = {
   directory: Directory | null;
   currentBranch: Branch | null;
   projectStore: ProjectStore | null;
+  currentArtifact: ArtifactMetaData | null;
+  resolvingCurrentArtifact: boolean;
   directoryTree: ArtifactTreeNode[];
   refreshDirectoryTree: () => Promise<void>;
   openDirectory: (cloneUrl?: string) => Promise<Directory>;

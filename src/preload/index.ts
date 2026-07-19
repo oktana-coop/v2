@@ -168,8 +168,10 @@ contextBridge.exposeInMainWorld('projectStoreAPI', {
     ipcRenderer.invoke('project-store:create-directory', { ...args }),
   deleteDirectory: (args) =>
     ipcRenderer.invoke('project-store:delete-directory', { ...args }),
-  getArtifactPathById: (args) =>
-    ipcRenderer.invoke('project-store:get-artifact-path-by-id', { ...args }),
+  getArtifactMetaDataById: (args) =>
+    ipcRenderer.invoke('project-store:get-artifact-metadata-by-id', {
+      ...args,
+    }),
   lookupArtifactByPath: (args) =>
     ipcRenderer.invoke('project-store:lookup-artifact-by-path', { ...args }),
   deleteDocuments: (args) =>

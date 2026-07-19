@@ -15,6 +15,10 @@ import {
 } from '../../../../modules/domain/rich-text';
 import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
 import {
+  createErrorNotification,
+  NotificationsContext,
+} from '../../../../modules/infrastructure/notifications/browser';
+import {
   type ArtifactId,
   type Change,
   type ChangeId,
@@ -47,6 +51,7 @@ export const CurrentDocumentProvider = ({
 }) => {
   const { projectId, projectStore, restoreDocumentChanges } =
     useContext(ProjectContext);
+  const { dispatchNotification } = useContext(NotificationsContext);
   const { showDiffInHistoryView } = useContext(FunctionalityConfigContext);
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
@@ -76,6 +81,7 @@ export const CurrentDocumentProvider = ({
 
   const prevProjectId = useRef(projectId);
   const prevDocumentId = useRef(documentId);
+  const latestRequestedDocumentId = useRef<ArtifactId | null>(null);
   const documentRouteMatch = useMatch(
     '/projects/:projectId/artifacts/:artifactId'
   );
@@ -101,18 +107,28 @@ export const CurrentDocumentProvider = ({
       projectStore: ProjectStore;
     }) => {
       if (!documentId) {
+        latestRequestedDocumentId.current = null;
         setVersionedDocument(null);
         resetPulledUpstreamChanges();
         setDocumentNeedsReload(false);
-      } else {
-        setVersionedDocument(null);
+        return;
+      }
 
+      latestRequestedDocumentId.current = documentId;
+
+      // A load the user has already navigated away from must not touch state
+      // belonging to whichever document is open now.
+      const isStale = () => latestRequestedDocumentId.current !== documentId;
+
+      try {
         const { artifact: document } = await Effect.runPromise(
           projectStore.findDocumentById({
             projectId,
             documentId,
           })
         );
+
+        if (isStale()) return;
 
         setVersionedDocument(document);
         setLoadingHistory(true);
@@ -122,6 +138,24 @@ export const CurrentDocumentProvider = ({
 
         prevProjectId.current = projectId;
         prevDocumentId.current = documentId;
+      } catch (err) {
+        if (isStale()) return;
+
+        console.error(err);
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Open Document Error',
+            message:
+              'This document could not be opened. It may have been moved or deleted.',
+          })
+        );
+
+        // Drop the previously loaded document, so its content can't stay on
+        // screen as though it were the one that was just selected.
+        setVersionedDocument(null);
+        setLoadingHistory(false);
+        resetPulledUpstreamChanges();
+        setDocumentNeedsReload(false);
       }
     };
 

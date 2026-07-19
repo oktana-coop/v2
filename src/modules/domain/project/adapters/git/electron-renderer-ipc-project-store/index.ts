@@ -31,18 +31,18 @@ import { ProjectStore } from '../../../ports';
 export const createAdapter = (): ProjectStore => ({
   supportsBranching: true,
   assetsDirName: DEFAULT_ASSETS_DIR_NAME,
-  getArtifactPathById: (
-    ...args: Parameters<ProjectStore['getArtifactPathById']>
+  getArtifactMetaDataById: (
+    ...args: Parameters<ProjectStore['getArtifactMetaDataById']>
   ) =>
     effectifyIPCPromise(
       {
         [VersionedProjectValidationErrorTag]: ValidationError,
         [VersionedProjectRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<
-        EffectErrorType<ReturnType<ProjectStore['getArtifactPathById']>>
+        EffectErrorType<ReturnType<ProjectStore['getArtifactMetaDataById']>>
       >,
       RepositoryError
-    )(window.projectStoreAPI.getArtifactPathById(...args)),
+    )(window.projectStoreAPI.getArtifactMetaDataById(...args)),
   lookupArtifactByPath: (
     ...args: Parameters<ProjectStore['lookupArtifactByPath']>
   ) =>

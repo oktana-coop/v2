@@ -5,7 +5,6 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import { mapErrorTo } from '../../../../../utils/errors';
-import { versionedArtifactTypes } from '../../../../infrastructure/version-control';
 import {
   RepresentationTransformError,
   ResolveMergeConflictsError,
@@ -73,7 +72,6 @@ export const createAdapter = ({
               pipe(
                 Effect.sync(() =>
                   Automerge.from<RichTextDocument>({
-                    type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
                     schemaVersion: CURRENT_SCHEMA_VERSION,
                     representation: richTextRepresentations.AUTOMERGE,
                     content: '',
@@ -191,7 +189,6 @@ export const createAdapter = ({
 
                     return {
                       mergedDocument: {
-                        type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
                         schemaVersion: CURRENT_SCHEMA_VERSION,
                         representation: targetDocument.representation,
                         content: mergedDocumentContent,

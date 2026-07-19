@@ -1,9 +1,11 @@
 import { useContext, useMemo } from 'react';
 
-import { listOpenableArtifacts } from '../../../../../../modules/domain/project';
+import {
+  getArtifactName,
+  listOpenableArtifacts,
+} from '../../../../../../modules/domain/project';
 import { richTextRepresentations } from '../../../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
-import { removeExtension } from '../../../../../../modules/infrastructure/filesystem';
 import {
   CommandPaletteContext,
   CommitModalContext,
@@ -11,7 +13,6 @@ import {
   ProjectContext,
   useArtifactSelection,
   useClearWebStorage,
-  useCurrentArtifactName,
   useExport,
 } from '../../../../app-state';
 import {
@@ -38,10 +39,12 @@ export const ProjectCommandPalette = ({
   );
   const { openCommitModal } = useContext(CommitModalContext);
   const { checkForUpdate } = useContext(ElectronContext);
-  const { directoryTree } = useContext(ProjectContext);
+  const { directoryTree, currentArtifact } = useContext(ProjectContext);
 
   const handleArtifactSelection = useArtifactSelection();
-  const currentDocumentName = useCurrentArtifactName();
+  const currentDocumentName = currentArtifact
+    ? getArtifactName(currentArtifact.path)
+    : null;
   const { selection, startCreateDirectory } = useDocumentExplorerTree();
   const clearWebStorage = useClearWebStorage();
 
@@ -149,7 +152,7 @@ export const ProjectCommandPalette = ({
       }
       documents={openableDocuments.map((doc) => ({
         id: doc.path,
-        title: removeExtension(doc.name),
+        title: getArtifactName(doc.path),
         onDocumentSelection: () => {
           handleArtifactSelection(doc.path);
           closeCommandPalette();

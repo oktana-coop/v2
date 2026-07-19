@@ -2,6 +2,7 @@ import { EditorState } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { useContext, useEffect, useRef } from 'react';
 
+import { type ProjectRelPath } from '../../../../../../modules/domain/project';
 import {
   getDocumentRichTextContent,
   prosemirror,
@@ -25,12 +26,12 @@ const {
 export type DiffViewProps = {
   docBefore: RichTextDocument;
   docAfter: RichTextDocument;
-  documentPath: string | null;
+  documentPath: ProjectRelPath;
 };
 
 export type SingleDocViewProps = {
   doc: RichTextDocument;
-  documentPath: string | null;
+  documentPath: ProjectRelPath;
 };
 
 const isDiffViewProps = (
@@ -54,7 +55,7 @@ export const ReadOnlyDocumentView = (props: ReadOnlyDocumentViewProps) => {
   const { openExternalLink } = useContext(ElectronContext);
   const editorRoot = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
-  const resolveAssetSrc = useAssetSrcResolver(props.documentPath ?? undefined);
+  const resolveAssetSrc = useAssetSrcResolver({ docPath: props.documentPath });
   const {
     proseMirrorDiff,
     diffAdapterReady,

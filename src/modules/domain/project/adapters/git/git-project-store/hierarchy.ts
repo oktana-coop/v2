@@ -19,6 +19,7 @@ import {
 import { RepositoryError, ValidationError } from '../../../errors';
 import {
   type ArtifactTreeNode,
+  inferArtifactKindFromExtension,
   parseProjectRelPathEffect,
 } from '../../../models';
 import { type ProjectStore } from '../../../ports';
@@ -39,17 +40,17 @@ const toArtifactTreeNode =
                 Effect.forEach(node.children ?? [], toArtifactTreeNode(ref)),
                 Effect.map((children) => ({
                   id: createGitTreeRef({ ref, path }),
-                  name: node.name,
                   path,
-                  type: node.type,
+                  kind: inferArtifactKindFromExtension(path),
+                  filesystemType: node.type,
                   children,
                 }))
               )
             : Effect.succeed({
                 id: createGitBlobRef({ ref, path }),
-                name: node.name,
                 path,
-                type: node.type,
+                kind: inferArtifactKindFromExtension(path),
+                filesystemType: node.type,
               })
       )
     );

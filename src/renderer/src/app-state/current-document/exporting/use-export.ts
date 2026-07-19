@@ -2,7 +2,10 @@ import * as Effect from 'effect/Effect';
 import { useContext } from 'react';
 import { useParams } from 'react-router';
 
-import { type ProjectId } from '../../../../../modules/domain/project';
+import {
+  getArtifactName,
+  type ProjectId,
+} from '../../../../../modules/domain/project';
 import {
   type BinaryRichTextRepresentation,
   binaryRichTextRepresentations,
@@ -12,12 +15,11 @@ import {
   type TextRichTextRepresentation,
 } from '../../../../../modules/domain/rich-text';
 import { RepresentationTransformContext } from '../../../../../modules/domain/rich-text/react/representation-transform-context';
-import { removeExtension } from '../../../../../modules/infrastructure/filesystem';
 import {
   ExportTemplatesContext,
   exportTemplateToCss,
 } from '../../../../../modules/personalization/browser';
-import { useCurrentArtifactName } from '../../current-project/current-artifact/use-current-artifact-name';
+import { ProjectContext } from '../../current-project/context';
 import { InfrastructureAdaptersContext } from '../../infrastructure-adapters/context';
 import { useCurrentDocumentId } from '../use-current-document-id';
 import {
@@ -33,7 +35,10 @@ export const useExport = () => {
   const { activeTemplate } = useContext(ExportTemplatesContext);
   const { projectId: projectIdParam } = useParams();
   const documentId = useCurrentDocumentId();
-  const currentDocumentName = useCurrentArtifactName();
+  const { currentArtifact } = useContext(ProjectContext);
+  const currentDocumentName = currentArtifact
+    ? getArtifactName(currentArtifact.path)
+    : null;
   const getExportAssetMounts = useExportAssetMounts();
 
   // Fetches the latest version of the document with the guards the export needs;
@@ -108,9 +113,7 @@ export const useExport = () => {
   ) =>
     Effect.runPromise(
       filesystem.createNewFile({
-        suggestedName: currentDocumentName
-          ? removeExtension(currentDocumentName)
-          : undefined,
+        suggestedName: currentDocumentName ?? undefined,
         extensions: [richTextRepresentationExtensions[representation]],
         content,
       })

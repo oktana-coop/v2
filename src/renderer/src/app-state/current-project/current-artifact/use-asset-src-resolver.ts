@@ -3,38 +3,29 @@ import { pipe } from 'effect/Function';
 import { useCallback, useContext } from 'react';
 
 import {
-  parseProjectRelPath,
+  type ProjectRelPath,
   resolveDocumentAssetUrl,
 } from '../../../../../modules/domain/project';
 import { parseDocumentAssetSrcEffect } from '../../../../../modules/domain/rich-text';
 import { InfrastructureAdaptersContext } from '../../infrastructure-adapters/context';
 import { ProjectContext } from '../context';
-import { useArtifactPath } from './artifact-path';
-import { useCurrentArtifactId } from './use-current-artifact-id';
 
 // Resolves a document's asset `src` values to renderable URLs. Asset srcs are
-// document-relative, so resolution needs the path of the doc being rendered.
-// By default that's the currently-open document; callers rendering a different
-// document (e.g. a specific merge conflict) pass `docPathOverride`.
-export const useAssetSrcResolver = (docPathOverride?: string) => {
+// document-relative, so resolution needs the path of the document being
+// rendered.
+export const useAssetSrcResolver = ({
+  docPath,
+}: {
+  docPath: ProjectRelPath;
+}) => {
   const { projectId } = useContext(ProjectContext);
   const { assetUrlProtocol } = useContext(InfrastructureAdaptersContext);
-  const currentArtifactId = useCurrentArtifactId();
-  const { path: currentDocPath } = useArtifactPath(currentArtifactId);
-
-  const rawDocPath = docPathOverride ?? currentDocPath;
-  const docPath = rawDocPath ? parseProjectRelPath(rawDocPath) : null;
 
   return useCallback(
     (src: string) => {
       if (!projectId) {
-        throw new Error(
-          'useAssetSrcResolver called without a current project.'
-        );
-      }
-
-      if (!docPath) {
-        throw new Error('useAssetSrcResolver called without a doc path.');
+        console.error('useAssetSrcResolver called without a current project.');
+        return src;
       }
 
       return Effect.runSync(

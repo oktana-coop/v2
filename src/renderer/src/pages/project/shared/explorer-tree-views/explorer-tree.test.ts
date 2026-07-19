@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   type ArtifactTreeNode,
+  inferArtifactKindFromExtension,
   parseProjectRelPath,
 } from '../../../../../../modules/domain/project';
 import { filesystemItemTypes } from '../../../../../../modules/infrastructure/filesystem';
@@ -18,8 +19,8 @@ const basename = (path: string) => path.split('/').pop() ?? path;
 const artifactFile = (path: string): ArtifactTreeNode => ({
   id: path as ArtifactId,
   path: parseProjectRelPath(path),
-  name: basename(path),
-  type: filesystemItemTypes.FILE,
+  kind: inferArtifactKindFromExtension(path),
+  filesystemType: filesystemItemTypes.FILE,
 });
 
 const artifactDir = ({
@@ -31,8 +32,8 @@ const artifactDir = ({
 }): ArtifactTreeNode => ({
   id: path as ArtifactId,
   path: parseProjectRelPath(path),
-  name: basename(path),
-  type: filesystemItemTypes.DIRECTORY,
+  kind: inferArtifactKindFromExtension(path),
+  filesystemType: filesystemItemTypes.DIRECTORY,
   children,
 });
 

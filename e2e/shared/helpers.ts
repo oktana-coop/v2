@@ -840,3 +840,30 @@ export const mergeToMainBranch = async ({
   await openBranchingPalette({ window, currentBranch });
   await window.getByRole('option', { name: 'Merge to Main Branch' }).click();
 };
+
+/**
+ * A real, minimal 1x1 PNG, for specs that need actual image bytes on disk.
+ */
+export const PNG_1x1 = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64'
+);
+
+/**
+ * Asserts the figure's <img> resolved to a project-asset:// URL and actually
+ * decoded its bytes (naturalWidth stays 0 for a broken or unresolved src).
+ */
+export const expectFigureImageRendered = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  const img = window.locator('.ProseMirror figure img').first();
+  await expect(img).toBeAttached({ timeout: 3_000 });
+  expect(await img.getAttribute('src')).toMatch(/^project-asset:\/\//);
+  await expect
+    .poll(() => img.evaluate((el) => (el as HTMLImageElement).naturalWidth), {
+      timeout: 3_000,
+    })
+    .toBeGreaterThan(0);
+};

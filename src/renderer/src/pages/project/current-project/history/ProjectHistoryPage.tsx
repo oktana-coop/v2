@@ -9,7 +9,7 @@ import {
   isUncommittedChangeId,
   urlEncodeChangeId,
 } from '../../../../../../modules/infrastructure/version-control';
-import { ProjectContext, useArtifactPath } from '../../../../app-state';
+import { ProjectContext, useArtifactMetaData } from '../../../../app-state';
 import { PersonalFile } from '../../../../components/illustrations/PersonalFile';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
@@ -149,7 +149,9 @@ export const ProjectHistoryPage = () => {
       : null;
   }, [documentChangeMatch]);
 
-  const { path: selectedDocumentPath } = useArtifactPath(selectedDocumentId);
+  const { artifact: selectedArtifact } =
+    useArtifactMetaData(selectedDocumentId);
+  const selectedDocumentPath = selectedArtifact?.path ?? null;
 
   const selectedCommitId = useMemo((): Commit['id'] | null => {
     const encodedChangeId = documentChangeMatch?.params.changeId;

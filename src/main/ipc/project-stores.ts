@@ -17,7 +17,7 @@ import {
   type DeleteDocumentsArgs,
   type DiscardUncommittedChangesArgs,
   type FindDocumentByIdArgs,
-  type GetArtifactPathByIdArgs,
+  type GetArtifactMetaDataByIdArgs,
   type GetDocumentAtChangeArgs,
   type GetDocumentHistoryArgs,
   type GetDocumentLastChangeIdArgs,
@@ -243,13 +243,13 @@ const registerProjectStoreEvents = ({
   );
 
   ipcMain.handle(
-    'project-store:get-artifact-path-by-id',
-    async (_, args: GetArtifactPathByIdArgs) =>
+    'project-store:get-artifact-metadata-by-id',
+    async (_, args: GetArtifactMetaDataByIdArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
           getProjectStore(args.projectId),
           Effect.flatMap((projectStore) =>
-            projectStore.getArtifactPathById(args)
+            projectStore.getArtifactMetaDataById(args)
           )
         )
       )

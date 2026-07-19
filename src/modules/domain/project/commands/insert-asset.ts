@@ -41,7 +41,7 @@ export type InsertAssetDeps = {
   lookupAssetByName: ProjectStore['lookupAssetByName'];
   addAssetToProject: ProjectStore['addAssetToProject'];
   getProjectRelativePath: ProjectStore['getProjectRelativePath'];
-  getArtifactPathById: ProjectStore['getArtifactPathById'];
+  getArtifactMetaDataById: ProjectStore['getArtifactMetaDataById'];
   assetsDirName: ProjectStore['assetsDirName'];
 };
 
@@ -52,7 +52,7 @@ export const insertAsset =
     lookupAssetByName,
     addAssetToProject,
     getProjectRelativePath,
-    getArtifactPathById,
+    getArtifactMetaDataById,
     assetsDirName,
   }: InsertAssetDeps) =>
   ({
@@ -77,7 +77,10 @@ export const insertAsset =
       // Resolve the document's project-relative path up front, so an invalid
       // id fails before the picker is shown.
       Effect.bind('docPath', () =>
-        getArtifactPathById({ projectId, artifactId: documentId })
+        pipe(
+          getArtifactMetaDataById({ projectId, artifactId: documentId }),
+          Effect.map(({ path }) => path)
+        )
       ),
       Effect.bind('file', () =>
         openFile({ extensions: [...ASSET_FILE_EXTENSIONS] })

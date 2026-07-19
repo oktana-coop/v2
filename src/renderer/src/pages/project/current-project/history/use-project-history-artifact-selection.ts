@@ -4,7 +4,8 @@ import { useContext } from 'react';
 import { useNavigate } from 'react-router';
 
 import {
-  inferArtifactTypeFromExtension,
+  artifactKinds,
+  inferArtifactKindFromExtension,
   urlEncodeProjectId,
 } from '../../../../../../modules/domain/project';
 import {
@@ -14,7 +15,6 @@ import {
   UNCOMMITTED_CHANGE_ID,
   urlEncodeArtifactId,
   urlEncodeChangeId,
-  versionedArtifactTypes,
 } from '../../../../../../modules/infrastructure/version-control';
 import { ProjectContext } from '../../../../app-state';
 
@@ -29,8 +29,8 @@ export const useProjectHistoryArtifactSelection = () => {
 
     const resolveArtifactId = async (): Promise<ArtifactId> => {
       if (
-        inferArtifactTypeFromExtension(path) !==
-        versionedArtifactTypes.RICH_TEXT_DOCUMENT
+        inferArtifactKindFromExtension(path) !==
+        artifactKinds.RICH_TEXT_DOCUMENT
       ) {
         const ref = isCommitId(resolvedChangeId)
           ? resolvedChangeId

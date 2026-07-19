@@ -50,7 +50,6 @@ import {
   UNCOMMITTED_CHANGE_ID,
   VersionControlNotFoundErrorTag,
   VersionControlRepositoryErrorTag,
-  versionedArtifactTypes,
 } from '../../../../../../modules/infrastructure/version-control';
 import { unique } from '../../../../../../utils/array';
 import { fromNullable } from '../../../../../../utils/effect';
@@ -276,7 +275,6 @@ export const createDocumentOps = ({
         })
       ),
       Effect.map((content) => ({
-        type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
         schemaVersion: CURRENT_SCHEMA_VERSION,
         representation: PRIMARY_RICH_TEXT_REPRESENTATION,
         content,
@@ -396,7 +394,6 @@ export const createDocumentOps = ({
           ({
             id: documentId,
             artifact: {
-              type: versionedArtifactTypes.RICH_TEXT_DOCUMENT,
               schemaVersion: CURRENT_SCHEMA_VERSION,
               representation: PRIMARY_RICH_TEXT_REPRESENTATION,
               content,

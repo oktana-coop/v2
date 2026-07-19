@@ -1,10 +1,6 @@
 import { useContext, useEffect, useState } from 'react';
 
-import {
-  ProjectContext,
-  useArtifactPath,
-  useCurrentArtifactId,
-} from '../../../../app-state';
+import { ProjectContext } from '../../../../app-state';
 import {
   getExplorerTreeInProject,
   injectPendingDirectoryNode,
@@ -33,13 +29,13 @@ export const useDocumentExplorerTree = () => {
     cancelRenameDirectory,
     startDeleteDocument,
     startDeleteDirectory,
+    currentArtifact,
   } = useContext(ProjectContext);
   const [explorerTree, setExplorerTree] = useState<ExplorerTreeNode[]>([]);
   const [hasPendingNewDirectory, setHasPendingNewDirectory] = useState(false);
   const [canShowTree, setCanShowTree] = useState<boolean>(false);
   const [selection, setSelection] = useState<string | null>(null);
-  const currentArtifactId = useCurrentArtifactId();
-  const { path: currentArtifactPath } = useArtifactPath(currentArtifactId);
+  const currentArtifactPath = currentArtifact?.path ?? null;
 
   useEffect(() => {
     let newTree = getExplorerTreeInProject(directoryTree);

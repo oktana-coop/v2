@@ -30,7 +30,7 @@ export type CreateDocumentInProjectDeps = {
   createNewFile: Filesystem['createNewFile'];
   getRelativePath: Filesystem['getRelativePath'];
   getAbsolutePath: Filesystem['getAbsolutePath'];
-  getArtifactPathById: ProjectStore['getArtifactPathById'];
+  getArtifactMetaDataById: ProjectStore['getArtifactMetaDataById'];
   createDocument: ProjectStore['createDocument'];
 };
 
@@ -44,7 +44,7 @@ export const createDocumentInProject =
     createNewFile,
     getRelativePath,
     getAbsolutePath,
-    getArtifactPathById,
+    getArtifactMetaDataById,
     createDocument,
   }: CreateDocumentInProjectDeps) =>
   ({
@@ -67,13 +67,13 @@ export const createDocumentInProject =
           // root when none is given).
           parentDirectoryId
             ? pipe(
-                getArtifactPathById({
+                getArtifactMetaDataById({
                   projectId,
                   artifactId: parentDirectoryId,
                 }),
-                Effect.flatMap((relPath) =>
+                Effect.flatMap(({ path }) =>
                   getAbsolutePath({
-                    path: relPath,
+                    path,
                     dirPath: projectDirectory.path,
                   })
                 ),

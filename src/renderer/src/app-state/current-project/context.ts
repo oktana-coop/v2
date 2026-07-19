@@ -10,6 +10,8 @@ export const ProjectContext = createContext<ProjectContextType>({
   directory: null,
   currentBranch: null,
   projectStore: null,
+  currentArtifact: null,
+  resolvingCurrentArtifact: false,
   directoryTree: [],
   // @ts-expect-error will get overriden by the provider
   openDirectory: async () => null,

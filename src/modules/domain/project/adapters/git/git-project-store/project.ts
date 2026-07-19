@@ -15,15 +15,17 @@ import {
   createGitBlobRef,
   DEFAULT_BRANCH,
   VersionControlRepositoryErrorTag,
-  versionedArtifactTypes,
   writeGitignore,
 } from '../../../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../../../utils/errors';
 import { RepositoryError, ValidationError } from '../../../errors';
 import {
-  type ArtifactMetaData,
+  type AssetMetaData,
   CURRENT_PROJECT_SCHEMA_VERSION,
-  inferArtifactTypeFromExtension,
+  type DocumentMetaData,
+  inferArtifactKindFromExtension,
+  isAssetMetaData,
+  isDocumentMetaData,
   parseProjectFsPath,
   parseProjectRelPathEffect,
   type ProjectId,
@@ -79,8 +81,8 @@ export const findProjectById = ({
       Effect.reduce(
         files,
         {
-          documents: {} as Record<ArtifactId, ArtifactMetaData>,
-          assets: {} as Record<ArtifactId, ArtifactMetaData>,
+          documents: {} as Record<ArtifactId, DocumentMetaData>,
+          assets: {} as Record<ArtifactId, AssetMetaData>,
         },
         (acc, file) =>
           pipe(
@@ -91,18 +93,24 @@ export const findProjectById = ({
                 ref: currentBranch,
                 path,
               });
-              const isDocument =
-                inferArtifactTypeFromExtension(file.path) ===
-                versionedArtifactTypes.RICH_TEXT_DOCUMENT;
-              const target = isDocument ? acc.documents : acc.assets;
-              target[artifactId] = { id: artifactId, name: file.name, path };
+              const artifact = {
+                id: artifactId,
+                path,
+                kind: inferArtifactKindFromExtension(path),
+              };
+
+              if (isDocumentMetaData(artifact)) {
+                acc.documents[artifactId] = artifact;
+              } else if (isAssetMetaData(artifact)) {
+                acc.assets[artifactId] = artifact;
+              }
+
               return acc;
             })
           )
       )
     ),
     Effect.map(({ documents, assets }) => ({
-      type: versionedArtifactTypes.PROJECT,
       schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
       path: id,
       documents,

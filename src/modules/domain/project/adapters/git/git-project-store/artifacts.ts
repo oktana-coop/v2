@@ -15,6 +15,7 @@ import {
 import { mapErrorTo } from '../../../../../../utils/errors';
 import { ValidationError } from '../../../errors';
 import {
+  inferArtifactKindFromExtension,
   parseProjectRelPathEffect,
   type ProjectRelPath,
 } from '../../../models';
@@ -41,9 +42,16 @@ export const extractArtifactRelativePathFromId: (
     )
   );
 
-export const getArtifactPathById: ProjectStore['getArtifactPathById'] = ({
-  artifactId,
-}) => extractArtifactRelativePathFromId(artifactId);
+export const getArtifactMetaDataById: ProjectStore['getArtifactMetaDataById'] =
+  ({ artifactId }) =>
+    pipe(
+      extractArtifactRelativePathFromId(artifactId),
+      Effect.map((path) => ({
+        id: artifactId,
+        path,
+        kind: inferArtifactKindFromExtension(path),
+      }))
+    );
 
 export const lookupArtifactByPath: ProjectStore['lookupArtifactByPath'] = ({
   path,
