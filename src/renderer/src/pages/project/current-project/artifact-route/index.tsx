@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef } from 'react';
+import { useContext, useEffect } from 'react';
 import { Outlet, useOutletContext } from 'react-router';
 
 import {
@@ -28,23 +28,13 @@ export const ArtifactRoute = () => {
   const { currentArtifact, resolvingCurrentArtifact } =
     useContext(ProjectContext);
 
-  // Switching documents re-resolves the artifact, which would otherwise tear
-  // the whole subtree down and flash a skeleton. Keep the previous one rendered
-  // until the next resolves.
-  const lastResolvedArtifact = useRef<ArtifactMetaData | null>(null);
-  if (currentArtifact) {
-    lastResolvedArtifact.current = currentArtifact;
-  }
-
-  const artifact = currentArtifact ?? lastResolvedArtifact.current;
-
   useEffect(() => {
     if (!resolvingCurrentArtifact && currentArtifact === null) {
       console.error('Could not resolve the artifact for the current route.');
     }
   }, [resolvingCurrentArtifact, currentArtifact]);
 
-  if (artifact === null) {
+  if (currentArtifact === null) {
     return resolvingCurrentArtifact ? (
       <LongTextSkeleton />
     ) : (
@@ -52,10 +42,10 @@ export const ArtifactRoute = () => {
     );
   }
 
-  if (artifact.kind !== artifactKinds.RICH_TEXT_DOCUMENT) {
+  if (currentArtifact.kind !== artifactKinds.RICH_TEXT_DOCUMENT) {
     // TODO: Use asset-specific views.
-    return <UnsupportedDocumentView path={artifact.path} />;
+    return <UnsupportedDocumentView path={currentArtifact.path} />;
   }
 
-  return <Outlet context={{ artifact }} />;
+  return <Outlet context={{ artifact: currentArtifact }} />;
 };

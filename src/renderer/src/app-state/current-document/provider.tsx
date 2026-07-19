@@ -105,8 +105,6 @@ export const CurrentDocumentProvider = ({
         resetPulledUpstreamChanges();
         setDocumentNeedsReload(false);
       } else {
-        setVersionedDocument(null);
-
         const { artifact: document } = await Effect.runPromise(
           projectStore.findDocumentById({
             projectId,

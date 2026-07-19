@@ -1,7 +1,10 @@
 import { useBranchingOps } from './branching';
 import { useCommittingOps } from './committing';
 import { ProjectContext } from './context';
-import { useResolveArtifactMetaData } from './current-artifact/artifact-metadata';
+import {
+  useArtifactMetaDataFromTree,
+  useResolveArtifactMetaData,
+} from './current-artifact/artifact-metadata';
 import { useCurrentArtifactSync } from './current-artifact/sync';
 import { useCurrentArtifactId } from './current-artifact/use-current-artifact-id';
 import { useDirectoryOps } from './directories';
@@ -50,12 +53,24 @@ export const ProjectProvider = ({
   });
 
   const currentArtifactId = useCurrentArtifactId();
-  const { artifact: currentArtifact, resolving: resolvingCurrentArtifact } =
-    useResolveArtifactMetaData({
-      projectId,
-      projectStore,
-      artifactId: currentArtifactId,
-    });
+
+  const artifactFromTree = useArtifactMetaDataFromTree({
+    tree: directoryTree,
+    artifactId: currentArtifactId,
+  });
+
+  // The store stays the authority for artifacts the tree doesn't have yet,
+  // such as a document created since the last refresh. When the tree already
+  // had it this resolves redundantly, which is cheap enough to prefer over
+  // teaching the hook to skip.
+  const { artifact: resolvedArtifact, resolving } = useResolveArtifactMetaData({
+    projectId,
+    projectStore,
+    artifactId: currentArtifactId,
+  });
+
+  const currentArtifact = artifactFromTree ?? resolvedArtifact;
+  const resolvingCurrentArtifact = !currentArtifact && resolving;
   const currentArtifactPath = currentArtifact?.path ?? null;
 
   const documentOps = useDocumentOps({

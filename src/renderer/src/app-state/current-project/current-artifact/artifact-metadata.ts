@@ -1,8 +1,10 @@
 import * as Effect from 'effect/Effect';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 
 import {
   type ArtifactMetaData,
+  type ArtifactTreeNode,
+  findNodeById,
   type ProjectId,
   type ProjectStore,
 } from '../../../../../modules/domain/project';
@@ -26,6 +28,24 @@ const NOTHING_RESOLVED: ArtifactResolution = {
   artifactId: null,
   artifact: null,
 };
+
+// The project tree already carries every artifact's metadata, so reading it
+// from there resolves synchronously — no render passes with a null artifact,
+// which is what lets everything keyed off it survive a navigation intact.
+export const useArtifactMetaDataFromTree = ({
+  tree,
+  artifactId,
+}: {
+  tree: ArtifactTreeNode[];
+  artifactId: ArtifactId | null;
+}): ArtifactMetaData | null =>
+  useMemo(() => {
+    if (!artifactId) return null;
+
+    const node = findNodeById({ tree, id: artifactId });
+
+    return node ? { id: node.id, path: node.path, kind: node.kind } : null;
+  }, [tree, artifactId]);
 
 export const useResolveArtifactMetaData = ({
   projectId,

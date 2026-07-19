@@ -81,6 +81,16 @@ export const findNodeByPath = ({
 }): ArtifactTreeNode | null =>
   flattenTree(tree).find((node) => node.path === path) ?? null;
 
+// Locates a tree node by its artifact id.
+export const findNodeById = ({
+  tree,
+  id,
+}: {
+  tree: ArtifactTreeNode[];
+  id: ArtifactId;
+}): ArtifactTreeNode | null =>
+  flattenTree(tree).find((node) => node.id === id) ?? null;
+
 // Filters a project artifact tree to the nodes the editor can open, descending
 // into subdirectories and dropping directories and assets with unsupported
 // extensions.
