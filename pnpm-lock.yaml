@@ -48,8 +48,8 @@ importers:
         specifier: ^3.1.3
         version: 3.1.3
       isomorphic-git:
-        specifier: ^1.37.5
-        version: 1.37.5
+        specifier: ^1.38.9
+        version: 1.38.9
       pagedjs:
         specifier: ^0.4.3
         version: 0.4.3
@@ -2853,8 +2853,8 @@ packages:
     resolution: {integrity: sha512-FFUtZMpoZ8RqHS3XeXEmHWLA4thH+ZxCv2lOiPIn1Xc7CxrqhWzNSDzD+/chS/zbYezmiwWLdQC09JdQKmthOw==}
     engines: {node: '>=20'}
 
-  isomorphic-git@1.37.5:
-    resolution: {integrity: sha512-wek54c5uFvd3WsxewLWt6h0GXKWQh0P8rRXns9bN1rHNjcgCb3+0lmyAsP594NeTtQFeCJQVS9b0kjbkD1l5qg==}
+  isomorphic-git@1.38.9:
+    resolution: {integrity: sha512-3nwGo1UIScJUW2/W4KzTGA/V7Bf/AivBF4KuZGfxU+Bcz2oJo2emuxJK8hP2saZ3XfLOBqbKs+x9CLsFrn8vAg==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -7260,7 +7260,7 @@ snapshots:
 
   isexe@4.0.0: {}
 
-  isomorphic-git@1.37.5:
+  isomorphic-git@1.38.9:
     dependencies:
       async-lock: 1.4.1
       clean-git-ref: 2.0.1
