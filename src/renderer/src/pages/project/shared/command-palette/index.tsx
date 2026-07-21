@@ -34,9 +34,8 @@ export const ProjectCommandPalette = ({
   const { isOpen: isCommandPaletteOpen, closeCommandPalette } = useContext(
     CommandPaletteContext
   );
-  const { canCommit, onOpenDiscardChangesDialog } = useContext(
-    CurrentDocumentContext
-  );
+  const { canCommit, onOpenDiscardChangesDialog, versionedDocumentId } =
+    useContext(CurrentDocumentContext);
   const { openCommitModal } = useContext(CommitModalContext);
   const { checkForUpdate } = useContext(ElectronContext);
   const { directoryTree, currentArtifact } = useContext(ProjectContext);
@@ -143,7 +142,7 @@ export const ProjectCommandPalette = ({
       onClose={closeCommandPalette}
       documentsGroupTitle="Project documents"
       contextualSection={
-        currentDocumentName
+        versionedDocumentId && currentDocumentName
           ? {
               groupTitle: `Current document: ${currentDocumentName}`,
               actions: documentActions,
