@@ -248,6 +248,8 @@ export const RichTextEditor = ({
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     const setupEditorAndView = async (schema: Schema) => {
       const plugins = getBasePlugins(schema);
 
@@ -277,9 +279,10 @@ export const RichTextEditor = ({
             })
           : pmDocFromJSONString(doc.content, schema);
 
-      // After awaiting async conversion, ensure another effect didn't create
-      // the view in the meantime (avoid duplicate EditorView creation).
-      if (editorViewRef.current) return;
+      // After awaiting async conversion, ensure this run still represents the
+      // current document and that another effect didn't create the view in the
+      // meantime (avoid duplicate EditorView creation).
+      if (cancelled || editorViewRef.current) return;
 
       const editorConfig = {
         schema,
@@ -335,6 +338,8 @@ export const RichTextEditor = ({
     }
 
     return () => {
+      cancelled = true;
+
       // If this component created the view (editorViewRef), destroy it and
       // clear the context view so other components won't reuse the destroyed
       // instance.
