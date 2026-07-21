@@ -116,6 +116,18 @@ export const CurrentDocumentProvider = ({
 
       latestRequestedDocumentId.current = documentId;
 
+      // Reloading the same document because its content changed underneath it
+      // (restore, discard, pull, or returning from the history view): the
+      // snapshot in state is now stale, so clear it and let the editor show a
+      // skeleton until the fresh version arrives, rather than leave the old
+      // content on screen as though it were current. Switching to a *different*
+      // document deliberately keeps the outgoing content up to avoid a skeleton
+      // flash between documents.
+      // TODO: Clean up document loading, this is complex.
+      if (!projectOrDocumentHasChanged) {
+        setVersionedDocument(null);
+      }
+
       // A load the user has already navigated away from must not touch state
       // belonging to whichever document is open now.
       const isStale = () => latestRequestedDocumentId.current !== documentId;
