@@ -205,6 +205,9 @@ test.describe('project history', () => {
     await expect(window.locator('.ProseMirror')).toContainText('preserved', {
       timeout: 1_000,
     });
+
+    // Viewing a deleted document in history is handled, not an error
+    await expect(window.getByTestId('error-notification')).toHaveCount(0);
   });
 
   test('diff annotations appear in project history', async ({
