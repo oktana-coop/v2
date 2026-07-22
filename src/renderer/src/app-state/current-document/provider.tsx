@@ -1,5 +1,5 @@
 import * as Effect from 'effect/Effect';
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import { useMatch, useNavigate } from 'react-router';
 
 import {
@@ -62,9 +62,17 @@ export const CurrentDocumentProvider = ({
   const { pulledUpstreamChanges, resetPulledUpstreamChanges } =
     usePulledUpstreamChanges();
 
+  // A snapshot of the current document, taken at load. Not updated per edit;
+  // refreshed only when the selected document or its content changes underneath.
   const [versionedDocument, setVersionedDocument] =
     useState<VersionedDocument | null>(null);
-  const [documentNeedsReload, setDocumentNeedsReload] = useState(false);
+  // Invalidates the loaded document when an operation rewrites it (e.g. restore, discard, pull).
+  // A count, not a flag: every bump is a new value, so each invalidation triggers one reload and nothing needs resetting.
+  const [documentInvalidations, setDocumentInvalidations] = useState(0);
+  const invalidateDocument = useCallback(
+    () => setDocumentInvalidations((count) => count + 1),
+    []
+  );
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
   const [versionedDocumentHistory, setVersionedDocumentHistory] = useState<
     ChangeWithUrlInfo[]
@@ -79,9 +87,6 @@ export const CurrentDocumentProvider = ({
     useState<boolean>(false);
   const [commitToRestore, setCommitToRestore] = useState<Commit | null>(null);
 
-  const prevProjectId = useRef(projectId);
-  const prevDocumentId = useRef(documentId);
-  const latestRequestedDocumentId = useRef<ArtifactId | null>(null);
   const documentRouteMatch = useMatch(
     '/projects/:projectId/artifacts/:artifactId'
   );
@@ -89,70 +94,26 @@ export const CurrentDocumentProvider = ({
     '/projects/:projectId/artifacts/:artifactId/changes/:changeId'
   );
 
+  // Loads the current document. The previous snapshot is kept until the new one
+  // resolves, so a reload never blanks the state in between; only the first
+  // load, with nothing yet to show, starts empty.
   useEffect(() => {
-    const projectOrDocumentHasChanged =
-      prevProjectId.current !== projectId ||
-      prevDocumentId.current !== documentId;
+    if (!projectStore || !projectId || !documentId) {
+      setVersionedDocument(null);
+      return;
+    }
 
-    const returningToSelectedDocumentEditMode =
-      prevDocumentId.current === documentId &&
-      prevProjectId.current === projectId &&
-      !changeId;
+    // Ignore a load the selection has already moved on from.
+    let cancelled = false;
 
-    const loadDocument = async ({
-      projectId,
-      projectStore,
-    }: {
-      projectId: ProjectId;
-      projectStore: ProjectStore;
-    }) => {
-      if (!documentId) {
-        latestRequestedDocumentId.current = null;
-        setVersionedDocument(null);
-        resetPulledUpstreamChanges();
-        setDocumentNeedsReload(false);
-        return;
-      }
-
-      latestRequestedDocumentId.current = documentId;
-
-      // Reloading the same document because its content changed underneath it
-      // (restore, discard, pull, or returning from the history view): the
-      // snapshot in state is now stale, so clear it and let the editor show a
-      // skeleton until the fresh version arrives, rather than leave the old
-      // content on screen as though it were current. Switching to a *different*
-      // document deliberately keeps the outgoing content up to avoid a skeleton
-      // flash between documents.
-      // TODO: Clean up document loading, this is complex.
-      if (!projectOrDocumentHasChanged) {
-        setVersionedDocument(null);
-      }
-
-      // A load the user has already navigated away from must not touch state
-      // belonging to whichever document is open now.
-      const isStale = () => latestRequestedDocumentId.current !== documentId;
-
-      try {
-        const { artifact: document } = await Effect.runPromise(
-          projectStore.findDocumentById({
-            projectId,
-            documentId,
-          })
-        );
-
-        if (isStale()) return;
-
-        setVersionedDocument(document);
+    Effect.runPromise(projectStore.findDocumentById({ projectId, documentId }))
+      .then(({ artifact }) => {
+        if (cancelled) return;
+        setVersionedDocument(artifact);
         setLoadingHistory(true);
-        setDocumentNeedsReload(false);
-
-        resetPulledUpstreamChanges();
-
-        prevProjectId.current = projectId;
-        prevDocumentId.current = documentId;
-      } catch (err) {
-        if (isStale()) return;
-
+      })
+      .catch((err) => {
+        if (cancelled) return;
         console.error(err);
         dispatchNotification(
           createErrorNotification({
@@ -161,36 +122,24 @@ export const CurrentDocumentProvider = ({
               'This document could not be opened. It may have been moved or deleted.',
           })
         );
-
-        // Drop the previously loaded document, so its content can't stay on
-        // screen as though it were the one that was just selected.
         setVersionedDocument(null);
         setLoadingHistory(false);
-        resetPulledUpstreamChanges();
-        setDocumentNeedsReload(false);
-      }
+      });
+
+    return () => {
+      cancelled = true;
     };
-
-    if (
-      projectStore &&
-      projectId &&
-      (projectOrDocumentHasChanged ||
-        returningToSelectedDocumentEditMode ||
-        pulledUpstreamChanges ||
-        documentNeedsReload)
-    ) {
-      loadDocument({ projectId, projectStore });
-    }
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    documentId,
-    projectId,
-    changeId,
-    projectStore,
-    pulledUpstreamChanges,
-    documentNeedsReload,
-  ]);
+  }, [documentId, projectId, projectStore, documentInvalidations]);
+
+  // A pull can change the open document underneath it; reload to pick that up.
+  useEffect(() => {
+    if (pulledUpstreamChanges) {
+      invalidateDocument();
+      resetPulledUpstreamChanges();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pulledUpstreamChanges]);
 
   const checkIfContentChangedFromLastCommit = async ({
     projectId,
@@ -375,12 +324,21 @@ export const CurrentDocumentProvider = ({
 
       const newHistory = await loadHistory(documentId);
 
+      // Restore rewrote the working tree; reload to pick up the restored content.
+      invalidateDocument();
+
       setIsRestoreCommitDialogOpen(false);
       setCanCommit(false);
       handleSelectChange(restoreCommitId, newHistory);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [documentId, versionedDocument, projectStore, restoreDocumentChanges]
+    [
+      documentId,
+      versionedDocument,
+      projectStore,
+      restoreDocumentChanges,
+      invalidateDocument,
+    ]
   );
 
   const handleDiscardChanges = useCallback(async () => {
@@ -403,7 +361,8 @@ export const CurrentDocumentProvider = ({
       const [lastCommit] = newHistory;
       handleSelectChange(lastCommit.id, newHistory);
     } else if (documentRouteMatch) {
-      setDocumentNeedsReload(true);
+      // Invalidate the document to reload it after discarding changes.
+      invalidateDocument();
     }
 
     setIsDiscardChangesDialogOpen(false);
@@ -416,6 +375,7 @@ export const CurrentDocumentProvider = ({
     projectId,
     documentChangeSubRouteMatch,
     documentRouteMatch,
+    invalidateDocument,
   ]);
 
   const handleOpenRestoreCommitDialog = useCallback((commit: Commit) => {
