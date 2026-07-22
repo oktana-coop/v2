@@ -7,6 +7,7 @@ export { BranchIcon } from './Branch';
 export { BulletListIcon } from './BulletList';
 export { CheckIcon } from './Check';
 export { ChevronDownIcon } from './ChevronDown';
+export { ChevronUpIcon } from './ChevronUp';
 export { CloseIcon } from './Close';
 export { CommitHistoryIcon } from './CommitHistory';
 export { CopyIcon } from './Copy';
