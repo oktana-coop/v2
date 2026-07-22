@@ -30,8 +30,9 @@ test('commit flow: edit → commit → one commit in history', async ({
   await typeInEditorAndWaitForDebounce({ window, text: ' first edit' });
   await commitChanges({ window, message: 'first commit' });
 
+  // The new commit sits on top of the initial snapshot taken when the folder was opened.
   const commits = window.getByTestId('history-commit');
-  await expect(commits).toHaveCount(1);
+  await expect(commits).toHaveCount(2);
   await expect(commits.first()).toContainText('first commit');
 });
 
@@ -55,7 +56,7 @@ test('view uncommitted changes and show diff', async ({
   await expect(window.getByTestId('document-history')).toBeVisible();
 });
 
-test('commit from history view → two commits in history', async ({
+test('commit from history view → two new commits in history', async ({
   electronApp,
   window,
   testProjectDir,
@@ -70,8 +71,9 @@ test('commit from history view → two commits in history', async ({
   await selectUncommittedChanges({ window });
   await commitChanges({ window, message: 'second commit' });
 
+  // The new commits sit on top of the initial snapshot taken when the folder was opened.
   const commits = window.getByTestId('history-commit');
-  await expect(commits).toHaveCount(2);
+  await expect(commits).toHaveCount(3);
 });
 
 test('first commit shows its content', async ({
@@ -95,7 +97,7 @@ test('first commit shows its content', async ({
   });
 });
 
-test('second commit shows diff controls but initial commit does not', async ({
+test('later commits show diff controls but the initial snapshot does not', async ({
   electronApp,
   window,
   testProjectDir,
@@ -106,16 +108,13 @@ test('second commit shows diff controls but initial commit does not', async ({
   await typeInEditorAndWaitForDebounce({ window, text: ' first' });
   await commitChanges({ window, message: 'first commit' });
 
-  await typeInEditorAndWaitForDebounce({ window, text: ' second' });
-  await commitChanges({ window, message: 'second commit' });
-
-  // The latest (second) commit should show the diff controls
-  await selectFirstCommit({ window, commitMessage: 'second commit' });
+  // Any commit with a predecessor should show the diff controls
+  await selectFirstCommit({ window, commitMessage: 'first commit' });
   await expect(window.locator('.ProseMirror')).toBeVisible({ timeout: 1_000 });
   await expect(window.getByLabel(/show diff with/i)).toBeVisible();
 
-  // The initial (first) commit should hide the diff controls
-  await selectFirstCommit({ window, commitMessage: 'first commit' });
+  // The initial snapshot has nothing to diff against, so it hides them
+  await selectFirstCommit({ window, commitMessage: 'Set up versioning' });
   await expect(window.locator('.ProseMirror')).toBeVisible({ timeout: 1_000 });
   await expect(window.getByLabel(/show diff with/i)).toBeHidden();
 });
@@ -159,10 +158,12 @@ test('commits are ordered most recent first', async ({
   await typeInEditorAndWaitForDebounce({ window, text: ' beta' });
   await commitChanges({ window, message: 'beta commit' });
 
+  // The new commits sit on top of the initial snapshot taken when the folder was opened.
   const commits = window.getByTestId('history-commit');
-  await expect(commits).toHaveCount(2);
+  await expect(commits).toHaveCount(3);
   await expect(commits.first()).toContainText('beta commit');
-  await expect(commits.last()).toContainText('alpha commit');
+  await expect(commits.nth(1)).toContainText('alpha commit');
+  await expect(commits.last()).toContainText('Set up versioning');
 });
 
 test('diff annotations appear on a committed change', async ({
@@ -291,7 +292,8 @@ test('restore commit reverts content and creates a new commit', async ({
 
   // A new "Restore" commit should appear
   const commits = window.getByTestId('history-commit');
-  await expect(commits).toHaveCount(3);
+  // There is also an initial snapshot commit taken when the folder was opened.
+  await expect(commits).toHaveCount(4);
   await expect(commits.first()).toContainText('Restore');
 
   // Return to editor and verify content matches the original

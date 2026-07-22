@@ -1,8 +1,10 @@
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 import path from 'path';
 
 import { mapErrorTo } from '../../../../utils/errors';
 import { RepositoryError } from '../errors';
+import { pathExists } from './fs-utils';
 import { IsoGitDeps } from './types';
 
 export type WriteGitignoreArgs = Omit<IsoGitDeps, 'isoGitHttp'>;
@@ -23,16 +25,23 @@ Desktop.ini
 *.swo
 `.trim() + '\n';
 
-export const writeGitignore = ({
+export const writeGitignoreIfMissing = ({
   isoGitFs,
   dir,
 }: WriteGitignoreArgs): Effect.Effect<void, RepositoryError, never> =>
-  Effect.tryPromise({
-    try: () =>
-      isoGitFs.promises.writeFile(
-        path.join(dir, '.gitignore'),
-        gitignoreContent,
-        'utf8'
-      ),
-    catch: mapErrorTo(RepositoryError, 'Error writing MERGE_HEAD'),
-  });
+  pipe(
+    pathExists({ isoGitFs, filePath: path.join(dir, '.gitignore') }),
+    Effect.flatMap((exists) =>
+      exists
+        ? Effect.void
+        : Effect.tryPromise({
+            try: () =>
+              isoGitFs.promises.writeFile(
+                path.join(dir, '.gitignore'),
+                gitignoreContent,
+                'utf8'
+              ),
+            catch: mapErrorTo(RepositoryError, 'Error writing .gitignore'),
+          })
+    )
+  );

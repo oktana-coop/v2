@@ -13,9 +13,12 @@ import {
   type ArtifactId,
   cloneRepository as cloneGitRepo,
   createGitBlobRef,
+  DEFAULT_AUTHOR,
   DEFAULT_BRANCH,
+  repositoryExists,
+  stageAndCommitWorkdirChanges,
   VersionControlRepositoryErrorTag,
-  writeGitignore,
+  writeGitignoreIfMissing,
 } from '../../../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../../../utils/errors';
 import { RepositoryError, ValidationError } from '../../../errors';
@@ -34,6 +37,8 @@ import { type ProjectStore } from '../../../ports';
 import { ensureAuthTokenIsProvided, setAuthorInfo } from './auth';
 import { getCurrentBranch } from './branching';
 import { ensureProjectIdIsFsPath } from './project-id';
+
+export const INITIAL_SNAPSHOT_COMMIT_MESSAGE = 'Set up versioning';
 
 const getDirectoryFiles = ({
   filesystem,
@@ -149,10 +154,89 @@ export const createProjectOps = ({
   isoGitHttp: IsoGitHttpApi;
   filesystem: Filesystem;
 }): ProjectOps => {
+  const cloneProject = ({
+    projectPath,
+    cloneUrl,
+    authToken: authTokenInput,
+  }: {
+    projectPath: ProjectId;
+    cloneUrl: string;
+    authToken: string | undefined;
+  }) =>
+    pipe(
+      ensureAuthTokenIsProvided(authTokenInput),
+      Effect.flatMap((authToken) =>
+        pipe(
+          cloneGitRepo({
+            isoGitFs,
+            isoGitHttp,
+            dir: projectPath,
+            url: cloneUrl,
+            authToken,
+          }),
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      )
+    );
+
+  const initRepository = (projectPath: ProjectId) =>
+    pipe(
+      Effect.tryPromise({
+        try: () =>
+          git.init({
+            fs: isoGitFs,
+            dir: projectPath,
+            defaultBranch: DEFAULT_BRANCH,
+          }),
+        catch: mapErrorTo(RepositoryError, 'Git repo error'),
+      }),
+      Effect.flatMap(() =>
+        pipe(
+          writeGitignoreIfMissing({ isoGitFs, dir: projectPath }),
+          Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+            Effect.fail(new RepositoryError(err.message))
+          )
+        )
+      )
+    );
+
+  // Records the folder in its original state, so the user can always get back to it.
+  const commitInitialSnapshot = (projectPath: ProjectId) =>
+    pipe(
+      stageAndCommitWorkdirChanges({
+        isoGitFs,
+        dir: projectPath,
+        message: INITIAL_SNAPSHOT_COMMIT_MESSAGE,
+        author: DEFAULT_AUTHOR,
+      }),
+      Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+        Effect.fail(new RepositoryError(err.message))
+      )
+    );
+
+  // An existing repo has its own history and .gitignore, so it is left as it was found.
+  const setUpVersioning = (projectPath: ProjectId) =>
+    pipe(
+      repositoryExists({ isoGitFs, dir: projectPath }),
+      Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
+        Effect.fail(new RepositoryError(err.message))
+      ),
+      Effect.flatMap((exists) =>
+        exists
+          ? Effect.void
+          : pipe(
+              initRepository(projectPath),
+              Effect.flatMap(() => commitInitialSnapshot(projectPath))
+            )
+      )
+    );
+
   const createProject: ProjectOps['createProject'] = ({
     path,
     cloneUrl,
-    authToken: authTokenInput,
+    authToken,
     username,
     email,
   }) =>
@@ -163,42 +247,8 @@ export const createProjectOps = ({
       }),
       Effect.tap((projectPath) =>
         cloneUrl
-          ? pipe(
-              ensureAuthTokenIsProvided(authTokenInput),
-              Effect.flatMap((authToken) =>
-                pipe(
-                  cloneGitRepo({
-                    isoGitFs,
-                    isoGitHttp,
-                    dir: projectPath,
-                    url: cloneUrl,
-                    authToken,
-                  }),
-                  Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
-                    Effect.fail(new RepositoryError(err.message))
-                  )
-                )
-              )
-            )
-          : pipe(
-              Effect.tryPromise({
-                try: () =>
-                  git.init({
-                    fs: isoGitFs,
-                    dir: projectPath,
-                    defaultBranch: DEFAULT_BRANCH,
-                  }),
-                catch: mapErrorTo(RepositoryError, 'Git repo error'),
-              }),
-              Effect.tap(() =>
-                pipe(
-                  writeGitignore({ isoGitFs, dir: projectPath }),
-                  Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
-                    Effect.fail(new RepositoryError(err.message))
-                  )
-                )
-              )
-            )
+          ? cloneProject({ projectPath, cloneUrl, authToken })
+          : setUpVersioning(projectPath)
       ),
       Effect.tap((projectPath) =>
         setAuthorInfo({ isoGitFs, projectId: projectPath, username, email })

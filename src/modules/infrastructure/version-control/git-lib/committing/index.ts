@@ -3,39 +3,39 @@ import { pipe } from 'effect/Function';
 import git from 'isomorphic-git';
 
 import { mapErrorTo } from '../../../../../utils/errors';
-import { DEFAULT_AUTHOR_NAME } from '../../constants';
 import { RepositoryError } from '../../errors';
 import { type Commit } from '../../models';
 import { parseGitCommitHash } from '../../models';
-import { getUserInfo } from '../config';
 import { stageFiles, stageWorkdirChanges } from '../staging-area';
 import { type IsoGitDeps } from '../types';
+import { type CommitAuthor, resolveAuthor } from './authorship';
+
+export * from './authorship';
 
 export type CommitStagedChangesArgs = Omit<IsoGitDeps, 'isoGitHttp'> & {
   message: string;
+  author?: CommitAuthor;
 };
 
 export const commitStagedChanges = ({
   isoGitFs,
   dir,
   message,
+  author,
 }: CommitStagedChangesArgs): Effect.Effect<
   Commit['id'],
   RepositoryError,
   never
 > =>
   pipe(
-    getUserInfo({ isoGitFs, dir }),
-    Effect.flatMap((repoUserInfo) =>
+    resolveAuthor({ isoGitFs, dir, author }),
+    Effect.flatMap((commitAuthor) =>
       Effect.tryPromise({
         try: () =>
           git.commit({
             fs: isoGitFs,
             dir,
-            author: {
-              name: repoUserInfo.username ?? DEFAULT_AUTHOR_NAME,
-              email: repoUserInfo.email ?? undefined,
-            },
+            author: commitAuthor,
             message,
           }),
         catch: mapErrorTo(
@@ -57,12 +57,14 @@ export type StageAndCommitWorkdirChangesArgs = Omit<
   'isoGitHttp'
 > & {
   message: string;
+  author?: CommitAuthor;
 };
 
 export const stageAndCommitWorkdirChanges = ({
   isoGitFs,
   dir,
   message,
+  author,
 }: StageAndCommitWorkdirChangesArgs): Effect.Effect<
   Commit['id'],
   RepositoryError,
@@ -70,7 +72,9 @@ export const stageAndCommitWorkdirChanges = ({
 > =>
   pipe(
     stageWorkdirChanges({ isoGitFs, dir }),
-    Effect.flatMap(() => commitStagedChanges({ isoGitFs, dir, message }))
+    Effect.flatMap(() =>
+      commitStagedChanges({ isoGitFs, dir, message, author })
+    )
   );
 
 export type StageAndCommitChangesToFilesArgs = Omit<

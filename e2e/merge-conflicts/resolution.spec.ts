@@ -39,7 +39,6 @@ const createMergeConflictForDocument = async ({
   await openDocument({ window, relativePath });
 
   await expect(editor(window)).toContainText('Lorem ipsum dolor');
-  await commitChanges({ window, message: 'base commit' });
 
   await createAndSwitchToBranch({ window, branchName: 'experiment' });
   await expect(editor(window)).toContainText('Lorem ipsum dolor');

@@ -42,15 +42,16 @@ test.describe('commit to project (multi-doc)', () => {
       message: 'project-scoped commit',
     });
 
-    // The history sidebar in the document view should show the new commit.
+    // The history sidebar in the document view should show the new commit on
+    // top of the initial snapshot taken when the folder was opened.
     const docCommits = window.getByTestId('history-commit');
-    await expect(docCommits).toHaveCount(1);
+    await expect(docCommits).toHaveCount(2);
     await expect(docCommits.first()).toContainText('project-scoped commit');
 
-    // Project history should contain a single commit with both documents.
+    // Project history should contain a single new commit with both documents.
     await navigateToProjectHistory({ window });
     const projectCommits = window.getByTestId('project-commit-row');
-    await expect(projectCommits).toHaveCount(1);
+    await expect(projectCommits).toHaveCount(2);
     await expect(projectCommits.first()).toContainText('project-scoped commit');
 
     await toggleProjectCommit({
@@ -87,11 +88,11 @@ test.describe('commit to project (multi-doc)', () => {
       message: 'project commit from history view',
     });
 
-    // Project history should contain a single commit with both documents,
+    // Project history should contain a single new commit with both documents,
     // matching the outcome of the same flow fired from the editor view.
     await navigateToProjectHistory({ window });
     const projectCommits = window.getByTestId('project-commit-row');
-    await expect(projectCommits).toHaveCount(1);
+    await expect(projectCommits).toHaveCount(2);
     await expect(projectCommits.first()).toContainText(
       'project commit from history view'
     );

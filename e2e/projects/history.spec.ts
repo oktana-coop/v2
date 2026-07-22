@@ -34,10 +34,13 @@ test.describe('project history', () => {
 
     await navigateToProjectHistory({ window });
 
+    // Three rows: the two commits made here, on top of the initial snapshot
+    // taken when the folder was opened.
     const commitRows = window.getByTestId('project-commit-row');
-    await expect(commitRows).toHaveCount(2);
+    await expect(commitRows).toHaveCount(3);
     await expect(commitRows.first()).toContainText('second commit');
-    await expect(commitRows.last()).toContainText('first commit');
+    await expect(commitRows.nth(1)).toContainText('first commit');
+    await expect(commitRows.last()).toContainText('Set up versioning');
   });
 
   test('expand a commit to see changed documents', async ({
