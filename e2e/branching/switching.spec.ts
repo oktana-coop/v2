@@ -28,7 +28,6 @@ test.describe('branch switching', () => {
     });
     await openDocument({ window, relativePath: 'hello.md' });
     await expect(editor(window)).toContainText('This is a test document.');
-    await commitChanges({ window, message: 'base commit' });
 
     await createAndSwitchToBranch({ window, branchName: 'experiment' });
     await typeInParagraphAndWaitForDebounce({ window, text: ' on experiment' });
@@ -55,7 +54,6 @@ test.describe('branch switching', () => {
       folderPath: testProjectDir,
     });
     await openDocument({ window, relativePath: 'hello.md' });
-    await commitChanges({ window, message: 'base commit' });
 
     await createAndSwitchToBranch({ window, branchName: 'experiment' });
 

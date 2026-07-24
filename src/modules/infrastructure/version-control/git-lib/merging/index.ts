@@ -7,7 +7,6 @@ import path from 'path';
 
 import { fromNullable } from '../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../utils/errors';
-import { DEFAULT_AUTHOR_NAME } from '../../constants';
 import {
   MergeConflictError,
   NotFoundError,
@@ -27,7 +26,7 @@ import {
   parseGitCommitHash,
 } from '../../models';
 import { deleteBranch, switchToBranch } from '../branching';
-import { stageAndCommitWorkdirChanges } from '../committing';
+import { DEFAULT_AUTHOR, stageAndCommitWorkdirChanges } from '../committing';
 import { IsoGitDeps } from '../types';
 
 export type MergeAndDeleteBranchArgs = Omit<IsoGitDeps, 'isoGitHttp'> & {
@@ -188,9 +187,7 @@ export const mergeAndDeleteBranch = ({
             dir,
             ours: into,
             theirs: from,
-            author: {
-              name: DEFAULT_AUTHOR_NAME,
-            },
+            author: DEFAULT_AUTHOR,
             abortOnConflict: false,
           }),
         catch: (err) => {

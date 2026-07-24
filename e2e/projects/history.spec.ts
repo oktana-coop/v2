@@ -4,6 +4,7 @@ import {
   confirmDeletion,
   deleteFileFromContextMenu,
   enableShowDiff,
+  expectProjectCommits,
   navigateToProjectHistory,
   openHelloMd,
   openProjectFolder,
@@ -34,10 +35,12 @@ test.describe('project history', () => {
 
     await navigateToProjectHistory({ window });
 
-    const commitRows = window.getByTestId('project-commit-row');
-    await expect(commitRows).toHaveCount(2);
-    await expect(commitRows.first()).toContainText('second commit');
-    await expect(commitRows.last()).toContainText('first commit');
+    // The two commits made here, on top of the initial snapshot taken when the
+    // folder was opened.
+    await expectProjectCommits({
+      window,
+      messages: ['second commit', 'first commit', 'Set up versioning'],
+    });
   });
 
   test('expand a commit to see changed documents', async ({

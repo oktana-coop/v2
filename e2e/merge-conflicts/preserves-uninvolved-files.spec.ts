@@ -4,7 +4,6 @@ import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
 import {
-  commitAllProjectChanges,
   commitChanges,
   createAndSwitchToBranch,
   mergeToMainBranch,
@@ -68,10 +67,6 @@ const mergeWithConflict = async ({
 }): Promise<void> => {
   await openDocument({ window, relativePath: CONFLICTING_DOC });
   await expect(editor(window)).toContainText('Lorem ipsum dolor');
-
-  // Commit the whole project, so the uninvolved files are tracked rather than
-  // just the document being edited.
-  await commitAllProjectChanges({ window, message: 'base commit' });
 
   await createAndSwitchToBranch({ window, branchName: 'experiment' });
   await expect(editor(window)).toContainText('Lorem ipsum dolor');
