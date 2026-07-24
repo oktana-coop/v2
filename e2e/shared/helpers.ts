@@ -737,6 +737,71 @@ export const toggleProjectCommit = async ({
 };
 
 /**
+ * Asserts the project history sidebar holds exactly these commits, newest
+ * first, matched by message.
+ */
+export const expectProjectCommits = async ({
+  window,
+  messages,
+}: {
+  window: Page;
+  messages: string[];
+}): Promise<void> => {
+  const commitRows = window.getByTestId('project-commit-row');
+  await expect(commitRows).toHaveCount(messages.length);
+
+  await Promise.all(
+    messages.map((message, index) =>
+      expect(commitRows.nth(index)).toContainText(message)
+    )
+  );
+};
+
+// The single letter each change type is badged with in the sidebar.
+const changeTypeLabels = {
+  added: 'A',
+  modified: 'M',
+  deleted: 'D',
+  renamed: 'R',
+} as const;
+
+type ChangedPaths = Partial<Record<keyof typeof changeTypeLabels, string[]>>;
+
+/**
+ * Expands a commit and asserts exactly which files it changed and how. Paths
+ * not listed must be absent, so this pins the whole change set rather than
+ * spot-checking it.
+ */
+export const expectCommitChanges = async ({
+  window,
+  commitMessage,
+  ...changedPaths
+}: {
+  window: Page;
+  commitMessage: string;
+} & ChangedPaths): Promise<void> => {
+  await toggleProjectCommit({ window, commitMessage });
+
+  const expected = Object.entries(changedPaths).flatMap(([changeType, paths]) =>
+    paths.map((path) => ({
+      path,
+      label: changeTypeLabels[changeType as keyof typeof changeTypeLabels],
+    }))
+  );
+
+  const changedRows = window.getByTestId('changed-document-row');
+  await expect(changedRows).toHaveCount(expected.length);
+
+  await Promise.all(
+    expected.map(async ({ path, label }) => {
+      const row = changedRows.filter({ hasText: path });
+      await expect(row).toHaveCount(1);
+      await expect(row.getByTestId('change-type-badge')).toHaveText(label);
+    })
+  );
+};
+
+/**
  * Clicks a changed document row inside an expanded commit in project history.
  * The document is identified by its file name text.
  */

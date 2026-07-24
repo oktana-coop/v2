@@ -3,16 +3,21 @@ import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
 import {
-  commitMessages,
   hasCleanWorkingTree,
   initRepositoryWithCommit,
   lastCommitAuthor,
-  trackedFiles,
 } from '../shared/git';
-import { openDocument, openProjectFolder } from '../shared/helpers';
+import {
+  expectCommitChanges,
+  expectProjectCommits,
+  navigateToProjectHistory,
+  openDocument,
+  openProjectFolder,
+} from '../shared/helpers';
 
-const fileExplorer = (window: Parameters<typeof openDocument>[0]['window']) =>
-  window.getByTestId('file-explorer');
+type Window = Parameters<typeof openDocument>[0]['window'];
+
+const fileExplorer = (window: Window) => window.getByTestId('file-explorer');
 
 test.describe('project opening', () => {
   test('.git missing, folder empty: commits just the generated .gitignore', async ({
@@ -25,14 +30,16 @@ test.describe('project opening', () => {
       window,
       folderPath: emptyProjectDir,
     });
+    // The history view renders only once the project is open, so asserting the
+    // snapshot here is also what makes the git reads below race-free.
+    await navigateToProjectHistory({ window });
+    await expectProjectCommits({ window, messages: ['Set up versioning'] });
+    await expectCommitChanges({
+      window,
+      commitMessage: 'Set up versioning',
+      added: ['.gitignore'],
+    });
 
-    await expect
-      .poll(() => commitMessages({ repoDir: emptyProjectDir }), {
-        timeout: 5_000,
-      })
-      .toEqual(['Set up versioning']);
-
-    expect(trackedFiles({ repoDir: emptyProjectDir })).toEqual(['.gitignore']);
     expect(hasCleanWorkingTree({ repoDir: emptyProjectDir })).toBe(true);
   });
 
@@ -49,22 +56,15 @@ test.describe('project opening', () => {
       window,
       folderPath: testProjectDir,
     });
+    await navigateToProjectHistory({ window });
+    await expectProjectCommits({ window, messages: ['Set up versioning'] });
+    await expectCommitChanges({
+      window,
+      commitMessage: 'Set up versioning',
+      added: ['.gitignore', 'config.json', 'hello.md', 'world.md'],
+    });
 
-    // Reading the log at all proves the repo was initialised.
-    await expect
-      .poll(() => commitMessages({ repoDir: testProjectDir }), {
-        timeout: 5_000,
-      })
-      .toEqual(['Set up versioning']);
-
-    // Everything the folder came with, plus the generated gitignore, is in the
-    // snapshot — nothing is left dangling as an uncommitted change.
-    expect(trackedFiles({ repoDir: testProjectDir })).toEqual([
-      '.gitignore',
-      'config.json',
-      'hello.md',
-      'world.md',
-    ]);
+    // Nothing the folder came with is left dangling as an uncommitted change.
     expect(hasCleanWorkingTree({ repoDir: testProjectDir })).toBe(true);
     expect(lastCommitAuthor({ repoDir: testProjectDir })).toBe(
       'v2 Bot <bot@v2editor.com>'
@@ -87,22 +87,18 @@ test.describe('project opening', () => {
       window,
       folderPath: testProjectDir,
     });
-
-    await expect
-      .poll(() => commitMessages({ repoDir: testProjectDir }), {
-        timeout: 5_000,
-      })
-      .toEqual(['Set up versioning']);
+    await navigateToProjectHistory({ window });
+    await expectProjectCommits({ window, messages: ['Set up versioning'] });
+    // config.json is excluded by their rules, so it never enters the snapshot.
+    await expectCommitChanges({
+      window,
+      commitMessage: 'Set up versioning',
+      added: ['.gitignore', 'hello.md', 'world.md'],
+    });
 
     expect(
       fs.readFileSync(path.join(testProjectDir, '.gitignore'), 'utf8')
     ).toBe(existingGitignore);
-    // Their rules govern the snapshot: config.json is excluded by them.
-    expect(trackedFiles({ repoDir: testProjectDir })).toEqual([
-      '.gitignore',
-      'hello.md',
-      'world.md',
-    ]);
   });
 
   test('.git present: nothing is created', async ({
@@ -121,10 +117,9 @@ test.describe('project opening', () => {
       folderPath: testProjectDir,
     });
     await expect(fileExplorer(window).getByText('hello.md')).toBeVisible();
+    await navigateToProjectHistory({ window });
+    await expectProjectCommits({ window, messages: ['their own commit'] });
 
-    expect(commitMessages({ repoDir: testProjectDir })).toEqual([
-      'their own commit',
-    ]);
     expect(fs.existsSync(path.join(testProjectDir, '.gitignore'))).toBe(false);
   });
 
