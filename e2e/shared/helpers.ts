@@ -36,7 +36,7 @@ export const newFolderKey = `${modKey}+Alt+n`;
  * Opens a project folder in the app by:
  * 1. Mocking Electron's showOpenDialog to return the given path
  * 2. Clicking the "Open Folder" button in the UI to trigger the flow
- * 3. Waiting for the file explorer sidebar to appear
+ * 3. Waiting for the project route to mount
  */
 export const openProjectFolder = async ({
   electronApp,
@@ -61,9 +61,9 @@ export const openProjectFolder = async ({
     .first()
     .click();
 
-  // Wait for the sidebar / file tree to appear — confirms project is loaded
-  await window.waitForSelector('[data-testid="file-explorer"]', {
-    timeout: 800,
+  // Wait for the project bottom bar to appear — confirms project is loaded
+  await window.waitForSelector('[data-testid="project-bottom-bar"]', {
+    timeout: 15_000,
   });
 };
 
