@@ -1,5 +1,7 @@
 import { clsx } from 'clsx';
 import debounce from 'debounce';
+import * as Effect from 'effect/Effect';
+import * as SubscriptionRef from 'effect/SubscriptionRef';
 import {
   baseKeymap,
   chainCommands,
@@ -10,7 +12,7 @@ import { keymap } from 'prosemirror-keymap';
 import { type Node, type Schema } from 'prosemirror-model';
 import { EditorState, Selection, Transaction } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 
 import {
   type BlockType,
@@ -21,11 +23,16 @@ import {
   getHeadingLevel,
   type LeafBlockType,
   LinkAttrs,
+  type LiveDocument,
   prosemirror,
   type RichTextDocument,
   richTextRepresentations,
 } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
+import {
+  createErrorNotification,
+  NotificationsContext,
+} from '../../../../modules/infrastructure/notifications/browser';
 import { useKeyBindings } from '../../keyboard';
 import { keyBindings } from '../../pages/project/shared/command-palette/key-bindings';
 import { EditorToolbar } from './editor-toolbar';
@@ -72,7 +79,8 @@ const {
   pickAndInsertFigure,
   numberNotes,
   placeholderPlugin,
-  syncPlugin,
+  oneWaySyncPlugin,
+  liveSyncPlugin,
   pmDocFromJSONString,
   pmDocToJSONString,
   diffPlugin,
@@ -80,27 +88,38 @@ const {
   codeBlockHighlightPlugin,
 } = prosemirror;
 
-type RichTextEditorProps = {
-  doc: RichTextDocument;
-  onDocChange?: (doc: RichTextDocument) => Promise<void>;
-  isEditable?: boolean;
+type SharedRichTextEditorProps = {
   isToolbarOpen?: boolean;
-  showDiffWith?: RichTextDocument;
   pickAsset: prosemirror.FigureAssetPicker;
   resolveAssetSrc: prosemirror.ResolveAssetSrc;
 };
 
-export const RichTextEditor = ({
-  doc,
-  onDocChange,
-  isEditable = true,
-  isToolbarOpen = false,
-  showDiffWith,
-  pickAsset,
-  resolveAssetSrc,
-}: RichTextEditorProps) => {
+// Backed by a live document: always editable, content owned outside the editor.
+type LiveBackedProps = SharedRichTextEditorProps & {
+  live: LiveDocument;
+};
+
+// Backed by a plain value: the editor renders what it is given and reports
+// changes back through `onDocChange`.
+type ValueBackedProps = SharedRichTextEditorProps & {
+  doc: RichTextDocument;
+  onDocChange?: (doc: RichTextDocument) => Promise<void>;
+  isEditable?: boolean;
+  showDiffWith?: RichTextDocument;
+};
+
+type RichTextEditorProps = LiveBackedProps | ValueBackedProps;
+
+export const RichTextEditor = (props: RichTextEditorProps) => {
+  const { isToolbarOpen = false, pickAsset, resolveAssetSrc } = props;
+  const live = 'live' in props ? props.live : null;
+  const valueSource: ValueBackedProps | null = 'live' in props ? null : props;
+  const isEditable = valueSource ? (valueSource.isEditable ?? true) : true;
+  const showDiffWith = valueSource?.showDiffWith;
+
   const editorRoot = useRef<HTMLDivElement>(null);
   const editorViewRef = useRef<EditorView | null>(null);
+  const { dispatchNotification } = useContext(NotificationsContext);
   const {
     view,
     setView,
@@ -211,7 +230,7 @@ export const RichTextEditor = ({
       representation:
         // There are some old document versions without the representataion set. The representation is Automerge in that case.
         // TODO: Remove this fallback when we no longer expect documents without representation set.
-        doc.representation ?? richTextRepresentations.AUTOMERGE,
+        valueSource?.doc.representation ?? richTextRepresentations.AUTOMERGE,
       proseMirrorSchema: schema,
       docBefore: contentBefore,
       docAfter: contentAfter,
@@ -228,8 +247,10 @@ export const RichTextEditor = ({
   };
 
   const setupSyncPlugin = ({
+    doc,
     onDocChange,
   }: {
+    doc: RichTextDocument;
     onDocChange: (doc: RichTextDocument) => Promise<void>;
   }) => {
     const handlePMDocChange = debounce(async (pmDoc: Node) => {
@@ -242,19 +263,85 @@ export const RichTextEditor = ({
       });
     }, 300);
 
-    return syncPlugin({
+    return oneWaySyncPlugin({
       onPMDocChange: handlePMDocChange,
     });
   };
 
+  const handleLiveSyncError = useCallback(
+    (error: unknown) => {
+      console.error(error);
+      dispatchNotification(
+        createErrorNotification({
+          title: 'Editor Sync Error',
+          message:
+            'An error happened while syncing this document. Please reach out to us for support.',
+        })
+      );
+    },
+    [dispatchNotification]
+  );
+
+  const setupLiveSyncPlugin = ({
+    live,
+    schema,
+    initial,
+  }: {
+    live: LiveDocument;
+    schema: Schema;
+    initial: { doc: RichTextDocument; version: string };
+  }) =>
+    liveSyncPlugin({
+      live,
+      initialVersion: initial.version,
+      schemaVersion: initial.doc.schemaVersion,
+      schema,
+      convertToProseMirror: (document) =>
+        convertToProseMirror({
+          schema,
+          document: {
+            ...document,
+            content: getDocumentRichTextContent(document),
+          },
+        }),
+      onError: handleLiveSyncError,
+    });
+
   useEffect(() => {
     let cancelled = false;
 
-    const setupEditorAndView = async (schema: Schema) => {
+    const buildLiveBackedEditor = async (
+      schema: Schema,
+      live: LiveDocument
+    ) => {
+      const plugins = getBasePlugins(schema);
+      const initial = Effect.runSync(SubscriptionRef.get(live.content));
+
+      plugins.push(setupLiveSyncPlugin({ live, schema, initial }));
+
+      const pmDoc =
+        initial.doc.representation === richTextRepresentations.PROSEMIRROR
+          ? pmDocFromJSONString(JSON.parse(initial.doc.content), schema)
+          : await convertToProseMirror({
+              schema: schema,
+              document: {
+                ...initial.doc,
+                content: getDocumentRichTextContent(initial.doc),
+              },
+            });
+
+      return { plugins, pmDoc };
+    };
+
+    const buildValueBackedEditor = async (
+      schema: Schema,
+      source: ValueBackedProps
+    ) => {
+      const { doc, onDocChange, showDiffWith } = source;
       const plugins = getBasePlugins(schema);
 
       if (isEditable && onDocChange) {
-        const sync = setupSyncPlugin({ onDocChange });
+        const sync = setupSyncPlugin({ doc, onDocChange });
         plugins.push(sync);
       }
 
@@ -278,6 +365,15 @@ export const RichTextEditor = ({
               },
             })
           : pmDocFromJSONString(doc.content, schema);
+
+      return { plugins, pmDoc };
+    };
+
+    const setupEditorAndView = async (schema: Schema) => {
+      const { plugins, pmDoc } =
+        'live' in props
+          ? await buildLiveBackedEditor(schema, props.live)
+          : await buildValueBackedEditor(schema, props);
 
       // After awaiting async conversion, ensure this run still represents the
       // current document and that another effect didn't create the view in the
@@ -352,22 +448,29 @@ export const RichTextEditor = ({
         editorViewRef.current = null;
       }
     };
-  }, [doc, isEditable, schema, setView]);
+  }, [valueSource?.doc, live, isEditable, schema, setView]);
 
+  // Only value-backed mode reconfigures plugins; the live-backed editor keeps
+  // the plugin set it was created with.
   useEffect(() => {
     const reconfigurePlugins = async ({
       pmDoc,
       diffWith,
       editorView,
+      source,
     }: {
       pmDoc: Node;
       diffWith: RichTextDocument | undefined;
       editorView: EditorView;
+      source: ValueBackedProps;
     }) => {
       const plugins = getBasePlugins(schema);
 
-      if (isEditable && onDocChange) {
-        const sync = setupSyncPlugin({ onDocChange });
+      if (isEditable && source.onDocChange) {
+        const sync = setupSyncPlugin({
+          doc: source.doc,
+          onDocChange: source.onDocChange,
+        });
         plugins.push(sync);
       }
 
@@ -395,11 +498,12 @@ export const RichTextEditor = ({
       editorView.updateState(newState);
     };
 
-    if (editorViewRef.current) {
+    if (valueSource && editorViewRef.current) {
       reconfigurePlugins({
         pmDoc: editorViewRef.current.state.doc,
         diffWith: showDiffWith,
         editorView: editorViewRef.current,
+        source: valueSource,
       });
     }
   }, [showDiffWith, convertFromProseMirror]);

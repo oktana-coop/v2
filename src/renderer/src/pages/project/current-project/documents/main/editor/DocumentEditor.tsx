@@ -16,9 +16,7 @@ import { ActionsBar } from './ActionsBar';
 export const DocumentEditor = () => {
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
   const { view: editorView } = useContext(ProseMirrorContext);
-  const { versionedDocument, onDocumentContentChange, canCommit } = useContext(
-    CurrentDocumentContext
-  );
+  const { liveDocument, canCommit } = useContext(CurrentDocumentContext);
   const { openCommitModal } = useContext(CommitModalContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const artifact = useCurrentArtifact();
@@ -44,11 +42,10 @@ export const DocumentEditor = () => {
 
       <div className="flex w-full flex-auto flex-col items-center overflow-auto">
         <div className="flex w-full max-w-3xl flex-col">
-          {versionedDocument ? (
+          {liveDocument ? (
             <RichTextEditor
-              doc={versionedDocument}
+              live={liveDocument}
               isToolbarOpen={isEditorToolbarOpen}
-              onDocChange={onDocumentContentChange}
               pickAsset={pickAsset}
               resolveAssetSrc={resolveAssetSrc}
             />

@@ -7,3 +7,9 @@ export {
 } from './insert-asset';
 export * from './resolve-document-asset-url';
 export { processDocumentChange } from './process-document-change';
+export {
+  openLiveDocument,
+  type OpenedLiveDocument,
+  type OpenLiveDocumentArgs,
+  type OpenLiveDocumentDeps,
+} from './open-live-document';

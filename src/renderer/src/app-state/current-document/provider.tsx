@@ -1,18 +1,20 @@
+import debounce from 'debounce';
 import * as Effect from 'effect/Effect';
 import { useCallback, useContext, useEffect, useState } from 'react';
 import { useMatch, useNavigate } from 'react-router';
 
 import {
-  processDocumentChange,
+  type OpenedLiveDocument,
+  openLiveDocument,
   type ProjectId,
   type ProjectStore,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
 import {
   isEmpty,
-  type RichTextDocument,
   type VersionedDocument,
 } from '../../../../modules/domain/rich-text';
+import { createAdapter as createInMemoryLiveDocumentAdapter } from '../../../../modules/domain/rich-text/adapters/in-memory-live-document';
 import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
 import {
   createErrorNotification,
@@ -30,6 +32,7 @@ import {
   urlEncodeChangeIdForChange,
 } from '../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../modules/personalization/browser';
+import { subscribeToRef } from '../../../../utils/effect';
 import { ProjectContext } from '../';
 import { useCurrentChangeId } from '../current-project/current-artifact/use-current-change-id';
 import { CurrentDocumentContext } from './context';
@@ -62,16 +65,10 @@ export const CurrentDocumentProvider = ({
   const { pulledUpstreamChanges, resetPulledUpstreamChanges } =
     usePulledUpstreamChanges();
 
-  // A snapshot of the current document, taken at load. Not updated per edit;
-  // refreshed only when the selected document or its content changes underneath.
-  const [versionedDocument, setVersionedDocument] =
-    useState<VersionedDocument | null>(null);
-  // Invalidates the loaded document when an operation rewrites it (e.g. restore, discard, pull).
-  // A count, not a flag: every bump is a new value, so each invalidation triggers one reload and nothing needs resetting.
-  const [documentInvalidations, setDocumentInvalidations] = useState(0);
-  const invalidateDocument = useCallback(
-    () => setDocumentInvalidations((count) => count + 1),
-    []
+  // The open document's live content. It outlives editor mounts, so returning
+  // from the history view never resurrects a stale snapshot.
+  const [liveDocument, setLiveDocument] = useState<OpenedLiveDocument | null>(
+    null
   );
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
   const [versionedDocumentHistory, setVersionedDocumentHistory] = useState<
@@ -87,30 +84,57 @@ export const CurrentDocumentProvider = ({
     useState<boolean>(false);
   const [commitToRestore, setCommitToRestore] = useState<Commit | null>(null);
 
-  const documentRouteMatch = useMatch(
-    '/projects/:projectId/artifacts/:artifactId'
-  );
   const documentChangeSubRouteMatch = useMatch(
     '/projects/:projectId/artifacts/:artifactId/changes/:changeId'
   );
 
-  // Loads the current document. The previous snapshot is kept until the new one
-  // resolves, so a reload never blanks the state in between; only the first
-  // load, with nothing yet to show, starts empty.
+  // Opens the current document as a live document. The previous one is kept
+  // until the new one resolves, so a reload never blanks the state in between;
+  // only the first load, with nothing yet to show, starts empty.
   useEffect(() => {
-    if (!projectStore || !projectId || !documentId) {
-      setVersionedDocument(null);
+    if (
+      !projectStore ||
+      !projectId ||
+      !documentId ||
+      !representationTransformAdapter
+    ) {
+      setLiveDocument(null);
       return;
     }
 
-    // Ignore a load the selection has already moved on from.
+    // Ignore an open the selection has already moved on from.
     let cancelled = false;
+    let opened: OpenedLiveDocument | null = null;
 
-    Effect.runPromise(projectStore.findDocumentById({ projectId, documentId }))
-      .then(({ artifact }) => {
-        if (cancelled) return;
-        setVersionedDocument(artifact);
-        setLoadingHistory(true);
+    const close = (handle: OpenedLiveDocument) =>
+      Effect.runPromise(handle.close).catch(console.error);
+
+    setLoadingHistory(true);
+
+    Effect.runPromise(
+      openLiveDocument({
+        createLiveDocumentAdapter: createInMemoryLiveDocumentAdapter,
+        transformToText: representationTransformAdapter.transformToText,
+        projectStore,
+        onPersistError: (error) => {
+          console.error(error);
+          dispatchNotification(
+            createErrorNotification({
+              title: 'Save Document Error',
+              message:
+                'Your latest changes could not be saved. Please reach out to us for support.',
+            })
+          );
+        },
+      })({ projectId, documentId })
+    )
+      .then((handle) => {
+        if (cancelled) {
+          close(handle);
+          return;
+        }
+        opened = handle;
+        setLiveDocument(handle);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -122,20 +146,23 @@ export const CurrentDocumentProvider = ({
               'This document could not be opened. It may have been moved or deleted.',
           })
         );
-        setVersionedDocument(null);
+        setLiveDocument(null);
         setLoadingHistory(false);
       });
 
     return () => {
       cancelled = true;
+      if (opened) close(opened);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documentId, projectId, projectStore, documentInvalidations]);
+  }, [documentId, projectId, projectStore, representationTransformAdapter]);
 
-  // A pull can change the open document underneath it; reload to pick that up.
+  // A pull can change the open document underneath it; re-read to pick that up.
   useEffect(() => {
     if (pulledUpstreamChanges) {
-      invalidateDocument();
+      if (liveDocument) {
+        Effect.runPromise(liveDocument.refresh).catch(console.error);
+      }
       resetPulledUpstreamChanges();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -227,12 +254,23 @@ export const CurrentDocumentProvider = ({
     return historyWithURLInfo;
   };
 
+  // History follows the live content: the subscribe-time replay performs the
+  // initial load, and later edits reload it once the typing settles.
   useEffect(() => {
-    if (projectStore && documentId && versionedDocument) {
+    if (!projectStore || !documentId || !liveDocument) return;
+
+    const reloadHistory = debounce(() => {
       loadHistory(documentId);
-    }
+    }, 500);
+
+    const unsubscribe = subscribeToRef(liveDocument.content, reloadHistory);
+
+    return () => {
+      unsubscribe();
+      reloadHistory.clear();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [versionedDocument]);
+  }, [liveDocument]);
 
   useEffect(() => {
     if (versionedDocumentHistory.length > 0 && changeId) {
@@ -248,10 +286,10 @@ export const CurrentDocumentProvider = ({
   }, [versionedDocumentHistory, changeId]);
 
   const reloadDocumentHistory = useCallback(async () => {
-    if (!projectStore || !versionedDocument || !documentId) return;
+    if (!projectStore || !liveDocument || !documentId) return;
     await loadHistory(documentId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectStore, versionedDocument, documentId]);
+  }, [projectStore, liveDocument, documentId]);
 
   const navigateToChange = ({
     projectId,
@@ -310,11 +348,15 @@ export const CurrentDocumentProvider = ({
 
   const handleRestoreCommit = useCallback(
     async ({ message, commit }: { message: string; commit: Commit }) => {
-      if (!documentId || !versionedDocument || !projectStore) {
+      if (!documentId || !liveDocument || !projectStore) {
         throw new Error(
           'Cannot restore commit. Either the document or the project store is not initialized yet.'
         );
       }
+
+      // Land pending typing before the restore rewrites the working tree, then
+      // re-read what the restore left there.
+      await Effect.runPromise(liveDocument.flush);
 
       const restoreCommitId = await restoreDocumentChanges({
         documentId,
@@ -322,31 +364,28 @@ export const CurrentDocumentProvider = ({
         message,
       });
 
-      const newHistory = await loadHistory(documentId);
+      await Effect.runPromise(liveDocument.refresh);
 
-      // Restore rewrote the working tree; reload to pick up the restored content.
-      invalidateDocument();
+      const newHistory = await loadHistory(documentId);
 
       setIsRestoreCommitDialogOpen(false);
       setCanCommit(false);
       handleSelectChange(restoreCommitId, newHistory);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      documentId,
-      versionedDocument,
-      projectStore,
-      restoreDocumentChanges,
-      invalidateDocument,
-    ]
+    [documentId, liveDocument, projectStore, restoreDocumentChanges]
   );
 
   const handleDiscardChanges = useCallback(async () => {
-    if (!documentId || !versionedDocument || !projectStore || !projectId) {
+    if (!documentId || !liveDocument || !projectStore || !projectId) {
       throw new Error(
         'Cannot discard changes. Either the document or the project store is not initialized yet.'
       );
     }
+
+    // Drop pending typing first: a write landing mid-discard would resurrect
+    // exactly what is being discarded.
+    await Effect.runPromise(liveDocument.cancelPendingPersist);
 
     await Effect.runPromise(
       projectStore.discardUncommittedChanges({
@@ -355,14 +394,13 @@ export const CurrentDocumentProvider = ({
       })
     );
 
+    await Effect.runPromise(liveDocument.refresh);
+
     const newHistory = await loadHistory(documentId);
 
     if (documentChangeSubRouteMatch) {
       const [lastCommit] = newHistory;
       handleSelectChange(lastCommit.id, newHistory);
-    } else if (documentRouteMatch) {
-      // Invalidate the document to reload it after discarding changes.
-      invalidateDocument();
     }
 
     setIsDiscardChangesDialogOpen(false);
@@ -370,12 +408,10 @@ export const CurrentDocumentProvider = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     documentId,
-    versionedDocument,
+    liveDocument,
     projectStore,
     projectId,
     documentChangeSubRouteMatch,
-    documentRouteMatch,
-    invalidateDocument,
   ]);
 
   const handleOpenRestoreCommitDialog = useCallback((commit: Commit) => {
@@ -396,56 +432,11 @@ export const CurrentDocumentProvider = ({
     setIsDiscardChangesDialogOpen(false);
   }, []);
 
-  const handleDocumentContentChange = useCallback(
-    async (doc: RichTextDocument) => {
-      if (!projectStore || !projectId) {
-        throw new Error('Project store not ready yet or mismatched project.');
-      }
-
-      if (!documentId) {
-        throw new Error('Versioned document id not set yet.');
-      }
-
-      if (!versionedDocument) {
-        throw new Error('Versioned document not set yet.');
-      }
-
-      if (!representationTransformAdapter) {
-        throw new Error(
-          'No representation transform adapter found when trying to convert to Automerge'
-        );
-      }
-
-      await Effect.runPromise(
-        processDocumentChange({
-          transformToText: representationTransformAdapter.transformToText,
-          updateRichTextDocumentContent:
-            projectStore.updateRichTextDocumentContent,
-        })({
-          projectId,
-          documentId,
-          updatedDocument: doc,
-        })
-      );
-
-      await loadHistory(documentId);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      projectStore,
-      projectId,
-      documentId,
-      representationTransformAdapter,
-      versionedDocument,
-    ]
-  );
-
   return (
     <CurrentDocumentContext.Provider
       value={{
         versionedDocumentId: documentId,
-        versionedDocument,
-        onDocumentContentChange: handleDocumentContentChange,
+        liveDocument,
         loadingHistory,
         versionedDocumentHistory,
         canCommit,
