@@ -154,8 +154,13 @@ export const openLiveDocument =
                 Effect.asVoid(takePendingPersist)
               );
 
+              // TODO: Interim mechanism — to be replaced by filesystem watching,
+              // which will drive this re-derivation without manual call sites.
+              // It is assumed the caller has settled pending content (flush or cancel)
+              // and that the disk now holds what the live document should show.
               const refresh = persistMutex(
                 pipe(
+                  // Takes pending content to essentially discard it.
                   takePendingPersist,
                   // Suspended so each refresh issues its own read; the renderer's
                   // store starts its IPC call when the effect is constructed.
@@ -172,6 +177,7 @@ export const openLiveDocument =
                           ? Effect.void
                           : pipe(
                               Ref.set(lastPersisted, fresh.content),
+                              // Update the live document.
                               Effect.zipRight(adapter.change(fresh)),
                               Effect.asVoid
                             )
@@ -181,14 +187,18 @@ export const openLiveDocument =
                 )
               );
 
+              const change = (doc: RichTextDocument) =>
+                pipe(
+                  // Update the live document.
+                  adapter.change(doc),
+                  // Flush to disk (with a debounce).
+                  Effect.tap(() => Ref.set(pendingPersist, doc)),
+                  Effect.tap(() => Effect.sync(() => debouncedFlush()))
+                );
+
               return {
                 content: adapter.content,
-                change: (doc: RichTextDocument) =>
-                  pipe(
-                    adapter.change(doc),
-                    Effect.tap(() => Ref.set(pendingPersist, doc)),
-                    Effect.tap(() => Effect.sync(() => debouncedFlush()))
-                  ),
+                change,
                 flush,
                 refresh,
                 cancelPendingPersist,
