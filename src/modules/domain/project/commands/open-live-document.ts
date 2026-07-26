@@ -79,114 +79,122 @@ export const openLiveDocument =
           Effect.all({
             adapter: createLiveDocumentAdapter(artifact),
             lastPersisted: Ref.make(artifact.content),
-            pending: Ref.make<RichTextDocument | null>(null),
-            persistLock: Effect.makeSemaphore(1),
+            pendingPersist: Ref.make<RichTextDocument | null>(null),
+            persistSemaphore: Effect.makeSemaphore(1),
           }),
-          Effect.map(({ adapter, lastPersisted, pending, persistLock }) => {
-            const locked = persistLock.withPermits(1);
+          Effect.map(
+            ({ adapter, lastPersisted, pendingPersist, persistSemaphore }) => {
+              // At most one persistence-affecting operation in flight.
+              // One resolving means no write is still landing.
+              const persistMutex = persistSemaphore.withPermits(1);
 
-            const toPrimaryText = (doc: RichTextDocument) =>
-              doc.representation === PRIMARY_RICH_TEXT_REPRESENTATION
-                ? Effect.succeed(doc.content)
-                : Effect.tryPromise({
-                    try: () =>
-                      transformToText({
-                        from: doc.representation,
-                        to: PRIMARY_RICH_TEXT_REPRESENTATION,
-                        input: doc.content,
-                      }),
-                    catch: mapErrorTo(
-                      RepresentationTransformError,
-                      'Rich text representation transformation error'
-                    ),
-                  });
+              const toPrimaryTextRepresentation = (doc: RichTextDocument) =>
+                doc.representation === PRIMARY_RICH_TEXT_REPRESENTATION
+                  ? Effect.succeed(doc.content)
+                  : Effect.tryPromise({
+                      try: () =>
+                        transformToText({
+                          from: doc.representation,
+                          to: PRIMARY_RICH_TEXT_REPRESENTATION,
+                          input: doc.content,
+                        }),
+                      catch: mapErrorTo(
+                        RepresentationTransformError,
+                        'Rich text representation transformation error'
+                      ),
+                    });
 
-            const persist = (doc: RichTextDocument) =>
-              pipe(
-                toPrimaryText(doc),
-                Effect.flatMap((textContent) =>
-                  pipe(
-                    Ref.get(lastPersisted),
-                    Effect.flatMap((last) =>
-                      last === textContent
-                        ? Effect.void
-                        : pipe(
-                            projectStore.updateRichTextDocumentContent({
-                              projectId,
-                              documentId,
-                              representation: PRIMARY_RICH_TEXT_REPRESENTATION,
-                              content: textContent,
-                            }),
-                            Effect.zipRight(Ref.set(lastPersisted, textContent))
-                          )
+              const persist = (doc: RichTextDocument) =>
+                pipe(
+                  toPrimaryTextRepresentation(doc),
+                  Effect.flatMap((textContent) =>
+                    pipe(
+                      Ref.get(lastPersisted),
+                      Effect.flatMap((last) =>
+                        last === textContent
+                          ? Effect.void
+                          : pipe(
+                              projectStore.updateRichTextDocumentContent({
+                                projectId,
+                                documentId,
+                                representation:
+                                  PRIMARY_RICH_TEXT_REPRESENTATION,
+                                content: textContent,
+                              }),
+                              Effect.zipRight(
+                                Ref.set(lastPersisted, textContent)
+                              )
+                            )
+                      )
+                    )
+                  )
+                );
+
+              // Unlocked - callers wrap it in the persist mutex.
+              const takePendingPersist = pipe(
+                Effect.sync(() => debouncedFlush.clear()),
+                Effect.zipRight(Ref.getAndSet(pendingPersist, null))
+              );
+
+              const flush = persistMutex(
+                pipe(
+                  takePendingPersist,
+                  Effect.flatMap((doc) =>
+                    doc === null ? Effect.void : persist(doc)
+                  )
+                )
+              );
+
+              const debouncedFlush = debounce(() => {
+                Effect.runPromise(flush).catch(onPersistError);
+              }, PERSIST_DEBOUNCE_MS);
+
+              const cancelPendingPersist = persistMutex(
+                Effect.asVoid(takePendingPersist)
+              );
+
+              const refresh = persistMutex(
+                pipe(
+                  takePendingPersist,
+                  // Suspended so each refresh issues its own read; the renderer's
+                  // store starts its IPC call when the effect is constructed.
+                  Effect.zipRight(
+                    Effect.suspend(() =>
+                      projectStore.findDocumentById({ projectId, documentId })
+                    )
+                  ),
+                  Effect.flatMap(({ artifact: fresh }) =>
+                    pipe(
+                      Ref.get(lastPersisted),
+                      Effect.flatMap((last) =>
+                        last === fresh.content
+                          ? Effect.void
+                          : pipe(
+                              Ref.set(lastPersisted, fresh.content),
+                              Effect.zipRight(adapter.change(fresh)),
+                              Effect.asVoid
+                            )
+                      )
                     )
                   )
                 )
               );
 
-            const flush = locked(
-              pipe(
-                Effect.sync(() => persistTimer.clear()),
-                Effect.zipRight(Ref.getAndSet(pending, null)),
-                Effect.flatMap((doc) =>
-                  doc === null ? Effect.void : persist(doc)
-                )
-              )
-            );
-
-            const persistTimer = debounce(() => {
-              Effect.runPromise(flush).catch(onPersistError);
-            }, PERSIST_DEBOUNCE_MS);
-
-            const cancelPendingPersist = locked(
-              pipe(
-                Effect.sync(() => persistTimer.clear()),
-                Effect.zipRight(Ref.set(pending, null))
-              )
-            );
-
-            const refresh = locked(
-              pipe(
-                Effect.sync(() => persistTimer.clear()),
-                Effect.zipRight(Ref.set(pending, null)),
-                // Suspended so each refresh issues its own read; the renderer's
-                // store starts its IPC call when the effect is constructed.
-                Effect.zipRight(
-                  Effect.suspend(() =>
-                    projectStore.findDocumentById({ projectId, documentId })
-                  )
-                ),
-                Effect.flatMap(({ artifact: fresh }) =>
+              return {
+                content: adapter.content,
+                change: (doc: RichTextDocument) =>
                   pipe(
-                    Ref.get(lastPersisted),
-                    Effect.flatMap((last) =>
-                      last === fresh.content
-                        ? Effect.void
-                        : pipe(
-                            Ref.set(lastPersisted, fresh.content),
-                            Effect.zipRight(adapter.change(fresh)),
-                            Effect.asVoid
-                          )
-                    )
-                  )
-                )
-              )
-            );
-
-            return {
-              content: adapter.content,
-              change: (doc: RichTextDocument) =>
-                pipe(
-                  adapter.change(doc),
-                  Effect.tap(() => Ref.set(pending, doc)),
-                  Effect.tap(() => Effect.sync(() => persistTimer()))
-                ),
-              flush,
-              refresh,
-              cancelPendingPersist,
-              close: flush,
-            };
-          })
+                    adapter.change(doc),
+                    Effect.tap(() => Ref.set(pendingPersist, doc)),
+                    Effect.tap(() => Effect.sync(() => debouncedFlush()))
+                  ),
+                flush,
+                refresh,
+                cancelPendingPersist,
+                close: flush,
+              };
+            }
+          )
         )
       )
     );
