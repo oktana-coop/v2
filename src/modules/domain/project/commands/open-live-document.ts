@@ -84,8 +84,9 @@ export const openLiveDocument =
           }),
           Effect.map(
             ({ adapter, lastPersisted, pendingPersist, persistSemaphore }) => {
-              // At most one persistence-affecting operation in flight.
-              // One resolving means no write is still landing.
+              // Persistence ops run strictly one after another: the next starts
+              // only after the previous — including its disk write — has fully
+              // finished.
               const persistMutex = persistSemaphore.withPermits(1);
 
               const toPrimaryTextRepresentation = (doc: RichTextDocument) =>
