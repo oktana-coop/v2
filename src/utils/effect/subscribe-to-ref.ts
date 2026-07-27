@@ -19,3 +19,24 @@ export const subscribeToRef = <A>(
     Effect.runFork(Fiber.interrupt(fiber));
   };
 };
+
+// Runs the handler Effect for the current value and every change, one at a
+// time: the next change waits for the running handler to finish, so handling
+// never overlaps. While the handler is busy, a burst of updates collapses to
+// just the latest — the sliding buffer keeps only the newest and drops the
+// rest. Stops when the returned function unsubscribes.
+export const forEachLatestRefChange = <A>(
+  ref: SubscriptionRef.SubscriptionRef<A>,
+  onChange: (value: A) => Effect.Effect<unknown>
+): Unsubscribe => {
+  const fiber = Effect.runFork(
+    Stream.runForEach(
+      Stream.buffer(ref.changes, { capacity: 1, strategy: 'sliding' }),
+      onChange
+    )
+  );
+
+  return () => {
+    Effect.runFork(Fiber.interrupt(fiber));
+  };
+};

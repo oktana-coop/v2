@@ -1,4 +1,5 @@
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 import { type Node, type Schema } from 'prosemirror-model';
 import {
   Plugin,
@@ -7,7 +8,13 @@ import {
   type Transaction,
 } from 'prosemirror-state';
 
-import { subscribeToRef } from '../../../../../utils/effect';
+import { forEachLatestRefChange } from '../../../../../utils/effect';
+import { mapErrorTo } from '../../../../../utils/errors';
+import {
+  RepresentationTransformError,
+  ValidationError,
+  WebEditorError,
+} from '../../errors';
 import { type RichTextDocument, richTextRepresentations } from '../../models';
 import {
   type LiveDocument,
@@ -38,17 +45,28 @@ export const liveSyncPlugin = ({
   new Plugin({
     key: pluginKey,
     view(view) {
-      let reflectedVersion = initialVersion;
+      // The version currently shown in the editor.
+      let editorDocVersion = initialVersion;
       let applyingIncoming = false;
-      let processing = false;
-      let latest: LiveDocumentChange | null = null;
 
-      const toProseMirrorDoc = (doc: RichTextDocument) =>
+      const toProseMirrorDoc = (
+        doc: RichTextDocument
+      ): Effect.Effect<Node, RepresentationTransformError | ValidationError> =>
         doc.representation === richTextRepresentations.PROSEMIRROR
-          ? Promise.resolve(
-              pmDocFromJSONString(JSON.parse(doc.content), schema)
-            )
-          : convertToProseMirror(doc);
+          ? Effect.try({
+              try: () => pmDocFromJSONString(JSON.parse(doc.content), schema),
+              catch: mapErrorTo(
+                ValidationError,
+                'Invalid stored ProseMirror document'
+              ),
+            })
+          : Effect.tryPromise({
+              try: () => convertToProseMirror(doc),
+              catch: mapErrorTo(
+                RepresentationTransformError,
+                'Failed to convert the document to ProseMirror'
+              ),
+            });
 
       const selectionAfter = (tr: Transaction, head: number) => {
         try {
@@ -59,7 +77,13 @@ export const liveSyncPlugin = ({
         }
       };
 
-      const applyIncoming = (next: LiveDocumentChange, newPmDoc: Node) => {
+      const applyIncoming = ({
+        change,
+        newPmDoc,
+      }: {
+        change: LiveDocumentChange;
+        newPmDoc: Node;
+      }) => {
         const { state } = view;
         const tr = state.tr.replaceWith(
           0,
@@ -78,40 +102,46 @@ export const liveSyncPlugin = ({
           applyingIncoming = false;
         }
 
-        reflectedVersion = next.version;
+        editorDocVersion = change.version;
       };
 
-      const applyLatest = async () => {
-        if (processing) return;
-        processing = true;
-
-        try {
-          while (latest !== null) {
-            const next = latest;
-            latest = null;
-
-            if (next.version === reflectedVersion) continue;
-
-            const newPmDoc = await toProseMirrorDoc(next.doc);
-
+      const applyToView = ({
+        change,
+        newPmDoc,
+      }: {
+        change: LiveDocumentChange;
+        newPmDoc: Node;
+      }): Effect.Effect<void, WebEditorError> =>
+        Effect.try({
+          try: () => {
             if (newPmDoc.eq(view.state.doc)) {
-              reflectedVersion = next.version;
-              continue;
+              editorDocVersion = change.version;
+            } else {
+              applyIncoming({ change, newPmDoc });
             }
+          },
+          catch: mapErrorTo(
+            WebEditorError,
+            'Failed to apply a change to the editor'
+          ),
+        });
 
-            applyIncoming(next, newPmDoc);
-          }
-        } catch (error) {
-          onError(error);
-        } finally {
-          processing = false;
-        }
-      };
+      // forEachLatestRefChange collapses a burst of changes to just the latest
+      // while a slow apply is in flight; the version guard then skips it when
+      // it already matches what's shown.
+      const applyChange = (change: LiveDocumentChange) =>
+        pipe(
+          change.version === editorDocVersion
+            ? Effect.void
+            : pipe(
+                toProseMirrorDoc(change.doc),
+                Effect.flatMap((newPmDoc) => applyToView({ change, newPmDoc }))
+              ),
+          // Recover per change, so one bad change doesn't stop syncing.
+          Effect.catchAll((error) => Effect.sync(() => onError(error)))
+        );
 
-      const unsubscribe = subscribeToRef(live.content, (change) => {
-        latest = change;
-        void applyLatest();
-      });
+      const unsubscribe = forEachLatestRefChange(live.content, applyChange);
 
       return {
         // React to local ProseMirror changes
@@ -125,11 +155,8 @@ export const liveSyncPlugin = ({
             content: pmDocToJSONString(view.state.doc),
           };
 
-          Effect.runPromise(live.change(doc))
-            .then((version) => {
-              reflectedVersion = version;
-            })
-            .catch(onError);
+          // update() is synchronous, so run the change as a fire-and-forget task.
+          Effect.runPromise(live.change(doc));
         },
         destroy() {
           unsubscribe();

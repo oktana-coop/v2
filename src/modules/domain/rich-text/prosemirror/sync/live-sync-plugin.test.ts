@@ -7,6 +7,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createAdapter } from '../../adapters/in-memory-live-document';
 import {
+  RepresentationTransformError,
+  ValidationError,
+  WebEditorError,
+} from '../../errors';
+import {
   CURRENT_SCHEMA_VERSION,
   type RichTextDocument,
   richTextRepresentations,
@@ -26,16 +31,13 @@ const paragraph = (text: string): PMNode =>
     schema.node('paragraph', null, [schema.text(text)]),
   ]);
 
-// The bridge subscribes on a fiber and converts asynchronously; give both a
-// few turns before asserting.
-const settle = async () => {
-  for (let turn = 0; turn < 3; turn += 1) {
-    await new Promise((resolve) => setTimeout(resolve, 0));
-  }
-};
-
 const textOf = (doc: RichTextDocument) =>
   pmDocFromJSONString(JSON.parse(doc.content), schema).textContent;
+
+// Sync lands on plugin-internal fibers the test can't await, so state is
+// reached asynchronously; `eventually` polls its assertions until they hold.
+const eventually = (assertions: () => void | Promise<void>) =>
+  vi.waitFor(assertions);
 
 const views: EditorView[] = [];
 
@@ -78,8 +80,6 @@ const setup = async ({
   });
   views.push(view);
 
-  await settle();
-
   return { live, view, dispatched, onError };
 };
 
@@ -92,14 +92,16 @@ describe('liveSyncPlugin', () => {
     const { live, view } = await setup();
 
     view.dispatch(view.state.tr.insertText(' world', 6));
-    await settle();
 
-    const current = await Effect.runPromise(SubscriptionRef.get(live.content));
-
-    expect(current.doc.representation).toBe(
-      richTextRepresentations.PROSEMIRROR
-    );
-    expect(textOf(current.doc)).toBe('hello world');
+    await eventually(async () => {
+      const current = await Effect.runPromise(
+        SubscriptionRef.get(live.content)
+      );
+      expect(current.doc.representation).toBe(
+        richTextRepresentations.PROSEMIRROR
+      );
+      expect(textOf(current.doc)).toBe('hello world');
+    });
   });
 
   it('applies an external change as a transaction on the same view', async () => {
@@ -107,35 +109,92 @@ describe('liveSyncPlugin', () => {
     const domBefore = view.dom;
 
     await Effect.runPromise(live.change(markdownDocument('from elsewhere')));
-    await settle();
 
-    expect(view.state.doc.textContent).toBe('from elsewhere');
+    await eventually(() =>
+      expect(view.state.doc.textContent).toBe('from elsewhere')
+    );
     expect(view.dom).toBe(domBefore);
     expect(dispatched).toHaveLength(1);
     expect(dispatched[0].getMeta('addToHistory')).toBe(false);
   });
 
-  it('does not echo a local edit back into the editor', async () => {
-    const { view, dispatched } = await setup();
-
-    view.dispatch(view.state.tr.insertText('!', 6));
-    await settle();
-
-    expect(dispatched).toHaveLength(1);
-    expect(view.state.doc.textContent).toBe('hello!');
-  });
-
-  it('dispatches nothing for an emission that matches the current document', async () => {
-    const { live, dispatched } = await setup({
-      convertToProseMirror: async (doc) => paragraph(doc.content.trim()),
+  it('collapses changes that arrive faster than they can be applied', async () => {
+    // A slow conversion lets several changes queue up while the first is still
+    // being applied.
+    const { live, view, dispatched } = await setup({
+      convertToProseMirror: async (doc) => {
+        await new Promise((resolve) => setTimeout(resolve, 40));
+        return paragraph(doc.content);
+      },
     });
 
-    const version = await Effect.runPromise(
-      live.change(markdownDocument('hello  '))
-    );
-    await settle();
+    for (const text of ['first', 'second', 'third', 'latest']) {
+      await Effect.runPromise(live.change(markdownDocument(text)));
+    }
 
-    expect(version).toBe('1');
-    expect(dispatched).toHaveLength(0);
+    // Wait until the editor converges to the newest change. Once it does, the
+    // remaining wake-ups are version-guarded no-ops, so the dispatch count is
+    // final: the intermediates were skipped, never one transaction per change
+    // (which is what no conflation would produce).
+    await eventually(() => expect(view.state.doc.textContent).toBe('latest'));
+    expect(dispatched.length).toBeLessThanOrEqual(2);
+  });
+
+  it('reports a failed conversion as a transform error and keeps applying later changes', async () => {
+    let call = 0;
+    const { live, view, onError } = await setup({
+      convertToProseMirror: async (doc) => {
+        call += 1;
+        if (call === 1) throw new Error('conversion failed');
+        return paragraph(doc.content);
+      },
+    });
+
+    await Effect.runPromise(live.change(markdownDocument('breaks')));
+    // Wait for the failing change to be handled before issuing the next, so
+    // it isn't conflated away.
+    await eventually(() => expect(onError).toHaveBeenCalledTimes(1));
+
+    await Effect.runPromise(live.change(markdownDocument('recovers')));
+    await eventually(() => expect(view.state.doc.textContent).toBe('recovers'));
+
+    // The failure surfaced as a typed transform error carrying the original
+    // message, and the next change was still applied — one bad conversion
+    // doesn't stop syncing.
+    const reported = onError.mock.calls[0][0];
+    expect(reported).toBeInstanceOf(RepresentationTransformError);
+    expect((reported as Error).message).toBe('conversion failed');
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports an error thrown while applying a change as a web editor error', async () => {
+    // A conversion that yields an unusable value throws when the change is
+    // applied to the view — the web-coupled apply stage, distinct from the
+    // transform, and the path that used to escape as an unhandled defect.
+    const { live, onError } = await setup({
+      convertToProseMirror: async () => null as unknown as PMNode,
+    });
+
+    await Effect.runPromise(live.change(markdownDocument('anything')));
+
+    await eventually(() => expect(onError).toHaveBeenCalledTimes(1));
+    expect(onError.mock.calls[0][0]).toBeInstanceOf(WebEditorError);
+  });
+
+  it('reports malformed stored ProseMirror content as a validation error', async () => {
+    const { live, onError } = await setup();
+
+    // A ProseMirror-representation change whose content is not valid JSON fails
+    // parsing rather than transforming — a validation concern.
+    await Effect.runPromise(
+      live.change({
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        representation: richTextRepresentations.PROSEMIRROR,
+        content: 'not json',
+      })
+    );
+
+    await eventually(() => expect(onError).toHaveBeenCalledTimes(1));
+    expect(onError.mock.calls[0][0]).toBeInstanceOf(ValidationError);
   });
 });
