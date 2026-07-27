@@ -64,9 +64,6 @@ export const CurrentDocumentProvider = ({
   const documentId = useCurrentDocumentId();
   const { pulledUpstreamChanges, resetPulledUpstreamChanges } =
     usePulledUpstreamChanges();
-
-  // The open document's live content. It outlives editor mounts, so returning
-  // from the history view never resurrects a stale snapshot.
   const [liveDocument, setLiveDocument] = useState<OpenedLiveDocument | null>(
     null
   );
