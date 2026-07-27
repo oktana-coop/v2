@@ -1,6 +1,6 @@
 import * as Effect from 'effect/Effect';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { subscribeToRef } from '../../../../../utils/effect';
 import {
@@ -17,9 +17,9 @@ const markdownDocument = (content: string): RichTextDocument => ({
   content,
 });
 
-// Subscriptions deliver on a fiber, so let the scheduler run before asserting.
-const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
-
+// Changes arrive asynchronously on a subscriber Effect fiber; the tests observe
+// from outside the Effect runtime, so they wait on conditions via vi.waitFor
+// (which retries the assertion until it passes or times out).
 describe('in-memory live document adapter', () => {
   it('bumps the version and holds the new content on change', async () => {
     const live = await Effect.runPromise(
@@ -48,15 +48,22 @@ describe('in-memory live document adapter', () => {
     const unsubscribe = subscribeToRef(live.content, (change) =>
       received.push(change)
     );
-    await settle();
+    // The replayed current value proves the subscription is live.
+    await vi.waitFor(() => expect(received).toHaveLength(1));
 
     const version = await Effect.runPromise(
       live.change(markdownDocument('initial'))
     );
-    await settle();
+    // Sentinel: deliveries are ordered, so had the equal change emitted,
+    // it would occupy the second slot instead of the sentinel.
+    await Effect.runPromise(live.change(markdownDocument('sentinel')));
+    await vi.waitFor(() => expect(received).toHaveLength(2));
 
     expect(version).toBe('0');
-    expect(received).toHaveLength(1);
+    expect(received).toEqual([
+      { doc: markdownDocument('initial'), version: '0' },
+      { doc: markdownDocument('sentinel'), version: '1' },
+    ]);
 
     unsubscribe();
   });
@@ -70,16 +77,15 @@ describe('in-memory live document adapter', () => {
     const unsubscribe = subscribeToRef(live.content, (change) =>
       received.push(change)
     );
-    await settle();
+    await vi.waitFor(() => expect(received).toHaveLength(1));
 
     expect(received).toEqual([
       { doc: markdownDocument('initial'), version: '0' },
     ]);
 
     await Effect.runPromise(live.change(markdownDocument('first')));
-    await settle();
     await Effect.runPromise(live.change(markdownDocument('second')));
-    await settle();
+    await vi.waitFor(() => expect(received).toHaveLength(3));
 
     expect(received).toEqual([
       { doc: markdownDocument('initial'), version: '0' },
