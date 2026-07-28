@@ -5,6 +5,7 @@ import {
   getExtension,
   removePath,
 } from '../../../../../modules/infrastructure/filesystem';
+import { assetsPluginKey } from './plugin';
 
 const IMAGE_EXTENSIONS = new Set([
   'png',
@@ -24,32 +25,28 @@ const isImageSrc = (src: string) =>
 // must handle malformed input gracefully (e.g. returning the src unchanged).
 export type ResolveAssetSrc = (src: string) => string;
 
-export type ImageViewOptions = {
-  resolveAssetSrc: ResolveAssetSrc;
-};
-
 export class ImageView implements NodeView {
   node: PMNode;
   view: EditorView;
   getPos: () => number | undefined;
-  options: ImageViewOptions;
   dom: HTMLElement;
 
   constructor(
     node: PMNode,
     view: EditorView,
-    getPos: () => number | undefined,
-    options: ImageViewOptions
+    getPos: () => number | undefined
   ) {
     this.node = node;
     this.view = view;
     this.getPos = getPos;
-    this.options = options;
     this.dom = this.render(node);
   }
 
   private resolveSrc(src: string): string {
-    return this.options.resolveAssetSrc(src);
+    // The assets plugin holds the asset resolver for the given document.
+    // Without the plugin, srcs pass through.
+    const assetsPluginState = assetsPluginKey.getState(this.view.state);
+    return assetsPluginState ? assetsPluginState.resolveAssetSrc(src) : src;
   }
 
   private render(node: PMNode): HTMLElement {

@@ -15,6 +15,7 @@ import {
 import { WasmContext } from '../../../../modules/infrastructure/wasm/react/wasm-context';
 import { createAdapter as createPandocDiffAdapter } from '../adapters/pandoc-diff';
 import {
+  getDocumentRichTextContent,
   RichTextDocument,
   richTextRepresentations,
   type TextRichTextRepresentation,
@@ -40,7 +41,8 @@ export type ConvertFromProseMirrorArgs = {
 
 export type ProseMirrorContextType = {
   view: EditorView | null;
-  setView: (view: EditorView | null) => void;
+  setView: (view: EditorView) => void;
+  clearViewIfCurrent: (view: EditorView) => void;
   proseMirrorDiff: (
     args: ProseMirrorDiffArgs
   ) => Promise<ProseMirrorDiffResult>;
@@ -54,6 +56,7 @@ export type ProseMirrorContextType = {
 export const ProseMirrorContext = createContext<ProseMirrorContextType>({
   view: null,
   setView: () => {},
+  clearViewIfCurrent: () => {},
   // @ts-expect-error will get overriden below
   proseMirrorDiff: () => null,
   // @ts-expect-error will get overriden below
@@ -81,8 +84,14 @@ export const ProseMirrorProvider = ({
     setDiffAdapter(pandocDiffAdapter);
   }, [runWasiCLIOutputingText]);
 
-  const handleSetView = useCallback((view: EditorView | null) => {
+  const handleSetView = useCallback((view: EditorView) => {
     setView(view);
+  }, []);
+
+  // Clears the view only if the context still holds that exact view, so a
+  // teardown never clears a view announced by someone else in the meantime.
+  const handleClearViewIfCurrent = useCallback((viewToClear: EditorView) => {
+    setView((current) => (current === viewToClear ? null : current));
   }, []);
 
   const produceProseMirrorDiff = useCallback(
@@ -107,9 +116,11 @@ export const ProseMirrorProvider = ({
       );
     }
 
+    const content = getDocumentRichTextContent(args.document);
+
     // If the document content is empty, return a minimal ProseMirror document
     // consisting of the root `doc` node with a single empty `paragraph` child.
-    if (!args.document.content) {
+    if (!content) {
       const emptyParagraphDoc = {
         type: 'doc',
         content: [
@@ -129,7 +140,7 @@ export const ProseMirrorProvider = ({
       const result = await representationTransformAdapter.transformToText({
         from: args.document.representation,
         to: richTextRepresentations.PROSEMIRROR,
-        input: args.document.content,
+        input: content,
       });
 
       type RepresentationTransformPMOutput = PMNode;
@@ -207,6 +218,7 @@ export const ProseMirrorProvider = ({
       value={{
         view,
         setView: handleSetView,
+        clearViewIfCurrent: handleClearViewIfCurrent,
         proseMirrorDiff: produceProseMirrorDiff,
         diffAdapterReady: Boolean(diffAdapter),
         convertToProseMirror: handleConvertToProseMirror,

@@ -26,7 +26,7 @@ import { pmDocFromJSONString, pmDocToJSONString } from '../json';
 const pluginKey = new PluginKey('pm-live-sync');
 
 export type LiveSyncPluginArgs = {
-  live: LiveDocument;
+  liveDocument: LiveDocument;
   initialVersion: LiveDocumentVersion;
   schemaVersion: number;
   schema: Schema;
@@ -35,7 +35,7 @@ export type LiveSyncPluginArgs = {
 };
 
 export const liveSyncPlugin = ({
-  live,
+  liveDocument,
   initialVersion,
   schemaVersion,
   schema,
@@ -141,7 +141,10 @@ export const liveSyncPlugin = ({
           Effect.catchAll((error) => Effect.sync(() => onError(error)))
         );
 
-      const unsubscribe = forEachLatestRefChange(live.content, applyChange);
+      const unsubscribe = forEachLatestRefChange(
+        liveDocument.content,
+        applyChange
+      );
 
       return {
         // React to local ProseMirror changes
@@ -156,7 +159,7 @@ export const liveSyncPlugin = ({
           };
 
           // update() is synchronous, so run the change as a fire-and-forget task.
-          Effect.runPromise(live.change(doc));
+          Effect.runPromise(liveDocument.change(doc));
         },
         destroy() {
           unsubscribe();

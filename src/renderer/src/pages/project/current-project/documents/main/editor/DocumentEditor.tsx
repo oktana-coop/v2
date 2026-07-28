@@ -8,7 +8,7 @@ import {
   useAssetInsertion,
   useAssetSrcResolver,
 } from '../../../../../../app-state';
-import { RichTextEditor } from '../../../../../../components/editing/RichTextEditor';
+import { LiveDocumentEditor } from '../../../../../../components/editing/LiveDocumentEditor';
 import { LongTextSkeleton } from '../../../../../../components/progress/skeletons/LongText';
 import { useCurrentArtifact } from '../../../artifact-route';
 import { ActionsBar } from './ActionsBar';
@@ -43,8 +43,8 @@ export const DocumentEditor = () => {
       <div className="flex w-full flex-auto flex-col items-center overflow-auto">
         <div className="flex w-full max-w-3xl flex-col">
           {liveDocument ? (
-            <RichTextEditor
-              live={liveDocument}
+            <LiveDocumentEditor
+              liveDocument={liveDocument}
               isToolbarOpen={isEditorToolbarOpen}
               pickAsset={pickAsset}
               resolveAssetSrc={resolveAssetSrc}
