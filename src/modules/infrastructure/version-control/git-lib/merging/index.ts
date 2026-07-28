@@ -26,7 +26,7 @@ import {
   parseGitCommitHash,
 } from '../../models';
 import { deleteBranch, switchToBranch } from '../branching';
-import { DEFAULT_AUTHOR, stageAndCommitWorkdirChanges } from '../committing';
+import { resolveAuthor, stageAndCommitWorkdirChanges } from '../committing';
 import { IsoGitDeps } from '../types';
 
 export type MergeAndDeleteBranchArgs = Omit<IsoGitDeps, 'isoGitHttp'> & {
@@ -179,7 +179,8 @@ export const mergeAndDeleteBranch = ({
 
   return pipe(
     switchToBranch({ isoGitFs, dir, branch: into }),
-    Effect.flatMap(() =>
+    Effect.flatMap(() => resolveAuthor({ isoGitFs, dir })),
+    Effect.flatMap((author) =>
       Effect.tryPromise({
         try: () =>
           git.merge({
@@ -187,7 +188,7 @@ export const mergeAndDeleteBranch = ({
             dir,
             ours: into,
             theirs: from,
-            author: DEFAULT_AUTHOR,
+            author,
             abortOnConflict: false,
           }),
         catch: (err) => {
