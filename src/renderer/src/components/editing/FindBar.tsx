@@ -154,15 +154,17 @@ export const FindBar = ({
           onKeyDown={handleInputKeyDown}
         />
       </div>
-      {query && (
-        <span className="min-w-14 text-center text-xs text-zinc-500 dark:text-zinc-400">
-          {matchCount === 0
+      {/* Always rendered (even with no query) so the bar keeps a constant
+       * width and the input doesn't shift as the counter appears. */}
+      <span className="min-w-16 whitespace-nowrap text-center text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
+        {!query
+          ? null
+          : matchCount === 0
             ? 'No results'
             : activeMatchIndex !== null
               ? `${activeMatchIndex + 1} of ${matchCount}`
               : `${matchCount} ${matchCount === 1 ? 'match' : 'matches'}`}
-        </span>
-      )}
+      </span>
       <IconButton
         icon={<ChevronDownIcon size={20} className="rotate-180" />}
         onClick={handleFindPrevious}
