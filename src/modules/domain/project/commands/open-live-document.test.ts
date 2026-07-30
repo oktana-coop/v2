@@ -14,14 +14,13 @@ import { type ArtifactId } from '../../../../modules/infrastructure/version-cont
 import { subscribeToRef } from '../../../../utils/effect';
 import { RepositoryError } from '../errors';
 import { parseProjectId } from '../models';
-import { type ProjectStore } from '../ports';
 import {
   openLiveDocument,
   type OpenLiveDocumentDeps,
 } from './open-live-document';
 
 const projectId = parseProjectId('/tmp/v2-live-document-test');
-// `findDocumentById` is faked, so the id's actual value is irrelevant.
+// `findDocumentById` is mocked, so the id's actual value is irrelevant.
 const documentId = 'note.md' as unknown as ArtifactId;
 
 const primaryDocument = (content: string): RichTextDocument => ({
@@ -40,7 +39,7 @@ const editorDocument = (content: string): RichTextDocument => ({
 
 const transformed = (content: string) => `md:${content}`;
 
-const createFakeProjectStore = (initialContent: string) => {
+const createMockProjectStore = (initialContent: string) => {
   let diskContent = initialContent;
 
   const findDocumentById = vi.fn(() =>
@@ -57,10 +56,6 @@ const createFakeProjectStore = (initialContent: string) => {
   );
 
   return {
-    projectStore: {
-      findDocumentById,
-      updateRichTextDocumentContent,
-    } as unknown as ProjectStore,
     writes,
     findDocumentById,
     updateRichTextDocumentContent,
@@ -71,14 +66,15 @@ const createFakeProjectStore = (initialContent: string) => {
 };
 
 const buildDeps = (
-  fakeStore: ReturnType<typeof createFakeProjectStore>,
+  mockStore: ReturnType<typeof createMockProjectStore>,
   overrides: Partial<OpenLiveDocumentDeps> = {}
 ): OpenLiveDocumentDeps => ({
   createLiveDocumentAdapter: createInMemoryLiveDocumentAdapter,
   transformToText: vi.fn(async ({ input }: { input: string }) =>
     transformed(input)
   ),
-  projectStore: fakeStore.projectStore,
+  findDocumentById: mockStore.findDocumentById,
+  updateRichTextDocumentContent: mockStore.updateRichTextDocumentContent,
   onPersistError: vi.fn(),
   ...overrides,
 });
@@ -99,35 +95,35 @@ describe('openLiveDocument', () => {
   });
 
   it('opens with the stored document and writes nothing', async () => {
-    const fakeStore = createFakeProjectStore('on disk');
+    const mockStore = createMockProjectStore('on disk');
 
-    const live = await open(buildDeps(fakeStore));
+    const live = await open(buildDeps(mockStore));
     const current = await Effect.runPromise(SubscriptionRef.get(live.content));
 
     expect(current).toEqual({
       doc: primaryDocument('on disk'),
       version: '0',
     });
-    expect(fakeStore.writes).toEqual([]);
+    expect(mockStore.writes).toEqual([]);
   });
 
   it('updates live content immediately and writes behind after the debounce', async () => {
-    const fakeStore = createFakeProjectStore('on disk');
-    const live = await open(buildDeps(fakeStore));
+    const mockStore = createMockProjectStore('on disk');
+    const live = await open(buildDeps(mockStore));
 
     await Effect.runPromise(live.change(editorDocument('typed')));
 
     const current = await Effect.runPromise(SubscriptionRef.get(live.content));
     expect(current).toEqual({ doc: editorDocument('typed'), version: '1' });
-    expect(fakeStore.writes).toEqual([]);
+    expect(mockStore.writes).toEqual([]);
 
     await vi.advanceTimersByTimeAsync(299);
-    expect(fakeStore.writes).toEqual([]);
+    expect(mockStore.writes).toEqual([]);
 
     await vi.advanceTimersByTimeAsync(1);
-    expect(fakeStore.writes).toEqual([transformed('typed')]);
-    expect(fakeStore.updateRichTextDocumentContent).toHaveBeenCalledTimes(1);
-    expect(fakeStore.updateRichTextDocumentContent).toHaveBeenCalledWith({
+    expect(mockStore.writes).toEqual([transformed('typed')]);
+    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledTimes(1);
+    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledWith({
       projectId,
       documentId,
       representation: PRIMARY_RICH_TEXT_REPRESENTATION,
@@ -136,8 +132,8 @@ describe('openLiveDocument', () => {
   });
 
   it('coalesces a burst of changes into one write of the last document', async () => {
-    const fakeStore = createFakeProjectStore('on disk');
-    const live = await open(buildDeps(fakeStore));
+    const mockStore = createMockProjectStore('on disk');
+    const live = await open(buildDeps(mockStore));
 
     await Effect.runPromise(live.change(editorDocument('a')));
     await vi.advanceTimersByTimeAsync(100);
@@ -147,42 +143,42 @@ describe('openLiveDocument', () => {
 
     await vi.advanceTimersByTimeAsync(300);
 
-    expect(fakeStore.writes).toEqual([transformed('abc')]);
+    expect(mockStore.writes).toEqual([transformed('abc')]);
   });
 
   it('flushes without waiting for the timer and is idempotent', async () => {
-    const fakeStore = createFakeProjectStore('on disk');
-    const live = await open(buildDeps(fakeStore));
+    const mockStore = createMockProjectStore('on disk');
+    const live = await open(buildDeps(mockStore));
 
     await Effect.runPromise(live.change(editorDocument('typed')));
     await Effect.runPromise(live.flush);
 
-    expect(fakeStore.writes).toEqual([transformed('typed')]);
+    expect(mockStore.writes).toEqual([transformed('typed')]);
 
     await Effect.runPromise(live.flush);
     await vi.advanceTimersByTimeAsync(300);
 
-    expect(fakeStore.writes).toEqual([transformed('typed')]);
+    expect(mockStore.writes).toEqual([transformed('typed')]);
   });
 
   it('never writes a change the refresh superseded', async () => {
-    const fakeStore = createFakeProjectStore('on disk');
-    const live = await open(buildDeps(fakeStore));
+    const mockStore = createMockProjectStore('on disk');
+    const live = await open(buildDeps(mockStore));
 
     await Effect.runPromise(live.change(editorDocument('typed')));
-    fakeStore.writeToDisk('restored from history');
+    mockStore.writeToDisk('restored from history');
     await Effect.runPromise(live.refresh);
 
     await vi.advanceTimersByTimeAsync(300);
 
-    expect(fakeStore.writes).toEqual([]);
+    expect(mockStore.writes).toEqual([]);
     const current = await Effect.runPromise(SubscriptionRef.get(live.content));
     expect(current.doc).toEqual(primaryDocument('restored from history'));
   });
 
   it('emits nothing when a refresh re-reads what was last persisted', async () => {
-    const fakeStore = createFakeProjectStore('on disk');
-    const live = await open(buildDeps(fakeStore));
+    const mockStore = createMockProjectStore('on disk');
+    const live = await open(buildDeps(mockStore));
 
     const received: LiveDocumentChange[] = [];
     const unsubscribe = subscribeToRef(live.content, (change) =>
@@ -200,40 +196,40 @@ describe('openLiveDocument', () => {
   });
 
   it('drops an armed write on cancelPendingPersist', async () => {
-    const fakeStore = createFakeProjectStore('on disk');
-    const live = await open(buildDeps(fakeStore));
+    const mockStore = createMockProjectStore('on disk');
+    const live = await open(buildDeps(mockStore));
 
     await Effect.runPromise(live.change(editorDocument('typed')));
     await Effect.runPromise(live.cancelPendingPersist);
 
     await vi.advanceTimersByTimeAsync(300);
 
-    expect(fakeStore.writes).toEqual([]);
+    expect(mockStore.writes).toEqual([]);
   });
 
   it('flushes pending work on close', async () => {
-    const fakeStore = createFakeProjectStore('on disk');
-    const live = await open(buildDeps(fakeStore));
+    const mockStore = createMockProjectStore('on disk');
+    const live = await open(buildDeps(mockStore));
 
     await Effect.runPromise(live.change(editorDocument('typed')));
     await Effect.runPromise(live.close);
 
-    expect(fakeStore.writes).toEqual([transformed('typed')]);
+    expect(mockStore.writes).toEqual([transformed('typed')]);
   });
 
   it('reports a failing write through onPersistError', async () => {
-    const fakeStore = createFakeProjectStore('on disk');
+    const mockStore = createMockProjectStore('on disk');
     const onPersistError = vi.fn();
-    fakeStore.updateRichTextDocumentContent.mockReturnValue(
+    mockStore.updateRichTextDocumentContent.mockReturnValue(
       Effect.fail(new RepositoryError('write failed')) as never
     );
 
-    const live = await open(buildDeps(fakeStore, { onPersistError }));
+    const live = await open(buildDeps(mockStore, { onPersistError }));
 
     await Effect.runPromise(live.change(editorDocument('typed')));
     await vi.advanceTimersByTimeAsync(300);
 
     expect(onPersistError).toHaveBeenCalledTimes(1);
-    expect(fakeStore.writes).toEqual([]);
+    expect(mockStore.writes).toEqual([]);
   });
 });

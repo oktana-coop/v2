@@ -43,7 +43,8 @@ export type OpenLiveDocumentDeps = {
     initial: RichTextDocument
   ) => Effect.Effect<LiveDocument>;
   transformToText: RepresentationTransform['transformToText'];
-  projectStore: ProjectStore;
+  findDocumentById: ProjectStore['findDocumentById'];
+  updateRichTextDocumentContent: ProjectStore['updateRichTextDocumentContent'];
   onPersistError: (error: unknown) => void;
 };
 
@@ -65,7 +66,8 @@ export const openLiveDocument =
   ({
     createLiveDocumentAdapter,
     transformToText,
-    projectStore,
+    findDocumentById,
+    updateRichTextDocumentContent,
     onPersistError,
   }: OpenLiveDocumentDeps) =>
   ({
@@ -73,7 +75,7 @@ export const openLiveDocument =
     documentId,
   }: OpenLiveDocumentArgs): Effect.Effect<OpenedLiveDocument, OpenError> =>
     pipe(
-      projectStore.findDocumentById({ projectId, documentId }),
+      findDocumentById({ projectId, documentId }),
       Effect.flatMap(({ artifact }) =>
         pipe(
           Effect.all({
@@ -115,7 +117,7 @@ export const openLiveDocument =
                         last === textContent
                           ? Effect.void
                           : pipe(
-                              projectStore.updateRichTextDocumentContent({
+                              updateRichTextDocumentContent({
                                 projectId,
                                 documentId,
                                 representation:
@@ -166,7 +168,7 @@ export const openLiveDocument =
                   // store starts its IPC call when the effect is constructed.
                   Effect.zipRight(
                     Effect.suspend(() =>
-                      projectStore.findDocumentById({ projectId, documentId })
+                      findDocumentById({ projectId, documentId })
                     )
                   ),
                   Effect.flatMap(({ artifact: fresh }) =>

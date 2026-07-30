@@ -112,7 +112,9 @@ export const CurrentDocumentProvider = ({
       openLiveDocument({
         createLiveDocumentAdapter: createInMemoryLiveDocumentAdapter,
         transformToText: representationTransformAdapter.transformToText,
-        projectStore,
+        findDocumentById: projectStore.findDocumentById,
+        updateRichTextDocumentContent:
+          projectStore.updateRichTextDocumentContent,
         onPersistError: (error) => {
           console.error(error);
           dispatchNotification(
