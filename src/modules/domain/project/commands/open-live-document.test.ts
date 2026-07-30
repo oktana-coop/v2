@@ -79,9 +79,6 @@ const buildDeps = (
 const open = (deps: OpenLiveDocumentDeps) =>
   Effect.runPromise(openLiveDocument(deps)({ projectId, documentId }));
 
-// Effect schedules on microtasks and the debounce on a timer; drain both.
-const settle = () => vi.advanceTimersByTimeAsync(0);
-
 describe('openLiveDocument', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -178,7 +175,7 @@ describe('openLiveDocument', () => {
     expect(current.doc).toEqual(primaryDocument('restored from history'));
   });
 
-  it('emits nothing when a refresh re-reads what was last persisted', async () => {
+  it('produces no new value when a refresh re-reads what was last persisted', async () => {
     const mockStore = createMockProjectStore('on disk');
     const live = await open(buildDeps(mockStore));
 
@@ -186,13 +183,20 @@ describe('openLiveDocument', () => {
     const unsubscribe = subscribeToRef(live.content, (change) =>
       received.push(change)
     );
-    await settle();
-    expect(received).toHaveLength(1);
+    // The replayed current value proves the subscription is live.
+    await vi.waitFor(() => expect(received).toHaveLength(1));
 
     await Effect.runPromise(live.refresh);
-    await settle();
 
-    expect(received).toHaveLength(1);
+    // Sentinel: deliveries are ordered, so had the refresh produced a new
+    // value, it would occupy the second slot instead of the sentinel.
+    await Effect.runPromise(live.change(editorDocument('sentinel')));
+    await vi.waitFor(() => expect(received).toHaveLength(2));
+
+    expect(received).toEqual([
+      { doc: primaryDocument('on disk'), version: '0' },
+      { doc: editorDocument('sentinel'), version: '1' },
+    ]);
 
     unsubscribe();
   });

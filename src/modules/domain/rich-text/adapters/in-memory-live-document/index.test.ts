@@ -39,7 +39,7 @@ describe('in-memory live document adapter', () => {
     });
   });
 
-  it('does not emit or bump the version for equal content', async () => {
+  it('does not produce a new value or bump the version for equal content', async () => {
     const live = await Effect.runPromise(
       createAdapter(markdownDocument('initial'))
     );
@@ -54,8 +54,8 @@ describe('in-memory live document adapter', () => {
     const version = await Effect.runPromise(
       live.change(markdownDocument('initial'))
     );
-    // Sentinel: deliveries are ordered, so had the equal change emitted,
-    // it would occupy the second slot instead of the sentinel.
+    // Sentinel: deliveries are ordered, so had the equal change produced a
+    // new value, it would occupy the second slot instead of the sentinel.
     await Effect.runPromise(live.change(markdownDocument('sentinel')));
     await vi.waitFor(() => expect(received).toHaveLength(2));
 
