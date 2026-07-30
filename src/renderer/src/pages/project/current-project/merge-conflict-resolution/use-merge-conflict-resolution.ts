@@ -3,7 +3,7 @@ import { pipe } from 'effect/Function';
 import { useCallback, useContext, useEffect, useState } from 'react';
 
 import {
-  processDocumentChange,
+  persistDocument,
   type ProjectId,
 } from '../../../../../../modules/domain/project';
 import {
@@ -148,14 +148,14 @@ export const useMergeConflictResolution = () => {
       try {
         await Effect.runPromise(
           pipe(
-            processDocumentChange({
+            persistDocument({
               transformToText: representationTransformAdapter.transformToText,
               updateRichTextDocumentContent:
                 projectStore.updateRichTextDocumentContent,
             })({
               projectId,
               documentId,
-              updatedDocument: doc,
+              document: doc,
             }),
             Effect.flatMap(() =>
               projectStore.resolveContentConflict({

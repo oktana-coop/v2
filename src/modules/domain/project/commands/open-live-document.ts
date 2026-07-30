@@ -5,26 +5,19 @@ import * as Ref from 'effect/Ref';
 
 import {
   type LiveDocument,
-  PRIMARY_RICH_TEXT_REPRESENTATION,
   type RepresentationTransform,
-  RepresentationTransformError,
   type RichTextDocument,
 } from '../../../../modules/domain/rich-text';
 import {
   type ArtifactId,
   MigrationError,
 } from '../../../../modules/infrastructure/version-control';
-import { mapErrorTo } from '../../../../utils/errors';
 import { NotFoundError, RepositoryError, ValidationError } from '../errors';
 import { type ProjectId } from '../models';
 import { type ProjectStore } from '../ports';
+import { persistDocument, type PersistDocumentError } from './persist-document';
 
-export type PersistError =
-  | ValidationError
-  | RepositoryError
-  | NotFoundError
-  | MigrationError
-  | RepresentationTransformError;
+export type PersistError = PersistDocumentError;
 
 export type RefreshError =
   | ValidationError
@@ -91,45 +84,24 @@ export const openLiveDocument =
               // finished.
               const persistMutex = persistSemaphore.withPermits(1);
 
-              const toPrimaryTextRepresentation = (doc: RichTextDocument) =>
-                doc.representation === PRIMARY_RICH_TEXT_REPRESENTATION
-                  ? Effect.succeed(doc.content)
-                  : Effect.tryPromise({
-                      try: () =>
-                        transformToText({
-                          from: doc.representation,
-                          to: PRIMARY_RICH_TEXT_REPRESENTATION,
-                          input: doc.content,
-                        }),
-                      catch: mapErrorTo(
-                        RepresentationTransformError,
-                        'Rich text representation transformation error'
-                      ),
-                    });
+              const persistToStore = persistDocument({
+                transformToText,
+                updateRichTextDocumentContent,
+              });
 
               const persist = (doc: RichTextDocument) =>
                 pipe(
-                  toPrimaryTextRepresentation(doc),
+                  Ref.get(lastPersisted),
+                  Effect.flatMap((last) =>
+                    persistToStore({
+                      projectId,
+                      documentId,
+                      document: doc,
+                      skipIfContentEquals: last,
+                    })
+                  ),
                   Effect.flatMap((textContent) =>
-                    pipe(
-                      Ref.get(lastPersisted),
-                      Effect.flatMap((last) =>
-                        last === textContent
-                          ? Effect.void
-                          : pipe(
-                              updateRichTextDocumentContent({
-                                projectId,
-                                documentId,
-                                representation:
-                                  PRIMARY_RICH_TEXT_REPRESENTATION,
-                                content: textContent,
-                              }),
-                              Effect.zipRight(
-                                Ref.set(lastPersisted, textContent)
-                              )
-                            )
-                      )
-                    )
+                    Ref.set(lastPersisted, textContent)
                   )
                 );
 
