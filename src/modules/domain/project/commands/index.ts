@@ -6,4 +6,10 @@ export {
   type InsertAssetDeps,
 } from './insert-asset';
 export * from './resolve-document-asset-url';
-export { processDocumentChange } from './process-document-change';
+export { persistDocument } from './persist-document';
+export {
+  openLiveDocument,
+  type OpenedLiveDocument,
+  type OpenLiveDocumentArgs,
+  type OpenLiveDocumentDeps,
+} from './open-live-document';

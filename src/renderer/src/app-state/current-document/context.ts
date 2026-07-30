@@ -7,8 +7,7 @@ import { type CurrentDocumentContextType } from './types';
 export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
   {
     versionedDocumentId: null,
-    versionedDocument: null,
-    onDocumentContentChange: async () => {},
+    liveDocument: null,
     loadingHistory: false,
     versionedDocumentHistory: [],
     canCommit: false,

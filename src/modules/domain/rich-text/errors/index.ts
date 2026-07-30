@@ -61,3 +61,8 @@ export const RichTextLibErrorTag = 'RichTextLibError';
 export class RichTextLibError extends Cause.YieldableError {
   readonly _tag = RichTextLibErrorTag;
 }
+
+export const WebEditorErrorTag = 'WebEditorError';
+export class WebEditorError extends Cause.YieldableError {
+  readonly _tag = WebEditorErrorTag;
+}

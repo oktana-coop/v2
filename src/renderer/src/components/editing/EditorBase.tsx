@@ -1,5 +1,4 @@
 import { clsx } from 'clsx';
-import debounce from 'debounce';
 import {
   baseKeymap,
   chainCommands,
@@ -8,9 +7,14 @@ import {
 import { history, redo, undo } from 'prosemirror-history';
 import { keymap } from 'prosemirror-keymap';
 import { type Node, type Schema } from 'prosemirror-model';
-import { EditorState, Selection, Transaction } from 'prosemirror-state';
-import { EditorView } from 'prosemirror-view';
-import { useContext, useEffect, useRef, useState } from 'react';
+import {
+  type EditorState,
+  type Plugin,
+  type Selection,
+  type Transaction,
+} from 'prosemirror-state';
+import { type EditorView } from 'prosemirror-view';
+import { useCallback, useContext, useState } from 'react';
 
 import {
   type BlockType,
@@ -23,18 +27,21 @@ import {
   LinkAttrs,
   prosemirror,
   type RichTextDocument,
-  richTextRepresentations,
 } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
 import { useKeyBindings } from '../../keyboard';
 import { keyBindings } from '../../pages/project/shared/command-palette/key-bindings';
+import { LongTextSkeleton } from '../progress/skeletons/LongText';
 import { EditorToolbar } from './editor-toolbar';
 import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';
+import { type EditorSeed, ProseMirrorEditor } from './ProseMirrorEditor';
+import { useEditorSeed } from './use-editor-seed';
 
 const {
   schema,
   buildInputRules,
+  ensureTrailingParagraphInDoc,
   getCurrentLeafBlockType,
   getCurrentContainerBlockType,
   isMarkActive,
@@ -49,7 +56,6 @@ const {
   selectionChangePlugin,
   getSelectedText,
   findLinkAtSelection,
-  ensureTrailingParagraphInDoc,
   ensureTrailingParagraphPlugin,
   ensureTrailingSpaceAfterAtomPlugin,
   moveCursorToNextBlockOnInsertionPlugin,
@@ -70,45 +76,43 @@ const {
   deleteFigureAfterCursor,
   moveToParagraphAfterSelectedFigure,
   pickAndInsertFigure,
-  numberNotes,
   placeholderPlugin,
-  syncPlugin,
-  pmDocFromJSONString,
-  pmDocToJSONString,
+  assetsPlugin,
   diffPlugin,
-  registerNodeViews,
   codeBlockHighlightPlugin,
 } = prosemirror;
 
-type RichTextEditorProps = {
-  doc: RichTextDocument;
-  onDocChange?: (doc: RichTextDocument) => Promise<void>;
-  isEditable?: boolean;
+export type SharedEditorProps = {
   isToolbarOpen?: boolean;
-  showDiffWith?: RichTextDocument;
   pickAsset: prosemirror.FigureAssetPicker;
   resolveAssetSrc: prosemirror.ResolveAssetSrc;
 };
 
-export const RichTextEditor = ({
-  doc,
-  onDocChange,
-  isEditable = true,
+// How the editor is bound to its content: the content as a ProseMirror
+// document, as its domain value (the diff base), and the sync plugin that
+// carries editor changes back.
+export type ContentBinding = {
+  pmDoc: Node;
+  sourceDoc: RichTextDocument;
+  syncPlugin: Plugin;
+};
+
+type EditorBaseProps = SharedEditorProps & {
+  bindContent: (schema: Schema) => Promise<ContentBinding>;
+  diffWith?: RichTextDocument;
+};
+
+// The editing layer: everything that turns a rendered document into an editable one.
+// Read-only views skip this layer and use ProseMirrorEditor directly.
+export const EditorBase = ({
+  bindContent,
+  diffWith,
   isToolbarOpen = false,
-  showDiffWith,
   pickAsset,
   resolveAssetSrc,
-}: RichTextEditorProps) => {
-  const editorRoot = useRef<HTMLDivElement>(null);
-  const editorViewRef = useRef<EditorView | null>(null);
-  const {
-    view,
-    setView,
-    parseMarkdown,
-    convertToProseMirror,
-    convertFromProseMirror,
-    proseMirrorDiff,
-  } = useContext(ProseMirrorContext);
+}: EditorBaseProps) => {
+  const { view, parseMarkdown, convertFromProseMirror, proseMirrorDiff } =
+    useContext(ProseMirrorContext);
   const [leafBlockType, setLeafBlockType] = useState<LeafBlockType | null>(
     null
   );
@@ -153,7 +157,16 @@ export const RichTextEditor = ({
       }
     };
 
-  const getBasePlugins = (schema: Schema) => [
+  const buildPlugins = ({
+    schema,
+    syncPlugin,
+    diffPlugin,
+  }: {
+    schema: Schema;
+    syncPlugin: Plugin;
+    diffPlugin: Plugin | null;
+  }) => [
+    assetsPlugin(resolveAssetSrc),
     buildInputRules(schema),
     placeholderPlugin('Start writing...'),
     ...markdownMarkPlugins(schema),
@@ -189,6 +202,8 @@ export const RichTextEditor = ({
     moveCursorToNextBlockOnInsertionPlugin(schema),
     ensureTrailingSpaceAfterAtomPlugin(),
     removeEmptyFiguresPlugin(schema),
+    syncPlugin,
+    ...(diffPlugin ? [diffPlugin] : []),
   ];
 
   useKeyBindings({
@@ -197,7 +212,7 @@ export const RichTextEditor = ({
     },
   });
 
-  const setupDiffPlugin = async ({
+  const buildDiffPlugin = async ({
     currentDoc,
     diffWith,
   }: {
@@ -208,10 +223,7 @@ export const RichTextEditor = ({
     const contentAfter = getDocumentRichTextContent(currentDoc);
 
     const { decorations } = await proseMirrorDiff({
-      representation:
-        // There are some old document versions without the representataion set. The representation is Automerge in that case.
-        // TODO: Remove this fallback when we no longer expect documents without representation set.
-        doc.representation ?? richTextRepresentations.AUTOMERGE,
+      representation: currentDoc.representation,
       proseMirrorSchema: schema,
       docBefore: contentBefore,
       docAfter: contentAfter,
@@ -223,186 +235,95 @@ export const RichTextEditor = ({
       proseMirrorDiff,
       convertFromProseMirror,
       transformImageSrc: resolveAssetSrc,
-      diffWith: showDiffWith,
+      diffWith,
     });
   };
 
-  const setupSyncPlugin = ({
-    onDocChange,
-  }: {
-    onDocChange: (doc: RichTextDocument) => Promise<void>;
-  }) => {
-    const handlePMDocChange = debounce(async (pmDoc: Node) => {
-      const pmJSONStr = pmDocToJSONString(pmDoc);
+  const createSeed = useCallback(
+    async (schema: Schema): Promise<EditorSeed> => {
+      const { pmDoc, sourceDoc, syncPlugin } = await bindContent(schema);
 
-      onDocChange({
-        schemaVersion: doc.schemaVersion,
-        representation: richTextRepresentations.PROSEMIRROR,
-        content: pmJSONStr,
+      // Apply the trailing-paragraph invariant (a place to put the cursor
+      // after a figure) up-front: the plugin only fires after the first
+      // transaction.
+      const doc = ensureTrailingParagraphInDoc(pmDoc, schema);
+
+      const diffPlugin = diffWith
+        ? await buildDiffPlugin({ currentDoc: sourceDoc, diffWith })
+        : null;
+
+      return { doc, plugins: buildPlugins({ schema, syncPlugin, diffPlugin }) };
+    },
+    // diffWith is deliberately not a dependency: changes to it are handled
+    // by rebuildPlugins (an in-place plugin swap that keeps the user's
+    // edited doc) — a new seed would rebuild the doc from the source and
+    // discard unsaved edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [bindContent]
+  );
+
+  const seed = useEditorSeed(createSeed);
+
+  const rebuildPlugins = useCallback(
+    async ({
+      schema,
+      currentDoc: currentPmDoc,
+    }: {
+      schema: Schema;
+      currentDoc: Node;
+    }): Promise<Plugin[]> => {
+      const { syncPlugin } = await bindContent(schema);
+
+      if (!diffWith) {
+        return buildPlugins({ schema, syncPlugin, diffPlugin: null });
+      }
+
+      const currentDocContent = await convertFromProseMirror({
+        pmDoc: currentPmDoc,
+        to: diffWith.representation,
       });
-    }, 300);
 
-    return syncPlugin({
-      onPMDocChange: handlePMDocChange,
-    });
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const setupEditorAndView = async (schema: Schema) => {
-      const plugins = getBasePlugins(schema);
-
-      if (isEditable && onDocChange) {
-        const sync = setupSyncPlugin({ onDocChange });
-        plugins.push(sync);
-      }
-
-      if (showDiffWith) {
-        const diff = await setupDiffPlugin({
-          currentDoc: doc,
-          diffWith: showDiffWith,
-        });
-        plugins.push(diff);
-      }
-
-      const richTextContent = getDocumentRichTextContent(doc);
-
-      const pmDoc =
-        doc.representation !== richTextRepresentations.PROSEMIRROR
-          ? await convertToProseMirror({
-              schema: schema,
-              document: {
-                ...doc,
-                content: richTextContent,
-              },
-            })
-          : pmDocFromJSONString(doc.content, schema);
-
-      // After awaiting async conversion, ensure this run still represents the
-      // current document and that another effect didn't create the view in the
-      // meantime (avoid duplicate EditorView creation).
-      if (cancelled || editorViewRef.current) return;
-
-      const editorConfig = {
-        schema,
-        plugins,
-        // Apply the trailing-paragraph invariant up-front so docs that end in a figure
-        // (or other block that needs one) get a trailing paragraph on first load.
-        // The relevant plugin fires after the first transaction, so it's not enough.
-        doc: ensureTrailingParagraphInDoc(pmDoc, schema),
+      const currentDoc: RichTextDocument = {
+        representation: diffWith.representation,
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        content: currentDocContent,
       };
 
-      const state = EditorState.create(editorConfig);
-      const editorView = new EditorView(editorRoot.current, {
-        state,
-        nodeViews: registerNodeViews({ resolveAssetSrc }),
-        dispatchTransaction: (tx: Transaction) => {
-          const newState = editorView.state.apply(tx);
-          editorView.updateState(newState);
+      const diffPlugin = await buildDiffPlugin({ currentDoc, diffWith });
 
-          // React state updates
-          setLeafBlockType(getCurrentLeafBlockType(newState));
-          setContainerBlockType(getCurrentContainerBlockType(newState));
-          setHorizontalRuleEnabled(canInsertHorizontalRule(newState));
-          setImageEnabled(canInsertFigure(newState));
+      return buildPlugins({ schema, syncPlugin, diffPlugin });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [bindContent, diffWith]
+  );
 
-          if (tx.selectionSet || transactionUpdatesMarks(tx)) {
-            setStrongSelected(isMarkActive(schema.marks.strong)(newState));
-            setEmSelected(isMarkActive(schema.marks.em)(newState));
-            setSelectionIsLink(isMarkActive(schema.marks.link)(newState));
-            setCodeSelected(isMarkActive(schema.marks.code)(newState));
-          }
-        },
-        editable: () => isEditable,
-      });
+  const handleTransaction = useCallback(
+    ({ state, tx }: { state: EditorState; tx: Transaction }) => {
+      setLeafBlockType(getCurrentLeafBlockType(state));
+      setContainerBlockType(getCurrentContainerBlockType(state));
+      setHorizontalRuleEnabled(canInsertHorizontalRule(state));
+      setImageEnabled(canInsertFigure(state));
 
-      editorViewRef.current = editorView;
-
-      numberNotes(state, editorView.dispatch, editorView);
-
-      // Announce the view to the shared context only after creation.
-      setView(editorView);
-
-      if (isEditable) {
-        editorViewRef.current?.focus();
-        setLeafBlockType(getCurrentLeafBlockType(state));
-        setContainerBlockType(getCurrentContainerBlockType(state));
-        setHorizontalRuleEnabled(canInsertHorizontalRule(state));
-        setImageEnabled(canInsertFigure(state));
+      if (tx.selectionSet || transactionUpdatesMarks(tx)) {
+        setStrongSelected(isMarkActive(schema.marks.strong)(state));
+        setEmSelected(isMarkActive(schema.marks.em)(state));
+        setSelectionIsLink(isMarkActive(schema.marks.link)(state));
+        setCodeSelected(isMarkActive(schema.marks.code)(state));
       }
-    };
+    },
+    []
+  );
 
-    if (schema && !editorViewRef.current) {
-      setupEditorAndView(schema);
-    }
-
-    return () => {
-      cancelled = true;
-
-      // If this component created the view (editorViewRef), destroy it and
-      // clear the context view so other components won't reuse the destroyed
-      // instance.
-      if (editorViewRef.current) {
-        editorViewRef.current.destroy();
-        // If the context still holds the same view, clear it.
-        if (view === editorViewRef.current) {
-          setView(null);
-        }
-        editorViewRef.current = null;
-      }
-    };
-  }, [doc, isEditable, schema, setView]);
-
-  useEffect(() => {
-    const reconfigurePlugins = async ({
-      pmDoc,
-      diffWith,
-      editorView,
-    }: {
-      pmDoc: Node;
-      diffWith: RichTextDocument | undefined;
-      editorView: EditorView;
-    }) => {
-      const plugins = getBasePlugins(schema);
-
-      if (isEditable && onDocChange) {
-        const sync = setupSyncPlugin({ onDocChange });
-        plugins.push(sync);
-      }
-
-      if (diffWith) {
-        const currentDocContent = await convertFromProseMirror({
-          pmDoc,
-          to: diffWith.representation,
-        });
-
-        const currentDoc: RichTextDocument = {
-          representation: diffWith.representation,
-          schemaVersion: CURRENT_SCHEMA_VERSION,
-          content: currentDocContent,
-        };
-
-        const diffPlugin = await setupDiffPlugin({
-          currentDoc,
-          diffWith,
-        });
-
-        plugins.push(diffPlugin);
-      }
-
-      const newState = editorView.state.reconfigure({ plugins });
-      editorView.updateState(newState);
-    };
-
-    if (editorViewRef.current) {
-      reconfigurePlugins({
-        pmDoc: editorViewRef.current.state.doc,
-        diffWith: showDiffWith,
-        editorView: editorViewRef.current,
-      });
-    }
-  }, [showDiffWith, convertFromProseMirror]);
+  const handleViewReady = useCallback(
+    ({ view: editorView, state }: { view: EditorView; state: EditorState }) => {
+      editorView.focus();
+      setLeafBlockType(getCurrentLeafBlockType(state));
+      setContainerBlockType(getCurrentContainerBlockType(state));
+      setHorizontalRuleEnabled(canInsertHorizontalRule(state));
+      setImageEnabled(canInsertFigure(state));
+    },
+    []
+  );
 
   const handleBlockSelect = (type: BlockType) => {
     if (view) {
@@ -567,20 +488,25 @@ export const RichTextEditor = ({
     }
   };
 
+  if (!seed) {
+    return <LongTextSkeleton />;
+  }
+
   return (
     <>
       <div
         className="flex flex-auto p-4 outline-none"
-        onClick={() => editorViewRef.current?.focus()}
+        onClick={() => view?.focus()}
       >
-        <div
-          className="editor flex-auto font-editor"
-          id="editor"
-          ref={editorRoot}
+        <ProseMirrorEditor
+          seed={seed}
+          rebuildPlugins={rebuildPlugins}
+          onTransaction={handleTransaction}
+          onViewReady={handleViewReady}
         />
       </div>
 
-      {isEditable && leafBlockType && (
+      {leafBlockType && (
         <div
           className={clsx(
             'absolute self-center drop-shadow transition-bottom',
@@ -607,23 +533,19 @@ export const RichTextEditor = ({
           />
         </div>
       )}
-      {isEditable && (
-        <>
-          <LinkDialog
-            initialLinkAttrs={linkDialogInitialAttrs}
-            isOpen={isLinkDialogOpen}
-            onCancel={() => setIsLinkDialogOpen(false)}
-            onSave={handleSaveLink}
-          />
-          <LinkPopover
-            linkData={selectedLinkData}
-            isOpen={isLinkPopoverOpen}
-            onEditLink={handleEditLink}
-            onRemoveLink={handleRemoveLink}
-            onClose={handleCloseLinkPopover}
-          />
-        </>
-      )}
+      <LinkDialog
+        initialLinkAttrs={linkDialogInitialAttrs}
+        isOpen={isLinkDialogOpen}
+        onCancel={() => setIsLinkDialogOpen(false)}
+        onSave={handleSaveLink}
+      />
+      <LinkPopover
+        linkData={selectedLinkData}
+        isOpen={isLinkPopoverOpen}
+        onEditLink={handleEditLink}
+        onRemoveLink={handleRemoveLink}
+        onClose={handleCloseLinkPopover}
+      />
     </>
   );
 };

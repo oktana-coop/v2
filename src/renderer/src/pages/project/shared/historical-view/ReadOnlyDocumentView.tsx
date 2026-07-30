@@ -1,26 +1,28 @@
-import { EditorState } from 'prosemirror-state';
-import { EditorView } from 'prosemirror-view';
-import { useContext, useEffect, useRef } from 'react';
+import { type Schema } from 'prosemirror-model';
+import { useCallback, useContext } from 'react';
 
 import { type ProjectRelPath } from '../../../../../../modules/domain/project';
 import {
   getDocumentRichTextContent,
   prosemirror,
   type RichTextDocument,
-  richTextRepresentations,
 } from '../../../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
 import { useAssetSrcResolver } from '../../../../app-state';
+import {
+  type EditorSeed,
+  ProseMirrorEditor,
+} from '../../../../components/editing/ProseMirrorEditor';
+import { useEditorSeed } from '../../../../components/editing/use-editor-seed';
+import { LongTextSkeleton } from '../../../../components/progress/skeletons/LongText';
 
 const {
-  schema,
+  assetsPlugin,
   diffPlugin,
   notesPlugin,
-  numberNotes,
   openExternalLinkPlugin,
   codeBlockHighlightPlugin,
-  registerNodeViews,
 } = prosemirror;
 
 export type DiffViewProps = {
@@ -43,152 +45,88 @@ const isDiffViewProps = (
   );
 };
 
-const isSingleDocViewProps = (
-  props: DiffViewProps | SingleDocViewProps
-): props is SingleDocViewProps => {
-  return (props as SingleDocViewProps).doc !== undefined;
-};
-
 type ReadOnlyDocumentViewProps = DiffViewProps | SingleDocViewProps;
 
 export const ReadOnlyDocumentView = (props: ReadOnlyDocumentViewProps) => {
+  const { diffAdapterReady, representationTransformAdapterReady } =
+    useContext(ProseMirrorContext);
+
+  // TODO: Handle adapter readiness with a promise
+  const adapterReady = isDiffViewProps(props)
+    ? diffAdapterReady
+    : representationTransformAdapterReady;
+
+  if (!adapterReady) {
+    return <LongTextSkeleton />;
+  }
+
+  return <ReadOnlyDocumentContent {...props} />;
+};
+
+const ReadOnlyDocumentContent = (props: ReadOnlyDocumentViewProps) => {
   const { openExternalLink } = useContext(ElectronContext);
-  const editorRoot = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<EditorView | null>(null);
   const resolveAssetSrc = useAssetSrcResolver({ docPath: props.documentPath });
-  const {
-    proseMirrorDiff,
-    diffAdapterReady,
-    convertToProseMirror,
-    convertFromProseMirror,
-    representationTransformAdapterReady,
-  } = useContext(ProseMirrorContext);
+  const { proseMirrorDiff, convertToProseMirror, convertFromProseMirror } =
+    useContext(ProseMirrorContext);
 
-  // This effect is used to create the ProseMirror view once.
-  // Then, every time the document or diff changes, we update the state of the view.
-  useEffect(() => {
-    if (!editorRoot.current || viewRef.current) return;
+  const createSeed = useCallback(
+    async (schema: Schema): Promise<EditorSeed> => {
+      if (isDiffViewProps(props)) {
+        const contentBefore = getDocumentRichTextContent(props.docBefore);
+        const contentAfter = getDocumentRichTextContent(props.docAfter);
 
-    const state = EditorState.create({
-      schema,
-    });
+        const { pmDocAfter, decorations } = await proseMirrorDiff({
+          representation: props.docAfter.representation,
+          proseMirrorSchema: schema,
+          docBefore: contentBefore,
+          docAfter: contentAfter,
+          transformImageSrc: resolveAssetSrc,
+        });
 
-    // Using a ref instead of a state variable to avoid re-rendering
-    // the component every time the view changes.
-    viewRef.current = new EditorView(editorRoot.current, {
-      state,
-      editable: () => false,
-      nodeViews: registerNodeViews({ resolveAssetSrc }),
-    });
-
-    return () => {
-      viewRef.current?.destroy();
-      viewRef.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    let destroyed = false;
-
-    const produceAndShowDiff = async () => {
-      if (!viewRef.current || !isDiffViewProps(props)) return;
-
-      const contentBefore = getDocumentRichTextContent(props.docBefore);
-      const contentAfter = getDocumentRichTextContent(props.docAfter);
-
-      const { pmDocAfter: pmDoc, decorations } = await proseMirrorDiff({
-        representation:
-          // There are some old document versions without the representataion set. The representation is Automerge in that case.
-          // TODO: Remove this fallback when we no longer expect documents without representation set.
-          props.docAfter.representation ?? richTextRepresentations.AUTOMERGE,
-        proseMirrorSchema: schema,
-        docBefore: contentBefore,
-        docAfter: contentAfter,
-        transformImageSrc: resolveAssetSrc,
-      });
-
-      if (destroyed) return;
-
-      const state = EditorState.create({
-        schema,
-        doc: pmDoc,
-        plugins: [
-          openExternalLinkPlugin(openExternalLink),
-          diffPlugin({
-            decorations,
-            proseMirrorDiff,
-            convertFromProseMirror,
-            transformImageSrc: resolveAssetSrc,
-          }),
-          notesPlugin(),
-        ],
-      });
-
-      numberNotes(state, viewRef.current.dispatch, viewRef.current);
-      viewRef.current.updateState(state);
-    };
-
-    // TODO: Handle adapter readiness with a promise
-    if (diffAdapterReady) {
-      produceAndShowDiff();
-    }
-
-    return () => {
-      destroyed = true;
-    };
-  }, [props, proseMirrorDiff, diffAdapterReady]);
-
-  useEffect(() => {
-    let destroyed = false;
-
-    const versionedDocToProseMirror = async () => {
-      if (!viewRef.current || !isSingleDocViewProps(props)) return;
-
-      const richTextContent = getDocumentRichTextContent(props.doc);
+        return {
+          doc: pmDocAfter,
+          plugins: [
+            assetsPlugin(resolveAssetSrc),
+            openExternalLinkPlugin(openExternalLink),
+            diffPlugin({
+              decorations,
+              proseMirrorDiff,
+              convertFromProseMirror,
+              transformImageSrc: resolveAssetSrc,
+            }),
+            notesPlugin(),
+          ],
+        };
+      }
 
       const pmDoc = await convertToProseMirror({
-        schema: schema,
-        document: {
-          ...props.doc,
-          // There are some old document versions without the representataion set. So the TS type is not completely accurate for all historical versions of a document.
-          // But we should be able to remove this check really soon (don't expect many people to have v2 versions < 0.6.6)
-          representation:
-            props.doc.representation ?? richTextRepresentations.AUTOMERGE,
-          content: richTextContent,
-        },
+        schema,
+        document: props.doc,
       });
 
-      if (destroyed) return;
-
-      const state = EditorState.create({
-        schema,
+      return {
         doc: pmDoc,
         plugins: [
+          assetsPlugin(resolveAssetSrc),
           openExternalLinkPlugin(openExternalLink),
           notesPlugin(),
           codeBlockHighlightPlugin,
         ],
-      });
+      };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [props]
+  );
 
-      numberNotes(state, viewRef.current.dispatch, viewRef.current);
-      viewRef.current.updateState(state);
-    };
+  const seed = useEditorSeed(createSeed);
 
-    // TODO: Handle adapter readiness with a promise
-    if (representationTransformAdapterReady) {
-      versionedDocToProseMirror();
-    }
-
-    return () => {
-      destroyed = true;
-    };
-  }, [props, convertToProseMirror, representationTransformAdapterReady]);
+  if (!seed) {
+    return <LongTextSkeleton />;
+  }
 
   return (
-    <div
-      className="editor flex-auto p-4 font-editor"
-      id="editor"
-      ref={editorRoot}
-    />
+    <div className="flex flex-auto p-4">
+      <ProseMirrorEditor seed={seed} isEditable={false} announceView={false} />
+    </div>
   );
 };

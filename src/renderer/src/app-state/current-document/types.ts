@@ -1,7 +1,4 @@
-import {
-  type RichTextDocument,
-  type VersionedDocument,
-} from '../../../../modules/domain/rich-text';
+import { type LiveDocument } from '../../../../modules/domain/rich-text';
 import {
   type ArtifactId,
   type ChangeId,
@@ -11,8 +8,7 @@ import {
 
 export type CurrentDocumentContextType = {
   versionedDocumentId: ArtifactId | null;
-  versionedDocument: VersionedDocument | null;
-  onDocumentContentChange: (doc: RichTextDocument) => Promise<void>;
+  liveDocument: LiveDocument | null;
   loadingHistory: boolean;
   versionedDocumentHistory: ChangeWithUrlInfo[];
   canCommit: boolean;

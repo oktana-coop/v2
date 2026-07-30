@@ -1,13 +1,13 @@
 import { Node } from 'prosemirror-model';
 import { Plugin, PluginKey } from 'prosemirror-state';
 
-const pluginKey = new PluginKey('pm-sync');
+const pluginKey = new PluginKey('pm-one-way-sync');
 
-type SyncPluginArgs = {
+type OneWaySyncPluginArgs = {
   onPMDocChange: (doc: Node) => void;
 };
 
-export const syncPlugin = ({ onPMDocChange }: SyncPluginArgs) =>
+export const oneWaySyncPlugin = ({ onPMDocChange }: OneWaySyncPluginArgs) =>
   new Plugin({
     key: pluginKey,
     view() {
