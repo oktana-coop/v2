@@ -46,17 +46,14 @@ const createMockProjectStore = (initialContent: string) => {
     Effect.succeed({ id: documentId, artifact: primaryDocument(diskContent) })
   );
 
-  const writes: string[] = [];
   const updateRichTextDocumentContent = vi.fn(
     ({ content }: { content: string }) =>
       Effect.sync(() => {
-        writes.push(content);
         diskContent = content;
       })
   );
 
   return {
-    writes,
     findDocumentById,
     updateRichTextDocumentContent,
     writeToDisk: (content: string) => {
@@ -104,7 +101,7 @@ describe('openLiveDocument', () => {
       doc: primaryDocument('on disk'),
       version: '0',
     });
-    expect(mockStore.writes).toEqual([]);
+    expect(mockStore.updateRichTextDocumentContent).not.toHaveBeenCalled();
   });
 
   it('updates live content immediately and writes behind after the debounce', async () => {
@@ -115,13 +112,12 @@ describe('openLiveDocument', () => {
 
     const current = await Effect.runPromise(SubscriptionRef.get(live.content));
     expect(current).toEqual({ doc: editorDocument('typed'), version: '1' });
-    expect(mockStore.writes).toEqual([]);
+    expect(mockStore.updateRichTextDocumentContent).not.toHaveBeenCalled();
 
     await vi.advanceTimersByTimeAsync(299);
-    expect(mockStore.writes).toEqual([]);
+    expect(mockStore.updateRichTextDocumentContent).not.toHaveBeenCalled();
 
     await vi.advanceTimersByTimeAsync(1);
-    expect(mockStore.writes).toEqual([transformed('typed')]);
     expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledTimes(1);
     expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledWith({
       projectId,
@@ -143,7 +139,10 @@ describe('openLiveDocument', () => {
 
     await vi.advanceTimersByTimeAsync(300);
 
-    expect(mockStore.writes).toEqual([transformed('abc')]);
+    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledTimes(1);
+    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledWith(
+      expect.objectContaining({ content: transformed('abc') })
+    );
   });
 
   it('flushes without waiting for the timer and is idempotent', async () => {
@@ -153,12 +152,15 @@ describe('openLiveDocument', () => {
     await Effect.runPromise(live.change(editorDocument('typed')));
     await Effect.runPromise(live.flush);
 
-    expect(mockStore.writes).toEqual([transformed('typed')]);
+    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledTimes(1);
+    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledWith(
+      expect.objectContaining({ content: transformed('typed') })
+    );
 
     await Effect.runPromise(live.flush);
     await vi.advanceTimersByTimeAsync(300);
 
-    expect(mockStore.writes).toEqual([transformed('typed')]);
+    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledTimes(1);
   });
 
   it('never writes a change the refresh superseded', async () => {
@@ -171,7 +173,7 @@ describe('openLiveDocument', () => {
 
     await vi.advanceTimersByTimeAsync(300);
 
-    expect(mockStore.writes).toEqual([]);
+    expect(mockStore.updateRichTextDocumentContent).not.toHaveBeenCalled();
     const current = await Effect.runPromise(SubscriptionRef.get(live.content));
     expect(current.doc).toEqual(primaryDocument('restored from history'));
   });
@@ -204,7 +206,7 @@ describe('openLiveDocument', () => {
 
     await vi.advanceTimersByTimeAsync(300);
 
-    expect(mockStore.writes).toEqual([]);
+    expect(mockStore.updateRichTextDocumentContent).not.toHaveBeenCalled();
   });
 
   it('flushes pending work on close', async () => {
@@ -214,7 +216,10 @@ describe('openLiveDocument', () => {
     await Effect.runPromise(live.change(editorDocument('typed')));
     await Effect.runPromise(live.close);
 
-    expect(mockStore.writes).toEqual([transformed('typed')]);
+    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledTimes(1);
+    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledWith(
+      expect.objectContaining({ content: transformed('typed') })
+    );
   });
 
   it('reports a failing write through onPersistError', async () => {
@@ -230,6 +235,6 @@ describe('openLiveDocument', () => {
     await vi.advanceTimersByTimeAsync(300);
 
     expect(onPersistError).toHaveBeenCalledTimes(1);
-    expect(mockStore.writes).toEqual([]);
+    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledTimes(1);
   });
 });
