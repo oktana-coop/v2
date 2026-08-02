@@ -47,7 +47,8 @@ export const ProjectCommandPalette = ({
   const { selection, startCreateDirectory } = useDocumentExplorerTree();
   const clearWebStorage = useClearWebStorage();
 
-  const { exportToText, exportToBinary, exportToPDF } = useExport();
+  const { exportToText, exportToBinary, exportToPDF, copyTextToClipboard } =
+    useExport();
 
   const openableDocuments = useMemo(
     () =>
@@ -105,6 +106,10 @@ export const ProjectCommandPalette = ({
           },
         ]
       : []),
+    {
+      name: 'Copy as Markdown',
+      onActionSelection: copyTextToClipboard(richTextRepresentations.MARKDOWN),
+    },
     {
       name: keyBindings.ctrlShiftM.command,
       shortcut: keyBindings.ctrlShiftM.keyBinding,
