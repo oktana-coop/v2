@@ -13,6 +13,7 @@ const {
   getActiveSearchMatchIndex,
   getSearchMatches,
   getSearchSeedFromSelection,
+  scrollActiveSearchMatchIntoView,
   selectNearestSearchMatch,
   setSearchQuery,
 } = prosemirror;
@@ -63,6 +64,7 @@ export const FindBar = ({
       setSearchQuery(search)(view.state, view.dispatch);
       if (search) {
         selectNearestSearchMatch(view.state, view.dispatch);
+        scrollActiveSearchMatchIntoView(view);
       }
     },
     [view]
@@ -102,9 +104,12 @@ export const FindBar = ({
     applyQuery(event.target.value);
   };
 
+  // The commands ask for a scroll themselves, but prosemirror-view drops the
+  // request while focus is in the find bar, so scroll the match explicitly.
   const runFindCommand = (command: Command) => {
     if (view) {
       command(view.state, view.dispatch);
+      scrollActiveSearchMatchIntoView(view);
     }
   };
 
