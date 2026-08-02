@@ -1,4 +1,8 @@
-import type { MarkType } from 'prosemirror-model';
+import {
+  Fragment,
+  type MarkType,
+  type Node as ProseMirrorNode,
+} from 'prosemirror-model';
 import {
   EditorState,
   Plugin,
@@ -103,6 +107,80 @@ export const getSelectedText = (state: EditorState): string | null => {
   }
 
   return state.doc.textBetween(selection.from, selection.to);
+};
+
+// Last resort for selections whose structure cannot be closed into a valid
+// document: just the selected text, one paragraph per block.
+const plainTextDocFromSelection = (
+  state: EditorState,
+  from: number,
+  to: number
+): ProseMirrorNode => {
+  const { schema } = state;
+  const paragraphs = state.doc
+    .textBetween(from, to, '\n')
+    .split('\n')
+    .map((line) =>
+      schema.nodes.paragraph.create(null, line ? [schema.text(line)] : null)
+    );
+
+  return state.doc.type.create(null, Fragment.from(paragraphs));
+};
+
+// Builds the smallest valid standalone document that contains the current
+// selection, keeping only the structural context the content cannot stand
+// without: list items keep their list (and its type), a partial heading or
+// code block keeps its block, but e.g. a blockquote around fully selected
+// paragraphs is dropped. Returns null when the selection is empty.
+export const docFromSelection = (
+  state: EditorState
+): ProseMirrorNode | null => {
+  const { selection, doc } = state;
+
+  if (selection.empty) {
+    return null;
+  }
+
+  const { $from, from, to } = selection;
+  const docType = doc.type;
+
+  // Cut the selected range out of the deepest node that contains all of it.
+  const sharedDepth = $from.sharedDepth(to);
+  const contentStart = $from.start(sharedDepth);
+  let fragment = $from
+    .node(sharedDepth)
+    .content.cut(from - contentStart, to - contentStart);
+
+  // Wrap the fragment in copies of its ancestors until it is valid top-level
+  // document content. createAndFill patches up boundary nodes that the cut
+  // left without their required children.
+  let depth = sharedDepth;
+  while (depth > 0 && !docType.validContent(fragment)) {
+    const ancestor = $from.node(depth);
+    const wrapped = ancestor.type.createAndFill(ancestor.attrs, fragment);
+
+    if (!wrapped) {
+      break;
+    }
+
+    fragment = Fragment.from(wrapped);
+    depth -= 1;
+  }
+
+  if (docType.validContent(fragment)) {
+    // Deliberately not carrying over the source doc's attrs (pandocMeta):
+    // copying a selection should not drag document metadata along.
+    const candidate = docType.create(null, fragment);
+
+    try {
+      candidate.check();
+      return candidate;
+    } catch {
+      // Fall through to the plain-text fallback below.
+    }
+  }
+
+  return plainTextDocFromSelection(state, from, to);
 };
 
 export const findLinkAtSelection = ({
