@@ -16,6 +16,11 @@ import {
 } from '../../../../../modules/domain/rich-text';
 import { RepresentationTransformContext } from '../../../../../modules/domain/rich-text/react/representation-transform-context';
 import {
+  createErrorNotification,
+  createSuccessNotification,
+  NotificationsContext,
+} from '../../../../../modules/infrastructure/notifications/browser';
+import {
   ExportTemplatesContext,
   exportTemplateToCss,
 } from '../../../../../modules/personalization/browser';
@@ -33,6 +38,7 @@ export const useExport = () => {
   );
   const { adapter } = useContext(RepresentationTransformContext);
   const { activeTemplate } = useContext(ExportTemplatesContext);
+  const { dispatchNotification } = useContext(NotificationsContext);
   const { projectId: projectIdParam } = useParams();
   const documentId = useCurrentDocumentId();
   const { currentArtifact } = useContext(ProjectContext);
@@ -134,11 +140,35 @@ export const useExport = () => {
 
   const exportToPDF = exportToBinary(binaryRichTextRepresentations.PDF);
 
+  const copyTextToClipboard =
+    (representation: TextRichTextRepresentation) => async () => {
+      try {
+        const text = await getExportText(representation);
+        await navigator.clipboard.writeText(text);
+        dispatchNotification(
+          createSuccessNotification({
+            title: 'Copied to Clipboard',
+            message: 'The document content was copied to the clipboard.',
+          })
+        );
+      } catch (err) {
+        console.error(err);
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Copy to Clipboard Error',
+            message:
+              'An error happened when trying to copy the document to the clipboard. Please try again.',
+          })
+        );
+      }
+    };
+
   return {
     getExportText,
     getExportBinaryData,
     exportToText,
     exportToBinary,
     exportToPDF,
+    copyTextToClipboard,
   };
 };
