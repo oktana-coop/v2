@@ -10,8 +10,5 @@ export {
   removeEmptyFiguresPlugin,
 } from './figure';
 export { FigureView } from './FigureView';
-export {
-  ImageView,
-  type ImageViewOptions,
-  type ResolveAssetSrc,
-} from './ImageView';
+export { ImageView, type ResolveAssetSrc } from './ImageView';
+export { assetsPlugin, assetsPluginKey } from './plugin';
