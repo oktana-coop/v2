@@ -338,6 +338,27 @@ export const typeInEditorAndWaitForDebounce = async ({
 };
 
 /**
+ * Opens the given project folder, opens hello.md, and replaces its content
+ * with the given text.
+ */
+export const setupEditorWithText = async ({
+  electronApp,
+  window,
+  folderPath,
+  text,
+}: {
+  electronApp: ElectronApplication;
+  window: Page;
+  folderPath: string;
+  text: string;
+}): Promise<void> => {
+  await openProjectFolder({ electronApp, window, folderPath });
+  await openHelloMd({ window });
+  await clearEditor({ window });
+  await typeInEditorAndWaitForDebounce({ window, text });
+};
+
+/**
  * Focuses the body paragraph (one ArrowDown below the H1); assumes a
  * title-then-paragraph document.
  */

@@ -144,6 +144,8 @@ export const FindBar = ({
 
   return (
     <div
+      role="search"
+      aria-label="Find in document"
       className="absolute right-4 top-14 z-10 flex items-center gap-2 rounded-lg bg-white/75 p-2 shadow-lg ring-1 ring-zinc-950/10 backdrop-blur-xl dark:bg-zinc-800/75 dark:ring-inset dark:ring-white/10"
       onKeyDown={handleBarKeyDown}
     >
