@@ -11,7 +11,7 @@ import {
 } from '../test-utils';
 import {
   clearSearchQuery,
-  selectNearestSearchMatch,
+  selectFirstMatchAtOrAfterSelection,
   setSearchQuery,
 } from './commands';
 import { searchPlugin } from './plugin';
@@ -140,13 +140,13 @@ describe('getSearchSeedFromSelection', () => {
   });
 });
 
-describe('selectNearestSearchMatch', () => {
+describe('selectFirstMatchAtOrAfterSelection', () => {
   it('selects the first match at or after the cursor', () => {
     const state = stateWithQuery([para('hello world hello')], 'hello');
     const withCursor = withCursorAt({ state, pos: 8 });
     const { handled, next } = runCommand({
       state: withCursor,
-      command: selectNearestSearchMatch,
+      command: selectFirstMatchAtOrAfterSelection,
     });
     expect(handled).toBe(true);
     expect({ from: next.selection.from, to: next.selection.to }).toEqual({
@@ -160,7 +160,7 @@ describe('selectNearestSearchMatch', () => {
     const withCursor = withCursorAt({ state, pos: 13 });
     const { next } = runCommand({
       state: withCursor,
-      command: selectNearestSearchMatch,
+      command: selectFirstMatchAtOrAfterSelection,
     });
     expect({ from: next.selection.from, to: next.selection.to }).toEqual({
       from: 13,
@@ -173,7 +173,7 @@ describe('selectNearestSearchMatch', () => {
     const withCursor = withCursorAt({ state, pos: 18 });
     const { next } = runCommand({
       state: withCursor,
-      command: selectNearestSearchMatch,
+      command: selectFirstMatchAtOrAfterSelection,
     });
     expect({ from: next.selection.from, to: next.selection.to }).toEqual({
       from: 1,
@@ -185,7 +185,7 @@ describe('selectNearestSearchMatch', () => {
     const state = stateWithQuery([para('hello')], 'xyz');
     const { handled } = runCommand({
       state,
-      command: selectNearestSearchMatch,
+      command: selectFirstMatchAtOrAfterSelection,
     });
     expect(handled).toBe(false);
   });

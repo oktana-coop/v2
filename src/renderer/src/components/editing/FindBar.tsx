@@ -26,7 +26,7 @@ const {
   getSearchQueryText,
   getSearchSeedFromSelection,
   scrollActiveSearchMatchIntoView,
-  selectNearestSearchMatch,
+  selectFirstMatchAtOrAfterSelection,
   setSearchQuery,
 } = prosemirror;
 
@@ -55,7 +55,7 @@ export const FindBar = () => {
       }
       setSearchQuery(search)(view.state, view.dispatch);
       if (search) {
-        selectNearestSearchMatch(view.state, view.dispatch);
+        selectFirstMatchAtOrAfterSelection(view.state, view.dispatch);
         scrollActiveSearchMatchIntoView(view);
       }
     },
