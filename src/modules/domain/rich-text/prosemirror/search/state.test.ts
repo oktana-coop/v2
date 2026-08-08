@@ -1,19 +1,10 @@
-import { type Node } from 'prosemirror-model';
-import { EditorState } from 'prosemirror-state';
-
 import {
   editorState,
   heading,
   para,
-  runCommand,
   withCursorAt,
   withSelectionAt,
 } from '../test-utils';
-import {
-  clearSearchQuery,
-  selectFirstMatchAtOrAfterSelection,
-  setSearchQuery,
-} from './commands';
 import { searchPlugin } from './plugin';
 import {
   getActiveSearchMatchIndex,
@@ -21,11 +12,7 @@ import {
   getSearchQueryText,
   getSearchSeedFromSelection,
 } from './state';
-
-const stateWithQuery = (children: Node[], search: string): EditorState => {
-  const state = editorState(children, [searchPlugin()]);
-  return runCommand({ state, command: setSearchQuery(search) }).next;
-};
+import { stateWithQuery } from './test-utils';
 
 describe('getSearchMatches', () => {
   it('returns all matches in document order', () => {
@@ -52,21 +39,6 @@ describe('getSearchMatches', () => {
   it('returns no matches when no query has been set', () => {
     const state = editorState([para('hello')], [searchPlugin()]);
     expect(getSearchMatches(state)).toEqual([]);
-  });
-
-  it('returns no matches after the query is cleared', () => {
-    const state = stateWithQuery([para('hello')], 'hello');
-    const { next } = runCommand({ state, command: clearSearchQuery });
-    expect(getSearchMatches(next)).toEqual([]);
-  });
-});
-
-describe('searchPlugin', () => {
-  it('keeps the query when the state is reconfigured with a fresh plugin', () => {
-    const state = stateWithQuery([para('hello')], 'hello');
-    const reconfigured = state.reconfigure({ plugins: [searchPlugin()] });
-    expect(getSearchQueryText(reconfigured)).toBe('hello');
-    expect(getSearchMatches(reconfigured)).toHaveLength(1);
   });
 });
 
@@ -137,56 +109,5 @@ describe('getSearchSeedFromSelection', () => {
       pos: 2,
     });
     expect(getSearchSeedFromSelection(state)).toBeNull();
-  });
-});
-
-describe('selectFirstMatchAtOrAfterSelection', () => {
-  it('selects the first match at or after the cursor', () => {
-    const state = stateWithQuery([para('hello world hello')], 'hello');
-    const withCursor = withCursorAt({ state, pos: 8 });
-    const { handled, next } = runCommand({
-      state: withCursor,
-      command: selectFirstMatchAtOrAfterSelection,
-    });
-    expect(handled).toBe(true);
-    expect({ from: next.selection.from, to: next.selection.to }).toEqual({
-      from: 13,
-      to: 18,
-    });
-  });
-
-  it('stays on the match the cursor starts on', () => {
-    const state = stateWithQuery([para('hello world hello')], 'hello');
-    const withCursor = withCursorAt({ state, pos: 13 });
-    const { next } = runCommand({
-      state: withCursor,
-      command: selectFirstMatchAtOrAfterSelection,
-    });
-    expect({ from: next.selection.from, to: next.selection.to }).toEqual({
-      from: 13,
-      to: 18,
-    });
-  });
-
-  it('wraps to the first match when none follow the cursor', () => {
-    const state = stateWithQuery([para('hello world hello')], 'hello');
-    const withCursor = withCursorAt({ state, pos: 18 });
-    const { next } = runCommand({
-      state: withCursor,
-      command: selectFirstMatchAtOrAfterSelection,
-    });
-    expect({ from: next.selection.from, to: next.selection.to }).toEqual({
-      from: 1,
-      to: 6,
-    });
-  });
-
-  it('is not handled when there are no matches', () => {
-    const state = stateWithQuery([para('hello')], 'xyz');
-    const { handled } = runCommand({
-      state,
-      command: selectFirstMatchAtOrAfterSelection,
-    });
-    expect(handled).toBe(false);
   });
 });
