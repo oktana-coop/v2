@@ -14,7 +14,7 @@ import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/p
 import { useKeyBindings } from '../../keyboard';
 import { keyBindings } from '../../pages/project/shared/command-palette/key-bindings';
 import { IconButton } from '../actions/IconButton';
-import { ChevronDownIcon, CloseIcon } from '../icons';
+import { ChevronDownIcon, ChevronUpIcon, CloseIcon } from '../icons';
 import { Input } from '../inputs/Input';
 
 const {
@@ -187,7 +187,7 @@ export const FindBar = () => {
               : `${matchCount} ${matchCount === 1 ? 'match' : 'matches'}`}
       </span>
       <IconButton
-        icon={<ChevronDownIcon size={20} className="rotate-180" />}
+        icon={<ChevronUpIcon size={20} />}
         onClick={handleFindPrevious}
         disabled={matchCount === 0}
         tooltip="Previous match"
