@@ -21,10 +21,14 @@ describe('scrollActiveSearchMatchIntoView', () => {
         '<span class="ProseMirror-active-search-match">hello</span>' +
         '</p>'
     );
+    // An own-property stub, so the assertion proves the call happened on
+    // this element; other elements would hit the shared prototype stub.
+    const active = dom.querySelector('.ProseMirror-active-search-match')!;
+    active.scrollIntoView = vi.fn();
+
     scrollActiveSearchMatchIntoView(view);
 
-    const active = dom.querySelector('.ProseMirror-active-search-match');
-    expect(active?.scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
+    expect(active.scrollIntoView).toHaveBeenCalledWith({ block: 'center' });
   });
 
   it('does nothing when there is no active match', () => {

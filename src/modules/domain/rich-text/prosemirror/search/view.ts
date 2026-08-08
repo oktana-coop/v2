@@ -9,5 +9,5 @@ export const scrollActiveSearchMatchIntoView = (view: EditorView): void => {
   const activeMatch = view.dom.querySelector(
     '.ProseMirror-active-search-match'
   );
-  activeMatch?.scrollIntoView({ block: 'nearest' });
+  activeMatch?.scrollIntoView({ block: 'center' });
 };
