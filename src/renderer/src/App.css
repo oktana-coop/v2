@@ -192,6 +192,17 @@
   @apply bg-red-200 dark:text-black;
 }
 
+/* Find-in-document match highlights. Like the diff annotations above, the
+ * class names (from prosemirror-search) only appear at runtime, so they
+ * live at the top level to escape Tailwind's tree-shaking.
+ */
+.ProseMirror-search-match {
+  @apply bg-yellow-200 dark:text-black;
+}
+.ProseMirror-active-search-match {
+  @apply bg-orange-300 dark:text-black;
+}
+
 @layer components {
   .kbd {
     @apply m-0.5 inline-flex items-center justify-center rounded-md border border-zinc-300 bg-zinc-100 px-1 py-0.5 font-sans text-xs font-medium text-zinc-900 shadow-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100;

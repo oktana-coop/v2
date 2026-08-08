@@ -10,6 +10,7 @@ import {
 import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
 import { useAssetSrcResolver } from '../../../../app-state';
+import { FindBar } from '../../../../components/editing/FindBar';
 import {
   type EditorSeed,
   ProseMirrorEditor,
@@ -23,6 +24,7 @@ const {
   notesPlugin,
   openExternalLinkPlugin,
   codeBlockHighlightPlugin,
+  searchPlugin,
 } = prosemirror;
 
 export type DiffViewProps = {
@@ -95,6 +97,7 @@ const ReadOnlyDocumentContent = (props: ReadOnlyDocumentViewProps) => {
               transformImageSrc: resolveAssetSrc,
             }),
             notesPlugin(),
+            searchPlugin(),
           ],
         };
       }
@@ -111,6 +114,7 @@ const ReadOnlyDocumentContent = (props: ReadOnlyDocumentViewProps) => {
           openExternalLinkPlugin(openExternalLink),
           notesPlugin(),
           codeBlockHighlightPlugin,
+          searchPlugin(),
         ],
       };
     },
@@ -126,7 +130,8 @@ const ReadOnlyDocumentContent = (props: ReadOnlyDocumentViewProps) => {
 
   return (
     <div className="flex flex-auto p-4">
-      <ProseMirrorEditor seed={seed} isEditable={false} announceView={false} />
+      <ProseMirrorEditor seed={seed} isEditable={false} />
+      <FindBar />
     </div>
   );
 };

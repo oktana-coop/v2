@@ -33,6 +33,7 @@ import { useKeyBindings } from '../../keyboard';
 import { keyBindings } from '../../pages/project/shared/command-palette/key-bindings';
 import { LongTextSkeleton } from '../progress/skeletons/LongText';
 import { EditorToolbar } from './editor-toolbar';
+import { FindBar } from './FindBar';
 import { LinkDialog } from './LinkDialog';
 import { LinkPopover } from './LinkPopover';
 import { type EditorSeed, ProseMirrorEditor } from './ProseMirrorEditor';
@@ -80,6 +81,7 @@ const {
   assetsPlugin,
   diffPlugin,
   codeBlockHighlightPlugin,
+  searchPlugin,
 } = prosemirror;
 
 export type SharedEditorProps = {
@@ -196,6 +198,7 @@ export const EditorBase = ({
     codeBlockHighlightPlugin,
     history(),
     keymap(baseKeymap),
+    searchPlugin(),
     linkSelectionPlugin,
     selectionChangePlugin(onSelectionChange(schema)),
     ensureTrailingParagraphPlugin(schema),
@@ -505,6 +508,8 @@ export const EditorBase = ({
           onViewReady={handleViewReady}
         />
       </div>
+
+      <FindBar />
 
       {leafBlockType && (
         <div

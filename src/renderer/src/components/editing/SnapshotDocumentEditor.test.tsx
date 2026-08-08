@@ -41,6 +41,9 @@ describe('SnapshotDocumentEditor', () => {
     const context = {
       setView: () => {},
       clearViewIfCurrent: () => {},
+      subscribeToViewState: () => () => {},
+      getViewState: () => null,
+      onViewStateChange: () => {},
       convertToProseMirror,
       parseMarkdown: vi.fn(),
     } as unknown as ProseMirrorContextType;
@@ -78,6 +81,9 @@ describe('SnapshotDocumentEditor', () => {
     const context = {
       setView: () => {},
       clearViewIfCurrent: () => {},
+      subscribeToViewState: () => () => {},
+      getViewState: () => null,
+      onViewStateChange: () => {},
       convertToProseMirror,
       parseMarkdown: vi.fn(),
     } as unknown as ProseMirrorContextType;
