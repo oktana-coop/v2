@@ -60,7 +60,7 @@ export const HistoricalDocumentView = ({
   }
 
   return (
-    <div className="flex flex-auto flex-col items-center">
+    <div className="relative flex flex-auto flex-col items-center">
       <div className="w-full">
         <DocumentHistoryActionsBar
           title={title}

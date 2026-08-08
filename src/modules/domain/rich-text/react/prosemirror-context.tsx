@@ -1,10 +1,12 @@
 import { type Node, type Schema } from 'prosemirror-model';
+import { type EditorState } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -43,6 +45,10 @@ export type ProseMirrorContextType = {
   view: EditorView | null;
   setView: (view: EditorView) => void;
   clearViewIfCurrent: (view: EditorView) => void;
+  // The owner of the view calls onViewStateChange whenever it puts a new state on the view
+  onViewStateChange: () => void;
+  subscribeToViewState: (listener: () => void) => () => void;
+  getViewState: () => EditorState | null;
   proseMirrorDiff: (
     args: ProseMirrorDiffArgs
   ) => Promise<ProseMirrorDiffResult>;
@@ -57,6 +63,9 @@ export const ProseMirrorContext = createContext<ProseMirrorContextType>({
   view: null,
   setView: () => {},
   clearViewIfCurrent: () => {},
+  subscribeToViewState: () => () => {},
+  getViewState: () => null,
+  onViewStateChange: () => {},
   // @ts-expect-error will get overriden below
   proseMirrorDiff: () => null,
   // @ts-expect-error will get overriden below
@@ -93,6 +102,23 @@ export const ProseMirrorProvider = ({
   const handleClearViewIfCurrent = useCallback((viewToClear: EditorView) => {
     setView((current) => (current === viewToClear ? null : current));
   }, []);
+
+  // Listeners live in a ref: a state change must reach subscribers without
+  // re-rendering every context consumer.
+  const viewStateListeners = useRef<Set<() => void>>(new Set());
+
+  const handleSubscribeToViewState = useCallback((listener: () => void) => {
+    viewStateListeners.current.add(listener);
+    return () => {
+      viewStateListeners.current.delete(listener);
+    };
+  }, []);
+
+  const handleViewStateChange = useCallback(() => {
+    viewStateListeners.current.forEach((listener) => listener());
+  }, []);
+
+  const handleGetViewState = useCallback(() => view?.state ?? null, [view]);
 
   const produceProseMirrorDiff = useCallback(
     async (args: ProseMirrorDiffArgs) => {
@@ -219,6 +245,9 @@ export const ProseMirrorProvider = ({
         view,
         setView: handleSetView,
         clearViewIfCurrent: handleClearViewIfCurrent,
+        subscribeToViewState: handleSubscribeToViewState,
+        getViewState: handleGetViewState,
+        onViewStateChange: handleViewStateChange,
         proseMirrorDiff: produceProseMirrorDiff,
         diffAdapterReady: Boolean(diffAdapter),
         convertToProseMirror: handleConvertToProseMirror,

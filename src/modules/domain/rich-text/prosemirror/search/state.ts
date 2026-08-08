@@ -1,7 +1,10 @@
-import { getMatchHighlights } from 'prosemirror-search';
+import { getMatchHighlights, getSearchState } from 'prosemirror-search';
 import { type EditorState } from 'prosemirror-state';
 
 export type SearchMatch = { from: number; to: number };
+
+export const getSearchQueryText = (state: EditorState): string =>
+  getSearchState(state)?.query.search ?? '';
 
 // All matches of the active search query, in document order, read from the
 // match-highlight decorations the search plugin has already computed.

@@ -14,7 +14,7 @@ import {
   type Transaction,
 } from 'prosemirror-state';
 import { type EditorView } from 'prosemirror-view';
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useState } from 'react';
 
 import {
   type BlockType,
@@ -29,11 +29,6 @@ import {
   type RichTextDocument,
 } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
-import {
-  BranchingCommandPaletteContext,
-  CommandPaletteContext,
-  CommitModalContext,
-} from '../../app-state';
 import { useKeyBindings } from '../../keyboard';
 import { keyBindings } from '../../pages/project/shared/command-palette/key-bindings';
 import { LongTextSkeleton } from '../progress/skeletons/LongText';
@@ -87,7 +82,6 @@ const {
   diffPlugin,
   codeBlockHighlightPlugin,
   searchPlugin,
-  clearSearchQuery,
 } = prosemirror;
 
 export type SharedEditorProps = {
@@ -121,11 +115,6 @@ export const EditorBase = ({
 }: EditorBaseProps) => {
   const { view, parseMarkdown, convertFromProseMirror, proseMirrorDiff } =
     useContext(ProseMirrorContext);
-  const { isOpen: isCommandPaletteOpen } = useContext(CommandPaletteContext);
-  const { isOpen: isBranchingCommandPaletteOpen } = useContext(
-    BranchingCommandPaletteContext
-  );
-  const { isOpen: isCommitModalOpen } = useContext(CommitModalContext);
   const [leafBlockType, setLeafBlockType] = useState<LeafBlockType | null>(
     null
   );
@@ -147,17 +136,6 @@ export const EditorBase = ({
     ref: Element;
     linkAttrs: LinkAttrs;
   } | null>(null);
-  const [isFindBarOpen, setIsFindBarOpen] = useState<boolean>(false);
-  const [findBarFocusToken, setFindBarFocusToken] = useState<number>(0);
-  const [searchRefreshToken, setSearchRefreshToken] = useState<number>(0);
-  // Mirrors `isFindBarOpen` for `dispatchTransaction`, which is created once
-  // when the view is set up and would otherwise capture a stale value.
-  const isFindBarOpenRef = useRef<boolean>(false);
-
-  const setFindBarOpen = (open: boolean) => {
-    isFindBarOpenRef.current = open;
-    setIsFindBarOpen(open);
-  };
 
   const onSelectionChange: (
     schema: Schema
@@ -231,41 +209,10 @@ export const EditorBase = ({
     ...(diffPlugin ? [diffPlugin] : []),
   ];
 
-  const handleOpenFindBar = () => {
-    setFindBarOpen(true);
-    setFindBarFocusToken((token) => token + 1);
-  };
-
-  const handleCloseFindBar = () => {
-    setFindBarOpen(false);
-    view?.focus();
-  };
-
-  // Clear the search highlights whenever the find bar is closed, no matter
-  // how it was closed (Escape, close button, view recreation or plugin
-  // reconfiguration), so the invariant lives in one place.
-  useEffect(() => {
-    if (!isFindBarOpen && view) {
-      clearSearchQuery(view.state, view.dispatch);
-    }
-  }, [isFindBarOpen, view]);
-
-  // Escape closes the find bar, unless an overlay that handles Escape itself
-  // (command palette, commit modal, link dialog) is open on top of it.
-  const overlayWithOwnEscapeIsOpen =
-    isCommandPaletteOpen ||
-    isBranchingCommandPaletteOpen ||
-    isCommitModalOpen ||
-    isLinkDialogOpen;
-
   useKeyBindings({
     [keyBindings.ctrlShiftL.keyBinding]: () => {
       handleLinkToggle();
     },
-    [keyBindings.ctrlF.keyBinding]: handleOpenFindBar,
-    ...(isFindBarOpen && !overlayWithOwnEscapeIsOpen
-      ? { escape: handleCloseFindBar }
-      : {}),
   });
 
   const buildDiffPlugin = async ({
@@ -353,13 +300,6 @@ export const EditorBase = ({
     [bindContent, diffWith]
   );
 
-  // Rebuilding the plugins recreates the search plugin with an empty query,
-  // so the find bar would be out of sync with it. Mirrors the reconfigure
-  // effect in ProseMirrorEditor, which fires on the same dependency.
-  useEffect(() => {
-    setFindBarOpen(false);
-  }, [rebuildPlugins]);
-
   const handleTransaction = useCallback(
     ({ state, tx }: { state: EditorState; tx: Transaction }) => {
       setLeafBlockType(getCurrentLeafBlockType(state));
@@ -373,10 +313,6 @@ export const EditorBase = ({
         setSelectionIsLink(isMarkActive(schema.marks.link)(state));
         setCodeSelected(isMarkActive(schema.marks.code)(state));
       }
-
-      if (isFindBarOpenRef.current && (tx.docChanged || tx.selectionSet)) {
-        setSearchRefreshToken((token) => token + 1);
-      }
     },
     []
   );
@@ -388,9 +324,6 @@ export const EditorBase = ({
       setContainerBlockType(getCurrentContainerBlockType(state));
       setHorizontalRuleEnabled(canInsertHorizontalRule(state));
       setImageEnabled(canInsertFigure(state));
-      // A new view or seed starts with an empty search query, so the find
-      // bar would be out of sync with it.
-      setFindBarOpen(false);
     },
     []
   );
@@ -576,13 +509,7 @@ export const EditorBase = ({
         />
       </div>
 
-      <FindBar
-        view={view}
-        isOpen={isFindBarOpen}
-        focusToken={findBarFocusToken}
-        refreshToken={searchRefreshToken}
-        onClose={handleCloseFindBar}
-      />
+      <FindBar />
 
       {leafBlockType && (
         <div

@@ -18,6 +18,7 @@ import { searchPlugin } from './plugin';
 import {
   getActiveSearchMatchIndex,
   getSearchMatches,
+  getSearchQueryText,
   getSearchSeedFromSelection,
 } from './state';
 
@@ -57,6 +58,32 @@ describe('getSearchMatches', () => {
     const state = stateWithQuery([para('hello')], 'hello');
     const { next } = runCommand({ state, command: clearSearchQuery });
     expect(getSearchMatches(next)).toEqual([]);
+  });
+});
+
+describe('searchPlugin', () => {
+  it('keeps the query when the state is reconfigured with a fresh plugin', () => {
+    const state = stateWithQuery([para('hello')], 'hello');
+    const reconfigured = state.reconfigure({ plugins: [searchPlugin()] });
+    expect(getSearchQueryText(reconfigured)).toBe('hello');
+    expect(getSearchMatches(reconfigured)).toHaveLength(1);
+  });
+});
+
+describe('getSearchQueryText', () => {
+  it('returns the active query', () => {
+    const state = stateWithQuery([para('hello')], 'hello');
+    expect(getSearchQueryText(state)).toBe('hello');
+  });
+
+  it('returns the empty string when no query has been set', () => {
+    const state = editorState([para('hello')], [searchPlugin()]);
+    expect(getSearchQueryText(state)).toBe('');
+  });
+
+  it('returns the empty string without the search plugin', () => {
+    const state = editorState([para('hello')]);
+    expect(getSearchQueryText(state)).toBe('');
   });
 });
 

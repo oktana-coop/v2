@@ -1,7 +1,7 @@
 import { type Node, type Schema } from 'prosemirror-model';
 import { EditorState, type Plugin, Transaction } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
-import { useContext, useEffect, useRef } from 'react';
+import { useCallback, useContext, useEffect, useRef } from 'react';
 
 import { prosemirror } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
@@ -20,8 +20,6 @@ export type ProseMirrorEditorProps = {
     currentDoc: Node;
   }) => Promise<Plugin[]>;
   isEditable?: boolean;
-  // Whether to publish the view to the shared ProseMirrorContext.
-  announceView?: boolean;
   onTransaction?: (args: { state: EditorState; tx: Transaction }) => void;
   onViewReady?: (args: { view: EditorView; state: EditorState }) => void;
 };
@@ -33,13 +31,21 @@ export const ProseMirrorEditor = ({
   seed,
   rebuildPlugins,
   isEditable = true,
-  announceView = true,
   onTransaction,
   onViewReady,
 }: ProseMirrorEditorProps) => {
   const editorRoot = useRef<HTMLDivElement>(null);
   const editorViewRef = useRef<EditorView | null>(null);
-  const { setView, clearViewIfCurrent } = useContext(ProseMirrorContext);
+  const { setView, clearViewIfCurrent, onViewStateChange } =
+    useContext(ProseMirrorContext);
+
+  const replaceState = useCallback(
+    ({ view, state }: { view: EditorView; state: EditorState }) => {
+      view.updateState(state);
+      onViewStateChange();
+    },
+    [onViewStateChange]
+  );
 
   // Owns the view for the lifetime of the mount.
   useEffect(() => {
@@ -62,7 +68,7 @@ export const ProseMirrorEditor = ({
 
     const existingView = editorViewRef.current;
     if (existingView) {
-      existingView.updateState(state);
+      replaceState({ view: existingView, state });
       onViewReady?.({ view: existingView, state });
       return;
     }
@@ -72,7 +78,7 @@ export const ProseMirrorEditor = ({
       nodeViews: registerNodeViews(),
       dispatchTransaction: (tx: Transaction) => {
         const newState = editorView.state.apply(tx);
-        editorView.updateState(newState);
+        replaceState({ view: editorView, state: newState });
         onTransaction?.({ state: newState, tx });
       },
       editable: () => isEditable,
@@ -81,9 +87,7 @@ export const ProseMirrorEditor = ({
     editorViewRef.current = editorView;
 
     // Announce the view to the shared context only after creation.
-    if (announceView) {
-      setView(editorView);
-    }
+    setView(editorView);
 
     onViewReady?.({ view: editorView, state });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -103,11 +107,11 @@ export const ProseMirrorEditor = ({
       if (editorViewRef.current !== editorView) return;
 
       const newState = editorView.state.reconfigure({ plugins });
-      editorView.updateState(newState);
+      replaceState({ view: editorView, state: newState });
     };
 
     reconfigure();
-  }, [rebuildPlugins]);
+  }, [rebuildPlugins, replaceState]);
 
   return (
     <div
