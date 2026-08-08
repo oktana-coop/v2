@@ -45,7 +45,7 @@ export const FindBar = () => {
   const matches = editorState && query ? getSearchMatches(editorState) : [];
   const matchCount = matches.length;
   const activeMatchIndex = editorState
-    ? getActiveSearchMatchIndex(editorState, matches)
+    ? getActiveSearchMatchIndex({ state: editorState, matches })
     : null;
 
   const applyQuery = useCallback(

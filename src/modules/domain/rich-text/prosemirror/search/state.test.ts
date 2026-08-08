@@ -64,14 +64,16 @@ describe('getActiveSearchMatchIndex', () => {
     const state = stateWithQuery([para('hello world hello')], 'hello');
     const selected = withSelectionAt({ state, from: 13, to: 18 });
     const matches = getSearchMatches(selected);
-    expect(getActiveSearchMatchIndex(selected, matches)).toBe(1);
+    expect(getActiveSearchMatchIndex({ state: selected, matches })).toBe(1);
   });
 
   it('returns null when the selection is not on a match', () => {
     const state = stateWithQuery([para('hello world hello')], 'hello');
     const withCursor = withCursorAt({ state, pos: 8 });
     const matches = getSearchMatches(withCursor);
-    expect(getActiveSearchMatchIndex(withCursor, matches)).toBeNull();
+    expect(
+      getActiveSearchMatchIndex({ state: withCursor, matches })
+    ).toBeNull();
   });
 });
 

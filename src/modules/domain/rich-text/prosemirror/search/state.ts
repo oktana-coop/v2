@@ -15,10 +15,13 @@ export const getSearchMatches = (state: EditorState): SearchMatch[] =>
 
 // Index (in document order) of the match the selection currently sits on,
 // or null when the selection isn't on a match.
-export const getActiveSearchMatchIndex = (
-  state: EditorState,
-  matches: SearchMatch[]
-): number | null => {
+export const getActiveSearchMatchIndex = ({
+  state,
+  matches,
+}: {
+  state: EditorState;
+  matches: SearchMatch[];
+}): number | null => {
   const { from, to } = state.selection;
   const index = matches.findIndex(
     (match) => match.from === from && match.to === to
@@ -27,9 +30,7 @@ export const getActiveSearchMatchIndex = (
 };
 
 // Initial search query for the current selection: the selected text of the
-// first non-empty textblock, up to its first newline (code blocks can contain
-// literal newlines). Matches can't span block boundaries and the find input
-// is single-line, so a longer seed could never be found or displayed.
+// first non-empty textblock, up to its first newline.
 export const getSearchSeedFromSelection = (
   state: EditorState
 ): string | null => {
