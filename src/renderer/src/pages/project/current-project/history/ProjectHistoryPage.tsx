@@ -34,6 +34,7 @@ export const ProjectHistoryPage = () => {
     getProjectChangedDocuments,
     getProjectUncommittedChanges,
     commitChanges,
+    subscribeToProjectDirChanges,
   } = useContext(ProjectContext);
 
   const selectArtifact = useProjectHistoryArtifactSelection();
@@ -53,31 +54,37 @@ export const ProjectHistoryPage = () => {
   const [loadingUncommitted, setLoadingUncommitted] = useState(false);
   const [isCommitDialogOpen, setIsCommitDialogOpen] = useState(false);
 
-  const loadCommits = useCallback(async () => {
-    setLoadingCommits(true);
-    try {
-      const result = await getProjectHistory();
-      setCommits(result);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoadingCommits(false);
-    }
-  }, [getProjectHistory]);
+  const loadCommits = useCallback(
+    async ({ showLoading = true }: { showLoading?: boolean } = {}) => {
+      if (showLoading) setLoadingCommits(true);
+      try {
+        const result = await getProjectHistory();
+        setCommits(result);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        if (showLoading) setLoadingCommits(false);
+      }
+    },
+    [getProjectHistory]
+  );
 
-  const loadUncommittedChanges = useCallback(async () => {
-    setLoadingUncommitted(true);
-    try {
-      const result = await getProjectUncommittedChanges();
-      setUncommittedChanges(
-        result.filter((change) => !HIDDEN_FILES.has(change.path))
-      );
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoadingUncommitted(false);
-    }
-  }, [getProjectUncommittedChanges]);
+  const loadUncommittedChanges = useCallback(
+    async ({ showLoading = true }: { showLoading?: boolean } = {}) => {
+      if (showLoading) setLoadingUncommitted(true);
+      try {
+        const result = await getProjectUncommittedChanges();
+        setUncommittedChanges(
+          result.filter((change) => !HIDDEN_FILES.has(change.path))
+        );
+      } catch (error) {
+        console.error(error);
+      } finally {
+        if (showLoading) setLoadingUncommitted(false);
+      }
+    },
+    [getProjectUncommittedChanges]
+  );
 
   useEffect(() => {
     loadCommits();
@@ -86,6 +93,19 @@ export const ProjectHistoryPage = () => {
   useEffect(() => {
     loadUncommittedChanges();
   }, [loadUncommittedChanges]);
+
+  // A change on disk can alter both panels: the working tree feeds the
+  // uncommitted panel, and external git operations that rewrite it (pull,
+  // checkout, merge) bring new commits with it. Loading stays hidden, so a
+  // signal never flashes the loading state over content already on screen.
+  useEffect(
+    () =>
+      subscribeToProjectDirChanges(() => {
+        loadCommits({ showLoading: false });
+        loadUncommittedChanges({ showLoading: false });
+      }),
+    [subscribeToProjectDirChanges, loadCommits, loadUncommittedChanges]
+  );
 
   const toggleCommitExpansion = useCallback(
     async (commitId: Commit['id']) => {

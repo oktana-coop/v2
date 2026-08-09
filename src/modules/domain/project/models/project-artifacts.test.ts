@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { filesystemItemTypes } from '../../../infrastructure/filesystem';
 import { type ArtifactId } from '../../../infrastructure/version-control';
 import {
+  areProjectTreesEqual,
   findFileNodeByPath,
   findNodeById,
   inferArtifactKindFromExtension,
@@ -143,6 +144,90 @@ describe('findFileNodeByPath', () => {
     expect(
       findFileNodeByPath({ tree: [], path: parseProjectRelPath('readme.md') })
     ).toBeNull();
+  });
+});
+
+describe('areProjectTreesEqual', () => {
+  const buildTree = (): ProjectTreeNode[] => [
+    file({ path: 'readme.md' }),
+    directory({
+      path: 'docs',
+      children: [
+        file({ path: 'docs/guide.md' }),
+        directory({
+          path: 'docs/2024',
+          children: [file({ path: 'docs/2024/notes.md' })],
+        }),
+      ],
+    }),
+  ];
+
+  it('treats independently built identical trees as equal', () => {
+    expect(areProjectTreesEqual(buildTree(), buildTree())).toBe(true);
+  });
+
+  it('treats empty trees as equal', () => {
+    expect(areProjectTreesEqual([], [])).toBe(true);
+  });
+
+  it('detects an added file', () => {
+    expect(
+      areProjectTreesEqual(buildTree(), [
+        ...buildTree(),
+        file({ path: 'new.md' }),
+      ])
+    ).toBe(false);
+  });
+
+  it('detects a removed nested file', () => {
+    const pruned = [
+      file({ path: 'readme.md' }),
+      directory({
+        path: 'docs',
+        children: [
+          file({ path: 'docs/guide.md' }),
+          directory({ path: 'docs/2024', children: [] }),
+        ],
+      }),
+    ];
+
+    expect(areProjectTreesEqual(buildTree(), pruned)).toBe(false);
+  });
+
+  it('detects a renamed nested file', () => {
+    const renamed = [
+      file({ path: 'readme.md' }),
+      directory({
+        path: 'docs',
+        children: [
+          file({ path: 'docs/handbook.md' }),
+          directory({
+            path: 'docs/2024',
+            children: [file({ path: 'docs/2024/notes.md' })],
+          }),
+        ],
+      }),
+    ];
+
+    expect(areProjectTreesEqual(buildTree(), renamed)).toBe(false);
+  });
+
+  it('detects a file replaced by a directory at the same position', () => {
+    expect(
+      areProjectTreesEqual(
+        [file({ path: 'notes.md' })],
+        [directory({ path: 'notes.md', children: [] })]
+      )
+    ).toBe(false);
+  });
+
+  it('is sensitive to sibling order', () => {
+    expect(
+      areProjectTreesEqual(
+        [file({ path: 'a.md' }), file({ path: 'b.md' })],
+        [file({ path: 'b.md' }), file({ path: 'a.md' })]
+      )
+    ).toBe(false);
   });
 });
 

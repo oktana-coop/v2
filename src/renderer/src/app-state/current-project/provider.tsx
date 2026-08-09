@@ -53,6 +53,8 @@ export const ProjectProvider = ({
     directory,
     currentBranch,
     pulledUpstreamChanges,
+    subscribeToProjectDirChanges:
+      directoryWatchOps.subscribeToProjectDirChanges,
   });
 
   const currentArtifactId = useCurrentArtifactId();
