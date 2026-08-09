@@ -38,7 +38,8 @@ import {
   type RenameArgs,
   type WriteFileArgs,
 } from '../modules/infrastructure/filesystem';
-import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/infrastructure/filesystem/adapters/electron-node-api';
+import { createAdapter as createElectronNodeDirectoryWatcherAdapter } from '../modules/infrastructure/filesystem/adapters/directory-watcher/electron-node-api';
+import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/infrastructure/filesystem/adapters/filesystem/electron-node-api';
 import { type RunWasiCLIArgs } from '../modules/infrastructure/wasm';
 import { createAdapter as createNodeWasmAdapter } from '../modules/infrastructure/wasm/adapters/node-wasm';
 import {
@@ -52,6 +53,7 @@ import {
 import { registerAuthInfoIPCHandlers } from './auth';
 import {
   registerContextMenusIPCHandlers,
+  registerDirectoryWatcherEvents,
   registerPdfIPCHandlers,
   registerProjectStoresEvents,
 } from './ipc';
@@ -61,6 +63,7 @@ import { update } from './update';
 
 const store = initializeStore();
 const filesystemAPI = createElectronNodeFilesystemAPIAdapter();
+const directoryWatcher = createElectronNodeDirectoryWatcherAdapter();
 const encryptedStore = createElectronMainEncryptedStoreAdapter({
   filesystem: filesystemAPI,
 });
@@ -159,6 +162,8 @@ async function createWindow() {
     documentAnalyzer,
     encryptedStore,
   });
+
+  registerDirectoryWatcherEvents({ directoryWatcher, window: win });
 
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('renderer-process-id', rendererProcessId);
@@ -302,6 +307,7 @@ app.on('before-quit', async () => {
 
 app.on('window-all-closed', () => {
   win = null;
+  directoryWatcher.unwatchAllDirectories();
   if (process.platform !== 'darwin') app.quit();
 });
 

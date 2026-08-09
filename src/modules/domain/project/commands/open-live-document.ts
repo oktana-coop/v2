@@ -12,10 +12,17 @@ import {
   type ArtifactId,
   MigrationError,
 } from '../../../../modules/infrastructure/version-control';
-import { NotFoundError, RepositoryError, ValidationError } from '../errors';
+import {
+  NotFoundError,
+  RepositoryError,
+  ValidationError,
+  VersionedProjectNotFoundErrorTag,
+} from '../errors';
 import { type ProjectId } from '../models';
 import { type ProjectStore } from '../ports';
 import { persistDocument, type PersistDocumentError } from './persist-document';
+
+export type Unsubscribe = () => void;
 
 export type PersistError = PersistDocumentError;
 
@@ -38,7 +45,9 @@ export type OpenLiveDocumentDeps = {
   transformToText: RepresentationTransform['transformToText'];
   findDocumentById: ProjectStore['findDocumentById'];
   updateRichTextDocumentContent: ProjectStore['updateRichTextDocumentContent'];
+  subscribeToProjectDirChanges: (listener: () => void) => Unsubscribe;
   onPersistError: (error: unknown) => void;
+  onSyncError: (error: unknown) => void;
 };
 
 export type OpenLiveDocumentArgs = {
@@ -61,7 +70,9 @@ export const openLiveDocument =
     transformToText,
     findDocumentById,
     updateRichTextDocumentContent,
+    subscribeToProjectDirChanges,
     onPersistError,
+    onSyncError,
   }: OpenLiveDocumentDeps) =>
   ({
     projectId,
@@ -128,20 +139,18 @@ export const openLiveDocument =
                 Effect.asVoid(takePendingPersist)
               );
 
-              // TODO: Interim mechanism — to be replaced by filesystem watching,
-              // which will drive this re-derivation without manual call sites.
-              // It is assumed the caller has settled pending content (flush or cancel)
-              // and that the disk now holds what the live document should show.
+              // Re-derives the live content from the disk. Content equal to
+              // what we last wrote or read is our own write coming back, so
+              // pending typing has to survive it — dropping it there would
+              // strand a keystroke that races the watcher. A genuine external
+              // change wins over pending typing.
               const refresh = persistMutex(
                 pipe(
-                  // Takes pending content to essentially discard it.
-                  takePendingPersist,
-                  // Suspended so each refresh issues its own read; the renderer's
-                  // store starts its IPC call when the effect is constructed.
-                  Effect.zipRight(
-                    Effect.suspend(() =>
-                      findDocumentById({ projectId, documentId })
-                    )
+                  // Suspended so each refresh issues its own read; the
+                  // renderer's store starts its IPC call when the effect is
+                  // constructed.
+                  Effect.suspend(() =>
+                    findDocumentById({ projectId, documentId })
                   ),
                   Effect.flatMap(({ artifact: fresh }) =>
                     pipe(
@@ -150,7 +159,10 @@ export const openLiveDocument =
                         last === fresh.content
                           ? Effect.void
                           : pipe(
-                              Ref.set(lastPersisted, fresh.content),
+                              takePendingPersist,
+                              Effect.zipRight(
+                                Ref.set(lastPersisted, fresh.content)
+                              ),
                               // Update the live document.
                               Effect.zipRight(adapter.change(fresh)),
                               Effect.asVoid
@@ -161,6 +173,24 @@ export const openLiveDocument =
                 )
               );
 
+              // Nothing awaits a watched change, so failures are reported
+              // instead of raised — except a vanished file, which just leaves
+              // the editor holding what it has.
+              const syncFromDisk = pipe(
+                refresh,
+                Effect.catchTag(
+                  VersionedProjectNotFoundErrorTag,
+                  () => Effect.void
+                ),
+                Effect.catchAll((error) =>
+                  Effect.sync(() => onSyncError(error))
+                )
+              );
+
+              const unsubscribeFromDisk = subscribeToProjectDirChanges(() => {
+                Effect.runPromise(syncFromDisk).catch(onSyncError);
+              });
+
               const change = (doc: RichTextDocument) =>
                 pipe(
                   // Update the live document.
@@ -170,15 +200,30 @@ export const openLiveDocument =
                   Effect.tap(() => Effect.sync(() => debouncedFlush()))
                 );
 
+              // Unsubscribe first, so the echo of the closing flush cannot
+              // start a sync on a document that is going away.
+              const close = pipe(
+                Effect.sync(unsubscribeFromDisk),
+                Effect.zipRight(flush)
+              );
+
               return {
-                content: adapter.content,
-                change,
-                flush,
-                refresh,
-                cancelPendingPersist,
-                close: flush,
+                opened: {
+                  content: adapter.content,
+                  change,
+                  flush,
+                  refresh,
+                  cancelPendingPersist,
+                  close,
+                },
+                syncFromDisk,
               };
             }
+          ),
+          // Narrows the window between the read that seeded this document and
+          // the watch starting.
+          Effect.flatMap(({ opened, syncFromDisk }) =>
+            Effect.as(syncFromDisk, opened)
           )
         )
       )

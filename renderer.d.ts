@@ -62,6 +62,17 @@ export type ElectronAPI = {
   }) => Promise<IPCResult<Uint8Array>>;
 };
 
+export type DirectoryWatcherAPI = {
+  startWatching: (args: {
+    path: string;
+    ignoredTopLevelEntries: string[];
+  }) => void;
+  stopWatching: (path: string) => void;
+  onDirectoryChanged: (
+    callback: (path: string) => void
+  ) => UnregisterListenerFn;
+};
+
 export type PersonalizationAPI = {
   setTheme: (theme: Theme) => Promise<void>;
   getTheme: () => Promise<Theme>;
@@ -166,6 +177,7 @@ declare global {
     personalizationAPI: PersonalizationAPI;
     authAPI: AuthAPI;
     filesystemAPI: FilesystemPromiseAPI;
+    directoryWatcherAPI: DirectoryWatcherAPI;
     projectStoreAPI: ProjectStorePromiseAPI;
     projectStoreManagerAPI: ProjectStoreManagerAPI;
     versionControlSyncProvidersAPI: VersionControlSyncProvidersAPI;

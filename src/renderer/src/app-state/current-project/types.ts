@@ -15,6 +15,7 @@ import {
   type Commit,
   type MergeConflictInfo,
 } from '../../../../modules/infrastructure/version-control';
+export type Unsubscribe = () => void;
 
 export type CreateNewDocumentArgs = {
   name?: string;
@@ -42,6 +43,7 @@ export type ProjectContextType = {
   resolvingCurrentArtifact: boolean;
   directoryTree: ProjectTreeNode[];
   refreshDirectoryTree: () => Promise<void>;
+  subscribeToProjectDirChanges: (listener: () => void) => Unsubscribe;
   openDirectory: (cloneUrl?: string) => Promise<Directory>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
   createNewDocument: (args?: CreateNewDocumentArgs) => Promise<{

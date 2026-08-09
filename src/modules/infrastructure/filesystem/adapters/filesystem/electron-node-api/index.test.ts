@@ -3,13 +3,13 @@ import path from 'node:path';
 
 import * as Effect from 'effect/Effect';
 
-import { filesystemItemTypes } from '../../constants/filesystem-item-types';
+import { filesystemItemTypes } from '../../../constants/filesystem-item-types';
 import {
   AccessControlError,
   AlreadyExistsError,
   NotFoundError,
   RepositoryError,
-} from '../../errors';
+} from '../../../errors';
 import { createAdapter } from './index';
 
 vi.mock('node:fs', () => {

@@ -1,7 +1,7 @@
 import {
   effectifyIPCPromise,
   type ErrorRegistry,
-} from '../../../../../modules/infrastructure/cross-platform';
+} from '../../../../../../modules/infrastructure/cross-platform';
 import {
   AbortError,
   AccessControlError,
@@ -16,8 +16,8 @@ import {
   FilesystemRepositoryErrorTag,
   NotFoundError,
   RepositoryError,
-} from '../../../../../modules/infrastructure/filesystem';
-import { type EffectErrorType } from '../../../../../utils/effect';
+} from '../../../../../../modules/infrastructure/filesystem';
+import { type EffectErrorType } from '../../../../../../utils/effect';
 
 // This adapter just calls the relevant exposed functions from the preload script
 // to send the messages to the main Electron process which will do the heavy lifting.

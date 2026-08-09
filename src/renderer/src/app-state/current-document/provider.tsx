@@ -52,8 +52,12 @@ export const CurrentDocumentProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { projectId, projectStore, restoreDocumentChanges } =
-    useContext(ProjectContext);
+  const {
+    projectId,
+    projectStore,
+    restoreDocumentChanges,
+    subscribeToProjectDirChanges,
+  } = useContext(ProjectContext);
   const { dispatchNotification } = useContext(NotificationsContext);
   const { showDiffInHistoryView } = useContext(FunctionalityConfigContext);
   const { adapter: representationTransformAdapter } = useContext(
@@ -115,6 +119,7 @@ export const CurrentDocumentProvider = ({
         findDocumentById: projectStore.findDocumentById,
         updateRichTextDocumentContent:
           projectStore.updateRichTextDocumentContent,
+        subscribeToProjectDirChanges,
         onPersistError: (error) => {
           console.error(error);
           dispatchNotification(
@@ -125,6 +130,9 @@ export const CurrentDocumentProvider = ({
             })
           );
         },
+        // Picking up an outside edit is best-effort: the editor keeps working
+        // on what it already holds, so this is logged rather than surfaced.
+        onSyncError: console.error,
       })({ projectId, documentId })
     )
       .then((handle) => {
@@ -154,7 +162,13 @@ export const CurrentDocumentProvider = ({
       if (opened) close(opened);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documentId, projectId, projectStore, representationTransformAdapter]);
+  }, [
+    documentId,
+    projectId,
+    projectStore,
+    representationTransformAdapter,
+    subscribeToProjectDirChanges,
+  ]);
 
   // A pull can change the open document underneath it; re-read to pick that up.
   useEffect(() => {

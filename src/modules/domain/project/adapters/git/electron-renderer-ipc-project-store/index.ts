@@ -13,7 +13,7 @@ import {
   VersionControlMigrationErrorTag,
 } from '../../../../../../modules/infrastructure/version-control';
 import { type EffectErrorType } from '../../../../../../utils/effect';
-import { DEFAULT_ASSETS_DIR_NAME } from '../../../constants';
+import { DEFAULT_ASSETS_DIR_NAME, GIT_DIR_NAME } from '../../../constants';
 import {
   DeletedDocumentError,
   NotFoundError,
@@ -31,6 +31,7 @@ import { ProjectStore } from '../../../ports';
 export const createAdapter = (): ProjectStore => ({
   supportsBranching: true,
   assetsDirName: DEFAULT_ASSETS_DIR_NAME,
+  versionControlDirName: GIT_DIR_NAME,
   getArtifactMetaDataById: (
     ...args: Parameters<ProjectStore['getArtifactMetaDataById']>
   ) =>
