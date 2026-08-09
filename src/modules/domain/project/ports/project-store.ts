@@ -346,6 +346,7 @@ export type ResolveContentConflictArgs = {
 export type ProjectStore = {
   supportsBranching: boolean;
   assetsDirName: string;
+  versionControlDirName: string;
   // Resolves an artifact id to everything needed to render it. Only the store
   // can do this: a git id embeds its path, but that is an implementation
   // detail other backends don't share.

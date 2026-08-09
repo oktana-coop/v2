@@ -5,7 +5,7 @@ import {
 
 import { type DocumentAnalyzer } from '../../../../../../modules/domain/rich-text';
 import { type Filesystem } from '../../../../../../modules/infrastructure/filesystem';
-import { DEFAULT_ASSETS_DIR_NAME } from '../../../constants';
+import { DEFAULT_ASSETS_DIR_NAME, GIT_DIR_NAME } from '../../../constants';
 import { ProjectStore } from '../../../ports';
 import { getArtifactMetaDataById, lookupArtifactByPath } from './artifacts';
 import { createAssetOps } from './assets';
@@ -80,6 +80,7 @@ export const createAdapter = ({
   return {
     supportsBranching: true,
     assetsDirName,
+    versionControlDirName: GIT_DIR_NAME,
     getArtifactMetaDataById,
     lookupArtifactByPath,
     ...projectOps,

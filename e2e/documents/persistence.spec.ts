@@ -64,6 +64,31 @@ test('markdown round-trip: typed content survives a window reload', async ({
   );
 });
 
+test('outside edit: changing the .md file shows up in the open editor', async ({
+  electronApp,
+  window,
+  testProjectDir,
+}) => {
+  await openProjectFolder({ electronApp, window, folderPath: testProjectDir });
+  await openHelloMd({ window });
+
+  await expect(window.locator('.ProseMirror').locator('h1')).toHaveText(
+    'Hello'
+  );
+
+  // Stands in for the user editing the file in another editor.
+  fs.writeFileSync(
+    path.join(testProjectDir, 'hello.md'),
+    '# Hello from outside\n',
+    'utf8'
+  );
+
+  await expect(window.locator('.ProseMirror').locator('h1')).toHaveText(
+    'Hello from outside',
+    { timeout: 5_000 }
+  );
+});
+
 test('editing after a trip through history keeps every edit', async ({
   electronApp,
   window,

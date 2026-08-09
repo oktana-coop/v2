@@ -5,8 +5,8 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import { dialog } from 'electron';
 
-import { mapErrorTo } from '../../../../../utils/errors';
-import { filesystemItemTypes } from '../../constants/filesystem-item-types';
+import { mapErrorTo } from '../../../../../../utils/errors';
+import { filesystemItemTypes } from '../../../constants/filesystem-item-types';
 import {
   AbortError,
   AccessControlError,
@@ -14,15 +14,15 @@ import {
   DataIntegrityError,
   NotFoundError,
   RepositoryError,
-} from '../../errors';
+} from '../../../errors';
 import {
   type Directory,
   type File,
   isBinaryFile,
   isTextFile,
   toDirectory,
-} from '../../models';
-import { type Filesystem } from '../../ports/filesystem';
+} from '../../../models';
+import { type Filesystem } from '../../../ports/filesystem';
 import { isHidden, isNodeError, pathContainsHiddenEntries } from './utils';
 
 const showDirPicker = (): Effect.Effect<

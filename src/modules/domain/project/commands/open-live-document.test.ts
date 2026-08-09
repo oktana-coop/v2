@@ -12,14 +12,15 @@ import {
 import { createAdapter as createInMemoryLiveDocumentAdapter } from '../../../../modules/domain/rich-text/adapters/in-memory-live-document';
 import { type ArtifactId } from '../../../../modules/infrastructure/version-control';
 import { subscribeToRef } from '../../../../utils/effect';
-import { RepositoryError } from '../errors';
+import { NotFoundError, RepositoryError } from '../errors';
 import { parseProjectId } from '../models';
 import {
   openLiveDocument,
   type OpenLiveDocumentDeps,
 } from './open-live-document';
 
-const projectId = parseProjectId('/tmp/v2-live-document-test');
+const projectDirectory = '/tmp/v2-live-document-test';
+const projectId = parseProjectId(projectDirectory);
 // `findDocumentById` is mocked, so the id's actual value is irrelevant.
 const documentId = 'note.md' as unknown as ArtifactId;
 
@@ -62,6 +63,23 @@ const createMockProjectStore = (initialContent: string) => {
   };
 };
 
+// Stands in for the project's directory watch: the test decides when the
+// project directory is deemed to have changed.
+const createMockProjectDirWatch = () => {
+  const listeners = new Set<() => void>();
+
+  return {
+    subscribeToProjectDirChanges: vi.fn((listener: () => void) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    }),
+    signalChange: () => listeners.forEach((listener) => listener()),
+    subscribers: () => listeners.size,
+  };
+};
+
 const buildDeps = (
   mockStore: ReturnType<typeof createMockProjectStore>,
   overrides: Partial<OpenLiveDocumentDeps> = {}
@@ -72,7 +90,9 @@ const buildDeps = (
   ),
   findDocumentById: mockStore.findDocumentById,
   updateRichTextDocumentContent: mockStore.updateRichTextDocumentContent,
+  subscribeToProjectDirChanges: vi.fn(() => () => {}),
   onPersistError: vi.fn(),
+  onRefreshOnDiskChangeError: vi.fn(),
   ...overrides,
 });
 
@@ -223,6 +243,145 @@ describe('openLiveDocument', () => {
     expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledTimes(1);
     expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledWith(
       expect.objectContaining({ content: transformed('typed') })
+    );
+  });
+
+  it('listens for project directory changes and stops on close', async () => {
+    const mockStore = createMockProjectStore('on disk');
+    const dirWatch = createMockProjectDirWatch();
+
+    const live = await open(
+      buildDeps(mockStore, {
+        subscribeToProjectDirChanges: dirWatch.subscribeToProjectDirChanges,
+      })
+    );
+
+    expect(dirWatch.subscribers()).toBe(1);
+
+    await Effect.runPromise(live.close);
+
+    expect(dirWatch.subscribers()).toBe(0);
+  });
+
+  it('picks up a change made outside the app', async () => {
+    const mockStore = createMockProjectStore('on disk');
+    const dirWatch = createMockProjectDirWatch();
+
+    const live = await open(
+      buildDeps(mockStore, {
+        subscribeToProjectDirChanges: dirWatch.subscribeToProjectDirChanges,
+      })
+    );
+
+    mockStore.writeToDisk('edited in another editor');
+    dirWatch.signalChange();
+
+    await vi.waitFor(async () => {
+      const current = await Effect.runPromise(
+        SubscriptionRef.get(live.content)
+      );
+      expect(current.doc).toEqual(primaryDocument('edited in another editor'));
+    });
+  });
+
+  // The watcher also fires for the app's own writes. Discarding pending work
+  // on that echo would strand the keystrokes typed since the write started:
+  // they would sit in the editor with nothing scheduled to persist them.
+  it('keeps typing that arrives while our own write echoes back', async () => {
+    const mockStore = createMockProjectStore('on disk');
+    const dirWatch = createMockProjectDirWatch();
+
+    const live = await open(
+      buildDeps(mockStore, {
+        subscribeToProjectDirChanges: dirWatch.subscribeToProjectDirChanges,
+      })
+    );
+
+    await Effect.runPromise(live.change(editorDocument('a')));
+    await vi.advanceTimersByTimeAsync(300);
+    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledTimes(1);
+
+    // Typed after the write landed, so it is still pending when the watcher
+    // reports that same write.
+    await Effect.runPromise(live.change(editorDocument('ab')));
+    dirWatch.signalChange();
+
+    await vi.advanceTimersByTimeAsync(300);
+
+    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledTimes(2);
+    expect(mockStore.updateRichTextDocumentContent).toHaveBeenLastCalledWith(
+      expect.objectContaining({ content: transformed('ab') })
+    );
+  });
+
+  it('lets an outside change win over typing that has not been written yet', async () => {
+    const mockStore = createMockProjectStore('on disk');
+    const dirWatch = createMockProjectDirWatch();
+
+    const live = await open(
+      buildDeps(mockStore, {
+        subscribeToProjectDirChanges: dirWatch.subscribeToProjectDirChanges,
+      })
+    );
+
+    await Effect.runPromise(live.change(editorDocument('typed')));
+    mockStore.writeToDisk('edited in another editor');
+    dirWatch.signalChange();
+
+    await vi.waitFor(async () => {
+      const current = await Effect.runPromise(
+        SubscriptionRef.get(live.content)
+      );
+      expect(current.doc).toEqual(primaryDocument('edited in another editor'));
+    });
+
+    await vi.advanceTimersByTimeAsync(300);
+
+    expect(mockStore.updateRichTextDocumentContent).not.toHaveBeenCalled();
+  });
+
+  it('keeps the open document when its file disappears', async () => {
+    const mockStore = createMockProjectStore('on disk');
+    const dirWatch = createMockProjectDirWatch();
+    const onRefreshOnDiskChangeError = vi.fn();
+
+    const live = await open(
+      buildDeps(mockStore, {
+        subscribeToProjectDirChanges: dirWatch.subscribeToProjectDirChanges,
+        onRefreshOnDiskChangeError,
+      })
+    );
+
+    mockStore.findDocumentById.mockReturnValue(
+      Effect.fail(new NotFoundError('document deleted')) as never
+    );
+    dirWatch.signalChange();
+    await vi.advanceTimersByTimeAsync(0);
+
+    const current = await Effect.runPromise(SubscriptionRef.get(live.content));
+    expect(current.doc).toEqual(primaryDocument('on disk'));
+    expect(onRefreshOnDiskChangeError).not.toHaveBeenCalled();
+  });
+
+  it('reports a failing read through onRefreshOnDiskChangeError', async () => {
+    const mockStore = createMockProjectStore('on disk');
+    const dirWatch = createMockProjectDirWatch();
+    const onRefreshOnDiskChangeError = vi.fn();
+
+    await open(
+      buildDeps(mockStore, {
+        subscribeToProjectDirChanges: dirWatch.subscribeToProjectDirChanges,
+        onRefreshOnDiskChangeError,
+      })
+    );
+
+    mockStore.findDocumentById.mockReturnValue(
+      Effect.fail(new RepositoryError('read failed')) as never
+    );
+    dirWatch.signalChange();
+
+    await vi.waitFor(() =>
+      expect(onRefreshOnDiskChangeError).toHaveBeenCalledTimes(1)
     );
   });
 

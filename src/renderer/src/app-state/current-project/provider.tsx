@@ -8,6 +8,7 @@ import {
 import { useCurrentArtifactSync } from './current-artifact/sync';
 import { useCurrentArtifactId } from './current-artifact/use-current-artifact-id';
 import { useDirectoryOps } from './directories';
+import { useDirectoryWatchOps } from './directory-watch';
 import { useDocumentOps } from './documents';
 import { useExplorerContextMenu } from './explorer-context-menu';
 import { useHierarchyOps } from './hierarchy';
@@ -39,6 +40,8 @@ export const ProjectProvider = ({
     remoteProject,
     pulledUpstreamChanges,
   } = projectOps;
+
+  const directoryWatchOps = useDirectoryWatchOps({ projectStore, directory });
 
   const historyOps = useHistoryOps({ projectId, projectStore, currentBranch });
 
@@ -155,6 +158,7 @@ export const ProjectProvider = ({
         ...renamingOps,
         ...historyOps,
         ...committingOps,
+        ...directoryWatchOps,
       }}
     >
       {children}
