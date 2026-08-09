@@ -1,8 +1,7 @@
 import { type DirectoryWatcher } from '../../../ports/directory-watcher';
 
-// The main process owns the watchers and broadcasts to the window, so every
-// listener hears about every watched directory and filters by its own path.
 export const createAdapter = (): DirectoryWatcher => {
+  // One listener per watched directory (currently just one).
   const listeners = new Map<string, () => void>();
 
   const unwatchDirectory = (path: string) => {
@@ -19,10 +18,11 @@ export const createAdapter = (): DirectoryWatcher => {
     watchDirectory: ({ path, onChange, ignoredTopLevelEntries = [] }) => {
       if (listeners.has(path)) return;
 
-      // Listen before asking, so a change arriving with the reply is not lost.
       listeners.set(
         path,
         window.directoryWatcherAPI.onDirectoryChanged((changedPath) => {
+          // Only react to watch events the listener is interested in
+          // (concerning its directory path).
           if (changedPath === path) onChange();
         })
       );
