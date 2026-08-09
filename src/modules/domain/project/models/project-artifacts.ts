@@ -83,6 +83,26 @@ export const isProjectDirectoryNode = (
 export const getArtifactName = (path: ProjectRelPath): string =>
   removeExtension(removePath(path));
 
+const areProjectTreeNodesEqual = (
+  a: ProjectTreeNode,
+  b: ProjectTreeNode
+): boolean =>
+  isProjectDirectoryNode(a)
+    ? isProjectDirectoryNode(b) &&
+      a.path === b.path &&
+      areProjectTreesEqual(a.children, b.children)
+    : isProjectFileNode(b) &&
+      a.id === b.id &&
+      a.path === b.path &&
+      a.kind === b.kind;
+
+export const areProjectTreesEqual = (
+  a: ProjectTreeNode[],
+  b: ProjectTreeNode[]
+): boolean =>
+  a.length === b.length &&
+  a.every((node, index) => areProjectTreeNodesEqual(node, b[index]));
+
 // Flattens a node tree into a depth-first list of all its nodes.
 const flattenTree = (tree: ProjectTreeNode[]): ProjectTreeNode[] =>
   tree.flatMap((node) =>

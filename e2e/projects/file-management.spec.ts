@@ -1,3 +1,4 @@
+import fs from 'fs';
 import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
@@ -1335,5 +1336,53 @@ test.describe('unsupported file types', () => {
       timeout: 2_000,
     });
     await expect(window.locator('.ProseMirror')).not.toBeVisible();
+  });
+});
+
+test.describe('outside changes', () => {
+  test('a file created on disk appears in the explorer', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer.getByText('hello')).toBeVisible();
+
+    // Stands in for another program creating a document in the project.
+    fs.writeFileSync(
+      path.join(testProjectDir, 'outside.md'),
+      '# Outside\n\nCreated outside the app.\n'
+    );
+
+    await expect(explorer.getByText('outside')).toBeVisible({
+      timeout: 5_000,
+    });
+  });
+
+  test('a file deleted on disk disappears from the explorer', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    const explorer = window.getByTestId('file-explorer');
+    await expect(explorer.getByText('world')).toBeVisible();
+
+    fs.rmSync(path.join(testProjectDir, 'world.md'));
+
+    await expect(explorer.getByText('world')).not.toBeVisible({
+      timeout: 5_000,
+    });
   });
 });

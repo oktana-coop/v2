@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+
 import { expect, test } from '../shared/fixtures';
 import {
   commitChanges,
@@ -245,5 +248,36 @@ test.describe('project history', () => {
     const insertAnnotation = window.locator('.ProseMirror .diff-insert');
     await expect(insertAnnotation).toBeVisible({ timeout: 1_000 });
     await expect(insertAnnotation).toContainText('version two');
+  });
+});
+
+test.describe('outside changes', () => {
+  test('an outside edit appears in the uncommitted changes panel', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+
+    await navigateToProjectHistory({ window });
+
+    // Everything was committed when the folder was opened.
+    const panel = window.getByTestId('uncommitted-changes-panel');
+    await expect(panel).toContainText('No uncommitted changes');
+
+    // Stands in for the user editing the file in another editor.
+    fs.writeFileSync(
+      path.join(testProjectDir, 'hello.md'),
+      '# Hello\n\nEdited outside the app.\n'
+    );
+
+    await expect(
+      panel.getByTestId('changed-document-row').filter({ hasText: 'hello' })
+    ).toBeVisible({ timeout: 5_000 });
   });
 });
