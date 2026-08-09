@@ -141,8 +141,7 @@ export const openLiveDocument =
 
           // Re-derives the live content from the disk. Content equal to
           // what we last wrote or read is our own write coming back, so
-          // pending typing has to survive it — dropping it there would
-          // strand a keystroke that races the watcher. A genuine external
+          // pending typing has to survive it. A genuine external
           // change wins over pending typing.
           const refresh = persistMutex(
             pipe(
