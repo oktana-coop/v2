@@ -47,6 +47,9 @@ export const createAdapter = (): DirectoryWatcher => {
       try {
         const watcher = watch(path, { recursive: true }, (_, filename) => {
           if (isIgnored({ filename, ignoredTopLevelEntries })) return;
+
+          // Node explicitly warns that watch behavior is not fully consistent
+          // across platforms, so any event is only a signal that something changed.
           notify();
         });
 

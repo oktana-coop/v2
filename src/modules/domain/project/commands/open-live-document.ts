@@ -183,6 +183,9 @@ export const openLiveDocument =
             )
           );
 
+          // Any change under the project signals here, not just this
+          // document's file. Most settle in a read and an unchanged-content
+          // comparison, without reaching the editor.
           const unsubscribeFromDisk = subscribeToProjectDirChanges(() => {
             Effect.runPromise(refreshOnDiskChange).catch(
               onRefreshOnDiskChangeError
