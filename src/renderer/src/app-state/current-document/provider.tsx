@@ -131,8 +131,8 @@ export const CurrentDocumentProvider = ({
           );
         },
         // Picking up an outside edit is best-effort: the editor keeps working
-        // on what it already holds, so this is logged rather than surfaced.
-        onSyncError: console.error,
+        // on what it holds, so this is logged rather than surfaced.
+        onRefreshOnDiskChangeError: console.error,
       })({ projectId, documentId })
     )
       .then((handle) => {

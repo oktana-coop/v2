@@ -92,7 +92,7 @@ const buildDeps = (
   updateRichTextDocumentContent: mockStore.updateRichTextDocumentContent,
   subscribeToProjectDirChanges: vi.fn(() => () => {}),
   onPersistError: vi.fn(),
-  onSyncError: vi.fn(),
+  onRefreshOnDiskChangeError: vi.fn(),
   ...overrides,
 });
 
@@ -343,12 +343,12 @@ describe('openLiveDocument', () => {
   it('keeps the open document when its file disappears', async () => {
     const mockStore = createMockProjectStore('on disk');
     const dirWatch = createMockProjectDirWatch();
-    const onSyncError = vi.fn();
+    const onRefreshOnDiskChangeError = vi.fn();
 
     const live = await open(
       buildDeps(mockStore, {
         subscribeToProjectDirChanges: dirWatch.subscribeToProjectDirChanges,
-        onSyncError,
+        onRefreshOnDiskChangeError,
       })
     );
 
@@ -360,18 +360,18 @@ describe('openLiveDocument', () => {
 
     const current = await Effect.runPromise(SubscriptionRef.get(live.content));
     expect(current.doc).toEqual(primaryDocument('on disk'));
-    expect(onSyncError).not.toHaveBeenCalled();
+    expect(onRefreshOnDiskChangeError).not.toHaveBeenCalled();
   });
 
-  it('reports a failing read through onSyncError', async () => {
+  it('reports a failing read through onRefreshOnDiskChangeError', async () => {
     const mockStore = createMockProjectStore('on disk');
     const dirWatch = createMockProjectDirWatch();
-    const onSyncError = vi.fn();
+    const onRefreshOnDiskChangeError = vi.fn();
 
     await open(
       buildDeps(mockStore, {
         subscribeToProjectDirChanges: dirWatch.subscribeToProjectDirChanges,
-        onSyncError,
+        onRefreshOnDiskChangeError,
       })
     );
 
@@ -380,7 +380,9 @@ describe('openLiveDocument', () => {
     );
     dirWatch.signalChange();
 
-    await vi.waitFor(() => expect(onSyncError).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() =>
+      expect(onRefreshOnDiskChangeError).toHaveBeenCalledTimes(1)
+    );
   });
 
   it('reports a failing write through onPersistError', async () => {
