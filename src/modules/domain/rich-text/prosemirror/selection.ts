@@ -178,13 +178,11 @@ export const selectionChangePlugin = (
           const { selection } = state;
 
           // Detect if the selection has changed
-          if (
-            !(
-              prevState &&
-              prevState.doc.eq(state.doc) &&
-              selection.eq(prevState.selection)
-            )
-          ) {
+          if (!(
+            prevState &&
+            prevState.doc.eq(state.doc) &&
+            selection.eq(prevState.selection)
+          )) {
             onSelectionChange(selection, view);
           }
         },
