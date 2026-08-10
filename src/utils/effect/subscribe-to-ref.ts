@@ -20,6 +20,23 @@ export const subscribeToRef = <A>(
   };
 };
 
+// Like subscribeToRef, but without the replay: only changes made after
+// subscribing are delivered.
+export const subscribeToRefChanges = <A>(
+  ref: SubscriptionRef.SubscriptionRef<A>,
+  onValue: (value: A) => void
+): Unsubscribe => {
+  const fiber = Effect.runFork(
+    Stream.runForEach(Stream.drop(ref.changes, 1), (value) =>
+      Effect.sync(() => onValue(value))
+    )
+  );
+
+  return () => {
+    Effect.runFork(Fiber.interrupt(fiber));
+  };
+};
+
 // Runs the handler Effect for the current value and every change, one at a
 // time: the next change waits for the running handler to finish, so handling
 // never overlaps. While the handler is busy, a burst of updates collapses to

@@ -10,7 +10,17 @@ export type LiveDocumentChange = {
   version: LiveDocumentVersion;
 };
 
+// `base` names the version the contributed doc was derived from; adapters
+// that support concurrent contributions anchor the change there, others
+// ignore it.
+export type LiveDocumentChangeOptions = {
+  base?: LiveDocumentVersion;
+};
+
 export type LiveDocument = {
   content: SubscriptionRef.SubscriptionRef<LiveDocumentChange>;
-  change: (doc: RichTextDocument) => Effect.Effect<LiveDocumentVersion>;
+  change: (
+    doc: RichTextDocument,
+    options?: LiveDocumentChangeOptions
+  ) => Effect.Effect<LiveDocumentVersion>;
 };

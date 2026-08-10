@@ -1,10 +1,13 @@
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   CURRENT_SCHEMA_VERSION,
+  type LiveDocument,
   type LiveDocumentChange,
+  type LiveDocumentChangeOptions,
   PRIMARY_RICH_TEXT_REPRESENTATION,
   type RichTextDocument,
   richTextRepresentations,
@@ -77,6 +80,41 @@ const createMockProjectDirWatch = () => {
     }),
     signalChange: () => listeners.forEach((listener) => listener()),
     subscribers: () => listeners.size,
+  };
+};
+
+// The in-memory adapter with a recording `change`, so tests can assert on
+// what the command contributes and with which options.
+const createTrackingAdapterFactory = () => {
+  const changeCalls: Array<{
+    doc: RichTextDocument;
+    options: LiveDocumentChangeOptions | undefined;
+  }> = [];
+  let lastAdapter: LiveDocument | null = null;
+
+  const createLiveDocumentAdapter = (initial: RichTextDocument) =>
+    pipe(
+      createInMemoryLiveDocumentAdapter(initial),
+      Effect.map((adapter): LiveDocument => {
+        lastAdapter = adapter;
+        return {
+          content: adapter.content,
+          change: (doc, options) => {
+            changeCalls.push({ doc, options });
+            return adapter.change(doc, options);
+          },
+        };
+      })
+    );
+
+  return {
+    createLiveDocumentAdapter,
+    changeCalls,
+    // The unwrapped adapter, for changes that bypass the command's `change`.
+    adapter: () => {
+      if (lastAdapter === null) throw new Error('adapter not created yet');
+      return lastAdapter;
+    },
   };
 };
 
@@ -338,6 +376,68 @@ describe('openLiveDocument', () => {
     await vi.advanceTimersByTimeAsync(300);
 
     expect(mockStore.updateRichTextDocumentContent).not.toHaveBeenCalled();
+  });
+
+  it('persists a change that reaches the live document without going through change', async () => {
+    const mockStore = createMockProjectStore('on disk');
+    const tracking = createTrackingAdapterFactory();
+
+    await open(
+      buildDeps(mockStore, {
+        createLiveDocumentAdapter: tracking.createLiveDocumentAdapter,
+      })
+    );
+
+    await Effect.runPromise(
+      tracking.adapter().change(editorDocument('from a peer'))
+    );
+    await vi.advanceTimersByTimeAsync(300);
+
+    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledTimes(1);
+    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledWith(
+      expect.objectContaining({ content: transformed('from a peer') })
+    );
+  });
+
+  it('anchors a disk refresh at the version of the last persisted content', async () => {
+    const mockStore = createMockProjectStore('on disk');
+    const tracking = createTrackingAdapterFactory();
+
+    const live = await open(
+      buildDeps(mockStore, {
+        createLiveDocumentAdapter: tracking.createLiveDocumentAdapter,
+      })
+    );
+
+    await Effect.runPromise(live.change(editorDocument('typed')));
+    await Effect.runPromise(live.flush);
+
+    mockStore.writeToDisk('edited in another editor');
+    await Effect.runPromise(live.refresh);
+
+    expect(tracking.changeCalls[tracking.changeCalls.length - 1]).toEqual({
+      doc: primaryDocument('edited in another editor'),
+      options: { base: '1' },
+    });
+  });
+
+  it('anchors a disk refresh at the opening version when nothing was persisted', async () => {
+    const mockStore = createMockProjectStore('on disk');
+    const tracking = createTrackingAdapterFactory();
+
+    const live = await open(
+      buildDeps(mockStore, {
+        createLiveDocumentAdapter: tracking.createLiveDocumentAdapter,
+      })
+    );
+
+    mockStore.writeToDisk('edited in another editor');
+    await Effect.runPromise(live.refresh);
+
+    expect(tracking.changeCalls[tracking.changeCalls.length - 1]).toEqual({
+      doc: primaryDocument('edited in another editor'),
+      options: { base: '0' },
+    });
   });
 
   it('keeps the open document when its file disappears', async () => {
