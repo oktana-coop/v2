@@ -27,16 +27,10 @@ export type Unsubscribe = () => void;
 export type PersistError = PersistDocumentError;
 
 export type RefreshError =
-  | ValidationError
-  | RepositoryError
-  | NotFoundError
-  | MigrationError;
+  ValidationError | RepositoryError | NotFoundError | MigrationError;
 
 export type OpenError =
-  | ValidationError
-  | RepositoryError
-  | NotFoundError
-  | MigrationError;
+  ValidationError | RepositoryError | NotFoundError | MigrationError;
 
 export type OpenLiveDocumentDeps = {
   createLiveDocumentAdapter: (

@@ -40,6 +40,4 @@ export type WidgetDiffDecoration = {
 };
 
 export type DiffDecoration =
-  | InlineDiffDecoration
-  | NodeDiffDecoration
-  | WidgetDiffDecoration;
+  InlineDiffDecoration | NodeDiffDecoration | WidgetDiffDecoration;

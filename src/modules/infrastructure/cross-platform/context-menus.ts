@@ -14,8 +14,7 @@ export type ExplorerEmptyTreeContextMenuPayload = {
 };
 
 export type ContextMenuPayload =
-  | ExplorerTreeNodeContextMenuPayload
-  | ExplorerEmptyTreeContextMenuPayload;
+  ExplorerTreeNodeContextMenuPayload | ExplorerEmptyTreeContextMenuPayload;
 
 export type ContextMenuAction =
   | {
@@ -28,8 +27,7 @@ export type ContextMenuAction =
     };
 
 export type ExplorerTreeFileAction =
-  | { type: 'RENAME'; path: string }
-  | { type: 'DELETE'; path: string };
+  { type: 'RENAME'; path: string } | { type: 'DELETE'; path: string };
 
 export type ExplorerTreeDirectoryAction =
   | { type: 'NEW_FILE'; parentPath: string }

@@ -22,7 +22,4 @@ type RenamedDocument = {
 };
 
 export type ChangedDocument =
-  | AddedDocument
-  | ModifiedDocument
-  | DeletedDocument
-  | RenamedDocument;
+  AddedDocument | ModifiedDocument | DeletedDocument | RenamedDocument;
