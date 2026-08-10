@@ -3,7 +3,11 @@ import { pipe } from 'effect/Function';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { describe, expect, it, vi } from 'vitest';
 
-import { forEachLatestRefChange, subscribeToRef } from './subscribe-to-ref';
+import {
+  forEachLatestRefChange,
+  subscribeToRef,
+  subscribeToRefChanges,
+} from './subscribe-to-ref';
 
 describe('subscribeToRef', () => {
   it('replays the current value, streams updates, and stops on unsubscribe', async () => {
@@ -24,6 +28,30 @@ describe('subscribeToRef', () => {
     // stray delivery a chance to happen, then assert it didn't.
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(received).toEqual(['initial', 'updated']);
+  });
+});
+
+describe('subscribeToRefChanges', () => {
+  it('skips the replay, streams updates, and stops on unsubscribe', async () => {
+    const ref = await Effect.runPromise(SubscriptionRef.make('initial'));
+
+    const received: string[] = [];
+    const unsubscribe = subscribeToRefChanges(ref, (value) =>
+      received.push(value)
+    );
+
+    await Effect.runPromise(SubscriptionRef.set(ref, 'updated'));
+    // Deliveries are ordered, so had the replay been delivered, it would
+    // precede 'updated'.
+    await vi.waitFor(() => expect(received).toEqual(['updated']));
+
+    unsubscribe();
+    await Effect.runPromise(SubscriptionRef.set(ref, 'after unsubscribe'));
+
+    // A value must NOT arrive after unsubscribe; give any stray delivery a
+    // chance, then assert it didn't.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(received).toEqual(['updated']);
   });
 });
 

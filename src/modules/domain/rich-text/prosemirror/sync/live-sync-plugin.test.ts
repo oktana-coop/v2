@@ -16,6 +16,10 @@ import {
   type RichTextDocument,
   richTextRepresentations,
 } from '../../models';
+import {
+  type LiveDocument,
+  type LiveDocumentChangeOptions,
+} from '../../ports/live-document';
 import { pmDocFromJSONString } from '../json';
 import { schema } from '../schema';
 import { liveSyncPlugin } from './live-sync-plugin';
@@ -58,12 +62,25 @@ const setup = async ({
   const onError = vi.fn();
   const dispatched: Transaction[] = [];
 
+  // Records what the plugin contributes, so tests can assert on the options.
+  const changeCalls: Array<{
+    doc: RichTextDocument;
+    options: LiveDocumentChangeOptions | undefined;
+  }> = [];
+  const trackedLiveDocument: LiveDocument = {
+    content: liveDocument.content,
+    change: (doc, options) => {
+      changeCalls.push({ doc, options });
+      return liveDocument.change(doc, options);
+    },
+  };
+
   const state = EditorState.create({
     schema,
     doc: paragraph(initialText),
     plugins: [
       liveSyncPlugin({
-        liveDocument,
+        liveDocument: trackedLiveDocument,
         initialVersion: initial.version,
         schemaVersion: CURRENT_SCHEMA_VERSION,
         schema,
@@ -82,7 +99,7 @@ const setup = async ({
   });
   views.push(view);
 
-  return { liveDocument, view, dispatched, onError };
+  return { liveDocument, view, dispatched, onError, changeCalls };
 };
 
 describe('liveSyncPlugin', () => {
@@ -104,6 +121,27 @@ describe('liveSyncPlugin', () => {
       );
       expect(textOf(current.doc)).toBe('hello world');
     });
+  });
+
+  it('anchors local edits at the version shown in the editor', async () => {
+    const { liveDocument, view, changeCalls } = await setup();
+
+    view.dispatch(view.state.tr.insertText(' world', 6));
+
+    await eventually(() => expect(changeCalls).toHaveLength(1));
+    expect(changeCalls[0].options).toEqual({ base: '0' });
+
+    await Effect.runPromise(
+      liveDocument.change(markdownDocument('from elsewhere'))
+    );
+    await eventually(() =>
+      expect(view.state.doc.textContent).toBe('from elsewhere')
+    );
+
+    view.dispatch(view.state.tr.insertText('!', 1));
+
+    await eventually(() => expect(changeCalls).toHaveLength(2));
+    expect(changeCalls[1].options).toEqual({ base: '2' });
   });
 
   it('applies an external change as a transaction on the same view', async () => {

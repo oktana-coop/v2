@@ -2,9 +2,13 @@ import debounce from 'debounce';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as Ref from 'effect/Ref';
+import * as SubscriptionRef from 'effect/SubscriptionRef';
 
 import {
   type LiveDocument,
+  type LiveDocumentChange,
+  type LiveDocumentChangeOptions,
+  type LiveDocumentVersion,
   type RepresentationTransform,
   type RichTextDocument,
 } from '../../../../modules/domain/rich-text';
@@ -12,6 +16,7 @@ import {
   type ArtifactId,
   MigrationError,
 } from '../../../../modules/infrastructure/version-control';
+import { subscribeToRefChanges } from '../../../../utils/effect';
 import {
   NotFoundError,
   RepositoryError,
@@ -75,15 +80,28 @@ export const openLiveDocument =
     pipe(
       findDocumentById({ projectId, documentId }),
       Effect.flatMap(({ artifact }) =>
-        Effect.all({
-          adapter: createLiveDocumentAdapter(artifact),
-          lastPersisted: Ref.make(artifact.content),
-          pendingPersist: Ref.make<RichTextDocument | null>(null),
-          persistSemaphore: Effect.makeSemaphore(1),
-        })
+        pipe(
+          createLiveDocumentAdapter(artifact),
+          Effect.flatMap((adapter) =>
+            pipe(
+              SubscriptionRef.get(adapter.content),
+              Effect.flatMap((initial) =>
+                Effect.all({
+                  adapter: Effect.succeed(adapter),
+                  lastPersisted: Ref.make({
+                    content: artifact.content,
+                    version: initial.version,
+                  }),
+                  cancelledVersion: Ref.make<LiveDocumentVersion | null>(null),
+                  persistSemaphore: Effect.makeSemaphore(1),
+                })
+              )
+            )
+          )
+        )
       ),
       Effect.map(
-        ({ adapter, lastPersisted, pendingPersist, persistSemaphore }) => {
+        ({ adapter, lastPersisted, cancelledVersion, persistSemaphore }) => {
           // Persistence ops run strictly one after another: the next starts
           // only after the previous — including its disk write — has fully
           // finished.
@@ -94,7 +112,7 @@ export const openLiveDocument =
             updateRichTextDocumentContent,
           });
 
-          const persist = (doc: RichTextDocument) =>
+          const persist = ({ doc, version }: LiveDocumentChange) =>
             pipe(
               Ref.get(lastPersisted),
               Effect.flatMap((last) =>
@@ -102,25 +120,31 @@ export const openLiveDocument =
                   projectId,
                   documentId,
                   document: doc,
-                  skipIfContentEquals: last,
+                  skipIfContentEquals: last.content,
                 })
               ),
               Effect.flatMap((textContent) =>
-                Ref.set(lastPersisted, textContent)
+                Ref.set(lastPersisted, { content: textContent, version })
               )
             );
 
-          // Unlocked - callers wrap it in the persist mutex.
-          const takePendingPersist = pipe(
-            Effect.sync(() => debouncedFlush.clear()),
-            Effect.zipRight(Ref.getAndSet(pendingPersist, null))
-          );
-
+          // There is no pending buffer: the live document itself holds what
+          // is pending, and `persist` skips content that is already on disk.
+          // Reading the current value directly means a flush can never miss
+          // a change whose subscriber delivery is still in flight.
           const flush = persistMutex(
             pipe(
-              takePendingPersist,
-              Effect.flatMap((doc) =>
-                doc === null ? Effect.void : persist(doc)
+              Effect.sync(() => debouncedFlush.clear()),
+              Effect.zipRight(SubscriptionRef.get(adapter.content)),
+              Effect.flatMap((current) =>
+                pipe(
+                  Ref.get(cancelledVersion),
+                  Effect.flatMap((cancelled) =>
+                    current.version === cancelled
+                      ? Effect.void
+                      : persist(current)
+                  )
+                )
               )
             )
           );
@@ -129,8 +153,16 @@ export const openLiveDocument =
             Effect.runPromise(flush).catch(onPersistError);
           }, PERSIST_DEBOUNCE_MS);
 
+          // Marks the content as of now as not-to-persist; any later change
+          // produces a new version, which persists again.
           const cancelPendingPersist = persistMutex(
-            Effect.asVoid(takePendingPersist)
+            pipe(
+              Effect.sync(() => debouncedFlush.clear()),
+              Effect.zipRight(SubscriptionRef.get(adapter.content)),
+              Effect.flatMap((current) =>
+                Ref.set(cancelledVersion, current.version)
+              )
+            )
           );
 
           // Re-derives the live content from the disk. Content equal to
@@ -147,15 +179,21 @@ export const openLiveDocument =
                 pipe(
                   Ref.get(lastPersisted),
                   Effect.flatMap((last) =>
-                    last === fresh.content
+                    last.content === fresh.content
                       ? Effect.void
                       : pipe(
-                          takePendingPersist,
+                          Effect.sync(() => debouncedFlush.clear()),
+                          // The disk content was derived from the state we
+                          // last wrote or read, so anchor the change there.
                           Effect.zipRight(
-                            Ref.set(lastPersisted, fresh.content)
+                            adapter.change(fresh, { base: last.version })
                           ),
-                          // Update the live document.
-                          Effect.zipRight(adapter.change(fresh)),
+                          Effect.flatMap((version) =>
+                            Ref.set(lastPersisted, {
+                              content: fresh.content,
+                              version,
+                            })
+                          ),
                           Effect.asVoid
                         )
                   )
@@ -186,19 +224,23 @@ export const openLiveDocument =
             );
           });
 
-          const change = (doc: RichTextDocument) =>
-            pipe(
-              // Update the live document.
-              adapter.change(doc),
-              // Flush to disk (with a debounce).
-              Effect.tap(() => Ref.set(pendingPersist, doc)),
-              Effect.tap(() => Effect.sync(() => debouncedFlush()))
-            );
+          // The disk follows the live document: any new state, from any
+          // source, arms a write.
+          const unsubscribeFromContent = subscribeToRefChanges(
+            adapter.content,
+            () => debouncedFlush()
+          );
+
+          const change = (
+            doc: RichTextDocument,
+            options?: LiveDocumentChangeOptions
+          ) => adapter.change(doc, options);
 
           // Unsubscribe first, so the echo of the closing flush cannot
           // start a refresh on a document that is going away.
           const close = pipe(
             Effect.sync(unsubscribeFromDisk),
+            Effect.zipRight(Effect.sync(unsubscribeFromContent)),
             Effect.zipRight(flush)
           );
 

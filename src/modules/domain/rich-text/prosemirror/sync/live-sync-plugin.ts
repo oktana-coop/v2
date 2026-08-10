@@ -159,7 +159,9 @@ export const liveSyncPlugin = ({
           };
 
           // update() is synchronous, so run the change as a fire-and-forget task.
-          Effect.runPromise(liveDocument.change(doc));
+          Effect.runPromise(
+            liveDocument.change(doc, { base: editorDocVersion })
+          );
         },
         destroy() {
           unsubscribe();
