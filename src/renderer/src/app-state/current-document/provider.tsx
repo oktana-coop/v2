@@ -4,8 +4,8 @@ import { useCallback, useContext, useEffect, useState } from 'react';
 import { useMatch, useNavigate } from 'react-router';
 
 import {
-  type OpenedLiveDocument,
   openLiveDocument,
+  type OpenLiveDocumentResult,
   type ProjectId,
   type ProjectStore,
   urlEncodeProjectId,
@@ -68,9 +68,8 @@ export const CurrentDocumentProvider = ({
   const documentId = useCurrentDocumentId();
   const { pulledUpstreamChanges, resetPulledUpstreamChanges } =
     usePulledUpstreamChanges();
-  const [liveDocument, setLiveDocument] = useState<OpenedLiveDocument | null>(
-    null
-  );
+  const [liveDocument, setLiveDocument] =
+    useState<OpenLiveDocumentResult | null>(null);
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
   const [versionedDocumentHistory, setVersionedDocumentHistory] = useState<
     ChangeWithUrlInfo[]
@@ -105,9 +104,9 @@ export const CurrentDocumentProvider = ({
 
     // Ignore an open the selection has already moved on from.
     let cancelled = false;
-    let opened: OpenedLiveDocument | null = null;
+    let opened: OpenLiveDocumentResult | null = null;
 
-    const close = (handle: OpenedLiveDocument) =>
+    const close = (handle: OpenLiveDocumentResult) =>
       Effect.runPromise(handle.close).catch(console.error);
 
     setLoadingHistory(true);

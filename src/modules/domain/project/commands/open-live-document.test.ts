@@ -91,6 +91,7 @@ const createTrackingAdapterFactory = () => {
     options: LiveDocumentChangeOptions | undefined;
   }> = [];
   let lastAdapter: LiveDocument | null = null;
+  let closed = false;
 
   const createLiveDocumentAdapter = (initial: RichTextDocument) =>
     pipe(
@@ -98,7 +99,13 @@ const createTrackingAdapterFactory = () => {
       Effect.map((adapter): LiveDocument => {
         lastAdapter = adapter;
         return {
-          content: adapter.content,
+          ...adapter,
+          close: pipe(
+            Effect.sync(() => {
+              closed = true;
+            }),
+            Effect.zipRight(adapter.close)
+          ),
           change: (doc, options) => {
             changeCalls.push({ doc, options });
             return adapter.change(doc, options);
@@ -110,6 +117,7 @@ const createTrackingAdapterFactory = () => {
   return {
     createLiveDocumentAdapter,
     changeCalls,
+    isClosed: () => closed,
     // The unwrapped adapter, for changes that bypass the command's `change`.
     adapter: () => {
       if (lastAdapter === null) throw new Error('adapter not created yet');
@@ -282,6 +290,45 @@ describe('openLiveDocument', () => {
     expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledWith(
       expect.objectContaining({ content: transformed('typed') })
     );
+  });
+
+  it('closes the live document, after writing what was pending', async () => {
+    const mockStore = createMockProjectStore('on disk');
+    const tracking = createTrackingAdapterFactory();
+
+    const live = await open(
+      buildDeps(mockStore, {
+        createLiveDocumentAdapter: tracking.createLiveDocumentAdapter,
+      })
+    );
+
+    await Effect.runPromise(live.change(editorDocument('typed')));
+    expect(tracking.isClosed()).toBe(false);
+
+    await Effect.runPromise(live.close);
+
+    expect(tracking.isClosed()).toBe(true);
+    // Ordering: the write happened, so closing did not cut the flush short.
+    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledWith(
+      expect.objectContaining({ content: transformed('typed') })
+    );
+  });
+
+  it('reports a failing closing write through onPersistError', async () => {
+    const mockStore = createMockProjectStore('on disk');
+    const onPersistError = vi.fn();
+    const live = await open(buildDeps(mockStore, { onPersistError }));
+
+    await Effect.runPromise(live.change(editorDocument('typed')));
+    mockStore.updateRichTextDocumentContent.mockReturnValue(
+      Effect.fail(new RepositoryError('write failed')) as never
+    );
+
+    // Closing never fails: the write error surfaces the same way every other
+    // failed write does.
+    await Effect.runPromise(live.close);
+
+    expect(onPersistError).toHaveBeenCalledTimes(1);
   });
 
   it('listens for project directory changes and stops on close', async () => {

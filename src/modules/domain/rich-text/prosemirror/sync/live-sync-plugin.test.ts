@@ -68,7 +68,7 @@ const setup = async ({
     options: LiveDocumentChangeOptions | undefined;
   }> = [];
   const trackedLiveDocument: LiveDocument = {
-    content: liveDocument.content,
+    ...liveDocument,
     change: (doc, options) => {
       changeCalls.push({ doc, options });
       return liveDocument.change(doc, options);
