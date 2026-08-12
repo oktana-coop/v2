@@ -47,6 +47,8 @@
   },
   "dependencies": {
     "@automerge/automerge": "^3.4.0",
+    "@automerge/automerge-repo": "^2.5.6",
+    "@automerge/automerge-repo-network-websocket": "^2.5.6",
     "@floating-ui/react": "^0.27.20",
     "@headlessui/react": "^2.2.10",
     "@wasmer/wasi": "^1.2.2",
@@ -86,6 +88,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@automerge/automerge-repo-network-messagechannel": "^2.5.6",
+    "@automerge/automerge-repo-sync-server": "^0.2.8",
     "@chromatic-com/storybook": "^1.9.0",
     "@eslint/compat": "^1.4.1",
     "@eslint/eslintrc": "^3.3.6",
