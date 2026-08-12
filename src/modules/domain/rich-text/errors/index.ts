@@ -66,3 +66,14 @@ export const WebEditorErrorTag = 'WebEditorError';
 export class WebEditorError extends Cause.YieldableError {
   readonly _tag = WebEditorErrorTag;
 }
+
+export const SharedDocumentUnavailableErrorTag =
+  'SharedDocumentUnavailableError';
+export class SharedDocumentUnavailableError extends Cause.YieldableError {
+  readonly _tag = SharedDocumentUnavailableErrorTag;
+}
+
+export const UnsupportedShareFormatErrorTag = 'UnsupportedShareFormatError';
+export class UnsupportedShareFormatError extends Cause.YieldableError {
+  readonly _tag = UnsupportedShareFormatErrorTag;
+}
