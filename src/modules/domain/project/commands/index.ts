@@ -8,6 +8,11 @@ export {
 export * from './resolve-document-asset-url';
 export { persistDocument } from './persist-document';
 export {
+  shareDocument,
+  type ShareDocumentDeps,
+  type ShareDocumentError,
+} from './share-document';
+export {
   openLiveDocument,
   type OpenLiveDocumentResult,
   type OpenLiveDocumentArgs,
