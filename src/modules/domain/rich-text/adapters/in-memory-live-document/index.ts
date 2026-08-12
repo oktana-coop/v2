@@ -38,5 +38,6 @@ export const createAdapter = (
                 })
           )
         ),
+      close: Effect.void,
     }))
   );

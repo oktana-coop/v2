@@ -23,4 +23,5 @@ export type LiveDocument = {
     doc: RichTextDocument,
     options?: LiveDocumentChangeOptions
   ) => Effect.Effect<LiveDocumentVersion>;
+  close: Effect.Effect<void>;
 };

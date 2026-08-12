@@ -54,11 +54,10 @@ export type OpenLiveDocumentArgs = {
   documentId: ArtifactId;
 };
 
-export type OpenedLiveDocument = LiveDocument & {
+export type OpenLiveDocumentResult = LiveDocument & {
   flush: Effect.Effect<void, PersistError>;
   refresh: Effect.Effect<void, RefreshError>;
   cancelPendingPersist: Effect.Effect<void>;
-  close: Effect.Effect<void, PersistError>;
 };
 
 const PERSIST_DEBOUNCE_MS = 300;
@@ -76,7 +75,7 @@ export const openLiveDocument =
   ({
     projectId,
     documentId,
-  }: OpenLiveDocumentArgs): Effect.Effect<OpenedLiveDocument, OpenError> =>
+  }: OpenLiveDocumentArgs): Effect.Effect<OpenLiveDocumentResult, OpenError> =>
     pipe(
       findDocumentById({ projectId, documentId }),
       Effect.flatMap(({ artifact }) =>
@@ -237,11 +236,20 @@ export const openLiveDocument =
           ) => adapter.change(doc, options);
 
           // Unsubscribe first, so the echo of the closing flush cannot
-          // start a refresh on a document that is going away.
+          // start a refresh on a document that is going away. The adapter is
+          // closed last: the flush still reads its content.
           const close = pipe(
             Effect.sync(unsubscribeFromDisk),
             Effect.zipRight(Effect.sync(unsubscribeFromContent)),
-            Effect.zipRight(flush)
+            Effect.zipRight(
+              pipe(
+                flush,
+                Effect.catchAll((error) =>
+                  Effect.sync(() => onPersistError(error))
+                )
+              )
+            ),
+            Effect.zipRight(adapter.close)
           );
 
           return {

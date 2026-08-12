@@ -9,7 +9,7 @@ export * from './resolve-document-asset-url';
 export { persistDocument } from './persist-document';
 export {
   openLiveDocument,
-  type OpenedLiveDocument,
+  type OpenLiveDocumentResult,
   type OpenLiveDocumentArgs,
   type OpenLiveDocumentDeps,
 } from './open-live-document';
