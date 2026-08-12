@@ -3,6 +3,7 @@ import { type TextRichTextRepresentation } from '../domain/rich-text';
 export type BuildConfig = {
   primaryRichTextRepresentation: TextRichTextRepresentation;
   githubAppClientId: string;
+  syncServiceUrl: string;
 };
 
 // Explicitly pick only the config values we want to expose to the renderer process
