@@ -23,5 +23,15 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     onCloseDiscardChangesDialog: () => {},
     selectedCommitIndex: null,
     onSelectChange: () => {},
+    shareUrl: null,
+    onShareDocument: async () => {},
+    onJoinSharedDocument: async () => {},
+    onLeaveSharedDocument: async () => {},
+    isShareDocumentDialogOpen: false,
+    isJoinSharedDocumentDialogOpen: false,
+    onOpenShareDocumentDialog: () => {},
+    onCloseShareDocumentDialog: () => {},
+    onOpenJoinSharedDocumentDialog: () => {},
+    onCloseJoinSharedDocumentDialog: () => {},
   }
 );

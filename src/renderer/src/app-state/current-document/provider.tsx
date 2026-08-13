@@ -1,5 +1,6 @@
 import debounce from 'debounce';
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 import { useCallback, useContext, useEffect, useState } from 'react';
 import { useMatch, useNavigate } from 'react-router';
 
@@ -8,12 +9,17 @@ import {
   type OpenLiveDocumentResult,
   type ProjectId,
   type ProjectStore,
+  shareDocument,
+  type ShareUrl,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
 import {
   isEmpty,
+  type RichTextDocument,
+  SharedDocumentUnavailableError,
   type VersionedDocument,
 } from '../../../../modules/domain/rich-text';
+import { type OpenSharedDocumentError } from '../../../../modules/domain/rich-text/adapters/automerge-live-document';
 import { createAdapter as createInMemoryLiveDocumentAdapter } from '../../../../modules/domain/rich-text/adapters/in-memory-live-document';
 import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
 import {
@@ -35,6 +41,8 @@ import { FunctionalityConfigContext } from '../../../../modules/personalization/
 import { subscribeToRef } from '../../../../utils/effect';
 import { ProjectContext } from '../';
 import { useCurrentChangeId } from '../current-project/current-artifact/use-current-change-id';
+import { DocumentSharingInfoContext } from '../document-sharing-info';
+import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 import { CurrentDocumentContext } from './context';
 import { useCurrentDocumentId } from './use-current-document-id';
 import { usePulledUpstreamChanges } from './use-pulled-upstream-changes';
@@ -55,9 +63,16 @@ export const CurrentDocumentProvider = ({
   const {
     projectId,
     projectStore,
+    currentBranch,
     restoreDocumentChanges,
     subscribeToProjectDirChanges,
   } = useContext(ProjectContext);
+  const { openSharedLiveDocument, projectSync } = useContext(
+    InfrastructureAdaptersContext
+  );
+  const { shareUrlFor, rememberShare, forgetShare } = useContext(
+    DocumentSharingInfoContext
+  );
   const { dispatchNotification } = useContext(NotificationsContext);
   const { showDiffInHistoryView } = useContext(FunctionalityConfigContext);
   const { adapter: representationTransformAdapter } = useContext(
@@ -83,10 +98,20 @@ export const CurrentDocumentProvider = ({
   const [isDiscardChangesDialogOpen, setIsDiscardChangesDialogOpen] =
     useState<boolean>(false);
   const [commitToRestore, setCommitToRestore] = useState<Commit | null>(null);
+  const [isShareDocumentDialogOpen, setIsShareDocumentDialogOpen] =
+    useState<boolean>(false);
+  const [isJoinSharedDocumentDialogOpen, setIsJoinSharedDocumentDialogOpen] =
+    useState<boolean>(false);
 
   const documentChangeSubRouteMatch = useMatch(
     '/projects/:projectId/artifacts/:artifactId/changes/:changeId'
   );
+
+  const shareKey =
+    projectId && currentBranch && documentId
+      ? { projectId, branch: currentBranch, documentId }
+      : null;
+  const shareUrl = shareKey ? shareUrlFor(shareKey) : null;
 
   // Opens the current document as a live document. The previous one is kept
   // until the new one resolves, so a reload never blanks the state in between;
@@ -111,9 +136,50 @@ export const CurrentDocumentProvider = ({
 
     setLoadingHistory(true);
 
+    // Sharing must never stand between the user and their document: whatever
+    // goes wrong, the document opens from disk instead. A share that can
+    // never work is also forgotten, so it stops being retried.
+    const openPrivatelyInstead = (
+      initial: RichTextDocument,
+      error: OpenSharedDocumentError
+    ) => {
+      console.error(error);
+
+      // Being out of reach may pass; a share this app cannot read never will,
+      // so that one is forgotten rather than retried on every open.
+      const outOfReach = error instanceof SharedDocumentUnavailableError;
+
+      if (!outOfReach && shareKey) forgetShare(shareKey);
+
+      dispatchNotification(
+        createErrorNotification({
+          title: 'Shared Document Error',
+          message: outOfReach
+            ? 'The shared document could not be reached, so it was opened on its own. Your changes are still saved.'
+            : 'This shared document could not be used, so it was opened on its own and is no longer shared here. Your changes are still saved.',
+        })
+      );
+
+      return createInMemoryLiveDocumentAdapter(initial);
+    };
+
+    const createLiveDocumentAdapter = shareUrl
+      ? (initial: RichTextDocument) =>
+          pipe(
+            openSharedLiveDocument({
+              shareUrl,
+              transformToText: representationTransformAdapter.transformToText,
+              // The share keeps working on what it holds, so a failure to
+              // publish or read a change is logged rather than surfaced.
+              onError: console.error,
+            }),
+            Effect.catchAll((error) => openPrivatelyInstead(initial, error))
+          )
+      : createInMemoryLiveDocumentAdapter;
+
     Effect.runPromise(
       openLiveDocument({
-        createLiveDocumentAdapter: createInMemoryLiveDocumentAdapter,
+        createLiveDocumentAdapter,
         transformToText: representationTransformAdapter.transformToText,
         findDocumentById: projectStore.findDocumentById,
         updateRichTextDocumentContent:
@@ -160,6 +226,8 @@ export const CurrentDocumentProvider = ({
       cancelled = true;
       if (opened) close(opened);
     };
+    // Sharing the document, or ending the share, re-opens it here: the share
+    // decides which live document the editor gets.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     documentId,
@@ -167,6 +235,8 @@ export const CurrentDocumentProvider = ({
     projectStore,
     representationTransformAdapter,
     subscribeToProjectDirChanges,
+    currentBranch,
+    shareUrlFor,
   ]);
 
   // A pull can change the open document underneath it; re-read to pick that up.
@@ -444,6 +514,60 @@ export const CurrentDocumentProvider = ({
     setIsDiscardChangesDialogOpen(false);
   }, []);
 
+  // Shares what the store holds, so what the editor has is written first.
+  const handleShareDocument = useCallback(async () => {
+    if (!shareKey || !projectStore || !liveDocument) return;
+
+    try {
+      await Effect.runPromise(liveDocument.flush);
+
+      const url = await Effect.runPromise(
+        shareDocument({
+          findDocumentById: projectStore.findDocumentById,
+          shareDocument: projectSync.shareDocument,
+        })(shareKey)
+      );
+
+      rememberShare({ ...shareKey, shareUrl: url });
+    } catch (error) {
+      console.error(error);
+      dispatchNotification(
+        createErrorNotification({
+          title: 'Share Document Error',
+          message: 'This document could not be shared.',
+        })
+      );
+    }
+  }, [
+    shareKey,
+    projectStore,
+    liveDocument,
+    projectSync,
+    rememberShare,
+    dispatchNotification,
+  ]);
+
+  // The link says nothing about which document it belongs to, so it joins the
+  // one that is open; opening it is what checks the link is usable.
+  const handleJoinSharedDocument = useCallback(
+    async (joinedShareUrl: ShareUrl) => {
+      if (!shareKey) return;
+
+      rememberShare({ ...shareKey, shareUrl: joinedShareUrl });
+      setIsJoinSharedDocumentDialogOpen(false);
+    },
+    [shareKey, rememberShare]
+  );
+
+  const handleLeaveSharedDocument = useCallback(async () => {
+    if (!shareKey || !shareUrl) return;
+
+    forgetShare(shareKey);
+    await Effect.runPromise(
+      projectSync.leaveSharedDocument({ shareUrl })
+    ).catch(console.error);
+  }, [shareKey, shareUrl, forgetShare, projectSync]);
+
   return (
     <CurrentDocumentContext.Provider
       value={{
@@ -464,6 +588,18 @@ export const CurrentDocumentProvider = ({
         onCloseDiscardChangesDialog: handleCloseDiscardChangesDialog,
         selectedCommitIndex,
         onSelectChange: handleSelectChange,
+        shareUrl,
+        onShareDocument: handleShareDocument,
+        onJoinSharedDocument: handleJoinSharedDocument,
+        onLeaveSharedDocument: handleLeaveSharedDocument,
+        isShareDocumentDialogOpen,
+        isJoinSharedDocumentDialogOpen,
+        onOpenShareDocumentDialog: () => setIsShareDocumentDialogOpen(true),
+        onCloseShareDocumentDialog: () => setIsShareDocumentDialogOpen(false),
+        onOpenJoinSharedDocumentDialog: () =>
+          setIsJoinSharedDocumentDialogOpen(true),
+        onCloseJoinSharedDocumentDialog: () =>
+          setIsJoinSharedDocumentDialogOpen(false),
       }}
     >
       {children}

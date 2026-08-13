@@ -1,4 +1,4 @@
-import { isValidAutomergeUrl, type Repo } from '@automerge/automerge-repo';
+import { isValidAutomergeUrl, type Repo } from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
 
 import {

@@ -64,3 +64,10 @@ export {
 } from './infrastructure-adapters/context';
 
 export { useClearWebStorage } from './web-storage';
+
+export {
+  type DocumentShareKey,
+  DocumentSharingInfoContext,
+  type DocumentSharingInfoContextType,
+  DocumentSharingInfoProvider,
+} from './document-sharing-info';

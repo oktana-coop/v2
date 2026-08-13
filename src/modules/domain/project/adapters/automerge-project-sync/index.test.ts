@@ -2,7 +2,7 @@
 // under test) needs. In the app that is `createAutomergeRepo`'s job.
 import '@automerge/automerge';
 
-import { type AutomergeUrl, Repo } from '@automerge/automerge-repo';
+import { type AutomergeUrl, Repo } from '@automerge/automerge-repo/slim';
 import { MessageChannelNetworkAdapter } from '@automerge/automerge-repo-network-messagechannel';
 import * as Effect from 'effect/Effect';
 import * as SubscriptionRef from 'effect/SubscriptionRef';

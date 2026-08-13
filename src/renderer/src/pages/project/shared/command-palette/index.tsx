@@ -34,8 +34,14 @@ export const ProjectCommandPalette = ({
   const { isOpen: isCommandPaletteOpen, closeCommandPalette } = useContext(
     CommandPaletteContext
   );
-  const { canCommit, onOpenDiscardChangesDialog, versionedDocumentId } =
-    useContext(CurrentDocumentContext);
+  const {
+    canCommit,
+    onOpenDiscardChangesDialog,
+    versionedDocumentId,
+    shareUrl,
+    onOpenShareDocumentDialog,
+    onOpenJoinSharedDocumentDialog,
+  } = useContext(CurrentDocumentContext);
   const { openCommitModal } = useContext(CommitModalContext);
   const { checkForUpdate } = useContext(ElectronContext);
   const { directoryTree, currentArtifact } = useContext(ProjectContext);
@@ -110,6 +116,18 @@ export const ProjectCommandPalette = ({
       name: 'Copy as Markdown',
       onActionSelection: copyTextToClipboard(richTextRepresentations.MARKDOWN),
     },
+    {
+      name: shareUrl ? 'Sharing options' : 'Share this document',
+      onActionSelection: onOpenShareDocumentDialog,
+    },
+    ...(shareUrl
+      ? []
+      : [
+          {
+            name: 'Join shared document',
+            onActionSelection: onOpenJoinSharedDocumentDialog,
+          },
+        ]),
     {
       name: keyBindings.ctrlShiftM.command,
       shortcut: keyBindings.ctrlShiftM.keyBinding,

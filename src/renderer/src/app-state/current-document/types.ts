@@ -1,3 +1,4 @@
+import { type ShareUrl } from '../../../../modules/domain/project';
 import { type LiveDocument } from '../../../../modules/domain/rich-text';
 import {
   type ArtifactId,
@@ -24,4 +25,15 @@ export type CurrentDocumentContextType = {
   onCloseDiscardChangesDialog: () => void;
   selectedCommitIndex: number | null;
   onSelectChange: (commitId: ChangeId) => void;
+  // The share the open document takes part in, if any.
+  shareUrl: ShareUrl | null;
+  onShareDocument: () => Promise<void>;
+  onJoinSharedDocument: (shareUrl: ShareUrl) => Promise<void>;
+  onLeaveSharedDocument: () => Promise<void>;
+  isShareDocumentDialogOpen: boolean;
+  isJoinSharedDocumentDialogOpen: boolean;
+  onOpenShareDocumentDialog: () => void;
+  onCloseShareDocumentDialog: () => void;
+  onOpenJoinSharedDocumentDialog: () => void;
+  onCloseJoinSharedDocumentDialog: () => void;
 };

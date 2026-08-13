@@ -5,7 +5,7 @@ import {
   isValidAutomergeUrl,
   type Repo,
   type UrlHeads,
-} from '@automerge/automerge-repo';
+} from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
@@ -66,10 +66,21 @@ const parseShareUrl = (
 
 const findSharedDocument = ({ repo, url }: { repo: Repo; url: AutomergeUrl }) =>
   Effect.tryPromise({
-    try: () =>
-      repo.find<SharedContent>(url, {
-        signal: AbortSignal.timeout(FIND_TIMEOUT_MS),
-      }),
+    // The network adapter reports ready before its connection is up, so a
+    // fresh find can conclude "unavailable" with no peer attached yet.
+    // Accept that state and keep waiting within the same deadline: the
+    // document turns ready once the connection completes.
+    try: async () => {
+      const signal = AbortSignal.timeout(FIND_TIMEOUT_MS);
+      const handle = await repo.find<SharedContent>(url, {
+        allowableStates: ['ready', 'unavailable'],
+        signal,
+      });
+
+      if (!handle.isReady()) await handle.whenReady(['ready'], { signal });
+
+      return handle;
+    },
     catch: mapErrorTo(
       SharedDocumentUnavailableError,
       'The shared document could not be reached.'
@@ -126,25 +137,46 @@ const createLiveDocument = ({
 
   const toText = toPrimaryTextRepresentation({ transformToText });
 
+  // Contributions carrying the same base continue one editing chain: the
+  // editor derived each from the previous contribution's result, so that is
+  // the state to anchor at — anchoring all of them at the shared base would
+  // re-apply the overlap as concurrent inserts and duplicate it. A new base
+  // means the editor absorbed a published state, which starts a new chain.
+  let chain: { base: LiveDocumentVersion; head: LiveDocumentVersion } | null =
+    null;
+
   // A contribution derived from a state other than the current one is applied
   // as if made at that state, so text that arrived meanwhile survives the
-  // merge instead of reading as a deletion.
+  // merge instead of reading as a deletion. Returns the version whose content
+  // is exactly the contributed text.
   const applyText = (text: string, base?: LiveDocumentVersion) => {
-    const anchored = base !== undefined && base !== currentVersion();
-
-    if (anchored) {
-      try {
-        handle.changeAt(decodeVersion(base), (doc) =>
-          Automerge.updateText(doc, ['content'], text)
-        );
-        return currentVersion();
-      } catch (error) {
-        onError(error);
-      }
+    if (base === undefined) {
+      handle.change((doc) => Automerge.updateText(doc, ['content'], text));
+      return currentVersion();
     }
 
-    handle.change((doc) => Automerge.updateText(doc, ['content'], text));
-    return currentVersion();
+    const anchor = chain !== null && chain.base === base ? chain.head : base;
+
+    if (anchor === currentVersion()) {
+      handle.change((doc) => Automerge.updateText(doc, ['content'], text));
+      const head = currentVersion();
+      chain = { base, head };
+      return head;
+    }
+
+    try {
+      const newHeads = handle.changeAt(decodeVersion(anchor), (doc) =>
+        Automerge.updateText(doc, ['content'], text)
+      );
+      const head = newHeads === undefined ? anchor : encodeVersion(newHeads);
+      chain = { base, head };
+      return head;
+    } catch (error) {
+      // Failing to anchor must not fall back to a whole-doc diff at the
+      // current state: that would delete text this contribution never saw.
+      onError(error);
+      return currentVersion();
+    }
   };
 
   return pipe(
@@ -190,11 +222,17 @@ const createLiveDocument = ({
 
         return pipe(
           toText(doc),
-          Effect.map((text) =>
-            contribution === latestContribution
-              ? applyText(text, options?.base)
-              : currentVersion()
-          ),
+          Effect.flatMap((text) => {
+            const version =
+              contribution === latestContribution
+                ? applyText(text, options?.base)
+                : currentVersion();
+
+            // Published before resolving, so once a contribution resolves,
+            // subscribers already hold a state that contains it — the
+            // ordering the editor's apply gate relies on.
+            return pipe(publish, Effect.as(version));
+          }),
           // Contributing has no error channel: a failed conversion is
           // reported and leaves the document as it was.
           Effect.catchAll((error) =>

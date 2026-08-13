@@ -5,6 +5,7 @@ import {
   CloneFromGithubModalProvider,
   CommitModalProvider,
   CurrentDocumentProvider,
+  DocumentSharingInfoProvider,
   ProjectProvider,
   SidebarLayoutProvider,
 } from '../../../app-state';
@@ -13,15 +14,17 @@ export const ProjectProviders = () => {
   return (
     <ProjectProvider>
       <CommitModalProvider>
-        <CurrentDocumentProvider>
-          <CloneFromGithubModalProvider>
-            <ProseMirrorProvider>
-              <SidebarLayoutProvider>
-                <Outlet />
-              </SidebarLayoutProvider>
-            </ProseMirrorProvider>
-          </CloneFromGithubModalProvider>
-        </CurrentDocumentProvider>
+        <DocumentSharingInfoProvider>
+          <CurrentDocumentProvider>
+            <CloneFromGithubModalProvider>
+              <ProseMirrorProvider>
+                <SidebarLayoutProvider>
+                  <Outlet />
+                </SidebarLayoutProvider>
+              </ProseMirrorProvider>
+            </CloneFromGithubModalProvider>
+          </CurrentDocumentProvider>
+        </DocumentSharingInfoProvider>
       </CommitModalProvider>
     </ProjectProvider>
   );
