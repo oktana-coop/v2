@@ -87,6 +87,10 @@ describe('automergeProjectSync', () => {
       createAutomergeLiveDocumentAdapter({
         repo: bob,
         shareUrl,
+        initial: markdown('what bob had on disk'),
+        readDocument: Effect.succeed(markdown('what bob had on disk')),
+        writeDocument: (doc) => Effect.succeed(doc.content),
+        subscribeToDocumentChanges: () => () => {},
         transformToText: vi.fn(),
         onError: vi.fn(),
       })

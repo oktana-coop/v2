@@ -13,6 +13,7 @@ export {
   type ShareDocumentError,
 } from './share-document';
 export {
+  type LiveDocumentDiskDeps,
   openLiveDocument,
   type OpenLiveDocumentResult,
   type OpenLiveDocumentArgs,

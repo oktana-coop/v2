@@ -24,12 +24,10 @@ import {
   createElectronAssetProtocolAdapter,
   createElectronRendererProjectStoreManagerAdapter,
 } from '../../../../modules/domain/project/browser';
+import { SharedDocumentUnavailableError } from '../../../../modules/domain/rich-text';
 import {
-  type LiveDocument,
-  type RepresentationTransform,
-  SharedDocumentUnavailableError,
-} from '../../../../modules/domain/rich-text';
-import {
+  type AutomergeLiveDocument,
+  type AutomergeLiveDocumentAdapterDeps,
   createAdapter as createAutomergeLiveDocumentAdapter,
   type OpenSharedDocumentError,
 } from '../../../../modules/domain/rich-text/adapters/automerge-live-document';
@@ -44,10 +42,13 @@ import { createAutomergeRepo } from '../../../../modules/infrastructure/sync';
 import { mapErrorTo } from '../../../../utils/errors';
 import { LoadingText } from '../../components/progress/LoadingText';
 
-export type OpenSharedLiveDocumentArgs = {
+export type OpenPrivateLiveDocumentArgs = Omit<
+  AutomergeLiveDocumentAdapterDeps,
+  'repo' | 'shareUrl'
+>;
+
+export type OpenSharedLiveDocumentArgs = OpenPrivateLiveDocumentArgs & {
   shareUrl: ShareUrl;
-  transformToText: RepresentationTransform['transformToText'];
-  onError: (error: unknown) => void;
 };
 
 export type InfrastructureAdaptersContextType = {
@@ -58,9 +59,12 @@ export type InfrastructureAdaptersContextType = {
   projectStore: ProjectStore | null;
   setProjectStore: (store: ProjectStore | null) => void;
   projectSync: ProjectSync;
+  openPrivateLiveDocument: (
+    args: OpenPrivateLiveDocumentArgs
+  ) => Effect.Effect<AutomergeLiveDocument>;
   openSharedLiveDocument: (
     args: OpenSharedLiveDocumentArgs
-  ) => Effect.Effect<LiveDocument, OpenSharedDocumentError>;
+  ) => Effect.Effect<AutomergeLiveDocument, OpenSharedDocumentError>;
 };
 
 export const InfrastructureAdaptersContext =
@@ -77,6 +81,8 @@ export const InfrastructureAdaptersContext =
     setProjectStore: () => {},
     // @ts-expect-error will get overriden below
     projectSync: null,
+    // @ts-expect-error will get overriden below
+    openPrivateLiveDocument: null,
     // @ts-expect-error will get overriden below
     openSharedLiveDocument: null,
   });
@@ -120,6 +126,15 @@ export const InfrastructureAdaptersProvider = ({
     return repoRef.current;
   }, []);
 
+  // Private documents live in their own repo with no network: they
+  // structurally cannot reach the sync service.
+  const hostRepoRef = useRef<Promise<Repo> | null>(null);
+  const getHostRepo = useCallback(() => {
+    hostRepoRef.current ??= Effect.runPromise(createAutomergeRepo({}));
+
+    return hostRepoRef.current;
+  }, []);
+
   const projectSync = useMemo(
     (): ProjectSync => ({
       shareDocument: (args) =>
@@ -142,8 +157,21 @@ export const InfrastructureAdaptersProvider = ({
     [getRepo]
   );
 
+  const openPrivateLiveDocument = useCallback(
+    (args: OpenPrivateLiveDocumentArgs) =>
+      pipe(
+        // Not being able to build a local repo means Automerge itself cannot
+        // initialize — nothing document-related works, so this is a defect.
+        Effect.promise(getHostRepo),
+        Effect.flatMap((repo) =>
+          createAutomergeLiveDocumentAdapter({ repo, ...args })
+        )
+      ),
+    [getHostRepo]
+  );
+
   const openSharedLiveDocument = useCallback(
-    ({ shareUrl, transformToText, onError }: OpenSharedLiveDocumentArgs) =>
+    (args: OpenSharedLiveDocumentArgs) =>
       pipe(
         Effect.tryPromise({
           try: getRepo,
@@ -153,12 +181,7 @@ export const InfrastructureAdaptersProvider = ({
           ),
         }),
         Effect.flatMap((repo) =>
-          createAutomergeLiveDocumentAdapter({
-            repo,
-            shareUrl,
-            transformToText,
-            onError,
-          })
+          createAutomergeLiveDocumentAdapter({ repo, ...args })
         )
       ),
     [getRepo]
@@ -195,6 +218,7 @@ export const InfrastructureAdaptersProvider = ({
         projectStore,
         setProjectStore: handleSetProjectStore,
         projectSync,
+        openPrivateLiveDocument,
         openSharedLiveDocument,
       }}
     >

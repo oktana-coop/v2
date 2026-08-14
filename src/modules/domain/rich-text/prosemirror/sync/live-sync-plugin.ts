@@ -114,6 +114,11 @@ export const liveSyncPlugin = ({
       }): Effect.Effect<void, WebEditorError> =>
         Effect.try({
           try: () => {
+            // The version guard, re-checked: an own echo can arrive before
+            // its contribution resolved with the version to recognize it by;
+            // by the time its conversion is done, the version has landed.
+            if (change.version === editorDocVersion) return;
+
             if (newPmDoc.eq(view.state.doc)) {
               editorDocVersion = change.version;
             } else {
@@ -158,10 +163,16 @@ export const liveSyncPlugin = ({
             content: pmDocToJSONString(view.state.doc),
           };
 
-          // update() is synchronous, so run the change as a fire-and-forget task.
+          // update() is synchronous, so the change runs as a background task.
+          // The version it resolves with is the state carrying exactly this
+          // content: adopting it lets the version guard recognize the echo
+          // without converting it — a state with any other version carries
+          // something this editor has not seen.
           Effect.runPromise(
             liveDocument.change(doc, { base: editorDocVersion })
-          );
+          ).then((version) => {
+            editorDocVersion = version;
+          });
         },
         destroy() {
           unsubscribe();

@@ -5,6 +5,7 @@ import { useCallback, useContext, useEffect, useState } from 'react';
 import { useMatch, useNavigate } from 'react-router';
 
 import {
+  type LiveDocumentDiskDeps,
   openLiveDocument,
   type OpenLiveDocumentResult,
   type ProjectId,
@@ -15,12 +16,10 @@ import {
 } from '../../../../modules/domain/project';
 import {
   isEmpty,
-  type RichTextDocument,
   SharedDocumentUnavailableError,
   type VersionedDocument,
 } from '../../../../modules/domain/rich-text';
 import { type OpenSharedDocumentError } from '../../../../modules/domain/rich-text/adapters/automerge-live-document';
-import { createAdapter as createInMemoryLiveDocumentAdapter } from '../../../../modules/domain/rich-text/adapters/in-memory-live-document';
 import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
 import {
   createErrorNotification,
@@ -67,9 +66,8 @@ export const CurrentDocumentProvider = ({
     restoreDocumentChanges,
     subscribeToProjectDirChanges,
   } = useContext(ProjectContext);
-  const { openSharedLiveDocument, projectSync } = useContext(
-    InfrastructureAdaptersContext
-  );
+  const { openPrivateLiveDocument, openSharedLiveDocument, projectSync } =
+    useContext(InfrastructureAdaptersContext);
   const { shareUrlFor, rememberShare, forgetShare } = useContext(
     DocumentSharingInfoContext
   );
@@ -137,12 +135,9 @@ export const CurrentDocumentProvider = ({
     setLoadingHistory(true);
 
     // Sharing must never stand between the user and their document: whatever
-    // goes wrong, the document opens from disk instead. A share that can
+    // goes wrong, the document opens on its own instead. A share that can
     // never work is also forgotten, so it stops being retried.
-    const openPrivatelyInstead = (
-      initial: RichTextDocument,
-      error: OpenSharedDocumentError
-    ) => {
+    const reportShareFailure = (error: OpenSharedDocumentError) => {
       console.error(error);
 
       // Being out of reach may pass; a share this app cannot read never will,
@@ -159,23 +154,27 @@ export const CurrentDocumentProvider = ({
             : 'This shared document could not be used, so it was opened on its own and is no longer shared here. Your changes are still saved.',
         })
       );
-
-      return createInMemoryLiveDocumentAdapter(initial);
     };
 
-    const createLiveDocumentAdapter = shareUrl
-      ? (initial: RichTextDocument) =>
-          pipe(
-            openSharedLiveDocument({
-              shareUrl,
-              transformToText: representationTransformAdapter.transformToText,
-              // The share keeps working on what it holds, so a failure to
-              // publish or read a change is logged rather than surfaced.
-              onError: console.error,
-            }),
-            Effect.catchAll((error) => openPrivatelyInstead(initial, error))
+    const createLiveDocumentAdapter = (disk: LiveDocumentDiskDeps) => {
+      const args = {
+        ...disk,
+        transformToText: representationTransformAdapter.transformToText,
+        // The document keeps working on what it holds, so a failure to
+        // publish, persist, or read a change is logged rather than surfaced.
+        onError: console.error,
+      };
+
+      return shareUrl
+        ? pipe(
+            openSharedLiveDocument({ ...args, shareUrl }),
+            Effect.catchAll((error) => {
+              reportShareFailure(error);
+              return openPrivateLiveDocument(args);
+            })
           )
-      : createInMemoryLiveDocumentAdapter;
+        : openPrivateLiveDocument(args);
+    };
 
     Effect.runPromise(
       openLiveDocument({

@@ -1,4 +1,5 @@
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { type Node as PMNode } from 'prosemirror-model';
 import { EditorState, type Transaction } from 'prosemirror-state';
@@ -18,6 +19,7 @@ import {
 } from '../../models';
 import {
   type LiveDocument,
+  type LiveDocumentChange,
   type LiveDocumentChangeOptions,
 } from '../../ports/live-document';
 import { pmDocFromJSONString } from '../json';
@@ -49,13 +51,14 @@ const setup = async ({
   initialText = 'hello',
   convertToProseMirror = async (doc: RichTextDocument) =>
     paragraph(doc.content),
+  createLiveDocument = (text: string) =>
+    Effect.runPromise(createAdapter(markdownDocument(text))),
 }: {
   initialText?: string;
   convertToProseMirror?: (doc: RichTextDocument) => Promise<PMNode>;
+  createLiveDocument?: (text: string) => Promise<LiveDocument>;
 } = {}) => {
-  const liveDocument = await Effect.runPromise(
-    createAdapter(markdownDocument(initialText))
-  );
+  const liveDocument = await createLiveDocument(initialText);
   const initial = await Effect.runPromise(
     SubscriptionRef.get(liveDocument.content)
   );
@@ -121,6 +124,56 @@ describe('liveSyncPlugin', () => {
       );
       expect(textOf(current.doc)).toBe('hello world');
     });
+  });
+
+  // Echoes come back as primary text, as the automerge adapter publishes
+  // them; converted, they need not equal the editor's doc — the version is
+  // what identifies them. Applying one would replace the document under the
+  // user's cursor with its own round-tripped shadow.
+  it('recognizes its own echo by version instead of applying it', async () => {
+    const content = await Effect.runPromise(
+      SubscriptionRef.make<LiveDocumentChange>({
+        doc: markdownDocument('hello'),
+        version: '0',
+      })
+    );
+    let versions = 0;
+    const echoing: LiveDocument = {
+      content,
+      change: (doc) => {
+        versions += 1;
+        const version = String(versions);
+        const contributed = pmDocFromJSONString(
+          JSON.parse(doc.content),
+          schema
+        ).textContent;
+
+        // Publishes before resolving, as the port contract requires; the
+        // echo's content round-trips differently than the editor's doc.
+        return pipe(
+          SubscriptionRef.set(content, {
+            doc: markdownDocument(`${contributed} (round-tripped)`),
+            version,
+          }),
+          Effect.as(version)
+        );
+      },
+      close: Effect.void,
+    };
+
+    const { view, dispatched } = await setup({
+      createLiveDocument: () => Promise.resolve(echoing),
+    });
+
+    view.dispatch(view.state.tr.insertText('!', 6));
+    const typed = view.state.doc.textContent;
+    const dispatchedAfterTyping = dispatched.length;
+
+    // Give the echo its chance to arrive, then assert it changed nothing.
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    expect(view.state.doc.textContent).toBe(typed);
+    expect(dispatched).toHaveLength(dispatchedAfterTyping);
   });
 
   it('anchors local edits at the version shown in the editor', async () => {
