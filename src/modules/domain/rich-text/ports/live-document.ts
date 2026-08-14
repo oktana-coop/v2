@@ -19,6 +19,9 @@ export type LiveDocumentChangeOptions = {
 
 export type LiveDocument = {
   content: SubscriptionRef.SubscriptionRef<LiveDocumentChange>;
+  // Resolves with the version whose content is exactly the contributed doc,
+  // and only after the resulting state has been published to `content` — so
+  // a contributor can recognize its own echo by version.
   change: (
     doc: RichTextDocument,
     options?: LiveDocumentChangeOptions
