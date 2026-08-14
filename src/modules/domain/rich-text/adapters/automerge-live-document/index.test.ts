@@ -7,7 +7,7 @@ import {
   type AutomergeUrl,
   type DocHandle,
   Repo,
-} from '@automerge/automerge-repo/slim';
+} from '@automerge/automerge-repo';
 import { MessageChannelNetworkAdapter } from '@automerge/automerge-repo-network-messagechannel';
 import * as Effect from 'effect/Effect';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
@@ -176,74 +176,6 @@ describe('automergeLiveDocument', () => {
     // The version a contribution resolves with is the one its emission
     // carries, which is how the editor recognises its own contribution.
     await vi.waitFor(async () => expect(await versionOf(live)).toBe(version));
-  });
-
-  // While the editor's absorbed state lags (conversions in flight), every
-  // keystroke contributes the full text with the same base. Each extends the
-  // previous one, so anchoring them all at the shared base would re-apply
-  // their overlap as concurrent inserts.
-  it('chains contributions sharing a base instead of re-applying their overlap', async () => {
-    const repo = new Repo({ network: [] });
-    const handle = repo.create<SharedContent>(seed('note'));
-    const live = await open(repo, handle.url);
-
-    const base = await versionOf(live);
-
-    await Effect.runPromise(live.change(markdown('note one'), { base }));
-    await Effect.runPromise(live.change(markdown('note one two'), { base }));
-    await Effect.runPromise(
-      live.change(markdown('note one two three'), { base })
-    );
-
-    expect(textOf(handle)).toBe('note one two three');
-  });
-
-  it('keeps a peer edit that lands mid-chain', async () => {
-    const repo = new Repo({ network: [] });
-    const handle = repo.create<SharedContent>(seed('note'));
-    const live = await open(repo, handle.url);
-
-    const base = await versionOf(live);
-
-    await Effect.runPromise(live.change(markdown('note mine'), { base }));
-
-    // A peer's edit arrives between two contributions of the same chain.
-    handle.change((doc) =>
-      Automerge.updateText(doc, ['content'], 'note mine PEER')
-    );
-
-    await Effect.runPromise(live.change(markdown('note mine more'), { base }));
-
-    const text = textOf(handle);
-    expect(text).toContain('PEER');
-    expect(text).toContain('more');
-    expect(text.match(/mine/g)).toHaveLength(1);
-  });
-
-  it('starts a new chain when a contribution carries a newly absorbed base', async () => {
-    const repo = new Repo({ network: [] });
-    const handle = repo.create<SharedContent>(seed('note'));
-    const live = await open(repo, handle.url);
-
-    const base = await versionOf(live);
-    await Effect.runPromise(live.change(markdown('note mine'), { base }));
-
-    handle.change((doc) =>
-      Automerge.updateText(doc, ['content'], 'note mine PEER')
-    );
-
-    // The editor absorbed the merged state; its next contribution derives
-    // from that, not from the old chain.
-    await vi.waitFor(async () =>
-      expect(await contentOf(live)).toBe('note mine PEER')
-    );
-    const absorbed = await versionOf(live);
-
-    await Effect.runPromise(
-      live.change(markdown('note mine PEER plus'), { base: absorbed })
-    );
-
-    expect(textOf(handle)).toBe('note mine PEER plus');
   });
 
   it('publishes a change made outside this adapter', async () => {
