@@ -5,7 +5,7 @@ import {
   isValidAutomergeUrl,
   type Repo,
   type UrlHeads,
-} from '@automerge/automerge-repo';
+} from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as SubscriptionRef from 'effect/SubscriptionRef';

@@ -7,7 +7,7 @@ import {
   type AutomergeUrl,
   type DocHandle,
   Repo,
-} from '@automerge/automerge-repo';
+} from '@automerge/automerge-repo/slim';
 import { MessageChannelNetworkAdapter } from '@automerge/automerge-repo-network-messagechannel';
 import * as Effect from 'effect/Effect';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
