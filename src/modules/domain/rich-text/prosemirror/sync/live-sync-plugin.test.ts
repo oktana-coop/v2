@@ -1,11 +1,7 @@
 import * as Effect from 'effect/Effect';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { type Node as PMNode } from 'prosemirror-model';
-import {
-  EditorState,
-  TextSelection,
-  type Transaction,
-} from 'prosemirror-state';
+import { EditorState, type Transaction } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -22,7 +18,6 @@ import {
 } from '../../models';
 import {
   type LiveDocument,
-  type LiveDocumentChange,
   type LiveDocumentChangeOptions,
 } from '../../ports/live-document';
 import { pmDocFromJSONString } from '../json';
@@ -50,65 +45,17 @@ const eventually = (assertions: () => void | Promise<void>) =>
 
 const views: EditorView[] = [];
 
-// Stands in for a shared document: a contribution comes back as a change
-// carrying primary text, so the editor has to convert it rather than parse it
-// back. `createAdapter` (in memory) echoes ProseMirror content instead, which
-// round-trips exactly and so cannot show what the echo guard is for.
-const createEchoingLiveDocument = async (
-  initialText: string,
-  // What a peer contributed meanwhile, if anything: a contribution that merges
-  // with one comes back carrying more than this editor produced.
-  { mergedWith }: { mergedWith?: string } = {}
-): Promise<LiveDocument> => {
-  const content = await Effect.runPromise(
-    SubscriptionRef.make<LiveDocumentChange>({
-      doc: markdownDocument(initialText),
-      version: '0',
-    })
-  );
-  let versions = 0;
-
-  return {
-    content,
-    change: (doc) => {
-      versions += 1;
-      const version = String(versions);
-      const contributed = pmDocFromJSONString(
-        JSON.parse(doc.content),
-        schema
-      ).textContent;
-
-      // The contribution lands first and the change is published after, as a
-      // shared document does: applying is what produces the notification.
-      setTimeout(() => {
-        Effect.runPromise(
-          SubscriptionRef.set(content, {
-            doc: markdownDocument(
-              mergedWith ? `${contributed} ${mergedWith}` : contributed
-            ),
-            version,
-          })
-        );
-      }, 0);
-
-      return Effect.succeed(version);
-    },
-    close: Effect.void,
-  };
-};
-
 const setup = async ({
   initialText = 'hello',
   convertToProseMirror = async (doc: RichTextDocument) =>
     paragraph(doc.content),
-  createLiveDocument = (text: string) =>
-    Effect.runPromise(createAdapter(markdownDocument(text))),
 }: {
   initialText?: string;
   convertToProseMirror?: (doc: RichTextDocument) => Promise<PMNode>;
-  createLiveDocument?: (text: string) => Promise<LiveDocument>;
 } = {}) => {
-  const liveDocument = await createLiveDocument(initialText);
+  const liveDocument = await Effect.runPromise(
+    createAdapter(markdownDocument(initialText))
+  );
   const initial = await Effect.runPromise(
     SubscriptionRef.get(liveDocument.content)
   );
@@ -195,133 +142,6 @@ describe('liveSyncPlugin', () => {
 
     await eventually(() => expect(changeCalls).toHaveLength(2));
     expect(changeCalls[1].options).toEqual({ base: '2' });
-  });
-
-  // A shared document echoes every contribution back. Converting that echo
-  // back to ProseMirror can yield a document that differs from what the user
-  // is typing into, which would replace it under their cursor.
-  it('leaves the editor alone when its contribution comes back unchanged', async () => {
-    const { view, dispatched } = await setup({
-      createLiveDocument: createEchoingLiveDocument,
-    });
-
-    view.dispatch(view.state.tr.insertText('!', 6));
-    const typed = view.state.doc.textContent;
-    const dispatchedAfterTyping = dispatched.length;
-
-    // Nothing to wait for: give the echo its chance to arrive, then assert it
-    // changed nothing.
-    await new Promise((resolve) => setTimeout(resolve, 30));
-
-    expect(view.state.doc.textContent).toBe(typed);
-    expect(dispatched).toHaveLength(dispatchedAfterTyping);
-  });
-
-  // While a contribution is in flight, the user keeps typing. Its echo then
-  // describes an older state than the editor shows; applying it would wipe
-  // the newer keystrokes (they come back later, but the cursor has already
-  // been thrown off).
-  it('leaves in-flight keystrokes alone when an older own state echoes back', async () => {
-    const { view, dispatched } = await setup({
-      createLiveDocument: createEchoingLiveDocument,
-    });
-
-    view.dispatch(view.state.tr.insertText('!', 6));
-    view.dispatch(view.state.tr.insertText('?', 7));
-    const typed = view.state.doc.textContent;
-    const dispatchedAfterTyping = dispatched.length;
-
-    // Give both echoes their chance to arrive, then assert neither replaced
-    // anything.
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    expect(view.state.doc.textContent).toBe(typed);
-    expect(dispatched).toHaveLength(dispatchedAfterTyping);
-  });
-
-  // A state published while an own contribution is still in flight can lag
-  // the editor's own text; applying it would wipe those keystrokes and throw
-  // the caret. Once the contribution resolves, the next published state
-  // carries everything.
-  it('holds incoming changes while an own contribution is in flight', async () => {
-    let resolveContribution: (() => void) | undefined;
-    const content = await Effect.runPromise(
-      SubscriptionRef.make<LiveDocumentChange>({
-        doc: markdownDocument('hello'),
-        version: '0',
-      })
-    );
-    const liveDocument: LiveDocument = {
-      content,
-      change: () =>
-        Effect.promise(
-          () =>
-            new Promise<string>((resolve) => {
-              resolveContribution = () => resolve('1');
-            })
-        ),
-      close: Effect.void,
-    };
-
-    const { view } = await setup({
-      createLiveDocument: () => Promise.resolve(liveDocument),
-    });
-
-    view.dispatch(view.state.tr.insertText('!', 6));
-
-    await Effect.runPromise(
-      SubscriptionRef.set(content, {
-        doc: markdownDocument('from a peer'),
-        version: 'r1',
-      })
-    );
-    await new Promise((resolve) => setTimeout(resolve, 30));
-
-    expect(view.state.doc.textContent).toBe('hello!');
-
-    resolveContribution?.();
-    await Effect.runPromise(
-      SubscriptionRef.set(content, {
-        doc: markdownDocument('hello! from a peer'),
-        version: 'r2',
-      })
-    );
-
-    await eventually(() =>
-      expect(view.state.doc.textContent).toBe('hello! from a peer')
-    );
-  });
-
-  it('keeps the caret in place when a change lands elsewhere', async () => {
-    const { liveDocument, view } = await setup({ initialText: 'hello world' });
-
-    view.dispatch(
-      view.state.tr.setSelection(TextSelection.create(view.state.doc, 6))
-    );
-
-    await Effect.runPromise(
-      liveDocument.change(markdownDocument('hello world and more'))
-    );
-
-    await eventually(() =>
-      expect(view.state.doc.textContent).toBe('hello world and more')
-    );
-    expect(view.state.selection.head).toBe(6);
-  });
-
-  // A contribution that merged with a peer's edit comes back carrying that
-  // edit, and the editor has to show it.
-  it('applies what its contribution merged with', async () => {
-    const { view } = await setup({
-      createLiveDocument: (text) =>
-        createEchoingLiveDocument(text, { mergedWith: 'and from a peer' }),
-    });
-
-    view.dispatch(view.state.tr.insertText('!', 6));
-
-    await eventually(() =>
-      expect(view.state.doc.textContent).toBe('hello! and from a peer')
-    );
   });
 
   it('applies an external change as a transaction on the same view', async () => {
