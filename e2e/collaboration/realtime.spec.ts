@@ -240,6 +240,38 @@ test.describe('realtime collaboration', () => {
     syncServer.stop();
   });
 
+  // Private documents live in a repo with no network: nothing dials the
+  // sync service until a document is shared or joined.
+  test('a private document never dials the sync service', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const connections: number[] = [];
+    const listener = net.createServer(() => {
+      connections.push(1);
+    });
+    await new Promise<void>((resolve) => listener.listen(0, resolve));
+    const { port } = listener.address() as net.AddressInfo;
+
+    await window.evaluate((url) => {
+      localStorage.setItem('syncServiceUrl', url);
+    }, `ws://127.0.0.1:${port}`);
+
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    await typeInEditorSlowly({ window, text: ' kept local', delay: 30 });
+
+    await sleep(2_000);
+    expect(connections).toEqual([]);
+
+    listener.close();
+  });
+
   // Sharing switches the open document in place: nothing re-opens, so text
   // typed before, during, and after the transition all survives.
   test('typing through the share transition loses nothing', async ({
@@ -864,11 +896,7 @@ test.describe('realtime collaboration', () => {
     }
   });
 
-  // Known failure, kept as the reproduction: concurrent typing under latency
-  // corrupts the converged text (contributions re-applied at stale bases,
-  // carets thrown by whole-document replaces). The live-document redesign
-  // (~/.claude/plans/live-document-unification-plan.md) must make this pass.
-  test.fixme('both peers typing concurrently converge under sync latency', async ({
+  test('both peers typing concurrently converge under sync latency', async ({
     electronApp,
     window,
     testProjectDir,
