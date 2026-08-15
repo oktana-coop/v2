@@ -1,38 +1,11 @@
-import { ElectronApplication, Page } from '@playwright/test';
-
 import { expect, test } from '../shared/fixtures';
 import {
-  openCommandPalette,
+  clearClipboard,
   openHelloMd,
   openProjectFolder,
+  readClipboardText,
+  runPaletteAction,
 } from '../shared/helpers';
-
-const readClipboardText = async ({
-  electronApp,
-}: {
-  electronApp: ElectronApplication;
-}): Promise<string> =>
-  electronApp.evaluate(({ clipboard }) => clipboard.readText());
-
-const clearClipboard = async ({
-  electronApp,
-}: {
-  electronApp: ElectronApplication;
-}): Promise<void> => electronApp.evaluate(({ clipboard }) => clipboard.clear());
-
-const runPaletteAction = async ({
-  window,
-  actionName,
-}: {
-  window: Page;
-  actionName: string;
-}): Promise<void> => {
-  await openCommandPalette({ window });
-
-  const option = window.getByRole('option', { name: actionName, exact: true });
-  await option.waitFor({ state: 'visible', timeout: 5_000 });
-  await option.click();
-};
 
 test.describe('copy as markdown', () => {
   test('copies the whole document as Markdown to the clipboard', async ({
