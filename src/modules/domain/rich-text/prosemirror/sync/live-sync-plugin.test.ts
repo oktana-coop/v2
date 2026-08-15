@@ -2,7 +2,11 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { type Node as PMNode } from 'prosemirror-model';
-import { EditorState, type Transaction } from 'prosemirror-state';
+import {
+  EditorState,
+  TextSelection,
+  type Transaction,
+} from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -130,6 +134,95 @@ describe('liveSyncPlugin', () => {
   // them; converted, they need not equal the editor's doc — the version is
   // what identifies them. Applying one would replace the document under the
   // user's cursor with its own round-tripped shadow.
+  it('keeps the caret in place when a change lands elsewhere', async () => {
+    const { liveDocument, view } = await setup({ initialText: 'hello world' });
+
+    view.dispatch(
+      view.state.tr.setSelection(TextSelection.create(view.state.doc, 6))
+    );
+
+    await Effect.runPromise(
+      liveDocument.change(markdownDocument('hello world and more'))
+    );
+
+    await eventually(() =>
+      expect(view.state.doc.textContent).toBe('hello world and more')
+    );
+    expect(view.state.selection.head).toBe(6);
+  });
+
+  it('does not wipe a keystroke made while an incoming state was converting', async () => {
+    const { liveDocument, view, dispatched } = await setup({
+      convertToProseMirror: async (doc) => {
+        await new Promise((resolve) => setTimeout(resolve, 40));
+        return paragraph(doc.content);
+      },
+    });
+
+    await Effect.runPromise(
+      liveDocument.change(markdownDocument('from elsewhere'))
+    );
+    // The incoming state is converting; a keystroke lands meanwhile.
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    view.dispatch(view.state.tr.insertText('!', 6));
+    const dispatchedAfterTyping = dispatched.length;
+
+    // The lagging state is dropped, never applied-then-healed: the editor
+    // must not dispatch at all, and the keystroke must survive throughout.
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(view.state.doc.textContent).toContain('!');
+    expect(dispatched).toHaveLength(dispatchedAfterTyping);
+  });
+
+  it('holds incoming changes while an own contribution is in flight', async () => {
+    let resolveContribution: (() => void) | undefined;
+    const content = await Effect.runPromise(
+      SubscriptionRef.make<LiveDocumentChange>({
+        doc: markdownDocument('hello'),
+        version: '0',
+      })
+    );
+    const liveDocument: LiveDocument = {
+      content,
+      change: () =>
+        Effect.promise(
+          () =>
+            new Promise<string>((resolve) => {
+              resolveContribution = () => resolve('1');
+            })
+        ),
+      close: Effect.void,
+    };
+
+    const { view } = await setup({
+      createLiveDocument: () => Promise.resolve(liveDocument),
+    });
+
+    view.dispatch(view.state.tr.insertText('!', 6));
+
+    await Effect.runPromise(
+      SubscriptionRef.set(content, {
+        doc: markdownDocument('from a peer'),
+        version: 'r1',
+      })
+    );
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    expect(view.state.doc.textContent).toBe('hello!');
+
+    resolveContribution?.();
+    await Effect.runPromise(
+      SubscriptionRef.set(content, {
+        doc: markdownDocument('hello! from a peer'),
+        version: 'r2',
+      })
+    );
+
+    await eventually(() =>
+      expect(view.state.doc.textContent).toBe('hello! from a peer')
+    );
+  });
+
   it('recognizes its own echo by version instead of applying it', async () => {
     const content = await Effect.runPromise(
       SubscriptionRef.make<LiveDocumentChange>({
