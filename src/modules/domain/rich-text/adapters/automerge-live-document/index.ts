@@ -91,6 +91,37 @@ const validateSharedDocument = (
     }
   );
 
+// Starts a document holding the given content — the shape a shared one has,
+// so it can be shared later without being rebuilt.
+export const startDocument = ({
+  repo,
+  content,
+}: {
+  repo: Repo;
+  content: string;
+}): Effect.Effect<DocHandle<SharedContent>> =>
+  Effect.sync(() =>
+    repo.create<SharedContent>({
+      shareFormatVersion: SHARE_FORMAT_VERSION,
+      content,
+    })
+  );
+
+// Resolves a shared document by its address, refusing shapes this adapter
+// does not implement.
+export const acquireSharedDocument = ({
+  repo,
+  shareUrl,
+}: {
+  repo: Repo;
+  shareUrl: string;
+}): Effect.Effect<DocHandle<SharedContent>, OpenSharedDocumentError> =>
+  pipe(
+    parseShareUrl(shareUrl),
+    Effect.flatMap((url) => findSharedDocument({ repo, url })),
+    Effect.tap(validateSharedDocument)
+  );
+
 const acquireHandle = ({
   repo,
   initial,
@@ -100,17 +131,8 @@ const acquireHandle = ({
   'repo' | 'initial' | 'shareUrl'
 >): Effect.Effect<DocHandle<SharedContent>, OpenSharedDocumentError> =>
   shareUrl === undefined
-    ? Effect.sync(() =>
-        repo.create<SharedContent>({
-          shareFormatVersion: SHARE_FORMAT_VERSION,
-          content: initial.content,
-        })
-      )
-    : pipe(
-        parseShareUrl(shareUrl),
-        Effect.flatMap((url) => findSharedDocument({ repo, url })),
-        Effect.tap(validateSharedDocument)
-      );
+    ? startDocument({ repo, content: initial.content })
+    : acquireSharedDocument({ repo, shareUrl });
 
 type CreateAdapter = {
   (

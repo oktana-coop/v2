@@ -1,16 +1,19 @@
 import debounce from 'debounce';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
-import { useCallback, useContext, useEffect, useState } from 'react';
+import * as SubscriptionRef from 'effect/SubscriptionRef';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useMatch, useNavigate } from 'react-router';
 
 import {
+  joinSharedDocument,
+  leaveSharedDocument as leaveSharedDocumentCommand,
   type LiveDocumentDiskDeps,
   openLiveDocument,
   type OpenLiveDocumentResult,
   type ProjectId,
   type ProjectStore,
-  shareDocument,
+  shareLiveDocument,
   type ShareUrl,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
@@ -19,7 +22,13 @@ import {
   SharedDocumentUnavailableError,
   type VersionedDocument,
 } from '../../../../modules/domain/rich-text';
-import { type OpenSharedDocumentError } from '../../../../modules/domain/rich-text/adapters/automerge-live-document';
+import {
+  acquireSharedDocument,
+  type AutomergeLiveDocument,
+  createAdapter,
+  type OpenSharedDocumentError,
+  startDocument,
+} from '../../../../modules/domain/rich-text/adapters/automerge-live-document';
 import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
 import {
   createErrorNotification,
@@ -38,6 +47,7 @@ import {
 } from '../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../modules/personalization/browser';
 import { subscribeToRef } from '../../../../utils/effect';
+import { mapErrorTo } from '../../../../utils/errors';
 import { ProjectContext } from '../';
 import { useCurrentChangeId } from '../current-project/current-artifact/use-current-change-id';
 import { DocumentSharingInfoContext } from '../document-sharing-info';
@@ -66,8 +76,9 @@ export const CurrentDocumentProvider = ({
     restoreDocumentChanges,
     subscribeToProjectDirChanges,
   } = useContext(ProjectContext);
-  const { openPrivateLiveDocument, openSharedLiveDocument, projectSync } =
-    useContext(InfrastructureAdaptersContext);
+  const { getSyncedRepo, getHostRepo, projectSync } = useContext(
+    InfrastructureAdaptersContext
+  );
   const { shareUrlFor, rememberShare, forgetShare } = useContext(
     DocumentSharingInfoContext
   );
@@ -83,6 +94,9 @@ export const CurrentDocumentProvider = ({
     usePulledUpstreamChanges();
   const [liveDocument, setLiveDocument] =
     useState<OpenLiveDocumentResult | null>(null);
+  // The concrete adapter behind `liveDocument`: share/join/leave continue it
+  // on another document in place, which the port deliberately cannot express.
+  const concreteLiveDocument = useRef<AutomergeLiveDocument | null>(null);
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
   const [versionedDocumentHistory, setVersionedDocumentHistory] = useState<
     ChangeWithUrlInfo[]
@@ -165,15 +179,39 @@ export const CurrentDocumentProvider = ({
         onError: console.error,
       };
 
-      return shareUrl
-        ? pipe(
-            openSharedLiveDocument({ ...args, shareUrl }),
-            Effect.catchAll((error) => {
-              reportShareFailure(error);
-              return openPrivateLiveDocument(args);
-            })
-          )
-        : openPrivateLiveDocument(args);
+      // Not being able to build a local repo means Automerge itself cannot
+      // initialize — nothing document-related works, so that is a defect.
+      const openPrivately = pipe(
+        Effect.promise(getHostRepo),
+        Effect.flatMap((repo) => createAdapter({ repo, ...args }))
+      );
+
+      return pipe(
+        shareUrl
+          ? pipe(
+              Effect.tryPromise({
+                try: getSyncedRepo,
+                catch: mapErrorTo(
+                  SharedDocumentUnavailableError,
+                  'The sync service could not be started.'
+                ),
+              }),
+              Effect.flatMap((repo) =>
+                createAdapter({ repo, ...args, shareUrl })
+              ),
+              Effect.catchAll((error) => {
+                reportShareFailure(error);
+                return openPrivately;
+              })
+            )
+          : openPrivately,
+        // The share and join transitions need the concrete adapter.
+        Effect.tap((live) =>
+          Effect.sync(() => {
+            concreteLiveDocument.current = live;
+          })
+        )
+      );
     };
 
     Effect.runPromise(
@@ -223,10 +261,11 @@ export const CurrentDocumentProvider = ({
 
     return () => {
       cancelled = true;
+      concreteLiveDocument.current = null;
       if (opened) close(opened);
     };
-    // Sharing the document, or ending the share, re-opens it here: the share
-    // decides which live document the editor gets.
+    // The share registry is read at open time only: sharing, joining, and
+    // leaving switch the open document in place rather than re-opening it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     documentId,
@@ -235,7 +274,6 @@ export const CurrentDocumentProvider = ({
     representationTransformAdapter,
     subscribeToProjectDirChanges,
     currentBranch,
-    shareUrlFor,
   ]);
 
   // A pull can change the open document underneath it; re-read to pick that up.
@@ -514,20 +552,43 @@ export const CurrentDocumentProvider = ({
   }, []);
 
   // Shares what the store holds, so what the editor has is written first.
+  // Continues the open document on the shared document at the given address.
+  const attachSharedDocument = useCallback(
+    (url: ShareUrl) =>
+      pipe(
+        Effect.tryPromise({
+          try: getSyncedRepo,
+          catch: mapErrorTo(
+            SharedDocumentUnavailableError,
+            'The sync service could not be started.'
+          ),
+        }),
+        Effect.flatMap((repo) =>
+          acquireSharedDocument({ repo, shareUrl: url })
+        ),
+        Effect.flatMap(
+          (handle) =>
+            concreteLiveDocument.current?.switchTo(handle) ?? Effect.void
+        )
+      ),
+    [getSyncedRepo]
+  );
+
   const handleShareDocument = useCallback(async () => {
-    if (!shareKey || !projectStore || !liveDocument) return;
+    if (!shareKey || !liveDocument) return;
 
     try {
-      await Effect.runPromise(liveDocument.flush);
-
-      const url = await Effect.runPromise(
-        shareDocument({
-          findDocumentById: projectStore.findDocumentById,
+      await Effect.runPromise(
+        shareLiveDocument({
+          readLiveContent: pipe(
+            SubscriptionRef.get(liveDocument.content),
+            Effect.map((current) => current.doc.content)
+          ),
           shareDocument: projectSync.shareDocument,
-        })(shareKey)
+          attachSharedDocument,
+          rememberShare: (url) => rememberShare({ ...shareKey, shareUrl: url }),
+        })
       );
-
-      rememberShare({ ...shareKey, shareUrl: url });
     } catch (error) {
       console.error(error);
       dispatchNotification(
@@ -547,25 +608,64 @@ export const CurrentDocumentProvider = ({
   ]);
 
   // The link says nothing about which document it belongs to, so it joins the
-  // one that is open; opening it is what checks the link is usable.
+  // one that is open; attaching is what checks the link is usable.
   const handleJoinSharedDocument = useCallback(
     async (joinedShareUrl: ShareUrl) => {
-      if (!shareKey) return;
+      if (!shareKey || !liveDocument) return;
 
-      rememberShare({ ...shareKey, shareUrl: joinedShareUrl });
-      setIsJoinSharedDocumentDialogOpen(false);
+      try {
+        await Effect.runPromise(
+          joinSharedDocument({
+            attachSharedDocument,
+            rememberShare: (url) =>
+              rememberShare({ ...shareKey, shareUrl: url }),
+          })(joinedShareUrl)
+        );
+        setIsJoinSharedDocumentDialogOpen(false);
+      } catch (error) {
+        console.error(error);
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Join Shared Document Error',
+            message: 'This shared document link could not be joined.',
+          })
+        );
+      }
     },
-    [shareKey, rememberShare]
+    [
+      shareKey,
+      liveDocument,
+      attachSharedDocument,
+      rememberShare,
+      dispatchNotification,
+    ]
   );
 
   const handleLeaveSharedDocument = useCallback(async () => {
-    if (!shareKey || !shareUrl) return;
+    if (!shareKey || !shareUrl || !liveDocument) return;
 
-    forgetShare(shareKey);
     await Effect.runPromise(
-      projectSync.leaveSharedDocument({ shareUrl })
+      leaveSharedDocumentCommand({
+        forgetShare: () => forgetShare(shareKey),
+        // A fresh private document seeded from the live content: leaving
+        // changes who else sees the document, not what it holds.
+        detachToPrivate: pipe(
+          Effect.all({
+            repo: Effect.promise(getHostRepo),
+            current: SubscriptionRef.get(liveDocument.content),
+          }),
+          Effect.flatMap(({ repo, current }) =>
+            startDocument({ repo, content: current.doc.content })
+          ),
+          Effect.flatMap(
+            (handle) =>
+              concreteLiveDocument.current?.switchTo(handle) ?? Effect.void
+          )
+        ),
+        leaveSharedDocument: projectSync.leaveSharedDocument,
+      })(shareUrl)
     ).catch(console.error);
-  }, [shareKey, shareUrl, forgetShare, projectSync]);
+  }, [shareKey, shareUrl, liveDocument, forgetShare, getHostRepo, projectSync]);
 
   return (
     <CurrentDocumentContext.Provider
