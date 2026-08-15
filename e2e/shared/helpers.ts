@@ -198,6 +198,44 @@ export const openCommandPalette = async ({
   await window.waitForTimeout(300);
 };
 
+/**
+ * Opens the command palette and clicks the action with the given name.
+ */
+export const runPaletteAction = async ({
+  window,
+  actionName,
+}: {
+  window: Page;
+  actionName: string;
+}): Promise<void> => {
+  await openCommandPalette({ window });
+
+  const option = window.getByRole('option', { name: actionName, exact: true });
+  await option.waitFor({ state: 'visible', timeout: 5_000 });
+  await option.click();
+};
+
+/**
+ * Reads the system clipboard through Electron's clipboard module in the
+ * main process.
+ */
+export const readClipboardText = async ({
+  electronApp,
+}: {
+  electronApp: ElectronApplication;
+}): Promise<string> =>
+  electronApp.evaluate(({ clipboard }) => clipboard.readText());
+
+/**
+ * Clears the system clipboard, so a test cannot pass on a value left over
+ * from a previous copy.
+ */
+export const clearClipboard = async ({
+  electronApp,
+}: {
+  electronApp: ElectronApplication;
+}): Promise<void> => electronApp.evaluate(({ clipboard }) => clipboard.clear());
+
 export const openHelloMd = async ({
   window,
 }: {
