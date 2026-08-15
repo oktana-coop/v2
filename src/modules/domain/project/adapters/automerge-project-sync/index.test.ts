@@ -85,9 +85,10 @@ describe('automergeProjectSync', () => {
 
     const bobLive = await Effect.runPromise(
       createAutomergeLiveDocumentAdapter({
-        repo: bob,
-        shareUrl,
-        initial: markdown('what bob had on disk'),
+        privateRepo: Effect.succeed(bob),
+        syncedRepo: Effect.succeed(bob),
+        address: shareUrl,
+        initialText: 'what bob had on disk',
         readDocument: Effect.succeed(markdown('what bob had on disk')),
         writeDocument: (doc) => Effect.succeed(doc.content),
         subscribeToDocumentChanges: () => () => {},

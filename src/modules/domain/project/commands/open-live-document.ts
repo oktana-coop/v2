@@ -31,7 +31,7 @@ export type OpenError =
 // is composition: look the document up and hand the adapter its disk in
 // neutral terms — read, write, and a change signal.
 export type LiveDocumentDiskDeps = {
-  initial: RichTextDocument;
+  initialText: string;
   readDocument: Effect.Effect<RichTextDocument, unknown>;
   writeDocument: (doc: RichTextDocument) => Effect.Effect<string, unknown>;
   subscribeToDocumentChanges: (listener: () => void) => Unsubscribe;
@@ -108,7 +108,7 @@ export const openLiveDocument =
           );
 
         return createLiveDocumentAdapter({
-          initial: artifact,
+          initialText: artifact.content,
           readDocument,
           writeDocument,
           subscribeToDocumentChanges: subscribeToProjectDirChanges,

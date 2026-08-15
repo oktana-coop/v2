@@ -1,10 +1,7 @@
 import { isValidAutomergeUrl, type Repo } from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
 
-import {
-  SHARE_FORMAT_VERSION,
-  type SharedContent,
-} from '../../../rich-text/adapters/automerge-live-document';
+import { genesisFor } from '../../../rich-text/adapters/automerge-live-document';
 import { type ProjectSync } from '../../ports';
 
 export type AutomergeProjectSyncDeps = {
@@ -18,14 +15,7 @@ export const createAdapter = ({
   // bytes, so the first state is minted once here and shipped, never derived
   // again by whoever joins.
   shareDocument: ({ content }) =>
-    Effect.sync(() => {
-      const genesis: SharedContent = {
-        shareFormatVersion: SHARE_FORMAT_VERSION,
-        content,
-      };
-
-      return repo.create(genesis).url;
-    }),
+    Effect.sync(() => repo.create(genesisFor(content)).url),
 
   leaveSharedDocument: ({ shareUrl }) =>
     Effect.sync(() => {

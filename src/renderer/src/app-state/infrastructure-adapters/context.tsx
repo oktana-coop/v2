@@ -3,7 +3,6 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -30,7 +29,11 @@ import {
 } from '../../../../modules/infrastructure/filesystem';
 import { createAdapter as createElectronRendererDirectoryWatcherAdapter } from '../../../../modules/infrastructure/filesystem/adapters/directory-watcher/electron-renderer-api';
 import { createAdapter as createElectronRendererFilesystemAPIAdapter } from '../../../../modules/infrastructure/filesystem/adapters/filesystem/electron-renderer-api';
-import { createAutomergeRepo } from '../../../../modules/infrastructure/sync';
+import {
+  createAutomergeRepo,
+  SyncServiceError,
+} from '../../../../modules/infrastructure/sync';
+import { mapErrorTo } from '../../../../utils/errors';
 import { LoadingText } from '../../components/progress/LoadingText';
 
 export type InfrastructureAdaptersContextType = {
@@ -42,9 +45,9 @@ export type InfrastructureAdaptersContextType = {
   setProjectStore: (store: ProjectStore | null) => void;
   projectSync: ProjectSync;
   // The repo that talks to the sync service, and the one that never talks
-  // to anyone: private documents live in the latter.
-  getSyncedRepo: () => Promise<Repo>;
-  getHostRepo: () => Promise<Repo>;
+  // to anyone: documents this app keeps to itself live in the latter.
+  syncedRepo: Effect.Effect<Repo, SyncServiceError>;
+  privateRepo: Effect.Effect<Repo>;
 };
 
 export const InfrastructureAdaptersContext =
@@ -62,9 +65,9 @@ export const InfrastructureAdaptersContext =
     // @ts-expect-error will get overriden below
     projectSync: null,
     // @ts-expect-error will get overriden below
-    getSyncedRepo: null,
+    syncedRepo: null,
     // @ts-expect-error will get overriden below
-    getHostRepo: null,
+    privateRepo: null,
   });
 
 export const InfrastructureAdaptersProvider = ({
@@ -93,40 +96,60 @@ export const InfrastructureAdaptersProvider = ({
   // The repo dials the sync service, so it is built on first use rather than
   // on startup: a client that never shares never connects.
   const syncedRepoRef = useRef<Promise<Repo> | null>(null);
-  const getSyncedRepo = useCallback(() => {
-    // The override lets tests and offline development point at a local sync
-    // server without rebuilding.
-    const syncServiceUrl =
-      localStorage.getItem('syncServiceUrl') ?? buildConfig.syncServiceUrl;
+  const syncedRepo = useMemo(
+    () =>
+      Effect.tryPromise({
+        try: () => {
+          // The override lets tests and offline development point at a local
+          // sync server without rebuilding.
+          const syncServiceUrl =
+            localStorage.getItem('syncServiceUrl') ??
+            buildConfig.syncServiceUrl;
 
-    syncedRepoRef.current ??= Effect.runPromise(
-      createAutomergeRepo({ syncServiceUrl })
-    );
+          syncedRepoRef.current ??= Effect.runPromise(
+            createAutomergeRepo({ syncServiceUrl })
+          );
 
-    return syncedRepoRef.current;
-  }, []);
+          return syncedRepoRef.current;
+        },
+        catch: mapErrorTo(
+          SyncServiceError,
+          'The sync service could not be started.'
+        ),
+      }),
+    []
+  );
 
-  // Private documents live in their own repo with no network: they
+  // Documents this app keeps to itself live in a repo with no network: they
   // structurally cannot reach the sync service.
-  const hostRepoRef = useRef<Promise<Repo> | null>(null);
-  const getHostRepo = useCallback(() => {
-    hostRepoRef.current ??= Effect.runPromise(createAutomergeRepo({}));
+  const privateRepoRef = useRef<Promise<Repo> | null>(null);
+  const privateRepo = useMemo(
+    () =>
+      Effect.promise(() => {
+        privateRepoRef.current ??= Effect.runPromise(createAutomergeRepo({}));
 
-    return hostRepoRef.current;
-  }, []);
+        return privateRepoRef.current;
+      }),
+    []
+  );
 
+  // Minting and releasing shares cannot report a sync-service failure
+  // through the port, so an unreachable service surfaces when the document
+  // is opened at its address instead.
   const projectSync = useMemo(
     (): ProjectSync => ({
       shareDocument: (args) =>
         pipe(
-          Effect.promise(getSyncedRepo),
+          syncedRepo,
+          Effect.orDie,
           Effect.flatMap((repo) =>
             createAutomergeProjectSyncAdapter({ repo }).shareDocument(args)
           )
         ),
       leaveSharedDocument: (args) =>
         pipe(
-          Effect.promise(getSyncedRepo),
+          syncedRepo,
+          Effect.orDie,
           Effect.flatMap((repo) =>
             createAutomergeProjectSyncAdapter({ repo }).leaveSharedDocument(
               args
@@ -134,7 +157,7 @@ export const InfrastructureAdaptersProvider = ({
           )
         ),
     }),
-    [getSyncedRepo]
+    [syncedRepo]
   );
 
   const [projectStoreManager, setProjectStoreManager] =
@@ -168,8 +191,8 @@ export const InfrastructureAdaptersProvider = ({
         projectStore,
         setProjectStore: handleSetProjectStore,
         projectSync,
-        getSyncedRepo,
-        getHostRepo,
+        syncedRepo,
+        privateRepo,
       }}
     >
       {children}

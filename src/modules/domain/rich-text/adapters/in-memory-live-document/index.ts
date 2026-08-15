@@ -38,6 +38,9 @@ export const createAdapter = (
                 })
           )
         ),
+      // Nothing backs this document but itself.
+      attachTo: () => Effect.void,
+      detach: Effect.void,
       close: Effect.void,
     }))
   );
