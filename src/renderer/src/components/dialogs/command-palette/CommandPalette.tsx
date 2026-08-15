@@ -8,7 +8,7 @@ import {
   DialogBackdrop,
   DialogPanel,
 } from '@headlessui/react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { type KeyBinding, useKeyBindings } from '../../../keyboard';
@@ -70,18 +70,15 @@ export type CommandPaletteProps = {
 export const CommandPaletteInput = ({
   placeholder,
   onChange,
-  onBlur,
 }: {
   placeholder: string;
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onBlur: React.FocusEventHandler<HTMLInputElement> | undefined;
 }) => (
   <ComboboxInput
     autoFocus
     className="col-start-1 row-start-1 h-12 w-full bg-transparent p-4 text-base text-gray-900 outline-none placeholder:text-gray-500 sm:text-sm dark:text-gray-100 dark:placeholder:text-gray-300"
     placeholder={placeholder}
     onChange={onChange}
-    onBlur={onBlur}
   />
 );
 
@@ -177,6 +174,16 @@ export const CommandPalette = ({
   contextualSection,
 }: CommandPaletteProps) => {
   const [query, setQuery] = useState('');
+
+  // Reset the query when the palette opens, not when it closes: the dialog
+  // stays mounted during its leave transition, and clearing the query then
+  // makes the full unfiltered list flash while it fades out.
+  useEffect(() => {
+    if (open) {
+      setQuery('');
+    }
+  }, [open]);
+
   const allActions = [...actions, ...(contextualSection?.actions || [])];
   const actionsKeyBindings = allActions
     .filter((action) => action.shortcut)
@@ -210,14 +217,7 @@ export const CommandPalette = ({
         });
 
   return (
-    <Dialog
-      className="relative z-10"
-      open={open}
-      onClose={() => {
-        onClose();
-        setQuery('');
-      }}
-    >
+    <Dialog className="relative z-10" open={open} onClose={onClose}>
       <DialogBackdrop
         transition
         className="fixed inset-0 bg-gray-500/25 transition-opacity data-[closed]:opacity-0 data-[enter]:duration-300 data-[leave]:duration-200 data-[enter]:ease-out data-[leave]:ease-in"
@@ -232,7 +232,6 @@ export const CommandPalette = ({
             onChange={(option: DocumentOption | ActionOption | null) => {
               if (option === null) return;
               onClose();
-              setQuery('');
               if (isDocumentOption(option)) {
                 option.onDocumentSelection();
               } else {
@@ -249,9 +248,6 @@ export const CommandPalette = ({
                 placeholder="Search..."
                 onChange={(event) => {
                   setQuery(event.target.value);
-                }}
-                onBlur={() => {
-                  setQuery('');
                 }}
               />
             </div>
