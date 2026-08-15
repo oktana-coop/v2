@@ -8,6 +8,7 @@ import * as Effect from 'effect/Effect';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { describe, expect, it, vi } from 'vitest';
 
+import { ValidationError } from '../../errors';
 import {
   CURRENT_SCHEMA_VERSION,
   PRIMARY_RICH_TEXT_REPRESENTATION,
@@ -59,7 +60,11 @@ const open = async (initialText: string) => {
   const live = await Effect.runPromise(
     createLiveDocument({
       handle,
-      initialDiskText: initialText,
+      // One repo plays both parts: what this app keeps to itself and what it
+      // shares are the same store here.
+      privateRepo: Effect.succeed(repo),
+      syncedRepo: Effect.succeed(repo),
+      initialText,
       readDocument: Effect.suspend(() =>
         readsFailing-- > 0
           ? Effect.fail(new Error('read failed'))
@@ -328,28 +333,58 @@ describe('automerge live document', () => {
     expect(textOf(handle)).toBe('hello');
   });
 
-  it('continues on another document after a switch', async () => {
+  it('continues on the document at an address after attaching', async () => {
     const { live, repo, handle } = await open('hello');
-    const next = repo.create<SharedContent>(seed('hello'));
+    const shared = repo.create<SharedContent>(seed('hello'));
 
-    await Effect.runPromise(live.switchTo(next));
+    await Effect.runPromise(live.attachTo(shared.url));
 
     const base = await versionOf(live);
     await Effect.runPromise(live.change(markdown('hello there'), { base }));
 
-    expect(textOf(next)).toBe('hello there');
+    expect(textOf(shared)).toBe('hello there');
     expect(textOf(handle)).toBe('hello');
+  });
+
+  it('continues on a document of its own after detaching, keeping the content', async () => {
+    const { live, repo, handle } = await open('hello');
+    const shared = repo.create<SharedContent>(seed('hello'));
+    await Effect.runPromise(live.attachTo(shared.url));
+    await Effect.runPromise(live.change(markdown('hello shared')));
+
+    await Effect.runPromise(live.detach);
+
+    const base = await versionOf(live);
+    await Effect.runPromise(live.change(markdown('hello on my own'), { base }));
+
+    // The peers keep what they had; this document went its own way.
+    expect(textOf(shared)).toBe('hello shared');
+    expect(textOf(handle)).toBe('hello');
+    const current = await Effect.runPromise(SubscriptionRef.get(live.content));
+    expect(current.doc.content).toBe('hello on my own');
+  });
+
+  it('refuses an address that is not a shared document link', async () => {
+    const { live } = await open('hello');
+
+    const failure = await Effect.runPromise(
+      Effect.flip(live.attachTo('not-a-link'))
+    );
+
+    expect(failure).toBeInstanceOf(ValidationError);
   });
 
   it('drops a contribution anchored before a switch', async () => {
     const { live, repo, onError } = await open('hello');
     const staleBase = await versionOf(live);
-    const next = repo.create<SharedContent>(seed('hello'));
+    const shared = repo.create<SharedContent>(seed('hello'));
 
-    await Effect.runPromise(live.switchTo(next));
+    await Effect.runPromise(live.attachTo(shared.url));
     // Force the anchored path: the new document has moved past its opening
     // state, so the stale base cannot be current.
-    next.change((doc) => Automerge.updateText(doc, ['content'], 'hello moved'));
+    shared.change((doc) =>
+      Automerge.updateText(doc, ['content'], 'hello moved')
+    );
 
     await Effect.runPromise(
       live.change(markdown('derived from the old document'), {
@@ -357,7 +392,7 @@ describe('automerge live document', () => {
       })
     );
 
-    expect(textOf(next)).toBe('hello moved');
+    expect(textOf(shared)).toBe('hello moved');
     expect(onError).toHaveBeenCalled();
   });
 });

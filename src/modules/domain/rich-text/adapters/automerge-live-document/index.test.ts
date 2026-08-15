@@ -18,7 +18,8 @@ import {
   PRIMARY_RICH_TEXT_REPRESENTATION,
   type RichTextDocument,
 } from '../../models';
-import { type AutomergeLiveDocument, createAdapter } from '.';
+import { type LiveDocument } from '../../ports/live-document';
+import { createAdapter } from '.';
 import { SHARE_FORMAT_VERSION, type SharedContent } from './shared-content';
 
 const markdown = (content: string): RichTextDocument => ({
@@ -58,32 +59,39 @@ const diskDeps = {
   subscribeToDocumentChanges: () => () => {},
 };
 
-const openEffect = (repo: Repo, shareUrl: string, onError = vi.fn()) =>
+// One repo plays both parts: what this app keeps to itself and what it
+// shares are the same store here.
+const reposIn = (repo: Repo) => ({
+  privateRepo: Effect.succeed(repo),
+  syncedRepo: Effect.succeed(repo),
+});
+
+const openEffect = (repo: Repo, address: string, onError = vi.fn()) =>
   createAdapter({
-    repo,
-    initial: markdown('what this app had on disk'),
-    shareUrl,
+    ...reposIn(repo),
+    initialText: 'what this app had on disk',
+    address,
     transformToText,
     onError,
     ...diskDeps,
   });
 
-const open = (repo: Repo, shareUrl: string, onError = vi.fn()) =>
-  Effect.runPromise(openEffect(repo, shareUrl, onError));
+const open = (repo: Repo, address: string, onError = vi.fn()) =>
+  Effect.runPromise(openEffect(repo, address, onError));
 
-const contentOf = (live: Pick<AutomergeLiveDocument, 'content'>) =>
+const contentOf = (live: Pick<LiveDocument, 'content'>) =>
   Effect.runPromise(SubscriptionRef.get(live.content)).then(
     (change) => change.doc.content
   );
 
 describe('automergeLiveDocument adapter', () => {
-  it('starts a document from the store when it has no address', async () => {
+  it('starts a document of its own when it has no address', async () => {
     const repo = new Repo({ network: [] });
 
     const live = await Effect.runPromise(
       createAdapter({
-        repo,
-        initial: markdown('fresh from disk'),
+        ...reposIn(repo),
+        initialText: 'fresh from disk',
         transformToText,
         onError: vi.fn(),
         ...diskDeps,

@@ -1,10 +1,15 @@
 import * as Automerge from '@automerge/automerge/slim';
-import { type DocHandle, type UrlHeads } from '@automerge/automerge-repo/slim';
+import {
+  type DocHandle,
+  type Repo,
+  type UrlHeads,
+} from '@automerge/automerge-repo/slim';
 import debounce from 'debounce';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 
+import { type SyncServiceError } from '../../../../infrastructure/sync';
 import { toPrimaryTextRepresentation } from '../../commands';
 import { SharedDocumentUnavailableError } from '../../errors';
 import {
@@ -15,10 +20,15 @@ import {
 import { type RepresentationTransform } from '../../ports';
 import {
   type LiveDocument,
+  type LiveDocumentAddress,
   type LiveDocumentChange,
   type LiveDocumentChangeOptions,
   type LiveDocumentVersion,
 } from '../../ports/live-document';
+import {
+  resolvePrivateDocument,
+  resolveSyncedDocument,
+} from './resolve-document';
 import { type SharedContent } from './shared-content';
 
 // The live document in full: the canonical CRDT document plus its two local
@@ -32,9 +42,14 @@ export type Unsubscribe = () => void;
 
 export type AutomergeLiveDocumentDeps = {
   handle: DocHandle<SharedContent>;
+  // Where documents live: this app's own in the repo that never syncs,
+  // shared ones in the repo that does. Effects, so nothing dials the sync
+  // service until a document is actually shared or joined.
+  privateRepo: Effect.Effect<Repo>;
+  syncedRepo: Effect.Effect<Repo, SyncServiceError>;
   // Disk operations are neutral: the composition closes over project and
-  // document identity. `initialDiskText` is what the store read at open.
-  initialDiskText: string;
+  // document identity. `initialText` is what the store read at open.
+  initialText: string;
   readDocument: Effect.Effect<RichTextDocument, unknown>;
   writeDocument: (doc: RichTextDocument) => Effect.Effect<string, unknown>;
   subscribeToDocumentChanges: (listener: () => void) => Unsubscribe;
@@ -46,7 +61,6 @@ export type AutomergeLiveDocument = LiveDocument & {
   flush: Effect.Effect<void>;
   refresh: Effect.Effect<void>;
   cancelPendingPersist: Effect.Effect<void>;
-  switchTo: (handle: DocHandle<SharedContent>) => Effect.Effect<void>;
 };
 
 const PERSIST_DEBOUNCE_MS = 300;
@@ -61,7 +75,9 @@ const decodeVersion = (version: LiveDocumentVersion): UrlHeads =>
 
 export const createLiveDocument = ({
   handle,
-  initialDiskText,
+  privateRepo,
+  syncedRepo,
+  initialText,
   readDocument,
   writeDocument,
   subscribeToDocumentChanges,
@@ -101,7 +117,7 @@ export const createLiveDocument = ({
       // What the disk holds, as far as this document knows: the text last
       // written or read, and the version it derives from.
       let lastPersisted = {
-        content: initialDiskText,
+        content: initialText,
         version: encodeVersion(handle.heads()),
       };
       let cancelledVersion: LiveDocumentVersion | null = null;
@@ -289,30 +305,30 @@ export const createLiveDocument = ({
         );
       };
 
-      const attach = (target: DocHandle<SharedContent>) => {
+      const listenTo = (target: DocHandle<SharedContent>) => {
         target.on('change', handleDocChange);
         target.on('delete', handleDocDelete);
       };
 
-      const detach = (target: DocHandle<SharedContent>) => {
+      const stopListeningTo = (target: DocHandle<SharedContent>) => {
         target.off('change', handleDocChange);
         target.off('delete', handleDocDelete);
       };
 
-      attach(canonical);
+      listenTo(canonical);
 
-      // Continues this live document on a different backing document. From
-      // here everything anchors in the new document; contributions still in
-      // flight against the old one are dropped by `commitText`. Published
-      // unconditionally: even with the text unchanged, subscribers must
-      // learn the new document's version to derive their next base from.
-      const switchTo = (next: DocHandle<SharedContent>) =>
+      // Continues on another document. From here everything anchors in it;
+      // contributions still in flight against the old one are dropped by
+      // `commitText`. Published unconditionally: even with the text
+      // unchanged, subscribers must learn the version to derive their next
+      // base from.
+      const continueOn = (next: DocHandle<SharedContent>) =>
         mutex(
           pipe(
             Effect.sync(() => {
-              detach(canonical);
+              stopListeningTo(canonical);
               canonical = next;
-              attach(canonical);
+              listenTo(canonical);
               lastContribution = null;
               cancelledVersion = null;
               lastPersisted = {
@@ -326,6 +342,23 @@ export const createLiveDocument = ({
           )
         );
 
+      const attachTo = (address: LiveDocumentAddress) =>
+        pipe(
+          resolveSyncedDocument({ repo: syncedRepo, address }),
+          Effect.flatMap(continueOn)
+        );
+
+      const detach = pipe(
+        SubscriptionRef.get(content),
+        Effect.flatMap((current) =>
+          resolvePrivateDocument({
+            repo: privateRepo,
+            content: current.doc.content,
+          })
+        ),
+        Effect.flatMap(continueOn)
+      );
+
       const unsubscribeFromDisk = subscribeToDocumentChanges(() => {
         Effect.runPromise(refresh).catch(onError);
       });
@@ -335,16 +368,17 @@ export const createLiveDocument = ({
       const close = pipe(
         Effect.sync(() => unsubscribeFromDisk()),
         Effect.zipRight(flush),
-        Effect.zipRight(Effect.sync(() => detach(canonical)))
+        Effect.zipRight(Effect.sync(() => stopListeningTo(canonical)))
       );
 
       return {
         content,
         change,
+        attachTo,
+        detach,
         flush,
         refresh,
         cancelPendingPersist,
-        switchTo,
         close,
       };
     })

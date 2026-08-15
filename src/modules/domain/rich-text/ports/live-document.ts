@@ -1,9 +1,23 @@
 import * as Effect from 'effect/Effect';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 
+import {
+  type SharedDocumentUnavailableError,
+  type UnsupportedShareFormatError,
+  type ValidationError,
+} from '../errors';
 import { type RichTextDocument } from '../models';
 
 export type LiveDocumentVersion = string;
+
+// Where a live document's backing document can be reached. Opaque capability:
+// whoever holds it can attach to that document.
+export type LiveDocumentAddress = string;
+
+export type AttachLiveDocumentError =
+  | ValidationError
+  | SharedDocumentUnavailableError
+  | UnsupportedShareFormatError;
 
 export type LiveDocumentChange = {
   doc: RichTextDocument;
@@ -26,5 +40,13 @@ export type LiveDocument = {
     doc: RichTextDocument,
     options?: LiveDocumentChangeOptions
   ) => Effect.Effect<LiveDocumentVersion>;
+  // Continues on the document reachable at this address, keeping the editor
+  // bound to it: what sharing and joining do to an open document.
+  attachTo: (
+    address: LiveDocumentAddress
+  ) => Effect.Effect<void, AttachLiveDocumentError>;
+  // Continues on a document of its own, seeded with the current content:
+  // what leaving a share does.
+  detach: Effect.Effect<void>;
   close: Effect.Effect<void>;
 };
