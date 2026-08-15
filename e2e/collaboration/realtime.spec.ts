@@ -240,6 +240,49 @@ test.describe('realtime collaboration', () => {
     syncServer.stop();
   });
 
+  // Sharing switches the open document in place: nothing re-opens, so text
+  // typed before, during, and after the transition all survives.
+  test('typing through the share transition loses nothing', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    test.setTimeout(120_000);
+
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+
+    await typeInEditorSlowly({ window, text: ' before', delay: 30 });
+
+    const shareUrl = await shareCurrentDocument({ window });
+    await closeShareDialog({ window });
+
+    await typeInEditorSlowly({ window, text: ' after', delay: 30 });
+
+    const editor = window.locator('.ProseMirror');
+    await expect(editor).toContainText('before after');
+
+    // The peer sees everything, including what was typed before the share.
+    const peer = connectPeer(syncServer.url);
+    try {
+      const handle = await peer.repo.find<SharedContent>(
+        shareUrl as Parameters<typeof peer.repo.find>[0],
+        { signal: AbortSignal.timeout(15_000) }
+      );
+
+      await expect
+        .poll(() => handle.doc().content, { timeout: 15_000 })
+        .toContain('before');
+      await expect.poll(() => handle.doc().content).toContain('after');
+    } finally {
+      peer.disconnect();
+    }
+  });
+
   test('tokens written by a peer appear once and the document settles', async ({
     electronApp,
     window,
