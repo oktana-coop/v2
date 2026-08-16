@@ -179,9 +179,9 @@ export const CurrentDocumentProvider = ({
         onError: console.error,
       };
 
-      // Opening a document of its own has no address to fail on; anything
-      // that goes wrong there is a defect, not a case to handle.
-      const openOnItsOwn = pipe(
+      // Opening a private document has no address to fail on; anything that
+      // goes wrong there is a defect, not a case to handle.
+      const openPrivately = pipe(
         createAutomergeLiveDocumentAdapter(args),
         Effect.orDie
       );
@@ -191,10 +191,10 @@ export const CurrentDocumentProvider = ({
             createAutomergeLiveDocumentAdapter({ ...args, address: shareUrl }),
             Effect.catchAll((error) => {
               reportShareFailure(error);
-              return openOnItsOwn;
+              return openPrivately;
             })
           )
-        : openOnItsOwn;
+        : openPrivately;
     };
 
     Effect.runPromise(
