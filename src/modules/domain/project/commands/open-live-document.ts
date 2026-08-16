@@ -32,7 +32,8 @@ export type OpenError =
 // neutral terms — read, write, and a change signal.
 export type LiveDocumentDiskDeps = {
   initialText: string;
-  readDocument: Effect.Effect<RichTextDocument, unknown>;
+  // Null when the document is gone: nothing to pick up, not a failure.
+  readDocument: Effect.Effect<RichTextDocument | null, unknown>;
   writeDocument: (doc: RichTextDocument) => Effect.Effect<string, unknown>;
   subscribeToDocumentChanges: (listener: () => void) => Unsubscribe;
 };
@@ -52,7 +53,6 @@ export type OpenLiveDocumentDeps = {
   updateRichTextDocumentContent: ProjectStore['updateRichTextDocumentContent'];
   subscribeToProjectDirChanges: (listener: () => void) => Unsubscribe;
   onPersistError: (error: unknown) => void;
-  onRefreshOnDiskChangeError: (error: unknown) => void;
 };
 
 export type OpenLiveDocumentArgs = {
@@ -68,7 +68,6 @@ export const openLiveDocument =
     updateRichTextDocumentContent,
     subscribeToProjectDirChanges,
     onPersistError,
-    onRefreshOnDiskChangeError,
   }: OpenLiveDocumentDeps) =>
   ({
     projectId,
@@ -82,22 +81,14 @@ export const openLiveDocument =
           updateRichTextDocumentContent,
         });
 
-        // Suspended so each read issues its own store call; a vanished file
-        // (e.g. a rename) is not worth reporting.
+        // Suspended so each read issues its own store call. A document that
+        // is gone (e.g. renamed) leaves nothing to pick up, which is not a
+        // failure; anything else is reported by whoever asked for the read.
         const readDocument = pipe(
           Effect.suspend(() => findDocumentById({ projectId, documentId })),
-          Effect.map(({ artifact: fresh }) => fresh),
-          Effect.tapError((error) =>
-            Effect.sync(() => {
-              if (!(
-                typeof error === 'object' &&
-                error !== null &&
-                '_tag' in error &&
-                error._tag === VersionedProjectNotFoundErrorTag
-              )) {
-                onRefreshOnDiskChangeError(error);
-              }
-            })
+          Effect.map(({ artifact: fresh }): RichTextDocument | null => fresh),
+          Effect.catchTag(VersionedProjectNotFoundErrorTag, () =>
+            Effect.succeed(null)
           )
         );
 

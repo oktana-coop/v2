@@ -56,6 +56,7 @@ const open = async (initialText: string) => {
   let diskListener: (() => void) | undefined;
   let readsFailing = 0;
   let writesFailing = 0;
+  let documentGone = false;
 
   const live = await Effect.runPromise(
     createLiveDocument({
@@ -65,11 +66,12 @@ const open = async (initialText: string) => {
       privateRepo: Effect.succeed(repo),
       syncedRepo: Effect.succeed(repo),
       initialText,
-      readDocument: Effect.suspend(() =>
-        readsFailing-- > 0
-          ? Effect.fail(new Error('read failed'))
-          : Effect.succeed(markdown(diskText))
-      ),
+      readDocument: Effect.suspend(() => {
+        if (readsFailing-- > 0) return Effect.fail(new Error('read failed'));
+
+        // Null is how the store reports a document that is gone.
+        return Effect.succeed(documentGone ? null : markdown(diskText));
+      }),
       writeDocument: (doc) =>
         Effect.suspend(() =>
           writesFailing-- > 0
@@ -107,6 +109,10 @@ const open = async (initialText: string) => {
     },
     failNextWrite: () => {
       writesFailing = 1;
+    },
+    loseDocument: () => {
+      documentGone = true;
+      diskListener?.();
     },
   };
 };
@@ -295,6 +301,19 @@ describe('automerge live document', () => {
     );
 
     await vi.waitFor(() => expect(written).toContain('from a peer'));
+  });
+
+  // A rename takes the document out from under the watcher: there is
+  // nothing to pick up, and nothing worth reporting either.
+  it('keeps working, silently, when the document is gone', async () => {
+    const { live, handle, loseDocument, onError } = await open('hello');
+
+    await Effect.runPromise(live.change(markdown('hello typed')));
+    loseDocument();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(textOf(handle)).toBe('hello typed');
+    expect(onError).not.toHaveBeenCalled();
   });
 
   it('keeps the document open when reading the disk fails', async () => {
