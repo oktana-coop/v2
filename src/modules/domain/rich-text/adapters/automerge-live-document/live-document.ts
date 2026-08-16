@@ -50,7 +50,7 @@ export type AutomergeLiveDocumentDeps = {
   // Disk operations are neutral: the composition closes over project and
   // document identity. `initialText` is what the store read at open.
   initialText: string;
-  readDocument: Effect.Effect<RichTextDocument, unknown>;
+  readDocument: Effect.Effect<RichTextDocument | null, unknown>;
   writeDocument: (doc: RichTextDocument) => Effect.Effect<string, unknown>;
   subscribeToDocumentChanges: (listener: () => void) => Unsubscribe;
   transformToText: RepresentationTransform['transformToText'];
@@ -259,7 +259,7 @@ export const createLiveDocument = ({
         pipe(
           Effect.suspend(() => readDocument),
           Effect.flatMap((fresh) =>
-            fresh.content === lastPersisted.content
+            fresh === null || fresh.content === lastPersisted.content
               ? Effect.void
               : Effect.sync(() => {
                   const version = commitText(
