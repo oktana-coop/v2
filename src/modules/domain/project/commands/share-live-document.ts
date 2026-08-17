@@ -1,31 +1,30 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
+import * as SubscriptionRef from 'effect/SubscriptionRef';
 
+import { type LiveDocument } from '../../../../modules/domain/rich-text';
 import { type ProjectSync, type ShareUrl } from '../ports';
 
-// Shares the open document in place: its live content is minted as the
-// shared document, and the live document continues on it — no re-open, no
-// flush-first contract. The disk is unaffected; persistence follows the
+// Shares the open document in place: what it currently holds is minted as
+// the shared document, and the document continues on it — no re-open, and
+// nothing has to be written to disk first. The disk keeps following the
 // live document as always.
 export type ShareLiveDocumentDeps = {
-  // The live document's current primary-text content.
-  readLiveContent: Effect.Effect<string>;
+  liveDocument: LiveDocument;
   shareDocument: ProjectSync['shareDocument'];
-  // Continues the live document on the shared document at the given
-  // address; composed by the wiring, which knows the concrete adapter.
-  attachSharedDocument: (shareUrl: ShareUrl) => Effect.Effect<void, unknown>;
   rememberShare: (shareUrl: ShareUrl) => void;
 };
 
 export const shareLiveDocument = ({
-  readLiveContent,
+  liveDocument,
   shareDocument,
-  attachSharedDocument,
   rememberShare,
 }: ShareLiveDocumentDeps): Effect.Effect<ShareUrl, unknown> =>
   pipe(
-    readLiveContent,
-    Effect.flatMap((content) => shareDocument({ content })),
-    Effect.tap(attachSharedDocument),
+    SubscriptionRef.get(liveDocument.content),
+    Effect.flatMap((current) =>
+      shareDocument({ content: current.doc.content })
+    ),
+    Effect.tap((shareUrl) => liveDocument.attachTo(shareUrl)),
     Effect.tap((shareUrl) => Effect.sync(() => rememberShare(shareUrl)))
   );

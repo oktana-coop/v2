@@ -1,31 +1,69 @@
 import * as Effect from 'effect/Effect';
+import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { describe, expect, it, vi } from 'vitest';
 
-import { RepositoryError } from '../errors';
+import {
+  CURRENT_SCHEMA_VERSION,
+  type LiveDocument,
+  type LiveDocumentChange,
+  PRIMARY_RICH_TEXT_REPRESENTATION,
+  SharedDocumentUnavailableError,
+} from '../../../../modules/domain/rich-text';
 import { joinSharedDocument } from './join-shared-document';
 import { leaveSharedDocument } from './leave-shared-document';
 import { shareLiveDocument } from './share-live-document';
 
+// A live document that records what was asked of it, in order.
+const createLiveDocument = async ({
+  content = 'what the editor shows',
+  calls = [],
+  attachFails = false,
+}: {
+  content?: string;
+  calls?: string[];
+  attachFails?: boolean;
+} = {}): Promise<LiveDocument> => {
+  const contentRef = await Effect.runPromise(
+    SubscriptionRef.make<LiveDocumentChange>({
+      doc: {
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        representation: PRIMARY_RICH_TEXT_REPRESENTATION,
+        content,
+      },
+      version: '0',
+    })
+  );
+
+  return {
+    content: contentRef,
+    change: () => Effect.succeed('0'),
+    attachTo: (address) =>
+      attachFails
+        ? Effect.fail(new SharedDocumentUnavailableError('unreachable'))
+        : Effect.sync(() => {
+            calls.push(`attach:${address}`);
+          }),
+    detach: Effect.sync(() => {
+      calls.push('detach');
+    }),
+    close: Effect.void,
+  };
+};
+
 describe('shareLiveDocument', () => {
-  it('mints the live content, attaches it, and remembers the share', async () => {
+  it('mints what the document holds, attaches to it, and remembers the share', async () => {
     const calls: string[] = [];
-    const rememberShare = vi.fn((url: string) => {
-      calls.push(`remember:${url}`);
-    });
+    const liveDocument = await createLiveDocument({ calls });
 
     const url = await Effect.runPromise(
       shareLiveDocument({
-        readLiveContent: Effect.succeed('what the editor shows'),
+        liveDocument,
         shareDocument: ({ content }) =>
           Effect.sync(() => {
             calls.push(`mint:${content}`);
             return 'automerge:url';
           }),
-        attachSharedDocument: (shareUrl) =>
-          Effect.sync(() => {
-            calls.push(`attach:${shareUrl}`);
-          }),
-        rememberShare,
+        rememberShare: (shareUrl) => calls.push(`remember:${shareUrl}`),
       })
     );
 
@@ -39,20 +77,19 @@ describe('shareLiveDocument', () => {
 
   it('remembers nothing when attaching fails', async () => {
     const rememberShare = vi.fn();
+    const liveDocument = await createLiveDocument({ attachFails: true });
 
     const failure = await Effect.runPromise(
       Effect.flip(
         shareLiveDocument({
-          readLiveContent: Effect.succeed('content'),
+          liveDocument,
           shareDocument: () => Effect.succeed('automerge:url'),
-          attachSharedDocument: () =>
-            Effect.fail(new RepositoryError('unreachable')),
           rememberShare,
         })
       )
     );
 
-    expect(failure).toBeInstanceOf(RepositoryError);
+    expect(failure).toBeInstanceOf(SharedDocumentUnavailableError);
     expect(rememberShare).not.toHaveBeenCalled();
   });
 });
@@ -60,16 +97,12 @@ describe('shareLiveDocument', () => {
 describe('joinSharedDocument', () => {
   it('attaches the share, then remembers it', async () => {
     const calls: string[] = [];
+    const liveDocument = await createLiveDocument({ calls });
 
     await Effect.runPromise(
       joinSharedDocument({
-        attachSharedDocument: (shareUrl) =>
-          Effect.sync(() => {
-            calls.push(`attach:${shareUrl}`);
-          }),
-        rememberShare: (url) => {
-          calls.push(`remember:${url}`);
-        },
+        liveDocument,
+        rememberShare: (shareUrl) => calls.push(`remember:${shareUrl}`),
       })('automerge:pasted')
     );
 
@@ -81,14 +114,11 @@ describe('joinSharedDocument', () => {
 
   it('remembers nothing when attaching fails', async () => {
     const rememberShare = vi.fn();
+    const liveDocument = await createLiveDocument({ attachFails: true });
 
     await Effect.runPromise(
       Effect.flip(
-        joinSharedDocument({
-          attachSharedDocument: () =>
-            Effect.fail(new RepositoryError('unreachable')),
-          rememberShare,
-        })('automerge:pasted')
+        joinSharedDocument({ liveDocument, rememberShare })('automerge:pasted')
       )
     );
 
@@ -97,17 +127,14 @@ describe('joinSharedDocument', () => {
 });
 
 describe('leaveSharedDocument', () => {
-  it('forgets, detaches to a private document, then releases the share', async () => {
+  it('forgets the share, detaches the document, then releases it', async () => {
     const calls: string[] = [];
+    const liveDocument = await createLiveDocument({ calls });
 
     await Effect.runPromise(
       leaveSharedDocument({
-        forgetShare: () => {
-          calls.push('forget');
-        },
-        detachToPrivate: Effect.sync(() => {
-          calls.push('detach');
-        }),
+        liveDocument,
+        forgetShare: () => calls.push('forget'),
         leaveSharedDocument: ({ shareUrl }) =>
           Effect.sync(() => {
             calls.push(`release:${shareUrl}`);
