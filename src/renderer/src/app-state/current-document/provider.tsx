@@ -1,7 +1,6 @@
 import debounce from 'debounce';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
-import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useMatch, useNavigate } from 'react-router';
 
@@ -536,12 +535,8 @@ export const CurrentDocumentProvider = ({
     try {
       await Effect.runPromise(
         shareLiveDocument({
-          readLiveContent: pipe(
-            SubscriptionRef.get(liveDocument.content),
-            Effect.map((current) => current.doc.content)
-          ),
+          liveDocument,
           shareDocument: projectSync.shareDocument,
-          attachSharedDocument: liveDocument.attachTo,
           rememberShare: (url) => rememberShare({ ...shareKey, shareUrl: url }),
         })
       );
@@ -571,7 +566,7 @@ export const CurrentDocumentProvider = ({
       try {
         await Effect.runPromise(
           joinSharedDocument({
-            attachSharedDocument: liveDocument.attachTo,
+            liveDocument,
             rememberShare: (url) =>
               rememberShare({ ...shareKey, shareUrl: url }),
           })(joinedShareUrl)
@@ -595,8 +590,8 @@ export const CurrentDocumentProvider = ({
 
     await Effect.runPromise(
       leaveSharedDocumentCommand({
+        liveDocument,
         forgetShare: () => forgetShare(shareKey),
-        detachToPrivate: liveDocument.detach,
         leaveSharedDocument: projectSync.leaveSharedDocument,
       })(shareUrl)
     ).catch(console.error);
