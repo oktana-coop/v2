@@ -20,7 +20,6 @@ export {
   shareLiveDocument,
 } from './share-live-document';
 export {
-  type LiveDocumentDiskDeps,
   openLiveDocument,
   type OpenLiveDocumentResult,
   type OpenLiveDocumentArgs,

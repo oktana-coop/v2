@@ -15,10 +15,8 @@ import {
   type RichTextDocument,
   richTextRepresentations,
 } from '../../models';
-import {
-  type AutomergeLiveDocument,
-  createLiveDocument,
-} from './live-document';
+import { type LiveDocument } from '../../ports/live-document';
+import { createLiveDocument } from './live-document';
 import { SHARE_FORMAT_VERSION, type SharedContent } from './shared-content';
 
 const markdown = (content: string): RichTextDocument => ({
@@ -44,19 +42,10 @@ const seed = (content: string): SharedContent => ({
   content,
 });
 
-// A live document over one canonical handle, with the disk faked as a plain
-// variable the tests can edit like another program would.
 const open = async (initialText: string) => {
   const repo = new Repo({ network: [] });
   const handle = repo.create<SharedContent>(seed(initialText));
   const onError = vi.fn();
-
-  const written: string[] = [];
-  let diskText = initialText;
-  let diskListener: (() => void) | undefined;
-  let readsFailing = 0;
-  let writesFailing = 0;
-  let documentGone = false;
 
   const live = await Effect.runPromise(
     createLiveDocument({
@@ -65,59 +54,15 @@ const open = async (initialText: string) => {
       // shares are the same store here.
       privateRepo: Effect.succeed(repo),
       syncedRepo: Effect.succeed(repo),
-      initialText,
-      readDocument: Effect.suspend(() => {
-        if (readsFailing-- > 0) return Effect.fail(new Error('read failed'));
-
-        // Null is how the store reports a document that is gone.
-        return Effect.succeed(documentGone ? null : markdown(diskText));
-      }),
-      writeDocument: (doc) =>
-        Effect.suspend(() =>
-          writesFailing-- > 0
-            ? Effect.fail(new Error('write failed'))
-            : Effect.sync(() => {
-                written.push(doc.content);
-                diskText = doc.content;
-                return doc.content;
-              })
-        ),
-      subscribeToDocumentChanges: (listener) => {
-        diskListener = listener;
-        return () => {
-          diskListener = undefined;
-        };
-      },
       transformToText,
       onError,
     })
   );
 
-  return {
-    repo,
-    handle,
-    live,
-    written,
-    onError,
-    // An edit made by another hand, signalled like the watcher would.
-    editDisk: (text: string) => {
-      diskText = text;
-      diskListener?.();
-    },
-    failNextRead: () => {
-      readsFailing = 1;
-    },
-    failNextWrite: () => {
-      writesFailing = 1;
-    },
-    loseDocument: () => {
-      documentGone = true;
-      diskListener?.();
-    },
-  };
+  return { repo, handle, live, onError };
 };
 
-const versionOf = (live: Pick<AutomergeLiveDocument, 'content'>) =>
+const versionOf = (live: LiveDocument) =>
   Effect.runPromise(SubscriptionRef.get(live.content)).then(
     (change) => change.version
   );
@@ -133,7 +78,7 @@ describe('automerge live document', () => {
     expect(current.doc.representation).toBe(PRIMARY_RICH_TEXT_REPRESENTATION);
   });
 
-  it('converts and applies an editor contribution', async () => {
+  it('converts and applies a contribution', async () => {
     const { live, handle } = await open('hello');
 
     await Effect.runPromise(live.change(editorDocument('pm:hello world')));
@@ -141,10 +86,18 @@ describe('automerge live document', () => {
     expect(textOf(handle)).toBe('hello world');
   });
 
-  // While the editor's absorbed state lags, every keystroke contributes the
-  // full text with the same base, each extending the last. Anchoring them
-  // all at that shared base would re-apply the overlap as concurrent
-  // inserts; the intake anchors each at the previous contribution instead.
+  it('publishes the contribution before resolving', async () => {
+    const { live } = await open('hello');
+
+    await Effect.runPromise(live.change(markdown('hello world')));
+
+    const current = await Effect.runPromise(SubscriptionRef.get(live.content));
+    expect(current.doc.content).toBe('hello world');
+  });
+
+  // Contributions can outpace their conversions, so several may share a base
+  // while each extends the last. Anchoring them all at that shared base
+  // would re-apply the overlap as concurrent inserts.
   it('chains contributions sharing a base instead of re-applying their overlap', async () => {
     const { live, handle } = await open('note');
     const base = await versionOf(live);
@@ -176,180 +129,42 @@ describe('automerge live document', () => {
     expect(textOf(handle)).toContain('LOCAL');
   });
 
-  it('persists new content to disk after the debounce', async () => {
-    const { live, written } = await open('hello');
-
-    await Effect.runPromise(live.change(markdown('hello world')));
-
-    await vi.waitFor(() => expect(written).toContain('hello world'));
-  });
-
-  it('flushes pending content on close', async () => {
-    const { live, written } = await open('hello');
-
-    await Effect.runPromise(live.change(markdown('hello world')));
-    await Effect.runPromise(live.close);
-
-    expect(written).toContain('hello world');
-  });
-
-  it('does not persist content marked as cancelled', async () => {
-    const { live, written } = await open('hello');
-
-    await Effect.runPromise(live.change(markdown('restored old state')));
-    await Effect.runPromise(live.cancelPendingPersist);
-    await Effect.runPromise(live.flush);
-
-    expect(written).toEqual([]);
-  });
-
-  it('ignores the echo of its own write coming back from the watcher', async () => {
-    const { live, handle, editDisk, written } = await open('hello');
-
-    await Effect.runPromise(live.change(markdown('hello world')));
-    await Effect.runPromise(live.flush);
-    const headsBefore = handle.heads();
-
-    // The watcher reports our own write.
-    editDisk('hello world');
-    await new Promise((resolve) => setTimeout(resolve, 20));
-
-    expect(handle.heads()).toEqual(headsBefore);
-    expect(written).toHaveLength(1);
-  });
-
-  it('merges an external disk edit with text it had not seen', async () => {
-    const { live, handle, editDisk } = await open('hello');
-
-    // Typed but not yet persisted: the disk still holds the opening text.
-    await Effect.runPromise(live.change(markdown('hello TYPED')));
-
-    editDisk('hello EXTERNAL');
-
-    await vi.waitFor(() => {
-      expect(textOf(handle)).toContain('TYPED');
-      expect(textOf(handle)).toContain('EXTERNAL');
-    });
-  });
-
-  it('publishes the contribution before resolving', async () => {
-    const { live } = await open('hello');
-
-    await Effect.runPromise(live.change(markdown('hello world')));
-
-    const current = await Effect.runPromise(SubscriptionRef.get(live.content));
-    expect(current.doc.content).toBe('hello world');
-  });
-
-  it('opens with the stored document and writes nothing', async () => {
-    const { written } = await open('hello');
-
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(written).toEqual([]);
-  });
-
-  it('coalesces a burst of changes into one write of the last content', async () => {
-    const { live, written } = await open('hello');
-
-    for (const text of ['a', 'ab', 'abc']) {
-      await Effect.runPromise(live.change(markdown(text)));
-    }
-    await Effect.runPromise(live.flush);
-
-    expect(written).toEqual(['abc']);
-  });
-
-  it('flushes idempotently', async () => {
-    const { live, written } = await open('hello');
-
-    await Effect.runPromise(live.change(markdown('hello world')));
-    await Effect.runPromise(live.flush);
-    await Effect.runPromise(live.flush);
-
-    expect(written).toEqual(['hello world']);
-  });
-
-  it('picks up a change made outside the app', async () => {
-    const { live, handle, editDisk } = await open('hello');
-
-    editDisk('changed outside');
-
-    await vi.waitFor(() => expect(textOf(handle)).toBe('changed outside'));
-    const current = await Effect.runPromise(SubscriptionRef.get(live.content));
-    expect(current.doc.content).toBe('changed outside');
-  });
-
-  it('keeps typing that arrives while its own write echoes back', async () => {
-    const { live, handle, editDisk } = await open('hello');
-
-    await Effect.runPromise(live.change(markdown('hello world')));
-    await Effect.runPromise(live.flush);
-    // Typed after the write, before the watcher reports it.
-    await Effect.runPromise(live.change(markdown('hello world!')));
-
-    editDisk('hello world');
-    await new Promise((resolve) => setTimeout(resolve, 20));
-
-    expect(textOf(handle)).toBe('hello world!');
-  });
-
-  it('persists a change that reaches the document without going through change', async () => {
-    const { handle, written } = await open('hello');
+  it('publishes a change made to the document by anyone else', async () => {
+    const { live, handle } = await open('hello');
 
     handle.change((doc) =>
       Automerge.updateText(doc, ['content'], 'from a peer')
     );
 
-    await vi.waitFor(() => expect(written).toContain('from a peer'));
+    await vi.waitFor(async () => {
+      const current = await Effect.runPromise(
+        SubscriptionRef.get(live.content)
+      );
+      expect(current.doc.content).toBe('from a peer');
+    });
   });
 
-  // A rename takes the document out from under the watcher: there is
-  // nothing to pick up, and nothing worth reporting either.
-  it('keeps working, silently, when the document is gone', async () => {
-    const { live, handle, loseDocument, onError } = await open('hello');
+  it('publishes nothing when a change leaves the text as it was', async () => {
+    const { live, handle } = await open('hello');
+    const versionBefore = await versionOf(live);
 
-    await Effect.runPromise(live.change(markdown('hello typed')));
-    loseDocument();
+    handle.change((doc) => Automerge.updateText(doc, ['content'], 'hello'));
     await new Promise((resolve) => setTimeout(resolve, 20));
 
-    expect(textOf(handle)).toBe('hello typed');
-    expect(onError).not.toHaveBeenCalled();
+    expect(await versionOf(live)).toBe(versionBefore);
   });
 
-  it('keeps the document open when reading the disk fails', async () => {
-    const { live, handle, editDisk, failNextRead, onError } =
-      await open('hello');
-
-    failNextRead();
-    editDisk('never seen');
-    await new Promise((resolve) => setTimeout(resolve, 20));
-
-    expect(textOf(handle)).toBe('hello');
-    expect(onError).toHaveBeenCalled();
-    // The document keeps working afterwards.
-    await Effect.runPromise(live.change(markdown('still alive')));
-    expect(textOf(handle)).toBe('still alive');
-  });
-
-  it('reports a failing write and keeps the document open', async () => {
-    const { live, handle, failNextWrite, onError } = await open('hello');
-
-    failNextWrite();
-    await Effect.runPromise(live.change(markdown('hello world')));
-    await Effect.runPromise(live.flush);
-
-    expect(onError).toHaveBeenCalled();
-    expect(textOf(handle)).toBe('hello world');
-  });
-
-  it('stops following the disk on close', async () => {
-    const { live, handle, editDisk } = await open('hello');
+  it('stops publishing once closed', async () => {
+    const { live, handle } = await open('hello');
 
     await Effect.runPromise(live.close);
-    editDisk('after closing');
+    handle.change((doc) =>
+      Automerge.updateText(doc, ['content'], 'after closing')
+    );
     await new Promise((resolve) => setTimeout(resolve, 20));
 
-    expect(textOf(handle)).toBe('hello');
+    const current = await Effect.runPromise(SubscriptionRef.get(live.content));
+    expect(current.doc.content).toBe('hello');
   });
 
   it('continues on the document at an address after attaching', async () => {
