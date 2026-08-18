@@ -7,7 +7,6 @@ import { useMatch, useNavigate } from 'react-router';
 import {
   joinSharedDocument,
   leaveSharedDocument as leaveSharedDocumentCommand,
-  type LiveDocumentDiskDeps,
   openLiveDocument,
   type OpenLiveDocumentResult,
   type ProjectId,
@@ -167,14 +166,14 @@ export const CurrentDocumentProvider = ({
       );
     };
 
-    const createLiveDocumentAdapter = (disk: LiveDocumentDiskDeps) => {
+    const createLiveDocument = (initialText: string) => {
       const args = {
-        ...disk,
+        initialText,
         privateRepo,
         syncedRepo,
         transformToText: representationTransformAdapter.transformToText,
         // The document keeps working on what it holds, so a failure to
-        // publish, persist, or read a change is logged rather than surfaced.
+        // publish or convert a change is logged rather than surfaced.
         onError: console.error,
       };
 
@@ -198,7 +197,7 @@ export const CurrentDocumentProvider = ({
 
     Effect.runPromise(
       openLiveDocument({
-        createLiveDocumentAdapter,
+        createLiveDocument,
         transformToText: representationTransformAdapter.transformToText,
         findDocumentById: projectStore.findDocumentById,
         updateRichTextDocumentContent:

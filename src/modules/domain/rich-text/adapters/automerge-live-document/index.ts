@@ -1,8 +1,8 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
+import { type LiveDocument } from '../../ports/live-document';
 import {
-  type AutomergeLiveDocument,
   type AutomergeLiveDocumentDeps,
   createLiveDocument,
 } from './live-document';
@@ -18,8 +18,10 @@ export type AutomergeLiveDocumentAdapterDeps = Omit<
   AutomergeLiveDocumentDeps,
   'handle'
 > & {
+  // What the store holds, for a document that has to be started from it.
+  initialText: string;
   // The document's address, for a document that has one. Without it the
-  // adapter starts a document of its own, holding what the store read.
+  // adapter starts a document of its own.
   address?: string;
 };
 
@@ -27,7 +29,7 @@ export type AutomergeLiveDocumentAdapterDeps = Omit<
 // cannot, so callers without one can rule the error out.
 export const createAdapter = (
   deps: AutomergeLiveDocumentAdapterDeps
-): Effect.Effect<AutomergeLiveDocument, OpenSharedDocumentError> =>
+): Effect.Effect<LiveDocument, OpenSharedDocumentError> =>
   pipe(
     deps.address === undefined
       ? resolvePrivateDocument({
