@@ -166,7 +166,7 @@ export const CurrentDocumentProvider = ({
       );
     };
 
-    const createLiveDocument = (initialText: string) => {
+    const createLiveDocumentAdapter = (initialText: string) => {
       const args = {
         initialText,
         privateRepo,
@@ -197,7 +197,7 @@ export const CurrentDocumentProvider = ({
 
     Effect.runPromise(
       openLiveDocument({
-        createLiveDocument,
+        createLiveDocumentAdapter,
         transformToText: representationTransformAdapter.transformToText,
         findDocumentById: projectStore.findDocumentById,
         updateRichTextDocumentContent:
