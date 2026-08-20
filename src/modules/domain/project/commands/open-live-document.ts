@@ -77,12 +77,12 @@ export const openLiveDocument =
       Effect.flatMap(({ artifact }) =>
         pipe(
           createLiveDocumentAdapter(artifact.content),
-          Effect.flatMap((adapter) =>
+          Effect.flatMap((liveDocument) =>
             pipe(
-              SubscriptionRef.get(adapter.content),
+              SubscriptionRef.get(liveDocument.content),
               Effect.flatMap((initial) =>
                 Effect.all({
-                  adapter: Effect.succeed(adapter),
+                  liveDocument: Effect.succeed(liveDocument),
                   initial: Effect.succeed(initial),
                   storedContent: Effect.succeed(artifact.content),
                   // What the disk holds, as far as we know, and the version
@@ -103,7 +103,7 @@ export const openLiveDocument =
       ),
       Effect.map(
         ({
-          adapter,
+          liveDocument,
           initial,
           storedContent,
           lastPersisted,
@@ -144,7 +144,7 @@ export const openLiveDocument =
           const flush = persistMutex(
             pipe(
               Effect.sync(() => debouncedFlush.clear()),
-              Effect.zipRight(SubscriptionRef.get(adapter.content)),
+              Effect.zipRight(SubscriptionRef.get(liveDocument.content)),
               Effect.flatMap((current) =>
                 pipe(
                   Ref.get(cancelledVersion),
@@ -172,7 +172,7 @@ export const openLiveDocument =
           const cancelPendingPersist = persistMutex(
             pipe(
               Effect.sync(() => debouncedFlush.clear()),
-              Effect.zipRight(SubscriptionRef.get(adapter.content)),
+              Effect.zipRight(SubscriptionRef.get(liveDocument.content)),
               Effect.flatMap((current) =>
                 Ref.set(cancelledVersion, current.version)
               )
@@ -212,7 +212,9 @@ export const openLiveDocument =
                               // we last wrote or read, so anchor the change
                               // there.
                               Effect.zipRight(
-                                adapter.change(fresh, { base: last.version })
+                                liveDocument.change(fresh, {
+                                  base: last.version,
+                                })
                               ),
                               Effect.flatMap((version) =>
                                 Ref.set(lastPersisted, {
@@ -243,7 +245,7 @@ export const openLiveDocument =
           // The disk follows the live document: any new state, from any
           // source, arms a write.
           const unsubscribeFromContent = subscribeToRefChanges(
-            adapter.content,
+            liveDocument.content,
             () => debouncedFlush()
           );
 
@@ -256,7 +258,7 @@ export const openLiveDocument =
           // document's state, and nothing said about the old one applies.
           const rebaseOnDocument = persistMutex(
             pipe(
-              SubscriptionRef.get(adapter.content),
+              SubscriptionRef.get(liveDocument.content),
               Effect.flatMap((current) =>
                 pipe(
                   Ref.update(lastPersisted, (last) => ({
@@ -275,18 +277,21 @@ export const openLiveDocument =
             Effect.sync(unsubscribeFromDisk),
             Effect.zipRight(Effect.sync(unsubscribeFromContent)),
             Effect.zipRight(flush),
-            Effect.zipRight(adapter.close)
+            Effect.zipRight(liveDocument.close)
           );
 
           return {
-            content: adapter.content,
-            change: adapter.change,
+            content: liveDocument.content,
+            change: liveDocument.change,
             attachTo: (address) =>
               pipe(
-                adapter.attachTo(address),
+                liveDocument.attachTo(address),
                 Effect.zipRight(rebaseOnDocument)
               ),
-            detach: pipe(adapter.detach, Effect.zipRight(rebaseOnDocument)),
+            detach: pipe(
+              liveDocument.detach,
+              Effect.zipRight(rebaseOnDocument)
+            ),
             flush,
             refresh,
             cancelPendingPersist,
