@@ -98,7 +98,7 @@ const open = async ({
 
   const opened = await Effect.runPromise(
     openLiveDocument({
-      createLiveDocument: () => Effect.succeed(live),
+      createLiveDocumentAdapter: () => Effect.succeed(live),
       transformToText: vi.fn(async ({ input }: { input: string }) => input),
       findDocumentById,
       updateRichTextDocumentContent: ({ content }) =>
