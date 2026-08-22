@@ -11,33 +11,33 @@ import {
   type RepresentationTransform,
   type RichTextDocument,
   toPrimaryTextRepresentation,
-} from '../../../../modules/domain/rich-text';
+} from '../../../../../modules/domain/rich-text';
 import {
   type ArtifactId,
   MigrationError,
-} from '../../../../modules/infrastructure/version-control';
+} from '../../../../../modules/infrastructure/version-control';
 import {
   subscribeToRefChanges,
   type Unsubscribe,
-} from '../../../../utils/effect';
+} from '../../../../../utils/effect';
 import {
   NotFoundError,
   RepositoryError,
   ValidationError,
   VersionedProjectNotFoundErrorTag,
-} from '../errors';
+} from '../../errors';
+import { type ProjectId } from '../../models';
+import { type ProjectStore } from '../../ports';
+import { type LiveDocument } from '../live-document';
+import { persistDocument } from '../persist-document';
 import {
   holdsContent,
   mayWrite,
   nowHolding,
-  type ProjectId,
   rebasedOn,
   storedCopy,
   writeCancelled,
-} from '../models';
-import { type ProjectStore } from '../ports';
-import { type LiveDocument } from './live-document';
-import { persistDocument } from './persist-document';
+} from './stored-copy';
 
 export type OpenError =
   ValidationError | RepositoryError | NotFoundError | MigrationError;

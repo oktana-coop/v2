@@ -1,4 +1,4 @@
-import { type ConvergentDocumentVersion } from '../../../../modules/domain/rich-text';
+import { type ConvergentDocumentVersion } from '../../../../../modules/domain/rich-text';
 
 // What the store holds, as far as the app knows, and the live version that
 // content was derived from. A document opened at a share holds something the
