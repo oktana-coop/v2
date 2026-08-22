@@ -10,12 +10,12 @@ import {
   PRIMARY_RICH_TEXT_REPRESENTATION,
   type ResolvedDocument,
   type RichTextDocument,
-} from '../../../../modules/domain/rich-text';
-import { type ArtifactId } from '../../../../modules/infrastructure/version-control';
-import { NotFoundError } from '../errors';
-import { type ProjectId } from '../models';
-import { type ProjectStore } from '../ports';
-import { openLiveDocument } from './open-live-document';
+} from '../../../../../modules/domain/rich-text';
+import { type ArtifactId } from '../../../../../modules/infrastructure/version-control';
+import { NotFoundError } from '../../errors';
+import { type ProjectId } from '../../models';
+import { type ProjectStore } from '../../ports';
+import { openLiveDocument } from '.';
 
 const markdown = (content: string): RichTextDocument => ({
   schemaVersion: CURRENT_SCHEMA_VERSION,
