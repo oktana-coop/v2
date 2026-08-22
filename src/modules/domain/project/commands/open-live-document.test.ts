@@ -4,9 +4,9 @@ import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  type ConvergentDocument,
+  type ConvergentDocumentState,
   CURRENT_SCHEMA_VERSION,
-  type LiveDocument,
-  type LiveDocumentChange,
   PRIMARY_RICH_TEXT_REPRESENTATION,
   type ResolvedDocument,
   type RichTextDocument,
@@ -26,12 +26,12 @@ const markdown = (content: string): RichTextDocument => ({
 const projectId = '/projects/one' as ProjectId;
 const documentId = '/blob/main/note.md' as ArtifactId;
 
-// A live document holding text, versioned by a counter. Contributions
+// A convergent document holding text, versioned by a counter. Contributions
 // anchored at an older version merge rather than replace, as the real one
 // does; that is what the disk relies on.
-const createFakeLiveDocument = async (initialText: string) => {
+const createFakeConvergentDocument = async (initialText: string) => {
   const content = await Effect.runPromise(
-    SubscriptionRef.make<LiveDocumentChange>({
+    SubscriptionRef.make<ConvergentDocumentState>({
       doc: markdown(initialText),
       version: '0',
     })
@@ -49,19 +49,19 @@ const createFakeLiveDocument = async (initialText: string) => {
     );
   };
 
-  const live: LiveDocument = {
+  const live: ConvergentDocument = {
     content,
-    change: (doc, options) =>
+    change: (text, options) =>
       pipe(
         SubscriptionRef.get(content),
         Effect.flatMap((current) => {
-          contributions.push({ text: doc.content, base: options?.base });
+          contributions.push({ text, base: options?.base });
 
           // An anchored contribution keeps what it had not seen.
           const merged =
             options?.base !== undefined && options.base !== current.version
-              ? `${current.doc.content} + ${doc.content}`
-              : doc.content;
+              ? `${current.doc.content} + ${text}`
+              : text;
 
           return publish(merged);
         })
@@ -84,7 +84,7 @@ const open = async ({
   const onPersistError = vi.fn();
   let watcher: (() => void) | undefined;
 
-  const { live, contributions } = await createFakeLiveDocument(liveText);
+  const { live, contributions } = await createFakeConvergentDocument(liveText);
 
   const findDocumentById: ProjectStore['findDocumentById'] = () =>
     Effect.suspend(() =>
@@ -98,8 +98,11 @@ const open = async ({
 
   const opened = await Effect.runPromise(
     openLiveDocument({
-      createLiveDocumentAdapter: () => Effect.succeed(live),
-      transformToText: vi.fn(async ({ input }: { input: string }) => input),
+      createConvergentDocument: () => Effect.succeed(live),
+      // `pm:` marks content that went through the conversion.
+      transformToText: vi.fn(async ({ input }: { input: string }) =>
+        input.replace(/^pm:/, '')
+      ),
       findDocumentById,
       updateRichTextDocumentContent: ({ content }) =>
         Effect.sync(() => {

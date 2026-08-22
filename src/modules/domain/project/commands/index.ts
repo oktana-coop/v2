@@ -19,9 +19,9 @@ export {
   type ShareLiveDocumentDeps,
   shareLiveDocument,
 } from './share-live-document';
+export { type LiveDocument } from './live-document';
 export {
   openLiveDocument,
-  type OpenLiveDocumentResult,
   type OpenLiveDocumentArgs,
   type OpenLiveDocumentDeps,
 } from './open-live-document';

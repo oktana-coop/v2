@@ -9,21 +9,18 @@ import { pipe } from 'effect/Function';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 
 import { type SyncServiceError } from '../../../../infrastructure/sync';
-import { toPrimaryTextRepresentation } from '../../commands';
 import { SharedDocumentUnavailableError } from '../../errors';
 import {
   CURRENT_SCHEMA_VERSION,
   PRIMARY_RICH_TEXT_REPRESENTATION,
-  type RichTextDocument,
 } from '../../models';
-import { type RepresentationTransform } from '../../ports';
 import {
-  type LiveDocument,
-  type LiveDocumentAddress,
-  type LiveDocumentChange,
-  type LiveDocumentChangeOptions,
-  type LiveDocumentVersion,
-} from '../../ports/live-document';
+  type ConvergentDocument,
+  type ConvergentDocumentAddress,
+  type ConvergentDocumentChangeOptions,
+  type ConvergentDocumentState,
+  type ConvergentDocumentVersion,
+} from '../../ports/convergent-document';
 import {
   resolvePrivateDocument,
   resolveSyncedDocument,
@@ -37,34 +34,32 @@ import { type SharedContent } from './shared-content';
 
 export type Unsubscribe = () => void;
 
-export type AutomergeLiveDocumentDeps = {
+export type AutomergeConvergentDocumentDeps = {
   handle: DocHandle<SharedContent>;
   // Where documents live: this app's own in the repo that never syncs,
   // shared ones in the repo that does. Effects, so nothing dials the sync
   // service until a document is actually shared or joined.
   privateRepo: Effect.Effect<Repo>;
   syncedRepo: Effect.Effect<Repo, SyncServiceError>;
-  transformToText: RepresentationTransform['transformToText'];
   onError: (error: unknown) => void;
 };
 
 // Automerge identifies a state by its heads; sorting makes the encoding
 // independent of the order they are reported in.
-const encodeVersion = (heads: UrlHeads): LiveDocumentVersion =>
+const encodeVersion = (heads: UrlHeads): ConvergentDocumentVersion =>
   [...heads].sort().join(',');
 
-const decodeVersion = (version: LiveDocumentVersion): UrlHeads =>
+const decodeVersion = (version: ConvergentDocumentVersion): UrlHeads =>
   version.split(',') as UrlHeads;
 
-export const createLiveDocument = ({
+export const createConvergentDocument = ({
   handle,
   privateRepo,
   syncedRepo,
-  transformToText,
   onError,
-}: AutomergeLiveDocumentDeps): Effect.Effect<LiveDocument> =>
+}: AutomergeConvergentDocumentDeps): Effect.Effect<ConvergentDocument> =>
   pipe(
-    SubscriptionRef.make<LiveDocumentChange>({
+    SubscriptionRef.make<ConvergentDocumentState>({
       doc: {
         schemaVersion: CURRENT_SCHEMA_VERSION,
         representation: PRIMARY_RICH_TEXT_REPRESENTATION,
@@ -77,7 +72,7 @@ export const createLiveDocument = ({
 
       const currentVersion = () => encodeVersion(canonical.heads());
 
-      const readChange = (): LiveDocumentChange => ({
+      const readChange = (): ConvergentDocumentState => ({
         doc: {
           schemaVersion: CURRENT_SCHEMA_VERSION,
           representation: PRIMARY_RICH_TEXT_REPRESENTATION,
@@ -86,16 +81,14 @@ export const createLiveDocument = ({
         version: currentVersion(),
       });
 
-      const toText = toPrimaryTextRepresentation({ transformToText });
-
       // Applies text as an edit made at `anchor`: a plain change when that
       // is the current state, otherwise anchored so text that arrived
       // meanwhile survives the merge. Returns the version whose content is
       // exactly the applied text.
       const commitText = (
         text: string,
-        anchor?: LiveDocumentVersion
-      ): LiveDocumentVersion => {
+        anchor?: ConvergentDocumentVersion
+      ): ConvergentDocumentVersion => {
         if (anchor === undefined || anchor === currentVersion()) {
           canonical.change((doc) =>
             Automerge.updateText(doc, ['content'], text)
@@ -119,52 +112,31 @@ export const createLiveDocument = ({
 
       // ---- contributions ------------------------------------------------
 
-      // Contributions can outpace their conversions, so several may share a
-      // base while each extends the previous one. The last one is what such
-      // a contribution actually derives from.
+      // Contributions can reach here faster than their versions travel back,
+      // so several may share a base while each extends the previous one. The
+      // last one is what such a contribution actually derives from.
       let lastContribution: {
-        base: LiveDocumentVersion;
-        result: LiveDocumentVersion;
+        base: ConvergentDocumentVersion;
+        result: ConvergentDocumentVersion;
       } | null = null;
 
-      // Only the newest of a burst is applied; superseded conversions are
-      // abandoned rather than written over newer text.
-      let latestIntake = 0;
-
       const change = (
-        doc: RichTextDocument,
-        options?: LiveDocumentChangeOptions
+        content: string,
+        options?: ConvergentDocumentChangeOptions
       ) => {
-        const intake = (latestIntake += 1);
+        const base = options?.base;
+        const anchor =
+          base !== undefined && lastContribution?.base === base
+            ? lastContribution.result
+            : base;
 
-        return pipe(
-          toText(doc),
-          Effect.map((text) => {
-            if (intake !== latestIntake) return currentVersion();
+        const result = commitText(content, anchor);
+        if (base !== undefined) lastContribution = { base, result };
 
-            const base = options?.base;
-            const anchor =
-              base !== undefined && lastContribution?.base === base
-                ? lastContribution.result
-                : base;
-
-            const result = commitText(text, anchor);
-            if (base !== undefined) lastContribution = { base, result };
-            return result;
-          }),
-          // Published before resolving, so once a contribution resolves,
-          // subscribers already hold a state that contains it — what lets
-          // the contributor recognize its own echo by version.
-          Effect.flatMap((result) => pipe(publish, Effect.as(result))),
-          // Contributing has no error channel: a failed conversion is
-          // reported and leaves the document as it was.
-          Effect.catchAll((error) =>
-            Effect.sync(() => {
-              onError(error);
-              return currentVersion();
-            })
-          )
-        );
+        // Published before resolving, so once a contribution resolves,
+        // subscribers already hold a state that contains it — what lets the
+        // contributor recognize its own echo by version.
+        return pipe(publish, Effect.as(result));
       };
 
       // ---- the canonical document ---------------------------------------
@@ -224,7 +196,7 @@ export const createLiveDocument = ({
           )
         );
 
-      const attachTo = (address: LiveDocumentAddress) =>
+      const attachTo = (address: ConvergentDocumentAddress) =>
         pipe(
           resolveSyncedDocument({ repo: syncedRepo, address }),
           Effect.flatMap(continueOn)

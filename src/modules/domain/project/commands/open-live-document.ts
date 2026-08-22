@@ -5,46 +5,49 @@ import * as Ref from 'effect/Ref';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 
 import {
-  type LiveDocument,
-  type LiveDocumentChange,
-  type LiveDocumentVersion,
+  type ConvergentDocument,
+  type ConvergentDocumentChangeOptions,
+  type ConvergentDocumentState,
   type RepresentationTransform,
   type RichTextDocument,
+  toPrimaryTextRepresentation,
 } from '../../../../modules/domain/rich-text';
 import {
   type ArtifactId,
   MigrationError,
 } from '../../../../modules/infrastructure/version-control';
-import { subscribeToRefChanges } from '../../../../utils/effect';
+import {
+  subscribeToRefChanges,
+  type Unsubscribe,
+} from '../../../../utils/effect';
 import {
   NotFoundError,
   RepositoryError,
   ValidationError,
   VersionedProjectNotFoundErrorTag,
 } from '../errors';
-import { type ProjectId } from '../models';
+import {
+  holdsContent,
+  mayWrite,
+  nowHolding,
+  type ProjectId,
+  rebasedOn,
+  storedCopy,
+  writeCancelled,
+} from '../models';
 import { type ProjectStore } from '../ports';
+import { type LiveDocument } from './live-document';
 import { persistDocument } from './persist-document';
-
-export type Unsubscribe = () => void;
 
 export type OpenError =
   ValidationError | RepositoryError | NotFoundError | MigrationError;
 
-// The live document as the app uses it: the document itself plus the disk it
-// is written to and followed from.
-export type OpenLiveDocumentResult = LiveDocument & {
-  flush: Effect.Effect<void>;
-  refresh: Effect.Effect<void>;
-  cancelPendingPersist: Effect.Effect<void>;
-};
-
 export type OpenLiveDocumentDeps = {
   // Takes what the store holds, for a document that has to be started from
   // it rather than found somewhere.
-  createLiveDocumentAdapter: (
+  createConvergentDocument: (
     initialText: string
-  ) => Effect.Effect<LiveDocument>;
+  ) => Effect.Effect<ConvergentDocument>;
   transformToText: RepresentationTransform['transformToText'];
   findDocumentById: ProjectStore['findDocumentById'];
   updateRichTextDocumentContent: ProjectStore['updateRichTextDocumentContent'];
@@ -61,7 +64,7 @@ const PERSIST_DEBOUNCE_MS = 300;
 
 export const openLiveDocument =
   ({
-    createLiveDocumentAdapter,
+    createConvergentDocument,
     transformToText,
     findDocumentById,
     updateRichTextDocumentContent,
@@ -71,29 +74,26 @@ export const openLiveDocument =
   ({
     projectId,
     documentId,
-  }: OpenLiveDocumentArgs): Effect.Effect<OpenLiveDocumentResult, OpenError> =>
+  }: OpenLiveDocumentArgs): Effect.Effect<LiveDocument, OpenError> =>
     pipe(
       findDocumentById({ projectId, documentId }),
       Effect.flatMap(({ artifact }) =>
         pipe(
-          createLiveDocumentAdapter(artifact.content),
-          Effect.flatMap((liveDocument) =>
+          createConvergentDocument(artifact.content),
+          Effect.flatMap((convergentDocument) =>
             pipe(
-              SubscriptionRef.get(liveDocument.content),
+              SubscriptionRef.get(convergentDocument.content),
               Effect.flatMap((initial) =>
                 Effect.all({
-                  liveDocument: Effect.succeed(liveDocument),
+                  convergentDocument: Effect.succeed(convergentDocument),
                   initial: Effect.succeed(initial),
                   storedContent: Effect.succeed(artifact.content),
-                  // What the disk holds, as far as we know, and the version
-                  // that content was derived from. A document opened at a
-                  // share holds something the disk has never seen, which the
-                  // first write then carries to it.
-                  lastPersisted: Ref.make({
-                    content: artifact.content,
-                    version: initial.version,
-                  }),
-                  cancelledVersion: Ref.make<LiveDocumentVersion | null>(null),
+                  stored: Ref.make(
+                    storedCopy({
+                      content: artifact.content,
+                      version: initial.version,
+                    })
+                  ),
                   persistSemaphore: Effect.makeSemaphore(1),
                 })
               )
@@ -103,11 +103,10 @@ export const openLiveDocument =
       ),
       Effect.map(
         ({
-          liveDocument,
+          convergentDocument,
           initial,
           storedContent,
-          lastPersisted,
-          cancelledVersion,
+          stored,
           persistSemaphore,
         }) => {
           // Persistence ops run strictly one after another: the next starts
@@ -116,42 +115,47 @@ export const openLiveDocument =
           // merges commute.
           const persistMutex = persistSemaphore.withPermits(1);
 
+          const toText = toPrimaryTextRepresentation({ transformToText });
+
           const persistToStore = persistDocument({
             transformToText,
             updateRichTextDocumentContent,
           });
 
-          const persist = ({ doc, version }: LiveDocumentChange) =>
+          const persist = ({ doc, version }: ConvergentDocumentState) =>
             pipe(
-              Ref.get(lastPersisted),
-              Effect.flatMap((last) =>
+              Ref.get(stored),
+              Effect.flatMap((copy) =>
                 persistToStore({
                   projectId,
                   documentId,
                   document: doc,
-                  skipIfContentEquals: last.content,
+                  skipIfContentEquals: copy.content,
                 })
               ),
               Effect.flatMap((textContent) =>
-                Ref.set(lastPersisted, { content: textContent, version })
+                Ref.update(stored, (copy) =>
+                  nowHolding({ stored: copy, content: textContent, version })
+                )
               )
             );
 
-          // There is no pending buffer: the live document itself holds what
-          // is pending, and `persist` skips content that is already on disk.
-          // Reading the current value directly means a flush can never miss
-          // a change whose subscriber delivery is still in flight.
+          // There is no pending buffer: the convergent document itself
+          // holds what is pending, and `persist` skips content that is
+          // already on disk. Reading the current value directly means a
+          // flush can never miss a change whose subscriber delivery is
+          // still in flight.
           const flush = persistMutex(
             pipe(
               Effect.sync(() => debouncedFlush.clear()),
-              Effect.zipRight(SubscriptionRef.get(liveDocument.content)),
+              Effect.zipRight(SubscriptionRef.get(convergentDocument.content)),
               Effect.flatMap((current) =>
                 pipe(
-                  Ref.get(cancelledVersion),
-                  Effect.flatMap((cancelled) =>
-                    current.version === cancelled
-                      ? Effect.void
-                      : persist(current)
+                  Ref.get(stored),
+                  Effect.flatMap((copy) =>
+                    mayWrite({ stored: copy, version: current.version })
+                      ? persist(current)
+                      : Effect.void
                   )
                 )
               ),
@@ -172,9 +176,11 @@ export const openLiveDocument =
           const cancelPendingPersist = persistMutex(
             pipe(
               Effect.sync(() => debouncedFlush.clear()),
-              Effect.zipRight(SubscriptionRef.get(liveDocument.content)),
+              Effect.zipRight(SubscriptionRef.get(convergentDocument.content)),
               Effect.flatMap((current) =>
-                Ref.set(cancelledVersion, current.version)
+                Ref.update(stored, (copy) =>
+                  writeCancelled({ stored: copy, version: current.version })
+                )
               )
             )
           );
@@ -202,9 +208,9 @@ export const openLiveDocument =
                 fresh === null
                   ? Effect.void
                   : pipe(
-                      Ref.get(lastPersisted),
-                      Effect.flatMap((last) =>
-                        last.content === fresh.content
+                      Ref.get(stored),
+                      Effect.flatMap((copy) =>
+                        holdsContent({ stored: copy, content: fresh.content })
                           ? Effect.void
                           : pipe(
                               Effect.sync(() => debouncedFlush.clear()),
@@ -212,15 +218,20 @@ export const openLiveDocument =
                               // we last wrote or read, so anchor the change
                               // there.
                               Effect.zipRight(
-                                liveDocument.change(fresh, {
-                                  base: last.version,
+                                // The disk holds the primary representation
+                                // already, so it contributes as it is.
+                                convergentDocument.change(fresh.content, {
+                                  base: copy.version,
                                 })
                               ),
                               Effect.flatMap((version) =>
-                                Ref.set(lastPersisted, {
-                                  content: fresh.content,
-                                  version,
-                                })
+                                Ref.update(stored, (previous) =>
+                                  nowHolding({
+                                    stored: previous,
+                                    content: fresh.content,
+                                    version,
+                                  })
+                                )
                               ),
                               Effect.asVoid
                             )
@@ -242,10 +253,10 @@ export const openLiveDocument =
             Effect.runPromise(refresh).catch(onPersistError);
           });
 
-          // The disk follows the live document: any new state, from any
+          // The disk follows the convergent document: any new state, from any
           // source, arms a write.
           const unsubscribeFromContent = subscribeToRefChanges(
-            liveDocument.content,
+            convergentDocument.content,
             () => debouncedFlush()
           );
 
@@ -253,23 +264,52 @@ export const openLiveDocument =
           // seen, and nothing more will publish it: arm the write here.
           if (initial.doc.content !== storedContent) debouncedFlush();
 
-          // The document keeps its content across a switch, but not its
-          // versions: what the disk holds now derives from the new
-          // document's state, and nothing said about the old one applies.
           const rebaseOnDocument = persistMutex(
             pipe(
-              SubscriptionRef.get(liveDocument.content),
+              SubscriptionRef.get(convergentDocument.content),
               Effect.flatMap((current) =>
-                pipe(
-                  Ref.update(lastPersisted, (last) => ({
-                    content: last.content,
-                    version: current.version,
-                  })),
-                  Effect.zipRight(Ref.set(cancelledVersion, null))
+                Ref.update(stored, (copy) =>
+                  rebasedOn({ stored: copy, version: current.version })
                 )
               )
             )
           );
+
+          // Contributions come in whatever representation their source
+          // holds; the document takes the primary text one. Only the newest
+          // of a burst is applied: an older conversion finishing later would
+          // otherwise be written over newer text.
+          let latestContribution = 0;
+
+          const change = (
+            doc: RichTextDocument,
+            options?: ConvergentDocumentChangeOptions
+          ) => {
+            const contribution = (latestContribution += 1);
+
+            return pipe(
+              toText(doc),
+              Effect.flatMap((text) =>
+                contribution === latestContribution
+                  ? convergentDocument.change(text, options)
+                  : pipe(
+                      SubscriptionRef.get(convergentDocument.content),
+                      Effect.map((current) => current.version)
+                    )
+              ),
+              // Contributing has no error channel: a failed conversion is
+              // reported and leaves the document as it was.
+              Effect.catchAll((error) =>
+                pipe(
+                  Effect.sync(() => onPersistError(error)),
+                  Effect.zipRight(
+                    SubscriptionRef.get(convergentDocument.content)
+                  ),
+                  Effect.map((current) => current.version)
+                )
+              )
+            );
+          };
 
           // Unsubscribe first, so the echo of the closing flush cannot start
           // a refresh on a document that is going away.
@@ -277,19 +317,19 @@ export const openLiveDocument =
             Effect.sync(unsubscribeFromDisk),
             Effect.zipRight(Effect.sync(unsubscribeFromContent)),
             Effect.zipRight(flush),
-            Effect.zipRight(liveDocument.close)
+            Effect.zipRight(convergentDocument.close)
           );
 
           return {
-            content: liveDocument.content,
-            change: liveDocument.change,
+            content: convergentDocument.content,
+            change,
             attachTo: (address) =>
               pipe(
-                liveDocument.attachTo(address),
+                convergentDocument.attachTo(address),
                 Effect.zipRight(rebaseOnDocument)
               ),
             detach: pipe(
-              liveDocument.detach,
+              convergentDocument.detach,
               Effect.zipRight(rebaseOnDocument)
             ),
             flush,

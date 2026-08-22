@@ -1,11 +1,11 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
-import { type LiveDocument } from '../../ports/live-document';
+import { type ConvergentDocument } from '../../ports/convergent-document';
 import {
-  type AutomergeLiveDocumentDeps,
-  createLiveDocument,
-} from './live-document';
+  type AutomergeConvergentDocumentDeps,
+  createConvergentDocument,
+} from './convergent-document';
 import {
   type ResolveDocumentError,
   resolvePrivateDocument,
@@ -14,8 +14,8 @@ import {
 
 export type OpenSharedDocumentError = ResolveDocumentError;
 
-export type AutomergeLiveDocumentAdapterDeps = Omit<
-  AutomergeLiveDocumentDeps,
+export type AutomergeConvergentDocumentAdapterDeps = Omit<
+  AutomergeConvergentDocumentDeps,
   'handle'
 > & {
   // What the store holds, for a document that has to be started from it.
@@ -28,8 +28,8 @@ export type AutomergeLiveDocumentAdapterDeps = Omit<
 // Only opening at an address can fail; starting a document of its own
 // cannot, so callers without one can rule the error out.
 export const createAdapter = (
-  deps: AutomergeLiveDocumentAdapterDeps
-): Effect.Effect<LiveDocument, OpenSharedDocumentError> =>
+  deps: AutomergeConvergentDocumentAdapterDeps
+): Effect.Effect<ConvergentDocument, OpenSharedDocumentError> =>
   pipe(
     deps.address === undefined
       ? resolvePrivateDocument({
@@ -40,11 +40,11 @@ export const createAdapter = (
           repo: deps.syncedRepo,
           address: deps.address,
         }),
-    Effect.flatMap((handle) => createLiveDocument({ ...deps, handle }))
+    Effect.flatMap((handle) => createConvergentDocument({ ...deps, handle }))
   );
 
 export { type ResolveDocumentError } from './resolve-document';
-export { type Unsubscribe } from './live-document';
+export { type Unsubscribe } from './convergent-document';
 export {
   genesisFor,
   SHARE_FORMAT_VERSION,

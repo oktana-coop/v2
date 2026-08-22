@@ -1,5 +1,7 @@
-import { type ShareUrl } from '../../../../modules/domain/project';
-import { type LiveDocument } from '../../../../modules/domain/rich-text';
+import {
+  type LiveDocument,
+  type ShareUrl,
+} from '../../../../modules/domain/project';
 import {
   type ArtifactId,
   type ChangeId,

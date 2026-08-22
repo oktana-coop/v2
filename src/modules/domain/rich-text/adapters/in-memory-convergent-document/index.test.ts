@@ -7,13 +7,13 @@ import {
   CURRENT_SCHEMA_VERSION,
   type RichTextDocument,
 } from '../../models/document';
-import { richTextRepresentations } from '../../models/representation';
-import { type LiveDocumentChange } from '../../ports/live-document';
+import { PRIMARY_RICH_TEXT_REPRESENTATION } from '../../models/representation';
+import { type ConvergentDocumentState } from '../../ports/convergent-document';
 import { createAdapter } from '.';
 
 const markdownDocument = (content: string): RichTextDocument => ({
   schemaVersion: CURRENT_SCHEMA_VERSION,
-  representation: richTextRepresentations.MARKDOWN,
+  representation: PRIMARY_RICH_TEXT_REPRESENTATION,
   content,
 });
 
@@ -22,13 +22,9 @@ const markdownDocument = (content: string): RichTextDocument => ({
 // (which retries the assertion until it passes or times out).
 describe('in-memory live document adapter', () => {
   it('bumps the version and holds the new content on change', async () => {
-    const live = await Effect.runPromise(
-      createAdapter(markdownDocument('initial'))
-    );
+    const live = await Effect.runPromise(createAdapter('initial'));
 
-    const version = await Effect.runPromise(
-      live.change(markdownDocument('edited'))
-    );
+    const version = await Effect.runPromise(live.change('edited'));
 
     const current = await Effect.runPromise(SubscriptionRef.get(live.content));
 
@@ -40,23 +36,19 @@ describe('in-memory live document adapter', () => {
   });
 
   it('does not produce a new value or bump the version for equal content', async () => {
-    const live = await Effect.runPromise(
-      createAdapter(markdownDocument('initial'))
-    );
+    const live = await Effect.runPromise(createAdapter('initial'));
 
-    const received: LiveDocumentChange[] = [];
+    const received: ConvergentDocumentState[] = [];
     const unsubscribe = subscribeToRef(live.content, (change) =>
       received.push(change)
     );
     // The replayed current value proves the subscription is live.
     await vi.waitFor(() => expect(received).toHaveLength(1));
 
-    const version = await Effect.runPromise(
-      live.change(markdownDocument('initial'))
-    );
+    const version = await Effect.runPromise(live.change('initial'));
     // Sentinel: deliveries are ordered, so had the equal change produced a
     // new value, it would occupy the second slot instead of the sentinel.
-    await Effect.runPromise(live.change(markdownDocument('sentinel')));
+    await Effect.runPromise(live.change('sentinel'));
     await vi.waitFor(() => expect(received).toHaveLength(2));
 
     expect(version).toBe('0');
@@ -69,11 +61,9 @@ describe('in-memory live document adapter', () => {
   });
 
   it('replays the current value to a subscriber, then every change', async () => {
-    const live = await Effect.runPromise(
-      createAdapter(markdownDocument('initial'))
-    );
+    const live = await Effect.runPromise(createAdapter('initial'));
 
-    const received: LiveDocumentChange[] = [];
+    const received: ConvergentDocumentState[] = [];
     const unsubscribe = subscribeToRef(live.content, (change) =>
       received.push(change)
     );
@@ -83,8 +73,8 @@ describe('in-memory live document adapter', () => {
       { doc: markdownDocument('initial'), version: '0' },
     ]);
 
-    await Effect.runPromise(live.change(markdownDocument('first')));
-    await Effect.runPromise(live.change(markdownDocument('second')));
+    await Effect.runPromise(live.change('first'));
+    await Effect.runPromise(live.change('second'));
     await vi.waitFor(() => expect(received).toHaveLength(3));
 
     expect(received).toEqual([
