@@ -14,7 +14,7 @@ import {
   UnsupportedShareFormatError,
   ValidationError,
 } from '../../errors';
-import { type LiveDocumentAddress } from '../../ports/live-document';
+import { type ConvergentDocumentAddress } from '../../ports/convergent-document';
 import {
   genesisFor,
   type SharedContent,
@@ -30,7 +30,7 @@ export type ResolveDocumentError =
 const FIND_TIMEOUT_MS = 10_000;
 
 const parseAddress = (
-  address: LiveDocumentAddress
+  address: ConvergentDocumentAddress
 ): Effect.Effect<AutomergeUrl, ValidationError> =>
   isValidAutomergeUrl(address)
     ? Effect.succeed(address)
@@ -69,7 +69,7 @@ export const resolveSyncedDocument = ({
   address,
 }: {
   repo: Effect.Effect<Repo, SyncServiceError>;
-  address: LiveDocumentAddress;
+  address: ConvergentDocumentAddress;
 }): Effect.Effect<DocHandle<SharedContent>, ResolveDocumentError> =>
   pipe(
     Effect.all({

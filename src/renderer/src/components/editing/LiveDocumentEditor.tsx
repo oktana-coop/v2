@@ -3,8 +3,8 @@ import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { type Schema } from 'prosemirror-model';
 import { useCallback, useContext } from 'react';
 
+import { type LiveDocument } from '../../../../modules/domain/project';
 import {
-  type LiveDocument,
   prosemirror,
   type RichTextDocument,
   richTextRepresentations,
@@ -22,7 +22,9 @@ import {
 
 const { liveSyncPlugin, pmDocFromJSONString } = prosemirror;
 
-// Backed by a live document: always editable, content owned outside the editor.
+// Backed by a live document: always editable, content owned outside the
+// editor. Takes the open document rather than the port, so contributions go
+// through what the command wraps around it.
 export type LiveDocumentEditorProps = SharedEditorProps & {
   liveDocument: LiveDocument;
 };
@@ -57,7 +59,8 @@ export const LiveDocumentEditor = ({
           : await convertToProseMirror({ schema, document: initial.doc });
 
       const syncPlugin = liveSyncPlugin({
-        liveDocument,
+        content: liveDocument.content,
+        onChange: liveDocument.change,
         initialVersion: initial.version,
         schemaVersion: initial.doc.schemaVersion,
         schema,

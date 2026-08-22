@@ -18,7 +18,7 @@ import {
   PRIMARY_RICH_TEXT_REPRESENTATION,
   type RichTextDocument,
 } from '../../models';
-import { type LiveDocument } from '../../ports/live-document';
+import { type ConvergentDocument } from '../../ports/convergent-document';
 import { createAdapter } from '.';
 import { SHARE_FORMAT_VERSION, type SharedContent } from './shared-content';
 
@@ -27,10 +27,6 @@ const markdown = (content: string): RichTextDocument => ({
   representation: PRIMARY_RICH_TEXT_REPRESENTATION,
   content,
 });
-
-const transformToText = vi.fn(async ({ input }: { input: string }) =>
-  input.replace(/^pm:/, '')
-);
 
 const seed = (content: string): SharedContent => ({
   shareFormatVersion: SHARE_FORMAT_VERSION,
@@ -52,7 +48,7 @@ const createPeers = () => {
 };
 
 // The disk plays no part in these tests: opening is what is under test here;
-// the running document is covered in live-document.test.ts.
+// the running document is covered in convergent-document.test.ts.
 const diskDeps = {
   readDocument: Effect.succeed(markdown('on disk')),
   writeDocument: (doc: RichTextDocument) => Effect.succeed(doc.content),
@@ -71,7 +67,7 @@ const openEffect = (repo: Repo, address: string, onError = vi.fn()) =>
     ...reposIn(repo),
     initialText: 'what this app had on disk',
     address,
-    transformToText,
+
     onError,
     ...diskDeps,
   });
@@ -79,12 +75,12 @@ const openEffect = (repo: Repo, address: string, onError = vi.fn()) =>
 const open = (repo: Repo, address: string, onError = vi.fn()) =>
   Effect.runPromise(openEffect(repo, address, onError));
 
-const contentOf = (live: Pick<LiveDocument, 'content'>) =>
+const contentOf = (live: Pick<ConvergentDocument, 'content'>) =>
   Effect.runPromise(SubscriptionRef.get(live.content)).then(
     (change) => change.doc.content
   );
 
-describe('automergeLiveDocument adapter', () => {
+describe('automergeConvergentDocument adapter', () => {
   it('starts a document of its own when it has no address', async () => {
     const repo = new Repo({ network: [] });
 
@@ -92,7 +88,7 @@ describe('automergeLiveDocument adapter', () => {
       createAdapter({
         ...reposIn(repo),
         initialText: 'fresh from disk',
-        transformToText,
+
         onError: vi.fn(),
         ...diskDeps,
       })
@@ -116,7 +112,7 @@ describe('automergeLiveDocument adapter', () => {
     const aliceLive = await open(alice, aliceHandle.url);
     const bobLive = await open(bob, aliceHandle.url);
 
-    await Effect.runPromise(aliceLive.change(markdown('hello from alice')));
+    await Effect.runPromise(aliceLive.change('hello from alice'));
 
     await vi.waitFor(async () =>
       expect(await contentOf(bobLive)).toBe('hello from alice')

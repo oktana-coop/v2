@@ -13,18 +13,25 @@ import {
 } from '../../errors';
 import { type RichTextDocument, richTextRepresentations } from '../../models';
 import {
-  type LiveDocument,
-  type LiveDocumentChange,
-  type LiveDocumentVersion,
-} from '../../ports/live-document';
+  type ConvergentDocumentChangeOptions,
+  type ConvergentDocumentState,
+  type ConvergentDocumentVersion,
+} from '../../ports/convergent-document';
 import { ensureTrailingParagraphInDoc } from '../blocks';
 import { pmDocFromJSONString, pmDocToJSONString } from '../json';
 
 const pluginKey = new PluginKey('pm-live-sync');
 
 export type LiveSyncPluginArgs = {
-  liveDocument: LiveDocument;
-  initialVersion: LiveDocumentVersion;
+  // What the editor follows, and how it contributes back. Kept as two
+  // capabilities rather than a live document: whoever wires them in decides
+  // what a contribution goes through on its way to the document.
+  content: SubscriptionRef.SubscriptionRef<ConvergentDocumentState>;
+  onChange: (
+    doc: RichTextDocument,
+    options?: ConvergentDocumentChangeOptions
+  ) => Effect.Effect<ConvergentDocumentVersion>;
+  initialVersion: ConvergentDocumentVersion;
   schemaVersion: number;
   schema: Schema;
   convertToProseMirror: (doc: RichTextDocument) => Promise<Node>;
@@ -32,7 +39,8 @@ export type LiveSyncPluginArgs = {
 };
 
 export const liveSyncPlugin = ({
-  liveDocument,
+  content,
+  onChange,
   initialVersion,
   schemaVersion,
   schema,
@@ -91,7 +99,7 @@ export const liveSyncPlugin = ({
         change,
         newPmDoc,
       }: {
-        change: LiveDocumentChange;
+        change: ConvergentDocumentState;
         newPmDoc: Node;
       }) => {
         const { state } = view;
@@ -100,7 +108,7 @@ export const liveSyncPlugin = ({
           state.tr.replaceWith(0, state.doc.content.size, newPmDoc.content);
 
         tr.setMeta('addToHistory', false);
-        tr.setMeta(pluginKey, { fromLiveDocument: true });
+        tr.setMeta(pluginKey, { incoming: true });
 
         applyingIncoming = true;
         try {
@@ -116,7 +124,7 @@ export const liveSyncPlugin = ({
         change,
         newPmDoc,
       }: {
-        change: LiveDocumentChange;
+        change: ConvergentDocumentState;
         newPmDoc: Node;
       }): Effect.Effect<void, WebEditorError> =>
         Effect.try({
@@ -131,9 +139,7 @@ export const liveSyncPlugin = ({
 
             // A state the document moved past while it converted; the newer
             // one is on its way through the buffer.
-            const latest = Effect.runSync(
-              SubscriptionRef.get(liveDocument.content)
-            );
+            const latest = Effect.runSync(SubscriptionRef.get(content));
             if (latest.version !== change.version) return;
 
             // The editor keeps a trailing paragraph the primary
@@ -155,7 +161,7 @@ export const liveSyncPlugin = ({
       // forEachLatestRefChange collapses a burst of changes to just the latest
       // while a slow apply is in flight; the version guard then skips it when
       // it already matches what's shown.
-      const applyChange = (change: LiveDocumentChange) =>
+      const applyChange = (change: ConvergentDocumentState) =>
         pipe(
           change.version === editorDocVersion
             ? Effect.void
@@ -167,10 +173,7 @@ export const liveSyncPlugin = ({
           Effect.catchAll((error) => Effect.sync(() => onError(error)))
         );
 
-      const unsubscribe = forEachLatestRefChange(
-        liveDocument.content,
-        applyChange
-      );
+      const unsubscribe = forEachLatestRefChange(content, applyChange);
 
       return {
         // React to local ProseMirror changes
@@ -190,9 +193,7 @@ export const liveSyncPlugin = ({
           // without converting it — a state with any other version carries
           // something this editor has not seen.
           contributionsInFlight += 1;
-          Effect.runPromise(
-            liveDocument.change(doc, { base: editorDocVersion })
-          )
+          Effect.runPromise(onChange(doc, { base: editorDocVersion }))
             .then((version) => {
               editorDocVersion = version;
             })

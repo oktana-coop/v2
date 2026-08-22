@@ -1,7 +1,7 @@
 import { isValidAutomergeUrl, type Repo } from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
 
-import { genesisFor } from '../../../rich-text/adapters/automerge-live-document';
+import { genesisFor } from '../../../rich-text/adapters/automerge-convergent-document';
 import { type ProjectSync } from '../../ports';
 
 export type AutomergeProjectSyncDeps = {

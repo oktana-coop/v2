@@ -3,9 +3,9 @@ import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  type ConvergentDocument,
+  type ConvergentDocumentState,
   CURRENT_SCHEMA_VERSION,
-  type LiveDocument,
-  type LiveDocumentChange,
   PRIMARY_RICH_TEXT_REPRESENTATION,
   SharedDocumentUnavailableError,
 } from '../../../../modules/domain/rich-text';
@@ -14,7 +14,7 @@ import { leaveSharedDocument } from './leave-shared-document';
 import { shareLiveDocument } from './share-live-document';
 
 // A live document that records what was asked of it, in order.
-const createLiveDocument = async ({
+const createConvergentDocument = async ({
   content = 'what the editor shows',
   calls = [],
   attachFails = false,
@@ -22,9 +22,9 @@ const createLiveDocument = async ({
   content?: string;
   calls?: string[];
   attachFails?: boolean;
-} = {}): Promise<LiveDocument> => {
+} = {}): Promise<ConvergentDocument> => {
   const contentRef = await Effect.runPromise(
-    SubscriptionRef.make<LiveDocumentChange>({
+    SubscriptionRef.make<ConvergentDocumentState>({
       doc: {
         schemaVersion: CURRENT_SCHEMA_VERSION,
         representation: PRIMARY_RICH_TEXT_REPRESENTATION,
@@ -53,7 +53,7 @@ const createLiveDocument = async ({
 describe('shareLiveDocument', () => {
   it('mints what the document holds, attaches to it, and remembers the share', async () => {
     const calls: string[] = [];
-    const liveDocument = await createLiveDocument({ calls });
+    const liveDocument = await createConvergentDocument({ calls });
 
     const url = await Effect.runPromise(
       shareLiveDocument({
@@ -77,7 +77,7 @@ describe('shareLiveDocument', () => {
 
   it('remembers nothing when attaching fails', async () => {
     const rememberShare = vi.fn();
-    const liveDocument = await createLiveDocument({ attachFails: true });
+    const liveDocument = await createConvergentDocument({ attachFails: true });
 
     const failure = await Effect.runPromise(
       Effect.flip(
@@ -97,7 +97,7 @@ describe('shareLiveDocument', () => {
 describe('joinSharedDocument', () => {
   it('attaches the share, then remembers it', async () => {
     const calls: string[] = [];
-    const liveDocument = await createLiveDocument({ calls });
+    const liveDocument = await createConvergentDocument({ calls });
 
     await Effect.runPromise(
       joinSharedDocument({
@@ -114,7 +114,7 @@ describe('joinSharedDocument', () => {
 
   it('remembers nothing when attaching fails', async () => {
     const rememberShare = vi.fn();
-    const liveDocument = await createLiveDocument({ attachFails: true });
+    const liveDocument = await createConvergentDocument({ attachFails: true });
 
     await Effect.runPromise(
       Effect.flip(
@@ -129,7 +129,7 @@ describe('joinSharedDocument', () => {
 describe('leaveSharedDocument', () => {
   it('forgets the share, detaches the document, then releases it', async () => {
     const calls: string[] = [];
-    const liveDocument = await createLiveDocument({ calls });
+    const liveDocument = await createConvergentDocument({ calls });
 
     await Effect.runPromise(
       leaveSharedDocument({

@@ -10,7 +10,7 @@ import {
 import { EditorView } from 'prosemirror-view';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createAdapter } from '../../adapters/in-memory-live-document';
+import { createAdapter } from '../../adapters/in-memory-convergent-document';
 import {
   RepresentationTransformError,
   ValidationError,
@@ -18,14 +18,15 @@ import {
 } from '../../errors';
 import {
   CURRENT_SCHEMA_VERSION,
+  PRIMARY_RICH_TEXT_REPRESENTATION,
   type RichTextDocument,
   richTextRepresentations,
 } from '../../models';
 import {
-  type LiveDocument,
-  type LiveDocumentChange,
-  type LiveDocumentChangeOptions,
-} from '../../ports/live-document';
+  type ConvergentDocument,
+  type ConvergentDocumentChangeOptions,
+  type ConvergentDocumentState,
+} from '../../ports/convergent-document';
 import { pmDocFromJSONString } from '../json';
 import { schema } from '../schema';
 import { liveSyncPlugin } from './live-sync-plugin';
@@ -41,8 +42,12 @@ const paragraph = (text: string): PMNode =>
     schema.node('paragraph', null, [schema.text(text)]),
   ]);
 
+// The editor contributes its own representation; everything else is already
+// the primary text one.
 const textOf = (doc: RichTextDocument) =>
-  pmDocFromJSONString(JSON.parse(doc.content), schema).textContent;
+  doc.representation === richTextRepresentations.PROSEMIRROR
+    ? pmDocFromJSONString(JSON.parse(doc.content), schema).textContent
+    : doc.content;
 
 // Sync lands on plugin-internal fibers the test can't await, so state is
 // reached asynchronously; `eventually` polls its assertions until they hold.
@@ -55,14 +60,14 @@ const setup = async ({
   initialText = 'hello',
   convertToProseMirror = async (doc: RichTextDocument) =>
     paragraph(doc.content),
-  createLiveDocument = (text: string) =>
-    Effect.runPromise(createAdapter(markdownDocument(text))),
+  createConvergentDocument = (text: string) =>
+    Effect.runPromise(createAdapter(text)),
 }: {
   initialText?: string;
   convertToProseMirror?: (doc: RichTextDocument) => Promise<PMNode>;
-  createLiveDocument?: (text: string) => Promise<LiveDocument>;
+  createConvergentDocument?: (text: string) => Promise<ConvergentDocument>;
 } = {}) => {
-  const liveDocument = await createLiveDocument(initialText);
+  const liveDocument = await createConvergentDocument(initialText);
   const initial = await Effect.runPromise(
     SubscriptionRef.get(liveDocument.content)
   );
@@ -72,14 +77,18 @@ const setup = async ({
   // Records what the plugin contributes, so tests can assert on the options.
   const changeCalls: Array<{
     doc: RichTextDocument;
-    options: LiveDocumentChangeOptions | undefined;
+    options: ConvergentDocumentChangeOptions | undefined;
   }> = [];
-  const trackedLiveDocument: LiveDocument = {
-    ...liveDocument,
-    change: (doc, options) => {
-      changeCalls.push({ doc, options });
-      return liveDocument.change(doc, options);
-    },
+
+  // Stands in for what the command does around the document: contributions
+  // arrive in the editor's representation and reach it as primary text.
+  const change = (
+    doc: RichTextDocument,
+    options?: ConvergentDocumentChangeOptions
+  ) => {
+    changeCalls.push({ doc, options });
+
+    return liveDocument.change(textOf(doc), options);
   };
 
   const state = EditorState.create({
@@ -87,7 +96,8 @@ const setup = async ({
     doc: paragraph(initialText),
     plugins: [
       liveSyncPlugin({
-        liveDocument: trackedLiveDocument,
+        content: liveDocument.content,
+        onChange: change,
         initialVersion: initial.version,
         schemaVersion: CURRENT_SCHEMA_VERSION,
         schema,
@@ -123,10 +133,10 @@ describe('liveSyncPlugin', () => {
       const current = await Effect.runPromise(
         SubscriptionRef.get(liveDocument.content)
       );
-      expect(current.doc.representation).toBe(
-        richTextRepresentations.PROSEMIRROR
-      );
-      expect(textOf(current.doc)).toBe('hello world');
+      // What reaches the document is the primary text representation,
+      // whatever the editor contributed.
+      expect(current.doc.representation).toBe(PRIMARY_RICH_TEXT_REPRESENTATION);
+      expect(current.doc.content).toBe('hello world');
     });
   });
 
@@ -141,9 +151,7 @@ describe('liveSyncPlugin', () => {
       view.state.tr.setSelection(TextSelection.create(view.state.doc, 6))
     );
 
-    await Effect.runPromise(
-      liveDocument.change(markdownDocument('hello world and more'))
-    );
+    await Effect.runPromise(liveDocument.change('hello world and more'));
 
     await eventually(() =>
       expect(view.state.doc.textContent).toBe('hello world and more')
@@ -159,9 +167,7 @@ describe('liveSyncPlugin', () => {
       },
     });
 
-    await Effect.runPromise(
-      liveDocument.change(markdownDocument('from elsewhere'))
-    );
+    await Effect.runPromise(liveDocument.change('from elsewhere'));
     // The incoming state is converting; a keystroke lands meanwhile.
     await new Promise((resolve) => setTimeout(resolve, 10));
     view.dispatch(view.state.tr.insertText('!', 6));
@@ -177,12 +183,12 @@ describe('liveSyncPlugin', () => {
   it('holds incoming changes while an own contribution is in flight', async () => {
     let resolveContribution: (() => void) | undefined;
     const content = await Effect.runPromise(
-      SubscriptionRef.make<LiveDocumentChange>({
+      SubscriptionRef.make<ConvergentDocumentState>({
         doc: markdownDocument('hello'),
         version: '0',
       })
     );
-    const liveDocument: LiveDocument = {
+    const liveDocument: ConvergentDocument = {
       content,
       change: () =>
         Effect.promise(
@@ -197,7 +203,7 @@ describe('liveSyncPlugin', () => {
     };
 
     const { view } = await setup({
-      createLiveDocument: () => Promise.resolve(liveDocument),
+      createConvergentDocument: () => Promise.resolve(liveDocument),
     });
 
     view.dispatch(view.state.tr.insertText('!', 6));
@@ -227,27 +233,23 @@ describe('liveSyncPlugin', () => {
 
   it('recognizes its own echo by version instead of applying it', async () => {
     const content = await Effect.runPromise(
-      SubscriptionRef.make<LiveDocumentChange>({
+      SubscriptionRef.make<ConvergentDocumentState>({
         doc: markdownDocument('hello'),
         version: '0',
       })
     );
     let versions = 0;
-    const echoing: LiveDocument = {
+    const echoing: ConvergentDocument = {
       content,
-      change: (doc) => {
+      change: (text) => {
         versions += 1;
         const version = String(versions);
-        const contributed = pmDocFromJSONString(
-          JSON.parse(doc.content),
-          schema
-        ).textContent;
 
         // Publishes before resolving, as the port contract requires; the
         // echo's content round-trips differently than the editor's doc.
         return pipe(
           SubscriptionRef.set(content, {
-            doc: markdownDocument(`${contributed} (round-tripped)`),
+            doc: markdownDocument(`${text} (round-tripped)`),
             version,
           }),
           Effect.as(version)
@@ -259,7 +261,7 @@ describe('liveSyncPlugin', () => {
     };
 
     const { view, dispatched } = await setup({
-      createLiveDocument: () => Promise.resolve(echoing),
+      createConvergentDocument: () => Promise.resolve(echoing),
     });
 
     view.dispatch(view.state.tr.insertText('!', 6));
@@ -281,9 +283,7 @@ describe('liveSyncPlugin', () => {
     await eventually(() => expect(changeCalls).toHaveLength(1));
     expect(changeCalls[0].options).toEqual({ base: '0' });
 
-    await Effect.runPromise(
-      liveDocument.change(markdownDocument('from elsewhere'))
-    );
+    await Effect.runPromise(liveDocument.change('from elsewhere'));
     await eventually(() =>
       expect(view.state.doc.textContent).toBe('from elsewhere')
     );
@@ -298,9 +298,7 @@ describe('liveSyncPlugin', () => {
     const { liveDocument, view, dispatched } = await setup();
     const domBefore = view.dom;
 
-    await Effect.runPromise(
-      liveDocument.change(markdownDocument('from elsewhere'))
-    );
+    await Effect.runPromise(liveDocument.change('from elsewhere'));
 
     await eventually(() =>
       expect(view.state.doc.textContent).toBe('from elsewhere')
@@ -321,7 +319,7 @@ describe('liveSyncPlugin', () => {
     });
 
     for (const text of ['first', 'second', 'third', 'latest']) {
-      await Effect.runPromise(liveDocument.change(markdownDocument(text)));
+      await Effect.runPromise(liveDocument.change(text));
     }
 
     // Wait until the editor converges to the newest change. Once it does, the
@@ -342,12 +340,12 @@ describe('liveSyncPlugin', () => {
       },
     });
 
-    await Effect.runPromise(liveDocument.change(markdownDocument('breaks')));
+    await Effect.runPromise(liveDocument.change('breaks'));
     // Wait for the failing change to be handled before issuing the next, so
     // it isn't conflated away.
     await eventually(() => expect(onError).toHaveBeenCalledTimes(1));
 
-    await Effect.runPromise(liveDocument.change(markdownDocument('recovers')));
+    await Effect.runPromise(liveDocument.change('recovers'));
     await eventually(() => expect(view.state.doc.textContent).toBe('recovers'));
 
     // The failure surfaced as a typed transform error carrying the original
@@ -367,7 +365,7 @@ describe('liveSyncPlugin', () => {
       convertToProseMirror: async () => null as unknown as PMNode,
     });
 
-    await Effect.runPromise(liveDocument.change(markdownDocument('anything')));
+    await Effect.runPromise(liveDocument.change('anything'));
 
     await eventually(() => expect(onError).toHaveBeenCalledTimes(1));
     expect(onError.mock.calls[0][0]).toBeInstanceOf(WebEditorError);
@@ -376,13 +374,16 @@ describe('liveSyncPlugin', () => {
   it('reports malformed stored ProseMirror content as a validation error', async () => {
     const { liveDocument, onError } = await setup();
 
-    // A ProseMirror-representation change whose content is not valid JSON fails
-    // parsing rather than transforming — a validation concern.
+    // A published ProseMirror-representation state whose content is not valid
+    // JSON fails parsing rather than transforming — a validation concern.
     await Effect.runPromise(
-      liveDocument.change({
-        schemaVersion: CURRENT_SCHEMA_VERSION,
-        representation: richTextRepresentations.PROSEMIRROR,
-        content: 'not json',
+      SubscriptionRef.set(liveDocument.content, {
+        doc: {
+          schemaVersion: CURRENT_SCHEMA_VERSION,
+          representation: richTextRepresentations.PROSEMIRROR,
+          content: 'not json',
+        },
+        version: 'malformed',
       })
     );
 

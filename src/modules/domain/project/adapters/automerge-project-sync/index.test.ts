@@ -8,23 +8,13 @@ import * as Effect from 'effect/Effect';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { describe, expect, it, vi } from 'vitest';
 
+import {} from '../../../rich-text';
 import {
-  CURRENT_SCHEMA_VERSION,
-  PRIMARY_RICH_TEXT_REPRESENTATION,
-  type RichTextDocument,
-} from '../../../rich-text';
-import {
-  createAdapter as createAutomergeLiveDocumentAdapter,
+  createAdapter as createAutomergeConvergentDocument,
   SHARE_FORMAT_VERSION,
   type SharedContent,
-} from '../../../rich-text/adapters/automerge-live-document';
+} from '../../../rich-text/adapters/automerge-convergent-document';
 import { createAdapter } from '.';
-
-const markdown = (content: string): RichTextDocument => ({
-  schemaVersion: CURRENT_SCHEMA_VERSION,
-  representation: PRIMARY_RICH_TEXT_REPRESENTATION,
-  content,
-});
 
 // The port hands out plain strings; only automerge-repo cares that they parse.
 const findShared = (repo: Repo, shareUrl: string) =>
@@ -84,12 +74,12 @@ describe('automergeProjectSync', () => {
     );
 
     const bobLive = await Effect.runPromise(
-      createAutomergeLiveDocumentAdapter({
+      createAutomergeConvergentDocument({
         privateRepo: Effect.succeed(bob),
         syncedRepo: Effect.succeed(bob),
         address: shareUrl,
         initialText: 'what bob had on disk',
-        transformToText: vi.fn(),
+
         onError: vi.fn(),
       })
     );
@@ -99,7 +89,7 @@ describe('automergeProjectSync', () => {
     );
     expect(opened.doc.content).toBe('seeded by alice');
 
-    await Effect.runPromise(bobLive.change(markdown('edited by bob')));
+    await Effect.runPromise(bobLive.change('edited by bob'));
 
     const aliceHandle = await findShared(alice, shareUrl);
     await vi.waitFor(() =>

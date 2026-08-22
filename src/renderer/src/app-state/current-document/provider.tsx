@@ -7,8 +7,8 @@ import { useMatch, useNavigate } from 'react-router';
 import {
   joinSharedDocument,
   leaveSharedDocument as leaveSharedDocumentCommand,
+  type LiveDocument,
   openLiveDocument,
-  type OpenLiveDocumentResult,
   type ProjectId,
   type ProjectStore,
   shareLiveDocument,
@@ -21,9 +21,9 @@ import {
   type VersionedDocument,
 } from '../../../../modules/domain/rich-text';
 import {
-  createAdapter as createAutomergeLiveDocumentAdapter,
+  createAdapter as createAutomergeConvergentDocument,
   type OpenSharedDocumentError,
-} from '../../../../modules/domain/rich-text/adapters/automerge-live-document';
+} from '../../../../modules/domain/rich-text/adapters/automerge-convergent-document';
 import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
 import {
   createErrorNotification,
@@ -86,8 +86,7 @@ export const CurrentDocumentProvider = ({
   const documentId = useCurrentDocumentId();
   const { pulledUpstreamChanges, resetPulledUpstreamChanges } =
     usePulledUpstreamChanges();
-  const [liveDocument, setLiveDocument] =
-    useState<OpenLiveDocumentResult | null>(null);
+  const [liveDocument, setLiveDocument] = useState<LiveDocument | null>(null);
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
   const [versionedDocumentHistory, setVersionedDocumentHistory] = useState<
     ChangeWithUrlInfo[]
@@ -137,9 +136,9 @@ export const CurrentDocumentProvider = ({
 
     // Ignore an open the selection has already moved on from.
     let cancelled = false;
-    let opened: OpenLiveDocumentResult | null = null;
+    let opened: LiveDocument | null = null;
 
-    const close = (handle: OpenLiveDocumentResult) =>
+    const close = (handle: LiveDocument) =>
       Effect.runPromise(handle.close).catch(console.error);
 
     setLoadingHistory(true);
@@ -166,7 +165,7 @@ export const CurrentDocumentProvider = ({
       );
     };
 
-    const createLiveDocumentAdapter = (initialText: string) => {
+    const createConvergentDocument = (initialText: string) => {
       const args = {
         initialText,
         privateRepo,
@@ -180,13 +179,13 @@ export const CurrentDocumentProvider = ({
       // Opening a private document has no address to fail on; anything that
       // goes wrong there is a defect, not a case to handle.
       const openPrivately = pipe(
-        createAutomergeLiveDocumentAdapter(args),
+        createAutomergeConvergentDocument(args),
         Effect.orDie
       );
 
       return shareUrl
         ? pipe(
-            createAutomergeLiveDocumentAdapter({ ...args, address: shareUrl }),
+            createAutomergeConvergentDocument({ ...args, address: shareUrl }),
             Effect.catchAll((error) => {
               reportShareFailure(error);
               return openPrivately;
@@ -197,7 +196,7 @@ export const CurrentDocumentProvider = ({
 
     Effect.runPromise(
       openLiveDocument({
-        createLiveDocumentAdapter,
+        createConvergentDocument,
         transformToText: representationTransformAdapter.transformToText,
         findDocumentById: projectStore.findDocumentById,
         updateRichTextDocumentContent:
