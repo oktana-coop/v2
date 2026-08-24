@@ -23,9 +23,6 @@ import { pmDocFromJSONString, pmDocToJSONString } from '../json';
 const pluginKey = new PluginKey('pm-live-sync');
 
 export type LiveSyncPluginArgs = {
-  // What the editor follows, and how it contributes back. Kept as two
-  // capabilities rather than a live document: whoever wires them in decides
-  // what a contribution goes through on its way to the document.
   content: SubscriptionRef.SubscriptionRef<ConvergentDocumentState>;
   onChange: (
     doc: RichTextDocument,
@@ -129,19 +126,6 @@ export const liveSyncPlugin = ({
       }): Effect.Effect<void, WebEditorError> =>
         Effect.try({
           try: () => {
-            // The version guard, re-checked: an own echo can arrive before
-            // its contribution resolved with the version to recognize it by.
-            if (change.version === editorDocVersion) return;
-
-            // Dropping is safe: the resolving contribution publishes a
-            // superseding state that carries the typed text.
-            if (contributionsInFlight > 0) return;
-
-            // A state the document moved past while it converted; the newer
-            // one is on its way through the buffer.
-            const latest = Effect.runSync(SubscriptionRef.get(content));
-            if (latest.version !== change.version) return;
-
             // The editor keeps a trailing paragraph the primary
             // representation cannot express.
             const incoming = ensureTrailingParagraphInDoc(newPmDoc, schema);
@@ -159,15 +143,37 @@ export const liveSyncPlugin = ({
         });
 
       // forEachLatestRefChange collapses a burst of changes to just the latest
-      // while a slow apply is in flight; the version guard then skips it when
-      // it already matches what's shown.
+      // while a slow apply is in flight; the version check before converting
+      // to ProseMirror then skips it when it already matches what's shown.
       const applyChange = (change: ConvergentDocumentState) =>
         pipe(
           change.version === editorDocVersion
             ? Effect.void
             : pipe(
                 toProseMirrorDoc(change.doc),
-                Effect.flatMap((newPmDoc) => applyToView({ change, newPmDoc }))
+                // Converting to ProseMirror is asynchronous and other work runs
+                // while it suspends, so we have to repeat some checks before applying.
+                Effect.flatMap((newPmDoc) =>
+                  pipe(
+                    SubscriptionRef.get(content),
+                    Effect.flatMap((latest) => {
+                      const shouldSkip =
+                        // The editor already shows this version;
+                        change.version === editorDocVersion ||
+                        // Typing that has not reached the document yet.
+                        // Dropping is safe: the resolving contribution
+                        // publishes a superseding state that carries it.
+                        contributionsInFlight > 0 ||
+                        // A state the document moved past while it converted;
+                        // the newer one is on its way through the buffer.
+                        latest.version !== change.version;
+
+                      return shouldSkip
+                        ? Effect.void
+                        : applyToView({ change, newPmDoc });
+                    })
+                  )
+                )
               ),
           // Recover per change, so one bad change doesn't stop syncing.
           Effect.catchAll((error) => Effect.sync(() => onError(error)))
@@ -187,12 +193,12 @@ export const liveSyncPlugin = ({
             content: pmDocToJSONString(view.state.doc),
           };
 
-          // update() is synchronous, so the change runs as a background task.
-          // The version it resolves with is the state carrying exactly this
-          // content: adopting it lets the version guard recognize the echo
-          // without converting it — a state with any other version carries
-          // something this editor has not seen.
           contributionsInFlight += 1;
+
+          // `onChange` resolution is not awaited, therefore the version it
+          // resolves with is recorded as `editorDocVersion` whenever it
+          // completes. This helps the editor detect when a regular change is
+          // an echo of local typing.
           Effect.runPromise(onChange(doc, { base: editorDocVersion }))
             .then((version) => {
               editorDocVersion = version;
