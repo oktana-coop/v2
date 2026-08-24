@@ -20,8 +20,4 @@ export {
   shareLiveDocument,
 } from './share-live-document';
 export { type LiveDocument } from './live-document';
-export {
-  openLiveDocument,
-  type OpenLiveDocumentArgs,
-  type OpenLiveDocumentDeps,
-} from './open-live-document';
+export { openLiveDocument } from './open-live-document';

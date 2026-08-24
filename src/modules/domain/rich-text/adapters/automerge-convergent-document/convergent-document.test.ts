@@ -8,7 +8,6 @@ import * as Effect from 'effect/Effect';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { describe, expect, it, vi } from 'vitest';
 
-import { ValidationError } from '../../errors';
 import { PRIMARY_RICH_TEXT_REPRESENTATION } from '../../models';
 import { type ConvergentDocument } from '../../ports/convergent-document';
 import { createConvergentDocument } from './convergent-document';
@@ -25,15 +24,7 @@ const open = async (initialText: string) => {
   const onError = vi.fn();
 
   const live = await Effect.runPromise(
-    createConvergentDocument({
-      handle,
-      // One repo plays both parts: what this app keeps to itself and what it
-      // shares are the same store here.
-      privateRepo: Effect.succeed(repo),
-      syncedRepo: Effect.succeed(repo),
-
-      onError,
-    })
+    createConvergentDocument({ handle, onError })
   );
 
   return { repo, handle, live, onError };
@@ -140,66 +131,23 @@ describe('automerge live document', () => {
     expect(current.doc.content).toBe('hello');
   });
 
-  it('continues on the document at an address after attaching', async () => {
-    const { live, repo, handle } = await open('hello');
-    const shared = repo.create<SharedContent>(seed('hello'));
-
-    await Effect.runPromise(live.attachTo(shared.url));
-
-    const base = await versionOf(live);
-    await Effect.runPromise(live.change('hello there', { base }));
-
-    expect(textOf(shared)).toBe('hello there');
-    expect(textOf(handle)).toBe('hello');
-  });
-
-  it('continues on a document of its own after detaching, keeping the content', async () => {
-    const { live, repo, handle } = await open('hello');
-    const shared = repo.create<SharedContent>(seed('hello'));
-    await Effect.runPromise(live.attachTo(shared.url));
-    await Effect.runPromise(live.change('hello shared'));
-
-    await Effect.runPromise(live.detach);
-
-    const base = await versionOf(live);
-    await Effect.runPromise(live.change('hello on my own', { base }));
-
-    // The peers keep what they had; this document went its own way.
-    expect(textOf(shared)).toBe('hello shared');
-    expect(textOf(handle)).toBe('hello');
-    const current = await Effect.runPromise(SubscriptionRef.get(live.content));
-    expect(current.doc.content).toBe('hello on my own');
-  });
-
-  it('refuses an address that is not a shared document link', async () => {
-    const { live } = await open('hello');
-
-    const failure = await Effect.runPromise(
-      Effect.flip(live.attachTo('not-a-link'))
+  it('drops a contribution anchored at a version it never had', async () => {
+    const { live, handle, onError } = await open('hello');
+    // A version from some other document: the anchor cannot resolve here,
+    // and applying it as a whole-document diff would delete text this
+    // contribution never saw.
+    const elsewhere = new Repo({ network: [] }).create<SharedContent>(
+      seed('hello elsewhere')
     );
-
-    expect(failure).toBeInstanceOf(ValidationError);
-  });
-
-  it('drops a contribution anchored before a switch', async () => {
-    const { live, repo, onError } = await open('hello');
-    const staleBase = await versionOf(live);
-    const shared = repo.create<SharedContent>(seed('hello'));
-
-    await Effect.runPromise(live.attachTo(shared.url));
-    // Force the anchored path: the new document has moved past its opening
-    // state, so the stale base cannot be current.
-    shared.change((doc) =>
-      Automerge.updateText(doc, ['content'], 'hello moved')
-    );
+    const foreignBase = [...elsewhere.heads()].sort().join(',');
+    // Move past the opening state, so the foreign base cannot be current.
+    handle.change((doc) => Automerge.updateText(doc, ['content'], 'hello you'));
 
     await Effect.runPromise(
-      live.change('derived from the old document', {
-        base: staleBase,
-      })
+      live.change('derived from another document', { base: foreignBase })
     );
 
-    expect(textOf(shared)).toBe('hello moved');
+    expect(textOf(handle)).toBe('hello you');
     expect(onError).toHaveBeenCalled();
   });
 });

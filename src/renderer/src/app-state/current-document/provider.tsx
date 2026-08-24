@@ -1,6 +1,5 @@
 import debounce from 'debounce';
 import * as Effect from 'effect/Effect';
-import { pipe } from 'effect/Function';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useMatch, useNavigate } from 'react-router';
 
@@ -9,6 +8,7 @@ import {
   leaveSharedDocument as leaveSharedDocumentCommand,
   type LiveDocument,
   openLiveDocument,
+  type OpenSharedDocumentError,
   type ProjectId,
   type ProjectStore,
   shareLiveDocument,
@@ -20,10 +20,7 @@ import {
   SharedDocumentUnavailableError,
   type VersionedDocument,
 } from '../../../../modules/domain/rich-text';
-import {
-  createAdapter as createAutomergeConvergentDocument,
-  type OpenSharedDocumentError,
-} from '../../../../modules/domain/rich-text/adapters/automerge-convergent-document';
+import { createPrivateConvergentDocument } from '../../../../modules/domain/rich-text/adapters/automerge-convergent-document';
 import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
 import {
   createErrorNotification,
@@ -70,7 +67,7 @@ export const CurrentDocumentProvider = ({
     restoreDocumentChanges,
     subscribeToProjectDirChanges,
   } = useContext(ProjectContext);
-  const { privateRepo, syncedRepo, projectSync } = useContext(
+  const { privateRepo, projectSync } = useContext(
     InfrastructureAdaptersContext
   );
   const { shareUrlFor, rememberShare, forgetShare } = useContext(
@@ -144,7 +141,7 @@ export const CurrentDocumentProvider = ({
     setLoadingHistory(true);
 
     // Sharing must never stand between the user and their document: whatever
-    // goes wrong, the document opens on its own instead. A share that can
+    // goes wrong, the document opens without sharing instead. A share that can
     // never work is also forgotten, so it stops being retried.
     const reportShareFailure = (error: OpenSharedDocumentError) => {
       console.error(error);
@@ -159,44 +156,26 @@ export const CurrentDocumentProvider = ({
         createErrorNotification({
           title: 'Shared Document Error',
           message: outOfReach
-            ? 'The shared document could not be reached, so it was opened on its own. Your changes are still saved.'
-            : 'This shared document could not be used, so it was opened on its own and is no longer shared here. Your changes are still saved.',
+            ? 'The shared document could not be reached, so it was opened without sharing. Your changes are still saved.'
+            : 'This shared document could not be used, so it was opened without sharing and is no longer shared here. Your changes are still saved.',
         })
       );
     };
 
-    const createConvergentDocument = (initialText: string) => {
-      const args = {
+    const createPrivateDocument = (initialText: string) =>
+      createPrivateConvergentDocument({
         initialText,
         privateRepo,
-        syncedRepo,
-        transformToText: representationTransformAdapter.transformToText,
         // The document keeps working on what it holds, so a failure to
         // publish or convert a change is logged rather than surfaced.
         onError: console.error,
-      };
-
-      // Opening a private document has no address to fail on; anything that
-      // goes wrong there is a defect, not a case to handle.
-      const openPrivately = pipe(
-        createAutomergeConvergentDocument(args),
-        Effect.orDie
-      );
-
-      return shareUrl
-        ? pipe(
-            createAutomergeConvergentDocument({ ...args, address: shareUrl }),
-            Effect.catchAll((error) => {
-              reportShareFailure(error);
-              return openPrivately;
-            })
-          )
-        : openPrivately;
-    };
+      });
 
     Effect.runPromise(
       openLiveDocument({
-        createConvergentDocument,
+        createPrivateDocument,
+        openSharedDocument: projectSync.openSharedDocument,
+        onShareUnavailable: reportShareFailure,
         transformToText: representationTransformAdapter.transformToText,
         findDocumentById: projectStore.findDocumentById,
         updateRichTextDocumentContent:
@@ -212,7 +191,7 @@ export const CurrentDocumentProvider = ({
             })
           );
         },
-      })({ projectId, documentId })
+      })({ projectId, documentId, shareUrl: shareUrl ?? undefined })
     )
       .then((handle) => {
         if (cancelled) {
@@ -449,9 +428,22 @@ export const CurrentDocumentProvider = ({
         );
       }
 
-      // Land pending typing before the restore rewrites the working tree, then
-      // re-read what the restore left there.
-      await Effect.runPromise(liveDocument.flush);
+      // Land pending typing before the restore rewrites the working tree. If
+      // it cannot be saved, restoring would overwrite it, so nothing happens
+      // and the changes stay where the user can still see them.
+      try {
+        await Effect.runPromise(liveDocument.flush);
+      } catch (error) {
+        console.error(error);
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Restore Version Error',
+            message:
+              'Your latest changes could not be saved, so this version was not restored.',
+          })
+        );
+        return;
+      }
 
       const restoreCommitId = await restoreDocumentChanges({
         documentId,

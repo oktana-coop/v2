@@ -5,10 +5,6 @@ import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { type ProjectSync, type ShareUrl } from '../ports';
 import { type LiveDocument } from './live-document';
 
-// Shares the open document in place: what it currently holds is minted as
-// the shared document, and the document continues on it — no re-open, and
-// nothing has to be written to disk first. The disk keeps following the
-// live document as always.
 export type ShareLiveDocumentDeps = {
   liveDocument: Pick<LiveDocument, 'content' | 'attachTo'>;
   shareDocument: ProjectSync['shareDocument'];

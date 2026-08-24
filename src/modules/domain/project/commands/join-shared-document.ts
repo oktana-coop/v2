@@ -4,9 +4,6 @@ import { pipe } from 'effect/Function';
 import { type ShareUrl } from '../ports';
 import { type LiveDocument } from './live-document';
 
-// Joins the open document to a shared one in place: it continues on the
-// document behind the link — no re-open. The shared content wins, and the
-// disk follows it as with any change.
 export type JoinSharedDocumentDeps = {
   liveDocument: Pick<LiveDocument, 'attachTo'>;
   rememberShare: (shareUrl: ShareUrl) => void;

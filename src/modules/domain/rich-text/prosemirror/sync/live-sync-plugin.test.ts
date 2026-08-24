@@ -197,8 +197,6 @@ describe('liveSyncPlugin', () => {
               resolveContribution = () => resolve('1');
             })
         ),
-      attachTo: () => Effect.void,
-      detach: Effect.void,
       close: Effect.void,
     };
 
@@ -255,8 +253,6 @@ describe('liveSyncPlugin', () => {
           Effect.as(version)
         );
       },
-      attachTo: () => Effect.void,
-      detach: Effect.void,
       close: Effect.void,
     };
 

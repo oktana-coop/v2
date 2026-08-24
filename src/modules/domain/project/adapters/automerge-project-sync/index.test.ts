@@ -8,9 +8,13 @@ import * as Effect from 'effect/Effect';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { describe, expect, it, vi } from 'vitest';
 
-import {} from '../../../rich-text';
 import {
-  createAdapter as createAutomergeConvergentDocument,
+  type ConvergentDocument,
+  SharedDocumentUnavailableError,
+  UnsupportedShareFormatError,
+  ValidationError,
+} from '../../../rich-text';
+import {
   SHARE_FORMAT_VERSION,
   type SharedContent,
 } from '../../../rich-text/adapters/automerge-convergent-document';
@@ -33,13 +37,25 @@ const createPeers = () => {
   };
 };
 
+const seed = (content: string): SharedContent => ({
+  shareFormatVersion: SHARE_FORMAT_VERSION,
+  content,
+});
+
+const syncFor = (repo: Repo, onError = vi.fn()) =>
+  createAdapter({ repo, onError });
+
+const contentOf = (document: Pick<ConvergentDocument, 'content'>) =>
+  Effect.runPromise(SubscriptionRef.get(document.content)).then(
+    (state) => state.doc.content
+  );
+
 describe('automergeProjectSync', () => {
   it('mints a share carrying the content and the format it was written in', async () => {
     const repo = new Repo({ network: [] });
-    const projectSync = createAdapter({ repo });
 
     const shareUrl = await Effect.runPromise(
-      projectSync.shareDocument({ content: 'shared text' })
+      syncFor(repo).shareDocument({ content: 'shared text' })
     );
 
     const handle = await findShared(repo, shareUrl);
@@ -53,43 +69,28 @@ describe('automergeProjectSync', () => {
     const { alice, bob } = createPeers();
 
     const shareUrl = await Effect.runPromise(
-      createAdapter({ repo: alice }).shareDocument({
-        content: 'for bob',
-      })
+      syncFor(alice).shareDocument({ content: 'for bob' })
     );
 
     const handle = await findShared(bob, shareUrl);
     expect(handle.doc().content).toBe('for bob');
   });
 
-  // The minted document and the document the live adapter edits are described
-  // in one place; this is what holds the two adapters to it.
-  it('mints a share the live document adapter can open and edit', async () => {
+  // The minted document and the document that gets edited are described in
+  // one place; this is what holds minting and opening to it.
+  it('mints a share the other peer can open and edit', async () => {
     const { alice, bob } = createPeers();
-
     const shareUrl = await Effect.runPromise(
-      createAdapter({ repo: alice }).shareDocument({
-        content: 'seeded by alice',
-      })
-    );
-
-    const bobLive = await Effect.runPromise(
-      createAutomergeConvergentDocument({
-        privateRepo: Effect.succeed(bob),
-        syncedRepo: Effect.succeed(bob),
-        address: shareUrl,
-        initialText: 'what bob had on disk',
-
-        onError: vi.fn(),
-      })
+      syncFor(alice).shareDocument({ content: 'seeded by alice' })
     );
 
     const opened = await Effect.runPromise(
-      SubscriptionRef.get(bobLive.content)
+      syncFor(bob).openSharedDocument({ shareUrl })
     );
-    expect(opened.doc.content).toBe('seeded by alice');
 
-    await Effect.runPromise(bobLive.change('edited by bob'));
+    await expect(contentOf(opened)).resolves.toBe('seeded by alice');
+
+    await Effect.runPromise(opened.change('edited by bob'));
 
     const aliceHandle = await findShared(alice, shareUrl);
     await vi.waitFor(() =>
@@ -97,19 +98,112 @@ describe('automergeProjectSync', () => {
     );
   });
 
+  it('opens a share both peers then converge on', async () => {
+    const { alice, bob } = createPeers();
+    const handle = alice.create<SharedContent>(seed('hello'));
+    const aliceDocument = await Effect.runPromise(
+      syncFor(alice).openSharedDocument({ shareUrl: handle.url })
+    );
+    const bobDocument = await Effect.runPromise(
+      syncFor(bob).openSharedDocument({ shareUrl: handle.url })
+    );
+
+    await Effect.runPromise(aliceDocument.change('hello from alice'));
+
+    await vi.waitFor(async () =>
+      expect(await contentOf(bobDocument)).toBe('hello from alice')
+    );
+  });
+
+  it('refuses a share whose format it does not implement', async () => {
+    const repo = new Repo({ network: [] });
+    const handle = repo.create({
+      shareFormatVersion: SHARE_FORMAT_VERSION + 1,
+      content: 'from a newer app',
+    });
+
+    const failure = await Effect.runPromise(
+      Effect.flip(syncFor(repo).openSharedDocument({ shareUrl: handle.url }))
+    );
+
+    expect(failure).toBeInstanceOf(UnsupportedShareFormatError);
+  });
+
+  it('refuses a newer format even when it holds nothing this one would recognize', async () => {
+    const repo = new Repo({ network: [] });
+    // A later format need not keep its text in `content`, or at all: the
+    // version is read before anything else, so the shape never comes up.
+    const handle = repo.create({
+      shareFormatVersion: SHARE_FORMAT_VERSION + 1,
+      spans: [{ kind: 'paragraph' }],
+    });
+
+    const failure = await Effect.runPromise(
+      Effect.flip(syncFor(repo).openSharedDocument({ shareUrl: handle.url }))
+    );
+
+    // Knowing what it is and being unable to read it is not the same as it
+    // never having been a share.
+    expect(failure).toBeInstanceOf(UnsupportedShareFormatError);
+  });
+
+  it('refuses a share of its own format that holds the wrong thing', async () => {
+    const repo = new Repo({ network: [] });
+    const handle = repo.create({
+      shareFormatVersion: SHARE_FORMAT_VERSION,
+      content: 42,
+    });
+
+    const failure = await Effect.runPromise(
+      Effect.flip(syncFor(repo).openSharedDocument({ shareUrl: handle.url }))
+    );
+
+    expect(failure).toBeInstanceOf(ValidationError);
+  });
+
+  it('refuses a document that is not a share', async () => {
+    const repo = new Repo({ network: [] });
+    const handle = repo.create({ something: 'else' });
+
+    const failure = await Effect.runPromise(
+      Effect.flip(syncFor(repo).openSharedDocument({ shareUrl: handle.url }))
+    );
+
+    expect(failure).toBeInstanceOf(ValidationError);
+  });
+
+  it('refuses a link that is not a shared document link', async () => {
+    const repo = new Repo({ network: [] });
+
+    const failure = await Effect.runPromise(
+      Effect.flip(syncFor(repo).openSharedDocument({ shareUrl: 'not-a-url' }))
+    );
+
+    expect(failure).toBeInstanceOf(ValidationError);
+  });
+
+  it('fails when the shared document cannot be reached', async () => {
+    const repo = new Repo({ network: [] });
+    // A well-formed link to a document no reachable peer has.
+    const unreachable = new Repo({ network: [] }).create<SharedContent>(
+      seed('elsewhere')
+    ).url;
+
+    const failure = await Effect.runPromise(
+      Effect.flip(syncFor(repo).openSharedDocument({ shareUrl: unreachable }))
+    );
+
+    expect(failure).toBeInstanceOf(SharedDocumentUnavailableError);
+  }, 20_000);
+
   it('leaves the shared document with its peers when this client releases it', async () => {
     const { alice, bob } = createPeers();
-
     const shareUrl = await Effect.runPromise(
-      createAdapter({ repo: alice }).shareDocument({
-        content: 'still here',
-      })
+      syncFor(alice).shareDocument({ content: 'still here' })
     );
     const bobHandle = await findShared(bob, shareUrl);
 
-    await Effect.runPromise(
-      createAdapter({ repo: alice }).leaveSharedDocument({ shareUrl })
-    );
+    await Effect.runPromise(syncFor(alice).leaveSharedDocument({ shareUrl }));
 
     expect(bobHandle.doc().content).toBe('still here');
   });
@@ -118,7 +212,7 @@ describe('automergeProjectSync', () => {
     const repo = new Repo({ network: [] });
 
     await Effect.runPromise(
-      createAdapter({ repo }).leaveSharedDocument({ shareUrl: 'not-a-url' })
+      syncFor(repo).leaveSharedDocument({ shareUrl: 'not-a-url' })
     );
   });
 });
