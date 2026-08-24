@@ -11,13 +11,13 @@ import {
   type OpenSharedDocumentError,
   type ProjectId,
   type ProjectStore,
+  SharedDocumentUnavailableError,
   shareLiveDocument,
   type ShareUrl,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
 import {
   isEmpty,
-  SharedDocumentUnavailableError,
   type VersionedDocument,
 } from '../../../../modules/domain/rich-text';
 import { createPrivateConvergentDocument } from '../../../../modules/domain/rich-text/adapters/automerge-convergent-document';

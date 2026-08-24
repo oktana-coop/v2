@@ -6,8 +6,8 @@ import {
   type ConvergentDocumentState,
   CURRENT_SCHEMA_VERSION,
   PRIMARY_RICH_TEXT_REPRESENTATION,
-  SharedDocumentUnavailableError,
 } from '../../../../modules/domain/rich-text';
+import { SharedDocumentUnavailableError } from '../errors';
 import { joinSharedDocument } from './join-shared-document';
 import { leaveSharedDocument } from './leave-shared-document';
 import { type LiveDocument } from './live-document';

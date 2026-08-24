@@ -16,13 +16,13 @@ import {
   type DocumentSharing,
   type ProjectStore,
   type ProjectStoreManager,
+  SharedDocumentUnavailableError,
 } from '../../../../modules/domain/project';
 import { createAdapter as createAutomergeDocumentSharingAdapter } from '../../../../modules/domain/project/adapters/automerge-document-sharing';
 import {
   createElectronAssetProtocolAdapter,
   createElectronRendererProjectStoreManagerAdapter,
 } from '../../../../modules/domain/project/browser';
-import { SharedDocumentUnavailableError } from '../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import {
   type DirectoryWatcher,

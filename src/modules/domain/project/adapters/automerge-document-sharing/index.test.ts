@@ -10,19 +10,19 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   type ConvergentDocument,
-  SharedDocumentUnavailableError,
-  UnsupportedShareFormatError,
+  UnsupportedDocumentFormatError,
   ValidationError,
 } from '../../../rich-text';
 import {
-  SHARE_FORMAT_VERSION,
-  type SharedContent,
+  DOCUMENT_FORMAT_VERSION,
+  type DocumentContent,
 } from '../../../rich-text/adapters/automerge-convergent-document';
+import { SharedDocumentUnavailableError } from '../../errors';
 import { createAdapter } from '.';
 
 // The port hands out plain strings; only automerge-repo cares that they parse.
 const findShared = (repo: Repo, shareUrl: string) =>
-  repo.find<SharedContent>(shareUrl as AutomergeUrl);
+  repo.find<DocumentContent>(shareUrl as AutomergeUrl);
 
 const createPeers = () => {
   const channel = new MessageChannel();
@@ -37,8 +37,8 @@ const createPeers = () => {
   };
 };
 
-const seed = (content: string): SharedContent => ({
-  shareFormatVersion: SHARE_FORMAT_VERSION,
+const seed = (content: string): DocumentContent => ({
+  formatVersion: DOCUMENT_FORMAT_VERSION,
   content,
 });
 
@@ -60,7 +60,7 @@ describe('automergeDocumentSharing', () => {
 
     const handle = await findShared(repo, shareUrl);
     expect(handle.doc()).toEqual({
-      shareFormatVersion: SHARE_FORMAT_VERSION,
+      formatVersion: DOCUMENT_FORMAT_VERSION,
       content: 'shared text',
     });
   });
@@ -100,7 +100,7 @@ describe('automergeDocumentSharing', () => {
 
   it('opens a share both peers then converge on', async () => {
     const { alice, bob } = createPeers();
-    const handle = alice.create<SharedContent>(seed('hello'));
+    const handle = alice.create<DocumentContent>(seed('hello'));
     const aliceDocument = await Effect.runPromise(
       syncFor(alice).openSharedDocument({ shareUrl: handle.url })
     );
@@ -118,7 +118,7 @@ describe('automergeDocumentSharing', () => {
   it('refuses a share whose format it does not implement', async () => {
     const repo = new Repo({ network: [] });
     const handle = repo.create({
-      shareFormatVersion: SHARE_FORMAT_VERSION + 1,
+      formatVersion: DOCUMENT_FORMAT_VERSION + 1,
       content: 'from a newer app',
     });
 
@@ -126,7 +126,7 @@ describe('automergeDocumentSharing', () => {
       Effect.flip(syncFor(repo).openSharedDocument({ shareUrl: handle.url }))
     );
 
-    expect(failure).toBeInstanceOf(UnsupportedShareFormatError);
+    expect(failure).toBeInstanceOf(UnsupportedDocumentFormatError);
   });
 
   it('refuses a newer format even when it holds nothing this one would recognize', async () => {
@@ -134,7 +134,7 @@ describe('automergeDocumentSharing', () => {
     // A later format need not keep its text in `content`, or at all: the
     // version is read before anything else, so the shape never comes up.
     const handle = repo.create({
-      shareFormatVersion: SHARE_FORMAT_VERSION + 1,
+      formatVersion: DOCUMENT_FORMAT_VERSION + 1,
       spans: [{ kind: 'paragraph' }],
     });
 
@@ -144,13 +144,13 @@ describe('automergeDocumentSharing', () => {
 
     // Knowing what it is and being unable to read it is not the same as it
     // never having been a share.
-    expect(failure).toBeInstanceOf(UnsupportedShareFormatError);
+    expect(failure).toBeInstanceOf(UnsupportedDocumentFormatError);
   });
 
   it('refuses a share of its own format that holds the wrong thing', async () => {
     const repo = new Repo({ network: [] });
     const handle = repo.create({
-      shareFormatVersion: SHARE_FORMAT_VERSION,
+      formatVersion: DOCUMENT_FORMAT_VERSION,
       content: 42,
     });
 
@@ -185,7 +185,7 @@ describe('automergeDocumentSharing', () => {
   it('fails when the shared document cannot be reached', async () => {
     const repo = new Repo({ network: [] });
     // A well-formed link to a document no reachable peer has.
-    const unreachable = new Repo({ network: [] }).create<SharedContent>(
+    const unreachable = new Repo({ network: [] }).create<DocumentContent>(
       seed('elsewhere')
     ).url;
 

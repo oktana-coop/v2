@@ -10,10 +10,13 @@ import {
   PRIMARY_RICH_TEXT_REPRESENTATION,
   type ResolvedDocument,
   type RichTextDocument,
-  SharedDocumentUnavailableError,
 } from '../../../../modules/domain/rich-text';
 import { type ArtifactId } from '../../../../modules/infrastructure/version-control';
-import { NotFoundError, RepositoryError } from '../errors';
+import {
+  NotFoundError,
+  RepositoryError,
+  SharedDocumentUnavailableError,
+} from '../errors';
 import { type ProjectId } from '../models';
 import { type ProjectStore, type ShareUrl } from '../ports';
 import { type LiveDocument } from './live-document';

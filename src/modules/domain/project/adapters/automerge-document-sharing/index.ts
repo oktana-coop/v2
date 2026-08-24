@@ -7,16 +7,14 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import { mapErrorTo } from '../../../../../utils/errors';
-import {
-  SharedDocumentUnavailableError,
-  ValidationError,
-} from '../../../rich-text';
+import { ValidationError } from '../../../rich-text';
 import {
   createConvergentDocument,
-  initialSharedContent,
-  type SharedContent,
-  validateSharedContent,
+  type DocumentContent,
+  initialDocumentContent,
+  validateDocumentContent,
 } from '../../../rich-text/adapters/automerge-convergent-document';
+import { SharedDocumentUnavailableError } from '../../errors';
 import { type DocumentSharing } from '../../ports';
 
 export type AutomergeDocumentSharingDeps = {
@@ -39,7 +37,7 @@ const parseShareUrl = (
 const find = ({ repo, url }: { repo: Repo; url: AutomergeUrl }) =>
   Effect.tryPromise({
     try: () =>
-      repo.find<SharedContent>(url, {
+      repo.find<DocumentContent>(url, {
         signal: AbortSignal.timeout(FIND_TIMEOUT_MS),
       }),
     catch: mapErrorTo(
@@ -53,13 +51,13 @@ export const createAdapter = ({
   onError,
 }: AutomergeDocumentSharingDeps): DocumentSharing => ({
   shareDocument: ({ content }) =>
-    Effect.sync(() => repo.create(initialSharedContent(content)).url),
+    Effect.sync(() => repo.create(initialDocumentContent(content)).url),
 
   openSharedDocument: ({ shareUrl }) =>
     pipe(
       parseShareUrl(shareUrl),
       Effect.flatMap((url) => find({ repo, url })),
-      Effect.tap(validateSharedContent),
+      Effect.tap(validateDocumentContent),
       Effect.flatMap((handle) => createConvergentDocument({ handle, onError }))
     ),
 

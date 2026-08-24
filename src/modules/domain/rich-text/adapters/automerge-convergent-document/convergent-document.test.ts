@@ -11,16 +11,19 @@ import { describe, expect, it, vi } from 'vitest';
 import { PRIMARY_RICH_TEXT_REPRESENTATION } from '../../models';
 import { type ConvergentDocument } from '../../ports/convergent-document';
 import { createConvergentDocument } from './convergent-document';
-import { SHARE_FORMAT_VERSION, type SharedContent } from './shared-content';
+import {
+  DOCUMENT_FORMAT_VERSION,
+  type DocumentContent,
+} from './document-content';
 
-const seed = (content: string): SharedContent => ({
-  shareFormatVersion: SHARE_FORMAT_VERSION,
+const seed = (content: string): DocumentContent => ({
+  formatVersion: DOCUMENT_FORMAT_VERSION,
   content,
 });
 
 const open = async (initialText: string) => {
   const repo = new Repo({ network: [] });
-  const handle = repo.create<SharedContent>(seed(initialText));
+  const handle = repo.create<DocumentContent>(seed(initialText));
   const onError = vi.fn();
 
   const live = await Effect.runPromise(
@@ -35,7 +38,7 @@ const versionOf = (live: ConvergentDocument) =>
     (change) => change.version
   );
 
-const textOf = (handle: { doc: () => SharedContent }) => handle.doc().content;
+const textOf = (handle: { doc: () => DocumentContent }) => handle.doc().content;
 
 describe('automerge live document', () => {
   it('publishes the canonical content', async () => {
@@ -136,7 +139,7 @@ describe('automerge live document', () => {
     // A version from some other document: the anchor cannot resolve here,
     // and applying it as a whole-document diff would delete text this
     // contribution never saw.
-    const elsewhere = new Repo({ network: [] }).create<SharedContent>(
+    const elsewhere = new Repo({ network: [] }).create<DocumentContent>(
       seed('hello elsewhere')
     );
     const foreignBase = [...elsewhere.heads()].sort().join(',');
