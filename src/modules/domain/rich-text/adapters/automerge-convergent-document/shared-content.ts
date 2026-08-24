@@ -4,29 +4,28 @@ import { z } from 'zod';
 
 import { UnsupportedShareFormatError, ValidationError } from '../../errors';
 
-// The layout and editing discipline of a shared document: version 1 holds the
-// markdown source in `content`, spliced as text. A peer that does not know a
-// version cannot take part in its changes, so unknown versions are refused
-// rather than migrated.
 export const SHARE_FORMAT_VERSION = 1;
 
 export const sharedContentSchema = z.object({
-  shareFormatVersion: z.literal(SHARE_FORMAT_VERSION),
+  shareFormatVersion: z.number(),
   content: z.string(),
 });
 
 export type SharedContent = z.infer<typeof sharedContentSchema>;
 
+const shareFormatSchema = sharedContentSchema.pick({
+  shareFormatVersion: true,
+});
+
 // Peers converge on a document only if they all start from the same bytes,
 // so every document starts in this shape — minted once, never re-derived.
-export const genesisFor = (content: string): SharedContent => ({
+export const initialSharedContent = (content: string): SharedContent => ({
   shareFormatVersion: SHARE_FORMAT_VERSION,
   content,
 });
 
 // A document arriving over the network can hold anything, so nothing about
-// its shape can be assumed. A version this app does not implement is refused
-// rather than edited with the wrong discipline.
+// its shape can be assumed. A version this app does not implement yields an error.
 export const validateSharedContent = (
   handle: DocHandle<SharedContent>
 ): Effect.Effect<void, UnsupportedShareFormatError | ValidationError> =>
@@ -34,19 +33,32 @@ export const validateSharedContent = (
     (): Effect.Effect<void, UnsupportedShareFormatError | ValidationError> => {
       const doc: unknown = handle.doc();
 
-      if (sharedContentSchema.safeParse(doc).success) return Effect.void;
+      // Check the version first because newer versions may also change the content schema.
+      const formatParsingResult = shareFormatSchema.safeParse(doc);
 
-      const version = (doc as Partial<SharedContent> | undefined)
-        ?.shareFormatVersion;
+      if (!formatParsingResult.success) {
+        return Effect.fail(
+          new ValidationError('No or invalid version in the shared document.')
+        );
+      }
 
-      return typeof version === 'number' && version !== SHARE_FORMAT_VERSION
-        ? Effect.fail(
-            new UnsupportedShareFormatError(
-              `The shared document uses format version ${version}, this app supports ${SHARE_FORMAT_VERSION}.`
-            )
+      const version = formatParsingResult.data.shareFormatVersion;
+
+      // A version this app does not implement is refused rather than migrated.
+      if (version !== SHARE_FORMAT_VERSION) {
+        return Effect.fail(
+          new UnsupportedShareFormatError(
+            `The shared document is written in format ${version}; this app implements ${SHARE_FORMAT_VERSION}.`
           )
+        );
+      }
+
+      return sharedContentSchema.safeParse(doc).success
+        ? Effect.void
         : Effect.fail(
-            new ValidationError('The shared document is not a shared document.')
+            new ValidationError(
+              `The shared document does not hold what format ${SHARE_FORMAT_VERSION} describes.`
+            )
           );
     }
   );

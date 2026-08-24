@@ -22,6 +22,7 @@ import {
   createElectronAssetProtocolAdapter,
   createElectronRendererProjectStoreManagerAdapter,
 } from '../../../../modules/domain/project/browser';
+import { SharedDocumentUnavailableError } from '../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import {
   type DirectoryWatcher,
@@ -133,32 +134,43 @@ export const InfrastructureAdaptersProvider = ({
     []
   );
 
-  // Minting and releasing shares cannot report a sync-service failure
-  // through the port, so an unreachable service surfaces when the document
-  // is opened at its address instead.
-  const projectSync = useMemo(
-    (): ProjectSync => ({
+  const projectSync = useMemo((): ProjectSync => {
+    const adapter = (repo: Repo) =>
+      createAutomergeProjectSyncAdapter({
+        // A shared document keeps working on what it holds, so a failure to
+        // publish a change is logged rather than surfaced.
+        repo,
+        onError: console.error,
+      });
+
+    return {
+      // Minting and releasing shares cannot report a sync-service failure
+      // through the port; opening a share can, and does.
       shareDocument: (args) =>
         pipe(
           syncedRepo,
           Effect.orDie,
-          Effect.flatMap((repo) =>
-            createAutomergeProjectSyncAdapter({ repo }).shareDocument(args)
-          )
+          Effect.flatMap((repo) => adapter(repo).shareDocument(args))
+        ),
+      openSharedDocument: (args) =>
+        pipe(
+          syncedRepo,
+          Effect.mapError(
+            () =>
+              new SharedDocumentUnavailableError(
+                'The sync service could not be started.'
+              )
+          ),
+          Effect.flatMap((repo) => adapter(repo).openSharedDocument(args))
         ),
       leaveSharedDocument: (args) =>
         pipe(
           syncedRepo,
           Effect.orDie,
-          Effect.flatMap((repo) =>
-            createAutomergeProjectSyncAdapter({ repo }).leaveSharedDocument(
-              args
-            )
-          )
+          Effect.flatMap((repo) => adapter(repo).leaveSharedDocument(args))
         ),
-    }),
-    [syncedRepo]
-  );
+    };
+  }, [syncedRepo]);
 
   const [projectStoreManager, setProjectStoreManager] =
     useState<ProjectStoreManager | null>(null);

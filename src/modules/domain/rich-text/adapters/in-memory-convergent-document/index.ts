@@ -30,9 +30,8 @@ export const createAdapter = (
 ): Effect.Effect<ConvergentDocument> =>
   pipe(
     SubscriptionRef.make<ConvergentDocumentState>(asChange(initialText, '0')),
-    Effect.map((content) => ({
-      content,
-      change: (text: string) =>
+    Effect.map((content) => {
+      const change = (text: string) =>
         pipe(
           SubscriptionRef.get(content),
           Effect.flatMap((prev) =>
@@ -49,10 +48,8 @@ export const createAdapter = (
                   return [next.version, next];
                 })
           )
-        ),
-      // Nothing backs this document but itself.
-      attachTo: () => Effect.void,
-      detach: Effect.void,
-      close: Effect.void,
-    }))
+        );
+
+      return { content, change, close: Effect.void };
+    })
   );

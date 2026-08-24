@@ -10,12 +10,14 @@ import {
   PRIMARY_RICH_TEXT_REPRESENTATION,
   type ResolvedDocument,
   type RichTextDocument,
-} from '../../../../../modules/domain/rich-text';
-import { type ArtifactId } from '../../../../../modules/infrastructure/version-control';
-import { NotFoundError } from '../../errors';
-import { type ProjectId } from '../../models';
-import { type ProjectStore } from '../../ports';
-import { openLiveDocument } from '.';
+  SharedDocumentUnavailableError,
+} from '../../../../modules/domain/rich-text';
+import { type ArtifactId } from '../../../../modules/infrastructure/version-control';
+import { NotFoundError, RepositoryError } from '../errors';
+import { type ProjectId } from '../models';
+import { type ProjectStore, type ShareUrl } from '../ports';
+import { type LiveDocument } from './live-document';
+import { openLiveDocument } from './open-live-document';
 
 const markdown = (content: string): RichTextDocument => ({
   schemaVersion: CURRENT_SCHEMA_VERSION,
@@ -29,11 +31,16 @@ const documentId = '/blob/main/note.md' as ArtifactId;
 // A convergent document holding text, versioned by a counter. Contributions
 // anchored at an older version merge rather than replace, as the real one
 // does; that is what the disk relies on.
+let documentsEverCreated = 0;
+
 const createFakeConvergentDocument = async (initialText: string) => {
+  // Versions carry which document minted them, as heads do: no version of one
+  // document is ever a version of another.
+  const documentName = `d${(documentsEverCreated += 1)}`;
   const content = await Effect.runPromise(
     SubscriptionRef.make<ConvergentDocumentState>({
       doc: markdown(initialText),
-      version: '0',
+      version: `${documentName}.0`,
     })
   );
   let versions = 0;
@@ -41,7 +48,7 @@ const createFakeConvergentDocument = async (initialText: string) => {
 
   const publish = (text: string) => {
     versions += 1;
-    const version = String(versions);
+    const version = `${documentName}.${versions}`;
 
     return pipe(
       SubscriptionRef.set(content, { doc: markdown(text), version }),
@@ -49,7 +56,9 @@ const createFakeConvergentDocument = async (initialText: string) => {
     );
   };
 
-  const live: ConvergentDocument = {
+  let closed = false;
+
+  const document: ConvergentDocument = {
     content,
     change: (text, options) =>
       pipe(
@@ -66,25 +75,66 @@ const createFakeConvergentDocument = async (initialText: string) => {
           return publish(merged);
         })
       ),
-    attachTo: () => Effect.void,
-    detach: Effect.void,
-    close: Effect.void,
+    close: Effect.sync(() => {
+      closed = true;
+    }),
   };
 
-  return { live, contributions, publish };
+  return {
+    document,
+    contributions,
+    publish,
+    wasClosed: () => closed,
+  };
 };
+
+type FakeConvergentDocument = Awaited<
+  ReturnType<typeof createFakeConvergentDocument>
+>;
 
 const open = async ({
   diskText = 'on disk',
   liveText = diskText,
-}: { diskText?: string; liveText?: string } = {}) => {
+  shareUrl,
+  sharedText = 'what the share has',
+  shareIsOutOfReach = false,
+  storeRefusesWrites = false,
+}: {
+  diskText?: string;
+  liveText?: string;
+  shareUrl?: ShareUrl;
+  sharedText?: string;
+  shareIsOutOfReach?: boolean;
+  storeRefusesWrites?: boolean;
+} = {}) => {
   let onDisk = diskText;
   let documentGone = false;
   const written: string[] = [];
   const onPersistError = vi.fn();
+  const onShareUnavailable = vi.fn();
   let watcher: (() => void) | undefined;
 
-  const { live, contributions } = await createFakeConvergentDocument(liveText);
+  // Every document the live document has run on, in the order it ran on them.
+  const documents: FakeConvergentDocument[] = [];
+
+  const startOn = (text: string) =>
+    Effect.promise(async () => {
+      const fake = await createFakeConvergentDocument(text);
+      documents.push(fake);
+      return fake.document;
+    });
+
+  // A private document starts from the text it is given, except the first,
+  // seeded with `liveText` so a document can open holding something the disk
+  // has never seen.
+  const createPrivateDocument = (initialText: string) =>
+    startOn(documents.length === 0 ? liveText : initialText);
+
+  // What the share holds, which is not what the disk holds.
+  const openSharedDocument = () =>
+    shareIsOutOfReach
+      ? Effect.fail(new SharedDocumentUnavailableError('out of reach'))
+      : startOn(sharedText);
 
   const findDocumentById: ProjectStore['findDocumentById'] = () =>
     Effect.suspend(() =>
@@ -98,17 +148,23 @@ const open = async ({
 
   const opened = await Effect.runPromise(
     openLiveDocument({
-      createConvergentDocument: () => Effect.succeed(live),
+      createPrivateDocument,
+      openSharedDocument,
+      onShareUnavailable,
       // `pm:` marks content that went through the conversion.
       transformToText: vi.fn(async ({ input }: { input: string }) =>
         input.replace(/^pm:/, '')
       ),
       findDocumentById,
       updateRichTextDocumentContent: ({ content }) =>
-        Effect.sync(() => {
-          written.push(content);
-          onDisk = content;
-        }),
+        Effect.suspend(() =>
+          storeRefusesWrites
+            ? Effect.fail(new RepositoryError('the store refused the write'))
+            : Effect.sync(() => {
+                written.push(content);
+                onDisk = content;
+              })
+        ),
       subscribeToProjectDirChanges: (listener) => {
         watcher = listener;
         return () => {
@@ -116,15 +172,18 @@ const open = async ({
         };
       },
       onPersistError,
-    })({ projectId, documentId })
+    })({ projectId, documentId, shareUrl })
   );
 
   return {
-    live,
     opened,
     written,
-    contributions,
+    documents,
+    // The document the live document is running on right now.
+    current: () => documents[documents.length - 1]!,
+    contributions: documents[0]!.contributions,
     onPersistError,
+    onShareUnavailable,
     // An edit made by another hand, reported like the watcher would.
     editDisk: (text: string) => {
       onDisk = text;
@@ -163,6 +222,21 @@ describe('openLiveDocument', () => {
     await Effect.runPromise(opened.flush);
 
     expect(written).toEqual(['abc']);
+  });
+
+  it('raises to whoever waits for a flush when the write fails', async () => {
+    const { opened, onPersistError } = await open({
+      diskText: 'hello',
+      storeRefusesWrites: true,
+    });
+
+    await Effect.runPromise(opened.change(markdown('hello world')));
+
+    const failure = await Effect.runPromise(Effect.flip(opened.flush));
+
+    expect(failure).toBeInstanceOf(RepositoryError);
+    // The caller was told; nothing was reported behind their back.
+    expect(onPersistError).not.toHaveBeenCalled();
   });
 
   it('flushes without waiting for the timer, and is idempotent', async () => {
@@ -297,5 +371,116 @@ describe('openLiveDocument', () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(contributions).toHaveLength(contributedBefore);
+  });
+});
+
+const shareLink = 'automerge:the-share' as ShareUrl;
+
+const lastOf = <A>(items: A[]): A | undefined => items[items.length - 1];
+
+const contentOf = (opened: { content: LiveDocument['content'] }) =>
+  Effect.runPromise(SubscriptionRef.get(opened.content)).then(
+    (shown) => shown.doc.content
+  );
+
+describe('openLiveDocument, on the document it runs on', () => {
+  it('opens at the share when it has one', async () => {
+    const { opened, documents } = await open({
+      diskText: 'what the file has',
+      shareUrl: shareLink,
+      sharedText: 'what the share has',
+    });
+
+    expect(documents).toHaveLength(1);
+    await expect(contentOf(opened)).resolves.toBe('what the share has');
+  });
+
+  it('opens privately, reporting it, when the share cannot be opened', async () => {
+    const { opened, documents, onShareUnavailable } = await open({
+      diskText: 'what the file has',
+      shareUrl: shareLink,
+      shareIsOutOfReach: true,
+    });
+
+    expect(onShareUnavailable).toHaveBeenCalledWith(
+      expect.any(SharedDocumentUnavailableError)
+    );
+    // The failed one never became a document to run on.
+    expect(documents).toHaveLength(1);
+    await expect(contentOf(opened)).resolves.toBe('what the file has');
+  });
+
+  it('runs on the shared document after attaching, and closes the old one', async () => {
+    const { opened, documents } = await open({ diskText: 'on its own' });
+
+    await Effect.runPromise(opened.attachTo(shareLink));
+
+    expect(documents).toHaveLength(2);
+    expect(documents[0]!.wasClosed()).toBe(true);
+    await expect(contentOf(opened)).resolves.toBe('what the share has');
+  });
+
+  it('contributes to the document it switched to, not the one it left', async () => {
+    const { opened, documents } = await open({ diskText: 'on its own' });
+    await Effect.runPromise(opened.attachTo(shareLink));
+    const contributedBefore = documents[0]!.contributions.length;
+
+    await Effect.runPromise(opened.change(markdown('typed while shared')));
+
+    expect(documents[0]!.contributions).toHaveLength(contributedBefore);
+    expect(lastOf(documents[1]!.contributions)?.text).toBe(
+      'typed while shared'
+    );
+  });
+
+  it('follows the document it switched to', async () => {
+    const { opened, documents } = await open({ diskText: 'on its own' });
+    await Effect.runPromise(opened.attachTo(shareLink));
+
+    // A peer's change, published by the document the live one now runs on.
+    await Effect.runPromise(documents[1]!.publish('what a peer typed'));
+
+    await vi.waitFor(async () =>
+      expect(await contentOf(opened)).toBe('what a peer typed')
+    );
+  });
+
+  it('carries what the shared document holds to the file', async () => {
+    const { opened, written } = await open({ diskText: 'what the file has' });
+
+    await Effect.runPromise(opened.attachTo(shareLink));
+
+    await vi.waitFor(() => expect(written).toContain('what the share has'));
+  });
+
+  it('runs on a private document after detaching, keeping the content', async () => {
+    const { opened, documents } = await open({ diskText: 'on its own' });
+    await Effect.runPromise(opened.attachTo(shareLink));
+
+    await Effect.runPromise(opened.detach);
+
+    expect(documents).toHaveLength(3);
+    expect(documents[1]!.wasClosed()).toBe(true);
+    // Its own document again, holding what the share left it with.
+    await expect(contentOf(opened)).resolves.toBe('what the share has');
+  });
+
+  it('anchors a later disk change in the document it switched to', async () => {
+    const { opened, documents, editDisk } = await open({
+      diskText: 'what the file has',
+    });
+    await Effect.runPromise(opened.attachTo(shareLink));
+    const attached = documents[1]!;
+    const versionAfterSwitch = await Effect.runPromise(
+      SubscriptionRef.get(opened.content)
+    ).then((shown) => shown.version);
+
+    editDisk('changed outside');
+
+    await vi.waitFor(() =>
+      expect(lastOf(attached.contributions)?.text).toBe('changed outside')
+    );
+    // A base from the document it left would be dropped by the new one.
+    expect(lastOf(attached.contributions)?.base).toBe(versionAfterSwitch);
   });
 });
