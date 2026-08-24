@@ -2,12 +2,12 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 
-import { type ProjectSync, type ShareUrl } from '../ports';
+import { type DocumentSharing, type ShareUrl } from '../ports';
 import { type LiveDocument } from './live-document';
 
 export type ShareLiveDocumentDeps = {
   liveDocument: Pick<LiveDocument, 'content' | 'attachTo'>;
-  shareDocument: ProjectSync['shareDocument'];
+  shareDocument: DocumentSharing['shareDocument'];
   rememberShare: (shareUrl: ShareUrl) => void;
 };
 

@@ -13,11 +13,11 @@ import {
 import { buildConfig } from '../../../../modules/config';
 import {
   type AssetUrlProtocol,
+  type DocumentSharing,
   type ProjectStore,
   type ProjectStoreManager,
-  type ProjectSync,
 } from '../../../../modules/domain/project';
-import { createAdapter as createAutomergeProjectSyncAdapter } from '../../../../modules/domain/project/adapters/automerge-project-sync';
+import { createAdapter as createAutomergeDocumentSharingAdapter } from '../../../../modules/domain/project/adapters/automerge-document-sharing';
 import {
   createElectronAssetProtocolAdapter,
   createElectronRendererProjectStoreManagerAdapter,
@@ -44,7 +44,7 @@ export type InfrastructureAdaptersContextType = {
   assetUrlProtocol: AssetUrlProtocol;
   projectStore: ProjectStore | null;
   setProjectStore: (store: ProjectStore | null) => void;
-  projectSync: ProjectSync;
+  documentSharing: DocumentSharing;
   // The repo that talks to the sync service, and the one that never talks
   // to anyone: documents this app keeps to itself live in the latter.
   syncedRepo: Effect.Effect<Repo, SyncServiceError>;
@@ -64,7 +64,7 @@ export const InfrastructureAdaptersContext =
     projectStore: null,
     setProjectStore: () => {},
     // @ts-expect-error will get overriden below
-    projectSync: null,
+    documentSharing: null,
     // @ts-expect-error will get overriden below
     syncedRepo: null,
     // @ts-expect-error will get overriden below
@@ -134,9 +134,9 @@ export const InfrastructureAdaptersProvider = ({
     []
   );
 
-  const projectSync = useMemo((): ProjectSync => {
+  const documentSharing = useMemo((): DocumentSharing => {
     const adapter = (repo: Repo) =>
-      createAutomergeProjectSyncAdapter({
+      createAutomergeDocumentSharingAdapter({
         // A shared document keeps working on what it holds, so a failure to
         // publish a change is logged rather than surfaced.
         repo,
@@ -202,7 +202,7 @@ export const InfrastructureAdaptersProvider = ({
         assetUrlProtocol,
         projectStore,
         setProjectStore: handleSetProjectStore,
-        projectSync,
+        documentSharing,
         syncedRepo,
         privateRepo,
       }}

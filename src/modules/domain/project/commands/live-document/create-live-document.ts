@@ -21,8 +21,8 @@ import {
 import { VersionedProjectNotFoundErrorTag } from '../../errors';
 import { type ProjectId } from '../../models';
 import {
+  type DocumentSharing,
   type ProjectStore,
-  type ProjectSync,
   type ShareUrl,
 } from '../../ports';
 import { persistDocument } from '../persist-document';
@@ -36,7 +36,7 @@ export type CreateLiveDocumentDeps = {
   createPrivateDocument: (
     initialText: string
   ) => Effect.Effect<ConvergentDocument>;
-  openSharedDocument: ProjectSync['openSharedDocument'];
+  openSharedDocument: DocumentSharing['openSharedDocument'];
   transformToText: RepresentationTransform['transformToText'];
   findDocumentById: ProjectStore['findDocumentById'];
   updateRichTextDocumentContent: ProjectStore['updateRichTextDocumentContent'];
