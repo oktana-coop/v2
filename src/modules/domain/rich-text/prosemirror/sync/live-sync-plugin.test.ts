@@ -10,7 +10,6 @@ import {
 import { EditorView } from 'prosemirror-view';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createAdapter } from '../../adapters/in-memory-convergent-document';
 import {
   RepresentationTransformError,
   ValidationError,
@@ -54,6 +53,41 @@ const textOf = (doc: RichTextDocument) =>
 const eventually = (assertions: () => void | Promise<void>) =>
   vi.waitFor(assertions);
 
+// A convergent document holding text in memory, versioned by a counter. The
+// editor only needs a document that publishes and versions what it is given;
+// convergence itself is the real adapter's business.
+const createConvergentDocumentInMemory = (
+  initialText: string
+): Promise<ConvergentDocument> =>
+  Effect.runPromise(
+    pipe(
+      SubscriptionRef.make<ConvergentDocumentState>({
+        doc: markdownDocument(initialText),
+        version: '0',
+      }),
+      Effect.map((content) => {
+        const change = (text: string) =>
+          pipe(
+            SubscriptionRef.get(content),
+            Effect.flatMap((previous) =>
+              // Publishing equal content would look like a change to the
+              // editor, so it has to short-circuit before the set.
+              previous.doc.content === text
+                ? Effect.succeed(previous.version)
+                : SubscriptionRef.modify(content, (current) => {
+                    const version = String(Number(current.version) + 1);
+
+                    // [effect result, new state].
+                    return [version, { doc: markdownDocument(text), version }];
+                  })
+            )
+          );
+
+        return { content, change, close: Effect.void };
+      })
+    )
+  );
+
 const views: EditorView[] = [];
 
 const setup = async ({
@@ -61,7 +95,7 @@ const setup = async ({
   convertToProseMirror = async (doc: RichTextDocument) =>
     paragraph(doc.content),
   createConvergentDocument = (text: string) =>
-    Effect.runPromise(createAdapter(text)),
+    createConvergentDocumentInMemory(text),
 }: {
   initialText?: string;
   convertToProseMirror?: (doc: RichTextDocument) => Promise<PMNode>;
