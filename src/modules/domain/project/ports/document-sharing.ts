@@ -27,7 +27,7 @@ export type LeaveSharedDocumentArgs = {
   shareUrl: ShareUrl;
 };
 
-export type ProjectSync = {
+export type DocumentSharing = {
   shareDocument: (args: ShareDocumentArgs) => Effect.Effect<ShareUrl>;
   openSharedDocument: (
     args: OpenSharedDocumentArgs

@@ -17,9 +17,9 @@ import {
   type SharedContent,
   validateSharedContent,
 } from '../../../rich-text/adapters/automerge-convergent-document';
-import { type ProjectSync } from '../../ports';
+import { type DocumentSharing } from '../../ports';
 
-export type AutomergeProjectSyncDeps = {
+export type AutomergeDocumentSharingDeps = {
   repo: Repo;
   // A shared document keeps working on what it holds, so a failure to
   // publish a change is reported rather than raised.
@@ -51,7 +51,7 @@ const find = ({ repo, url }: { repo: Repo; url: AutomergeUrl }) =>
 export const createAdapter = ({
   repo,
   onError,
-}: AutomergeProjectSyncDeps): ProjectSync => ({
+}: AutomergeDocumentSharingDeps): DocumentSharing => ({
   shareDocument: ({ content }) =>
     Effect.sync(() => repo.create(initialSharedContent(content)).url),
 

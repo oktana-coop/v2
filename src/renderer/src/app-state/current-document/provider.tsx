@@ -67,7 +67,7 @@ export const CurrentDocumentProvider = ({
     restoreDocumentChanges,
     subscribeToProjectDirChanges,
   } = useContext(ProjectContext);
-  const { privateRepo, projectSync } = useContext(
+  const { privateRepo, documentSharing } = useContext(
     InfrastructureAdaptersContext
   );
   const { shareUrlFor, rememberShare, forgetShare } = useContext(
@@ -174,7 +174,7 @@ export const CurrentDocumentProvider = ({
     Effect.runPromise(
       openLiveDocument({
         createPrivateDocument,
-        openSharedDocument: projectSync.openSharedDocument,
+        openSharedDocument: documentSharing.openSharedDocument,
         onShareUnavailable: reportShareFailure,
         transformToText: representationTransformAdapter.transformToText,
         findDocumentById: projectStore.findDocumentById,
@@ -526,7 +526,7 @@ export const CurrentDocumentProvider = ({
       await Effect.runPromise(
         shareLiveDocument({
           liveDocument,
-          shareDocument: projectSync.shareDocument,
+          shareDocument: documentSharing.shareDocument,
           rememberShare: (url) => rememberShare({ ...shareKey, shareUrl: url }),
         })
       );
@@ -542,7 +542,7 @@ export const CurrentDocumentProvider = ({
   }, [
     shareKey,
     liveDocument,
-    projectSync,
+    documentSharing,
     rememberShare,
     dispatchNotification,
   ]);
@@ -582,10 +582,10 @@ export const CurrentDocumentProvider = ({
       leaveSharedDocumentCommand({
         liveDocument,
         forgetShare: () => forgetShare(shareKey),
-        leaveSharedDocument: projectSync.leaveSharedDocument,
+        leaveSharedDocument: documentSharing.leaveSharedDocument,
       })(shareUrl)
     ).catch(console.error);
-  }, [shareKey, shareUrl, liveDocument, forgetShare, projectSync]);
+  }, [shareKey, shareUrl, liveDocument, forgetShare, documentSharing]);
 
   return (
     <CurrentDocumentContext.Provider

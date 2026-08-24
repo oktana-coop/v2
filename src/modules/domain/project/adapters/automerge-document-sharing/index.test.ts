@@ -50,7 +50,7 @@ const contentOf = (document: Pick<ConvergentDocument, 'content'>) =>
     (state) => state.doc.content
   );
 
-describe('automergeProjectSync', () => {
+describe('automergeDocumentSharing', () => {
   it('mints a share carrying the content and the format it was written in', async () => {
     const repo = new Repo({ network: [] });
 
