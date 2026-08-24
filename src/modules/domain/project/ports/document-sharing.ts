@@ -2,10 +2,10 @@ import * as Effect from 'effect/Effect';
 
 import {
   type ConvergentDocument,
-  type SharedDocumentUnavailableError,
-  type UnsupportedShareFormatError,
+  type UnsupportedDocumentFormatError,
   type ValidationError,
 } from '../../../../modules/domain/rich-text';
+import { type SharedDocumentUnavailableError } from '../errors';
 
 // Opaque capability: holding the link is what admits a peer to the share.
 export type ShareUrl = string;
@@ -13,7 +13,7 @@ export type ShareUrl = string;
 export type OpenSharedDocumentError =
   | ValidationError
   | SharedDocumentUnavailableError
-  | UnsupportedShareFormatError;
+  | UnsupportedDocumentFormatError;
 
 export type ShareDocumentArgs = {
   content: string;

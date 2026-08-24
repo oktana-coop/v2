@@ -7,7 +7,10 @@ import {
   type AutomergeConvergentDocumentDeps,
   createConvergentDocument,
 } from './convergent-document';
-import { initialSharedContent, type SharedContent } from './shared-content';
+import {
+  type DocumentContent,
+  initialDocumentContent,
+} from './document-content';
 
 export type PrivateConvergentDocumentDeps = Omit<
   AutomergeConvergentDocumentDeps,
@@ -25,7 +28,7 @@ export const createPrivateConvergentDocument = ({
   pipe(
     privateRepo,
     Effect.map((repo) =>
-      repo.create<SharedContent>(initialSharedContent(initialText))
+      repo.create<DocumentContent>(initialDocumentContent(initialText))
     ),
     Effect.flatMap((handle) => createConvergentDocument({ handle, onError }))
   );

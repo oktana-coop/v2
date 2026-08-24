@@ -3,10 +3,11 @@ export { createPrivateConvergentDocument } from './private';
 // For whoever already holds a document: the sync service, having found one
 // behind a link.
 export { createConvergentDocument } from './convergent-document';
-// The shape every document starts in, and what it takes to read one.
+// The shape every document this app writes takes, and what it takes to
+// recognize one written elsewhere.
 export {
-  initialSharedContent,
-  SHARE_FORMAT_VERSION,
-  type SharedContent,
-  validateSharedContent,
-} from './shared-content';
+  DOCUMENT_FORMAT_VERSION,
+  type DocumentContent,
+  initialDocumentContent,
+  validateDocumentContent,
+} from './document-content';

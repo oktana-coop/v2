@@ -22,7 +22,7 @@ import {
   typeInEditorSlowly,
 } from '../shared/helpers';
 
-type SharedContent = { shareFormatVersion: number; content: string };
+type DocumentContent = { formatVersion: number; content: string };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -301,7 +301,7 @@ test.describe('realtime collaboration', () => {
     // The peer sees everything, including what was typed before the share.
     const peer = connectPeer(syncServer.url);
     try {
-      const handle = await peer.repo.find<SharedContent>(
+      const handle = await peer.repo.find<DocumentContent>(
         shareUrl as Parameters<typeof peer.repo.find>[0],
         { signal: AbortSignal.timeout(15_000) }
       );
@@ -333,12 +333,12 @@ test.describe('realtime collaboration', () => {
 
     const peer = connectPeer(syncServer.url);
     try {
-      const handle = await peer.repo.find<SharedContent>(
+      const handle = await peer.repo.find<DocumentContent>(
         shareUrl as Parameters<typeof peer.repo.find>[0],
         { signal: AbortSignal.timeout(15_000) }
       );
 
-      expect(handle.doc().shareFormatVersion).toBe(1);
+      expect(handle.doc().formatVersion).toBe(1);
       expect(handle.doc().content).toContain('This is a test document.');
 
       // Write like someone typing: one token at a time, replacing the full
@@ -407,7 +407,7 @@ test.describe('realtime collaboration', () => {
 
     const peer = connectPeer(syncServer.url);
     try {
-      const handle = await peer.repo.find<SharedContent>(
+      const handle = await peer.repo.find<DocumentContent>(
         shareUrl as Parameters<typeof peer.repo.find>[0],
         { signal: AbortSignal.timeout(15_000) }
       );

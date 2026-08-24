@@ -4,7 +4,7 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 
-import { SharedDocumentUnavailableError } from '../../errors';
+import { ConvergentDocumentUnavailableError } from '../../errors';
 import {
   CURRENT_SCHEMA_VERSION,
   PRIMARY_RICH_TEXT_REPRESENTATION,
@@ -15,10 +15,10 @@ import {
   type ConvergentDocumentState,
   type ConvergentDocumentVersion,
 } from '../../ports/convergent-document';
-import { type SharedContent } from './shared-content';
+import { type DocumentContent } from './document-content';
 
 export type AutomergeConvergentDocumentDeps = {
-  handle: DocHandle<SharedContent>;
+  handle: DocHandle<DocumentContent>;
   onError: (error: unknown) => void;
 };
 
@@ -130,7 +130,7 @@ export const createConvergentDocument = ({
       const handleDocDelete = () => {
         handle.off('change', handleDocChange);
         onError(
-          new SharedDocumentUnavailableError('The shared document was deleted.')
+          new ConvergentDocumentUnavailableError('The document was deleted.')
         );
       };
 
