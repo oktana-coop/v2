@@ -19,10 +19,6 @@ export type ConvergentDocumentChangeOptions = {
 
 export type ConvergentDocument = {
   content: SubscriptionRef.SubscriptionRef<ConvergentDocumentState>;
-  // Takes the document's content in the primary text representation, which
-  // is what a convergent document holds. Resolves with the version whose content
-  // is exactly that, and only after it has been published to `content` — so
-  // a contributor can recognize its own echo by version.
   change: (
     content: string,
     options?: ConvergentDocumentChangeOptions
