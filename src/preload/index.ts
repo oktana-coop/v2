@@ -79,6 +79,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 contextBridge.exposeInMainWorld('config', {
   primaryRichTextRepresentation: buildConfig.primaryRichTextRepresentation,
+  syncServiceUrl: buildConfig.syncServiceUrl,
 } as RendererConfig);
 
 contextBridge.exposeInMainWorld('personalizationAPI', {

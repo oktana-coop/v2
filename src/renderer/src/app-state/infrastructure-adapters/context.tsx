@@ -10,7 +10,6 @@ import {
   useState,
 } from 'react';
 
-import { buildConfig } from '../../../../modules/config';
 import {
   type AssetUrlProtocol,
   type DocumentSharing,
@@ -76,7 +75,7 @@ export const InfrastructureAdaptersProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { processId } = useContext(ElectronContext);
+  const { processId, config } = useContext(ElectronContext);
   const [projectStore, setProjectStore] = useState<ProjectStore | null>(null);
 
   const filesystem = useMemo(
@@ -104,8 +103,7 @@ export const InfrastructureAdaptersProvider = ({
           // The override lets tests and offline development point at a local
           // sync server without rebuilding.
           const syncServiceUrl =
-            localStorage.getItem('syncServiceUrl') ??
-            buildConfig.syncServiceUrl;
+            localStorage.getItem('syncServiceUrl') ?? config.syncServiceUrl;
 
           syncedRepoRef.current ??= Effect.runPromise(
             createAutomergeRepo({ syncServiceUrl })
@@ -118,7 +116,7 @@ export const InfrastructureAdaptersProvider = ({
           'The sync service could not be started.'
         ),
       }),
-    []
+    [config.syncServiceUrl]
   );
 
   // Documents this app keeps to itself live in a repo with no network: they

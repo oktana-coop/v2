@@ -10,8 +10,6 @@ import { mapErrorTo } from '../../../utils/errors';
 import { SyncServiceError } from './errors';
 
 export type CreateAutomergeRepoArgs = {
-  // Without a sync service the repo never talks to anyone: documents in it
-  // stay on this machine.
   syncServiceUrl?: string;
 };
 
@@ -26,10 +24,9 @@ export const createAutomergeRepo = ({
     Effect.map(
       () =>
         new Repo({
-          network:
-            syncServiceUrl === undefined
-              ? []
-              : [new WebSocketClientAdapter(syncServiceUrl)],
+          network: syncServiceUrl
+            ? [new WebSocketClientAdapter(syncServiceUrl)]
+            : [],
         })
     )
   );
