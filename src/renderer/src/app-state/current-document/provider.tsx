@@ -108,8 +108,6 @@ export const CurrentDocumentProvider = ({
     '/projects/:projectId/artifacts/:artifactId/changes/:changeId'
   );
 
-  // Memoized because the sharing handlers hold it: a new object every render
-  // would rebuild all of them.
   const shareKey = useMemo(
     () =>
       projectId && currentBranch && documentId
@@ -205,8 +203,6 @@ export const CurrentDocumentProvider = ({
       cancelled = true;
       if (opened) close(opened);
     };
-    // The share registry is read at open time only: sharing, joining, and
-    // leaving switch the open document in place rather than re-opening it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     documentId,
@@ -559,7 +555,11 @@ export const CurrentDocumentProvider = ({
   ]);
 
   // The link says nothing about which document it belongs to, so it joins the
-  // one that is open; attaching is what checks the link is usable.
+  // one that is open. This makes joining depend on already having the right
+  // document open on the right branch, and joining the same link from a second
+  // document binds both files to the one shared document.
+  //
+  // TODO: A link should carry enough to find or create the document it belongs to.
   const handleJoinSharedDocument = useCallback(
     async (joinedShareUrl: ShareUrl) => {
       if (!shareKey || !liveDocument) return;
