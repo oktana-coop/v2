@@ -27,10 +27,16 @@ export type LeaveSharedDocumentArgs = {
   shareUrl: ShareUrl;
 };
 
+// Every operation reaches the sync service, so every one of them can find it
+// out of reach.
 export type DocumentSharing = {
-  shareDocument: (args: ShareDocumentArgs) => Effect.Effect<ShareUrl>;
+  shareDocument: (
+    args: ShareDocumentArgs
+  ) => Effect.Effect<ShareUrl, SharedDocumentUnavailableError>;
   openSharedDocument: (
     args: OpenSharedDocumentArgs
   ) => Effect.Effect<ConvergentDocument, OpenSharedDocumentError>;
-  leaveSharedDocument: (args: LeaveSharedDocumentArgs) => Effect.Effect<void>;
+  leaveSharedDocument: (
+    args: LeaveSharedDocumentArgs
+  ) => Effect.Effect<void, SharedDocumentUnavailableError>;
 };

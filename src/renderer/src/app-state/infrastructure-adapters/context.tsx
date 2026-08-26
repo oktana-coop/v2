@@ -1,6 +1,5 @@
-import { type Repo } from '@automerge/automerge-repo/slim';
+import { type Repo as AutomergeRepo } from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
-import { pipe } from 'effect/Function';
 import {
   createContext,
   useContext,
@@ -15,7 +14,6 @@ import {
   type DocumentSharing,
   type ProjectStore,
   type ProjectStoreManager,
-  SharedDocumentUnavailableError,
 } from '../../../../modules/domain/project';
 import { createAdapter as createAutomergeDocumentSharingAdapter } from '../../../../modules/domain/project/adapters/automerge-document-sharing';
 import {
@@ -46,8 +44,8 @@ export type InfrastructureAdaptersContextType = {
   documentSharing: DocumentSharing;
   // The repo that talks to the sync service, and the one that never talks
   // to anyone: documents this app keeps to itself live in the latter.
-  syncedRepo: Effect.Effect<Repo, SyncServiceError>;
-  privateRepo: Effect.Effect<Repo>;
+  syncedRepo: Effect.Effect<AutomergeRepo, SyncServiceError>;
+  privateRepo: Effect.Effect<AutomergeRepo>;
 };
 
 export const InfrastructureAdaptersContext =
@@ -93,9 +91,24 @@ export const InfrastructureAdaptersProvider = ({
     []
   );
 
-  // The repo dials the sync service, so it is built on first use rather than
+  // Private documents live in a repo with no network: they structurally cannot
+  // reach the sync service. The repo is created lazily on first use.
+  const privateRepoRef = useRef<Promise<AutomergeRepo> | null>(null);
+  const privateRepo = useMemo(
+    () =>
+      Effect.promise(() => {
+        if (privateRepoRef.current === null) {
+          privateRepoRef.current = Effect.runPromise(createAutomergeRepo({}));
+        }
+
+        return privateRepoRef.current;
+      }),
+    []
+  );
+
+  // The synced repo dials the sync service, so it is built on first use rather than
   // on startup: a client that never shares never connects.
-  const syncedRepoRef = useRef<Promise<Repo> | null>(null);
+  const syncedRepoRef = useRef<Promise<AutomergeRepo> | null>(null);
   const syncedRepo = useMemo(
     () =>
       Effect.tryPromise({
@@ -105,9 +118,11 @@ export const InfrastructureAdaptersProvider = ({
           const syncServiceUrl =
             localStorage.getItem('syncServiceUrl') ?? config.syncServiceUrl;
 
-          syncedRepoRef.current ??= Effect.runPromise(
-            createAutomergeRepo({ syncServiceUrl })
-          );
+          if (syncedRepoRef.current === null) {
+            syncedRepoRef.current = Effect.runPromise(
+              createAutomergeRepo({ syncServiceUrl })
+            );
+          }
 
           return syncedRepoRef.current;
         },
@@ -119,56 +134,14 @@ export const InfrastructureAdaptersProvider = ({
     [config.syncServiceUrl]
   );
 
-  // Documents this app keeps to itself live in a repo with no network: they
-  // structurally cannot reach the sync service.
-  const privateRepoRef = useRef<Promise<Repo> | null>(null);
-  const privateRepo = useMemo(
+  const documentSharing = useMemo(
     () =>
-      Effect.promise(() => {
-        privateRepoRef.current ??= Effect.runPromise(createAutomergeRepo({}));
-
-        return privateRepoRef.current;
-      }),
-    []
-  );
-
-  const documentSharing = useMemo((): DocumentSharing => {
-    const adapter = (repo: Repo) =>
       createAutomergeDocumentSharingAdapter({
-        // A shared document keeps working on what it holds, so a failure to
-        // publish a change is logged rather than surfaced.
-        repo,
+        syncedRepo,
         onError: console.error,
-      });
-
-    return {
-      // Minting and releasing shares cannot report a sync-service failure
-      // through the port; opening a share can, and does.
-      shareDocument: (args) =>
-        pipe(
-          syncedRepo,
-          Effect.orDie,
-          Effect.flatMap((repo) => adapter(repo).shareDocument(args))
-        ),
-      openSharedDocument: (args) =>
-        pipe(
-          syncedRepo,
-          Effect.mapError(
-            () =>
-              new SharedDocumentUnavailableError(
-                'The sync service could not be started.'
-              )
-          ),
-          Effect.flatMap((repo) => adapter(repo).openSharedDocument(args))
-        ),
-      leaveSharedDocument: (args) =>
-        pipe(
-          syncedRepo,
-          Effect.orDie,
-          Effect.flatMap((repo) => adapter(repo).leaveSharedDocument(args))
-        ),
-    };
-  }, [syncedRepo]);
+      }),
+    [syncedRepo]
+  );
 
   const [projectStoreManager, setProjectStoreManager] =
     useState<ProjectStoreManager | null>(null);
