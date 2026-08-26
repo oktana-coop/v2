@@ -15,10 +15,16 @@ import {
   validateDocumentContent,
 } from '../../../rich-text/adapters/automerge-convergent-document';
 import { SharedDocumentUnavailableError } from '../../errors';
-import { type DocumentSharing } from '../../ports';
+import {
+  type DocumentSharing,
+  type LeaveSharedDocumentArgs,
+  type OpenSharedDocumentArgs,
+  type ShareDocumentArgs,
+} from '../../ports';
 
 export type AutomergeDocumentSharingDeps = {
-  repo: Repo;
+  // This is an effect because we want to lazily connect on first share/join.
+  syncedRepo: Effect.Effect<Repo, unknown>;
   // A shared document keeps working on what it holds, so a failure to
   // publish a change is reported rather than raised.
   onError: (error: unknown) => void;
@@ -47,22 +53,42 @@ const find = ({ repo, url }: { repo: Repo; url: AutomergeUrl }) =>
   });
 
 export const createAdapter = ({
-  repo,
+  syncedRepo,
   onError,
-}: AutomergeDocumentSharingDeps): DocumentSharing => ({
-  shareDocument: ({ content }) =>
-    Effect.sync(() => repo.create(initialDocumentContent(content)).url),
+}: AutomergeDocumentSharingDeps): DocumentSharing => {
+  // Reused effect across document-related operations.
+  const connectedRepo = pipe(
+    syncedRepo,
+    // Map repo unavailability errors to document unavailability ones.
+    Effect.mapError(
+      () =>
+        new SharedDocumentUnavailableError(
+          'The sync service could not be reached.'
+        )
+    )
+  );
 
-  openSharedDocument: ({ shareUrl }) =>
+  const shareDocument = ({ content }: ShareDocumentArgs) =>
     pipe(
-      parseShareUrl(shareUrl),
-      Effect.flatMap((url) => find({ repo, url })),
+      connectedRepo,
+      Effect.map((repo) => repo.create(initialDocumentContent(content)).url)
+    );
+
+  const openSharedDocument = ({ shareUrl }: OpenSharedDocumentArgs) =>
+    pipe(
+      Effect.all({ repo: connectedRepo, url: parseShareUrl(shareUrl) }),
+      Effect.flatMap(({ repo, url }) => find({ repo, url })),
       Effect.tap(validateDocumentContent),
       Effect.flatMap((handle) => createConvergentDocument({ handle, onError }))
-    ),
+    );
 
-  leaveSharedDocument: ({ shareUrl }) =>
-    Effect.sync(() => {
-      if (isValidAutomergeUrl(shareUrl)) repo.delete(shareUrl);
-    }),
-});
+  const leaveSharedDocument = ({ shareUrl }: LeaveSharedDocumentArgs) =>
+    pipe(
+      connectedRepo,
+      Effect.map((repo) => {
+        if (isValidAutomergeUrl(shareUrl)) repo.delete(shareUrl);
+      })
+    );
+
+  return { shareDocument, openSharedDocument, leaveSharedDocument };
+};
