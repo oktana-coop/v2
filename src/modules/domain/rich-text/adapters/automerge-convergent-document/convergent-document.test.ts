@@ -8,8 +8,12 @@ import * as Effect from 'effect/Effect';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { describe, expect, it, vi } from 'vitest';
 
+import { subscribeToStream } from '../../../../../utils/effect';
 import { PRIMARY_RICH_TEXT_REPRESENTATION } from '../../models';
-import { type ConvergentDocument } from '../../ports/convergent-document';
+import {
+  type ConvergentDocument,
+  type ConvergentDocumentError,
+} from '../../ports/convergent-document';
 import { createConvergentDocument } from './convergent-document';
 import {
   DOCUMENT_FORMAT_VERSION,
@@ -24,13 +28,15 @@ const seed = (content: string): DocumentContent => ({
 const open = async (initialText: string) => {
   const repo = new Repo({ network: [] });
   const handle = repo.create<DocumentContent>(seed(initialText));
-  const onError = vi.fn();
 
-  const live = await Effect.runPromise(
-    createConvergentDocument({ handle, onError })
-  );
+  const live = await Effect.runPromise(createConvergentDocument({ handle }));
 
-  return { repo, handle, live, onError };
+  const reported: ConvergentDocumentError[] = [];
+  subscribeToStream(live.errors, (error) => {
+    reported.push(error);
+  });
+
+  return { repo, handle, live, reported };
 };
 
 const versionOf = (live: ConvergentDocument) =>
@@ -135,7 +141,7 @@ describe('automerge live document', () => {
   });
 
   it('drops a contribution anchored at a version it never had', async () => {
-    const { live, handle, onError } = await open('hello');
+    const { live, handle, reported } = await open('hello');
     // A version from some other document: the anchor cannot resolve here,
     // and applying it as a whole-document diff would delete text this
     // contribution never saw.
@@ -151,6 +157,6 @@ describe('automerge live document', () => {
     );
 
     expect(textOf(handle)).toBe('hello you');
-    expect(onError).toHaveBeenCalled();
+    await vi.waitFor(() => expect(reported).not.toHaveLength(0));
   });
 });

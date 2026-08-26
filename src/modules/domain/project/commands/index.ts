@@ -19,5 +19,5 @@ export {
   type ShareLiveDocumentDeps,
   shareLiveDocument,
 } from './share-live-document';
-export { type LiveDocument } from './live-document';
+export { type LiveDocument, type LiveDocumentError } from './live-document';
 export { openLiveDocument } from './open-live-document';

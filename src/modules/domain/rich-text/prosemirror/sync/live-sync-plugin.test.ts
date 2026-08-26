@@ -1,5 +1,6 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
+import * as Stream from 'effect/Stream';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { type Node as PMNode } from 'prosemirror-model';
 import {
@@ -83,7 +84,7 @@ const createConvergentDocumentInMemory = (
             )
           );
 
-        return { content, change, close: Effect.void };
+        return { content, change, errors: Stream.empty, close: Effect.void };
       })
     )
   );
@@ -231,6 +232,7 @@ describe('liveSyncPlugin', () => {
               resolveContribution = () => resolve('1');
             })
         ),
+      errors: Stream.empty,
       close: Effect.void,
     };
 
@@ -287,6 +289,7 @@ describe('liveSyncPlugin', () => {
           Effect.as(version)
         );
       },
+      errors: Stream.empty,
       close: Effect.void,
     };
 

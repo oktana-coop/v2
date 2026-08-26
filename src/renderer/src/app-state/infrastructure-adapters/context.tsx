@@ -135,11 +135,7 @@ export const InfrastructureAdaptersProvider = ({
   );
 
   const documentSharing = useMemo(
-    () =>
-      createAutomergeDocumentSharingAdapter({
-        syncedRepo,
-        onError: console.error,
-      }),
+    () => createAutomergeDocumentSharingAdapter({ syncedRepo }),
     [syncedRepo]
   );
 

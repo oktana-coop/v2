@@ -5,7 +5,7 @@ import '@automerge/automerge';
 import { Repo } from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { createPrivateConvergentDocument } from './private';
 
@@ -17,7 +17,6 @@ describe('private convergent document', () => {
       createPrivateConvergentDocument({
         privateRepo: Effect.succeed(repo),
         initialText: 'fresh from disk',
-        onError: vi.fn(),
       })
     );
 

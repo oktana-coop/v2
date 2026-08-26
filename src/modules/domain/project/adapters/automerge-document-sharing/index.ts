@@ -25,9 +25,6 @@ import {
 export type AutomergeDocumentSharingDeps = {
   // This is an effect because we want to lazily connect on first share/join.
   syncedRepo: Effect.Effect<Repo, unknown>;
-  // A shared document keeps working on what it holds, so a failure to
-  // publish a change is reported rather than raised.
-  onError: (error: unknown) => void;
 };
 
 // How long to keep asking peers for a document before giving up on it.
@@ -54,7 +51,6 @@ const find = ({ repo, url }: { repo: Repo; url: AutomergeUrl }) =>
 
 export const createAdapter = ({
   syncedRepo,
-  onError,
 }: AutomergeDocumentSharingDeps): DocumentSharing => {
   // Reused effect across document-related operations.
   const connectedRepo = pipe(
@@ -79,7 +75,7 @@ export const createAdapter = ({
       Effect.all({ repo: connectedRepo, url: parseShareUrl(shareUrl) }),
       Effect.flatMap(({ repo, url }) => find({ repo, url })),
       Effect.tap(validateDocumentContent),
-      Effect.flatMap((handle) => createConvergentDocument({ handle, onError }))
+      Effect.flatMap((handle) => createConvergentDocument({ handle }))
     );
 
   const leaveSharedDocument = ({ shareUrl }: LeaveSharedDocumentArgs) =>

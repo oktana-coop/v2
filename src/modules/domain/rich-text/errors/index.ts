@@ -73,6 +73,11 @@ export class ConvergentDocumentUnavailableError extends Cause.YieldableError {
   readonly _tag = ConvergentDocumentUnavailableErrorTag;
 }
 
+export const ConvergentDocumentChangeErrorTag = 'ConvergentDocumentChangeError';
+export class ConvergentDocumentChangeError extends Cause.YieldableError {
+  readonly _tag = ConvergentDocumentChangeErrorTag;
+}
+
 export const UnsupportedDocumentFormatErrorTag =
   'UnsupportedDocumentFormatError';
 export class UnsupportedDocumentFormatError extends Cause.YieldableError {

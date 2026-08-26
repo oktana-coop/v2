@@ -1,14 +1,18 @@
 import * as Effect from 'effect/Effect';
+import * as Stream from 'effect/Stream';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 
 import {
   type ConvergentDocumentChangeOptions,
+  type ConvergentDocumentError,
   type ConvergentDocumentState,
   type ConvergentDocumentVersion,
   type RichTextDocument,
 } from '../../../../../modules/domain/rich-text';
 import { type OpenSharedDocumentError, type ShareUrl } from '../../ports';
 import { type PersistDocumentError } from '../persist-document';
+
+export type LiveDocumentError = PersistDocumentError | ConvergentDocumentError;
 
 export type LiveDocument = {
   content: SubscriptionRef.SubscriptionRef<ConvergentDocumentState>;
@@ -26,5 +30,6 @@ export type LiveDocument = {
   flush: Effect.Effect<void, PersistDocumentError>;
   refresh: Effect.Effect<void>;
   cancelPendingPersist: Effect.Effect<void>;
+  errors: Stream.Stream<LiveDocumentError>;
   close: Effect.Effect<void>;
 };
