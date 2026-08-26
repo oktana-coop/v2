@@ -17,6 +17,8 @@ import {
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
 import {
+  ConvergentDocumentChangeErrorTag,
+  ConvergentDocumentUnavailableErrorTag,
   isEmpty,
   type VersionedDocument,
 } from '../../../../modules/domain/rich-text';
@@ -38,7 +40,7 @@ import {
   urlEncodeChangeIdForChange,
 } from '../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../modules/personalization/browser';
-import { subscribeToRef } from '../../../../utils/effect';
+import { subscribeToRef, subscribeToStream } from '../../../../utils/effect';
 import { ProjectContext } from '../';
 import { useCurrentChangeId } from '../current-project/current-artifact/use-current-change-id';
 import { DocumentSharingInfoContext } from '../document-sharing-info';
@@ -163,13 +165,7 @@ export const CurrentDocumentProvider = ({
     };
 
     const createPrivateDocument = (initialText: string) =>
-      createPrivateConvergentDocument({
-        initialText,
-        privateRepo,
-        // The document keeps working on what it holds, so a failure to
-        // publish or convert a change is logged rather than surfaced.
-        onError: console.error,
-      });
+      createPrivateConvergentDocument({ initialText, privateRepo });
 
     Effect.runPromise(
       openLiveDocument({
@@ -181,16 +177,6 @@ export const CurrentDocumentProvider = ({
         updateRichTextDocumentContent:
           projectStore.updateRichTextDocumentContent,
         subscribeToProjectDirChanges,
-        onPersistError: (error) => {
-          console.error(error);
-          dispatchNotification(
-            createErrorNotification({
-              title: 'Save Document Error',
-              message:
-                'Your latest changes could not be saved. Please reach out to us for support.',
-            })
-          );
-        },
       })({ projectId, documentId, shareUrl: shareUrl ?? undefined })
     )
       .then((handle) => {
@@ -230,6 +216,31 @@ export const CurrentDocumentProvider = ({
     subscribeToProjectDirChanges,
     currentBranch,
   ]);
+
+  // What the open document reports with nobody waiting on it. The editor keeps
+  // working through all of it, so only what the user would otherwise never
+  // learn — that their writing is not reaching the disk — is surfaced.
+  useEffect(() => {
+    if (!liveDocument) return;
+
+    return subscribeToStream(liveDocument.errors, (error) => {
+      console.error(error);
+
+      const isConvergentDocumentError =
+        error._tag === ConvergentDocumentChangeErrorTag ||
+        error._tag === ConvergentDocumentUnavailableErrorTag;
+
+      if (isConvergentDocumentError) return;
+
+      dispatchNotification(
+        createErrorNotification({
+          title: 'Save Document Error',
+          message: 'Your latest changes could not be saved.',
+        })
+      );
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveDocument]);
 
   // A pull can change the open document underneath it; re-read to pick that up.
   useEffect(() => {

@@ -2,9 +2,16 @@ import * as Automerge from '@automerge/automerge/slim';
 import { type DocHandle, type UrlHeads } from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
+import * as PubSub from 'effect/PubSub';
+import * as Stream from 'effect/Stream';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 
-import { ConvergentDocumentUnavailableError } from '../../errors';
+import { createErrorChannel } from '../../../../../utils/effect';
+import { mapErrorTo } from '../../../../../utils/errors';
+import {
+  ConvergentDocumentChangeError,
+  ConvergentDocumentUnavailableError,
+} from '../../errors';
 import {
   CURRENT_SCHEMA_VERSION,
   PRIMARY_RICH_TEXT_REPRESENTATION,
@@ -12,6 +19,7 @@ import {
 import {
   type ConvergentDocument,
   type ConvergentDocumentChangeOptions,
+  type ConvergentDocumentError,
   type ConvergentDocumentState,
   type ConvergentDocumentVersion,
 } from '../../ports/convergent-document';
@@ -19,7 +27,6 @@ import { type DocumentContent } from './document-content';
 
 export type AutomergeConvergentDocumentDeps = {
   handle: DocHandle<DocumentContent>;
-  onError: (error: unknown) => void;
 };
 
 // Automerge identifies a state by its heads; sorting makes the encoding
@@ -32,18 +39,24 @@ const decodeVersion = (version: ConvergentDocumentVersion): UrlHeads =>
 
 export const createConvergentDocument = ({
   handle,
-  onError,
 }: AutomergeConvergentDocumentDeps): Effect.Effect<ConvergentDocument> =>
   pipe(
-    SubscriptionRef.make<ConvergentDocumentState>({
-      doc: {
-        schemaVersion: CURRENT_SCHEMA_VERSION,
-        representation: PRIMARY_RICH_TEXT_REPRESENTATION,
-        content: handle.doc().content,
-      },
-      version: encodeVersion(handle.heads()),
+    Effect.all({
+      content: SubscriptionRef.make<ConvergentDocumentState>({
+        doc: {
+          schemaVersion: CURRENT_SCHEMA_VERSION,
+          representation: PRIMARY_RICH_TEXT_REPRESENTATION,
+          content: handle.doc().content,
+        },
+        version: encodeVersion(handle.heads()),
+      }),
+      errorChannel: createErrorChannel<ConvergentDocumentError>(),
     }),
-    Effect.map((content) => {
+    Effect.map(({ content, errorChannel }) => {
+      const report = (error: ConvergentDocumentError) => {
+        Effect.runSync(PubSub.publish(errorChannel, error));
+      };
+
       const currentVersion = () => encodeVersion(handle.heads());
 
       const readChange = (): ConvergentDocumentState => ({
@@ -77,7 +90,12 @@ export const createConvergentDocument = ({
           // An unknown anchor (e.g. from before a document switch) is
           // dropped rather than applied as a whole-document diff, which
           // would delete text this contribution never saw.
-          onError(error);
+          report(
+            mapErrorTo(
+              ConvergentDocumentChangeError,
+              'A contribution could not be applied.'
+            )(error)
+          );
           return currentVersion();
         }
       };
@@ -122,14 +140,21 @@ export const createConvergentDocument = ({
       );
 
       const handleDocChange = () => {
-        Effect.runPromise(publish).catch(onError);
+        Effect.runPromise(publish).catch((error) =>
+          report(
+            mapErrorTo(
+              ConvergentDocumentChangeError,
+              'A change could not be published.'
+            )(error)
+          )
+        );
       };
 
       // The document went away underneath us: stop publishing and keep
       // whatever the editor already shows.
       const handleDocDelete = () => {
         handle.off('change', handleDocChange);
-        onError(
+        report(
           new ConvergentDocumentUnavailableError('The document was deleted.')
         );
       };
@@ -145,6 +170,7 @@ export const createConvergentDocument = ({
       return {
         content,
         change,
+        errors: Stream.fromPubSub(errorChannel),
         close: Effect.sync(stopListening),
       };
     })

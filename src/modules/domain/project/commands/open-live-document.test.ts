@@ -1,11 +1,15 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
+import * as PubSub from 'effect/PubSub';
+import * as Stream from 'effect/Stream';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
   type ConvergentDocument,
+  type ConvergentDocumentError,
   type ConvergentDocumentState,
+  ConvergentDocumentUnavailableError,
   CURRENT_SCHEMA_VERSION,
   PRIMARY_RICH_TEXT_REPRESENTATION,
   type ResolvedDocument,
@@ -13,13 +17,17 @@ import {
 } from '../../../../modules/domain/rich-text';
 import { type ArtifactId } from '../../../../modules/infrastructure/version-control';
 import {
+  createErrorChannel,
+  subscribeToStream,
+} from '../../../../utils/effect';
+import {
   NotFoundError,
   RepositoryError,
   SharedDocumentUnavailableError,
 } from '../errors';
 import { type ProjectId } from '../models';
 import { type ProjectStore, type ShareUrl } from '../ports';
-import { type LiveDocument } from './live-document';
+import { type LiveDocument, type LiveDocumentError } from './live-document';
 import { openLiveDocument } from './open-live-document';
 
 const markdown = (content: string): RichTextDocument => ({
@@ -46,6 +54,8 @@ const createFakeConvergentDocument = async (initialText: string) => {
       version: `${documentName}.0`,
     })
   );
+  const errorChannel =
+    await Effect.runPromise(createErrorChannel<ConvergentDocumentError>());
   let versions = 0;
   const contributions: Array<{ text: string; base?: string }> = [];
 
@@ -78,6 +88,7 @@ const createFakeConvergentDocument = async (initialText: string) => {
           return publish(merged);
         })
       ),
+    errors: Stream.fromPubSub(errorChannel),
     close: Effect.sync(() => {
       closed = true;
     }),
@@ -88,6 +99,9 @@ const createFakeConvergentDocument = async (initialText: string) => {
     contributions,
     publish,
     wasClosed: () => closed,
+    // Something going wrong with this document, with nobody waiting on it.
+    report: (error: ConvergentDocumentError) =>
+      Effect.runSync(PubSub.publish(errorChannel, error)),
   };
 };
 
@@ -113,7 +127,6 @@ const open = async ({
   let onDisk = diskText;
   let documentGone = false;
   const written: string[] = [];
-  const onPersistError = vi.fn();
   const onShareUnavailable = vi.fn();
   let watcher: (() => void) | undefined;
 
@@ -174,18 +187,24 @@ const open = async ({
           watcher = undefined;
         };
       },
-      onPersistError,
     })({ projectId, documentId, shareUrl })
   );
+
+  // What the document reported while nobody was waiting. Subscribing after it
+  // opened still catches what went wrong while it was opening.
+  const reported: LiveDocumentError[] = [];
+  subscribeToStream(opened.errors, (error) => {
+    reported.push(error);
+  });
 
   return {
     opened,
     written,
     documents,
+    reported,
     // The document the live document is running on right now.
     current: () => documents[documents.length - 1]!,
     contributions: documents[0]!.contributions,
-    onPersistError,
     onShareUnavailable,
     // An edit made by another hand, reported like the watcher would.
     editDisk: (text: string) => {
@@ -228,7 +247,7 @@ describe('openLiveDocument', () => {
   });
 
   it('raises to whoever waits for a flush when the write fails', async () => {
-    const { opened, onPersistError } = await open({
+    const { opened, reported } = await open({
       diskText: 'hello',
       storeRefusesWrites: true,
     });
@@ -239,7 +258,43 @@ describe('openLiveDocument', () => {
 
     expect(failure).toBeInstanceOf(RepositoryError);
     // The caller was told; nothing was reported behind their back.
-    expect(onPersistError).not.toHaveBeenCalled();
+    expect(reported).toEqual([]);
+  });
+
+  it('reports a write nobody awaited when it fails', async () => {
+    const { opened, reported } = await open({
+      diskText: 'hello',
+      storeRefusesWrites: true,
+    });
+
+    // Arms a write on the timer rather than awaiting one.
+    await Effect.runPromise(opened.change(markdown('hello world')));
+
+    await vi.waitFor(() => expect(reported[0]).toBeInstanceOf(RepositoryError));
+  });
+
+  it('reports the write it makes on opening, before anyone can listen', async () => {
+    // The write happens while the document is being handed over, so what it
+    // reports has to keep until its reader arrives.
+    const { reported } = await open({
+      diskText: 'what the file has',
+      liveText: 'what the share has',
+      storeRefusesWrites: true,
+    });
+
+    await vi.waitFor(() => expect(reported[0]).toBeInstanceOf(RepositoryError));
+  });
+
+  it('passes on what the document it runs on reports', async () => {
+    const { reported, documents } = await open({ diskText: 'hello' });
+
+    documents[0]!.report(
+      new ConvergentDocumentUnavailableError('the document was deleted')
+    );
+
+    await vi.waitFor(() =>
+      expect(reported[0]).toBeInstanceOf(ConvergentDocumentUnavailableError)
+    );
   });
 
   it('flushes without waiting for the timer, and is idempotent', async () => {
@@ -349,7 +404,7 @@ describe('openLiveDocument', () => {
   });
 
   it('keeps working, silently, when the document is gone', async () => {
-    const { opened, loseDocument, onPersistError, contributions } = await open({
+    const { opened, loseDocument, reported, contributions } = await open({
       diskText: 'hello',
     });
 
@@ -359,7 +414,7 @@ describe('openLiveDocument', () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(contributions).toHaveLength(contributedBefore);
-    expect(onPersistError).not.toHaveBeenCalled();
+    expect(reported).toEqual([]);
   });
 
   it('stops following the file once closed', async () => {
@@ -466,6 +521,37 @@ describe('openLiveDocument, on the document it runs on', () => {
     expect(documents[1]!.wasClosed()).toBe(true);
     // Its own document again, holding what the share left it with.
     await expect(contentOf(opened)).resolves.toBe('what the share has');
+  });
+
+  it('passes on what the document it switched to reports', async () => {
+    const { opened, documents, reported } = await open({
+      diskText: 'on its own',
+    });
+    await Effect.runPromise(opened.attachTo(shareLink));
+
+    documents[1]!.report(
+      new ConvergentDocumentUnavailableError('the share went away')
+    );
+
+    await vi.waitFor(() =>
+      expect(reported).toContainEqual(
+        expect.any(ConvergentDocumentUnavailableError)
+      )
+    );
+  });
+
+  it('stops passing on what the document it left reports', async () => {
+    const { opened, documents, reported } = await open({
+      diskText: 'on its own',
+    });
+    await Effect.runPromise(opened.attachTo(shareLink));
+
+    documents[0]!.report(
+      new ConvergentDocumentUnavailableError('from the document it left')
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(reported).toEqual([]);
   });
 
   it('anchors a later disk change in the document it switched to', async () => {

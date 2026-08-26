@@ -42,8 +42,8 @@ const seed = (content: string): DocumentContent => ({
   content,
 });
 
-const syncFor = (repo: Repo, onError = vi.fn()) =>
-  createAdapter({ syncedRepo: Effect.succeed(repo), onError });
+const syncFor = (repo: Repo) =>
+  createAdapter({ syncedRepo: Effect.succeed(repo) });
 
 const contentOf = (document: Pick<ConvergentDocument, 'content'>) =>
   Effect.runPromise(SubscriptionRef.get(document.content)).then(
