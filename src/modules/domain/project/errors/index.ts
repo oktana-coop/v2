@@ -46,3 +46,15 @@ export const SharedDocumentUnavailableErrorTag =
 export class SharedDocumentUnavailableError extends Cause.YieldableError {
   readonly _tag = SharedDocumentUnavailableErrorTag;
 }
+
+export const SharedDocumentOnAnotherBranchErrorTag =
+  'SharedDocumentOnAnotherBranchError';
+export class SharedDocumentOnAnotherBranchError extends Cause.YieldableError {
+  readonly _tag = SharedDocumentOnAnotherBranchErrorTag;
+}
+
+export const SharedDocumentNotInProjectErrorTag =
+  'SharedDocumentNotInProjectError';
+export class SharedDocumentNotInProjectError extends Cause.YieldableError {
+  readonly _tag = SharedDocumentNotInProjectErrorTag;
+}

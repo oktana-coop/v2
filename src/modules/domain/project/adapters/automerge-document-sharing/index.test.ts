@@ -9,6 +9,10 @@ import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  type ArtifactId,
+  type Branch,
+} from '../../../../infrastructure/version-control';
+import {
   type ConvergentDocument,
   UnsupportedDocumentFormatError,
   ValidationError,
@@ -37,10 +41,17 @@ const createPeers = () => {
   };
 };
 
+const identity = {
+  branch: 'main' as Branch,
+  documentId: '/blob/main/note.md' as ArtifactId,
+};
+
 const seed = (content: string): DocumentContent => ({
   formatVersion: DOCUMENT_FORMAT_VERSION,
   content,
 });
+
+const seedShare = (content: string) => ({ ...seed(content), identity });
 
 const syncFor = (repo: Repo) =>
   createAdapter({ syncedRepo: Effect.succeed(repo) });
@@ -55,21 +66,60 @@ describe('automergeDocumentSharing', () => {
     const repo = new Repo({ network: [] });
 
     const shareUrl = await Effect.runPromise(
-      syncFor(repo).shareDocument({ content: 'shared text' })
+      syncFor(repo).shareDocument({ content: 'shared text', ...identity })
     );
 
     const handle = await findShared(repo, shareUrl);
     expect(handle.doc()).toEqual({
       formatVersion: DOCUMENT_FORMAT_VERSION,
       content: 'shared text',
+      identity,
     });
+  });
+
+  it('tells a peer which document a share is', async () => {
+    const { alice, bob } = createPeers();
+    const shareUrl = await Effect.runPromise(
+      syncFor(alice).shareDocument({ content: 'for bob', ...identity })
+    );
+
+    const read = await Effect.runPromise(
+      syncFor(bob).getSharedDocumentIdentity({ shareUrl })
+    );
+
+    expect(read).toEqual(identity);
+  });
+
+  it('reads the identity without opening the document', async () => {
+    const repo = new Repo({ network: [] });
+    const handle = repo.create(seedShare('never opened'));
+
+    const read = await Effect.runPromise(
+      syncFor(repo).getSharedDocumentIdentity({ shareUrl: handle.url })
+    );
+
+    expect(read).toEqual(identity);
+  });
+
+  it('refuses to say what a share that names no document is', async () => {
+    const repo = new Repo({ network: [] });
+    // Readable as a document, but says nothing about where it came from.
+    const handle = repo.create<DocumentContent>(seed('no identity'));
+
+    const failure = await Effect.runPromise(
+      Effect.flip(
+        syncFor(repo).getSharedDocumentIdentity({ shareUrl: handle.url })
+      )
+    );
+
+    expect(failure).toBeInstanceOf(ValidationError);
   });
 
   it('mints a share the other peer can read', async () => {
     const { alice, bob } = createPeers();
 
     const shareUrl = await Effect.runPromise(
-      syncFor(alice).shareDocument({ content: 'for bob' })
+      syncFor(alice).shareDocument({ content: 'for bob', ...identity })
     );
 
     const handle = await findShared(bob, shareUrl);
@@ -81,7 +131,7 @@ describe('automergeDocumentSharing', () => {
   it('mints a share the other peer can open and edit', async () => {
     const { alice, bob } = createPeers();
     const shareUrl = await Effect.runPromise(
-      syncFor(alice).shareDocument({ content: 'seeded by alice' })
+      syncFor(alice).shareDocument({ content: 'seeded by alice', ...identity })
     );
 
     const opened = await Effect.runPromise(
@@ -199,7 +249,7 @@ describe('automergeDocumentSharing', () => {
   it('leaves the shared document with its peers when this client releases it', async () => {
     const { alice, bob } = createPeers();
     const shareUrl = await Effect.runPromise(
-      syncFor(alice).shareDocument({ content: 'still here' })
+      syncFor(alice).shareDocument({ content: 'still here', ...identity })
     );
     const bobHandle = await findShared(bob, shareUrl);
 

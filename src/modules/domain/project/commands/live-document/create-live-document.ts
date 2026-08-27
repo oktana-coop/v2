@@ -342,6 +342,7 @@ export const createLiveDocument =
               );
 
               return {
+                documentId,
                 content: convergentDocument.content,
                 change,
                 attachTo,

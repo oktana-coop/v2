@@ -11,16 +11,20 @@ import { ValidationError } from '../../../rich-text';
 import {
   createConvergentDocument,
   type DocumentContent,
-  initialDocumentContent,
   validateDocumentContent,
 } from '../../../rich-text/adapters/automerge-convergent-document';
 import { SharedDocumentUnavailableError } from '../../errors';
 import {
   type DocumentSharing,
+  type GetSharedDocumentIdentityArgs,
   type LeaveSharedDocumentArgs,
   type OpenSharedDocumentArgs,
   type ShareDocumentArgs,
 } from '../../ports';
+import {
+  initialSharedDocumentContent,
+  readSharedDocumentIdentity,
+} from './shared-document';
 
 export type AutomergeDocumentSharingDeps = {
   // This is an effect because we want to lazily connect on first share/join.
@@ -64,19 +68,34 @@ export const createAdapter = ({
     )
   );
 
-  const shareDocument = ({ content }: ShareDocumentArgs) =>
+  const findValidShare = (shareUrl: string) =>
+    pipe(
+      Effect.all({ repo: connectedRepo, url: parseShareUrl(shareUrl) }),
+      Effect.flatMap(({ repo, url }) => find({ repo, url })),
+      Effect.tap(validateDocumentContent)
+    );
+
+  const shareDocument = ({ content, branch, documentId }: ShareDocumentArgs) =>
     pipe(
       connectedRepo,
-      Effect.map((repo) => repo.create(initialDocumentContent(content)).url)
+      Effect.map(
+        (repo) =>
+          repo.create(
+            initialSharedDocumentContent({ content, branch, documentId })
+          ).url
+      )
     );
 
   const openSharedDocument = ({ shareUrl }: OpenSharedDocumentArgs) =>
     pipe(
-      Effect.all({ repo: connectedRepo, url: parseShareUrl(shareUrl) }),
-      Effect.flatMap(({ repo, url }) => find({ repo, url })),
-      Effect.tap(validateDocumentContent),
+      findValidShare(shareUrl),
       Effect.flatMap((handle) => createConvergentDocument({ handle }))
     );
+
+  const getSharedDocumentIdentity = ({
+    shareUrl,
+  }: GetSharedDocumentIdentityArgs) =>
+    pipe(findValidShare(shareUrl), Effect.flatMap(readSharedDocumentIdentity));
 
   const leaveSharedDocument = ({ shareUrl }: LeaveSharedDocumentArgs) =>
     pipe(
@@ -86,5 +105,10 @@ export const createAdapter = ({
       })
     );
 
-  return { shareDocument, openSharedDocument, leaveSharedDocument };
+  return {
+    shareDocument,
+    openSharedDocument,
+    getSharedDocumentIdentity,
+    leaveSharedDocument,
+  };
 };
