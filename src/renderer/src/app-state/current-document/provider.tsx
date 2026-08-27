@@ -1,5 +1,6 @@
 import debounce from 'debounce';
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useMatch, useNavigate } from 'react-router';
 
@@ -11,6 +12,8 @@ import {
   type OpenSharedDocumentError,
   type ProjectId,
   type ProjectStore,
+  SharedDocumentNotInProjectErrorTag,
+  SharedDocumentOnAnotherBranchErrorTag,
   SharedDocumentUnavailableError,
   shareLiveDocument,
   type ShareUrl,
@@ -535,7 +538,7 @@ export const CurrentDocumentProvider = ({
           liveDocument,
           shareDocument: documentSharing.shareDocument,
           rememberShare: (url) => rememberShare({ ...shareKey, shareUrl: url }),
-        })
+        })({ branch: shareKey.branch, documentId: shareKey.documentId })
       );
     } catch (error) {
       console.error(error);
@@ -554,36 +557,86 @@ export const CurrentDocumentProvider = ({
     dispatchNotification,
   ]);
 
-  // The link says nothing about which document it belongs to, so it joins the
-  // one that is open. This makes joining depend on already having the right
-  // document open on the right branch, and joining the same link from a second
-  // document binds both files to the one shared document.
-  //
-  // TODO: A link should carry enough to find or create the document it belongs to.
   const handleJoinSharedDocument = useCallback(
     async (joinedShareUrl: ShareUrl) => {
-      if (!shareKey || !liveDocument) return;
+      if (!projectId || !currentBranch || !projectStore) return;
 
-      try {
-        await Effect.runPromise(
-          joinSharedDocument({
-            liveDocument,
-            rememberShare: (url) =>
-              rememberShare({ ...shareKey, shareUrl: url }),
-          })(joinedShareUrl)
-        );
-        setIsJoinSharedDocumentDialogOpen(false);
-      } catch (error) {
-        console.error(error);
-        dispatchNotification(
-          createErrorNotification({
+      const createNotification = (message: string) =>
+        Effect.succeed({
+          joined: null,
+          notification: createErrorNotification({
             title: 'Join Shared Document Error',
-            message: 'This shared document link could not be joined.',
+            message,
+          }),
+        });
+
+      const { joined, notification } = await Effect.runPromise(
+        pipe(
+          pipe(
+            joinSharedDocument({
+              getSharedDocumentIdentity:
+                documentSharing.getSharedDocumentIdentity,
+              findDocumentById: projectStore.findDocumentById,
+              rememberShare: ({
+                documentId: joinedDocumentId,
+                shareUrl: url,
+              }) =>
+                rememberShare({
+                  projectId,
+                  branch: currentBranch,
+                  documentId: joinedDocumentId,
+                  shareUrl: url,
+                }),
+              openDocument: liveDocument,
+            })({
+              shareUrl: joinedShareUrl,
+              projectId,
+              branch: currentBranch,
+            }),
+            Effect.map((joined) => ({ joined, notification: null }))
+          ),
+          Effect.catchTags({
+            [SharedDocumentOnAnotherBranchErrorTag]: (error) =>
+              createNotification(error.message),
+            [SharedDocumentNotInProjectErrorTag]: (error) =>
+              createNotification(error.message),
+          }),
+          Effect.catchAll((error) => {
+            console.error(error);
+
+            return createNotification(
+              'This shared document link could not be joined.'
+            );
           })
+        )
+      );
+
+      if (notification) {
+        dispatchNotification(notification);
+        return;
+      }
+
+      setIsJoinSharedDocumentDialogOpen(false);
+
+      // The shared document is captured (remembered) in local storage.
+      // After navigation, the document will be opened as a shared one.
+      if (joined && !joined.attached) {
+        navigate(
+          `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(joined.documentId)}`
         );
       }
     },
-    [shareKey, liveDocument, rememberShare, dispatchNotification]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      projectId,
+      currentBranch,
+      projectStore,
+      documentId,
+      liveDocument,
+      documentSharing,
+      rememberShare,
+      dispatchNotification,
+    ]
   );
 
   const handleLeaveSharedDocument = useCallback(async () => {

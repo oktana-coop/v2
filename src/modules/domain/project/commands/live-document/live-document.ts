@@ -9,12 +9,14 @@ import {
   type ConvergentDocumentVersion,
   type RichTextDocument,
 } from '../../../../../modules/domain/rich-text';
+import { type ArtifactId } from '../../../../../modules/infrastructure/version-control';
 import { type OpenSharedDocumentError, type ShareUrl } from '../../ports';
 import { type PersistDocumentError } from '../persist-document';
 
 export type LiveDocumentError = PersistDocumentError | ConvergentDocumentError;
 
 export type LiveDocument = {
+  documentId: ArtifactId;
   content: SubscriptionRef.SubscriptionRef<ConvergentDocumentState>;
   change: (
     doc: RichTextDocument,

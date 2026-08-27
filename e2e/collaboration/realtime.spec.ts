@@ -30,6 +30,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // depending on the public service.
 const startSyncServer = async (): Promise<{
   url: string;
+  port: number;
   stop: () => void;
 }> => {
   const port = 3630 + Math.floor(Math.random() * 1000);
@@ -150,7 +151,9 @@ const closeShareDialog = async ({ window }: { window: Page }) => {
     .waitFor({ state: 'hidden', timeout: 5_000 });
 };
 
-const joinSharedDocument = async ({
+// Hands the link to the app without waiting for what it makes of it: a link
+// this project cannot join leaves the dialog open.
+const pasteShareLink = async ({
   window,
   shareUrl,
 }: {
@@ -168,13 +171,25 @@ const joinSharedDocument = async ({
   const input = window.getByPlaceholder('Shared document link');
   await input.fill(shareUrl);
   await input.press('Enter');
+
+  return input;
+};
+
+const joinSharedDocument = async ({
+  window,
+  shareUrl,
+}: {
+  window: Page;
+  shareUrl: string;
+}) => {
+  const input = await pasteShareLink({ window, shareUrl });
   await input.waitFor({ state: 'hidden', timeout: 10_000 });
 };
 
 // A second, fully independent app instance: its own user data and its own
 // clone of the project, like a collaborator's machine. Passing a projectDir
 // makes it open an existing folder instead (two apps on one clone).
-const launchSecondApp = async (
+const launchPeerApp = async (
   existingProjectDir?: string
 ): Promise<{
   app: ElectronApplication;
@@ -245,7 +260,7 @@ test.describe('realtime collaboration', () => {
   test('a private document never dials the sync service', async ({
     electronApp,
     window,
-    testProjectDir,
+    testProjectDir: aliceProject,
   }) => {
     const connections: number[] = [];
     const listener = net.createServer(() => {
@@ -261,7 +276,7 @@ test.describe('realtime collaboration', () => {
     await openProjectFolder({
       electronApp,
       window,
-      folderPath: testProjectDir,
+      folderPath: aliceProject,
     });
     await openHelloMd({ window });
     await typeInEditorSlowly({ window, text: ' kept local', delay: 30 });
@@ -277,14 +292,14 @@ test.describe('realtime collaboration', () => {
   test('typing through the share transition loses nothing', async ({
     electronApp,
     window,
-    testProjectDir,
+    testProjectDir: aliceProject,
   }) => {
     test.setTimeout(120_000);
 
     await openProjectFolder({
       electronApp,
       window,
-      folderPath: testProjectDir,
+      folderPath: aliceProject,
     });
     await openHelloMd({ window });
 
@@ -318,14 +333,14 @@ test.describe('realtime collaboration', () => {
   test('tokens written by a peer appear once and the document settles', async ({
     electronApp,
     window,
-    testProjectDir,
+    testProjectDir: aliceProject,
   }) => {
     test.setTimeout(120_000);
 
     await openProjectFolder({
       electronApp,
       window,
-      folderPath: testProjectDir,
+      folderPath: aliceProject,
     });
     await openHelloMd({ window });
 
@@ -379,7 +394,7 @@ test.describe('realtime collaboration', () => {
       // The synced text also reaches the sharer's disk.
       await expect
         .poll(
-          () => fs.readFileSync(path.join(testProjectDir, 'hello.md'), 'utf8'),
+          () => fs.readFileSync(path.join(aliceProject, 'hello.md'), 'utf8'),
           { timeout: 10_000 }
         )
         .toContain('alpha bravo charlie delta echo');
@@ -391,14 +406,14 @@ test.describe('realtime collaboration', () => {
   test('typing in the editor does not duplicate text at the other peer', async ({
     electronApp,
     window,
-    testProjectDir,
+    testProjectDir: aliceProject,
   }) => {
     test.setTimeout(120_000);
 
     await openProjectFolder({
       electronApp,
       window,
-      folderPath: testProjectDir,
+      folderPath: aliceProject,
     });
     await openHelloMd({ window });
 
@@ -451,33 +466,33 @@ test.describe('realtime collaboration', () => {
   test('two app instances converge without re-writing tokens', async ({
     electronApp,
     window,
-    testProjectDir,
+    testProjectDir: aliceProject,
   }) => {
     test.setTimeout(180_000);
 
     await openProjectFolder({
       electronApp,
       window,
-      folderPath: testProjectDir,
+      folderPath: aliceProject,
     });
     await openHelloMd({ window });
 
     const shareUrl = await shareCurrentDocument({ window });
     await closeShareDialog({ window });
 
-    const second = await launchSecondApp();
+    const bob = await launchPeerApp();
     try {
-      await second.window.evaluate((url) => {
+      await bob.window.evaluate((url) => {
         localStorage.setItem('syncServiceUrl', url);
       }, syncServer.url);
 
       await openProjectFolder({
-        electronApp: second.app,
-        window: second.window,
-        folderPath: second.projectDir,
+        electronApp: bob.app,
+        window: bob.window,
+        folderPath: bob.projectDir,
       });
-      await openHelloMd({ window: second.window });
-      await joinSharedDocument({ window: second.window, shareUrl });
+      await openHelloMd({ window: bob.window });
+      await joinSharedDocument({ window: bob.window, shareUrl });
 
       // Alice types; Bob only watches.
       const typed = 'one two three four five';
@@ -485,7 +500,7 @@ test.describe('realtime collaboration', () => {
 
       const tokens = typed.split(' ');
       const aliceEditor = window.locator('.ProseMirror');
-      const bobEditor = second.window.locator('.ProseMirror');
+      const bobEditor = bob.window.locator('.ProseMirror');
 
       await expect(bobEditor).toContainText(typed, { timeout: 20_000 });
 
@@ -509,21 +524,21 @@ test.describe('realtime collaboration', () => {
         }
       }
     } finally {
-      await second.close();
+      await bob.close();
     }
   });
 
   test('two app instances on the same folder converge without re-writing tokens', async ({
     electronApp,
     window,
-    testProjectDir,
+    testProjectDir: aliceProject,
   }) => {
     test.setTimeout(180_000);
 
     await openProjectFolder({
       electronApp,
       window,
-      folderPath: testProjectDir,
+      folderPath: aliceProject,
     });
     await openHelloMd({ window });
 
@@ -532,26 +547,26 @@ test.describe('realtime collaboration', () => {
 
     // Both instances on the same clone: their persists land in the same file,
     // and each sees the other's write through its own watcher.
-    const second = await launchSecondApp(testProjectDir);
+    const bob = await launchPeerApp(aliceProject);
     try {
-      await second.window.evaluate((url) => {
+      await bob.window.evaluate((url) => {
         localStorage.setItem('syncServiceUrl', url);
       }, syncServer.url);
 
       await openProjectFolder({
-        electronApp: second.app,
-        window: second.window,
-        folderPath: second.projectDir,
+        electronApp: bob.app,
+        window: bob.window,
+        folderPath: bob.projectDir,
       });
-      await openHelloMd({ window: second.window });
-      await joinSharedDocument({ window: second.window, shareUrl });
+      await openHelloMd({ window: bob.window });
+      await joinSharedDocument({ window: bob.window, shareUrl });
 
       const typed = 'one two three four five';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
 
       const tokens = typed.split(' ');
       const aliceEditor = window.locator('.ProseMirror');
-      const bobEditor = second.window.locator('.ProseMirror');
+      const bobEditor = bob.window.locator('.ProseMirror');
 
       await expect(bobEditor).toContainText(typed, { timeout: 20_000 });
 
@@ -573,14 +588,14 @@ test.describe('realtime collaboration', () => {
         }
       }
     } finally {
-      await second.close();
+      await bob.close();
     }
   });
 
   test('two app instances on separate clones converge despite sync latency', async ({
     electronApp,
     window,
-    testProjectDir,
+    testProjectDir: aliceProject,
   }) => {
     test.setTimeout(180_000);
 
@@ -592,33 +607,33 @@ test.describe('realtime collaboration', () => {
     await openProjectFolder({
       electronApp,
       window,
-      folderPath: testProjectDir,
+      folderPath: aliceProject,
     });
     await openHelloMd({ window });
 
     const shareUrl = await shareCurrentDocument({ window });
     await closeShareDialog({ window });
 
-    const second = await launchSecondApp();
+    const bob = await launchPeerApp();
     try {
-      await second.window.evaluate((url) => {
+      await bob.window.evaluate((url) => {
         localStorage.setItem('syncServiceUrl', url);
       }, proxy.url);
 
       await openProjectFolder({
-        electronApp: second.app,
-        window: second.window,
-        folderPath: second.projectDir,
+        electronApp: bob.app,
+        window: bob.window,
+        folderPath: bob.projectDir,
       });
-      await openHelloMd({ window: second.window });
-      await joinSharedDocument({ window: second.window, shareUrl });
+      await openHelloMd({ window: bob.window });
+      await joinSharedDocument({ window: bob.window, shareUrl });
 
       const typed = 'one two three four five';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
 
       const tokens = typed.split(' ');
       const aliceEditor = window.locator('.ProseMirror');
-      const bobEditor = second.window.locator('.ProseMirror');
+      const bobEditor = bob.window.locator('.ProseMirror');
 
       await expect(bobEditor).toContainText(typed, { timeout: 20_000 });
 
@@ -641,47 +656,165 @@ test.describe('realtime collaboration', () => {
       }
     } finally {
       proxy.stop();
-      await second.close();
+      await bob.close();
+    }
+  });
+
+  // The link names the document it was made from, so joining goes to this
+  // project's copy of that document rather than to whatever is open.
+  test('a share for another document opens that document', async ({
+    electronApp,
+    window,
+    testProjectDir: aliceProject,
+  }) => {
+    test.setTimeout(180_000);
+
+    // Both peers hold the same two documents, so a share made from one of them
+    // names a document the other has too.
+    fs.writeFileSync(
+      path.join(aliceProject, 'notes.md'),
+      '# Notes\n\nWritten by Alice.\n'
+    );
+    initRepositoryWithCommit({ repoDir: aliceProject, message: 'base' });
+    const bobProject = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'v2-e2e-bobclone-')
+    );
+    fs.cpSync(aliceProject, bobProject, { recursive: true });
+
+    await openProjectFolder({ electronApp, window, folderPath: aliceProject });
+    await openDocument({ window, relativePath: 'notes.md' });
+
+    const shareUrl = await shareCurrentDocument({ window });
+    await closeShareDialog({ window });
+
+    const bob = await launchPeerApp(bobProject);
+    try {
+      await bob.window.evaluate((url) => {
+        localStorage.setItem('syncServiceUrl', url);
+      }, syncServer.url);
+
+      await openProjectFolder({
+        electronApp: bob.app,
+        window: bob.window,
+        folderPath: bobProject,
+      });
+
+      // Bob is looking at a different document than the one that was shared.
+      await openHelloMd({ window: bob.window });
+      const bobEditor = bob.window.locator('.ProseMirror');
+      await expect(bobEditor).toContainText('This is a test document');
+
+      await joinSharedDocument({ window: bob.window, shareUrl });
+
+      // The link named notes.md, so that is where Bob ends up.
+      await expect(bobEditor).toContainText('Written by Alice', {
+        timeout: 20_000,
+      });
+
+      // And on the share rather than merely the file: Alice's typing arrives.
+      await typeInEditorSlowly({ window, text: ' and joined', delay: 30 });
+      await expect(bobEditor).toContainText('and joined', { timeout: 20_000 });
+    } finally {
+      await bob.close();
+      fs.rmSync(bobProject, { recursive: true, force: true });
+    }
+  });
+
+  // Joining replaces what the document holds with what the peers hold, so a
+  // link this project has no document for is refused rather than applied to
+  // whatever happens to be open.
+  test('a share for a document this project does not have is refused', async ({
+    electronApp,
+    window,
+    testProjectDir: aliceProject,
+  }) => {
+    test.setTimeout(180_000);
+
+    // Only Alice has this document. Bob's project is a different one.
+    fs.writeFileSync(
+      path.join(aliceProject, 'notes.md'),
+      '# Notes\n\nAlice only.\n'
+    );
+    initRepositoryWithCommit({ repoDir: aliceProject, message: 'base' });
+
+    await openProjectFolder({ electronApp, window, folderPath: aliceProject });
+    await openDocument({ window, relativePath: 'notes.md' });
+
+    const shareUrl = await shareCurrentDocument({ window });
+    await closeShareDialog({ window });
+
+    const bob = await launchPeerApp();
+    try {
+      await bob.window.evaluate((url) => {
+        localStorage.setItem('syncServiceUrl', url);
+      }, syncServer.url);
+
+      await openProjectFolder({
+        electronApp: bob.app,
+        window: bob.window,
+        folderPath: bob.projectDir,
+      });
+      await openHelloMd({ window: bob.window });
+
+      await pasteShareLink({ window: bob.window, shareUrl });
+
+      await expect(
+        bob.window.getByText('Join Shared Document Error')
+      ).toBeVisible({ timeout: 20_000 });
+      await expect(
+        bob.window.getByText(
+          'The share belongs to a document this project does not have.'
+        )
+      ).toBeVisible();
+
+      // The document Bob had open is left as it was.
+      await expect(bob.window.locator('.ProseMirror')).toContainText(
+        'This is a test document'
+      );
+    } finally {
+      await bob.close();
     }
   });
 
   test('typing into a title-only document does not loop', async ({
     electronApp,
     window,
-    testProjectDir,
+    testProjectDir: aliceProject,
   }) => {
     test.setTimeout(180_000);
 
     // The reported recipe: a document holding nothing but a title, open on
     // both peers, shared from one; a single word typed on the sharing side.
-    fs.writeFileSync(path.join(testProjectDir, 'Foo.md'), '# Foo\n');
-    initRepositoryWithCommit({ repoDir: testProjectDir, message: 'base' });
-    const bobDir = fs.mkdtempSync(path.join(os.tmpdir(), 'v2-e2e-bobclone-'));
-    fs.cpSync(testProjectDir, bobDir, { recursive: true });
+    fs.writeFileSync(path.join(aliceProject, 'Foo.md'), '# Foo\n');
+    initRepositoryWithCommit({ repoDir: aliceProject, message: 'base' });
+    const bobProject = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'v2-e2e-bobclone-')
+    );
+    fs.cpSync(aliceProject, bobProject, { recursive: true });
 
     await openProjectFolder({
       electronApp,
       window,
-      folderPath: testProjectDir,
+      folderPath: aliceProject,
     });
     await openDocument({ window, relativePath: 'Foo.md' });
 
-    const second = await launchSecondApp(bobDir);
+    const bob = await launchPeerApp(bobProject);
     try {
-      await second.window.evaluate((url) => {
+      await bob.window.evaluate((url) => {
         localStorage.setItem('syncServiceUrl', url);
       }, syncServer.url);
 
       await openProjectFolder({
-        electronApp: second.app,
-        window: second.window,
-        folderPath: bobDir,
+        electronApp: bob.app,
+        window: bob.window,
+        folderPath: bobProject,
       });
-      await openDocument({ window: second.window, relativePath: 'Foo.md' });
+      await openDocument({ window: bob.window, relativePath: 'Foo.md' });
 
       const shareUrl = await shareCurrentDocument({ window });
       await closeShareDialog({ window });
-      await joinSharedDocument({ window: second.window, shareUrl });
+      await joinSharedDocument({ window: bob.window, shareUrl });
 
       // Into the trailing paragraph under the title, like a person would.
       const editor = window.locator('.ProseMirror');
@@ -692,7 +825,7 @@ test.describe('realtime collaboration', () => {
       await window.keyboard.type('lorem', { delay: 40 });
 
       const aliceEditor = window.locator('.ProseMirror');
-      const bobEditor = second.window.locator('.ProseMirror');
+      const bobEditor = bob.window.locator('.ProseMirror');
 
       await expect(bobEditor).toContainText('lorem', { timeout: 20_000 });
 
@@ -705,9 +838,9 @@ test.describe('realtime collaboration', () => {
         expect(await bobEditor.textContent()).toBe('Foolorem');
       }
     } finally {
-      await second.close();
+      await bob.close();
       try {
-        fs.rmSync(bobDir, { recursive: true, force: true });
+        fs.rmSync(bobProject, { recursive: true, force: true });
       } catch {}
     }
   });
@@ -715,16 +848,18 @@ test.describe('realtime collaboration', () => {
   test('one peer typing with pauses converges when both peers are on laggy connections', async ({
     electronApp,
     window,
-    testProjectDir,
+    testProjectDir: aliceProject,
   }) => {
     test.setTimeout(180_000);
 
     // Closest to a real session: git clones, both peers behind latency, and
     // typing with pauses long enough for persist and refresh cycles to run
     // between words.
-    initRepositoryWithCommit({ repoDir: testProjectDir, message: 'base' });
-    const bobDir = fs.mkdtempSync(path.join(os.tmpdir(), 'v2-e2e-bobclone-'));
-    fs.cpSync(testProjectDir, bobDir, { recursive: true });
+    initRepositoryWithCommit({ repoDir: aliceProject, message: 'base' });
+    const bobProject = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'v2-e2e-bobclone-')
+    );
+    fs.cpSync(aliceProject, bobProject, { recursive: true });
 
     // 100ms per leg: enough lag for stale-base windows, but safely under the
     // 1s WebSocketClientAdapter force-ready that fails the join outright when
@@ -747,26 +882,26 @@ test.describe('realtime collaboration', () => {
     await openProjectFolder({
       electronApp,
       window,
-      folderPath: testProjectDir,
+      folderPath: aliceProject,
     });
     await openHelloMd({ window });
 
     const shareUrl = await shareCurrentDocument({ window });
     await closeShareDialog({ window });
 
-    const second = await launchSecondApp(bobDir);
+    const bob = await launchPeerApp(bobProject);
     try {
-      await second.window.evaluate((url) => {
+      await bob.window.evaluate((url) => {
         localStorage.setItem('syncServiceUrl', url);
       }, bobProxy.url);
 
       await openProjectFolder({
-        electronApp: second.app,
-        window: second.window,
-        folderPath: bobDir,
+        electronApp: bob.app,
+        window: bob.window,
+        folderPath: bobProject,
       });
-      await openHelloMd({ window: second.window });
-      await joinSharedDocument({ window: second.window, shareUrl });
+      await openHelloMd({ window: bob.window });
+      await joinSharedDocument({ window: bob.window, shareUrl });
 
       // Word …pause… word …pause…: each pause crosses the persist debounce,
       // so disk writes, watcher events and refreshes interleave with typing.
@@ -786,7 +921,7 @@ test.describe('realtime collaboration', () => {
       }
 
       const aliceEditor = window.locator('.ProseMirror');
-      const bobEditor = second.window.locator('.ProseMirror');
+      const bobEditor = bob.window.locator('.ProseMirror');
 
       await expect(bobEditor).toContainText(tokens.join(' '), {
         timeout: 20_000,
@@ -812,9 +947,9 @@ test.describe('realtime collaboration', () => {
     } finally {
       aliceProxy.stop();
       bobProxy.stop();
-      await second.close();
+      await bob.close();
       try {
-        fs.rmSync(bobDir, { recursive: true, force: true });
+        fs.rmSync(bobProject, { recursive: true, force: true });
       } catch {}
     }
   });
@@ -822,15 +957,17 @@ test.describe('realtime collaboration', () => {
   test('two app instances on git clones converge despite sync latency', async ({
     electronApp,
     window,
-    testProjectDir,
+    testProjectDir: aliceProject,
   }) => {
     test.setTimeout(180_000);
 
     // The user-reported setup: a git project, copy-pasted to a second folder
     // (clone), the second instance on a laggy connection.
-    initRepositoryWithCommit({ repoDir: testProjectDir, message: 'base' });
-    const bobDir = fs.mkdtempSync(path.join(os.tmpdir(), 'v2-e2e-bobclone-'));
-    fs.cpSync(testProjectDir, bobDir, { recursive: true });
+    initRepositoryWithCommit({ repoDir: aliceProject, message: 'base' });
+    const bobProject = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'v2-e2e-bobclone-')
+    );
+    fs.cpSync(aliceProject, bobProject, { recursive: true });
 
     const proxy = await startLatencyProxy({
       targetPort: syncServer.port,
@@ -840,33 +977,33 @@ test.describe('realtime collaboration', () => {
     await openProjectFolder({
       electronApp,
       window,
-      folderPath: testProjectDir,
+      folderPath: aliceProject,
     });
     await openHelloMd({ window });
 
     const shareUrl = await shareCurrentDocument({ window });
     await closeShareDialog({ window });
 
-    const second = await launchSecondApp(bobDir);
+    const bob = await launchPeerApp(bobProject);
     try {
-      await second.window.evaluate((url) => {
+      await bob.window.evaluate((url) => {
         localStorage.setItem('syncServiceUrl', url);
       }, proxy.url);
 
       await openProjectFolder({
-        electronApp: second.app,
-        window: second.window,
-        folderPath: bobDir,
+        electronApp: bob.app,
+        window: bob.window,
+        folderPath: bobProject,
       });
-      await openHelloMd({ window: second.window });
-      await joinSharedDocument({ window: second.window, shareUrl });
+      await openHelloMd({ window: bob.window });
+      await joinSharedDocument({ window: bob.window, shareUrl });
 
       const typed = 'one two three four five six seven eight nine ten';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
 
       const tokens = typed.split(' ');
       const aliceEditor = window.locator('.ProseMirror');
-      const bobEditor = second.window.locator('.ProseMirror');
+      const bobEditor = bob.window.locator('.ProseMirror');
 
       await expect(bobEditor).toContainText(typed, { timeout: 20_000 });
 
@@ -889,9 +1026,9 @@ test.describe('realtime collaboration', () => {
       }
     } finally {
       proxy.stop();
-      await second.close();
+      await bob.close();
       try {
-        fs.rmSync(bobDir, { recursive: true, force: true });
+        fs.rmSync(bobProject, { recursive: true, force: true });
       } catch {}
     }
   });
@@ -899,13 +1036,15 @@ test.describe('realtime collaboration', () => {
   test('both peers typing concurrently converge under sync latency', async ({
     electronApp,
     window,
-    testProjectDir,
+    testProjectDir: aliceProject,
   }) => {
     test.setTimeout(180_000);
 
-    initRepositoryWithCommit({ repoDir: testProjectDir, message: 'base' });
-    const bobDir = fs.mkdtempSync(path.join(os.tmpdir(), 'v2-e2e-bobclone-'));
-    fs.cpSync(testProjectDir, bobDir, { recursive: true });
+    initRepositoryWithCommit({ repoDir: aliceProject, message: 'base' });
+    const bobProject = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'v2-e2e-bobclone-')
+    );
+    fs.cpSync(aliceProject, bobProject, { recursive: true });
 
     const proxy = await startLatencyProxy({
       targetPort: syncServer.port,
@@ -915,26 +1054,26 @@ test.describe('realtime collaboration', () => {
     await openProjectFolder({
       electronApp,
       window,
-      folderPath: testProjectDir,
+      folderPath: aliceProject,
     });
     await openHelloMd({ window });
 
     const shareUrl = await shareCurrentDocument({ window });
     await closeShareDialog({ window });
 
-    const second = await launchSecondApp(bobDir);
+    const bob = await launchPeerApp(bobProject);
     try {
-      await second.window.evaluate((url) => {
+      await bob.window.evaluate((url) => {
         localStorage.setItem('syncServiceUrl', url);
       }, proxy.url);
 
       await openProjectFolder({
-        electronApp: second.app,
-        window: second.window,
-        folderPath: bobDir,
+        electronApp: bob.app,
+        window: bob.window,
+        folderPath: bobProject,
       });
-      await openHelloMd({ window: second.window });
-      await joinSharedDocument({ window: second.window, shareUrl });
+      await openHelloMd({ window: bob.window });
+      await joinSharedDocument({ window: bob.window, shareUrl });
       // Joining swaps the editor to the shared document once the find over
       // the laggy network completes; typing before the swap lands in the
       // editor being replaced. Known gap, not this test's subject.
@@ -946,7 +1085,7 @@ test.describe('realtime collaboration', () => {
       const aliceTyped = 'alpha bravo charlie delta echo';
       const bobTyped = 'uno dos tres cuatro cinco';
       const aliceEditor = window.locator('.ProseMirror');
-      const bobEditor = second.window.locator('.ProseMirror');
+      const bobEditor = bob.window.locator('.ProseMirror');
 
       const docEndKey =
         os.platform() === 'darwin' ? 'Meta+ArrowDown' : 'Control+End';
@@ -956,12 +1095,12 @@ test.describe('realtime collaboration', () => {
       await aliceEditor.click();
       await window.keyboard.press(docEndKey);
       await bobEditor.click();
-      await second.window.keyboard.press(docStartKey);
-      await second.window.keyboard.press('End');
+      await bob.window.keyboard.press(docStartKey);
+      await bob.window.keyboard.press('End');
 
       await Promise.all([
         window.keyboard.type(` ${aliceTyped}`, { delay: 30 }),
-        second.window.keyboard.type(` ${bobTyped}`, { delay: 30 }),
+        bob.window.keyboard.type(` ${bobTyped}`, { delay: 30 }),
       ]);
 
       const tokens = [...aliceTyped.split(' '), ...bobTyped.split(' ')];
@@ -998,9 +1137,9 @@ test.describe('realtime collaboration', () => {
       }
     } finally {
       proxy.stop();
-      await second.close();
+      await bob.close();
       try {
-        fs.rmSync(bobDir, { recursive: true, force: true });
+        fs.rmSync(bobProject, { recursive: true, force: true });
       } catch {}
     }
   });
@@ -1013,7 +1152,7 @@ test.describe('realtime collaboration', () => {
   test.fixme('two app instances on the same folder converge despite sync latency', async ({
     electronApp,
     window,
-    testProjectDir,
+    testProjectDir: aliceProject,
   }) => {
     test.setTimeout(180_000);
 
@@ -1028,33 +1167,33 @@ test.describe('realtime collaboration', () => {
     await openProjectFolder({
       electronApp,
       window,
-      folderPath: testProjectDir,
+      folderPath: aliceProject,
     });
     await openHelloMd({ window });
 
     const shareUrl = await shareCurrentDocument({ window });
     await closeShareDialog({ window });
 
-    const second = await launchSecondApp(testProjectDir);
+    const bob = await launchPeerApp(aliceProject);
     try {
-      await second.window.evaluate((url) => {
+      await bob.window.evaluate((url) => {
         localStorage.setItem('syncServiceUrl', url);
       }, proxy.url);
 
       await openProjectFolder({
-        electronApp: second.app,
-        window: second.window,
-        folderPath: second.projectDir,
+        electronApp: bob.app,
+        window: bob.window,
+        folderPath: bob.projectDir,
       });
-      await openHelloMd({ window: second.window });
-      await joinSharedDocument({ window: second.window, shareUrl });
+      await openHelloMd({ window: bob.window });
+      await joinSharedDocument({ window: bob.window, shareUrl });
 
       const typed = 'one two three four five';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
 
       const tokens = typed.split(' ');
       const aliceEditor = window.locator('.ProseMirror');
-      const bobEditor = second.window.locator('.ProseMirror');
+      const bobEditor = bob.window.locator('.ProseMirror');
 
       await expect(bobEditor).toContainText(typed, { timeout: 20_000 });
 
@@ -1077,7 +1216,7 @@ test.describe('realtime collaboration', () => {
       }
     } finally {
       proxy.stop();
-      await second.close();
+      await bob.close();
     }
   });
 });

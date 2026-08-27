@@ -8,6 +8,7 @@ export { createConvergentDocument } from './convergent-document';
 export {
   DOCUMENT_FORMAT_VERSION,
   type DocumentContent,
+  documentContentSchema,
   initialDocumentContent,
   validateDocumentContent,
 } from './document-content';
