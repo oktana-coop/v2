@@ -379,13 +379,13 @@ export const createDocumentOps = ({
       Effect.flatMap((documentPath) =>
         pipe(
           filesystem.readTextFile(documentPath),
-          Effect.catchTag(FilesystemNotFoundErrorTag, () =>
-            Effect.fail(
-              new NotFoundError(`File with path ${documentPath} not found`)
-            )
-          ),
-          Effect.catchAll(() =>
-            Effect.fail(new RepositoryError('Git repo error'))
+          // Mapped in one pass: a `catchTag` that fails again would be caught
+          // by the `catchAll` after it, leaving no way to tell a document the
+          // project does not have from a repository that cannot be read.
+          Effect.mapError((error) =>
+            error._tag === FilesystemNotFoundErrorTag
+              ? new NotFoundError(`File with path ${documentPath} not found`)
+              : new RepositoryError('Git repo error')
           )
         )
       ),
