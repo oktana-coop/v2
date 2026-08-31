@@ -1,8 +1,4 @@
-// The full build initializes the WebAssembly the slim build (used by the code
-// under test) needs. In the app that is `createAutomergeRepo`'s job.
-import '@automerge/automerge';
-
-import { type AutomergeUrl, Repo } from '@automerge/automerge-repo/slim';
+import { type AutomergeUrl, Repo } from '@automerge/automerge-repo';
 import { MessageChannelNetworkAdapter } from '@automerge/automerge-repo-network-messagechannel';
 import * as Effect from 'effect/Effect';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
@@ -24,7 +20,6 @@ import {
 import { SharedDocumentUnavailableError } from '../../errors';
 import { createAdapter } from '.';
 
-// The port hands out plain strings; only automerge-repo cares that they parse.
 const findShared = (repo: Repo, shareUrl: string) =>
   repo.find<DocumentContent>(shareUrl as AutomergeUrl);
 
