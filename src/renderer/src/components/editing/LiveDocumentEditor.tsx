@@ -22,9 +22,6 @@ import {
 
 const { liveSyncPlugin, pmDocFromJSONString } = prosemirror;
 
-// Backed by a live document: always editable, content owned outside the
-// editor. Takes the open document rather than the port, so contributions go
-// through what the command wraps around it.
 export type LiveDocumentEditorProps = SharedEditorProps & {
   liveDocument: LiveDocument;
 };
