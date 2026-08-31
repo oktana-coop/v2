@@ -1,9 +1,5 @@
-// The full build initializes the WebAssembly the slim build (used by the code
-// under test) needs. In the app that is `createAutomergeRepo`'s job.
-import '@automerge/automerge';
-
-import * as Automerge from '@automerge/automerge/slim';
-import { Repo } from '@automerge/automerge-repo/slim';
+import * as Automerge from '@automerge/automerge';
+import { Repo } from '@automerge/automerge-repo';
 import * as Effect from 'effect/Effect';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { describe, expect, it, vi } from 'vitest';
