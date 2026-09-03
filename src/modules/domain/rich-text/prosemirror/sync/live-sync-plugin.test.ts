@@ -42,6 +42,16 @@ const paragraph = (text: string): PMNode =>
     schema.node('paragraph', null, [schema.text(text)]),
   ]);
 
+// Blank lines make blocks, as the primary representation does.
+const paragraphs = (text: string): PMNode =>
+  schema.node(
+    'doc',
+    null,
+    text
+      .split('\n\n')
+      .map((part) => schema.node('paragraph', null, [schema.text(part)]))
+  );
+
 // The editor contributes its own representation; everything else is already
 // the primary text one.
 const textOf = (doc: RichTextDocument) =>
@@ -93,12 +103,14 @@ const views: EditorView[] = [];
 
 const setup = async ({
   initialText = 'hello',
+  initialDoc,
   convertToProseMirror = async (doc: RichTextDocument) =>
     paragraph(doc.content),
   createConvergentDocument = (text: string) =>
     createConvergentDocumentInMemory(text),
 }: {
   initialText?: string;
+  initialDoc?: PMNode;
   convertToProseMirror?: (doc: RichTextDocument) => Promise<PMNode>;
   createConvergentDocument?: (text: string) => Promise<ConvergentDocument>;
 } = {}) => {
@@ -128,7 +140,7 @@ const setup = async ({
 
   const state = EditorState.create({
     schema,
-    doc: paragraph(initialText),
+    doc: initialDoc ?? paragraph(initialText),
     plugins: [
       liveSyncPlugin({
         content: liveDocument.content,
@@ -192,6 +204,39 @@ describe('liveSyncPlugin', () => {
       expect(view.state.doc.textContent).toBe('hello world and more')
     );
     expect(view.state.selection.head).toBe(6);
+  });
+
+  // A peer's edits arrive batched, so one change can carry edits in several
+  // blocks at once. Replacing everything from the first to the last would take
+  // the untouched block between them — and the caret resting in it — with it.
+  it('leaves a block between two incoming edits alone', async () => {
+    const initialText = 'one\n\ntwo\n\nthree';
+    const { liveDocument, view } = await setup({
+      initialText,
+      initialDoc: paragraphs(initialText),
+      convertToProseMirror: async (doc) => paragraphs(doc.content),
+    });
+
+    // The caret rests inside the middle block.
+    const middle = view.state.doc.resolve(8);
+    view.dispatch(
+      view.state.tr.setSelection(TextSelection.create(view.state.doc, 8))
+    );
+
+    await Effect.runPromise(
+      liveDocument.change('one EDITED\n\ntwo\n\nthree EDITED')
+    );
+
+    await eventually(() =>
+      expect(view.state.doc.textContent).toContain('three EDITED')
+    );
+
+    // It has moved along with the text inserted above it, which is the point:
+    // still the same block, still the same spot inside it.
+    const caret = view.state.selection.$head;
+    expect(caret.index(0)).toBe(middle.index(0));
+    expect(caret.parentOffset).toBe(middle.parentOffset);
+    expect(caret.parent.textContent).toBe('two');
   });
 
   it('does not wipe a keystroke made while an incoming state was converting', async () => {

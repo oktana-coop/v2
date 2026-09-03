@@ -1,7 +1,7 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
-import { type Node, type Schema } from 'prosemirror-model';
+import { type Fragment, type Node, type Schema } from 'prosemirror-model';
 import { type EditorState, Plugin, PluginKey } from 'prosemirror-state';
 
 import { forEachLatestRefChange } from '../../../../../utils/effect';
@@ -73,12 +73,11 @@ export const liveSyncPlugin = ({
               ),
             });
 
-      // Replaces only the slice that differs, so the caret keeps its place.
-      // TODO: replace with v2-hs-lib's diffToTransaction once it exists —
-      // minimal steps at exact positions instead of a single splice.
-      const minimalReplace = (state: EditorState, newPmDoc: Node) => {
-        const start = state.doc.content.findDiffStart(newPmDoc.content);
-        const end = state.doc.content.findDiffEnd(newPmDoc.content);
+      // The span of one fragment that differs from another, as positions
+      // within them.
+      const differingSlice = (a: Fragment, b: Fragment) => {
+        const start = a.findDiffStart(b);
+        const end = a.findDiffEnd(b);
 
         if (start === null || end === null) return null;
 
@@ -89,7 +88,109 @@ export const liveSyncPlugin = ({
           endB += overlap;
         }
 
-        return state.tr.replace(start, endA, newPmDoc.slice(start, endB));
+        return { start, endA, endB };
+      };
+
+      // Where each top-level block starts. Cheap: node sizes, no descent.
+      const blockOffsets = (doc: Node) => {
+        const offsets: number[] = [];
+        let pos = 0;
+
+        doc.forEach((block) => {
+          offsets.push(pos);
+          pos += block.nodeSize;
+        });
+
+        return offsets;
+      };
+
+      // Replaces just the blocks that differ within the changed span. A burst
+      // of edits arrives as a single change, so the span between the first and
+      // last difference can cover blocks nobody touched — and replacing one the
+      // caret sits in moves the caret to the edge of the splice.
+      //
+      // Only blocks meeting the span are compared, so a lone edit costs what it
+      // did before. Block-level structure changes leave the indexes unpaired,
+      // and those fall back to the single splice.
+      // TODO: replace with v2-hs-lib's diffToTransaction once it exists —
+      // minimal steps at exact positions, which narrows this within a block too.
+      const replaceChangedBlocks = ({
+        state,
+        newPmDoc,
+        start,
+        endA,
+      }: {
+        state: EditorState;
+        newPmDoc: Node;
+        start: number;
+        endA: number;
+      }) => {
+        if (state.doc.childCount !== newPmDoc.childCount) return null;
+
+        const offsets = blockOffsets(state.doc);
+        const changed: number[] = [];
+
+        for (let index = 0; index < state.doc.childCount; index += 1) {
+          const block = state.doc.child(index);
+          const blockStart = offsets[index]!;
+          const blockEnd = blockStart + block.nodeSize;
+
+          // Everything outside the span is identical by construction.
+          if (blockEnd < start || blockStart > endA) continue;
+          if (block.eq(newPmDoc.child(index))) continue;
+
+          changed.push(index);
+        }
+
+        if (changed.length === 0) return null;
+
+        const tr = state.tr;
+
+        // Later blocks first, so replacing one cannot move the next one's
+        // position out from under us.
+        for (const index of [...changed].reverse()) {
+          const blockStart = offsets[index]!;
+          const block = state.doc.child(index);
+          const newBlock = newPmDoc.child(index);
+          const inner = differingSlice(block.content, newBlock.content);
+
+          if (inner === null) {
+            // Same text, different markup: the block goes as a whole.
+            tr.replaceWith(blockStart, blockStart + block.nodeSize, newBlock);
+            continue;
+          }
+
+          // Past the block's own opening token.
+          const base = blockStart + 1;
+
+          tr.replace(
+            base + inner.start,
+            base + inner.endA,
+            newBlock.slice(inner.start, inner.endB)
+          );
+        }
+
+        return tr;
+      };
+
+      const minimalReplace = (state: EditorState, newPmDoc: Node) => {
+        const span = differingSlice(state.doc.content, newPmDoc.content);
+
+        if (span === null) return null;
+
+        return (
+          replaceChangedBlocks({
+            state,
+            newPmDoc,
+            start: span.start,
+            endA: span.endA,
+          }) ??
+          state.tr.replace(
+            span.start,
+            span.endA,
+            newPmDoc.slice(span.start, span.endB)
+          )
+        );
       };
 
       const applyIncoming = ({
