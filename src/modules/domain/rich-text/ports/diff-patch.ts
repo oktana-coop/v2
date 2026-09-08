@@ -1,7 +1,8 @@
 import { type Node, type Schema } from 'prosemirror-model';
+import { type Step } from 'prosemirror-transform';
 import { type DecorationSet } from 'prosemirror-view';
 
-import { type RichTextRepresentation } from '../models';
+import { type RichTextDocument, type RichTextRepresentation } from '../models';
 
 export type ProseMirrorDiffArgs = {
   representation: RichTextRepresentation;
@@ -17,8 +18,22 @@ export type ProseMirrorDiffResult = {
   decorations: DecorationSet;
 };
 
-export type Diff = {
+export type ProseMirrorStepsArgs = {
+  pmDocBefore: Node;
+  docAfter: RichTextDocument;
+  proseMirrorSchema: Schema;
+};
+
+export type ProseMirrorStepsResult = {
+  pmDocAfter: Node;
+  steps: Step[];
+};
+
+export type DiffPatch = {
   proseMirrorDiff: (
     args: ProseMirrorDiffArgs
   ) => Promise<ProseMirrorDiffResult>;
+  proseMirrorSteps: (
+    args: ProseMirrorStepsArgs
+  ) => Promise<ProseMirrorStepsResult>;
 };
