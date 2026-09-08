@@ -8,12 +8,16 @@ import {
   TextSelection,
   type Transaction,
 } from 'prosemirror-state';
+import { ReplaceStep, replaceStep, type Step } from 'prosemirror-transform';
 import { EditorView } from 'prosemirror-view';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import {
+  LiveSyncFallbackError,
+  type LiveSyncFallbackReason,
+  PatchError,
   RepresentationTransformError,
-  ValidationError,
+  RichTextLibError,
   WebEditorError,
 } from '../../errors';
 import {
@@ -29,7 +33,8 @@ import {
 } from '../../ports/convergent-document';
 import { pmDocFromJSONString } from '../json';
 import { schema } from '../schema';
-import { liveSyncPlugin } from './live-sync-plugin';
+import { textSlice } from '../test-utils';
+import { liveSyncPlugin, type LiveSyncPluginArgs } from './live-sync-plugin';
 
 const markdownDocument = (content: string): RichTextDocument => ({
   schemaVersion: CURRENT_SCHEMA_VERSION,
@@ -48,6 +53,60 @@ const textOf = (doc: RichTextDocument) =>
   doc.representation === richTextRepresentations.PROSEMIRROR
     ? pmDocFromJSONString(JSON.parse(doc.content), schema).textContent
     : doc.content;
+
+type ProseMirrorSteps = LiveSyncPluginArgs['proseMirrorSteps'];
+
+// Stands in for hs-lib: the incoming doc plus one exact step to it, which
+// keeps a caret outside the changed region where it is.
+const stepsBetween = ({
+  docBefore,
+  docAfter,
+}: {
+  docBefore: PMNode;
+  docAfter: PMNode;
+}): Step[] => {
+  const start = docBefore.content.findDiffStart(docAfter.content);
+  const end = docBefore.content.findDiffEnd(docAfter.content);
+  if (start === null || end === null) return [];
+
+  const overlap = Math.max(0, start - Math.min(end.a, end.b));
+  const step = replaceStep(
+    docBefore,
+    start,
+    end.a + overlap,
+    docAfter.slice(start, end.b + overlap)
+  );
+
+  return step ? [step] : [];
+};
+
+// Asynchronous like the real adapter, so the checks after the await see
+// the same interleavings.
+const stepsTo: ProseMirrorSteps = ({ pmDocBefore, docAfter }) =>
+  Effect.promise(async () => {
+    const pmDocAfter = paragraph(textOf(docAfter));
+
+    return {
+      pmDocAfter,
+      steps: stepsBetween({ docBefore: pmDocBefore, docAfter: pmDocAfter }),
+    };
+  });
+
+// The one fallback the plugin reported, checked for its reason; its
+// message is returned for the test to look into.
+const reportedFallbackMessage = ({
+  onError,
+  reason,
+}: {
+  onError: Mock;
+  reason: LiveSyncFallbackReason;
+}): string => {
+  expect(onError).toHaveBeenCalledTimes(1);
+  const reported = onError.mock.calls[0][0];
+  expect(reported).toBeInstanceOf(LiveSyncFallbackError);
+  expect((reported as LiveSyncFallbackError).data.reason).toBe(reason);
+  return (reported as LiveSyncFallbackError).message;
+};
 
 // Sync lands on plugin-internal fibers the test can't await, so state is
 // reached asynchronously; `eventually` polls its assertions until they hold.
@@ -93,12 +152,14 @@ const views: EditorView[] = [];
 
 const setup = async ({
   initialText = 'hello',
+  proseMirrorSteps = stepsTo,
   convertToProseMirror = async (doc: RichTextDocument) =>
-    paragraph(doc.content),
+    paragraph(textOf(doc)),
   createConvergentDocument = (text: string) =>
     createConvergentDocumentInMemory(text),
 }: {
   initialText?: string;
+  proseMirrorSteps?: ProseMirrorSteps;
   convertToProseMirror?: (doc: RichTextDocument) => Promise<PMNode>;
   createConvergentDocument?: (text: string) => Promise<ConvergentDocument>;
 } = {}) => {
@@ -136,6 +197,7 @@ const setup = async ({
         initialVersion: initial.version,
         schemaVersion: CURRENT_SCHEMA_VERSION,
         schema,
+        proseMirrorSteps,
         convertToProseMirror,
         onError,
       }),
@@ -196,10 +258,7 @@ describe('liveSyncPlugin', () => {
 
   it('does not wipe a keystroke made while an incoming state was converting', async () => {
     const { liveDocument, view, dispatched } = await setup({
-      convertToProseMirror: async (doc) => {
-        await new Promise((resolve) => setTimeout(resolve, 40));
-        return paragraph(doc.content);
-      },
+      proseMirrorSteps: (args) => Effect.delay(stepsTo(args), '40 millis'),
     });
 
     await Effect.runPromise(liveDocument.change('from elsewhere'));
@@ -345,10 +404,7 @@ describe('liveSyncPlugin', () => {
     // A slow conversion lets several changes queue up while the first is still
     // being applied.
     const { liveDocument, view, dispatched } = await setup({
-      convertToProseMirror: async (doc) => {
-        await new Promise((resolve) => setTimeout(resolve, 40));
-        return paragraph(doc.content);
-      },
+      proseMirrorSteps: (args) => Effect.delay(stepsTo(args), '40 millis'),
     });
 
     for (const text of ['first', 'second', 'third', 'latest']) {
@@ -364,8 +420,15 @@ describe('liveSyncPlugin', () => {
   });
 
   it('reports a failed conversion as a transform error and keeps applying later changes', async () => {
+    // hs-lib failing the steps is a fallback; the change is lost only when
+    // the plain conversion fails too, and then nothing was applied to
+    // report a fallback for.
     let call = 0;
     const { liveDocument, view, onError } = await setup({
+      proseMirrorSteps: (args) =>
+        call === 0
+          ? Effect.fail(new RichTextLibError('no wasm'))
+          : stepsTo(args),
       convertToProseMirror: async (doc) => {
         call += 1;
         if (call === 1) throw new Error('conversion failed');
@@ -395,7 +458,8 @@ describe('liveSyncPlugin', () => {
     // applied to the view — the web-coupled apply stage, distinct from the
     // transform, and the path that used to escape as an unhandled defect.
     const { liveDocument, onError } = await setup({
-      convertToProseMirror: async () => null as unknown as PMNode,
+      proseMirrorSteps: () =>
+        Effect.succeed({ pmDocAfter: null as unknown as PMNode, steps: [] }),
     });
 
     await Effect.runPromise(liveDocument.change('anything'));
@@ -404,23 +468,116 @@ describe('liveSyncPlugin', () => {
     expect(onError.mock.calls[0][0]).toBeInstanceOf(WebEditorError);
   });
 
-  it('reports malformed stored ProseMirror content as a validation error', async () => {
-    const { liveDocument, onError } = await setup();
+  it('takes a ProseMirror-representation state through the steps path too', async () => {
+    const proseMirrorSteps = vi.fn(stepsTo);
+    const { liveDocument, view } = await setup({ proseMirrorSteps });
 
-    // A published ProseMirror-representation state whose content is not valid
-    // JSON fails parsing rather than transforming — a validation concern.
     await Effect.runPromise(
       SubscriptionRef.set(liveDocument.content, {
         doc: {
           schemaVersion: CURRENT_SCHEMA_VERSION,
           representation: richTextRepresentations.PROSEMIRROR,
-          content: 'not json',
+          content: JSON.stringify(paragraph('from elsewhere').toJSON()),
         },
-        version: 'malformed',
+        version: 'pm',
       })
     );
 
-    await eventually(() => expect(onError).toHaveBeenCalledTimes(1));
-    expect(onError.mock.calls[0][0]).toBeInstanceOf(ValidationError);
+    await eventually(() =>
+      expect(view.state.doc.textContent).toBe('from elsewhere')
+    );
+    expect(proseMirrorSteps).toHaveBeenCalledTimes(1);
+    expect(proseMirrorSteps.mock.calls[0][0].docAfter.representation).toBe(
+      richTextRepresentations.PROSEMIRROR
+    );
+  });
+
+  it('applies steps as a single transaction and keeps the caret when two remote regions bracket it', async () => {
+    // A single region replace would span both edits and drag the caret
+    // between them to its end.
+    const { liveDocument, view, dispatched, onError } = await setup({
+      initialText: 'hello world',
+      proseMirrorSteps: () =>
+        Effect.succeed({
+          pmDocAfter: paragraph('Xhello worldY'),
+          steps: [
+            new ReplaceStep(1, 1, textSlice('X')),
+            new ReplaceStep(13, 13, textSlice('Y')),
+          ],
+        }),
+    });
+
+    view.dispatch(
+      view.state.tr.setSelection(TextSelection.create(view.state.doc, 6))
+    );
+    const dispatchedBefore = dispatched.length;
+
+    await Effect.runPromise(liveDocument.change('Xhello worldY'));
+
+    await eventually(() =>
+      expect(view.state.doc.textContent).toBe('Xhello worldY')
+    );
+    expect(view.state.selection.head).toBe(7);
+    expect(dispatched).toHaveLength(dispatchedBefore + 1);
+    expect(dispatched[dispatchedBefore].steps).toHaveLength(2);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the region replace and reports when a step fails to apply', async () => {
+    const { liveDocument, view, onError } = await setup({
+      proseMirrorSteps: () =>
+        Effect.succeed({
+          pmDocAfter: paragraph('from elsewhere'),
+          // Text straight under the doc node is invalid content.
+          steps: [new ReplaceStep(0, 0, textSlice('x'))],
+        }),
+    });
+
+    await Effect.runPromise(liveDocument.change('from elsewhere'));
+
+    await eventually(() =>
+      expect(view.state.doc.textContent).toBe('from elsewhere')
+    );
+    expect(
+      reportedFallbackMessage({ onError, reason: 'steps-mismatch' })
+    ).toContain('(step 0)');
+  });
+
+  it('falls back when the final doc mismatches', async () => {
+    const { liveDocument, view, onError } = await setup({
+      proseMirrorSteps: () =>
+        Effect.succeed({ pmDocAfter: paragraph('from elsewhere'), steps: [] }),
+    });
+
+    await Effect.runPromise(liveDocument.change('from elsewhere'));
+
+    await eventually(() =>
+      expect(view.state.doc.textContent).toBe('from elsewhere')
+    );
+    expect(
+      reportedFallbackMessage({ onError, reason: 'steps-mismatch' })
+    ).not.toContain('(step');
+  });
+
+  it('falls back to the converted doc and reports when hs-lib cannot produce steps', async () => {
+    const { liveDocument, view, onError } = await setup({
+      initialText: 'hello world',
+      proseMirrorSteps: () =>
+        Effect.fail(new PatchError('Cannot emit steps: table')),
+    });
+
+    view.dispatch(
+      view.state.tr.setSelection(TextSelection.create(view.state.doc, 6))
+    );
+
+    await Effect.runPromise(liveDocument.change('hello world and more'));
+
+    await eventually(() =>
+      expect(view.state.doc.textContent).toBe('hello world and more')
+    );
+    expect(view.state.selection.head).toBe(6);
+    expect(
+      reportedFallbackMessage({ onError, reason: 'steps-failed' })
+    ).toContain('Cannot emit steps: table');
   });
 });

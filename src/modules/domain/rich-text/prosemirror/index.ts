@@ -3,6 +3,7 @@ export * from './schema';
 export * from './input-rules';
 export * from './commands';
 export * from './blocks';
+export * from './trailing-paragraph';
 export * from './diff';
 export * from './json';
 export * from './markdown';

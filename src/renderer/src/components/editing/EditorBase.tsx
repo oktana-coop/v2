@@ -249,7 +249,7 @@ export const EditorBase = ({
       // Apply the trailing-paragraph invariant (a place to put the cursor
       // after a figure) up-front: the plugin only fires after the first
       // transaction.
-      const doc = ensureTrailingParagraphInDoc(pmDoc, schema);
+      const doc = ensureTrailingParagraphInDoc({ doc: pmDoc, schema });
 
       const diffPlugin = diffWith
         ? await buildDiffPlugin({ currentDoc: sourceDoc, diffWith })
