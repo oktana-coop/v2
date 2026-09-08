@@ -1,7 +1,9 @@
+import * as Effect from 'effect/Effect';
 import { type Node, type Schema } from 'prosemirror-model';
 import { type Step } from 'prosemirror-transform';
 import { type DecorationSet } from 'prosemirror-view';
 
+import { type PatchError, type RichTextLibError } from '../errors';
 import { type RichTextDocument, type RichTextRepresentation } from '../models';
 
 export type ProseMirrorDiffArgs = {
@@ -30,10 +32,11 @@ export type ProseMirrorStepsResult = {
 };
 
 export type DiffPatch = {
+  // TODO: return an Effect with typed errors, like proseMirrorSteps.
   proseMirrorDiff: (
     args: ProseMirrorDiffArgs
   ) => Promise<ProseMirrorDiffResult>;
   proseMirrorSteps: (
     args: ProseMirrorStepsArgs
-  ) => Promise<ProseMirrorStepsResult>;
+  ) => Effect.Effect<ProseMirrorStepsResult, PatchError | RichTextLibError>;
 };

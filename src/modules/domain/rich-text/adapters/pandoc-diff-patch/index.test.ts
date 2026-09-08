@@ -1,3 +1,4 @@
+import * as Effect from 'effect/Effect';
 import { type Node } from 'prosemirror-model';
 import {
   AddMarkStep,
@@ -11,6 +12,7 @@ import {
   cliTypes,
   type Wasm,
 } from '../../../../../modules/infrastructure/wasm';
+import { PatchErrorTag, RichTextLibErrorTag } from '../../errors';
 import {
   CURRENT_SCHEMA_VERSION,
   type RichTextDocument,
@@ -48,11 +50,28 @@ const steps = ({
   mockedCliRun: Wasm['runWasiCLIOutputingText'];
   docAfter?: RichTextDocument;
 }) =>
-  createAdapter({ runWasiCLIOutputingText: mockedCliRun }).proseMirrorSteps({
-    pmDocBefore,
-    docAfter,
-    proseMirrorSchema: schema,
-  });
+  Effect.runPromise(
+    createAdapter({ runWasiCLIOutputingText: mockedCliRun }).proseMirrorSteps({
+      pmDocBefore,
+      docAfter,
+      proseMirrorSchema: schema,
+    })
+  );
+
+const failure = ({
+  mockedCliRun,
+}: {
+  mockedCliRun: Wasm['runWasiCLIOutputingText'];
+}) =>
+  Effect.runPromise(
+    createAdapter({ runWasiCLIOutputingText: mockedCliRun })
+      .proseMirrorSteps({
+        pmDocBefore,
+        docAfter: markdownDocument('x'),
+        proseMirrorSchema: schema,
+      })
+      .pipe(Effect.flip)
+  );
 
 const success = (stepsJSON: PMStep[]) =>
   JSON.stringify({ data: { doc: afterJSON, steps: stepsJSON } });
@@ -137,31 +156,45 @@ describe('pandoc-diff-patch proseMirrorSteps', () => {
     ]);
   });
 
-  it('throws when the CLI reports errors', async () => {
+  it('fails with PatchError when the CLI reports errors', async () => {
     const mockedCliRun = vi
       .fn()
       .mockResolvedValue(
         JSON.stringify({ errors: [{ message: 'Cannot emit steps: table' }] })
       );
 
-    await expect(steps({ mockedCliRun })).rejects.toThrow(
-      'Cannot emit steps: table'
-    );
+    const error = await failure({ mockedCliRun });
+
+    expect(error._tag).toBe(PatchErrorTag);
+    expect(error.message).toContain('Cannot emit steps: table');
   });
 
-  it('throws when the CLI output is not JSON', async () => {
+  it('fails with RichTextLibError when the CLI output is not JSON', async () => {
     const mockedCliRun = vi.fn().mockResolvedValue('');
 
-    await expect(steps({ mockedCliRun })).rejects.toThrow();
+    const error = await failure({ mockedCliRun });
+
+    expect(error._tag).toBe(RichTextLibErrorTag);
   });
 
-  it('throws on a malformed step', async () => {
+  it('fails with RichTextLibError when the CLI call rejects', async () => {
+    const mockedCliRun = vi.fn().mockRejectedValue(new Error('wasm exploded'));
+
+    const error = await failure({ mockedCliRun });
+
+    expect(error._tag).toBe(RichTextLibErrorTag);
+    expect(error.message).toBe('wasm exploded');
+  });
+
+  it('fails with RichTextLibError on a malformed step', async () => {
     const mockedCliRun = vi.fn().mockResolvedValue(
       JSON.stringify({
         data: { doc: afterJSON, steps: [{ stepType: 'teleport', from: 1 }] },
       })
     );
 
-    await expect(steps({ mockedCliRun })).rejects.toThrow();
+    const error = await failure({ mockedCliRun });
+
+    expect(error._tag).toBe(RichTextLibErrorTag);
   });
 });

@@ -83,3 +83,8 @@ export const UnsupportedDocumentFormatErrorTag =
 export class UnsupportedDocumentFormatError extends Cause.YieldableError {
   readonly _tag = UnsupportedDocumentFormatErrorTag;
 }
+
+export const PatchErrorTag = 'PatchError';
+export class PatchError extends Cause.YieldableError {
+  readonly _tag = PatchErrorTag;
+}
