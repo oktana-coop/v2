@@ -5,8 +5,8 @@ import { useCallback, useContext } from 'react';
 
 import { type LiveDocument } from '../../../../modules/domain/project';
 import {
+  LiveSyncFallbackError,
   prosemirror,
-  type RichTextDocument,
   richTextRepresentations,
 } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
@@ -30,10 +30,17 @@ export const LiveDocumentEditor = ({
   liveDocument,
   ...shared
 }: LiveDocumentEditorProps) => {
-  const { convertToProseMirror } = useContext(ProseMirrorContext);
+  const { convertToProseMirror, proseMirrorSteps } =
+    useContext(ProseMirrorContext);
   const { dispatchNotification } = useContext(NotificationsContext);
 
   const handleLiveSyncError = (error: unknown) => {
+    // The document still converged; the coarser apply is a dev concern.
+    if (error instanceof LiveSyncFallbackError) {
+      console.warn(`Live sync fell back to a region replace: ${error.message}`);
+      return;
+    }
+
     console.error(error);
     dispatchNotification(
       createErrorNotification({
@@ -61,7 +68,13 @@ export const LiveDocumentEditor = ({
         initialVersion: initial.version,
         schemaVersion: initial.doc.schemaVersion,
         schema,
-        convertToProseMirror: (document: RichTextDocument) =>
+        proseMirrorSteps: ({ pmDocBefore, docAfter }) =>
+          proseMirrorSteps({
+            pmDocBefore,
+            docAfter,
+            proseMirrorSchema: schema,
+          }),
+        convertToProseMirror: (document) =>
           convertToProseMirror({ schema, document }),
         onError: handleLiveSyncError,
       });

@@ -1,14 +1,18 @@
 import * as Effect from 'effect/Effect';
+import * as Either from 'effect/Either';
 import { pipe } from 'effect/Function';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { type Node, type Schema } from 'prosemirror-model';
-import { type EditorState, Plugin, PluginKey } from 'prosemirror-state';
+import { Plugin, PluginKey, type Transaction } from 'prosemirror-state';
+import { type Step } from 'prosemirror-transform';
 
 import { forEachLatestRefChange } from '../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../utils/errors';
 import {
+  LiveSyncFallbackError,
+  type PatchError,
   RepresentationTransformError,
-  ValidationError,
+  type RichTextLibError,
   WebEditorError,
 } from '../../errors';
 import { type RichTextDocument, richTextRepresentations } from '../../models';
@@ -17,8 +21,13 @@ import {
   type ConvergentDocumentState,
   type ConvergentDocumentVersion,
 } from '../../ports/convergent-document';
-import { ensureTrailingParagraphInDoc } from '../blocks';
-import { pmDocFromJSONString, pmDocToJSONString } from '../json';
+import { type ProseMirrorStepsResult } from '../../ports/diff-patch';
+import { pmDocToJSONString } from '../json';
+import {
+  ensureTrailingParagraphInDoc,
+  stripTrailingParagraphFromDoc,
+} from '../trailing-paragraph';
+import { coarseDiffReplace, patch } from './patching';
 
 const pluginKey = new PluginKey('pm-live-sync');
 
@@ -31,9 +40,24 @@ export type LiveSyncPluginArgs = {
   initialVersion: ConvergentDocumentVersion;
   schemaVersion: number;
   schema: Schema;
+  proseMirrorSteps: (args: {
+    pmDocBefore: Node;
+    docAfter: RichTextDocument;
+  }) => Effect.Effect<ProseMirrorStepsResult, PatchError | RichTextLibError>;
   convertToProseMirror: (doc: RichTextDocument) => Promise<Node>;
   onError: (error: unknown) => void;
 };
+
+// A published state in ProseMirror form, and how the editor gets there: by
+// the exact steps to it, or by a region replace when they could not be
+// computed.
+type IncomingUpdate =
+  | { kind: 'patch'; pmDocAfter: Node; steps: Step[] }
+  | {
+      kind: 'replace';
+      pmDocAfter: Node;
+      failure: PatchError | RichTextLibError;
+    };
 
 export const liveSyncPlugin = ({
   content,
@@ -41,6 +65,7 @@ export const liveSyncPlugin = ({
   initialVersion,
   schemaVersion,
   schema,
+  proseMirrorSteps,
   convertToProseMirror,
   onError,
 }: LiveSyncPluginArgs) =>
@@ -54,56 +79,48 @@ export const liveSyncPlugin = ({
       // tell that apart from a remote deletion.
       let contributionsInFlight = 0;
 
-      const toProseMirrorDoc = (
+      // The trailing paragraph is the editor's own and ends the doc, so
+      // steps computed without it hold on the live doc as well.
+      const stepsTo = (doc: RichTextDocument) =>
+        proseMirrorSteps({
+          pmDocBefore: stripTrailingParagraphFromDoc({
+            doc: view.state.doc,
+            schema,
+          }),
+          docAfter: doc,
+        });
+
+      const toProseMirror = (doc: RichTextDocument) =>
+        Effect.tryPromise({
+          try: () => convertToProseMirror(doc),
+          catch: mapErrorTo(
+            RepresentationTransformError,
+            'Failed to convert the document to ProseMirror'
+          ),
+        });
+
+      const toIncomingUpdate = (
         doc: RichTextDocument
-      ): Effect.Effect<Node, RepresentationTransformError | ValidationError> =>
-        doc.representation === richTextRepresentations.PROSEMIRROR
-          ? Effect.try({
-              try: () => pmDocFromJSONString(JSON.parse(doc.content), schema),
-              catch: mapErrorTo(
-                ValidationError,
-                'Invalid stored ProseMirror document'
-              ),
-            })
-          : Effect.tryPromise({
-              try: () => convertToProseMirror(doc),
-              catch: mapErrorTo(
-                RepresentationTransformError,
-                'Failed to convert the document to ProseMirror'
-              ),
-            });
+      ): Effect.Effect<IncomingUpdate, RepresentationTransformError> =>
+        pipe(
+          stepsTo(doc),
+          Effect.map((result): IncomingUpdate => ({
+            kind: 'patch',
+            ...result,
+          })),
+          Effect.catchAll((failure) =>
+            pipe(
+              toProseMirror(doc),
+              Effect.map((pmDocAfter): IncomingUpdate => ({
+                kind: 'replace',
+                pmDocAfter,
+                failure,
+              }))
+            )
+          )
+        );
 
-      // Replaces only the slice that differs, so the caret keeps its place.
-      // TODO: replace with v2-hs-lib's diffToTransaction once it exists —
-      // minimal steps at exact positions instead of a single splice.
-      const minimalReplace = (state: EditorState, newPmDoc: Node) => {
-        const start = state.doc.content.findDiffStart(newPmDoc.content);
-        const end = state.doc.content.findDiffEnd(newPmDoc.content);
-
-        if (start === null || end === null) return null;
-
-        let { a: endA, b: endB } = end;
-        const overlap = start - Math.min(endA, endB);
-        if (overlap > 0) {
-          endA += overlap;
-          endB += overlap;
-        }
-
-        return state.tr.replace(start, endA, newPmDoc.slice(start, endB));
-      };
-
-      const applyIncoming = ({
-        change,
-        newPmDoc,
-      }: {
-        change: ConvergentDocumentState;
-        newPmDoc: Node;
-      }) => {
-        const { state } = view;
-        const tr =
-          minimalReplace(state, newPmDoc) ??
-          state.tr.replaceWith(0, state.doc.content.size, newPmDoc.content);
-
+      const dispatchIncoming = (tr: Transaction) => {
         tr.setMeta('addToHistory', false);
         tr.setMeta(pluginKey, { incoming: true });
 
@@ -113,34 +130,79 @@ export const liveSyncPlugin = ({
         } finally {
           applyingIncoming = false;
         }
-
-        editorDocVersion = change.version;
       };
 
-      const applyToView = ({
+      // The region replace still converges: a fallback is reported, not
+      // raised.
+      const fallbackToCoarseDiffReplace = ({
+        target,
+        error,
+      }: {
+        target: Node;
+        error: LiveSyncFallbackError;
+      }) => {
+        onError(error);
+        return coarseDiffReplace({ state: view.state, target });
+      };
+
+      const transactionTo = ({
+        target,
+        incoming,
+      }: {
+        target: Node;
+        incoming: IncomingUpdate;
+      }): Transaction => {
+        if (incoming.kind === 'replace') {
+          return fallbackToCoarseDiffReplace({
+            target,
+            error: new LiveSyncFallbackError(
+              `Steps could not be computed: ${incoming.failure.message}`,
+              { reason: 'steps-failed' }
+            ),
+          });
+        }
+
+        return pipe(
+          patch({ state: view.state, steps: incoming.steps, target }),
+          Either.getOrElse((error) =>
+            fallbackToCoarseDiffReplace({
+              target,
+              error: new LiveSyncFallbackError(error.message, {
+                reason: 'steps-mismatch',
+              }),
+            })
+          )
+        );
+      };
+
+      const applyToView = (incoming: IncomingUpdate) => {
+        // The editor keeps a trailing paragraph the primary
+        // representation cannot express.
+        const target = ensureTrailingParagraphInDoc({
+          doc: incoming.pmDocAfter,
+          schema,
+        });
+        if (target.eq(view.state.doc)) return;
+
+        dispatchIncoming(transactionTo({ target, incoming }));
+      };
+
+      const isStale = ({
         change,
-        newPmDoc,
+        latest,
       }: {
         change: ConvergentDocumentState;
-        newPmDoc: Node;
-      }): Effect.Effect<void, WebEditorError> =>
-        Effect.try({
-          try: () => {
-            // The editor keeps a trailing paragraph the primary
-            // representation cannot express.
-            const incoming = ensureTrailingParagraphInDoc(newPmDoc, schema);
-
-            if (incoming.eq(view.state.doc)) {
-              editorDocVersion = change.version;
-            } else {
-              applyIncoming({ change, newPmDoc: incoming });
-            }
-          },
-          catch: mapErrorTo(
-            WebEditorError,
-            'Failed to apply a change to the editor'
-          ),
-        });
+        latest: ConvergentDocumentState;
+      }) =>
+        // The editor already shows this version;
+        change.version === editorDocVersion ||
+        // Typing that has not reached the document yet. Dropping is safe:
+        // the resolving contribution publishes a superseding state that
+        // carries it.
+        contributionsInFlight > 0 ||
+        // A state the document moved past while it converted; the newer
+        // one is on its way through the buffer.
+        latest.version !== change.version;
 
       // forEachLatestRefChange collapses a burst of changes to just the latest
       // while a slow apply is in flight; the version check before converting
@@ -150,28 +212,26 @@ export const liveSyncPlugin = ({
           change.version === editorDocVersion
             ? Effect.void
             : pipe(
-                toProseMirrorDoc(change.doc),
-                // Converting to ProseMirror is asynchronous and other work runs
-                // while it suspends, so we have to repeat some checks before applying.
-                Effect.flatMap((newPmDoc) =>
+                toIncomingUpdate(change.doc),
+                // Converting is asynchronous and other work runs while it
+                // suspends, so the checks are repeated before applying.
+                Effect.flatMap((incomingUpdate) =>
                   pipe(
                     SubscriptionRef.get(content),
-                    Effect.flatMap((latest) => {
-                      const shouldSkip =
-                        // The editor already shows this version;
-                        change.version === editorDocVersion ||
-                        // Typing that has not reached the document yet.
-                        // Dropping is safe: the resolving contribution
-                        // publishes a superseding state that carries it.
-                        contributionsInFlight > 0 ||
-                        // A state the document moved past while it converted;
-                        // the newer one is on its way through the buffer.
-                        latest.version !== change.version;
-
-                      return shouldSkip
+                    Effect.flatMap((latest) =>
+                      isStale({ change, latest })
                         ? Effect.void
-                        : applyToView({ change, newPmDoc });
-                    })
+                        : Effect.try({
+                            try: () => {
+                              applyToView(incomingUpdate);
+                              editorDocVersion = change.version;
+                            },
+                            catch: mapErrorTo(
+                              WebEditorError,
+                              'Failed to apply a change to the editor'
+                            ),
+                          })
+                    )
                   )
                 )
               ),

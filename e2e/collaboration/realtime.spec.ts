@@ -144,6 +144,26 @@ const shareCurrentDocument = async ({
   return shareUrl as string;
 };
 
+// The editor reports on the dev console when an incoming change could not
+// be applied as exact steps and took the coarser region replace instead.
+const collectFallbackReports = (window: Page): string[] => {
+  const reports: string[] = [];
+  window.on('console', (message) => {
+    if (message.text().includes('Live sync fell back')) {
+      reports.push(message.text());
+    }
+  });
+  return reports;
+};
+
+// Where the caret stands, as the text before it in its text node.
+const textBeforeCaret = (window: Page) =>
+  window.evaluate(() => {
+    const selection = document.getSelection();
+    if (!selection?.anchorNode) return null;
+    return selection.anchorNode.textContent?.slice(0, selection.anchorOffset);
+  });
+
 const closeShareDialog = async ({ window }: { window: Page }) => {
   await window.getByRole('button', { name: 'Done' }).click();
   await window
@@ -398,6 +418,72 @@ test.describe('realtime collaboration', () => {
           { timeout: 10_000 }
         )
         .toContain('alpha bravo charlie delta echo');
+    } finally {
+      peer.disconnect();
+    }
+  });
+
+  test('a remote change on both sides of the caret leaves it in place', async ({
+    electronApp,
+    window,
+    testProjectDir: aliceProject,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: aliceProject,
+    });
+    await openHelloMd({ window });
+
+    const shareUrl = await shareCurrentDocument({ window });
+    await closeShareDialog({ window });
+    const fallbacks = collectFallbackReports(window);
+
+    // The caret goes mid-paragraph, set on the DOM selection so no
+    // keystroke can drop on the way there. The filter is a prefix, so the
+    // locator survives the keystroke typed into it later.
+    const paragraph = window.locator('.ProseMirror p', {
+      hasText: 'This is a test',
+    });
+    await paragraph.click();
+    await paragraph.evaluate((element) => {
+      const selection = document.getSelection();
+      const textNode = element.firstChild;
+      if (!selection || !textNode) throw new Error('paragraph has no text');
+      selection.collapse(textNode, 'This is a test '.length);
+    });
+    await expect.poll(() => textBeforeCaret(window)).toBe('This is a test ');
+
+    const peer = connectPeer(syncServer.url);
+    try {
+      const handle = await peer.repo.find<DocumentContent>(
+        shareUrl as Parameters<typeof peer.repo.find>[0],
+        { signal: AbortSignal.timeout(15_000) }
+      );
+
+      // One state with a change before and one after the caret's paragraph;
+      // a single region replace would span both and drag the caret along.
+      const content =
+        '# Hello there\n\nThis is a test document.\n\nAppended by a peer.\n';
+      handle.change((doc) => Automerge.updateText(doc, ['content'], content));
+
+      const editor = window.locator('.ProseMirror');
+      await expect(editor).toContainText('Hello there', { timeout: 15_000 });
+      await expect(editor).toContainText('Appended by a peer.', {
+        timeout: 15_000,
+      });
+      await sleep(1_000);
+      // Soft, so a fallback and a moved caret are both reported at once.
+      expect.soft(fallbacks).toEqual([]);
+      expect(handle.doc().content).toBe(content);
+
+      // Where a keystroke lands is the caret the editor really holds, focus
+      // or no focus.
+      await window.keyboard.type('Z');
+      await expect(paragraph).toHaveText('This is a test Zdocument.');
+      await expect(editor).toHaveText(
+        'Hello thereThis is a test Zdocument.Appended by a peer.'
+      );
     } finally {
       peer.disconnect();
     }
@@ -1079,6 +1165,13 @@ test.describe('realtime collaboration', () => {
       // editor being replaced. Known gap, not this test's subject.
       await sleep(3_000);
 
+      // The main scenario must ride the exact-steps path; a fallback here
+      // means the region replace is still carrying it.
+      const fallbacks = [
+        ...collectFallbackReports(window),
+        ...collectFallbackReports(bob.window),
+      ];
+
       // Both type at the same time, in different places (concurrent inserts
       // at the very same position interleave by design — convergence over
       // intent): Alice at the end of the document, Bob at the heading's end.
@@ -1135,6 +1228,8 @@ test.describe('realtime collaboration', () => {
           );
         }
       }
+
+      expect(fallbacks).toEqual([]);
     } finally {
       proxy.stop();
       await bob.close();
