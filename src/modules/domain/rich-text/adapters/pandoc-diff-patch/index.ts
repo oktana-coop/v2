@@ -10,24 +10,36 @@ import {
   isHSLibFailureOutput,
   representationToCliArg,
 } from '../../hs-lib-cli';
-import { type Diff } from '../../ports/diff';
+import {
+  getDocumentRichTextContent,
+  richTextRepresentations,
+} from '../../models';
+import { type DiffPatch } from '../../ports/diff-patch';
 import {
   createInlineDecoration,
   createNodeDecoration,
   createWidgetDeleteDecoration,
   pmDocFromJSONString,
+  pmDocToJSONString,
+  pmStepFromJSON,
 } from '../../prosemirror';
 import {
   type DiffDecoration,
   type InlineDiffDecoration,
   type NodeDiffDecoration,
   type PMNode,
+  type PMStep,
   type WidgetDiffDecoration,
 } from '../../prosemirror/hs-lib';
 
 type HSLibDiffData = {
   doc: PMNode;
   decorations: DiffDecoration[];
+};
+
+type HSLibStepsData = {
+  doc: PMNode;
+  steps: PMStep[];
 };
 
 const toInlineDecoration = (decoration: InlineDiffDecoration): Decoration => {
@@ -76,8 +88,8 @@ export const createAdapter = ({
   runWasiCLIOutputingText,
 }: {
   runWasiCLIOutputingText: Wasm['runWasiCLIOutputingText'];
-}): Diff => {
-  const proseMirrorDiff: Diff['proseMirrorDiff'] = async ({
+}): DiffPatch => {
+  const proseMirrorDiff: DiffPatch['proseMirrorDiff'] = async ({
     representation,
     proseMirrorSchema,
     docBefore,
@@ -128,7 +140,46 @@ export const createAdapter = ({
     };
   };
 
+  const proseMirrorSteps: DiffPatch['proseMirrorSteps'] = async ({
+    pmDocBefore,
+    docAfter,
+    proseMirrorSchema,
+  }) => {
+    const output = await runWasiCLIOutputingText({
+      type: cliTypes.HS_LIB,
+      args: [
+        'v2-hs-lib',
+        'proseMirrorSteps',
+        '--before-format',
+        representationToCliArg(richTextRepresentations.PROSEMIRROR),
+        '--after-format',
+        representationToCliArg(docAfter.representation),
+        '--',
+        pmDocToJSONString(pmDocBefore),
+        getDocumentRichTextContent(docAfter),
+      ],
+    });
+
+    const parsedOutput = JSON.parse(output) as HSLibOutput<HSLibStepsData>;
+
+    if (isHSLibFailureOutput(parsedOutput)) {
+      throw new Error(
+        `Steps failed: ${parsedOutput.errors.map((error) => error.message).join(', ')}`
+      );
+    }
+
+    const steps = parsedOutput.data.steps.map((step) =>
+      pmStepFromJSON(step, proseMirrorSchema)
+    );
+
+    return {
+      pmDocAfter: pmDocFromJSONString(parsedOutput.data.doc, proseMirrorSchema),
+      steps,
+    };
+  };
+
   return {
     proseMirrorDiff,
+    proseMirrorSteps,
   };
 };

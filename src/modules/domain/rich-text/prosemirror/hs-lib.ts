@@ -41,3 +41,37 @@ export type WidgetDiffDecoration = {
 
 export type DiffDecoration =
   InlineDiffDecoration | NodeDiffDecoration | WidgetDiffDecoration;
+
+export type PMSlice = {
+  content?: PMNode[];
+  openStart?: number;
+  openEnd?: number;
+};
+
+export type PMReplaceStep = {
+  stepType: 'replace';
+  from: number;
+  to: number;
+  slice?: PMSlice;
+  structure?: boolean;
+};
+
+type PMMarkRangeStep = {
+  from: number;
+  to: number;
+  mark: PMMark;
+};
+
+export type PMAddMarkStep = PMMarkRangeStep & { stepType: 'addMark' };
+
+export type PMRemoveMarkStep = PMMarkRangeStep & { stepType: 'removeMark' };
+
+export type PMAttrStep = {
+  stepType: 'attr';
+  pos: number;
+  attr: string;
+  value: unknown;
+};
+
+export type PMStep =
+  PMReplaceStep | PMAddMarkStep | PMRemoveMarkStep | PMAttrStep;
