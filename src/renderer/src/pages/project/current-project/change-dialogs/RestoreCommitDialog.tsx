@@ -43,12 +43,12 @@ export const RestoreCommitDialog = ({
     setCommitMessage('');
   };
 
+  const handleCancel = () => {
+    setCommitMessage('');
+    onCancel?.();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // on Escape key press
-    if (onCancel && e.key === 'Escape') {
-      setCommitMessage('');
-      onCancel();
-    }
     // on cmd/ctrl + enter --> submit the commit
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       if (!commitToRestore) return;
@@ -60,9 +60,10 @@ export const RestoreCommitDialog = ({
   return (
     <Modal
       isOpen={isOpen}
+      onClose={handleCancel}
       title={`Restore commit${commitToRestore ? `: "${commitToRestore.message.trimEnd()}"` : ''}`}
       secondaryButton={
-        <Button variant="plain" onClick={onCancel}>
+        <Button variant="plain" onClick={handleCancel}>
           Cancel
         </Button>
       }

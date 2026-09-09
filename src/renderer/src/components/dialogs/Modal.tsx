@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react';
-
 import { IconButton } from '../actions/IconButton';
 import { CloseIcon } from '../icons';
 import {
@@ -25,25 +23,14 @@ type ModalProps = {
 export const Modal = ({
   title,
   description,
-  isOpen: isOpenProp = false,
+  isOpen = false,
   onClose,
   closeButton = false,
   primaryButton,
   secondaryButton,
   children,
 }: ModalProps) => {
-  const [isOpen, setIsOpen] = useState(isOpenProp);
-
-  useEffect(() => {
-    setIsOpen(isOpenProp);
-  }, [isOpenProp]);
-
-  const handleClose = () => {
-    setIsOpen(false);
-    if (onClose) {
-      onClose();
-    }
-  };
+  const handleClose = () => onClose?.();
 
   return (
     <Dialog open={isOpen} onClose={handleClose}>
