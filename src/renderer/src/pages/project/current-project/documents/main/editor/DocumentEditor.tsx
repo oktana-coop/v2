@@ -16,7 +16,8 @@ import { ActionsBar } from './ActionsBar';
 export const DocumentEditor = () => {
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
   const { view: editorView } = useContext(ProseMirrorContext);
-  const { liveDocument, canCommit } = useContext(CurrentDocumentContext);
+  const { liveDocument, canCommit, shareUrl, onOpenShareDocumentDialog } =
+    useContext(CurrentDocumentContext);
   const { openCommitModal } = useContext(CommitModalContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const artifact = useCurrentArtifact();
@@ -35,6 +36,8 @@ export const DocumentEditor = () => {
           isSidebarOpen={isSidebarOpen}
           onSidebarToggle={toggleSidebar}
           onEditorToolbarToggle={handleEditorToolbarToggle}
+          isShared={shareUrl !== null}
+          onShareClick={onOpenShareDocumentDialog}
           canCommit={canCommit}
           onCheckIconClick={openCommitModal}
         />

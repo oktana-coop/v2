@@ -6,7 +6,6 @@ import {
   type ElectronApplication,
   type Page,
 } from '@playwright/test';
-import { type ChildProcess, spawn } from 'child_process';
 import fs from 'fs';
 import net from 'net';
 import os from 'os';
@@ -21,52 +20,11 @@ import {
   openProjectFolder,
   typeInEditorSlowly,
 } from '../shared/helpers';
+import { startSyncServer } from '../shared/sync-server';
 
 type DocumentContent = { formatVersion: number; content: string };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// A local sync service, so the tests exercise the real network path without
-// depending on the public service.
-const startSyncServer = async (): Promise<{
-  url: string;
-  port: number;
-  stop: () => void;
-}> => {
-  const port = 3630 + Math.floor(Math.random() * 1000);
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'v2-e2e-sync-'));
-
-  const server: ChildProcess = spawn(
-    process.execPath,
-    [path.join('node_modules', '.bin', 'automerge-repo-sync-server')],
-    { env: { ...process.env, PORT: String(port), DATA_DIR: dataDir } }
-  );
-
-  await new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(
-      () => reject(new Error('sync server did not start')),
-      10_000
-    );
-    server.stdout?.on('data', (data: Buffer) => {
-      if (data.toString().includes('Listening')) {
-        clearTimeout(timeout);
-        resolve();
-      }
-    });
-    server.on('error', reject);
-  });
-
-  return {
-    url: `ws://127.0.0.1:${port}`,
-    port,
-    stop: () => {
-      server.kill();
-      try {
-        fs.rmSync(dataDir, { recursive: true, force: true });
-      } catch {}
-    },
-  };
-};
 
 // Forwards TCP traffic to the sync server with a delay in both directions,
 // standing in for the round-trip of a hosted sync service. setTimeout with a
@@ -134,11 +92,11 @@ const shareCurrentDocument = async ({
   await shareOption.waitFor({ state: 'visible', timeout: 2_000 });
   await shareOption.click();
 
-  await window.getByRole('button', { name: 'Share document' }).click();
+  await window.getByRole('button', { name: 'Create share ID' }).click();
 
-  const link = window.locator('span.truncate', { hasText: /^automerge:/ });
-  await link.waitFor({ state: 'visible', timeout: 10_000 });
-  const shareUrl = await link.textContent();
+  const shareId = window.getByTestId('share-id');
+  await shareId.waitFor({ state: 'visible', timeout: 10_000 });
+  const shareUrl = await shareId.textContent();
   expect(shareUrl).toMatch(/^automerge:/);
 
   return shareUrl as string;
@@ -165,10 +123,9 @@ const textBeforeCaret = (window: Page) =>
   });
 
 const closeShareDialog = async ({ window }: { window: Page }) => {
-  await window.getByRole('button', { name: 'Done' }).click();
-  await window
-    .getByRole('button', { name: 'Done' })
-    .waitFor({ state: 'hidden', timeout: 5_000 });
+  const close = window.getByRole('button', { name: 'Close' });
+  await close.click();
+  await close.waitFor({ state: 'hidden', timeout: 5_000 });
 };
 
 // Hands the link to the app without waiting for what it makes of it: a link
@@ -188,7 +145,7 @@ const pasteShareLink = async ({
   await joinOption.waitFor({ state: 'visible', timeout: 2_000 });
   await joinOption.click();
 
-  const input = window.getByPlaceholder('Shared document link');
+  const input = window.getByPlaceholder('Share ID');
   await input.fill(shareUrl);
   await input.press('Enter');
 

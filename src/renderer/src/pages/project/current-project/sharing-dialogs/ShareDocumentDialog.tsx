@@ -54,6 +54,8 @@ export const ShareDocumentDialog = ({
   return (
     <Modal
       isOpen={isOpen}
+      onClose={onCancel}
+      closeButton={shareUrl !== null}
       title="Share document"
       secondaryButton={
         shareUrl ? (
@@ -89,6 +91,7 @@ export const ShareDocumentDialog = ({
           <p
             className="cursor-text select-all truncate rounded border border-zinc-950/10 bg-zinc-950/[2.5%] px-3 py-2 font-mono text-sm text-zinc-700 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300"
             title={shareUrl}
+            data-testid="share-id"
           >
             {shareUrl}
           </p>
