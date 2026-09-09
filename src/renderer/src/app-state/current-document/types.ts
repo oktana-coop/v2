@@ -29,7 +29,8 @@ export type CurrentDocumentContextType = {
   onSelectChange: (commitId: ChangeId) => void;
   // The share the open document takes part in, if any.
   shareUrl: ShareUrl | null;
-  onShareDocument: () => Promise<void>;
+  // Resolves to the share url so the caller can act on it right away.
+  onShareDocument: () => Promise<ShareUrl | null>;
   onJoinSharedDocument: (shareUrl: ShareUrl) => Promise<void>;
   onLeaveSharedDocument: () => Promise<void>;
   isShareDocumentDialogOpen: boolean;

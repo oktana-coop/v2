@@ -529,33 +529,36 @@ export const CurrentDocumentProvider = ({
     setIsDiscardChangesDialogOpen(false);
   }, []);
 
-  const handleShareDocument = useCallback(async () => {
-    if (!shareKey || !liveDocument) return;
+  const handleShareDocument =
+    useCallback(async (): Promise<ShareUrl | null> => {
+      if (!shareKey || !liveDocument) return null;
 
-    try {
-      await Effect.runPromise(
-        shareLiveDocument({
-          liveDocument,
-          shareDocument: documentSharing.shareDocument,
-          rememberShare: (url) => rememberShare({ ...shareKey, shareUrl: url }),
-        })({ branch: shareKey.branch, documentId: shareKey.documentId })
-      );
-    } catch (error) {
-      console.error(error);
-      dispatchNotification(
-        createErrorNotification({
-          title: 'Share Document Error',
-          message: 'This document could not be shared.',
-        })
-      );
-    }
-  }, [
-    shareKey,
-    liveDocument,
-    documentSharing,
-    rememberShare,
-    dispatchNotification,
-  ]);
+      try {
+        return await Effect.runPromise(
+          shareLiveDocument({
+            liveDocument,
+            shareDocument: documentSharing.shareDocument,
+            rememberShare: (url) =>
+              rememberShare({ ...shareKey, shareUrl: url }),
+          })({ branch: shareKey.branch, documentId: shareKey.documentId })
+        );
+      } catch (error) {
+        console.error(error);
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Share Document Error',
+            message: 'This document could not be shared.',
+          })
+        );
+        return null;
+      }
+    }, [
+      shareKey,
+      liveDocument,
+      documentSharing,
+      rememberShare,
+      dispatchNotification,
+    ]);
 
   const handleJoinSharedDocument = useCallback(
     async (joinedShareUrl: ShareUrl) => {
