@@ -35,6 +35,7 @@ export const JoinSharedDocumentDialog = ({
   return (
     <Modal
       isOpen={isOpen}
+      onClose={handleCancel}
       title="Join Shared Document"
       secondaryButton={
         <Button variant="plain" onClick={handleCancel}>
