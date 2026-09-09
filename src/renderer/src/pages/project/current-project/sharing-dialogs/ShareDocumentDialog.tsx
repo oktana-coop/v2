@@ -1,4 +1,4 @@
-import { type MouseEventHandler, useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { type ShareUrl } from '../../../../../../modules/domain/project';
 import { Button } from '../../../../components/actions/Button';
@@ -8,7 +8,8 @@ import { CheckIcon, CopyIcon } from '../../../../components/icons';
 export type ShareDocumentDialogProps = {
   isOpen?: boolean;
   shareUrl: ShareUrl | null;
-  onShare: () => Promise<void>;
+  // Resolves to the new share url, or null when sharing did not happen.
+  onShare: () => Promise<ShareUrl | null>;
   onStopSharing: () => Promise<void>;
   onCancel: () => void;
 };
@@ -23,23 +24,27 @@ export const ShareDocumentDialog = ({
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
 
-  const handleShare = useCallback(async () => {
+  const copyLink = useCallback(async (url: ShareUrl) => {
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, []);
+
+  // Creating the share ID is the moment the user wants it, so copy it right away
+  // rather than asking for a second click.
+  const handleCreateLink = useCallback(async () => {
     setSharing(true);
     try {
-      await onShare();
+      const url = await onShare();
+      if (url) await copyLink(url);
     } finally {
       setSharing(false);
     }
-  }, [onShare]);
+  }, [onShare, copyLink]);
 
-  const handleCopyLink: MouseEventHandler<HTMLButtonElement> =
-    useCallback(async () => {
-      if (!shareUrl) return;
-
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }, [shareUrl]);
+  const handleCopyLink = useCallback(async () => {
+    if (shareUrl) await copyLink(shareUrl);
+  }, [shareUrl, copyLink]);
 
   const handleStopSharing = useCallback(async () => {
     await onStopSharing();
@@ -49,7 +54,7 @@ export const ShareDocumentDialog = ({
   return (
     <Modal
       isOpen={isOpen}
-      title="Share Document"
+      title="Share document"
       secondaryButton={
         shareUrl ? (
           <Button variant="plain" onClick={handleStopSharing}>
@@ -63,37 +68,39 @@ export const ShareDocumentDialog = ({
       }
       primaryButton={
         shareUrl ? (
-          <Button onClick={onCancel}>Done</Button>
+          <Button color="purple" onClick={handleCopyLink}>
+            {copied ? (
+              <CheckIcon className="mr-1" />
+            ) : (
+              <CopyIcon className="mr-1" />
+            )}
+            {copied ? 'Copied' : 'Copy share ID'}
+          </Button>
         ) : (
-          <Button onClick={handleShare} disabled={sharing}>
-            Share document
+          <Button color="purple" onClick={handleCreateLink} disabled={sharing}>
+            Create share ID
           </Button>
         )
       }
     >
       {shareUrl ? (
-        <div className="space-y-3">
-          <p>
-            Anyone with this link can edit this document with you, as long as
-            they have the same document open.
+        <div className="space-y-4">
+          <p>Anyone with this share ID can edit this document with you.</p>
+          <p
+            className="cursor-text select-all truncate rounded border border-zinc-950/10 bg-zinc-950/[2.5%] px-3 py-2 font-mono text-sm text-zinc-700 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300"
+            title={shareUrl}
+          >
+            {shareUrl}
           </p>
-          <Button className="w-full" variant="outline" onClick={handleCopyLink}>
-            {copied ? (
-              <CheckIcon className="mr-1 text-green-500 dark:text-green-400" />
-            ) : (
-              <CopyIcon className="mr-1" />
-            )}
-            <span className="truncate">{shareUrl}</span>
-          </Button>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Stop sharing disconnects you. Others keep the shared version.
+          </p>
         </div>
       ) : (
-        <div className="space-y-2">
-          <p className="font-semibold">Edit this document with others</p>
-          <p>
-            Sharing gives you a link to send to whoever you write with. Everyone
-            keeps their own copy of the project, and edits are saved as usual.
-          </p>
-        </div>
+        <p>
+          Create a share ID to edit this document with others. Each person keeps
+          their own copy of the project.
+        </p>
       )}
     </Modal>
   );

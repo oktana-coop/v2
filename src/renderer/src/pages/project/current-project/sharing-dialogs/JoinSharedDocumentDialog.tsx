@@ -42,21 +42,21 @@ export const JoinSharedDocumentDialog = ({
         </Button>
       }
       primaryButton={
-        <Button onClick={handleJoin} disabled={!link.trim()}>
+        <Button color="purple" onClick={handleJoin} disabled={!link.trim()}>
           Join
         </Button>
       }
     >
       <div className="space-y-3">
         <p>
-          Paste the link you were sent. It joins the document you have open, so
-          make sure that is the one the link is for.
+          Paste the share ID you were sent. It opens the shared document in this
+          project.
         </p>
         <Input
           type="text"
           value={link}
           autoFocus
-          placeholder="Shared document link"
+          placeholder="Share ID"
           onChange={(event) => setLink(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter') handleJoin();
