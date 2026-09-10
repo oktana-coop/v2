@@ -8,6 +8,7 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
   {
     versionedDocumentId: null,
     liveDocument: null,
+    onLocalSelectionChange: () => {},
     loadingHistory: false,
     versionedDocumentHistory: [],
     canCommit: false,

@@ -8,6 +8,7 @@ import {
   type DocumentContent,
   initialDocumentContent,
 } from './document-content';
+import { createNullPresence } from './presence';
 
 export type PrivateConvergentDocumentDeps = {
   privateRepo: Effect.Effect<Repo>;
@@ -19,9 +20,11 @@ export const createPrivateConvergentDocument = ({
   initialText,
 }: PrivateConvergentDocumentDeps): Effect.Effect<ConvergentDocument> =>
   pipe(
-    privateRepo,
-    Effect.map((repo) =>
-      repo.create<DocumentContent>(initialDocumentContent(initialText))
-    ),
-    Effect.flatMap((handle) => createConvergentDocument({ handle }))
+    Effect.all({
+      handle: Effect.map(privateRepo, (repo) =>
+        repo.create<DocumentContent>(initialDocumentContent(initialText))
+      ),
+      presence: createNullPresence(),
+    }),
+    Effect.flatMap(createConvergentDocument)
   );

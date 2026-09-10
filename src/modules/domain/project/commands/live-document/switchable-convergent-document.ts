@@ -9,6 +9,7 @@ import {
   ConvergentDocumentChangeError,
   type ConvergentDocumentChangeOptions,
   type ConvergentDocumentError,
+  type LocalPresence,
 } from '../../../../../modules/domain/rich-text';
 import {
   createErrorChannel,
@@ -26,34 +27,46 @@ export type SwitchableConvergentDocumentDeps = {
 };
 
 // Creates a convergent document that can be replaced by another one while presenting
-// itself as a single document throughout: `content` is the same stable ref before
-// and after, so whoever follows it stays bound across a switch. Sharing, joining
-// and leaving are switches.
+// itself as a single document throughout: `content` and `presence.peers` are the
+// same stable refs before and after, so whoever follows them stays bound across a
+// switch. Sharing, joining and leaving are switches.
 export const createSwitchableDocument = ({
   initial,
 }: SwitchableConvergentDocumentDeps): Effect.Effect<SwitchableConvergentDocument> =>
   pipe(
     Effect.all({
-      // Create the stable ref
+      // Create the stable refs
       initialContent: SubscriptionRef.get(initial.content),
+      initialPeers: SubscriptionRef.get(initial.presence.peers),
       errorChannel: createErrorChannel<ConvergentDocumentError>(),
     }),
-    Effect.flatMap(({ initialContent, errorChannel }) =>
+    Effect.flatMap(({ initialContent, initialPeers, errorChannel }) =>
       pipe(
-        SubscriptionRef.make(initialContent),
-        Effect.map((stableContentRef) => {
+        Effect.all({
+          stableContentRef: SubscriptionRef.make(initialContent),
+          stablePeersRef: SubscriptionRef.make(initialPeers),
+        }),
+        Effect.map(({ stableContentRef, stablePeersRef }) => {
           let current = initial;
+          // What we last said about ourselves, said again to whatever
+          // document comes next.
+          let lastPublished: LocalPresence | null = null;
 
           const report = (error: ConvergentDocumentError) => {
             Effect.runSync(PubSub.publish(errorChannel, error));
           };
 
-          // The only writer of the stable content ref: it mirrors whatever document
+          // The only writers of the stable refs: they mirror whatever document
           // is current. `updateEffect` serializes the writes and reads the document
           // while holding the ref, so a late publish cannot land a staler state.
           const publishCurrent = SubscriptionRef.updateEffect(
             stableContentRef,
             () => SubscriptionRef.get(current.content)
+          );
+
+          const publishCurrentPeers = SubscriptionRef.updateEffect(
+            stablePeersRef,
+            () => SubscriptionRef.get(current.presence.peers)
           );
 
           const follow = (document: ConvergentDocument) => {
@@ -70,10 +83,17 @@ export const createSwitchableDocument = ({
                 );
               }
             );
+            const unfollowPeers = subscribeToRefChanges(
+              document.presence.peers,
+              () => {
+                Effect.runFork(publishCurrentPeers);
+              }
+            );
             const unfollowErrors = subscribeToStream(document.errors, report);
 
             return () => {
               unfollowContent();
+              unfollowPeers();
               unfollowErrors();
             };
           };
@@ -91,6 +111,16 @@ export const createSwitchableDocument = ({
               Effect.tap(() => publishCurrent)
             );
 
+          const publishPresence = (state: LocalPresence) =>
+            pipe(
+              Effect.sync(() => {
+                lastPublished = state;
+              }),
+              Effect.zipRight(
+                Effect.suspend(() => current.presence.publish(state))
+              )
+            );
+
           // Runs on the given document from here on. Published even when the
           // text is identical: subscribers must learn the version to derive
           // their next base from.
@@ -106,7 +136,15 @@ export const createSwitchableDocument = ({
                 return previous;
               }),
               Effect.flatMap((previous) => previous.close),
-              Effect.zipRight(publishCurrent)
+              Effect.zipRight(
+                Effect.suspend(() =>
+                  lastPublished === null
+                    ? Effect.void
+                    : next.presence.publish(lastPublished)
+                )
+              ),
+              Effect.zipRight(publishCurrent),
+              Effect.zipRight(publishCurrentPeers)
             );
 
           const close = pipe(
@@ -116,6 +154,7 @@ export const createSwitchableDocument = ({
 
           return {
             content: stableContentRef,
+            presence: { peers: stablePeersRef, publish: publishPresence },
             change,
             errors: Stream.fromPubSub(errorChannel),
             switchTo,

@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 
+import { type Participant } from '../../../../../../../../modules/domain/rich-text';
 import { IconButton } from '../../../../../../components/actions/IconButton';
 import {
   CheckIcon,
@@ -9,12 +10,14 @@ import {
   ToolbarToggleIcon,
   UserAddIcon,
 } from '../../../../../../components/icons';
+import { PresenceAvatars } from '../../../../../../components/user/PresenceAvatars';
 
 export const ActionsBar = ({
   isSidebarOpen,
   onSidebarToggle,
   onEditorToolbarToggle,
   isShared,
+  participants,
   onShareClick,
   canCommit,
   onCheckIconClick,
@@ -23,6 +26,7 @@ export const ActionsBar = ({
   onSidebarToggle: () => void;
   onEditorToolbarToggle: () => void;
   isShared: boolean;
+  participants: Participant[];
   onShareClick: () => void;
   canCommit: boolean;
   onCheckIconClick: () => void;
@@ -63,6 +67,7 @@ export const ActionsBar = ({
         onClick={handleSidebarToggle}
       />
       <div className="flex flex-initial items-center gap-2">
+        <PresenceAvatars participants={participants} />
         <IconButton
           icon={<ToolbarToggleIcon />}
           onClick={handleToolbarToggle}

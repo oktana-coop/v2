@@ -12,6 +12,7 @@ export * from './links';
 export * from './placeholder';
 export * from './search';
 export * from './sync';
+export * from './presence';
 export * from './node-views';
 export * from './code-blocks';
 export * from './horizontal-rule';

@@ -9,7 +9,7 @@ import { pipe } from 'effect/Function';
 import { mapErrorTo } from '../../../../../utils/errors';
 import { ValidationError } from '../../../rich-text';
 import {
-  createConvergentDocument,
+  createSharedConvergentDocument,
   type DocumentContent,
   validateDocumentContent,
 } from '../../../rich-text/adapters/automerge-convergent-document';
@@ -89,7 +89,7 @@ export const createAdapter = ({
   const openSharedDocument = ({ shareUrl }: OpenSharedDocumentArgs) =>
     pipe(
       findValidShare(shareUrl),
-      Effect.flatMap((handle) => createConvergentDocument({ handle }))
+      Effect.flatMap((handle) => createSharedConvergentDocument({ handle }))
     );
 
   const getSharedDocumentIdentity = ({

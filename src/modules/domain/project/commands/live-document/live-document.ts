@@ -7,6 +7,7 @@ import {
   type ConvergentDocumentError,
   type ConvergentDocumentState,
   type ConvergentDocumentVersion,
+  type Presence,
   type RichTextDocument,
 } from '../../../../../modules/domain/rich-text';
 import { type ArtifactId } from '../../../../../modules/infrastructure/version-control';
@@ -22,6 +23,8 @@ export type LiveDocument = {
     doc: RichTextDocument,
     options?: ConvergentDocumentChangeOptions
   ) => Effect.Effect<ConvergentDocumentVersion>;
+  // Who else is at the document, following it through shares and leaves.
+  presence: Omit<Presence, 'close'>;
   // Continues on the shared document behind this link, keeping everything
   // that follows `content` bound to it.
   attachTo: (

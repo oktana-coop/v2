@@ -50,6 +50,7 @@ import { DocumentSharingInfoContext } from '../document-sharing-info';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 import { CurrentDocumentContext } from './context';
 import { useCurrentDocumentId } from './use-current-document-id';
+import { usePublishLocalPresence } from './use-presence';
 import { usePulledUpstreamChanges } from './use-pulled-upstream-changes';
 
 const findSelectedCommitIndex = ({
@@ -89,6 +90,7 @@ export const CurrentDocumentProvider = ({
   const { pulledUpstreamChanges, resetPulledUpstreamChanges } =
     usePulledUpstreamChanges();
   const [liveDocument, setLiveDocument] = useState<LiveDocument | null>(null);
+  const onLocalSelectionChange = usePublishLocalPresence(liveDocument);
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
   const [versionedDocumentHistory, setVersionedDocumentHistory] = useState<
     ChangeWithUrlInfo[]
@@ -659,6 +661,7 @@ export const CurrentDocumentProvider = ({
       value={{
         versionedDocumentId: documentId,
         liveDocument,
+        onLocalSelectionChange,
         loadingHistory,
         versionedDocumentHistory,
         canCommit,

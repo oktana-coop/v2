@@ -6,6 +6,7 @@ import { useCallback, useContext } from 'react';
 import { type LiveDocument } from '../../../../modules/domain/project';
 import {
   LiveSyncFallbackError,
+  type ParticipantSelection,
   prosemirror,
   richTextRepresentations,
 } from '../../../../modules/domain/rich-text';
@@ -14,20 +15,29 @@ import {
   createErrorNotification,
   NotificationsContext,
 } from '../../../../modules/infrastructure/notifications/browser';
+import { getColorClass } from '../user/color';
 import {
   type ContentBinding,
   EditorBase,
   type SharedEditorProps,
 } from './EditorBase';
 
-const { liveSyncPlugin, pmDocFromJSONString } = prosemirror;
+const {
+  liveSyncPlugin,
+  getLiveSyncState,
+  presencePlugin,
+  pmDocFromJSONString,
+} = prosemirror;
 
 export type LiveDocumentEditorProps = SharedEditorProps & {
   liveDocument: LiveDocument;
+  // Where the caret is, for whoever else is at the document.
+  onLocalSelectionChange: (selection: ParticipantSelection | null) => void;
 };
 
 export const LiveDocumentEditor = ({
   liveDocument,
+  onLocalSelectionChange,
   ...shared
 }: LiveDocumentEditorProps) => {
   const { convertToProseMirror, proseMirrorSteps } =
@@ -79,10 +89,22 @@ export const LiveDocumentEditor = ({
         onError: handleLiveSyncError,
       });
 
-      return { pmDoc, sourceDoc: initial.doc, syncPlugin };
+      const presence = presencePlugin({
+        peers: liveDocument.presence.peers,
+        readSyncState: getLiveSyncState,
+        publish: onLocalSelectionChange,
+        colorClassFor: (participant) => getColorClass(participant.name),
+      });
+
+      return {
+        pmDoc,
+        sourceDoc: initial.doc,
+        syncPlugin,
+        presencePlugin: presence,
+      };
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [liveDocument]
+    [liveDocument, onLocalSelectionChange]
   );
 
   return <EditorBase bindContent={bindContent} {...shared} />;

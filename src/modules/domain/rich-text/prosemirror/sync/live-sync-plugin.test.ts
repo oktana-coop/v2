@@ -23,6 +23,7 @@ import {
 import {
   CURRENT_SCHEMA_VERSION,
   PRIMARY_RICH_TEXT_REPRESENTATION,
+  type RemotePresence,
   type RichTextDocument,
   richTextRepresentations,
 } from '../../models';
@@ -34,7 +35,17 @@ import {
 import { pmDocFromJSONString } from '../json';
 import { schema } from '../schema';
 import { textSlice } from '../test-utils';
-import { liveSyncPlugin, type LiveSyncPluginArgs } from './live-sync-plugin';
+import {
+  getLiveSyncState,
+  liveSyncPlugin,
+  type LiveSyncPluginArgs,
+} from './live-sync-plugin';
+
+// Nobody else is at these documents.
+const noPresence: Effect.Effect<ConvergentDocument['presence']> = pipe(
+  SubscriptionRef.make<ReadonlyArray<RemotePresence>>([]),
+  Effect.map((peers) => ({ peers, publish: () => Effect.void }))
+);
 
 const markdownDocument = (content: string): RichTextDocument => ({
   schemaVersion: CURRENT_SCHEMA_VERSION,
@@ -121,11 +132,14 @@ const createConvergentDocumentInMemory = (
 ): Promise<ConvergentDocument> =>
   Effect.runPromise(
     pipe(
-      SubscriptionRef.make<ConvergentDocumentState>({
-        doc: markdownDocument(initialText),
-        version: '0',
+      Effect.all({
+        content: SubscriptionRef.make<ConvergentDocumentState>({
+          doc: markdownDocument(initialText),
+          version: '0',
+        }),
+        presence: noPresence,
       }),
-      Effect.map((content) => {
+      Effect.map(({ content, presence }) => {
         const change = (text: string) =>
           pipe(
             SubscriptionRef.get(content),
@@ -143,12 +157,22 @@ const createConvergentDocumentInMemory = (
             )
           );
 
-        return { content, change, errors: Stream.empty, close: Effect.void };
+        return {
+          content,
+          change,
+          presence,
+          errors: Stream.empty,
+          close: Effect.void,
+        };
       })
     )
   );
 
 const views: EditorView[] = [];
+
+// The plugin also dispatches to record versions; only edits touch the doc.
+const editsIn = (transactions: Transaction[]) =>
+  transactions.filter((tr) => tr.docChanged);
 
 const setup = async ({
   initialText = 'hello',
@@ -265,13 +289,13 @@ describe('liveSyncPlugin', () => {
     // The incoming state is converting; a keystroke lands meanwhile.
     await new Promise((resolve) => setTimeout(resolve, 10));
     view.dispatch(view.state.tr.insertText('!', 6));
-    const dispatchedAfterTyping = dispatched.length;
+    const editsAfterTyping = editsIn(dispatched).length;
 
     // The lagging state is dropped, never applied-then-healed: the editor
-    // must not dispatch at all, and the keystroke must survive throughout.
+    // must not edit at all, and the keystroke must survive throughout.
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(view.state.doc.textContent).toContain('!');
-    expect(dispatched).toHaveLength(dispatchedAfterTyping);
+    expect(editsIn(dispatched)).toHaveLength(editsAfterTyping);
   });
 
   it('holds incoming changes while an own contribution is in flight', async () => {
@@ -291,6 +315,7 @@ describe('liveSyncPlugin', () => {
               resolveContribution = () => resolve('1');
             })
         ),
+      presence: await Effect.runPromise(noPresence),
       errors: Stream.empty,
       close: Effect.void,
     };
@@ -348,6 +373,7 @@ describe('liveSyncPlugin', () => {
           Effect.as(version)
         );
       },
+      presence: await Effect.runPromise(noPresence),
       errors: Stream.empty,
       close: Effect.void,
     };
@@ -358,13 +384,13 @@ describe('liveSyncPlugin', () => {
 
     view.dispatch(view.state.tr.insertText('!', 6));
     const typed = view.state.doc.textContent;
-    const dispatchedAfterTyping = dispatched.length;
+    const editsAfterTyping = editsIn(dispatched).length;
 
     // Give the echo its chance to arrive, then assert it changed nothing.
     await new Promise((resolve) => setTimeout(resolve, 30));
 
     expect(view.state.doc.textContent).toBe(typed);
-    expect(dispatched).toHaveLength(dispatchedAfterTyping);
+    expect(editsIn(dispatched)).toHaveLength(editsAfterTyping);
   });
 
   it('anchors local edits at the version shown in the editor', async () => {
@@ -579,5 +605,78 @@ describe('liveSyncPlugin', () => {
     expect(
       reportedFallbackMessage({ onError, reason: 'steps-failed' })
     ).toContain('Cannot emit steps: table');
+  });
+
+  describe('what it shows of the live document', () => {
+    it('starts at the initial version with no local edits pending', async () => {
+      const { view } = await setup();
+
+      expect(getLiveSyncState(view.state)).toEqual({
+        baseVersion: '0',
+        hasPendingLocalEdits: false,
+      });
+    });
+
+    it('has a local edit pending until its version comes back', async () => {
+      let resolveContribution: (() => void) | undefined;
+      const content = await Effect.runPromise(
+        SubscriptionRef.make<ConvergentDocumentState>({
+          doc: markdownDocument('hello'),
+          version: '0',
+        })
+      );
+      const liveDocument: ConvergentDocument = {
+        content,
+        change: () =>
+          Effect.promise(
+            () =>
+              new Promise<string>((resolve) => {
+                resolveContribution = () => resolve('1');
+              })
+          ),
+        presence: await Effect.runPromise(noPresence),
+        errors: Stream.empty,
+        close: Effect.void,
+      };
+      const { view } = await setup({
+        createConvergentDocument: () => Promise.resolve(liveDocument),
+      });
+
+      view.dispatch(view.state.tr.insertText('!', 6));
+      expect(getLiveSyncState(view.state)).toEqual({
+        baseVersion: '0',
+        hasPendingLocalEdits: true,
+      });
+
+      resolveContribution?.();
+      await eventually(() =>
+        expect(getLiveSyncState(view.state)).toEqual({
+          baseVersion: '1',
+          hasPendingLocalEdits: false,
+        })
+      );
+    });
+
+    it('shows the version of an incoming state once applied', async () => {
+      const { liveDocument, view } = await setup();
+
+      const version = await Effect.runPromise(
+        liveDocument.change('hello from a peer')
+      );
+
+      await eventually(() =>
+        expect(getLiveSyncState(view.state).baseVersion).toBe(version)
+      );
+    });
+
+    it('has no local edit pending after a selection change', async () => {
+      const { view } = await setup();
+
+      view.dispatch(
+        view.state.tr.setSelection(TextSelection.create(view.state.doc, 3))
+      );
+
+      expect(getLiveSyncState(view.state).hasPendingLocalEdits).toBe(false);
+    });
   });
 });
