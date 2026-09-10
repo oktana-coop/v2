@@ -23,6 +23,7 @@ export {
   CurrentDocumentProvider,
   useCurrentDocumentId,
   useExport,
+  useRemotePresence,
 } from './current-document';
 
 export {

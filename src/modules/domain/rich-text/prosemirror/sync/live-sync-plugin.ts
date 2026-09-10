@@ -3,7 +3,12 @@ import * as Either from 'effect/Either';
 import { pipe } from 'effect/Function';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { type Node, type Schema } from 'prosemirror-model';
-import { Plugin, PluginKey, type Transaction } from 'prosemirror-state';
+import {
+  type EditorState,
+  Plugin,
+  PluginKey,
+  type Transaction,
+} from 'prosemirror-state';
 import { type Step } from 'prosemirror-transform';
 
 import { forEachLatestRefChange } from '../../../../../utils/effect';
@@ -15,11 +20,14 @@ import {
   type RichTextLibError,
   WebEditorError,
 } from '../../errors';
-import { type RichTextDocument, richTextRepresentations } from '../../models';
+import {
+  type ConvergentDocumentVersion,
+  type RichTextDocument,
+  richTextRepresentations,
+} from '../../models';
 import {
   type ConvergentDocumentChangeOptions,
   type ConvergentDocumentState,
-  type ConvergentDocumentVersion,
 } from '../../ports/convergent-document';
 import { type ProseMirrorStepsResult } from '../../ports/diff-patch';
 import { pmDocToJSONString } from '../json';
@@ -29,7 +37,22 @@ import {
 } from '../trailing-paragraph';
 import { coarseDiffReplace, patch } from './patching';
 
-const pluginKey = new PluginKey('pm-live-sync');
+const pluginKey = new PluginKey<LiveSyncState>('pm-live-sync');
+
+// What the editor shows of the live document, so that other plugins can read it.
+export type LiveSyncState = {
+  // The version the editor's document is built on.
+  baseVersion: ConvergentDocumentVersion;
+  // Whether local edits are still on their way to the live document, in
+  // which case the editor's document is ahead of that version.
+  hasPendingLocalEdits: boolean;
+};
+
+// After this transaction, the editor shows this version.
+type LiveSyncMeta = { version: ConvergentDocumentVersion };
+
+export const getLiveSyncState = (state: EditorState): LiveSyncState =>
+  pluginKey.getState(state) as LiveSyncState;
 
 export type LiveSyncPluginArgs = {
   content: SubscriptionRef.SubscriptionRef<ConvergentDocumentState>;
@@ -69,14 +92,31 @@ export const liveSyncPlugin = ({
   convertToProseMirror,
   onError,
 }: LiveSyncPluginArgs) =>
-  new Plugin({
+  new Plugin<LiveSyncState>({
     key: pluginKey,
+    state: {
+      init: () => ({
+        baseVersion: initialVersion,
+        hasPendingLocalEdits: false,
+      }),
+      // A transaction that brings a version brings the editor to it; a local
+      // edit is pending until its version comes back.
+      apply(tr, current, oldState, newState) {
+        const meta: LiveSyncMeta | undefined = tr.getMeta(pluginKey);
+
+        if (meta !== undefined)
+          return { baseVersion: meta.version, hasPendingLocalEdits: false };
+
+        return newState.doc.eq(oldState.doc)
+          ? current
+          : { ...current, hasPendingLocalEdits: true };
+      },
+    },
     view(view) {
-      // The version currently shown in the editor.
-      let editorDocVersion = initialVersion;
       let applyingIncoming = false;
-      // A published state can lag typing still in flight; a diff cannot
-      // tell that apart from a remote deletion.
+      // Local changes whose versions have not come back yet. A published
+      // state can lag such typing; a diff cannot tell that apart from a
+      // remote deletion.
       let contributionsInFlight = 0;
 
       // The trailing paragraph is the editor's own and ends the doc, so
@@ -120,9 +160,15 @@ export const liveSyncPlugin = ({
           )
         );
 
-      const dispatchIncoming = (tr: Transaction) => {
+      const dispatchIncoming = ({
+        tr,
+        version,
+      }: {
+        tr: Transaction;
+        version: ConvergentDocumentVersion;
+      }) => {
         tr.setMeta('addToHistory', false);
-        tr.setMeta(pluginKey, { incoming: true });
+        tr.setMeta(pluginKey, { version });
 
         applyingIncoming = true;
         try {
@@ -175,16 +221,27 @@ export const liveSyncPlugin = ({
         );
       };
 
-      const applyToView = (incoming: IncomingUpdate) => {
+      const applyToView = ({
+        incoming,
+        version,
+      }: {
+        incoming: IncomingUpdate;
+        version: ConvergentDocumentVersion;
+      }) => {
         // The editor keeps a trailing paragraph the primary
         // representation cannot express.
         const target = ensureTrailingParagraphInDoc({
           doc: incoming.pmDocAfter,
           schema,
         });
-        if (target.eq(view.state.doc)) return;
 
-        dispatchIncoming(transactionTo({ target, incoming }));
+        // A state the editor already shows still names a version to adopt.
+        dispatchIncoming({
+          tr: target.eq(view.state.doc)
+            ? view.state.tr
+            : transactionTo({ target, incoming }),
+          version,
+        });
       };
 
       const isStale = ({
@@ -195,7 +252,7 @@ export const liveSyncPlugin = ({
         latest: ConvergentDocumentState;
       }) =>
         // The editor already shows this version;
-        change.version === editorDocVersion ||
+        change.version === getLiveSyncState(view.state).baseVersion ||
         // Typing that has not reached the document yet. Dropping is safe:
         // the resolving contribution publishes a superseding state that
         // carries it.
@@ -209,7 +266,7 @@ export const liveSyncPlugin = ({
       // to ProseMirror then skips it when it already matches what's shown.
       const applyChange = (change: ConvergentDocumentState) =>
         pipe(
-          change.version === editorDocVersion
+          change.version === getLiveSyncState(view.state).baseVersion
             ? Effect.void
             : pipe(
                 toIncomingUpdate(change.doc),
@@ -223,8 +280,10 @@ export const liveSyncPlugin = ({
                         ? Effect.void
                         : Effect.try({
                             try: () => {
-                              applyToView(incomingUpdate);
-                              editorDocVersion = change.version;
+                              applyToView({
+                                incoming: incomingUpdate,
+                                version: change.version,
+                              });
                             },
                             catch: mapErrorTo(
                               WebEditorError,
@@ -255,17 +314,24 @@ export const liveSyncPlugin = ({
 
           contributionsInFlight += 1;
 
-          // `onChange` resolution is not awaited, therefore the version it
-          // resolves with is recorded as `editorDocVersion` whenever it
-          // completes. This helps the editor detect when a regular change is
-          // an echo of local typing.
-          Effect.runPromise(onChange(doc, { base: editorDocVersion }))
-            .then((version) => {
-              editorDocVersion = version;
-            })
-            .finally(() => {
+          // `onChange` resolution is not awaited because `update` is synchronous.
+          // When it resolves, the plugin dispatches a transaction with meta,
+          // updating the now settled version. This lets the editor detect when a
+          // regular change is an echo of local typing, and other plugins learn
+          // about this fact.
+          Effect.runPromise(
+            onChange(doc, { base: getLiveSyncState(view.state).baseVersion })
+          ).then(
+            (version) => {
               contributionsInFlight -= 1;
-            });
+              if (view.isDestroyed || contributionsInFlight > 0) return;
+              view.dispatch(view.state.tr.setMeta(pluginKey, { version }));
+            },
+            (error) => {
+              contributionsInFlight -= 1;
+              onError(error);
+            }
+          );
         },
         destroy() {
           unsubscribe();

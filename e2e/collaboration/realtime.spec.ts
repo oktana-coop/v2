@@ -571,6 +571,109 @@ test.describe('realtime collaboration', () => {
     }
   });
 
+  test('peers see each other in the actions bar while sharing', async ({
+    electronApp,
+    window,
+    testProjectDir: aliceProject,
+  }) => {
+    test.setTimeout(120_000);
+
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: aliceProject,
+    });
+    await openHelloMd({ window });
+
+    const shareUrl = await shareCurrentDocument({ window });
+    await closeShareDialog({ window });
+
+    const aliceAvatars = window.getByTestId('presence-avatar');
+    await expect(aliceAvatars).toHaveCount(0);
+
+    const bob = await launchPeerApp();
+    try {
+      await bob.window.evaluate((url) => {
+        localStorage.setItem('syncServiceUrl', url);
+      }, syncServer.url);
+
+      await openProjectFolder({
+        electronApp: bob.app,
+        window: bob.window,
+        folderPath: bob.projectDir,
+      });
+      await openHelloMd({ window: bob.window });
+      await joinSharedDocument({ window: bob.window, shareUrl });
+
+      await expect(aliceAvatars).toHaveCount(1, { timeout: 20_000 });
+      await expect(bob.window.getByTestId('presence-avatar')).toHaveCount(1, {
+        timeout: 20_000,
+      });
+    } finally {
+      await bob.close();
+    }
+
+    await expect(aliceAvatars).toHaveCount(0, { timeout: 20_000 });
+  });
+
+  test('a typing peer shows a caret after their text at the other peer', async ({
+    electronApp,
+    window,
+    testProjectDir: aliceProject,
+  }) => {
+    test.setTimeout(120_000);
+
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: aliceProject,
+    });
+    await openHelloMd({ window });
+
+    const shareUrl = await shareCurrentDocument({ window });
+    await closeShareDialog({ window });
+
+    const bob = await launchPeerApp();
+    try {
+      await bob.window.evaluate((url) => {
+        localStorage.setItem('syncServiceUrl', url);
+      }, syncServer.url);
+
+      await openProjectFolder({
+        electronApp: bob.app,
+        window: bob.window,
+        folderPath: bob.projectDir,
+      });
+      await openHelloMd({ window: bob.window });
+      await joinSharedDocument({ window: bob.window, shareUrl });
+
+      const typed = 'presence';
+      await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
+
+      const bobEditor = bob.window.locator('.ProseMirror');
+      await expect(bobEditor).toContainText(typed, { timeout: 20_000 });
+
+      const aliceCaretAtBob = bob.window.getByTestId('presence-caret');
+      await expect(aliceCaretAtBob).toHaveCount(1, { timeout: 20_000 });
+
+      // The caret sits right after the typed text once everything settles.
+      await expect
+        .poll(
+          () =>
+            bob.window.evaluate(() => {
+              const caret = document.querySelector(
+                '[data-testid="presence-caret"]'
+              );
+              return caret?.previousSibling?.textContent ?? '';
+            }),
+          { timeout: 20_000 }
+        )
+        .toMatch(new RegExp(`${typed}$`));
+    } finally {
+      await bob.close();
+    }
+  });
+
   test('two app instances on the same folder converge without re-writing tokens', async ({
     electronApp,
     window,

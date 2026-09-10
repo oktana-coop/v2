@@ -6,9 +6,12 @@ import {
   type ConvergentDocumentChangeError,
   type ConvergentDocumentUnavailableError,
 } from '../errors';
-import { type RichTextDocument } from '../models';
-
-export type ConvergentDocumentVersion = string;
+import {
+  type ConvergentDocumentVersion,
+  type LocalPresence,
+  type RemotePresence,
+  type RichTextDocument,
+} from '../models';
 
 export type ConvergentDocumentState = {
   doc: RichTextDocument;
@@ -27,12 +30,20 @@ export type ConvergentDocumentChangeOptions = {
 export type ConvergentDocumentError =
   ConvergentDocumentChangeError | ConvergentDocumentUnavailableError;
 
+export type Presence = {
+  peers: SubscriptionRef.SubscriptionRef<ReadonlyArray<RemotePresence>>;
+  publish: (state: LocalPresence) => Effect.Effect<void>;
+  close: Effect.Effect<void>;
+};
+
 export type ConvergentDocument = {
   content: SubscriptionRef.SubscriptionRef<ConvergentDocumentState>;
   change: (
     content: string,
     options?: ConvergentDocumentChangeOptions
   ) => Effect.Effect<ConvergentDocumentVersion>;
+  // Who else is at the document right now.
+  presence: Omit<Presence, 'close'>;
   errors: Stream.Stream<ConvergentDocumentError>;
   close: Effect.Effect<void>;
 };

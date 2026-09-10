@@ -2,6 +2,7 @@ import {
   type LiveDocument,
   type ShareUrl,
 } from '../../../../modules/domain/project';
+import { type ParticipantSelection } from '../../../../modules/domain/rich-text';
 import {
   type ArtifactId,
   type ChangeId,
@@ -12,6 +13,8 @@ import {
 export type CurrentDocumentContextType = {
   versionedDocumentId: ArtifactId | null;
   liveDocument: LiveDocument | null;
+  // Where we are in the open document, for whoever else is at it.
+  onLocalSelectionChange: (selection: ParticipantSelection | null) => void;
   loadingHistory: boolean;
   versionedDocumentHistory: ChangeWithUrlInfo[];
   canCommit: boolean;

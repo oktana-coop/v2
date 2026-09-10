@@ -345,6 +345,7 @@ export const createLiveDocument =
                 documentId,
                 content: convergentDocument.content,
                 change,
+                presence: convergentDocument.presence,
                 attachTo,
                 detach,
                 flush,

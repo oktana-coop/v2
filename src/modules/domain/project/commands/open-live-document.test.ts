@@ -12,6 +12,7 @@ import {
   ConvergentDocumentUnavailableError,
   CURRENT_SCHEMA_VERSION,
   PRIMARY_RICH_TEXT_REPRESENTATION,
+  type RemotePresence,
   type ResolvedDocument,
   type RichTextDocument,
 } from '../../../../modules/domain/rich-text';
@@ -70,9 +71,13 @@ const createFakeConvergentDocument = async (initialText: string) => {
   };
 
   let closed = false;
+  const peers = await Effect.runPromise(
+    SubscriptionRef.make<ReadonlyArray<RemotePresence>>([])
+  );
 
   const document: ConvergentDocument = {
     content,
+    presence: { peers, publish: () => Effect.void },
     change: (text, options) =>
       pipe(
         SubscriptionRef.get(content),

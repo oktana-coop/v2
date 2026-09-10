@@ -13,6 +13,7 @@ import {
   ConvergentDocumentUnavailableError,
 } from '../../errors';
 import {
+  type ConvergentDocumentVersion,
   CURRENT_SCHEMA_VERSION,
   PRIMARY_RICH_TEXT_REPRESENTATION,
 } from '../../models';
@@ -21,12 +22,13 @@ import {
   type ConvergentDocumentChangeOptions,
   type ConvergentDocumentError,
   type ConvergentDocumentState,
-  type ConvergentDocumentVersion,
+  type Presence,
 } from '../../ports/convergent-document';
 import { type DocumentContent } from './document-content';
 
 export type AutomergeConvergentDocumentDeps = {
   handle: DocHandle<DocumentContent>;
+  presence: Presence;
 };
 
 // Automerge identifies a state by its heads; sorting makes the encoding
@@ -39,6 +41,7 @@ const decodeVersion = (version: ConvergentDocumentVersion): UrlHeads =>
 
 export const createConvergentDocument = ({
   handle,
+  presence,
 }: AutomergeConvergentDocumentDeps): Effect.Effect<ConvergentDocument> =>
   pipe(
     Effect.all({
@@ -167,11 +170,17 @@ export const createConvergentDocument = ({
       handle.on('change', handleDocChange);
       handle.on('delete', handleDocDelete);
 
+      const close = pipe(
+        Effect.sync(stopListening),
+        Effect.zipRight(presence.close)
+      );
+
       return {
         content,
         change,
+        presence: { peers: presence.peers, publish: presence.publish },
         errors: Stream.fromPubSub(errorChannel),
-        close: Effect.sync(stopListening),
+        close,
       };
     })
   );

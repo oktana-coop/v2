@@ -15,6 +15,7 @@ import {
   DOCUMENT_FORMAT_VERSION,
   type DocumentContent,
 } from './document-content';
+import { createNullPresence } from './presence';
 
 const seed = (content: string): DocumentContent => ({
   formatVersion: DOCUMENT_FORMAT_VERSION,
@@ -25,7 +26,10 @@ const open = async (initialText: string) => {
   const repo = new Repo({ network: [] });
   const handle = repo.create<DocumentContent>(seed(initialText));
 
-  const live = await Effect.runPromise(createConvergentDocument({ handle }));
+  const presence = await Effect.runPromise(createNullPresence());
+  const live = await Effect.runPromise(
+    createConvergentDocument({ handle, presence })
+  );
 
   const reported: ConvergentDocumentError[] = [];
   subscribeToStream(live.errors, (error) => {
