@@ -10,7 +10,10 @@ import {
 import { type LiveDocument } from './live-document';
 
 export type ShareLiveDocumentDeps = {
-  liveDocument: Pick<LiveDocument, 'content' | 'attachTo'>;
+  liveDocument: Pick<
+    LiveDocument,
+    'content' | 'attachTo' | 'applyPendingLocalEdits'
+  >;
   shareDocument: DocumentSharing['shareDocument'];
   rememberShare: (shareUrl: ShareUrl) => void;
 };
@@ -26,7 +29,8 @@ export const shareLiveDocument =
     documentId,
   }: ShareLiveDocumentArgs): Effect.Effect<ShareUrl, unknown> =>
     pipe(
-      SubscriptionRef.get(liveDocument.content),
+      liveDocument.applyPendingLocalEdits,
+      Effect.zipRight(SubscriptionRef.get(liveDocument.content)),
       Effect.flatMap((current) =>
         shareDocument({ content: current.doc.content, branch, documentId })
       ),

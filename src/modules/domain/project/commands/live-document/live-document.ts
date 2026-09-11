@@ -23,6 +23,9 @@ export type LiveDocument = {
     doc: RichTextDocument,
     options?: ConvergentDocumentChangeOptions
   ) => Effect.Effect<ConvergentDocumentVersion>;
+  // Contributes the editor's edits still on their way to the document now,
+  // without waiting for the pause that normally contributes them.
+  applyPendingLocalEdits: Effect.Effect<void>;
   // Who else is at the document, following it through shares and leaves.
   presence: Omit<Presence, 'close'>;
   // Continues on the shared document behind this link, keeping everything
