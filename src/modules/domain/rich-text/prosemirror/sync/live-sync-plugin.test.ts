@@ -393,6 +393,65 @@ describe('liveSyncPlugin', () => {
     expect(editsIn(dispatched)).toHaveLength(editsAfterTyping);
   });
 
+  // The echo is published before the contribution resolves with its version,
+  // so telling the two apart means waiting for the version, not converting.
+  it('does not compute steps for its own echo', async () => {
+    const proseMirrorSteps = vi.fn(stepsTo);
+    const { view } = await setup({ proseMirrorSteps });
+
+    view.dispatch(view.state.tr.insertText('!', 6));
+
+    // Give the echo its chance to arrive.
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    expect(proseMirrorSteps).not.toHaveBeenCalled();
+  });
+
+  it('applies a state that arrived during a contribution once the contribution resolves', async () => {
+    let resolveContribution: (() => void) | undefined;
+    const content = await Effect.runPromise(
+      SubscriptionRef.make<ConvergentDocumentState>({
+        doc: markdownDocument('hello'),
+        version: '0',
+      })
+    );
+    const liveDocument: ConvergentDocument = {
+      content,
+      // Resolves with the version it was anchored at and publishes nothing,
+      // as a contribution that changes nothing does.
+      change: () =>
+        Effect.promise(
+          () =>
+            new Promise<string>((resolve) => {
+              resolveContribution = () => resolve('0');
+            })
+        ),
+      presence: await Effect.runPromise(noPresence),
+      errors: Stream.empty,
+      close: Effect.void,
+    };
+
+    const { view } = await setup({
+      createConvergentDocument: () => Promise.resolve(liveDocument),
+    });
+
+    view.dispatch(view.state.tr.insertText('!', 6));
+    await Effect.runPromise(
+      SubscriptionRef.set(content, {
+        doc: markdownDocument('from a peer'),
+        version: 'r1',
+      })
+    );
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(view.state.doc.textContent).toBe('hello!');
+
+    resolveContribution?.();
+
+    await eventually(() =>
+      expect(view.state.doc.textContent).toBe('from a peer')
+    );
+  });
+
   it('anchors local edits at the version shown in the editor', async () => {
     const { liveDocument, view, changeCalls } = await setup();
 
@@ -627,12 +686,21 @@ describe('liveSyncPlugin', () => {
       );
       const liveDocument: ConvergentDocument = {
         content,
-        change: () =>
-          Effect.promise(
-            () =>
-              new Promise<string>((resolve) => {
-                resolveContribution = () => resolve('1');
+        // Publishes before resolving, as the port contract requires.
+        change: (text) =>
+          pipe(
+            Effect.promise(
+              () =>
+                new Promise<string>((resolve) => {
+                  resolveContribution = () => resolve('1');
+                })
+            ),
+            Effect.tap((version) =>
+              SubscriptionRef.set(content, {
+                doc: markdownDocument(text),
+                version,
               })
+            )
           ),
         presence: await Effect.runPromise(noPresence),
         errors: Stream.empty,

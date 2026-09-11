@@ -57,3 +57,8 @@ export const forEachLatestRefChange = <A>(
     Effect.runFork(Fiber.interrupt(fiber));
   };
 };
+
+export const runOnLatestRefChange = <A>(
+  ref: SubscriptionRef.SubscriptionRef<A>,
+  effect: Effect.Effect<unknown>
+): Unsubscribe => forEachLatestRefChange(ref, () => effect);

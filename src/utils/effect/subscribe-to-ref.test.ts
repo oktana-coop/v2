@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   forEachLatestRefChange,
+  runOnLatestRefChange,
   subscribeToRef,
   subscribeToRefChanges,
 } from './subscribe-to-ref';
@@ -137,6 +138,66 @@ describe('forEachLatestRefChange', () => {
     // dropped rather than handled one-by-one.
     await vi.waitFor(() => expect(handled[handled.length - 1]).toBe(5));
     expect(handled.length).toBeLessThanOrEqual(2);
+
+    unsubscribe();
+  });
+});
+
+describe('runOnLatestRefChange', () => {
+  it('runs for the current value, runs per change, and stops on unsubscribe', async () => {
+    const ref = await Effect.runPromise(SubscriptionRef.make('initial'));
+
+    const seen: string[] = [];
+    const unsubscribe = runOnLatestRefChange(
+      ref,
+      pipe(
+        SubscriptionRef.get(ref),
+        Effect.map((value) => {
+          seen.push(value);
+        })
+      )
+    );
+
+    await vi.waitFor(() => expect(seen).toEqual(['initial']));
+
+    await Effect.runPromise(SubscriptionRef.set(ref, 'updated'));
+    await vi.waitFor(() => expect(seen).toEqual(['initial', 'updated']));
+
+    unsubscribe();
+    await Effect.runPromise(SubscriptionRef.set(ref, 'after unsubscribe'));
+
+    // A run must NOT happen after unsubscribe; give any stray one a chance,
+    // then assert it didn't.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(seen).toEqual(['initial', 'updated']);
+  });
+
+  it('collapses a burst into one run that sees the newest value', async () => {
+    const ref = await Effect.runPromise(SubscriptionRef.make(0));
+
+    // A slow run lets later changes pile up while it is in flight; the run
+    // reads the ref only at its end.
+    const seen: number[] = [];
+    const unsubscribe = runOnLatestRefChange(
+      ref,
+      pipe(
+        Effect.sleep('30 millis'),
+        Effect.flatMap(() => SubscriptionRef.get(ref)),
+        Effect.map((value) => {
+          seen.push(value);
+        })
+      )
+    );
+
+    for (const n of [1, 2, 3, 4, 5]) {
+      await Effect.runPromise(SubscriptionRef.set(ref, n));
+    }
+
+    // Every run sees the newest value, and the intermediates never got a run
+    // of their own.
+    await vi.waitFor(() => expect(seen[seen.length - 1]).toBe(5));
+    expect(seen.every((value) => value === 5)).toBe(true);
+    expect(seen.length).toBeLessThanOrEqual(2);
 
     unsubscribe();
   });
