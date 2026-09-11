@@ -1,6 +1,7 @@
 import * as Effect from 'effect/Effect';
 import * as Either from 'effect/Either';
 import { pipe } from 'effect/Function';
+import * as Stream from 'effect/Stream';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { type Node, type Schema } from 'prosemirror-model';
 import {
@@ -11,7 +12,7 @@ import {
 } from 'prosemirror-state';
 import { type Step } from 'prosemirror-transform';
 
-import { forEachLatestRefChange } from '../../../../../utils/effect';
+import { runOnLatestRefChange } from '../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../utils/errors';
 import {
   LiveSyncFallbackError,
@@ -100,7 +101,7 @@ export const liveSyncPlugin = ({
         hasPendingLocalEdits: false,
       }),
       // A transaction that brings a version brings the editor to it; a local
-      // edit is pending until its version comes back.
+      // edit is pending until the document resolves it with one.
       apply(tr, current, oldState, newState) {
         const meta: LiveSyncMeta | undefined = tr.getMeta(pluginKey);
 
@@ -114,14 +115,42 @@ export const liveSyncPlugin = ({
     },
     view(view) {
       let applyingIncoming = false;
-      // Local changes whose versions have not come back yet. A published
-      // state can lag such typing; a diff cannot tell that apart from a
-      // remote deletion.
-      let contributionsInFlight = 0;
+
+      // Local edits handed to the document, not yet resolved with a version.
+      const contributionsInFlight = Effect.runSync(SubscriptionRef.make(0));
+
+      // Resolves once no contribution is in flight, right away when none is.
+      const whenNoContributionInFlight: Effect.Effect<void> = pipe(
+        contributionsInFlight.changes,
+        Stream.filter((count) => count === 0),
+        Stream.runHead,
+        Effect.asVoid
+      );
+
+      const markContributionAsResolved = (
+        version?: ConvergentDocumentVersion
+      ) => {
+        const remainingInFlight =
+          Effect.runSync(SubscriptionRef.get(contributionsInFlight)) - 1;
+
+        if (
+          remainingInFlight === 0 &&
+          version !== undefined &&
+          !view.isDestroyed
+        ) {
+          view.dispatch(view.state.tr.setMeta(pluginKey, { version }));
+        }
+
+        Effect.runSync(
+          SubscriptionRef.set(contributionsInFlight, remainingInFlight)
+        );
+      };
 
       // The trailing paragraph is the editor's own and ends the doc, so
       // steps computed without it hold on the live doc as well.
-      const stepsTo = (doc: RichTextDocument) =>
+      const stepsTo = (
+        doc: RichTextDocument
+      ): Effect.Effect<ProseMirrorStepsResult, PatchError | RichTextLibError> =>
         proseMirrorSteps({
           pmDocBefore: stripTrailingParagraphFromDoc({
             doc: view.state.doc,
@@ -130,7 +159,9 @@ export const liveSyncPlugin = ({
           docAfter: doc,
         });
 
-      const toProseMirror = (doc: RichTextDocument) =>
+      const toProseMirror = (
+        doc: RichTextDocument
+      ): Effect.Effect<Node, RepresentationTransformError> =>
         Effect.tryPromise({
           try: () => convertToProseMirror(doc),
           catch: mapErrorTo(
@@ -244,61 +275,71 @@ export const liveSyncPlugin = ({
         });
       };
 
-      const isStale = ({
-        change,
-        latest,
-      }: {
-        change: ConvergentDocumentState;
-        latest: ConvergentDocumentState;
-      }) =>
-        // The editor already shows this version;
-        change.version === getLiveSyncState(view.state).baseVersion ||
-        // Typing that has not reached the document yet. Dropping is safe:
-        // the resolving contribution publishes a superseding state that
-        // carries it.
-        contributionsInFlight > 0 ||
-        // A state the document moved past while it converted; the newer
-        // one is on its way through the buffer.
-        latest.version !== change.version;
+      const currentlyShows = (version: ConvergentDocumentVersion) =>
+        version === getLiveSyncState(view.state).baseVersion;
 
-      // forEachLatestRefChange collapses a burst of changes to just the latest
-      // while a slow apply is in flight; the version check before converting
-      // to ProseMirror then skips it when it already matches what's shown.
-      const applyChange = (change: ConvergentDocumentState) =>
+      // Whether typing or a newer state came in since this state was read.
+      const isStale = (
+        state: ConvergentDocumentState
+      ): Effect.Effect<boolean> =>
         pipe(
-          change.version === getLiveSyncState(view.state).baseVersion
+          Effect.all({
+            latest: SubscriptionRef.get(content),
+            inFlight: SubscriptionRef.get(contributionsInFlight),
+          }),
+          Effect.map(
+            ({ latest, inFlight }) =>
+              inFlight > 0 || latest.version !== state.version
+          )
+        );
+
+      const applyIncoming = ({
+        incoming,
+        version,
+      }: {
+        incoming: IncomingUpdate;
+        version: ConvergentDocumentVersion;
+      }): Effect.Effect<void, WebEditorError> =>
+        Effect.try({
+          try: () => {
+            applyToView({ incoming, version });
+          },
+          catch: mapErrorTo(
+            WebEditorError,
+            'Failed to apply a change to the editor'
+          ),
+        });
+
+      // Brings the editor to the latest published state. It waits for
+      // contributions in flight first: a state published meanwhile may be
+      // their own echo, which only its version tells apart, and that is
+      // known once they resolve. runOnLatestRefChange collapses a burst of
+      // changes to just the latest while this runs.
+      const applyLatest: Effect.Effect<void> = pipe(
+        whenNoContributionInFlight,
+        Effect.zipRight(SubscriptionRef.get(content)),
+        Effect.flatMap((latest) =>
+          currentlyShows(latest.version)
             ? Effect.void
             : pipe(
-                toIncomingUpdate(change.doc),
-                // Converting is asynchronous and other work runs while it
-                // suspends, so the checks are repeated before applying.
-                Effect.flatMap((incomingUpdate) =>
+                toIncomingUpdate(latest.doc),
+                Effect.flatMap((incoming) =>
                   pipe(
-                    SubscriptionRef.get(content),
-                    Effect.flatMap((latest) =>
-                      isStale({ change, latest })
-                        ? Effect.void
-                        : Effect.try({
-                            try: () => {
-                              applyToView({
-                                incoming: incomingUpdate,
-                                version: change.version,
-                              });
-                            },
-                            catch: mapErrorTo(
-                              WebEditorError,
-                              'Failed to apply a change to the editor'
-                            ),
-                          })
+                    isStale(latest),
+                    Effect.flatMap((stale) =>
+                      stale
+                        ? Effect.suspend(() => applyLatest)
+                        : applyIncoming({ incoming, version: latest.version })
                     )
                   )
                 )
-              ),
-          // Recover per change, so one bad change doesn't stop syncing.
-          Effect.catchAll((error) => Effect.sync(() => onError(error)))
-        );
+              )
+        ),
+        // Recover per change, so one bad change doesn't stop syncing.
+        Effect.catchAll((error) => Effect.sync(() => onError(error)))
+      );
 
-      const unsubscribe = forEachLatestRefChange(content, applyChange);
+      const unsubscribe = runOnLatestRefChange(content, applyLatest);
 
       return {
         // React to local ProseMirror changes
@@ -312,7 +353,9 @@ export const liveSyncPlugin = ({
             content: pmDocToJSONString(view.state.doc),
           };
 
-          contributionsInFlight += 1;
+          Effect.runSync(
+            SubscriptionRef.update(contributionsInFlight, (count) => count + 1)
+          );
 
           // `onChange` resolution is not awaited because `update` is synchronous.
           // When it resolves, the plugin dispatches a transaction with meta,
@@ -323,12 +366,10 @@ export const liveSyncPlugin = ({
             onChange(doc, { base: getLiveSyncState(view.state).baseVersion })
           ).then(
             (version) => {
-              contributionsInFlight -= 1;
-              if (view.isDestroyed || contributionsInFlight > 0) return;
-              view.dispatch(view.state.tr.setMeta(pluginKey, { version }));
+              markContributionAsResolved(version);
             },
             (error) => {
-              contributionsInFlight -= 1;
+              markContributionAsResolved();
               onError(error);
             }
           );
