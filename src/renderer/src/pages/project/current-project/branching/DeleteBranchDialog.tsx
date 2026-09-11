@@ -26,6 +26,7 @@ export const DeleteBranchDialog = ({
   return (
     <Modal
       isOpen={branch !== null}
+      onClose={onCancel}
       title="Delete Branch"
       secondaryButton={
         <Button variant="plain" onClick={onCancel}>

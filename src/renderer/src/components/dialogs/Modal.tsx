@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-
+import { IconButton } from '../actions/IconButton';
+import { CloseIcon } from '../icons';
 import {
   Dialog,
   DialogActions,
@@ -13,6 +13,8 @@ type ModalProps = {
   description?: string;
   isOpen?: boolean;
   onClose?: () => void;
+  // Shows an X in the title row, for dialogs without a dismiss button.
+  closeButton?: boolean;
   primaryButton?: React.ReactNode;
   secondaryButton?: React.ReactNode;
   children?: React.ReactNode;
@@ -21,28 +23,27 @@ type ModalProps = {
 export const Modal = ({
   title,
   description,
-  isOpen: isOpenProp = false,
+  isOpen = false,
   onClose,
+  closeButton = false,
   primaryButton,
   secondaryButton,
   children,
 }: ModalProps) => {
-  const [isOpen, setIsOpen] = useState(isOpenProp);
-
-  useEffect(() => {
-    setIsOpen(isOpenProp);
-  }, [isOpenProp]);
-
-  const handleClose = () => {
-    setIsOpen(false);
-    if (onClose) {
-      onClose();
-    }
-  };
+  const handleClose = () => onClose?.();
 
   return (
     <Dialog open={isOpen} onClose={handleClose}>
-      <DialogTitle>{title}</DialogTitle>
+      <div className="flex items-start justify-between gap-4">
+        <DialogTitle>{title}</DialogTitle>
+        {closeButton && (
+          <IconButton
+            icon={<CloseIcon />}
+            onClick={handleClose}
+            tooltip="Close"
+          />
+        )}
+      </div>
       {description && <DialogDescription>{description}</DialogDescription>}
       {children && <DialogBody>{children}</DialogBody>}
       <DialogActions>

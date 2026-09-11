@@ -1,403 +1,720 @@
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
+import * as PubSub from 'effect/PubSub';
+import * as Stream from 'effect/Stream';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
+  type ConvergentDocument,
+  type ConvergentDocumentError,
+  type ConvergentDocumentState,
+  ConvergentDocumentUnavailableError,
   CURRENT_SCHEMA_VERSION,
-  type LiveDocumentChange,
   PRIMARY_RICH_TEXT_REPRESENTATION,
+  type RemotePresence,
+  type ResolvedDocument,
   type RichTextDocument,
   richTextRepresentations,
 } from '../../../../modules/domain/rich-text';
-import { createAdapter as createInMemoryLiveDocumentAdapter } from '../../../../modules/domain/rich-text/adapters/in-memory-live-document';
 import { type ArtifactId } from '../../../../modules/infrastructure/version-control';
-import { subscribeToRef } from '../../../../utils/effect';
-import { NotFoundError, RepositoryError } from '../errors';
-import { parseProjectId } from '../models';
 import {
-  openLiveDocument,
-  type OpenLiveDocumentDeps,
-} from './open-live-document';
+  createErrorChannel,
+  subscribeToStream,
+} from '../../../../utils/effect';
+import {
+  NotFoundError,
+  RepositoryError,
+  SharedDocumentUnavailableError,
+} from '../errors';
+import { type ProjectId } from '../models';
+import { type ProjectStore, type ShareUrl } from '../ports';
+import { type LiveDocument, type LiveDocumentError } from './live-document';
+import { openLiveDocument } from './open-live-document';
 
-const projectDirectory = '/tmp/v2-live-document-test';
-const projectId = parseProjectId(projectDirectory);
-// `findDocumentById` is mocked, so the id's actual value is irrelevant.
-const documentId = 'note.md' as unknown as ArtifactId;
-
-const primaryDocument = (content: string): RichTextDocument => ({
+const markdown = (content: string): RichTextDocument => ({
   schemaVersion: CURRENT_SCHEMA_VERSION,
   representation: PRIMARY_RICH_TEXT_REPRESENTATION,
   content,
 });
 
-// What the editor contributes: ProseMirror content that has to be transformed
-// on its way to disk.
-const editorDocument = (content: string): RichTextDocument => ({
+// Content in the editor's representation, which reaches the document
+// converted: `pm:` marks what the conversion strips.
+const proseMirror = (content: string): RichTextDocument => ({
   schemaVersion: CURRENT_SCHEMA_VERSION,
   representation: richTextRepresentations.PROSEMIRROR,
-  content,
+  content: `pm:${content}`,
 });
 
-const transformed = (content: string) => `md:${content}`;
+const projectId = '/projects/one' as ProjectId;
+const documentId = '/blob/main/note.md' as ArtifactId;
 
-const createMockProjectStore = (initialContent: string) => {
-  let diskContent = initialContent;
+// A convergent document holding text, versioned by a counter. Contributions
+// anchored at an older version merge rather than replace, as the real one
+// does; that is what the disk relies on.
+let documentsEverCreated = 0;
 
-  const findDocumentById = vi.fn(() =>
-    Effect.succeed({ id: documentId, artifact: primaryDocument(diskContent) })
+const createFakeConvergentDocument = async (initialText: string) => {
+  // Versions carry which document minted them, as heads do: no version of one
+  // document is ever a version of another.
+  const documentName = `d${(documentsEverCreated += 1)}`;
+  const content = await Effect.runPromise(
+    SubscriptionRef.make<ConvergentDocumentState>({
+      doc: markdown(initialText),
+      version: `${documentName}.0`,
+    })
   );
+  const errorChannel =
+    await Effect.runPromise(createErrorChannel<ConvergentDocumentError>());
+  let versions = 0;
+  const contributions: Array<{ text: string; base?: string }> = [];
 
-  const updateRichTextDocumentContent = vi.fn(
-    ({ content }: { content: string }) =>
-      Effect.sync(() => {
-        diskContent = content;
-      })
-  );
+  const publish = (text: string) => {
+    versions += 1;
+    const version = `${documentName}.${versions}`;
 
-  return {
-    findDocumentById,
-    updateRichTextDocumentContent,
-    writeToDisk: (content: string) => {
-      diskContent = content;
-    },
+    return pipe(
+      SubscriptionRef.set(content, { doc: markdown(text), version }),
+      Effect.as(version)
+    );
   };
-};
 
-// Stands in for the project's directory watch: the test decides when the
-// project directory is deemed to have changed.
-const createMockProjectDirWatch = () => {
-  const listeners = new Set<() => void>();
+  let closed = false;
+  const peers = await Effect.runPromise(
+    SubscriptionRef.make<ReadonlyArray<RemotePresence>>([])
+  );
 
-  return {
-    subscribeToProjectDirChanges: vi.fn((listener: () => void) => {
-      listeners.add(listener);
-      return () => {
-        listeners.delete(listener);
-      };
+  const document: ConvergentDocument = {
+    content,
+    presence: { peers, publish: () => Effect.void },
+    change: (text, options) =>
+      pipe(
+        SubscriptionRef.get(content),
+        Effect.flatMap((current) => {
+          contributions.push({ text, base: options?.base });
+
+          // An anchored contribution keeps what it had not seen.
+          const merged =
+            options?.base !== undefined && options.base !== current.version
+              ? `${current.doc.content} + ${text}`
+              : text;
+
+          return publish(merged);
+        })
+      ),
+    errors: Stream.fromPubSub(errorChannel),
+    close: Effect.sync(() => {
+      closed = true;
     }),
-    signalChange: () => listeners.forEach((listener) => listener()),
-    subscribers: () => listeners.size,
+  };
+
+  return {
+    document,
+    contributions,
+    publish,
+    wasClosed: () => closed,
+    // Something going wrong with this document, with nobody waiting on it.
+    report: (error: ConvergentDocumentError) =>
+      Effect.runSync(PubSub.publish(errorChannel, error)),
   };
 };
 
-const buildDeps = (
-  mockStore: ReturnType<typeof createMockProjectStore>,
-  overrides: Partial<OpenLiveDocumentDeps> = {}
-): OpenLiveDocumentDeps => ({
-  createLiveDocumentAdapter: createInMemoryLiveDocumentAdapter,
-  transformToText: vi.fn(async ({ input }: { input: string }) =>
-    transformed(input)
-  ),
-  findDocumentById: mockStore.findDocumentById,
-  updateRichTextDocumentContent: mockStore.updateRichTextDocumentContent,
-  subscribeToProjectDirChanges: vi.fn(() => () => {}),
-  onPersistError: vi.fn(),
-  onRefreshOnDiskChangeError: vi.fn(),
-  ...overrides,
-});
+type FakeConvergentDocument = Awaited<
+  ReturnType<typeof createFakeConvergentDocument>
+>;
 
-const open = (deps: OpenLiveDocumentDeps) =>
-  Effect.runPromise(openLiveDocument(deps)({ projectId, documentId }));
+const open = async ({
+  diskText = 'on disk',
+  liveText = diskText,
+  shareUrl,
+  sharedText = 'what the share has',
+  shareIsOutOfReach = false,
+  storeRefusesWrites = false,
+}: {
+  diskText?: string;
+  liveText?: string;
+  shareUrl?: ShareUrl;
+  sharedText?: string;
+  shareIsOutOfReach?: boolean;
+  storeRefusesWrites?: boolean;
+} = {}) => {
+  let onDisk = diskText;
+  let documentGone = false;
+  const written: string[] = [];
+  const onShareUnavailable = vi.fn();
+  let watcher: (() => void) | undefined;
+
+  // Every document the live document has run on, in the order it ran on them.
+  const documents: FakeConvergentDocument[] = [];
+
+  const startOn = (text: string) =>
+    Effect.promise(async () => {
+      const fake = await createFakeConvergentDocument(text);
+      documents.push(fake);
+      return fake.document;
+    });
+
+  // A private document starts from the text it is given, except the first,
+  // seeded with `liveText` so a document can open holding something the disk
+  // has never seen.
+  const createPrivateDocument = (initialText: string) =>
+    startOn(documents.length === 0 ? liveText : initialText);
+
+  // What the share holds, which is not what the disk holds.
+  const openSharedDocument = () =>
+    shareIsOutOfReach
+      ? Effect.fail(new SharedDocumentUnavailableError('out of reach'))
+      : startOn(sharedText);
+
+  const findDocumentById: ProjectStore['findDocumentById'] = () =>
+    Effect.suspend(() =>
+      documentGone
+        ? Effect.fail(new NotFoundError('the document is gone'))
+        : Effect.succeed<ResolvedDocument>({
+            id: documentId,
+            artifact: markdown(onDisk),
+          })
+    );
+
+  // `pm:` marks content that went through the conversion.
+  const transformToText = vi.fn(async ({ input }: { input: string }) =>
+    input.replace(/^pm:/, '')
+  );
+
+  const opened = await Effect.runPromise(
+    openLiveDocument({
+      createPrivateDocument,
+      openSharedDocument,
+      onShareUnavailable,
+      transformToText,
+      findDocumentById,
+      updateRichTextDocumentContent: ({ content }) =>
+        Effect.suspend(() =>
+          storeRefusesWrites
+            ? Effect.fail(new RepositoryError('the store refused the write'))
+            : Effect.sync(() => {
+                written.push(content);
+                onDisk = content;
+              })
+        ),
+      subscribeToProjectDirChanges: (listener) => {
+        watcher = listener;
+        return () => {
+          watcher = undefined;
+        };
+      },
+    })({ projectId, documentId, shareUrl })
+  );
+
+  // What the document reported while nobody was waiting. Subscribing after it
+  // opened still catches what went wrong while it was opening.
+  const reported: LiveDocumentError[] = [];
+  subscribeToStream(opened.errors, (error) => {
+    reported.push(error);
+  });
+
+  return {
+    opened,
+    written,
+    documents,
+    reported,
+    transformToText,
+    // The document the live document is running on right now.
+    current: () => documents[documents.length - 1]!,
+    contributions: documents[0]!.contributions,
+    onShareUnavailable,
+    // An edit made by another hand, reported like the watcher would.
+    editDisk: (text: string) => {
+      onDisk = text;
+      watcher?.();
+    },
+    loseDocument: () => {
+      documentGone = true;
+      watcher?.();
+    },
+    diskHolds: () => onDisk,
+  };
+};
+
+// Types content and waits for it to reach the document, without the pause
+// that normally contributes it.
+const type = async (
+  opened: Pick<LiveDocument, 'change' | 'applyPendingLocalEdits'>,
+  doc: RichTextDocument
+) => {
+  const contributed = Effect.runPromise(opened.change(doc));
+  // The contribution registers on the next scheduler tick.
+  await Promise.resolve();
+  await Effect.runPromise(opened.applyPendingLocalEdits);
+  return contributed;
+};
+
+// Types content and leaves it on its way, as typing that has not paused;
+// `contributed` resolves with its version once it reaches the document.
+const typeWithoutPausing = async (
+  opened: Pick<LiveDocument, 'change'>,
+  doc: RichTextDocument
+) => {
+  const contributed = Effect.runPromise(opened.change(doc));
+  await Promise.resolve();
+  return { contributed };
+};
 
 describe('openLiveDocument', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
+  it('opens on what the store holds and writes nothing', async () => {
+    const { written } = await open({ diskText: 'hello' });
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(written).toEqual([]);
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
+  it('writes what the document holds once the timer passes', async () => {
+    const { opened, written } = await open({ diskText: 'hello' });
+
+    await type(opened, markdown('hello world'));
+
+    await vi.waitFor(() => expect(written).toContain('hello world'));
   });
 
-  it('opens with the stored document and writes nothing', async () => {
-    const mockStore = createMockProjectStore('on disk');
+  it('coalesces a burst into one write of the last content', async () => {
+    const { opened, written } = await open({ diskText: 'hello' });
 
-    const live = await open(buildDeps(mockStore));
-    const current = await Effect.runPromise(SubscriptionRef.get(live.content));
+    for (const text of ['a', 'ab', 'abc']) {
+      await type(opened, markdown(text));
+    }
+    await Effect.runPromise(opened.flush);
 
-    expect(current).toEqual({
-      doc: primaryDocument('on disk'),
-      version: '0',
+    expect(written).toEqual(['abc']);
+  });
+
+  it('holds a burst of typing and contributes its newest content once it pauses', async () => {
+    const { opened, contributions, transformToText } = await open({
+      diskText: 'hello',
     });
-    expect(mockStore.updateRichTextDocumentContent).not.toHaveBeenCalled();
+
+    const typed = await Promise.all(
+      ['a', 'ab', 'abc'].map((text) =>
+        typeWithoutPausing(opened, proseMirror(text))
+      )
+    );
+
+    await vi.waitFor(() =>
+      expect(contributions.map((contribution) => contribution.text)).toEqual([
+        'abc',
+      ])
+    );
+    expect(transformToText).toHaveBeenCalledTimes(1);
+    // The whole burst resolves with the one version it was contributed as.
+    const versions = await Promise.all(
+      typed.map(({ contributed }) => contributed)
+    );
+    expect(new Set(versions).size).toBe(1);
   });
 
-  it('updates live content immediately and writes behind after the debounce', async () => {
-    const mockStore = createMockProjectStore('on disk');
-    const live = await open(buildDeps(mockStore));
-
-    await Effect.runPromise(live.change(editorDocument('typed')));
-
-    const current = await Effect.runPromise(SubscriptionRef.get(live.content));
-    expect(current).toEqual({ doc: editorDocument('typed'), version: '1' });
-    expect(mockStore.updateRichTextDocumentContent).not.toHaveBeenCalled();
-
-    await vi.advanceTimersByTimeAsync(299);
-    expect(mockStore.updateRichTextDocumentContent).not.toHaveBeenCalled();
-
-    await vi.advanceTimersByTimeAsync(1);
-    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledTimes(1);
-    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledWith({
-      projectId,
-      documentId,
-      representation: PRIMARY_RICH_TEXT_REPRESENTATION,
-      content: transformed('typed'),
+  it('contributes pending typing on flush', async () => {
+    const { opened, written, transformToText } = await open({
+      diskText: 'hello',
     });
+
+    const { contributed } = await typeWithoutPausing(
+      opened,
+      proseMirror('hello typed')
+    );
+    await Effect.runPromise(opened.flush);
+
+    await contributed;
+    expect(written).toEqual(['hello typed']);
+    expect(transformToText).toHaveBeenCalledTimes(1);
   });
 
-  it('coalesces a burst of changes into one write of the last document', async () => {
-    const mockStore = createMockProjectStore('on disk');
-    const live = await open(buildDeps(mockStore));
+  it('drops pending typing on cancelPendingPersist', async () => {
+    const { opened, written, contributions } = await open({
+      diskText: 'hello',
+    });
+    const versionBefore = await Effect.runPromise(
+      SubscriptionRef.get(opened.content)
+    ).then((current) => current.version);
 
-    await Effect.runPromise(live.change(editorDocument('a')));
-    await vi.advanceTimersByTimeAsync(100);
-    await Effect.runPromise(live.change(editorDocument('ab')));
-    await vi.advanceTimersByTimeAsync(100);
-    await Effect.runPromise(live.change(editorDocument('abc')));
+    const { contributed } = await typeWithoutPausing(
+      opened,
+      markdown('restored old state')
+    );
+    await Effect.runPromise(opened.cancelPendingPersist);
+    await Effect.runPromise(opened.flush);
 
-    await vi.advanceTimersByTimeAsync(300);
+    // Whoever waited for it is released, with the version the document holds.
+    await expect(contributed).resolves.toBe(versionBefore);
+    expect(contributions).toEqual([]);
+    expect(written).toEqual([]);
+  });
 
-    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledTimes(1);
-    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledWith(
-      expect.objectContaining({ content: transformed('abc') })
+  it('contributes pending typing when it closes', async () => {
+    const { opened, written } = await open({ diskText: 'hello' });
+
+    const { contributed } = await typeWithoutPausing(
+      opened,
+      markdown('hello world')
+    );
+    await Effect.runPromise(opened.close);
+
+    await contributed;
+    expect(written).toContain('hello world');
+  });
+
+  it('raises to whoever waits for a flush when the write fails', async () => {
+    const { opened, reported } = await open({
+      diskText: 'hello',
+      storeRefusesWrites: true,
+    });
+
+    await type(opened, markdown('hello world'));
+
+    const failure = await Effect.runPromise(Effect.flip(opened.flush));
+
+    expect(failure).toBeInstanceOf(RepositoryError);
+    // The caller was told; nothing was reported behind their back.
+    expect(reported).toEqual([]);
+  });
+
+  it('reports a write nobody awaited when it fails', async () => {
+    const { opened, reported } = await open({
+      diskText: 'hello',
+      storeRefusesWrites: true,
+    });
+
+    // Arms a write on the timer rather than awaiting one.
+    await type(opened, markdown('hello world'));
+
+    await vi.waitFor(() => expect(reported[0]).toBeInstanceOf(RepositoryError));
+  });
+
+  it('reports the write it makes on opening, before anyone can listen', async () => {
+    // The write happens while the document is being handed over, so what it
+    // reports has to keep until its reader arrives.
+    const { reported } = await open({
+      diskText: 'what the file has',
+      liveText: 'what the share has',
+      storeRefusesWrites: true,
+    });
+
+    await vi.waitFor(() => expect(reported[0]).toBeInstanceOf(RepositoryError));
+  });
+
+  it('passes on what the document it runs on reports', async () => {
+    const { reported, documents } = await open({ diskText: 'hello' });
+
+    documents[0]!.report(
+      new ConvergentDocumentUnavailableError('the document was deleted')
+    );
+
+    await vi.waitFor(() =>
+      expect(reported[0]).toBeInstanceOf(ConvergentDocumentUnavailableError)
     );
   });
 
-  it('flushes without waiting for the timer and is idempotent', async () => {
-    const mockStore = createMockProjectStore('on disk');
-    const live = await open(buildDeps(mockStore));
+  it('flushes without waiting for the timer, and is idempotent', async () => {
+    const { opened, written } = await open({ diskText: 'hello' });
 
-    await Effect.runPromise(live.change(editorDocument('typed')));
-    await Effect.runPromise(live.flush);
+    await type(opened, markdown('hello world'));
+    await Effect.runPromise(opened.flush);
+    await Effect.runPromise(opened.flush);
 
-    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledTimes(1);
-    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledWith(
-      expect.objectContaining({ content: transformed('typed') })
-    );
-
-    await Effect.runPromise(live.flush);
-    await vi.advanceTimersByTimeAsync(300);
-
-    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledTimes(1);
-  });
-
-  it('never writes a change the refresh superseded', async () => {
-    const mockStore = createMockProjectStore('on disk');
-    const live = await open(buildDeps(mockStore));
-
-    await Effect.runPromise(live.change(editorDocument('typed')));
-    mockStore.writeToDisk('restored from history');
-    await Effect.runPromise(live.refresh);
-
-    await vi.advanceTimersByTimeAsync(300);
-
-    expect(mockStore.updateRichTextDocumentContent).not.toHaveBeenCalled();
-    const current = await Effect.runPromise(SubscriptionRef.get(live.content));
-    expect(current.doc).toEqual(primaryDocument('restored from history'));
-  });
-
-  it('produces no new value when a refresh re-reads what was last persisted', async () => {
-    const mockStore = createMockProjectStore('on disk');
-    const live = await open(buildDeps(mockStore));
-
-    const received: LiveDocumentChange[] = [];
-    const unsubscribe = subscribeToRef(live.content, (change) =>
-      received.push(change)
-    );
-    // The replayed current value proves the subscription is live.
-    await vi.waitFor(() => expect(received).toHaveLength(1));
-
-    await Effect.runPromise(live.refresh);
-
-    // Sentinel: deliveries are ordered, so had the refresh produced a new
-    // value, it would occupy the second slot instead of the sentinel.
-    await Effect.runPromise(live.change(editorDocument('sentinel')));
-    await vi.waitFor(() => expect(received).toHaveLength(2));
-
-    expect(received).toEqual([
-      { doc: primaryDocument('on disk'), version: '0' },
-      { doc: editorDocument('sentinel'), version: '1' },
-    ]);
-
-    unsubscribe();
+    expect(written).toEqual(['hello world']);
   });
 
   it('drops an armed write on cancelPendingPersist', async () => {
-    const mockStore = createMockProjectStore('on disk');
-    const live = await open(buildDeps(mockStore));
+    const { opened, written } = await open({ diskText: 'hello' });
 
-    await Effect.runPromise(live.change(editorDocument('typed')));
-    await Effect.runPromise(live.cancelPendingPersist);
+    await type(opened, markdown('restored old state'));
+    await Effect.runPromise(opened.cancelPendingPersist);
+    await Effect.runPromise(opened.flush);
 
-    await vi.advanceTimersByTimeAsync(300);
-
-    expect(mockStore.updateRichTextDocumentContent).not.toHaveBeenCalled();
+    expect(written).toEqual([]);
   });
 
-  it('flushes pending work on close', async () => {
-    const mockStore = createMockProjectStore('on disk');
-    const live = await open(buildDeps(mockStore));
+  it('writes what is pending when it closes', async () => {
+    const { opened, written } = await open({ diskText: 'hello' });
 
-    await Effect.runPromise(live.change(editorDocument('typed')));
-    await Effect.runPromise(live.close);
+    await type(opened, markdown('hello world'));
+    await Effect.runPromise(opened.close);
 
-    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledTimes(1);
-    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledWith(
-      expect.objectContaining({ content: transformed('typed') })
-    );
+    expect(written).toContain('hello world');
   });
 
-  it('listens for project directory changes and stops on close', async () => {
-    const mockStore = createMockProjectStore('on disk');
-    const dirWatch = createMockProjectDirWatch();
+  it('carries content the document opened with to the file', async () => {
+    // Joining a share opens the document on content the file does not have.
+    const { written } = await open({
+      diskText: 'what the file has',
+      liveText: 'what the share has',
+    });
 
-    const live = await open(
-      buildDeps(mockStore, {
-        subscribeToProjectDirChanges: dirWatch.subscribeToProjectDirChanges,
-      })
-    );
-
-    expect(dirWatch.subscribers()).toBe(1);
-
-    await Effect.runPromise(live.close);
-
-    expect(dirWatch.subscribers()).toBe(0);
+    await vi.waitFor(() => expect(written).toContain('what the share has'));
   });
 
   it('picks up a change made outside the app', async () => {
-    const mockStore = createMockProjectStore('on disk');
-    const dirWatch = createMockProjectDirWatch();
+    const { opened, editDisk } = await open({ diskText: 'hello' });
 
-    const live = await open(
-      buildDeps(mockStore, {
-        subscribeToProjectDirChanges: dirWatch.subscribeToProjectDirChanges,
-      })
-    );
-
-    mockStore.writeToDisk('edited in another editor');
-    dirWatch.signalChange();
+    editDisk('changed outside');
 
     await vi.waitFor(async () => {
       const current = await Effect.runPromise(
-        SubscriptionRef.get(live.content)
+        SubscriptionRef.get(opened.content)
       );
-      expect(current.doc).toEqual(primaryDocument('edited in another editor'));
+      expect(current.doc.content).toContain('changed outside');
     });
   });
 
-  // The watcher also fires for the app's own writes. Discarding pending work
-  // on that echo would strand the keystrokes typed since the write started:
-  // they would sit in the editor with nothing scheduled to persist them.
-  it('keeps typing that arrives while our own write echoes back', async () => {
-    const mockStore = createMockProjectStore('on disk');
-    const dirWatch = createMockProjectDirWatch();
-
-    const live = await open(
-      buildDeps(mockStore, {
-        subscribeToProjectDirChanges: dirWatch.subscribeToProjectDirChanges,
-      })
-    );
-
-    await Effect.runPromise(live.change(editorDocument('a')));
-    await vi.advanceTimersByTimeAsync(300);
-    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledTimes(1);
-
-    // Typed after the write landed, so it is still pending when the watcher
-    // reports that same write.
-    await Effect.runPromise(live.change(editorDocument('ab')));
-    dirWatch.signalChange();
-
-    await vi.advanceTimersByTimeAsync(300);
-
-    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledTimes(2);
-    expect(mockStore.updateRichTextDocumentContent).toHaveBeenLastCalledWith(
-      expect.objectContaining({ content: transformed('ab') })
-    );
-  });
-
-  it('lets an outside change win over typing that has not been written yet', async () => {
-    const mockStore = createMockProjectStore('on disk');
-    const dirWatch = createMockProjectDirWatch();
-
-    const live = await open(
-      buildDeps(mockStore, {
-        subscribeToProjectDirChanges: dirWatch.subscribeToProjectDirChanges,
-      })
-    );
-
-    await Effect.runPromise(live.change(editorDocument('typed')));
-    mockStore.writeToDisk('edited in another editor');
-    dirWatch.signalChange();
-
-    await vi.waitFor(async () => {
-      const current = await Effect.runPromise(
-        SubscriptionRef.get(live.content)
-      );
-      expect(current.doc).toEqual(primaryDocument('edited in another editor'));
+  it('ignores the echo of its own write', async () => {
+    const { opened, editDisk, contributions } = await open({
+      diskText: 'hello',
     });
 
-    await vi.advanceTimersByTimeAsync(300);
+    await type(opened, markdown('hello world'));
+    await Effect.runPromise(opened.flush);
+    const contributedBefore = contributions.length;
 
-    expect(mockStore.updateRichTextDocumentContent).not.toHaveBeenCalled();
+    // The watcher reports the write this document just made.
+    editDisk('hello world');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(contributions).toHaveLength(contributedBefore);
   });
 
-  it('keeps the open document when its file disappears', async () => {
-    const mockStore = createMockProjectStore('on disk');
-    const dirWatch = createMockProjectDirWatch();
-    const onRefreshOnDiskChangeError = vi.fn();
+  it('keeps typing that arrives while its own write echoes back', async () => {
+    const { opened, editDisk } = await open({ diskText: 'hello' });
 
-    const live = await open(
-      buildDeps(mockStore, {
-        subscribeToProjectDirChanges: dirWatch.subscribeToProjectDirChanges,
-        onRefreshOnDiskChangeError,
-      })
+    await type(opened, markdown('hello world'));
+    await Effect.runPromise(opened.flush);
+    // Typed after the write, before the watcher reported it.
+    await type(opened, markdown('hello world!'));
+
+    editDisk('hello world');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    const current = await Effect.runPromise(
+      SubscriptionRef.get(opened.content)
     );
-
-    mockStore.findDocumentById.mockReturnValue(
-      Effect.fail(new NotFoundError('document deleted')) as never
-    );
-    dirWatch.signalChange();
-    await vi.advanceTimersByTimeAsync(0);
-
-    const current = await Effect.runPromise(SubscriptionRef.get(live.content));
-    expect(current.doc).toEqual(primaryDocument('on disk'));
-    expect(onRefreshOnDiskChangeError).not.toHaveBeenCalled();
+    expect(current.doc.content).toBe('hello world!');
   });
 
-  it('reports a failing read through onRefreshOnDiskChangeError', async () => {
-    const mockStore = createMockProjectStore('on disk');
-    const dirWatch = createMockProjectDirWatch();
-    const onRefreshOnDiskChangeError = vi.fn();
+  it('anchors an outside change at the version the file derives from', async () => {
+    const { opened, editDisk, contributions } = await open({
+      diskText: 'hello',
+    });
 
-    await open(
-      buildDeps(mockStore, {
-        subscribeToProjectDirChanges: dirWatch.subscribeToProjectDirChanges,
-        onRefreshOnDiskChangeError,
-      })
+    await type(opened, markdown('hello typed'));
+    await Effect.runPromise(opened.flush);
+    const versionOnDisk = await Effect.runPromise(
+      SubscriptionRef.get(opened.content)
+    ).then((current) => current.version);
+
+    editDisk('hello from elsewhere');
+    await vi.waitFor(() =>
+      expect(contributions[contributions.length - 1]?.text).toBe(
+        'hello from elsewhere'
+      )
     );
 
-    mockStore.findDocumentById.mockReturnValue(
-      Effect.fail(new RepositoryError('read failed')) as never
+    expect(contributions[contributions.length - 1]?.base).toBe(versionOnDisk);
+  });
+
+  it('keeps working, silently, when the document is gone', async () => {
+    const { opened, loseDocument, reported, contributions } = await open({
+      diskText: 'hello',
+    });
+
+    await type(opened, markdown('hello typed'));
+    const contributedBefore = contributions.length;
+    loseDocument();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(contributions).toHaveLength(contributedBefore);
+    expect(reported).toEqual([]);
+  });
+
+  it('stops following the file once closed', async () => {
+    const { opened, editDisk, contributions } = await open({
+      diskText: 'hello',
+    });
+
+    await Effect.runPromise(opened.close);
+    const contributedBefore = contributions.length;
+
+    editDisk('after closing');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(contributions).toHaveLength(contributedBefore);
+  });
+});
+
+const shareLink = 'automerge:the-share' as ShareUrl;
+
+const lastOf = <A>(items: A[]): A | undefined => items[items.length - 1];
+
+const contentOf = (opened: { content: LiveDocument['content'] }) =>
+  Effect.runPromise(SubscriptionRef.get(opened.content)).then(
+    (shown) => shown.doc.content
+  );
+
+describe('openLiveDocument, on the document it runs on', () => {
+  it('opens at the share when it has one', async () => {
+    const { opened, documents } = await open({
+      diskText: 'what the file has',
+      shareUrl: shareLink,
+      sharedText: 'what the share has',
+    });
+
+    expect(documents).toHaveLength(1);
+    await expect(contentOf(opened)).resolves.toBe('what the share has');
+  });
+
+  it('opens privately, reporting it, when the share cannot be opened', async () => {
+    const { opened, documents, onShareUnavailable } = await open({
+      diskText: 'what the file has',
+      shareUrl: shareLink,
+      shareIsOutOfReach: true,
+    });
+
+    expect(onShareUnavailable).toHaveBeenCalledWith(
+      expect.any(SharedDocumentUnavailableError)
     );
-    dirWatch.signalChange();
+    // The failed one never became a document to run on.
+    expect(documents).toHaveLength(1);
+    await expect(contentOf(opened)).resolves.toBe('what the file has');
+  });
+
+  it('runs on the shared document after attaching, and closes the old one', async () => {
+    const { opened, documents } = await open({ diskText: 'on its own' });
+
+    await Effect.runPromise(opened.attachTo(shareLink));
+
+    expect(documents).toHaveLength(2);
+    expect(documents[0]!.wasClosed()).toBe(true);
+    await expect(contentOf(opened)).resolves.toBe('what the share has');
+  });
+
+  it('contributes to the document it switched to, not the one it left', async () => {
+    const { opened, documents } = await open({ diskText: 'on its own' });
+    await Effect.runPromise(opened.attachTo(shareLink));
+    const contributedBefore = documents[0]!.contributions.length;
+
+    await type(opened, markdown('typed while shared'));
+
+    expect(documents[0]!.contributions).toHaveLength(contributedBefore);
+    expect(lastOf(documents[1]!.contributions)?.text).toBe(
+      'typed while shared'
+    );
+  });
+
+  it('follows the document it switched to', async () => {
+    const { opened, documents } = await open({ diskText: 'on its own' });
+    await Effect.runPromise(opened.attachTo(shareLink));
+
+    // A peer's change, published by the document the live one now runs on.
+    await Effect.runPromise(documents[1]!.publish('what a peer typed'));
+
+    await vi.waitFor(async () =>
+      expect(await contentOf(opened)).toBe('what a peer typed')
+    );
+  });
+
+  it('carries what the shared document holds to the file', async () => {
+    const { opened, written } = await open({ diskText: 'what the file has' });
+
+    await Effect.runPromise(opened.attachTo(shareLink));
+
+    await vi.waitFor(() => expect(written).toContain('what the share has'));
+  });
+
+  it('contributes pending typing to the document it leaves before switching', async () => {
+    const { opened, documents } = await open({ diskText: 'on its own' });
+
+    const { contributed } = await typeWithoutPausing(
+      opened,
+      markdown('typed before sharing')
+    );
+    await Effect.runPromise(opened.attachTo(shareLink));
+
+    await contributed;
+    expect(lastOf(documents[0]!.contributions)?.text).toBe(
+      'typed before sharing'
+    );
+    expect(documents[1]!.contributions).toEqual([]);
+  });
+
+  it('keeps pending typing when detaching', async () => {
+    const { opened } = await open({ diskText: 'on its own' });
+    await Effect.runPromise(opened.attachTo(shareLink));
+
+    const { contributed } = await typeWithoutPausing(
+      opened,
+      markdown('typed while shared')
+    );
+    await Effect.runPromise(opened.detach);
+
+    await contributed;
+    await expect(contentOf(opened)).resolves.toBe('typed while shared');
+  });
+
+  it('runs on a private document after detaching, keeping the content', async () => {
+    const { opened, documents } = await open({ diskText: 'on its own' });
+    await Effect.runPromise(opened.attachTo(shareLink));
+
+    await Effect.runPromise(opened.detach);
+
+    expect(documents).toHaveLength(3);
+    expect(documents[1]!.wasClosed()).toBe(true);
+    // Its own document again, holding what the share left it with.
+    await expect(contentOf(opened)).resolves.toBe('what the share has');
+  });
+
+  it('passes on what the document it switched to reports', async () => {
+    const { opened, documents, reported } = await open({
+      diskText: 'on its own',
+    });
+    await Effect.runPromise(opened.attachTo(shareLink));
+
+    documents[1]!.report(
+      new ConvergentDocumentUnavailableError('the share went away')
+    );
 
     await vi.waitFor(() =>
-      expect(onRefreshOnDiskChangeError).toHaveBeenCalledTimes(1)
+      expect(reported).toContainEqual(
+        expect.any(ConvergentDocumentUnavailableError)
+      )
     );
   });
 
-  it('reports a failing write through onPersistError', async () => {
-    const mockStore = createMockProjectStore('on disk');
-    const onPersistError = vi.fn();
-    mockStore.updateRichTextDocumentContent.mockReturnValue(
-      Effect.fail(new RepositoryError('write failed')) as never
+  it('stops passing on what the document it left reports', async () => {
+    const { opened, documents, reported } = await open({
+      diskText: 'on its own',
+    });
+    await Effect.runPromise(opened.attachTo(shareLink));
+
+    documents[0]!.report(
+      new ConvergentDocumentUnavailableError('from the document it left')
     );
+    await new Promise((resolve) => setTimeout(resolve, 20));
 
-    const live = await open(buildDeps(mockStore, { onPersistError }));
+    expect(reported).toEqual([]);
+  });
 
-    await Effect.runPromise(live.change(editorDocument('typed')));
-    await vi.advanceTimersByTimeAsync(300);
+  it('anchors a later disk change in the document it switched to', async () => {
+    const { opened, documents, editDisk } = await open({
+      diskText: 'what the file has',
+    });
+    await Effect.runPromise(opened.attachTo(shareLink));
+    const attached = documents[1]!;
+    const versionAfterSwitch = await Effect.runPromise(
+      SubscriptionRef.get(opened.content)
+    ).then((shown) => shown.version);
 
-    expect(onPersistError).toHaveBeenCalledTimes(1);
-    expect(mockStore.updateRichTextDocumentContent).toHaveBeenCalledTimes(1);
+    editDisk('changed outside');
+
+    await vi.waitFor(() =>
+      expect(lastOf(attached.contributions)?.text).toBe('changed outside')
+    );
+    // A base from the document it left would be dropped by the new one.
+    expect(lastOf(attached.contributions)?.base).toBe(versionAfterSwitch);
   });
 });

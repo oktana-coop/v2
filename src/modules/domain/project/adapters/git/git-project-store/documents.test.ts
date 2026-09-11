@@ -3,6 +3,10 @@ import git, { Errors as IsoGitErrors } from 'isomorphic-git';
 
 import { type Username } from '../../../../../auth';
 import {
+  NotFoundError as FilesystemNotFoundError,
+  RepositoryError as FilesystemRepositoryError,
+} from '../../../../../infrastructure/filesystem';
+import {
   type ArtifactId,
   type ChangeId,
   type CommitId,
@@ -114,6 +118,45 @@ beforeEach(() => {
 });
 
 describe('documents', () => {
+  describe('findDocumentById', () => {
+    const store = buildTestStore();
+    const docId = '/blob/main/notes.md' as ArtifactId;
+
+    beforeEach(() => {
+      mockGetAbsolutePath.mockReturnValue(
+        Effect.succeed(`${PROJECT_PATH}/notes.md`)
+      );
+    });
+
+    it('fails with NotFoundError when the project has no such document', async () => {
+      mockReadTextFile.mockReturnValue(
+        Effect.fail(new FilesystemNotFoundError('no such file'))
+      );
+
+      const failure = await Effect.runPromise(
+        Effect.flip(
+          store.findDocumentById({ projectId: PROJECT_PATH, documentId: docId })
+        )
+      );
+
+      expect(failure._tag).toBe(VersionedProjectNotFoundErrorTag);
+    });
+
+    it('fails with RepositoryError when the file cannot be read', async () => {
+      mockReadTextFile.mockReturnValue(
+        Effect.fail(new FilesystemRepositoryError('disk is unhappy'))
+      );
+
+      const failure = await Effect.runPromise(
+        Effect.flip(
+          store.findDocumentById({ projectId: PROJECT_PATH, documentId: docId })
+        )
+      );
+
+      expect(failure._tag).toBe(VersionedProjectRepositoryErrorTag);
+    });
+  });
+
   describe('deleteDocument', () => {
     const docPath = 'doc.md';
     const docId = `/blob/main/${docPath}` as ArtifactId;

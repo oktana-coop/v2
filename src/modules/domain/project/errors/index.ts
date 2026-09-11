@@ -40,3 +40,21 @@ export class DeletedDocumentError extends Cause.YieldableError {
     this.data = data;
   }
 }
+
+export const SharedDocumentUnavailableErrorTag =
+  'SharedDocumentUnavailableError';
+export class SharedDocumentUnavailableError extends Cause.YieldableError {
+  readonly _tag = SharedDocumentUnavailableErrorTag;
+}
+
+export const SharedDocumentOnAnotherBranchErrorTag =
+  'SharedDocumentOnAnotherBranchError';
+export class SharedDocumentOnAnotherBranchError extends Cause.YieldableError {
+  readonly _tag = SharedDocumentOnAnotherBranchErrorTag;
+}
+
+export const SharedDocumentNotInProjectErrorTag =
+  'SharedDocumentNotInProjectError';
+export class SharedDocumentNotInProjectError extends Cause.YieldableError {
+  readonly _tag = SharedDocumentNotInProjectErrorTag;
+}

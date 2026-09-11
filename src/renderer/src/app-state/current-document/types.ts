@@ -1,4 +1,8 @@
-import { type LiveDocument } from '../../../../modules/domain/rich-text';
+import {
+  type LiveDocument,
+  type ShareUrl,
+} from '../../../../modules/domain/project';
+import { type ParticipantSelection } from '../../../../modules/domain/rich-text';
 import {
   type ArtifactId,
   type ChangeId,
@@ -9,6 +13,8 @@ import {
 export type CurrentDocumentContextType = {
   versionedDocumentId: ArtifactId | null;
   liveDocument: LiveDocument | null;
+  // Where we are in the open document, for whoever else is at it.
+  onLocalSelectionChange: (selection: ParticipantSelection | null) => void;
   loadingHistory: boolean;
   versionedDocumentHistory: ChangeWithUrlInfo[];
   canCommit: boolean;
@@ -24,4 +30,16 @@ export type CurrentDocumentContextType = {
   onCloseDiscardChangesDialog: () => void;
   selectedCommitIndex: number | null;
   onSelectChange: (commitId: ChangeId) => void;
+  // The share the open document takes part in, if any.
+  shareUrl: ShareUrl | null;
+  // Resolves to the share url so the caller can act on it right away.
+  onShareDocument: () => Promise<ShareUrl | null>;
+  onJoinSharedDocument: (shareUrl: ShareUrl) => Promise<void>;
+  onLeaveSharedDocument: () => Promise<void>;
+  isShareDocumentDialogOpen: boolean;
+  isJoinSharedDocumentDialogOpen: boolean;
+  onOpenShareDocumentDialog: () => void;
+  onCloseShareDocumentDialog: () => void;
+  onOpenJoinSharedDocumentDialog: () => void;
+  onCloseJoinSharedDocumentDialog: () => void;
 };

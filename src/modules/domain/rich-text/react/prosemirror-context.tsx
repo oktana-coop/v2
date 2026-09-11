@@ -5,7 +5,7 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -15,18 +15,14 @@ import {
   NotificationsContext,
 } from '../../../../modules/infrastructure/notifications/browser';
 import { WasmContext } from '../../../../modules/infrastructure/wasm/react/wasm-context';
-import { createAdapter as createPandocDiffAdapter } from '../adapters/pandoc-diff';
+import { createAdapter as createPandocDiffPatchAdapter } from '../adapters/pandoc-diff-patch';
 import {
   getDocumentRichTextContent,
   RichTextDocument,
   richTextRepresentations,
   type TextRichTextRepresentation,
 } from '../models';
-import {
-  type Diff,
-  type ProseMirrorDiffArgs,
-  type ProseMirrorDiffResult,
-} from '../ports/diff';
+import { type DiffPatch } from '../ports/diff-patch';
 import { pmDocFromJSONString, pmDocToJSONString } from '../prosemirror';
 import { type PMNode } from '../prosemirror/hs-lib';
 import { RepresentationTransformContext } from './representation-transform-context';
@@ -49,10 +45,8 @@ export type ProseMirrorContextType = {
   onViewStateChange: () => void;
   subscribeToViewState: (listener: () => void) => () => void;
   getViewState: () => EditorState | null;
-  proseMirrorDiff: (
-    args: ProseMirrorDiffArgs
-  ) => Promise<ProseMirrorDiffResult>;
-  diffAdapterReady: boolean;
+  proseMirrorDiff: DiffPatch['proseMirrorDiff'];
+  proseMirrorSteps: DiffPatch['proseMirrorSteps'];
   convertToProseMirror: (args: ConvertToProseMirrorArgs) => Promise<Node>;
   convertFromProseMirror: (args: ConvertFromProseMirrorArgs) => Promise<string>;
   parseMarkdown: (schema: Schema) => (input: string) => Promise<Node>;
@@ -69,8 +63,9 @@ export const ProseMirrorContext = createContext<ProseMirrorContextType>({
   // @ts-expect-error will get overriden below
   proseMirrorDiff: () => null,
   // @ts-expect-error will get overriden below
+  proseMirrorSteps: () => null,
+  // @ts-expect-error will get overriden below
   parseMarkdown: () => null,
-  diffAdapterReady: false,
 });
 
 export const ProseMirrorProvider = ({
@@ -80,18 +75,15 @@ export const ProseMirrorProvider = ({
 }) => {
   const { runWasiCLIOutputingText } = useContext(WasmContext);
   const [view, setView] = useState<EditorView | null>(null);
-  const [diffAdapter, setDiffAdapter] = useState<Diff | null>(null);
+  // The WASM runner is in hand once this renders, so the adapter is too.
+  const diffPatchAdapter = useMemo(
+    () => createPandocDiffPatchAdapter({ runWasiCLIOutputingText }),
+    [runWasiCLIOutputingText]
+  );
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
   );
   const { dispatchNotification } = useContext(NotificationsContext);
-
-  useEffect(() => {
-    const pandocDiffAdapter = createPandocDiffAdapter({
-      runWasiCLIOutputingText,
-    });
-    setDiffAdapter(pandocDiffAdapter);
-  }, [runWasiCLIOutputingText]);
 
   const handleSetView = useCallback((view: EditorView) => {
     setView(view);
@@ -119,20 +111,6 @@ export const ProseMirrorProvider = ({
   }, []);
 
   const handleGetViewState = useCallback(() => view?.state ?? null, [view]);
-
-  const produceProseMirrorDiff = useCallback(
-    async (args: ProseMirrorDiffArgs) => {
-      // TODO: Handle adapter readiness with a promise
-      if (!diffAdapter) {
-        throw new Error(
-          'No diff adapter found when trying to produce the ProseMirror diff'
-        );
-      }
-
-      return diffAdapter.proseMirrorDiff(args);
-    },
-    [diffAdapter]
-  );
 
   const handleConvertToProseMirror = async (args: ConvertToProseMirrorArgs) => {
     // TODO: Handle adapter readiness with a promise
@@ -248,8 +226,8 @@ export const ProseMirrorProvider = ({
         subscribeToViewState: handleSubscribeToViewState,
         getViewState: handleGetViewState,
         onViewStateChange: handleViewStateChange,
-        proseMirrorDiff: produceProseMirrorDiff,
-        diffAdapterReady: Boolean(diffAdapter),
+        proseMirrorDiff: diffPatchAdapter.proseMirrorDiff,
+        proseMirrorSteps: diffPatchAdapter.proseMirrorSteps,
         convertToProseMirror: handleConvertToProseMirror,
         convertFromProseMirror: handleConvertFromProseMirror,
         representationTransformAdapterReady: Boolean(

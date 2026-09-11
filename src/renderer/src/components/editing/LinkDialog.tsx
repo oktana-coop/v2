@@ -38,11 +38,6 @@ export const LinkDialog = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // on Escape key press
-    if (onCancel && e.key === 'Escape') {
-      onCancel();
-    }
-
     if (e.key === 'Enter') {
       e.preventDefault();
       handleSave();
@@ -60,6 +55,7 @@ export const LinkDialog = ({
   return (
     <Modal
       isOpen={isOpen}
+      onClose={onCancel}
       title="Link Details"
       secondaryButton={
         <Button variant="plain" onClick={onCancel}>

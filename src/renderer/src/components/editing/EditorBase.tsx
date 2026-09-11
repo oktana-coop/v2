@@ -91,12 +91,14 @@ export type SharedEditorProps = {
 };
 
 // How the editor is bound to its content: the content as a ProseMirror
-// document, as its domain value (the diff base), and the sync plugin that
-// carries editor changes back.
+// document, as its domain value (the diff base), the sync plugin that
+// carries editor changes back, and the presence plugin when others can be
+// at the document.
 export type ContentBinding = {
   pmDoc: Node;
   sourceDoc: RichTextDocument;
   syncPlugin: Plugin;
+  presencePlugin?: Plugin;
 };
 
 type EditorBaseProps = SharedEditorProps & {
@@ -162,10 +164,12 @@ export const EditorBase = ({
   const buildPlugins = ({
     schema,
     syncPlugin,
+    presencePlugin,
     diffPlugin,
   }: {
     schema: Schema;
     syncPlugin: Plugin;
+    presencePlugin?: Plugin;
     diffPlugin: Plugin | null;
   }) => [
     assetsPlugin(resolveAssetSrc),
@@ -206,6 +210,8 @@ export const EditorBase = ({
     ensureTrailingSpaceAfterAtomPlugin(),
     removeEmptyFiguresPlugin(schema),
     syncPlugin,
+    // Reads the sync plugin's state, so it comes after it.
+    ...(presencePlugin ? [presencePlugin] : []),
     ...(diffPlugin ? [diffPlugin] : []),
   ];
 
@@ -244,18 +250,27 @@ export const EditorBase = ({
 
   const createSeed = useCallback(
     async (schema: Schema): Promise<EditorSeed> => {
-      const { pmDoc, sourceDoc, syncPlugin } = await bindContent(schema);
+      const { pmDoc, sourceDoc, syncPlugin, presencePlugin } =
+        await bindContent(schema);
 
       // Apply the trailing-paragraph invariant (a place to put the cursor
       // after a figure) up-front: the plugin only fires after the first
       // transaction.
-      const doc = ensureTrailingParagraphInDoc(pmDoc, schema);
+      const doc = ensureTrailingParagraphInDoc({ doc: pmDoc, schema });
 
       const diffPlugin = diffWith
         ? await buildDiffPlugin({ currentDoc: sourceDoc, diffWith })
         : null;
 
-      return { doc, plugins: buildPlugins({ schema, syncPlugin, diffPlugin }) };
+      return {
+        doc,
+        plugins: buildPlugins({
+          schema,
+          syncPlugin,
+          presencePlugin,
+          diffPlugin,
+        }),
+      };
     },
     // diffWith is deliberately not a dependency: changes to it are handled
     // by rebuildPlugins (an in-place plugin swap that keeps the user's
@@ -275,10 +290,15 @@ export const EditorBase = ({
       schema: Schema;
       currentDoc: Node;
     }): Promise<Plugin[]> => {
-      const { syncPlugin } = await bindContent(schema);
+      const { syncPlugin, presencePlugin } = await bindContent(schema);
 
       if (!diffWith) {
-        return buildPlugins({ schema, syncPlugin, diffPlugin: null });
+        return buildPlugins({
+          schema,
+          syncPlugin,
+          presencePlugin,
+          diffPlugin: null,
+        });
       }
 
       const currentDocContent = await convertFromProseMirror({
@@ -294,7 +314,7 @@ export const EditorBase = ({
 
       const diffPlugin = await buildDiffPlugin({ currentDoc, diffWith });
 
-      return buildPlugins({ schema, syncPlugin, diffPlugin });
+      return buildPlugins({ schema, syncPlugin, presencePlugin, diffPlugin });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [bindContent, diffWith]

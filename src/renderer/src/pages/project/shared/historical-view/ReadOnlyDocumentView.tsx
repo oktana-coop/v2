@@ -50,13 +50,12 @@ const isDiffViewProps = (
 type ReadOnlyDocumentViewProps = DiffViewProps | SingleDocViewProps;
 
 export const ReadOnlyDocumentView = (props: ReadOnlyDocumentViewProps) => {
-  const { diffAdapterReady, representationTransformAdapterReady } =
+  const { representationTransformAdapterReady } =
     useContext(ProseMirrorContext);
 
   // TODO: Handle adapter readiness with a promise
-  const adapterReady = isDiffViewProps(props)
-    ? diffAdapterReady
-    : representationTransformAdapterReady;
+  const adapterReady =
+    isDiffViewProps(props) || representationTransformAdapterReady;
 
   if (!adapterReady) {
     return <LongTextSkeleton />;

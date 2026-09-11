@@ -1,215 +1,67 @@
-import debounce from 'debounce';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
-import * as Ref from 'effect/Ref';
 
-import {
-  type LiveDocument,
-  type RepresentationTransform,
-  type RichTextDocument,
-} from '../../../../modules/domain/rich-text';
 import {
   type ArtifactId,
   MigrationError,
 } from '../../../../modules/infrastructure/version-control';
-import {
-  NotFoundError,
-  RepositoryError,
-  ValidationError,
-  VersionedProjectNotFoundErrorTag,
-} from '../errors';
+import { NotFoundError, RepositoryError, ValidationError } from '../errors';
 import { type ProjectId } from '../models';
-import { type ProjectStore } from '../ports';
-import { persistDocument, type PersistDocumentError } from './persist-document';
+import { type OpenSharedDocumentError, type ShareUrl } from '../ports';
+import {
+  createLiveDocument,
+  type CreateLiveDocumentDeps,
+  type LiveDocument,
+} from './live-document';
 
-export type Unsubscribe = () => void;
-
-export type PersistError = PersistDocumentError;
-
-export type RefreshError =
-  ValidationError | RepositoryError | NotFoundError | MigrationError;
-
-export type OpenError =
-  ValidationError | RepositoryError | NotFoundError | MigrationError;
-
-export type OpenLiveDocumentDeps = {
-  createLiveDocumentAdapter: (
-    initial: RichTextDocument
-  ) => Effect.Effect<LiveDocument>;
-  transformToText: RepresentationTransform['transformToText'];
-  findDocumentById: ProjectStore['findDocumentById'];
-  updateRichTextDocumentContent: ProjectStore['updateRichTextDocumentContent'];
-  subscribeToProjectDirChanges: (listener: () => void) => Unsubscribe;
-  onPersistError: (error: unknown) => void;
-  onRefreshOnDiskChangeError: (error: unknown) => void;
+export type OpenLiveDocumentDeps = CreateLiveDocumentDeps & {
+  onShareUnavailable: (error: OpenSharedDocumentError) => void;
 };
 
 export type OpenLiveDocumentArgs = {
   projectId: ProjectId;
   documentId: ArtifactId;
+  shareUrl?: ShareUrl;
 };
-
-export type OpenedLiveDocument = LiveDocument & {
-  flush: Effect.Effect<void, PersistError>;
-  refresh: Effect.Effect<void, RefreshError>;
-  cancelPendingPersist: Effect.Effect<void>;
-  close: Effect.Effect<void, PersistError>;
-};
-
-const PERSIST_DEBOUNCE_MS = 300;
 
 export const openLiveDocument =
-  ({
-    createLiveDocumentAdapter,
-    transformToText,
-    findDocumentById,
-    updateRichTextDocumentContent,
-    subscribeToProjectDirChanges,
-    onPersistError,
-    onRefreshOnDiskChangeError,
-  }: OpenLiveDocumentDeps) =>
+  (deps: OpenLiveDocumentDeps) =>
   ({
     projectId,
     documentId,
-  }: OpenLiveDocumentArgs): Effect.Effect<OpenedLiveDocument, OpenError> =>
-    pipe(
-      findDocumentById({ projectId, documentId }),
-      Effect.flatMap(({ artifact }) =>
-        Effect.all({
-          adapter: createLiveDocumentAdapter(artifact),
-          lastPersisted: Ref.make(artifact.content),
-          pendingPersist: Ref.make<RichTextDocument | null>(null),
-          persistSemaphore: Effect.makeSemaphore(1),
-        })
-      ),
-      Effect.map(
-        ({ adapter, lastPersisted, pendingPersist, persistSemaphore }) => {
-          // Persistence ops run strictly one after another: the next starts
-          // only after the previous — including its disk write — has fully
-          // finished.
-          const persistMutex = persistSemaphore.withPermits(1);
-
-          const persistToStore = persistDocument({
-            transformToText,
-            updateRichTextDocumentContent,
-          });
-
-          const persist = (doc: RichTextDocument) =>
-            pipe(
-              Ref.get(lastPersisted),
-              Effect.flatMap((last) =>
-                persistToStore({
-                  projectId,
-                  documentId,
-                  document: doc,
-                  skipIfContentEquals: last,
-                })
-              ),
-              Effect.flatMap((textContent) =>
-                Ref.set(lastPersisted, textContent)
-              )
-            );
-
-          // Unlocked - callers wrap it in the persist mutex.
-          const takePendingPersist = pipe(
-            Effect.sync(() => debouncedFlush.clear()),
-            Effect.zipRight(Ref.getAndSet(pendingPersist, null))
-          );
-
-          const flush = persistMutex(
-            pipe(
-              takePendingPersist,
-              Effect.flatMap((doc) =>
-                doc === null ? Effect.void : persist(doc)
-              )
-            )
-          );
-
-          const debouncedFlush = debounce(() => {
-            Effect.runPromise(flush).catch(onPersistError);
-          }, PERSIST_DEBOUNCE_MS);
-
-          const cancelPendingPersist = persistMutex(
-            Effect.asVoid(takePendingPersist)
-          );
-
-          // Re-derives the live content from the disk. Content equal to
-          // what we last wrote or read is our own write coming back, so
-          // pending typing has to survive it. A genuine external
-          // change wins over pending typing.
-          const refresh = persistMutex(
-            pipe(
-              // Suspended so each refresh issues its own read; the
-              // renderer's store starts its IPC call when the effect is
-              // constructed.
-              Effect.suspend(() => findDocumentById({ projectId, documentId })),
-              Effect.flatMap(({ artifact: fresh }) =>
-                pipe(
-                  Ref.get(lastPersisted),
-                  Effect.flatMap((last) =>
-                    last === fresh.content
-                      ? Effect.void
-                      : pipe(
-                          takePendingPersist,
-                          Effect.zipRight(
-                            Ref.set(lastPersisted, fresh.content)
-                          ),
-                          // Update the live document.
-                          Effect.zipRight(adapter.change(fresh)),
-                          Effect.asVoid
-                        )
-                  )
-                )
-              )
-            )
-          );
-
-          const refreshOnDiskChange = pipe(
-            refresh,
-            // Ignore vanishing-file errors (e.g. caused by file renames).
-            Effect.catchTag(
-              VersionedProjectNotFoundErrorTag,
-              () => Effect.void
-            ),
-            // Nothing awaits this, so a failed re-read has no caller to raise to.
+    shareUrl,
+  }: OpenLiveDocumentArgs): Effect.Effect<
+    LiveDocument,
+    ValidationError | RepositoryError | NotFoundError | MigrationError
+  > => {
+    const openInitialDocument = (initialText: string) =>
+      shareUrl === undefined
+        ? deps.createPrivateDocument(initialText)
+        : pipe(
+            deps.openSharedDocument({ shareUrl }),
+            // Fall back to a private document.
             Effect.catchAll((error) =>
-              Effect.sync(() => onRefreshOnDiskChangeError(error))
+              pipe(
+                Effect.sync(() => deps.onShareUnavailable(error)),
+                Effect.zipRight(deps.createPrivateDocument(initialText))
+              )
             )
           );
 
-          // Any change under the project signals here, not just this
-          // document's file. Most settle in a read and an unchanged-content
-          // comparison, without reaching the editor.
-          const unsubscribeFromDisk = subscribeToProjectDirChanges(() => {
-            Effect.runPromise(refreshOnDiskChange).catch(
-              onRefreshOnDiskChangeError
-            );
-          });
-
-          const change = (doc: RichTextDocument) =>
-            pipe(
-              // Update the live document.
-              adapter.change(doc),
-              // Flush to disk (with a debounce).
-              Effect.tap(() => Ref.set(pendingPersist, doc)),
-              Effect.tap(() => Effect.sync(() => debouncedFlush()))
-            );
-
-          // Unsubscribe first, so the echo of the closing flush cannot
-          // start a refresh on a document that is going away.
-          const close = pipe(
-            Effect.sync(unsubscribeFromDisk),
-            Effect.zipRight(flush)
-          );
-
-          return {
-            content: adapter.content,
-            change,
-            flush,
-            refresh,
-            cancelPendingPersist,
-            close,
-          };
-        }
+    return pipe(
+      deps.findDocumentById({ projectId, documentId }),
+      Effect.flatMap(({ artifact }) =>
+        pipe(
+          openInitialDocument(artifact.content),
+          Effect.flatMap((initialDocument) =>
+            createLiveDocument(deps)({
+              projectId,
+              documentId,
+              storedContent: artifact.content,
+              initialDocument,
+            })
+          )
+        )
       )
     );
+  };

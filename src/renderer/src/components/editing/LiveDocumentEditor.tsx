@@ -3,10 +3,11 @@ import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { type Schema } from 'prosemirror-model';
 import { useCallback, useContext } from 'react';
 
+import { type LiveDocument } from '../../../../modules/domain/project';
 import {
-  type LiveDocument,
+  LiveSyncFallbackError,
+  type ParticipantSelection,
   prosemirror,
-  type RichTextDocument,
   richTextRepresentations,
 } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
@@ -14,27 +15,42 @@ import {
   createErrorNotification,
   NotificationsContext,
 } from '../../../../modules/infrastructure/notifications/browser';
+import { getColorClass } from '../user/color';
 import {
   type ContentBinding,
   EditorBase,
   type SharedEditorProps,
 } from './EditorBase';
 
-const { liveSyncPlugin, pmDocFromJSONString } = prosemirror;
+const {
+  liveSyncPlugin,
+  getLiveSyncState,
+  presencePlugin,
+  pmDocFromJSONString,
+} = prosemirror;
 
-// Backed by a live document: always editable, content owned outside the editor.
 export type LiveDocumentEditorProps = SharedEditorProps & {
   liveDocument: LiveDocument;
+  // Where the caret is, for whoever else is at the document.
+  onLocalSelectionChange: (selection: ParticipantSelection | null) => void;
 };
 
 export const LiveDocumentEditor = ({
   liveDocument,
+  onLocalSelectionChange,
   ...shared
 }: LiveDocumentEditorProps) => {
-  const { convertToProseMirror } = useContext(ProseMirrorContext);
+  const { convertToProseMirror, proseMirrorSteps } =
+    useContext(ProseMirrorContext);
   const { dispatchNotification } = useContext(NotificationsContext);
 
   const handleLiveSyncError = (error: unknown) => {
+    // The document still converged; the coarser apply is a dev concern.
+    if (error instanceof LiveSyncFallbackError) {
+      console.warn(`Live sync fell back to a region replace: ${error.message}`);
+      return;
+    }
+
     console.error(error);
     dispatchNotification(
       createErrorNotification({
@@ -57,19 +73,38 @@ export const LiveDocumentEditor = ({
           : await convertToProseMirror({ schema, document: initial.doc });
 
       const syncPlugin = liveSyncPlugin({
-        liveDocument,
+        content: liveDocument.content,
+        onChange: liveDocument.change,
         initialVersion: initial.version,
         schemaVersion: initial.doc.schemaVersion,
         schema,
-        convertToProseMirror: (document: RichTextDocument) =>
+        proseMirrorSteps: ({ pmDocBefore, docAfter }) =>
+          proseMirrorSteps({
+            pmDocBefore,
+            docAfter,
+            proseMirrorSchema: schema,
+          }),
+        convertToProseMirror: (document) =>
           convertToProseMirror({ schema, document }),
         onError: handleLiveSyncError,
       });
 
-      return { pmDoc, sourceDoc: initial.doc, syncPlugin };
+      const presence = presencePlugin({
+        peers: liveDocument.presence.peers,
+        readSyncState: getLiveSyncState,
+        publish: onLocalSelectionChange,
+        colorClassFor: (participant) => getColorClass(participant.name),
+      });
+
+      return {
+        pmDoc,
+        sourceDoc: initial.doc,
+        syncPlugin,
+        presencePlugin: presence,
+      };
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [liveDocument]
+    [liveDocument, onLocalSelectionChange]
   );
 
   return <EditorBase bindContent={bindContent} {...shared} />;
