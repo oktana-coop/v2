@@ -33,7 +33,12 @@ const createLiveDocument = async ({
   content?: string;
   calls?: string[];
   attachFails?: boolean;
-} = {}): Promise<Pick<LiveDocument, 'content' | 'attachTo' | 'detach'>> => {
+} = {}): Promise<
+  Pick<
+    LiveDocument,
+    'content' | 'attachTo' | 'detach' | 'applyPendingLocalEdits'
+  >
+> => {
   const contentRef = await Effect.runPromise(
     SubscriptionRef.make<ConvergentDocumentState>({
       doc: {
@@ -47,7 +52,9 @@ const createLiveDocument = async ({
 
   return {
     content: contentRef,
-
+    applyPendingLocalEdits: Effect.sync(() => {
+      calls.push('applyPendingLocalEdits');
+    }),
     attachTo: (shareUrl) =>
       attachFails
         ? Effect.fail(new SharedDocumentUnavailableError('unreachable'))
@@ -84,8 +91,10 @@ describe('shareLiveDocument', () => {
     );
 
     expect(url).toBe('automerge:url');
-    // The share is minted carrying the document it was made from.
+    // The share is minted carrying the document it was made from, once
+    // everything typed has reached it.
     expect(calls).toEqual([
+      'applyPendingLocalEdits',
       'mint:what the editor shows@main:/blob/main/note.md',
       'attach:automerge:url',
       'remember:automerge:url',

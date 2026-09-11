@@ -1,4 +1,5 @@
 import debounce from 'debounce';
+import * as Deferred from 'effect/Deferred';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as PubSub from 'effect/PubSub';
@@ -58,6 +59,42 @@ export type CreateLiveDocumentArgs = {
 };
 
 const PERSIST_DEBOUNCE_MS = 300;
+// Converting a large document to the primary text is slow, so typing is
+// contributed once it pauses rather than keystroke by keystroke.
+const CONTRIBUTION_DEBOUNCE_MS = 300;
+
+// The editor's document waiting to be contributed, and the version that
+// contribution will resolve with.
+type PendingContribution = {
+  doc: RichTextDocument;
+  options: ConvergentDocumentChangeOptions | undefined;
+  version: Deferred.Deferred<ConvergentDocumentVersion>;
+};
+
+const startPendingContribution = ({
+  doc,
+  options,
+}: {
+  doc: RichTextDocument;
+  options: ConvergentDocumentChangeOptions | undefined;
+}): Effect.Effect<PendingContribution> =>
+  pipe(
+    Deferred.make<ConvergentDocumentVersion>(),
+    Effect.map((version) => ({ doc, options, version }))
+  );
+
+// A newer editor doc replaces the pending one outright: it already contains
+// every edit the pending one had. The version stays, so whoever waited for
+// the earlier doc resolves with the contribution that carries it.
+const replacePendingContribution = ({
+  previous,
+  doc,
+  options,
+}: {
+  previous: PendingContribution;
+  doc: RichTextDocument;
+  options: ConvergentDocumentChangeOptions | undefined;
+}): PendingContribution => ({ ...previous, doc, options });
 
 export const createLiveDocument =
   ({
@@ -102,6 +139,7 @@ export const createLiveDocument =
                     null
                   ),
                   persistSemaphore: Effect.makeSemaphore(1),
+                  contributionSemaphore: Effect.makeSemaphore(1),
                 })
               )
             )
@@ -112,6 +150,7 @@ export const createLiveDocument =
               stored,
               cancelledVersion,
               persistSemaphore,
+              contributionSemaphore,
             }) => {
               // Persistence ops run strictly one after another: the next starts
               // only after the previous has fully finished.
@@ -125,6 +164,101 @@ export const createLiveDocument =
                 transformToText,
                 updateRichTextDocumentContent,
               });
+
+              const currentVersion = pipe(
+                SubscriptionRef.get(convergentDocument.content),
+                Effect.map((current) => current.version)
+              );
+
+              let pending: PendingContribution | null = null;
+
+              const takePending = Effect.sync(() => {
+                debouncedContribute.clear();
+                const taken = pending;
+                pending = null;
+                return taken;
+              });
+
+              // Contributions reach the document one after another, in the
+              // order they were made.
+              const contributionMutex = contributionSemaphore.withPermits(1);
+
+              // Contributes the editor's edits still on their way to the
+              // document now, without waiting for the pause that normally
+              // contributes them.
+              const applyPendingLocalEdits = contributionMutex(
+                pipe(
+                  takePending,
+                  Effect.flatMap((taken) =>
+                    taken === null
+                      ? Effect.void
+                      : pipe(
+                          toPrimaryRepresentation(taken.doc),
+                          Effect.flatMap((text) =>
+                            convergentDocument.change(text, taken.options)
+                          ),
+                          // Contributing has no error channel: a failed
+                          // conversion is reported and leaves the document as
+                          // it was.
+                          Effect.catchAll((error) =>
+                            pipe(report(error), Effect.zipRight(currentVersion))
+                          ),
+                          Effect.flatMap((version) =>
+                            Deferred.succeed(taken.version, version)
+                          ),
+                          Effect.asVoid
+                        )
+                  )
+                )
+              );
+
+              const debouncedContribute = debounce(() => {
+                Effect.runFork(applyPendingLocalEdits);
+              }, CONTRIBUTION_DEBOUNCE_MS);
+
+              const change = (
+                doc: RichTextDocument,
+                options?: ConvergentDocumentChangeOptions
+              ) =>
+                pipe(
+                  Effect.suspend(() =>
+                    pending === null
+                      ? startPendingContribution({ doc, options })
+                      : Effect.succeed(
+                          replacePendingContribution({
+                            previous: pending,
+                            doc,
+                            options,
+                          })
+                        )
+                  ),
+                  Effect.tap((next) =>
+                    Effect.sync(() => {
+                      pending = next;
+                      debouncedContribute();
+                    })
+                  ),
+                  Effect.flatMap((next) => Deferred.await(next.version))
+                );
+
+              // Drops the editor's edits still on their way to the document;
+              // whoever waits for them gets the version the document holds.
+              const dropPendingLocalEdits = contributionMutex(
+                pipe(
+                  takePending,
+                  Effect.flatMap((taken) =>
+                    taken === null
+                      ? Effect.void
+                      : pipe(
+                          currentVersion,
+                          Effect.flatMap((version) =>
+                            Deferred.succeed(taken.version, version)
+                          ),
+                          Effect.asVoid
+                        )
+                  )
+                )
+              );
 
               const persist = ({ doc, version }: ConvergentDocumentState) =>
                 pipe(
@@ -145,7 +279,7 @@ export const createLiveDocument =
                   )
                 );
 
-              const flush = persistMutex(
+              const persistNow = persistMutex(
                 pipe(
                   Effect.sync(() => debouncedFlush.clear()),
                   Effect.zipRight(
@@ -164,22 +298,35 @@ export const createLiveDocument =
                 )
               );
 
+              // Everything typed so far reaches the disk: what is still on its
+              // way to the document is contributed first.
+              const flush = pipe(
+                applyPendingLocalEdits,
+                Effect.zipRight(persistNow)
+              );
+
               const debouncedFlush = debounce(() => {
-                Effect.runFork(pipe(flush, Effect.catchAll(report)));
+                Effect.runFork(pipe(persistNow, Effect.catchAll(report)));
               }, PERSIST_DEBOUNCE_MS);
 
               // Refuses the version the document holds right now, so an armed
-              // write cannot put back what the caller is discarding. Anything
-              // typed afterwards has a version of its own, and is written as
-              // usual.
-              const cancelPendingPersist = persistMutex(
-                pipe(
-                  Effect.sync(() => debouncedFlush.clear()),
-                  Effect.zipRight(
-                    SubscriptionRef.get(convergentDocument.content)
-                  ),
-                  Effect.flatMap((current) =>
-                    Ref.set(cancelledVersion, current.version)
+              // write cannot put back what the caller is discarding. Typing
+              // still on its way to the document is dropped first: contributed
+              // later, it would be written as usual. Anything typed afterwards
+              // has a version of its own, and is written as usual.
+              const cancelPendingPersist = pipe(
+                dropPendingLocalEdits,
+                Effect.zipRight(
+                  persistMutex(
+                    pipe(
+                      Effect.sync(() => debouncedFlush.clear()),
+                      Effect.zipRight(
+                        SubscriptionRef.get(convergentDocument.content)
+                      ),
+                      Effect.flatMap((current) =>
+                        Ref.set(cancelledVersion, current.version)
+                      )
+                    )
                   )
                 )
               );
@@ -251,14 +398,17 @@ export const createLiveDocument =
                 )
               );
 
-              // Runs on another document from here on. What the disk holds now
-              // derives from the new document's state, so the stored copy is
-              // rebased on it: nothing said about the old one applies.
+              // Runs on another document from here on. Typing still on its way
+              // is contributed to the document it was made on first. What the
+              // disk holds now derives from the new document's state, so the
+              // stored copy is rebased on it: nothing said about the old one
+              // applies.
               const switchTo = <E>(
                 open: Effect.Effect<ConvergentDocument, E>
               ) =>
                 pipe(
-                  open,
+                  applyPendingLocalEdits,
+                  Effect.zipRight(open),
                   Effect.flatMap(convergentDocument.switchTo),
                   Effect.zipRight(rebaseOnDocument)
                 );
@@ -267,38 +417,6 @@ export const createLiveDocument =
                 SubscriptionRef.get(convergentDocument.content),
                 Effect.map((current) => current.doc.content)
               );
-
-              // Contributions come in whatever representation their source
-              // holds; the document takes the primary text one. Only the newest
-              // of a burst is applied: an older conversion finishing later would
-              // otherwise be written over newer text.
-              let latestContribution = 0;
-
-              const currentVersion = pipe(
-                SubscriptionRef.get(convergentDocument.content),
-                Effect.map((current) => current.version)
-              );
-
-              const change = (
-                doc: RichTextDocument,
-                options?: ConvergentDocumentChangeOptions
-              ) => {
-                const contribution = (latestContribution += 1);
-
-                return pipe(
-                  toPrimaryRepresentation(doc),
-                  Effect.flatMap((text) =>
-                    contribution === latestContribution
-                      ? convergentDocument.change(text, options)
-                      : currentVersion
-                  ),
-                  // Contributing has no error channel: a failed conversion is
-                  // reported and leaves the document as it was.
-                  Effect.catchAll((error) =>
-                    pipe(report(error), Effect.zipRight(currentVersion))
-                  )
-                );
-              };
 
               const attachTo = (shareUrl: ShareUrl) =>
                 switchTo(openSharedDocument({ shareUrl }));
@@ -345,6 +463,7 @@ export const createLiveDocument =
                 documentId,
                 content: convergentDocument.content,
                 change,
+                applyPendingLocalEdits,
                 presence: convergentDocument.presence,
                 attachTo,
                 detach,
