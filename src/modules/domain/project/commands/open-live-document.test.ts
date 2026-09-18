@@ -239,10 +239,10 @@ const open = async ({
 // Types content and waits for it to reach the document, without the pause
 // that normally contributes it.
 const type = async (
-  opened: Pick<LiveDocument, 'change' | 'applyPendingLocalEdits'>,
+  opened: Pick<LiveDocument, 'edit' | 'applyPendingLocalEdits'>,
   doc: RichTextDocument
 ) => {
-  const contributed = Effect.runPromise(opened.change(doc));
+  const contributed = Effect.runPromise(opened.edit(doc));
   // The contribution registers on the next scheduler tick.
   await Promise.resolve();
   await Effect.runPromise(opened.applyPendingLocalEdits);
@@ -252,10 +252,10 @@ const type = async (
 // Types content and leaves it on its way, as typing that has not paused;
 // `contributed` resolves with its version once it reaches the document.
 const typeWithoutPausing = async (
-  opened: Pick<LiveDocument, 'change'>,
+  opened: Pick<LiveDocument, 'edit'>,
   doc: RichTextDocument
 ) => {
-  const contributed = Effect.runPromise(opened.change(doc));
+  const contributed = Effect.runPromise(opened.edit(doc));
   await Promise.resolve();
   return { contributed };
 };

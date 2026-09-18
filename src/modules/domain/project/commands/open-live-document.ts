@@ -11,12 +11,15 @@ import { type OpenSharedDocumentError, type ShareUrl } from '../ports';
 import {
   createLiveDocument,
   type CreateLiveDocumentDeps,
-  type LiveDocument,
+  type StoredLiveDocument,
+  withStoredCopy,
+  type WithStoredCopyDeps,
 } from './live-document';
 
-export type OpenLiveDocumentDeps = CreateLiveDocumentDeps & {
-  onShareUnavailable: (error: OpenSharedDocumentError) => void;
-};
+export type OpenLiveDocumentDeps = CreateLiveDocumentDeps &
+  WithStoredCopyDeps & {
+    onShareUnavailable: (error: OpenSharedDocumentError) => void;
+  };
 
 export type OpenLiveDocumentArgs = {
   projectId: ProjectId;
@@ -31,7 +34,7 @@ export const openLiveDocument =
     documentId,
     shareUrl,
   }: OpenLiveDocumentArgs): Effect.Effect<
-    LiveDocument,
+    StoredLiveDocument,
     ValidationError | RepositoryError | NotFoundError | MigrationError
   > => {
     const openInitialDocument = (initialText: string) =>
@@ -54,11 +57,13 @@ export const openLiveDocument =
         pipe(
           openInitialDocument(artifact.content),
           Effect.flatMap((initialDocument) =>
-            createLiveDocument(deps)({
+            createLiveDocument(deps)({ documentId, initialDocument })
+          ),
+          Effect.flatMap(
+            withStoredCopy(deps)({
               projectId,
               documentId,
               storedContent: artifact.content,
-              initialDocument,
             })
           )
         )

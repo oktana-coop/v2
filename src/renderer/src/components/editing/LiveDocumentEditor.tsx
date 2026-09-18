@@ -74,7 +74,7 @@ export const LiveDocumentEditor = ({
 
       const syncPlugin = liveSyncPlugin({
         content: liveDocument.content,
-        onChange: liveDocument.change,
+        onChange: liveDocument.edit,
         initialVersion: initial.version,
         schemaVersion: initial.doc.schemaVersion,
         schema,
