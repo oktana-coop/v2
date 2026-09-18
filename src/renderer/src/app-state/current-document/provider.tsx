@@ -443,7 +443,7 @@ export const CurrentDocumentProvider = ({
         );
       }
 
-      // Land pending typing before the restore rewrites the working tree. If
+      // Save pending typing before the restore rewrites the working tree. If
       // it cannot be saved, restoring would overwrite it, so nothing happens
       // and the changes stay where the user can still see them.
       try {
@@ -485,18 +485,15 @@ export const CurrentDocumentProvider = ({
       );
     }
 
-    // Drop pending typing first: a write landing mid-discard would resurrect
-    // exactly what is being discarded.
-    await Effect.runPromise(liveDocument.cancelPendingPersist);
-
     await Effect.runPromise(
-      projectStore.discardUncommittedChanges({
-        projectId,
-        documentId,
-      })
+      pipe(
+        liveDocument.dropPendingLocalEdits,
+        Effect.zipRight(
+          projectStore.discardUncommittedChanges({ projectId, documentId })
+        ),
+        Effect.zipRight(liveDocument.refresh)
+      )
     );
-
-    await Effect.runPromise(liveDocument.refresh);
 
     const newHistory = await loadHistory(documentId);
 

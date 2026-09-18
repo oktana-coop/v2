@@ -45,5 +45,4 @@ export type LiveDocument = {
 export type StoredLiveDocument = LiveDocument & {
   flush: Effect.Effect<void, PersistDocumentError>;
   refresh: Effect.Effect<void>;
-  cancelPendingPersist: Effect.Effect<void>;
 };
