@@ -17,6 +17,7 @@ import {
   SharedDocumentUnavailableError,
   shareLiveDocument,
   type ShareUrl,
+  type StoredLiveDocument,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
 import {
@@ -89,7 +90,9 @@ export const CurrentDocumentProvider = ({
   const documentId = useCurrentDocumentId();
   const { pulledUpstreamChanges, resetPulledUpstreamChanges } =
     usePulledUpstreamChanges();
-  const [liveDocument, setLiveDocument] = useState<LiveDocument | null>(null);
+  const [liveDocument, setLiveDocument] = useState<StoredLiveDocument | null>(
+    null
+  );
   const onLocalSelectionChange = usePublishLocalPresence(liveDocument);
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
   const [versionedDocumentHistory, setVersionedDocumentHistory] = useState<
@@ -138,7 +141,7 @@ export const CurrentDocumentProvider = ({
 
     // Ignore an open the selection has already moved on from.
     let cancelled = false;
-    let opened: LiveDocument | null = null;
+    let opened: StoredLiveDocument | null = null;
 
     const close = (handle: LiveDocument) =>
       Effect.runPromise(handle.close).catch(console.error);
