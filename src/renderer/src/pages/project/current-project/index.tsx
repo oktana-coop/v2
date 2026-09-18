@@ -28,6 +28,10 @@ import {
   DiscardChangesDialog,
   RestoreCommitDialog,
 } from './change-dialogs';
+import {
+  JoinSharedDocumentDialog,
+  ShareDocumentDialog,
+} from './sharing-dialogs';
 
 export const CurrentProject = () => {
   return (
@@ -47,6 +51,14 @@ const Project = () => {
     onCloseDiscardChangesDialog,
     onRestoreCommit,
     onDiscardChanges,
+    shareUrl,
+    isShareDocumentDialogOpen,
+    isJoinSharedDocumentDialogOpen,
+    onCloseShareDocumentDialog,
+    onCloseJoinSharedDocumentDialog,
+    onShareDocument,
+    onJoinSharedDocument,
+    onLeaveSharedDocument,
   } = useContext(CurrentDocumentContext);
   const { isOpen: isCommitDialogOpen, closeCommitModal } =
     useContext(CommitModalContext);
@@ -129,6 +141,18 @@ const Project = () => {
           isOpen={isDiscardChangesDialogOpen}
           onCancel={onCloseDiscardChangesDialog}
           onDiscardChanges={() => onDiscardChanges()}
+        />
+        <ShareDocumentDialog
+          isOpen={isShareDocumentDialogOpen}
+          shareUrl={shareUrl}
+          onShare={onShareDocument}
+          onStopSharing={onLeaveSharedDocument}
+          onCancel={onCloseShareDocumentDialog}
+        />
+        <JoinSharedDocumentDialog
+          isOpen={isJoinSharedDocumentDialogOpen}
+          onJoin={onJoinSharedDocument}
+          onCancel={onCloseJoinSharedDocumentDialog}
         />
         <DeleteDocumentDialog
           isOpen={filePathToDelete !== null}

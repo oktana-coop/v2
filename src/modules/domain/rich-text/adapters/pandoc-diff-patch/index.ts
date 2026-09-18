@@ -1,3 +1,5 @@
+import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 import { Node, type Schema } from 'prosemirror-model';
 import { Decoration, DecorationSet } from 'prosemirror-view';
 
@@ -5,29 +7,43 @@ import {
   cliTypes,
   type Wasm,
 } from '../../../../../modules/infrastructure/wasm';
+import { mapErrorTo } from '../../../../../utils/errors';
+import { PatchError, RichTextLibError } from '../../errors';
 import {
   type HSLibOutput,
   isHSLibFailureOutput,
   representationToCliArg,
 } from '../../hs-lib-cli';
-import { type Diff } from '../../ports/diff';
+import {
+  getDocumentRichTextContent,
+  richTextRepresentations,
+} from '../../models';
+import { type DiffPatch } from '../../ports/diff-patch';
 import {
   createInlineDecoration,
   createNodeDecoration,
   createWidgetDeleteDecoration,
   pmDocFromJSONString,
+  pmDocToJSONString,
+  pmStepFromJSON,
 } from '../../prosemirror';
 import {
   type DiffDecoration,
   type InlineDiffDecoration,
   type NodeDiffDecoration,
   type PMNode,
+  type PMStep,
   type WidgetDiffDecoration,
 } from '../../prosemirror/hs-lib';
 
 type HSLibDiffData = {
   doc: PMNode;
   decorations: DiffDecoration[];
+};
+
+type HSLibStepsData = {
+  doc: PMNode;
+  steps: PMStep[];
 };
 
 const toInlineDecoration = (decoration: InlineDiffDecoration): Decoration => {
@@ -76,8 +92,8 @@ export const createAdapter = ({
   runWasiCLIOutputingText,
 }: {
   runWasiCLIOutputingText: Wasm['runWasiCLIOutputingText'];
-}): Diff => {
-  const proseMirrorDiff: Diff['proseMirrorDiff'] = async ({
+}): DiffPatch => {
+  const proseMirrorDiff: DiffPatch['proseMirrorDiff'] = async ({
     representation,
     proseMirrorSchema,
     docBefore,
@@ -128,7 +144,64 @@ export const createAdapter = ({
     };
   };
 
+  const proseMirrorSteps: DiffPatch['proseMirrorSteps'] = ({
+    pmDocBefore,
+    docAfter,
+    proseMirrorSchema,
+  }) =>
+    pipe(
+      Effect.tryPromise({
+        try: () =>
+          runWasiCLIOutputingText({
+            type: cliTypes.HS_LIB,
+            args: [
+              'v2-hs-lib',
+              'proseMirrorSteps',
+              '--before-format',
+              representationToCliArg(richTextRepresentations.PROSEMIRROR),
+              '--after-format',
+              representationToCliArg(docAfter.representation),
+              '--',
+              pmDocToJSONString(pmDocBefore),
+              getDocumentRichTextContent(docAfter),
+            ],
+          }),
+        catch: mapErrorTo(RichTextLibError, 'Failed to compute the steps'),
+      }),
+      Effect.flatMap((output) =>
+        Effect.try({
+          try: () => JSON.parse(output) as HSLibOutput<HSLibStepsData>,
+          catch: mapErrorTo(
+            RichTextLibError,
+            'Failed to parse the steps output'
+          ),
+        })
+      ),
+      Effect.flatMap((parsedOutput) =>
+        isHSLibFailureOutput(parsedOutput)
+          ? Effect.fail(
+              new PatchError(
+                `Steps failed: ${parsedOutput.errors.map((error) => error.message).join(', ')}`
+              )
+            )
+          : Effect.succeed(parsedOutput.data)
+      ),
+      Effect.flatMap(({ doc, steps }) =>
+        Effect.try({
+          try: () => ({
+            pmDocAfter: pmDocFromJSONString(doc, proseMirrorSchema),
+            steps: steps.map((step) => pmStepFromJSON(step, proseMirrorSchema)),
+          }),
+          catch: mapErrorTo(
+            RichTextLibError,
+            'Failed to read the steps output'
+          ),
+        })
+      )
+    );
+
   return {
     proseMirrorDiff,
+    proseMirrorSteps,
   };
 };

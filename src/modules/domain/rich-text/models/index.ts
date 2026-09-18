@@ -3,3 +3,4 @@ export * from './representation';
 export * from './heading';
 export * from './link';
 export * from './document-asset';
+export * from './presence';

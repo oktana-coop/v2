@@ -27,12 +27,12 @@ export const CreateBranchDialog = ({
     setBranchName('');
   };
 
+  const handleCancel = () => {
+    setBranchName('');
+    onCancel?.();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // on Escape key press
-    if (onCancel && e.key === 'Escape') {
-      setBranchName('');
-      onCancel();
-    }
     // on enter --> submit
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -43,9 +43,10 @@ export const CreateBranchDialog = ({
   return (
     <Modal
       isOpen={isOpen}
+      onClose={handleCancel}
       title="Create branch"
       secondaryButton={
-        <Button variant="plain" onClick={onCancel}>
+        <Button variant="plain" onClick={handleCancel}>
           Cancel
         </Button>
       }

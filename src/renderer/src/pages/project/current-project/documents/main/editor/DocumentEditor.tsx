@@ -1,5 +1,6 @@
-import { useCallback, useContext, useState } from 'react';
+import { useCallback, useContext, useMemo, useState } from 'react';
 
+import { uniqueParticipants } from '../../../../../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import {
   CommitModalContext,
@@ -7,6 +8,7 @@ import {
   SidebarLayoutContext,
   useAssetInsertion,
   useAssetSrcResolver,
+  useRemotePresence,
 } from '../../../../../../app-state';
 import { LiveDocumentEditor } from '../../../../../../components/editing/LiveDocumentEditor';
 import { LongTextSkeleton } from '../../../../../../components/progress/skeletons/LongText';
@@ -16,12 +18,23 @@ import { ActionsBar } from './ActionsBar';
 export const DocumentEditor = () => {
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
   const { view: editorView } = useContext(ProseMirrorContext);
-  const { liveDocument, canCommit } = useContext(CurrentDocumentContext);
+  const {
+    liveDocument,
+    onLocalSelectionChange,
+    canCommit,
+    shareUrl,
+    onOpenShareDocumentDialog,
+  } = useContext(CurrentDocumentContext);
   const { openCommitModal } = useContext(CommitModalContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const artifact = useCurrentArtifact();
   const resolveAssetSrc = useAssetSrcResolver({ docPath: artifact.path });
   const pickAsset = useAssetInsertion();
+  const peers = useRemotePresence(liveDocument);
+  const participants = useMemo(
+    () => uniqueParticipants(peers.map((peer) => peer.participant)),
+    [peers]
+  );
 
   const handleEditorToolbarToggle = useCallback(() => {
     toggleEditorToolbar(!isEditorToolbarOpen);
@@ -35,6 +48,9 @@ export const DocumentEditor = () => {
           isSidebarOpen={isSidebarOpen}
           onSidebarToggle={toggleSidebar}
           onEditorToolbarToggle={handleEditorToolbarToggle}
+          isShared={shareUrl !== null}
+          participants={participants}
+          onShareClick={onOpenShareDocumentDialog}
           canCommit={canCommit}
           onCheckIconClick={openCommitModal}
         />
@@ -45,6 +61,7 @@ export const DocumentEditor = () => {
           {liveDocument ? (
             <LiveDocumentEditor
               liveDocument={liveDocument}
+              onLocalSelectionChange={onLocalSelectionChange}
               isToolbarOpen={isEditorToolbarOpen}
               pickAsset={pickAsset}
               resolveAssetSrc={resolveAssetSrc}

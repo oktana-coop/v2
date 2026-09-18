@@ -30,3 +30,9 @@ div.ProseMirror[contenteditable='false'] .ProseMirror-trailingBreak,
 div.ProseMirror[contenteditable='false'] .ProseMirror-separator {
   display: none;
 }
+
+.ProseMirror img.ProseMirror-separator {
+  display: inline;
+  border: none;
+  margin: 0;
+}

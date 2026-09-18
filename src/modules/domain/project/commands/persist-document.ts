@@ -6,12 +6,12 @@ import {
   type RepresentationTransform,
   RepresentationTransformError,
   type RichTextDocument,
+  toPrimaryTextRepresentation,
 } from '../../../../modules/domain/rich-text';
 import {
   type ArtifactId,
   MigrationError,
 } from '../../../../modules/infrastructure/version-control';
-import { mapErrorTo } from '../../../../utils/errors';
 import { NotFoundError, RepositoryError, ValidationError } from '../errors';
 import { type ProjectId } from '../models';
 import { type ProjectStore } from '../ports';
@@ -36,26 +36,6 @@ export type PersistDocumentArgs = {
   skipIfContentEquals?: string;
 };
 
-const toPrimaryTextRepresentation =
-  (transformToText: RepresentationTransform['transformToText']) =>
-  (
-    document: RichTextDocument
-  ): Effect.Effect<string, RepresentationTransformError> =>
-    document.representation === PRIMARY_RICH_TEXT_REPRESENTATION
-      ? Effect.succeed(document.content)
-      : Effect.tryPromise({
-          try: () =>
-            transformToText({
-              from: document.representation,
-              to: PRIMARY_RICH_TEXT_REPRESENTATION,
-              input: document.content,
-            }),
-          catch: mapErrorTo(
-            RepresentationTransformError,
-            'Rich text representation transformation error'
-          ),
-        });
-
 // Writes the document to the store in the primary text representation,
 // transforming it first when needed. Returns the primary-text content the
 // store holds afterwards.
@@ -68,7 +48,7 @@ export const persistDocument =
     skipIfContentEquals,
   }: PersistDocumentArgs): Effect.Effect<string, PersistDocumentError> =>
     pipe(
-      toPrimaryTextRepresentation(transformToText)(document),
+      toPrimaryTextRepresentation({ transformToText })(document),
       Effect.tap((textContent) =>
         textContent === skipIfContentEquals
           ? Effect.void
