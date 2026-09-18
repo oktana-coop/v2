@@ -268,7 +268,7 @@ describe('openLiveDocument', () => {
     expect(written).toEqual([]);
   });
 
-  it('writes what the document holds once the timer passes', async () => {
+  it('writes what the document holds', async () => {
     const { opened, written } = await open({ diskText: 'hello' });
 
     await type(opened, markdown('hello world'));
@@ -276,7 +276,7 @@ describe('openLiveDocument', () => {
     await vi.waitFor(() => expect(written).toContain('hello world'));
   });
 
-  it('coalesces a burst into one write of the last content', async () => {
+  it('writes states as they come, each once and the newest last', async () => {
     const { opened, written } = await open({ diskText: 'hello' });
 
     for (const text of ['a', 'ab', 'abc']) {
@@ -284,7 +284,8 @@ describe('openLiveDocument', () => {
     }
     await Effect.runPromise(opened.flush);
 
-    expect(written).toEqual(['abc']);
+    expect(written[written.length - 1]).toBe('abc');
+    expect(new Set(written).size).toBe(written.length);
   });
 
   it('holds a burst of typing and contributes its newest content once it pauses', async () => {
@@ -327,7 +328,7 @@ describe('openLiveDocument', () => {
     expect(transformToText).toHaveBeenCalledTimes(1);
   });
 
-  it('drops pending typing on cancelPendingPersist', async () => {
+  it('drops pending typing on dropPendingLocalEdits', async () => {
     const { opened, written, contributions } = await open({
       diskText: 'hello',
     });
@@ -339,7 +340,7 @@ describe('openLiveDocument', () => {
       opened,
       markdown('restored old state')
     );
-    await Effect.runPromise(opened.cancelPendingPersist);
+    await Effect.runPromise(opened.dropPendingLocalEdits);
     await Effect.runPromise(opened.flush);
 
     // Whoever waited for it is released, with the version the document holds.
@@ -362,7 +363,7 @@ describe('openLiveDocument', () => {
   });
 
   it('raises to whoever waits for a flush when the write fails', async () => {
-    const { opened, reported } = await open({
+    const { opened } = await open({
       diskText: 'hello',
       storeRefusesWrites: true,
     });
@@ -372,8 +373,6 @@ describe('openLiveDocument', () => {
     const failure = await Effect.runPromise(Effect.flip(opened.flush));
 
     expect(failure).toBeInstanceOf(RepositoryError);
-    // The caller was told; nothing was reported behind their back.
-    expect(reported).toEqual([]);
   });
 
   it('reports a write nobody awaited when it fails', async () => {
@@ -382,7 +381,7 @@ describe('openLiveDocument', () => {
       storeRefusesWrites: true,
     });
 
-    // Arms a write on the timer rather than awaiting one.
+    // Writes on the new state rather than awaiting a flush.
     await type(opened, markdown('hello world'));
 
     await vi.waitFor(() => expect(reported[0]).toBeInstanceOf(RepositoryError));
@@ -412,7 +411,7 @@ describe('openLiveDocument', () => {
     );
   });
 
-  it('flushes without waiting for the timer, and is idempotent', async () => {
+  it('flushes what the disk does not hold yet, and is idempotent', async () => {
     const { opened, written } = await open({ diskText: 'hello' });
 
     await type(opened, markdown('hello world'));
@@ -420,16 +419,6 @@ describe('openLiveDocument', () => {
     await Effect.runPromise(opened.flush);
 
     expect(written).toEqual(['hello world']);
-  });
-
-  it('drops an armed write on cancelPendingPersist', async () => {
-    const { opened, written } = await open({ diskText: 'hello' });
-
-    await type(opened, markdown('restored old state'));
-    await Effect.runPromise(opened.cancelPendingPersist);
-    await Effect.runPromise(opened.flush);
-
-    expect(written).toEqual([]);
   });
 
   it('writes what is pending when it closes', async () => {
@@ -485,11 +474,17 @@ describe('openLiveDocument', () => {
 
     await type(opened, markdown('hello world'));
     await Effect.runPromise(opened.flush);
-    // Typed after the write, before the watcher reported it.
-    await type(opened, markdown('hello world!'));
+    // Typed after the write, before the watcher reported it: still on its
+    // way to the document when the echo arrives.
+    const { contributed } = await typeWithoutPausing(
+      opened,
+      markdown('hello world!')
+    );
 
     editDisk('hello world');
     await new Promise((resolve) => setTimeout(resolve, 20));
+    await Effect.runPromise(opened.applyPendingLocalEdits);
+    await contributed;
 
     const current = await Effect.runPromise(
       SubscriptionRef.get(opened.content)

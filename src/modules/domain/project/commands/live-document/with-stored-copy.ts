@@ -1,4 +1,3 @@
-import debounce from 'debounce';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as PubSub from 'effect/PubSub';
@@ -9,7 +8,6 @@ import * as SubscriptionRef from 'effect/SubscriptionRef';
 import {
   type ConvergentDocument,
   type ConvergentDocumentState,
-  type ConvergentDocumentVersion,
   type RepresentationTransform,
 } from '../../../../../modules/domain/rich-text';
 import { type ArtifactId } from '../../../../../modules/infrastructure/version-control';
@@ -43,8 +41,6 @@ export type WithStoredCopyArgs = {
   storedContent: string;
 };
 
-const PERSIST_DEBOUNCE_MS = 300;
-
 export const withStoredCopy =
   ({
     transformToText,
@@ -67,229 +63,178 @@ export const withStoredCopy =
           stored: Ref.make(
             storedCopy({ content: storedContent, base: initialState.version })
           ),
-          // The version, if any, that must not reach the store.
-          cancelledVersion: Ref.make<ConvergentDocumentVersion | null>(null),
           persistSemaphore: Effect.makeSemaphore(1),
         })
       ),
-      Effect.flatMap(
-        ({ errorChannel, stored, cancelledVersion, persistSemaphore }) => {
-          const report = (error: LiveDocumentError) =>
-            Effect.asVoid(PubSub.publish(errorChannel, error));
+      Effect.flatMap(({ errorChannel, stored, persistSemaphore }) => {
+        const report = (error: LiveDocumentError) =>
+          Effect.asVoid(PubSub.publish(errorChannel, error));
 
-          // Persistence ops run strictly one after another: the next starts
-          // only after the previous has fully finished.
-          const persistMutex = persistSemaphore.withPermits(1);
+        // Persistence ops run strictly one after another: the next starts
+        // only after the previous has fully finished.
+        const persistMutex = persistSemaphore.withPermits(1);
 
-          const persistToStore = persistDocument({
-            transformToText,
-            updateRichTextDocumentContent,
-          });
+        const persistToStore = persistDocument({
+          transformToText,
+          updateRichTextDocumentContent,
+        });
 
-          const persist = ({ doc, version }: ConvergentDocumentState) =>
-            pipe(
-              Ref.get(stored),
-              Effect.flatMap((copy) =>
-                persistToStore({
-                  projectId,
-                  documentId,
-                  document: doc,
-                  skipIfContentEquals: copy.content,
-                })
-              ),
-              Effect.flatMap((textContent) =>
-                Ref.set(
-                  stored,
-                  storedCopy({ content: textContent, base: version })
-                )
-              )
-            );
-
-          const persistNow = persistMutex(
-            pipe(
-              Effect.sync(() => debouncedFlush.clear()),
-              Effect.zipRight(SubscriptionRef.get(document.content)),
-              Effect.flatMap((current) =>
-                pipe(
-                  Ref.get(cancelledVersion),
-                  Effect.flatMap((cancelled) =>
-                    current.version === cancelled
-                      ? Effect.void
-                      : persist(current)
-                  )
-                )
+        const persist = ({ doc, version }: ConvergentDocumentState) =>
+          pipe(
+            Ref.get(stored),
+            Effect.flatMap((copy) =>
+              persistToStore({
+                projectId,
+                documentId,
+                document: doc,
+                skipIfContentEquals: copy.content,
+              })
+            ),
+            Effect.flatMap((textContent) =>
+              Ref.set(
+                stored,
+                storedCopy({ content: textContent, base: version })
               )
             )
           );
 
-          // Everything typed so far reaches the disk: what is still on its
-          // way to the document is contributed first.
-          const flush = pipe(
-            document.applyPendingLocalEdits,
-            Effect.zipRight(persistNow)
-          );
+        // Writes what the document holds when its turn comes: states that
+        // arrive while a write is under way are written by the next one, and
+        // what the disk already holds is not written again.
+        const persistNow = persistMutex(
+          pipe(SubscriptionRef.get(document.content), Effect.flatMap(persist))
+        );
 
-          const debouncedFlush = debounce(() => {
-            Effect.runFork(pipe(persistNow, Effect.catchAll(report)));
-          }, PERSIST_DEBOUNCE_MS);
+        // Everything typed so far reaches the disk: what is still on its
+        // way to the document is contributed first.
+        const flush = pipe(
+          document.applyPendingLocalEdits,
+          Effect.zipRight(persistNow)
+        );
 
-          // Refuses the version the document holds right now, so an armed
-          // write cannot put back what the caller is discarding. Typing
-          // still on its way to the document is dropped first: contributed
-          // later, it would be written as usual. Anything typed afterwards
-          // has a version of its own, and is written as usual.
-          const cancelPendingPersist = pipe(
-            document.dropPendingLocalEdits,
-            Effect.zipRight(
-              persistMutex(
-                pipe(
-                  Effect.sync(() => debouncedFlush.clear()),
-                  Effect.zipRight(SubscriptionRef.get(document.content)),
-                  Effect.flatMap((current) =>
-                    Ref.set(cancelledVersion, current.version)
-                  )
-                )
-              )
-            )
-          );
-
-          // Re-derives the live content from the disk. Content equal to what
-          // we last wrote or read is our own write coming back, so pending
-          // typing has to survive it. A genuine external change is
-          // contributed like any other source, and merges with that typing.
-          const refresh = persistMutex(
-            pipe(
-              // Suspended so each refresh issues its own read.
-              Effect.suspend(() => findDocumentById({ projectId, documentId })),
-              Effect.flatMap(({ artifact: fresh }) =>
-                pipe(
-                  Ref.get(stored),
-                  Effect.flatMap((copy) =>
-                    // Content the store already holds is a write or read of
-                    // our own coming back, not an edit made by another hand.
-                    copy.content === fresh.content
-                      ? Effect.void
-                      : pipe(
-                          Effect.sync(() => debouncedFlush.clear()),
-                          // The disk content was derived from the state we
-                          // last wrote or read, so anchor the change there.
-                          // It holds the primary representation already, so
-                          // it contributes as it is.
-                          Effect.zipRight(
-                            document.change(fresh.content, {
-                              base: copy.base,
+        // Re-derives the live content from the disk. Content equal to what
+        // we last wrote or read is our own write coming back, so pending
+        // typing has to survive it. A genuine external change is
+        // contributed like any other source, and merges with that typing.
+        const refresh = persistMutex(
+          pipe(
+            // Suspended so each refresh issues its own read.
+            Effect.suspend(() => findDocumentById({ projectId, documentId })),
+            Effect.flatMap(({ artifact: fresh }) =>
+              pipe(
+                Ref.get(stored),
+                Effect.flatMap((copy) =>
+                  // Content the store already holds is a write or read of
+                  // our own coming back, not an edit made by another hand.
+                  copy.content === fresh.content
+                    ? Effect.void
+                    : pipe(
+                        // The disk content was derived from the state we
+                        // last wrote or read, so anchor the change there.
+                        // It holds the primary representation already, so
+                        // it contributes as it is.
+                        document.change(fresh.content, { base: copy.base }),
+                        Effect.flatMap((version) =>
+                          Ref.set(
+                            stored,
+                            storedCopy({
+                              content: fresh.content,
+                              base: version,
                             })
-                          ),
-                          Effect.flatMap((version) =>
-                            Ref.set(
-                              stored,
-                              storedCopy({
-                                content: fresh.content,
-                                base: version,
-                              })
-                            )
-                          ),
-                          Effect.asVoid
-                        )
-                  )
-                )
-              ),
-              // A document that is gone (e.g. renamed) leaves nothing to pick
-              // up, which is not a failure.
-              Effect.catchTag(
-                VersionedProjectNotFoundErrorTag,
-                () => Effect.void
-              ),
-              // Picking up an outside edit is best-effort: nothing awaits
-              // this, so a failed re-read has no caller to raise to.
-              Effect.catchAll(report)
-            )
-          );
-
-          const rebaseOnDocument = persistMutex(
-            pipe(
-              SubscriptionRef.get(document.content),
-              Effect.flatMap((current) =>
-                pipe(
-                  Ref.update(stored, rebasedOn(current.version)),
-                  Effect.zipRight(Ref.set(cancelledVersion, null))
+                          )
+                        ),
+                        Effect.asVoid
+                      )
                 )
               )
-            )
-          );
+            ),
+            // A document that is gone (e.g. renamed) leaves nothing to pick
+            // up, which is not a failure.
+            Effect.catchTag(
+              VersionedProjectNotFoundErrorTag,
+              () => Effect.void
+            ),
+            // Picking up an outside edit is best-effort: nothing awaits
+            // this, so a failed re-read has no caller to raise to.
+            Effect.catchAll(report)
+          )
+        );
 
-          const attachTo = (shareUrl: ShareUrl) =>
-            pipe(
-              document.attachTo(shareUrl),
-              Effect.zipRight(rebaseOnDocument)
-            );
-
-          const detach = pipe(
-            document.detach,
-            Effect.zipRight(rebaseOnDocument)
-          );
-
-          // Unsubscribe first, so the echo of the closing flush cannot start
-          // a refresh on a document that is going away.
-          const close = pipe(
-            Effect.sync(() => unsubscribeFromDisk()),
-            Effect.zipRight(Effect.sync(() => unsubscribeFromContent())),
-            // A document on its way out leaves nobody to act on the failure,
-            // so the closing write is reported rather than raised.
-            Effect.zipRight(pipe(flush, Effect.catchAll(report))),
-            Effect.zipRight(document.close)
-          );
-
-          // Any change under the project signals here, not just this
-          // document's file. Most settle in a read and an unchanged-content
-          // comparison, without reaching the editor.
-          const unsubscribeFromDisk = subscribeToProjectDirChanges(() => {
-            Effect.runFork(refresh);
-          });
-
-          // The disk follows the live document: any new state, from any
-          // source, arms a write.
-          const unsubscribeFromContent = subscribeToRefChanges(
-            document.content,
-            () => debouncedFlush()
-          );
-
-          // Failures come from two places that never coordinate: writing to
-          // the store, and the document itself.
-          const errors = Stream.merge(
-            document.errors,
-            Stream.fromPubSub(errorChannel)
-          );
-
-          const kept: StoredLiveDocument = {
-            documentId: document.documentId,
-            content: document.content,
-            edit: document.edit,
-            applyPendingLocalEdits: document.applyPendingLocalEdits,
-            dropPendingLocalEdits: document.dropPendingLocalEdits,
-            presence: document.presence,
-            attachTo,
-            detach,
-            flush,
-            refresh,
-            cancelPendingPersist,
-            errors,
-            close,
-          };
-
-          // A document opened at a share holds content the store has never
-          // seen, and nothing more will publish it, so it is written before
-          // the document is handed over. A failure leaves the document
-          // usable, so it is reported rather than raised.
-          return pipe(
+        const rebaseOnDocument = persistMutex(
+          pipe(
             SubscriptionRef.get(document.content),
             Effect.flatMap((current) =>
-              current.doc.content === storedContent
-                ? Effect.void
-                : pipe(flush, Effect.catchAll(report))
-            ),
-            Effect.as(kept)
-          );
-        }
-      )
+              Ref.update(stored, rebasedOn(current.version))
+            )
+          )
+        );
+
+        const attachTo = (shareUrl: ShareUrl) =>
+          pipe(document.attachTo(shareUrl), Effect.zipRight(rebaseOnDocument));
+
+        const detach = pipe(document.detach, Effect.zipRight(rebaseOnDocument));
+
+        // Unsubscribe first, so the echo of the closing flush cannot start
+        // a refresh on a document that is going away.
+        const close = pipe(
+          Effect.sync(() => unsubscribeFromDisk()),
+          Effect.zipRight(Effect.sync(() => unsubscribeFromContent())),
+          // A document on its way out leaves nobody to act on the failure,
+          // so the closing write is reported rather than raised.
+          Effect.zipRight(pipe(flush, Effect.catchAll(report))),
+          Effect.zipRight(document.close)
+        );
+
+        // Any change under the project signals here, not just this
+        // document's file. Most settle in a read and an unchanged-content
+        // comparison, without reaching the editor.
+        const unsubscribeFromDisk = subscribeToProjectDirChanges(() => {
+          Effect.runFork(refresh);
+        });
+
+        // The disk follows the live document: any new state, from any
+        // source, is written.
+        const unsubscribeFromContent = subscribeToRefChanges(
+          document.content,
+          () => {
+            Effect.runFork(pipe(persistNow, Effect.catchAll(report)));
+          }
+        );
+
+        // Failures come from two places that never coordinate: writing to
+        // the store, and the document itself.
+        const errors = Stream.merge(
+          document.errors,
+          Stream.fromPubSub(errorChannel)
+        );
+
+        const kept: StoredLiveDocument = {
+          documentId: document.documentId,
+          content: document.content,
+          edit: document.edit,
+          applyPendingLocalEdits: document.applyPendingLocalEdits,
+          dropPendingLocalEdits: document.dropPendingLocalEdits,
+          presence: document.presence,
+          attachTo,
+          detach,
+          flush,
+          refresh,
+          errors,
+          close,
+        };
+
+        // A document opened at a share holds content the store has never
+        // seen, and nothing more will publish it, so it is written before
+        // the document is handed over. A failure leaves the document
+        // usable, so it is reported rather than raised.
+        return pipe(
+          SubscriptionRef.get(document.content),
+          Effect.flatMap((current) =>
+            current.doc.content === storedContent
+              ? Effect.void
+              : pipe(flush, Effect.catchAll(report))
+          ),
+          Effect.as(kept)
+        );
+      })
     );
