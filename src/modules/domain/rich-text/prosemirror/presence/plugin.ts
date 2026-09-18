@@ -7,6 +7,7 @@ import {
   PluginKey,
   type Transaction,
 } from 'prosemirror-state';
+import { Mapping } from 'prosemirror-transform';
 import { Decoration, DecorationSet, type EditorView } from 'prosemirror-view';
 
 import { subscribeToRef } from '../../../../../utils/effect';
@@ -50,6 +51,22 @@ export const getPresencePluginState = (state: EditorState) =>
 const boundedBy = ({ doc, position }: { doc: Node; position: number }) =>
   Math.max(0, Math.min(position, doc.content.size));
 
+// How drawn carets move through an edit. The widget's side would keep them
+// before text inserted at their position; a peer's caret follows their
+// typing, so they map as if drawn after the local caret.
+class CaretMapping extends Mapping {
+  mapResult(pos: number) {
+    return super.mapResult(pos, 1);
+  }
+}
+
+const caretMapping = (mapping: Mapping): Mapping => {
+  const carets = new CaretMapping();
+  carets.appendMapping(mapping);
+
+  return carets;
+};
+
 export const presencePlugin = ({
   peers,
   readSyncState,
@@ -65,6 +82,11 @@ export const presencePlugin = ({
       element: () => caretElement({ label, colorClass }),
     };
   };
+
+  // Drawn before a local caret at the same position: the native caret must
+  // never sit between a peer's caret and the text, where the browser refuses
+  // to move it (e.g. when typing the "End" key).
+  const CARET_SIDE = -1;
 
   const createCaretDecoration = ({
     presence,
@@ -82,6 +104,7 @@ export const presencePlugin = ({
         key: `presence:${presence.peerId}:${caret.look}`,
         peerId: presence.peerId,
         selection: presence.selection,
+        side: CARET_SIDE,
         ignoreSelection: true,
       }
     );
@@ -133,7 +156,7 @@ export const presencePlugin = ({
     tr: Transaction;
   }): PresencePluginState => ({
     ...previous,
-    decorations: previous.decorations.map(tr.mapping, tr.doc),
+    decorations: previous.decorations.map(caretMapping(tr.mapping), tr.doc),
   });
 
   // A new peer list: a peer moved, lost focus, joined or left. Records where
