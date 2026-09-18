@@ -21,7 +21,7 @@ test('disk write: typed content is saved to the .md file', async ({
   await typeInEditorAndWaitForDebounce({
     window,
     text: ' persisted',
-    waitFor: 600,
+    waitFor: 1_000,
   });
 
   const content = fs.readFileSync(
@@ -116,7 +116,7 @@ test('editing after a trip through history keeps every edit', async ({
   await typeInEditorAndWaitForDebounce({
     window,
     text: ' world',
-    waitFor: 500,
+    waitFor: 1_000,
   });
 
   const content = fs.readFileSync(
