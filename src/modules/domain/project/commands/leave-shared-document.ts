@@ -2,7 +2,7 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import { type SharedDocumentUnavailableError } from '../errors';
-import { type DocumentSharing, type ShareUrl } from '../ports';
+import { type DocumentSharing, type ShareId } from '../ports';
 import { type LiveDocument } from './live-document';
 
 export type LeaveSharedDocumentDeps = {
@@ -17,9 +17,9 @@ export const leaveSharedDocument =
     forgetShare,
     leaveSharedDocument: releaseShare,
   }: LeaveSharedDocumentDeps) =>
-  (shareUrl: ShareUrl): Effect.Effect<void, SharedDocumentUnavailableError> =>
+  (shareId: ShareId): Effect.Effect<void, SharedDocumentUnavailableError> =>
     pipe(
       Effect.sync(forgetShare),
       Effect.zipRight(liveDocument.detach),
-      Effect.zipRight(releaseShare({ shareUrl }))
+      Effect.zipRight(releaseShare({ shareId }))
     );

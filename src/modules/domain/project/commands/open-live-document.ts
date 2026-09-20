@@ -7,7 +7,7 @@ import {
 } from '../../../../modules/infrastructure/version-control';
 import { NotFoundError, RepositoryError, ValidationError } from '../errors';
 import { type ProjectId } from '../models';
-import { type OpenSharedDocumentError, type ShareUrl } from '../ports';
+import { type OpenSharedDocumentError, type ShareId } from '../ports';
 import {
   createLiveDocument,
   type CreateLiveDocumentDeps,
@@ -24,7 +24,7 @@ export type OpenLiveDocumentDeps = CreateLiveDocumentDeps &
 export type OpenLiveDocumentArgs = {
   projectId: ProjectId;
   documentId: ArtifactId;
-  shareUrl?: ShareUrl;
+  shareId?: ShareId;
 };
 
 export const openLiveDocument =
@@ -32,16 +32,16 @@ export const openLiveDocument =
   ({
     projectId,
     documentId,
-    shareUrl,
+    shareId,
   }: OpenLiveDocumentArgs): Effect.Effect<
     StoredLiveDocument,
     ValidationError | RepositoryError | NotFoundError | MigrationError
   > => {
     const openInitialDocument = (initialText: string) =>
-      shareUrl === undefined
+      shareId === undefined
         ? deps.createPrivateDocument(initialText)
         : pipe(
-            deps.openSharedDocument({ shareUrl }),
+            deps.openSharedDocument({ shareId }),
             // Fall back to a private document.
             Effect.catchAll((error) =>
               pipe(

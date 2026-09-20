@@ -15,8 +15,8 @@ import {
   SharedDocumentNotInProjectErrorTag,
   SharedDocumentOnAnotherBranchErrorTag,
   SharedDocumentUnavailableError,
+  type ShareId,
   shareLiveDocument,
-  type ShareUrl,
   type StoredLiveDocument,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
@@ -77,7 +77,7 @@ export const CurrentDocumentProvider = ({
   const { privateRepo, documentSharing } = useContext(
     InfrastructureAdaptersContext
   );
-  const { shareUrlFor, rememberShare, forgetShare } = useContext(
+  const { shareIdFor, rememberShare, forgetShare } = useContext(
     DocumentSharingInfoContext
   );
   const { dispatchNotification } = useContext(NotificationsContext);
@@ -123,7 +123,7 @@ export const CurrentDocumentProvider = ({
         : null,
     [projectId, currentBranch, documentId]
   );
-  const shareUrl = shareKey ? shareUrlFor(shareKey) : null;
+  const shareId = shareKey ? shareIdFor(shareKey) : null;
 
   // Opens the current document as a live document. The previous one is kept
   // until the new one resolves, so a reload never blanks the state in between;
@@ -183,7 +183,7 @@ export const CurrentDocumentProvider = ({
         updateRichTextDocumentContent:
           projectStore.updateRichTextDocumentContent,
         subscribeToProjectDirChanges,
-      })({ projectId, documentId, shareUrl: shareUrl ?? undefined })
+      })({ projectId, documentId, shareId: shareId ?? undefined })
     )
       .then((handle) => {
         if (cancelled) {
@@ -531,39 +531,37 @@ export const CurrentDocumentProvider = ({
     setIsDiscardChangesDialogOpen(false);
   }, []);
 
-  const handleShareDocument =
-    useCallback(async (): Promise<ShareUrl | null> => {
-      if (!shareKey || !liveDocument) return null;
+  const handleShareDocument = useCallback(async (): Promise<ShareId | null> => {
+    if (!shareKey || !liveDocument) return null;
 
-      try {
-        return await Effect.runPromise(
-          shareLiveDocument({
-            liveDocument,
-            shareDocument: documentSharing.shareDocument,
-            rememberShare: (url) =>
-              rememberShare({ ...shareKey, shareUrl: url }),
-          })({ branch: shareKey.branch, documentId: shareKey.documentId })
-        );
-      } catch (error) {
-        console.error(error);
-        dispatchNotification(
-          createErrorNotification({
-            title: 'Share Document Error',
-            message: 'This document could not be shared.',
-          })
-        );
-        return null;
-      }
-    }, [
-      shareKey,
-      liveDocument,
-      documentSharing,
-      rememberShare,
-      dispatchNotification,
-    ]);
+    try {
+      return await Effect.runPromise(
+        shareLiveDocument({
+          liveDocument,
+          shareDocument: documentSharing.shareDocument,
+          rememberShare: (url) => rememberShare({ ...shareKey, shareId: url }),
+        })({ branch: shareKey.branch, documentId: shareKey.documentId })
+      );
+    } catch (error) {
+      console.error(error);
+      dispatchNotification(
+        createErrorNotification({
+          title: 'Share Document Error',
+          message: 'This document could not be shared.',
+        })
+      );
+      return null;
+    }
+  }, [
+    shareKey,
+    liveDocument,
+    documentSharing,
+    rememberShare,
+    dispatchNotification,
+  ]);
 
   const handleJoinSharedDocument = useCallback(
-    async (joinedShareUrl: ShareUrl) => {
+    async (joinedShareId: ShareId) => {
       if (!projectId || !currentBranch || !projectStore) return;
 
       const createNotification = (message: string) =>
@@ -582,19 +580,16 @@ export const CurrentDocumentProvider = ({
               getSharedDocumentIdentity:
                 documentSharing.getSharedDocumentIdentity,
               findDocumentById: projectStore.findDocumentById,
-              rememberShare: ({
-                documentId: joinedDocumentId,
-                shareUrl: url,
-              }) =>
+              rememberShare: ({ documentId: joinedDocumentId, shareId: url }) =>
                 rememberShare({
                   projectId,
                   branch: currentBranch,
                   documentId: joinedDocumentId,
-                  shareUrl: url,
+                  shareId: url,
                 }),
               openDocument: liveDocument,
             })({
-              shareUrl: joinedShareUrl,
+              shareId: joinedShareId,
               projectId,
               branch: currentBranch,
             }),
@@ -645,16 +640,16 @@ export const CurrentDocumentProvider = ({
   );
 
   const handleLeaveSharedDocument = useCallback(async () => {
-    if (!shareKey || !shareUrl || !liveDocument) return;
+    if (!shareKey || !shareId || !liveDocument) return;
 
     await Effect.runPromise(
       leaveSharedDocumentCommand({
         liveDocument,
         forgetShare: () => forgetShare(shareKey),
         leaveSharedDocument: documentSharing.leaveSharedDocument,
-      })(shareUrl)
+      })(shareId)
     ).catch(console.error);
-  }, [shareKey, shareUrl, liveDocument, forgetShare, documentSharing]);
+  }, [shareKey, shareId, liveDocument, forgetShare, documentSharing]);
 
   return (
     <CurrentDocumentContext.Provider
@@ -677,7 +672,7 @@ export const CurrentDocumentProvider = ({
         onCloseDiscardChangesDialog: handleCloseDiscardChangesDialog,
         selectedCommitIndex,
         onSelectChange: handleSelectChange,
-        shareUrl,
+        shareId,
         onShareDocument: handleShareDocument,
         onJoinSharedDocument: handleJoinSharedDocument,
         onLeaveSharedDocument: handleLeaveSharedDocument,

@@ -51,7 +51,7 @@ const Project = () => {
     onCloseDiscardChangesDialog,
     onRestoreCommit,
     onDiscardChanges,
-    shareUrl,
+    shareId,
     isShareDocumentDialogOpen,
     isJoinSharedDocumentDialogOpen,
     onCloseShareDocumentDialog,
@@ -144,7 +144,7 @@ const Project = () => {
         />
         <ShareDocumentDialog
           isOpen={isShareDocumentDialogOpen}
-          shareUrl={shareUrl}
+          shareId={shareId}
           onShare={onShareDocument}
           onStopSharing={onLeaveSharedDocument}
           onCancel={onCloseShareDocumentDialog}

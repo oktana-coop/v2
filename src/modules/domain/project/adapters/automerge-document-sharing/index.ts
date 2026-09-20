@@ -34,11 +34,11 @@ export type AutomergeDocumentSharingDeps = {
 // How long to keep asking peers for a document before giving up on it.
 const FIND_TIMEOUT_MS = 10_000;
 
-const parseShareUrl = (
-  shareUrl: string
+const parseShareId = (
+  shareId: string
 ): Effect.Effect<AutomergeUrl, ValidationError> =>
-  isValidAutomergeUrl(shareUrl)
-    ? Effect.succeed(shareUrl)
+  isValidAutomergeUrl(shareId)
+    ? Effect.succeed(shareId)
     : Effect.fail(new ValidationError('Not a shared document link.'));
 
 const find = ({ repo, url }: { repo: Repo; url: AutomergeUrl }) =>
@@ -68,9 +68,9 @@ export const createAdapter = ({
     )
   );
 
-  const findValidShare = (shareUrl: string) =>
+  const findValidShare = (shareId: string) =>
     pipe(
-      Effect.all({ repo: connectedRepo, url: parseShareUrl(shareUrl) }),
+      Effect.all({ repo: connectedRepo, url: parseShareId(shareId) }),
       Effect.flatMap(({ repo, url }) => find({ repo, url })),
       Effect.tap(validateDocumentContent)
     );
@@ -86,22 +86,22 @@ export const createAdapter = ({
       )
     );
 
-  const openSharedDocument = ({ shareUrl }: OpenSharedDocumentArgs) =>
+  const openSharedDocument = ({ shareId }: OpenSharedDocumentArgs) =>
     pipe(
-      findValidShare(shareUrl),
+      findValidShare(shareId),
       Effect.flatMap((handle) => createSharedConvergentDocument({ handle }))
     );
 
   const getSharedDocumentIdentity = ({
-    shareUrl,
+    shareId,
   }: GetSharedDocumentIdentityArgs) =>
-    pipe(findValidShare(shareUrl), Effect.flatMap(readSharedDocumentIdentity));
+    pipe(findValidShare(shareId), Effect.flatMap(readSharedDocumentIdentity));
 
-  const leaveSharedDocument = ({ shareUrl }: LeaveSharedDocumentArgs) =>
+  const leaveSharedDocument = ({ shareId }: LeaveSharedDocumentArgs) =>
     pipe(
       connectedRepo,
       Effect.map((repo) => {
-        if (isValidAutomergeUrl(shareUrl)) repo.delete(shareUrl);
+        if (isValidAutomergeUrl(shareId)) repo.delete(shareId);
       })
     );
 

@@ -18,7 +18,7 @@ import {
 } from '../../../../../utils/effect';
 import { VersionedProjectNotFoundErrorTag } from '../../errors';
 import { type ProjectId } from '../../models';
-import { type ProjectStore, type ShareUrl } from '../../ports';
+import { type ProjectStore, type ShareId } from '../../ports';
 import { persistDocument } from '../persist-document';
 import {
   type LiveDocument,
@@ -169,8 +169,8 @@ export const withStoredCopy =
           )
         );
 
-        const attachTo = (shareUrl: ShareUrl) =>
-          pipe(document.attachTo(shareUrl), Effect.zipRight(rebaseOnDocument));
+        const attachTo = (shareId: ShareId) =>
+          pipe(document.attachTo(shareId), Effect.zipRight(rebaseOnDocument));
 
         const detach = pipe(document.detach, Effect.zipRight(rebaseOnDocument));
 

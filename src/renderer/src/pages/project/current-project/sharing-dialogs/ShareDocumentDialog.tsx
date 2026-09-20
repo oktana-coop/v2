@@ -1,22 +1,22 @@
 import { useCallback, useState } from 'react';
 
-import { type ShareUrl } from '../../../../../../modules/domain/project';
+import { type ShareId } from '../../../../../../modules/domain/project';
 import { Button } from '../../../../components/actions/Button';
 import { Modal } from '../../../../components/dialogs/Modal';
 import { CheckIcon, CopyIcon } from '../../../../components/icons';
 
 export type ShareDocumentDialogProps = {
   isOpen?: boolean;
-  shareUrl: ShareUrl | null;
-  // Resolves to the new share url, or null when sharing did not happen.
-  onShare: () => Promise<ShareUrl | null>;
+  shareId: ShareId | null;
+  // Resolves to the new share ID, or null when sharing did not happen.
+  onShare: () => Promise<ShareId | null>;
   onStopSharing: () => Promise<void>;
   onCancel: () => void;
 };
 
 export const ShareDocumentDialog = ({
   isOpen,
-  shareUrl,
+  shareId,
   onShare,
   onStopSharing,
   onCancel,
@@ -24,8 +24,8 @@ export const ShareDocumentDialog = ({
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
 
-  const copyLink = useCallback(async (url: ShareUrl) => {
-    await navigator.clipboard.writeText(url);
+  const copyLink = useCallback(async (id: ShareId) => {
+    await navigator.clipboard.writeText(id);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, []);
@@ -43,8 +43,8 @@ export const ShareDocumentDialog = ({
   }, [onShare, copyLink]);
 
   const handleCopyLink = useCallback(async () => {
-    if (shareUrl) await copyLink(shareUrl);
-  }, [shareUrl, copyLink]);
+    if (shareId) await copyLink(shareId);
+  }, [shareId, copyLink]);
 
   const handleStopSharing = useCallback(async () => {
     await onStopSharing();
@@ -55,10 +55,10 @@ export const ShareDocumentDialog = ({
     <Modal
       isOpen={isOpen}
       onClose={onCancel}
-      closeButton={shareUrl !== null}
+      closeButton={shareId !== null}
       title="Share document"
       secondaryButton={
-        shareUrl ? (
+        shareId ? (
           <Button variant="plain" onClick={handleStopSharing}>
             Stop sharing
           </Button>
@@ -69,7 +69,7 @@ export const ShareDocumentDialog = ({
         )
       }
       primaryButton={
-        shareUrl ? (
+        shareId ? (
           <Button color="purple" onClick={handleCopyLink}>
             {copied ? (
               <CheckIcon className="mr-1" />
@@ -85,15 +85,15 @@ export const ShareDocumentDialog = ({
         )
       }
     >
-      {shareUrl ? (
+      {shareId ? (
         <div className="space-y-4">
           <p>Anyone with this share ID can edit this document with you.</p>
           <p
             className="cursor-text select-all truncate rounded border border-zinc-950/10 bg-zinc-950/[2.5%] px-3 py-2 font-mono text-sm text-zinc-700 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300"
-            title={shareUrl}
+            title={shareId}
             data-testid="share-id"
           >
-            {shareUrl}
+            {shareId}
           </p>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
             Stop sharing disconnects you. Others keep the shared version.

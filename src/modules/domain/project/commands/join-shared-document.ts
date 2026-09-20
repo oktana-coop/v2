@@ -19,14 +19,14 @@ import {
   type DocumentSharing,
   type OpenSharedDocumentError,
   type ProjectStore,
-  type ShareUrl,
+  type ShareId,
 } from '../ports';
 import { type LiveDocument } from './live-document';
 
 export type JoinSharedDocumentDeps = {
   getSharedDocumentIdentity: DocumentSharing['getSharedDocumentIdentity'];
   findDocumentById: ProjectStore['findDocumentById'];
-  rememberShare: (args: { documentId: ArtifactId; shareUrl: ShareUrl }) => void;
+  rememberShare: (args: { documentId: ArtifactId; shareId: ShareId }) => void;
   openDocument: Pick<LiveDocument, 'documentId' | 'attachTo'> | null;
 };
 
@@ -36,7 +36,7 @@ export type JoinSharedDocumentResult = {
 };
 
 export type JoinSharedDocumentArgs = {
-  shareUrl: ShareUrl;
+  shareId: ShareId;
   projectId: ProjectId;
   branch: Branch;
 };
@@ -58,7 +58,7 @@ export const joinSharedDocument =
     openDocument,
   }: JoinSharedDocumentDeps) =>
   ({
-    shareUrl,
+    shareId,
     projectId,
     branch,
   }: JoinSharedDocumentArgs): Effect.Effect<
@@ -67,11 +67,11 @@ export const joinSharedDocument =
   > => {
     const attachIfOpen = (documentId: ArtifactId) =>
       openDocument && openDocument.documentId === documentId
-        ? pipe(openDocument.attachTo(shareUrl), Effect.as(true))
+        ? pipe(openDocument.attachTo(shareId), Effect.as(true))
         : Effect.succeed(false);
 
     return pipe(
-      getSharedDocumentIdentity({ shareUrl }),
+      getSharedDocumentIdentity({ shareId }),
       Effect.flatMap((sharedDocIdentity) =>
         sharedDocIdentity.branch === branch
           ? Effect.succeed(sharedDocIdentity.documentId)
@@ -100,7 +100,7 @@ export const joinSharedDocument =
         )
       ),
       Effect.tap(({ documentId }) =>
-        Effect.sync(() => rememberShare({ documentId, shareUrl }))
+        Effect.sync(() => rememberShare({ documentId, shareId }))
       )
     );
   };

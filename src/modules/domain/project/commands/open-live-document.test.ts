@@ -28,7 +28,7 @@ import {
   SharedDocumentUnavailableError,
 } from '../errors';
 import { type ProjectId } from '../models';
-import { type ProjectStore, type ShareUrl } from '../ports';
+import { type ProjectStore, type ShareId } from '../ports';
 import { type LiveDocument, type LiveDocumentError } from './live-document';
 import { openLiveDocument } from './open-live-document';
 
@@ -126,14 +126,14 @@ type FakeConvergentDocument = Awaited<
 const open = async ({
   diskText = 'on disk',
   liveText = diskText,
-  shareUrl,
+  shareId,
   sharedText = 'what the share has',
   shareIsOutOfReach = false,
   storeRefusesWrites = false,
 }: {
   diskText?: string;
   liveText?: string;
-  shareUrl?: ShareUrl;
+  shareId?: ShareId;
   sharedText?: string;
   shareIsOutOfReach?: boolean;
   storeRefusesWrites?: boolean;
@@ -203,7 +203,7 @@ const open = async ({
           watcher = undefined;
         };
       },
-    })({ projectId, documentId, shareUrl })
+    })({ projectId, documentId, shareId })
   );
 
   // What the document reported while nobody was waiting. Subscribing after it
@@ -542,7 +542,7 @@ describe('openLiveDocument', () => {
   });
 });
 
-const shareLink = 'automerge:the-share' as ShareUrl;
+const shareLink = 'automerge:the-share' as ShareId;
 
 const lastOf = <A>(items: A[]): A | undefined => items[items.length - 1];
 
@@ -555,7 +555,7 @@ describe('openLiveDocument, on the document it runs on', () => {
   it('opens at the share when it has one', async () => {
     const { opened, documents } = await open({
       diskText: 'what the file has',
-      shareUrl: shareLink,
+      shareId: shareLink,
       sharedText: 'what the share has',
     });
 
@@ -566,7 +566,7 @@ describe('openLiveDocument, on the document it runs on', () => {
   it('opens privately, reporting it, when the share cannot be opened', async () => {
     const { opened, documents, onShareUnavailable } = await open({
       diskText: 'what the file has',
-      shareUrl: shareLink,
+      shareId: shareLink,
       shareIsOutOfReach: true,
     });
 

@@ -18,7 +18,7 @@ import {
   SharedDocumentUnavailableError,
 } from '../errors';
 import { type ProjectId } from '../models';
-import { type ShareUrl } from '../ports';
+import { type ShareId } from '../ports';
 import { joinSharedDocument } from './join-shared-document';
 import { leaveSharedDocument } from './leave-shared-document';
 import { type LiveDocument } from './live-document';
@@ -55,11 +55,11 @@ const createLiveDocument = async ({
     applyPendingLocalEdits: Effect.sync(() => {
       calls.push('applyPendingLocalEdits');
     }),
-    attachTo: (shareUrl) =>
+    attachTo: (shareId) =>
       attachFails
         ? Effect.fail(new SharedDocumentUnavailableError('unreachable'))
         : Effect.sync(() => {
-            calls.push(`attach:${shareUrl}`);
+            calls.push(`attach:${shareId}`);
           }),
     detach: Effect.sync(() => {
       calls.push('detach');
@@ -86,7 +86,7 @@ describe('shareLiveDocument', () => {
             calls.push(`mint:${content}@${branch}:${documentId}`);
             return 'automerge:url';
           }),
-        rememberShare: (shareUrl) => calls.push(`remember:${shareUrl}`),
+        rememberShare: (shareId) => calls.push(`remember:${shareId}`),
       })(sharedFrom)
     );
 
@@ -131,9 +131,9 @@ describe('joinSharedDocument', () => {
     attached: string[] = []
   ) => ({
     documentId: openDocumentId,
-    attachTo: (shareUrl: ShareUrl) =>
+    attachTo: (shareId: ShareId) =>
       Effect.sync(() => {
-        attached.push(shareUrl);
+        attached.push(shareId);
       }),
   });
 
@@ -149,7 +149,7 @@ describe('joinSharedDocument', () => {
     documentIsInProject?: boolean;
     rememberShare?: (args: {
       documentId: ArtifactId;
-      shareUrl: ShareUrl;
+      shareId: ShareId;
     }) => void;
     openDocument?: ReturnType<typeof openDocumentFor> | null;
   } = {}) =>
@@ -172,7 +172,7 @@ describe('joinSharedDocument', () => {
             })
           : Effect.fail(new NotFoundError('no such document')),
       rememberShare,
-    })({ shareUrl: 'automerge:pasted', projectId, branch });
+    })({ shareId: 'automerge:pasted', projectId, branch });
 
   it('finds the document the share was made from', async () => {
     const found = await Effect.runPromise(join());
@@ -217,7 +217,7 @@ describe('joinSharedDocument', () => {
 
     expect(rememberShare).toHaveBeenCalledWith({
       documentId,
-      shareUrl: 'automerge:pasted',
+      shareId: 'automerge:pasted',
     });
   });
 
@@ -253,9 +253,9 @@ describe('leaveSharedDocument', () => {
       leaveSharedDocument({
         liveDocument,
         forgetShare: () => calls.push('forget'),
-        leaveSharedDocument: ({ shareUrl }) =>
+        leaveSharedDocument: ({ shareId }) =>
           Effect.sync(() => {
-            calls.push(`release:${shareUrl}`);
+            calls.push(`release:${shareId}`);
           }),
       })('automerge:url')
     );

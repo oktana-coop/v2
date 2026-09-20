@@ -38,7 +38,7 @@ export const ProjectCommandPalette = ({
     canCommit,
     onOpenDiscardChangesDialog,
     versionedDocumentId,
-    shareUrl,
+    shareId,
     onOpenShareDocumentDialog,
     onOpenJoinSharedDocumentDialog,
   } = useContext(CurrentDocumentContext);
@@ -117,10 +117,10 @@ export const ProjectCommandPalette = ({
       onActionSelection: copyTextToClipboard(richTextRepresentations.MARKDOWN),
     },
     {
-      name: shareUrl ? 'Sharing options' : 'Share this document',
+      name: shareId ? 'Sharing options' : 'Share this document',
       onActionSelection: onOpenShareDocumentDialog,
     },
-    ...(shareUrl
+    ...(shareId
       ? []
       : [
           {

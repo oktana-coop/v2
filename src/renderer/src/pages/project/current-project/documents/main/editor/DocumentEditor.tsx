@@ -22,7 +22,7 @@ export const DocumentEditor = () => {
     liveDocument,
     onLocalSelectionChange,
     canCommit,
-    shareUrl,
+    shareId,
     onOpenShareDocumentDialog,
   } = useContext(CurrentDocumentContext);
   const { openCommitModal } = useContext(CommitModalContext);
@@ -48,7 +48,7 @@ export const DocumentEditor = () => {
           isSidebarOpen={isSidebarOpen}
           onSidebarToggle={toggleSidebar}
           onEditorToolbarToggle={handleEditorToolbarToggle}
-          isShared={shareUrl !== null}
+          isShared={shareId !== null}
           participants={participants}
           onShareClick={onOpenShareDocumentDialog}
           canCommit={canCommit}

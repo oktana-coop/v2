@@ -35,14 +35,14 @@ const shareFromButton = async (window: Page): Promise<string> => {
   await shareButton(window).click();
   await window.getByRole('button', { name: 'Create share ID' }).click();
 
-  const shareId = window.getByTestId('share-id');
-  await shareId.waitFor({ state: 'visible', timeout: 10_000 });
-  const shareUrl = await shareId.textContent();
-  expect(shareUrl).toMatch(/^automerge:/);
+  const shown = window.getByTestId('share-id');
+  await shown.waitFor({ state: 'visible', timeout: 10_000 });
+  const shareId = await shown.textContent();
+  expect(shareId).toMatch(/^automerge:/);
 
   await closeShareDialog(window);
 
-  return shareUrl as string;
+  return shareId as string;
 };
 
 const stopSharingFromButton = async (window: Page) => {
@@ -98,10 +98,10 @@ test.describe('sharing from the actions bar', () => {
     });
     await openHelloMd({ window });
 
-    const shareUrl = await shareFromButton(window);
+    const shareId = await shareFromButton(window);
 
     await shareButton(window).click();
-    await expect(window.getByTestId('share-id')).toHaveText(shareUrl);
+    await expect(window.getByTestId('share-id')).toHaveText(shareId);
     await closeShareDialog(window);
     await expectShared(window);
   });

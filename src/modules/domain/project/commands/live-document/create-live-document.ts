@@ -16,7 +16,7 @@ import {
 } from '../../../../../modules/domain/rich-text';
 import { type ArtifactId } from '../../../../../modules/infrastructure/version-control';
 import { createErrorChannel } from '../../../../../utils/effect';
-import { type DocumentSharing, type ShareUrl } from '../../ports';
+import { type DocumentSharing, type ShareId } from '../../ports';
 import { type LiveDocument, type LiveDocumentError } from './live-document';
 import { createSwitchableDocument } from './switchable-convergent-document';
 
@@ -211,8 +211,8 @@ export const createLiveDocument =
             Effect.map((current) => current.doc.content)
           );
 
-          const attachTo = (shareUrl: ShareUrl) =>
-            switchTo(openSharedDocument({ shareUrl }));
+          const attachTo = (shareId: ShareId) =>
+            switchTo(openSharedDocument({ shareId }));
 
           // The content goes with it: leaving a share keeps what the share
           // left the document holding.
