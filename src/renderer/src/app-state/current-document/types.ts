@@ -1,6 +1,6 @@
 import {
   type LiveDocument,
-  type ShareUrl,
+  type ShareId,
 } from '../../../../modules/domain/project';
 import { type ParticipantSelection } from '../../../../modules/domain/rich-text';
 import {
@@ -31,10 +31,10 @@ export type CurrentDocumentContextType = {
   selectedCommitIndex: number | null;
   onSelectChange: (commitId: ChangeId) => void;
   // The share the open document takes part in, if any.
-  shareUrl: ShareUrl | null;
-  // Resolves to the share url so the caller can act on it right away.
-  onShareDocument: () => Promise<ShareUrl | null>;
-  onJoinSharedDocument: (shareUrl: ShareUrl) => Promise<void>;
+  shareId: ShareId | null;
+  // Resolves to the share ID so the caller can act on it right away.
+  onShareDocument: () => Promise<ShareId | null>;
+  onJoinSharedDocument: (shareId: ShareId) => Promise<void>;
   onLeaveSharedDocument: () => Promise<void>;
   isShareDocumentDialogOpen: boolean;
   isJoinSharedDocumentDialogOpen: boolean;

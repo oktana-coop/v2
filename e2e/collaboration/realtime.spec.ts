@@ -94,12 +94,12 @@ const shareCurrentDocument = async ({
 
   await window.getByRole('button', { name: 'Create share ID' }).click();
 
-  const shareId = window.getByTestId('share-id');
-  await shareId.waitFor({ state: 'visible', timeout: 10_000 });
-  const shareUrl = await shareId.textContent();
-  expect(shareUrl).toMatch(/^automerge:/);
+  const shown = window.getByTestId('share-id');
+  await shown.waitFor({ state: 'visible', timeout: 10_000 });
+  const shareId = await shown.textContent();
+  expect(shareId).toMatch(/^automerge:/);
 
-  return shareUrl as string;
+  return shareId as string;
 };
 
 // The editor reports on the dev console when an incoming change could not
@@ -132,10 +132,10 @@ const closeShareDialog = async ({ window }: { window: Page }) => {
 // this project cannot join leaves the dialog open.
 const pasteShareLink = async ({
   window,
-  shareUrl,
+  shareId,
 }: {
   window: Page;
-  shareUrl: string;
+  shareId: string;
 }) => {
   await openCommandPalette({ window });
 
@@ -146,7 +146,7 @@ const pasteShareLink = async ({
   await joinOption.click();
 
   const input = window.getByPlaceholder('Share ID');
-  await input.fill(shareUrl);
+  await input.fill(shareId);
   await input.press('Enter');
 
   return input;
@@ -154,12 +154,12 @@ const pasteShareLink = async ({
 
 const joinSharedDocument = async ({
   window,
-  shareUrl,
+  shareId,
 }: {
   window: Page;
-  shareUrl: string;
+  shareId: string;
 }) => {
-  const input = await pasteShareLink({ window, shareUrl });
+  const input = await pasteShareLink({ window, shareId });
   await input.waitFor({ state: 'hidden', timeout: 10_000 });
 };
 
@@ -282,7 +282,7 @@ test.describe('realtime collaboration', () => {
 
     await typeInEditorSlowly({ window, text: ' before', delay: 30 });
 
-    const shareUrl = await shareCurrentDocument({ window });
+    const shareId = await shareCurrentDocument({ window });
     await closeShareDialog({ window });
 
     await typeInEditorSlowly({ window, text: ' after', delay: 30 });
@@ -294,7 +294,7 @@ test.describe('realtime collaboration', () => {
     const peer = connectPeer(syncServer.url);
     try {
       const handle = await peer.repo.find<DocumentContent>(
-        shareUrl as Parameters<typeof peer.repo.find>[0],
+        shareId as Parameters<typeof peer.repo.find>[0],
         { signal: AbortSignal.timeout(15_000) }
       );
 
@@ -321,12 +321,12 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareUrl = await shareCurrentDocument({ window });
+    const shareId = await shareCurrentDocument({ window });
 
     const peer = connectPeer(syncServer.url);
     try {
       const handle = await peer.repo.find<DocumentContent>(
-        shareUrl as Parameters<typeof peer.repo.find>[0],
+        shareId as Parameters<typeof peer.repo.find>[0],
         { signal: AbortSignal.timeout(15_000) }
       );
 
@@ -392,7 +392,7 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareUrl = await shareCurrentDocument({ window });
+    const shareId = await shareCurrentDocument({ window });
     await closeShareDialog({ window });
     const fallbacks = collectFallbackReports(window);
 
@@ -414,7 +414,7 @@ test.describe('realtime collaboration', () => {
     const peer = connectPeer(syncServer.url);
     try {
       const handle = await peer.repo.find<DocumentContent>(
-        shareUrl as Parameters<typeof peer.repo.find>[0],
+        shareId as Parameters<typeof peer.repo.find>[0],
         { signal: AbortSignal.timeout(15_000) }
       );
 
@@ -460,13 +460,13 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareUrl = await shareCurrentDocument({ window });
+    const shareId = await shareCurrentDocument({ window });
     await closeShareDialog({ window });
 
     const peer = connectPeer(syncServer.url);
     try {
       const handle = await peer.repo.find<DocumentContent>(
-        shareUrl as Parameters<typeof peer.repo.find>[0],
+        shareId as Parameters<typeof peer.repo.find>[0],
         { signal: AbortSignal.timeout(15_000) }
       );
 
@@ -520,7 +520,7 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareUrl = await shareCurrentDocument({ window });
+    const shareId = await shareCurrentDocument({ window });
     await closeShareDialog({ window });
 
     const bob = await launchPeerApp();
@@ -535,7 +535,7 @@ test.describe('realtime collaboration', () => {
         folderPath: bob.projectDir,
       });
       await openHelloMd({ window: bob.window });
-      await joinSharedDocument({ window: bob.window, shareUrl });
+      await joinSharedDocument({ window: bob.window, shareId });
 
       // Alice types; Bob only watches.
       const typed = 'one two three four five';
@@ -585,7 +585,7 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareUrl = await shareCurrentDocument({ window });
+    const shareId = await shareCurrentDocument({ window });
     await closeShareDialog({ window });
 
     const aliceAvatars = window.getByTestId('presence-avatar');
@@ -603,7 +603,7 @@ test.describe('realtime collaboration', () => {
         folderPath: bob.projectDir,
       });
       await openHelloMd({ window: bob.window });
-      await joinSharedDocument({ window: bob.window, shareUrl });
+      await joinSharedDocument({ window: bob.window, shareId });
 
       await expect(aliceAvatars).toHaveCount(1, { timeout: 20_000 });
       await expect(bob.window.getByTestId('presence-avatar')).toHaveCount(1, {
@@ -630,7 +630,7 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareUrl = await shareCurrentDocument({ window });
+    const shareId = await shareCurrentDocument({ window });
     await closeShareDialog({ window });
 
     const bob = await launchPeerApp();
@@ -645,7 +645,7 @@ test.describe('realtime collaboration', () => {
         folderPath: bob.projectDir,
       });
       await openHelloMd({ window: bob.window });
-      await joinSharedDocument({ window: bob.window, shareUrl });
+      await joinSharedDocument({ window: bob.window, shareId });
 
       const typed = 'presence';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
@@ -688,7 +688,7 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareUrl = await shareCurrentDocument({ window });
+    const shareId = await shareCurrentDocument({ window });
     await closeShareDialog({ window });
 
     // Both instances on the same clone: their persists land in the same file,
@@ -705,7 +705,7 @@ test.describe('realtime collaboration', () => {
         folderPath: bob.projectDir,
       });
       await openHelloMd({ window: bob.window });
-      await joinSharedDocument({ window: bob.window, shareUrl });
+      await joinSharedDocument({ window: bob.window, shareId });
 
       const typed = 'one two three four five';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
@@ -757,7 +757,7 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareUrl = await shareCurrentDocument({ window });
+    const shareId = await shareCurrentDocument({ window });
     await closeShareDialog({ window });
 
     const bob = await launchPeerApp();
@@ -772,7 +772,7 @@ test.describe('realtime collaboration', () => {
         folderPath: bob.projectDir,
       });
       await openHelloMd({ window: bob.window });
-      await joinSharedDocument({ window: bob.window, shareUrl });
+      await joinSharedDocument({ window: bob.window, shareId });
 
       const typed = 'one two three four five';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
@@ -830,7 +830,7 @@ test.describe('realtime collaboration', () => {
     await openProjectFolder({ electronApp, window, folderPath: aliceProject });
     await openDocument({ window, relativePath: 'notes.md' });
 
-    const shareUrl = await shareCurrentDocument({ window });
+    const shareId = await shareCurrentDocument({ window });
     await closeShareDialog({ window });
 
     const bob = await launchPeerApp(bobProject);
@@ -850,7 +850,7 @@ test.describe('realtime collaboration', () => {
       const bobEditor = bob.window.locator('.ProseMirror');
       await expect(bobEditor).toContainText('This is a test document');
 
-      await joinSharedDocument({ window: bob.window, shareUrl });
+      await joinSharedDocument({ window: bob.window, shareId });
 
       // The link named notes.md, so that is where Bob ends up.
       await expect(bobEditor).toContainText('Written by Alice', {
@@ -886,7 +886,7 @@ test.describe('realtime collaboration', () => {
     await openProjectFolder({ electronApp, window, folderPath: aliceProject });
     await openDocument({ window, relativePath: 'notes.md' });
 
-    const shareUrl = await shareCurrentDocument({ window });
+    const shareId = await shareCurrentDocument({ window });
     await closeShareDialog({ window });
 
     const bob = await launchPeerApp();
@@ -902,7 +902,7 @@ test.describe('realtime collaboration', () => {
       });
       await openHelloMd({ window: bob.window });
 
-      await pasteShareLink({ window: bob.window, shareUrl });
+      await pasteShareLink({ window: bob.window, shareId });
 
       await expect(
         bob.window.getByText('Join Shared Document Error')
@@ -958,9 +958,9 @@ test.describe('realtime collaboration', () => {
       });
       await openDocument({ window: bob.window, relativePath: 'Foo.md' });
 
-      const shareUrl = await shareCurrentDocument({ window });
+      const shareId = await shareCurrentDocument({ window });
       await closeShareDialog({ window });
-      await joinSharedDocument({ window: bob.window, shareUrl });
+      await joinSharedDocument({ window: bob.window, shareId });
 
       // Into the trailing paragraph under the title, like a person would.
       const editor = window.locator('.ProseMirror');
@@ -1032,7 +1032,7 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareUrl = await shareCurrentDocument({ window });
+    const shareId = await shareCurrentDocument({ window });
     await closeShareDialog({ window });
 
     const bob = await launchPeerApp(bobProject);
@@ -1047,7 +1047,7 @@ test.describe('realtime collaboration', () => {
         folderPath: bobProject,
       });
       await openHelloMd({ window: bob.window });
-      await joinSharedDocument({ window: bob.window, shareUrl });
+      await joinSharedDocument({ window: bob.window, shareId });
 
       // Word …pause… word …pause…: each pause crosses the persist debounce,
       // so disk writes, watcher events and refreshes interleave with typing.
@@ -1127,7 +1127,7 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareUrl = await shareCurrentDocument({ window });
+    const shareId = await shareCurrentDocument({ window });
     await closeShareDialog({ window });
 
     const bob = await launchPeerApp(bobProject);
@@ -1142,7 +1142,7 @@ test.describe('realtime collaboration', () => {
         folderPath: bobProject,
       });
       await openHelloMd({ window: bob.window });
-      await joinSharedDocument({ window: bob.window, shareUrl });
+      await joinSharedDocument({ window: bob.window, shareId });
 
       const typed = 'one two three four five six seven eight nine ten';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
@@ -1204,7 +1204,7 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareUrl = await shareCurrentDocument({ window });
+    const shareId = await shareCurrentDocument({ window });
     await closeShareDialog({ window });
 
     const bob = await launchPeerApp(bobProject);
@@ -1219,7 +1219,7 @@ test.describe('realtime collaboration', () => {
         folderPath: bobProject,
       });
       await openHelloMd({ window: bob.window });
-      await joinSharedDocument({ window: bob.window, shareUrl });
+      await joinSharedDocument({ window: bob.window, shareId });
       // Joining swaps the editor to the shared document once the find over
       // the laggy network completes; typing before the swap lands in the
       // editor being replaced. Known gap, not this test's subject.
@@ -1326,7 +1326,7 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareUrl = await shareCurrentDocument({ window });
+    const shareId = await shareCurrentDocument({ window });
     await closeShareDialog({ window });
 
     const bob = await launchPeerApp(aliceProject);
@@ -1341,7 +1341,7 @@ test.describe('realtime collaboration', () => {
         folderPath: bob.projectDir,
       });
       await openHelloMd({ window: bob.window });
-      await joinSharedDocument({ window: bob.window, shareUrl });
+      await joinSharedDocument({ window: bob.window, shareId });
 
       const typed = 'one two three four five';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });

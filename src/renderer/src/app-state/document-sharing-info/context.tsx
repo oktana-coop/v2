@@ -1,6 +1,6 @@
 import { createContext, useCallback, useMemo, useState } from 'react';
 
-import { type ShareUrl } from '../../../../modules/domain/project';
+import { type ShareId } from '../../../../modules/domain/project';
 import {
   type DocumentShareKey,
   documentShareStorageKey,
@@ -10,14 +10,14 @@ import {
 } from './browser-storage';
 
 export type DocumentSharingInfoContextType = {
-  shareUrlFor: (key: DocumentShareKey) => ShareUrl | null;
-  rememberShare: (args: DocumentShareKey & { shareUrl: ShareUrl }) => void;
+  shareIdFor: (key: DocumentShareKey) => ShareId | null;
+  rememberShare: (args: DocumentShareKey & { shareId: ShareId }) => void;
   forgetShare: (key: DocumentShareKey) => void;
 };
 
 export const DocumentSharingInfoContext =
   createContext<DocumentSharingInfoContextType>({
-    shareUrlFor: () => null,
+    shareIdFor: () => null,
     rememberShare: () => {},
     forgetShare: () => {},
   });
@@ -30,19 +30,19 @@ export const DocumentSharingInfoProvider = ({
   children: React.ReactNode;
 }) => {
   const [shares, setShares] =
-    useState<Record<string, ShareUrl>>(readStoredShares);
+    useState<Record<string, ShareId>>(readStoredShares);
 
-  const shareUrlFor = useCallback(
+  const shareIdFor = useCallback(
     (key: DocumentShareKey) => shares[documentShareStorageKey(key)] ?? null,
     [shares]
   );
 
   const rememberShare = useCallback(
-    ({ shareUrl, ...key }: DocumentShareKey & { shareUrl: ShareUrl }) => {
-      storeShare(key, shareUrl);
+    ({ shareId, ...key }: DocumentShareKey & { shareId: ShareId }) => {
+      storeShare(key, shareId);
       setShares((current) => ({
         ...current,
-        [documentShareStorageKey(key)]: shareUrl,
+        [documentShareStorageKey(key)]: shareId,
       }));
     },
     []
@@ -59,8 +59,8 @@ export const DocumentSharingInfoProvider = ({
   }, []);
 
   const value = useMemo(
-    () => ({ shareUrlFor, rememberShare, forgetShare }),
-    [shareUrlFor, rememberShare, forgetShare]
+    () => ({ shareIdFor, rememberShare, forgetShare }),
+    [shareIdFor, rememberShare, forgetShare]
   );
 
   return (

@@ -5,7 +5,7 @@ import * as SubscriptionRef from 'effect/SubscriptionRef';
 import {
   type DocumentSharing,
   type SharedDocumentIdentity,
-  type ShareUrl,
+  type ShareId,
 } from '../ports';
 import { type LiveDocument } from './live-document';
 
@@ -15,7 +15,7 @@ export type ShareLiveDocumentDeps = {
     'content' | 'attachTo' | 'applyPendingLocalEdits'
   >;
   shareDocument: DocumentSharing['shareDocument'];
-  rememberShare: (shareUrl: ShareUrl) => void;
+  rememberShare: (shareId: ShareId) => void;
 };
 
 // The share carries how the document is named here, so a peer can find its own
@@ -27,13 +27,13 @@ export const shareLiveDocument =
   ({
     branch,
     documentId,
-  }: ShareLiveDocumentArgs): Effect.Effect<ShareUrl, unknown> =>
+  }: ShareLiveDocumentArgs): Effect.Effect<ShareId, unknown> =>
     pipe(
       liveDocument.applyPendingLocalEdits,
       Effect.zipRight(SubscriptionRef.get(liveDocument.content)),
       Effect.flatMap((current) =>
         shareDocument({ content: current.doc.content, branch, documentId })
       ),
-      Effect.tap((shareUrl) => liveDocument.attachTo(shareUrl)),
-      Effect.tap((shareUrl) => Effect.sync(() => rememberShare(shareUrl)))
+      Effect.tap((shareId) => liveDocument.attachTo(shareId)),
+      Effect.tap((shareId) => Effect.sync(() => rememberShare(shareId)))
     );

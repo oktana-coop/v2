@@ -1,6 +1,6 @@
 import {
   type ProjectId,
-  type ShareUrl,
+  type ShareId,
 } from '../../../../modules/domain/project';
 import {
   type ArtifactId,
@@ -24,24 +24,24 @@ export const documentShareStorageKey = ({
 }: DocumentShareKey) =>
   `${STORAGE_KEY_PREFIX}:${projectId}:${branch}:${documentId}`;
 
-export const readStoredShares = (): Record<string, ShareUrl> => {
-  const shares: Record<string, ShareUrl> = {};
+export const readStoredShares = (): Record<string, ShareId> => {
+  const shares: Record<string, ShareId> = {};
 
   for (let index = 0; index < localStorage.length; index += 1) {
     const key = localStorage.key(index);
 
     if (!key?.startsWith(`${STORAGE_KEY_PREFIX}:`)) continue;
 
-    const shareUrl = localStorage.getItem(key);
+    const shareId = localStorage.getItem(key);
 
-    if (shareUrl) shares[key] = shareUrl;
+    if (shareId) shares[key] = shareId;
   }
 
   return shares;
 };
 
-export const storeShare = (key: DocumentShareKey, shareUrl: ShareUrl) =>
-  localStorage.setItem(documentShareStorageKey(key), shareUrl);
+export const storeShare = (key: DocumentShareKey, shareId: ShareId) =>
+  localStorage.setItem(documentShareStorageKey(key), shareId);
 
 export const removeStoredShare = (key: DocumentShareKey) =>
   localStorage.removeItem(documentShareStorageKey(key));

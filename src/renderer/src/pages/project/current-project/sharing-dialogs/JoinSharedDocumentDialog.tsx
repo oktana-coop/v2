@@ -1,13 +1,13 @@
 import { useCallback, useState } from 'react';
 
-import { type ShareUrl } from '../../../../../../modules/domain/project';
+import { type ShareId } from '../../../../../../modules/domain/project';
 import { Button } from '../../../../components/actions/Button';
 import { Modal } from '../../../../components/dialogs/Modal';
 import { Input } from '../../../../components/inputs/Input';
 
 export type JoinSharedDocumentDialogProps = {
   isOpen?: boolean;
-  onJoin: (shareUrl: ShareUrl) => Promise<void>;
+  onJoin: (shareId: ShareId) => Promise<void>;
   onCancel: () => void;
 };
 
@@ -19,11 +19,11 @@ export const JoinSharedDocumentDialog = ({
   const [link, setLink] = useState('');
 
   const handleJoin = useCallback(async () => {
-    const shareUrl = link.trim();
+    const shareId = link.trim();
 
-    if (!shareUrl) return;
+    if (!shareId) return;
 
-    await onJoin(shareUrl);
+    await onJoin(shareId);
     setLink('');
   }, [link, onJoin]);
 

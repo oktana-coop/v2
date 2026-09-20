@@ -12,7 +12,7 @@ import {
 import { type SharedDocumentUnavailableError } from '../errors';
 
 // Opaque capability: holding the link is what admits a peer to the share.
-export type ShareUrl = string;
+export type ShareId = string;
 
 export type OpenSharedDocumentError =
   | ValidationError
@@ -29,21 +29,21 @@ export type ShareDocumentArgs = SharedDocumentIdentity & {
 };
 
 export type OpenSharedDocumentArgs = {
-  shareUrl: ShareUrl;
+  shareId: ShareId;
 };
 
 export type GetSharedDocumentIdentityArgs = {
-  shareUrl: ShareUrl;
+  shareId: ShareId;
 };
 
 export type LeaveSharedDocumentArgs = {
-  shareUrl: ShareUrl;
+  shareId: ShareId;
 };
 
 export type DocumentSharing = {
   shareDocument: (
     args: ShareDocumentArgs
-  ) => Effect.Effect<ShareUrl, SharedDocumentUnavailableError>;
+  ) => Effect.Effect<ShareId, SharedDocumentUnavailableError>;
   openSharedDocument: (
     args: OpenSharedDocumentArgs
   ) => Effect.Effect<ConvergentDocument, OpenSharedDocumentError>;
