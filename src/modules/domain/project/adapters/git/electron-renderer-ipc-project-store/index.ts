@@ -7,8 +7,10 @@ import {
   FilesystemAlreadyExistsErrorTag,
 } from '../../../../../../modules/infrastructure/filesystem';
 import {
+  BranchSwitchConflictError,
   MergeConflictError,
   MigrationError,
+  VersionControlBranchSwitchConflictErrorTag,
   VersionControlMergeConflictErrorTag,
   VersionControlMigrationErrorTag,
 } from '../../../../../../modules/infrastructure/version-control';
@@ -311,6 +313,7 @@ export const createAdapter = (): ProjectStore => ({
       {
         [VersionedProjectValidationErrorTag]: ValidationError,
         [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionControlBranchSwitchConflictErrorTag]: BranchSwitchConflictError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<ProjectStore['switchToBranch']>>
       >,
@@ -344,6 +347,7 @@ export const createAdapter = (): ProjectStore => ({
         [VersionedProjectValidationErrorTag]: ValidationError,
         [VersionedProjectRepositoryErrorTag]: RepositoryError,
         [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionControlBranchSwitchConflictErrorTag]: BranchSwitchConflictError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<ProjectStore['deleteBranch']>>
       >,
@@ -358,6 +362,7 @@ export const createAdapter = (): ProjectStore => ({
         [VersionedProjectRepositoryErrorTag]: RepositoryError,
         [VersionedProjectNotFoundErrorTag]: NotFoundError,
         [VersionControlMergeConflictErrorTag]: MergeConflictError,
+        [VersionControlBranchSwitchConflictErrorTag]: BranchSwitchConflictError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<ProjectStore['mergeAndDeleteBranch']>>
       >,

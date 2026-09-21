@@ -10,10 +10,15 @@ import {
   type Branch,
   DEFAULT_BRANCH,
   parseBranch,
+  VersionControlBranchSwitchConflictErrorTag,
   VersionControlMergeConflictErrorTag,
 } from '../../../../modules/infrastructure/version-control';
 import { useNavigateToResolveConflicts } from './resolve-conflicts-navigation';
-import { type ProjectContextType, type ProjectStateSetters } from './types';
+import {
+  type BranchSwitchRefusal,
+  type ProjectContextType,
+  type ProjectStateSetters,
+} from './types';
 
 type BranchingDeps = Pick<ProjectContextType, 'projectId' | 'projectStore'> &
   Pick<ProjectStateSetters, 'setCurrentBranch' | 'setMergeConflictInfo'>;
@@ -96,21 +101,51 @@ export const useBranchingOps = ({
   );
 
   const handleSwitchToBranch = useCallback(
-    async (branch: Branch) => {
+    async (branch: Branch): Promise<BranchSwitchRefusal | null> => {
       if (!projectStore || !projectId) {
         throw new Error(
-          'Project store is not ready or project has not been set yet. Cannot create branch.'
+          'Project store is not ready or project has not been set yet. Cannot switch branch.'
         );
       }
 
-      await Effect.runPromise(
-        projectStore.switchToBranch({ projectId, branch })
+      const refusal = await Effect.runPromise(
+        pipe(
+          projectStore.switchToBranch({ projectId, branch }),
+          Effect.map((): BranchSwitchRefusal | null => null),
+          Effect.catchTag(VersionControlBranchSwitchConflictErrorTag, (error) =>
+            Effect.succeed<BranchSwitchRefusal>({
+              filepaths: error.data.filepaths,
+            })
+          ),
+          Effect.tapError((error) =>
+            Effect.sync(() => {
+              console.error(error);
+              dispatchNotification(
+                createErrorNotification({
+                  title: 'Switch Branch Error',
+                  message: `Could not switch to "${branch}".`,
+                })
+              );
+            })
+          )
+        )
       );
 
+      if (refusal) {
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Switch Branch Error',
+            message: `Your local changes to ${refusal.filepaths.join(', ')} would be overwritten by switching to "${branch}". Commit or discard them first.`,
+          })
+        );
+        return refusal;
+      }
+
       setCurrentBranch(branch);
+      return null;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [projectStore, projectId]
+    [projectStore, projectId, dispatchNotification]
   );
 
   const handleOpenCreateBranchDialog = useCallback(() => {
