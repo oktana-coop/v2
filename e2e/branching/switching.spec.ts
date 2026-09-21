@@ -86,3 +86,59 @@ test.describe('branch switching', () => {
     ).toBeHidden();
   });
 });
+
+test.describe('switching with uncommitted changes', () => {
+  test('refuses when the edited document differs between the branches', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openDocument({ window, relativePath: 'hello.md' });
+
+    await createAndSwitchToBranch({ window, branchName: 'experiment' });
+    await typeInParagraphAndWaitForDebounce({ window, text: ' on experiment' });
+    await commitChanges({ window, message: 'experiment commit' });
+    await switchToBranch({ window, from: 'experiment', to: 'main' });
+
+    await typeInParagraphAndWaitForDebounce({ window, text: ' not committed' });
+    await openBranchingPalette({ window, currentBranch: 'main' });
+    await window
+      .getByRole('option', { name: 'experiment', exact: true })
+      .click();
+
+    await expect(
+      window.getByText(/would be overwritten by switching to "experiment"/)
+    ).toBeVisible({ timeout: 5_000 });
+    await expect(window.getByRole('button', { name: 'main' })).toBeVisible();
+    await expect(editor(window)).toContainText('not committed');
+  });
+
+  // An edit to a file both branches hold alike comes along.
+  test('brings an edit to a document the branches share along', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openDocument({ window, relativePath: 'hello.md' });
+
+    await createAndSwitchToBranch({ window, branchName: 'experiment' });
+    await typeInParagraphAndWaitForDebounce({ window, text: ' on experiment' });
+    await commitChanges({ window, message: 'experiment commit' });
+
+    await openDocument({ window, relativePath: 'world.md' });
+    await typeInParagraphAndWaitForDebounce({ window, text: ' not committed' });
+    await switchToBranch({ window, from: 'experiment', to: 'main' });
+
+    await expect(editor(window)).toContainText('not committed');
+  });
+});

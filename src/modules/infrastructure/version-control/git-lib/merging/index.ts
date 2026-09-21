@@ -8,6 +8,7 @@ import path from 'path';
 import { fromNullable } from '../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../utils/errors';
 import {
+  BranchSwitchConflictError,
   MergeConflictError,
   NotFoundError,
   RepositoryError,
@@ -47,7 +48,10 @@ export const mergeAndDeleteBranch = ({
   into,
 }: MergeAndDeleteBranchArgs): Effect.Effect<
   Commit['id'],
-  RepositoryError | NotFoundError | MergeConflictError,
+  | RepositoryError
+  | NotFoundError
+  | MergeConflictError
+  | BranchSwitchConflictError,
   never
 > => {
   type IsoGitMergeConflictErrorData = {
