@@ -1,9 +1,9 @@
 import { createContext, useContext, useRef } from 'react';
-import { type NodeApi, Tree, type TreeApi } from 'react-arborist';
-import { AutoSizer } from 'react-virtualized-auto-sizer';
+import { type NodeApi, type TreeApi } from 'react-arborist';
 
 import { ElectronContext } from '../../../../../../../modules/infrastructure/cross-platform/browser';
 import { filesystemItemTypes } from '../../../../../../../modules/infrastructure/filesystem';
+import { AutoSizedTree, TREE_ROW_HEIGHT } from '../../../../../components/tree';
 import { TreeNode } from './TreeNode';
 import { type ExplorerTreeNode, STRUCTURAL_CONFLICTS_NODE_TYPE } from './types';
 
@@ -192,22 +192,16 @@ export const TreeView = ({
         style={{ scrollbarColor: 'inherit', scrollbarWidth: 'inherit' }}
         onKeyDownCapture={handleKeyDown}
       >
-        <AutoSizer
-          renderProp={({ width, height }) => (
-            <Tree
-              ref={treeRef}
-              data={data}
-              selection={selection ?? undefined}
-              width={width ?? '100%'}
-              height={height}
-              rowHeight={32}
-              className="explorer-tree overflow-auto"
-              onActivate={handleActivate}
-            >
-              {TreeNode}
-            </Tree>
-          )}
-        />
+        <AutoSizedTree
+          treeRef={treeRef}
+          data={data}
+          selection={selection ?? undefined}
+          rowHeight={TREE_ROW_HEIGHT}
+          className="explorer-tree"
+          onActivate={handleActivate}
+        >
+          {TreeNode}
+        </AutoSizedTree>
       </div>
     </TreeCallbacksContext.Provider>
   );
