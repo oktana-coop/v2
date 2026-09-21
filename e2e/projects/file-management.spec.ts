@@ -1043,10 +1043,16 @@ test.describe('file rename', () => {
       folderPath: nestedProjectDir,
     });
 
-    // Click the file to select it
+    // Open the file, which moves focus to the editor once it shows, then click
+    // the file again so the tree has focus for the key.
     await window.getByText('beta-doc.md').click();
-    // A second click on the file name because focus has moved to the editor
+    await expect(window.locator('.ProseMirror')).toBeFocused({
+      timeout: 5_000,
+    });
     await window.getByText('beta-doc.md').click();
+    await expect(
+      window.getByRole('treeitem', { name: /beta-doc/ })
+    ).toBeFocused();
 
     // Press the platform-appropriate rename key (Enter on Mac, F2 on Linux/Windows)
     await window.keyboard.press(renameKey);
