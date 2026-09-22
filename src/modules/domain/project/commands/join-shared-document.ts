@@ -20,13 +20,14 @@ import {
   type OpenSharedDocumentError,
   type ProjectStore,
   type ShareId,
+  type ShareRegistry,
 } from '../ports';
 import { type LiveDocument } from './live-document';
 
 export type JoinSharedDocumentDeps = {
   getSharedDocumentIdentity: DocumentSharing['getSharedDocumentIdentity'];
   findDocumentById: ProjectStore['findDocumentById'];
-  rememberShare: (args: { documentId: ArtifactId; shareId: ShareId }) => void;
+  rememberShare: ShareRegistry['rememberShare'];
   openDocument: Pick<LiveDocument, 'documentId' | 'attachTo'> | null;
 };
 
@@ -100,7 +101,9 @@ export const joinSharedDocument =
         )
       ),
       Effect.tap(({ documentId }) =>
-        Effect.sync(() => rememberShare({ documentId, shareId }))
+        Effect.sync(() =>
+          rememberShare({ key: { projectId, branch, documentId }, shareId })
+        )
       )
     );
   };

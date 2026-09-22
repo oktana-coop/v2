@@ -18,7 +18,7 @@ import {
   SharedDocumentUnavailableError,
 } from '../errors';
 import { type ProjectId } from '../models';
-import { type ShareId } from '../ports';
+import { type ShareId, type ShareRegistry } from '../ports';
 import { joinSharedDocument } from './join-shared-document';
 import { leaveSharedDocument } from './leave-shared-document';
 import { type LiveDocument } from './live-document';
@@ -69,6 +69,7 @@ const createLiveDocument = async ({
 
 // How the document being shared is named inside the project.
 const sharedFrom = {
+  projectId: '/projects/one' as ProjectId,
   branch: 'main' as Branch,
   documentId: '/blob/main/note.md' as ArtifactId,
 };
@@ -86,7 +87,7 @@ describe('shareLiveDocument', () => {
             calls.push(`mint:${content}@${branch}:${documentId}`);
             return 'automerge:url';
           }),
-        rememberShare: (shareId) => calls.push(`remember:${shareId}`),
+        rememberShare: ({ shareId }) => calls.push(`remember:${shareId}`),
       })(sharedFrom)
     );
 
@@ -147,10 +148,7 @@ describe('joinSharedDocument', () => {
     sharedBranch?: Branch;
     sharedDocumentId?: ArtifactId;
     documentIsInProject?: boolean;
-    rememberShare?: (args: {
-      documentId: ArtifactId;
-      shareId: ShareId;
-    }) => void;
+    rememberShare?: ShareRegistry['rememberShare'];
     openDocument?: ReturnType<typeof openDocumentFor> | null;
   } = {}) =>
     joinSharedDocument({
@@ -216,7 +214,7 @@ describe('joinSharedDocument', () => {
     await Effect.runPromise(join({ rememberShare }));
 
     expect(rememberShare).toHaveBeenCalledWith({
-      documentId,
+      key: { projectId, branch, documentId },
       shareId: 'automerge:pasted',
     });
   });
@@ -252,14 +250,42 @@ describe('leaveSharedDocument', () => {
     await Effect.runPromise(
       leaveSharedDocument({
         liveDocument,
+        findShareId: () => 'automerge:url',
         forgetShare: () => calls.push('forget'),
         leaveSharedDocument: ({ shareId }) =>
           Effect.sync(() => {
             calls.push(`release:${shareId}`);
           }),
-      })('automerge:url')
+      })({
+        projectId: '/projects/one' as ProjectId,
+        branch: 'main' as Branch,
+        documentId: '/blob/main/note.md' as ArtifactId,
+      })
     );
 
     expect(calls).toEqual(['forget', 'detach', 'release:automerge:url']);
+  });
+
+  it('leaves a document that takes part in no share as it is', async () => {
+    const calls: string[] = [];
+    const liveDocument = await createLiveDocument({ calls });
+
+    await Effect.runPromise(
+      leaveSharedDocument({
+        liveDocument,
+        findShareId: () => null,
+        forgetShare: () => calls.push('forget'),
+        leaveSharedDocument: ({ shareId }) =>
+          Effect.sync(() => {
+            calls.push(`release:${shareId}`);
+          }),
+      })({
+        projectId: '/projects/one' as ProjectId,
+        branch: 'main' as Branch,
+        documentId: '/blob/main/note.md' as ArtifactId,
+      })
+    );
+
+    expect(calls).toEqual([]);
   });
 });

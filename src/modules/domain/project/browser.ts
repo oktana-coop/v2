@@ -4,4 +4,8 @@ export { createAdapter as createElectronRendererProjectStoreManagerAdapter } fro
 export { createAdapter as createElectronAssetProtocolAdapter } from './adapters/asset-url-protocol/electron-asset-protocol';
 
 export { createAdapter as createBrowserLocalStorageShareRegistryAdapter } from './adapters/browser-local-storage-share-registry';
-export { type DocumentShareKey, type ShareRegistry } from './ports';
+export {
+  type DocumentShareKey,
+  type RegisteredShare,
+  type ShareRegistry,
+} from './ports';

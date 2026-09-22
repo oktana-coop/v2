@@ -77,8 +77,9 @@ export const CurrentDocumentProvider = ({
   const { privateRepo, documentSharing } = useContext(
     InfrastructureAdaptersContext
   );
-  const { findShareId, rememberShare, forgetShare } =
-    useContext(ShareRegistryContext);
+  const {
+    registry: { findShareId, rememberShare, forgetShare },
+  } = useContext(ShareRegistryContext);
   const { dispatchNotification } = useContext(NotificationsContext);
   const { showDiffInHistoryView } = useContext(FunctionalityConfigContext);
   const { adapter: representationTransformAdapter } = useContext(
@@ -538,8 +539,12 @@ export const CurrentDocumentProvider = ({
         shareLiveDocument({
           liveDocument,
           shareDocument: documentSharing.shareDocument,
-          rememberShare: (url) => rememberShare(shareKey, url),
-        })({ branch: shareKey.branch, documentId: shareKey.documentId })
+          rememberShare,
+        })({
+          projectId: shareKey.projectId,
+          branch: shareKey.branch,
+          documentId: shareKey.documentId,
+        })
       );
     } catch (error) {
       console.error(error);
@@ -579,15 +584,7 @@ export const CurrentDocumentProvider = ({
               getSharedDocumentIdentity:
                 documentSharing.getSharedDocumentIdentity,
               findDocumentById: projectStore.findDocumentById,
-              rememberShare: ({ documentId: joinedDocumentId, shareId: url }) =>
-                rememberShare(
-                  {
-                    projectId,
-                    branch: currentBranch,
-                    documentId: joinedDocumentId,
-                  },
-                  url
-                ),
+              rememberShare,
               openDocument: liveDocument,
             })({
               shareId: joinedShareId,
@@ -646,11 +643,19 @@ export const CurrentDocumentProvider = ({
     await Effect.runPromise(
       leaveSharedDocumentCommand({
         liveDocument,
-        forgetShare: () => forgetShare(shareKey),
+        findShareId,
+        forgetShare,
         leaveSharedDocument: documentSharing.leaveSharedDocument,
-      })(shareId)
+      })(shareKey)
     ).catch(console.error);
-  }, [shareKey, shareId, liveDocument, forgetShare, documentSharing]);
+  }, [
+    shareKey,
+    shareId,
+    liveDocument,
+    findShareId,
+    forgetShare,
+    documentSharing,
+  ]);
 
   return (
     <CurrentDocumentContext.Provider

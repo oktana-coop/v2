@@ -11,9 +11,16 @@ export type DocumentShareKey = {
   documentId: ArtifactId;
 };
 
+export type RegisteredShare = {
+  key: DocumentShareKey;
+  shareId: ShareId;
+};
+
 export type ShareRegistry = {
+  listShares: () => RegisteredShare[];
   findShareId: (key: DocumentShareKey) => ShareId | null;
   isShared: (key: DocumentShareKey) => boolean;
-  rememberShare: (key: DocumentShareKey, shareId: ShareId) => void;
+  rememberShare: (share: RegisteredShare) => void;
   forgetShare: (key: DocumentShareKey) => void;
+  subscribe: (listener: () => void) => () => void;
 };

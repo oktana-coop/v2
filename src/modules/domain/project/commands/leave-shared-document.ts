@@ -2,24 +2,39 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import { type SharedDocumentUnavailableError } from '../errors';
-import { type DocumentSharing, type ShareId } from '../ports';
+import {
+  type DocumentShareKey,
+  type DocumentSharing,
+  type ShareRegistry,
+} from '../ports';
 import { type LiveDocument } from './live-document';
 
 export type LeaveSharedDocumentDeps = {
   liveDocument: Pick<LiveDocument, 'detach'>;
-  forgetShare: () => void;
+  findShareId: ShareRegistry['findShareId'];
+  forgetShare: ShareRegistry['forgetShare'];
   leaveSharedDocument: DocumentSharing['leaveSharedDocument'];
 };
 
 export const leaveSharedDocument =
   ({
     liveDocument,
+    findShareId,
     forgetShare,
     leaveSharedDocument: releaseShare,
   }: LeaveSharedDocumentDeps) =>
-  (shareId: ShareId): Effect.Effect<void, SharedDocumentUnavailableError> =>
+  (
+    shareKey: DocumentShareKey
+  ): Effect.Effect<void, SharedDocumentUnavailableError> =>
     pipe(
-      Effect.sync(forgetShare),
-      Effect.zipRight(liveDocument.detach),
-      Effect.zipRight(releaseShare({ shareId }))
+      Effect.sync(() => findShareId(shareKey)),
+      Effect.flatMap((shareId) =>
+        shareId === null
+          ? Effect.void
+          : pipe(
+              Effect.sync(() => forgetShare(shareKey)),
+              Effect.zipRight(liveDocument.detach),
+              Effect.zipRight(releaseShare({ shareId }))
+            )
+      )
     );
