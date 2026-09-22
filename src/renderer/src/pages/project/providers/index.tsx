@@ -5,16 +5,16 @@ import {
   CloneFromGithubModalProvider,
   CommitModalProvider,
   CurrentDocumentProvider,
-  DocumentSharingInfoProvider,
   ProjectProvider,
+  ShareRegistryProvider,
   SidebarLayoutProvider,
 } from '../../../app-state';
 
 export const ProjectProviders = () => {
   return (
-    <ProjectProvider>
-      <CommitModalProvider>
-        <DocumentSharingInfoProvider>
+    <ShareRegistryProvider>
+      <ProjectProvider>
+        <CommitModalProvider>
           <CurrentDocumentProvider>
             <CloneFromGithubModalProvider>
               <ProseMirrorProvider>
@@ -24,8 +24,8 @@ export const ProjectProviders = () => {
               </ProseMirrorProvider>
             </CloneFromGithubModalProvider>
           </CurrentDocumentProvider>
-        </DocumentSharingInfoProvider>
-      </CommitModalProvider>
-    </ProjectProvider>
+        </CommitModalProvider>
+      </ProjectProvider>
+    </ShareRegistryProvider>
   );
 };

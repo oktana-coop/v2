@@ -1,3 +1,6 @@
+import { useContext } from 'react';
+
+import { ShareRegistryContext } from '../share-registry';
 import { useBranchingOps } from './branching';
 import { useCommittingOps } from './committing';
 import { ProjectContext } from './context';
@@ -42,6 +45,7 @@ export const ProjectProvider = ({
   } = projectOps;
 
   const directoryWatchOps = useDirectoryWatchOps({ projectStore, directory });
+  const shareRegistry = useContext(ShareRegistryContext);
 
   const historyOps = useHistoryOps({ projectId, projectStore, currentBranch });
 
@@ -53,6 +57,7 @@ export const ProjectProvider = ({
     directory,
     currentBranch,
     pulledUpstreamChanges,
+    shareRegistry,
     subscribeToProjectDirChanges:
       directoryWatchOps.subscribeToProjectDirChanges,
   });

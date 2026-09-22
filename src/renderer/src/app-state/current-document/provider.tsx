@@ -47,8 +47,8 @@ import { FunctionalityConfigContext } from '../../../../modules/personalization/
 import { subscribeToRef, subscribeToStream } from '../../../../utils/effect';
 import { ProjectContext } from '../';
 import { useCurrentChangeId } from '../current-project/current-artifact/use-current-change-id';
-import { DocumentSharingInfoContext } from '../document-sharing-info';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
+import { ShareRegistryContext } from '../share-registry';
 import { CurrentDocumentContext } from './context';
 import { useCurrentDocumentId } from './use-current-document-id';
 import { usePublishLocalPresence } from './use-presence';
@@ -77,9 +77,8 @@ export const CurrentDocumentProvider = ({
   const { privateRepo, documentSharing } = useContext(
     InfrastructureAdaptersContext
   );
-  const { shareIdFor, rememberShare, forgetShare } = useContext(
-    DocumentSharingInfoContext
-  );
+  const { findShareId, rememberShare, forgetShare } =
+    useContext(ShareRegistryContext);
   const { dispatchNotification } = useContext(NotificationsContext);
   const { showDiffInHistoryView } = useContext(FunctionalityConfigContext);
   const { adapter: representationTransformAdapter } = useContext(
@@ -123,7 +122,7 @@ export const CurrentDocumentProvider = ({
         : null,
     [projectId, currentBranch, documentId]
   );
-  const shareId = shareKey ? shareIdFor(shareKey) : null;
+  const shareId = shareKey ? findShareId(shareKey) : null;
 
   // Opens the current document as a live document. The previous one is kept
   // until the new one resolves, so a reload never blanks the state in between;
@@ -539,7 +538,7 @@ export const CurrentDocumentProvider = ({
         shareLiveDocument({
           liveDocument,
           shareDocument: documentSharing.shareDocument,
-          rememberShare: (url) => rememberShare({ ...shareKey, shareId: url }),
+          rememberShare: (url) => rememberShare(shareKey, url),
         })({ branch: shareKey.branch, documentId: shareKey.documentId })
       );
     } catch (error) {
@@ -581,12 +580,14 @@ export const CurrentDocumentProvider = ({
                 documentSharing.getSharedDocumentIdentity,
               findDocumentById: projectStore.findDocumentById,
               rememberShare: ({ documentId: joinedDocumentId, shareId: url }) =>
-                rememberShare({
-                  projectId,
-                  branch: currentBranch,
-                  documentId: joinedDocumentId,
-                  shareId: url,
-                }),
+                rememberShare(
+                  {
+                    projectId,
+                    branch: currentBranch,
+                    documentId: joinedDocumentId,
+                  },
+                  url
+                ),
               openDocument: liveDocument,
             })({
               shareId: joinedShareId,

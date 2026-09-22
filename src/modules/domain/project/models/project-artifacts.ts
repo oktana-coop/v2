@@ -51,31 +51,41 @@ export const isDocumentMetaData = (
 export const isAssetMetaData = (
   artifact: ArtifactMetaData
 ): artifact is AssetMetaData => artifact.kind === artifactKinds.ASSET;
-
-// A file in the project tree. Version control tracks these, so a file has an
-// artifact identity of its own.
-export type ProjectFileNode = ArtifactMetaData & {
+// A file as the project store lists it. Version control tracks these, so a
+// file has an artifact identity of its own.
+export type ProjectStoreFileNode = ArtifactMetaData & {
   filesystemType: typeof filesystemItemTypes.FILE;
 };
 
 // A directory is structure derived from the paths of the files under it, not
 // something version control tracks. A directory node carries a path and its
 // contents, but no artifact id or kind.
-export type ProjectDirectoryNode = {
+export type ProjectStoreDirectoryNode = {
   path: ProjectRelPath;
   filesystemType: typeof filesystemItemTypes.DIRECTORY;
-  children: ProjectTreeNode[];
+  children: ProjectStoreTreeNode[];
 };
+
+export type ProjectStoreTreeNode =
+  ProjectStoreFileNode | ProjectStoreDirectoryNode;
+
+export type ProjectFileNode = ProjectStoreFileNode & { shared: boolean };
+
+export type ProjectDirectoryNode = Omit<
+  ProjectStoreDirectoryNode,
+  'children'
+> & { children: ProjectTreeNode[] };
 
 export type ProjectTreeNode = ProjectFileNode | ProjectDirectoryNode;
 
 export const isProjectFileNode = (
-  node: ProjectTreeNode
-): node is ProjectFileNode => node.filesystemType === filesystemItemTypes.FILE;
+  node: ProjectStoreTreeNode
+): node is ProjectStoreFileNode =>
+  node.filesystemType === filesystemItemTypes.FILE;
 
 export const isProjectDirectoryNode = (
-  node: ProjectTreeNode
-): node is ProjectDirectoryNode =>
+  node: ProjectStoreTreeNode
+): node is ProjectStoreDirectoryNode =>
   node.filesystemType === filesystemItemTypes.DIRECTORY;
 
 // The artifact's name as the editor presents it — the file name without its
@@ -94,7 +104,8 @@ const areProjectTreeNodesEqual = (
     : isProjectFileNode(b) &&
       a.id === b.id &&
       a.path === b.path &&
-      a.kind === b.kind;
+      a.kind === b.kind &&
+      a.shared === b.shared;
 
 export const areProjectTreesEqual = (
   a: ProjectTreeNode[],
@@ -104,7 +115,7 @@ export const areProjectTreesEqual = (
   a.every((node, index) => areProjectTreeNodesEqual(node, b[index]));
 
 // Flattens a node tree into a depth-first list of all its nodes.
-const flattenTree = (tree: ProjectTreeNode[]): ProjectTreeNode[] =>
+const flattenTree = (tree: ProjectStoreTreeNode[]): ProjectStoreTreeNode[] =>
   tree.flatMap((node) =>
     isProjectDirectoryNode(node)
       ? [node, ...flattenTree(node.children)]
@@ -117,9 +128,9 @@ export const findFileNodeByPath = ({
   tree,
   path,
 }: {
-  tree: ProjectTreeNode[];
+  tree: ProjectStoreTreeNode[];
   path: ProjectRelPath;
-}): ProjectFileNode | null =>
+}): ProjectStoreFileNode | null =>
   flattenTree(tree)
     .filter(isProjectFileNode)
     .find((node) => node.path === path) ?? null;
@@ -129,9 +140,9 @@ export const findNodeById = ({
   tree,
   id,
 }: {
-  tree: ProjectTreeNode[];
+  tree: ProjectStoreTreeNode[];
   id: ArtifactId;
-}): ProjectFileNode | null =>
+}): ProjectStoreFileNode | null =>
   flattenTree(tree)
     .filter(isProjectFileNode)
     .find((node) => node.id === id) ?? null;
@@ -139,8 +150,8 @@ export const findNodeById = ({
 // Filters a project tree to the files the editor can open, descending into
 // subdirectories and dropping assets with unsupported extensions.
 export const listOpenableArtifacts = (
-  tree: ProjectTreeNode[]
-): ProjectFileNode[] =>
+  tree: ProjectStoreTreeNode[]
+): ProjectStoreFileNode[] =>
   tree.flatMap((node) =>
     isProjectDirectoryNode(node)
       ? listOpenableArtifacts(node.children)
