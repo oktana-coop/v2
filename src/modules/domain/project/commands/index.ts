@@ -25,3 +25,8 @@ export {
   type StoredLiveDocument,
 } from './live-document';
 export { openLiveDocument } from './open-live-document';
+export {
+  type GetProjectTreeDeps,
+  getProjectTree,
+  markSharedDocuments,
+} from './get-project-tree';

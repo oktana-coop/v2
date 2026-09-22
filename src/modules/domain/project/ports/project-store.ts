@@ -32,7 +32,7 @@ import {
   type Project,
   type ProjectId,
   type ProjectRelPath,
-  type ProjectTreeNode,
+  type ProjectStoreTreeNode,
   type ReferencedAsset,
   type RemoteProjectInfo,
   type VersionedProject,
@@ -381,7 +381,7 @@ export type ProjectStore = {
   getProjectTree: (
     id: ProjectId
   ) => Effect.Effect<
-    ProjectTreeNode[],
+    ProjectStoreTreeNode[],
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;

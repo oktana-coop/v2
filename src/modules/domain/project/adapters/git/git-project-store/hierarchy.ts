@@ -18,7 +18,7 @@ import { RepositoryError, ValidationError } from '../../../errors';
 import {
   inferArtifactKindFromExtension,
   parseProjectRelPathEffect,
-  type ProjectTreeNode,
+  type ProjectStoreTreeNode,
 } from '../../../models';
 import { type ProjectStore } from '../../../ports';
 import { getCurrentBranch } from './branching';
@@ -28,25 +28,28 @@ type HierarchyOps = Pick<ProjectStore, 'getProjectTree'>;
 
 const toProjectTreeNode =
   (ref: string) =>
-  (node: Directory | File): Effect.Effect<ProjectTreeNode, ValidationError> =>
+  (
+    node: Directory | File
+  ): Effect.Effect<ProjectStoreTreeNode, ValidationError> =>
     pipe(
       parseProjectRelPathEffect(node.path),
-      Effect.flatMap((path): Effect.Effect<ProjectTreeNode, ValidationError> =>
-        isDirectory(node)
-          ? pipe(
-              Effect.forEach(node.children ?? [], toProjectTreeNode(ref)),
-              Effect.map((children) => ({
+      Effect.flatMap(
+        (path): Effect.Effect<ProjectStoreTreeNode, ValidationError> =>
+          isDirectory(node)
+            ? pipe(
+                Effect.forEach(node.children ?? [], toProjectTreeNode(ref)),
+                Effect.map((children) => ({
+                  path,
+                  filesystemType: filesystemItemTypes.DIRECTORY,
+                  children,
+                }))
+              )
+            : Effect.succeed({
+                id: createGitBlobRef({ ref, path }),
                 path,
-                filesystemType: filesystemItemTypes.DIRECTORY,
-                children,
-              }))
-            )
-          : Effect.succeed({
-              id: createGitBlobRef({ ref, path }),
-              path,
-              kind: inferArtifactKindFromExtension(path),
-              filesystemType: filesystemItemTypes.FILE,
-            })
+                kind: inferArtifactKindFromExtension(path),
+                filesystemType: filesystemItemTypes.FILE,
+              })
       )
     );
 

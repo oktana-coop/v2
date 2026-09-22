@@ -23,6 +23,7 @@ const artifactFile = (path: string): ProjectFileNode => ({
   path: parseProjectRelPath(path),
   kind: inferArtifactKindFromExtension(path),
   filesystemType: filesystemItemTypes.FILE,
+  shared: false,
 });
 
 const artifactDir = ({
