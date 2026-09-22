@@ -12,8 +12,8 @@ import {
 } from '../../../../../../app-state';
 import { LiveDocumentEditor } from '../../../../../../components/editing/LiveDocumentEditor';
 import { LongTextSkeleton } from '../../../../../../components/progress/skeletons/LongText';
+import { ActionsBar } from '../../../../../shared/document-actions-bar';
 import { useCurrentArtifact } from '../../../artifact-route';
-import { ActionsBar } from './ActionsBar';
 
 export const DocumentEditor = () => {
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
@@ -51,8 +51,7 @@ export const DocumentEditor = () => {
           isShared={shareId !== null}
           participants={participants}
           onShareClick={onOpenShareDocumentDialog}
-          canCommit={canCommit}
-          onCheckIconClick={openCommitModal}
+          commitAction={{ canCommit, onCommitClick: openCommitModal }}
         />
       </div>
 
@@ -63,8 +62,7 @@ export const DocumentEditor = () => {
               liveDocument={liveDocument}
               onLocalSelectionChange={onLocalSelectionChange}
               isToolbarOpen={isEditorToolbarOpen}
-              pickAsset={pickAsset}
-              resolveAssetSrc={resolveAssetSrc}
+              assetResolution={{ pickAsset, resolveAssetSrc }}
             />
           ) : (
             <LongTextSkeleton />

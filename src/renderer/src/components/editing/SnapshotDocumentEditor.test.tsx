@@ -53,8 +53,10 @@ describe('SnapshotDocumentEditor', () => {
         <SnapshotDocumentEditor
           doc={doc}
           onDocChange={async () => {}}
-          pickAsset={async () => null}
-          resolveAssetSrc={(src) => src}
+          assetResolution={{
+            pickAsset: async () => null,
+            resolveAssetSrc: (src) => src,
+          }}
         />
       </ProseMirrorContext.Provider>
     );
@@ -93,8 +95,10 @@ describe('SnapshotDocumentEditor', () => {
         <SnapshotDocumentEditor
           doc={doc}
           onDocChange={async () => {}}
-          pickAsset={async () => null}
-          resolveAssetSrc={(src) => src}
+          assetResolution={{
+            pickAsset: async () => null,
+            resolveAssetSrc: (src) => src,
+          }}
         />
       </ProseMirrorContext.Provider>
     );

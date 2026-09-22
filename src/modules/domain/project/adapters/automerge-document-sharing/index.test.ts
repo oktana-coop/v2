@@ -41,12 +41,19 @@ const identity = {
   documentId: '/blob/main/note.md' as ArtifactId,
 };
 
+// What the share was called when made.
+const info = { ...identity, name: 'note' };
+
 const seed = (content: string): DocumentContent => ({
   formatVersion: DOCUMENT_FORMAT_VERSION,
   content,
 });
 
-const seedShare = (content: string) => ({ ...seed(content), identity });
+const seedShare = (content: string) => ({
+  ...seed(content),
+  identity,
+  name: info.name,
+});
 
 const syncFor = (repo: Repo) =>
   createAdapter({ syncedRepo: Effect.succeed(repo) });
@@ -61,7 +68,7 @@ describe('automergeDocumentSharing', () => {
     const repo = new Repo({ network: [] });
 
     const shareId = await Effect.runPromise(
-      syncFor(repo).shareDocument({ content: 'shared text', ...identity })
+      syncFor(repo).shareDocument({ content: 'shared text', ...info })
     );
 
     const handle = await findShared(repo, shareId);
@@ -69,20 +76,21 @@ describe('automergeDocumentSharing', () => {
       formatVersion: DOCUMENT_FORMAT_VERSION,
       content: 'shared text',
       identity,
+      name: info.name,
     });
   });
 
   it('tells a peer which document a share is', async () => {
     const { alice, bob } = createPeers();
     const shareId = await Effect.runPromise(
-      syncFor(alice).shareDocument({ content: 'for bob', ...identity })
+      syncFor(alice).shareDocument({ content: 'for bob', ...info })
     );
 
     const read = await Effect.runPromise(
-      syncFor(bob).getSharedDocumentIdentity({ shareId })
+      syncFor(bob).getSharedDocumentInfo({ shareId })
     );
 
-    expect(read).toEqual(identity);
+    expect(read).toEqual(info);
   });
 
   it('reads the identity without opening the document', async () => {
@@ -90,10 +98,10 @@ describe('automergeDocumentSharing', () => {
     const handle = repo.create(seedShare('never opened'));
 
     const read = await Effect.runPromise(
-      syncFor(repo).getSharedDocumentIdentity({ shareId: handle.url })
+      syncFor(repo).getSharedDocumentInfo({ shareId: handle.url })
     );
 
-    expect(read).toEqual(identity);
+    expect(read).toEqual(info);
   });
 
   it('refuses to say what a share that names no document is', async () => {
@@ -102,9 +110,7 @@ describe('automergeDocumentSharing', () => {
     const handle = repo.create<DocumentContent>(seed('no identity'));
 
     const failure = await Effect.runPromise(
-      Effect.flip(
-        syncFor(repo).getSharedDocumentIdentity({ shareId: handle.url })
-      )
+      Effect.flip(syncFor(repo).getSharedDocumentInfo({ shareId: handle.url }))
     );
 
     expect(failure).toBeInstanceOf(ValidationError);
@@ -114,7 +120,7 @@ describe('automergeDocumentSharing', () => {
     const { alice, bob } = createPeers();
 
     const shareId = await Effect.runPromise(
-      syncFor(alice).shareDocument({ content: 'for bob', ...identity })
+      syncFor(alice).shareDocument({ content: 'for bob', ...info })
     );
 
     const handle = await findShared(bob, shareId);
@@ -126,7 +132,7 @@ describe('automergeDocumentSharing', () => {
   it('mints a share the other peer can open and edit', async () => {
     const { alice, bob } = createPeers();
     const shareId = await Effect.runPromise(
-      syncFor(alice).shareDocument({ content: 'seeded by alice', ...identity })
+      syncFor(alice).shareDocument({ content: 'seeded by alice', ...info })
     );
 
     const opened = await Effect.runPromise(
@@ -244,7 +250,7 @@ describe('automergeDocumentSharing', () => {
   it('leaves the shared document with its peers when this client releases it', async () => {
     const { alice, bob } = createPeers();
     const shareId = await Effect.runPromise(
-      syncFor(alice).shareDocument({ content: 'still here', ...identity })
+      syncFor(alice).shareDocument({ content: 'still here', ...info })
     );
     const bobHandle = await findShared(bob, shareId);
 

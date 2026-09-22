@@ -86,8 +86,13 @@ const {
 
 export type SharedEditorProps = {
   isToolbarOpen?: boolean;
-  pickAsset: prosemirror.FigureAssetPicker;
-  resolveAssetSrc: prosemirror.ResolveAssetSrc;
+  // Absent where the document has no project to hold assets, as for a guest:
+  // nothing to pick, and sources left as they are.
+  // TODO: Handle assets in guest editing.
+  assetResolution: {
+    pickAsset: prosemirror.FigureAssetPicker;
+    resolveAssetSrc: prosemirror.ResolveAssetSrc;
+  } | null;
 };
 
 // How the editor is bound to its content: the content as a ProseMirror
@@ -112,9 +117,10 @@ export const EditorBase = ({
   bindContent,
   diffWith,
   isToolbarOpen = false,
-  pickAsset,
-  resolveAssetSrc,
+  assetResolution,
 }: EditorBaseProps) => {
+  const resolveAssetSrc =
+    assetResolution?.resolveAssetSrc ?? ((src: string) => src);
   const { view, parseMarkdown, convertFromProseMirror, proseMirrorDiff } =
     useContext(ProseMirrorContext);
   const [leafBlockType, setLeafBlockType] = useState<LeafBlockType | null>(
@@ -502,9 +508,9 @@ export const EditorBase = ({
   };
 
   const handleImageClick = async () => {
-    if (!view) return;
+    if (!view || !assetResolution) return;
     try {
-      await pickAndInsertFigure(pickAsset)(view);
+      await pickAndInsertFigure(assetResolution.pickAsset)(view);
       view.focus();
     } catch (err) {
       console.error(err);
@@ -554,7 +560,7 @@ export const EditorBase = ({
             onHorizontalRuleClick={handleHorizontalRuleClick}
             horizontalRuleEnabled={horizontalRuleEnabled}
             onImageClick={handleImageClick}
-            imageEnabled={imageEnabled}
+            imageEnabled={imageEnabled && assetResolution !== null}
           />
         </div>
       )}

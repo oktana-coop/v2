@@ -25,7 +25,7 @@ import {
 import { type LiveDocument } from './live-document';
 
 export type JoinSharedDocumentDeps = {
-  getSharedDocumentIdentity: DocumentSharing['getSharedDocumentIdentity'];
+  getSharedDocumentInfo: DocumentSharing['getSharedDocumentInfo'];
   findDocumentById: ProjectStore['findDocumentById'];
   rememberShare: ShareRegistry['rememberShare'];
   openDocument: Pick<LiveDocument, 'documentId' | 'attachTo'> | null;
@@ -53,7 +53,7 @@ export type JoinSharedDocumentError =
 
 export const joinSharedDocument =
   ({
-    getSharedDocumentIdentity,
+    getSharedDocumentInfo,
     findDocumentById,
     rememberShare,
     openDocument,
@@ -72,13 +72,14 @@ export const joinSharedDocument =
         : Effect.succeed(false);
 
     return pipe(
-      getSharedDocumentIdentity({ shareId }),
-      Effect.flatMap((sharedDocIdentity) =>
-        sharedDocIdentity.branch === branch
-          ? Effect.succeed(sharedDocIdentity.documentId)
+      getSharedDocumentInfo({ shareId }),
+      Effect.flatMap((sharedDocInfo) =>
+        sharedDocInfo.branch === branch
+          ? Effect.succeed(sharedDocInfo.documentId)
           : Effect.fail(
               new SharedDocumentOnAnotherBranchError(
-                `The share belongs to branch "${sharedDocIdentity.branch}"; this project is on "${branch}".`
+                `The share belongs to branch "${sharedDocInfo.branch}"; this project is on "${branch}".`,
+                { branch: sharedDocInfo.branch }
               )
             )
       ),

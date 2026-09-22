@@ -29,6 +29,12 @@ import {
   SyncSettings,
 } from './pages/settings';
 import { TemplateEditor } from './pages/settings/exports';
+import {
+  GuestEditor,
+  SharedDocuments,
+  SharedDocumentSelection,
+  SharedDocumentsProviders,
+} from './pages/shared-documents';
 
 export const AppRouter = () => {
   return (
@@ -67,6 +73,15 @@ export const AppRouter = () => {
                 />
               </Route>
               <Route path="settings" element={<ProjectSettings />} />
+            </Route>
+          </Route>
+          <Route
+            path="/shared-documents"
+            element={<SharedDocumentsProviders />}
+          >
+            <Route element={<SharedDocuments />}>
+              <Route index element={<SharedDocumentSelection />} />
+              <Route path=":shareId" element={<GuestEditor />} />
             </Route>
           </Route>
           <Route path="/history" element={<HistoryNoProject />} />

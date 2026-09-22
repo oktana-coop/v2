@@ -81,9 +81,8 @@ export const ContentConflict = ({
         doc={suggestedResolution.docAfter}
         isToolbarOpen={isEditorToolbarOpen}
         onDocChange={onDocChange}
-        pickAsset={pickAsset}
+        assetResolution={{ pickAsset, resolveAssetSrc }}
         showDiffWith={showDiff ? suggestedResolution.docBefore : undefined}
-        resolveAssetSrc={resolveAssetSrc}
       />
     </div>
   );

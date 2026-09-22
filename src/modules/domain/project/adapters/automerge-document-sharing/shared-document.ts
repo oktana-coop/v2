@@ -13,7 +13,7 @@ import {
   documentContentSchema,
   initialDocumentContent,
 } from '../../../rich-text/adapters/automerge-convergent-document';
-import { type SharedDocumentIdentity } from '../../ports';
+import { type SharedDocumentInfo } from '../../ports';
 
 const identitySchema = z.object({
   branch: z.string(),
@@ -22,6 +22,7 @@ const identitySchema = z.object({
 
 const sharedDocumentSchema = documentContentSchema.extend({
   identity: identitySchema,
+  name: z.string().trim().min(1).max(255),
 });
 
 export type SharedDocumentContent = z.infer<typeof sharedDocumentSchema>;
@@ -30,25 +31,28 @@ export const initialSharedDocumentContent = ({
   content,
   branch,
   documentId,
-}: SharedDocumentIdentity & { content: string }): SharedDocumentContent => ({
+  name,
+}: SharedDocumentInfo & { content: string }): SharedDocumentContent => ({
   ...initialDocumentContent(content),
   identity: { branch, documentId },
+  name,
 });
 
-export const readSharedDocumentIdentity = (
+export const readSharedDocumentInfo = (
   handle: DocHandle<DocumentContent>
-): Effect.Effect<SharedDocumentIdentity, ValidationError> =>
+): Effect.Effect<SharedDocumentInfo, ValidationError> =>
   Effect.try({
     try: () => {
-      const { identity } = sharedDocumentSchema.parse(handle.doc());
+      const { identity, name } = sharedDocumentSchema.parse(handle.doc());
 
       return {
         branch: parseBranch(identity.branch),
         documentId: parseArtifactId(identity.documentId),
+        name,
       };
     },
     catch: mapErrorTo(
       ValidationError,
-      'The share does not say which document it belongs to.'
+      'The share does not say which document it is.'
     ),
   });

@@ -2,6 +2,7 @@
 export {
   type LiveDocument,
   type LiveDocumentError,
+  type NamedLiveDocument,
   type StoredLiveDocument,
 } from './live-document';
 export {

@@ -16,14 +16,14 @@ import {
 import { SharedDocumentUnavailableError } from '../../errors';
 import {
   type DocumentSharing,
-  type GetSharedDocumentIdentityArgs,
+  type GetSharedDocumentInfoArgs,
   type LeaveSharedDocumentArgs,
   type OpenSharedDocumentArgs,
   type ShareDocumentArgs,
 } from '../../ports';
 import {
   initialSharedDocumentContent,
-  readSharedDocumentIdentity,
+  readSharedDocumentInfo,
 } from './shared-document';
 
 export type AutomergeDocumentSharingDeps = {
@@ -75,15 +75,10 @@ export const createAdapter = ({
       Effect.tap(validateDocumentContent)
     );
 
-  const shareDocument = ({ content, branch, documentId }: ShareDocumentArgs) =>
+  const shareDocument = (args: ShareDocumentArgs) =>
     pipe(
       connectedRepo,
-      Effect.map(
-        (repo) =>
-          repo.create(
-            initialSharedDocumentContent({ content, branch, documentId })
-          ).url
-      )
+      Effect.map((repo) => repo.create(initialSharedDocumentContent(args)).url)
     );
 
   const openSharedDocument = ({ shareId }: OpenSharedDocumentArgs) =>
@@ -92,10 +87,8 @@ export const createAdapter = ({
       Effect.flatMap((handle) => createSharedConvergentDocument({ handle }))
     );
 
-  const getSharedDocumentIdentity = ({
-    shareId,
-  }: GetSharedDocumentIdentityArgs) =>
-    pipe(findValidShare(shareId), Effect.flatMap(readSharedDocumentIdentity));
+  const getSharedDocumentInfo = ({ shareId }: GetSharedDocumentInfoArgs) =>
+    pipe(findValidShare(shareId), Effect.flatMap(readSharedDocumentInfo));
 
   const leaveSharedDocument = ({ shareId }: LeaveSharedDocumentArgs) =>
     pipe(
@@ -108,7 +101,7 @@ export const createAdapter = ({
   return {
     shareDocument,
     openSharedDocument,
-    getSharedDocumentIdentity,
+    getSharedDocumentInfo,
     leaveSharedDocument,
   };
 };

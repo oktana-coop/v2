@@ -82,7 +82,10 @@ test.describe('sharing from the actions bar', () => {
     await expectPrivate(window);
     await shareFromButton(window);
     await expectShared(window);
+    // The explorer marks the shared document.
+    await expect(window.getByTestId('shared-document-badge')).toBeVisible();
     await stopSharingFromButton(window);
+    await expect(window.getByTestId('shared-document-badge')).toHaveCount(0);
     await expectPrivate(window);
   });
 

@@ -12,6 +12,7 @@ import {
 } from '../../modules/personalization/browser';
 import {
   CommandPaletteStateProvider,
+  GuestShareRegistryProvider,
   InfrastructureAdaptersProvider,
 } from './app-state/index';
 import { AppRouter } from './AppRouter';
@@ -29,7 +30,9 @@ export const App = () => (
                     <FunctionalityConfigProvider>
                       <NotificationsProvider>
                         <CommandPaletteStateProvider>
-                          <AppRouter />
+                          <GuestShareRegistryProvider>
+                            <AppRouter />
+                          </GuestShareRegistryProvider>
                         </CommandPaletteStateProvider>
                       </NotificationsProvider>
                     </FunctionalityConfigProvider>

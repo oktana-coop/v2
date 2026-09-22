@@ -22,9 +22,16 @@ export {
 export {
   type LiveDocument,
   type LiveDocumentError,
+  type NamedLiveDocument,
   type StoredLiveDocument,
 } from './live-document';
 export { openLiveDocument } from './open-live-document';
+export {
+  leaveDocumentAsGuest,
+  type LeaveDocumentAsGuestDeps,
+  openDocumentAsGuest,
+  type OpenDocumentAsGuestDeps,
+} from './guest';
 export {
   type GetProjectTreeDeps,
   getProjectTree,
