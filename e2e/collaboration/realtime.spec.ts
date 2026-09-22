@@ -14,10 +14,12 @@ import path from 'path';
 import { expect, test } from '../shared/fixtures';
 import { initRepositoryWithCommit } from '../shared/git';
 import {
+  createAndSwitchToBranch,
   openCommandPalette,
   openDocument,
   openHelloMd,
   openProjectFolder,
+  switchToBranch,
   typeInEditorSlowly,
 } from '../shared/helpers';
 import { startSyncServer } from '../shared/sync-server';
@@ -904,13 +906,13 @@ test.describe('realtime collaboration', () => {
 
       await pasteShareLink({ window: bob.window, shareId });
 
+      // Refused in the dialog itself, where opening as a guest is offered.
+      await expect(bob.window.getByTestId('join-refusal')).toContainText(
+        'The share belongs to a document this project does not have.',
+        { timeout: 20_000 }
+      );
       await expect(
-        bob.window.getByText('Join Shared Document Error')
-      ).toBeVisible({ timeout: 20_000 });
-      await expect(
-        bob.window.getByText(
-          'The share belongs to a document this project does not have.'
-        )
+        bob.window.getByRole('button', { name: 'Open as guest instead' })
       ).toBeVisible();
 
       // The document Bob had open is left as it was.
@@ -919,6 +921,77 @@ test.describe('realtime collaboration', () => {
       );
     } finally {
       await bob.close();
+    }
+  });
+
+  test('a share on another branch is joined by switching to it', async ({
+    electronApp,
+    window,
+    testProjectDir: aliceProject,
+  }) => {
+    test.setTimeout(180_000);
+
+    // Alice shares from a branch; Bob holds the same repository, on main.
+    initRepositoryWithCommit({ repoDir: aliceProject, message: 'base' });
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: aliceProject,
+    });
+    await createAndSwitchToBranch({ window, branchName: 'draft' });
+    await openHelloMd({ window });
+    const shareId = await shareCurrentDocument({ window });
+    await closeShareDialog({ window });
+
+    const bobProject = fs.mkdtempSync(path.join(os.tmpdir(), 'v2-e2e-bob-'));
+    fs.cpSync(aliceProject, bobProject, { recursive: true });
+
+    const bob = await launchPeerApp(bobProject);
+    try {
+      await bob.window.evaluate((url) => {
+        localStorage.setItem('syncServiceUrl', url);
+      }, syncServer.url);
+
+      await openProjectFolder({
+        electronApp: bob.app,
+        window: bob.window,
+        folderPath: bobProject,
+      });
+      await switchToBranch({ window: bob.window, from: 'draft', to: 'main' });
+      await openHelloMd({ window: bob.window });
+
+      await pasteShareLink({ window: bob.window, shareId });
+
+      // Refused with the branch named, and switching offered instead of the
+      // guest path.
+      await expect(bob.window.getByTestId('join-refusal')).toContainText(
+        'The share belongs to branch "draft".',
+        { timeout: 20_000 }
+      );
+      await expect(
+        bob.window.getByRole('button', { name: 'Open as guest instead' })
+      ).toHaveCount(0);
+      await bob.window.getByRole('button', { name: 'Switch to draft' }).click();
+
+      await expect(
+        bob.window.getByRole('button', { name: 'draft' })
+      ).toBeVisible({ timeout: 10_000 });
+      await expect(bob.window.locator('.ProseMirror')).toContainText(
+        'This is a test document',
+        { timeout: 20_000 }
+      );
+
+      // Joined on the branch: edits flow.
+      await typeInEditorSlowly({ window, text: ' from draft', delay: 30 });
+      await expect(bob.window.locator('.ProseMirror')).toContainText(
+        'from draft',
+        { timeout: 20_000 }
+      );
+    } finally {
+      await bob.close();
+      try {
+        fs.rmSync(bobProject, { recursive: true, force: true });
+      } catch {}
     }
   });
 

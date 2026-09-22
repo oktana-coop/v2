@@ -1,5 +1,7 @@
 import * as Cause from 'effect/Cause';
 
+import { type Branch } from '../../../infrastructure/version-control';
+
 export const VersionedProjectRepositoryErrorTag =
   'VersionedProjectRepositoryError';
 export class RepositoryError extends Cause.YieldableError {
@@ -51,6 +53,12 @@ export const SharedDocumentOnAnotherBranchErrorTag =
   'SharedDocumentOnAnotherBranchError';
 export class SharedDocumentOnAnotherBranchError extends Cause.YieldableError {
   readonly _tag = SharedDocumentOnAnotherBranchErrorTag;
+  readonly data;
+
+  constructor(message: string, data: { branch: Branch }) {
+    super(message);
+    this.data = data;
+  }
 }
 
 export const SharedDocumentNotInProjectErrorTag =

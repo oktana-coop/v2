@@ -6,7 +6,7 @@ import { urlEncodeProjectId } from '../../../../modules/domain/project';
 import { type ProjectId } from '../../../../modules/domain/project/models';
 import { readStoredProject } from '../../app-state/current-project';
 import { Logo } from '../brand/Logo';
-import { BranchIcon, OptionsIcon, PenIcon } from '../icons';
+import { BranchIcon, GroupIcon, OptionsIcon, PenIcon } from '../icons';
 import { IconProps } from '../icons/types';
 
 const ICON_SIZE = 32;
@@ -85,6 +85,12 @@ export function NavBar() {
           projectId,
         }),
         icon: BranchIcon,
+        current: false,
+      },
+      {
+        name: 'Shared with me',
+        href: '/shared-documents',
+        icon: GroupIcon,
         current: false,
       },
     ],

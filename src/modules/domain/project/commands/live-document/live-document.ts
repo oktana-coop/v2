@@ -40,6 +40,8 @@ export type LiveDocument = {
   close: Effect.Effect<void>;
 };
 
+export type NamedLiveDocument = LiveDocument & { name: string };
+
 export type StoredLiveDocument = LiveDocument & {
   flush: Effect.Effect<void, PersistDocumentError>;
   refresh: Effect.Effect<void>;

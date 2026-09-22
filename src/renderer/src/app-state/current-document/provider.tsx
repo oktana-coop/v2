@@ -5,6 +5,7 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useMatch, useNavigate } from 'react-router';
 
 import {
+  getArtifactName,
   joinSharedDocument,
   leaveSharedDocument as leaveSharedDocumentCommand,
   type LiveDocument,
@@ -30,10 +31,12 @@ import { createPrivateConvergentDocument } from '../../../../modules/domain/rich
 import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
 import {
   createErrorNotification,
+  type Notification,
   NotificationsContext,
 } from '../../../../modules/infrastructure/notifications/browser';
 import {
   type ArtifactId,
+  type Branch,
   type Change,
   type ChangeId,
   changeIdsAreSame,
@@ -50,6 +53,7 @@ import { useCurrentChangeId } from '../current-project/current-artifact/use-curr
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 import { ShareRegistryContext } from '../share-registry';
 import { CurrentDocumentContext } from './context';
+import { type JoinSharedDocumentRefusal } from './types';
 import { useCurrentDocumentId } from './use-current-document-id';
 import { usePublishLocalPresence } from './use-presence';
 import { usePulledUpstreamChanges } from './use-pulled-upstream-changes';
@@ -71,8 +75,11 @@ export const CurrentDocumentProvider = ({
     projectId,
     projectStore,
     currentBranch,
+    currentArtifact,
     restoreDocumentChanges,
     subscribeToProjectDirChanges,
+    switchToBranch,
+    listBranches,
   } = useContext(ProjectContext);
   const { privateRepo, documentSharing } = useContext(
     InfrastructureAdaptersContext
@@ -219,6 +226,7 @@ export const CurrentDocumentProvider = ({
     representationTransformAdapter,
     subscribeToProjectDirChanges,
     currentBranch,
+    currentArtifact,
   ]);
 
   // What the open document reports with nobody waiting on it. The editor keeps
@@ -532,7 +540,7 @@ export const CurrentDocumentProvider = ({
   }, []);
 
   const handleShareDocument = useCallback(async (): Promise<ShareId | null> => {
-    if (!shareKey || !liveDocument) return null;
+    if (!shareKey || !liveDocument || !currentArtifact) return null;
 
     try {
       return await Effect.runPromise(
@@ -544,6 +552,7 @@ export const CurrentDocumentProvider = ({
           projectId: shareKey.projectId,
           branch: shareKey.branch,
           documentId: shareKey.documentId,
+          name: getArtifactName(currentArtifact.path),
         })
       );
     } catch (error) {
@@ -559,70 +568,85 @@ export const CurrentDocumentProvider = ({
   }, [
     shareKey,
     liveDocument,
+    currentArtifact,
     documentSharing,
     rememberShare,
     dispatchNotification,
   ]);
 
-  const handleJoinSharedDocument = useCallback(
-    async (joinedShareId: ShareId) => {
-      if (!projectId || !currentBranch || !projectStore) return;
+  const join = useCallback(
+    async ({
+      shareId: joinedShareId,
+      branch,
+    }: {
+      shareId: ShareId;
+      branch: Branch;
+    }): Promise<JoinSharedDocumentRefusal | null> => {
+      if (!projectId || !projectStore) return null;
 
-      const createNotification = (message: string) =>
-        Effect.succeed({
-          joined: null,
-          notification: createErrorNotification({
-            title: 'Join Shared Document Error',
-            message,
-          }),
-        });
+      type JoinOutcome =
+        | { joined: { documentId: ArtifactId; attached: boolean } }
+        | { refusal: JoinSharedDocumentRefusal }
+        | { notification: Notification };
 
-      const { joined, notification } = await Effect.runPromise(
+      const outcome = await Effect.runPromise(
         pipe(
-          pipe(
-            joinSharedDocument({
-              getSharedDocumentIdentity:
-                documentSharing.getSharedDocumentIdentity,
-              findDocumentById: projectStore.findDocumentById,
-              rememberShare,
-              openDocument: liveDocument,
-            })({
-              shareId: joinedShareId,
-              projectId,
-              branch: currentBranch,
-            }),
-            Effect.map((joined) => ({ joined, notification: null }))
+          joinSharedDocument({
+            getSharedDocumentInfo: documentSharing.getSharedDocumentInfo,
+            findDocumentById: projectStore.findDocumentById,
+            rememberShare,
+            openDocument: branch === currentBranch ? liveDocument : null,
+          })({ shareId: joinedShareId, projectId, branch }),
+          Effect.map((joined): JoinOutcome => ({ joined })),
+          Effect.catchTag(SharedDocumentOnAnotherBranchErrorTag, (error) =>
+            pipe(
+              // Switching is offered only to a branch this project has.
+              Effect.promise(() => listBranches().catch((): Branch[] => [])),
+              Effect.map((branches): JoinOutcome => ({
+                refusal: {
+                  reason: 'other-branch',
+                  branch: error.data.branch,
+                  canSwitch: branches.includes(error.data.branch),
+                },
+              }))
+            )
           ),
-          Effect.catchTags({
-            [SharedDocumentOnAnotherBranchErrorTag]: (error) =>
-              createNotification(error.message),
-            [SharedDocumentNotInProjectErrorTag]: (error) =>
-              createNotification(error.message),
-          }),
+          Effect.catchTag(SharedDocumentNotInProjectErrorTag, () =>
+            Effect.succeed<JoinOutcome>({
+              refusal: { reason: 'not-in-project' },
+            })
+          ),
           Effect.catchAll((error) => {
             console.error(error);
 
-            return createNotification(
-              'This shared document link could not be joined.'
-            );
+            return Effect.succeed<JoinOutcome>({
+              notification: createErrorNotification({
+                title: 'Join Shared Document Error',
+                message: 'This shared document link could not be joined.',
+              }),
+            });
           })
         )
       );
 
-      if (notification) {
-        dispatchNotification(notification);
-        return;
+      if ('notification' in outcome) {
+        dispatchNotification(outcome.notification);
+        return null;
       }
+
+      if ('refusal' in outcome) return outcome.refusal;
 
       setIsJoinSharedDocumentDialogOpen(false);
 
       // The shared document is captured (remembered) in local storage.
       // After navigation, the document will be opened as a shared one.
-      if (joined && !joined.attached) {
+      if (!outcome.joined.attached) {
         navigate(
-          `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(joined.documentId)}`
+          `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(outcome.joined.documentId)}`
         );
       }
+
+      return null;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
@@ -633,8 +657,45 @@ export const CurrentDocumentProvider = ({
       liveDocument,
       documentSharing,
       rememberShare,
+      listBranches,
       dispatchNotification,
     ]
+  );
+
+  const handleJoinSharedDocument = useCallback(
+    (joinedShareId: ShareId) =>
+      currentBranch
+        ? join({ shareId: joinedShareId, branch: currentBranch })
+        : Promise.resolve(null),
+    [currentBranch, join]
+  );
+
+  const handleSwitchToBranchAndJoin = useCallback(
+    async ({
+      shareId: joinedShareId,
+      branch,
+    }: {
+      shareId: ShareId;
+      branch: Branch;
+    }): Promise<JoinSharedDocumentRefusal | null> => {
+      const switchPrompt: JoinSharedDocumentRefusal = {
+        reason: 'other-branch',
+        branch,
+        canSwitch: true,
+      };
+
+      try {
+        const refusal = await switchToBranch(branch);
+
+        if (refusal) return switchPrompt;
+      } catch (error) {
+        console.error(error);
+        return switchPrompt;
+      }
+
+      return join({ shareId: joinedShareId, branch });
+    },
+    [switchToBranch, join]
   );
 
   const handleLeaveSharedDocument = useCallback(async () => {
@@ -681,6 +742,7 @@ export const CurrentDocumentProvider = ({
         shareId,
         onShareDocument: handleShareDocument,
         onJoinSharedDocument: handleJoinSharedDocument,
+        onSwitchToBranchAndJoin: handleSwitchToBranchAndJoin,
         onLeaveSharedDocument: handleLeaveSharedDocument,
         isShareDocumentDialogOpen,
         isJoinSharedDocumentDialogOpen,

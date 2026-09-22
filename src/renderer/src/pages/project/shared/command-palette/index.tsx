@@ -1,8 +1,10 @@
 import { useContext, useMemo } from 'react';
+import { useNavigate } from 'react-router';
 
 import {
   getArtifactName,
   listOpenableArtifacts,
+  urlEncodeShareId,
 } from '../../../../../../modules/domain/project';
 import { richTextRepresentations } from '../../../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
@@ -10,6 +12,7 @@ import {
   CommandPaletteContext,
   CommitModalContext,
   CurrentDocumentContext,
+  GuestShareRegistryContext,
   ProjectContext,
   useArtifactSelection,
   useClearWebStorage,
@@ -52,6 +55,8 @@ export const ProjectCommandPalette = ({
     : null;
   const { selection, startCreateDirectory } = useDocumentExplorerTree();
   const clearWebStorage = useClearWebStorage();
+  const { guestShares } = useContext(GuestShareRegistryContext);
+  const navigate = useNavigate();
 
   const { exportToText, exportToBinary, exportToPDF, copyTextToClipboard } =
     useExport();
@@ -83,6 +88,18 @@ export const ProjectCommandPalette = ({
     },
   ];
 
+  const sharedDocumentActions: ActionOption[] = [
+    {
+      name: 'Shared with me',
+      onActionSelection: () => navigate('/shared-documents'),
+    },
+    ...guestShares.map((share) => ({
+      name: `Open shared document: ${share.name}`,
+      onActionSelection: () =>
+        navigate(`/shared-documents/${urlEncodeShareId(share.shareId)}`),
+    })),
+  ];
+
   const generalActions = [
     {
       name: keyBindings.ctrlN.command,
@@ -95,6 +112,7 @@ export const ProjectCommandPalette = ({
       onActionSelection: onOpenProjectSettings,
     },
     ...projectActions,
+    ...sharedDocumentActions,
     ...electronSpecificActions,
   ];
 

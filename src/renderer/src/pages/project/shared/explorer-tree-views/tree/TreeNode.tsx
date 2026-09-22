@@ -6,7 +6,11 @@ import {
   filesystemItemTypes,
   removeExtension,
 } from '../../../../../../../modules/infrastructure/filesystem';
-import { ChevronDownIcon, DiffIcon } from '../../../../../components/icons';
+import {
+  ChevronDownIcon,
+  DiffIcon,
+  GroupIcon,
+} from '../../../../../components/icons';
 import { FileExtensionIcon } from '../../../../../components/navigation';
 import {
   treeEditingRowClasses,
@@ -204,6 +208,14 @@ const FileNode = ({
     >
       <FileExtensionIcon fileName={node.data.name} />
       {node.data.name}
+      {node.data.shared && (
+        <span
+          className="ml-1 inline-flex shrink-0 text-purple-500 dark:text-purple-300"
+          data-testid="shared-document-badge"
+        >
+          <GroupIcon size={16} />
+        </span>
+      )}
     </div>
   );
 };

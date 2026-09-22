@@ -1,7 +1,11 @@
 import { useContext, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 
-import { urlEncodeProjectId } from '../../../../../modules/domain/project';
+import {
+  type ShareId,
+  urlEncodeProjectId,
+  urlEncodeShareId,
+} from '../../../../../modules/domain/project';
 import { removePath } from '../../../../../modules/infrastructure/filesystem';
 import { urlEncodeArtifactId } from '../../../../../modules/infrastructure/version-control';
 import {
@@ -58,6 +62,7 @@ const Project = () => {
     onCloseJoinSharedDocumentDialog,
     onShareDocument,
     onJoinSharedDocument,
+    onSwitchToBranchAndJoin,
     onLeaveSharedDocument,
   } = useContext(CurrentDocumentContext);
   const { isOpen: isCommitDialogOpen, closeCommitModal } =
@@ -101,6 +106,10 @@ const Project = () => {
       const projectSettingsUrL = `/projects/${urlEncodeProjectId(projectId)}/settings`;
       navigate(projectSettingsUrL);
     }
+  };
+
+  const handleOpenAsGuest = (shareId: ShareId) => {
+    navigate(`/shared-documents/${urlEncodeShareId(shareId)}`);
   };
 
   const handleOpenPrintPreview = () => {
@@ -152,6 +161,8 @@ const Project = () => {
         <JoinSharedDocumentDialog
           isOpen={isJoinSharedDocumentDialogOpen}
           onJoin={onJoinSharedDocument}
+          onSwitchToBranchAndJoin={onSwitchToBranchAndJoin}
+          onOpenAsGuest={handleOpenAsGuest}
           onCancel={onCloseJoinSharedDocumentDialog}
         />
         <DeleteDocumentDialog

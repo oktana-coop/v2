@@ -24,7 +24,11 @@ export type SharedDocumentIdentity = {
   documentId: ArtifactId;
 };
 
-export type ShareDocumentArgs = SharedDocumentIdentity & {
+export type SharedDocumentInfo = SharedDocumentIdentity & {
+  name: string;
+};
+
+export type ShareDocumentArgs = SharedDocumentInfo & {
   content: string;
 };
 
@@ -32,7 +36,7 @@ export type OpenSharedDocumentArgs = {
   shareId: ShareId;
 };
 
-export type GetSharedDocumentIdentityArgs = {
+export type GetSharedDocumentInfoArgs = {
   shareId: ShareId;
 };
 
@@ -47,9 +51,9 @@ export type DocumentSharing = {
   openSharedDocument: (
     args: OpenSharedDocumentArgs
   ) => Effect.Effect<ConvergentDocument, OpenSharedDocumentError>;
-  getSharedDocumentIdentity: (
-    args: GetSharedDocumentIdentityArgs
-  ) => Effect.Effect<SharedDocumentIdentity, OpenSharedDocumentError>;
+  getSharedDocumentInfo: (
+    args: GetSharedDocumentInfoArgs
+  ) => Effect.Effect<SharedDocumentInfo, OpenSharedDocumentError>;
   leaveSharedDocument: (
     args: LeaveSharedDocumentArgs
   ) => Effect.Effect<void, SharedDocumentUnavailableError>;

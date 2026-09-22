@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 
-import { type Participant } from '../../../../../../../../modules/domain/rich-text';
-import { IconButton } from '../../../../../../components/actions/IconButton';
+import { type Participant } from '../../../../../modules/domain/rich-text';
+import { IconButton } from '../../../components/actions/IconButton';
 import {
   CheckIcon,
   GroupIcon,
@@ -9,8 +9,8 @@ import {
   SidebarOpenIcon,
   ToolbarToggleIcon,
   UserAddIcon,
-} from '../../../../../../components/icons';
-import { PresenceAvatars } from '../../../../../../components/user/PresenceAvatars';
+} from '../../../components/icons';
+import { PresenceAvatars } from '../../../components/user/PresenceAvatars';
 
 export const ActionsBar = ({
   isSidebarOpen,
@@ -19,8 +19,7 @@ export const ActionsBar = ({
   isShared,
   participants,
   onShareClick,
-  canCommit,
-  onCheckIconClick,
+  commitAction,
 }: {
   isSidebarOpen: boolean;
   onSidebarToggle: () => void;
@@ -28,8 +27,7 @@ export const ActionsBar = ({
   isShared: boolean;
   participants: Participant[];
   onShareClick: () => void;
-  canCommit: boolean;
-  onCheckIconClick: () => void;
+  commitAction: { canCommit: boolean; onCommitClick: () => void } | null;
 }) => {
   const sidebarButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -54,9 +52,9 @@ export const ActionsBar = ({
     onShareClick();
   };
 
-  const handleCheckIconClick = (ev: React.MouseEvent) => {
+  const handleCommitClick = (ev: React.MouseEvent) => {
     ev.preventDefault();
-    onCheckIconClick();
+    commitAction?.onCommitClick();
   };
 
   return (
@@ -78,13 +76,15 @@ export const ActionsBar = ({
           onClick={handleShareClick}
           tooltip={isShared ? 'Sharing Options' : 'Share Document'}
         />
-        <IconButton
-          onClick={handleCheckIconClick}
-          icon={<CheckIcon />}
-          color="purple"
-          disabled={!canCommit}
-          tooltip="Commit Changes"
-        />
+        {commitAction && (
+          <IconButton
+            onClick={handleCommitClick}
+            icon={<CheckIcon />}
+            color="purple"
+            disabled={!commitAction.canCommit}
+            tooltip="Commit Changes"
+          />
+        )}
       </div>
     </div>
   );

@@ -5,10 +5,15 @@ import {
 import { type ParticipantSelection } from '../../../../modules/domain/rich-text';
 import {
   type ArtifactId,
+  type Branch,
   type ChangeId,
   type ChangeWithUrlInfo,
   type Commit,
 } from '../../../../modules/infrastructure/version-control';
+
+export type JoinSharedDocumentRefusal =
+  | { reason: 'other-branch'; branch: Branch; canSwitch: boolean }
+  | { reason: 'not-in-project' };
 
 export type CurrentDocumentContextType = {
   versionedDocumentId: ArtifactId | null;
@@ -34,7 +39,15 @@ export type CurrentDocumentContextType = {
   shareId: ShareId | null;
   // Resolves to the share ID so the caller can act on it right away.
   onShareDocument: () => Promise<ShareId | null>;
-  onJoinSharedDocument: (shareId: ShareId) => Promise<void>;
+  // Resolves to why the join was refused here, or null once joined.
+  onJoinSharedDocument: (
+    shareId: ShareId
+  ) => Promise<JoinSharedDocumentRefusal | null>;
+  // Switches to the share's branch and joins there.
+  onSwitchToBranchAndJoin: (args: {
+    shareId: ShareId;
+    branch: Branch;
+  }) => Promise<JoinSharedDocumentRefusal | null>;
   onLeaveSharedDocument: () => Promise<void>;
   isShareDocumentDialogOpen: boolean;
   isJoinSharedDocumentDialogOpen: boolean;

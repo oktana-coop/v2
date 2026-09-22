@@ -48,6 +48,7 @@ const dirNode = ({
   id,
   name: basename(id),
   type: filesystemItemTypes.DIRECTORY,
+  shared: false,
   ...(children ? { children } : {}),
 });
 
@@ -55,6 +56,7 @@ const pendingNode: ExplorerTreeNode = {
   id: NEW_DIRECTORY_NODE_ID,
   name: '',
   type: filesystemItemTypes.DIRECTORY,
+  shared: false,
   children: [],
 };
 
@@ -67,8 +69,18 @@ describe('getExplorerTreeInProject', () => {
     expect(
       getExplorerTreeInProject([artifactFile('a.md'), artifactFile('b.md')])
     ).toEqual([
-      { id: 'a.md', name: 'a.md', type: filesystemItemTypes.FILE },
-      { id: 'b.md', name: 'b.md', type: filesystemItemTypes.FILE },
+      {
+        id: 'a.md',
+        name: 'a.md',
+        type: filesystemItemTypes.FILE,
+        shared: false,
+      },
+      {
+        id: 'b.md',
+        name: 'b.md',
+        type: filesystemItemTypes.FILE,
+        shared: false,
+      },
     ]);
   });
 
@@ -82,8 +94,14 @@ describe('getExplorerTreeInProject', () => {
         id: 'dir',
         name: 'dir',
         type: filesystemItemTypes.DIRECTORY,
+        shared: false,
         children: [
-          { id: 'dir/a.md', name: 'a.md', type: filesystemItemTypes.FILE },
+          {
+            id: 'dir/a.md',
+            name: 'a.md',
+            type: filesystemItemTypes.FILE,
+            shared: false,
+          },
         ],
       },
     ]);
@@ -107,16 +125,19 @@ describe('getExplorerTreeInProject', () => {
         id: 'dir',
         name: 'dir',
         type: filesystemItemTypes.DIRECTORY,
+        shared: false,
         children: [
           {
             id: 'dir/sub',
             name: 'sub',
             type: filesystemItemTypes.DIRECTORY,
+            shared: false,
             children: [
               {
                 id: 'dir/sub/a.md',
                 name: 'a.md',
                 type: filesystemItemTypes.FILE,
+                shared: false,
               },
             ],
           },
@@ -130,6 +151,7 @@ const fileNode = (id: string): ExplorerTreeNode => ({
   id,
   name: basename(id),
   type: filesystemItemTypes.FILE,
+  shared: false,
 });
 
 describe('injectPendingDirectoryNode', () => {
@@ -151,6 +173,7 @@ describe('injectPendingDirectoryNode', () => {
         id: 'dir',
         name: 'dir',
         type: filesystemItemTypes.DIRECTORY,
+        shared: false,
         children: [pendingNode, fileNode('dir/a.md')],
       },
     ]);
@@ -177,11 +200,13 @@ describe('injectPendingDirectoryNode', () => {
         id: 'dir',
         name: 'dir',
         type: filesystemItemTypes.DIRECTORY,
+        shared: false,
         children: [
           {
             id: 'dir/sub',
             name: 'sub',
             type: filesystemItemTypes.DIRECTORY,
+            shared: false,
             children: [pendingNode, fileNode('dir/sub/a.md')],
           },
         ],
@@ -196,6 +221,7 @@ describe('injectPendingDirectoryNode', () => {
           id: 'dir',
           name: 'dir',
           type: filesystemItemTypes.DIRECTORY,
+          shared: false,
           children: [pendingNode],
         },
       ]

@@ -72,6 +72,7 @@ const sharedFrom = {
   projectId: '/projects/one' as ProjectId,
   branch: 'main' as Branch,
   documentId: '/blob/main/note.md' as ArtifactId,
+  name: 'note',
 };
 
 describe('shareLiveDocument', () => {
@@ -82,9 +83,9 @@ describe('shareLiveDocument', () => {
     const url = await Effect.runPromise(
       shareLiveDocument({
         liveDocument,
-        shareDocument: ({ content, branch, documentId }) =>
+        shareDocument: ({ content, branch, documentId, name }) =>
           Effect.sync(() => {
-            calls.push(`mint:${content}@${branch}:${documentId}`);
+            calls.push(`mint:${content}@${branch}:${documentId}:${name}`);
             return 'automerge:url';
           }),
         rememberShare: ({ shareId }) => calls.push(`remember:${shareId}`),
@@ -96,7 +97,7 @@ describe('shareLiveDocument', () => {
     // everything typed has reached it.
     expect(calls).toEqual([
       'applyPendingLocalEdits',
-      'mint:what the editor shows@main:/blob/main/note.md',
+      'mint:what the editor shows@main:/blob/main/note.md:note',
       'attach:automerge:url',
       'remember:automerge:url',
     ]);
@@ -153,10 +154,11 @@ describe('joinSharedDocument', () => {
   } = {}) =>
     joinSharedDocument({
       openDocument,
-      getSharedDocumentIdentity: () =>
+      getSharedDocumentInfo: () =>
         Effect.succeed({
           branch: sharedBranch,
           documentId: sharedDocumentId,
+          name: 'note',
         }),
       findDocumentById: () =>
         documentIsInProject
