@@ -2,10 +2,12 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 
+import { type ProjectId } from '../models';
 import {
   type DocumentSharing,
   type SharedDocumentIdentity,
   type ShareId,
+  type ShareRegistry,
 } from '../ports';
 import { type LiveDocument } from './live-document';
 
@@ -15,16 +17,19 @@ export type ShareLiveDocumentDeps = {
     'content' | 'attachTo' | 'applyPendingLocalEdits'
   >;
   shareDocument: DocumentSharing['shareDocument'];
-  rememberShare: (shareId: ShareId) => void;
+  rememberShare: ShareRegistry['rememberShare'];
 };
 
 // The share carries how the document is named here, so a peer can find its own
 // copy of it rather than having to be told.
-export type ShareLiveDocumentArgs = SharedDocumentIdentity;
+export type ShareLiveDocumentArgs = SharedDocumentIdentity & {
+  projectId: ProjectId;
+};
 
 export const shareLiveDocument =
   ({ liveDocument, shareDocument, rememberShare }: ShareLiveDocumentDeps) =>
   ({
+    projectId,
     branch,
     documentId,
   }: ShareLiveDocumentArgs): Effect.Effect<ShareId, unknown> =>
@@ -35,5 +40,9 @@ export const shareLiveDocument =
         shareDocument({ content: current.doc.content, branch, documentId })
       ),
       Effect.tap((shareId) => liveDocument.attachTo(shareId)),
-      Effect.tap((shareId) => Effect.sync(() => rememberShare(shareId)))
+      Effect.tap((shareId) =>
+        Effect.sync(() =>
+          rememberShare({ key: { projectId, branch, documentId }, shareId })
+        )
+      )
     );

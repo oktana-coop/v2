@@ -45,7 +45,7 @@ export const ProjectProvider = ({
   } = projectOps;
 
   const directoryWatchOps = useDirectoryWatchOps({ projectStore, directory });
-  const shareRegistry = useContext(ShareRegistryContext);
+  const { registry: shareRegistry, shares } = useContext(ShareRegistryContext);
 
   const historyOps = useHistoryOps({ projectId, projectStore, currentBranch });
 
@@ -58,6 +58,7 @@ export const ProjectProvider = ({
     currentBranch,
     pulledUpstreamChanges,
     shareRegistry,
+    shares,
     subscribeToProjectDirChanges:
       directoryWatchOps.subscribeToProjectDirChanges,
   });

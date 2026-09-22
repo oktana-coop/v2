@@ -5,6 +5,7 @@ import {
   areProjectTreesEqual,
   getProjectTree,
   type ProjectTreeNode,
+  type RegisteredShare,
   type ShareRegistry,
 } from '../../../../modules/domain/project';
 import { type ProjectContextType } from './types';
@@ -19,6 +20,8 @@ type HierarchyDeps = Pick<
 > & {
   pulledUpstreamChanges: boolean;
   shareRegistry: ShareRegistry;
+  // The registry's content; a change re-reads the tree.
+  shares: RegisteredShare[];
 };
 
 type HierarchyOps = Pick<
@@ -34,6 +37,7 @@ export const useHierarchyOps = ({
   pulledUpstreamChanges,
   subscribeToProjectDirChanges,
   shareRegistry,
+  shares,
 }: HierarchyDeps): HierarchyOps => {
   const [directoryTree, setDirectoryTree] = useState<ProjectTreeNode[]>([]);
 
@@ -67,7 +71,7 @@ export const useHierarchyOps = ({
 
   useEffect(() => {
     refreshDirectoryTree();
-  }, [refreshDirectoryTree, pulledUpstreamChanges]);
+  }, [refreshDirectoryTree, pulledUpstreamChanges, shares]);
 
   useEffect(
     () =>
