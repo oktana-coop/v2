@@ -103,26 +103,11 @@ export const createConvergentDocument = ({
         }
       };
 
-      // Contributions can reach here faster than their versions travel back,
-      // so several may share a base while each extends the previous one. The
-      // last one is what such a contribution actually derives from.
-      let lastContribution: {
-        base: ConvergentDocumentVersion;
-        result: ConvergentDocumentVersion;
-      } | null = null;
-
       const change = (
         content: string,
         options?: ConvergentDocumentChangeOptions
       ) => {
-        const base = options?.base;
-        const anchor =
-          base !== undefined && lastContribution?.base === base
-            ? lastContribution.result
-            : base;
-
-        const result = commitText(content, anchor);
-        if (base !== undefined) lastContribution = { base, result };
+        const result = commitText(content, options?.base);
 
         // Published before resolving, so once a contribution resolves,
         // subscribers already hold a state that contains it — what lets the

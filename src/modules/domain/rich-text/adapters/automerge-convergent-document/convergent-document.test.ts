@@ -72,18 +72,18 @@ describe('automerge live document', () => {
     expect(current.doc.content).toBe('hello world');
   });
 
-  // Contributions can reach the document faster than their versions travel
-  // back, so several may share a base while each extends the last. Anchoring
-  // them all at that shared base would re-apply the overlap as concurrent inserts.
-  it('chains contributions sharing a base instead of re-applying their overlap', async () => {
-    const { live, handle } = await open('note');
+  // Two sources can derive from one base without either extending the
+  // other, the disk and the editor say. A contribution is applied at the base
+  // it names, whatever came before it.
+  it('merges contributions sharing a base rather than replacing one with the other', async () => {
+    const { live, handle } = await open('hello');
     const base = await versionOf(live);
 
-    await Effect.runPromise(live.change('note one', { base }));
-    await Effect.runPromise(live.change('note one two', { base }));
-    await Effect.runPromise(live.change('note one two three', { base }));
+    await Effect.runPromise(live.change('hello DISK', { base }));
+    await Effect.runPromise(live.change('hello LOCAL', { base }));
 
-    expect(textOf(handle)).toBe('note one two three');
+    expect(textOf(handle)).toContain('DISK');
+    expect(textOf(handle)).toContain('LOCAL');
   });
 
   it('keeps a peer edit the contribution had not seen', async () => {
