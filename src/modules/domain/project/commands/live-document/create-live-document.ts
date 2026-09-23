@@ -40,24 +40,24 @@ export type CreateLiveDocumentArgs = {
 // contributed once it pauses rather than keystroke by keystroke.
 const CONTRIBUTION_DEBOUNCE_MS = 300;
 
-// The editor's document waiting to be contributed, and the version that
-// contribution will resolve with.
+// The editor's document waiting to be contributed, the base it names, and
+// the version that contribution will resolve with.
 type PendingContribution = {
   doc: RichTextDocument;
-  options: ConvergentDocumentChangeOptions | undefined;
+  base: ConvergentDocumentVersion | undefined;
   version: Deferred.Deferred<ConvergentDocumentVersion>;
 };
 
 const startPendingContribution = ({
   doc,
-  options,
+  base,
 }: {
   doc: RichTextDocument;
-  options: ConvergentDocumentChangeOptions | undefined;
+  base: ConvergentDocumentVersion | undefined;
 }): Effect.Effect<PendingContribution> =>
   pipe(
     Deferred.make<ConvergentDocumentVersion>(),
-    Effect.map((version) => ({ doc, options, version }))
+    Effect.map((version) => ({ doc, base, version }))
   );
 
 // A newer editor doc replaces the pending one outright: it already contains
@@ -66,12 +66,40 @@ const startPendingContribution = ({
 const replacePendingContribution = ({
   previous,
   doc,
-  options,
+  base,
 }: {
   previous: PendingContribution;
   doc: RichTextDocument;
-  options: ConvergentDocumentChangeOptions | undefined;
-}): PendingContribution => ({ ...previous, doc, options });
+  base: ConvergentDocumentVersion | undefined;
+}): PendingContribution => ({ ...previous, doc, base });
+
+// The base the editor's last applied contribution used, and the version
+// it resolved with.
+type AppliedContribution = {
+  base: ConvergentDocumentVersion;
+  result: ConvergentDocumentVersion;
+};
+
+const extendsContribution = ({
+  pending,
+  applied,
+}: {
+  pending: PendingContribution;
+  applied: AppliedContribution;
+}): boolean => pending.base === applied.base;
+
+// The version pending typing derives from: the last applied contribution's
+// result when it extends that contribution, the base it names otherwise.
+const versionTypingDerivesFrom = ({
+  pending,
+  lastApplied,
+}: {
+  pending: PendingContribution;
+  lastApplied: AppliedContribution | null;
+}): ConvergentDocumentVersion | undefined =>
+  lastApplied !== null && extendsContribution({ pending, applied: lastApplied })
+    ? lastApplied.result
+    : pending.base;
 
 export const createLiveDocument =
   ({
@@ -108,6 +136,7 @@ export const createLiveDocument =
           );
 
           let pending: PendingContribution | null = null;
+          let lastApplied: AppliedContribution | null = null;
 
           const takePending = Effect.sync(() => {
             debouncedContribute.clear();
@@ -120,6 +149,23 @@ export const createLiveDocument =
           // order they were made.
           const contributionMutex = contributionSemaphore.withPermits(1);
 
+          const contributeTyping = (pending: PendingContribution) =>
+            pipe(
+              toPrimaryRepresentation(pending.doc),
+              Effect.flatMap((text) =>
+                convergentDocument.change(text, {
+                  base: versionTypingDerivesFrom({ pending, lastApplied }),
+                })
+              ),
+              Effect.tap((result) =>
+                Effect.sync(() => {
+                  if (pending.base) {
+                    lastApplied = { base: pending.base, result };
+                  }
+                })
+              )
+            );
+
           // Contributes the editor's edits still on their way to the
           // document now, without waiting for the pause that normally
           // contributes them.
@@ -130,10 +176,7 @@ export const createLiveDocument =
                 taken === null
                   ? Effect.void
                   : pipe(
-                      toPrimaryRepresentation(taken.doc),
-                      Effect.flatMap((text) =>
-                        convergentDocument.change(text, taken.options)
-                      ),
+                      contributeTyping(taken),
                       // Contributing has no error channel: a failed
                       // conversion is reported and leaves the document as
                       // it was.
@@ -160,12 +203,12 @@ export const createLiveDocument =
             pipe(
               Effect.suspend(() =>
                 pending === null
-                  ? startPendingContribution({ doc, options })
+                  ? startPendingContribution({ doc, base: options?.base })
                   : Effect.succeed(
                       replacePendingContribution({
                         previous: pending,
                         doc,
-                        options,
+                        base: options?.base,
                       })
                     )
               ),
@@ -203,7 +246,13 @@ export const createLiveDocument =
             pipe(
               applyPendingLocalEdits,
               Effect.zipRight(open),
-              Effect.flatMap(convergentDocument.switchTo)
+              Effect.flatMap(convergentDocument.switchTo),
+              // Versions of the document left mean nothing on the next one.
+              Effect.tap(() =>
+                Effect.sync(() => {
+                  lastApplied = null;
+                })
+              )
             );
 
           const currentText = pipe(

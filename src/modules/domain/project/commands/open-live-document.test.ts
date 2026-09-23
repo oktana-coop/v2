@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   type ConvergentDocument,
+  type ConvergentDocumentChangeOptions,
   type ConvergentDocumentError,
   type ConvergentDocumentState,
   ConvergentDocumentUnavailableError,
@@ -240,9 +241,10 @@ const open = async ({
 // that normally contributes it.
 const type = async (
   opened: Pick<LiveDocument, 'edit' | 'applyPendingLocalEdits'>,
-  doc: RichTextDocument
+  doc: RichTextDocument,
+  options?: ConvergentDocumentChangeOptions
 ) => {
-  const contributed = Effect.runPromise(opened.edit(doc));
+  const contributed = Effect.runPromise(opened.edit(doc, options));
   // The contribution registers on the next scheduler tick.
   await Promise.resolve();
   await Effect.runPromise(opened.applyPendingLocalEdits);
@@ -253,9 +255,10 @@ const type = async (
 // `contributed` resolves with its version once it reaches the document.
 const typeWithoutPausing = async (
   opened: Pick<LiveDocument, 'edit'>,
-  doc: RichTextDocument
+  doc: RichTextDocument,
+  options?: ConvergentDocumentChangeOptions
 ) => {
-  const contributed = Effect.runPromise(opened.edit(doc));
+  const contributed = Effect.runPromise(opened.edit(doc, options));
   await Promise.resolve();
   return { contributed };
 };
@@ -511,6 +514,35 @@ describe('openLiveDocument', () => {
     );
 
     expect(contributions[contributions.length - 1]?.base).toBe(versionOnDisk);
+  });
+
+  // The disk and the editor both derive from the version last written,
+  // without either extending the other.
+  it('keeps pending typing and an outside change that share the version on disk', async () => {
+    const { opened, editDisk, contributions, diskHolds } = await open({
+      diskText: 'hello',
+    });
+    const versionOnDisk = await Effect.runPromise(
+      SubscriptionRef.get(opened.content)
+    ).then((current) => current.version);
+
+    const { contributed } = await typeWithoutPausing(
+      opened,
+      markdown('hello LOCAL'),
+      { base: versionOnDisk }
+    );
+    editDisk('hello DISK');
+    await vi.waitFor(() =>
+      expect(contributions[contributions.length - 1]?.text).toBe('hello DISK')
+    );
+    await Effect.runPromise(opened.flush);
+    await contributed;
+
+    expect(contributions.map((contribution) => contribution.base)).toEqual([
+      versionOnDisk,
+      versionOnDisk,
+    ]);
+    expect(diskHolds()).toBe('hello DISK + hello LOCAL');
   });
 
   it('keeps working, silently, when the document is gone', async () => {

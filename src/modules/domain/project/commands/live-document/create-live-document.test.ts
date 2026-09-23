@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   type ConvergentDocument,
+  type ConvergentDocumentChangeOptions,
   type ConvergentDocumentState,
   CURRENT_SCHEMA_VERSION,
   PRIMARY_RICH_TEXT_REPRESENTATION,
@@ -73,20 +74,37 @@ const createFakeConvergentDocument = async (initialText: string) => {
 // A live document with nothing behind it: no disk, no share.
 const open = async (initialText = 'hello') => {
   const fake = await createFakeConvergentDocument(initialText);
+  // Every document the live document has run on, in the order it ran on them.
+  const documents = [fake];
 
   const opened = await Effect.runPromise(
     createLiveDocument({
       createPrivateDocument: (text) =>
-        Effect.promise(
-          async () => (await createFakeConvergentDocument(text)).document
-        ),
+        Effect.promise(async () => {
+          const next = await createFakeConvergentDocument(text);
+          documents.push(next);
+          return next.document;
+        }),
       openSharedDocument: () => Effect.die('no share in these tests'),
       transformToText: async ({ input }: { input: string }) =>
         input.replace(/^pm:/, ''),
     })({ documentId, initialDocument: fake.document })
   );
 
-  return { opened, ...fake };
+  return { opened, documents, ...fake };
+};
+
+// Types content and waits for it to reach the document, without the pause
+// that normally contributes it.
+const type = async (
+  opened: Awaited<ReturnType<typeof open>>['opened'],
+  doc: RichTextDocument,
+  options?: ConvergentDocumentChangeOptions
+) => {
+  const contributed = Effect.runPromise(opened.edit(doc, options));
+  await Promise.resolve();
+  await Effect.runPromise(opened.applyPendingLocalEdits);
+  return contributed;
 };
 
 // Types content and leaves it on its way, as typing that has not paused;
@@ -164,5 +182,48 @@ describe('createLiveDocument, with nothing behind it', () => {
       { text: 'hello from elsewhere', base: 'v0' },
     ]);
     expect(await currentContent(opened)).toBe('hello from elsewhere');
+  });
+
+  // The editor learns a version only once the contribution carrying it
+  // resolves, so typing made meanwhile names the base before it while
+  // extending that contribution.
+  it('anchors typing sharing a base at the contribution before it', async () => {
+    const { opened, contributions } = await open('note');
+
+    await type(opened, markdown('note one'), { base: 'v0' });
+    await type(opened, markdown('note one two'), { base: 'v0' });
+    await type(opened, markdown('note one two three'), { base: 'v0' });
+
+    expect(contributions.map((contribution) => contribution.base)).toEqual([
+      'v0',
+      'v1',
+      'v2',
+    ]);
+  });
+
+  it('anchors typing at its own base when a change from elsewhere shares it', async () => {
+    const { opened, contributions } = await open();
+
+    await Effect.runPromise(opened.change('hello DISK', { base: 'v0' }));
+    await type(opened, markdown('hello LOCAL'), { base: 'v0' });
+
+    expect(contributions).toEqual([
+      { text: 'hello DISK', base: 'v0' },
+      { text: 'hello LOCAL', base: 'v0' },
+    ]);
+  });
+
+  it('forgets the contribution before once it switches documents', async () => {
+    const { opened, documents } = await open();
+
+    await type(opened, markdown('hello typed'), { base: 'v0' });
+    await Effect.runPromise(opened.detach);
+    // Both documents open at v0. Here the base names the new document's
+    // opening state, so what was applied on the old one must not anchor it.
+    await type(opened, markdown('hello typed more'), { base: 'v0' });
+
+    expect(documents[1]?.contributions).toEqual([
+      { text: 'hello typed more', base: 'v0' },
+    ]);
   });
 });
