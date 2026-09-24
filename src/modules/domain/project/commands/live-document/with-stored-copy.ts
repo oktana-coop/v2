@@ -8,6 +8,7 @@ import * as SubscriptionRef from 'effect/SubscriptionRef';
 import {
   type ConvergentDocument,
   type ConvergentDocumentState,
+  type ConvergentDocumentVersion,
   type RepresentationTransform,
 } from '../../../../../modules/domain/rich-text';
 import { type ArtifactId } from '../../../../../modules/infrastructure/version-control';
@@ -39,6 +40,9 @@ export type WithStoredCopyArgs = {
   documentId: ArtifactId;
   // What the store holds for this document.
   storedContent: string;
+  // The version the stored content derives from, when the document came
+  // from local storage; null when there is no record of that.
+  baseVersion: ConvergentDocumentVersion | null;
 };
 
 export const withStoredCopy =
@@ -48,7 +52,7 @@ export const withStoredCopy =
     updateRichTextDocumentContent,
     subscribeToProjectDirChanges,
   }: WithStoredCopyDeps) =>
-  ({ projectId, documentId, storedContent }: WithStoredCopyArgs) =>
+  ({ projectId, documentId, storedContent, baseVersion }: WithStoredCopyArgs) =>
   (
     document: LiveDocument & Pick<ConvergentDocument, 'change'>
   ): Effect.Effect<StoredLiveDocument> =>
@@ -57,11 +61,27 @@ export const withStoredCopy =
       Effect.flatMap((initialState) =>
         Effect.all({
           errorChannel: createErrorChannel<LiveDocumentError>(),
-          // The content is the store's, the base the document's: opened
-          // privately those agree, since the document was started from this
-          // very text. Opened at a share they potentially do not.
           stored: Ref.make(
-            storedCopy({ content: storedContent, base: initialState.version })
+            baseVersion
+              ? // With a base version, the convergent document was found at
+                // the version the store was last written from, so what it
+                // holds now is that last write, as the convergent document
+                // knew it. The copy starts there rather than at the store's
+                // content, which may have been edited since: the opening
+                // refresh then takes what the store holds beyond the copy as
+                // an outside edit, anchored at the base.
+                storedCopy({
+                  content: initialState.doc.content,
+                  base: baseVersion,
+                })
+              : // Without a base version, the content is the store's, the
+                // base the convergent document's: opened privately those agree,
+                // since the convergent document was started from this very text.
+                // Opened at a share they potentially do not.
+                storedCopy({
+                  content: storedContent,
+                  base: initialState.version,
+                })
           ),
           persistSemaphore: Effect.makeSemaphore(1),
         })
@@ -208,7 +228,7 @@ export const withStoredCopy =
           Stream.fromPubSub(errorChannel)
         );
 
-        const kept: StoredLiveDocument = {
+        const storedLiveDocument: StoredLiveDocument = {
           documentId: document.documentId,
           content: document.content,
           edit: document.edit,
@@ -223,18 +243,21 @@ export const withStoredCopy =
           close,
         };
 
-        // A document opened at a share holds content the store has never
-        // seen, and nothing more will publish it, so it is written before
-        // the document is handed over. A failure leaves the document
-        // usable, so it is reported rather than raised.
         return pipe(
-          SubscriptionRef.get(document.content),
-          Effect.flatMap((current) =>
-            current.doc.content === storedContent
-              ? Effect.void
-              : pipe(flush, Effect.catchAll(report))
-          ),
-          Effect.as(kept)
+          baseVersion
+            ? // No watcher ran while the app was closed, so the store is
+              // refreshed once here: an edit made to it meanwhile is
+              // contributed anchored at the base and merges with what the
+              // convergent document gained. If the store was left as it
+              // was, nothing is contributed, even if peers have since moved
+              // the document past the base.
+              refresh
+            : Effect.void,
+          // Nothing more will publish what the convergent document holds at
+          // open, so it is written here; a failure is reported, since the
+          // document is usable regardless.
+          Effect.zipRight(pipe(persistNow, Effect.catchAll(report))),
+          Effect.as(storedLiveDocument)
         );
       })
     );

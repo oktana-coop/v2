@@ -38,6 +38,11 @@ const encodeVersion = (heads: UrlHeads): ConvergentDocumentVersion =>
 
 const decodeVersion = (version: ConvergentDocumentVersion): UrlHeads =>
   version.split(',') as UrlHeads;
+
+export const handleVersion = (
+  handle: DocHandle<DocumentContent>
+): ConvergentDocumentVersion => encodeVersion(handle.heads());
+
 export const createConvergentDocument = ({
   handle,
   presence,
