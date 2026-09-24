@@ -1,5 +1,5 @@
 import * as Automerge from '@automerge/automerge';
-import { Repo } from '@automerge/automerge-repo';
+import { type DocHandle, Repo } from '@automerge/automerge-repo';
 import * as Effect from 'effect/Effect';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { describe, expect, it, vi } from 'vitest';
@@ -44,7 +44,7 @@ const versionOf = (live: ConvergentDocument) =>
     (change) => change.version
   );
 
-const textOf = (handle: { doc: () => DocumentContent }) => handle.doc().content;
+const textOf = (handle: DocHandle<DocumentContent>) => handle.fullDoc().content;
 
 describe('automerge live document', () => {
   it('publishes the canonical content', async () => {

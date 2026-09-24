@@ -301,9 +301,9 @@ test.describe('realtime collaboration', () => {
       );
 
       await expect
-        .poll(() => handle.doc().content, { timeout: 15_000 })
+        .poll(() => handle.fullDoc().content, { timeout: 15_000 })
         .toContain('before');
-      await expect.poll(() => handle.doc().content).toContain('after');
+      await expect.poll(() => handle.fullDoc().content).toContain('after');
     } finally {
       peer.disconnect();
     }
@@ -332,13 +332,13 @@ test.describe('realtime collaboration', () => {
         { signal: AbortSignal.timeout(15_000) }
       );
 
-      expect(handle.doc().formatVersion).toBe(1);
-      expect(handle.doc().content).toContain('This is a test document.');
+      expect(handle.fullDoc().formatVersion).toBe(1);
+      expect(handle.fullDoc().content).toContain('This is a test document.');
 
       // Write like someone typing: one token at a time, replacing the full
       // text so updateText computes the splices.
       const tokens = ['alpha', 'bravo', 'charlie', 'delta', 'echo'];
-      let text = handle.doc().content.trimEnd();
+      let text = handle.fullDoc().content.trimEnd();
       for (const token of tokens) {
         text = `${text} ${token}`;
         handle.change((doc) =>
@@ -358,7 +358,7 @@ test.describe('realtime collaboration', () => {
       for (let sample = 0; sample < 8; sample += 1) {
         await sleep(500);
 
-        const crdtContent = handle.doc().content;
+        const crdtContent = handle.fullDoc().content;
         expect(crdtContent).toBe(expected);
 
         const editorText = (await editor.textContent()) ?? '';
@@ -434,7 +434,7 @@ test.describe('realtime collaboration', () => {
       await sleep(1_000);
       // Soft, so a fallback and a moved caret are both reported at once.
       expect.soft(fallbacks).toEqual([]);
-      expect(handle.doc().content).toBe(content);
+      expect(handle.fullDoc().content).toBe(content);
 
       // Where a keystroke lands is the caret the editor really holds, focus
       // or no focus.
@@ -483,13 +483,13 @@ test.describe('realtime collaboration', () => {
       // Wait for the peer to receive all tokens, then require both sides to
       // settle with each token appearing exactly once.
       await expect
-        .poll(() => handle.doc().content, { timeout: 15_000 })
+        .poll(() => handle.fullDoc().content, { timeout: 15_000 })
         .toContain('five');
 
       for (let sample = 0; sample < 8; sample += 1) {
         await sleep(500);
 
-        const crdtContent = handle.doc().content;
+        const crdtContent = handle.fullDoc().content;
         const editorText = (await editor.textContent()) ?? '';
 
         for (const token of tokens) {

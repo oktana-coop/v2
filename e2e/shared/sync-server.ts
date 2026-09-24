@@ -4,19 +4,26 @@ import os from 'os';
 import path from 'path';
 
 // A local sync service, so the tests exercise the real network path without
-// depending on the public service.
-export const startSyncServer = async (): Promise<{
+// depending on the public service. A given port and data dir let a test
+// bring the same service back after stopping it.
+export const startSyncServer = async ({
+  port = 3630 + Math.floor(Math.random() * 1000),
+  dataDir,
+}: {
+  port?: number;
+  dataDir?: string;
+} = {}): Promise<{
   url: string;
   port: number;
   stop: () => void;
 }> => {
-  const port = 3630 + Math.floor(Math.random() * 1000);
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'v2-e2e-sync-'));
+  const resolvedDataDir =
+    dataDir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'v2-e2e-sync-'));
 
   const server: ChildProcess = spawn(
     process.execPath,
     [path.join('node_modules', '.bin', 'automerge-repo-sync-server')],
-    { env: { ...process.env, PORT: String(port), DATA_DIR: dataDir } }
+    { env: { ...process.env, PORT: String(port), DATA_DIR: resolvedDataDir } }
   );
 
   await new Promise<void>((resolve, reject) => {
@@ -38,8 +45,9 @@ export const startSyncServer = async (): Promise<{
     port,
     stop: () => {
       server.kill();
+      if (dataDir !== undefined) return;
       try {
-        fs.rmSync(dataDir, { recursive: true, force: true });
+        fs.rmSync(resolvedDataDir, { recursive: true, force: true });
       } catch {}
     },
   };

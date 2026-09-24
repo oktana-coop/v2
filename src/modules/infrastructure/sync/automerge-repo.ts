@@ -3,6 +3,7 @@ import wasmUrl from '@automerge/automerge/automerge.wasm?url';
 import * as Automerge from '@automerge/automerge/slim';
 import { Repo } from '@automerge/automerge-repo/slim';
 import { WebSocketClientAdapter } from '@automerge/automerge-repo-network-websocket';
+import { IndexedDBStorageAdapter } from '@automerge/automerge-repo-storage-indexeddb';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
@@ -11,10 +12,12 @@ import { SyncServiceError } from './errors';
 
 export type CreateAutomergeRepoArgs = {
   syncServiceUrl?: string;
+  storage?: 'indexeddb';
 };
 
 export const createAutomergeRepo = ({
   syncServiceUrl,
+  storage,
 }: CreateAutomergeRepoArgs): Effect.Effect<Repo, SyncServiceError> =>
   pipe(
     Effect.tryPromise({
@@ -27,6 +30,8 @@ export const createAutomergeRepo = ({
           network: syncServiceUrl
             ? [new WebSocketClientAdapter(syncServiceUrl)]
             : [],
+          storage:
+            storage === 'indexeddb' ? new IndexedDBStorageAdapter() : undefined,
         })
     )
   );

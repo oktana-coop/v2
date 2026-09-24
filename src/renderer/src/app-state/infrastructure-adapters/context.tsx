@@ -119,8 +119,11 @@ export const InfrastructureAdaptersProvider = ({
             localStorage.getItem('syncServiceUrl') ?? config.syncServiceUrl;
 
           if (syncedRepoRef.current === null) {
+            // Shared documents outlive the process, so what was typed while
+            // the sync service was out of reach is still there to sync after
+            // a restart.
             syncedRepoRef.current = Effect.runPromise(
-              createAutomergeRepo({ syncServiceUrl })
+              createAutomergeRepo({ syncServiceUrl, storage: 'indexeddb' })
             );
           }
 

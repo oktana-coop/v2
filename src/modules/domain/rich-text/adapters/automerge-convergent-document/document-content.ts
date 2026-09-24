@@ -39,7 +39,7 @@ export const validateDocumentContent = (
       void,
       UnsupportedDocumentFormatError | ValidationError
     > => {
-      const doc: unknown = handle.doc();
+      const doc: unknown = handle.fullDoc();
 
       // Check the version first because newer versions may also change the
       // content schema.

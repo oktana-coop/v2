@@ -1,6 +1,7 @@
 import {
   type AutomergeUrl,
   isValidAutomergeUrl,
+  parseAutomergeUrl,
   type Repo,
 } from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
@@ -93,9 +94,27 @@ export const createAdapter = ({
   const leaveSharedDocument = ({ shareId }: LeaveSharedDocumentArgs) =>
     pipe(
       connectedRepo,
-      Effect.map((repo) => {
-        if (isValidAutomergeUrl(shareId)) repo.delete(shareId);
-      })
+      Effect.flatMap((repo) =>
+        isValidAutomergeUrl(shareId)
+          ? Effect.tryPromise({
+              try: async () => {
+                repo.delete(shareId);
+
+                // The repo removes the document from storage on delete
+                // without waiting for it to resolve.
+                //
+                // TODO: Discuss fixing upstream (automerge-repo).
+                await repo.storageSubsystem?.removeDoc(
+                  parseAutomergeUrl(shareId).documentId
+                );
+              },
+              catch: mapErrorTo(
+                SharedDocumentUnavailableError,
+                'The shared document could not be released.'
+              ),
+            })
+          : Effect.void
+      )
     );
 
   return {
