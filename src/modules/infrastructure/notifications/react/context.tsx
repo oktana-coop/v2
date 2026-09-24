@@ -1,4 +1,4 @@
-import { createContext, useState } from 'react';
+import { createContext, useCallback, useState } from 'react';
 
 import { type Notification } from '../notification';
 import { NotificationType } from '../notification-types';
@@ -30,20 +30,24 @@ export const NotificationsProvider = ({
     Record<string, Notification>
   >({});
 
-  const handleDispatchNotification = (notification: Notification) => {
-    setNotifications((prev) => ({
-      ...prev,
-      [notification.id]: notification,
-    }));
-  };
+  // Stable, so effects that depend on them do not re-run per notification.
+  const handleDispatchNotification = useCallback(
+    (notification: Notification) => {
+      setNotifications((prev) => ({
+        ...prev,
+        [notification.id]: notification,
+      }));
+    },
+    []
+  );
 
-  const handleDismissNotification = (id: string) => {
+  const handleDismissNotification = useCallback((id: string) => {
     setNotifications((prev) => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { [id]: _, ...rest } = prev;
       return rest;
     });
-  };
+  }, []);
 
   return (
     <NotificationsContext.Provider

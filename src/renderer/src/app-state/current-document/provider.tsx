@@ -8,7 +8,6 @@ import {
   getArtifactName,
   joinSharedDocument,
   leaveSharedDocument as leaveSharedDocumentCommand,
-  type LiveDocument,
   openLiveDocument,
   type OpenSharedDocumentError,
   type ProjectId,
@@ -150,8 +149,16 @@ export const CurrentDocumentProvider = ({
     let cancelled = false;
     let opened: StoredLiveDocument | null = null;
 
-    const close = (handle: LiveDocument) =>
-      Effect.runPromise(handle.close).catch(console.error);
+    const close = (handle: StoredLiveDocument) =>
+      Effect.runPromise(handle.close).catch((error) => {
+        console.error(error);
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Save Document Error',
+            message: 'Your latest changes could not be saved.',
+          })
+        );
+      });
 
     setLoadingHistory(true);
 
@@ -701,14 +708,25 @@ export const CurrentDocumentProvider = ({
   const handleLeaveSharedDocument = useCallback(async () => {
     if (!shareKey || !shareId || !liveDocument) return;
 
-    await Effect.runPromise(
-      leaveSharedDocumentCommand({
-        liveDocument,
-        findShareId,
-        forgetShare,
-        leaveSharedDocument: documentSharing.leaveSharedDocument,
-      })(shareKey)
-    ).catch(console.error);
+    try {
+      await Effect.runPromise(
+        leaveSharedDocumentCommand({
+          liveDocument,
+          findShareId,
+          forgetShare,
+          leaveSharedDocument: documentSharing.leaveSharedDocument,
+        })(shareKey)
+      );
+    } catch (error) {
+      console.error(error);
+      dispatchNotification(
+        createErrorNotification({
+          title: 'Stop Sharing Error',
+          message:
+            'Your latest changes could not be saved, so sharing was not stopped.',
+        })
+      );
+    }
   }, [
     shareKey,
     shareId,
@@ -716,6 +734,7 @@ export const CurrentDocumentProvider = ({
     findShareId,
     forgetShare,
     documentSharing,
+    dispatchNotification,
   ]);
 
   return (

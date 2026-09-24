@@ -163,7 +163,28 @@ export const createLiveDocument =
                     lastApplied = { base: pending.base, result };
                   }
                 })
-              )
+              ),
+              Effect.flatMap((result) =>
+                Deferred.succeed(pending.version, result)
+              ),
+              Effect.asVoid
+            );
+
+          // Typing that could not be contributed goes back on its way, for
+          // the next contribution to retry. Typing made meanwhile carries it
+          // already.
+          const keepPending = (taken: PendingContribution) =>
+            Effect.suspend(() =>
+              pending === null
+                ? Effect.sync(() => {
+                    pending = taken;
+                  })
+                : Effect.asVoid(
+                    Deferred.completeWith(
+                      taken.version,
+                      Deferred.await(pending.version)
+                    )
+                  )
             );
 
           // Contributes the editor's edits still on their way to the
@@ -177,23 +198,20 @@ export const createLiveDocument =
                   ? Effect.void
                   : pipe(
                       contributeTyping(taken),
-                      // Contributing has no error channel: a failed
-                      // conversion is reported and leaves the document as
-                      // it was.
-                      Effect.catchAll((error) =>
-                        pipe(report(error), Effect.zipRight(currentVersion))
-                      ),
-                      Effect.flatMap((version) =>
-                        Deferred.succeed(taken.version, version)
-                      ),
-                      Effect.asVoid
+                      Effect.tapError(() => keepPending(taken))
                     )
               )
             )
           );
 
           const debouncedContribute = debounce(() => {
-            Effect.runFork(applyPendingLocalEdits);
+            Effect.runFork(
+              pipe(
+                applyPendingLocalEdits,
+                // Started by the document itself, so its failure is published.
+                Effect.catchAll(report)
+              )
+            );
           }, CONTRIBUTION_DEBOUNCE_MS);
 
           const edit = (
@@ -270,8 +288,8 @@ export const createLiveDocument =
           );
 
           const close = pipe(
-            applyPendingLocalEdits,
-            Effect.zipRight(convergentDocument.close)
+            Effect.sync(() => debouncedContribute.clear()),
+            Effect.zipRight(contributionMutex(convergentDocument.close))
           );
 
           const errors = Stream.merge(

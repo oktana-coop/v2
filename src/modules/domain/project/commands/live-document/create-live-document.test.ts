@@ -2,7 +2,7 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as Stream from 'effect/Stream';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   type ConvergentDocument,
@@ -11,11 +11,14 @@ import {
   CURRENT_SCHEMA_VERSION,
   PRIMARY_RICH_TEXT_REPRESENTATION,
   type RemotePresence,
+  RepresentationTransformError,
   type RichTextDocument,
   richTextRepresentations,
 } from '../../../../../modules/domain/rich-text';
 import { type ArtifactId } from '../../../../../modules/infrastructure/version-control';
+import { subscribeToStream } from '../../../../../utils/effect';
 import { createLiveDocument } from './create-live-document';
+import { type LiveDocumentError } from './live-document';
 
 const markdown = (content: string): RichTextDocument => ({
   schemaVersion: CURRENT_SCHEMA_VERSION,
@@ -71,8 +74,29 @@ const createFakeConvergentDocument = async (initialText: string) => {
   return { document, contributions, wasClosed: () => closed };
 };
 
+// `pm:` marks content that went through the conversion.
+const convert = async ({ input }: { input: string }) =>
+  input.replace(/^pm:/, '');
+
+// A conversion that fails the given number of times before it converts.
+const convertFailing = (times: number) => {
+  let failures = 0;
+
+  return async (args: { input: string }) => {
+    if (failures < times) {
+      failures += 1;
+      throw new Error('the conversion failed');
+    }
+
+    return convert(args);
+  };
+};
+
 // A live document with nothing behind it: no disk, no share.
-const open = async (initialText = 'hello') => {
+const open = async (
+  initialText = 'hello',
+  { transformToText = convert }: { transformToText?: typeof convert } = {}
+) => {
   const fake = await createFakeConvergentDocument(initialText);
   // Every document the live document has run on, in the order it ran on them.
   const documents = [fake];
@@ -86,12 +110,17 @@ const open = async (initialText = 'hello') => {
           return next.document;
         }),
       openSharedDocument: () => Effect.die('no share in these tests'),
-      transformToText: async ({ input }: { input: string }) =>
-        input.replace(/^pm:/, ''),
+      transformToText,
     })({ documentId, initialDocument: fake.document })
   );
 
-  return { opened, documents, ...fake };
+  // What the document reported while nobody was waiting.
+  const reported: LiveDocumentError[] = [];
+  subscribeToStream(opened.errors, (error) => {
+    reported.push(error);
+  });
+
+  return { opened, documents, reported, ...fake };
 };
 
 // Types content and waits for it to reach the document, without the pause
@@ -154,19 +183,38 @@ describe('createLiveDocument, with nothing behind it', () => {
     expect(await currentContent(opened)).toBe('hello');
   });
 
-  it('contributes pending typing when it closes, then closes the document it runs on', async () => {
+  it('closes the document it runs on, leaving pending typing where it is', async () => {
     const { opened, contributions, wasClosed } = await open();
 
-    const { contributed } = await typeWithoutPausing(
-      opened,
-      markdown('hello world')
-    );
+    await typeWithoutPausing(opened, markdown('hello world'));
     await Effect.runPromise(opened.close);
 
-    await contributed;
-    expect(contributions.map((contribution) => contribution.text)).toEqual([
-      'hello world',
-    ]);
+    expect(wasClosed()).toBe(true);
+    // The pause that would have contributed it is cancelled.
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(contributions).toEqual([]);
+  });
+
+  it('closes once a contribution in flight has reached the document', async () => {
+    let finishConversion: (text: string) => void = () => {};
+    const conversion = new Promise<string>((resolve) => {
+      finishConversion = resolve;
+    });
+    const { opened, contributions, wasClosed } = await open('hello', {
+      transformToText: () => conversion,
+    });
+
+    await typeWithoutPausing(opened, proseMirror('hello typed'));
+    const applying = Effect.runPromise(opened.applyPendingLocalEdits);
+    const closing = Effect.runPromise(opened.close);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(wasClosed()).toBe(false);
+
+    finishConversion('hello typed');
+    await Promise.all([applying, closing]);
+
+    expect(contributions).toEqual([{ text: 'hello typed', base: undefined }]);
     expect(wasClosed()).toBe(true);
   });
 
@@ -225,5 +273,86 @@ describe('createLiveDocument, with nothing behind it', () => {
     expect(documents[1]?.contributions).toEqual([
       { text: 'hello typed more', base: 'v0' },
     ]);
+  });
+
+  it('raises when pending typing cannot be converted, and keeps it on its way', async () => {
+    const { opened, contributions } = await open('hello', {
+      transformToText: convertFailing(1),
+    });
+
+    const { contributed } = await typeWithoutPausing(
+      opened,
+      proseMirror('hello typed')
+    );
+    const failure = await Effect.runPromise(
+      Effect.flip(opened.applyPendingLocalEdits)
+    );
+
+    expect(failure).toBeInstanceOf(RepresentationTransformError);
+    expect(contributions).toEqual([]);
+
+    // The next attempt carries it.
+    await Effect.runPromise(opened.applyPendingLocalEdits);
+
+    await expect(contributed).resolves.toBe('v1');
+    expect(contributions).toEqual([{ text: 'hello typed', base: undefined }]);
+  });
+
+  it('resolves typing that failed to contribute with the typing that carries it', async () => {
+    let failFirst: (reason: Error) => void = () => {};
+    const firstConversion = new Promise<string>((_, reject) => {
+      failFirst = reject;
+    });
+    let conversions = 0;
+    const { opened, contributions } = await open('hello', {
+      transformToText: (args) => {
+        conversions += 1;
+        return conversions === 1 ? firstConversion : convert(args);
+      },
+    });
+
+    const first = await typeWithoutPausing(opened, proseMirror('hello a'));
+    const applying = Effect.runPromise(
+      Effect.flip(opened.applyPendingLocalEdits)
+    );
+    await vi.waitFor(() => expect(conversions).toBe(1));
+    // Typed while the first contribution was converting: it carries it.
+    const second = await typeWithoutPausing(opened, proseMirror('hello ab'));
+    failFirst(new Error('the conversion failed'));
+
+    expect(await applying).toBeInstanceOf(RepresentationTransformError);
+
+    await Effect.runPromise(opened.applyPendingLocalEdits);
+
+    await expect(first.contributed).resolves.toBe('v1');
+    await expect(second.contributed).resolves.toBe('v1');
+    expect(contributions).toEqual([{ text: 'hello ab', base: undefined }]);
+  });
+
+  it('reports a failed conversion nobody awaited', async () => {
+    const { opened, contributions, reported } = await open('hello', {
+      transformToText: convertFailing(1),
+    });
+
+    // Contributed by the pause rather than by anyone awaiting it.
+    await typeWithoutPausing(opened, proseMirror('hello typed'));
+
+    await vi.waitFor(() =>
+      expect(reported[0]).toBeInstanceOf(RepresentationTransformError)
+    );
+    expect(contributions).toEqual([]);
+  });
+
+  it('does not switch documents when pending typing cannot be contributed', async () => {
+    const { opened, documents, wasClosed } = await open('hello', {
+      transformToText: convertFailing(1),
+    });
+
+    await typeWithoutPausing(opened, proseMirror('hello typed'));
+    const failure = await Effect.runPromise(Effect.flip(opened.detach));
+
+    expect(failure).toBeInstanceOf(RepresentationTransformError);
+    expect(documents).toHaveLength(1);
+    expect(wasClosed()).toBe(false);
   });
 });

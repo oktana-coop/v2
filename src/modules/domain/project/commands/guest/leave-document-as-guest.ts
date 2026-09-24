@@ -1,12 +1,14 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
-import { type SharedDocumentUnavailableError } from '../../errors';
 import { type DocumentSharing, type ShareId } from '../../ports';
-import { type LiveDocument } from '../live-document';
+import {
+  type LiveDocument,
+  type LocalEditsContributionError,
+} from '../live-document';
 
 export type LeaveDocumentAsGuestDeps = {
-  liveDocument: Pick<LiveDocument, 'close'>;
+  liveDocument: Pick<LiveDocument, 'applyPendingLocalEdits' | 'close'>;
   forgetShare: () => void;
   leaveSharedDocument: DocumentSharing['leaveSharedDocument'];
 };
@@ -17,9 +19,19 @@ export const leaveDocumentAsGuest =
     forgetShare,
     leaveSharedDocument: releaseShare,
   }: LeaveDocumentAsGuestDeps) =>
-  (shareId: ShareId): Effect.Effect<void, SharedDocumentUnavailableError> =>
+  (shareId: ShareId): Effect.Effect<void, LocalEditsContributionError> =>
     pipe(
-      Effect.sync(forgetShare),
+      liveDocument.applyPendingLocalEdits,
+
       Effect.zipRight(liveDocument.close),
-      Effect.zipRight(releaseShare({ shareId }))
+      Effect.zipRight(Effect.sync(forgetShare)),
+      Effect.zipRight(
+        pipe(
+          releaseShare({ shareId }),
+          // A failed release must not refuse a leave that has happened;
+          // the document sharing adapter merely goes on holding the
+          // document.
+          Effect.ignore
+        )
+      )
     );

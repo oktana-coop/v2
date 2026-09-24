@@ -1,6 +1,6 @@
 import {
-  type LiveDocument,
   type ShareId,
+  type StoredLiveDocument,
 } from '../../../../modules/domain/project';
 import { type ParticipantSelection } from '../../../../modules/domain/rich-text';
 import {
@@ -17,7 +17,7 @@ export type JoinSharedDocumentRefusal =
 
 export type CurrentDocumentContextType = {
   versionedDocumentId: ArtifactId | null;
-  liveDocument: LiveDocument | null;
+  liveDocument: StoredLiveDocument | null;
   // Where we are in the open document, for whoever else is at it.
   onLocalSelectionChange: (selection: ParticipantSelection | null) => void;
   loadingHistory: boolean;
