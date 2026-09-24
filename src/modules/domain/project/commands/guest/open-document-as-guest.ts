@@ -40,10 +40,7 @@ export const openDocumentAsGuest =
     pipe(
       Effect.all({
         info: getSharedDocumentInfo({ shareId }),
-        initialDocument: pipe(
-          openSharedDocument({ shareId }),
-          Effect.map(({ document }) => document)
-        ),
+        initialDocument: openSharedDocument({ shareId }),
       }),
       Effect.flatMap(({ info, initialDocument }) =>
         pipe(
