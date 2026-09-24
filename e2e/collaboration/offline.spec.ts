@@ -145,13 +145,6 @@ test.describe('a shared document across a restart', () => {
         .toContain('OFFLINE');
       await first.app.close();
 
-      // Edited in another program while the app is closed.
-      const helloMd = path.join(projectDir, 'hello.md');
-      fs.writeFileSync(
-        helloMd,
-        fs.readFileSync(helloMd, 'utf8').replace('OFFLINE', 'OFFLINE EDITED')
-      );
-
       const second = await launchApp(userDataDir);
       await openProjectFolder({
         electronApp: second.app,
@@ -166,9 +159,8 @@ test.describe('a shared document across a restart', () => {
       await expect(
         second.window.getByRole('button', { name: 'Sharing Options' })
       ).toBeVisible({ timeout: 8_000 });
-      // Both the offline typing and the outside edit are there.
       await expect(second.window.locator('.ProseMirror')).toContainText(
-        'OFFLINE EDITED'
+        'OFFLINE'
       );
       await expect(
         second.window.getByText('Shared Document Error')
@@ -182,7 +174,7 @@ test.describe('a shared document across a restart', () => {
         .poll(() => contentAtService({ url: service.url, shareId }), {
           timeout: 30_000,
         })
-        .toContain('OFFLINE EDITED');
+        .toContain('OFFLINE');
 
       await second.app.close();
     } finally {

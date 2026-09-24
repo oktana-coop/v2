@@ -12,7 +12,6 @@ import { ValidationError } from '../../../rich-text';
 import {
   createSharedConvergentDocument,
   type DocumentContent,
-  handleVersion,
   validateDocumentContent,
 } from '../../../rich-text/adapters/automerge-convergent-document';
 import { SharedDocumentUnavailableError } from '../../errors';
@@ -20,7 +19,6 @@ import {
   type DocumentSharing,
   type GetSharedDocumentInfoArgs,
   type LeaveSharedDocumentArgs,
-  type OpenedSharedDocument,
   type OpenSharedDocumentArgs,
   type ShareDocumentArgs,
 } from '../../ports';
@@ -46,22 +44,10 @@ const parseShareId = (
 
 const find = ({ repo, url }: { repo: Repo; url: AutomergeUrl }) =>
   Effect.tryPromise({
-    try: async () => {
-      const query = repo.findWithProgress<DocumentContent>(url);
-      const handle = await query.whenReady({
+    try: () =>
+      repo.find<DocumentContent>(url, {
         signal: AbortSignal.timeout(FIND_TIMEOUT_MS),
-      });
-      const foundInStorage = query.peek().sources.storage === 'ready';
-
-      return {
-        handle,
-        baseVersion: foundInStorage
-          ? // A version this app last held the document at.
-            handleVersion(handle)
-          : // A version this app has no record of holding the document at.
-            null,
-      };
-    },
+      }),
     catch: mapErrorTo(
       SharedDocumentUnavailableError,
       'The shared document could not be reached.'
@@ -87,7 +73,7 @@ export const createAdapter = ({
     pipe(
       Effect.all({ repo: connectedRepo, url: parseShareId(shareId) }),
       Effect.flatMap(({ repo, url }) => find({ repo, url })),
-      Effect.tap(({ handle }) => validateDocumentContent(handle))
+      Effect.tap(validateDocumentContent)
     );
 
   const shareDocument = (args: ShareDocumentArgs) =>
@@ -99,22 +85,11 @@ export const createAdapter = ({
   const openSharedDocument = ({ shareId }: OpenSharedDocumentArgs) =>
     pipe(
       findValidShare(shareId),
-      Effect.flatMap(({ handle, baseVersion }) =>
-        pipe(
-          createSharedConvergentDocument({ handle }),
-          Effect.map((document): OpenedSharedDocument => ({
-            document,
-            baseVersion,
-          }))
-        )
-      )
+      Effect.flatMap((handle) => createSharedConvergentDocument({ handle }))
     );
 
   const getSharedDocumentInfo = ({ shareId }: GetSharedDocumentInfoArgs) =>
-    pipe(
-      findValidShare(shareId),
-      Effect.flatMap(({ handle }) => readSharedDocumentInfo(handle))
-    );
+    pipe(findValidShare(shareId), Effect.flatMap(readSharedDocumentInfo));
 
   const leaveSharedDocument = ({ shareId }: LeaveSharedDocumentArgs) =>
     pipe(
