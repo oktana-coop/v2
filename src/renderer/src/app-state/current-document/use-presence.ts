@@ -35,7 +35,11 @@ export const useLocalParticipant = (): Participant => {
   );
 };
 
-export const usePublishLocalPresence = (liveDocument: LiveDocument | null) => {
+type DocumentWithPresence = Pick<LiveDocument, 'presence'>;
+
+export const usePublishLocalPresence = (
+  liveDocument: DocumentWithPresence | null
+) => {
   const participant = useLocalParticipant();
   // Read through a ref, so the returned function only changes with the
   // document: the editor is bound to it, and a new binding re-seeds the
@@ -44,7 +48,7 @@ export const usePublishLocalPresence = (liveDocument: LiveDocument | null) => {
 
   // A selection only means something in the document it was made in.
   const lastSelection = useRef<{
-    document: LiveDocument;
+    document: DocumentWithPresence;
     selection: ParticipantSelection | null;
   } | null>(null);
 
@@ -74,7 +78,7 @@ export const usePublishLocalPresence = (liveDocument: LiveDocument | null) => {
 };
 
 export const useRemotePresence = (
-  liveDocument: LiveDocument | null
+  liveDocument: DocumentWithPresence | null
 ): ReadonlyArray<RemotePresence> => {
   const [peers, setPeers] = useState<ReadonlyArray<RemotePresence>>([]);
 

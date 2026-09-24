@@ -174,15 +174,15 @@ export const withStoredCopy =
 
         const detach = pipe(document.detach, Effect.zipRight(rebaseOnDocument));
 
-        // Unsubscribe first, so the echo of the closing flush cannot start
+        // Unsubscribe first, so the echo of the closing write cannot start
         // a refresh on a document that is going away.
         const close = pipe(
           Effect.sync(() => unsubscribeFromDisk()),
           Effect.zipRight(Effect.sync(() => unsubscribeFromContent())),
-          // A document on its way out leaves nobody to act on the failure,
-          // so the closing write is reported rather than raised.
-          Effect.zipRight(pipe(flush, Effect.catchAll(report))),
-          Effect.zipRight(document.close)
+          // Pending typing is contributed and the file written before the
+          // document closes. It closes even when that fails, and the
+          // failure is raised.
+          Effect.zipRight(pipe(flush, Effect.ensuring(document.close)))
         );
 
         // Any change under the project signals here, not just this

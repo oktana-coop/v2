@@ -14,6 +14,7 @@ import {
   CURRENT_SCHEMA_VERSION,
   PRIMARY_RICH_TEXT_REPRESENTATION,
   type RemotePresence,
+  RepresentationTransformError,
   type ResolvedDocument,
   type RichTextDocument,
   richTextRepresentations,
@@ -378,6 +379,28 @@ describe('openLiveDocument', () => {
     expect(failure).toBeInstanceOf(RepositoryError);
   });
 
+  it('raises to whoever waits for a flush when the typing cannot be converted, and writes nothing', async () => {
+    const { opened, written, transformToText } = await open({
+      diskText: 'hello',
+    });
+    transformToText.mockRejectedValueOnce(new Error('the conversion failed'));
+
+    const { contributed } = await typeWithoutPausing(
+      opened,
+      proseMirror('hello typed')
+    );
+    const failure = await Effect.runPromise(Effect.flip(opened.flush));
+
+    expect(failure).toBeInstanceOf(RepresentationTransformError);
+    expect(written).toEqual([]);
+
+    // The typing is still on its way: the next flush writes it.
+    await Effect.runPromise(opened.flush);
+    await contributed;
+
+    expect(written).toEqual(['hello typed']);
+  });
+
   it('reports a write nobody awaited when it fails', async () => {
     const { opened, reported } = await open({
       diskText: 'hello',
@@ -431,6 +454,20 @@ describe('openLiveDocument', () => {
     await Effect.runPromise(opened.close);
 
     expect(written).toContain('hello world');
+  });
+
+  it('closes and raises when the typing cannot be converted at close, writing nothing', async () => {
+    const { opened, written, documents, transformToText } = await open({
+      diskText: 'hello',
+    });
+    transformToText.mockRejectedValueOnce(new Error('the conversion failed'));
+
+    await typeWithoutPausing(opened, proseMirror('hello typed'));
+    const failure = await Effect.runPromise(Effect.flip(opened.close));
+
+    expect(failure).toBeInstanceOf(RepresentationTransformError);
+    expect(documents[0]?.wasClosed()).toBe(true);
+    expect(written).toEqual([]);
   });
 
   it('carries content the document opened with to the file', async () => {

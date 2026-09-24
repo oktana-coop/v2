@@ -22,7 +22,10 @@ import {
   type ShareId,
   type ShareRegistry,
 } from '../ports';
-import { type LiveDocument } from './live-document';
+import {
+  type LiveDocument,
+  type LocalEditsContributionError,
+} from './live-document';
 
 export type JoinSharedDocumentDeps = {
   getSharedDocumentInfo: DocumentSharing['getSharedDocumentInfo'];
@@ -49,7 +52,8 @@ export type JoinSharedDocumentError =
   | RepositoryError
   | ValidationError
   | NotFoundError
-  | MigrationError;
+  | MigrationError
+  | LocalEditsContributionError;
 
 export const joinSharedDocument =
   ({

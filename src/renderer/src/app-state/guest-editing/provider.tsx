@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router';
 
 import {
   leaveDocumentAsGuest,
-  type LiveDocument,
   type NamedLiveDocument,
   openDocumentAsGuest,
   SharedDocumentUnavailableErrorTag,
@@ -52,7 +51,7 @@ export const GuestEditingProvider = ({
     null
   );
   // The document to close when the route moves on, unless leaving closed it.
-  const openedRef = useRef<LiveDocument | null>(null);
+  const openedRef = useRef<NamedLiveDocument | null>(null);
   const onLocalSelectionChange = usePublishLocalPresence(liveDocument);
   const [isSharingDialogOpen, setIsSharingDialogOpen] = useState(false);
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
@@ -65,8 +64,18 @@ export const GuestEditingProvider = ({
 
     let cancelled = false;
 
-    const close = (document: LiveDocument) =>
-      Effect.runPromise(document.close).catch(console.error);
+    const close = (document: NamedLiveDocument) =>
+      Effect.runPromise(
+        pipe(document.applyPendingLocalEdits, Effect.ensuring(document.close))
+      ).catch((error) => {
+        console.error(error);
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Save Document Error',
+            message: 'Your latest changes could not be saved.',
+          })
+        );
+      });
 
     Effect.runPromise(
       pipe(
@@ -133,7 +142,13 @@ export const GuestEditingProvider = ({
       if (opened) close(opened);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shareId, representationTransformAdapter, documentSharing, privateRepo]);
+  }, [
+    shareId,
+    representationTransformAdapter,
+    documentSharing,
+    privateRepo,
+    dispatchNotification,
+  ]);
 
   const remembered = guestShares.find((share) => share.shareId === shareId);
   const name = liveDocument ? (remembered?.name ?? liveDocument.name) : null;
@@ -141,13 +156,27 @@ export const GuestEditingProvider = ({
   const onLeave = useCallback(
     async (target: ShareId) => {
       if (target === shareId && liveDocument) {
-        await Effect.runPromise(
-          leaveDocumentAsGuest({
-            liveDocument,
-            forgetShare: () => guestShareRegistry.forgetShare(target),
-            leaveSharedDocument: documentSharing.leaveSharedDocument,
-          })(target)
-        ).catch(console.error);
+        // A refused leave keeps the document where the user can still see
+        // the typing that could not be saved.
+        try {
+          await Effect.runPromise(
+            leaveDocumentAsGuest({
+              liveDocument,
+              forgetShare: () => guestShareRegistry.forgetShare(target),
+              leaveSharedDocument: documentSharing.leaveSharedDocument,
+            })(target)
+          );
+        } catch (error) {
+          console.error(error);
+          dispatchNotification(
+            createErrorNotification({
+              title: 'Leave Shared Document Error',
+              message:
+                'Your latest changes could not be saved, so this document was not left.',
+            })
+          );
+          return;
+        }
 
         openedRef.current = null;
         setLiveDocument(null);
@@ -160,7 +189,14 @@ export const GuestEditingProvider = ({
         ).catch(console.error);
       }
     },
-    [shareId, liveDocument, guestShareRegistry, documentSharing, navigate]
+    [
+      shareId,
+      liveDocument,
+      guestShareRegistry,
+      documentSharing,
+      navigate,
+      dispatchNotification,
+    ]
   );
 
   return (

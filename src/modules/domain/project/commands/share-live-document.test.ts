@@ -6,6 +6,7 @@ import {
   type ConvergentDocumentState,
   CURRENT_SCHEMA_VERSION,
   PRIMARY_RICH_TEXT_REPRESENTATION,
+  RepresentationTransformError,
 } from '../../../../modules/domain/rich-text';
 import {
   type ArtifactId,
@@ -245,7 +246,7 @@ describe('joinSharedDocument', () => {
 });
 
 describe('leaveSharedDocument', () => {
-  it('forgets the share, detaches the document, then releases it', async () => {
+  it('detaches the document, forgets the share, then releases it', async () => {
     const calls: string[] = [];
     const liveDocument = await createLiveDocument({ calls });
 
@@ -265,7 +266,59 @@ describe('leaveSharedDocument', () => {
       })
     );
 
-    expect(calls).toEqual(['forget', 'detach', 'release:automerge:url']);
+    expect(calls).toEqual(['detach', 'forget', 'release:automerge:url']);
+  });
+
+  it('keeps the share when the document refuses to detach', async () => {
+    const calls: string[] = [];
+    const liveDocument = await createLiveDocument({ calls });
+
+    const failure = await Effect.runPromise(
+      Effect.flip(
+        leaveSharedDocument({
+          liveDocument: {
+            ...liveDocument,
+            detach: Effect.fail(
+              new RepresentationTransformError('the conversion failed')
+            ),
+          },
+          findShareId: () => 'automerge:url',
+          forgetShare: () => calls.push('forget'),
+          leaveSharedDocument: ({ shareId }) =>
+            Effect.sync(() => {
+              calls.push(`release:${shareId}`);
+            }),
+        })({
+          projectId: '/projects/one' as ProjectId,
+          branch: 'main' as Branch,
+          documentId: '/blob/main/note.md' as ArtifactId,
+        })
+      )
+    );
+
+    expect(failure).toBeInstanceOf(RepresentationTransformError);
+    expect(calls).toEqual([]);
+  });
+
+  it('leaves even when the release fails', async () => {
+    const calls: string[] = [];
+    const liveDocument = await createLiveDocument({ calls });
+
+    await Effect.runPromise(
+      leaveSharedDocument({
+        liveDocument,
+        findShareId: () => 'automerge:url',
+        forgetShare: () => calls.push('forget'),
+        leaveSharedDocument: () =>
+          Effect.fail(new SharedDocumentUnavailableError('gone')),
+      })({
+        projectId: '/projects/one' as ProjectId,
+        branch: 'main' as Branch,
+        documentId: '/blob/main/note.md' as ArtifactId,
+      })
+    );
+
+    expect(calls).toEqual(['detach', 'forget']);
   });
 
   it('leaves a document that takes part in no share as it is', async () => {

@@ -30,7 +30,7 @@ const {
 } = prosemirror;
 
 export type LiveDocumentEditorProps = SharedEditorProps & {
-  liveDocument: LiveDocument;
+  liveDocument: Pick<LiveDocument, 'content' | 'edit' | 'presence'>;
   // Where the caret is, for whoever else is at the document.
   onLocalSelectionChange: (selection: ParticipantSelection | null) => void;
 };
