@@ -43,7 +43,7 @@ export const readSharedDocumentInfo = (
 ): Effect.Effect<SharedDocumentInfo, ValidationError> =>
   Effect.try({
     try: () => {
-      const { identity, name } = sharedDocumentSchema.parse(handle.doc());
+      const { identity, name } = sharedDocumentSchema.parse(handle.fullDoc());
 
       return {
         branch: parseBranch(identity.branch),

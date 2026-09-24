@@ -298,13 +298,6 @@ app.whenReady().then(() => {
   createWindow();
 });
 
-app.on('before-quit', async () => {
-  const defaultSession = session.defaultSession;
-  await defaultSession.clearStorageData({
-    storages: ['indexdb'],
-  });
-});
-
 app.on('window-all-closed', () => {
   win = null;
   directoryWatcher.unwatchAllDirectories();

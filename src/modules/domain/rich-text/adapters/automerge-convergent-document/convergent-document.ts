@@ -38,7 +38,6 @@ const encodeVersion = (heads: UrlHeads): ConvergentDocumentVersion =>
 
 const decodeVersion = (version: ConvergentDocumentVersion): UrlHeads =>
   version.split(',') as UrlHeads;
-
 export const createConvergentDocument = ({
   handle,
   presence,
@@ -49,7 +48,7 @@ export const createConvergentDocument = ({
         doc: {
           schemaVersion: CURRENT_SCHEMA_VERSION,
           representation: PRIMARY_RICH_TEXT_REPRESENTATION,
-          content: handle.doc().content,
+          content: handle.fullDoc().content,
         },
         version: encodeVersion(handle.heads()),
       }),
@@ -66,7 +65,7 @@ export const createConvergentDocument = ({
         doc: {
           schemaVersion: CURRENT_SCHEMA_VERSION,
           representation: PRIMARY_RICH_TEXT_REPRESENTATION,
-          content: handle.doc().content,
+          content: handle.fullDoc().content,
         },
         version: currentVersion(),
       });

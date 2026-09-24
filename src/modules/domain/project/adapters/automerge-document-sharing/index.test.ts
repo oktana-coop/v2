@@ -1,4 +1,11 @@
-import { type AutomergeUrl, Repo } from '@automerge/automerge-repo';
+import {
+  type AutomergeUrl,
+  type Chunk,
+  parseAutomergeUrl,
+  Repo,
+  type StorageAdapterInterface,
+  type StorageKey,
+} from '@automerge/automerge-repo';
 import { MessageChannelNetworkAdapter } from '@automerge/automerge-repo-network-messagechannel';
 import * as Effect from 'effect/Effect';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
@@ -58,6 +65,50 @@ const seedShare = (content: string) => ({
 const syncFor = (repo: Repo) =>
   createAdapter({ syncedRepo: Effect.succeed(repo) });
 
+// In-memory storage, so a repo keeps documents and sync states the way a
+// persistent one does.
+class MemoryStorage implements StorageAdapterInterface {
+  private readonly chunks = new Map<string, Uint8Array>();
+
+  private static id(key: StorageKey): string {
+    return key.join('.');
+  }
+
+  async load(key: StorageKey): Promise<Uint8Array | undefined> {
+    return this.chunks.get(MemoryStorage.id(key));
+  }
+
+  async save(key: StorageKey, data: Uint8Array): Promise<void> {
+    this.chunks.set(MemoryStorage.id(key), data);
+  }
+
+  async remove(key: StorageKey): Promise<void> {
+    this.chunks.delete(MemoryStorage.id(key));
+  }
+
+  async loadRange(keyPrefix: StorageKey): Promise<Chunk[]> {
+    const prefix = MemoryStorage.id(keyPrefix);
+    return [...this.chunks.entries()]
+      .filter(([id]) => id.startsWith(prefix))
+      .map(([id, data]) => ({ key: id.split('.'), data }));
+  }
+
+  async removeRange(keyPrefix: StorageKey): Promise<void> {
+    const prefix = MemoryStorage.id(keyPrefix);
+    for (const id of [...this.chunks.keys()]) {
+      if (id.startsWith(prefix)) this.chunks.delete(id);
+    }
+  }
+}
+
+// Storage that takes its time removing, as IndexedDB does.
+class SlowToRemoveStorage extends MemoryStorage {
+  async removeRange(keyPrefix: StorageKey): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    await super.removeRange(keyPrefix);
+  }
+}
+
 const contentOf = (document: Pick<ConvergentDocument, 'content'>) =>
   Effect.runPromise(SubscriptionRef.get(document.content)).then(
     (state) => state.doc.content
@@ -72,7 +123,7 @@ describe('automergeDocumentSharing', () => {
     );
 
     const handle = await findShared(repo, shareId);
-    expect(handle.doc()).toEqual({
+    expect(handle.fullDoc()).toEqual({
       formatVersion: DOCUMENT_FORMAT_VERSION,
       content: 'shared text',
       identity,
@@ -124,7 +175,7 @@ describe('automergeDocumentSharing', () => {
     );
 
     const handle = await findShared(bob, shareId);
-    expect(handle.doc().content).toBe('for bob');
+    expect(handle.fullDoc().content).toBe('for bob');
   });
 
   // The minted document and the document that gets edited are described in
@@ -145,7 +196,7 @@ describe('automergeDocumentSharing', () => {
 
     const aliceHandle = await findShared(alice, shareId);
     await vi.waitFor(() =>
-      expect(aliceHandle.doc().content).toBe('edited by bob')
+      expect(aliceHandle.fullDoc().content).toBe('edited by bob')
     );
   });
 
@@ -256,7 +307,24 @@ describe('automergeDocumentSharing', () => {
 
     await Effect.runPromise(syncFor(alice).leaveSharedDocument({ shareId }));
 
-    expect(bobHandle.doc().content).toBe('still here');
+    expect(bobHandle.fullDoc().content).toBe('still here');
+  });
+
+  it('releases a document from storage before resolving', async () => {
+    const repo = new Repo({ network: [], storage: new SlowToRemoveStorage() });
+    const handle = repo.create<DocumentContent>({
+      formatVersion: DOCUMENT_FORMAT_VERSION,
+      content: 'kept',
+    });
+    await repo.flush();
+    const { documentId } = parseAutomergeUrl(handle.url);
+    expect(await repo.storageSubsystem?.loadDoc(documentId)).not.toBeNull();
+
+    await Effect.runPromise(
+      syncFor(repo).leaveSharedDocument({ shareId: handle.url })
+    );
+
+    expect(await repo.storageSubsystem?.loadDoc(documentId)).toBeNull();
   });
 
   it('ignores a release of something that is not a share link', async () => {
