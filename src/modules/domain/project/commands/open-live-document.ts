@@ -37,16 +37,22 @@ export const openLiveDocument =
     StoredLiveDocument,
     ValidationError | RepositoryError | NotFoundError | MigrationError
   > => {
+    const openPrivately = (initialText: string) =>
+      pipe(
+        deps.createPrivateDocument(initialText),
+        Effect.map((document) => ({ document, baseVersion: null }))
+      );
+
     const openInitialDocument = (initialText: string) =>
       shareId === undefined
-        ? deps.createPrivateDocument(initialText)
+        ? openPrivately(initialText)
         : pipe(
             deps.openSharedDocument({ shareId }),
             // Fall back to a private document.
             Effect.catchAll((error) =>
               pipe(
                 Effect.sync(() => deps.onShareUnavailable(error)),
-                Effect.zipRight(deps.createPrivateDocument(initialText))
+                Effect.zipRight(openPrivately(initialText))
               )
             )
           );
@@ -56,15 +62,21 @@ export const openLiveDocument =
       Effect.flatMap(({ artifact }) =>
         pipe(
           openInitialDocument(artifact.content),
-          Effect.flatMap((initialDocument) =>
-            createLiveDocument(deps)({ documentId, initialDocument })
-          ),
-          Effect.flatMap(
-            withStoredCopy(deps)({
-              projectId,
-              documentId,
-              storedContent: artifact.content,
-            })
+          Effect.flatMap(({ document, baseVersion }) =>
+            pipe(
+              createLiveDocument(deps)({
+                documentId,
+                initialDocument: document,
+              }),
+              Effect.flatMap(
+                withStoredCopy(deps)({
+                  projectId,
+                  documentId,
+                  storedContent: artifact.content,
+                  baseVersion,
+                })
+              )
+            )
           )
         )
       )

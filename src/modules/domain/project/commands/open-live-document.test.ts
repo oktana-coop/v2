@@ -131,6 +131,7 @@ const open = async ({
   shareId,
   sharedText = 'what the share has',
   shareIsOutOfReach = false,
+  shareHeldBefore = false,
   storeRefusesWrites = false,
 }: {
   diskText?: string;
@@ -138,6 +139,9 @@ const open = async ({
   shareId?: ShareId;
   sharedText?: string;
   shareIsOutOfReach?: boolean;
+  // The share comes from local storage, at the version the file derives
+  // from, rather than from the service.
+  shareHeldBefore?: boolean;
   storeRefusesWrites?: boolean;
 } = {}) => {
   let onDisk = diskText;
@@ -162,11 +166,22 @@ const open = async ({
   const createPrivateDocument = (initialText: string) =>
     startOn(documents.length === 0 ? liveText : initialText);
 
-  // What the share holds, which is not what the disk holds.
+  // What the share holds, which is not necessarily what the disk holds.
   const openSharedDocument = () =>
     shareIsOutOfReach
       ? Effect.fail(new SharedDocumentUnavailableError('out of reach'))
-      : startOn(sharedText);
+      : pipe(
+          startOn(sharedText),
+          Effect.flatMap((document) =>
+            pipe(
+              SubscriptionRef.get(document.content),
+              Effect.map((opened) => ({
+                document,
+                baseVersion: shareHeldBefore ? opened.version : null,
+              }))
+            )
+          )
+        );
 
   const findDocumentById: ProjectStore['findDocumentById'] = () =>
     Effect.suspend(() =>
@@ -688,6 +703,50 @@ describe('openLiveDocument, on the document it runs on', () => {
     await Effect.runPromise(opened.attachTo(shareLink));
 
     await vi.waitFor(() => expect(written).toContain('what the share has'));
+  });
+
+  it('writes a share fetched from the service over the file', async () => {
+    const { written, contributions } = await open({
+      diskText: 'what the file has',
+      shareId: shareLink,
+      sharedText: 'what the share has',
+    });
+
+    await vi.waitFor(() => expect(written).toContain('what the share has'));
+    expect(contributions).toEqual([]);
+  });
+
+  // The file was last written from the version the share is held at, so
+  // what it holds beyond that was edited while the app was closed.
+  it('contributes a file edited while it was closed to the share it held before', async () => {
+    const { opened, written, contributions } = await open({
+      diskText: 'hello EDITED',
+      shareId: shareLink,
+      sharedText: 'hello',
+      shareHeldBefore: true,
+    });
+
+    await vi.waitFor(() =>
+      expect(contributions).toEqual([
+        { text: 'hello EDITED', base: expect.stringMatching(/\.0$/) },
+      ])
+    );
+    expect(await contentOf(opened)).toBe('hello EDITED');
+    expect(written).toEqual([]);
+  });
+
+  it('opens a share it held before, with the file unchanged, as it is', async () => {
+    const { written, contributions } = await open({
+      diskText: 'hello',
+      shareId: shareLink,
+      sharedText: 'hello',
+      shareHeldBefore: true,
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(contributions).toEqual([]);
+    expect(written).toEqual([]);
   });
 
   it('contributes pending typing to the document it leaves before switching', async () => {

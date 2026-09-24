@@ -186,7 +186,7 @@ describe('automergeDocumentSharing', () => {
       syncFor(alice).shareDocument({ content: 'seeded by alice', ...info })
     );
 
-    const opened = await Effect.runPromise(
+    const { document: opened } = await Effect.runPromise(
       syncFor(bob).openSharedDocument({ shareId })
     );
 
@@ -203,10 +203,10 @@ describe('automergeDocumentSharing', () => {
   it('opens a share both peers then converge on', async () => {
     const { alice, bob } = createPeers();
     const handle = alice.create<DocumentContent>(seed('hello'));
-    const aliceDocument = await Effect.runPromise(
+    const { document: aliceDocument } = await Effect.runPromise(
       syncFor(alice).openSharedDocument({ shareId: handle.url })
     );
-    const bobDocument = await Effect.runPromise(
+    const { document: bobDocument } = await Effect.runPromise(
       syncFor(bob).openSharedDocument({ shareId: handle.url })
     );
 
@@ -308,6 +308,36 @@ describe('automergeDocumentSharing', () => {
     await Effect.runPromise(syncFor(alice).leaveSharedDocument({ shareId }));
 
     expect(bobHandle.fullDoc().content).toBe('still here');
+  });
+
+  it('reports the version a document found in local storage derives from', async () => {
+    const storage = new MemoryStorage();
+    const earlier = new Repo({ network: [], storage });
+    const handle = earlier.create<DocumentContent>(seedShare('kept'));
+    await earlier.flush();
+
+    const later = new Repo({ network: [], storage });
+    const opened = await Effect.runPromise(
+      syncFor(later).openSharedDocument({ shareId: handle.url })
+    );
+
+    const state = await Effect.runPromise(
+      SubscriptionRef.get(opened.document.content)
+    );
+    expect(opened.baseVersion).toBe(state.version);
+  });
+
+  it('reports no base version for a document fetched from a peer', async () => {
+    const { alice, bob } = createPeers();
+    const shareId = await Effect.runPromise(
+      syncFor(alice).shareDocument({ content: 'for bob', ...info })
+    );
+
+    const opened = await Effect.runPromise(
+      syncFor(bob).openSharedDocument({ shareId })
+    );
+
+    expect(opened.baseVersion).toBeNull();
   });
 
   it('releases a document from storage before resolving', async () => {

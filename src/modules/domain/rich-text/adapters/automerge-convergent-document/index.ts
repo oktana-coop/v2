@@ -1,3 +1,4 @@
+export { handleVersion } from './convergent-document';
 export { createPrivateConvergentDocument } from './private';
 export { createSharedConvergentDocument } from './shared';
 export {

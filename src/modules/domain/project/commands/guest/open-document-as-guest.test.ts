@@ -66,9 +66,10 @@ const open = (deps: Partial<OpenDocumentAsGuestDeps> = {}) =>
   openDocumentAsGuest({
     getSharedDocumentInfo: () => Effect.succeed(info),
     openSharedDocument: () =>
-      Effect.promise(() =>
-        createFakeConvergentDocument('what the share holds')
-      ),
+      Effect.promise(async () => ({
+        document: await createFakeConvergentDocument('what the share holds'),
+        baseVersion: null,
+      })),
     createPrivateDocument: (text) =>
       Effect.promise(() => createFakeConvergentDocument(text)),
     transformToText: async ({ input }: { input: string }) => input,

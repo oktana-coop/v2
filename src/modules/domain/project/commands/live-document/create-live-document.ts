@@ -279,7 +279,12 @@ export const createLiveDocument =
           );
 
           const attachTo = (shareId: ShareId) =>
-            switchTo(openSharedDocument({ shareId }));
+            switchTo(
+              pipe(
+                openSharedDocument({ shareId }),
+                Effect.map(({ document }) => document)
+              )
+            );
 
           // The content goes with it: leaving a share keeps what the share
           // left the document holding.

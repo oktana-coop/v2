@@ -86,6 +86,21 @@ describe('automerge live document', () => {
     expect(textOf(handle)).toContain('LOCAL');
   });
 
+  // What an opening refresh contributes when the file was not edited while
+  // the app was closed but the document moved on meanwhile. An empty change
+  // may still be recorded; the text is what must stay.
+  it('leaves the text as it is for a contribution equal to the content at its base', async () => {
+    const { live, handle } = await open('hello');
+    const base = await versionOf(live);
+    handle.change((doc) =>
+      Automerge.updateText(doc, ['content'], 'hello PEER')
+    );
+
+    await Effect.runPromise(live.change('hello', { base }));
+
+    expect(textOf(handle)).toBe('hello PEER');
+  });
+
   it('keeps a peer edit the contribution had not seen', async () => {
     const { live, handle } = await open('one two three');
     const base = await versionOf(live);
