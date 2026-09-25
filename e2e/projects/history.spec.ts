@@ -7,6 +7,7 @@ import {
   confirmDeletion,
   deleteFileFromContextMenu,
   enableShowDiff,
+  expectNoErrorNotification,
   expectProjectCommits,
   navigateToProjectHistory,
   openHelloMd,
@@ -213,7 +214,7 @@ test.describe('project history', () => {
     });
 
     // Viewing a deleted document in history is handled, not an error
-    await expect(window.getByTestId('error-notification')).toHaveCount(0);
+    await expectNoErrorNotification({ window });
   });
 
   test('diff annotations appear in project history', async ({

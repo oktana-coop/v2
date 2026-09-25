@@ -9,6 +9,7 @@ import {
 } from '../shared/git';
 import {
   expectCommitChanges,
+  expectNoErrorNotification,
   expectProjectCommits,
   navigateToProjectHistory,
   openDocument,
@@ -203,7 +204,7 @@ test.describe('project opening', () => {
     // shortly after the switch.
     await expect(window.locator('.ProseMirror')).toHaveCount(0);
     await window.waitForTimeout(500);
-    await expect(window.getByTestId('error-notification')).toHaveCount(0);
+    await expectNoErrorNotification({ window });
   });
 
   test('keeps the open document when the folder dialog is cancelled', async ({
@@ -230,6 +231,6 @@ test.describe('project opening', () => {
     // Nothing was opened, so the document stays where it was.
     await window.waitForTimeout(500);
     await expect(window.locator('.ProseMirror')).toContainText('Hello');
-    await expect(window.getByTestId('error-notification')).toHaveCount(0);
+    await expectNoErrorNotification({ window });
   });
 });
