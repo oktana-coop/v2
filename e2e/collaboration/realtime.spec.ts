@@ -25,16 +25,16 @@ import {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// The editor reports on the dev console when an incoming change could not
-// be applied as exact steps and took the coarser region replace instead.
-const collectFallbackReports = (window: Page): string[] => {
-  const reports: string[] = [];
+// Remote changes the editor could not apply as exact steps and applied
+// coarsely instead, by replacing the whole changed region.
+const recordCoarseSyncApplies = (window: Page): string[] => {
+  const applies: string[] = [];
   window.on('console', (message) => {
     if (message.text().includes('Live sync fell back')) {
-      reports.push(message.text());
+      applies.push(message.text());
     }
   });
-  return reports;
+  return applies;
 };
 
 // Where the caret stands, as the text before it in its text node.
@@ -249,7 +249,7 @@ test.describe('realtime collaboration', () => {
     await openHelloMd({ window });
 
     const shareId = await shareFromCommandPalette({ window });
-    const fallbacks = collectFallbackReports(window);
+    const coarseApplies = recordCoarseSyncApplies(window);
 
     // The caret goes mid-paragraph, set on the DOM selection so no
     // keystroke can drop on the way there. The filter is a prefix, so the
@@ -285,8 +285,8 @@ test.describe('realtime collaboration', () => {
         timeout: 15_000,
       });
       await sleep(1_000);
-      // Soft, so a fallback and a moved caret are both reported at once.
-      expect.soft(fallbacks).toEqual([]);
+      // Soft, so a coarse apply and a moved caret are both reported at once.
+      expect.soft(coarseApplies).toEqual([]);
       expect(handle.fullDoc().content).toBe(content);
 
       // Where a keystroke lands is the caret the editor really holds, focus
@@ -1126,12 +1126,10 @@ test.describe('realtime collaboration', () => {
       // editor being replaced. Known gap, not this test's subject.
       await sleep(3_000);
 
-      // The main scenario must ride the exact-steps path; a fallback here
+      // The main scenario must ride the exact-steps path; a coarse apply here
       // means the region replace is still carrying it.
-      const fallbacks = [
-        ...collectFallbackReports(window),
-        ...collectFallbackReports(bob.window),
-      ];
+      const aliceCoarseApplies = recordCoarseSyncApplies(window);
+      const bobCoarseApplies = recordCoarseSyncApplies(bob.window);
 
       // Both type at the same time, in different places (concurrent inserts
       // at the very same position interleave by design — convergence over
@@ -1190,7 +1188,7 @@ test.describe('realtime collaboration', () => {
         }
       }
 
-      expect(fallbacks).toEqual([]);
+      expect([...aliceCoarseApplies, ...bobCoarseApplies]).toEqual([]);
     } finally {
       proxy.stop();
       await bob.close();
