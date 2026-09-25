@@ -1,68 +1,20 @@
-import { Repo } from '@automerge/automerge-repo';
-import { WebSocketClientAdapter } from '@automerge/automerge-repo-network-websocket';
-import { type ElectronApplication, type Page } from '@playwright/test';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-import { expect, launchElectronApp, test } from '../shared/fixtures';
+import { expect, test } from '../shared/fixtures';
 import {
   expectNoErrorNotification,
   openHelloMd,
   openProjectFolder,
   typeInEditorSlowly,
 } from '../shared/helpers';
-import { startSyncServer } from '../shared/sync-server';
-
-type DocumentContent = { formatVersion: number; content: string };
-
-// An app instance on a given user data dir, so a test can bring the same
-// app back after closing it.
-const launchApp = async ({
-  userDataDir,
-  syncServiceUrl,
-}: {
-  userDataDir: string;
-  syncServiceUrl: string;
-}): Promise<{ app: ElectronApplication; window: Page }> => {
-  const app = await launchElectronApp({ userDataDir, syncServiceUrl });
-  const window = await app.firstWindow();
-  await window.waitForLoadState('domcontentloaded');
-
-  return { app, window };
-};
-
-const shareFromButton = async (window: Page): Promise<string> => {
-  await window.getByRole('button', { name: 'Share Document' }).click();
-  await window.getByRole('button', { name: 'Create share ID' }).click();
-
-  const shown = window.getByTestId('share-id');
-  await shown.waitFor({ state: 'visible', timeout: 10_000 });
-  const shareId = await shown.textContent();
-  expect(shareId).toMatch(/^automerge:/);
-
-  const close = window.getByRole('button', { name: 'Close' });
-  await close.click();
-  await close.waitFor({ state: 'hidden', timeout: 5_000 });
-
-  return shareId as string;
-};
-
-// A plain automerge-repo client at the service, standing in for a peer.
-const connectPeer = (syncServerUrl: string) => {
-  const repo = new Repo({
-    network: [new WebSocketClientAdapter(syncServerUrl)],
-  });
-
-  return {
-    repo,
-    disconnect: () => {
-      for (const adapter of repo.networkSubsystem.adapters) {
-        adapter.disconnect();
-      }
-    },
-  };
-};
+import { connectPeer, startSyncServer } from '../shared/sync-server';
+import {
+  type DocumentContent,
+  launchApp,
+  shareFromActionsBar,
+} from './helpers';
 
 const contentAtService = async ({
   url,
@@ -108,6 +60,7 @@ test.describe('a shared document across a restart', () => {
     try {
       const first = await launchApp({
         userDataDir,
+        projectDir,
         syncServiceUrl: service.url,
       });
       await openProjectFolder({
@@ -116,7 +69,7 @@ test.describe('a shared document across a restart', () => {
         folderPath: projectDir,
       });
       await openHelloMd({ window: first.window });
-      const shareId = await shareFromButton(first.window);
+      const shareId = await shareFromActionsBar({ window: first.window });
 
       // The share reaches the service before the service goes away.
       expect(await contentAtService({ url: service.url, shareId })).toContain(
@@ -141,6 +94,7 @@ test.describe('a shared document across a restart', () => {
 
       const second = await launchApp({
         userDataDir,
+        projectDir,
         syncServiceUrl: service.url,
       });
       await openProjectFolder({

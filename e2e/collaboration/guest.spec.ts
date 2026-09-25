@@ -3,7 +3,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-import { expect, launchElectronApp, test } from '../shared/fixtures';
+import { expect, test } from '../shared/fixtures';
 import {
   expectNoOpenDocument,
   openCommandPalette,
@@ -11,65 +11,7 @@ import {
   openProjectFolder,
   typeInEditorSlowly,
 } from '../shared/helpers';
-
-// Shares the open document from the palette and returns its share ID.
-const shareCurrentDocument = async ({
-  window,
-}: {
-  window: Page;
-}): Promise<string> => {
-  await openCommandPalette({ window });
-
-  const shareOption = window.getByRole('option', {
-    name: 'Share this document',
-  });
-  await shareOption.waitFor({ state: 'visible', timeout: 2_000 });
-  await shareOption.click();
-
-  await window.getByRole('button', { name: 'Create share ID' }).click();
-
-  const shown = window.getByTestId('share-id');
-  await shown.waitFor({ state: 'visible', timeout: 10_000 });
-  const shareId = await shown.textContent();
-  expect(shareId).toMatch(/^automerge:/);
-
-  const close = window.getByRole('button', { name: 'Close' });
-  await close.click();
-  await close.waitFor({ state: 'hidden', timeout: 5_000 });
-
-  return shareId as string;
-};
-
-// A second, fully independent app instance with its own user data: a guest's
-// machine, holding no project unless the test opens one.
-const launchSecondApp = async ({
-  syncServiceUrl,
-}: {
-  syncServiceUrl: string;
-}): Promise<{
-  app: ElectronApplication;
-  window: Page;
-  close: () => Promise<void>;
-}> => {
-  const userDataDir = fs.mkdtempSync(
-    path.join(os.tmpdir(), 'v2-e2e-userdata-guest-')
-  );
-
-  const app = await launchElectronApp({ userDataDir, syncServiceUrl });
-  const window = await app.firstWindow();
-  await window.waitForLoadState('domcontentloaded');
-
-  return {
-    app,
-    window,
-    close: async () => {
-      await app.close();
-      try {
-        fs.rmSync(userDataDir, { recursive: true, force: true });
-      } catch {}
-    },
-  };
-};
+import { launchApp, shareFromCommandPalette } from './helpers';
 
 test.use({ withSyncServer: true });
 
@@ -88,9 +30,9 @@ test.describe('guest editing', () => {
       folderPath: testProjectDir,
     });
     await openHelloMd({ window });
-    const shareId = await shareCurrentDocument({ window });
+    const shareId = await shareFromCommandPalette({ window });
 
-    const guest = await launchSecondApp({ syncServiceUrl: syncServer!.url });
+    const guest = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
       // No project open: the project selection screen offers to join.
       await guest.window
@@ -165,9 +107,9 @@ test.describe('guest editing', () => {
     });
     await window.getByText('world').click();
     await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
-    const shareId = await shareCurrentDocument({ window });
+    const shareId = await shareFromCommandPalette({ window });
 
-    const other = await launchSecondApp({ syncServiceUrl: syncServer!.url });
+    const other = await launchApp({ syncServiceUrl: syncServer!.url });
     const otherProjectDir = fs.mkdtempSync(
       path.join(os.tmpdir(), 'v2-e2e-other-')
     );
@@ -262,12 +204,12 @@ test.describe('guest leaving and joining again', () => {
       folderPath: testProjectDir,
     });
     await openHelloMd({ window });
-    const helloShareId = await shareCurrentDocument({ window });
+    const helloShareId = await shareFromCommandPalette({ window });
     await window.getByText('world').click();
     await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
-    const worldShareId = await shareCurrentDocument({ window });
+    const worldShareId = await shareFromCommandPalette({ window });
 
-    const guest = await launchSecondApp({ syncServiceUrl: syncServer!.url });
+    const guest = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
       const guestEditor = guest.window.locator('.ProseMirror');
 
@@ -304,9 +246,9 @@ test.describe('guest leaving and joining again', () => {
       folderPath: testProjectDir,
     });
     await openHelloMd({ window });
-    const firstShareId = await shareCurrentDocument({ window });
+    const firstShareId = await shareFromCommandPalette({ window });
 
-    const guest = await launchSecondApp({ syncServiceUrl: syncServer!.url });
+    const guest = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
       const guestEditor = guest.window.locator('.ProseMirror');
 
@@ -318,7 +260,7 @@ test.describe('guest leaving and joining again', () => {
 
       // The host shares the same document again: a new share, same name.
       await stopSharing(window);
-      const secondShareId = await shareCurrentDocument({ window });
+      const secondShareId = await shareFromCommandPalette({ window });
       expect(secondShareId).not.toBe(firstShareId);
 
       await joinFromIndex(guest.window, secondShareId);
@@ -345,9 +287,9 @@ test.describe('guest leaving and joining again', () => {
       folderPath: testProjectDir,
     });
     await openHelloMd({ window });
-    const shareId = await shareCurrentDocument({ window });
+    const shareId = await shareFromCommandPalette({ window });
 
-    const guest = await launchSecondApp({ syncServiceUrl: syncServer!.url });
+    const guest = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
       const guestEditor = guest.window.locator('.ProseMirror');
 
@@ -390,12 +332,12 @@ test.describe('guest leaving and joining again', () => {
       folderPath: testProjectDir,
     });
     await openHelloMd({ window });
-    const helloShareId = await shareCurrentDocument({ window });
+    const helloShareId = await shareFromCommandPalette({ window });
     await window.getByText('world').click();
     await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
-    const worldShareId = await shareCurrentDocument({ window });
+    const worldShareId = await shareFromCommandPalette({ window });
 
-    const guest = await launchSecondApp({ syncServiceUrl: syncServer!.url });
+    const guest = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
       const guestEditor = guest.window.locator('.ProseMirror');
 
@@ -447,10 +389,10 @@ test.describe('guest and host in one app', () => {
       folderPath: testProjectDir,
     });
     await openHelloMd({ window });
-    const helloShareId = await shareCurrentDocument({ window });
+    const helloShareId = await shareFromCommandPalette({ window });
     await window.getByText('world').click();
     await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
-    const worldShareId = await shareCurrentDocument({ window });
+    const worldShareId = await shareFromCommandPalette({ window });
 
     // To the shared documents area from the project, then join own share.
     await openCommandPalette({ window });
@@ -504,14 +446,14 @@ test.describe('guest leaving while the host stays', () => {
       folderPath: testProjectDir,
     });
     await openHelloMd({ window });
-    const helloShareId = await shareCurrentDocument({ window });
+    const helloShareId = await shareFromCommandPalette({ window });
     await window.getByText('world').click();
     await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
-    const worldShareId = await shareCurrentDocument({ window });
+    const worldShareId = await shareFromCommandPalette({ window });
     // Back on the first document, where the host keeps working.
     await openHelloMd({ window });
 
-    const guest = await launchSecondApp({ syncServiceUrl: syncServer!.url });
+    const guest = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
       const guestEditor = guest.window.locator('.ProseMirror');
       const errors: string[] = [];
@@ -595,7 +537,7 @@ const openOwnShareAsGuest = async ({
 }) => {
   await openProjectFolder({ electronApp, window, folderPath: testProjectDir });
   await openHelloMd({ window });
-  const shareId = await shareCurrentDocument({ window });
+  const shareId = await shareFromCommandPalette({ window });
 
   await openCommandPalette({ window });
   const areaOption = window.getByRole('option', { name: 'Shared with me' });
