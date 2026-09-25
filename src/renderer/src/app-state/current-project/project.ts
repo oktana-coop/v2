@@ -1,9 +1,10 @@
 import * as Effect from 'effect/Effect';
-import { useCallback, useContext, useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router';
 
 import { AuthContext } from '../../../../modules/auth/browser';
 import {
+  decodeUrlEncodedProjectId,
   type OpenOrCreateProjectResult,
   type OpenProjectByIdResult,
   type ProjectId,
@@ -23,7 +24,7 @@ import { type ProjectContextType, type ProjectStateSetters } from './types';
 
 type ProjectOps = Pick<
   ProjectContextType,
-  | 'loading'
+  | 'resolving'
   | 'projectId'
   | 'directory'
   | 'currentBranch'
@@ -49,7 +50,6 @@ export const useProjectOps = (): ProjectOps & ProjectStateSetters => {
   const location = useLocation();
   const navigateToResolveMergeConflicts = useNavigateToResolveConflicts();
 
-  const [loading, setLoading] = useState<boolean>(false);
   const [projectId, setProjectId] = useState<ProjectId | null>(null);
   const [directory, setDirectory] = useState<Directory | null>(null);
   const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
@@ -82,8 +82,6 @@ export const useProjectOps = (): ProjectOps & ProjectStateSetters => {
 
       if (!storedProject?.projectId || !storedProject?.directoryPath) return;
 
-      setLoading(true);
-
       const opened = await Effect.runPromise(
         projectStoreManager.openProjectById({
           filesystem,
@@ -96,8 +94,6 @@ export const useProjectOps = (): ProjectOps & ProjectStateSetters => {
       );
 
       applyOpenedProject(opened);
-
-      setLoading(false);
 
       if (opened.mergeConflictInfo) {
         navigateToResolveMergeConflicts({
@@ -141,8 +137,6 @@ export const useProjectOps = (): ProjectOps & ProjectStateSetters => {
 
   const handleOpenDirectory = useCallback(
     async (cloneUrl?: string) => {
-      setLoading(true);
-
       const opened = await Effect.runPromise(
         projectStoreManager.openOrCreateProject({
           filesystem,
@@ -155,8 +149,6 @@ export const useProjectOps = (): ProjectOps & ProjectStateSetters => {
         projectId: opened.projectId,
         directoryPath: opened.directory.path,
       });
-
-      setLoading(false);
 
       if (opened.mergeConflictInfo) {
         navigateToResolveMergeConflicts({
@@ -200,8 +192,19 @@ export const useProjectOps = (): ProjectOps & ProjectStateSetters => {
     setPulledUpstreamChanges(false);
   };
 
+  const { projectId: urlEncodedProjectId } = useParams();
+  const routeProjectId = useMemo(
+    () =>
+      urlEncodedProjectId
+        ? decodeUrlEncodedProjectId(urlEncodedProjectId)
+        : null,
+    [urlEncodedProjectId]
+  );
+
+  const resolving = routeProjectId !== null && routeProjectId !== projectId;
+
   return {
-    loading,
+    resolving,
     projectId,
     directory,
     currentBranch,

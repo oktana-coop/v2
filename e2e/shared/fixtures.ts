@@ -14,6 +14,7 @@ type Fixtures = {
   testProjectDir: string;
   emptyProjectDir: string;
   nestedProjectDir: string;
+  longDocumentProjectDir: string;
 };
 
 export const test = base.extend<Fixtures>({
@@ -135,6 +136,23 @@ export const test = base.extend<Fixtures>({
     // The Electron app is torn down after this fixture (Playwright teardown
     // order), so it may still hold file watchers on the directory. Ignore
     // cleanup errors — the OS will reclaim the temp directory.
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+    } catch {}
+  },
+
+  longDocumentProjectDir: async ({}, use) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'v2-e2e-long-doc-'));
+    const paragraphs = Array.from(
+      { length: 2000 },
+      (_, index) => `Paragraph ${index + 1} of a long document.`
+    );
+    fs.writeFileSync(
+      path.join(dir, 'chapter.md'),
+      `# Chapter\n\n${paragraphs.join('\n\n')}\n`
+    );
+    await use(dir);
+
     try {
       fs.rmSync(dir, { recursive: true, force: true });
     } catch {}

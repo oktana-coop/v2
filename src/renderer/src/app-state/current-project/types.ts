@@ -37,7 +37,7 @@ export type ProjectStateSetters = {
 };
 
 export type ProjectContextType = {
-  loading: boolean;
+  resolving: boolean;
   projectId: ProjectId | null;
   directory: Directory | null;
   currentBranch: Branch | null;
