@@ -113,17 +113,15 @@ export const InfrastructureAdaptersProvider = ({
     () =>
       Effect.tryPromise({
         try: () => {
-          // The override lets tests and offline development point at a local
-          // sync server without rebuilding.
-          const syncServiceUrl =
-            localStorage.getItem('syncServiceUrl') ?? config.syncServiceUrl;
-
           if (syncedRepoRef.current === null) {
             // Shared documents outlive the process, so what was typed while
             // the sync service was out of reach is still there to sync after
             // a restart.
             syncedRepoRef.current = Effect.runPromise(
-              createAutomergeRepo({ syncServiceUrl, storage: 'indexeddb' })
+              createAutomergeRepo({
+                syncServiceUrl: config.syncServiceUrl,
+                storage: 'indexeddb',
+              })
             );
           }
 

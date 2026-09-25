@@ -1,13 +1,9 @@
-import {
-  _electron as electron,
-  type ElectronApplication,
-  type Page,
-} from '@playwright/test';
+import { type ElectronApplication, type Page } from '@playwright/test';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-import { expect, test } from '../shared/fixtures';
+import { expect, launchElectronApp, test } from '../shared/fixtures';
 import {
   expectNoOpenDocument,
   openCommandPalette,
@@ -15,11 +11,6 @@ import {
   openProjectFolder,
   typeInEditorSlowly,
 } from '../shared/helpers';
-import {
-  pointAppAtSyncServer,
-  startSyncServer,
-  type SyncServer,
-} from '../shared/sync-server';
 
 // Shares the open document from the palette and returns its share ID.
 const shareCurrentDocument = async ({
@@ -51,7 +42,11 @@ const shareCurrentDocument = async ({
 
 // A second, fully independent app instance with its own user data: a guest's
 // machine, holding no project unless the test opens one.
-const launchSecondApp = async (): Promise<{
+const launchSecondApp = async ({
+  syncServiceUrl,
+}: {
+  syncServiceUrl: string;
+}): Promise<{
   app: ElectronApplication;
   window: Page;
   close: () => Promise<void>;
@@ -60,14 +55,7 @@ const launchSecondApp = async (): Promise<{
     path.join(os.tmpdir(), 'v2-e2e-userdata-guest-')
   );
 
-  const app = await electron.launch({
-    args: [
-      path.join(process.cwd(), 'dist/main/index.js'),
-      `--user-data-dir=${userDataDir}`,
-      ...(process.env.HEADLESS === 'true' ? ['--headless-window'] : []),
-    ],
-    timeout: 30_000,
-  });
+  const app = await launchElectronApp({ userDataDir, syncServiceUrl });
   const window = await app.firstWindow();
   await window.waitForLoadState('domcontentloaded');
 
@@ -83,22 +71,14 @@ const launchSecondApp = async (): Promise<{
   };
 };
 
+test.use({ withSyncServer: true });
+
 test.describe('guest editing', () => {
-  let syncServer: SyncServer;
-
-  test.beforeEach(async ({ window }) => {
-    syncServer = await startSyncServer();
-    await pointAppAtSyncServer({ window, url: syncServer.url });
-  });
-
-  test.afterEach(() => {
-    syncServer.stop();
-  });
-
   test('a guest joins from the project selection screen, edits with the host, and leaves', async ({
     electronApp,
     window,
     testProjectDir,
+    syncServer,
   }) => {
     test.setTimeout(120_000);
 
@@ -110,10 +90,8 @@ test.describe('guest editing', () => {
     await openHelloMd({ window });
     const shareId = await shareCurrentDocument({ window });
 
-    const guest = await launchSecondApp();
+    const guest = await launchSecondApp({ syncServiceUrl: syncServer!.url });
     try {
-      await pointAppAtSyncServer({ window: guest.window, url: syncServer.url });
-
       // No project open: the project selection screen offers to join.
       await guest.window
         .getByRole('button', { name: 'Join shared document' })
@@ -175,6 +153,7 @@ test.describe('guest editing', () => {
     electronApp,
     window,
     testProjectDir,
+    syncServer,
   }) => {
     test.setTimeout(120_000);
 
@@ -188,7 +167,7 @@ test.describe('guest editing', () => {
     await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
     const shareId = await shareCurrentDocument({ window });
 
-    const other = await launchSecondApp();
+    const other = await launchSecondApp({ syncServiceUrl: syncServer!.url });
     const otherProjectDir = fs.mkdtempSync(
       path.join(os.tmpdir(), 'v2-e2e-other-')
     );
@@ -197,7 +176,6 @@ test.describe('guest editing', () => {
       '# Hello\n\nAnother project.\n'
     );
     try {
-      await pointAppAtSyncServer({ window: other.window, url: syncServer.url });
       await openProjectFolder({
         electronApp: other.app,
         window: other.window,
@@ -238,17 +216,6 @@ test.describe('guest editing', () => {
 
 // A guest is joined or gone: the flows around leaving.
 test.describe('guest leaving and joining again', () => {
-  let syncServer: SyncServer;
-
-  test.beforeEach(async ({ window }) => {
-    syncServer = await startSyncServer();
-    await pointAppAtSyncServer({ window, url: syncServer.url });
-  });
-
-  test.afterEach(() => {
-    syncServer.stop();
-  });
-
   const joinFromProjectSelection = async (window: Page, shareId: string) => {
     await window
       .getByRole('button', { name: 'Join shared document' })
@@ -285,6 +252,7 @@ test.describe('guest leaving and joining again', () => {
     electronApp,
     window,
     testProjectDir,
+    syncServer,
   }) => {
     test.setTimeout(120_000);
 
@@ -299,9 +267,8 @@ test.describe('guest leaving and joining again', () => {
     await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
     const worldShareId = await shareCurrentDocument({ window });
 
-    const guest = await launchSecondApp();
+    const guest = await launchSecondApp({ syncServiceUrl: syncServer!.url });
     try {
-      await pointAppAtSyncServer({ window: guest.window, url: syncServer.url });
       const guestEditor = guest.window.locator('.ProseMirror');
 
       await joinFromProjectSelection(guest.window, helloShareId);
@@ -327,6 +294,7 @@ test.describe('guest leaving and joining again', () => {
     electronApp,
     window,
     testProjectDir,
+    syncServer,
   }) => {
     test.setTimeout(120_000);
 
@@ -338,9 +306,8 @@ test.describe('guest leaving and joining again', () => {
     await openHelloMd({ window });
     const firstShareId = await shareCurrentDocument({ window });
 
-    const guest = await launchSecondApp();
+    const guest = await launchSecondApp({ syncServiceUrl: syncServer!.url });
     try {
-      await pointAppAtSyncServer({ window: guest.window, url: syncServer.url });
       const guestEditor = guest.window.locator('.ProseMirror');
 
       await joinFromProjectSelection(guest.window, firstShareId);
@@ -368,6 +335,7 @@ test.describe('guest leaving and joining again', () => {
     electronApp,
     window,
     testProjectDir,
+    syncServer,
   }) => {
     test.setTimeout(120_000);
 
@@ -379,9 +347,8 @@ test.describe('guest leaving and joining again', () => {
     await openHelloMd({ window });
     const shareId = await shareCurrentDocument({ window });
 
-    const guest = await launchSecondApp();
+    const guest = await launchSecondApp({ syncServiceUrl: syncServer!.url });
     try {
-      await pointAppAtSyncServer({ window: guest.window, url: syncServer.url });
       const guestEditor = guest.window.locator('.ProseMirror');
 
       await joinFromProjectSelection(guest.window, shareId);
@@ -413,6 +380,7 @@ test.describe('guest leaving and joining again', () => {
     electronApp,
     window,
     testProjectDir,
+    syncServer,
   }) => {
     test.setTimeout(120_000);
 
@@ -427,9 +395,8 @@ test.describe('guest leaving and joining again', () => {
     await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
     const worldShareId = await shareCurrentDocument({ window });
 
-    const guest = await launchSecondApp();
+    const guest = await launchSecondApp({ syncServiceUrl: syncServer!.url });
     try {
-      await pointAppAtSyncServer({ window: guest.window, url: syncServer.url });
       const guestEditor = guest.window.locator('.ProseMirror');
 
       await joinFromProjectSelection(guest.window, helloShareId);
@@ -467,17 +434,6 @@ test.describe('guest leaving and joining again', () => {
 });
 
 test.describe('guest and host in one app', () => {
-  let syncServer: SyncServer;
-
-  test.beforeEach(async ({ window }) => {
-    syncServer = await startSyncServer();
-    await pointAppAtSyncServer({ window, url: syncServer.url });
-  });
-
-  test.afterEach(() => {
-    syncServer.stop();
-  });
-
   test('joining your own share as a guest and leaving it does not break the host document', async ({
     electronApp,
     window,
@@ -532,23 +488,13 @@ test.describe('guest and host in one app', () => {
 });
 
 test.describe('guest leaving while the host stays', () => {
-  let syncServer: SyncServer;
-
-  test.beforeEach(async ({ window }) => {
-    syncServer = await startSyncServer();
-    await pointAppAtSyncServer({ window, url: syncServer.url });
-  });
-
-  test.afterEach(() => {
-    syncServer.stop();
-  });
-
   // The host keeps the left document open: its presence heartbeats and edits
   // keep arriving for a document this guest no longer holds.
   test('a guest can still join another document a while after leaving one', async ({
     electronApp,
     window,
     testProjectDir,
+    syncServer,
   }) => {
     test.setTimeout(180_000);
 
@@ -565,9 +511,8 @@ test.describe('guest leaving while the host stays', () => {
     // Back on the first document, where the host keeps working.
     await openHelloMd({ window });
 
-    const guest = await launchSecondApp();
+    const guest = await launchSecondApp({ syncServiceUrl: syncServer!.url });
     try {
-      await pointAppAtSyncServer({ window: guest.window, url: syncServer.url });
       const guestEditor = guest.window.locator('.ProseMirror');
       const errors: string[] = [];
       guest.window.on('console', (message) => {
@@ -672,17 +617,6 @@ const openOwnShareAsGuest = async ({
 };
 
 test.describe('the list entry menu', () => {
-  let syncServer: SyncServer;
-
-  test.beforeEach(async ({ window }) => {
-    syncServer = await startSyncServer();
-    await pointAppAtSyncServer({ window, url: syncServer.url });
-  });
-
-  test.afterEach(() => {
-    syncServer.stop();
-  });
-
   test('leaving the open document from its entry', async ({
     electronApp,
     window,
