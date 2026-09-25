@@ -43,8 +43,8 @@ jobs:
       - name: Install Playwright system dependencies
         if: runner.os == 'Linux'
         run: npx playwright install-deps
-      - name: Build app
-        run: pnpm run build
+      - name: Build app for E2E
+        run: pnpm run build:e2e
         env:
           NODE_OPTIONS: '--max-old-space-size=4096'
           VITE_PRIMARY_RICH_TEXT_REPRESENTATION: 'MARKDOWN'

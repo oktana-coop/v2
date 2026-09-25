@@ -6,11 +6,6 @@ import {
   openProjectFolder,
   typeInEditorSlowly,
 } from '../shared/helpers';
-import {
-  pointAppAtSyncServer,
-  startSyncServer,
-  type SyncServer,
-} from '../shared/sync-server';
 
 // The share button in the editor's actions bar: it reads as "Share Document"
 // while the document is private and "Sharing Options" once it is shared.
@@ -58,16 +53,7 @@ const stopSharingFromButton = async (window: Page) => {
 };
 
 test.describe('sharing from the actions bar', () => {
-  let syncServer: SyncServer;
-
-  test.beforeEach(async ({ window }) => {
-    syncServer = await startSyncServer();
-    await pointAppAtSyncServer({ window, url: syncServer.url });
-  });
-
-  test.afterEach(() => {
-    syncServer.stop();
-  });
+  test.use({ withSyncServer: true });
 
   test('the button reflects the sharing state', async ({
     electronApp,

@@ -1,38 +1,31 @@
 import { Repo } from '@automerge/automerge-repo';
 import { WebSocketClientAdapter } from '@automerge/automerge-repo-network-websocket';
-import {
-  _electron as electron,
-  type ElectronApplication,
-  type Page,
-} from '@playwright/test';
+import { type ElectronApplication, type Page } from '@playwright/test';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-import { expect, test } from '../shared/fixtures';
+import { expect, launchElectronApp, test } from '../shared/fixtures';
 import {
   expectNoErrorNotification,
   openHelloMd,
   openProjectFolder,
   typeInEditorSlowly,
 } from '../shared/helpers';
-import { pointAppAtSyncServer, startSyncServer } from '../shared/sync-server';
+import { startSyncServer } from '../shared/sync-server';
 
 type DocumentContent = { formatVersion: number; content: string };
 
 // An app instance on a given user data dir, so a test can bring the same
 // app back after closing it.
-const launchApp = async (
-  userDataDir: string
-): Promise<{ app: ElectronApplication; window: Page }> => {
-  const app = await electron.launch({
-    args: [
-      path.join(process.cwd(), 'dist/main/index.js'),
-      `--user-data-dir=${userDataDir}`,
-      ...(process.env.HEADLESS === 'true' ? ['--headless-window'] : []),
-    ],
-    timeout: 30_000,
-  });
+const launchApp = async ({
+  userDataDir,
+  syncServiceUrl,
+}: {
+  userDataDir: string;
+  syncServiceUrl: string;
+}): Promise<{ app: ElectronApplication; window: Page }> => {
+  const app = await launchElectronApp({ userDataDir, syncServiceUrl });
   const window = await app.firstWindow();
   await window.waitForLoadState('domcontentloaded');
 
@@ -113,8 +106,10 @@ test.describe('a shared document across a restart', () => {
     let service = await startSyncServer({ dataDir: serviceDataDir });
 
     try {
-      const first = await launchApp(userDataDir);
-      await pointAppAtSyncServer({ window: first.window, url: service.url });
+      const first = await launchApp({
+        userDataDir,
+        syncServiceUrl: service.url,
+      });
       await openProjectFolder({
         electronApp: first.app,
         window: first.window,
@@ -144,7 +139,10 @@ test.describe('a shared document across a restart', () => {
         .toContain('OFFLINE');
       await first.app.close();
 
-      const second = await launchApp(userDataDir);
+      const second = await launchApp({
+        userDataDir,
+        syncServiceUrl: service.url,
+      });
       await openProjectFolder({
         electronApp: second.app,
         window: second.window,

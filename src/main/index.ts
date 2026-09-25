@@ -16,6 +16,7 @@ import {
 import os from 'os';
 
 import { createElectronMainEncryptedStoreAdapter } from '../modules/auth/node';
+import { readHeadlessWindowOverride } from '../modules/config';
 import { createPandocDocumentAnalyzerAdapter } from '../modules/domain/rich-text';
 import { createPagedJsElectronNodeAdapter } from '../modules/domain/rich-text/node';
 import { allowedPermissions } from '../modules/infrastructure/cross-platform';
@@ -142,7 +143,7 @@ async function createWindow() {
     },
     ...(isMac() && { titleBarStyle: 'hidden' }),
     // Hide the window when running E2E tests headlessly.
-    ...(process.argv.includes('--headless-window') && { show: false }),
+    ...(readHeadlessWindowOverride(process.argv) && { show: false }),
   });
 
   if (url) {

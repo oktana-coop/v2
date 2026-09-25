@@ -1,4 +1,3 @@
-import { type Page } from '@playwright/test';
 import { type ChildProcess, spawn } from 'child_process';
 import fs from 'fs';
 import os from 'os';
@@ -54,16 +53,4 @@ export const startSyncServer = async ({
       } catch {}
     },
   };
-};
-
-export const pointAppAtSyncServer = async ({
-  window,
-  url,
-}: {
-  window: Page;
-  url: string;
-}): Promise<void> => {
-  await window.evaluate((syncServiceUrl) => {
-    localStorage.setItem('syncServiceUrl', syncServiceUrl);
-  }, url);
 };
