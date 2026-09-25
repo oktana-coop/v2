@@ -42,6 +42,7 @@ export const ProjectProvider = ({
     mergeConflictInfo,
     remoteProject,
     pulledUpstreamChanges,
+    resolving: resolvingProject,
   } = projectOps;
 
   const directoryWatchOps = useDirectoryWatchOps({ projectStore, directory });
@@ -63,7 +64,9 @@ export const ProjectProvider = ({
       directoryWatchOps.subscribeToProjectDirChanges,
   });
 
-  const currentArtifactId = useCurrentArtifactId();
+  const routeArtifactId = useCurrentArtifactId();
+
+  const currentArtifactId = resolvingProject ? null : routeArtifactId;
 
   const artifactFromTree = useArtifactMetaDataFromTree({
     tree: directoryTree,
@@ -74,14 +77,16 @@ export const ProjectProvider = ({
   // such as a document created since the last refresh. When the tree already
   // had it this resolves redundantly, which is cheap enough to prefer over
   // teaching the hook to skip.
-  const { artifact: resolvedArtifact, resolving } = useResolveArtifactMetaData({
-    projectId,
-    projectStore,
-    artifactId: currentArtifactId,
-  });
+  const { artifact: resolvedArtifact, resolving: resolvingArtifact } =
+    useResolveArtifactMetaData({
+      projectId,
+      projectStore,
+      artifactId: currentArtifactId,
+    });
 
   const currentArtifact = artifactFromTree ?? resolvedArtifact;
-  const resolvingCurrentArtifact = !currentArtifact && resolving;
+  const resolvingCurrentArtifact =
+    !currentArtifact && (resolvingProject || resolvingArtifact);
   const currentArtifactPath = currentArtifact?.path ?? null;
 
   const documentOps = useDocumentOps({

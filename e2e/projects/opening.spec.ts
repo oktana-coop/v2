@@ -171,4 +171,65 @@ test.describe('project opening', () => {
       window.getByRole('heading', { name: path.basename(nestedProjectDir) })
     ).toBeVisible();
   });
+
+  test('switches to another project while a document is open in the editor', async ({
+    electronApp,
+    window,
+    longDocumentProjectDir,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: longDocumentProjectDir,
+    });
+    await openDocument({ window, relativePath: 'chapter.md' });
+    await window.locator('.ProseMirror').click();
+    await expect(window.locator('.ProseMirror')).toBeFocused();
+
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    await expect(fileExplorer(window).getByText('armadillo.md')).toBeVisible();
+    await expect(
+      window.getByRole('heading', { name: path.basename(nestedProjectDir) })
+    ).toBeVisible();
+
+    // The document of the first project is closed, not reopened against the
+    // second project: a failed lookup would surface as an error notification
+    // shortly after the switch.
+    await expect(window.locator('.ProseMirror')).toHaveCount(0);
+    await window.waitForTimeout(500);
+    await expect(window.getByTestId('error-notification')).toHaveCount(0);
+  });
+
+  test('keeps the open document when the folder dialog is cancelled', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openDocument({ window, relativePath: 'hello.md' });
+    await expect(window.locator('.ProseMirror')).toContainText('Hello');
+
+    await electronApp.evaluate(async ({ dialog }) => {
+      dialog.showOpenDialog = async () => ({ canceled: true, filePaths: [] });
+    });
+    await window
+      .getByRole('button', { name: /open folder/i })
+      .first()
+      .click();
+
+    // Nothing was opened, so the document stays where it was.
+    await window.waitForTimeout(500);
+    await expect(window.locator('.ProseMirror')).toContainText('Hello');
+    await expect(window.getByTestId('error-notification')).toHaveCount(0);
+  });
 });
