@@ -895,9 +895,50 @@ export const createAndSwitchToBranch = async ({
   await window.getByRole('textbox').fill(branchName);
   await createBranchBtn.click();
 
-  await expect(window.getByRole('button', { name: branchName })).toBeVisible({
+  await expectCurrentBranch({ window, branch: branchName });
+};
+
+export const expectCurrentBranch = async ({
+  window,
+  branch,
+}: {
+  window: Page;
+  branch: string;
+}): Promise<void> => {
+  await expect(window.getByRole('button', { name: branch })).toBeVisible({
     timeout: 5_000,
   });
+};
+
+export const expectErrorNotification = async ({
+  window,
+  message,
+}: {
+  window: Page;
+  message: string;
+}): Promise<void> => {
+  await expect(window.getByTestId('error-notification')).toContainText(message);
+};
+
+export const expectNoErrorNotification = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  await expect(window.getByTestId('error-notification')).toHaveCount(0);
+};
+
+export const attemptBranchSwitch = async ({
+  window,
+  from = 'main',
+  to,
+}: {
+  window: Page;
+  from?: string;
+  to: string;
+}): Promise<void> => {
+  await openBranchingPalette({ window, currentBranch: from });
+  await window.getByRole('option', { name: to, exact: true }).click();
 };
 
 export const switchToBranch = async ({
@@ -909,11 +950,8 @@ export const switchToBranch = async ({
   from?: string;
   to: string;
 }): Promise<void> => {
-  await openBranchingPalette({ window, currentBranch: from });
-  await window.getByRole('option', { name: to, exact: true }).click();
-  await expect(window.getByRole('button', { name: to })).toBeVisible({
-    timeout: 5_000,
-  });
+  await attemptBranchSwitch({ window, from, to });
+  await expectCurrentBranch({ window, branch: to });
 };
 
 export const mergeToMainBranch = async ({

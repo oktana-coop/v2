@@ -3,10 +3,12 @@ import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
 import {
+  attemptBranchSwitch,
   commitChanges,
   createAndSwitchToBranch,
   createNewFileFromButton,
-  openBranchingPalette,
+  expectCurrentBranch,
+  expectErrorNotification,
   openDocument,
   openProjectFolder,
   switchToBranch,
@@ -70,10 +72,8 @@ test.describe('branch switching', () => {
     await commitChanges({ window, message: 'experiment commit' });
     await expect(editor(window)).toContainText('Only on experiment');
 
-    // Driven directly rather than via `switchToBranch`, whose post-condition is
-    // a visible branch button — the reset navigates away from it.
-    await openBranchingPalette({ window, currentBranch: 'experiment' });
-    await window.getByRole('option', { name: 'main', exact: true }).click();
+    // The reset navigates away from the branch button.
+    await attemptBranchSwitch({ window, from: 'experiment', to: 'main' });
 
     // The open document has no counterpart on main, so it cannot be re-resolved
     // against it and the app resets rather than showing a stale document.
@@ -106,20 +106,18 @@ test.describe('switching with uncommitted changes', () => {
     await switchToBranch({ window, from: 'experiment', to: 'main' });
 
     await typeInParagraphAndWaitForDebounce({ window, text: ' not committed' });
-    await openBranchingPalette({ window, currentBranch: 'main' });
-    await window
-      .getByRole('option', { name: 'experiment', exact: true })
-      .click();
+    await attemptBranchSwitch({ window, to: 'experiment' });
 
-    await expect(
-      window.getByText(/would be overwritten by switching to "experiment"/)
-    ).toBeVisible({ timeout: 5_000 });
-    await expect(window.getByRole('button', { name: 'main' })).toBeVisible();
+    await expectErrorNotification({
+      window,
+      message:
+        'Your local changes to hello.md would be overwritten by switching to "experiment"',
+    });
+    await expectCurrentBranch({ window, branch: 'main' });
     await expect(editor(window)).toContainText('not committed');
   });
 
-  // An edit to a file both branches hold alike comes along.
-  test('brings an edit to a document the branches share along', async ({
+  test('carries the edit over when the edited document is the same on both branches', async ({
     electronApp,
     window,
     testProjectDir,

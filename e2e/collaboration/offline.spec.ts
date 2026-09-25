@@ -11,6 +11,7 @@ import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
 import {
+  expectNoErrorNotification,
   openHelloMd,
   openProjectFolder,
   typeInEditorSlowly,
@@ -162,9 +163,7 @@ test.describe('a shared document across a restart', () => {
       await expect(second.window.locator('.ProseMirror')).toContainText(
         'OFFLINE'
       );
-      await expect(
-        second.window.getByText('Shared Document Error')
-      ).toHaveCount(0);
+      await expectNoErrorNotification({ window: second.window });
 
       service = await startSyncServer({
         port: service.port,
