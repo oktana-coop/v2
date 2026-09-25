@@ -77,7 +77,7 @@ test.describe('sharing from the actions bar', () => {
     await expectPrivate(window);
   });
 
-  test('sharing options reopen with the same share ID', async ({
+  test('reopening the sharing options shows the existing share ID', async ({
     electronApp,
     window,
     testProjectDir,
@@ -97,7 +97,7 @@ test.describe('sharing from the actions bar', () => {
     await expectShared(window);
   });
 
-  test('share, stop, share, stop keeps working and keeps the text', async ({
+  test('sharing again after stopping gives a new share ID and keeps the text', async ({
     electronApp,
     window,
     testProjectDir,
