@@ -22,7 +22,11 @@ import {
   switchToBranch,
   typeInEditorSlowly,
 } from '../shared/helpers';
-import { startSyncServer } from '../shared/sync-server';
+import {
+  pointAppAtSyncServer,
+  startSyncServer,
+  type SyncServer,
+} from '../shared/sync-server';
 
 type DocumentContent = { formatVersion: number; content: string };
 
@@ -219,15 +223,11 @@ const launchPeerApp = async (
 };
 
 test.describe('realtime collaboration', () => {
-  let syncServer: Awaited<ReturnType<typeof startSyncServer>>;
+  let syncServer: SyncServer;
 
   test.beforeEach(async ({ window }) => {
     syncServer = await startSyncServer();
-    // The repo is created lazily on first share/join, so pointing the app at
-    // the local server after load still takes effect.
-    await window.evaluate((url) => {
-      localStorage.setItem('syncServiceUrl', url);
-    }, syncServer.url);
+    await pointAppAtSyncServer({ window, url: syncServer.url });
   });
 
   test.afterEach(() => {
@@ -248,9 +248,7 @@ test.describe('realtime collaboration', () => {
     await new Promise<void>((resolve) => listener.listen(0, resolve));
     const { port } = listener.address() as net.AddressInfo;
 
-    await window.evaluate((url) => {
-      localStorage.setItem('syncServiceUrl', url);
-    }, `ws://127.0.0.1:${port}`);
+    await pointAppAtSyncServer({ window, url: `ws://127.0.0.1:${port}` });
 
     await openProjectFolder({
       electronApp,
@@ -527,9 +525,7 @@ test.describe('realtime collaboration', () => {
 
     const bob = await launchPeerApp();
     try {
-      await bob.window.evaluate((url) => {
-        localStorage.setItem('syncServiceUrl', url);
-      }, syncServer.url);
+      await pointAppAtSyncServer({ window: bob.window, url: syncServer.url });
 
       await openProjectFolder({
         electronApp: bob.app,
@@ -595,9 +591,7 @@ test.describe('realtime collaboration', () => {
 
     const bob = await launchPeerApp();
     try {
-      await bob.window.evaluate((url) => {
-        localStorage.setItem('syncServiceUrl', url);
-      }, syncServer.url);
+      await pointAppAtSyncServer({ window: bob.window, url: syncServer.url });
 
       await openProjectFolder({
         electronApp: bob.app,
@@ -637,9 +631,7 @@ test.describe('realtime collaboration', () => {
 
     const bob = await launchPeerApp();
     try {
-      await bob.window.evaluate((url) => {
-        localStorage.setItem('syncServiceUrl', url);
-      }, syncServer.url);
+      await pointAppAtSyncServer({ window: bob.window, url: syncServer.url });
 
       await openProjectFolder({
         electronApp: bob.app,
@@ -697,9 +689,7 @@ test.describe('realtime collaboration', () => {
     // and each sees the other's write through its own watcher.
     const bob = await launchPeerApp(aliceProject);
     try {
-      await bob.window.evaluate((url) => {
-        localStorage.setItem('syncServiceUrl', url);
-      }, syncServer.url);
+      await pointAppAtSyncServer({ window: bob.window, url: syncServer.url });
 
       await openProjectFolder({
         electronApp: bob.app,
@@ -764,9 +754,7 @@ test.describe('realtime collaboration', () => {
 
     const bob = await launchPeerApp();
     try {
-      await bob.window.evaluate((url) => {
-        localStorage.setItem('syncServiceUrl', url);
-      }, proxy.url);
+      await pointAppAtSyncServer({ window: bob.window, url: proxy.url });
 
       await openProjectFolder({
         electronApp: bob.app,
@@ -837,9 +825,7 @@ test.describe('realtime collaboration', () => {
 
     const bob = await launchPeerApp(bobProject);
     try {
-      await bob.window.evaluate((url) => {
-        localStorage.setItem('syncServiceUrl', url);
-      }, syncServer.url);
+      await pointAppAtSyncServer({ window: bob.window, url: syncServer.url });
 
       await openProjectFolder({
         electronApp: bob.app,
@@ -893,9 +879,7 @@ test.describe('realtime collaboration', () => {
 
     const bob = await launchPeerApp();
     try {
-      await bob.window.evaluate((url) => {
-        localStorage.setItem('syncServiceUrl', url);
-      }, syncServer.url);
+      await pointAppAtSyncServer({ window: bob.window, url: syncServer.url });
 
       await openProjectFolder({
         electronApp: bob.app,
@@ -948,9 +932,7 @@ test.describe('realtime collaboration', () => {
 
     const bob = await launchPeerApp(bobProject);
     try {
-      await bob.window.evaluate((url) => {
-        localStorage.setItem('syncServiceUrl', url);
-      }, syncServer.url);
+      await pointAppAtSyncServer({ window: bob.window, url: syncServer.url });
 
       await openProjectFolder({
         electronApp: bob.app,
@@ -1020,9 +1002,7 @@ test.describe('realtime collaboration', () => {
 
     const bob = await launchPeerApp(bobProject);
     try {
-      await bob.window.evaluate((url) => {
-        localStorage.setItem('syncServiceUrl', url);
-      }, syncServer.url);
+      await pointAppAtSyncServer({ window: bob.window, url: syncServer.url });
 
       await openProjectFolder({
         electronApp: bob.app,
@@ -1092,11 +1072,8 @@ test.describe('realtime collaboration', () => {
       delayMs: 100,
     });
 
-    // Overrides the beforeEach direct URL; the repo only dials on first
-    // share, which happens later.
-    await window.evaluate((url) => {
-      localStorage.setItem('syncServiceUrl', url);
-    }, aliceProxy.url);
+    // Overrides the direct URL set in beforeEach.
+    await pointAppAtSyncServer({ window, url: aliceProxy.url });
 
     await openProjectFolder({
       electronApp,
@@ -1110,9 +1087,7 @@ test.describe('realtime collaboration', () => {
 
     const bob = await launchPeerApp(bobProject);
     try {
-      await bob.window.evaluate((url) => {
-        localStorage.setItem('syncServiceUrl', url);
-      }, bobProxy.url);
+      await pointAppAtSyncServer({ window: bob.window, url: bobProxy.url });
 
       await openProjectFolder({
         electronApp: bob.app,
@@ -1205,9 +1180,7 @@ test.describe('realtime collaboration', () => {
 
     const bob = await launchPeerApp(bobProject);
     try {
-      await bob.window.evaluate((url) => {
-        localStorage.setItem('syncServiceUrl', url);
-      }, proxy.url);
+      await pointAppAtSyncServer({ window: bob.window, url: proxy.url });
 
       await openProjectFolder({
         electronApp: bob.app,
@@ -1282,9 +1255,7 @@ test.describe('realtime collaboration', () => {
 
     const bob = await launchPeerApp(bobProject);
     try {
-      await bob.window.evaluate((url) => {
-        localStorage.setItem('syncServiceUrl', url);
-      }, proxy.url);
+      await pointAppAtSyncServer({ window: bob.window, url: proxy.url });
 
       await openProjectFolder({
         electronApp: bob.app,
@@ -1404,9 +1375,7 @@ test.describe('realtime collaboration', () => {
 
     const bob = await launchPeerApp(aliceProject);
     try {
-      await bob.window.evaluate((url) => {
-        localStorage.setItem('syncServiceUrl', url);
-      }, proxy.url);
+      await pointAppAtSyncServer({ window: bob.window, url: proxy.url });
 
       await openProjectFolder({
         electronApp: bob.app,

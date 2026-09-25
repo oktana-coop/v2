@@ -1,22 +1,25 @@
+import { type Page } from '@playwright/test';
 import { type ChildProcess, spawn } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-// A local sync service, so the tests exercise the real network path without
-// depending on the public service. A given port and data dir let a test
-// bring the same service back after stopping it.
+export type SyncServer = {
+  url: string;
+  port: number;
+  stop: () => void;
+};
+
+// Runs automerge-repo-sync-server locally, in place of the build-configured
+// sync server. Passing the same port and data dir brings a stopped server back
+// with its documents.
 export const startSyncServer = async ({
   port = 3630 + Math.floor(Math.random() * 1000),
   dataDir,
 }: {
   port?: number;
   dataDir?: string;
-} = {}): Promise<{
-  url: string;
-  port: number;
-  stop: () => void;
-}> => {
+} = {}): Promise<SyncServer> => {
   const resolvedDataDir =
     dataDir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'v2-e2e-sync-'));
 
@@ -51,4 +54,16 @@ export const startSyncServer = async ({
       } catch {}
     },
   };
+};
+
+export const pointAppAtSyncServer = async ({
+  window,
+  url,
+}: {
+  window: Page;
+  url: string;
+}): Promise<void> => {
+  await window.evaluate((syncServiceUrl) => {
+    localStorage.setItem('syncServiceUrl', syncServiceUrl);
+  }, url);
 };

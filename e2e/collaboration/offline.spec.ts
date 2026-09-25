@@ -16,7 +16,7 @@ import {
   openProjectFolder,
   typeInEditorSlowly,
 } from '../shared/helpers';
-import { startSyncServer } from '../shared/sync-server';
+import { pointAppAtSyncServer, startSyncServer } from '../shared/sync-server';
 
 type DocumentContent = { formatVersion: number; content: string };
 
@@ -114,9 +114,7 @@ test.describe('a shared document across a restart', () => {
 
     try {
       const first = await launchApp(userDataDir);
-      await first.window.evaluate((url) => {
-        localStorage.setItem('syncServiceUrl', url);
-      }, service.url);
+      await pointAppAtSyncServer({ window: first.window, url: service.url });
       await openProjectFolder({
         electronApp: first.app,
         window: first.window,

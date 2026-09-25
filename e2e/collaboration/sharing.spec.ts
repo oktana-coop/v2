@@ -6,7 +6,11 @@ import {
   openProjectFolder,
   typeInEditorSlowly,
 } from '../shared/helpers';
-import { startSyncServer } from '../shared/sync-server';
+import {
+  pointAppAtSyncServer,
+  startSyncServer,
+  type SyncServer,
+} from '../shared/sync-server';
 
 // The share button in the editor's actions bar: it reads as "Share Document"
 // while the document is private and "Sharing Options" once it is shared.
@@ -54,13 +58,11 @@ const stopSharingFromButton = async (window: Page) => {
 };
 
 test.describe('sharing from the actions bar', () => {
-  let syncServer: Awaited<ReturnType<typeof startSyncServer>>;
+  let syncServer: SyncServer;
 
   test.beforeEach(async ({ window }) => {
     syncServer = await startSyncServer();
-    await window.evaluate((url) => {
-      localStorage.setItem('syncServiceUrl', url);
-    }, syncServer.url);
+    await pointAppAtSyncServer({ window, url: syncServer.url });
   });
 
   test.afterEach(() => {

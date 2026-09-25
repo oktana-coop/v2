@@ -15,7 +15,11 @@ import {
   openProjectFolder,
   typeInEditorSlowly,
 } from '../shared/helpers';
-import { startSyncServer } from '../shared/sync-server';
+import {
+  pointAppAtSyncServer,
+  startSyncServer,
+  type SyncServer,
+} from '../shared/sync-server';
 
 // Shares the open document from the palette and returns its share ID.
 const shareCurrentDocument = async ({
@@ -79,17 +83,12 @@ const launchSecondApp = async (): Promise<{
   };
 };
 
-const pointAtSyncServer = (window: Page, url: string) =>
-  window.evaluate((syncServiceUrl) => {
-    localStorage.setItem('syncServiceUrl', syncServiceUrl);
-  }, url);
-
 test.describe('guest editing', () => {
-  let syncServer: Awaited<ReturnType<typeof startSyncServer>>;
+  let syncServer: SyncServer;
 
   test.beforeEach(async ({ window }) => {
     syncServer = await startSyncServer();
-    await pointAtSyncServer(window, syncServer.url);
+    await pointAppAtSyncServer({ window, url: syncServer.url });
   });
 
   test.afterEach(() => {
@@ -113,7 +112,7 @@ test.describe('guest editing', () => {
 
     const guest = await launchSecondApp();
     try {
-      await pointAtSyncServer(guest.window, syncServer.url);
+      await pointAppAtSyncServer({ window: guest.window, url: syncServer.url });
 
       // No project open: the project selection screen offers to join.
       await guest.window
@@ -198,7 +197,7 @@ test.describe('guest editing', () => {
       '# Hello\n\nAnother project.\n'
     );
     try {
-      await pointAtSyncServer(other.window, syncServer.url);
+      await pointAppAtSyncServer({ window: other.window, url: syncServer.url });
       await openProjectFolder({
         electronApp: other.app,
         window: other.window,
@@ -239,11 +238,11 @@ test.describe('guest editing', () => {
 
 // A guest is joined or gone: the flows around leaving.
 test.describe('guest leaving and joining again', () => {
-  let syncServer: Awaited<ReturnType<typeof startSyncServer>>;
+  let syncServer: SyncServer;
 
   test.beforeEach(async ({ window }) => {
     syncServer = await startSyncServer();
-    await pointAtSyncServer(window, syncServer.url);
+    await pointAppAtSyncServer({ window, url: syncServer.url });
   });
 
   test.afterEach(() => {
@@ -302,7 +301,7 @@ test.describe('guest leaving and joining again', () => {
 
     const guest = await launchSecondApp();
     try {
-      await pointAtSyncServer(guest.window, syncServer.url);
+      await pointAppAtSyncServer({ window: guest.window, url: syncServer.url });
       const guestEditor = guest.window.locator('.ProseMirror');
 
       await joinFromProjectSelection(guest.window, helloShareId);
@@ -341,7 +340,7 @@ test.describe('guest leaving and joining again', () => {
 
     const guest = await launchSecondApp();
     try {
-      await pointAtSyncServer(guest.window, syncServer.url);
+      await pointAppAtSyncServer({ window: guest.window, url: syncServer.url });
       const guestEditor = guest.window.locator('.ProseMirror');
 
       await joinFromProjectSelection(guest.window, firstShareId);
@@ -382,7 +381,7 @@ test.describe('guest leaving and joining again', () => {
 
     const guest = await launchSecondApp();
     try {
-      await pointAtSyncServer(guest.window, syncServer.url);
+      await pointAppAtSyncServer({ window: guest.window, url: syncServer.url });
       const guestEditor = guest.window.locator('.ProseMirror');
 
       await joinFromProjectSelection(guest.window, shareId);
@@ -430,7 +429,7 @@ test.describe('guest leaving and joining again', () => {
 
     const guest = await launchSecondApp();
     try {
-      await pointAtSyncServer(guest.window, syncServer.url);
+      await pointAppAtSyncServer({ window: guest.window, url: syncServer.url });
       const guestEditor = guest.window.locator('.ProseMirror');
 
       await joinFromProjectSelection(guest.window, helloShareId);
@@ -468,11 +467,11 @@ test.describe('guest leaving and joining again', () => {
 });
 
 test.describe('guest and host in one app', () => {
-  let syncServer: Awaited<ReturnType<typeof startSyncServer>>;
+  let syncServer: SyncServer;
 
   test.beforeEach(async ({ window }) => {
     syncServer = await startSyncServer();
-    await pointAtSyncServer(window, syncServer.url);
+    await pointAppAtSyncServer({ window, url: syncServer.url });
   });
 
   test.afterEach(() => {
@@ -533,11 +532,11 @@ test.describe('guest and host in one app', () => {
 });
 
 test.describe('guest leaving while the host stays', () => {
-  let syncServer: Awaited<ReturnType<typeof startSyncServer>>;
+  let syncServer: SyncServer;
 
   test.beforeEach(async ({ window }) => {
     syncServer = await startSyncServer();
-    await pointAtSyncServer(window, syncServer.url);
+    await pointAppAtSyncServer({ window, url: syncServer.url });
   });
 
   test.afterEach(() => {
@@ -568,7 +567,7 @@ test.describe('guest leaving while the host stays', () => {
 
     const guest = await launchSecondApp();
     try {
-      await pointAtSyncServer(guest.window, syncServer.url);
+      await pointAppAtSyncServer({ window: guest.window, url: syncServer.url });
       const guestEditor = guest.window.locator('.ProseMirror');
       const errors: string[] = [];
       guest.window.on('console', (message) => {
@@ -673,11 +672,11 @@ const openOwnShareAsGuest = async ({
 };
 
 test.describe('the list entry menu', () => {
-  let syncServer: Awaited<ReturnType<typeof startSyncServer>>;
+  let syncServer: SyncServer;
 
   test.beforeEach(async ({ window }) => {
     syncServer = await startSyncServer();
-    await pointAtSyncServer(window, syncServer.url);
+    await pointAppAtSyncServer({ window, url: syncServer.url });
   });
 
   test.afterEach(() => {
