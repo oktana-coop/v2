@@ -928,6 +928,39 @@ export const expectNoErrorNotification = async ({
   await expect(window.getByTestId('error-notification')).toHaveCount(0);
 };
 
+export const expectNoErrorNotificationAfterWaiting = async ({
+  window,
+  ms = 500,
+}: {
+  window: Page;
+  ms?: number;
+}): Promise<void> => {
+  await window.waitForTimeout(ms);
+  await expectNoErrorNotification({ window });
+};
+
+export const expectNoOpenDocument = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  await expect(window.locator('.ProseMirror')).toHaveCount(0);
+};
+
+export const expectCurrentProject = async ({
+  window,
+  directory,
+}: {
+  window: Page;
+  directory: string;
+}): Promise<void> => {
+  await expect(
+    window
+      .getByTestId('file-explorer')
+      .getByRole('heading', { name: path.basename(directory) })
+  ).toBeVisible();
+};
+
 export const attemptBranchSwitch = async ({
   window,
   from = 'main',

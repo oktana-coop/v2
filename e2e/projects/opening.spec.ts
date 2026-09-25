@@ -9,7 +9,9 @@ import {
 } from '../shared/git';
 import {
   expectCommitChanges,
-  expectNoErrorNotification,
+  expectCurrentProject,
+  expectNoErrorNotificationAfterWaiting,
+  expectNoOpenDocument,
   expectProjectCommits,
   navigateToProjectHistory,
   openDocument,
@@ -141,9 +143,7 @@ test.describe('project opening', () => {
     // The last opened project is restored from browser storage — no folder is
     // picked again here.
     await expect(fileExplorer(window).getByText('hello.md')).toBeVisible();
-    await expect(
-      window.getByRole('heading', { name: path.basename(testProjectDir) })
-    ).toBeVisible();
+    await expectCurrentProject({ window, directory: testProjectDir });
   });
 
   test('switches to another project when a different folder is opened', async ({
@@ -168,9 +168,7 @@ test.describe('project opening', () => {
     // The explorer reflects the second project, and nothing of the first is left.
     await expect(fileExplorer(window).getByText('armadillo.md')).toBeVisible();
     await expect(fileExplorer(window).getByText('hello.md')).toBeHidden();
-    await expect(
-      window.getByRole('heading', { name: path.basename(nestedProjectDir) })
-    ).toBeVisible();
+    await expectCurrentProject({ window, directory: nestedProjectDir });
   });
 
   test('switches to another project while a document is open in the editor', async ({
@@ -194,17 +192,14 @@ test.describe('project opening', () => {
       folderPath: nestedProjectDir,
     });
 
-    await expect(fileExplorer(window).getByText('armadillo.md')).toBeVisible();
-    await expect(
-      window.getByRole('heading', { name: path.basename(nestedProjectDir) })
-    ).toBeVisible();
+    await expectCurrentProject({ window, directory: nestedProjectDir });
 
-    // The document of the first project is closed, not reopened against the
-    // second project: a failed lookup would surface as an error notification
-    // shortly after the switch.
-    await expect(window.locator('.ProseMirror')).toHaveCount(0);
-    await window.waitForTimeout(500);
-    await expectNoErrorNotification({ window });
+    // The first project's document is not carried over.
+    await expectNoOpenDocument({ window });
+
+    // Looking up that document in the second project would fail with an error
+    // notification shortly after the switch.
+    await expectNoErrorNotificationAfterWaiting({ window });
   });
 
   test('keeps the open document when the folder dialog is cancelled', async ({
@@ -229,8 +224,7 @@ test.describe('project opening', () => {
       .click();
 
     // Nothing was opened, so the document stays where it was.
-    await window.waitForTimeout(500);
+    await expectNoErrorNotificationAfterWaiting({ window });
     await expect(window.locator('.ProseMirror')).toContainText('Hello');
-    await expectNoErrorNotification({ window });
   });
 });
