@@ -1,13 +1,11 @@
 import { next as Automerge } from '@automerge/automerge';
-import { Repo } from '@automerge/automerge-repo';
-import { WebSocketClientAdapter } from '@automerge/automerge-repo-network-websocket';
-import { type ElectronApplication, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
 import fs from 'fs';
 import net from 'net';
 import os from 'os';
 import path from 'path';
 
-import { expect, launchElectronApp, test } from '../shared/fixtures';
+import { expect, test } from '../shared/fixtures';
 import { initRepositoryWithCommit } from '../shared/git';
 import {
   createAndSwitchToBranch,
@@ -18,86 +16,14 @@ import {
   switchToBranch,
   typeInEditorSlowly,
 } from '../shared/helpers';
-
-type DocumentContent = { formatVersion: number; content: string };
+import { connectPeer, startLatencyProxy } from '../shared/sync-server';
+import {
+  type DocumentContent,
+  launchApp,
+  shareFromCommandPalette,
+} from './helpers';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// Forwards TCP traffic to the sync server with a delay in both directions,
-// standing in for the round-trip of a hosted sync service. setTimeout with a
-// fixed delay preserves ordering, so frames arrive intact, just later.
-const startLatencyProxy = async ({
-  targetPort,
-  delayMs,
-}: {
-  targetPort: number;
-  delayMs: number;
-}): Promise<{ url: string; stop: () => void }> => {
-  const server = net.createServer((client) => {
-    const upstream = net.connect(targetPort, '127.0.0.1');
-    const forward = (from: net.Socket, to: net.Socket) => {
-      from.on('data', (chunk) => {
-        setTimeout(() => {
-          if (!to.destroyed) to.write(chunk);
-        }, delayMs);
-      });
-      from.on('close', () => {
-        setTimeout(() => to.destroy(), delayMs);
-      });
-      from.on('error', () => to.destroy());
-    };
-    forward(client, upstream);
-    forward(upstream, client);
-  });
-
-  await new Promise<void>((resolve) => server.listen(0, resolve));
-  const { port } = server.address() as net.AddressInfo;
-
-  return {
-    url: `ws://127.0.0.1:${port}`,
-    stop: () => server.close(),
-  };
-};
-
-// The other peer: a plain automerge-repo client, standing in for the second
-// app instance.
-const connectPeer = (syncServerUrl: string) => {
-  const repo = new Repo({
-    network: [new WebSocketClientAdapter(syncServerUrl)],
-  });
-
-  return {
-    repo,
-    disconnect: () => {
-      for (const adapter of repo.networkSubsystem.adapters) {
-        adapter.disconnect();
-      }
-    },
-  };
-};
-
-const shareCurrentDocument = async ({
-  window,
-}: {
-  window: import('@playwright/test').Page;
-}): Promise<string> => {
-  await openCommandPalette({ window });
-
-  const shareOption = window.getByRole('option', {
-    name: 'Share this document',
-  });
-  await shareOption.waitFor({ state: 'visible', timeout: 2_000 });
-  await shareOption.click();
-
-  await window.getByRole('button', { name: 'Create share ID' }).click();
-
-  const shown = window.getByTestId('share-id');
-  await shown.waitFor({ state: 'visible', timeout: 10_000 });
-  const shareId = await shown.textContent();
-  expect(shareId).toMatch(/^automerge:/);
-
-  return shareId as string;
-};
 
 // The editor reports on the dev console when an incoming change could not
 // be applied as exact steps and took the coarser region replace instead.
@@ -118,12 +44,6 @@ const textBeforeCaret = (window: Page) =>
     if (!selection?.anchorNode) return null;
     return selection.anchorNode.textContent?.slice(0, selection.anchorOffset);
   });
-
-const closeShareDialog = async ({ window }: { window: Page }) => {
-  const close = window.getByRole('button', { name: 'Close' });
-  await close.click();
-  await close.waitFor({ state: 'hidden', timeout: 5_000 });
-};
 
 // Hands the link to the app without waiting for what it makes of it: a link
 // this project cannot join leaves the dialog open.
@@ -160,56 +80,6 @@ const joinSharedDocument = async ({
   await input.waitFor({ state: 'hidden', timeout: 10_000 });
 };
 
-// A second, fully independent app instance: its own user data and its own
-// clone of the project, like a collaborator's machine. Passing a projectDir
-// makes it open an existing folder instead (two apps on one clone).
-const launchPeerApp = async ({
-  syncServiceUrl,
-  projectDir: existingProjectDir,
-}: {
-  syncServiceUrl: string;
-  projectDir?: string;
-}): Promise<{
-  app: ElectronApplication;
-  window: Page;
-  projectDir: string;
-  close: () => Promise<void>;
-}> => {
-  const userDataDir = fs.mkdtempSync(
-    path.join(os.tmpdir(), 'v2-e2e-userdata-b-')
-  );
-  const projectDir =
-    existingProjectDir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'v2-e2e-b-'));
-  if (!existingProjectDir) {
-    fs.writeFileSync(
-      path.join(projectDir, 'hello.md'),
-      '# Hello\n\nThis is a test document.\n'
-    );
-  }
-
-  const app = await launchElectronApp({ userDataDir, syncServiceUrl });
-  const window = await app.firstWindow();
-  await window.waitForLoadState('domcontentloaded');
-
-  return {
-    app,
-    window,
-    projectDir,
-    close: async () => {
-      await app.close();
-      // A borrowed project dir belongs to whoever created it.
-      const owned = existingProjectDir
-        ? [userDataDir]
-        : [userDataDir, projectDir];
-      for (const dir of owned) {
-        try {
-          fs.rmSync(dir, { recursive: true, force: true });
-        } catch {}
-      }
-    },
-  };
-};
-
 test.describe('realtime collaboration', () => {
   test.use({ withSyncServer: true });
 
@@ -224,7 +94,7 @@ test.describe('realtime collaboration', () => {
     const { port } = listener.address() as net.AddressInfo;
 
     // Launched here rather than by the fixture, to start pointed at the listener.
-    const alice = await launchPeerApp({
+    const alice = await launchApp({
       syncServiceUrl: `ws://127.0.0.1:${port}`,
     });
     try {
@@ -267,8 +137,7 @@ test.describe('realtime collaboration', () => {
 
     await typeInEditorSlowly({ window, text: ' before', delay: 30 });
 
-    const shareId = await shareCurrentDocument({ window });
-    await closeShareDialog({ window });
+    const shareId = await shareFromCommandPalette({ window });
 
     await typeInEditorSlowly({ window, text: ' after', delay: 30 });
 
@@ -307,7 +176,7 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareId = await shareCurrentDocument({ window });
+    const shareId = await shareFromCommandPalette({ window });
 
     const peer = connectPeer(syncServer!.url);
     try {
@@ -379,8 +248,7 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareId = await shareCurrentDocument({ window });
-    await closeShareDialog({ window });
+    const shareId = await shareFromCommandPalette({ window });
     const fallbacks = collectFallbackReports(window);
 
     // The caret goes mid-paragraph, set on the DOM selection so no
@@ -448,8 +316,7 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareId = await shareCurrentDocument({ window });
-    await closeShareDialog({ window });
+    const shareId = await shareFromCommandPalette({ window });
 
     const peer = connectPeer(syncServer!.url);
     try {
@@ -509,10 +376,9 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareId = await shareCurrentDocument({ window });
-    await closeShareDialog({ window });
+    const shareId = await shareFromCommandPalette({ window });
 
-    const bob = await launchPeerApp({ syncServiceUrl: syncServer!.url });
+    const bob = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
       await openProjectFolder({
         electronApp: bob.app,
@@ -571,13 +437,12 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareId = await shareCurrentDocument({ window });
-    await closeShareDialog({ window });
+    const shareId = await shareFromCommandPalette({ window });
 
     const aliceAvatars = window.getByTestId('presence-avatar');
     await expect(aliceAvatars).toHaveCount(0);
 
-    const bob = await launchPeerApp({ syncServiceUrl: syncServer!.url });
+    const bob = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
       await openProjectFolder({
         electronApp: bob.app,
@@ -613,10 +478,9 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareId = await shareCurrentDocument({ window });
-    await closeShareDialog({ window });
+    const shareId = await shareFromCommandPalette({ window });
 
-    const bob = await launchPeerApp({ syncServiceUrl: syncServer!.url });
+    const bob = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
       await openProjectFolder({
         electronApp: bob.app,
@@ -668,12 +532,11 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareId = await shareCurrentDocument({ window });
-    await closeShareDialog({ window });
+    const shareId = await shareFromCommandPalette({ window });
 
     // Both instances on the same clone: their persists land in the same file,
     // and each sees the other's write through its own watcher.
-    const bob = await launchPeerApp({
+    const bob = await launchApp({
       syncServiceUrl: syncServer!.url,
       projectDir: aliceProject,
     });
@@ -737,10 +600,9 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareId = await shareCurrentDocument({ window });
-    await closeShareDialog({ window });
+    const shareId = await shareFromCommandPalette({ window });
 
-    const bob = await launchPeerApp({ syncServiceUrl: proxy.url });
+    const bob = await launchApp({ syncServiceUrl: proxy.url });
     try {
       await openProjectFolder({
         electronApp: bob.app,
@@ -807,10 +669,9 @@ test.describe('realtime collaboration', () => {
     await openProjectFolder({ electronApp, window, folderPath: aliceProject });
     await openDocument({ window, relativePath: 'notes.md' });
 
-    const shareId = await shareCurrentDocument({ window });
-    await closeShareDialog({ window });
+    const shareId = await shareFromCommandPalette({ window });
 
-    const bob = await launchPeerApp({
+    const bob = await launchApp({
       syncServiceUrl: syncServer!.url,
       projectDir: bobProject,
     });
@@ -863,10 +724,9 @@ test.describe('realtime collaboration', () => {
     await openProjectFolder({ electronApp, window, folderPath: aliceProject });
     await openDocument({ window, relativePath: 'notes.md' });
 
-    const shareId = await shareCurrentDocument({ window });
-    await closeShareDialog({ window });
+    const shareId = await shareFromCommandPalette({ window });
 
-    const bob = await launchPeerApp({ syncServiceUrl: syncServer!.url });
+    const bob = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
       await openProjectFolder({
         electronApp: bob.app,
@@ -912,13 +772,12 @@ test.describe('realtime collaboration', () => {
     });
     await createAndSwitchToBranch({ window, branchName: 'draft' });
     await openHelloMd({ window });
-    const shareId = await shareCurrentDocument({ window });
-    await closeShareDialog({ window });
+    const shareId = await shareFromCommandPalette({ window });
 
     const bobProject = fs.mkdtempSync(path.join(os.tmpdir(), 'v2-e2e-bob-'));
     fs.cpSync(aliceProject, bobProject, { recursive: true });
 
-    const bob = await launchPeerApp({
+    const bob = await launchApp({
       syncServiceUrl: syncServer!.url,
       projectDir: bobProject,
     });
@@ -990,7 +849,7 @@ test.describe('realtime collaboration', () => {
     });
     await openDocument({ window, relativePath: 'Foo.md' });
 
-    const bob = await launchPeerApp({
+    const bob = await launchApp({
       syncServiceUrl: syncServer!.url,
       projectDir: bobProject,
     });
@@ -1002,8 +861,7 @@ test.describe('realtime collaboration', () => {
       });
       await openDocument({ window: bob.window, relativePath: 'Foo.md' });
 
-      const shareId = await shareCurrentDocument({ window });
-      await closeShareDialog({ window });
+      const shareId = await shareFromCommandPalette({ window });
       await joinSharedDocument({ window: bob.window, shareId });
 
       // Into the trailing paragraph under the title, like a person would.
@@ -1063,7 +921,7 @@ test.describe('realtime collaboration', () => {
     });
 
     // Launched here rather than by the fixture, to start behind the proxy.
-    const alice = await launchPeerApp({
+    const alice = await launchApp({
       syncServiceUrl: aliceProxy.url,
       projectDir: aliceProject,
     });
@@ -1074,10 +932,9 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window: alice.window });
 
-    const shareId = await shareCurrentDocument({ window: alice.window });
-    await closeShareDialog({ window: alice.window });
+    const shareId = await shareFromCommandPalette({ window: alice.window });
 
-    const bob = await launchPeerApp({
+    const bob = await launchApp({
       syncServiceUrl: bobProxy.url,
       projectDir: bobProject,
     });
@@ -1174,10 +1031,9 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareId = await shareCurrentDocument({ window });
-    await closeShareDialog({ window });
+    const shareId = await shareFromCommandPalette({ window });
 
-    const bob = await launchPeerApp({
+    const bob = await launchApp({
       syncServiceUrl: proxy.url,
       projectDir: bobProject,
     });
@@ -1251,10 +1107,9 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareId = await shareCurrentDocument({ window });
-    await closeShareDialog({ window });
+    const shareId = await shareFromCommandPalette({ window });
 
-    const bob = await launchPeerApp({
+    const bob = await launchApp({
       syncServiceUrl: proxy.url,
       projectDir: bobProject,
     });
@@ -1373,10 +1228,9 @@ test.describe('realtime collaboration', () => {
     });
     await openHelloMd({ window });
 
-    const shareId = await shareCurrentDocument({ window });
-    await closeShareDialog({ window });
+    const shareId = await shareFromCommandPalette({ window });
 
-    const bob = await launchPeerApp({
+    const bob = await launchApp({
       syncServiceUrl: proxy.url,
       projectDir: aliceProject,
     });

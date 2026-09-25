@@ -1,0 +1,137 @@
+import { type ElectronApplication, type Page } from '@playwright/test';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+
+import { expect, launchElectronApp } from '../shared/fixtures';
+import { openCommandPalette } from '../shared/helpers';
+
+export type DocumentContent = { formatVersion: number; content: string };
+
+// Another app instance with its own user data, like a separate machine. It
+// comes with a new project folder holding hello.md unless given one.
+export const launchApp = async ({
+  syncServiceUrl,
+  userDataDir: userDataDirInput,
+  projectDir: projectDirInput,
+}: {
+  syncServiceUrl: string;
+  userDataDir?: string;
+  projectDir?: string;
+}): Promise<{
+  app: ElectronApplication;
+  window: Page;
+  projectDir: string;
+  close: () => Promise<void>;
+}> => {
+  const userDataDir =
+    userDataDirInput ??
+    fs.mkdtempSync(path.join(os.tmpdir(), 'v2-e2e-userdata-peer-'));
+  const projectDir = projectDirInput ?? createHelloProject();
+
+  const app = await launchElectronApp({ userDataDir, syncServiceUrl });
+  const window = await app.firstWindow();
+  await window.waitForLoadState('domcontentloaded');
+
+  // Passed-in dirs outlive this app, so we don't consider them created.
+  const created = [
+    ...(userDataDirInput ? [] : [userDataDir]),
+    ...(projectDirInput ? [] : [projectDir]),
+  ];
+
+  return {
+    app,
+    window,
+    projectDir,
+    close: async () => {
+      await app.close();
+      for (const dir of created) {
+        try {
+          fs.rmSync(dir, { recursive: true, force: true });
+        } catch {}
+      }
+    },
+  };
+};
+
+const createHelloProject = (): string => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'v2-e2e-peer-'));
+  fs.writeFileSync(
+    path.join(dir, 'hello.md'),
+    '# Hello\n\nThis is a test document.\n'
+  );
+  return dir;
+};
+
+// The share button in the editor's actions bar: it reads as "Share Document"
+// while the document is private and "Sharing Options" once it is shared.
+export const shareButton = (window: Page) =>
+  window.getByRole('button', { name: /Share Document|Sharing Options/ });
+
+export const expectPrivate = async ({ window }: { window: Page }) => {
+  await expect(
+    window.getByRole('button', { name: 'Share Document' })
+  ).toBeVisible();
+};
+
+export const expectShared = async ({ window }: { window: Page }) => {
+  await expect(
+    window.getByRole('button', { name: 'Sharing Options' })
+  ).toBeVisible();
+};
+
+export const closeShareDialog = async ({ window }: { window: Page }) => {
+  const close = window.getByRole('button', { name: 'Close' });
+  await close.click();
+  await close.waitFor({ state: 'hidden', timeout: 5_000 });
+};
+
+const createShareId = async ({ window }: { window: Page }): Promise<string> => {
+  await window.getByRole('button', { name: 'Create share ID' }).click();
+
+  const shown = window.getByTestId('share-id');
+  await shown.waitFor({ state: 'visible', timeout: 10_000 });
+  const shareId = await shown.textContent();
+  expect(shareId).toMatch(/^automerge:/);
+
+  await closeShareDialog({ window });
+
+  return shareId as string;
+};
+
+export const shareFromActionsBar = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<string> => {
+  await shareButton(window).click();
+  return createShareId({ window });
+};
+
+export const shareFromCommandPalette = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<string> => {
+  await openCommandPalette({ window });
+
+  const shareOption = window.getByRole('option', {
+    name: 'Share this document',
+  });
+  await shareOption.waitFor({ state: 'visible', timeout: 2_000 });
+  await shareOption.click();
+
+  return createShareId({ window });
+};
+
+export const stopSharingFromActionsBar = async ({
+  window,
+}: {
+  window: Page;
+}) => {
+  await shareButton(window).click();
+  await window.getByRole('button', { name: 'Stop sharing' }).click();
+  await window
+    .getByRole('button', { name: 'Stop sharing' })
+    .waitFor({ state: 'hidden', timeout: 10_000 });
+};

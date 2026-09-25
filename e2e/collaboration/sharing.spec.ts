@@ -1,56 +1,17 @@
-import { type Page } from '@playwright/test';
-
 import { expect, test } from '../shared/fixtures';
 import {
   openHelloMd,
   openProjectFolder,
   typeInEditorSlowly,
 } from '../shared/helpers';
-
-// The share button in the editor's actions bar: it reads as "Share Document"
-// while the document is private and "Sharing Options" once it is shared.
-const shareButton = (window: Page) =>
-  window.getByRole('button', { name: /Share Document|Sharing Options/ });
-
-const expectPrivate = async (window: Page) => {
-  await expect(
-    window.getByRole('button', { name: 'Share Document' })
-  ).toBeVisible();
-};
-
-const expectShared = async (window: Page) => {
-  await expect(
-    window.getByRole('button', { name: 'Sharing Options' })
-  ).toBeVisible();
-};
-
-const closeShareDialog = async (window: Page) => {
-  const close = window.getByRole('button', { name: 'Close' });
-  await close.click();
-  await close.waitFor({ state: 'hidden', timeout: 5_000 });
-};
-
-const shareFromButton = async (window: Page): Promise<string> => {
-  await shareButton(window).click();
-  await window.getByRole('button', { name: 'Create share ID' }).click();
-
-  const shown = window.getByTestId('share-id');
-  await shown.waitFor({ state: 'visible', timeout: 10_000 });
-  const shareId = await shown.textContent();
-  expect(shareId).toMatch(/^automerge:/);
-
-  await closeShareDialog(window);
-
-  return shareId as string;
-};
-
-const stopSharingFromButton = async (window: Page) => {
-  await shareButton(window).click();
-  await window.getByRole('button', { name: 'Stop sharing' }).click();
-  await window
-    .getByRole('button', { name: 'Stop sharing' })
-    .waitFor({ state: 'hidden', timeout: 10_000 });
-};
+import {
+  closeShareDialog,
+  expectPrivate,
+  expectShared,
+  shareButton,
+  shareFromActionsBar,
+  stopSharingFromActionsBar,
+} from './helpers';
 
 test.describe('sharing from the actions bar', () => {
   test.use({ withSyncServer: true });
@@ -67,14 +28,14 @@ test.describe('sharing from the actions bar', () => {
     });
     await openHelloMd({ window });
 
-    await expectPrivate(window);
-    await shareFromButton(window);
-    await expectShared(window);
+    await expectPrivate({ window });
+    await shareFromActionsBar({ window });
+    await expectShared({ window });
     // The explorer marks the shared document.
     await expect(window.getByTestId('shared-document-badge')).toBeVisible();
-    await stopSharingFromButton(window);
+    await stopSharingFromActionsBar({ window });
     await expect(window.getByTestId('shared-document-badge')).toHaveCount(0);
-    await expectPrivate(window);
+    await expectPrivate({ window });
   });
 
   test('reopening the sharing options shows the existing share ID', async ({
@@ -89,12 +50,12 @@ test.describe('sharing from the actions bar', () => {
     });
     await openHelloMd({ window });
 
-    const shareId = await shareFromButton(window);
+    const shareId = await shareFromActionsBar({ window });
 
     await shareButton(window).click();
     await expect(window.getByTestId('share-id')).toHaveText(shareId);
-    await closeShareDialog(window);
-    await expectShared(window);
+    await closeShareDialog({ window });
+    await expectShared({ window });
   });
 
   test('sharing again after stopping gives a new share ID and keeps the text', async ({
@@ -112,21 +73,21 @@ test.describe('sharing from the actions bar', () => {
     await openHelloMd({ window });
     await typeInEditorSlowly({ window, text: ' one', delay: 30 });
 
-    const first = await shareFromButton(window);
-    await expectShared(window);
+    const first = await shareFromActionsBar({ window });
+    await expectShared({ window });
     await typeInEditorSlowly({ window, text: ' two', delay: 30 });
 
-    await stopSharingFromButton(window);
-    await expectPrivate(window);
+    await stopSharingFromActionsBar({ window });
+    await expectPrivate({ window });
     await typeInEditorSlowly({ window, text: ' three', delay: 30 });
 
-    const second = await shareFromButton(window);
-    await expectShared(window);
+    const second = await shareFromActionsBar({ window });
+    await expectShared({ window });
     expect(second).not.toBe(first);
     await typeInEditorSlowly({ window, text: ' four', delay: 30 });
 
-    await stopSharingFromButton(window);
-    await expectPrivate(window);
+    await stopSharingFromActionsBar({ window });
+    await expectPrivate({ window });
 
     const editor = window.locator('.ProseMirror');
     await expect(editor).toContainText('one two three four');
