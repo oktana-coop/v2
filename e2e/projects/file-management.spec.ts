@@ -1043,8 +1043,6 @@ test.describe('file rename', () => {
       folderPath: nestedProjectDir,
     });
 
-    // Open the file, which moves focus to the editor once it shows, then click
-    // the file again so the tree has focus for the key.
     await window.getByText('beta-doc.md').click();
     await expect(window.locator('.ProseMirror')).toBeFocused({
       timeout: 5_000,

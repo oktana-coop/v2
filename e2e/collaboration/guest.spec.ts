@@ -9,6 +9,7 @@ import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
 import {
+  expectNoOpenDocument,
   openCommandPalette,
   openHelloMd,
   openProjectFolder,
@@ -698,7 +699,7 @@ test.describe('the list entry menu', () => {
     await expect(window.getByText('Nothing shared with you yet.')).toBeVisible({
       timeout: 10_000,
     });
-    await expect(window.locator('.ProseMirror')).toHaveCount(0);
+    await expectNoOpenDocument({ window });
   });
 
   test('giving an entry a name of its own', async ({

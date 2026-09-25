@@ -9,6 +9,7 @@ import {
   createNewFileFromButton,
   expectCurrentBranch,
   expectErrorNotification,
+  expectNoOpenDocument,
   openDocument,
   openProjectFolder,
   switchToBranch,
@@ -77,7 +78,7 @@ test.describe('branch switching', () => {
 
     // The open document has no counterpart on main, so it cannot be re-resolved
     // against it and the app resets rather than showing a stale document.
-    await expect(editor(window)).toBeHidden();
+    await expectNoOpenDocument({ window });
     await expect(
       window.getByRole('heading', { name: /welcome to v2/i })
     ).toBeVisible();
