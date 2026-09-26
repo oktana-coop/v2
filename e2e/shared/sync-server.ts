@@ -1,5 +1,6 @@
 import { Repo } from '@automerge/automerge-repo';
 import { WebSocketClientAdapter } from '@automerge/automerge-repo-network-websocket';
+import { expect } from '@playwright/test';
 import { type ChildProcess, spawn } from 'child_process';
 import fs from 'fs';
 import net from 'net';
@@ -55,6 +56,30 @@ export const startSyncServer = async ({
         fs.rmSync(resolvedDataDir, { recursive: true, force: true });
       } catch {}
     },
+  };
+};
+
+// A bare TCP listener standing in for the sync service. It answers nothing,
+// so a test can check that the app never dialled it.
+export const startTcpListener = async (): Promise<{
+  url: string;
+  expectNoConnectionsAfterWaiting: (ms?: number) => Promise<void>;
+  stop: () => void;
+}> => {
+  let connectionCount = 0;
+  const server = net.createServer(() => {
+    connectionCount += 1;
+  });
+  await new Promise<void>((resolve) => server.listen(0, resolve));
+  const { port } = server.address() as net.AddressInfo;
+
+  return {
+    url: `ws://127.0.0.1:${port}`,
+    expectNoConnectionsAfterWaiting: async (ms = 2_000) => {
+      await new Promise((resolve) => setTimeout(resolve, ms));
+      expect(connectionCount).toBe(0);
+    },
+    stop: () => server.close(),
   };
 };
 
