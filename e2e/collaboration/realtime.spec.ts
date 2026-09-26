@@ -9,7 +9,6 @@ import { expect, test } from '../shared/fixtures';
 import { initRepositoryWithCommit } from '../shared/git';
 import {
   createAndSwitchToBranch,
-  openCommandPalette,
   openDocument,
   openHelloMd,
   openProjectFolder,
@@ -18,7 +17,9 @@ import {
 } from '../shared/helpers';
 import { connectPeer, startLatencyProxy } from '../shared/sync-server';
 import {
+  attemptJoinFromCommandPalette,
   type DocumentContent,
+  joinFromCommandPalette,
   launchApp,
   shareFromCommandPalette,
 } from './helpers';
@@ -37,48 +38,14 @@ const recordCoarseSyncApplies = (window: Page): string[] => {
   return applies;
 };
 
-// Where the caret stands, as the text before it in its text node.
-const textBeforeCaret = (window: Page) =>
+// E.g. in the text node "This is a test document." with the caret after
+// "test ", this returns "This is a test ".
+const textBeforeCaretInNode = (window: Page) =>
   window.evaluate(() => {
     const selection = document.getSelection();
     if (!selection?.anchorNode) return null;
     return selection.anchorNode.textContent?.slice(0, selection.anchorOffset);
   });
-
-// Hands the link to the app without waiting for what it makes of it: a link
-// this project cannot join leaves the dialog open.
-const pasteShareLink = async ({
-  window,
-  shareId,
-}: {
-  window: Page;
-  shareId: string;
-}) => {
-  await openCommandPalette({ window });
-
-  const joinOption = window.getByRole('option', {
-    name: 'Join shared document',
-  });
-  await joinOption.waitFor({ state: 'visible', timeout: 2_000 });
-  await joinOption.click();
-
-  const input = window.getByPlaceholder('Share ID');
-  await input.fill(shareId);
-  await input.press('Enter');
-
-  return input;
-};
-
-const joinSharedDocument = async ({
-  window,
-  shareId,
-}: {
-  window: Page;
-  shareId: string;
-}) => {
-  const input = await pasteShareLink({ window, shareId });
-  await input.waitFor({ state: 'hidden', timeout: 10_000 });
-};
 
 test.describe('realtime collaboration', () => {
   test.use({ withSyncServer: true });
@@ -264,7 +231,9 @@ test.describe('realtime collaboration', () => {
       if (!selection || !textNode) throw new Error('paragraph has no text');
       selection.collapse(textNode, 'This is a test '.length);
     });
-    await expect.poll(() => textBeforeCaret(window)).toBe('This is a test ');
+    await expect
+      .poll(() => textBeforeCaretInNode(window))
+      .toBe('This is a test ');
 
     const peer = connectPeer(syncServer!.url);
     try {
@@ -386,7 +355,7 @@ test.describe('realtime collaboration', () => {
         folderPath: bob.projectDir,
       });
       await openHelloMd({ window: bob.window });
-      await joinSharedDocument({ window: bob.window, shareId });
+      await joinFromCommandPalette({ window: bob.window, shareId });
 
       // Alice types; Bob only watches.
       const typed = 'one two three four five';
@@ -450,7 +419,7 @@ test.describe('realtime collaboration', () => {
         folderPath: bob.projectDir,
       });
       await openHelloMd({ window: bob.window });
-      await joinSharedDocument({ window: bob.window, shareId });
+      await joinFromCommandPalette({ window: bob.window, shareId });
 
       await expect(aliceAvatars).toHaveCount(1, { timeout: 20_000 });
       await expect(bob.window.getByTestId('presence-avatar')).toHaveCount(1, {
@@ -488,7 +457,7 @@ test.describe('realtime collaboration', () => {
         folderPath: bob.projectDir,
       });
       await openHelloMd({ window: bob.window });
-      await joinSharedDocument({ window: bob.window, shareId });
+      await joinFromCommandPalette({ window: bob.window, shareId });
 
       const typed = 'presence';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
@@ -547,7 +516,7 @@ test.describe('realtime collaboration', () => {
         folderPath: bob.projectDir,
       });
       await openHelloMd({ window: bob.window });
-      await joinSharedDocument({ window: bob.window, shareId });
+      await joinFromCommandPalette({ window: bob.window, shareId });
 
       const typed = 'one two three four five';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
@@ -610,7 +579,7 @@ test.describe('realtime collaboration', () => {
         folderPath: bob.projectDir,
       });
       await openHelloMd({ window: bob.window });
-      await joinSharedDocument({ window: bob.window, shareId });
+      await joinFromCommandPalette({ window: bob.window, shareId });
 
       const typed = 'one two three four five';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
@@ -687,7 +656,7 @@ test.describe('realtime collaboration', () => {
       const bobEditor = bob.window.locator('.ProseMirror');
       await expect(bobEditor).toContainText('This is a test document');
 
-      await joinSharedDocument({ window: bob.window, shareId });
+      await joinFromCommandPalette({ window: bob.window, shareId });
 
       // The link named notes.md, so that is where Bob ends up.
       await expect(bobEditor).toContainText('Written by Alice', {
@@ -735,7 +704,7 @@ test.describe('realtime collaboration', () => {
       });
       await openHelloMd({ window: bob.window });
 
-      await pasteShareLink({ window: bob.window, shareId });
+      await attemptJoinFromCommandPalette({ window: bob.window, shareId });
 
       // Refused in the dialog itself, where opening as a guest is offered.
       await expect(bob.window.getByTestId('join-refusal')).toContainText(
@@ -790,7 +759,7 @@ test.describe('realtime collaboration', () => {
       await switchToBranch({ window: bob.window, from: 'draft', to: 'main' });
       await openHelloMd({ window: bob.window });
 
-      await pasteShareLink({ window: bob.window, shareId });
+      await attemptJoinFromCommandPalette({ window: bob.window, shareId });
 
       // Refused with the branch named, and switching offered instead of the
       // guest path.
@@ -862,7 +831,7 @@ test.describe('realtime collaboration', () => {
       await openDocument({ window: bob.window, relativePath: 'Foo.md' });
 
       const shareId = await shareFromCommandPalette({ window });
-      await joinSharedDocument({ window: bob.window, shareId });
+      await joinFromCommandPalette({ window: bob.window, shareId });
 
       // Into the trailing paragraph under the title, like a person would.
       const editor = window.locator('.ProseMirror');
@@ -945,7 +914,7 @@ test.describe('realtime collaboration', () => {
         folderPath: bobProject,
       });
       await openHelloMd({ window: bob.window });
-      await joinSharedDocument({ window: bob.window, shareId });
+      await joinFromCommandPalette({ window: bob.window, shareId });
 
       // Word …pause… word …pause…: each pause crosses the persist debounce,
       // so disk writes, watcher events and refreshes interleave with typing.
@@ -1044,7 +1013,7 @@ test.describe('realtime collaboration', () => {
         folderPath: bobProject,
       });
       await openHelloMd({ window: bob.window });
-      await joinSharedDocument({ window: bob.window, shareId });
+      await joinFromCommandPalette({ window: bob.window, shareId });
 
       const typed = 'one two three four five six seven eight nine ten';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
@@ -1120,7 +1089,7 @@ test.describe('realtime collaboration', () => {
         folderPath: bobProject,
       });
       await openHelloMd({ window: bob.window });
-      await joinSharedDocument({ window: bob.window, shareId });
+      await joinFromCommandPalette({ window: bob.window, shareId });
       // Joining swaps the editor to the shared document once the find over
       // the laggy network completes; typing before the swap lands in the
       // editor being replaced. Known gap, not this test's subject.
@@ -1239,7 +1208,7 @@ test.describe('realtime collaboration', () => {
         folderPath: bob.projectDir,
       });
       await openHelloMd({ window: bob.window });
-      await joinSharedDocument({ window: bob.window, shareId });
+      await joinFromCommandPalette({ window: bob.window, shareId });
 
       const typed = 'one two three four five';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });

@@ -135,3 +135,72 @@ export const stopSharingFromActionsBar = async ({
     .getByRole('button', { name: 'Stop sharing' })
     .waitFor({ state: 'hidden', timeout: 10_000 });
 };
+
+// Submits the share ID without waiting for the join to succeed, since a share
+// this project cannot join is refused inside the dialog, which stays open.
+const submitShareId = async ({
+  window,
+  shareId,
+}: {
+  window: Page;
+  shareId: string;
+}) => {
+  await expect(
+    window
+      .getByRole('dialog', { name: 'Join Shared Document' })
+      .getByTestId('dialog-panel')
+  )
+    // Submitting before the dialog has faded in can leave it stuck open and
+    // invisible, blocking clicks.
+    .toHaveCSS('opacity', '1');
+
+  const input = window.getByPlaceholder('Share ID');
+  await input.fill(shareId);
+  await input.press('Enter');
+
+  return input;
+};
+
+// The "Join shared document" button of the start screens.
+export const joinFromButton = async ({
+  window,
+  shareId,
+}: {
+  window: Page;
+  shareId: string;
+}) => {
+  await window
+    .getByRole('button', { name: 'Join shared document' })
+    .first()
+    .click();
+  return submitShareId({ window, shareId });
+};
+
+export const attemptJoinFromCommandPalette = async ({
+  window,
+  shareId,
+}: {
+  window: Page;
+  shareId: string;
+}) => {
+  await openCommandPalette({ window });
+
+  const joinOption = window.getByRole('option', {
+    name: 'Join shared document',
+  });
+  await joinOption.waitFor({ state: 'visible', timeout: 2_000 });
+  await joinOption.click();
+
+  return submitShareId({ window, shareId });
+};
+
+export const joinFromCommandPalette = async ({
+  window,
+  shareId,
+}: {
+  window: Page;
+  shareId: string;
+}) => {
+  const input = await attemptJoinFromCommandPalette({ window, shareId });
+  await input.waitFor({ state: 'hidden', timeout: 10_000 });
+};

@@ -11,7 +11,14 @@ import {
   openProjectFolder,
   typeInEditorSlowly,
 } from '../shared/helpers';
-import { launchApp, shareFromCommandPalette } from './helpers';
+import {
+  attemptJoinFromCommandPalette,
+  joinFromButton,
+  joinFromCommandPalette,
+  launchApp,
+  shareFromCommandPalette,
+  stopSharingFromActionsBar,
+} from './helpers';
 
 test.use({ withSyncServer: true });
 
@@ -35,12 +42,7 @@ test.describe('guest editing', () => {
     const guest = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
       // No project open: the project selection screen offers to join.
-      await guest.window
-        .getByRole('button', { name: 'Join shared document' })
-        .click();
-      const input = guest.window.getByPlaceholder('Share ID');
-      await input.fill(shareId);
-      await input.press('Enter');
+      await joinFromButton({ window: guest.window, shareId });
 
       const guestEditor = guest.window.locator('.ProseMirror');
       await expect(guestEditor).toContainText('This is a test document', {
@@ -125,15 +127,7 @@ test.describe('guest editing', () => {
       });
       await openHelloMd({ window: other.window });
 
-      await openCommandPalette({ window: other.window });
-      const joinOption = other.window.getByRole('option', {
-        name: 'Join shared document',
-      });
-      await joinOption.waitFor({ state: 'visible', timeout: 2_000 });
-      await joinOption.click();
-      const input = other.window.getByPlaceholder('Share ID');
-      await input.fill(shareId);
-      await input.press('Enter');
+      await attemptJoinFromCommandPalette({ window: other.window, shareId });
 
       await expect(other.window.getByTestId('join-refusal')).toBeVisible({
         timeout: 20_000,
@@ -158,19 +152,6 @@ test.describe('guest editing', () => {
 
 // A guest is joined or gone: the flows around leaving.
 test.describe('guest leaving and joining again', () => {
-  const joinFromProjectSelection = async (window: Page, shareId: string) => {
-    await window
-      .getByRole('button', { name: 'Join shared document' })
-      .first()
-      .click();
-    const input = window.getByPlaceholder('Share ID');
-    await input.fill(shareId);
-    await input.press('Enter');
-  };
-
-  // The index page and the project selection screen offer the same button.
-  const joinFromIndex = joinFromProjectSelection;
-
   const leave = async (window: Page) => {
     await window.getByRole('button', { name: 'Sharing Options' }).click();
     await window
@@ -180,14 +161,6 @@ test.describe('guest leaving and joining again', () => {
     await expect(
       window.getByRole('button', { name: 'Join shared document' }).first()
     ).toBeVisible({ timeout: 10_000 });
-  };
-
-  const stopSharing = async (window: Page) => {
-    await window.getByRole('button', { name: 'Sharing Options' }).click();
-    await window.getByRole('button', { name: 'Stop sharing' }).click();
-    await window
-      .getByRole('button', { name: 'Stop sharing' })
-      .waitFor({ state: 'hidden', timeout: 10_000 });
   };
 
   test('after leaving one document a guest can join another', async ({
@@ -213,13 +186,13 @@ test.describe('guest leaving and joining again', () => {
     try {
       const guestEditor = guest.window.locator('.ProseMirror');
 
-      await joinFromProjectSelection(guest.window, helloShareId);
+      await joinFromButton({ window: guest.window, shareId: helloShareId });
       await expect(guestEditor).toContainText('This is a test document', {
         timeout: 20_000,
       });
       await leave(guest.window);
 
-      await joinFromIndex(guest.window, worldShareId);
+      await joinFromButton({ window: guest.window, shareId: worldShareId });
       await expect(guestEditor).toContainText('Another document', {
         timeout: 20_000,
       });
@@ -252,18 +225,18 @@ test.describe('guest leaving and joining again', () => {
     try {
       const guestEditor = guest.window.locator('.ProseMirror');
 
-      await joinFromProjectSelection(guest.window, firstShareId);
+      await joinFromButton({ window: guest.window, shareId: firstShareId });
       await expect(guestEditor).toContainText('This is a test document', {
         timeout: 20_000,
       });
       await leave(guest.window);
 
       // The host shares the same document again: a new share, same name.
-      await stopSharing(window);
+      await stopSharingFromActionsBar({ window });
       const secondShareId = await shareFromCommandPalette({ window });
       expect(secondShareId).not.toBe(firstShareId);
 
-      await joinFromIndex(guest.window, secondShareId);
+      await joinFromButton({ window: guest.window, shareId: secondShareId });
       await expect(guestEditor).toContainText('This is a test document', {
         timeout: 20_000,
       });
@@ -293,13 +266,13 @@ test.describe('guest leaving and joining again', () => {
     try {
       const guestEditor = guest.window.locator('.ProseMirror');
 
-      await joinFromProjectSelection(guest.window, shareId);
+      await joinFromButton({ window: guest.window, shareId });
       await expect(guestEditor).toContainText('This is a test document', {
         timeout: 20_000,
       });
       await leave(guest.window);
 
-      await joinFromIndex(guest.window, shareId);
+      await joinFromButton({ window: guest.window, shareId });
       await expect(guestEditor).toContainText('This is a test document', {
         timeout: 20_000,
       });
@@ -341,21 +314,16 @@ test.describe('guest leaving and joining again', () => {
     try {
       const guestEditor = guest.window.locator('.ProseMirror');
 
-      await joinFromProjectSelection(guest.window, helloShareId);
+      await joinFromButton({ window: guest.window, shareId: helloShareId });
       await expect(guestEditor).toContainText('This is a test document', {
         timeout: 20_000,
       });
 
       // Joining another while one is open, from the palette.
-      await openCommandPalette({ window: guest.window });
-      const joinOption = guest.window.getByRole('option', {
-        name: 'Join shared document',
+      await joinFromCommandPalette({
+        window: guest.window,
+        shareId: worldShareId,
       });
-      await joinOption.waitFor({ state: 'visible', timeout: 2_000 });
-      await joinOption.click();
-      const input = guest.window.getByPlaceholder('Share ID');
-      await input.fill(worldShareId);
-      await input.press('Enter');
       await expect(guestEditor).toContainText('Another document', {
         timeout: 20_000,
       });
@@ -399,13 +367,7 @@ test.describe('guest and host in one app', () => {
     const areaOption = window.getByRole('option', { name: 'Shared with me' });
     await areaOption.waitFor({ state: 'visible', timeout: 2_000 });
     await areaOption.click();
-    await window
-      .getByRole('button', { name: 'Join shared document' })
-      .first()
-      .click();
-    const input = window.getByPlaceholder('Share ID');
-    await input.fill(helloShareId);
-    await input.press('Enter');
+    await joinFromButton({ window, shareId: helloShareId });
 
     const editor = window.locator('.ProseMirror');
     await expect(editor).toContainText('This is a test document', {
@@ -419,12 +381,7 @@ test.describe('guest and host in one app', () => {
       .getByRole('dialog')
       .getByRole('button', { name: 'Leave' })
       .click();
-    await window
-      .getByRole('button', { name: 'Join shared document' })
-      .first()
-      .click();
-    await window.getByPlaceholder('Share ID').fill(worldShareId);
-    await window.getByPlaceholder('Share ID').press('Enter');
+    await joinFromButton({ window, shareId: worldShareId });
     await expect(editor).toContainText('Another document', { timeout: 20_000 });
   });
 });
@@ -461,12 +418,7 @@ test.describe('guest leaving while the host stays', () => {
         if (message.type() === 'error') errors.push(message.text());
       });
 
-      await guest.window
-        .getByRole('button', { name: 'Join shared document' })
-        .first()
-        .click();
-      await guest.window.getByPlaceholder('Share ID').fill(helloShareId);
-      await guest.window.getByPlaceholder('Share ID').press('Enter');
+      await joinFromButton({ window: guest.window, shareId: helloShareId });
       await expect(guestEditor).toContainText('This is a test document', {
         timeout: 20_000,
       });
@@ -484,12 +436,7 @@ test.describe('guest leaving while the host stays', () => {
       await typeInEditorSlowly({ window, text: ' still here', delay: 30 });
       await guest.window.waitForTimeout(12_000);
 
-      await guest.window
-        .getByRole('button', { name: 'Join shared document' })
-        .first()
-        .click();
-      await guest.window.getByPlaceholder('Share ID').fill(worldShareId);
-      await guest.window.getByPlaceholder('Share ID').press('Enter');
+      await joinFromButton({ window: guest.window, shareId: worldShareId });
       await expect(guestEditor).toContainText('Another document', {
         timeout: 20_000,
       });
@@ -543,13 +490,7 @@ const openOwnShareAsGuest = async ({
   const areaOption = window.getByRole('option', { name: 'Shared with me' });
   await areaOption.waitFor({ state: 'visible', timeout: 2_000 });
   await areaOption.click();
-  await window
-    .getByRole('button', { name: 'Join shared document' })
-    .first()
-    .click();
-  const input = window.getByPlaceholder('Share ID');
-  await input.fill(shareId);
-  await input.press('Enter');
+  await joinFromButton({ window, shareId });
 
   await expect(window.locator('.ProseMirror')).toContainText(
     'This is a test document',
