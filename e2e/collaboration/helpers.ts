@@ -65,6 +65,30 @@ const createHelloProject = (): string => {
   return dir;
 };
 
+// Another app instance on a copy of `source`, git history included, like a
+// clone on another machine.
+export const cloneAndLaunchApp = async ({
+  syncServiceUrl,
+  source,
+}: {
+  syncServiceUrl: string;
+  source: string;
+}) => {
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'v2-e2e-clone-'));
+  fs.cpSync(source, projectDir, { recursive: true });
+  const peer = await launchApp({ syncServiceUrl, projectDir });
+
+  return {
+    ...peer,
+    close: async () => {
+      await peer.close();
+      try {
+        fs.rmSync(projectDir, { recursive: true, force: true });
+      } catch {}
+    },
+  };
+};
+
 // The share button in the editor's actions bar: it reads as "Share Document"
 // while the document is private and "Sharing Options" once it is shared.
 export const shareButton = (window: Page) =>

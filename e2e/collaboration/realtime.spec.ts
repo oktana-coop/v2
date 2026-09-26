@@ -1,7 +1,6 @@
 import { next as Automerge } from '@automerge/automerge';
 import { type Page } from '@playwright/test';
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
@@ -24,6 +23,7 @@ import {
 } from '../shared/sync-server';
 import {
   attemptJoinFromCommandPalette,
+  cloneAndLaunchApp,
   expectPeerAvatars,
   expectTextOverTime,
   joinFromButton,
@@ -546,25 +546,21 @@ test.describe('realtime collaboration', () => {
       '# Notes\n\nWritten by Alice.\n'
     );
     initRepositoryWithCommit({ repoDir: aliceProject, message: 'base' });
-    const bobProject = fs.mkdtempSync(
-      path.join(os.tmpdir(), 'v2-e2e-bobclone-')
-    );
-    fs.cpSync(aliceProject, bobProject, { recursive: true });
 
     await openProjectFolder({ electronApp, window, folderPath: aliceProject });
     await openDocument({ window, relativePath: 'notes.md' });
 
     const shareId = await shareFromCommandPalette({ window });
 
-    const bob = await launchApp({
+    const bob = await cloneAndLaunchApp({
       syncServiceUrl: syncServer!.url,
-      projectDir: bobProject,
+      source: aliceProject,
     });
     try {
       await openProjectFolder({
         electronApp: bob.app,
         window: bob.window,
-        folderPath: bobProject,
+        folderPath: bob.projectDir,
       });
 
       // Bob is looking at a different document than the one that was shared.
@@ -584,7 +580,6 @@ test.describe('realtime collaboration', () => {
       await expect(bobEditor).toContainText('and joined', { timeout: 20_000 });
     } finally {
       await bob.close();
-      fs.rmSync(bobProject, { recursive: true, force: true });
     }
   });
 
@@ -656,18 +651,15 @@ test.describe('realtime collaboration', () => {
     await openHelloMd({ window });
     const shareId = await shareFromCommandPalette({ window });
 
-    const bobProject = fs.mkdtempSync(path.join(os.tmpdir(), 'v2-e2e-bob-'));
-    fs.cpSync(aliceProject, bobProject, { recursive: true });
-
-    const bob = await launchApp({
+    const bob = await cloneAndLaunchApp({
       syncServiceUrl: syncServer!.url,
-      projectDir: bobProject,
+      source: aliceProject,
     });
     try {
       await openProjectFolder({
         electronApp: bob.app,
         window: bob.window,
-        folderPath: bobProject,
+        folderPath: bob.projectDir,
       });
       await switchToBranch({ window: bob.window, from: 'draft', to: 'main' });
       await openHelloMd({ window: bob.window });
@@ -701,9 +693,6 @@ test.describe('realtime collaboration', () => {
       );
     } finally {
       await bob.close();
-      try {
-        fs.rmSync(bobProject, { recursive: true, force: true });
-      } catch {}
     }
   });
 
@@ -719,10 +708,6 @@ test.describe('realtime collaboration', () => {
     // from one; a single word typed on the sharing side.
     fs.writeFileSync(path.join(aliceProject, 'Foo.md'), '# Foo\n');
     initRepositoryWithCommit({ repoDir: aliceProject, message: 'base' });
-    const bobProject = fs.mkdtempSync(
-      path.join(os.tmpdir(), 'v2-e2e-bobclone-')
-    );
-    fs.cpSync(aliceProject, bobProject, { recursive: true });
 
     await openProjectFolder({
       electronApp,
@@ -731,15 +716,15 @@ test.describe('realtime collaboration', () => {
     });
     await openDocument({ window, relativePath: 'Foo.md' });
 
-    const bob = await launchApp({
+    const bob = await cloneAndLaunchApp({
       syncServiceUrl: syncServer!.url,
-      projectDir: bobProject,
+      source: aliceProject,
     });
     try {
       await openProjectFolder({
         electronApp: bob.app,
         window: bob.window,
-        folderPath: bobProject,
+        folderPath: bob.projectDir,
       });
       await openDocument({ window: bob.window, relativePath: 'Foo.md' });
 
@@ -758,9 +743,6 @@ test.describe('realtime collaboration', () => {
       ]);
     } finally {
       await bob.close();
-      try {
-        fs.rmSync(bobProject, { recursive: true, force: true });
-      } catch {}
     }
   });
 
@@ -771,13 +753,8 @@ test.describe('realtime collaboration', () => {
     test.setTimeout(180_000);
 
     // Closest to a real session: git clones, both peers behind latency, and
-    // typing with pauses long enough for persist and refresh cycles to run
-    // between words.
+    // typing with pauses long enough for saves between words.
     initRepositoryWithCommit({ repoDir: aliceProject, message: 'base' });
-    const bobProject = fs.mkdtempSync(
-      path.join(os.tmpdir(), 'v2-e2e-bobclone-')
-    );
-    fs.cpSync(aliceProject, bobProject, { recursive: true });
 
     // 100ms per leg: enough lag for stale-base windows, but safely under the
     // 1s WebSocketClientAdapter force-ready that fails the join outright when
@@ -804,21 +781,21 @@ test.describe('realtime collaboration', () => {
 
     const shareId = await shareFromCommandPalette({ window: alice.window });
 
-    const bob = await launchApp({
+    const bob = await cloneAndLaunchApp({
       syncServiceUrl: bobProxy.url,
-      projectDir: bobProject,
+      source: aliceProject,
     });
     try {
       await openProjectFolder({
         electronApp: bob.app,
         window: bob.window,
-        folderPath: bobProject,
+        folderPath: bob.projectDir,
       });
       await openHelloMd({ window: bob.window });
       await joinFromCommandPalette({ window: bob.window, shareId });
 
-      // Word …pause… word …pause…: each pause crosses the persist debounce,
-      // so disk writes, watcher events and refreshes interleave with typing.
+      // Word by word, pausing longer than the save delay, so the document is
+      // saved between words while typing is still going on.
       const tokens = [
         'mercury',
         'venus',
@@ -851,9 +828,6 @@ test.describe('realtime collaboration', () => {
       bobProxy.stop();
       await bob.close();
       await alice.close();
-      try {
-        fs.rmSync(bobProject, { recursive: true, force: true });
-      } catch {}
     }
   });
 
@@ -868,10 +842,6 @@ test.describe('realtime collaboration', () => {
     // A git project copied to a second folder (a clone), with the second
     // instance on a laggy connection.
     initRepositoryWithCommit({ repoDir: aliceProject, message: 'base' });
-    const bobProject = fs.mkdtempSync(
-      path.join(os.tmpdir(), 'v2-e2e-bobclone-')
-    );
-    fs.cpSync(aliceProject, bobProject, { recursive: true });
 
     const proxy = await startLatencyProxy({
       targetPort: syncServer!.port,
@@ -887,15 +857,15 @@ test.describe('realtime collaboration', () => {
 
     const shareId = await shareFromCommandPalette({ window });
 
-    const bob = await launchApp({
+    const bob = await cloneAndLaunchApp({
       syncServiceUrl: proxy.url,
-      projectDir: bobProject,
+      source: aliceProject,
     });
     try {
       await openProjectFolder({
         electronApp: bob.app,
         window: bob.window,
-        folderPath: bobProject,
+        folderPath: bob.projectDir,
       });
       await openHelloMd({ window: bob.window });
       await joinFromCommandPalette({ window: bob.window, shareId });
@@ -914,9 +884,6 @@ test.describe('realtime collaboration', () => {
     } finally {
       proxy.stop();
       await bob.close();
-      try {
-        fs.rmSync(bobProject, { recursive: true, force: true });
-      } catch {}
     }
   });
 
@@ -929,10 +896,6 @@ test.describe('realtime collaboration', () => {
     test.setTimeout(180_000);
 
     initRepositoryWithCommit({ repoDir: aliceProject, message: 'base' });
-    const bobProject = fs.mkdtempSync(
-      path.join(os.tmpdir(), 'v2-e2e-bobclone-')
-    );
-    fs.cpSync(aliceProject, bobProject, { recursive: true });
 
     const proxy = await startLatencyProxy({
       targetPort: syncServer!.port,
@@ -948,15 +911,15 @@ test.describe('realtime collaboration', () => {
 
     const shareId = await shareFromCommandPalette({ window });
 
-    const bob = await launchApp({
+    const bob = await cloneAndLaunchApp({
       syncServiceUrl: proxy.url,
-      projectDir: bobProject,
+      source: aliceProject,
     });
     try {
       await openProjectFolder({
         electronApp: bob.app,
         window: bob.window,
-        folderPath: bobProject,
+        folderPath: bob.projectDir,
       });
       await openHelloMd({ window: bob.window });
       await joinFromCommandPalette({ window: bob.window, shareId });
@@ -1000,9 +963,6 @@ test.describe('realtime collaboration', () => {
     } finally {
       proxy.stop();
       await bob.close();
-      try {
-        fs.rmSync(bobProject, { recursive: true, force: true });
-      } catch {}
     }
   });
 
