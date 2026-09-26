@@ -545,9 +545,9 @@ test.describe('realtime collaboration', () => {
     }
   });
 
-  // The link names the document it was made from, so joining goes to this
-  // project's copy of that document rather than to whatever is open.
-  test('a share for another document opens that document', async ({
+  // A share ID names the document it was made from, so joining opens this
+  // project's copy of that document, no matter which document is open.
+  test('a share for a document other than the open one opens that document', async ({
     syncServer,
     electronApp,
     window,
@@ -604,9 +604,6 @@ test.describe('realtime collaboration', () => {
     }
   });
 
-  // Joining replaces what the document holds with what the peers hold, so a
-  // link this project has no document for is refused rather than applied to
-  // whatever happens to be open.
   test('a share for a document this project does not have is refused', async ({
     syncServer,
     electronApp,
@@ -656,7 +653,7 @@ test.describe('realtime collaboration', () => {
     }
   });
 
-  test('a share on another branch is joined by switching to it', async ({
+  test('a share from another branch offers switching to that branch, then joins it', async ({
     syncServer,
     electronApp,
     window,
