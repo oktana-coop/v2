@@ -22,6 +22,7 @@ import {
 import {
   attemptJoinFromCommandPalette,
   type DocumentContent,
+  joinFromButton,
   joinFromCommandPalette,
   launchApp,
   shareFromCommandPalette,
@@ -105,20 +106,16 @@ test.describe('realtime collaboration', () => {
     const editor = window.locator('.ProseMirror');
     await expect(editor).toContainText('before after');
 
-    // The peer sees everything, including what was typed before the share.
-    const peer = connectPeer(syncServer!.url);
+    // Someone joining sees everything, including what was typed before the share.
+    const bob = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
-      const handle = await peer.repo.find<DocumentContent>(
-        shareId as Parameters<typeof peer.repo.find>[0],
-        { signal: AbortSignal.timeout(15_000) }
+      await joinFromButton({ window: bob.window, shareId });
+      await expect(bob.window.locator('.ProseMirror')).toContainText(
+        'before after',
+        { timeout: 20_000 }
       );
-
-      await expect
-        .poll(() => handle.fullDoc().content, { timeout: 15_000 })
-        .toContain('before');
-      await expect.poll(() => handle.fullDoc().content).toContain('after');
     } finally {
-      peer.disconnect();
+      await bob.close();
     }
   });
 
@@ -139,23 +136,27 @@ test.describe('realtime collaboration', () => {
 
     const shareId = await shareFromCommandPalette({ window });
 
-    const peer = connectPeer(syncServer!.url);
+    // A scripted peer (as opposed to a second peer app), to control how the peer
+    // sends its changes: one token at a time.
+    const scriptedPeer = connectPeer(syncServer!.url);
     try {
-      const handle = await peer.repo.find<DocumentContent>(
-        shareId as Parameters<typeof peer.repo.find>[0],
+      const peerHandle = await scriptedPeer.repo.find<DocumentContent>(
+        shareId as Parameters<typeof scriptedPeer.repo.find>[0],
         { signal: AbortSignal.timeout(15_000) }
       );
 
-      expect(handle.fullDoc().formatVersion).toBe(1);
-      expect(handle.fullDoc().content).toContain('This is a test document.');
+      expect(peerHandle.fullDoc().formatVersion).toBe(1);
+      expect(peerHandle.fullDoc().content).toContain(
+        'This is a test document.'
+      );
 
       // Write like someone typing: one token at a time, replacing the full
       // text so updateText computes the splices.
       const tokens = ['alpha', 'bravo', 'charlie', 'delta', 'echo'];
-      let text = handle.fullDoc().content.trimEnd();
+      let text = peerHandle.fullDoc().content.trimEnd();
       for (const token of tokens) {
         text = `${text} ${token}`;
-        handle.change((doc) =>
+        peerHandle.change((doc) =>
           Automerge.updateText(doc, ['content'], `${text}\n`)
         );
         await sleep(200);
@@ -172,7 +173,7 @@ test.describe('realtime collaboration', () => {
       for (let sample = 0; sample < 8; sample += 1) {
         await sleep(500);
 
-        const crdtContent = handle.fullDoc().content;
+        const crdtContent = peerHandle.fullDoc().content;
         expect(crdtContent).toBe(expected);
 
         const editorText = (await editor.textContent()) ?? '';
@@ -192,7 +193,7 @@ test.describe('realtime collaboration', () => {
         )
         .toContain('alpha bravo charlie delta echo');
     } finally {
-      peer.disconnect();
+      scriptedPeer.disconnect();
     }
   });
 
@@ -229,10 +230,12 @@ test.describe('realtime collaboration', () => {
       .poll(() => textBeforeCaretInNode(window))
       .toBe('This is a test ');
 
-    const peer = connectPeer(syncServer!.url);
+    // A scripted peer (as opposed to a second peer app), to control the change the
+    // peer sends: one, on both sides of the caret.
+    const scriptedPeer = connectPeer(syncServer!.url);
     try {
-      const handle = await peer.repo.find<DocumentContent>(
-        shareId as Parameters<typeof peer.repo.find>[0],
+      const peerHandle = await scriptedPeer.repo.find<DocumentContent>(
+        shareId as Parameters<typeof scriptedPeer.repo.find>[0],
         { signal: AbortSignal.timeout(15_000) }
       );
 
@@ -240,7 +243,9 @@ test.describe('realtime collaboration', () => {
       // a single region replace would span both and drag the caret along.
       const content =
         '# Hello there\n\nThis is a test document.\n\nAppended by a peer.\n';
-      handle.change((doc) => Automerge.updateText(doc, ['content'], content));
+      peerHandle.change((doc) =>
+        Automerge.updateText(doc, ['content'], content)
+      );
 
       const editor = window.locator('.ProseMirror');
       await expect(editor).toContainText('Hello there', { timeout: 15_000 });
@@ -250,7 +255,7 @@ test.describe('realtime collaboration', () => {
       await sleep(1_000);
       // Soft, so a coarse apply and a moved caret are both reported at once.
       expect.soft(coarseApplies).toEqual([]);
-      expect(handle.fullDoc().content).toBe(content);
+      expect(peerHandle.fullDoc().content).toBe(content);
 
       // Where a keystroke lands is the caret the editor really holds, focus
       // or no focus.
@@ -260,7 +265,7 @@ test.describe('realtime collaboration', () => {
         'Hello thereThis is a test Zdocument.Appended by a peer.'
       );
     } finally {
-      peer.disconnect();
+      scriptedPeer.disconnect();
     }
   });
 
@@ -281,10 +286,12 @@ test.describe('realtime collaboration', () => {
 
     const shareId = await shareFromCommandPalette({ window });
 
-    const peer = connectPeer(syncServer!.url);
+    // A scripted peer (as opposed to a second peer app) sends no changes, so a
+    // duplicate can only come from Alice's editor.
+    const scriptedPeer = connectPeer(syncServer!.url);
     try {
-      const handle = await peer.repo.find<DocumentContent>(
-        shareId as Parameters<typeof peer.repo.find>[0],
+      const peerHandle = await scriptedPeer.repo.find<DocumentContent>(
+        shareId as Parameters<typeof scriptedPeer.repo.find>[0],
         { signal: AbortSignal.timeout(15_000) }
       );
 
@@ -296,16 +303,16 @@ test.describe('realtime collaboration', () => {
       const tokens = typed.split(' ');
       const editor = window.locator('.ProseMirror');
 
-      // Wait for the peer to receive all tokens, then require both sides to
-      // settle with each token appearing exactly once.
+      // Wait for the scripted peer to receive all tokens, then require both
+      // sides to settle with each token appearing exactly once.
       await expect
-        .poll(() => handle.fullDoc().content, { timeout: 15_000 })
+        .poll(() => peerHandle.fullDoc().content, { timeout: 15_000 })
         .toContain('five');
 
       for (let sample = 0; sample < 8; sample += 1) {
         await sleep(500);
 
-        const crdtContent = handle.fullDoc().content;
+        const crdtContent = peerHandle.fullDoc().content;
         const editorText = (await editor.textContent()) ?? '';
 
         for (const token of tokens) {
@@ -320,7 +327,7 @@ test.describe('realtime collaboration', () => {
         }
       }
     } finally {
-      peer.disconnect();
+      scriptedPeer.disconnect();
     }
   });
 
