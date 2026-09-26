@@ -22,6 +22,7 @@ import {
 import {
   attemptJoinFromCommandPalette,
   expectEachTokenOnceOverTime,
+  expectPeerAvatars,
   joinFromButton,
   joinFromCommandPalette,
   launchApp,
@@ -355,22 +356,20 @@ test.describe('realtime collaboration', () => {
   test('peers see each other in the actions bar while sharing', async ({
     syncServer,
     electronApp,
-    window,
+    window: aliceWindow,
     testProjectDir: aliceProject,
   }) => {
     test.setTimeout(120_000);
 
     await openProjectFolder({
       electronApp,
-      window,
+      window: aliceWindow,
       folderPath: aliceProject,
     });
-    await openHelloMd({ window });
+    await openHelloMd({ window: aliceWindow });
 
-    const shareId = await shareFromCommandPalette({ window });
-
-    const aliceAvatars = window.getByTestId('presence-avatar');
-    await expect(aliceAvatars).toHaveCount(0);
+    const shareId = await shareFromCommandPalette({ window: aliceWindow });
+    await expectPeerAvatars({ window: aliceWindow, count: 0 });
 
     const bob = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
@@ -382,15 +381,13 @@ test.describe('realtime collaboration', () => {
       await openHelloMd({ window: bob.window });
       await joinFromCommandPalette({ window: bob.window, shareId });
 
-      await expect(aliceAvatars).toHaveCount(1, { timeout: 20_000 });
-      await expect(bob.window.getByTestId('presence-avatar')).toHaveCount(1, {
-        timeout: 20_000,
-      });
+      await expectPeerAvatars({ window: aliceWindow, count: 1 });
+      await expectPeerAvatars({ window: bob.window, count: 1 });
     } finally {
       await bob.close();
     }
 
-    await expect(aliceAvatars).toHaveCount(0, { timeout: 20_000 });
+    await expectPeerAvatars({ window: aliceWindow, count: 0 });
   });
 
   test('a typing peer shows a caret after their text at the other peer', async ({
