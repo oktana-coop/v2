@@ -923,13 +923,7 @@ test.describe('realtime collaboration', () => {
       });
       await openHelloMd({ window: bob.window });
       await joinFromCommandPalette({ window: bob.window, shareId });
-      // Joining swaps the editor to the shared document once the find over
-      // the laggy network completes; typing before the swap lands in the
-      // editor being replaced. Known gap, not this test's subject.
-      await sleep(3_000);
 
-      // The main scenario must ride the exact-steps path; a coarse apply here
-      // means the region replace is still carrying it.
       const aliceCoarseApplies = recordCoarseSyncApplies(window);
       const bobCoarseApplies = recordCoarseSyncApplies(bob.window);
 
@@ -959,6 +953,8 @@ test.describe('realtime collaboration', () => {
         expectTextOverTime({ editor: bobEditor, text: expected }),
       ]);
 
+      // No coarse applies: every remote change must apply as exact steps, even
+      // though the text would converge either way.
       expect([...aliceCoarseApplies, ...bobCoarseApplies]).toEqual([]);
     } finally {
       proxy.stop();
