@@ -1026,9 +1026,6 @@ test.describe('realtime collaboration', () => {
   }) => {
     test.setTimeout(180_000);
 
-    // The second instance reaches the sync server through a delayed proxy,
-    // like a peer on a real network. Its copy of the shared state lags, so
-    // its persists can land older content in the shared file.
     const proxy = await startLatencyProxy({
       targetPort: syncServer!.port,
       delayMs: 200,
