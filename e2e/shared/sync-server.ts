@@ -1,4 +1,4 @@
-import { Repo } from '@automerge/automerge-repo';
+import { type AutomergeUrl, Repo } from '@automerge/automerge-repo';
 import { WebSocketClientAdapter } from '@automerge/automerge-repo-network-websocket';
 import { expect } from '@playwright/test';
 import { type ChildProcess, spawn } from 'child_process';
@@ -119,6 +119,8 @@ export const startLatencyProxy = async ({
   };
 };
 
+export type DocumentContent = { formatVersion: number; content: string };
+
 // A plain automerge-repo client of the sync server, standing in for a peer.
 export const connectPeer = (syncServerUrl: string) => {
   const repo = new Repo({
@@ -126,7 +128,11 @@ export const connectPeer = (syncServerUrl: string) => {
   });
 
   return {
-    repo,
+    // The peer's copy of a shared document, once it has synced.
+    findDocument: (shareId: string) =>
+      repo.find<DocumentContent>(shareId as AutomergeUrl, {
+        signal: AbortSignal.timeout(15_000),
+      }),
     disconnect: () => {
       for (const adapter of repo.networkSubsystem.adapters) {
         adapter.disconnect();

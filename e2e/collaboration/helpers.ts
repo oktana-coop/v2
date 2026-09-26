@@ -10,8 +10,6 @@ import path from 'path';
 import { expect, launchElectronApp } from '../shared/fixtures';
 import { openCommandPalette } from '../shared/helpers';
 
-export type DocumentContent = { formatVersion: number; content: string };
-
 // Another app instance with its own user data, like a separate machine. It
 // comes with a new project folder holding hello.md unless given one.
 export const launchApp = async ({
