@@ -207,35 +207,57 @@ export const joinFromCommandPalette = async ({
   await input.waitFor({ state: 'hidden', timeout: 10_000 });
 };
 
-// Checks many times over a few seconds: a feedback loop shows up as repeated
-// tokens after the text first looked right.
-export const expectEachTokenOnceOverTime = async ({
-  editor,
-  tokens,
+type Sampling = { samples?: number; intervalMs?: number };
+
+// Checks many times over a few seconds: a feedback loop shows up only after
+// the text first looked right.
+const expectOverTime = async ({
+  check,
   samples = 10,
   intervalMs = 500,
-  alsoExpectPerSample,
-}: {
-  editor: Locator;
-  tokens: string[];
-  samples?: number;
-  intervalMs?: number;
-  alsoExpectPerSample?: () => void;
-}) => {
+}: Sampling & { check: () => Promise<void> }) => {
   for (let sample = 0; sample < samples; sample += 1) {
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
-
-    const content = (await editor.textContent()) ?? '';
-    for (const token of tokens) {
-      expect(
-        content.split(token).length - 1,
-        `token "${token}" must appear exactly once, got: ${JSON.stringify(content)}`
-      ).toBe(1);
-    }
-
-    alsoExpectPerSample?.();
+    await check();
   }
 };
+
+export const expectEachTokenOnceOverTime = ({
+  editor,
+  tokens,
+  alsoExpectPerSample,
+  ...sampling
+}: Sampling & {
+  editor: Locator;
+  tokens: string[];
+  alsoExpectPerSample?: () => void;
+}) =>
+  expectOverTime({
+    ...sampling,
+    check: async () => {
+      const content = (await editor.textContent()) ?? '';
+      for (const token of tokens) {
+        expect(
+          content.split(token).length - 1,
+          `token "${token}" must appear exactly once, got: ${JSON.stringify(content)}`
+        ).toBe(1);
+      }
+
+      alsoExpectPerSample?.();
+    },
+  });
+
+export const expectTextOverTime = ({
+  editor,
+  text,
+  ...sampling
+}: Sampling & { editor: Locator; text: string }) =>
+  expectOverTime({
+    ...sampling,
+    check: async () => {
+      expect(await editor.textContent()).toBe(text);
+    },
+  });
 
 // The avatars of the other peers in the actions bar.
 export const expectPeerAvatars = async ({
