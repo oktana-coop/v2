@@ -8,6 +8,9 @@ import { expect, test } from '../shared/fixtures';
 import { initRepositoryWithCommit } from '../shared/git';
 import {
   createAndSwitchToBranch,
+  documentEndKey,
+  documentStartKey,
+  lineEndKey,
   openDocument,
   openHelloMd,
   openProjectFolder,
@@ -1002,16 +1005,11 @@ test.describe('realtime collaboration', () => {
       const aliceEditor = window.locator('.ProseMirror');
       const bobEditor = bob.window.locator('.ProseMirror');
 
-      const docEndKey =
-        os.platform() === 'darwin' ? 'Meta+ArrowDown' : 'Control+End';
-      const docStartKey =
-        os.platform() === 'darwin' ? 'Meta+ArrowUp' : 'Control+Home';
-
       await aliceEditor.click();
-      await window.keyboard.press(docEndKey);
+      await window.keyboard.press(documentEndKey);
       await bobEditor.click();
-      await bob.window.keyboard.press(docStartKey);
-      await bob.window.keyboard.press('End');
+      await bob.window.keyboard.press(documentStartKey);
+      await bob.window.keyboard.press(lineEndKey);
 
       await Promise.all([
         window.keyboard.type(` ${aliceTyped}`, { delay: 30 }),

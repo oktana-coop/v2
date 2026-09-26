@@ -9,6 +9,22 @@ import * as path from 'path';
 export const modKey = os.platform() === 'darwin' ? 'Meta' : 'Control';
 
 /**
+ * Returns the platform-appropriate shortcuts for moving the caret to the start
+ * or end of the document. macOS uses Cmd+Up/Down, Linux/Windows Ctrl+Home/End.
+ */
+export const documentStartKey =
+  os.platform() === 'darwin' ? 'Meta+ArrowUp' : 'Control+Home';
+export const documentEndKey =
+  os.platform() === 'darwin' ? 'Meta+ArrowDown' : 'Control+End';
+
+/**
+ * Returns the platform-appropriate shortcut for moving the caret to the end of
+ * the line. macOS uses Cmd+Right (End only scrolls there), Linux/Windows End.
+ */
+export const lineEndKey =
+  os.platform() === 'darwin' ? 'Meta+ArrowRight' : 'End';
+
+/**
  * Returns the platform-appropriate key for triggering rename in the file tree.
  * macOS uses Enter (like Finder), Linux/Windows use F2 (like File Explorer).
  */
