@@ -229,40 +229,21 @@ const expectOverTime = async ({
   }
 };
 
-export const expectEachTokenOnceOverTime = ({
+export const expectTextOverTime = ({
   editor,
-  tokens,
+  text,
   alsoExpectPerSample,
   ...sampling
 }: Sampling & {
   editor: Locator;
-  tokens: string[];
+  text: string;
   alsoExpectPerSample?: () => void;
 }) =>
   expectOverTime({
     ...sampling,
     check: async () => {
-      const content = (await editor.textContent()) ?? '';
-      for (const token of tokens) {
-        expect(
-          content.split(token).length - 1,
-          `token "${token}" must appear exactly once, got: ${JSON.stringify(content)}`
-        ).toBe(1);
-      }
-
-      alsoExpectPerSample?.();
-    },
-  });
-
-export const expectTextOverTime = ({
-  editor,
-  text,
-  ...sampling
-}: Sampling & { editor: Locator; text: string }) =>
-  expectOverTime({
-    ...sampling,
-    check: async () => {
       expect(await editor.textContent()).toBe(text);
+      alsoExpectPerSample?.();
     },
   });
 

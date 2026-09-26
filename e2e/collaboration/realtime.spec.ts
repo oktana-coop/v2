@@ -24,7 +24,6 @@ import {
 } from '../shared/sync-server';
 import {
   attemptJoinFromCommandPalette,
-  expectEachTokenOnceOverTime,
   expectPeerAvatars,
   expectTextOverTime,
   joinFromButton,
@@ -164,18 +163,12 @@ test.describe('realtime collaboration', () => {
         await sleep(200);
       }
 
-      const editor = window.locator('.ProseMirror');
-      await expect(editor).toContainText('alpha bravo charlie delta echo', {
-        timeout: 15_000,
-      });
-
       // The shared content also has to stay exactly as the peer wrote it.
-      const expected = `${text}\n`;
-      await expectEachTokenOnceOverTime({
-        editor,
-        tokens,
+      await expectTextOverTime({
+        editor: window.locator('.ProseMirror'),
+        text: `HelloThis is a test document. ${tokens.join(' ')}`,
         alsoExpectPerSample: () =>
-          expect(peerHandle.fullDoc().content).toBe(expected),
+          expect(peerHandle.fullDoc().content).toBe(`${text}\n`),
       });
 
       // The synced text also reaches the sharer's disk.
@@ -290,13 +283,10 @@ test.describe('realtime collaboration', () => {
       const typed = 'one two three four five';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
 
-      const tokens = typed.split(' ');
-      const editor = window.locator('.ProseMirror');
-
       // The scripted peer's copy also has to stay exactly as Alice typed it.
-      await expectEachTokenOnceOverTime({
-        editor,
-        tokens,
+      await expectTextOverTime({
+        editor: window.locator('.ProseMirror'),
+        text: `Hello ${typed}This is a test document.`,
         alsoExpectPerSample: () =>
           expect(peerHandle.fullDoc().content).toBe(
             `# Hello ${typed}\n\nThis is a test document.\n`
@@ -338,15 +328,13 @@ test.describe('realtime collaboration', () => {
       const typed = 'one two three four five';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
 
-      const tokens = typed.split(' ');
       const aliceEditor = window.locator('.ProseMirror');
       const bobEditor = bob.window.locator('.ProseMirror');
-
-      await expect(bobEditor).toContainText(typed, { timeout: 20_000 });
+      const expected = `Hello ${typed}This is a test document.`;
 
       await Promise.all([
-        expectEachTokenOnceOverTime({ editor: aliceEditor, tokens }),
-        expectEachTokenOnceOverTime({ editor: bobEditor, tokens }),
+        expectTextOverTime({ editor: aliceEditor, text: expected }),
+        expectTextOverTime({ editor: bobEditor, text: expected }),
       ]);
     } finally {
       await bob.close();
@@ -479,15 +467,13 @@ test.describe('realtime collaboration', () => {
       const typed = 'one two three four five';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
 
-      const tokens = typed.split(' ');
       const aliceEditor = window.locator('.ProseMirror');
       const bobEditor = bob.window.locator('.ProseMirror');
-
-      await expect(bobEditor).toContainText(typed, { timeout: 20_000 });
+      const expected = `Hello ${typed}This is a test document.`;
 
       await Promise.all([
-        expectEachTokenOnceOverTime({ editor: aliceEditor, tokens }),
-        expectEachTokenOnceOverTime({ editor: bobEditor, tokens }),
+        expectTextOverTime({ editor: aliceEditor, text: expected }),
+        expectTextOverTime({ editor: bobEditor, text: expected }),
       ]);
     } finally {
       await bob.close();
@@ -529,15 +515,13 @@ test.describe('realtime collaboration', () => {
       const typed = 'one two three four five';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
 
-      const tokens = typed.split(' ');
       const aliceEditor = window.locator('.ProseMirror');
       const bobEditor = bob.window.locator('.ProseMirror');
-
-      await expect(bobEditor).toContainText(typed, { timeout: 20_000 });
+      const expected = `Hello ${typed}This is a test document.`;
 
       await Promise.all([
-        expectEachTokenOnceOverTime({ editor: aliceEditor, tokens }),
-        expectEachTokenOnceOverTime({ editor: bobEditor, tokens }),
+        expectTextOverTime({ editor: aliceEditor, text: expected }),
+        expectTextOverTime({ editor: bobEditor, text: expected }),
       ]);
     } finally {
       proxy.stop();
@@ -856,14 +840,11 @@ test.describe('realtime collaboration', () => {
 
       const aliceEditor = alice.window.locator('.ProseMirror');
       const bobEditor = bob.window.locator('.ProseMirror');
-
-      await expect(bobEditor).toContainText(tokens.join(' '), {
-        timeout: 20_000,
-      });
+      const expected = `Hello ${tokens.join(' ')}This is a test document.`;
 
       await Promise.all([
-        expectEachTokenOnceOverTime({ editor: aliceEditor, tokens }),
-        expectEachTokenOnceOverTime({ editor: bobEditor, tokens }),
+        expectTextOverTime({ editor: aliceEditor, text: expected }),
+        expectTextOverTime({ editor: bobEditor, text: expected }),
       ]);
     } finally {
       aliceProxy.stop();
@@ -922,15 +903,13 @@ test.describe('realtime collaboration', () => {
       const typed = 'one two three four five six seven eight nine ten';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
 
-      const tokens = typed.split(' ');
       const aliceEditor = window.locator('.ProseMirror');
       const bobEditor = bob.window.locator('.ProseMirror');
-
-      await expect(bobEditor).toContainText(typed, { timeout: 20_000 });
+      const expected = `Hello ${typed}This is a test document.`;
 
       await Promise.all([
-        expectEachTokenOnceOverTime({ editor: aliceEditor, tokens }),
-        expectEachTokenOnceOverTime({ editor: bobEditor, tokens }),
+        expectTextOverTime({ editor: aliceEditor, text: expected }),
+        expectTextOverTime({ editor: bobEditor, text: expected }),
       ]);
     } finally {
       proxy.stop();
@@ -1010,18 +989,12 @@ test.describe('realtime collaboration', () => {
         bob.window.keyboard.type(` ${bobTyped}`, { delay: 30 }),
       ]);
 
-      const tokens = [...aliceTyped.split(' '), ...bobTyped.split(' ')];
-
-      // Every token from either side must end up at both, exactly once, and
-      // both editors must converge to the same text.
+      // Both editors converge to both sides' typing, each in its place.
+      const expected = `Hello ${bobTyped}This is a test document. ${aliceTyped}`;
       await Promise.all([
-        expectEachTokenOnceOverTime({ editor: aliceEditor, tokens }),
-        expectEachTokenOnceOverTime({ editor: bobEditor, tokens }),
+        expectTextOverTime({ editor: aliceEditor, text: expected }),
+        expectTextOverTime({ editor: bobEditor, text: expected }),
       ]);
-      expect(
-        await bobEditor.textContent(),
-        'both editors converge to the same text'
-      ).toBe(await aliceEditor.textContent());
 
       expect([...aliceCoarseApplies, ...bobCoarseApplies]).toEqual([]);
     } finally {
@@ -1079,15 +1052,13 @@ test.describe('realtime collaboration', () => {
       const typed = 'one two three four five';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
 
-      const tokens = typed.split(' ');
       const aliceEditor = window.locator('.ProseMirror');
       const bobEditor = bob.window.locator('.ProseMirror');
-
-      await expect(bobEditor).toContainText(typed, { timeout: 20_000 });
+      const expected = `Hello ${typed}This is a test document.`;
 
       await Promise.all([
-        expectEachTokenOnceOverTime({ editor: aliceEditor, tokens }),
-        expectEachTokenOnceOverTime({ editor: bobEditor, tokens }),
+        expectTextOverTime({ editor: aliceEditor, text: expected }),
+        expectTextOverTime({ editor: bobEditor, text: expected }),
       ]);
     } finally {
       proxy.stop();
