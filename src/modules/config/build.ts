@@ -5,4 +5,6 @@ export const buildConfig: BuildConfig = {
     .VITE_PRIMARY_RICH_TEXT_REPRESENTATION as BuildConfig['primaryRichTextRepresentation'],
   githubAppClientId: import.meta.env
     .VITE_GITHUB_APP_CLIENT_ID as BuildConfig['githubAppClientId'],
+  syncServiceUrl: import.meta.env
+    .VITE_SYNC_SERVICE_URL as BuildConfig['syncServiceUrl'],
 };

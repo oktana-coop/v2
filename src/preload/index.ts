@@ -8,11 +8,13 @@ import {
   type PersonalizationAPI,
   type ProjectStoreManagerAPI,
   type ProjectStorePromiseAPI,
-  type RendererConfig,
   type VersionControlSyncProvidersAPI,
 } from '../../renderer';
 import { type GithubDeviceFlowVerificationInfo } from '../modules/auth';
-import { buildConfig } from '../modules/config';
+import {
+  readSyncServiceUrlOverride,
+  resolveRendererConfig,
+} from '../modules/config';
 import {
   type ContextMenuAction,
   type ContextMenuPayload,
@@ -77,9 +79,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke(PDF_IPC_CHANNEL, args),
 } as ElectronAPI);
 
-contextBridge.exposeInMainWorld('config', {
-  primaryRichTextRepresentation: buildConfig.primaryRichTextRepresentation,
-} as RendererConfig);
+contextBridge.exposeInMainWorld(
+  'config',
+  resolveRendererConfig({
+    syncServiceUrl: readSyncServiceUrlOverride(process.env),
+  })
+);
 
 contextBridge.exposeInMainWorld('personalizationAPI', {
   setTheme: (theme) => ipcRenderer.send('set-theme', theme),

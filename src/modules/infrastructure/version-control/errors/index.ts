@@ -51,3 +51,15 @@ export const VersionControlSyncProviderErrorTag =
 export class SyncProviderError extends Cause.YieldableError {
   readonly _tag = VersionControlSyncProviderErrorTag;
 }
+
+export const VersionControlBranchSwitchConflictErrorTag =
+  'VersionControlBranchSwitchConflictError';
+export class BranchSwitchConflictError extends Cause.YieldableError {
+  readonly _tag = VersionControlBranchSwitchConflictErrorTag;
+  readonly data;
+
+  constructor(message: string, data: { filepaths: string[] }) {
+    super(message);
+    this.data = data;
+  }
+}

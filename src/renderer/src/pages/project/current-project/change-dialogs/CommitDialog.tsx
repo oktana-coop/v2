@@ -40,12 +40,12 @@ export const CommitDialog = ({
 
   const handlePrimary = () => submit(primaryAction.onCommit);
 
+  const handleCancel = () => {
+    setCommitMessage('');
+    onCancel?.();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // on Escape key press
-    if (onCancel && e.key === 'Escape') {
-      setCommitMessage('');
-      onCancel();
-    }
     // on cmd/ctrl + enter --> submit the primary commit action
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
@@ -85,9 +85,10 @@ export const CommitDialog = ({
   return (
     <Modal
       isOpen={isOpen}
+      onClose={handleCancel}
       title="Commit changes"
       secondaryButton={
-        <Button variant="plain" onClick={onCancel}>
+        <Button variant="plain" onClick={handleCancel}>
           Cancel
         </Button>
       }

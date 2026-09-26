@@ -3,7 +3,10 @@ import { useCallback, useEffect, useState } from 'react';
 
 import {
   areProjectTreesEqual,
+  getProjectTree,
   type ProjectTreeNode,
+  type RegisteredShare,
+  type ShareRegistry,
 } from '../../../../modules/domain/project';
 import { type ProjectContextType } from './types';
 
@@ -16,6 +19,9 @@ type HierarchyDeps = Pick<
   | 'subscribeToProjectDirChanges'
 > & {
   pulledUpstreamChanges: boolean;
+  shareRegistry: ShareRegistry;
+  // The registry's content; a change re-reads the tree.
+  shares: RegisteredShare[];
 };
 
 type HierarchyOps = Pick<
@@ -30,6 +36,8 @@ export const useHierarchyOps = ({
   currentBranch,
   pulledUpstreamChanges,
   subscribeToProjectDirChanges,
+  shareRegistry,
+  shares,
 }: HierarchyDeps): HierarchyOps => {
   const [directoryTree, setDirectoryTree] = useState<ProjectTreeNode[]>([]);
 
@@ -45,7 +53,13 @@ export const useHierarchyOps = ({
     }
 
     const tree = await Effect.runPromise(
-      projectStore.getProjectTree(projectId)
+      getProjectTree({
+        getProjectStoreTree: projectStore.getProjectTree,
+        isShared: shareRegistry.isShared,
+      })({
+        projectId,
+        branch: currentBranch,
+      })
     );
 
     // An unchanged tree keeps its identity, so echoes of the app's own
@@ -53,11 +67,11 @@ export const useHierarchyOps = ({
     setDirectoryTree((current) =>
       areProjectTreesEqual(current, tree) ? current : tree
     );
-  }, [projectStore, projectId, directory]);
+  }, [projectStore, projectId, directory, currentBranch, shareRegistry]);
 
   useEffect(() => {
     refreshDirectoryTree();
-  }, [refreshDirectoryTree, currentBranch, pulledUpstreamChanges]);
+  }, [refreshDirectoryTree, pulledUpstreamChanges, shares]);
 
   useEffect(
     () =>

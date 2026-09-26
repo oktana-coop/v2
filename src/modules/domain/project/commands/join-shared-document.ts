@@ -1,0 +1,114 @@
+import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
+
+import {
+  type ArtifactId,
+  type Branch,
+  type MigrationError,
+} from '../../../../modules/infrastructure/version-control';
+import {
+  type NotFoundError,
+  type RepositoryError,
+  SharedDocumentNotInProjectError,
+  SharedDocumentOnAnotherBranchError,
+  type ValidationError,
+  VersionedProjectNotFoundErrorTag,
+} from '../errors';
+import { type ProjectId } from '../models';
+import {
+  type DocumentSharing,
+  type OpenSharedDocumentError,
+  type ProjectStore,
+  type ShareId,
+  type ShareRegistry,
+} from '../ports';
+import {
+  type LiveDocument,
+  type LocalEditsContributionError,
+} from './live-document';
+
+export type JoinSharedDocumentDeps = {
+  getSharedDocumentInfo: DocumentSharing['getSharedDocumentInfo'];
+  findDocumentById: ProjectStore['findDocumentById'];
+  rememberShare: ShareRegistry['rememberShare'];
+  openDocument: Pick<LiveDocument, 'documentId' | 'attachTo'> | null;
+};
+
+export type JoinSharedDocumentResult = {
+  documentId: ArtifactId;
+  attached: boolean;
+};
+
+export type JoinSharedDocumentArgs = {
+  shareId: ShareId;
+  projectId: ProjectId;
+  branch: Branch;
+};
+
+export type JoinSharedDocumentError =
+  | OpenSharedDocumentError
+  | SharedDocumentOnAnotherBranchError
+  | SharedDocumentNotInProjectError
+  | RepositoryError
+  | ValidationError
+  | NotFoundError
+  | MigrationError
+  | LocalEditsContributionError;
+
+export const joinSharedDocument =
+  ({
+    getSharedDocumentInfo,
+    findDocumentById,
+    rememberShare,
+    openDocument,
+  }: JoinSharedDocumentDeps) =>
+  ({
+    shareId,
+    projectId,
+    branch,
+  }: JoinSharedDocumentArgs): Effect.Effect<
+    JoinSharedDocumentResult,
+    JoinSharedDocumentError
+  > => {
+    const attachIfOpen = (documentId: ArtifactId) =>
+      openDocument && openDocument.documentId === documentId
+        ? pipe(openDocument.attachTo(shareId), Effect.as(true))
+        : Effect.succeed(false);
+
+    return pipe(
+      getSharedDocumentInfo({ shareId }),
+      Effect.flatMap((sharedDocInfo) =>
+        sharedDocInfo.branch === branch
+          ? Effect.succeed(sharedDocInfo.documentId)
+          : Effect.fail(
+              new SharedDocumentOnAnotherBranchError(
+                `The share belongs to branch "${sharedDocInfo.branch}"; this project is on "${branch}".`,
+                { branch: sharedDocInfo.branch }
+              )
+            )
+      ),
+      Effect.tap((documentId) =>
+        pipe(
+          findDocumentById({ projectId, documentId }),
+          Effect.catchTag(VersionedProjectNotFoundErrorTag, () =>
+            Effect.fail(
+              new SharedDocumentNotInProjectError(
+                'The share belongs to a document this project does not have.'
+              )
+            )
+          )
+        )
+      ),
+      Effect.flatMap((documentId) =>
+        pipe(
+          attachIfOpen(documentId),
+          Effect.map((attached) => ({ documentId, attached }))
+        )
+      ),
+      Effect.tap(({ documentId }) =>
+        Effect.sync(() =>
+          rememberShare({ key: { projectId, branch, documentId }, shareId })
+        )
+      )
+    );
+  };

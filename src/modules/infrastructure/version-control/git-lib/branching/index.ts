@@ -3,7 +3,11 @@ import { pipe } from 'effect/Function';
 import git from 'isomorphic-git';
 
 import { mapErrorTo } from '../../../../../utils/errors';
-import { NotFoundError, RepositoryError } from '../../errors';
+import {
+  BranchSwitchConflictError,
+  NotFoundError,
+  RepositoryError,
+} from '../../errors';
 import { type Branch, DEFAULT_BRANCH, parseBranch } from '../../models';
 import { getBranchCommitHistory } from '../history';
 import { IsoGitDeps } from '../types';
@@ -48,19 +52,38 @@ export const createAndSwitchToBranch = ({
     catch: mapErrorTo(RepositoryError, 'Git repo error'),
   });
 
+const isCheckoutConflict = (
+  error: unknown
+): error is { data: { filepaths: string[] } } =>
+  typeof error === 'object' &&
+  error !== null &&
+  'code' in error &&
+  error.code === 'CheckoutConflictError';
+
+// isomorphic-git refuses to overwrite unstaged edits and untracked files, as
+// git does, but it decides against the index rather than HEAD, so a staged
+// edit to a file both branches share is reverted and a staged new file is
+// deleted.
+//
+// TODO: fix this in isomorphic-git rather than here.
 export const switchToBranch = ({
   isoGitFs,
   dir,
   branch,
-}: SwitchToBranchArgs): Effect.Effect<void, RepositoryError, never> =>
+}: SwitchToBranchArgs): Effect.Effect<
+  void,
+  RepositoryError | BranchSwitchConflictError,
+  never
+> =>
   Effect.tryPromise({
-    try: () =>
-      git.checkout({
-        fs: isoGitFs,
-        dir,
-        ref: branch,
-      }),
-    catch: mapErrorTo(RepositoryError, 'Git repo error'),
+    try: () => git.checkout({ fs: isoGitFs, dir, ref: branch }),
+    catch: (error) =>
+      isCheckoutConflict(error)
+        ? new BranchSwitchConflictError(
+            `Your local changes to the following files would be overwritten by switching to "${branch}": ${error.data.filepaths.join(', ')}`,
+            { filepaths: error.data.filepaths }
+          )
+        : mapErrorTo(RepositoryError, 'Git repo error')(error),
   });
 
 export const getCurrentBranch = ({
@@ -188,7 +211,7 @@ export const deleteBranch = ({
   branch,
 }: DeleteBranchArgs): Effect.Effect<
   DeleteBranchResult,
-  RepositoryError | NotFoundError,
+  RepositoryError | NotFoundError | BranchSwitchConflictError,
   never
 > =>
   Effect.Do.pipe(

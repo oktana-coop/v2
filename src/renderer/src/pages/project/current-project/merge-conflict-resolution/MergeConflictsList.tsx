@@ -45,6 +45,7 @@ export const MergeConflictsList = () => {
               type: STRUCTURAL_CONFLICTS_NODE_TYPE,
               id: 'structural',
               name: 'File Changes',
+              shared: false,
             },
           ]
         : [];
@@ -55,6 +56,7 @@ export const MergeConflictsList = () => {
             type: filesystemItemTypes.FILE,
             id: conflict.path,
             name: removeExtension(conflict.path),
+            shared: false,
           }))
         : [];
 

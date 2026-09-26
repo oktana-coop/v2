@@ -8,4 +8,5 @@ export type ExplorerTreeNode = {
   name: string;
   type: FilesystemItemType | typeof STRUCTURAL_CONFLICTS_NODE_TYPE;
   children?: ExplorerTreeNode[];
+  shared: boolean;
 };

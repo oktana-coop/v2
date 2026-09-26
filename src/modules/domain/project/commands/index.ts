@@ -8,8 +8,32 @@ export {
 export * from './resolve-document-asset-url';
 export { persistDocument } from './persist-document';
 export {
-  openLiveDocument,
-  type OpenedLiveDocument,
-  type OpenLiveDocumentArgs,
-  type OpenLiveDocumentDeps,
-} from './open-live-document';
+  type JoinSharedDocumentDeps,
+  joinSharedDocument,
+} from './join-shared-document';
+export {
+  type LeaveSharedDocumentDeps,
+  leaveSharedDocument,
+} from './leave-shared-document';
+export {
+  type ShareLiveDocumentDeps,
+  shareLiveDocument,
+} from './share-live-document';
+export {
+  type LiveDocument,
+  type LiveDocumentError,
+  type NamedLiveDocument,
+  type StoredLiveDocument,
+} from './live-document';
+export { openLiveDocument } from './open-live-document';
+export {
+  leaveDocumentAsGuest,
+  type LeaveDocumentAsGuestDeps,
+  openDocumentAsGuest,
+  type OpenDocumentAsGuestDeps,
+} from './guest';
+export {
+  type GetProjectTreeDeps,
+  getProjectTree,
+  markSharedDocuments,
+} from './get-project-tree';

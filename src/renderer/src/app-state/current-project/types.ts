@@ -17,6 +17,9 @@ import {
 } from '../../../../modules/infrastructure/version-control';
 export type Unsubscribe = () => void;
 
+// A branch switch that would overwrite local changes to these files.
+export type BranchSwitchRefusal = { filepaths: string[] };
+
 export type CreateNewDocumentArgs = {
   name?: string;
   parentPath?: string;
@@ -34,7 +37,7 @@ export type ProjectStateSetters = {
 };
 
 export type ProjectContextType = {
-  loading: boolean;
+  resolving: boolean;
   projectId: ProjectId | null;
   directory: Directory | null;
   currentBranch: Branch | null;
@@ -58,7 +61,8 @@ export type ProjectContextType = {
   }) => Promise<ResolvedDocument>;
   listBranches: () => Promise<Branch[]>;
   createAndSwitchToBranch: (branchName: string) => Promise<void>;
-  switchToBranch: (branch: Branch) => Promise<void>;
+  // Resolves to what stood in the way, or null once switched.
+  switchToBranch: (branch: Branch) => Promise<BranchSwitchRefusal | null>;
   isCreateBranchDialogOpen: boolean;
   openCreateBranchDialog: () => void;
   closeCreateBranchDialog: () => void;

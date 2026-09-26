@@ -20,9 +20,11 @@ export {
 export {
   CurrentDocumentContext,
   type CurrentDocumentContextType,
+  type JoinSharedDocumentRefusal,
   CurrentDocumentProvider,
   useCurrentDocumentId,
   useExport,
+  useRemotePresence,
 } from './current-document';
 
 export {
@@ -64,3 +66,18 @@ export {
 } from './infrastructure-adapters/context';
 
 export { useClearWebStorage } from './web-storage';
+
+export { ShareRegistryContext, ShareRegistryProvider } from './share-registry';
+
+export {
+  GuestShareRegistryContext,
+  type GuestShareRegistryContextType,
+  GuestShareRegistryProvider,
+} from './guest-share-registry';
+
+export {
+  GuestEditingContext,
+  type GuestEditingContextType,
+  GuestEditingProvider,
+  useCurrentShareId,
+} from './guest-editing';

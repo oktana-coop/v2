@@ -1,27 +1,41 @@
 import debounce from 'debounce';
 import * as Effect from 'effect/Effect';
-import { useCallback, useContext, useEffect, useState } from 'react';
+import { pipe } from 'effect/Function';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useMatch, useNavigate } from 'react-router';
 
 import {
-  type OpenedLiveDocument,
+  getArtifactName,
+  joinSharedDocument,
+  leaveSharedDocument as leaveSharedDocumentCommand,
   openLiveDocument,
+  type OpenSharedDocumentError,
   type ProjectId,
   type ProjectStore,
+  SharedDocumentNotInProjectErrorTag,
+  SharedDocumentOnAnotherBranchErrorTag,
+  SharedDocumentUnavailableError,
+  type ShareId,
+  shareLiveDocument,
+  type StoredLiveDocument,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
 import {
+  ConvergentDocumentChangeErrorTag,
+  ConvergentDocumentUnavailableErrorTag,
   isEmpty,
   type VersionedDocument,
 } from '../../../../modules/domain/rich-text';
-import { createAdapter as createInMemoryLiveDocumentAdapter } from '../../../../modules/domain/rich-text/adapters/in-memory-live-document';
+import { createPrivateConvergentDocument } from '../../../../modules/domain/rich-text/adapters/automerge-convergent-document';
 import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
 import {
   createErrorNotification,
+  type Notification,
   NotificationsContext,
 } from '../../../../modules/infrastructure/notifications/browser';
 import {
   type ArtifactId,
+  type Branch,
   type Change,
   type ChangeId,
   changeIdsAreSame,
@@ -32,11 +46,15 @@ import {
   urlEncodeChangeIdForChange,
 } from '../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../modules/personalization/browser';
-import { subscribeToRef } from '../../../../utils/effect';
+import { subscribeToRef, subscribeToStream } from '../../../../utils/effect';
 import { ProjectContext } from '../';
 import { useCurrentChangeId } from '../current-project/current-artifact/use-current-change-id';
+import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
+import { ShareRegistryContext } from '../share-registry';
 import { CurrentDocumentContext } from './context';
+import { type JoinSharedDocumentRefusal } from './types';
 import { useCurrentDocumentId } from './use-current-document-id';
+import { usePublishLocalPresence } from './use-presence';
 import { usePulledUpstreamChanges } from './use-pulled-upstream-changes';
 
 const findSelectedCommitIndex = ({
@@ -55,9 +73,19 @@ export const CurrentDocumentProvider = ({
   const {
     projectId,
     projectStore,
+    currentBranch,
+    currentArtifact,
     restoreDocumentChanges,
     subscribeToProjectDirChanges,
+    switchToBranch,
+    listBranches,
   } = useContext(ProjectContext);
+  const { privateRepo, documentSharing } = useContext(
+    InfrastructureAdaptersContext
+  );
+  const {
+    registry: { findShareId, rememberShare, forgetShare },
+  } = useContext(ShareRegistryContext);
   const { dispatchNotification } = useContext(NotificationsContext);
   const { showDiffInHistoryView } = useContext(FunctionalityConfigContext);
   const { adapter: representationTransformAdapter } = useContext(
@@ -68,9 +96,10 @@ export const CurrentDocumentProvider = ({
   const documentId = useCurrentDocumentId();
   const { pulledUpstreamChanges, resetPulledUpstreamChanges } =
     usePulledUpstreamChanges();
-  const [liveDocument, setLiveDocument] = useState<OpenedLiveDocument | null>(
+  const [liveDocument, setLiveDocument] = useState<StoredLiveDocument | null>(
     null
   );
+  const onLocalSelectionChange = usePublishLocalPresence(liveDocument);
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
   const [versionedDocumentHistory, setVersionedDocumentHistory] = useState<
     ChangeWithUrlInfo[]
@@ -84,10 +113,23 @@ export const CurrentDocumentProvider = ({
   const [isDiscardChangesDialogOpen, setIsDiscardChangesDialogOpen] =
     useState<boolean>(false);
   const [commitToRestore, setCommitToRestore] = useState<Commit | null>(null);
+  const [isShareDocumentDialogOpen, setIsShareDocumentDialogOpen] =
+    useState<boolean>(false);
+  const [isJoinSharedDocumentDialogOpen, setIsJoinSharedDocumentDialogOpen] =
+    useState<boolean>(false);
 
   const documentChangeSubRouteMatch = useMatch(
     '/projects/:projectId/artifacts/:artifactId/changes/:changeId'
   );
+
+  const shareKey = useMemo(
+    () =>
+      projectId && currentBranch && documentId
+        ? { projectId, branch: currentBranch, documentId }
+        : null,
+    [projectId, currentBranch, documentId]
+  );
+  const shareId = shareKey ? findShareId(shareKey) : null;
 
   // Opens the current document as a live document. The previous one is kept
   // until the new one resolves, so a reload never blanks the state in between;
@@ -105,35 +147,57 @@ export const CurrentDocumentProvider = ({
 
     // Ignore an open the selection has already moved on from.
     let cancelled = false;
-    let opened: OpenedLiveDocument | null = null;
+    let opened: StoredLiveDocument | null = null;
 
-    const close = (handle: OpenedLiveDocument) =>
-      Effect.runPromise(handle.close).catch(console.error);
+    const close = (handle: StoredLiveDocument) =>
+      Effect.runPromise(handle.close).catch((error) => {
+        console.error(error);
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Save Document Error',
+            message: 'Your latest changes could not be saved.',
+          })
+        );
+      });
 
     setLoadingHistory(true);
 
+    // Sharing must never stand between the user and their document: whatever
+    // goes wrong, the document opens without sharing instead. A share that can
+    // never work is also forgotten, so it stops being retried.
+    const reportShareFailure = (error: OpenSharedDocumentError) => {
+      console.error(error);
+
+      // Being out of reach may pass; a share this app cannot read never will,
+      // so that one is forgotten rather than retried on every open.
+      const outOfReach = error instanceof SharedDocumentUnavailableError;
+
+      if (!outOfReach && shareKey) forgetShare(shareKey);
+
+      dispatchNotification(
+        createErrorNotification({
+          title: 'Shared Document Error',
+          message: outOfReach
+            ? 'The shared document could not be reached, so it was opened without sharing. Your changes are still saved.'
+            : 'This shared document could not be used, so it was opened without sharing and is no longer shared here. Your changes are still saved.',
+        })
+      );
+    };
+
+    const createPrivateDocument = (initialText: string) =>
+      createPrivateConvergentDocument({ initialText, privateRepo });
+
     Effect.runPromise(
       openLiveDocument({
-        createLiveDocumentAdapter: createInMemoryLiveDocumentAdapter,
+        createPrivateDocument,
+        openSharedDocument: documentSharing.openSharedDocument,
+        onShareUnavailable: reportShareFailure,
         transformToText: representationTransformAdapter.transformToText,
         findDocumentById: projectStore.findDocumentById,
         updateRichTextDocumentContent:
           projectStore.updateRichTextDocumentContent,
         subscribeToProjectDirChanges,
-        onPersistError: (error) => {
-          console.error(error);
-          dispatchNotification(
-            createErrorNotification({
-              title: 'Save Document Error',
-              message:
-                'Your latest changes could not be saved. Please reach out to us for support.',
-            })
-          );
-        },
-        // Picking up an outside edit is best-effort: the editor keeps working
-        // on what it holds, so this is logged rather than surfaced.
-        onRefreshOnDiskChangeError: console.error,
-      })({ projectId, documentId })
+      })({ projectId, documentId, shareId: shareId ?? undefined })
     )
       .then((handle) => {
         if (cancelled) {
@@ -168,7 +232,34 @@ export const CurrentDocumentProvider = ({
     projectStore,
     representationTransformAdapter,
     subscribeToProjectDirChanges,
+    currentBranch,
+    currentArtifact,
   ]);
+
+  // What the open document reports with nobody waiting on it. The editor keeps
+  // working through all of it, so only what the user would otherwise never
+  // learn — that their writing is not reaching the disk — is surfaced.
+  useEffect(() => {
+    if (!liveDocument) return;
+
+    return subscribeToStream(liveDocument.errors, (error) => {
+      console.error(error);
+
+      const isConvergentDocumentError =
+        error._tag === ConvergentDocumentChangeErrorTag ||
+        error._tag === ConvergentDocumentUnavailableErrorTag;
+
+      if (isConvergentDocumentError) return;
+
+      dispatchNotification(
+        createErrorNotification({
+          title: 'Save Document Error',
+          message: 'Your latest changes could not be saved.',
+        })
+      );
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveDocument]);
 
   // A pull can change the open document underneath it; re-read to pick that up.
   useEffect(() => {
@@ -367,9 +458,22 @@ export const CurrentDocumentProvider = ({
         );
       }
 
-      // Land pending typing before the restore rewrites the working tree, then
-      // re-read what the restore left there.
-      await Effect.runPromise(liveDocument.flush);
+      // Save pending typing before the restore rewrites the working tree. If
+      // it cannot be saved, restoring would overwrite it, so nothing happens
+      // and the changes stay where the user can still see them.
+      try {
+        await Effect.runPromise(liveDocument.flush);
+      } catch (error) {
+        console.error(error);
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Restore Version Error',
+            message:
+              'Your latest changes could not be saved, so this version was not restored.',
+          })
+        );
+        return;
+      }
 
       const restoreCommitId = await restoreDocumentChanges({
         documentId,
@@ -396,18 +500,15 @@ export const CurrentDocumentProvider = ({
       );
     }
 
-    // Drop pending typing first: a write landing mid-discard would resurrect
-    // exactly what is being discarded.
-    await Effect.runPromise(liveDocument.cancelPendingPersist);
-
     await Effect.runPromise(
-      projectStore.discardUncommittedChanges({
-        projectId,
-        documentId,
-      })
+      pipe(
+        liveDocument.dropPendingLocalEdits,
+        Effect.zipRight(
+          projectStore.discardUncommittedChanges({ projectId, documentId })
+        ),
+        Effect.zipRight(liveDocument.refresh)
+      )
     );
-
-    await Effect.runPromise(liveDocument.refresh);
 
     const newHistory = await loadHistory(documentId);
 
@@ -445,11 +546,203 @@ export const CurrentDocumentProvider = ({
     setIsDiscardChangesDialogOpen(false);
   }, []);
 
+  const handleShareDocument = useCallback(async (): Promise<ShareId | null> => {
+    if (!shareKey || !liveDocument || !currentArtifact) return null;
+
+    try {
+      return await Effect.runPromise(
+        shareLiveDocument({
+          liveDocument,
+          shareDocument: documentSharing.shareDocument,
+          rememberShare,
+        })({
+          projectId: shareKey.projectId,
+          branch: shareKey.branch,
+          documentId: shareKey.documentId,
+          name: getArtifactName(currentArtifact.path),
+        })
+      );
+    } catch (error) {
+      console.error(error);
+      dispatchNotification(
+        createErrorNotification({
+          title: 'Share Document Error',
+          message: 'This document could not be shared.',
+        })
+      );
+      return null;
+    }
+  }, [
+    shareKey,
+    liveDocument,
+    currentArtifact,
+    documentSharing,
+    rememberShare,
+    dispatchNotification,
+  ]);
+
+  const join = useCallback(
+    async ({
+      shareId: joinedShareId,
+      branch,
+    }: {
+      shareId: ShareId;
+      branch: Branch;
+    }): Promise<JoinSharedDocumentRefusal | null> => {
+      if (!projectId || !projectStore) return null;
+
+      type JoinOutcome =
+        | { joined: { documentId: ArtifactId; attached: boolean } }
+        | { refusal: JoinSharedDocumentRefusal }
+        | { notification: Notification };
+
+      const outcome = await Effect.runPromise(
+        pipe(
+          joinSharedDocument({
+            getSharedDocumentInfo: documentSharing.getSharedDocumentInfo,
+            findDocumentById: projectStore.findDocumentById,
+            rememberShare,
+            openDocument: branch === currentBranch ? liveDocument : null,
+          })({ shareId: joinedShareId, projectId, branch }),
+          Effect.map((joined): JoinOutcome => ({ joined })),
+          Effect.catchTag(SharedDocumentOnAnotherBranchErrorTag, (error) =>
+            pipe(
+              // Switching is offered only to a branch this project has.
+              Effect.promise(() => listBranches().catch((): Branch[] => [])),
+              Effect.map((branches): JoinOutcome => ({
+                refusal: {
+                  reason: 'other-branch',
+                  branch: error.data.branch,
+                  canSwitch: branches.includes(error.data.branch),
+                },
+              }))
+            )
+          ),
+          Effect.catchTag(SharedDocumentNotInProjectErrorTag, () =>
+            Effect.succeed<JoinOutcome>({
+              refusal: { reason: 'not-in-project' },
+            })
+          ),
+          Effect.catchAll((error) => {
+            console.error(error);
+
+            return Effect.succeed<JoinOutcome>({
+              notification: createErrorNotification({
+                title: 'Join Shared Document Error',
+                message: 'This shared document link could not be joined.',
+              }),
+            });
+          })
+        )
+      );
+
+      if ('notification' in outcome) {
+        dispatchNotification(outcome.notification);
+        return null;
+      }
+
+      if ('refusal' in outcome) return outcome.refusal;
+
+      setIsJoinSharedDocumentDialogOpen(false);
+
+      // The shared document is captured (remembered) in local storage.
+      // After navigation, the document will be opened as a shared one.
+      if (!outcome.joined.attached) {
+        navigate(
+          `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(outcome.joined.documentId)}`
+        );
+      }
+
+      return null;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      projectId,
+      currentBranch,
+      projectStore,
+      documentId,
+      liveDocument,
+      documentSharing,
+      rememberShare,
+      listBranches,
+      dispatchNotification,
+    ]
+  );
+
+  const handleJoinSharedDocument = useCallback(
+    (joinedShareId: ShareId) =>
+      currentBranch
+        ? join({ shareId: joinedShareId, branch: currentBranch })
+        : Promise.resolve(null),
+    [currentBranch, join]
+  );
+
+  const handleSwitchToBranchAndJoin = useCallback(
+    async ({
+      shareId: joinedShareId,
+      branch,
+    }: {
+      shareId: ShareId;
+      branch: Branch;
+    }): Promise<JoinSharedDocumentRefusal | null> => {
+      const switchPrompt: JoinSharedDocumentRefusal = {
+        reason: 'other-branch',
+        branch,
+        canSwitch: true,
+      };
+
+      try {
+        const refusal = await switchToBranch(branch);
+
+        if (refusal) return switchPrompt;
+      } catch (error) {
+        console.error(error);
+        return switchPrompt;
+      }
+
+      return join({ shareId: joinedShareId, branch });
+    },
+    [switchToBranch, join]
+  );
+
+  const handleLeaveSharedDocument = useCallback(async () => {
+    if (!shareKey || !shareId || !liveDocument) return;
+
+    try {
+      await Effect.runPromise(
+        leaveSharedDocumentCommand({
+          liveDocument,
+          findShareId,
+          forgetShare,
+          leaveSharedDocument: documentSharing.leaveSharedDocument,
+        })(shareKey)
+      );
+    } catch (error) {
+      console.error(error);
+      dispatchNotification(
+        createErrorNotification({
+          title: 'Stop Sharing Error',
+          message:
+            'Your latest changes could not be saved, so sharing was not stopped.',
+        })
+      );
+    }
+  }, [
+    shareKey,
+    shareId,
+    liveDocument,
+    findShareId,
+    forgetShare,
+    documentSharing,
+    dispatchNotification,
+  ]);
+
   return (
     <CurrentDocumentContext.Provider
       value={{
         versionedDocumentId: documentId,
         liveDocument,
+        onLocalSelectionChange,
         loadingHistory,
         versionedDocumentHistory,
         canCommit,
@@ -465,6 +758,19 @@ export const CurrentDocumentProvider = ({
         onCloseDiscardChangesDialog: handleCloseDiscardChangesDialog,
         selectedCommitIndex,
         onSelectChange: handleSelectChange,
+        shareId,
+        onShareDocument: handleShareDocument,
+        onJoinSharedDocument: handleJoinSharedDocument,
+        onSwitchToBranchAndJoin: handleSwitchToBranchAndJoin,
+        onLeaveSharedDocument: handleLeaveSharedDocument,
+        isShareDocumentDialogOpen,
+        isJoinSharedDocumentDialogOpen,
+        onOpenShareDocumentDialog: () => setIsShareDocumentDialogOpen(true),
+        onCloseShareDocumentDialog: () => setIsShareDocumentDialogOpen(false),
+        onOpenJoinSharedDocumentDialog: () =>
+          setIsJoinSharedDocumentDialogOpen(true),
+        onCloseJoinSharedDocumentDialog: () =>
+          setIsJoinSharedDocumentDialogOpen(false),
       }}
     >
       {children}

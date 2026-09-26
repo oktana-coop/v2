@@ -6,3 +6,4 @@ export * from './project-artifacts';
 export * from './document-asset-paths';
 export * from './referenced-asset';
 export * from './remote';
+export * from './share-id';

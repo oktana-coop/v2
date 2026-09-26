@@ -3,10 +3,13 @@ import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
 import {
+  attemptBranchSwitch,
   commitChanges,
   createAndSwitchToBranch,
   createNewFileFromButton,
-  openBranchingPalette,
+  expectCurrentBranch,
+  expectErrorNotification,
+  expectNoOpenDocument,
   openDocument,
   openProjectFolder,
   switchToBranch,
@@ -70,19 +73,71 @@ test.describe('branch switching', () => {
     await commitChanges({ window, message: 'experiment commit' });
     await expect(editor(window)).toContainText('Only on experiment');
 
-    // Driven directly rather than via `switchToBranch`, whose post-condition is
-    // a visible branch button — the reset navigates away from it.
-    await openBranchingPalette({ window, currentBranch: 'experiment' });
-    await window.getByRole('option', { name: 'main', exact: true }).click();
+    // The reset navigates away from the branch button.
+    await attemptBranchSwitch({ window, from: 'experiment', to: 'main' });
 
     // The open document has no counterpart on main, so it cannot be re-resolved
     // against it and the app resets rather than showing a stale document.
-    await expect(editor(window)).toBeHidden();
+    await expectNoOpenDocument({ window });
     await expect(
       window.getByRole('heading', { name: /welcome to v2/i })
     ).toBeVisible();
     await expect(
       window.getByTestId('file-explorer').getByText('experiment-only')
     ).toBeHidden();
+  });
+});
+
+test.describe('switching with uncommitted changes', () => {
+  test('refuses when the edited document differs between the branches', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openDocument({ window, relativePath: 'hello.md' });
+
+    await createAndSwitchToBranch({ window, branchName: 'experiment' });
+    await typeInParagraphAndWaitForDebounce({ window, text: ' on experiment' });
+    await commitChanges({ window, message: 'experiment commit' });
+    await switchToBranch({ window, from: 'experiment', to: 'main' });
+
+    await typeInParagraphAndWaitForDebounce({ window, text: ' not committed' });
+    await attemptBranchSwitch({ window, to: 'experiment' });
+
+    await expectErrorNotification({
+      window,
+      message:
+        'Your local changes to hello.md would be overwritten by switching to "experiment"',
+    });
+    await expectCurrentBranch({ window, branch: 'main' });
+    await expect(editor(window)).toContainText('not committed');
+  });
+
+  test('carries the edit over when the edited document is the same on both branches', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openDocument({ window, relativePath: 'hello.md' });
+
+    await createAndSwitchToBranch({ window, branchName: 'experiment' });
+    await typeInParagraphAndWaitForDebounce({ window, text: ' on experiment' });
+    await commitChanges({ window, message: 'experiment commit' });
+
+    await openDocument({ window, relativePath: 'world.md' });
+    await typeInParagraphAndWaitForDebounce({ window, text: ' not committed' });
+    await switchToBranch({ window, from: 'experiment', to: 'main' });
+
+    await expect(editor(window)).toContainText('not committed');
   });
 });
