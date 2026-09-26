@@ -153,7 +153,7 @@ test.describe('realtime collaboration', () => {
 
       // Write like someone typing: one token at a time, replacing the full
       // text so updateText computes the splices.
-      const tokens = ['alpha', 'bravo', 'charlie', 'delta', 'echo'];
+      const tokens = ['red', 'orange', 'yellow', 'green', 'blue'];
       let text = peerHandle.fullDoc().content.trimEnd();
       for (const token of tokens) {
         text = `${text} ${token}`;
@@ -177,7 +177,7 @@ test.describe('realtime collaboration', () => {
           () => fs.readFileSync(path.join(aliceProject, 'hello.md'), 'utf8'),
           { timeout: 10_000 }
         )
-        .toContain('alpha bravo charlie delta echo');
+        .toContain('red orange yellow green blue');
     } finally {
       scriptedPeer.disconnect();
     }
@@ -280,7 +280,7 @@ test.describe('realtime collaboration', () => {
 
       // Type like a person: fast enough that changes overlap with their own
       // sync round-trips.
-      const typed = 'one two three four five';
+      const typed = 'mercury venus earth mars jupiter';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
 
       // The scripted peer's copy also has to stay exactly as Alice typed it.
@@ -325,7 +325,7 @@ test.describe('realtime collaboration', () => {
       await joinFromCommandPalette({ window: bob.window, shareId });
 
       // Alice types; Bob only watches.
-      const typed = 'one two three four five';
+      const typed = 'mercury venus earth mars jupiter';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
 
       const aliceEditor = window.locator('.ProseMirror');
@@ -464,7 +464,7 @@ test.describe('realtime collaboration', () => {
       await openHelloMd({ window: bob.window });
       await joinFromCommandPalette({ window: bob.window, shareId });
 
-      const typed = 'one two three four five';
+      const typed = 'mercury venus earth mars jupiter';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
 
       const aliceEditor = window.locator('.ProseMirror');
@@ -512,7 +512,7 @@ test.describe('realtime collaboration', () => {
       await openHelloMd({ window: bob.window });
       await joinFromCommandPalette({ window: bob.window, shareId });
 
-      const typed = 'one two three four five';
+      const typed = 'mercury venus earth mars jupiter';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
 
       const aliceEditor = window.locator('.ProseMirror');
@@ -820,14 +820,14 @@ test.describe('realtime collaboration', () => {
       // Word …pause… word …pause…: each pause crosses the persist debounce,
       // so disk writes, watcher events and refreshes interleave with typing.
       const tokens = [
-        'alpha',
-        'bravo',
-        'charlie',
-        'delta',
-        'echo',
-        'foxtrot',
-        'golf',
-        'hotel',
+        'mercury',
+        'venus',
+        'earth',
+        'mars',
+        'jupiter',
+        'saturn',
+        'uranus',
+        'neptune',
       ];
       for (const token of tokens) {
         await typeInEditorSlowly({
@@ -900,7 +900,7 @@ test.describe('realtime collaboration', () => {
       await openHelloMd({ window: bob.window });
       await joinFromCommandPalette({ window: bob.window, shareId });
 
-      const typed = 'one two three four five six seven eight nine ten';
+      const typed = 'mercury venus earth mars jupiter saturn uranus neptune';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
 
       const aliceEditor = window.locator('.ProseMirror');
@@ -973,8 +973,8 @@ test.describe('realtime collaboration', () => {
       // Both type at the same time, in different places (concurrent inserts
       // at the very same position interleave by design — convergence over
       // intent): Alice at the end of the document, Bob at the heading's end.
-      const aliceTyped = 'alpha bravo charlie delta echo';
-      const bobTyped = 'uno dos tres cuatro cinco';
+      const aliceTyped = 'mercury venus earth mars jupiter';
+      const bobTyped = 'red orange yellow green blue';
       const aliceEditor = window.locator('.ProseMirror');
       const bobEditor = bob.window.locator('.ProseMirror');
 
@@ -1049,7 +1049,7 @@ test.describe('realtime collaboration', () => {
       await openHelloMd({ window: bob.window });
       await joinFromCommandPalette({ window: bob.window, shareId });
 
-      const typed = 'one two three four five';
+      const typed = 'mercury venus earth mars jupiter';
       await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
 
       const aliceEditor = window.locator('.ProseMirror');
