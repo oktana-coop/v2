@@ -1,7 +1,6 @@
 import { next as Automerge } from '@automerge/automerge';
 import { type Page } from '@playwright/test';
 import fs from 'fs';
-import net from 'net';
 import os from 'os';
 import path from 'path';
 
@@ -15,7 +14,11 @@ import {
   switchToBranch,
   typeInEditorSlowly,
 } from '../shared/helpers';
-import { connectPeer, startLatencyProxy } from '../shared/sync-server';
+import {
+  connectPeer,
+  startLatencyProxy,
+  startTcpListener,
+} from '../shared/sync-server';
 import {
   attemptJoinFromCommandPalette,
   type DocumentContent,
@@ -53,17 +56,9 @@ test.describe('realtime collaboration', () => {
   // Private documents live in a repo with no network: nothing dials the
   // sync service until a document is shared or joined.
   test('a private document never dials the sync service', async () => {
-    const connections: number[] = [];
-    const listener = net.createServer(() => {
-      connections.push(1);
-    });
-    await new Promise<void>((resolve) => listener.listen(0, resolve));
-    const { port } = listener.address() as net.AddressInfo;
+    const syncService = await startTcpListener();
 
-    // Launched here rather than by the fixture, to start pointed at the listener.
-    const alice = await launchApp({
-      syncServiceUrl: `ws://127.0.0.1:${port}`,
-    });
+    const alice = await launchApp({ syncServiceUrl: syncService.url });
     try {
       await openProjectFolder({
         electronApp: alice.app,
@@ -77,11 +72,10 @@ test.describe('realtime collaboration', () => {
         delay: 30,
       });
 
-      await sleep(2_000);
-      expect(connections).toEqual([]);
+      await syncService.expectNoConnectionsAfterWaiting();
     } finally {
       await alice.close();
-      listener.close();
+      syncService.stop();
     }
   });
 
@@ -889,7 +883,6 @@ test.describe('realtime collaboration', () => {
       delayMs: 100,
     });
 
-    // Launched here rather than by the fixture, to start behind the proxy.
     const alice = await launchApp({
       syncServiceUrl: aliceProxy.url,
       projectDir: aliceProject,
