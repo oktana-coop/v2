@@ -9,31 +9,8 @@ import {
   openProjectFolder,
   typeInEditorSlowly,
 } from '../shared/helpers';
-import { connectPeer, startSyncServer } from '../shared/sync-server';
-import {
-  type DocumentContent,
-  launchApp,
-  shareFromActionsBar,
-} from './helpers';
-
-const contentAtService = async ({
-  url,
-  shareId,
-}: {
-  url: string;
-  shareId: string;
-}): Promise<string> => {
-  const peer = connectPeer(url);
-  try {
-    const handle = await peer.repo.find<DocumentContent>(
-      shareId as Parameters<typeof peer.repo.find>[0],
-      { signal: AbortSignal.timeout(15_000) }
-    );
-    return handle.fullDoc().content;
-  } finally {
-    peer.disconnect();
-  }
-};
+import { startSyncServer } from '../shared/sync-server';
+import { joinFromButton, launchApp, shareFromActionsBar } from './helpers';
 
 test.describe('a shared document across a restart', () => {
   // Shared documents outlive the process, so typing made while the service
@@ -72,9 +49,16 @@ test.describe('a shared document across a restart', () => {
       const shareId = await shareFromActionsBar({ window: first.window });
 
       // The share reaches the service before the service goes away.
-      expect(await contentAtService({ url: service.url, shareId })).toContain(
-        'Hello'
-      );
+      const earlyGuest = await launchApp({ syncServiceUrl: service.url });
+      try {
+        await joinFromButton({ window: earlyGuest.window, shareId });
+        await expect(earlyGuest.window.locator('.ProseMirror')).toContainText(
+          'This is a test document',
+          { timeout: 20_000 }
+        );
+      } finally {
+        await earlyGuest.close();
+      }
       service.stop();
 
       await typeInEditorSlowly({
@@ -119,11 +103,17 @@ test.describe('a shared document across a restart', () => {
         port: service.port,
         dataDir: serviceDataDir,
       });
-      await expect
-        .poll(() => contentAtService({ url: service.url, shareId }), {
-          timeout: 30_000,
-        })
-        .toContain('OFFLINE');
+      // Someone joining now sees what was typed offline.
+      const lateGuest = await launchApp({ syncServiceUrl: service.url });
+      try {
+        await joinFromButton({ window: lateGuest.window, shareId });
+        await expect(lateGuest.window.locator('.ProseMirror')).toContainText(
+          'OFFLINE',
+          { timeout: 30_000 }
+        );
+      } finally {
+        await lateGuest.close();
+      }
 
       await second.app.close();
     } finally {
