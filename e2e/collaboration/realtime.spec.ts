@@ -22,6 +22,7 @@ import {
 import {
   attemptJoinFromCommandPalette,
   type DocumentContent,
+  expectEachTokenOnceOverTime,
   joinFromButton,
   joinFromCommandPalette,
   launchApp,
@@ -167,23 +168,14 @@ test.describe('realtime collaboration', () => {
         timeout: 15_000,
       });
 
-      // The document has to settle: the same content on every sample, each
-      // token exactly once — a feedback loop keeps rewriting tokens instead.
+      // The shared content also has to stay exactly as the peer wrote it.
       const expected = `${text}\n`;
-      for (let sample = 0; sample < 8; sample += 1) {
-        await sleep(500);
-
-        const crdtContent = peerHandle.fullDoc().content;
-        expect(crdtContent).toBe(expected);
-
-        const editorText = (await editor.textContent()) ?? '';
-        for (const token of tokens) {
-          expect(
-            editorText.split(token).length - 1,
-            `token "${token}" must appear exactly once in the editor`
-          ).toBe(1);
-        }
-      }
+      await expectEachTokenOnceOverTime({
+        editor,
+        tokens,
+        alsoExpectPerSample: () =>
+          expect(peerHandle.fullDoc().content).toBe(expected),
+      });
 
       // The synced text also reaches the sharer's disk.
       await expect
@@ -303,29 +295,19 @@ test.describe('realtime collaboration', () => {
       const tokens = typed.split(' ');
       const editor = window.locator('.ProseMirror');
 
-      // Wait for the scripted peer to receive all tokens, then require both
-      // sides to settle with each token appearing exactly once.
       await expect
         .poll(() => peerHandle.fullDoc().content, { timeout: 15_000 })
         .toContain('five');
 
-      for (let sample = 0; sample < 8; sample += 1) {
-        await sleep(500);
-
-        const crdtContent = peerHandle.fullDoc().content;
-        const editorText = (await editor.textContent()) ?? '';
-
-        for (const token of tokens) {
-          expect(
-            crdtContent.split(token).length - 1,
-            `token "${token}" must appear exactly once at the peer, got: ${JSON.stringify(crdtContent)}`
-          ).toBe(1);
-          expect(
-            editorText.split(token).length - 1,
-            `token "${token}" must appear exactly once in the editor, got: ${JSON.stringify(editorText)}`
-          ).toBe(1);
-        }
-      }
+      // The scripted peer's copy also has to stay exactly as Alice typed it.
+      await expectEachTokenOnceOverTime({
+        editor,
+        tokens,
+        alsoExpectPerSample: () =>
+          expect(peerHandle.fullDoc().content).toBe(
+            `# Hello ${typed}\n\nThis is a test document.\n`
+          ),
+      });
     } finally {
       scriptedPeer.disconnect();
     }
@@ -368,25 +350,10 @@ test.describe('realtime collaboration', () => {
 
       await expect(bobEditor).toContainText(typed, { timeout: 20_000 });
 
-      // Both editors have to settle with each token appearing exactly once;
-      // a feedback loop keeps re-writing tokens instead.
-      for (let sample = 0; sample < 10; sample += 1) {
-        await sleep(500);
-
-        const aliceText = (await aliceEditor.textContent()) ?? '';
-        const bobText = (await bobEditor.textContent()) ?? '';
-
-        for (const token of tokens) {
-          expect(
-            aliceText.split(token).length - 1,
-            `token "${token}" must appear exactly once at Alice, got: ${JSON.stringify(aliceText)}`
-          ).toBe(1);
-          expect(
-            bobText.split(token).length - 1,
-            `token "${token}" must appear exactly once at Bob, got: ${JSON.stringify(bobText)}`
-          ).toBe(1);
-        }
-      }
+      await Promise.all([
+        expectEachTokenOnceOverTime({ editor: aliceEditor, tokens }),
+        expectEachTokenOnceOverTime({ editor: bobEditor, tokens }),
+      ]);
     } finally {
       await bob.close();
     }
@@ -528,23 +495,10 @@ test.describe('realtime collaboration', () => {
 
       await expect(bobEditor).toContainText(typed, { timeout: 20_000 });
 
-      for (let sample = 0; sample < 10; sample += 1) {
-        await sleep(500);
-
-        const aliceText = (await aliceEditor.textContent()) ?? '';
-        const bobText = (await bobEditor.textContent()) ?? '';
-
-        for (const token of tokens) {
-          expect(
-            aliceText.split(token).length - 1,
-            `token "${token}" must appear exactly once at Alice, got: ${JSON.stringify(aliceText)}`
-          ).toBe(1);
-          expect(
-            bobText.split(token).length - 1,
-            `token "${token}" must appear exactly once at Bob, got: ${JSON.stringify(bobText)}`
-          ).toBe(1);
-        }
-      }
+      await Promise.all([
+        expectEachTokenOnceOverTime({ editor: aliceEditor, tokens }),
+        expectEachTokenOnceOverTime({ editor: bobEditor, tokens }),
+      ]);
     } finally {
       await bob.close();
     }
@@ -591,23 +545,10 @@ test.describe('realtime collaboration', () => {
 
       await expect(bobEditor).toContainText(typed, { timeout: 20_000 });
 
-      for (let sample = 0; sample < 10; sample += 1) {
-        await sleep(500);
-
-        const aliceText = (await aliceEditor.textContent()) ?? '';
-        const bobText = (await bobEditor.textContent()) ?? '';
-
-        for (const token of tokens) {
-          expect(
-            aliceText.split(token).length - 1,
-            `token "${token}" must appear exactly once at Alice, got: ${JSON.stringify(aliceText)}`
-          ).toBe(1);
-          expect(
-            bobText.split(token).length - 1,
-            `token "${token}" must appear exactly once at Bob, got: ${JSON.stringify(bobText)}`
-          ).toBe(1);
-        }
-      }
+      await Promise.all([
+        expectEachTokenOnceOverTime({ editor: aliceEditor, tokens }),
+        expectEachTokenOnceOverTime({ editor: bobEditor, tokens }),
+      ]);
     } finally {
       proxy.stop();
       await bob.close();
@@ -944,23 +885,10 @@ test.describe('realtime collaboration', () => {
         timeout: 20_000,
       });
 
-      for (let sample = 0; sample < 10; sample += 1) {
-        await sleep(500);
-
-        const aliceText = (await aliceEditor.textContent()) ?? '';
-        const bobText = (await bobEditor.textContent()) ?? '';
-
-        for (const token of tokens) {
-          expect(
-            aliceText.split(token).length - 1,
-            `token "${token}" must appear exactly once at Alice, got: ${JSON.stringify(aliceText)}`
-          ).toBe(1);
-          expect(
-            bobText.split(token).length - 1,
-            `token "${token}" must appear exactly once at Bob, got: ${JSON.stringify(bobText)}`
-          ).toBe(1);
-        }
-      }
+      await Promise.all([
+        expectEachTokenOnceOverTime({ editor: aliceEditor, tokens }),
+        expectEachTokenOnceOverTime({ editor: bobEditor, tokens }),
+      ]);
     } finally {
       aliceProxy.stop();
       bobProxy.stop();
@@ -1024,23 +952,10 @@ test.describe('realtime collaboration', () => {
 
       await expect(bobEditor).toContainText(typed, { timeout: 20_000 });
 
-      for (let sample = 0; sample < 10; sample += 1) {
-        await sleep(500);
-
-        const aliceText = (await aliceEditor.textContent()) ?? '';
-        const bobText = (await bobEditor.textContent()) ?? '';
-
-        for (const token of tokens) {
-          expect(
-            aliceText.split(token).length - 1,
-            `token "${token}" must appear exactly once at Alice, got: ${JSON.stringify(aliceText)}`
-          ).toBe(1);
-          expect(
-            bobText.split(token).length - 1,
-            `token "${token}" must appear exactly once at Bob, got: ${JSON.stringify(bobText)}`
-          ).toBe(1);
-        }
-      }
+      await Promise.all([
+        expectEachTokenOnceOverTime({ editor: aliceEditor, tokens }),
+        expectEachTokenOnceOverTime({ editor: bobEditor, tokens }),
+      ]);
     } finally {
       proxy.stop();
       await bob.close();
@@ -1133,29 +1048,14 @@ test.describe('realtime collaboration', () => {
         await expect(bobEditor).toContainText(token, { timeout: 20_000 });
       }
 
-      for (let sample = 0; sample < 10; sample += 1) {
-        await sleep(500);
-
-        const aliceText = (await aliceEditor.textContent()) ?? '';
-        const bobText = (await bobEditor.textContent()) ?? '';
-
-        for (const token of tokens) {
-          expect(
-            aliceText.split(token).length - 1,
-            `token "${token}" must appear exactly once at Alice, got: ${JSON.stringify(aliceText)}`
-          ).toBe(1);
-          expect(
-            bobText.split(token).length - 1,
-            `token "${token}" must appear exactly once at Bob, got: ${JSON.stringify(bobText)}`
-          ).toBe(1);
-        }
-
-        if (sample === 9) {
-          expect(bobText, 'both editors converge to the same text').toBe(
-            aliceText
-          );
-        }
-      }
+      await Promise.all([
+        expectEachTokenOnceOverTime({ editor: aliceEditor, tokens }),
+        expectEachTokenOnceOverTime({ editor: bobEditor, tokens }),
+      ]);
+      expect(
+        await bobEditor.textContent(),
+        'both editors converge to the same text'
+      ).toBe(await aliceEditor.textContent());
 
       expect([...aliceCoarseApplies, ...bobCoarseApplies]).toEqual([]);
     } finally {
@@ -1219,23 +1119,10 @@ test.describe('realtime collaboration', () => {
 
       await expect(bobEditor).toContainText(typed, { timeout: 20_000 });
 
-      for (let sample = 0; sample < 10; sample += 1) {
-        await sleep(500);
-
-        const aliceText = (await aliceEditor.textContent()) ?? '';
-        const bobText = (await bobEditor.textContent()) ?? '';
-
-        for (const token of tokens) {
-          expect(
-            aliceText.split(token).length - 1,
-            `token "${token}" must appear exactly once at Alice, got: ${JSON.stringify(aliceText)}`
-          ).toBe(1);
-          expect(
-            bobText.split(token).length - 1,
-            `token "${token}" must appear exactly once at Bob, got: ${JSON.stringify(bobText)}`
-          ).toBe(1);
-        }
-      }
+      await Promise.all([
+        expectEachTokenOnceOverTime({ editor: aliceEditor, tokens }),
+        expectEachTokenOnceOverTime({ editor: bobEditor, tokens }),
+      ]);
     } finally {
       proxy.stop();
       await bob.close();

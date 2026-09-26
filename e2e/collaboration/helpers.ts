@@ -1,4 +1,8 @@
-import { type ElectronApplication, type Page } from '@playwright/test';
+import {
+  type ElectronApplication,
+  type Locator,
+  type Page,
+} from '@playwright/test';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -203,4 +207,34 @@ export const joinFromCommandPalette = async ({
 }) => {
   const input = await attemptJoinFromCommandPalette({ window, shareId });
   await input.waitFor({ state: 'hidden', timeout: 10_000 });
+};
+
+// Checks many times over a few seconds: a feedback loop shows up as repeated
+// tokens after the text first looked right.
+export const expectEachTokenOnceOverTime = async ({
+  editor,
+  tokens,
+  samples = 10,
+  intervalMs = 500,
+  alsoExpectPerSample,
+}: {
+  editor: Locator;
+  tokens: string[];
+  samples?: number;
+  intervalMs?: number;
+  alsoExpectPerSample?: () => void;
+}) => {
+  for (let sample = 0; sample < samples; sample += 1) {
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+
+    const content = (await editor.textContent()) ?? '';
+    for (const token of tokens) {
+      expect(
+        content.split(token).length - 1,
+        `token "${token}" must appear exactly once, got: ${JSON.stringify(content)}`
+      ).toBe(1);
+    }
+
+    alsoExpectPerSample?.();
+  }
 };
