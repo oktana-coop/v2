@@ -205,9 +205,9 @@ test.describe('realtime collaboration', () => {
     const shareId = await shareFromCommandPalette({ window });
     const coarseApplies = recordCoarseSyncApplies(window);
 
-    // The caret goes mid-paragraph, set on the DOM selection so no
-    // keystroke can drop on the way there. The filter is a prefix, so the
-    // locator survives the keystroke typed into it later.
+    // Sets the DOM selection to put the caret at "This is a test |document.".
+    // The locator matches on "This is a test", which the "Z" typed later
+    // leaves intact.
     const paragraph = window.locator('.ProseMirror p', {
       hasText: 'This is a test',
     });
@@ -231,8 +231,8 @@ test.describe('realtime collaboration', () => {
         { signal: AbortSignal.timeout(15_000) }
       );
 
-      // One state with a change before and one after the caret's paragraph;
-      // a single region replace would span both and drag the caret along.
+      // One change that edits the title before the caret's paragraph and
+      // appends a paragraph after it.
       const content =
         '# Hello there\n\nThis is a test document.\n\nAppended by a peer.\n';
       peerHandle.change((doc) =>
@@ -245,7 +245,10 @@ test.describe('realtime collaboration', () => {
         timeout: 15_000,
       });
       await sleep(1_000);
-      // Soft, so a coarse apply and a moved caret are both reported at once.
+
+      // A coarse apply would replace everything between the two edits, the
+      // caret's paragraph included, and move the caret. A soft expectation, so
+      // the test goes on to check the caret, and a failure reports both.
       expect.soft(coarseApplies).toEqual([]);
       expect(peerHandle.fullDoc().content).toBe(content);
 
