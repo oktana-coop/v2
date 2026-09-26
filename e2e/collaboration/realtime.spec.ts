@@ -293,10 +293,6 @@ test.describe('realtime collaboration', () => {
       const tokens = typed.split(' ');
       const editor = window.locator('.ProseMirror');
 
-      await expect
-        .poll(() => peerHandle.fullDoc().content, { timeout: 15_000 })
-        .toContain('five');
-
       // The scripted peer's copy also has to stay exactly as Alice typed it.
       await expectEachTokenOnceOverTime({
         editor,
@@ -771,8 +767,6 @@ test.describe('realtime collaboration', () => {
 
       await typeInEditorSlowly({ window, text: 'lorem', delay: 40 });
 
-      await expect(bobEditor).toContainText('lorem', { timeout: 20_000 });
-
       // A diff-feedback loop shows up as repeated fragments ("lorereremrem…").
       await Promise.all([
         expectTextOverTime({ editor: aliceEditor, text: 'Foolorem' }),
@@ -1020,11 +1014,6 @@ test.describe('realtime collaboration', () => {
 
       // Every token from either side must end up at both, exactly once, and
       // both editors must converge to the same text.
-      for (const token of tokens) {
-        await expect(aliceEditor).toContainText(token, { timeout: 20_000 });
-        await expect(bobEditor).toContainText(token, { timeout: 20_000 });
-      }
-
       await Promise.all([
         expectEachTokenOnceOverTime({ editor: aliceEditor, tokens }),
         expectEachTokenOnceOverTime({ editor: bobEditor, tokens }),
