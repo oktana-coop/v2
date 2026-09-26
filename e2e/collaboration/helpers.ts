@@ -231,6 +231,21 @@ export const joinFromCommandPalette = async ({
   await input.waitFor({ state: 'hidden', timeout: 10_000 });
 };
 
+export const sleep = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+// Remote changes the editor could not apply as exact steps and applied
+// coarsely instead, by replacing the whole changed region.
+export const recordCoarseSyncApplies = (window: Page): string[] => {
+  const applies: string[] = [];
+  window.on('console', (message) => {
+    if (message.text().includes('Live sync fell back')) {
+      applies.push(message.text());
+    }
+  });
+  return applies;
+};
+
 type Sampling = {
   initialCheckTimeoutMs?: number;
   samples?: number;

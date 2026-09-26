@@ -4,12 +4,16 @@ import {
   openProjectFolder,
   typeInEditorSlowly,
 } from '../shared/helpers';
+import { startTcpListener } from '../shared/sync-server';
 import {
   closeShareDialog,
   expectPrivate,
   expectShared,
+  joinFromButton,
+  launchApp,
   shareButton,
   shareFromActionsBar,
+  shareFromCommandPalette,
   stopSharingFromActionsBar,
 } from './helpers';
 
@@ -113,5 +117,82 @@ test.describe('sharing from the actions bar', () => {
 
     await shareButton(window).click();
     await expect(create).toBeVisible();
+  });
+});
+
+test.describe('a document before and while sharing', () => {
+  test.use({ withSyncServer: true });
+
+  // Private documents live in a repo with no network: nothing dials the
+  // sync service until a document is shared or joined.
+  test('a private document never dials the sync service', async () => {
+    const syncService = await startTcpListener();
+
+    const alice = await launchApp({ syncServiceUrl: syncService.url });
+    try {
+      await openProjectFolder({
+        electronApp: alice.app,
+        window: alice.window,
+        folderPath: alice.projectDir,
+      });
+      await openHelloMd({ window: alice.window });
+      await typeInEditorSlowly({
+        window: alice.window,
+        text: ' kept local',
+        delay: 30,
+      });
+
+      await syncService.expectNoConnectionsAfterWaiting();
+    } finally {
+      await alice.close();
+      syncService.stop();
+    }
+  });
+
+  // Sharing switches the open document in place: nothing re-opens, so text
+  // typed before, during, and after the transition all survives.
+  test('typing through the share transition loses nothing', async ({
+    syncServer,
+    electronApp,
+    window: aliceWindow,
+    testProjectDir: aliceProject,
+  }) => {
+    test.setTimeout(120_000);
+
+    await openProjectFolder({
+      electronApp,
+      window: aliceWindow,
+      folderPath: aliceProject,
+    });
+    await openHelloMd({ window: aliceWindow });
+
+    await typeInEditorSlowly({
+      window: aliceWindow,
+      text: ' before',
+      delay: 30,
+    });
+
+    const shareId = await shareFromCommandPalette({ window: aliceWindow });
+
+    await typeInEditorSlowly({
+      window: aliceWindow,
+      text: ' after',
+      delay: 30,
+    });
+
+    const editor = aliceWindow.locator('.ProseMirror');
+    await expect(editor).toContainText('before after');
+
+    // Someone joining sees everything, including what was typed before the share.
+    const bob = await launchApp({ syncServiceUrl: syncServer!.url });
+    try {
+      await joinFromButton({ window: bob.window, shareId });
+      await expect(bob.window.locator('.ProseMirror')).toContainText(
+        'before after',
+        { timeout: 20_000 }
+      );
+    } finally {
+      await bob.close();
+    }
   });
 });
