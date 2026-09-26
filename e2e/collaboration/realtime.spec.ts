@@ -21,7 +21,6 @@ import {
 } from '../shared/sync-server';
 import {
   attemptJoinFromCommandPalette,
-  type DocumentContent,
   expectEachTokenOnceOverTime,
   joinFromButton,
   joinFromCommandPalette,
@@ -141,10 +140,7 @@ test.describe('realtime collaboration', () => {
     // sends its changes: one token at a time.
     const scriptedPeer = connectPeer(syncServer!.url);
     try {
-      const peerHandle = await scriptedPeer.repo.find<DocumentContent>(
-        shareId as Parameters<typeof scriptedPeer.repo.find>[0],
-        { signal: AbortSignal.timeout(15_000) }
-      );
+      const peerHandle = await scriptedPeer.findDocument(shareId);
 
       expect(peerHandle.fullDoc().formatVersion).toBe(1);
       expect(peerHandle.fullDoc().content).toContain(
@@ -226,10 +222,7 @@ test.describe('realtime collaboration', () => {
     // peer sends: one, on both sides of the caret.
     const scriptedPeer = connectPeer(syncServer!.url);
     try {
-      const peerHandle = await scriptedPeer.repo.find<DocumentContent>(
-        shareId as Parameters<typeof scriptedPeer.repo.find>[0],
-        { signal: AbortSignal.timeout(15_000) }
-      );
+      const peerHandle = await scriptedPeer.findDocument(shareId);
 
       // One change that edits the title before the caret's paragraph and
       // appends a paragraph after it.
@@ -285,10 +278,7 @@ test.describe('realtime collaboration', () => {
     // duplicate can only come from Alice's editor.
     const scriptedPeer = connectPeer(syncServer!.url);
     try {
-      const peerHandle = await scriptedPeer.repo.find<DocumentContent>(
-        shareId as Parameters<typeof scriptedPeer.repo.find>[0],
-        { signal: AbortSignal.timeout(15_000) }
-      );
+      const peerHandle = await scriptedPeer.findDocument(shareId);
 
       // Type like a person: fast enough that changes overlap with their own
       // sync round-trips.
