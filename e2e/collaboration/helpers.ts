@@ -207,15 +207,22 @@ export const joinFromCommandPalette = async ({
   await input.waitFor({ state: 'hidden', timeout: 10_000 });
 };
 
-type Sampling = { samples?: number; intervalMs?: number };
+type Sampling = {
+  initialCheckTimeoutMs?: number;
+  samples?: number;
+  intervalMs?: number;
+};
 
-// Checks many times over a few seconds: a feedback loop shows up only after
-// the text first looked right.
+// Waits until the check first passes, then keeps checking over a few seconds:
+// a feedback loop shows up only after the text first looked right.
 const expectOverTime = async ({
   check,
+  initialCheckTimeoutMs = 20_000,
   samples = 10,
   intervalMs = 500,
 }: Sampling & { check: () => Promise<void> }) => {
+  await expect(check).toPass({ timeout: initialCheckTimeoutMs });
+
   for (let sample = 0; sample < samples; sample += 1) {
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
     await check();
