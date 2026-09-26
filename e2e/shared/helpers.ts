@@ -292,7 +292,7 @@ export const focusAndTypeInEditor = async ({
 }): Promise<void> => {
   const editor = window.locator('.ProseMirror');
   await editor.click();
-  await window.keyboard.press('End');
+  await window.keyboard.press(lineEndKey);
   await typeInEditor({ window, text });
 };
 
@@ -311,7 +311,7 @@ export const typeInEditorSlowly = async ({
 }): Promise<void> => {
   const editor = window.locator('.ProseMirror');
   await editor.click();
-  await window.keyboard.press('End');
+  await window.keyboard.press(lineEndKey);
   await window.keyboard.type(text, { delay });
 };
 
@@ -441,7 +441,7 @@ export const typeInParagraphAndWaitForDebounce = async ({
   waitFor?: number;
 }): Promise<void> => {
   await focusParagraph({ window });
-  await window.keyboard.press('End');
+  await window.keyboard.press(lineEndKey);
   await window.keyboard.type(text);
   await window.waitForTimeout(waitFor);
 };
