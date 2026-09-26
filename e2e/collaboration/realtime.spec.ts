@@ -89,25 +89,33 @@ test.describe('realtime collaboration', () => {
   test('typing through the share transition loses nothing', async ({
     syncServer,
     electronApp,
-    window,
+    window: aliceWindow,
     testProjectDir: aliceProject,
   }) => {
     test.setTimeout(120_000);
 
     await openProjectFolder({
       electronApp,
-      window,
+      window: aliceWindow,
       folderPath: aliceProject,
     });
-    await openHelloMd({ window });
+    await openHelloMd({ window: aliceWindow });
 
-    await typeInEditorSlowly({ window, text: ' before', delay: 30 });
+    await typeInEditorSlowly({
+      window: aliceWindow,
+      text: ' before',
+      delay: 30,
+    });
 
-    const shareId = await shareFromCommandPalette({ window });
+    const shareId = await shareFromCommandPalette({ window: aliceWindow });
 
-    await typeInEditorSlowly({ window, text: ' after', delay: 30 });
+    await typeInEditorSlowly({
+      window: aliceWindow,
+      text: ' after',
+      delay: 30,
+    });
 
-    const editor = window.locator('.ProseMirror');
+    const editor = aliceWindow.locator('.ProseMirror');
     await expect(editor).toContainText('before after');
 
     // Someone joining sees everything, including what was typed before the share.
@@ -126,19 +134,19 @@ test.describe('realtime collaboration', () => {
   test('tokens written by a peer appear once and the document settles', async ({
     syncServer,
     electronApp,
-    window,
+    window: aliceWindow,
     testProjectDir: aliceProject,
   }) => {
     test.setTimeout(120_000);
 
     await openProjectFolder({
       electronApp,
-      window,
+      window: aliceWindow,
       folderPath: aliceProject,
     });
-    await openHelloMd({ window });
+    await openHelloMd({ window: aliceWindow });
 
-    const shareId = await shareFromCommandPalette({ window });
+    const shareId = await shareFromCommandPalette({ window: aliceWindow });
 
     // A scripted peer (as opposed to a second peer app), to control how the peer
     // sends its changes: one token at a time.
@@ -165,7 +173,7 @@ test.describe('realtime collaboration', () => {
 
       // The shared content also has to stay exactly as the peer wrote it.
       await expectTextOverTime({
-        editor: window.locator('.ProseMirror'),
+        editor: aliceWindow.locator('.ProseMirror'),
         text: `HelloThis is a test document. ${tokens.join(' ')}`,
         alsoExpectPerSample: () =>
           expect(peerHandle.fullDoc().content).toBe(`${text}\n`),
@@ -186,23 +194,23 @@ test.describe('realtime collaboration', () => {
   test('a remote change on both sides of the caret leaves it in place', async ({
     syncServer,
     electronApp,
-    window,
+    window: aliceWindow,
     testProjectDir: aliceProject,
   }) => {
     await openProjectFolder({
       electronApp,
-      window,
+      window: aliceWindow,
       folderPath: aliceProject,
     });
-    await openHelloMd({ window });
+    await openHelloMd({ window: aliceWindow });
 
-    const shareId = await shareFromCommandPalette({ window });
-    const coarseApplies = recordCoarseSyncApplies(window);
+    const shareId = await shareFromCommandPalette({ window: aliceWindow });
+    const coarseApplies = recordCoarseSyncApplies(aliceWindow);
 
     // Sets the DOM selection to put the caret at "This is a test |document.".
     // The locator matches on "This is a test", which the "Z" typed later
     // leaves intact.
-    const paragraph = window.locator('.ProseMirror p', {
+    const paragraph = aliceWindow.locator('.ProseMirror p', {
       hasText: 'This is a test',
     });
     await paragraph.click();
@@ -213,7 +221,7 @@ test.describe('realtime collaboration', () => {
       selection.collapse(textNode, 'This is a test '.length);
     });
     await expect
-      .poll(() => textBeforeCaretInNode(window))
+      .poll(() => textBeforeCaretInNode(aliceWindow))
       .toBe('This is a test ');
 
     // A scripted peer (as opposed to a second peer app), to control the change the
@@ -230,7 +238,7 @@ test.describe('realtime collaboration', () => {
         Automerge.updateText(doc, ['content'], content)
       );
 
-      const editor = window.locator('.ProseMirror');
+      const editor = aliceWindow.locator('.ProseMirror');
       await expect(editor).toContainText('Hello there', { timeout: 15_000 });
       await expect(editor).toContainText('Appended by a peer.', {
         timeout: 15_000,
@@ -245,7 +253,7 @@ test.describe('realtime collaboration', () => {
 
       // Where a keystroke lands is the caret the editor really holds, focus
       // or no focus.
-      await window.keyboard.type('Z');
+      await aliceWindow.keyboard.type('Z');
       await expect(paragraph).toHaveText('This is a test Zdocument.');
       await expect(editor).toHaveText(
         'Hello thereThis is a test Zdocument.Appended by a peer.'
@@ -258,19 +266,19 @@ test.describe('realtime collaboration', () => {
   test('typing in the editor does not duplicate text at the other peer', async ({
     syncServer,
     electronApp,
-    window,
+    window: aliceWindow,
     testProjectDir: aliceProject,
   }) => {
     test.setTimeout(120_000);
 
     await openProjectFolder({
       electronApp,
-      window,
+      window: aliceWindow,
       folderPath: aliceProject,
     });
-    await openHelloMd({ window });
+    await openHelloMd({ window: aliceWindow });
 
-    const shareId = await shareFromCommandPalette({ window });
+    const shareId = await shareFromCommandPalette({ window: aliceWindow });
 
     // A scripted peer (as opposed to a second peer app) sends no changes, so a
     // duplicate can only come from Alice's editor.
@@ -281,11 +289,15 @@ test.describe('realtime collaboration', () => {
       // Type like a person: fast enough that changes overlap with their own
       // sync round-trips.
       const typed = 'mercury venus earth mars jupiter';
-      await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
+      await typeInEditorSlowly({
+        window: aliceWindow,
+        text: ` ${typed}`,
+        delay: 30,
+      });
 
       // The scripted peer's copy also has to stay exactly as Alice typed it.
       await expectTextOverTime({
-        editor: window.locator('.ProseMirror'),
+        editor: aliceWindow.locator('.ProseMirror'),
         text: `Hello ${typed}This is a test document.`,
         alsoExpectPerSample: () =>
           expect(peerHandle.fullDoc().content).toBe(
@@ -300,19 +312,19 @@ test.describe('realtime collaboration', () => {
   test('two app instances converge without re-writing tokens', async ({
     syncServer,
     electronApp,
-    window,
+    window: aliceWindow,
     testProjectDir: aliceProject,
   }) => {
     test.setTimeout(180_000);
 
     await openProjectFolder({
       electronApp,
-      window,
+      window: aliceWindow,
       folderPath: aliceProject,
     });
-    await openHelloMd({ window });
+    await openHelloMd({ window: aliceWindow });
 
-    const shareId = await shareFromCommandPalette({ window });
+    const shareId = await shareFromCommandPalette({ window: aliceWindow });
 
     const bob = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
@@ -326,9 +338,13 @@ test.describe('realtime collaboration', () => {
 
       // Alice types; Bob only watches.
       const typed = 'mercury venus earth mars jupiter';
-      await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
+      await typeInEditorSlowly({
+        window: aliceWindow,
+        text: ` ${typed}`,
+        delay: 30,
+      });
 
-      const aliceEditor = window.locator('.ProseMirror');
+      const aliceEditor = aliceWindow.locator('.ProseMirror');
       const bobEditor = bob.window.locator('.ProseMirror');
       const expected = `Hello ${typed}This is a test document.`;
 
@@ -381,19 +397,19 @@ test.describe('realtime collaboration', () => {
   test('a typing peer shows a caret after their text at the other peer', async ({
     syncServer,
     electronApp,
-    window,
+    window: aliceWindow,
     testProjectDir: aliceProject,
   }) => {
     test.setTimeout(120_000);
 
     await openProjectFolder({
       electronApp,
-      window,
+      window: aliceWindow,
       folderPath: aliceProject,
     });
-    await openHelloMd({ window });
+    await openHelloMd({ window: aliceWindow });
 
-    const shareId = await shareFromCommandPalette({ window });
+    const shareId = await shareFromCommandPalette({ window: aliceWindow });
 
     const bob = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
@@ -406,7 +422,11 @@ test.describe('realtime collaboration', () => {
       await joinFromCommandPalette({ window: bob.window, shareId });
 
       const typed = 'presence';
-      await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
+      await typeInEditorSlowly({
+        window: aliceWindow,
+        text: ` ${typed}`,
+        delay: 30,
+      });
 
       const bobEditor = bob.window.locator('.ProseMirror');
       await expect(bobEditor).toContainText(typed, { timeout: 20_000 });
@@ -435,19 +455,19 @@ test.describe('realtime collaboration', () => {
   test('two app instances on the same folder converge without re-writing tokens', async ({
     syncServer,
     electronApp,
-    window,
+    window: aliceWindow,
     testProjectDir: aliceProject,
   }) => {
     test.setTimeout(180_000);
 
     await openProjectFolder({
       electronApp,
-      window,
+      window: aliceWindow,
       folderPath: aliceProject,
     });
-    await openHelloMd({ window });
+    await openHelloMd({ window: aliceWindow });
 
-    const shareId = await shareFromCommandPalette({ window });
+    const shareId = await shareFromCommandPalette({ window: aliceWindow });
 
     // Both instances on the same clone: their persists land in the same file,
     // and each sees the other's write through its own watcher.
@@ -465,9 +485,13 @@ test.describe('realtime collaboration', () => {
       await joinFromCommandPalette({ window: bob.window, shareId });
 
       const typed = 'mercury venus earth mars jupiter';
-      await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
+      await typeInEditorSlowly({
+        window: aliceWindow,
+        text: ` ${typed}`,
+        delay: 30,
+      });
 
-      const aliceEditor = window.locator('.ProseMirror');
+      const aliceEditor = aliceWindow.locator('.ProseMirror');
       const bobEditor = bob.window.locator('.ProseMirror');
       const expected = `Hello ${typed}This is a test document.`;
 
@@ -483,7 +507,7 @@ test.describe('realtime collaboration', () => {
   test('two app instances on separate clones converge despite sync latency', async ({
     syncServer,
     electronApp,
-    window,
+    window: aliceWindow,
     testProjectDir: aliceProject,
   }) => {
     test.setTimeout(180_000);
@@ -495,12 +519,12 @@ test.describe('realtime collaboration', () => {
 
     await openProjectFolder({
       electronApp,
-      window,
+      window: aliceWindow,
       folderPath: aliceProject,
     });
-    await openHelloMd({ window });
+    await openHelloMd({ window: aliceWindow });
 
-    const shareId = await shareFromCommandPalette({ window });
+    const shareId = await shareFromCommandPalette({ window: aliceWindow });
 
     const bob = await launchApp({ syncServiceUrl: proxy.url });
     try {
@@ -513,9 +537,13 @@ test.describe('realtime collaboration', () => {
       await joinFromCommandPalette({ window: bob.window, shareId });
 
       const typed = 'mercury venus earth mars jupiter';
-      await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
+      await typeInEditorSlowly({
+        window: aliceWindow,
+        text: ` ${typed}`,
+        delay: 30,
+      });
 
-      const aliceEditor = window.locator('.ProseMirror');
+      const aliceEditor = aliceWindow.locator('.ProseMirror');
       const bobEditor = bob.window.locator('.ProseMirror');
       const expected = `Hello ${typed}This is a test document.`;
 
@@ -534,7 +562,7 @@ test.describe('realtime collaboration', () => {
   test('a share for a document other than the open one opens that document', async ({
     syncServer,
     electronApp,
-    window,
+    window: aliceWindow,
     testProjectDir: aliceProject,
   }) => {
     test.setTimeout(180_000);
@@ -547,10 +575,14 @@ test.describe('realtime collaboration', () => {
     );
     initRepositoryWithCommit({ repoDir: aliceProject, message: 'base' });
 
-    await openProjectFolder({ electronApp, window, folderPath: aliceProject });
-    await openDocument({ window, relativePath: 'notes.md' });
+    await openProjectFolder({
+      electronApp,
+      window: aliceWindow,
+      folderPath: aliceProject,
+    });
+    await openDocument({ window: aliceWindow, relativePath: 'notes.md' });
 
-    const shareId = await shareFromCommandPalette({ window });
+    const shareId = await shareFromCommandPalette({ window: aliceWindow });
 
     const bob = await cloneAndLaunchApp({
       syncServiceUrl: syncServer!.url,
@@ -576,7 +608,11 @@ test.describe('realtime collaboration', () => {
       });
 
       // And on the share rather than merely the file: Alice's typing arrives.
-      await typeInEditorSlowly({ window, text: ' and joined', delay: 30 });
+      await typeInEditorSlowly({
+        window: aliceWindow,
+        text: ' and joined',
+        delay: 30,
+      });
       await expect(bobEditor).toContainText('and joined', { timeout: 20_000 });
     } finally {
       await bob.close();
@@ -586,7 +622,7 @@ test.describe('realtime collaboration', () => {
   test('a share for a document this project does not have is refused', async ({
     syncServer,
     electronApp,
-    window,
+    window: aliceWindow,
     testProjectDir: aliceProject,
   }) => {
     test.setTimeout(180_000);
@@ -598,10 +634,14 @@ test.describe('realtime collaboration', () => {
     );
     initRepositoryWithCommit({ repoDir: aliceProject, message: 'base' });
 
-    await openProjectFolder({ electronApp, window, folderPath: aliceProject });
-    await openDocument({ window, relativePath: 'notes.md' });
+    await openProjectFolder({
+      electronApp,
+      window: aliceWindow,
+      folderPath: aliceProject,
+    });
+    await openDocument({ window: aliceWindow, relativePath: 'notes.md' });
 
-    const shareId = await shareFromCommandPalette({ window });
+    const shareId = await shareFromCommandPalette({ window: aliceWindow });
 
     const bob = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
@@ -635,7 +675,7 @@ test.describe('realtime collaboration', () => {
   test('a share from another branch offers switching to that branch, then joins it', async ({
     syncServer,
     electronApp,
-    window,
+    window: aliceWindow,
     testProjectDir: aliceProject,
   }) => {
     test.setTimeout(180_000);
@@ -644,12 +684,12 @@ test.describe('realtime collaboration', () => {
     initRepositoryWithCommit({ repoDir: aliceProject, message: 'base' });
     await openProjectFolder({
       electronApp,
-      window,
+      window: aliceWindow,
       folderPath: aliceProject,
     });
-    await createAndSwitchToBranch({ window, branchName: 'draft' });
-    await openHelloMd({ window });
-    const shareId = await shareFromCommandPalette({ window });
+    await createAndSwitchToBranch({ window: aliceWindow, branchName: 'draft' });
+    await openHelloMd({ window: aliceWindow });
+    const shareId = await shareFromCommandPalette({ window: aliceWindow });
 
     const bob = await cloneAndLaunchApp({
       syncServiceUrl: syncServer!.url,
@@ -686,7 +726,11 @@ test.describe('realtime collaboration', () => {
       );
 
       // Joined on the branch: edits flow.
-      await typeInEditorSlowly({ window, text: ' from draft', delay: 30 });
+      await typeInEditorSlowly({
+        window: aliceWindow,
+        text: ' from draft',
+        delay: 30,
+      });
       await expect(bob.window.locator('.ProseMirror')).toContainText(
         'from draft',
         { timeout: 20_000 }
@@ -699,7 +743,7 @@ test.describe('realtime collaboration', () => {
   test('typing into a shared title-only document converges without repeating any of the typed text', async ({
     syncServer,
     electronApp,
-    window,
+    window: aliceWindow,
     testProjectDir: aliceProject,
   }) => {
     test.setTimeout(180_000);
@@ -711,10 +755,10 @@ test.describe('realtime collaboration', () => {
 
     await openProjectFolder({
       electronApp,
-      window,
+      window: aliceWindow,
       folderPath: aliceProject,
     });
-    await openDocument({ window, relativePath: 'Foo.md' });
+    await openDocument({ window: aliceWindow, relativePath: 'Foo.md' });
 
     const bob = await cloneAndLaunchApp({
       syncServiceUrl: syncServer!.url,
@@ -728,13 +772,17 @@ test.describe('realtime collaboration', () => {
       });
       await openDocument({ window: bob.window, relativePath: 'Foo.md' });
 
-      const shareId = await shareFromCommandPalette({ window });
+      const shareId = await shareFromCommandPalette({ window: aliceWindow });
       await joinFromCommandPalette({ window: bob.window, shareId });
 
-      const aliceEditor = window.locator('.ProseMirror');
+      const aliceEditor = aliceWindow.locator('.ProseMirror');
       const bobEditor = bob.window.locator('.ProseMirror');
 
-      await typeInEditorSlowly({ window, text: 'lorem', delay: 40 });
+      await typeInEditorSlowly({
+        window: aliceWindow,
+        text: 'lorem',
+        delay: 40,
+      });
 
       // A diff-feedback loop shows up as repeated fragments ("lorereremrem…").
       await Promise.all([
@@ -834,7 +882,7 @@ test.describe('realtime collaboration', () => {
   test('two app instances on git clones converge despite sync latency', async ({
     syncServer,
     electronApp,
-    window,
+    window: aliceWindow,
     testProjectDir: aliceProject,
   }) => {
     test.setTimeout(180_000);
@@ -850,12 +898,12 @@ test.describe('realtime collaboration', () => {
 
     await openProjectFolder({
       electronApp,
-      window,
+      window: aliceWindow,
       folderPath: aliceProject,
     });
-    await openHelloMd({ window });
+    await openHelloMd({ window: aliceWindow });
 
-    const shareId = await shareFromCommandPalette({ window });
+    const shareId = await shareFromCommandPalette({ window: aliceWindow });
 
     const bob = await cloneAndLaunchApp({
       syncServiceUrl: proxy.url,
@@ -871,9 +919,13 @@ test.describe('realtime collaboration', () => {
       await joinFromCommandPalette({ window: bob.window, shareId });
 
       const typed = 'mercury venus earth mars jupiter saturn uranus neptune';
-      await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
+      await typeInEditorSlowly({
+        window: aliceWindow,
+        text: ` ${typed}`,
+        delay: 30,
+      });
 
-      const aliceEditor = window.locator('.ProseMirror');
+      const aliceEditor = aliceWindow.locator('.ProseMirror');
       const bobEditor = bob.window.locator('.ProseMirror');
       const expected = `Hello ${typed}This is a test document.`;
 
@@ -890,7 +942,7 @@ test.describe('realtime collaboration', () => {
   test('both peers typing concurrently converge under sync latency', async ({
     syncServer,
     electronApp,
-    window,
+    window: aliceWindow,
     testProjectDir: aliceProject,
   }) => {
     test.setTimeout(180_000);
@@ -904,12 +956,12 @@ test.describe('realtime collaboration', () => {
 
     await openProjectFolder({
       electronApp,
-      window,
+      window: aliceWindow,
       folderPath: aliceProject,
     });
-    await openHelloMd({ window });
+    await openHelloMd({ window: aliceWindow });
 
-    const shareId = await shareFromCommandPalette({ window });
+    const shareId = await shareFromCommandPalette({ window: aliceWindow });
 
     const bob = await cloneAndLaunchApp({
       syncServiceUrl: proxy.url,
@@ -924,25 +976,24 @@ test.describe('realtime collaboration', () => {
       await openHelloMd({ window: bob.window });
       await joinFromCommandPalette({ window: bob.window, shareId });
 
-      const aliceCoarseApplies = recordCoarseSyncApplies(window);
+      const aliceCoarseApplies = recordCoarseSyncApplies(aliceWindow);
       const bobCoarseApplies = recordCoarseSyncApplies(bob.window);
 
-      // Both type at the same time, in different places (concurrent inserts
-      // at the very same position interleave by design — convergence over
-      // intent): Alice at the end of the document, Bob at the heading's end.
+      // Both type at the same time, in different places:
+      // Alice at the end of the document, Bob at the heading's end.
       const aliceTyped = 'mercury venus earth mars jupiter';
       const bobTyped = 'red orange yellow green blue';
-      const aliceEditor = window.locator('.ProseMirror');
+      const aliceEditor = aliceWindow.locator('.ProseMirror');
       const bobEditor = bob.window.locator('.ProseMirror');
 
       await aliceEditor.click();
-      await window.keyboard.press(documentEndKey);
+      await aliceWindow.keyboard.press(documentEndKey);
       await bobEditor.click();
       await bob.window.keyboard.press(documentStartKey);
       await bob.window.keyboard.press(lineEndKey);
 
       await Promise.all([
-        window.keyboard.type(` ${aliceTyped}`, { delay: 30 }),
+        aliceWindow.keyboard.type(` ${aliceTyped}`, { delay: 30 }),
         bob.window.keyboard.type(` ${bobTyped}`, { delay: 30 }),
       ]);
 
@@ -970,7 +1021,7 @@ test.describe('realtime collaboration', () => {
   test.fixme('two app instances on the same folder converge despite sync latency', async ({
     syncServer,
     electronApp,
-    window,
+    window: aliceWindow,
     testProjectDir: aliceProject,
   }) => {
     test.setTimeout(180_000);
@@ -985,12 +1036,12 @@ test.describe('realtime collaboration', () => {
 
     await openProjectFolder({
       electronApp,
-      window,
+      window: aliceWindow,
       folderPath: aliceProject,
     });
-    await openHelloMd({ window });
+    await openHelloMd({ window: aliceWindow });
 
-    const shareId = await shareFromCommandPalette({ window });
+    const shareId = await shareFromCommandPalette({ window: aliceWindow });
 
     const bob = await launchApp({
       syncServiceUrl: proxy.url,
@@ -1006,9 +1057,13 @@ test.describe('realtime collaboration', () => {
       await joinFromCommandPalette({ window: bob.window, shareId });
 
       const typed = 'mercury venus earth mars jupiter';
-      await typeInEditorSlowly({ window, text: ` ${typed}`, delay: 30 });
+      await typeInEditorSlowly({
+        window: aliceWindow,
+        text: ` ${typed}`,
+        delay: 30,
+      });
 
-      const aliceEditor = window.locator('.ProseMirror');
+      const aliceEditor = aliceWindow.locator('.ProseMirror');
       const bobEditor = bob.window.locator('.ProseMirror');
       const expected = `Hello ${typed}This is a test document.`;
 
