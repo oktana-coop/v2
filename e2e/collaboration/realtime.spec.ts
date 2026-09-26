@@ -23,6 +23,7 @@ import {
   attemptJoinFromCommandPalette,
   expectEachTokenOnceOverTime,
   expectPeerAvatars,
+  expectTextOverTime,
   joinFromButton,
   joinFromCommandPalette,
   launchApp,
@@ -723,7 +724,7 @@ test.describe('realtime collaboration', () => {
     }
   });
 
-  test('typing into a title-only document does not loop', async ({
+  test('typing into a shared title-only document converges without repeating any of the typed text', async ({
     syncServer,
     electronApp,
     window,
@@ -731,8 +732,8 @@ test.describe('realtime collaboration', () => {
   }) => {
     test.setTimeout(180_000);
 
-    // The reported recipe: a document holding nothing but a title, open on
-    // both peers, shared from one; a single word typed on the sharing side.
+    // A document holding nothing but a title, open on both peers and shared
+    // from one; a single word typed on the sharing side.
     fs.writeFileSync(path.join(aliceProject, 'Foo.md'), '# Foo\n');
     initRepositoryWithCommit({ repoDir: aliceProject, message: 'base' });
     const bobProject = fs.mkdtempSync(
@@ -762,27 +763,18 @@ test.describe('realtime collaboration', () => {
       const shareId = await shareFromCommandPalette({ window });
       await joinFromCommandPalette({ window: bob.window, shareId });
 
-      // Into the trailing paragraph under the title, like a person would.
-      const editor = window.locator('.ProseMirror');
-      await editor.click();
-      await window.keyboard.press(
-        os.platform() === 'darwin' ? 'Meta+ArrowDown' : 'Control+End'
-      );
-      await window.keyboard.type('lorem', { delay: 40 });
-
       const aliceEditor = window.locator('.ProseMirror');
       const bobEditor = bob.window.locator('.ProseMirror');
 
+      await typeInEditorSlowly({ window, text: 'lorem', delay: 40 });
+
       await expect(bobEditor).toContainText('lorem', { timeout: 20_000 });
 
-      // The exact converged text, stable on every sample: any diff-feedback
-      // loop shows up as repeated fragments ("lorereremrem…").
-      for (let sample = 0; sample < 10; sample += 1) {
-        await sleep(500);
-
-        expect(await aliceEditor.textContent()).toBe('Foolorem');
-        expect(await bobEditor.textContent()).toBe('Foolorem');
-      }
+      // A diff-feedback loop shows up as repeated fragments ("lorereremrem…").
+      await Promise.all([
+        expectTextOverTime({ editor: aliceEditor, text: 'Foolorem' }),
+        expectTextOverTime({ editor: bobEditor, text: 'Foolorem' }),
+      ]);
     } finally {
       await bob.close();
       try {
@@ -895,8 +887,8 @@ test.describe('realtime collaboration', () => {
   }) => {
     test.setTimeout(180_000);
 
-    // The user-reported setup: a git project, copy-pasted to a second folder
-    // (clone), the second instance on a laggy connection.
+    // A git project copied to a second folder (a clone), with the second
+    // instance on a laggy connection.
     initRepositoryWithCommit({ repoDir: aliceProject, message: 'base' });
     const bobProject = fs.mkdtempSync(
       path.join(os.tmpdir(), 'v2-e2e-bobclone-')
