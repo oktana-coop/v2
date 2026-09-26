@@ -13,6 +13,7 @@ import {
 } from '../shared/helpers';
 import {
   attemptJoinFromCommandPalette,
+  expectPeerAvatars,
   joinFromButton,
   joinFromCommandPalette,
   launchApp,
@@ -67,12 +68,8 @@ test.describe('guest editing', () => {
       await expect(guestEditor).toContainText('host', { timeout: 20_000 });
 
       // Each sees the other.
-      await expect(window.getByTestId('presence-avatar')).toHaveCount(1, {
-        timeout: 20_000,
-      });
-      await expect(guest.window.getByTestId('presence-avatar')).toHaveCount(1, {
-        timeout: 20_000,
-      });
+      await expectPeerAvatars({ window, count: 1 });
+      await expectPeerAvatars({ window: guest.window, count: 1 });
 
       // Leaving returns to the list, which no longer holds the share.
       await guest.window

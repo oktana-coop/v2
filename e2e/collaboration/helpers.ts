@@ -236,3 +236,16 @@ export const expectEachTokenOnceOverTime = async ({
     alsoExpectPerSample?.();
   }
 };
+
+// The avatars of the other peers in the actions bar.
+export const expectPeerAvatars = async ({
+  window,
+  count,
+}: {
+  window: Page;
+  count: number;
+}) => {
+  await expect(window.getByTestId('presence-avatar')).toHaveCount(count, {
+    timeout: 20_000,
+  });
+};
