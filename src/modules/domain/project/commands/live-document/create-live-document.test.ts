@@ -2,7 +2,7 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as Stream from 'effect/Stream';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
-import { describe, expect, it, type Mock, vi } from 'vitest';
+import { describe, expect, it, type Mock, onTestFinished, vi } from 'vitest';
 
 import {
   type ConvergentDocument,
@@ -16,6 +16,7 @@ import {
   contentOf,
   contributionsTo,
   markdownDocument,
+  promiseWithResolvers,
   proseMirrorDocument,
   transformParagraphToText,
   typeAndContribute,
@@ -85,31 +86,31 @@ const openDocument = async ({
   );
 
   // What the document reported while nobody was waiting.
-  const reported: LiveDocumentError[] = [];
+  const reportedErrors: LiveDocumentError[] = [];
   subscribeToStream(opened.errors, (error) => {
-    reported.push(error);
+    reportedErrors.push(error);
   });
 
   return {
     opened,
     initialDocument: fake,
     documents,
-    reported,
+    reportedErrors,
     transformToText,
   };
 };
 
 describe('createLiveDocument, with nothing behind it', () => {
-  it('contributes pending typing on applyPendingLocalEdits, converted', async () => {
+  it('contributes pending typing as primary text on applyPendingLocalEdits', async () => {
     const { opened, initialDocument } = await openDocument();
 
-    const contributed = typeLeavingPending({
+    const contribution = typeLeavingPending({
       opened,
       doc: proseMirrorDocument('hello typed'),
     });
     await Effect.runPromise(opened.applyPendingLocalEdits);
 
-    await expect(contributed).resolves.toBe('v1');
+    await expect(contribution).resolves.toBe('v1');
     expect(initialDocument.change).toHaveBeenCalledExactlyOnceWith(
       'hello typed',
       { base: undefined }
@@ -121,7 +122,7 @@ describe('createLiveDocument, with nothing behind it', () => {
   it('drops pending typing on dropPendingLocalEdits', async () => {
     const { opened, initialDocument } = await openDocument();
 
-    const contributed = typeLeavingPending({
+    const contribution = typeLeavingPending({
       opened,
       doc: markdownDocument('restored old state'),
     });
@@ -129,31 +130,36 @@ describe('createLiveDocument, with nothing behind it', () => {
     await Effect.runPromise(opened.applyPendingLocalEdits);
 
     // Whoever waited for it is released, with the version the document holds.
-    await expect(contributed).resolves.toBe('v0');
+    await expect(contribution).resolves.toBe('v0');
     expect(initialDocument.change).not.toHaveBeenCalled();
     const content = await contentOf(opened);
     expect(content).toBe('hello');
   });
 
-  it('closes the document it runs on, leaving pending typing where it is', async () => {
+  it('closes the convergent document without contributing pending typing', async () => {
     const { opened, initialDocument } = await openDocument();
+    vi.useFakeTimers();
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
 
     typeLeavingPending({ opened, doc: markdownDocument('hello world') });
     await Effect.runPromise(opened.close);
 
     expect(initialDocument.close).toHaveBeenCalledOnce();
-    // The pause that would have contributed it is cancelled.
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    // Lets the contribution debounce elapse; close must have cancelled it.
+    await vi.runAllTimersAsync();
     expect(initialDocument.change).not.toHaveBeenCalled();
   });
 
   it('closes once a contribution in flight has reached the document', async () => {
-    let finishConversion: (text: string) => void = () => {};
-    const conversion = new Promise<string>((resolve) => {
-      finishConversion = resolve;
-    });
+    const conversion = promiseWithResolvers<string>();
     const { opened, initialDocument, transformToText } = await openDocument();
-    transformToText.mockReturnValueOnce(conversion);
+    transformToText.mockReturnValueOnce(conversion.promise);
+    vi.useFakeTimers();
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
 
     typeLeavingPending({
       opened,
@@ -161,11 +167,12 @@ describe('createLiveDocument, with nothing behind it', () => {
     });
     const applying = Effect.runPromise(opened.applyPendingLocalEdits);
     const closing = Effect.runPromise(opened.close);
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    // Lets everything else run; close waits for the contribution in flight.
+    await vi.runAllTimersAsync();
 
     expect(initialDocument.close).not.toHaveBeenCalled();
 
-    finishConversion('hello typed');
+    conversion.resolve('hello typed');
     await Promise.all([applying, closing]);
 
     expect(initialDocument.change).toHaveBeenCalledExactlyOnceWith(
@@ -175,9 +182,32 @@ describe('createLiveDocument, with nothing behind it', () => {
     expect(initialDocument.close).toHaveBeenCalledOnce();
   });
 
-  it('takes primary text as a change anchored at the base it derives from', async () => {
+  it('contributes typing anchored at the base it names', async () => {
+    const { opened, initialDocument } = await openDocument({
+      initialText: 'note',
+    });
+
+    await typeAndContribute({
+      opened,
+      doc: markdownDocument('note one'),
+      base: 'v0',
+    });
+    await typeAndContribute({
+      opened,
+      doc: markdownDocument('note one two'),
+      base: 'v1',
+    });
+
+    expect(contributionsTo(initialDocument)).toEqual([
+      { text: 'note one', base: 'v0' },
+      { text: 'note one two', base: 'v1' },
+    ]);
+  });
+
+  it('contributes an edit from another source anchored at the base it derives from', async () => {
     const { opened, initialDocument } = await openDocument();
 
+    // Through change rather than edit: an edit from another source.
     const version = await Effect.runPromise(
       opened.change('hello from elsewhere', { base: 'v0' })
     );
@@ -191,9 +221,10 @@ describe('createLiveDocument, with nothing behind it', () => {
     expect(content).toBe('hello from elsewhere');
   });
 
-  // The editor learns a version only once the contribution carrying it
-  // resolves, so typing made meanwhile names the base before it while
-  // extending that contribution.
+  // The live document recognises that each edit extends the one before it,
+  // because they share a base. So instead of anchoring every edit at v0, which
+  // would make each look concurrent with the others, it anchors each one at
+  // the version the previous edit resolved with.
   it('anchors typing sharing a base at the contribution before it', async () => {
     const { opened, initialDocument } = await openDocument({
       initialText: 'note',
@@ -215,14 +246,17 @@ describe('createLiveDocument, with nothing behind it', () => {
       base: 'v0',
     });
 
-    expect(
-      contributionsTo(initialDocument).map((contribution) => contribution.base)
-    ).toEqual(['v0', 'v1', 'v2']);
+    expect(contributionsTo(initialDocument)).toEqual([
+      { text: 'note one', base: 'v0' },
+      { text: 'note one two', base: 'v1' },
+      { text: 'note one two three', base: 'v2' },
+    ]);
   });
 
-  it('anchors typing at its own base when a change from elsewhere shares it', async () => {
+  it('treats local edits and edits from another source sharing a base as concurrent', async () => {
     const { opened, initialDocument } = await openDocument();
 
+    // Through change rather than edit: an edit from another source.
     await Effect.runPromise(opened.change('hello DISK', { base: 'v0' }));
     await typeAndContribute({
       opened,
@@ -236,7 +270,7 @@ describe('createLiveDocument, with nothing behind it', () => {
     ]);
   });
 
-  it('forgets the contribution before once it switches documents', async () => {
+  it('does not anchor typing at an edit made on the document it left', async () => {
     const { opened, documents } = await openDocument();
 
     await typeAndContribute({
@@ -259,11 +293,11 @@ describe('createLiveDocument, with nothing behind it', () => {
     );
   });
 
-  it('raises when pending typing cannot be converted, and keeps it on its way', async () => {
+  it('raises when pending typing cannot be converted, and contributes it on the next attempt', async () => {
     const { opened, initialDocument, transformToText } = await openDocument();
     transformToText.mockRejectedValueOnce(new Error('the conversion failed'));
 
-    const contributed = typeLeavingPending({
+    const contribution = typeLeavingPending({
       opened,
       doc: proseMirrorDocument('hello typed'),
     });
@@ -277,7 +311,7 @@ describe('createLiveDocument, with nothing behind it', () => {
     // The next attempt carries it.
     await Effect.runPromise(opened.applyPendingLocalEdits);
 
-    await expect(contributed).resolves.toBe('v1');
+    await expect(contribution).resolves.toBe('v1');
     expect(initialDocument.change).toHaveBeenCalledExactlyOnceWith(
       'hello typed',
       { base: undefined }
@@ -285,12 +319,9 @@ describe('createLiveDocument, with nothing behind it', () => {
   });
 
   it('resolves typing that failed to contribute with the typing that carries it', async () => {
-    let failFirst: (reason: Error) => void = () => {};
-    const firstConversion = new Promise<string>((_, reject) => {
-      failFirst = reject;
-    });
+    const firstConversion = promiseWithResolvers<string>();
     const { opened, initialDocument, transformToText } = await openDocument();
-    transformToText.mockReturnValueOnce(firstConversion);
+    transformToText.mockReturnValueOnce(firstConversion.promise);
 
     const first = typeLeavingPending({
       opened,
@@ -305,7 +336,7 @@ describe('createLiveDocument, with nothing behind it', () => {
       opened,
       doc: proseMirrorDocument('hello ab'),
     });
-    failFirst(new Error('the conversion failed'));
+    firstConversion.reject(new Error('the conversion failed'));
 
     expect(await applying).toBeInstanceOf(RepresentationTransformError);
 
@@ -319,7 +350,7 @@ describe('createLiveDocument, with nothing behind it', () => {
   });
 
   it('reports a failed conversion nobody awaited', async () => {
-    const { opened, initialDocument, reported, transformToText } =
+    const { opened, initialDocument, reportedErrors, transformToText } =
       await openDocument();
     transformToText.mockRejectedValueOnce(new Error('the conversion failed'));
 
@@ -330,7 +361,7 @@ describe('createLiveDocument, with nothing behind it', () => {
     });
 
     await vi.waitFor(() =>
-      expect(reported[0]).toBeInstanceOf(RepresentationTransformError)
+      expect(reportedErrors[0]).toBeInstanceOf(RepresentationTransformError)
     );
     expect(initialDocument.change).not.toHaveBeenCalled();
   });

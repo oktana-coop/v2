@@ -50,9 +50,9 @@ export const typeAndContribute = async ({
   doc: RichTextDocument;
   base?: ConvergentDocumentVersion;
 }) => {
-  const contributed = Effect.runPromise(opened.edit(doc, { base }));
+  const contribution = Effect.runPromise(opened.edit(doc, { base }));
   await Effect.runPromise(opened.applyPendingLocalEdits);
-  return contributed;
+  return contribution;
 };
 
 // Types content and leaves it on its way, as typing that has not paused.
@@ -85,3 +85,16 @@ export const versionOf = (document: Pick<ConvergentDocument, 'content'>) =>
   Effect.runPromise(SubscriptionRef.get(document.content)).then(
     (current) => current.version
   );
+
+// A promise the test settles itself, like Promise.withResolvers.
+// TODO: use Promise.withResolvers once tsconfig's lib includes ES2024.
+export const promiseWithResolvers = <A>() => {
+  let resolve: (value: A) => void = () => {};
+  let reject: (reason: unknown) => void = () => {};
+  const promise = new Promise<A>((onResolve, onReject) => {
+    resolve = onResolve;
+    reject = onReject;
+  });
+
+  return { promise, resolve, reject };
+};

@@ -77,7 +77,7 @@ const peersOf = (document: Pick<ConvergentDocument, 'presence'>) =>
   );
 
 describe('switchable convergent document presence', () => {
-  it('shows the peers of the document it runs on', async () => {
+  it('shows the peers of the current document', async () => {
     const first = await createFakeDocument({
       text: 'one',
       peers: [remote('Alice')],

@@ -139,7 +139,7 @@ const openDocument = async ({
   const onShareUnavailable = vi.fn();
   let watcher: (() => void) | undefined;
 
-  // Every document the live document has run on, in the order it ran on them.
+  // Every convergent document the live document has used, in order.
   const documents: FakeConvergentDocument[] = [];
 
   const startOn = (text: string) =>
@@ -203,19 +203,17 @@ const openDocument = async ({
 
   // What the document reported while nobody was waiting. Subscribing after it
   // opened still catches what went wrong while it was opening.
-  const reported: LiveDocumentError[] = [];
+  const reportedErrors: LiveDocumentError[] = [];
   subscribeToStream(opened.errors, (error) => {
-    reported.push(error);
+    reportedErrors.push(error);
   });
 
   return {
     opened,
     written,
     documents,
-    reported,
+    reportedErrors,
     transformToText,
-    // The document the live document is running on right now.
-    current: () => documents[documents.length - 1]!,
     // The document the live document opened on.
     initialDocument: documents[0]!,
     onShareUnavailable,
@@ -265,7 +263,7 @@ describe('openLiveDocument', () => {
       diskText: 'hello',
     });
 
-    const contributed = ['a', 'ab', 'abc'].map((text) =>
+    const contributions = ['a', 'ab', 'abc'].map((text) =>
       typeLeavingPending({ opened, doc: proseMirrorDocument(text) })
     );
 
@@ -277,7 +275,7 @@ describe('openLiveDocument', () => {
     expect(transformToText).toHaveBeenCalledTimes(1);
     // The whole burst resolves with the one version it was contributed as.
     const version = await versionOf(opened);
-    await expect(Promise.all(contributed)).resolves.toEqual([
+    await expect(Promise.all(contributions)).resolves.toEqual([
       version,
       version,
       version,
@@ -289,13 +287,13 @@ describe('openLiveDocument', () => {
       diskText: 'hello',
     });
 
-    const contributed = typeLeavingPending({
+    const contribution = typeLeavingPending({
       opened,
       doc: proseMirrorDocument('hello typed'),
     });
     await Effect.runPromise(opened.flush);
 
-    await expect(contributed).resolves.toBe(await versionOf(opened));
+    await expect(contribution).resolves.toBe(await versionOf(opened));
     expect(written).toEqual(['hello typed']);
     expect(transformToText).toHaveBeenCalledTimes(1);
   });
@@ -306,7 +304,7 @@ describe('openLiveDocument', () => {
     });
     const versionBefore = await versionOf(opened);
 
-    const contributed = typeLeavingPending({
+    const contribution = typeLeavingPending({
       opened,
       doc: markdownDocument('restored old state'),
     });
@@ -314,7 +312,7 @@ describe('openLiveDocument', () => {
     await Effect.runPromise(opened.flush);
 
     // Whoever waited for it is released, with the version the document holds.
-    await expect(contributed).resolves.toBe(versionBefore);
+    await expect(contribution).resolves.toBe(versionBefore);
     expect(initialDocument.change).not.toHaveBeenCalled();
     expect(written).toEqual([]);
   });
@@ -322,13 +320,13 @@ describe('openLiveDocument', () => {
   it('contributes pending typing when it closes', async () => {
     const { opened, written } = await openDocument({ diskText: 'hello' });
 
-    const contributed = typeLeavingPending({
+    const contribution = typeLeavingPending({
       opened,
       doc: markdownDocument('hello world'),
     });
     await Effect.runPromise(opened.close);
 
-    await expect(contributed).resolves.toBe(await versionOf(opened));
+    await expect(contribution).resolves.toBe(await versionOf(opened));
     expect(written).toContain('hello world');
   });
 
@@ -351,7 +349,7 @@ describe('openLiveDocument', () => {
     });
     transformToText.mockRejectedValueOnce(new Error('the conversion failed'));
 
-    const contributed = typeLeavingPending({
+    const contribution = typeLeavingPending({
       opened,
       doc: proseMirrorDocument('hello typed'),
     });
@@ -363,12 +361,12 @@ describe('openLiveDocument', () => {
     // The typing is still on its way: the next flush writes it.
     await Effect.runPromise(opened.flush);
 
-    await expect(contributed).resolves.toBe(await versionOf(opened));
+    await expect(contribution).resolves.toBe(await versionOf(opened));
     expect(written).toEqual(['hello typed']);
   });
 
   it('reports a write nobody awaited when it fails', async () => {
-    const { opened, reported } = await openDocument({
+    const { opened, reportedErrors } = await openDocument({
       diskText: 'hello',
       storeRefusesWrites: true,
     });
@@ -376,30 +374,38 @@ describe('openLiveDocument', () => {
     // Writes on the new state rather than awaiting a flush.
     await typeAndContribute({ opened, doc: markdownDocument('hello world') });
 
-    await vi.waitFor(() => expect(reported[0]).toBeInstanceOf(RepositoryError));
+    await vi.waitFor(() =>
+      expect(reportedErrors[0]).toBeInstanceOf(RepositoryError)
+    );
   });
 
   it('reports the write it makes on opening, before anyone can listen', async () => {
     // The write happens while the document is being handed over, so what it
     // reports has to keep until its reader arrives.
-    const { reported } = await openDocument({
+    const { reportedErrors } = await openDocument({
       diskText: 'what the file has',
       liveText: 'what the share has',
       storeRefusesWrites: true,
     });
 
-    await vi.waitFor(() => expect(reported[0]).toBeInstanceOf(RepositoryError));
+    await vi.waitFor(() =>
+      expect(reportedErrors[0]).toBeInstanceOf(RepositoryError)
+    );
   });
 
-  it('passes on what the document it runs on reports', async () => {
-    const { reported, documents } = await openDocument({ diskText: 'hello' });
+  it('passes on what the convergent document reports', async () => {
+    const { reportedErrors, documents } = await openDocument({
+      diskText: 'hello',
+    });
 
     documents[0]!.report(
       new ConvergentDocumentUnavailableError('the document was deleted')
     );
 
     await vi.waitFor(() =>
-      expect(reported[0]).toBeInstanceOf(ConvergentDocumentUnavailableError)
+      expect(reportedErrors[0]).toBeInstanceOf(
+        ConvergentDocumentUnavailableError
+      )
     );
   });
 
@@ -484,7 +490,7 @@ describe('openLiveDocument', () => {
     await Effect.runPromise(opened.flush);
     // Typed after the write, before the watcher reported it: still on its
     // way to the document when the echo arrives.
-    const contributed = typeLeavingPending({
+    const contribution = typeLeavingPending({
       opened,
       doc: markdownDocument('hello world!'),
     });
@@ -493,7 +499,7 @@ describe('openLiveDocument', () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
     await Effect.runPromise(opened.applyPendingLocalEdits);
 
-    await expect(contributed).resolves.toBe(await versionOf(opened));
+    await expect(contribution).resolves.toBe(await versionOf(opened));
     const content = await contentOf(opened);
     expect(content).toBe('hello world!');
   });
@@ -527,7 +533,7 @@ describe('openLiveDocument', () => {
     );
     const versionOnDisk = await versionOf(opened);
 
-    const contributed = typeLeavingPending({
+    const contribution = typeLeavingPending({
       opened,
       doc: markdownDocument('hello LOCAL'),
       base: versionOnDisk,
@@ -540,7 +546,7 @@ describe('openLiveDocument', () => {
     );
     await Effect.runPromise(opened.flush);
 
-    await expect(contributed).resolves.toBe(await versionOf(opened));
+    await expect(contribution).resolves.toBe(await versionOf(opened));
     expect(contributionsTo(initialDocument)).toEqual([
       { text: 'hello DISK', base: versionOnDisk },
       { text: 'hello LOCAL', base: versionOnDisk },
@@ -549,7 +555,7 @@ describe('openLiveDocument', () => {
   });
 
   it('keeps working, silently, when the document is gone', async () => {
-    const { opened, loseDocument, reported, initialDocument } =
+    const { opened, loseDocument, reportedErrors, initialDocument } =
       await openDocument({
         diskText: 'hello',
       });
@@ -560,7 +566,7 @@ describe('openLiveDocument', () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(initialDocument.change).not.toHaveBeenCalled();
-    expect(reported).toEqual([]);
+    expect(reportedErrors).toEqual([]);
   });
 
   it('stops following the file once closed', async () => {
@@ -580,7 +586,7 @@ describe('openLiveDocument', () => {
 
 const shareLink = 'automerge:the-share' as ShareId;
 
-describe('openLiveDocument, on the document it runs on', () => {
+describe('openLiveDocument, choosing its convergent document', () => {
   it('opens at the share when it has one', async () => {
     const { opened, documents } = await openDocument({
       diskText: 'what the file has',
@@ -603,13 +609,13 @@ describe('openLiveDocument, on the document it runs on', () => {
     expect(onShareUnavailable).toHaveBeenCalledWith(
       expect.any(SharedDocumentUnavailableError)
     );
-    // The failed one never became a document to run on.
+    // The unreachable share never became one of its documents.
     expect(documents).toHaveLength(1);
     const content = await contentOf(opened);
     expect(content).toBe('what the file has');
   });
 
-  it('runs on the shared document after attaching, and closes the old one', async () => {
+  it('switches to the shared document on attaching, and closes the old one', async () => {
     const { opened, documents } = await openDocument({
       diskText: 'on its own',
     });
@@ -649,7 +655,7 @@ describe('openLiveDocument, on the document it runs on', () => {
     });
     await Effect.runPromise(opened.attachTo(shareLink));
 
-    // A peer's change, published by the document the live one now runs on.
+    // A peer's change, published by the shared document it switched to.
     await Effect.runPromise(documents[1]!.publish('what a peer typed'));
 
     await vi.waitFor(async () => {
@@ -673,13 +679,13 @@ describe('openLiveDocument, on the document it runs on', () => {
       diskText: 'on its own',
     });
 
-    const contributed = typeLeavingPending({
+    const contribution = typeLeavingPending({
       opened,
       doc: markdownDocument('typed before sharing'),
     });
     await Effect.runPromise(opened.attachTo(shareLink));
 
-    await expect(contributed).resolves.toBe(
+    await expect(contribution).resolves.toBe(
       await versionOf(documents[0]!.document)
     );
     expect(documents[0]!.change).toHaveBeenLastCalledWith(
@@ -695,20 +701,20 @@ describe('openLiveDocument, on the document it runs on', () => {
     });
     await Effect.runPromise(opened.attachTo(shareLink));
 
-    const contributed = typeLeavingPending({
+    const contribution = typeLeavingPending({
       opened,
       doc: markdownDocument('typed while shared'),
     });
     await Effect.runPromise(opened.detach);
 
-    await expect(contributed).resolves.toBe(
+    await expect(contribution).resolves.toBe(
       await versionOf(documents[1]!.document)
     );
     const content = await contentOf(opened);
     expect(content).toBe('typed while shared');
   });
 
-  it('runs on a private document after detaching, keeping the content', async () => {
+  it('switches to a private document on detaching, keeping the content', async () => {
     const { opened, documents } = await openDocument({
       diskText: 'on its own',
     });
@@ -724,7 +730,7 @@ describe('openLiveDocument, on the document it runs on', () => {
   });
 
   it('passes on what the document it switched to reports', async () => {
-    const { opened, documents, reported } = await openDocument({
+    const { opened, documents, reportedErrors } = await openDocument({
       diskText: 'on its own',
     });
     await Effect.runPromise(opened.attachTo(shareLink));
@@ -734,14 +740,14 @@ describe('openLiveDocument, on the document it runs on', () => {
     );
 
     await vi.waitFor(() =>
-      expect(reported).toContainEqual(
+      expect(reportedErrors).toContainEqual(
         expect.any(ConvergentDocumentUnavailableError)
       )
     );
   });
 
   it('stops passing on what the document it left reports', async () => {
-    const { opened, documents, reported } = await openDocument({
+    const { opened, documents, reportedErrors } = await openDocument({
       diskText: 'on its own',
     });
     await Effect.runPromise(opened.attachTo(shareLink));
@@ -751,7 +757,7 @@ describe('openLiveDocument, on the document it runs on', () => {
     );
     await new Promise((resolve) => setTimeout(resolve, 20));
 
-    expect(reported).toEqual([]);
+    expect(reportedErrors).toEqual([]);
   });
 
   it('anchors a later disk change in the document it switched to', async () => {

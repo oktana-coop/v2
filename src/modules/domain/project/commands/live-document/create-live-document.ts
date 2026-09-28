@@ -32,7 +32,7 @@ export type CreateLiveDocumentDeps = {
 
 export type CreateLiveDocumentArgs = {
   documentId: ArtifactId;
-  // The document to run on first. Sharing, joining and leaving replace it.
+  // The convergent document to start with. Sharing, joining and leaving replace it.
   initialDocument: ConvergentDocument;
 };
 
