@@ -98,6 +98,11 @@ export const createAdapter = ({
         isValidAutomergeUrl(shareId)
           ? Effect.tryPromise({
               try: async () => {
+                // TODO: Leaving is local only. The sync server keeps sending
+                // this document's updates, and the first one makes the repo
+                // recreate the document, synced and stored again. Refuse left
+                // documents in the share config, and discuss an upstream way
+                // to tell the sync server we left.
                 repo.delete(shareId);
 
                 // The repo removes the document from storage on delete

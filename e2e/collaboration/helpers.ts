@@ -162,6 +162,21 @@ export const stopSharingFromActionsBar = async ({
     .waitFor({ state: 'hidden', timeout: 10_000 });
 };
 
+// Leaves the shared document a guest has open, back to where they can join.
+export const leaveFromActionsBar = async ({ window }: { window: Page }) => {
+  await shareButton(window).click();
+  await window
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Leave' })
+    .click();
+  await expect(
+    window.getByRole('button', { name: 'Join shared document' }).first()
+  ).toBeVisible({ timeout: 10_000 });
+};
+
+// The entries in a guest's "Shared with me" list.
+export const guestShares = (window: Page) => window.getByTestId('guest-share');
+
 // Submits the share ID without waiting for the join to succeed, since a share
 // this project cannot join is refused inside the dialog, which stays open.
 const submitShareId = async ({
