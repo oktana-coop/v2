@@ -45,6 +45,7 @@ test.describe('remote changes in the editor', () => {
     await openHelloMd({ window: aliceWindow });
 
     const shareId = await shareFromCommandPalette({ window: aliceWindow });
+    await syncServer!.waitForShare(shareId);
 
     // A scripted peer (as opposed to a second peer app), to control how the peer
     // sends its changes: one token at a time.
@@ -101,6 +102,7 @@ test.describe('remote changes in the editor', () => {
     await openHelloMd({ window: aliceWindow });
 
     const shareId = await shareFromCommandPalette({ window: aliceWindow });
+    await syncServer!.waitForShare(shareId);
     const coarseApplies = recordCoarseSyncApplies(aliceWindow);
 
     // Sets the DOM selection to put the caret at "This is a test |document.".
@@ -175,6 +177,7 @@ test.describe('remote changes in the editor', () => {
     await openHelloMd({ window: aliceWindow });
 
     const shareId = await shareFromCommandPalette({ window: aliceWindow });
+    await syncServer!.waitForShare(shareId);
 
     // A scripted peer (as opposed to a second peer app) sends no changes, so a
     // duplicate can only come from Alice's editor.

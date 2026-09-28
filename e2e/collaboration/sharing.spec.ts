@@ -182,6 +182,7 @@ test.describe('a document before and while sharing', () => {
 
     const editor = aliceWindow.locator('.ProseMirror');
     await expect(editor).toContainText('before after');
+    await syncServer!.waitForShare(shareId);
 
     // Someone joining sees everything, including what was typed before the share.
     const bob = await launchApp({ syncServiceUrl: syncServer!.url });

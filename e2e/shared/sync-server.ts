@@ -1,6 +1,7 @@
 import {
   type AutomergeUrl,
   isValidDocumentId,
+  parseAutomergeUrl,
   Repo,
 } from '@automerge/automerge-repo';
 import { WebSocketClientAdapter } from '@automerge/automerge-repo-network-websocket';
@@ -16,6 +17,9 @@ export type SyncServer = {
   port: number;
   // The IDs of the documents the server has stored so far.
   storedDocumentIds: () => string[];
+  // Sharing is local-first: the share ID is shown before the document reaches
+  // the server, so a peer joining straight away can find nothing there.
+  waitForShare: (shareId: string) => Promise<void>;
   stop: () => void;
 };
 
@@ -77,10 +81,18 @@ export const startSyncServer = async ({
     server.on('error', reject);
   });
 
+  const storedDocumentIds = () => readStoredDocumentIds(resolvedDataDir);
+
   return {
     url: `ws://127.0.0.1:${port}`,
     port,
-    storedDocumentIds: () => readStoredDocumentIds(resolvedDataDir),
+    storedDocumentIds,
+    waitForShare: async (shareId) => {
+      const { documentId } = parseAutomergeUrl(shareId as AutomergeUrl);
+      await expect
+        .poll(storedDocumentIds, { timeout: 15_000 })
+        .toContain(documentId);
+    },
     stop: () => {
       server.kill();
       if (dataDir !== undefined) return;

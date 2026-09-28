@@ -42,6 +42,7 @@ test.describe('convergence without sync latency', () => {
     await openHelloMd({ window: aliceWindow });
 
     const shareId = await shareFromCommandPalette({ window: aliceWindow });
+    await syncServer!.waitForShare(shareId);
 
     const bob = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
@@ -90,6 +91,7 @@ test.describe('convergence without sync latency', () => {
     await openHelloMd({ window: aliceWindow });
 
     const shareId = await shareFromCommandPalette({ window: aliceWindow });
+    await syncServer!.waitForShare(shareId);
 
     // Both instances on the same clone: their persists land in the same file,
     // and each sees the other's write through its own watcher.
@@ -159,6 +161,7 @@ test.describe('convergence without sync latency', () => {
       await openDocument({ window: bob.window, relativePath: 'Foo.md' });
 
       const shareId = await shareFromCommandPalette({ window: aliceWindow });
+      await syncServer!.waitForShare(shareId);
       await joinFromCommandPalette({ window: bob.window, shareId });
 
       const aliceEditor = aliceWindow.locator('.ProseMirror');
@@ -203,6 +206,7 @@ test.describe('convergence under sync latency', () => {
     await openHelloMd({ window: aliceWindow });
 
     const shareId = await shareFromCommandPalette({ window: aliceWindow });
+    await syncServer!.waitForShare(shareId);
 
     const bob = await launchApp({ syncServiceUrl: proxy.url });
     try {
@@ -269,6 +273,7 @@ test.describe('convergence under sync latency', () => {
     await openHelloMd({ window: alice.window });
 
     const shareId = await shareFromCommandPalette({ window: alice.window });
+    await syncServer!.waitForShare(shareId);
 
     const bob = await cloneAndLaunchApp({
       syncServiceUrl: bobProxy.url,
@@ -345,6 +350,7 @@ test.describe('convergence under sync latency', () => {
     await openHelloMd({ window: aliceWindow });
 
     const shareId = await shareFromCommandPalette({ window: aliceWindow });
+    await syncServer!.waitForShare(shareId);
 
     const bob = await cloneAndLaunchApp({
       syncServiceUrl: proxy.url,
@@ -403,6 +409,7 @@ test.describe('convergence under sync latency', () => {
     await openHelloMd({ window: aliceWindow });
 
     const shareId = await shareFromCommandPalette({ window: aliceWindow });
+    await syncServer!.waitForShare(shareId);
 
     const bob = await cloneAndLaunchApp({
       syncServiceUrl: proxy.url,
@@ -480,6 +487,7 @@ test.describe('convergence under sync latency', () => {
     await openHelloMd({ window: aliceWindow });
 
     const shareId = await shareFromCommandPalette({ window: aliceWindow });
+    await syncServer!.waitForShare(shareId);
 
     const bob = await launchApp({
       syncServiceUrl: proxy.url,

@@ -30,6 +30,7 @@ test.describe('presence while sharing', () => {
     await openHelloMd({ window: aliceWindow });
 
     const shareId = await shareFromCommandPalette({ window: aliceWindow });
+    await syncServer!.waitForShare(shareId);
     await expectPeerAvatars({ window: aliceWindow, count: 0 });
 
     const bob = await launchApp({ syncServiceUrl: syncServer!.url });
@@ -67,6 +68,7 @@ test.describe('presence while sharing', () => {
     await openHelloMd({ window: aliceWindow });
 
     const shareId = await shareFromCommandPalette({ window: aliceWindow });
+    await syncServer!.waitForShare(shareId);
 
     const bob = await launchApp({ syncServiceUrl: syncServer!.url });
     try {

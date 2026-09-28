@@ -12,6 +12,7 @@ import {
   openProjectFolder,
   typeInEditorSlowly,
 } from '../shared/helpers';
+import { type SyncServer } from '../shared/sync-server';
 import {
   attemptJoinFromCommandPalette,
   expectPeerAvatars,
@@ -42,6 +43,7 @@ test.describe('guest editing', () => {
     });
     await openHelloMd({ window });
     const shareId = await shareFromCommandPalette({ window });
+    await syncServer!.waitForShare(shareId);
 
     const guest = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
@@ -99,6 +101,7 @@ test.describe('guest editing', () => {
     await window.getByText('world').click();
     await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
     const shareId = await shareFromCommandPalette({ window });
+    await syncServer!.waitForShare(shareId);
 
     const other = await launchApp({ syncServiceUrl: syncServer!.url });
     const otherProjectDir = fs.mkdtempSync(
@@ -159,6 +162,8 @@ test.describe('guest leaving and joining again', () => {
     await window.getByText('world').click();
     await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
     const worldShareId = await shareFromCommandPalette({ window });
+    await syncServer!.waitForShare(helloShareId);
+    await syncServer!.waitForShare(worldShareId);
 
     const guest = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
@@ -196,6 +201,7 @@ test.describe('guest leaving and joining again', () => {
     });
     await openHelloMd({ window });
     const firstShareId = await shareFromCommandPalette({ window });
+    await syncServer!.waitForShare(firstShareId);
 
     const guest = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
@@ -211,6 +217,7 @@ test.describe('guest leaving and joining again', () => {
       await stopSharingFromActionsBar({ window });
       const secondShareId = await shareFromCommandPalette({ window });
       expect(secondShareId).not.toBe(firstShareId);
+      await syncServer!.waitForShare(secondShareId);
 
       await joinFromButton({ window: guest.window, shareId: secondShareId });
       await expect(guestEditor).toContainText('This is a test document', {
@@ -237,6 +244,7 @@ test.describe('guest leaving and joining again', () => {
     });
     await openHelloMd({ window });
     const shareId = await shareFromCommandPalette({ window });
+    await syncServer!.waitForShare(shareId);
 
     const guest = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
@@ -285,6 +293,8 @@ test.describe('guest leaving and joining again', () => {
     await window.getByText('world').click();
     await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
     const worldShareId = await shareFromCommandPalette({ window });
+    await syncServer!.waitForShare(helloShareId);
+    await syncServer!.waitForShare(worldShareId);
 
     const guest = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
@@ -378,6 +388,8 @@ test.describe('guest leaving while the host stays', () => {
     await hostWindow.waitForSelector('.ProseMirror', { timeout: 3_000 });
     const worldShareId = await shareFromCommandPalette({ window: hostWindow });
     await openHelloMd({ window: hostWindow });
+    await syncServer!.waitForShare(helloShareId);
+    await syncServer!.waitForShare(worldShareId);
 
     const guest = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
@@ -443,18 +455,19 @@ const shareWithGuest = async ({
   electronApp,
   window,
   testProjectDir,
-  syncServiceUrl,
+  syncServer,
 }: {
   electronApp: ElectronApplication;
   window: Page;
   testProjectDir: string;
-  syncServiceUrl: string;
+  syncServer: SyncServer;
 }) => {
   await openProjectFolder({ electronApp, window, folderPath: testProjectDir });
   await openHelloMd({ window });
   const shareId = await shareFromCommandPalette({ window });
+  await syncServer.waitForShare(shareId);
 
-  const guest = await launchApp({ syncServiceUrl });
+  const guest = await launchApp({ syncServiceUrl: syncServer.url });
   try {
     await joinFromButton({ window: guest.window, shareId });
     await expect(guest.window.locator('.ProseMirror')).toContainText(
@@ -483,7 +496,7 @@ test.describe('the list entry menu', () => {
       electronApp,
       window,
       testProjectDir,
-      syncServiceUrl: syncServer!.url,
+      syncServer: syncServer!,
     });
     try {
       await answerGuestShareMenuWith({
@@ -514,7 +527,7 @@ test.describe('the list entry menu', () => {
       electronApp,
       window,
       testProjectDir,
-      syncServiceUrl: syncServer!.url,
+      syncServer: syncServer!,
     });
     try {
       await answerGuestShareMenuWith({

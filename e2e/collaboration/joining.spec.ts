@@ -48,6 +48,7 @@ test.describe('joining a share', () => {
     await openDocument({ window: aliceWindow, relativePath: 'notes.md' });
 
     const shareId = await shareFromCommandPalette({ window: aliceWindow });
+    await syncServer!.waitForShare(shareId);
 
     const bob = await cloneAndLaunchApp({
       syncServiceUrl: syncServer!.url,
@@ -107,6 +108,7 @@ test.describe('joining a share', () => {
     await openDocument({ window: aliceWindow, relativePath: 'notes.md' });
 
     const shareId = await shareFromCommandPalette({ window: aliceWindow });
+    await syncServer!.waitForShare(shareId);
 
     const bob = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
@@ -155,6 +157,7 @@ test.describe('joining a share', () => {
     await createAndSwitchToBranch({ window: aliceWindow, branchName: 'draft' });
     await openHelloMd({ window: aliceWindow });
     const shareId = await shareFromCommandPalette({ window: aliceWindow });
+    await syncServer!.waitForShare(shareId);
 
     const bob = await cloneAndLaunchApp({
       syncServiceUrl: syncServer!.url,

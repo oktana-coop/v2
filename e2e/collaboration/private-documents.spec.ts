@@ -88,6 +88,7 @@ test.describe('private documents alongside shared ones', () => {
     });
     await openHelloMd({ window });
     const shareId = await shareFromActionsBar({ window });
+    await syncServer!.waitForShare(shareId);
     await typeInEditorSlowly({ window, text: ' shared', delay: 30 });
 
     const peer = connectPeer(syncServer!.url);
@@ -131,6 +132,7 @@ test.describe('private documents alongside shared ones', () => {
     });
     await openHelloMd({ window });
     const shareId = await shareFromActionsBar({ window });
+    await syncServer!.waitForShare(shareId);
 
     const peer = connectPeer(syncServer!.url);
     // A second client of the sync server, to confirm the peer's edit reached it.
@@ -183,6 +185,7 @@ test.describe('private documents alongside shared ones', () => {
     });
     await openHelloMd({ window });
     const shareId = await shareFromActionsBar({ window });
+    await syncServer!.waitForShare(shareId);
 
     const peer = connectPeer(syncServer!.url);
     try {
@@ -254,6 +257,7 @@ test.describe('private documents alongside shared ones', () => {
 
     await openHelloMd({ window });
     const shareId = await shareFromActionsBar({ window });
+    await syncServer!.waitForShare(shareId);
 
     const peer = connectPeer(syncServer!.url);
     try {
