@@ -4,8 +4,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   type ConvergentDocumentState,
-  CURRENT_SCHEMA_VERSION,
-  PRIMARY_RICH_TEXT_REPRESENTATION,
   RepresentationTransformError,
 } from '../../../../modules/domain/rich-text';
 import {
@@ -24,6 +22,7 @@ import { joinSharedDocument } from './join-shared-document';
 import { leaveSharedDocument } from './leave-shared-document';
 import { type LiveDocument } from './live-document';
 import { shareLiveDocument } from './share-live-document';
+import { markdownDocument } from './test-utils';
 
 // A live document that records what was asked of it, in order.
 const createLiveDocument = async ({
@@ -42,11 +41,7 @@ const createLiveDocument = async ({
 > => {
   const contentRef = await Effect.runPromise(
     SubscriptionRef.make<ConvergentDocumentState>({
-      doc: {
-        schemaVersion: CURRENT_SCHEMA_VERSION,
-        representation: PRIMARY_RICH_TEXT_REPRESENTATION,
-        content,
-      },
+      doc: markdownDocument(content),
       version: '0',
     })
   );
@@ -129,10 +124,13 @@ describe('joinSharedDocument', () => {
   const documentId = '/blob/main/note.md' as ArtifactId;
 
   // A document already running, which the share may or may not be for.
-  const openDocumentFor = (
-    openDocumentId: ArtifactId,
-    attached: string[] = []
-  ) => ({
+  const openDocumentFor = ({
+    openDocumentId,
+    attached = [],
+  }: {
+    openDocumentId: ArtifactId;
+    attached?: string[];
+  }) => ({
     documentId: openDocumentId,
     attachTo: (shareId: ShareId) =>
       Effect.sync(() => {
@@ -165,11 +163,7 @@ describe('joinSharedDocument', () => {
         documentIsInProject
           ? Effect.succeed({
               id: sharedDocumentId,
-              artifact: {
-                schemaVersion: CURRENT_SCHEMA_VERSION,
-                representation: PRIMARY_RICH_TEXT_REPRESENTATION,
-                content: 'what this project holds',
-              },
+              artifact: markdownDocument('what this project holds'),
             })
           : Effect.fail(new NotFoundError('no such document')),
       rememberShare,
@@ -185,7 +179,9 @@ describe('joinSharedDocument', () => {
     const attached: string[] = [];
 
     const found = await Effect.runPromise(
-      join({ openDocument: openDocumentFor(documentId, attached) })
+      join({
+        openDocument: openDocumentFor({ openDocumentId: documentId, attached }),
+      })
     );
 
     expect(attached).toEqual(['automerge:pasted']);
@@ -197,7 +193,12 @@ describe('joinSharedDocument', () => {
     const somethingElse = '/blob/main/other.md' as ArtifactId;
 
     const found = await Effect.runPromise(
-      join({ openDocument: openDocumentFor(somethingElse, attached) })
+      join({
+        openDocument: openDocumentFor({
+          openDocumentId: somethingElse,
+          attached,
+        }),
+      })
     );
 
     // Attaching here would run the wrong file on the share.

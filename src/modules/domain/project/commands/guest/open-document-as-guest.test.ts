@@ -7,10 +7,7 @@ import { describe, expect, it } from 'vitest';
 import {
   type ConvergentDocument,
   type ConvergentDocumentState,
-  CURRENT_SCHEMA_VERSION,
-  PRIMARY_RICH_TEXT_REPRESENTATION,
   type RemotePresence,
-  type RichTextDocument,
   UnsupportedDocumentFormatError,
 } from '../../../../../modules/domain/rich-text';
 import {
@@ -18,23 +15,18 @@ import {
   type Branch,
 } from '../../../../../modules/infrastructure/version-control';
 import { SharedDocumentUnavailableError } from '../../errors';
+import { contentOf, markdownDocument } from '../test-utils';
 import {
   openDocumentAsGuest,
   type OpenDocumentAsGuestDeps,
 } from './open-document-as-guest';
-
-const markdown = (content: string): RichTextDocument => ({
-  schemaVersion: CURRENT_SCHEMA_VERSION,
-  representation: PRIMARY_RICH_TEXT_REPRESENTATION,
-  content,
-});
 
 const createFakeConvergentDocument = async (
   initialText: string
 ): Promise<ConvergentDocument> => {
   const content = await Effect.runPromise(
     SubscriptionRef.make<ConvergentDocumentState>({
-      doc: markdown(initialText),
+      doc: markdownDocument(initialText),
       version: 'v0',
     })
   );
@@ -47,7 +39,10 @@ const createFakeConvergentDocument = async (
     presence: { peers, publish: () => Effect.void },
     change: (text) =>
       pipe(
-        SubscriptionRef.set(content, { doc: markdown(text), version: 'v1' }),
+        SubscriptionRef.set(content, {
+          doc: markdownDocument(text),
+          version: 'v1',
+        }),
         Effect.as('v1')
       ),
     errors: Stream.empty,
@@ -69,9 +64,10 @@ const open = (deps: Partial<OpenDocumentAsGuestDeps> = {}) =>
       Effect.promise(() =>
         createFakeConvergentDocument('what the share holds')
       ),
-    createPrivateDocument: (text) =>
-      Effect.promise(() => createFakeConvergentDocument(text)),
-    transformToText: async ({ input }: { input: string }) => input,
+    createPrivateDocument: () =>
+      Effect.die('no private document in these tests'),
+    transformToText: () =>
+      Promise.reject(new Error('no conversion in these tests')),
     ...deps,
   })({ shareId: 'automerge:pasted' });
 
@@ -82,8 +78,8 @@ describe('openDocumentAsGuest', () => {
     expect(guest.name).toBe(info.name);
     expect(guest.documentId).toBe(info.documentId);
 
-    const current = await Effect.runPromise(SubscriptionRef.get(guest.content));
-    expect(current.doc.content).toBe('what the share holds');
+    const content = await contentOf(guest);
+    expect(content).toBe('what the share holds');
   });
 
   it('raises when the share cannot be reached', async () => {
