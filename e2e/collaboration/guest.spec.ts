@@ -5,6 +5,7 @@ import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
 import {
+  expectNoErrorNotification,
   expectNoOpenDocument,
   openCommandPalette,
   openHelloMd,
@@ -381,10 +382,6 @@ test.describe('guest leaving while the host stays', () => {
     const guest = await launchApp({ syncServiceUrl: syncServer!.url });
     try {
       const guestEditor = guest.window.locator('.ProseMirror');
-      const guestConsoleErrors: string[] = [];
-      guest.window.on('console', (message) => {
-        if (message.type() === 'error') guestConsoleErrors.push(message.text());
-      });
 
       // The guest joins hello, then leaves it.
       await joinFromButton({ window: guest.window, shareId: helloShareId });
@@ -410,7 +407,7 @@ test.describe('guest leaving while the host stays', () => {
       await expect(guestEditor).toContainText('Another document', {
         timeout: 20_000,
       });
-      expect(guestConsoleErrors).toEqual([]);
+      await expectNoErrorNotification({ window: guest.window });
     } finally {
       await guest.close();
     }
