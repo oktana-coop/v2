@@ -1,9 +1,10 @@
 import * as Effect from 'effect/Effect';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
-import { type Mock } from 'vitest';
+import { type Mock, vi } from 'vitest';
 
 import {
   type ConvergentDocument,
+  type ConvergentDocumentState,
   type ConvergentDocumentVersion,
   CURRENT_SCHEMA_VERSION,
   PRIMARY_RICH_TEXT_REPRESENTATION,
@@ -85,6 +86,33 @@ export const versionOf = (document: Pick<ConvergentDocument, 'content'>) =>
   Effect.runPromise(SubscriptionRef.get(document.content)).then(
     (current) => current.version
   );
+
+// A live document showing fixed content, whose operations are spied on.
+export const createFakeLiveDocument = async () => {
+  const content = await Effect.runPromise(
+    SubscriptionRef.make<ConvergentDocumentState>({
+      doc: markdownDocument('what the editor shows'),
+      version: 'v0',
+    })
+  );
+  const applyPendingLocalEdits = vi.fn<
+    () => LiveDocument['applyPendingLocalEdits']
+  >(() => Effect.void);
+  const attachTo = vi.fn<LiveDocument['attachTo']>(() => Effect.void);
+  const detach = vi.fn<() => LiveDocument['detach']>(() => Effect.void);
+
+  const liveDocument: Pick<
+    LiveDocument,
+    'content' | 'applyPendingLocalEdits' | 'attachTo' | 'detach'
+  > = {
+    content,
+    applyPendingLocalEdits: Effect.suspend(applyPendingLocalEdits),
+    attachTo,
+    detach: Effect.suspend(detach),
+  };
+
+  return { liveDocument, applyPendingLocalEdits, attachTo, detach };
+};
 
 // A promise the test settles itself, like Promise.withResolvers.
 // TODO: use Promise.withResolvers once tsconfig's lib includes ES2024.

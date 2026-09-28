@@ -3,9 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { rebasedOn, storedCopy } from './stored-copy';
 
 describe('rebasedOn', () => {
-  it('keeps the content and anchors in the new document', () => {
-    const opened = storedCopy({ content: 'hello', base: '1' });
+  it('replaces the base, keeping the content', () => {
+    const stored = storedCopy({ content: 'hello', base: 'v1' });
 
-    expect(rebasedOn('9')(opened)).toEqual({ content: 'hello', base: '9' });
+    expect(rebasedOn('v2')(stored)).toEqual({ content: 'hello', base: 'v2' });
   });
 });

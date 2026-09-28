@@ -26,7 +26,7 @@ const local: LocalPresence = {
 
 // A document whose presence records what is published to it and whose peers
 // the test sets directly.
-const createFakeDocument = async ({
+const createFakeConvergentDocument = async ({
   text,
   peers,
 }: {
@@ -36,7 +36,7 @@ const createFakeDocument = async ({
   const content = await Effect.runPromise(
     SubscriptionRef.make<ConvergentDocumentState>({
       doc: markdownDocument(text),
-      version: `${text}.0`,
+      version: 'v0',
     })
   );
   const peersRef = await Effect.runPromise(
@@ -49,14 +49,7 @@ const createFakeDocument = async ({
 
   const document: ConvergentDocument = {
     content,
-    change: (next) =>
-      Effect.as(
-        SubscriptionRef.set(content, {
-          doc: markdownDocument(next),
-          version: `${next}.1`,
-        }),
-        `${next}.1`
-      ),
+    change: () => Effect.die('no changes in these tests'),
     presence: { peers: peersRef, publish },
     errors: Stream.empty,
     close: Effect.sync(close),
@@ -78,7 +71,7 @@ const peersOf = (document: Pick<ConvergentDocument, 'presence'>) =>
 
 describe('switchable convergent document presence', () => {
   it('shows the peers of the current document', async () => {
-    const first = await createFakeDocument({
+    const first = await createFakeConvergentDocument({
       text: 'one',
       peers: [remote('Alice')],
     });
@@ -97,7 +90,10 @@ describe('switchable convergent document presence', () => {
   });
 
   it('publishes to the current document', async () => {
-    const first = await createFakeDocument({ text: 'one', peers: [] });
+    const first = await createFakeConvergentDocument({
+      text: 'one',
+      peers: [],
+    });
     const switchable = await Effect.runPromise(
       createSwitchableDocument({ initial: first.document })
     );
@@ -108,8 +104,11 @@ describe('switchable convergent document presence', () => {
   });
 
   it('says again what it last published to the document it switches to', async () => {
-    const first = await createFakeDocument({ text: 'one', peers: [] });
-    const second = await createFakeDocument({
+    const first = await createFakeConvergentDocument({
+      text: 'one',
+      peers: [],
+    });
+    const second = await createFakeConvergentDocument({
       text: 'two',
       peers: [remote('Carol')],
     });
@@ -127,11 +126,14 @@ describe('switchable convergent document presence', () => {
   });
 
   it('follows only the document it switched to', async () => {
-    const first = await createFakeDocument({
+    const first = await createFakeConvergentDocument({
       text: 'one',
       peers: [remote('Alice')],
     });
-    const second = await createFakeDocument({ text: 'two', peers: [] });
+    const second = await createFakeConvergentDocument({
+      text: 'two',
+      peers: [],
+    });
     const switchable = await Effect.runPromise(
       createSwitchableDocument({ initial: first.document })
     );
@@ -150,8 +152,14 @@ describe('switchable convergent document presence', () => {
   });
 
   it('publishes nothing to the next document when nothing was published', async () => {
-    const first = await createFakeDocument({ text: 'one', peers: [] });
-    const second = await createFakeDocument({ text: 'two', peers: [] });
+    const first = await createFakeConvergentDocument({
+      text: 'one',
+      peers: [],
+    });
+    const second = await createFakeConvergentDocument({
+      text: 'two',
+      peers: [],
+    });
     const switchable = await Effect.runPromise(
       createSwitchableDocument({ initial: first.document })
     );
