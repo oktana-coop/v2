@@ -50,7 +50,16 @@ export const startSyncServer = async ({
 
   const server: ChildProcess = spawn(
     process.execPath,
-    [path.join('node_modules', '.bin', 'automerge-repo-sync-server')],
+    [
+      // The .bin entry is a shell shim on Windows, so run the package's script.
+      path.join(
+        'node_modules',
+        '@automerge',
+        'automerge-repo-sync-server',
+        'src',
+        'index.js'
+      ),
+    ],
     { env: { ...process.env, PORT: String(port), DATA_DIR: resolvedDataDir } }
   );
 
