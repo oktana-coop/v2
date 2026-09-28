@@ -4,19 +4,25 @@ import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
 import {
+  expectFileToContain,
   expectNoErrorNotification,
   openHelloMd,
   openProjectFolder,
   typeInEditorSlowly,
 } from '../shared/helpers';
 import { startSyncServer } from '../shared/sync-server';
-import { joinFromButton, launchApp, shareFromActionsBar } from './helpers';
+import {
+  expectShared,
+  joinFromButton,
+  launchApp,
+  shareFromActionsBar,
+} from './helpers';
 
 test.describe('a shared document across a restart', () => {
-  // Shared documents outlive the process, so typing made while the service
-  // was out of reach is still there after a restart, and reaches the
-  // service once it is back.
-  test('reopens from local storage while the service is unreachable, and syncs what was typed offline once it is back', async () => {
+  // Shared documents outlive the process, so typing made while the sync
+  // service was out of reach is still there after a restart, and reaches the
+  // sync service once it is back.
+  test('keeps what was typed offline through a restart and syncs it once the sync service is back', async () => {
     test.setTimeout(180_000);
 
     const userDataDir = fs.mkdtempSync(
@@ -29,27 +35,30 @@ test.describe('a shared document across a restart', () => {
       path.join(projectDir, 'hello.md'),
       '# Hello\n\nThis is a test document.\n'
     );
-    const serviceDataDir = fs.mkdtempSync(
+    const syncServiceDataDir = fs.mkdtempSync(
       path.join(os.tmpdir(), 'v2-e2e-sync-restart-')
     );
-    let service = await startSyncServer({ dataDir: serviceDataDir });
+    let syncService = await startSyncServer({ dataDir: syncServiceDataDir });
 
     try {
-      const first = await launchApp({
+      const beforeRestart = await launchApp({
         userDataDir,
         projectDir,
-        syncServiceUrl: service.url,
+        syncServiceUrl: syncService.url,
       });
       await openProjectFolder({
-        electronApp: first.app,
-        window: first.window,
+        electronApp: beforeRestart.app,
+        window: beforeRestart.window,
         folderPath: projectDir,
       });
-      await openHelloMd({ window: first.window });
-      const shareId = await shareFromActionsBar({ window: first.window });
+      await openHelloMd({ window: beforeRestart.window });
+      const shareId = await shareFromActionsBar({
+        window: beforeRestart.window,
+      });
 
-      // The share reaches the service before the service goes away.
-      const earlyGuest = await launchApp({ syncServiceUrl: service.url });
+      // A guest can join before the sync service is stopped, so the share has
+      // reached it.
+      const earlyGuest = await launchApp({ syncServiceUrl: syncService.url });
       try {
         await joinFromButton({ window: earlyGuest.window, shareId });
         await expect(earlyGuest.window.locator('.ProseMirror')).toContainText(
@@ -59,52 +68,47 @@ test.describe('a shared document across a restart', () => {
       } finally {
         await earlyGuest.close();
       }
-      service.stop();
+      syncService.stop();
 
       await typeInEditorSlowly({
-        window: first.window,
+        window: beforeRestart.window,
         text: ' OFFLINE',
         delay: 30,
       });
-      await expect
-        .poll(
-          () => fs.readFileSync(path.join(projectDir, 'hello.md'), 'utf8'),
-          {
-            timeout: 10_000,
-          }
-        )
-        .toContain('OFFLINE');
-      await first.app.close();
+      await expectFileToContain({
+        filePath: path.join(projectDir, 'hello.md'),
+        text: 'OFFLINE',
+      });
+      await beforeRestart.app.close();
 
-      const second = await launchApp({
+      const afterRestart = await launchApp({
         userDataDir,
         projectDir,
-        syncServiceUrl: service.url,
+        syncServiceUrl: syncService.url,
       });
       await openProjectFolder({
-        electronApp: second.app,
-        window: second.window,
+        electronApp: afterRestart.app,
+        window: afterRestart.window,
         folderPath: projectDir,
       });
-      await openHelloMd({ window: second.window });
+      await openHelloMd({ window: afterRestart.window });
 
-      // Found in local storage, the document opens shared at once. Asking
-      // the unreachable service instead would take its 10 s timeout and
-      // open the document without sharing.
-      await expect(
-        second.window.getByRole('button', { name: 'Sharing Options' })
-      ).toBeVisible({ timeout: 8_000 });
-      await expect(second.window.locator('.ProseMirror')).toContainText(
+      // After the restart, with the sync service still down, the document is still
+      // shared. The app knows this without the sync service: trying to reach it
+      // would take 10s, well past this check's short wait.
+      await expectShared({ window: afterRestart.window });
+      await expect(afterRestart.window.locator('.ProseMirror')).toContainText(
         'OFFLINE'
       );
-      await expectNoErrorNotification({ window: second.window });
+      await expectNoErrorNotification({ window: afterRestart.window });
 
-      service = await startSyncServer({
-        port: service.port,
-        dataDir: serviceDataDir,
+      syncService = await startSyncServer({
+        port: syncService.port,
+        dataDir: syncServiceDataDir,
       });
+
       // Someone joining now sees what was typed offline.
-      const lateGuest = await launchApp({ syncServiceUrl: service.url });
+      const lateGuest = await launchApp({ syncServiceUrl: syncService.url });
       try {
         await joinFromButton({ window: lateGuest.window, shareId });
         await expect(lateGuest.window.locator('.ProseMirror')).toContainText(
@@ -115,10 +119,10 @@ test.describe('a shared document across a restart', () => {
         await lateGuest.close();
       }
 
-      await second.app.close();
+      await afterRestart.app.close();
     } finally {
-      service.stop();
-      for (const dir of [userDataDir, projectDir, serviceDataDir]) {
+      syncService.stop();
+      for (const dir of [userDataDir, projectDir, syncServiceDataDir]) {
         try {
           fs.rmSync(dir, { recursive: true, force: true });
         } catch {}

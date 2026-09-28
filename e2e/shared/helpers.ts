@@ -1,4 +1,5 @@
 import { ElectronApplication, expect, Page } from '@playwright/test';
+import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
@@ -980,6 +981,21 @@ export const expectNoErrorNotification = async ({
   window: Page;
 }): Promise<void> => {
   await expect(window.getByTestId('error-notification')).toHaveCount(0);
+};
+
+// Waits until the file on disk contains the text, e.g. once a save reaches it.
+export const expectFileToContain = async ({
+  filePath,
+  text,
+  timeout = 10_000,
+}: {
+  filePath: string;
+  text: string;
+  timeout?: number;
+}): Promise<void> => {
+  await expect
+    .poll(() => fs.readFileSync(filePath, 'utf8'), { timeout })
+    .toContain(text);
 };
 
 export const expectNoErrorNotificationAfterWaiting = async ({

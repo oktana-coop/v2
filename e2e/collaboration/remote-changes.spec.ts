@@ -1,10 +1,10 @@
 import { next as Automerge } from '@automerge/automerge';
 import { type Page } from '@playwright/test';
-import fs from 'fs';
 import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
 import {
+  expectFileToContain,
   openHelloMd,
   openProjectFolder,
   typeInEditorSlowly,
@@ -78,12 +78,10 @@ test.describe('remote changes in the editor', () => {
       });
 
       // The synced text also reaches the sharer's disk.
-      await expect
-        .poll(
-          () => fs.readFileSync(path.join(aliceProject, 'hello.md'), 'utf8'),
-          { timeout: 10_000 }
-        )
-        .toContain('red orange yellow green blue');
+      await expectFileToContain({
+        filePath: path.join(aliceProject, 'hello.md'),
+        text: tokens.join(' '),
+      });
     } finally {
       scriptedPeer.disconnect();
     }
