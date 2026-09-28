@@ -233,7 +233,6 @@ export const CurrentDocumentProvider = ({
     representationTransformAdapter,
     subscribeToProjectDirChanges,
     currentBranch,
-    currentArtifact,
   ]);
 
   // What the open document reports with nobody waiting on it. The editor keeps
