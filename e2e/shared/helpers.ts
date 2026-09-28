@@ -274,6 +274,19 @@ export const openDocument = async ({
   await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
 };
 
+export const openDocumentExpectingContent = async ({
+  window,
+  relativePath,
+  content,
+}: {
+  window: Page;
+  relativePath: string;
+  content: string;
+}): Promise<void> => {
+  await openDocument({ window, relativePath });
+  await expect(window.locator('.ProseMirror')).toContainText(content);
+};
+
 export const typeInEditor = async ({
   window,
   text,

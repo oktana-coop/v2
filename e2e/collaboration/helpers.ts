@@ -1,4 +1,8 @@
 import {
+  type AutomergeUrl,
+  parseAutomergeUrl,
+} from '@automerge/automerge-repo';
+import {
   type ElectronApplication,
   type Locator,
   type Page,
@@ -9,6 +13,7 @@ import path from 'path';
 
 import { expect, launchElectronApp } from '../shared/fixtures';
 import { openCommandPalette } from '../shared/helpers';
+import { type SyncServer } from '../shared/sync-server';
 
 // Another app instance with its own user data, like a separate machine. It
 // comes with a new project folder holding hello.md unless given one.
@@ -300,6 +305,30 @@ export const expectTextOverTime = ({
       alsoExpectPerSample?.();
     },
   });
+
+// The sync server holds the documents of the given shares and nothing else.
+export const expectSyncServerToHoldOnlyOverTime = ({
+  syncServer,
+  shareIds,
+  alsoExpectPerSample,
+  ...sampling
+}: Sampling & {
+  syncServer: SyncServer;
+  shareIds: string[];
+  alsoExpectPerSample?: () => void;
+}) => {
+  const expected = shareIds
+    .map((shareId) => parseAutomergeUrl(shareId as AutomergeUrl).documentId)
+    .sort();
+
+  return expectOverTime({
+    ...sampling,
+    check: async () => {
+      expect(syncServer.storedDocumentIds().sort()).toEqual(expected);
+      alsoExpectPerSample?.();
+    },
+  });
+};
 
 // The avatars of the other peers in the actions bar.
 export const expectPeerAvatars = async ({

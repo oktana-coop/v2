@@ -1,4 +1,8 @@
-import { type AutomergeUrl, Repo } from '@automerge/automerge-repo';
+import {
+  type AutomergeUrl,
+  isValidDocumentId,
+  Repo,
+} from '@automerge/automerge-repo';
 import { WebSocketClientAdapter } from '@automerge/automerge-repo-network-websocket';
 import { expect } from '@playwright/test';
 import { type ChildProcess, spawn } from 'child_process';
@@ -10,8 +14,26 @@ import path from 'path';
 export type SyncServer = {
   url: string;
   port: number;
+  // The IDs of the documents the server has stored so far.
+  storedDocumentIds: () => string[];
   stop: () => void;
 };
+
+// The server's storage keeps each document under <first two ID chars>/<rest>.
+//
+// TODO: List the documents through a higher-level API once the sync server
+// offers one, rather than relying on the storage adapter's layout.
+const readStoredDocumentIds = (dataDir: string): string[] =>
+  fs
+    .readdirSync(dataDir, { withFileTypes: true })
+    .filter((prefix) => prefix.isDirectory())
+    .flatMap((prefix) =>
+      fs
+        .readdirSync(path.join(dataDir, prefix.name), { withFileTypes: true })
+        .filter((rest) => rest.isDirectory())
+        .map((rest) => `${prefix.name}${rest.name}`)
+    )
+    .filter(isValidDocumentId);
 
 // Runs automerge-repo-sync-server locally, in place of the build-configured
 // sync server. Passing the same port and data dir brings a stopped server back
@@ -49,6 +71,7 @@ export const startSyncServer = async ({
   return {
     url: `ws://127.0.0.1:${port}`,
     port,
+    storedDocumentIds: () => readStoredDocumentIds(resolvedDataDir),
     stop: () => {
       server.kill();
       if (dataDir !== undefined) return;
