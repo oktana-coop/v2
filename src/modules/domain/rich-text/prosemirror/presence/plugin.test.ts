@@ -7,16 +7,22 @@ import {
   TextSelection,
 } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 
+import { useFakeTimersInTest } from '../../../../../utils/test-utils';
 import { parseUsername } from '../../../../auth';
-import { type ParticipantSelection, type RemotePresence } from '../../models';
+import {
+  type ConvergentDocumentVersion,
+  type ParticipantSelection,
+  type RemotePresence,
+} from '../../models';
 import { schema } from '../schema';
 import { type LiveSyncState } from '../sync/live-sync-plugin';
+import { doc, para } from '../test-utils';
 import { getPresencePluginState, presencePlugin } from './plugin';
 
 // Stands in for the live sync plugin: tests set the version shown and the
-// typing in flight through a meta.
+// local edits pending through a meta.
 const syncKey = new PluginKey<LiveSyncState>('fake-live-sync');
 
 const fakeSyncPlugin = (initial: LiveSyncState) =>
@@ -28,35 +34,34 @@ const fakeSyncPlugin = (initial: LiveSyncState) =>
     },
   });
 
-const paragraph = (text: string) =>
-  schema.node('doc', null, [
-    schema.node('paragraph', null, text ? [schema.text(text)] : []),
-  ]);
+const selectionAt = ({
+  position,
+  version,
+}: {
+  position: number;
+  version: ConvergentDocumentVersion;
+}): ParticipantSelection => ({ anchor: position, head: position, version });
 
-const peer = (
-  name: string,
-  selection: ParticipantSelection | null
-): RemotePresence => ({
+const peerWithoutSelection = (name: string): RemotePresence => ({
   peerId: name.toLowerCase(),
   participant: { name: parseUsername(name), email: null, avatarUrl: null },
-  selection,
+  selection: null,
 });
 
-const at = (head: number, version: string): ParticipantSelection => ({
-  anchor: head,
-  head,
+const peerAt = ({
+  name,
+  position,
   version,
+}: {
+  name: string;
+  position: number;
+  version: ConvergentDocumentVersion;
+}): RemotePresence => ({
+  ...peerWithoutSelection(name),
+  selection: selectionAt({ position, version }),
 });
 
-// The peer list reaches the plugin a microtask later.
-const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
-
-const views: EditorView[] = [];
-
-const setup = async ({
-  text = 'hello world',
-  sync = { baseVersion: 'v1', hasPendingLocalEdits: false },
-}: { text?: string; sync?: LiveSyncState } = {}) => {
+const setUpEditor = async () => {
   const peers = await Effect.runPromise(
     SubscriptionRef.make<ReadonlyArray<RemotePresence>>([])
   );
@@ -64,9 +69,9 @@ const setup = async ({
 
   const state = EditorState.create({
     schema,
-    doc: paragraph(text),
+    doc: doc([para('hello world')]),
     plugins: [
-      fakeSyncPlugin(sync),
+      fakeSyncPlugin({ baseVersion: 'v1', hasPendingLocalEdits: false }),
       presencePlugin({
         peers,
         readSyncState: (editorState) =>
@@ -86,18 +91,22 @@ const setup = async ({
   // jsdom only focuses what it considers focusable.
   view.dom.setAttribute('tabindex', '0');
   document.body.appendChild(view.dom);
-  views.push(view);
+  onTestFinished(() => {
+    view.dom.remove();
+    view.destroy();
+  });
 
-  await tick();
+  // The peer list reaches the plugin asynchronously.
+  await vi.runAllTimersAsync();
 
   return {
     view,
     publish,
     setPeers: async (list: RemotePresence[]) => {
       await Effect.runPromise(SubscriptionRef.set(peers, list));
-      await tick();
+      await vi.runAllTimersAsync();
     },
-    setSync: (next: LiveSyncState) => {
+    setSyncState: (next: LiveSyncState) => {
       view.dispatch(view.state.tr.setMeta(syncKey, next));
     },
     select: (position: number) => {
@@ -119,51 +128,50 @@ const setup = async ({
 };
 
 describe('presencePlugin', () => {
-  afterEach(() => {
-    views.splice(0).forEach((view) => {
-      view.dom.remove();
-      view.destroy();
-    });
-  });
+  beforeEach(useFakeTimersInTest);
 
-  describe('telling peers where we are', () => {
-    it('publishes the selection in the version shown, once focused', async () => {
-      const { view, publish, select } = await setup();
+  describe('publishing the local selection', () => {
+    it('publishes the selection at the version shown, once focused', async () => {
+      const { view, publish, select } = await setUpEditor();
 
       view.focus();
       select(3);
 
-      expect(publish).toHaveBeenLastCalledWith(at(3, 'v1'));
+      expect(publish).toHaveBeenLastCalledWith(
+        selectionAt({ position: 3, version: 'v1' })
+      );
     });
 
-    it('publishes only what changed', async () => {
-      const { view, publish, select, setSync } = await setup();
+    it('does not publish a selection it already published', async () => {
+      const { view, publish, select, setSyncState } = await setUpEditor();
       view.focus();
       select(3);
       publish.mockClear();
 
-      setSync({ baseVersion: 'v1', hasPendingLocalEdits: false });
+      setSyncState({ baseVersion: 'v1', hasPendingLocalEdits: false });
       select(3);
 
       expect(publish).not.toHaveBeenCalled();
     });
 
-    it('keeps what it said while typing is in flight, then publishes at the version it resolved to', async () => {
-      const { view, publish, select, setSync } = await setup();
+    it('holds the selection back while local edits are pending, then publishes it at their version', async () => {
+      const { view, publish, select, setSyncState } = await setUpEditor();
       view.focus();
       select(3);
       publish.mockClear();
 
-      setSync({ baseVersion: 'v1', hasPendingLocalEdits: true });
+      setSyncState({ baseVersion: 'v1', hasPendingLocalEdits: true });
       select(4);
       expect(publish).not.toHaveBeenCalled();
 
-      setSync({ baseVersion: 'v2', hasPendingLocalEdits: false });
-      expect(publish).toHaveBeenLastCalledWith(at(4, 'v2'));
+      setSyncState({ baseVersion: 'v2', hasPendingLocalEdits: false });
+      expect(publish).toHaveBeenLastCalledWith(
+        selectionAt({ position: 4, version: 'v2' })
+      );
     });
 
     it('publishes nothing while unfocused', async () => {
-      const { publish, select } = await setup();
+      const { publish, select } = await setUpEditor();
 
       select(3);
 
@@ -171,7 +179,7 @@ describe('presencePlugin', () => {
     });
 
     it('withdraws the selection on blur', async () => {
-      const { view, publish } = await setup();
+      const { view, publish } = await setUpEditor();
       view.focus();
 
       view.dom.blur();
@@ -180,77 +188,87 @@ describe('presencePlugin', () => {
     });
   });
 
-  describe('showing where peers are', () => {
-    it('places a caret for a selection made in the version shown', async () => {
-      const { view, setPeers, carets, caretLabels } = await setup();
+  describe("peers' carets", () => {
+    it('draws a caret for a selection made in the version shown', async () => {
+      const { view, setPeers, carets, caretLabels } = await setUpEditor();
 
-      await setPeers([peer('Bob', at(3, 'v1'))]);
+      await setPeers([peerAt({ name: 'Bob', position: 3, version: 'v1' })]);
 
       expect(carets()).toEqual([3]);
       expect(caretLabels()).toEqual(['Bob']);
       expect(view.dom.textContent).toBe('hello world');
     });
 
-    it('waits for the version a selection was made in', async () => {
-      const { setPeers, setSync, carets } = await setup();
+    it('waits for the version a selection was made in before drawing it', async () => {
+      const { setPeers, setSyncState, carets } = await setUpEditor();
 
-      await setPeers([peer('Bob', at(3, 'v2'))]);
+      await setPeers([peerAt({ name: 'Bob', position: 3, version: 'v2' })]);
       expect(carets()).toEqual([]);
 
-      setSync({ baseVersion: 'v2', hasPendingLocalEdits: false });
+      setSyncState({ baseVersion: 'v2', hasPendingLocalEdits: false });
       expect(carets()).toEqual([3]);
     });
 
-    it('keeps the caret it has while the next selection waits', async () => {
-      const { setPeers, setSync, carets } = await setup();
-      await setPeers([peer('Bob', at(3, 'v1'))]);
+    it('keeps the drawn caret while the next selection waits for its version', async () => {
+      const { setPeers, setSyncState, carets } = await setUpEditor();
+      await setPeers([peerAt({ name: 'Bob', position: 3, version: 'v1' })]);
 
-      await setPeers([peer('Bob', at(5, 'v2'))]);
+      await setPeers([peerAt({ name: 'Bob', position: 5, version: 'v2' })]);
       expect(carets()).toEqual([3]);
 
-      setSync({ baseVersion: 'v2', hasPendingLocalEdits: false });
+      setSyncState({ baseVersion: 'v2', hasPendingLocalEdits: false });
       expect(carets()).toEqual([5]);
     });
 
-    it('lets a waiting caret ride the text inserted at it', async () => {
-      const { view, setPeers, setSync, carets } = await setup();
-      await setPeers([peer('Bob', at(6, 'v1'))]);
-      await setPeers([peer('Bob', at(8, 'v2'))]);
-
-      // The peer's text arrives under a version that is not theirs.
-      view.dispatch(view.state.tr.insertText('XX', 6));
-      setSync({ baseVersion: 'v3', hasPendingLocalEdits: false });
-
-      expect(carets()).toEqual([8]);
-    });
-
-    it('moves carets along with the edits before them', async () => {
-      const { view, setPeers, carets } = await setup();
-      await setPeers([peer('Bob', at(6, 'v1'))]);
-
-      view.dispatch(view.state.tr.insertText('XX', 1));
-
-      expect(carets()).toEqual([8]);
-    });
-
-    it('takes a caret away when its peer leaves or has no selection', async () => {
-      const { setPeers, carets } = await setup();
-      await setPeers([peer('Bob', at(3, 'v1')), peer('Carol', at(4, 'v1'))]);
+    it('removes a caret when its peer leaves or has no selection', async () => {
+      const { setPeers, carets } = await setUpEditor();
+      await setPeers([
+        peerAt({ name: 'Bob', position: 3, version: 'v1' }),
+        peerAt({ name: 'Carol', position: 4, version: 'v1' }),
+      ]);
       expect(carets()).toEqual([3, 4]);
 
-      await setPeers([peer('Bob', null), peer('Carol', at(4, 'v1'))]);
+      await setPeers([
+        peerWithoutSelection('Bob'),
+        peerAt({ name: 'Carol', position: 4, version: 'v1' }),
+      ]);
       expect(carets()).toEqual([4]);
 
       await setPeers([]);
       expect(carets()).toEqual([]);
     });
 
-    it('clamps a selection beyond the document', async () => {
-      const { view, setPeers, carets } = await setup();
+    it('draws a selection beyond the document at its end', async () => {
+      const { view, setPeers, carets } = await setUpEditor();
 
-      await setPeers([peer('Bob', at(999, 'v1'))]);
+      await setPeers([peerAt({ name: 'Bob', position: 999, version: 'v1' })]);
 
       expect(carets()).toEqual([view.state.doc.content.size]);
+    });
+
+    describe('through edits', () => {
+      it('moves a caret along with the edits before it', async () => {
+        const { view, setPeers, carets } = await setUpEditor();
+        await setPeers([peerAt({ name: 'Bob', position: 6, version: 'v1' })]);
+
+        view.dispatch(view.state.tr.insertText('XX', 1));
+
+        expect(carets()).toEqual([8]);
+      });
+
+      // A peer's caret follows their typing, so text inserted at it goes
+      // before it, even while their next selection waits.
+      it('moves a caret past text inserted at it', async () => {
+        const { view, setPeers, setSyncState, carets } = await setUpEditor();
+        await setPeers([peerAt({ name: 'Bob', position: 6, version: 'v1' })]);
+        await setPeers([peerAt({ name: 'Bob', position: 8, version: 'v2' })]);
+
+        // The peer's text arrives under a version that is not theirs.
+        view.dispatch(view.state.tr.insertText('XX', 6));
+        setSyncState({ baseVersion: 'v3', hasPendingLocalEdits: false });
+
+        expect(carets()).toEqual([8]);
+      });
     });
   });
 });
