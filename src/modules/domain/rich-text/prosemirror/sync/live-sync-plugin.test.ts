@@ -208,334 +208,342 @@ const setUpEditor = async ({
 };
 
 describe('liveSyncPlugin', () => {
-  it('sends local edits to the live document', async () => {
-    const { liveDocument, view } = await setUpEditor();
+  describe('local edits', () => {
+    it('sends local edits to the live document', async () => {
+      const { liveDocument, view } = await setUpEditor();
 
-    view.dispatch(view.state.tr.insertText(' world', 6));
+      view.dispatch(view.state.tr.insertText(' world', 6));
 
-    await eventually(async () => {
-      const current = await Effect.runPromise(
-        SubscriptionRef.get(liveDocument.content)
+      await eventually(async () => {
+        const current = await Effect.runPromise(
+          SubscriptionRef.get(liveDocument.content)
+        );
+        // What reaches the document is the primary text representation,
+        // whatever the editor contributed.
+        expect(current.doc.representation).toBe(
+          PRIMARY_RICH_TEXT_REPRESENTATION
+        );
+        expect(current.doc.content).toBe('hello world');
+      });
+    });
+
+    it('anchors local edits at the version shown in the editor', async () => {
+      const { liveDocument, view, onChange } = await setUpEditor();
+
+      view.dispatch(view.state.tr.insertText(' world', 6));
+
+      await eventually(() => expect(onChange).toHaveBeenCalledTimes(1));
+      expect(onChange).toHaveBeenLastCalledWith(expect.anything(), {
+        base: 'v0',
+      });
+
+      const peerVersion = await Effect.runPromise(
+        liveDocument.change('from a peer')
       );
-      // What reaches the document is the primary text representation,
-      // whatever the editor contributed.
-      expect(current.doc.representation).toBe(PRIMARY_RICH_TEXT_REPRESENTATION);
-      expect(current.doc.content).toBe('hello world');
+      await eventually(() =>
+        expect(view.state.doc.textContent).toBe('from a peer')
+      );
+
+      view.dispatch(view.state.tr.insertText('!', 1));
+
+      await eventually(() => expect(onChange).toHaveBeenCalledTimes(2));
+      expect(onChange).toHaveBeenLastCalledWith(expect.anything(), {
+        base: peerVersion,
+      });
     });
   });
 
-  it('keeps the caret in place when a change is made elsewhere in the document', async () => {
-    const { liveDocument, view } = await setUpEditor({
-      initialText: 'hello world',
+  describe('incoming states', () => {
+    it("applies a peer's change as one transaction, kept out of the undo history", async () => {
+      const { liveDocument, view, dispatched } = await setUpEditor();
+
+      await Effect.runPromise(liveDocument.change('from a peer'));
+
+      await eventually(() =>
+        expect(view.state.doc.textContent).toBe('from a peer')
+      );
+      const transactions = dispatched();
+      expect(transactions).toHaveLength(1);
+      expect(transactions[0].getMeta('addToHistory')).toBe(false);
     });
 
-    view.dispatch(
-      view.state.tr.setSelection(TextSelection.create(view.state.doc, 6))
-    );
+    it('keeps the caret in place when a change is made elsewhere in the document', async () => {
+      const { liveDocument, view } = await setUpEditor({
+        initialText: 'hello world',
+      });
 
-    await Effect.runPromise(liveDocument.change('hello world and more'));
+      view.dispatch(
+        view.state.tr.setSelection(TextSelection.create(view.state.doc, 6))
+      );
 
-    await eventually(() =>
-      expect(view.state.doc.textContent).toBe('hello world and more')
-    );
-    expect(view.state.selection.head).toBe(6);
+      await Effect.runPromise(liveDocument.change('hello world and more'));
+
+      await eventually(() =>
+        expect(view.state.doc.textContent).toBe('hello world and more')
+      );
+      expect(view.state.selection.head).toBe(6);
+    });
+
+    it("keeps the caret between a peer's edits on both sides of it", async () => {
+      const { liveDocument, view, dispatched, onError, proseMirrorSteps } =
+        await setUpEditor({ initialText: 'hello world' });
+      // A coarse replace would span both edits and drag the caret between them
+      // to its end.
+      proseMirrorSteps.mockReturnValue(
+        Effect.succeed({
+          pmDocAfter: doc([para('Xhello worldY')]),
+          steps: [
+            new ReplaceStep(1, 1, textSlice('X')),
+            new ReplaceStep(13, 13, textSlice('Y')),
+          ],
+        })
+      );
+
+      view.dispatch(
+        view.state.tr.setSelection(TextSelection.create(view.state.doc, 6))
+      );
+      const dispatchedBefore = dispatched().length;
+
+      await Effect.runPromise(liveDocument.change('Xhello worldY'));
+
+      await eventually(() =>
+        expect(view.state.doc.textContent).toBe('Xhello worldY')
+      );
+      expect(view.state.selection.head).toBe(7);
+      const transactions = dispatched();
+      expect(transactions).toHaveLength(dispatchedBefore + 1);
+      expect(transactions[dispatchedBefore].steps).toHaveLength(2);
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('computes steps for a state in ProseMirror representation too', async () => {
+      const { liveDocument, view, proseMirrorSteps } = await setUpEditor();
+
+      await Effect.runPromise(
+        SubscriptionRef.set(liveDocument.content, {
+          doc: {
+            schemaVersion: CURRENT_SCHEMA_VERSION,
+            representation: richTextRepresentations.PROSEMIRROR,
+            content: JSON.stringify(doc([para('from a peer')]).toJSON()),
+          },
+          version: 'r1',
+        })
+      );
+
+      await eventually(() =>
+        expect(view.state.doc.textContent).toBe('from a peer')
+      );
+      expect(proseMirrorSteps).toHaveBeenCalledTimes(1);
+      expect(proseMirrorSteps.mock.calls[0][0].docAfter.representation).toBe(
+        richTextRepresentations.PROSEMIRROR
+      );
+    });
+
+    it('collapses changes that arrive faster than they can be applied', async () => {
+      const { liveDocument, view, dispatched, proseMirrorSteps } =
+        await setUpEditor();
+      useFakeTimersInTest();
+      const firstSteps = promiseWithResolvers<ProseMirrorStepsResult>();
+      proseMirrorSteps.mockReturnValueOnce(
+        Effect.promise(() => firstSteps.promise)
+      );
+
+      await Effect.runPromise(liveDocument.change('first'));
+      await vi.waitFor(() => expect(proseMirrorSteps).toHaveBeenCalledOnce());
+      // The other changes queue up while the first one's steps are still being
+      // computed.
+      for (const text of ['second', 'third', 'latest']) {
+        await Effect.runPromise(liveDocument.change(text));
+      }
+      firstSteps.resolve(
+        stepsBetween({
+          pmDocBefore: doc([para('hello')]),
+          pmDocAfter: doc([para('first')]),
+        })
+      );
+      await vi.runAllTimersAsync();
+
+      // The editor converged to the newest change, and the intermediates were
+      // skipped: never one transaction per change, which is what no
+      // conflation would produce.
+      expect(view.state.doc.textContent).toBe('latest');
+      expect(dispatched().length).toBeLessThanOrEqual(2);
+    });
+
+    it('does not wipe a keystroke made while an incoming state was converting', async () => {
+      const { liveDocument, view, dispatched, proseMirrorSteps } =
+        await setUpEditor();
+
+      useFakeTimersInTest();
+
+      const incomingSteps = promiseWithResolvers<ProseMirrorStepsResult>();
+      proseMirrorSteps.mockReturnValueOnce(
+        Effect.promise(() => incomingSteps.promise)
+      );
+
+      await Effect.runPromise(liveDocument.change('from a peer'));
+      await vi.waitFor(() => expect(proseMirrorSteps).toHaveBeenCalledOnce());
+      // The incoming state's steps are still being computed when a keystroke
+      // comes in.
+      view.dispatch(view.state.tr.insertText('!', 6));
+      const editsAfterTyping = editsIn(dispatched()).length;
+
+      // They arrive computed against the doc from before the keystroke.
+      incomingSteps.resolve(
+        stepsBetween({
+          pmDocBefore: doc([para('hello')]),
+          pmDocAfter: doc([para('from a peer')]),
+        })
+      );
+      await vi.runAllTimersAsync();
+
+      // The lagging state is dropped, never applied-then-healed: the editor
+      // must not edit at all, and the keystroke must survive throughout.
+      expect(view.state.doc.textContent).toContain('!');
+      expect(editsIn(dispatched())).toHaveLength(editsAfterTyping);
+    });
   });
 
-  it('does not wipe a keystroke made while an incoming state was converting', async () => {
-    const { liveDocument, view, dispatched, proseMirrorSteps } =
-      await setUpEditor();
+  describe('contributions in flight and their echoes', () => {
+    it('holds incoming changes while an own contribution is in flight', async () => {
+      const { liveDocument, view, onChange } = await setUpEditor();
+      useFakeTimersInTest();
+      const firstVersion = promiseWithResolvers<ConvergentDocumentVersion>();
+      const secondVersion = promiseWithResolvers<ConvergentDocumentVersion>();
+      onChange
+        .mockReturnValueOnce(Effect.promise(() => firstVersion.promise))
+        .mockReturnValueOnce(Effect.promise(() => secondVersion.promise));
 
-    useFakeTimersInTest();
+      view.dispatch(view.state.tr.insertText('!', 6));
+      view.dispatch(view.state.tr.insertText('?', 7));
 
-    const incomingSteps = promiseWithResolvers<ProseMirrorStepsResult>();
-    proseMirrorSteps.mockReturnValueOnce(
-      Effect.promise(() => incomingSteps.promise)
-    );
+      await Effect.runPromise(
+        SubscriptionRef.set(liveDocument.content, {
+          doc: markdownDocument('from a peer'),
+          version: 'r1',
+        })
+      );
+      await vi.runAllTimersAsync();
 
-    await Effect.runPromise(liveDocument.change('from a peer'));
-    await vi.waitFor(() => expect(proseMirrorSteps).toHaveBeenCalledOnce());
-    // The incoming state's steps are still being computed when a keystroke
-    // comes in.
-    view.dispatch(view.state.tr.insertText('!', 6));
-    const editsAfterTyping = editsIn(dispatched()).length;
+      expect(view.state.doc.textContent).toBe('hello!?');
 
-    // They arrive computed against the doc from before the keystroke.
-    incomingSteps.resolve(
-      stepsBetween({
-        pmDocBefore: doc([para('hello')]),
-        pmDocAfter: doc([para('from a peer')]),
-      })
-    );
-    await vi.runAllTimersAsync();
+      // One contribution resolved, the other still on its way: still held.
+      firstVersion.resolve('v1');
+      await vi.runAllTimersAsync();
 
-    // The lagging state is dropped, never applied-then-healed: the editor
-    // must not edit at all, and the keystroke must survive throughout.
-    expect(view.state.doc.textContent).toContain('!');
-    expect(editsIn(dispatched())).toHaveLength(editsAfterTyping);
-  });
+      expect(view.state.doc.textContent).toBe('hello!?');
 
-  it('holds incoming changes while an own contribution is in flight', async () => {
-    const { liveDocument, view, onChange } = await setUpEditor();
-    useFakeTimersInTest();
-    const firstVersion = promiseWithResolvers<ConvergentDocumentVersion>();
-    const secondVersion = promiseWithResolvers<ConvergentDocumentVersion>();
-    onChange
-      .mockReturnValueOnce(Effect.promise(() => firstVersion.promise))
-      .mockReturnValueOnce(Effect.promise(() => secondVersion.promise));
+      secondVersion.resolve('v2');
+      await Effect.runPromise(
+        SubscriptionRef.set(liveDocument.content, {
+          doc: markdownDocument('hello!? from a peer'),
+          version: 'r2',
+        })
+      );
 
-    view.dispatch(view.state.tr.insertText('!', 6));
-    view.dispatch(view.state.tr.insertText('?', 7));
+      await eventually(() =>
+        expect(view.state.doc.textContent).toBe('hello!? from a peer')
+      );
+    });
 
-    await Effect.runPromise(
-      SubscriptionRef.set(liveDocument.content, {
-        doc: markdownDocument('from a peer'),
-        version: 'r1',
-      })
-    );
-    await vi.runAllTimersAsync();
+    // A state published while a contribution is in flight waits for it, then
+    // applies once it resolves, with nothing published after.
+    it('applies a state that arrived during a contribution once the contribution resolves', async () => {
+      const { liveDocument, view, onChange } = await setUpEditor();
+      useFakeTimersInTest();
+      const contribution = promiseWithResolvers<ConvergentDocumentVersion>();
+      onChange.mockReturnValueOnce(Effect.promise(() => contribution.promise));
 
-    expect(view.state.doc.textContent).toBe('hello!?');
+      view.dispatch(view.state.tr.insertText('!', 6));
+      // A peer's edit, merged with the '!' that reached the document.
+      await Effect.runPromise(
+        SubscriptionRef.set(liveDocument.content, {
+          doc: markdownDocument('hello! from a peer'),
+          version: 'r1',
+        })
+      );
+      await vi.runAllTimersAsync();
+      expect(view.state.doc.textContent).toBe('hello!');
 
-    // One contribution resolved, the other still on its way: still held.
-    firstVersion.resolve('v1');
-    await vi.runAllTimersAsync();
+      contribution.resolve('v1');
 
-    expect(view.state.doc.textContent).toBe('hello!?');
+      await eventually(() =>
+        expect(view.state.doc.textContent).toBe('hello! from a peer')
+      );
+    });
 
-    secondVersion.resolve('v2');
-    await Effect.runPromise(
-      SubscriptionRef.set(liveDocument.content, {
-        doc: markdownDocument('hello!? from a peer'),
-        version: 'r2',
-      })
-    );
+    // Typing comes back as a new state of the document: its echo. By the time
+    // it arrives the user may have typed more, so it is an older state than
+    // the editor shows, and only its version tells it is the editor's own.
+    it('recognizes its own echo by version instead of applying it', async () => {
+      const { liveDocument, view, onChange } = await setUpEditor();
+      useFakeTimersInTest();
 
-    await eventually(() =>
-      expect(view.state.doc.textContent).toBe('hello!? from a peer')
-    );
-  });
-
-  // Typing comes back as a new state of the document: its echo. By the time
-  // it arrives the user may have typed more, so it is an older state than
-  // the editor shows, and only its version tells it is the editor's own.
-  it('recognizes its own echo by version instead of applying it', async () => {
-    const { liveDocument, view, onChange } = await setUpEditor();
-    useFakeTimersInTest();
-
-    // Typing '!' contributes 'hello!'. The document publishes it back straight
-    // away as its new state: the echo. Its version reaches the editor only
-    // when the test resolves it.
-    const echo = { doc: markdownDocument('hello!'), version: 'v1' };
-    const echoVersion = promiseWithResolvers<ConvergentDocumentVersion>();
-    onChange.mockImplementationOnce(() =>
-      pipe(
-        SubscriptionRef.set(liveDocument.content, echo),
-        Effect.zipRight(Effect.promise(() => echoVersion.promise))
-      )
-    );
-    view.dispatch(view.state.tr.insertText('!', 6));
-
-    // Typing '?' meanwhile; its contribution is still on its way.
-    const nextVersion = promiseWithResolvers<ConvergentDocumentVersion>();
-    onChange.mockImplementationOnce(() =>
-      pipe(
-        Effect.promise(() => nextVersion.promise),
-        Effect.tap((version) =>
-          SubscriptionRef.set(liveDocument.content, {
-            doc: markdownDocument('hello!?'),
-            version,
-          })
+      // Typing '!' contributes 'hello!'. The document publishes it back
+      // straight away as its new state: the echo. Its version reaches the editor
+      // only when the test resolves it.
+      const echo = { doc: markdownDocument('hello!'), version: 'v1' };
+      const echoVersion = promiseWithResolvers<ConvergentDocumentVersion>();
+      onChange.mockImplementationOnce(() =>
+        pipe(
+          SubscriptionRef.set(liveDocument.content, echo),
+          Effect.zipRight(Effect.promise(() => echoVersion.promise))
         )
-      )
-    );
-    view.dispatch(view.state.tr.insertText('?', 7));
+      );
+      view.dispatch(view.state.tr.insertText('!', 6));
 
-    echoVersion.resolve('v1');
-    await vi.runAllTimersAsync();
+      // Typing '?' meanwhile; its contribution is still on its way.
+      const nextVersion = promiseWithResolvers<ConvergentDocumentVersion>();
+      onChange.mockImplementationOnce(() =>
+        pipe(
+          Effect.promise(() => nextVersion.promise),
+          Effect.tap((version) =>
+            SubscriptionRef.set(liveDocument.content, {
+              doc: markdownDocument('hello!?'),
+              version,
+            })
+          )
+        )
+      );
+      view.dispatch(view.state.tr.insertText('?', 7));
 
-    // The echo is known as the editor's own, and the '?' is still on its way:
-    // applying the echo would have lost it.
-    expect(view.state.doc.textContent).toBe('hello!?');
+      echoVersion.resolve('v1');
+      await vi.runAllTimersAsync();
 
-    nextVersion.resolve('v2');
-    await vi.runAllTimersAsync();
+      // The echo is known as the editor's own, and the '?' is still on its way:
+      // applying the echo would have lost it.
+      expect(view.state.doc.textContent).toBe('hello!?');
 
-    expect(view.state.doc.textContent).toBe('hello!?');
-  });
+      nextVersion.resolve('v2');
+      await vi.runAllTimersAsync();
 
-  // proseMirrorSteps brings the editor to changes that come from elsewhere.
-  // Typing comes back too, as its echo, which the editor recognises by the
-  // version its contribution resolves with.
-  it('does not compute steps for its own echo', async () => {
-    const { liveDocument, view, onChange, proseMirrorSteps } =
-      await setUpEditor();
-    useFakeTimersInTest();
-
-    // Typing '!' contributes 'hello!'. The document publishes it back as its
-    // new state, the echo, and resolves with the echo's version.
-    const echo = { doc: markdownDocument('hello!'), version: 'v1' };
-    onChange.mockImplementationOnce(() =>
-      pipe(
-        SubscriptionRef.set(liveDocument.content, echo),
-        Effect.as(echo.version)
-      )
-    );
-    view.dispatch(view.state.tr.insertText('!', 6));
-    await vi.runAllTimersAsync();
-
-    expect(onChange).toHaveBeenCalledOnce();
-    // Computing steps is expensive, and the editor already shows its echo.
-    expect(proseMirrorSteps).not.toHaveBeenCalled();
-  });
-
-  // A state published while a contribution is in flight waits for it, then
-  // applies once it resolves, with nothing published after.
-  it('applies a state that arrived during a contribution once the contribution resolves', async () => {
-    const { liveDocument, view, onChange } = await setUpEditor();
-    useFakeTimersInTest();
-    const contribution = promiseWithResolvers<ConvergentDocumentVersion>();
-    onChange.mockReturnValueOnce(Effect.promise(() => contribution.promise));
-
-    view.dispatch(view.state.tr.insertText('!', 6));
-    // A peer's edit, merged with the '!' that reached the document.
-    await Effect.runPromise(
-      SubscriptionRef.set(liveDocument.content, {
-        doc: markdownDocument('hello! from a peer'),
-        version: 'r1',
-      })
-    );
-    await vi.runAllTimersAsync();
-    expect(view.state.doc.textContent).toBe('hello!');
-
-    contribution.resolve('v1');
-
-    await eventually(() =>
-      expect(view.state.doc.textContent).toBe('hello! from a peer')
-    );
-  });
-
-  it('anchors local edits at the version shown in the editor', async () => {
-    const { liveDocument, view, onChange } = await setUpEditor();
-
-    view.dispatch(view.state.tr.insertText(' world', 6));
-
-    await eventually(() => expect(onChange).toHaveBeenCalledTimes(1));
-    expect(onChange).toHaveBeenLastCalledWith(expect.anything(), {
-      base: 'v0',
+      expect(view.state.doc.textContent).toBe('hello!?');
     });
 
-    const peerVersion = await Effect.runPromise(
-      liveDocument.change('from a peer')
-    );
-    await eventually(() =>
-      expect(view.state.doc.textContent).toBe('from a peer')
-    );
+    // proseMirrorSteps brings the editor to changes that come from elsewhere.
+    // Typing comes back too, as its echo, which the editor recognises by the
+    // version its contribution resolves with.
+    it('does not compute steps for its own echo', async () => {
+      const { liveDocument, view, onChange, proseMirrorSteps } =
+        await setUpEditor();
+      useFakeTimersInTest();
 
-    view.dispatch(view.state.tr.insertText('!', 1));
+      // Typing '!' contributes 'hello!'. The document publishes it back as its
+      // new state, the echo, and resolves with the echo's version.
+      const echo = { doc: markdownDocument('hello!'), version: 'v1' };
+      onChange.mockImplementationOnce(() =>
+        pipe(
+          SubscriptionRef.set(liveDocument.content, echo),
+          Effect.as(echo.version)
+        )
+      );
+      view.dispatch(view.state.tr.insertText('!', 6));
+      await vi.runAllTimersAsync();
 
-    await eventually(() => expect(onChange).toHaveBeenCalledTimes(2));
-    expect(onChange).toHaveBeenLastCalledWith(expect.anything(), {
-      base: peerVersion,
+      expect(onChange).toHaveBeenCalledOnce();
+      // Computing steps is expensive, and the editor already shows its echo.
+      expect(proseMirrorSteps).not.toHaveBeenCalled();
     });
-  });
-
-  it("applies a peer's change as one transaction, kept out of the undo history", async () => {
-    const { liveDocument, view, dispatched } = await setUpEditor();
-
-    await Effect.runPromise(liveDocument.change('from a peer'));
-
-    await eventually(() =>
-      expect(view.state.doc.textContent).toBe('from a peer')
-    );
-    const transactions = dispatched();
-    expect(transactions).toHaveLength(1);
-    expect(transactions[0].getMeta('addToHistory')).toBe(false);
-  });
-
-  it('collapses changes that arrive faster than they can be applied', async () => {
-    const { liveDocument, view, dispatched, proseMirrorSteps } =
-      await setUpEditor();
-    useFakeTimersInTest();
-    const firstSteps = promiseWithResolvers<ProseMirrorStepsResult>();
-    proseMirrorSteps.mockReturnValueOnce(
-      Effect.promise(() => firstSteps.promise)
-    );
-
-    await Effect.runPromise(liveDocument.change('first'));
-    await vi.waitFor(() => expect(proseMirrorSteps).toHaveBeenCalledOnce());
-    // The other changes queue up while the first one's steps are still being
-    // computed.
-    for (const text of ['second', 'third', 'latest']) {
-      await Effect.runPromise(liveDocument.change(text));
-    }
-    firstSteps.resolve(
-      stepsBetween({
-        pmDocBefore: doc([para('hello')]),
-        pmDocAfter: doc([para('first')]),
-      })
-    );
-    await vi.runAllTimersAsync();
-
-    // The editor converged to the newest change, and the intermediates were
-    // skipped: never one transaction per change, which is what no
-    // conflation would produce.
-    expect(view.state.doc.textContent).toBe('latest');
-    expect(dispatched().length).toBeLessThanOrEqual(2);
-  });
-
-  it('computes steps for a state in ProseMirror representation too', async () => {
-    const { liveDocument, view, proseMirrorSteps } = await setUpEditor();
-
-    await Effect.runPromise(
-      SubscriptionRef.set(liveDocument.content, {
-        doc: {
-          schemaVersion: CURRENT_SCHEMA_VERSION,
-          representation: richTextRepresentations.PROSEMIRROR,
-          content: JSON.stringify(doc([para('from a peer')]).toJSON()),
-        },
-        version: 'r1',
-      })
-    );
-
-    await eventually(() =>
-      expect(view.state.doc.textContent).toBe('from a peer')
-    );
-    expect(proseMirrorSteps).toHaveBeenCalledTimes(1);
-    expect(proseMirrorSteps.mock.calls[0][0].docAfter.representation).toBe(
-      richTextRepresentations.PROSEMIRROR
-    );
-  });
-
-  it("keeps the caret between a peer's edits on both sides of it", async () => {
-    const { liveDocument, view, dispatched, onError, proseMirrorSteps } =
-      await setUpEditor({ initialText: 'hello world' });
-    // A coarse replace would span both edits and drag the caret between them
-    // to its end.
-    proseMirrorSteps.mockReturnValue(
-      Effect.succeed({
-        pmDocAfter: doc([para('Xhello worldY')]),
-        steps: [
-          new ReplaceStep(1, 1, textSlice('X')),
-          new ReplaceStep(13, 13, textSlice('Y')),
-        ],
-      })
-    );
-
-    view.dispatch(
-      view.state.tr.setSelection(TextSelection.create(view.state.doc, 6))
-    );
-    const dispatchedBefore = dispatched().length;
-
-    await Effect.runPromise(liveDocument.change('Xhello worldY'));
-
-    await eventually(() =>
-      expect(view.state.doc.textContent).toBe('Xhello worldY')
-    );
-    expect(view.state.selection.head).toBe(7);
-    const transactions = dispatched();
-    expect(transactions).toHaveLength(dispatchedBefore + 1);
-    expect(transactions[dispatchedBefore].steps).toHaveLength(2);
-    expect(onError).not.toHaveBeenCalled();
   });
 
   describe('when an incoming state cannot be applied precisely', () => {
@@ -668,7 +676,7 @@ describe('liveSyncPlugin', () => {
     });
   });
 
-  describe('what it shows of the live document', () => {
+  describe('the sync state it exposes', () => {
     it('starts at the initial version with no local edits pending', async () => {
       const { view } = await setUpEditor();
 
