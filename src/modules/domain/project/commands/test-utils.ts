@@ -1,6 +1,6 @@
 import * as Effect from 'effect/Effect';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
-import { type Mock, vi } from 'vitest';
+import { type Mock, onTestFinished, vi } from 'vitest';
 
 import {
   type ConvergentDocument,
@@ -112,6 +112,15 @@ export const createFakeLiveDocument = async () => {
   };
 
   return { liveDocument, applyPendingLocalEdits, attachTo, detach };
+};
+
+// Fake timers for the rest of the running test, restored when it finishes.
+// `vi.runAllTimersAsync()` then lets everything that can still run finish.
+export const useFakeTimersInTest = () => {
+  vi.useFakeTimers();
+  onTestFinished(() => {
+    vi.useRealTimers();
+  });
 };
 
 // A promise the test settles itself, like Promise.withResolvers.

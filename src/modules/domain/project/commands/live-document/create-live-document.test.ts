@@ -2,7 +2,7 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as Stream from 'effect/Stream';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
-import { describe, expect, it, type Mock, onTestFinished, vi } from 'vitest';
+import { describe, expect, it, type Mock, vi } from 'vitest';
 
 import {
   type ConvergentDocument,
@@ -21,6 +21,7 @@ import {
   transformParagraphToText,
   typeAndContribute,
   typeLeavingPending,
+  useFakeTimersInTest,
 } from '../test-utils';
 import {
   createLiveDocument,
@@ -138,10 +139,7 @@ describe('createLiveDocument, with nothing behind it', () => {
 
   it('closes the convergent document without contributing pending typing', async () => {
     const { opened, initialDocument } = await openDocument();
-    vi.useFakeTimers();
-    onTestFinished(() => {
-      vi.useRealTimers();
-    });
+    useFakeTimersInTest();
 
     typeLeavingPending({ opened, doc: markdownDocument('hello world') });
     await Effect.runPromise(opened.close);
@@ -156,10 +154,7 @@ describe('createLiveDocument, with nothing behind it', () => {
     const conversion = promiseWithResolvers<string>();
     const { opened, initialDocument, transformToText } = await openDocument();
     transformToText.mockReturnValueOnce(conversion.promise);
-    vi.useFakeTimers();
-    onTestFinished(() => {
-      vi.useRealTimers();
-    });
+    useFakeTimersInTest();
 
     typeLeavingPending({
       opened,
