@@ -134,7 +134,6 @@ const openDocument = async ({
   storeRefusesWrites?: boolean;
 } = {}) => {
   let onDisk = diskText;
-  let documentGone = false;
   const written: string[] = [];
   const onShareUnavailable = vi.fn();
   let watcher: (() => void) | undefined;
@@ -164,15 +163,13 @@ const openDocument = async ({
       ? Effect.fail(new SharedDocumentUnavailableError('out of reach'))
       : startOn(sharedText);
 
-  const findDocumentById: ProjectStore['findDocumentById'] = () =>
-    Effect.suspend(() =>
-      documentGone
-        ? Effect.fail(new NotFoundError('the document is gone'))
-        : Effect.succeed<ResolvedDocument>({
-            id: documentId,
-            artifact: markdownDocument(onDisk),
-          })
-    );
+  // Reads what the disk holds when the read runs.
+  const findDocumentById = vi.fn<ProjectStore['findDocumentById']>(() =>
+    Effect.sync((): ResolvedDocument => ({
+      id: documentId,
+      artifact: markdownDocument(onDisk),
+    }))
+  );
 
   const transformToText = vi.fn(transformParagraphToText);
 
@@ -214,6 +211,7 @@ const openDocument = async ({
     documents,
     reportedErrors,
     transformToText,
+    findDocumentById,
     // The document the live document opened on.
     initialDocument: documents[0]!,
     onShareUnavailable,
@@ -222,8 +220,8 @@ const openDocument = async ({
       onDisk = text;
       watcher?.();
     },
-    loseDocument: () => {
-      documentGone = true;
+    // The watcher reporting a change under the project, as it does for any.
+    notifyWatcher: () => {
       watcher?.();
     },
     diskHolds: () => onDisk,
@@ -555,18 +553,42 @@ describe('openLiveDocument', () => {
   });
 
   it('keeps working, silently, when the document is gone', async () => {
-    const { opened, loseDocument, reportedErrors, initialDocument } =
-      await openDocument({
-        diskText: 'hello',
-      });
+    const {
+      opened,
+      findDocumentById,
+      notifyWatcher,
+      reportedErrors,
+      initialDocument,
+    } = await openDocument({
+      diskText: 'hello',
+    });
 
     await typeAndContribute({ opened, doc: markdownDocument('hello typed') });
     initialDocument.change.mockClear();
-    loseDocument();
+    findDocumentById.mockReturnValue(
+      Effect.fail(new NotFoundError('the document is gone'))
+    );
+    notifyWatcher();
     await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(initialDocument.change).not.toHaveBeenCalled();
     expect(reportedErrors).toEqual([]);
+  });
+
+  it('reports a re-read of the file that fails', async () => {
+    const { findDocumentById, notifyWatcher, reportedErrors } =
+      await openDocument({
+        diskText: 'hello',
+      });
+    findDocumentById.mockReturnValueOnce(
+      Effect.fail(new RepositoryError('the store could not be read'))
+    );
+
+    notifyWatcher();
+
+    await vi.waitFor(() =>
+      expect(reportedErrors[0]).toBeInstanceOf(RepositoryError)
+    );
   });
 
   it('stops following the file once closed', async () => {
