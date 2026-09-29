@@ -1,31 +1,17 @@
 import { render, waitFor } from '@testing-library/react';
-import { type Node as PMNode } from 'prosemirror-model';
 import { describe, expect, it, vi } from 'vitest';
 
+import { type RichTextDocument } from '../../../../modules/domain/rich-text';
 import {
-  CURRENT_SCHEMA_VERSION,
-  prosemirror,
-  type RichTextDocument,
-  richTextRepresentations,
-} from '../../../../modules/domain/rich-text';
+  doc,
+  para,
+} from '../../../../modules/domain/rich-text/prosemirror/test-utils';
 import {
   ProseMirrorContext,
   type ProseMirrorContextType,
 } from '../../../../modules/domain/rich-text/react/prosemirror-context';
+import { markdownDocument } from '../../../../modules/domain/rich-text/test-utils';
 import { SnapshotDocumentEditor } from './SnapshotDocumentEditor';
-
-const { schema } = prosemirror;
-
-const markdownDocument = (content: string): RichTextDocument => ({
-  schemaVersion: CURRENT_SCHEMA_VERSION,
-  representation: richTextRepresentations.MARKDOWN,
-  content,
-});
-
-const paragraph = (text: string): PMNode =>
-  schema.node('doc', null, [
-    schema.node('paragraph', null, [schema.text(text)]),
-  ]);
 
 describe('SnapshotDocumentEditor', () => {
   // A document swapped in while its predecessor is still converting must win,
@@ -34,8 +20,8 @@ describe('SnapshotDocumentEditor', () => {
     // Both conversions settle in call order, the superseded one first.
     const convertToProseMirror = vi
       .fn()
-      .mockResolvedValueOnce(paragraph('from superseded'))
-      .mockResolvedValueOnce(paragraph('from latest'));
+      .mockResolvedValueOnce(doc([para('from superseded')]))
+      .mockResolvedValueOnce(doc([para('from latest')]));
 
     // Only the conversion is exercised on this path; the rest goes unused.
     const context = {
@@ -48,10 +34,10 @@ describe('SnapshotDocumentEditor', () => {
       parseMarkdown: vi.fn(),
     } as unknown as ProseMirrorContextType;
 
-    const editor = (doc: RichTextDocument) => (
+    const editor = (richText: RichTextDocument) => (
       <ProseMirrorContext.Provider value={context}>
         <SnapshotDocumentEditor
-          doc={doc}
+          doc={richText}
           onDocChange={async () => {}}
           assetResolution={{
             pickAsset: async () => null,
@@ -77,7 +63,7 @@ describe('SnapshotDocumentEditor', () => {
     // legitimately run more than once per document.
     const convertToProseMirror = vi.fn(
       async ({ document }: { document: RichTextDocument }) =>
-        paragraph(`from ${document.content}`)
+        doc([para(`from ${document.content}`)])
     );
 
     const context = {
@@ -90,10 +76,10 @@ describe('SnapshotDocumentEditor', () => {
       parseMarkdown: vi.fn(),
     } as unknown as ProseMirrorContextType;
 
-    const editor = (doc: RichTextDocument) => (
+    const editor = (richText: RichTextDocument) => (
       <ProseMirrorContext.Provider value={context}>
         <SnapshotDocumentEditor
-          doc={doc}
+          doc={richText}
           onDocChange={async () => {}}
           assetResolution={{
             pickAsset: async () => null,

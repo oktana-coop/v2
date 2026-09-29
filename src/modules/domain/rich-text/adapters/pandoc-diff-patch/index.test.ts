@@ -22,13 +22,8 @@ import { pmDocToJSONString } from '../../prosemirror';
 import { type PMStep } from '../../prosemirror/hs-lib';
 import { schema } from '../../prosemirror/schema';
 import { doc, heading, para } from '../../prosemirror/test-utils';
+import { markdownDocument } from '../../test-utils';
 import { createAdapter } from './index';
-
-const markdownDocument = (content: string): RichTextDocument => ({
-  schemaVersion: CURRENT_SCHEMA_VERSION,
-  representation: richTextRepresentations.MARKDOWN,
-  content,
-});
 
 const proseMirrorDocument = (pmDoc: Node): RichTextDocument => ({
   schemaVersion: CURRENT_SCHEMA_VERSION,
