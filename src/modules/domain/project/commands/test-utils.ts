@@ -100,18 +100,20 @@ export const createFakeLiveDocument = async () => {
   >(() => Effect.void);
   const attachTo = vi.fn<LiveDocument['attachTo']>(() => Effect.void);
   const detach = vi.fn<() => LiveDocument['detach']>(() => Effect.void);
+  const close = vi.fn<() => LiveDocument['close']>(() => Effect.void);
 
   const liveDocument: Pick<
     LiveDocument,
-    'content' | 'applyPendingLocalEdits' | 'attachTo' | 'detach'
+    'content' | 'applyPendingLocalEdits' | 'attachTo' | 'detach' | 'close'
   > = {
     content,
     applyPendingLocalEdits: Effect.suspend(applyPendingLocalEdits),
     attachTo,
     detach: Effect.suspend(detach),
+    close: Effect.suspend(close),
   };
 
-  return { liveDocument, applyPendingLocalEdits, attachTo, detach };
+  return { liveDocument, applyPendingLocalEdits, attachTo, detach, close };
 };
 
 // Fake timers for the rest of the running test, restored when it finishes.

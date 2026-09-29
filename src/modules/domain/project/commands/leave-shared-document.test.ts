@@ -26,19 +26,23 @@ const setUpLeave = async () => {
     () => 'automerge:url'
   );
   const forgetShare = vi.fn<LeaveSharedDocumentDeps['forgetShare']>();
-  // The release is built before the document detaches and runs after, so what
-  // the test watches is the release running.
+  // releaseShare returns an Effect: the command calls it while building its
+  // steps, before detaching, and the Effect only runs afterwards. `released`
+  // records the run, which is what the order and "never released" checks need.
   const released = vi.fn();
   const releaseShare = vi.fn<LeaveSharedDocumentDeps['leaveSharedDocument']>(
     (args) => Effect.sync(() => released(args))
   );
 
-  const leave = leaveSharedDocument({
-    liveDocument,
-    findShareId,
-    forgetShare,
-    leaveSharedDocument: releaseShare,
-  })(shareKey);
+  // Built when run, so mocks adjusted before running are in place by then.
+  const leave = Effect.suspend(() =>
+    leaveSharedDocument({
+      liveDocument,
+      findShareId,
+      forgetShare,
+      leaveSharedDocument: releaseShare,
+    })(shareKey)
+  );
 
   return { leave, detach, findShareId, forgetShare, releaseShare, released };
 };

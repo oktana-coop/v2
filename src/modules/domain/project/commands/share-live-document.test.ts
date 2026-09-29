@@ -25,11 +25,14 @@ const setUpShare = async () => {
   );
   const rememberShare = vi.fn<ShareLiveDocumentDeps['rememberShare']>();
 
-  const share = shareLiveDocument({
-    liveDocument,
-    shareDocument,
-    rememberShare,
-  })({ projectId, branch, documentId, name: 'note' });
+  // Built when run, so mocks adjusted before running are in place by then.
+  const share = Effect.suspend(() =>
+    shareLiveDocument({
+      liveDocument,
+      shareDocument,
+      rememberShare,
+    })({ projectId, branch, documentId, name: 'note' })
+  );
 
   return {
     share,
