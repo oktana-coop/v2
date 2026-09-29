@@ -1,4 +1,3 @@
-import * as Deferred from 'effect/Deferred';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import * as Stream from 'effect/Stream';
@@ -9,14 +8,16 @@ import {
   TextSelection,
   type Transaction,
 } from 'prosemirror-state';
-import { ReplaceStep, replaceStep, type Step } from 'prosemirror-transform';
+import { ReplaceStep, replaceStep } from 'prosemirror-transform';
 import { EditorView } from 'prosemirror-view';
-import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 
-import { useFakeTimersInTest } from '../../../../../utils/test-utils';
+import {
+  promiseWithResolvers,
+  useFakeTimersInTest,
+} from '../../../../../utils/test-utils';
 import {
   LiveSyncFallbackError,
-  type LiveSyncFallbackReason,
   PatchError,
   RepresentationTransformError,
   RichTextLibError,
@@ -34,6 +35,7 @@ import {
   type ConvergentDocument,
   type ConvergentDocumentState,
 } from '../../ports/convergent-document';
+import { type ProseMirrorStepsResult } from '../../ports/diff-patch';
 import { markdownDocument } from '../../test-utils';
 import { pmDocFromJSONString } from '../json';
 import { schema } from '../schema';
@@ -59,66 +61,38 @@ const textOf = (doc: RichTextDocument) =>
 
 type ProseMirrorSteps = LiveSyncPluginArgs['proseMirrorSteps'];
 
-// Stands in for hs-lib: the incoming doc plus one exact step to it, which
-// keeps a caret outside the changed region where it is.
+// The minimal steps from one editor doc to another: one step covering only
+// the changed region, so a caret outside it stays where it is.
 const stepsBetween = ({
-  docBefore,
-  docAfter,
+  pmDocBefore,
+  pmDocAfter,
 }: {
-  docBefore: PMNode;
-  docAfter: PMNode;
-}): Step[] => {
-  const start = docBefore.content.findDiffStart(docAfter.content);
-  const end = docBefore.content.findDiffEnd(docAfter.content);
-  if (start === null || end === null) return [];
+  pmDocBefore: PMNode;
+  pmDocAfter: PMNode;
+}): ProseMirrorStepsResult => {
+  const start = pmDocBefore.content.findDiffStart(pmDocAfter.content);
+  const end = pmDocBefore.content.findDiffEnd(pmDocAfter.content);
+  if (start === null || end === null) return { pmDocAfter, steps: [] };
 
   const overlap = Math.max(0, start - Math.min(end.a, end.b));
   const step = replaceStep(
-    docBefore,
+    pmDocBefore,
     start,
     end.a + overlap,
-    docAfter.slice(start, end.b + overlap)
+    pmDocAfter.slice(start, end.b + overlap)
   );
 
-  return step ? [step] : [];
+  return { pmDocAfter, steps: step ? [step] : [] };
 };
 
-// Asynchronous like the real adapter, so the checks after the await see
-// the same interleavings.
-const stepsTo: ProseMirrorSteps = ({ pmDocBefore, docAfter }) =>
-  Effect.promise(async () => {
-    const pmDocAfter = doc([para(textOf(docAfter))]);
-
-    return {
-      pmDocAfter,
-      steps: stepsBetween({ docBefore: pmDocBefore, docAfter: pmDocAfter }),
-    };
-  });
-
-// The one fallback the plugin reported, checked for its reason; its
-// message is returned for the test to look into.
-const reportedFallbackMessage = ({
-  onError,
-  reason,
-}: {
-  onError: Mock;
-  reason: LiveSyncFallbackReason;
-}): string => {
-  expect(onError).toHaveBeenCalledTimes(1);
-  const reported = onError.mock.calls[0][0];
-  expect(reported).toBeInstanceOf(LiveSyncFallbackError);
-  expect((reported as LiveSyncFallbackError).data.reason).toBe(reason);
-  return (reported as LiveSyncFallbackError).message;
-};
-
-// Sync lands on plugin-internal fibers the test can't await, so state is
-// reached asynchronously; `eventually` polls its assertions until they hold.
+// The plugin syncs in the background, where the test can't await it;
+// `eventually` polls its assertions until they hold.
 const eventually = (assertions: () => void | Promise<void>) =>
   vi.waitFor(assertions);
 
 // A convergent document holding text in memory, versioned by a counter. The
 // editor only needs a document that publishes and versions what it is given;
-// convergence itself is the real adapter's business.
+// convergence itself is the real convergent document's concern.
 const createConvergentDocumentInMemory = (
   initialText: string
 ): Promise<ConvergentDocument> =>
@@ -163,15 +137,6 @@ const createConvergentDocumentInMemory = (
     )
   );
 
-// A contribution the test resolves with a version when it chooses to.
-const heldContribution = () =>
-  Effect.runSync(Deferred.make<ConvergentDocumentVersion>());
-
-// A conversion the test lets finish when it chooses to.
-const heldConversion = () => Effect.runSync(Deferred.make<void>());
-
-const views: EditorView[] = [];
-
 // The plugin also dispatches to record versions; only edits touch the doc.
 const editsIn = (transactions: Transaction[]) =>
   transactions.filter((tr) => tr.docChanged);
@@ -189,7 +154,14 @@ const setUpEditor = async ({
   const onChange = vi.fn<LiveSyncPluginArgs['onChange']>((doc, options) =>
     liveDocument.change(textOf(doc), options)
   );
-  const proseMirrorSteps = vi.fn<ProseMirrorSteps>(stepsTo);
+  // The steps to the incoming doc, asynchronous like the real computation so
+  // the checks after the await see the same interleavings.
+  const proseMirrorSteps = vi.fn<ProseMirrorSteps>(
+    ({ pmDocBefore, docAfter }) =>
+      Effect.promise(async () =>
+        stepsBetween({ pmDocBefore, pmDocAfter: doc([para(textOf(docAfter))]) })
+      )
+  );
   const convertToProseMirror = vi.fn<
     LiveSyncPluginArgs['convertToProseMirror']
   >(async (richText) => doc([para(textOf(richText))]));
@@ -219,7 +191,9 @@ const setUpEditor = async ({
     state,
     dispatchTransaction,
   });
-  views.push(view);
+  onTestFinished(() => {
+    view.destroy();
+  });
 
   return {
     liveDocument,
@@ -234,10 +208,6 @@ const setUpEditor = async ({
 };
 
 describe('liveSyncPlugin', () => {
-  afterEach(() => {
-    views.splice(0).forEach((view) => view.destroy());
-  });
-
   it('sends local edits to the live document', async () => {
     const { liveDocument, view } = await setUpEditor();
 
@@ -254,11 +224,7 @@ describe('liveSyncPlugin', () => {
     });
   });
 
-  // Echoes come back as primary text, as the automerge adapter publishes
-  // them; converted, they need not equal the editor's doc — the version is
-  // what identifies them. Applying one would replace the document under the
-  // user's cursor with its own round-tripped shadow.
-  it('keeps the caret in place when a change lands elsewhere', async () => {
+  it('keeps the caret in place when a change is made elsewhere in the document', async () => {
     const { liveDocument, view } = await setUpEditor({
       initialText: 'hello world',
     });
@@ -278,19 +244,28 @@ describe('liveSyncPlugin', () => {
   it('does not wipe a keystroke made while an incoming state was converting', async () => {
     const { liveDocument, view, dispatched, proseMirrorSteps } =
       await setUpEditor();
+
     useFakeTimersInTest();
-    const conversion = heldConversion();
-    proseMirrorSteps.mockImplementationOnce((args) =>
-      pipe(Deferred.await(conversion), Effect.zipRight(stepsTo(args)))
+
+    const incomingSteps = promiseWithResolvers<ProseMirrorStepsResult>();
+    proseMirrorSteps.mockReturnValueOnce(
+      Effect.promise(() => incomingSteps.promise)
     );
 
     await Effect.runPromise(liveDocument.change('from elsewhere'));
     await vi.waitFor(() => expect(proseMirrorSteps).toHaveBeenCalledOnce());
-    // The incoming state is converting; a keystroke lands meanwhile.
+    // The incoming state's steps are still being computed when a keystroke
+    // comes in.
     view.dispatch(view.state.tr.insertText('!', 6));
     const editsAfterTyping = editsIn(dispatched()).length;
 
-    Effect.runSync(Deferred.succeed(conversion, undefined));
+    // They arrive computed against the doc from before the keystroke.
+    incomingSteps.resolve(
+      stepsBetween({
+        pmDocBefore: doc([para('hello')]),
+        pmDocAfter: doc([para('from elsewhere')]),
+      })
+    );
     await vi.runAllTimersAsync();
 
     // The lagging state is dropped, never applied-then-healed: the editor
@@ -302,8 +277,8 @@ describe('liveSyncPlugin', () => {
   it('holds incoming changes while an own contribution is in flight', async () => {
     const { liveDocument, view, onChange } = await setUpEditor();
     useFakeTimersInTest();
-    const contribution = heldContribution();
-    onChange.mockReturnValueOnce(Deferred.await(contribution));
+    const contribution = promiseWithResolvers<ConvergentDocumentVersion>();
+    onChange.mockReturnValueOnce(Effect.promise(() => contribution.promise));
 
     view.dispatch(view.state.tr.insertText('!', 6));
 
@@ -317,7 +292,7 @@ describe('liveSyncPlugin', () => {
 
     expect(view.state.doc.textContent).toBe('hello!');
 
-    Effect.runSync(Deferred.succeed(contribution, 'v1'));
+    contribution.resolve('v1');
     await Effect.runPromise(
       SubscriptionRef.set(liveDocument.content, {
         doc: markdownDocument('hello! from a peer'),
@@ -330,6 +305,10 @@ describe('liveSyncPlugin', () => {
     );
   });
 
+  // A contribution comes back as a new state of the document: its echo, in
+  // primary text. Converted back, it need not equal what the editor shows,
+  // so only its version identifies it. Applying it would replace the
+  // document under the caret with a round-tripped copy of itself.
   it('recognizes its own echo by version instead of applying it', async () => {
     const { liveDocument, view, dispatched, onChange } = await setUpEditor();
     useFakeTimersInTest();
@@ -375,8 +354,8 @@ describe('liveSyncPlugin', () => {
     useFakeTimersInTest();
     // Resolves with the version it was anchored at and publishes nothing, as
     // a contribution that changes nothing does.
-    const contribution = heldContribution();
-    onChange.mockReturnValueOnce(Deferred.await(contribution));
+    const contribution = promiseWithResolvers<ConvergentDocumentVersion>();
+    onChange.mockReturnValueOnce(Effect.promise(() => contribution.promise));
 
     view.dispatch(view.state.tr.insertText('!', 6));
     await Effect.runPromise(
@@ -388,7 +367,7 @@ describe('liveSyncPlugin', () => {
     await vi.runAllTimersAsync();
     expect(view.state.doc.textContent).toBe('hello!');
 
-    Effect.runSync(Deferred.succeed(contribution, 'v0'));
+    contribution.resolve('v0');
 
     await eventually(() =>
       expect(view.state.doc.textContent).toBe('from a peer')
@@ -437,17 +416,24 @@ describe('liveSyncPlugin', () => {
     const { liveDocument, view, dispatched, proseMirrorSteps } =
       await setUpEditor();
     useFakeTimersInTest();
-    // The first conversion is held, so the other changes queue up while it
-    // is still being applied.
-    const firstConversion = heldConversion();
-    proseMirrorSteps.mockImplementationOnce((args) =>
-      pipe(Deferred.await(firstConversion), Effect.zipRight(stepsTo(args)))
+    const firstSteps = promiseWithResolvers<ProseMirrorStepsResult>();
+    proseMirrorSteps.mockReturnValueOnce(
+      Effect.promise(() => firstSteps.promise)
     );
 
-    for (const text of ['first', 'second', 'third', 'latest']) {
+    await Effect.runPromise(liveDocument.change('first'));
+    await vi.waitFor(() => expect(proseMirrorSteps).toHaveBeenCalledOnce());
+    // The other changes queue up while the first one's steps are still being
+    // computed.
+    for (const text of ['second', 'third', 'latest']) {
       await Effect.runPromise(liveDocument.change(text));
     }
-    Effect.runSync(Deferred.succeed(firstConversion, undefined));
+    firstSteps.resolve(
+      stepsBetween({
+        pmDocBefore: doc([para('hello')]),
+        pmDocAfter: doc([para('first')]),
+      })
+    );
     await vi.runAllTimersAsync();
 
     // The editor converged to the newest change, and the intermediates were
@@ -465,7 +451,7 @@ describe('liveSyncPlugin', () => {
       proseMirrorSteps,
       convertToProseMirror,
     } = await setUpEditor();
-    // hs-lib failing the steps is a fallback; the change is lost only when
+    // Failing to compute the steps is a fallback; the change is lost only when
     // the plain conversion fails too, and then nothing was applied to
     // report a fallback for.
     proseMirrorSteps.mockReturnValueOnce(
@@ -492,9 +478,9 @@ describe('liveSyncPlugin', () => {
 
   it('reports an error thrown while applying a change as a web editor error', async () => {
     const { liveDocument, onError, proseMirrorSteps } = await setUpEditor();
-    // A conversion that yields an unusable value throws when the change is
-    // applied to the view — the web-coupled apply stage, distinct from the
-    // transform, and the path that used to escape as an unhandled defect.
+    // A conversion that yields an unusable value throws while the change is
+    // applied to the view. That's a different stage from converting, and the
+    // failure is still reported.
     proseMirrorSteps.mockReturnValue(
       Effect.succeed({ pmDocAfter: null as unknown as PMNode, steps: [] })
     );
@@ -576,9 +562,15 @@ describe('liveSyncPlugin', () => {
     await eventually(() =>
       expect(view.state.doc.textContent).toBe('from elsewhere')
     );
-    expect(
-      reportedFallbackMessage({ onError, reason: 'steps-mismatch' })
-    ).toContain('(step 0)');
+    expect(onError).toHaveBeenCalledExactlyOnceWith(
+      expect.any(LiveSyncFallbackError)
+    );
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { reason: 'steps-mismatch' },
+        message: expect.stringContaining('(step 0)'),
+      })
+    );
   });
 
   it('falls back when the final doc mismatches', async () => {
@@ -593,12 +585,18 @@ describe('liveSyncPlugin', () => {
     await eventually(() =>
       expect(view.state.doc.textContent).toBe('from elsewhere')
     );
-    expect(
-      reportedFallbackMessage({ onError, reason: 'steps-mismatch' })
-    ).not.toContain('(step');
+    expect(onError).toHaveBeenCalledExactlyOnceWith(
+      expect.any(LiveSyncFallbackError)
+    );
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { reason: 'steps-mismatch' },
+        message: expect.not.stringContaining('(step'),
+      })
+    );
   });
 
-  it('falls back to the converted doc and reports when hs-lib cannot produce steps', async () => {
+  it('falls back to the converted doc and reports when the steps cannot be computed', async () => {
     const { liveDocument, view, onError, proseMirrorSteps } = await setUpEditor(
       { initialText: 'hello world' }
     );
@@ -616,9 +614,15 @@ describe('liveSyncPlugin', () => {
       expect(view.state.doc.textContent).toBe('hello world and more')
     );
     expect(view.state.selection.head).toBe(6);
-    expect(
-      reportedFallbackMessage({ onError, reason: 'steps-failed' })
-    ).toContain('Cannot emit steps: table');
+    expect(onError).toHaveBeenCalledExactlyOnceWith(
+      expect.any(LiveSyncFallbackError)
+    );
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { reason: 'steps-failed' },
+        message: expect.stringContaining('Cannot emit steps: table'),
+      })
+    );
   });
 
   describe('what it shows of the live document', () => {
@@ -634,10 +638,10 @@ describe('liveSyncPlugin', () => {
     it('has a local edit pending until its version comes back', async () => {
       const { liveDocument, view, onChange } = await setUpEditor();
       // Publishes before resolving, as the port contract requires.
-      const contribution = heldContribution();
+      const contribution = promiseWithResolvers<ConvergentDocumentVersion>();
       onChange.mockImplementationOnce((doc) =>
         pipe(
-          Deferred.await(contribution),
+          Effect.promise(() => contribution.promise),
           Effect.tap((version) =>
             SubscriptionRef.set(liveDocument.content, {
               doc: markdownDocument(textOf(doc)),
@@ -653,7 +657,7 @@ describe('liveSyncPlugin', () => {
         hasPendingLocalEdits: true,
       });
 
-      Effect.runSync(Deferred.succeed(contribution, 'v1'));
+      contribution.resolve('v1');
       await eventually(() =>
         expect(getLiveSyncState(view.state)).toEqual({
           baseVersion: 'v1',

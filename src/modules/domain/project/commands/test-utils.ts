@@ -14,7 +14,10 @@ import { markdownDocument } from '../../../../modules/domain/rich-text/test-util
 import { type LiveDocument } from './live-document';
 
 export { markdownDocument };
-export { useFakeTimersInTest } from '../../../../utils/test-utils';
+export {
+  promiseWithResolvers,
+  useFakeTimersInTest,
+} from '../../../../utils/test-utils';
 
 type ParagraphPMJSON = {
   type: 'doc';
@@ -111,17 +114,4 @@ export const createFakeLiveDocument = async () => {
   };
 
   return { liveDocument, applyPendingLocalEdits, attachTo, detach, close };
-};
-
-// A promise the test settles itself, like Promise.withResolvers.
-// TODO: use Promise.withResolvers once tsconfig's lib includes ES2024.
-export const promiseWithResolvers = <A>() => {
-  let resolve: (value: A) => void = () => {};
-  let reject: (reason: unknown) => void = () => {};
-  const promise = new Promise<A>((onResolve, onReject) => {
-    resolve = onResolve;
-    reject = onReject;
-  });
-
-  return { promise, resolve, reject };
 };
