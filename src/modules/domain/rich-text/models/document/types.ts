@@ -15,4 +15,6 @@ export type RichTextDocument = {
 
 export type VersionedDocument = VersionedArtifact<RichTextDocument>;
 
+export type ConvergentDocumentVersion = string;
+
 export type ResolvedDocument = ResolvedArtifact<ArtifactId, RichTextDocument>;

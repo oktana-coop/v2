@@ -8,6 +8,7 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
   {
     versionedDocumentId: null,
     liveDocument: null,
+    onLocalSelectionChange: () => {},
     loadingHistory: false,
     versionedDocumentHistory: [],
     canCommit: false,
@@ -23,5 +24,16 @@ export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
     onCloseDiscardChangesDialog: () => {},
     selectedCommitIndex: null,
     onSelectChange: () => {},
+    shareId: null,
+    onShareDocument: async () => null,
+    onJoinSharedDocument: async () => null,
+    onSwitchToBranchAndJoin: async () => null,
+    onLeaveSharedDocument: async () => {},
+    isShareDocumentDialogOpen: false,
+    isJoinSharedDocumentDialogOpen: false,
+    onOpenShareDocumentDialog: () => {},
+    onCloseShareDocumentDialog: () => {},
+    onOpenJoinSharedDocumentDialog: () => {},
+    onCloseJoinSharedDocumentDialog: () => {},
   }
 );

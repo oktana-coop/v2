@@ -9,6 +9,9 @@ import {
 } from '../shared/git';
 import {
   expectCommitChanges,
+  expectCurrentProject,
+  expectNoErrorNotificationAfterWaiting,
+  expectNoOpenDocument,
   expectProjectCommits,
   navigateToProjectHistory,
   openDocument,
@@ -140,9 +143,7 @@ test.describe('project opening', () => {
     // The last opened project is restored from browser storage — no folder is
     // picked again here.
     await expect(fileExplorer(window).getByText('hello.md')).toBeVisible();
-    await expect(
-      window.getByRole('heading', { name: path.basename(testProjectDir) })
-    ).toBeVisible();
+    await expectCurrentProject({ window, directory: testProjectDir });
   });
 
   test('switches to another project when a different folder is opened', async ({
@@ -167,8 +168,63 @@ test.describe('project opening', () => {
     // The explorer reflects the second project, and nothing of the first is left.
     await expect(fileExplorer(window).getByText('armadillo.md')).toBeVisible();
     await expect(fileExplorer(window).getByText('hello.md')).toBeHidden();
-    await expect(
-      window.getByRole('heading', { name: path.basename(nestedProjectDir) })
-    ).toBeVisible();
+    await expectCurrentProject({ window, directory: nestedProjectDir });
+  });
+
+  test('switches to another project while a document is open in the editor', async ({
+    electronApp,
+    window,
+    longDocumentProjectDir,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: longDocumentProjectDir,
+    });
+    await openDocument({ window, relativePath: 'chapter.md' });
+    await window.locator('.ProseMirror').click();
+    await expect(window.locator('.ProseMirror')).toBeFocused();
+
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    await expectCurrentProject({ window, directory: nestedProjectDir });
+
+    // The first project's document is not carried over.
+    await expectNoOpenDocument({ window });
+
+    // Looking up that document in the second project would fail with an error
+    // notification shortly after the switch.
+    await expectNoErrorNotificationAfterWaiting({ window });
+  });
+
+  test('keeps the open document when the folder dialog is cancelled', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openDocument({ window, relativePath: 'hello.md' });
+    await expect(window.locator('.ProseMirror')).toContainText('Hello');
+
+    await electronApp.evaluate(async ({ dialog }) => {
+      dialog.showOpenDialog = async () => ({ canceled: true, filePaths: [] });
+    });
+    await window
+      .getByRole('button', { name: /open folder/i })
+      .first()
+      .click();
+
+    // Nothing was opened, so the document stays where it was.
+    await expectNoErrorNotificationAfterWaiting({ window });
+    await expect(window.locator('.ProseMirror')).toContainText('Hello');
   });
 });

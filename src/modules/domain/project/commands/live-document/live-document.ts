@@ -1,0 +1,57 @@
+import * as Effect from 'effect/Effect';
+import * as Stream from 'effect/Stream';
+import * as SubscriptionRef from 'effect/SubscriptionRef';
+
+import {
+  type ConvergentDocumentChangeOptions,
+  type ConvergentDocumentError,
+  type ConvergentDocumentState,
+  type ConvergentDocumentVersion,
+  type Presence,
+  type RepresentationTransformError,
+  type RichTextDocument,
+} from '../../../../../modules/domain/rich-text';
+import { type ArtifactId } from '../../../../../modules/infrastructure/version-control';
+import { type OpenSharedDocumentError, type ShareId } from '../../ports';
+import { type PersistDocumentError } from '../persist-document';
+
+export type LiveDocumentError = PersistDocumentError | ConvergentDocumentError;
+
+export type LocalEditsContributionError = RepresentationTransformError;
+
+export type LiveDocument = {
+  documentId: ArtifactId;
+  content: SubscriptionRef.SubscriptionRef<ConvergentDocumentState>;
+  edit: (
+    doc: RichTextDocument,
+    options?: ConvergentDocumentChangeOptions
+  ) => Effect.Effect<ConvergentDocumentVersion>;
+  // Contributes the editor's edits still on their way to the document now,
+  // without waiting for the pause that normally contributes them.
+  applyPendingLocalEdits: Effect.Effect<void, LocalEditsContributionError>;
+  // Drops the editor's edits still on their way to the document; whoever
+  // waits for them gets the version the document holds.
+  dropPendingLocalEdits: Effect.Effect<void>;
+  // Who else is at the document, following it through shares and leaves.
+  presence: Omit<Presence, 'close'>;
+  // Continues on the shared document behind this link, keeping everything
+  // that follows `content` bound to it.
+  attachTo: (
+    shareId: ShareId
+  ) => Effect.Effect<
+    void,
+    OpenSharedDocumentError | LocalEditsContributionError
+  >;
+  // Continues on a private document, holding what it holds now.
+  detach: Effect.Effect<void, LocalEditsContributionError>;
+  errors: Stream.Stream<LiveDocumentError>;
+  close: Effect.Effect<void>;
+};
+
+export type NamedLiveDocument = LiveDocument & { name: string };
+
+export type StoredLiveDocument = Omit<LiveDocument, 'close'> & {
+  close: Effect.Effect<void, PersistDocumentError>;
+  flush: Effect.Effect<void, PersistDocumentError>;
+  refresh: Effect.Effect<void>;
+};

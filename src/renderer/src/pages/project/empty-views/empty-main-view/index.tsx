@@ -14,9 +14,11 @@ import { useDocumentExplorerTree } from '../../shared/explorer-tree-views';
 export const EmptyMainView = ({
   onCreateDocumentButtonClick,
   onOpenDirectoryButtonClick,
+  children,
 }: {
   onCreateDocumentButtonClick: () => void;
   onOpenDirectoryButtonClick: () => void;
+  children?: React.ReactNode;
 }) => {
   const { openCloneFromGithubModal } = useContext(CloneFromGithubModalContext);
   const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
@@ -69,6 +71,7 @@ export const EmptyMainView = ({
           <GithubIcon className="mr-1" />
           Clone from GitHub
         </Button>
+        {children}
       </EmptyDocument>
     </div>
   );

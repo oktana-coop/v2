@@ -3,6 +3,8 @@ import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
 import {
+  expectFileToContain,
+  focusAndTypeInEditor,
   openHelloMd,
   openProjectFolder,
   returnToEditor,
@@ -18,17 +20,12 @@ test('disk write: typed content is saved to the .md file', async ({
   await openProjectFolder({ electronApp, window, folderPath: testProjectDir });
   await openHelloMd({ window });
 
-  await typeInEditorAndWaitForDebounce({
-    window,
-    text: ' persisted',
-    waitFor: 600,
-  });
+  await focusAndTypeInEditor({ window, text: ' persisted' });
 
-  const content = fs.readFileSync(
-    path.join(testProjectDir, 'hello.md'),
-    'utf8'
-  );
-  expect(content).toContain('persisted');
+  await expectFileToContain({
+    filePath: path.join(testProjectDir, 'hello.md'),
+    text: 'persisted',
+  });
 });
 
 test('markdown round-trip: typed content survives a window reload', async ({
@@ -113,15 +110,10 @@ test('editing after a trip through history keeps every edit', async ({
     { timeout: 2_000 }
   );
 
-  await typeInEditorAndWaitForDebounce({
-    window,
-    text: ' world',
-    waitFor: 500,
-  });
+  await focusAndTypeInEditor({ window, text: ' world' });
 
-  const content = fs.readFileSync(
-    path.join(testProjectDir, 'hello.md'),
-    'utf8'
-  );
-  expect(content).toContain('Hello hello world');
+  await expectFileToContain({
+    filePath: path.join(testProjectDir, 'hello.md'),
+    text: 'Hello hello world',
+  });
 });

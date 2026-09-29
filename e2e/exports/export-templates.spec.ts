@@ -124,8 +124,7 @@ test.describe('export templates', () => {
 
     // Re-open the listbox and verify there is one fewer option
     await window.locator('[data-slot="control"]').click();
-    const countAfter = await listbox.getByRole('option').count();
-    expect(countAfter).toBe(countBefore - 1);
+    await expect(listbox.getByRole('option')).toHaveCount(countBefore - 1);
   });
 
   test('default template cannot be deleted', async ({ window }) => {

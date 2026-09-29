@@ -1,7 +1,11 @@
 import { useContext, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 
-import { urlEncodeProjectId } from '../../../../../modules/domain/project';
+import {
+  type ShareId,
+  urlEncodeProjectId,
+  urlEncodeShareId,
+} from '../../../../../modules/domain/project';
 import { removePath } from '../../../../../modules/infrastructure/filesystem';
 import { urlEncodeArtifactId } from '../../../../../modules/infrastructure/version-control';
 import {
@@ -28,6 +32,10 @@ import {
   DiscardChangesDialog,
   RestoreCommitDialog,
 } from './change-dialogs';
+import {
+  JoinSharedDocumentDialog,
+  ShareDocumentDialog,
+} from './sharing-dialogs';
 
 export const CurrentProject = () => {
   return (
@@ -47,6 +55,15 @@ const Project = () => {
     onCloseDiscardChangesDialog,
     onRestoreCommit,
     onDiscardChanges,
+    shareId,
+    isShareDocumentDialogOpen,
+    isJoinSharedDocumentDialogOpen,
+    onCloseShareDocumentDialog,
+    onCloseJoinSharedDocumentDialog,
+    onShareDocument,
+    onJoinSharedDocument,
+    onSwitchToBranchAndJoin,
+    onLeaveSharedDocument,
   } = useContext(CurrentDocumentContext);
   const { isOpen: isCommitDialogOpen, closeCommitModal } =
     useContext(CommitModalContext);
@@ -91,6 +108,10 @@ const Project = () => {
     }
   };
 
+  const handleOpenAsGuest = (shareId: ShareId) => {
+    navigate(`/shared-documents/${urlEncodeShareId(shareId)}`);
+  };
+
   const handleOpenPrintPreview = () => {
     if (projectId && versionedDocumentId) {
       navigate(
@@ -129,6 +150,20 @@ const Project = () => {
           isOpen={isDiscardChangesDialogOpen}
           onCancel={onCloseDiscardChangesDialog}
           onDiscardChanges={() => onDiscardChanges()}
+        />
+        <ShareDocumentDialog
+          isOpen={isShareDocumentDialogOpen}
+          shareId={shareId}
+          onShare={onShareDocument}
+          onStopSharing={onLeaveSharedDocument}
+          onCancel={onCloseShareDocumentDialog}
+        />
+        <JoinSharedDocumentDialog
+          isOpen={isJoinSharedDocumentDialogOpen}
+          onJoin={onJoinSharedDocument}
+          onSwitchToBranchAndJoin={onSwitchToBranchAndJoin}
+          onOpenAsGuest={handleOpenAsGuest}
+          onCancel={onCloseJoinSharedDocumentDialog}
         />
         <DeleteDocumentDialog
           isOpen={filePathToDelete !== null}

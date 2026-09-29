@@ -25,7 +25,7 @@ export const isValidBranchOrTagName = (ref: string): boolean => {
   return BRANCH_TAG_REGEX.test(ref);
 };
 
-const branchSchema = z
+export const branchSchema = z
   .string()
   .refine((val) => isValidBranchOrTagName(val), {
     message: 'Invalid branch name',

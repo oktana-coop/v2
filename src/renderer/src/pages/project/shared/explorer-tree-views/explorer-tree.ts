@@ -17,6 +17,7 @@ export const injectPendingDirectoryNode = (
     name: '',
     type: filesystemItemTypes.DIRECTORY,
     children: [],
+    shared: false,
   };
 
   if (!parentPath) return [pendingDirectoryNode, ...nodes];
@@ -50,11 +51,13 @@ export const getExplorerTreeInProject = (
           name: removePath(node.path),
           type: filesystemItemTypes.DIRECTORY,
           children: node.children.map(toExplorerNode),
+          shared: false,
         }
       : {
           id: node.path,
           name: removePath(node.path),
           type: filesystemItemTypes.FILE,
+          shared: node.shared,
         };
 
   return directoryTree.map(toExplorerNode);

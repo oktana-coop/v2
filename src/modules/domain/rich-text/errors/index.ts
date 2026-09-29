@@ -66,3 +66,39 @@ export const WebEditorErrorTag = 'WebEditorError';
 export class WebEditorError extends Cause.YieldableError {
   readonly _tag = WebEditorErrorTag;
 }
+
+export const ConvergentDocumentUnavailableErrorTag =
+  'ConvergentDocumentUnavailableError';
+export class ConvergentDocumentUnavailableError extends Cause.YieldableError {
+  readonly _tag = ConvergentDocumentUnavailableErrorTag;
+}
+
+export const ConvergentDocumentChangeErrorTag = 'ConvergentDocumentChangeError';
+export class ConvergentDocumentChangeError extends Cause.YieldableError {
+  readonly _tag = ConvergentDocumentChangeErrorTag;
+}
+
+export const UnsupportedDocumentFormatErrorTag =
+  'UnsupportedDocumentFormatError';
+export class UnsupportedDocumentFormatError extends Cause.YieldableError {
+  readonly _tag = UnsupportedDocumentFormatErrorTag;
+}
+
+export const PatchErrorTag = 'PatchError';
+export class PatchError extends Cause.YieldableError {
+  readonly _tag = PatchErrorTag;
+}
+
+export const LiveSyncFallbackErrorTag = 'LiveSyncFallbackError';
+export type LiveSyncFallbackReason = 'steps-failed' | 'steps-mismatch';
+// Reported, not raised: the incoming change was still applied, by the
+// coarser region replace.
+export class LiveSyncFallbackError extends Cause.YieldableError {
+  readonly _tag = LiveSyncFallbackErrorTag;
+  readonly data;
+
+  constructor(message: string, data: { reason: LiveSyncFallbackReason }) {
+    super(message);
+    this.data = data;
+  }
+}

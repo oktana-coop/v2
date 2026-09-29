@@ -19,6 +19,7 @@ const file = ({ path }: { path: string }): ProjectFileNode => ({
   path: parseProjectRelPath(path),
   kind: inferArtifactKindFromExtension(path),
   filesystemType: filesystemItemTypes.FILE,
+  shared: false,
 });
 
 const directory = ({

@@ -5,7 +5,7 @@ import { type ProjectContextType } from './types';
 // The defaults are inert placeholders that satisfy `createContext` — reading
 // this context outside `ProjectProvider` yields them rather than an error.
 export const ProjectContext = createContext<ProjectContextType>({
-  loading: false,
+  resolving: false,
   projectId: null,
   directory: null,
   currentBranch: null,

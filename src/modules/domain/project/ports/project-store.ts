@@ -9,6 +9,7 @@ import { type AlreadyExistsError } from '../../../../modules/infrastructure/file
 import {
   type ArtifactId,
   type Branch,
+  BranchSwitchConflictError,
   type Change,
   type ChangedDocument,
   type ChangeId,
@@ -31,7 +32,7 @@ import {
   type Project,
   type ProjectId,
   type ProjectRelPath,
-  type ProjectTreeNode,
+  type ProjectStoreTreeNode,
   type ReferencedAsset,
   type RemoteProjectInfo,
   type VersionedProject,
@@ -380,7 +381,7 @@ export type ProjectStore = {
   getProjectTree: (
     id: ProjectId
   ) => Effect.Effect<
-    ProjectTreeNode[],
+    ProjectStoreTreeNode[],
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
@@ -494,7 +495,11 @@ export type ProjectStore = {
   ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
   switchToBranch: (
     args: ProjectSwitchToBranchArgs
-  ) => Effect.Effect<void, ValidationError | RepositoryError, never>;
+  ) => Effect.Effect<
+    void,
+    ValidationError | RepositoryError | BranchSwitchConflictError,
+    never
+  >;
   getCurrentBranch: (
     args: ProjectGetCurrentBranchArgs
   ) => Effect.Effect<
@@ -513,14 +518,21 @@ export type ProjectStore = {
     args: ProjectDeleteBranchArgs
   ) => Effect.Effect<
     ProjectDeleteBranchResult,
-    ValidationError | RepositoryError | NotFoundError,
+    | ValidationError
+    | RepositoryError
+    | NotFoundError
+    | BranchSwitchConflictError,
     never
   >;
   mergeAndDeleteBranch: (
     args: ProjectMergeAndDeleteBranchArgs
   ) => Effect.Effect<
     Commit['id'],
-    ValidationError | RepositoryError | NotFoundError | MergeConflictError,
+    | ValidationError
+    | RepositoryError
+    | NotFoundError
+    | MergeConflictError
+    | BranchSwitchConflictError,
     never
   >;
   getMergeConflictInfo: (

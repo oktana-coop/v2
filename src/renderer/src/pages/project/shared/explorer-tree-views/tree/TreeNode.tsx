@@ -1,14 +1,22 @@
 import { clsx } from 'clsx';
-import { useEffect, useRef } from 'react';
-import { type NodeApi, type NodeRendererProps } from 'react-arborist';
+import { type NodeRendererProps } from 'react-arborist';
 
 import { EXPLORER_TREE_NODE } from '../../../../../../../modules/infrastructure/cross-platform';
 import {
   filesystemItemTypes,
   removeExtension,
 } from '../../../../../../../modules/infrastructure/filesystem';
-import { ChevronDownIcon, DiffIcon } from '../../../../../components/icons';
+import {
+  ChevronDownIcon,
+  DiffIcon,
+  GroupIcon,
+} from '../../../../../components/icons';
 import { FileExtensionIcon } from '../../../../../components/navigation';
+import {
+  treeEditingRowClasses,
+  treeRowClasses,
+  TreeRowInput,
+} from '../../../../../components/tree';
 import { useTreeCallbacks } from './TreeView';
 import {
   type ExplorerTreeNode,
@@ -16,61 +24,32 @@ import {
   STRUCTURAL_CONFLICTS_NODE_TYPE,
 } from './types';
 
-const nodeClasses = (node: NodeApi<ExplorerTreeNode>) =>
-  clsx(
-    'flex items-center h-[32px] cursor-pointer overflow-hidden text-ellipsis text-nowrap text-sm py-0.5 hover:bg-zinc-950/5 dark:hover:bg-white/5',
-    node.isSelected ? 'bg-purple-50 dark:bg-neutral-600' : ''
-  );
-
 const NewDirectoryNode = ({
   node,
   style,
 }: NodeRendererProps<ExplorerTreeNode>) => {
   const { onCreateDirectory, onCancelCreateDirectory } = useTreeCallbacks();
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+  const handleSubmit = (value: string) => {
+    const name = value.trim();
 
-  const handleKeyDown = (ev: React.KeyboardEvent<HTMLInputElement>) => {
-    // Prevent react-arborist from intercepting keyboard events (e.g. arrow
-    // navigation), which would steal focus from the input and trigger onBlur.
-    ev.stopPropagation();
-
-    if (ev.key === 'Enter') {
-      const value = inputRef.current?.value.trim() ?? '';
-      if (value) {
-        onCreateDirectory(value);
-      } else {
-        onCancelCreateDirectory();
-      }
-    } else if (ev.key === 'Escape') {
-      onCancelCreateDirectory();
-    }
-  };
-
-  const handleBlur = () => {
-    onCancelCreateDirectory();
+    if (name) onCreateDirectory(name);
+    else onCancelCreateDirectory();
   };
 
   return (
     <div
-      className={clsx(
-        'flex h-[32px] items-center overflow-hidden py-0.5 text-sm'
-      )}
+      className={treeEditingRowClasses}
       style={{
         ...style,
         paddingLeft: node.level * 24 + 36,
       }}
     >
       <ChevronDownIcon className="mr-2 shrink-0 -rotate-90" size={20} />
-      <input
-        ref={inputRef}
-        type="text"
-        className="min-w-0 flex-1 border border-purple-400 bg-transparent px-1 text-sm outline-none dark:border-purple-300"
-        onKeyDown={handleKeyDown}
-        onBlur={handleBlur}
+      <TreeRowInput
+        className="flex-1"
+        onSubmit={handleSubmit}
+        onCancel={onCancelCreateDirectory}
       />
     </div>
   );
@@ -86,64 +65,30 @@ const RenamingFileNode = ({
     onClearRenameDocumentError,
     renameDocumentError,
   } = useTreeCallbacks();
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  const fileName = node.data.name;
-  const nameWithoutExt = removeExtension(fileName);
+  const handleSubmit = (value: string) => {
+    const name = value.trim();
 
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, []);
-
-  const handleKeyDown = (ev: React.KeyboardEvent<HTMLInputElement>) => {
-    ev.stopPropagation();
-
-    if (ev.key === 'Enter') {
-      const value = inputRef.current?.value.trim() ?? '';
-      if (value) {
-        onRenameDocument(node.data.id, value);
-      } else {
-        onCancelRenameDocument();
-      }
-    } else if (ev.key === 'Escape') {
-      onCancelRenameDocument();
-    }
-  };
-
-  const handleChange = () => {
-    onClearRenameDocumentError();
-  };
-
-  const handleBlur = () => {
-    onCancelRenameDocument();
+    if (name) onRenameDocument(node.data.id, name);
+    else onCancelRenameDocument();
   };
 
   return (
     <div
-      className="flex h-[32px] items-center overflow-hidden py-0.5 text-sm"
+      className={treeEditingRowClasses}
       style={{
         ...style,
         paddingLeft: node.level * 24 + 40,
       }}
     >
       <FileExtensionIcon fileName={node.data.name} />
-      <input
-        ref={inputRef}
-        type="text"
-        defaultValue={nameWithoutExt}
-        title={renameDocumentError ?? undefined}
-        className={clsx(
-          'min-w-0 flex-1 border bg-transparent px-1 text-sm outline-none',
-          renameDocumentError
-            ? 'border-red-500 dark:border-red-400'
-            : 'border-purple-400 dark:border-purple-300'
-        )}
-        onKeyDown={handleKeyDown}
-        onChange={handleChange}
-        onBlur={handleBlur}
+      <TreeRowInput
+        className="flex-1"
+        defaultValue={removeExtension(node.data.name)}
+        error={renameDocumentError}
+        onSubmit={handleSubmit}
+        onCancel={onCancelRenameDocument}
+        onChange={onClearRenameDocumentError}
       />
     </div>
   );
@@ -159,61 +104,30 @@ const RenamingDirectoryNode = ({
     onClearRenameDirectoryError,
     renameDirectoryError,
   } = useTreeCallbacks();
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, []);
+  const handleSubmit = (value: string) => {
+    const name = value.trim();
 
-  const handleKeyDown = (ev: React.KeyboardEvent<HTMLInputElement>) => {
-    ev.stopPropagation();
-
-    if (ev.key === 'Enter') {
-      const value = inputRef.current?.value.trim() ?? '';
-      if (value) {
-        onRenameDirectory(node.data.id, value);
-      } else {
-        onCancelRenameDirectory();
-      }
-    } else if (ev.key === 'Escape') {
-      onCancelRenameDirectory();
-    }
-  };
-
-  const handleChange = () => {
-    onClearRenameDirectoryError();
-  };
-
-  const handleBlur = () => {
-    onCancelRenameDirectory();
+    if (name) onRenameDirectory(node.data.id, name);
+    else onCancelRenameDirectory();
   };
 
   return (
     <div
-      className="flex h-[32px] items-center overflow-hidden py-0.5 text-sm"
+      className={treeEditingRowClasses}
       style={{
         ...style,
         paddingLeft: node.level * 24 + 36,
       }}
     >
       <ChevronDownIcon className="mr-2 shrink-0 -rotate-90" size={20} />
-      <input
-        ref={inputRef}
-        type="text"
+      <TreeRowInput
+        className="flex-1"
         defaultValue={node.data.name}
-        title={renameDirectoryError ?? undefined}
-        className={clsx(
-          'min-w-0 flex-1 border bg-transparent px-1 text-sm outline-none',
-          renameDirectoryError
-            ? 'border-red-500 dark:border-red-400'
-            : 'border-purple-400 dark:border-purple-300'
-        )}
-        onKeyDown={handleKeyDown}
-        onChange={handleChange}
-        onBlur={handleBlur}
+        error={renameDirectoryError}
+        onSubmit={handleSubmit}
+        onCancel={onCancelRenameDirectory}
+        onChange={onClearRenameDirectoryError}
       />
     </div>
   );
@@ -240,7 +154,7 @@ const DirectoryNode = ({
     <div
       onClick={onClick}
       onContextMenu={handleContextMenu}
-      className={nodeClasses(node)}
+      className={treeRowClasses(node.isSelected)}
       style={{
         ...style,
         paddingLeft: node.level * 24 + 36,
@@ -286,7 +200,7 @@ const FileNode = ({
     <div
       onClick={onClick}
       onContextMenu={handleContextMenu}
-      className={nodeClasses(node)}
+      className={treeRowClasses(node.isSelected)}
       style={{
         ...style,
         paddingLeft: node.level * 24 + 40,
@@ -294,6 +208,14 @@ const FileNode = ({
     >
       <FileExtensionIcon fileName={node.data.name} />
       {node.data.name}
+      {node.data.shared && (
+        <span
+          className="ml-1 inline-flex shrink-0 text-purple-500 dark:text-purple-300"
+          data-testid="shared-document-badge"
+        >
+          <GroupIcon size={16} />
+        </span>
+      )}
     </div>
   );
 };
@@ -307,7 +229,7 @@ const StructuralConflictsNode = ({
 }) => (
   <div
     onClick={onClick}
-    className={nodeClasses(node)}
+    className={treeRowClasses(node.isSelected)}
     style={{
       ...style,
       paddingLeft: node.level * 24 + 36,
