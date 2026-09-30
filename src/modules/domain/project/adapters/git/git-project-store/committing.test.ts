@@ -5,7 +5,10 @@ import {
   type ArtifactId,
   type Commit,
 } from '../../../../../infrastructure/version-control';
-import { VersionedProjectRepositoryErrorTag } from '../../../errors';
+import {
+  VersionedProjectDocumentNotOnCurrentRefErrorTag,
+  VersionedProjectRepositoryErrorTag,
+} from '../../../errors';
 import {
   buildTestStore,
   mockEnsureDirectory,
@@ -19,9 +22,12 @@ import {
 
 // We mock the git-lib functions so that these tests focus on store behavior, not version-control module internals.
 // vi.hoisted ensures these are available when the hoisted vi.mock factory runs.
-const { mockGetUserInfo } = vi.hoisted(() => ({
-  mockGetUserInfo: vi.fn(),
-}));
+const { mockGetUserInfo, mockGetCurrentBranch, mockIsRefCheckedOut } =
+  vi.hoisted(() => ({
+    mockGetUserInfo: vi.fn(),
+    mockGetCurrentBranch: vi.fn(),
+    mockIsRefCheckedOut: vi.fn(),
+  }));
 
 vi.mock(
   '../../../../../../modules/infrastructure/version-control',
@@ -34,6 +40,8 @@ vi.mock(
     return {
       ...actual,
       getUserInfo: mockGetUserInfo,
+      getCurrentBranch: mockGetCurrentBranch,
+      isRefCheckedOut: mockIsRefCheckedOut,
     };
   }
 );
@@ -154,10 +162,34 @@ describe('committing', () => {
       mockGetAbsolutePath.mockImplementation(({ path, dirPath }) =>
         Effect.succeed(`${dirPath}/${path}`)
       );
+      mockIsRefCheckedOut.mockReturnValue(Effect.succeed(true));
+      mockGetCurrentBranch.mockReturnValue(Effect.succeed('main'));
       mockEnsureDirectory.mockReturnValue(Effect.succeed(undefined));
       mockWriteFile.mockReturnValue(Effect.succeed(undefined));
       vi.mocked(git.add).mockResolvedValue(undefined);
       mockCommit.mockResolvedValue(restoreCommitOid);
+    });
+
+    it('refuses a document whose ref is not checked out, without writing or committing', async () => {
+      mockIsRefCheckedOut.mockReturnValue(Effect.succeed(false));
+      mockGetCurrentBranch.mockReturnValue(Effect.succeed('draft'));
+
+      const failure = await Effect.runPromise(
+        Effect.flip(
+          store.restoreDocumentChanges({
+            projectId: PROJECT_PATH,
+            documentId: docId,
+            commit,
+          })
+        )
+      );
+
+      expect(failure._tag).toBe(
+        VersionedProjectDocumentNotOnCurrentRefErrorTag
+      );
+      expect(failure).toHaveProperty('data', { currentBranch: 'draft' });
+      expect(mockWriteFile).not.toHaveBeenCalled();
+      expect(mockCommit).not.toHaveBeenCalled();
     });
 
     it('restores readable assets and reports those that are missing or unreadable', async () => {

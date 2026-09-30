@@ -5,7 +5,12 @@ import {
   type ArtifactId,
   MigrationError,
 } from '../../../../modules/infrastructure/version-control';
-import { NotFoundError, RepositoryError, ValidationError } from '../errors';
+import {
+  DocumentNotOnCurrentRefError,
+  NotFoundError,
+  RepositoryError,
+  ValidationError,
+} from '../errors';
 import { type ProjectId } from '../models';
 import { type OpenSharedDocumentError, type ShareId } from '../ports';
 import {
@@ -35,7 +40,11 @@ export const openLiveDocument =
     shareId,
   }: OpenLiveDocumentArgs): Effect.Effect<
     StoredLiveDocument,
-    ValidationError | RepositoryError | NotFoundError | MigrationError
+    | ValidationError
+    | RepositoryError
+    | NotFoundError
+    | MigrationError
+    | DocumentNotOnCurrentRefError
   > => {
     const openInitialDocument = (initialText: string) =>
       shareId === undefined

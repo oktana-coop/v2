@@ -95,15 +95,15 @@ export type GitRef = GitBlobRef | GitTreeRef;
 export const isGitRef = (id: ArtifactId): id is GitRef =>
   isGitBlobRef(id) || isGitTreeRef(id);
 
-// Both /blob/ and /tree/ refs share the {kind}/{ref}/{path} layout, so a single
-// decomposition works for either.
-export const decomposeGitRef = (
-  ref: GitRef
-): {
+export type DecomposedGitRef = {
   ref: string;
   path: string;
   refType: 'commit' | 'branch-or-tag';
-} => {
+};
+
+// Both /blob/ and /tree/ refs share the {kind}/{ref}/{path} layout, so a single
+// decomposition works for either.
+export const decomposeGitRef = (ref: GitRef): DecomposedGitRef => {
   // TODO: This treats the ref as a single segment, so a slash-containing
   // branch/tag name (e.g. `feature/x`) is mis-split into the wrong ref and
   // path.

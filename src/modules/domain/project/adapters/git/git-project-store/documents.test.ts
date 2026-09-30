@@ -1,4 +1,6 @@
+import * as Deferred from 'effect/Deferred';
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 import git, { Errors as IsoGitErrors } from 'isomorphic-git';
 
 import { type Username } from '../../../../../auth';
@@ -8,6 +10,7 @@ import {
 } from '../../../../../infrastructure/filesystem';
 import {
   type ArtifactId,
+  type Branch,
   type ChangeId,
   type CommitId,
   NotFoundError as VersionControlNotFoundError,
@@ -17,6 +20,7 @@ import {
 import { PRIMARY_RICH_TEXT_REPRESENTATION } from '../../../../rich-text';
 import {
   VersionedProjectDeletedDocumentErrorTag,
+  VersionedProjectDocumentNotOnCurrentRefErrorTag,
   VersionedProjectNotFoundErrorTag,
   VersionedProjectRepositoryErrorTag,
   VersionedProjectValidationErrorTag,
@@ -40,6 +44,11 @@ const {
   mockGetCurrentBranch,
   mockGetFileCommitHistory,
   mockGetUserInfo,
+  mockIsRefCheckedOut,
+  mockSwitchToBranch,
+  mockCreateAndSwitchToBranch,
+  mockDeleteBranch,
+  mockMergeAndDeleteBranch,
 } = vi.hoisted(() => ({
   mockRemoveFile: vi.fn(),
   mockHasStagedChanges: vi.fn(),
@@ -47,6 +56,11 @@ const {
   mockGetCurrentBranch: vi.fn(),
   mockGetFileCommitHistory: vi.fn(),
   mockGetUserInfo: vi.fn(),
+  mockIsRefCheckedOut: vi.fn(),
+  mockSwitchToBranch: vi.fn(),
+  mockCreateAndSwitchToBranch: vi.fn(),
+  mockDeleteBranch: vi.fn(),
+  mockMergeAndDeleteBranch: vi.fn(),
 }));
 
 vi.mock(
@@ -65,6 +79,11 @@ vi.mock(
       getCurrentBranch: mockGetCurrentBranch,
       getFileCommitHistory: mockGetFileCommitHistory,
       getUserInfo: mockGetUserInfo,
+      isRefCheckedOut: mockIsRefCheckedOut,
+      switchToBranch: mockSwitchToBranch,
+      createAndSwitchToBranch: mockCreateAndSwitchToBranch,
+      deleteBranch: mockDeleteBranch,
+      mergeAndDeleteBranch: mockMergeAndDeleteBranch,
     };
   }
 );
@@ -126,6 +145,88 @@ describe('documents', () => {
       mockGetAbsolutePath.mockReturnValue(
         Effect.succeed(`${PROJECT_PATH}/notes.md`)
       );
+      mockIsRefCheckedOut.mockReturnValue(Effect.succeed(true));
+      mockGetCurrentBranch.mockReturnValue(Effect.succeed('main'));
+      mockReadTextFile.mockReturnValue(Effect.succeed({ content: '# Notes' }));
+    });
+
+    it('reads a document whose branch is checked out', async () => {
+      const document = await Effect.runPromise(
+        store.findDocumentById({ projectId: PROJECT_PATH, documentId: docId })
+      );
+
+      expect(document.artifact.content).toBe('# Notes');
+      expect(mockIsRefCheckedOut).toHaveBeenCalledWith(
+        expect.objectContaining({ ref: 'main', refType: 'branch-or-tag' })
+      );
+    });
+
+    it('reads a document whose commit is checked out', async () => {
+      const document = await Effect.runPromise(
+        store.findDocumentById({
+          projectId: PROJECT_PATH,
+          documentId: '/blob/4a1d2e3f/notes.md' as ArtifactId,
+        })
+      );
+
+      expect(document.artifact.content).toBe('# Notes');
+      expect(mockIsRefCheckedOut).toHaveBeenCalledWith(
+        expect.objectContaining({ ref: '4a1d2e3f', refType: 'commit' })
+      );
+    });
+
+    it('refuses a document whose ref is not checked out, without reading its file', async () => {
+      mockIsRefCheckedOut.mockReturnValue(Effect.succeed(false));
+      mockGetCurrentBranch.mockReturnValue(Effect.succeed('draft'));
+
+      const failure = await Effect.runPromise(
+        Effect.flip(
+          store.findDocumentById({ projectId: PROJECT_PATH, documentId: docId })
+        )
+      );
+
+      expect(failure._tag).toBe(
+        VersionedProjectDocumentNotOnCurrentRefErrorTag
+      );
+      expect(failure).toHaveProperty('data', { currentBranch: 'draft' });
+      expect(mockReadTextFile).not.toHaveBeenCalled();
+    });
+
+    it('refuses a document whose ref stops being checked out while its file is read', async () => {
+      mockIsRefCheckedOut
+        .mockReturnValueOnce(Effect.succeed(true))
+        .mockReturnValueOnce(Effect.succeed(false));
+      mockGetCurrentBranch.mockReturnValue(Effect.succeed('draft'));
+
+      const failure = await Effect.runPromise(
+        Effect.flip(
+          store.findDocumentById({ projectId: PROJECT_PATH, documentId: docId })
+        )
+      );
+
+      expect(failure._tag).toBe(
+        VersionedProjectDocumentNotOnCurrentRefErrorTag
+      );
+      expect(mockIsRefCheckedOut).toHaveBeenCalledTimes(2);
+    });
+
+    it('refuses with no current branch while HEAD is detached', async () => {
+      mockIsRefCheckedOut.mockReturnValue(Effect.succeed(false));
+      mockGetCurrentBranch.mockReturnValue(
+        Effect.fail(new VersionControlNotFoundError('detached HEAD'))
+      );
+
+      const failure = await Effect.runPromise(
+        Effect.flip(
+          store.findDocumentById({ projectId: PROJECT_PATH, documentId: docId })
+        )
+      );
+
+      expect(failure._tag).toBe(
+        VersionedProjectDocumentNotOnCurrentRefErrorTag
+      );
+      expect(failure).toHaveProperty('data', { currentBranch: null });
+      expect(mockReadTextFile).not.toHaveBeenCalled();
     });
 
     it('fails with NotFoundError when the project has no such document', async () => {
@@ -154,6 +255,264 @@ describe('documents', () => {
       );
 
       expect(failure._tag).toBe(VersionedProjectRepositoryErrorTag);
+    });
+  });
+
+  describe('updateRichTextDocumentContent', () => {
+    const store = buildTestStore();
+    const docId = '/blob/main/notes.md' as ArtifactId;
+
+    beforeEach(() => {
+      mockGetAbsolutePath.mockReturnValue(
+        Effect.succeed(`${PROJECT_PATH}/notes.md`)
+      );
+      mockIsRefCheckedOut.mockReturnValue(Effect.succeed(true));
+      mockGetCurrentBranch.mockReturnValue(Effect.succeed('main'));
+      mockWriteFile.mockReturnValue(Effect.succeed(undefined));
+    });
+
+    it('writes a document whose ref is checked out', async () => {
+      await Effect.runPromise(
+        store.updateRichTextDocumentContent({
+          projectId: PROJECT_PATH,
+          documentId: docId,
+          representation: PRIMARY_RICH_TEXT_REPRESENTATION,
+          content: '# Notes, edited',
+        })
+      );
+
+      expect(mockWriteFile).toHaveBeenCalledWith({
+        path: `${PROJECT_PATH}/notes.md`,
+        content: '# Notes, edited',
+      });
+    });
+
+    it('refuses a document whose ref is not checked out, without writing its file', async () => {
+      mockIsRefCheckedOut.mockReturnValue(Effect.succeed(false));
+      mockGetCurrentBranch.mockReturnValue(Effect.succeed('draft'));
+
+      const failure = await Effect.runPromise(
+        Effect.flip(
+          store.updateRichTextDocumentContent({
+            projectId: PROJECT_PATH,
+            documentId: docId,
+            representation: PRIMARY_RICH_TEXT_REPRESENTATION,
+            content: '# Notes, edited',
+          })
+        )
+      );
+
+      expect(failure._tag).toBe(
+        VersionedProjectDocumentNotOnCurrentRefErrorTag
+      );
+      expect(failure).toHaveProperty('data', { currentBranch: 'draft' });
+      expect(mockWriteFile).not.toHaveBeenCalled();
+    });
+
+    it('fails, after writing, when the ref stops being checked out while its file is written', async () => {
+      mockIsRefCheckedOut
+        .mockReturnValueOnce(Effect.succeed(true))
+        .mockReturnValueOnce(Effect.succeed(false));
+      mockGetCurrentBranch.mockReturnValue(Effect.succeed('draft'));
+
+      const failure = await Effect.runPromise(
+        Effect.flip(
+          store.updateRichTextDocumentContent({
+            projectId: PROJECT_PATH,
+            documentId: docId,
+            representation: PRIMARY_RICH_TEXT_REPRESENTATION,
+            content: '# Notes, edited',
+          })
+        )
+      );
+
+      expect(failure._tag).toBe(
+        VersionedProjectDocumentNotOnCurrentRefErrorTag
+      );
+      expect(mockWriteFile).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('while the checked-out branch is being changed', () => {
+    type Store = ReturnType<typeof buildTestStore>;
+
+    const main = 'main' as Branch;
+    const draft = 'draft' as Branch;
+    const experiment = 'experiment' as Branch;
+    const docId = `/blob/${draft}/notes.md` as ArtifactId;
+
+    // Every store operation that moves HEAD, here away from draft.
+    const branchChanges = [
+      {
+        name: 'switchToBranch',
+        gitOperation: mockSwitchToBranch,
+        movesHeadTo: main,
+        run: (store: Store) =>
+          store.switchToBranch({ projectId: PROJECT_PATH, branch: main }),
+      },
+      {
+        name: 'createAndSwitchToBranch',
+        gitOperation: mockCreateAndSwitchToBranch,
+        movesHeadTo: experiment,
+        run: (store: Store) =>
+          store.createAndSwitchToBranch({
+            projectId: PROJECT_PATH,
+            branch: experiment,
+          }),
+      },
+      {
+        name: 'deleteBranch',
+        gitOperation: mockDeleteBranch,
+        movesHeadTo: main,
+        run: (store: Store) =>
+          store.deleteBranch({ projectId: PROJECT_PATH, branch: draft }),
+      },
+      {
+        name: 'mergeAndDeleteBranch',
+        gitOperation: mockMergeAndDeleteBranch,
+        movesHeadTo: main,
+        run: (store: Store) =>
+          store.mergeAndDeleteBranch({
+            projectId: PROJECT_PATH,
+            from: draft,
+            into: main,
+          }),
+      },
+    ];
+
+    type BranchChange = (typeof branchChanges)[number];
+
+    // Yields until everything that can run without the pending step has run.
+    const settle = () => new Promise((resolve) => setImmediate(resolve));
+
+    // The change moves HEAD only once the test lets it finish.
+    const startBranchChange = async ({
+      gitOperation,
+      movesHeadTo,
+      run,
+    }: BranchChange) => {
+      const store = buildTestStore();
+      const finished = Effect.runSync(Deferred.make<void>());
+
+      gitOperation.mockReturnValue(
+        pipe(
+          Deferred.await(finished),
+          Effect.tap(() =>
+            Effect.sync(() => {
+              mockIsRefCheckedOut.mockReturnValue(Effect.succeed(false));
+              mockGetCurrentBranch.mockReturnValue(Effect.succeed(movesHeadTo));
+            })
+          )
+        )
+      );
+
+      const changed = Effect.runPromise(Effect.asVoid(run(store)));
+      await settle();
+
+      return {
+        store,
+        changed,
+        finish: () => Effect.runPromise(Deferred.succeed(finished, undefined)),
+      };
+    };
+
+    beforeEach(() => {
+      mockGetAbsolutePath.mockReturnValue(
+        Effect.succeed(`${PROJECT_PATH}/notes.md`)
+      );
+      mockIsRefCheckedOut.mockReturnValue(Effect.succeed(true));
+      mockGetCurrentBranch.mockReturnValue(Effect.succeed(draft));
+      mockReadTextFile.mockReturnValue(Effect.succeed({ content: '# Notes' }));
+      mockWriteFile.mockReturnValue(Effect.succeed(undefined));
+    });
+
+    it.each(branchChanges)(
+      'holds a read issued during $name until it is over, then refuses it',
+      async (branchChange) => {
+        const { store, changed, finish } =
+          await startBranchChange(branchChange);
+
+        const read = Effect.runPromise(
+          Effect.flip(
+            store.findDocumentById({
+              projectId: PROJECT_PATH,
+              documentId: docId,
+            })
+          )
+        );
+        await settle();
+
+        expect(mockIsRefCheckedOut).not.toHaveBeenCalled();
+        expect(mockReadTextFile).not.toHaveBeenCalled();
+
+        await finish();
+        await changed;
+        const failure = await read;
+
+        expect(failure._tag).toBe(
+          VersionedProjectDocumentNotOnCurrentRefErrorTag
+        );
+        expect(failure).toHaveProperty('data', {
+          currentBranch: branchChange.movesHeadTo,
+        });
+        expect(mockReadTextFile).not.toHaveBeenCalled();
+      }
+    );
+
+    it('holds a write issued during a switch until it is over, then refuses it', async () => {
+      const [switchToMain] = branchChanges;
+      const { store, changed, finish } = await startBranchChange(switchToMain);
+
+      const write = Effect.runPromise(
+        Effect.flip(
+          store.updateRichTextDocumentContent({
+            projectId: PROJECT_PATH,
+            documentId: docId,
+            representation: PRIMARY_RICH_TEXT_REPRESENTATION,
+            content: '# Notes, edited',
+          })
+        )
+      );
+      await settle();
+
+      expect(mockIsRefCheckedOut).not.toHaveBeenCalled();
+      expect(mockWriteFile).not.toHaveBeenCalled();
+
+      await finish();
+      await changed;
+      const failure = await write;
+
+      expect(failure._tag).toBe(
+        VersionedProjectDocumentNotOnCurrentRefErrorTag
+      );
+      expect(mockWriteFile).not.toHaveBeenCalled();
+    });
+
+    it('holds a switch issued during a read until the read is over', async () => {
+      const store = buildTestStore();
+      const fileRead = Effect.runSync(Deferred.make<void>());
+      mockReadTextFile.mockReturnValue(
+        pipe(Deferred.await(fileRead), Effect.as({ content: '# Notes' }))
+      );
+      mockSwitchToBranch.mockReturnValue(Effect.void);
+
+      const read = Effect.runPromise(
+        store.findDocumentById({ projectId: PROJECT_PATH, documentId: docId })
+      );
+      await settle();
+      const switched = Effect.runPromise(
+        store.switchToBranch({ projectId: PROJECT_PATH, branch: main })
+      );
+      await settle();
+
+      expect(mockSwitchToBranch).not.toHaveBeenCalled();
+
+      await Effect.runPromise(Deferred.succeed(fileRead, undefined));
+      const document = await read;
+      await switched;
+
+      expect(document.artifact.content).toBe('# Notes');
+      expect(mockSwitchToBranch).toHaveBeenCalled();
     });
   });
 
@@ -708,9 +1067,29 @@ describe('documents', () => {
       mockGetAbsolutePath.mockReturnValue(
         Effect.succeed(`${projectDir}/${docPath}`)
       );
+      mockIsRefCheckedOut.mockReturnValue(Effect.succeed(true));
+      mockGetCurrentBranch.mockReturnValue(Effect.succeed('main'));
       mockReadTextFile.mockReturnValue(
         Effect.succeed({ content: 'current content' })
       );
+    });
+
+    it('refuses a document whose ref is not checked out, without touching its file', async () => {
+      mockIsRefCheckedOut.mockReturnValue(Effect.succeed(false));
+      mockGetCurrentBranch.mockReturnValue(Effect.succeed('draft'));
+
+      const failure = await Effect.runPromise(
+        Effect.flip(
+          store.discardUncommittedChanges({ projectId, documentId: docId })
+        )
+      );
+
+      expect(failure._tag).toBe(
+        VersionedProjectDocumentNotOnCurrentRefErrorTag
+      );
+      expect(failure).toHaveProperty('data', { currentBranch: 'draft' });
+      expect(mockReadTextFile).not.toHaveBeenCalled();
+      expect(mockWriteFile).not.toHaveBeenCalled();
     });
 
     it('restores document from the last commit when it exists there', async () => {

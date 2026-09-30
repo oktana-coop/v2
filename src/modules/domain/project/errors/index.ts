@@ -43,6 +43,18 @@ export class DeletedDocumentError extends Cause.YieldableError {
   }
 }
 
+export const VersionedProjectDocumentNotOnCurrentRefErrorTag =
+  'VersionedProjectDocumentNotOnCurrentRefError';
+export class DocumentNotOnCurrentRefError extends Cause.YieldableError {
+  readonly _tag = VersionedProjectDocumentNotOnCurrentRefErrorTag;
+  readonly data;
+
+  constructor(message: string, data: { currentBranch: Branch | null }) {
+    super(message);
+    this.data = data;
+  }
+}
+
 export const SharedDocumentUnavailableErrorTag =
   'SharedDocumentUnavailableError';
 export class SharedDocumentUnavailableError extends Cause.YieldableError {

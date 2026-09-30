@@ -7,6 +7,7 @@ import {
   type MigrationError,
 } from '../../../../modules/infrastructure/version-control';
 import {
+  type DocumentNotOnCurrentRefError,
   type NotFoundError,
   type RepositoryError,
   SharedDocumentNotInProjectError,
@@ -53,6 +54,7 @@ export type JoinSharedDocumentError =
   | ValidationError
   | NotFoundError
   | MigrationError
+  | DocumentNotOnCurrentRefError
   | LocalEditsContributionError;
 
 export const joinSharedDocument =

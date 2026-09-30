@@ -8,6 +8,7 @@ import {
 import {
   type ArtifactId,
   createGitBlobRef,
+  type DecomposedGitRef,
   decomposeGitRef,
   type GitRef,
   isGitRef,
@@ -32,14 +33,17 @@ export const ensureArtifactIdIsGitRef: (
     )
   );
 
+export const decomposeArtifactId: (
+  id: ArtifactId
+) => Effect.Effect<DecomposedGitRef, ValidationError, never> = (id) =>
+  pipe(ensureArtifactIdIsGitRef(id), Effect.map(decomposeGitRef));
+
 export const extractArtifactRelativePathFromId: (
   id: ArtifactId
 ) => Effect.Effect<ProjectRelPath, ValidationError, never> = (id) =>
   pipe(
-    ensureArtifactIdIsGitRef(id),
-    Effect.flatMap((gitRef) =>
-      parseProjectRelPathEffect(decomposeGitRef(gitRef).path)
-    )
+    decomposeArtifactId(id),
+    Effect.flatMap(({ path }) => parseProjectRelPathEffect(path))
   );
 
 export const getArtifactMetaDataById: ProjectStore['getArtifactMetaDataById'] =

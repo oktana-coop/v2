@@ -14,6 +14,17 @@ export const hasCleanWorkingTree = ({
   repoDir: string;
 }): boolean => git(['status', '--porcelain'], repoDir) === '';
 
+// A switch made outside the app, e.g. in a terminal. Throws when git refuses.
+export const switchBranch = ({
+  repoDir,
+  branch,
+}: {
+  repoDir: string;
+  branch: string;
+}): void => {
+  git(['switch', branch], repoDir);
+};
+
 export const initRepositoryWithCommit = ({
   repoDir,
   message,

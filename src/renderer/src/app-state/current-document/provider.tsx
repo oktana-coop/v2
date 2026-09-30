@@ -232,7 +232,6 @@ export const CurrentDocumentProvider = ({
     projectStore,
     representationTransformAdapter,
     subscribeToProjectDirChanges,
-    currentBranch,
   ]);
 
   // What the open document reports with nobody waiting on it. The editor keeps
