@@ -93,7 +93,7 @@
   },
   "devDependencies": {
     "@automerge/automerge-repo-network-messagechannel": "2.6.0-alpha.5",
-    "@automerge/automerge-repo-sync-server": "^0.2.8",
+    "@automerge/automerge-repo-sync-server": "^0.3.0",
     "@chromatic-com/storybook": "^1.9.0",
     "@eslint/compat": "^1.4.1",
     "@eslint/eslintrc": "^3.3.6",
