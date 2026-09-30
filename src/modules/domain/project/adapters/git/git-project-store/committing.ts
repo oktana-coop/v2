@@ -27,6 +27,7 @@ import {
   VersionControlRepositoryErrorTag,
 } from '../../../../../../modules/infrastructure/version-control';
 import { unique } from '../../../../../../utils/array';
+import { type Mutex } from '../../../../../../utils/effect';
 import {
   NotFoundError,
   RepositoryError,
@@ -39,6 +40,7 @@ import {
 } from '../../../models';
 import { type ProjectStore } from '../../../ports';
 import { extractArtifactRelativePathFromId } from './artifacts';
+import { whileDocumentRefIsCheckedOut } from './branching';
 import { getDocumentReferencedAssetPaths } from './documents';
 import { ensureProjectIdIsFsPath } from './project-id';
 
@@ -51,10 +53,12 @@ export const createCommittingOps = ({
   isoGitFs,
   filesystem,
   documentAnalyzer,
+  currentBranchMutex,
 }: {
   isoGitFs: IsoGitFsApi;
   filesystem: Filesystem;
   documentAnalyzer: DocumentAnalyzer;
+  currentBranchMutex: Mutex;
 }): CommittingOps => {
   const commitChanges: CommittingOps['commitChanges'] = ({
     projectId,
@@ -192,7 +196,7 @@ export const createCommittingOps = ({
     );
   };
 
-  const restoreDocumentChanges: CommittingOps['restoreDocumentChanges'] = ({
+  const restoreDocumentFromCommit: CommittingOps['restoreDocumentChanges'] = ({
     projectId,
     documentId,
     commit,
@@ -345,6 +349,17 @@ export const createCommittingOps = ({
         commitId,
         skippedAssetPaths: restoreData.skippedAssetPaths,
       }))
+    );
+
+  const restoreDocumentChanges: CommittingOps['restoreDocumentChanges'] = (
+    args
+  ) =>
+    currentBranchMutex(
+      whileDocumentRefIsCheckedOut({
+        isoGitFs,
+        projectId: args.projectId,
+        documentId: args.documentId,
+      })(restoreDocumentFromCommit(args))
     );
 
   return { commitChanges, commitDocumentChanges, restoreDocumentChanges };

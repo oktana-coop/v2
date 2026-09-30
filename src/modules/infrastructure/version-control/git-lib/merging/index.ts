@@ -28,6 +28,7 @@ import {
 } from '../../models';
 import { deleteBranch, switchToBranch } from '../branching';
 import { resolveAuthor, stageAndCommitWorkdirChanges } from '../committing';
+import { getCommitForRef } from '../refs';
 import { IsoGitDeps } from '../types';
 
 export type MergeAndDeleteBranchArgs = Omit<IsoGitDeps, 'isoGitHttp'> & {
@@ -276,36 +277,6 @@ export const isInMergeConflictState = ({
   );
 
 export type GetMergeConflictInfoArgs = Omit<IsoGitDeps, 'isoGitHttp'>;
-
-const getCommitForRef = ({
-  ref,
-  isoGitFs,
-  dir,
-}: Omit<IsoGitDeps, 'isoGitHttp'> & { ref: string }): Effect.Effect<
-  GitCommitHash,
-  RepositoryError,
-  never
-> =>
-  pipe(
-    Effect.tryPromise({
-      try: () =>
-        git.resolveRef({
-          fs: isoGitFs,
-          dir,
-          ref,
-        }),
-      catch: mapErrorTo(RepositoryError, 'Error in resolving Git ref.'),
-    }),
-    Effect.flatMap((commitOid) =>
-      Effect.try({
-        try: () => parseGitCommitHash(commitOid),
-        catch: mapErrorTo(
-          RepositoryError,
-          'Error in resolving Git ref commit id.'
-        ),
-      })
-    )
-  );
 
 const getConflictCommits = ({
   isoGitFs,

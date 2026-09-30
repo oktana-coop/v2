@@ -52,7 +52,7 @@ import {
   VersionControlRepositoryErrorTag,
 } from '../../../../../../modules/infrastructure/version-control';
 import { unique } from '../../../../../../utils/array';
-import { fromNullable } from '../../../../../../utils/effect';
+import { fromNullable, type Mutex } from '../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../utils/errors';
 import {
   DeletedDocumentError,
@@ -69,10 +69,14 @@ import {
   type ProjectRelPath,
   type ReferencedAsset,
 } from '../../../models';
-import { type ProjectStore } from '../../../ports';
+import {
+  type FindDocumentByIdArgs,
+  type ProjectStore,
+  type UpdateRichTextDocumentContentArgs,
+} from '../../../ports';
 import { extractArtifactRelativePathFromId } from './artifacts';
 import { readAssetBytes } from './assets';
-import { getCurrentBranch } from './branching';
+import { getCurrentBranch, whileDocumentRefIsCheckedOut } from './branching';
 import { listProjectDocuments } from './project';
 import { ensureProjectIdIsFsPath } from './project-id';
 
@@ -141,6 +145,7 @@ export const createDocumentOps = ({
   isoGitFs,
   filesystem,
   documentAnalyzer,
+  currentBranchMutex,
 }: {
   // We have 2 filesystem APIs because isomorphic-git works well in both browser in Node.js
   // with its own implemented fs APIs, which more or less comply to the Node.js API.
@@ -149,6 +154,7 @@ export const createDocumentOps = ({
   isoGitFs: IsoGitFsApi;
   filesystem: Filesystem;
   documentAnalyzer: DocumentAnalyzer;
+  currentBranchMutex: Mutex;
 }): DocumentOps => {
   const buildDocumentAbsolutePathFromId: (args: {
     projectDir: string;
@@ -367,10 +373,13 @@ export const createDocumentOps = ({
       )
     );
 
-  const findDocumentById: DocumentOps['findDocumentById'] = ({
-    projectId,
-    documentId,
-  }) =>
+  const readDocumentFromWorkdir: (
+    args: FindDocumentByIdArgs
+  ) => Effect.Effect<
+    ResolvedDocument,
+    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    never
+  > = ({ projectId, documentId }) =>
     pipe(
       ensureProjectIdIsFsPath(projectId),
       Effect.flatMap((projectDir) =>
@@ -400,6 +409,15 @@ export const createDocumentOps = ({
       )
     );
 
+  const findDocumentById: DocumentOps['findDocumentById'] = (args) =>
+    currentBranchMutex(
+      whileDocumentRefIsCheckedOut({
+        isoGitFs,
+        projectId: args.projectId,
+        documentId: args.documentId,
+      })(readDocumentFromWorkdir(args))
+    );
+
   const getDocumentFromFs: (
     projectId: ProjectId,
     documentId: ArtifactId
@@ -409,7 +427,7 @@ export const createDocumentOps = ({
     never
   > = (projectId, documentId) =>
     pipe(
-      findDocumentById({ projectId, documentId }),
+      readDocumentFromWorkdir({ projectId, documentId }),
       Effect.map((resolvedDocument) => resolvedDocument.artifact)
     );
 
@@ -483,17 +501,30 @@ export const createDocumentOps = ({
   // Writes the new content to the document's file in the workdir. The store
   // owns the workdir, so the target path is derived from the document id
   // rather than supplied by the caller.
+  const writeDocumentToWorkdir: (
+    args: UpdateRichTextDocumentContentArgs
+  ) => Effect.Effect<void, RepositoryError, never> = ({
+    projectId,
+    documentId,
+    content,
+  }) =>
+    pipe(
+      ensureProjectIdIsFsPath(projectId),
+      Effect.flatMap((projectDir) =>
+        buildDocumentAbsolutePathFromId({ projectDir, id: documentId })
+      ),
+      Effect.flatMap((path) => filesystem.writeFile({ path, content })),
+      Effect.catchAll(() => Effect.fail(new RepositoryError('Git repo error')))
+    );
+
   const updateRichTextDocumentContent: DocumentOps['updateRichTextDocumentContent'] =
-    ({ projectId, documentId, content }) =>
-      pipe(
-        ensureProjectIdIsFsPath(projectId),
-        Effect.flatMap((projectDir) =>
-          buildDocumentAbsolutePathFromId({ projectDir, id: documentId })
-        ),
-        Effect.flatMap((path) => filesystem.writeFile({ path, content })),
-        Effect.catchAll(() =>
-          Effect.fail(new RepositoryError('Git repo error'))
-        )
+    (args) =>
+      currentBranchMutex(
+        whileDocumentRefIsCheckedOut({
+          isoGitFs,
+          projectId: args.projectId,
+          documentId: args.documentId,
+        })(writeDocumentToWorkdir(args))
       );
 
   const deleteDocumentFromFilesystem: (args: {
@@ -584,7 +615,7 @@ export const createDocumentOps = ({
         extractArtifactRelativePathFromId(documentId)
       ),
       Effect.bind('document', () =>
-        findDocumentById({ projectId, documentId })
+        readDocumentFromWorkdir({ projectId, documentId })
       ),
       Effect.flatMap(({ projectDir, documentPath, document }) =>
         Effect.Do.pipe(
@@ -723,91 +754,104 @@ export const createDocumentOps = ({
     );
   };
 
-  const discardUncommittedChanges: DocumentOps['discardUncommittedChanges'] = ({
-    projectId,
-    documentId,
-  }) => {
-    return Effect.Do.pipe(
-      Effect.bind('projectDir', () => ensureProjectIdIsFsPath(projectId)),
-      Effect.bind('documentHistory', () =>
-        getDocumentHistory({ projectId, documentId })
-      ),
-      Effect.flatMap(
-        ({
-          projectDir,
-          documentHistory: { lastCommit, hasUncommittedChanges },
-        }) => {
-          if (!hasUncommittedChanges) {
-            return Effect.fail(
-              new NotFoundError(
-                'The document does not have uncommitted changes to discard.'
-              )
-            );
-          }
-
-          if (!lastCommit) {
-            return Effect.fail(
-              new RepositoryError(
-                'The document only has uncommitted changes (and no commits). Cannot restore to a known state.'
-              )
-            );
-          }
-
-          return pipe(
-            extractArtifactRelativePathFromId(documentId),
-            Effect.flatMap((documentPath) =>
-              pipe(
-                Effect.succeed(lastCommit.id),
-                Effect.filterOrFail(
-                  isGitCommitHash,
-                  (val) => new ValidationError(`Invalid commit hash: ${val}`)
-                ),
-                Effect.flatMap((commitHash) =>
-                  getDocumentAtCommit({
-                    projectDir,
-                    documentPath,
-                    commitHash,
-                  })
-                ),
-                // If the document was deleted in the last commit, restore
-                // from the parent commit instead.
-                Effect.catchTag(VersionedProjectDeletedDocumentErrorTag, (e) =>
-                  e.data.parentCommitId
-                    ? pipe(
-                        getDocumentAtCommit({
-                          projectDir,
-                          documentPath,
-                          commitHash: parseGitCommitHash(e.data.parentCommitId),
-                        }),
-                        // The parent commit itself may also not contain the
-                        // document (e.g. consecutive deletions). We don't
-                        // recurse further — treat this as unrecoverable.
-                        Effect.catchTag(
-                          VersionedProjectDeletedDocumentErrorTag,
-                          (e) => Effect.fail(new RepositoryError(e.message))
-                        )
-                      )
-                    : Effect.fail(
-                        new RepositoryError(
-                          'Document was deleted but has no parent commit to restore from.'
-                        )
-                      )
+  const restoreDocumentFromLastCommit: DocumentOps['discardUncommittedChanges'] =
+    ({ projectId, documentId }) => {
+      return Effect.Do.pipe(
+        Effect.bind('projectDir', () => ensureProjectIdIsFsPath(projectId)),
+        Effect.bind('documentHistory', () =>
+          getDocumentHistory({ projectId, documentId })
+        ),
+        Effect.flatMap(
+          ({
+            projectDir,
+            documentHistory: { lastCommit, hasUncommittedChanges },
+          }) => {
+            if (!hasUncommittedChanges) {
+              return Effect.fail(
+                new NotFoundError(
+                  'The document does not have uncommitted changes to discard.'
                 )
+              );
+            }
+
+            if (!lastCommit) {
+              return Effect.fail(
+                new RepositoryError(
+                  'The document only has uncommitted changes (and no commits). Cannot restore to a known state.'
+                )
+              );
+            }
+
+            return pipe(
+              extractArtifactRelativePathFromId(documentId),
+              Effect.flatMap((documentPath) =>
+                pipe(
+                  Effect.succeed(lastCommit.id),
+                  Effect.filterOrFail(
+                    isGitCommitHash,
+                    (val) => new ValidationError(`Invalid commit hash: ${val}`)
+                  ),
+                  Effect.flatMap((commitHash) =>
+                    getDocumentAtCommit({
+                      projectDir,
+                      documentPath,
+                      commitHash,
+                    })
+                  ),
+                  // If the document was deleted in the last commit, restore
+                  // from the parent commit instead.
+                  Effect.catchTag(
+                    VersionedProjectDeletedDocumentErrorTag,
+                    (e) =>
+                      e.data.parentCommitId
+                        ? pipe(
+                            getDocumentAtCommit({
+                              projectDir,
+                              documentPath,
+                              commitHash: parseGitCommitHash(
+                                e.data.parentCommitId
+                              ),
+                            }),
+                            // The parent commit itself may also not contain the
+                            // document (e.g. consecutive deletions). We don't
+                            // recurse further — treat this as unrecoverable.
+                            Effect.catchTag(
+                              VersionedProjectDeletedDocumentErrorTag,
+                              (e) => Effect.fail(new RepositoryError(e.message))
+                            )
+                          )
+                        : Effect.fail(
+                            new RepositoryError(
+                              'Document was deleted but has no parent commit to restore from.'
+                            )
+                          )
+                  )
+                )
+              ),
+              Effect.flatMap((documentAtCommit) =>
+                writeDocumentToWorkdir({
+                  projectId,
+                  documentId,
+                  representation: documentAtCommit.representation,
+                  content: documentAtCommit.content,
+                })
               )
-            ),
-            Effect.flatMap((documentAtCommit) =>
-              updateRichTextDocumentContent({
-                projectId,
-                documentId,
-                representation: documentAtCommit.representation,
-                content: documentAtCommit.content,
-              })
-            )
-          );
-        }
-      )
+            );
+          }
+        )
+      );
+    };
+
+  const discardUncommittedChanges: DocumentOps['discardUncommittedChanges'] = (
+    args
+  ) =>
+    currentBranchMutex(
+      whileDocumentRefIsCheckedOut({
+        isoGitFs,
+        projectId: args.projectId,
+        documentId: args.documentId,
+      })(restoreDocumentFromLastCommit(args))
     );
-  };
 
   const resolveContentConflict: DocumentOps['resolveContentConflict'] = ({
     projectId,
@@ -1036,7 +1080,7 @@ export const createDocumentOps = ({
     pipe(
       lookupDocumentInProject({ projectId, documentPath, changeId }),
       Effect.flatMap((documentId) =>
-        findDocumentById({ projectId, documentId })
+        readDocumentFromWorkdir({ projectId, documentId })
       )
     );
 

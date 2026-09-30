@@ -14,12 +14,16 @@ import {
   RepresentationTransformError,
   type ResolvedDocument,
 } from '../../../../modules/domain/rich-text';
-import { type ArtifactId } from '../../../../modules/infrastructure/version-control';
+import {
+  type ArtifactId,
+  type Branch,
+} from '../../../../modules/infrastructure/version-control';
 import {
   createErrorChannel,
   subscribeToStream,
 } from '../../../../utils/effect';
 import {
+  DocumentNotOnCurrentRefError,
   NotFoundError,
   RepositoryError,
   SharedDocumentUnavailableError,
@@ -602,6 +606,30 @@ describe('openLiveDocument', () => {
       await vi.runAllTimersAsync();
 
       expect(initialDocument.change).not.toHaveBeenCalled();
+      expect(reportedErrors).toEqual([]);
+    });
+
+    it('contributes nothing to the share, silently, while the project is on another branch', async () => {
+      const { findDocumentById, notifyWatcher, reportedErrors, documents } =
+        await openDocument({
+          diskText: 'hello',
+          shareText: 'hello',
+          shareId: shareLink,
+        });
+      useFakeTimersInTest();
+      const [share] = documents;
+
+      findDocumentById.mockReturnValue(
+        Effect.fail(
+          new DocumentNotOnCurrentRefError('the project is on another branch', {
+            currentBranch: 'draft' as Branch,
+          })
+        )
+      );
+      notifyWatcher();
+      await vi.runAllTimersAsync();
+
+      expect(share.change).not.toHaveBeenCalled();
       expect(reportedErrors).toEqual([]);
     });
 

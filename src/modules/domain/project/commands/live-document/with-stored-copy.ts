@@ -16,7 +16,10 @@ import {
   subscribeToRefChanges,
   type Unsubscribe,
 } from '../../../../../utils/effect';
-import { VersionedProjectNotFoundErrorTag } from '../../errors';
+import {
+  VersionedProjectDocumentNotOnCurrentRefErrorTag,
+  VersionedProjectNotFoundErrorTag,
+} from '../../errors';
 import { type ProjectId } from '../../models';
 import { type ProjectStore, type ShareId } from '../../ports';
 import { persistDocument } from '../persist-document';
@@ -152,6 +155,12 @@ export const withStoredCopy =
             // up, which is not a failure.
             Effect.catchTag(
               VersionedProjectNotFoundErrorTag,
+              () => Effect.void
+            ),
+            // What the disk holds belongs to another branch, so there is
+            // nothing of this document to pick up.
+            Effect.catchTag(
+              VersionedProjectDocumentNotOnCurrentRefErrorTag,
               () => Effect.void
             ),
             // Picking up an outside edit is best-effort: nothing awaits

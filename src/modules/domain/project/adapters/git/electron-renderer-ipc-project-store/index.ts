@@ -18,10 +18,12 @@ import { type EffectErrorType } from '../../../../../../utils/effect';
 import { DEFAULT_ASSETS_DIR_NAME, GIT_DIR_NAME } from '../../../constants';
 import {
   DeletedDocumentError,
+  DocumentNotOnCurrentRefError,
   NotFoundError,
   RepositoryError,
   ValidationError,
   VersionedProjectDeletedDocumentErrorTag,
+  VersionedProjectDocumentNotOnCurrentRefErrorTag,
   VersionedProjectNotFoundErrorTag,
   VersionedProjectRepositoryErrorTag,
   VersionedProjectValidationErrorTag,
@@ -291,6 +293,8 @@ export const createAdapter = (): ProjectStore => ({
         [VersionedProjectRepositoryErrorTag]: RepositoryError,
         [VersionedProjectNotFoundErrorTag]: NotFoundError,
         [VersionControlMigrationErrorTag]: MigrationError,
+        [VersionedProjectDocumentNotOnCurrentRefErrorTag]:
+          DocumentNotOnCurrentRefError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<ProjectStore['restoreDocumentChanges']>>
       >,
@@ -578,6 +582,8 @@ export const createAdapter = (): ProjectStore => ({
         [VersionedProjectRepositoryErrorTag]: RepositoryError,
         [VersionedProjectNotFoundErrorTag]: NotFoundError,
         [VersionControlMigrationErrorTag]: MigrationError,
+        [VersionedProjectDocumentNotOnCurrentRefErrorTag]:
+          DocumentNotOnCurrentRefError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<ProjectStore['findDocumentById']>>
       >,
@@ -606,6 +612,8 @@ export const createAdapter = (): ProjectStore => ({
         [VersionedProjectRepositoryErrorTag]: RepositoryError,
         [VersionedProjectNotFoundErrorTag]: NotFoundError,
         [VersionControlMigrationErrorTag]: MigrationError,
+        [VersionedProjectDocumentNotOnCurrentRefErrorTag]:
+          DocumentNotOnCurrentRefError,
       } as ErrorRegistry<
         EffectErrorType<
           ReturnType<ProjectStore['updateRichTextDocumentContent']>
@@ -677,6 +685,8 @@ export const createAdapter = (): ProjectStore => ({
         [VersionedProjectRepositoryErrorTag]: RepositoryError,
         [VersionedProjectNotFoundErrorTag]: NotFoundError,
         [VersionControlMigrationErrorTag]: MigrationError,
+        [VersionedProjectDocumentNotOnCurrentRefErrorTag]:
+          DocumentNotOnCurrentRefError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<ProjectStore['discardUncommittedChanges']>>
       >,

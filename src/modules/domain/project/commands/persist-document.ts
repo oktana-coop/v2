@@ -12,7 +12,12 @@ import {
   type ArtifactId,
   MigrationError,
 } from '../../../../modules/infrastructure/version-control';
-import { NotFoundError, RepositoryError, ValidationError } from '../errors';
+import {
+  DocumentNotOnCurrentRefError,
+  NotFoundError,
+  RepositoryError,
+  ValidationError,
+} from '../errors';
 import { type ProjectId } from '../models';
 import { type ProjectStore } from '../ports';
 
@@ -21,6 +26,7 @@ export type PersistDocumentError =
   | RepositoryError
   | NotFoundError
   | MigrationError
+  | DocumentNotOnCurrentRefError
   | RepresentationTransformError;
 
 export type PersistDocumentDeps = {

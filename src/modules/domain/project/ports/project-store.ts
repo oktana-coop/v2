@@ -21,6 +21,7 @@ import {
 import { type Email, type Username } from '../../../auth';
 import {
   DeletedDocumentError,
+  DocumentNotOnCurrentRefError,
   NotFoundError,
   RepositoryError,
   ValidationError,
@@ -487,7 +488,11 @@ export type ProjectStore = {
     args: ProjectRestoreDocumentChangesArgs
   ) => Effect.Effect<
     RestoreDocumentChangesResult,
-    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    | ValidationError
+    | RepositoryError
+    | NotFoundError
+    | MigrationError
+    | DocumentNotOnCurrentRefError,
     never
   >;
   createAndSwitchToBranch: (
@@ -623,7 +628,11 @@ export type ProjectStore = {
     args: FindDocumentByIdArgs
   ) => Effect.Effect<
     ResolvedDocument,
-    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    | ValidationError
+    | RepositoryError
+    | NotFoundError
+    | MigrationError
+    | DocumentNotOnCurrentRefError,
     never
   >;
   getDocumentLastChangeId: (
@@ -637,7 +646,11 @@ export type ProjectStore = {
     args: UpdateRichTextDocumentContentArgs
   ) => Effect.Effect<
     void,
-    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    | ValidationError
+    | RepositoryError
+    | NotFoundError
+    | MigrationError
+    | DocumentNotOnCurrentRefError,
     never
   >;
   deleteDocument: (
@@ -676,7 +689,11 @@ export type ProjectStore = {
     args: DiscardUncommittedChangesArgs
   ) => Effect.Effect<
     void,
-    ValidationError | RepositoryError | NotFoundError | MigrationError,
+    | ValidationError
+    | RepositoryError
+    | NotFoundError
+    | MigrationError
+    | DocumentNotOnCurrentRefError,
     never
   >;
   resolveContentConflict: (

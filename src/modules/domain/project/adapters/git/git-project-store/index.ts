@@ -1,3 +1,4 @@
+import * as Effect from 'effect/Effect';
 import {
   type HttpClient as IsoGitHttpApi,
   type PromiseFsClient as IsoGitFsApi,
@@ -5,6 +6,7 @@ import {
 
 import { type DocumentAnalyzer } from '../../../../../../modules/domain/rich-text';
 import { type Filesystem } from '../../../../../../modules/infrastructure/filesystem';
+import { type Mutex } from '../../../../../../utils/effect';
 import { DEFAULT_ASSETS_DIR_NAME, GIT_DIR_NAME } from '../../../constants';
 import { ProjectStore } from '../../../ports';
 import { getArtifactMetaDataById, lookupArtifactByPath } from './artifacts';
@@ -49,17 +51,22 @@ export const createAdapter = ({
     assetsDirName,
   });
 
+  // Not reentrant: an operation holding it must never call another that does.
+  const currentBranchMutex: Mutex =
+    Effect.unsafeMakeSemaphore(1).withPermits(1);
+
   const documentOps = createDocumentOps({
     isoGitFs,
     filesystem,
     documentAnalyzer,
+    currentBranchMutex,
   });
 
   const directoryOps = createDirectoryOps({ filesystem, documentOps });
 
   const hierarchyOps = createHierarchyOps({ isoGitFs, filesystem });
 
-  const branchingOps = createBranchingOps({ isoGitFs });
+  const branchingOps = createBranchingOps({ isoGitFs, currentBranchMutex });
 
   const remoteOps = createRemoteOps({ isoGitFs, isoGitHttp });
 
@@ -71,6 +78,7 @@ export const createAdapter = ({
     isoGitFs,
     filesystem,
     documentAnalyzer,
+    currentBranchMutex,
   });
 
   const historyOps = createHistoryOps({ isoGitFs });

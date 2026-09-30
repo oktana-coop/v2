@@ -2,3 +2,7 @@ import * as Effect from 'effect/Effect';
 
 export type EffectErrorType<T> =
   T extends Effect.Effect<unknown, infer E, unknown> ? E : never;
+
+export type Mutex = <A, E, R>(
+  effect: Effect.Effect<A, E, R>
+) => Effect.Effect<A, E, R>;
