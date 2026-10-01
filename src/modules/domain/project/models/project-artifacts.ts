@@ -1,5 +1,5 @@
 import {
-  filesystemItemTypes,
+  filesystemEntryTypes,
   getExtension,
   removeExtension,
   removePath,
@@ -54,7 +54,7 @@ export const isAssetMetaData = (
 // A file as the project store lists it. Version control tracks these, so a
 // file has an artifact identity of its own.
 export type ProjectStoreFileNode = ArtifactMetaData & {
-  filesystemType: typeof filesystemItemTypes.FILE;
+  filesystemType: typeof filesystemEntryTypes.FILE;
 };
 
 // A directory is structure derived from the paths of the files under it, not
@@ -62,7 +62,7 @@ export type ProjectStoreFileNode = ArtifactMetaData & {
 // contents, but no artifact id or kind.
 export type ProjectStoreDirectoryNode = {
   path: ProjectRelPath;
-  filesystemType: typeof filesystemItemTypes.DIRECTORY;
+  filesystemType: typeof filesystemEntryTypes.DIRECTORY;
   children: ProjectStoreTreeNode[];
 };
 
@@ -81,12 +81,12 @@ export type ProjectTreeNode = ProjectFileNode | ProjectDirectoryNode;
 export const isProjectFileNode = (
   node: ProjectStoreTreeNode
 ): node is ProjectStoreFileNode =>
-  node.filesystemType === filesystemItemTypes.FILE;
+  node.filesystemType === filesystemEntryTypes.FILE;
 
 export const isProjectDirectoryNode = (
   node: ProjectStoreTreeNode
 ): node is ProjectStoreDirectoryNode =>
-  node.filesystemType === filesystemItemTypes.DIRECTORY;
+  node.filesystemType === filesystemEntryTypes.DIRECTORY;
 
 // The artifact's name as the editor presents it — the file name without its
 // extension, since the extension is an implementation detail of the format.

@@ -6,7 +6,7 @@ import { pipe } from 'effect/Function';
 import { dialog } from 'electron';
 
 import { mapErrorTo } from '../../../../../../utils/errors';
-import { filesystemItemTypes } from '../../../constants/filesystem-item-types';
+import { filesystemEntryTypes } from '../../../constants/filesystem-entry-types';
 import {
   AbortError,
   AccessControlError,
@@ -169,7 +169,7 @@ export const createAdapter = (): Filesystem => {
             ),
             Effect.flatMap(({ resultPath }) => {
               const file: File = {
-                type: filesystemItemTypes.FILE,
+                type: filesystemEntryTypes.FILE,
                 name: entry.name,
                 path: resultPath,
               };
@@ -244,7 +244,7 @@ export const createAdapter = (): Filesystem => {
                       >),
                   Effect.map((children) => {
                     const directory: Directory = {
-                      type: filesystemItemTypes.DIRECTORY,
+                      type: filesystemEntryTypes.DIRECTORY,
                       name: entry.name,
                       path: resultPath,
                       children: children ?? undefined,
@@ -257,7 +257,7 @@ export const createAdapter = (): Filesystem => {
               }
 
               const file: File = {
-                type: filesystemItemTypes.FILE,
+                type: filesystemEntryTypes.FILE,
                 name: entry.name,
                 path: resultPath,
               };
@@ -351,7 +351,7 @@ export const createAdapter = (): Filesystem => {
         })
       ),
       Effect.map(({ filePath }) => ({
-        type: filesystemItemTypes.FILE,
+        type: filesystemEntryTypes.FILE,
         path: filePath,
         name: path.basename(filePath),
         content,
@@ -366,7 +366,7 @@ export const createAdapter = (): Filesystem => {
         const name = path.basename(filePath);
 
         return {
-          type: filesystemItemTypes.FILE,
+          type: filesystemEntryTypes.FILE,
           name,
           path: filePath,
           // TODO: Read file content
@@ -420,7 +420,7 @@ export const createAdapter = (): Filesystem => {
         },
       }),
       Effect.map((content) => ({
-        type: filesystemItemTypes.FILE,
+        type: filesystemEntryTypes.FILE,
         name: path.basename(filePath),
         path: filePath,
         content,
@@ -515,7 +515,7 @@ export const createAdapter = (): Filesystem => {
         catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
       }),
       Effect.map(() => ({
-        type: filesystemItemTypes.DIRECTORY,
+        type: filesystemEntryTypes.DIRECTORY,
         path: fullPath,
         name,
         permissionState: 'granted' as PermissionState,

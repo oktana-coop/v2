@@ -1,7 +1,7 @@
 import * as Effect from 'effect/Effect';
 import { describe, expect, it } from 'vitest';
 
-import { filesystemItemTypes } from '../../../../modules/infrastructure/filesystem';
+import { filesystemEntryTypes } from '../../../../modules/infrastructure/filesystem';
 import {
   type ArtifactId,
   type Branch,
@@ -22,7 +22,7 @@ const file = (path: string): ProjectStoreFileNode => ({
   id: path as ArtifactId,
   path: parseProjectRelPath(path),
   kind: inferArtifactKindFromExtension(path),
-  filesystemType: filesystemItemTypes.FILE,
+  filesystemType: filesystemEntryTypes.FILE,
 });
 
 const directory = (
@@ -30,7 +30,7 @@ const directory = (
   children: ProjectStoreDirectoryNode['children']
 ): ProjectStoreDirectoryNode => ({
   path: parseProjectRelPath(path),
-  filesystemType: filesystemItemTypes.DIRECTORY,
+  filesystemType: filesystemEntryTypes.DIRECTORY,
   children,
 });
 

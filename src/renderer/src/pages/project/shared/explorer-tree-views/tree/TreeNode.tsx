@@ -3,7 +3,7 @@ import { type NodeRendererProps } from 'react-arborist';
 
 import { EXPLORER_TREE_NODE } from '../../../../../../../modules/infrastructure/cross-platform';
 import {
-  filesystemItemTypes,
+  filesystemEntryTypes,
   removeExtension,
 } from '../../../../../../../modules/infrastructure/filesystem';
 import {
@@ -250,7 +250,7 @@ export const TreeNode = ({
     node.handleClick?.(ev);
 
     // if the node represents a directory, toggle its collapsed state
-    if (node.data.type === filesystemItemTypes.DIRECTORY) {
+    if (node.data.type === filesystemEntryTypes.DIRECTORY) {
       node.toggle();
     }
   };
@@ -269,7 +269,7 @@ export const TreeNode = ({
     );
   }
 
-  if (node.data.type === filesystemItemTypes.DIRECTORY) {
+  if (node.data.type === filesystemEntryTypes.DIRECTORY) {
     if (directoryPathToRename === node.data.id) {
       return <RenamingDirectoryNode node={node} {...nodeRendererProps} />;
     }

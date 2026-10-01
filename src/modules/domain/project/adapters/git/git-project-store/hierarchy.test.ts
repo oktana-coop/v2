@@ -4,7 +4,7 @@ import git from 'isomorphic-git';
 import {
   type Directory,
   type File,
-  filesystemItemTypes,
+  filesystemEntryTypes,
 } from '../../../../../infrastructure/filesystem';
 import { VersionedProjectRepositoryErrorTag } from '../../../errors';
 import { artifactKinds } from '../../../models';
@@ -27,7 +27,7 @@ const mockCurrentBranch = vi.mocked(git.currentBranch);
 const store = buildTestStore();
 
 const file = (path: string, name: string): File => ({
-  type: filesystemItemTypes.FILE,
+  type: filesystemEntryTypes.FILE,
   path,
   name,
 });
@@ -37,7 +37,7 @@ const directory = (
   name: string,
   children: Array<Directory | File>
 ): Directory => ({
-  type: filesystemItemTypes.DIRECTORY,
+  type: filesystemEntryTypes.DIRECTORY,
   path,
   name,
   permissionState: 'granted',
@@ -62,7 +62,7 @@ describe('getProjectTree', () => {
         id: '/blob/main/readme.md',
         kind: artifactKinds.RICH_TEXT_DOCUMENT,
         path: 'readme.md',
-        filesystemType: filesystemItemTypes.FILE,
+        filesystemType: filesystemEntryTypes.FILE,
       },
     ]);
   });
@@ -87,27 +87,27 @@ describe('getProjectTree', () => {
         id: '/blob/main/readme.md',
         kind: artifactKinds.RICH_TEXT_DOCUMENT,
         path: 'readme.md',
-        filesystemType: filesystemItemTypes.FILE,
+        filesystemType: filesystemEntryTypes.FILE,
       },
       {
         path: 'docs',
-        filesystemType: filesystemItemTypes.DIRECTORY,
+        filesystemType: filesystemEntryTypes.DIRECTORY,
         children: [
           {
             id: '/blob/main/docs/guide.md',
             kind: artifactKinds.RICH_TEXT_DOCUMENT,
             path: 'docs/guide.md',
-            filesystemType: filesystemItemTypes.FILE,
+            filesystemType: filesystemEntryTypes.FILE,
           },
           {
             path: 'docs/2024',
-            filesystemType: filesystemItemTypes.DIRECTORY,
+            filesystemType: filesystemEntryTypes.DIRECTORY,
             children: [
               {
                 id: '/blob/main/docs/2024/notes.md',
                 kind: artifactKinds.RICH_TEXT_DOCUMENT,
                 path: 'docs/2024/notes.md',
-                filesystemType: filesystemItemTypes.FILE,
+                filesystemType: filesystemEntryTypes.FILE,
               },
             ],
           },
@@ -126,7 +126,7 @@ describe('getProjectTree', () => {
     expect(tree).toEqual([
       {
         path: 'empty',
-        filesystemType: filesystemItemTypes.DIRECTORY,
+        filesystemType: filesystemEntryTypes.DIRECTORY,
         children: [],
       },
     ]);

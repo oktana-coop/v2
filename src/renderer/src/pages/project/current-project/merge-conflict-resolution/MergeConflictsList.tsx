@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from 'react';
 import { useMatch, useParams } from 'react-router';
 
 import {
-  filesystemItemTypes,
+  filesystemEntryTypes,
   removeExtension,
 } from '../../../../../../modules/infrastructure/filesystem';
 import {
@@ -53,7 +53,7 @@ export const MergeConflictsList = () => {
     const compareContentConflictItems: ExplorerTreeNode[] =
       compareContentConflicts.length > 0
         ? compareContentConflicts.map((conflict) => ({
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             id: conflict.path,
             name: removeExtension(conflict.path),
             shared: false,

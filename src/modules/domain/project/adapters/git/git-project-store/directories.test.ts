@@ -4,7 +4,7 @@ import {
   DataIntegrityError as FilesystemDataIntegrityError,
   type File,
   type Filesystem,
-  filesystemItemTypes,
+  filesystemEntryTypes,
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
   toDirectory,
@@ -52,7 +52,7 @@ const ops = createDirectoryOps({
 });
 
 const fileNode = (path: string, name: string): File => ({
-  type: filesystemItemTypes.FILE,
+  type: filesystemEntryTypes.FILE,
   path,
   name,
 });

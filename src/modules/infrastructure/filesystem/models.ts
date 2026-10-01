@@ -1,19 +1,19 @@
-import { filesystemItemTypes } from './constants/filesystem-item-types';
+import { filesystemEntryTypes } from './constants/filesystem-entry-types';
 import { getDirectoryName } from './utils';
 
-export type FilesystemItem = {
+export type FilesystemEntry = {
   path: string;
   name: string;
 };
 
-export type Directory = FilesystemItem & {
-  type: typeof filesystemItemTypes.DIRECTORY;
+export type Directory = FilesystemEntry & {
+  type: typeof filesystemEntryTypes.DIRECTORY;
   permissionState: PermissionState;
   children?: Array<Directory | File>;
 };
 
-export type File = FilesystemItem & {
-  type: typeof filesystemItemTypes.FILE;
+export type File = FilesystemEntry & {
+  type: typeof filesystemEntryTypes.FILE;
   content?: string | Uint8Array;
 };
 
@@ -24,17 +24,17 @@ export const toDirectory = ({
   path: string;
   permissionState?: PermissionState;
 }): Directory => ({
-  type: filesystemItemTypes.DIRECTORY,
+  type: filesystemEntryTypes.DIRECTORY,
   path,
   name: getDirectoryName(path),
   permissionState,
 });
 
-export const isDirectory = (item: Directory | File): item is Directory =>
-  item.type === filesystemItemTypes.DIRECTORY;
+export const isDirectory = (entry: Directory | File): entry is Directory =>
+  entry.type === filesystemEntryTypes.DIRECTORY;
 
-export const isFile = (item: Directory | File): item is File =>
-  item.type === filesystemItemTypes.FILE;
+export const isFile = (entry: Directory | File): entry is File =>
+  entry.type === filesystemEntryTypes.FILE;
 
 export type TextFile = File & {
   content: string;
