@@ -29,3 +29,8 @@ export const FilesystemAlreadyExistsErrorTag = 'FilesystemAlreadyExistsError';
 export class AlreadyExistsError extends Cause.YieldableError {
   readonly _tag = FilesystemAlreadyExistsErrorTag;
 }
+
+export const FilesystemValidationErrorTag = 'FilesystemValidationError';
+export class ValidationError extends Cause.YieldableError {
+  readonly _tag = FilesystemValidationErrorTag;
+}

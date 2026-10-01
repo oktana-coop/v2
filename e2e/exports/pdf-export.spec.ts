@@ -5,7 +5,7 @@ import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
 import {
-  mockCreateNewFile,
+  mockCreateFileWithDialog,
   openCommandPalette,
   openHelloMd,
   openProjectFolder,
@@ -20,7 +20,7 @@ const exportToPdf = async ({
   window: Page;
   pdfOutputPath: string;
 }) => {
-  await mockCreateNewFile({ electronApp, filePath: pdfOutputPath });
+  await mockCreateFileWithDialog({ electronApp, filePath: pdfOutputPath });
 
   await openCommandPalette({ window });
 

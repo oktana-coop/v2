@@ -1,10 +1,7 @@
 import { useContext, useEffect, useState } from 'react';
 import { useMatch, useParams } from 'react-router';
 
-import {
-  filesystemEntryTypes,
-  removeExtension,
-} from '../../../../../../modules/infrastructure/filesystem';
+import { filesystemEntryTypes } from '../../../../../../modules/infrastructure/filesystem';
 import {
   ProjectContext,
   useNavigateToResolveConflicts,
@@ -55,7 +52,7 @@ export const MergeConflictsList = () => {
         ? compareContentConflicts.map((conflict) => ({
             type: filesystemEntryTypes.FILE,
             id: conflict.path,
-            name: removeExtension(conflict.path),
+            name: conflict.path,
             shared: false,
           }))
         : [];

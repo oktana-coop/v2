@@ -7,6 +7,7 @@ import {
   findFileNodeByPath,
   findNodeById,
   inferArtifactKindFromExtension,
+  listNamesInDirectory,
   listOpenableArtifacts,
   type ProjectDirectoryNode,
   type ProjectFileNode,
@@ -249,5 +250,52 @@ describe('findNodeById', () => {
   // explorer keys directory nodes by that same path.
   it('returns null for a path that belongs to a directory', () => {
     expect(findNodeById({ tree, id: 'docs' as ArtifactId })).toBeNull();
+  });
+});
+
+describe('listNamesInDirectory', () => {
+  const tree = [
+    directory({
+      path: 'drafts',
+      children: [
+        directory({
+          path: 'drafts/old',
+          children: [file({ path: 'drafts/old/a.md' })],
+        }),
+        file({ path: 'drafts/b.md' }),
+      ],
+    }),
+    file({ path: 'c.md' }),
+  ];
+
+  it('lists the names at the project root when no directory is given', () => {
+    expect(listNamesInDirectory({ tree })).toEqual(['drafts', 'c.md']);
+  });
+
+  it('lists the names directly inside a directory', () => {
+    expect(
+      listNamesInDirectory({
+        tree,
+        directoryPath: parseProjectRelPath('drafts'),
+      })
+    ).toEqual(['old', 'b.md']);
+  });
+
+  it('lists the names inside a nested directory', () => {
+    expect(
+      listNamesInDirectory({
+        tree,
+        directoryPath: parseProjectRelPath('drafts/old'),
+      })
+    ).toEqual(['a.md']);
+  });
+
+  it('lists nothing for a directory that is not in the tree', () => {
+    expect(
+      listNamesInDirectory({
+        tree,
+        directoryPath: parseProjectRelPath('missing'),
+      })
+    ).toEqual([]);
   });
 });

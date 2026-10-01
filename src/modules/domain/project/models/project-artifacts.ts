@@ -1,7 +1,6 @@
 import {
   filesystemEntryTypes,
   getExtension,
-  removeExtension,
   removePath,
 } from '../../../infrastructure/filesystem';
 import { type ArtifactId } from '../../../infrastructure/version-control';
@@ -88,10 +87,10 @@ export const isProjectDirectoryNode = (
 ): node is ProjectStoreDirectoryNode =>
   node.filesystemType === filesystemEntryTypes.DIRECTORY;
 
-// The artifact's name as the editor presents it — the file name without its
-// extension, since the extension is an implementation detail of the format.
+// The artifact's name as the editor presents it: the file name, extension
+// included, since the extension decides how the file opens.
 export const getArtifactName = (path: ProjectRelPath): string =>
-  removeExtension(removePath(path));
+  removePath(path);
 
 const areProjectTreeNodesEqual = (
   a: ProjectTreeNode,
@@ -134,6 +133,34 @@ export const findFileNodeByPath = ({
   flattenTree(tree)
     .filter(isProjectFileNode)
     .find((node) => node.path === path) ?? null;
+
+// Locates a directory node by its project-relative path.
+const findDirectoryNodeByPath = ({
+  tree,
+  path,
+}: {
+  tree: ProjectStoreTreeNode[];
+  path: ProjectRelPath;
+}): ProjectStoreDirectoryNode | null =>
+  flattenTree(tree)
+    .filter(isProjectDirectoryNode)
+    .find((node) => node.path === path) ?? null;
+
+// The names of the files and directories directly inside a directory, or
+// inside the project root when no directory is given.
+export const listNamesInDirectory = ({
+  tree,
+  directoryPath,
+}: {
+  tree: ProjectStoreTreeNode[];
+  directoryPath?: ProjectRelPath;
+}): string[] => {
+  const entries = directoryPath
+    ? (findDirectoryNodeByPath({ tree, path: directoryPath })?.children ?? [])
+    : tree;
+
+  return entries.map((node) => removePath(node.path));
+};
 
 // Locates a file node by its artifact id.
 export const findNodeById = ({

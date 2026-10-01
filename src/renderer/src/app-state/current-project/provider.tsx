@@ -92,7 +92,6 @@ export const ProjectProvider = ({
   const documentOps = useDocumentOps({
     projectId,
     projectStore,
-    directory,
     directoryTree,
     refreshDirectoryTree,
     currentArtifactPath,
@@ -115,7 +114,7 @@ export const ProjectProvider = ({
   });
 
   useExplorerContextMenu({
-    createNewDocument: documentOps.createNewDocument,
+    startCreateDocument: documentOps.startCreateDocument,
     startCreateDirectory: directoryOps.startCreateDirectory,
     startDeleteDocument: documentOps.startDeleteDocument,
     startDeleteDirectory: directoryOps.startDeleteDirectory,

@@ -4,7 +4,7 @@ import { Outlet } from 'react-router';
 export { DocumentEditor, DocumentHistoricalView } from './main';
 import {
   CurrentDocumentContext,
-  useCreateDocument,
+  ProjectContext,
   useCurrentChangeId,
 } from '../../../../app-state';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
@@ -16,14 +16,14 @@ export const ProjectDocuments = () => {
   const { versionedDocumentHistory: changes, onSelectChange } = useContext(
     CurrentDocumentContext
   );
+  const { pendingNewDocument } = useContext(ProjectContext);
   const changeId = useCurrentChangeId();
-  const { triggerDocumentCreationDialog } = useCreateDocument();
 
   return (
     <SidebarLayout
       sidebar={
         <StackedResizablePanelsLayout autoSaveId="project-documents-panel-group">
-          <DirectoryTreeView onCreateDocument={triggerDocumentCreationDialog} />
+          <DirectoryTreeView />
 
           <DocumentHistory
             changes={changes}
@@ -32,6 +32,7 @@ export const ProjectDocuments = () => {
           />
         </StackedResizablePanelsLayout>
       }
+      needsSidebar={pendingNewDocument !== null}
     >
       <Outlet />
     </SidebarLayout>

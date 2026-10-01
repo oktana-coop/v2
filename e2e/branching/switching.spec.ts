@@ -1,12 +1,11 @@
 import { Page } from '@playwright/test';
-import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
 import {
   attemptBranchSwitch,
   commitChanges,
   createAndSwitchToBranch,
-  createNewFileFromButton,
+  createNewDocumentFromButton,
   expectCurrentBranch,
   expectErrorNotification,
   expectNoOpenDocument,
@@ -61,11 +60,7 @@ test.describe('branch switching', () => {
     await createAndSwitchToBranch({ window, branchName: 'experiment' });
 
     // A document that only ever exists on experiment.
-    await createNewFileFromButton({
-      electronApp,
-      window,
-      filePath: path.join(testProjectDir, 'experiment-only.md'),
-    });
+    await createNewDocumentFromButton({ window, name: 'experiment-only.md' });
     await typeInParagraphAndWaitForDebounce({
       window,
       text: 'Only on experiment',

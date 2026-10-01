@@ -1,3 +1,4 @@
+import { removeExtension } from '../../../../infrastructure/filesystem';
 import { type GuestShare, type ShareId } from '../../ports';
 
 export type StoredGuestShare = {
@@ -16,7 +17,8 @@ export const toGuestShare = ({
   lastOpenedAt,
 }: StoredGuestShare): GuestShare => ({
   shareId,
-  name: label ?? sharedName,
+  // Guests have no files, so an extension says nothing to them.
+  name: label ?? removeExtension(sharedName),
   lastOpenedAt,
 });
 

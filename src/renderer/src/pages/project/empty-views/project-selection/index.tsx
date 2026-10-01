@@ -16,14 +16,15 @@ import { EmptyMainView } from '../empty-main-view';
 import { JoinSharedDocumentButton, SharedWithMeButton } from './guest-buttons';
 
 export const ProjectSelection = () => {
-  const { triggerDocumentCreationDialog } = useCreateDocument();
-  const { openDirectory } = useContext(ProjectContext);
+  const { startCreateDocument } = useCreateDocument();
+  const { openDirectory, pendingNewDocument } = useContext(ProjectContext);
   const { isOpen: isCloneFromGithubModalOpen, closeCloneFromGithubModal } =
     useContext(CloneFromGithubModalContext);
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleOpenDirectory = () => openDirectory();
+  const handleStartCreateDocument = () => startCreateDocument();
 
   const handleJoinAsGuest = useCallback(
     async (shareId: string) => {
@@ -38,12 +39,13 @@ export const ProjectSelection = () => {
     <SidebarLayout
       sidebar={
         <StackedResizablePanelsLayout autoSaveId="project-selection-panel-group">
-          <DirectoryTreeView onCreateDocument={triggerDocumentCreationDialog} />
+          <DirectoryTreeView />
         </StackedResizablePanelsLayout>
       }
+      needsSidebar={pendingNewDocument !== null}
     >
       <EmptyMainView
-        onCreateDocumentButtonClick={triggerDocumentCreationDialog}
+        onCreateDocumentButtonClick={handleStartCreateDocument}
         onOpenDirectoryButtonClick={handleOpenDirectory}
       >
         <JoinSharedDocumentButton onClick={() => setIsJoinDialogOpen(true)} />

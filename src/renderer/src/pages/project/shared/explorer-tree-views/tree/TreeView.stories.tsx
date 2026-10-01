@@ -3,7 +3,7 @@ import type { ComponentProps } from 'react';
 
 import { filesystemEntryTypes } from '../../../../../../../modules/infrastructure/filesystem';
 import { TreeView } from './TreeView';
-import { NEW_DIRECTORY_NODE_ID } from './types';
+import { NEW_DIRECTORY_NODE_ID, NEW_FILE_NODE_ID } from './types';
 
 const meta: Meta<typeof TreeView> = {
   title: 'navigation/TreeView',
@@ -303,6 +303,47 @@ export const WithNewDirectoryInput: Story = {
     onSelectItem: async () => {},
     onCreateDirectory: async (name) => console.log('Create directory:', name),
     onCancelCreateDirectory: () => console.log('Cancel create directory'),
+  },
+};
+
+// The inline-input state shown when creating a new file in a folder.
+export const WithNewFileInput: Story = {
+  args: {
+    data: [
+      {
+        id: 'parent',
+        name: 'parent-folder',
+        type: filesystemEntryTypes.DIRECTORY,
+        shared: false,
+        children: [
+          {
+            id: NEW_FILE_NODE_ID,
+            name: 'Untitled.md',
+            type: filesystemEntryTypes.FILE,
+            shared: false,
+          },
+          {
+            id: 'existing-child',
+            name: 'existing-doc.md',
+            type: filesystemEntryTypes.FILE,
+            shared: false,
+          },
+        ],
+      },
+    ],
+    selection: null,
+    hasPendingNewDocument: true,
+    onSelectItem: async () => {},
+    onCreateDocument: async (name) => console.log('Create file:', name),
+    onCancelCreateDocument: () => console.log('Cancel create file'),
+  },
+};
+
+// The inline-input state when the new file's name is refused.
+export const WithNewFileInputError: Story = {
+  args: {
+    ...WithNewFileInput.args,
+    createDocumentError: 'A document with this name already exists',
   },
 };
 

@@ -1,17 +1,28 @@
-import { type ReactNode, useContext } from 'react';
+import { type ReactNode, useContext, useEffect } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import { SidebarLayoutContext } from '../../app-state';
 
 export const SidebarLayout = ({
   sidebar,
+  needsSidebar = false,
   children,
 }: {
   sidebar: ReactNode;
+  needsSidebar?: boolean;
   children: ReactNode;
 }) => {
-  const { isSidebarOpen, sidebarPanelRef, collapseSidebar, expandSidebar } =
-    useContext(SidebarLayoutContext);
+  const {
+    isSidebarOpen,
+    sidebarPanelRef,
+    openSidebar,
+    collapseSidebar,
+    expandSidebar,
+  } = useContext(SidebarLayoutContext);
+
+  useEffect(() => {
+    if (needsSidebar) openSidebar();
+  }, [needsSidebar, openSidebar]);
 
   return (
     <PanelGroup autoSaveId="sidebar-layout-panel-group" direction="horizontal">

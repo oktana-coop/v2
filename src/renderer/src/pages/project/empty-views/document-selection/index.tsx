@@ -4,14 +4,15 @@ import { ProjectContext, useCreateDocument } from '../../../../app-state';
 import { EmptyMainView } from '../empty-main-view';
 
 export const DocumentSelection = () => {
-  const { triggerDocumentCreationDialog } = useCreateDocument();
+  const { startCreateDocument } = useCreateDocument();
   const { openDirectory } = useContext(ProjectContext);
 
   const handleOpenDirectory = () => openDirectory();
+  const handleStartCreateDocument = () => startCreateDocument();
 
   return (
     <EmptyMainView
-      onCreateDocumentButtonClick={triggerDocumentCreationDialog}
+      onCreateDocumentButtonClick={handleStartCreateDocument}
       onOpenDirectoryButtonClick={handleOpenDirectory}
     />
   );

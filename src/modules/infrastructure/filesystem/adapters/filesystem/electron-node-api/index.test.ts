@@ -10,14 +10,17 @@ import {
   NotFoundError,
   RepositoryError,
 } from '../../../errors';
+import { toDirectory } from '../../../models';
 import { createAdapter } from './index';
 
 vi.mock('node:fs', () => {
   const promises = {
     access: vi.fn(),
+    mkdir: vi.fn(),
     readdir: vi.fn(),
     rename: vi.fn(),
     rm: vi.fn(),
+    writeFile: vi.fn(),
   };
   return { default: { promises }, promises };
 });
@@ -48,6 +51,8 @@ describe('electron-node-api filesystem adapter', () => {
   const mockReaddir = vi.mocked(fs.readdir);
   const mockRename = vi.mocked(fs.rename);
   const mockRm = vi.mocked(fs.rm);
+  const mockMkdir = vi.mocked(fs.mkdir);
+  const mockWriteFile = vi.mocked(fs.writeFile);
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -1068,11 +1073,11 @@ describe('electron-node-api filesystem adapter', () => {
   });
 
   describe('getRenamedPath', () => {
-    it('preserves extension when renaming a file in a directory', async () => {
+    it('replaces the name in the same directory', async () => {
       const result = await Effect.runPromise(
         adapter.getRenamedPath({
           oldPath: path.join(basePath, 'notes.md'),
-          newName: 'renamed',
+          newName: 'renamed.md',
         })
       );
 
@@ -1081,7 +1086,7 @@ describe('electron-node-api filesystem adapter', () => {
 
     it('produces no leading dot-slash for a filename without a parent directory', async () => {
       const result = await Effect.runPromise(
-        adapter.getRenamedPath({ oldPath: 'notes.md', newName: 'renamed' })
+        adapter.getRenamedPath({ oldPath: 'notes.md', newName: 'renamed.md' })
       );
 
       expect(result).toBe('renamed.md');
@@ -1091,11 +1096,33 @@ describe('electron-node-api filesystem adapter', () => {
       const result = await Effect.runPromise(
         adapter.getRenamedPath({
           oldPath: path.join(basePath, 'docs', 'intro.md'),
-          newName: 'getting-started',
+          newName: 'getting-started.md',
         })
       );
 
       expect(result).toBe(path.join(basePath, 'docs', 'getting-started.md'));
+    });
+
+    it('takes the extension from the new name', async () => {
+      const result = await Effect.runPromise(
+        adapter.getRenamedPath({
+          oldPath: path.join(basePath, 'notes.md'),
+          newName: 'notes.yaml',
+        })
+      );
+
+      expect(result).toBe(path.join(basePath, 'notes.yaml'));
+    });
+
+    it('keeps the dots in a directory name', async () => {
+      const result = await Effect.runPromise(
+        adapter.getRenamedPath({
+          oldPath: path.join(basePath, 'v1.2'),
+          newName: 'v1.3',
+        })
+      );
+
+      expect(result).toBe(path.join(basePath, 'v1.3'));
     });
 
     it('preserves a file with no extension', async () => {
@@ -1107,6 +1134,73 @@ describe('electron-node-api filesystem adapter', () => {
       );
 
       expect(result).toBe(path.join(basePath, 'NOTICE'));
+    });
+  });
+
+  describe('createFile', () => {
+    const mockNodeError = (code: string) =>
+      Object.assign(new Error(code), { code });
+
+    const filePath = path.join(basePath, 'notes.md');
+
+    it('writes the file only if nothing exists at the path', async () => {
+      mockWriteFile.mockResolvedValue(undefined);
+
+      await Effect.runPromise(
+        adapter.createFile({ path: filePath, content: '' })
+      );
+
+      expect(mockWriteFile).toHaveBeenCalledWith(filePath, '', { flag: 'wx' });
+    });
+
+    it.each([
+      ['EEXIST', AlreadyExistsError],
+      ['ENOENT', NotFoundError],
+      ['EACCES', AccessControlError],
+      ['EIO', RepositoryError],
+    ])('maps %s to %O', async (code, ErrorClass) => {
+      mockWriteFile.mockRejectedValue(mockNodeError(code));
+
+      const err = await Effect.runPromise(
+        Effect.flip(adapter.createFile({ path: filePath, content: '' }))
+      );
+
+      expect(err).toBeInstanceOf(ErrorClass);
+    });
+  });
+
+  describe('createDirectory', () => {
+    const mockNodeError = (code: string) =>
+      Object.assign(new Error(code), { code });
+
+    it('fails with AlreadyExistsError when something exists at the path', async () => {
+      mockMkdir.mockRejectedValue(mockNodeError('EEXIST'));
+
+      const err = await Effect.runPromise(
+        Effect.flip(
+          adapter.createDirectory({
+            name: 'drafts',
+            parentDirectory: toDirectory({ path: basePath }),
+          })
+        )
+      );
+
+      expect(err).toBeInstanceOf(AlreadyExistsError);
+    });
+
+    it('fails with RepositoryError for other Node.js errors', async () => {
+      mockMkdir.mockRejectedValue(mockNodeError('EIO'));
+
+      const err = await Effect.runPromise(
+        Effect.flip(
+          adapter.createDirectory({
+            name: 'drafts',
+            parentDirectory: toDirectory({ path: basePath }),
+          })
+        )
+      );
+
+      expect(err).toBeInstanceOf(RepositoryError);
     });
   });
 

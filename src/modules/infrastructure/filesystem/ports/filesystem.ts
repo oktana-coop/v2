@@ -24,11 +24,16 @@ export type WriteFileArgs = {
   content: string | Uint8Array;
 };
 
-export type CreateNewFileArgs = {
+export type CreateFileWithDialogArgs = {
   suggestedName?: string;
   extensions: Array<string>;
   parentDirectory?: Directory;
   content?: string | Uint8Array;
+};
+
+export type CreateFileArgs = {
+  path: string;
+  content: string | Uint8Array;
 };
 
 export type ListDirectoryFilesArgs = {
@@ -123,9 +128,16 @@ export type Filesystem = {
     NotFoundError | RepositoryError | AccessControlError,
     never
   >;
-  createNewFile: (
-    args: CreateNewFileArgs
+  createFileWithDialog: (
+    args: CreateFileWithDialogArgs
   ) => Effect.Effect<File, AbortError | NotFoundError | RepositoryError, never>;
+  createFile: (
+    args: CreateFileArgs
+  ) => Effect.Effect<
+    void,
+    AlreadyExistsError | AccessControlError | NotFoundError | RepositoryError,
+    never
+  >;
   openFile: (
     args: OpenFileArgs
   ) => Effect.Effect<File, AbortError | RepositoryError, never>;
@@ -173,7 +185,11 @@ export type Filesystem = {
   >;
   createDirectory: (
     args: CreateDirectoryArgs
-  ) => Effect.Effect<Directory, NotFoundError | RepositoryError, never>;
+  ) => Effect.Effect<
+    Directory,
+    AlreadyExistsError | NotFoundError | RepositoryError,
+    never
+  >;
   ensureDirectory: (args: {
     path: string;
   }) => Effect.Effect<void, RepositoryError, never>;

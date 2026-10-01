@@ -1,10 +1,7 @@
 import { useMemo } from 'react';
 import { useOutletContext } from 'react-router';
 
-import {
-  removeExtension,
-  removePath,
-} from '../../../../../../../modules/infrastructure/filesystem';
+import { removePath } from '../../../../../../../modules/infrastructure/filesystem';
 import {
   type ChangedDocument,
   type Commit,
@@ -55,7 +52,7 @@ export const ProjectHistoryDocumentView = () => {
     diffSelectorCommits,
   } = useHistoricalDocument({ changes: changesWithUrlInfo });
 
-  const docName = documentPath ? removeExtension(removePath(documentPath)) : '';
+  const docName = documentPath ? removePath(documentPath) : '';
 
   const selectedChangedDocument = useMemo((): ChangedDocument | null => {
     if (!documentPath) return null;
