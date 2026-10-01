@@ -2,7 +2,7 @@ import { createContext, useContext, useRef } from 'react';
 import { type NodeApi, type TreeApi } from 'react-arborist';
 
 import { ElectronContext } from '../../../../../../../modules/infrastructure/cross-platform/browser';
-import { filesystemItemTypes } from '../../../../../../../modules/infrastructure/filesystem';
+import { filesystemEntryTypes } from '../../../../../../../modules/infrastructure/filesystem';
 import { AutoSizedTree, TREE_ROW_HEIGHT } from '../../../../../components/tree';
 import { TreeNode } from './TreeNode';
 import { type ExplorerTreeNode, STRUCTURAL_CONFLICTS_NODE_TYPE } from './types';
@@ -93,7 +93,7 @@ export const TreeView = ({
 
   const handleActivate = (node: NodeApi<ExplorerTreeNode>) => {
     if (
-      node.data.type === filesystemItemTypes.FILE ||
+      node.data.type === filesystemEntryTypes.FILE ||
       node.data.type === STRUCTURAL_CONFLICTS_NODE_TYPE
     ) {
       onSelectItem(node.id);
@@ -104,7 +104,7 @@ export const TreeView = ({
     focused: NodeApi<ExplorerTreeNode> | null
   ): string | undefined => {
     if (!focused) return undefined;
-    if (focused.data.type === filesystemItemTypes.DIRECTORY) return focused.id;
+    if (focused.data.type === filesystemEntryTypes.DIRECTORY) return focused.id;
     const parentId = focused.parent?.id;
     if (!parentId || focused.parent?.isRoot) return undefined;
     return parentId;
@@ -152,8 +152,8 @@ export const TreeView = ({
     // Delete and rename require a focused node
     if (!focused) return;
 
-    const isFile = focused.data.type === filesystemItemTypes.FILE;
-    const isDirectory = focused.data.type === filesystemItemTypes.DIRECTORY;
+    const isFile = focused.data.type === filesystemEntryTypes.FILE;
+    const isDirectory = focused.data.type === filesystemEntryTypes.DIRECTORY;
 
     const action = isDeleteKey
       ? // Delete

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { filesystemItemTypes } from '../../../infrastructure/filesystem';
+import { filesystemEntryTypes } from '../../../infrastructure/filesystem';
 import { type ArtifactId } from '../../../infrastructure/version-control';
 import {
   areProjectTreesEqual,
@@ -18,7 +18,7 @@ const file = ({ path }: { path: string }): ProjectFileNode => ({
   id: path as ArtifactId,
   path: parseProjectRelPath(path),
   kind: inferArtifactKindFromExtension(path),
-  filesystemType: filesystemItemTypes.FILE,
+  filesystemType: filesystemEntryTypes.FILE,
   shared: false,
 });
 
@@ -30,7 +30,7 @@ const directory = ({
   children: ProjectTreeNode[];
 }): ProjectDirectoryNode => ({
   path: parseProjectRelPath(path),
-  filesystemType: filesystemItemTypes.DIRECTORY,
+  filesystemType: filesystemEntryTypes.DIRECTORY,
   children,
 });
 

@@ -3,9 +3,9 @@ import type { ValueOf } from 'type-fest';
 const DIRECTORY = 'DIRECTORY';
 const FILE = 'FILE';
 
-export const filesystemItemTypes = {
+export const filesystemEntryTypes = {
   DIRECTORY,
   FILE,
 } as const;
 
-export type FilesystemItemType = ValueOf<typeof filesystemItemTypes>;
+export type FilesystemEntryType = ValueOf<typeof filesystemEntryTypes>;

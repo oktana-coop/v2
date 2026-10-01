@@ -7,7 +7,7 @@ import {
   type ProjectFileNode,
   type ProjectTreeNode,
 } from '../../../../../../modules/domain/project';
-import { filesystemItemTypes } from '../../../../../../modules/infrastructure/filesystem';
+import { filesystemEntryTypes } from '../../../../../../modules/infrastructure/filesystem';
 import { type ArtifactId } from '../../../../../../modules/infrastructure/version-control';
 import {
   getExplorerTreeInProject,
@@ -22,7 +22,7 @@ const artifactFile = (path: string): ProjectFileNode => ({
   id: path as ArtifactId,
   path: parseProjectRelPath(path),
   kind: inferArtifactKindFromExtension(path),
-  filesystemType: filesystemItemTypes.FILE,
+  filesystemType: filesystemEntryTypes.FILE,
   shared: false,
 });
 
@@ -34,7 +34,7 @@ const artifactDir = ({
   children: ProjectTreeNode[];
 }): ProjectDirectoryNode => ({
   path: parseProjectRelPath(path),
-  filesystemType: filesystemItemTypes.DIRECTORY,
+  filesystemType: filesystemEntryTypes.DIRECTORY,
   children,
 });
 
@@ -47,7 +47,7 @@ const dirNode = ({
 }): ExplorerTreeNode => ({
   id,
   name: basename(id),
-  type: filesystemItemTypes.DIRECTORY,
+  type: filesystemEntryTypes.DIRECTORY,
   shared: false,
   ...(children ? { children } : {}),
 });
@@ -55,7 +55,7 @@ const dirNode = ({
 const pendingNode: ExplorerTreeNode = {
   id: NEW_DIRECTORY_NODE_ID,
   name: '',
-  type: filesystemItemTypes.DIRECTORY,
+  type: filesystemEntryTypes.DIRECTORY,
   shared: false,
   children: [],
 };
@@ -72,13 +72,13 @@ describe('getExplorerTreeInProject', () => {
       {
         id: 'a.md',
         name: 'a.md',
-        type: filesystemItemTypes.FILE,
+        type: filesystemEntryTypes.FILE,
         shared: false,
       },
       {
         id: 'b.md',
         name: 'b.md',
-        type: filesystemItemTypes.FILE,
+        type: filesystemEntryTypes.FILE,
         shared: false,
       },
     ]);
@@ -93,13 +93,13 @@ describe('getExplorerTreeInProject', () => {
       {
         id: 'dir',
         name: 'dir',
-        type: filesystemItemTypes.DIRECTORY,
+        type: filesystemEntryTypes.DIRECTORY,
         shared: false,
         children: [
           {
             id: 'dir/a.md',
             name: 'a.md',
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             shared: false,
           },
         ],
@@ -124,19 +124,19 @@ describe('getExplorerTreeInProject', () => {
       {
         id: 'dir',
         name: 'dir',
-        type: filesystemItemTypes.DIRECTORY,
+        type: filesystemEntryTypes.DIRECTORY,
         shared: false,
         children: [
           {
             id: 'dir/sub',
             name: 'sub',
-            type: filesystemItemTypes.DIRECTORY,
+            type: filesystemEntryTypes.DIRECTORY,
             shared: false,
             children: [
               {
                 id: 'dir/sub/a.md',
                 name: 'a.md',
-                type: filesystemItemTypes.FILE,
+                type: filesystemEntryTypes.FILE,
                 shared: false,
               },
             ],
@@ -150,7 +150,7 @@ describe('getExplorerTreeInProject', () => {
 const fileNode = (id: string): ExplorerTreeNode => ({
   id,
   name: basename(id),
-  type: filesystemItemTypes.FILE,
+  type: filesystemEntryTypes.FILE,
   shared: false,
 });
 
@@ -172,7 +172,7 @@ describe('injectPendingDirectoryNode', () => {
       {
         id: 'dir',
         name: 'dir',
-        type: filesystemItemTypes.DIRECTORY,
+        type: filesystemEntryTypes.DIRECTORY,
         shared: false,
         children: [pendingNode, fileNode('dir/a.md')],
       },
@@ -199,13 +199,13 @@ describe('injectPendingDirectoryNode', () => {
       {
         id: 'dir',
         name: 'dir',
-        type: filesystemItemTypes.DIRECTORY,
+        type: filesystemEntryTypes.DIRECTORY,
         shared: false,
         children: [
           {
             id: 'dir/sub',
             name: 'sub',
-            type: filesystemItemTypes.DIRECTORY,
+            type: filesystemEntryTypes.DIRECTORY,
             shared: false,
             children: [pendingNode, fileNode('dir/sub/a.md')],
           },
@@ -220,7 +220,7 @@ describe('injectPendingDirectoryNode', () => {
         {
           id: 'dir',
           name: 'dir',
-          type: filesystemItemTypes.DIRECTORY,
+          type: filesystemEntryTypes.DIRECTORY,
           shared: false,
           children: [pendingNode],
         },

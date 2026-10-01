@@ -3,7 +3,7 @@ import {
   type ProjectTreeNode,
 } from '../../../../../../modules/domain/project';
 import {
-  filesystemItemTypes,
+  filesystemEntryTypes,
   removePath,
 } from '../../../../../../modules/infrastructure/filesystem';
 import { type ExplorerTreeNode, NEW_DIRECTORY_NODE_ID } from './tree/types';
@@ -15,7 +15,7 @@ export const injectPendingDirectoryNode = (
   const pendingDirectoryNode: ExplorerTreeNode = {
     id: NEW_DIRECTORY_NODE_ID,
     name: '',
-    type: filesystemItemTypes.DIRECTORY,
+    type: filesystemEntryTypes.DIRECTORY,
     children: [],
     shared: false,
   };
@@ -23,7 +23,10 @@ export const injectPendingDirectoryNode = (
   if (!parentPath) return [pendingDirectoryNode, ...nodes];
 
   return nodes.map((node) => {
-    if (node.type === filesystemItemTypes.DIRECTORY && node.id === parentPath) {
+    if (
+      node.type === filesystemEntryTypes.DIRECTORY &&
+      node.id === parentPath
+    ) {
       return {
         ...node,
         children: [pendingDirectoryNode, ...(node.children ?? [])],
@@ -49,14 +52,14 @@ export const getExplorerTreeInProject = (
       ? {
           id: node.path,
           name: removePath(node.path),
-          type: filesystemItemTypes.DIRECTORY,
+          type: filesystemEntryTypes.DIRECTORY,
           children: node.children.map(toExplorerNode),
           shared: false,
         }
       : {
           id: node.path,
           name: removePath(node.path),
-          type: filesystemItemTypes.FILE,
+          type: filesystemEntryTypes.FILE,
           shared: node.shared,
         };
 

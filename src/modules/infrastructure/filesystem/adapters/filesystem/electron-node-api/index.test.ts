@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import * as Effect from 'effect/Effect';
 
-import { filesystemItemTypes } from '../../../constants/filesystem-item-types';
+import { filesystemEntryTypes } from '../../../constants/filesystem-entry-types';
 import {
   AccessControlError,
   AlreadyExistsError,
@@ -97,19 +97,19 @@ describe('electron-node-api filesystem adapter', () => {
 
         expect(result).toEqual([
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'file.txt',
             // file.txt
             path: 'file.txt',
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'document.md',
             // document.md
             path: 'document.md',
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'image.png',
             // image.png
             path: 'image.png',
@@ -145,19 +145,19 @@ describe('electron-node-api filesystem adapter', () => {
 
         expect(result).toEqual([
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'file.txt',
             // file.txt
             path: 'file.txt',
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'guide.md',
             // docs/guide.md
             path: path.join('docs', 'guide.md'),
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'notes.pdf',
             // docs/archived/notes.pdf
             path: path.join('docs', 'archived', 'notes.pdf'),
@@ -194,13 +194,13 @@ describe('electron-node-api filesystem adapter', () => {
 
         expect(result).toEqual([
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'visible.txt',
             // visible.txt
             path: 'visible.txt',
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'another.md',
             // another.md
             path: 'another.md',
@@ -239,13 +239,13 @@ describe('electron-node-api filesystem adapter', () => {
 
         expect(result).toEqual([
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'guide.md',
             // guide.md
             path: 'guide.md',
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'settings.docx',
             // settings.docx
             path: 'settings.docx',
@@ -294,31 +294,31 @@ describe('electron-node-api filesystem adapter', () => {
 
         expect(result).toEqual([
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'README.md',
             // README.md
             path: 'README.md',
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'intro.md',
             // docs/intro.md
             path: path.join('docs', 'intro.md'),
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'templates.docx',
             // docs/templates/templates.docx
             path: path.join('docs', 'templates', 'templates.docx'),
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'references.txt',
             // docs/templates/references.txt
             path: path.join('docs', 'templates', 'references.txt'),
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'manifest.txt',
             // metadata/manifest.txt
             path: path.join('metadata', 'manifest.txt'),
@@ -356,25 +356,25 @@ describe('electron-node-api filesystem adapter', () => {
 
         expect(result).toEqual([
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'README.md',
             // /Users/alice/Documents/README.md
             path: path.join(basePath, 'README.md'),
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'intro.md',
             // /Users/alice/Documents/docs/intro.md
             path: path.join(basePath, 'docs', 'intro.md'),
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'templates.docx',
             // /Users/alice/Documents/docs/templates/templates.docx
             path: path.join(basePath, 'docs', 'templates', 'templates.docx'),
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'manifest.txt',
             // /Users/alice/Documents/metadata/manifest.txt
             path: path.join(basePath, 'metadata', 'manifest.txt'),
@@ -451,13 +451,13 @@ describe('electron-node-api filesystem adapter', () => {
 
         expect(result).toEqual([
           {
-            type: filesystemItemTypes.DIRECTORY,
+            type: filesystemEntryTypes.DIRECTORY,
             name: 'docs',
             // /Users/alice/Documents/docs
             path: path.join(basePath, 'docs'),
             children: [
               {
-                type: filesystemItemTypes.FILE,
+                type: filesystemEntryTypes.FILE,
                 name: 'intro.md',
                 // /Users/alice/Documents/docs/intro.md
                 path: path.join(basePath, 'docs', 'intro.md'),
@@ -466,13 +466,13 @@ describe('electron-node-api filesystem adapter', () => {
             permissionState: 'granted',
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'guide.md',
             // /Users/alice/Documents/guide.md
             path: path.join(basePath, 'guide.md'),
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'README.md',
             // /Users/alice/Documents/README.md
             path: path.join(basePath, 'README.md'),
@@ -513,13 +513,13 @@ describe('electron-node-api filesystem adapter', () => {
 
         expect(result).toEqual([
           {
-            type: filesystemItemTypes.DIRECTORY,
+            type: filesystemEntryTypes.DIRECTORY,
             name: 'metadata',
             // metadata
             path: 'metadata',
             children: [
               {
-                type: filesystemItemTypes.FILE,
+                type: filesystemEntryTypes.FILE,
                 name: 'manifest.txt',
                 // metadata/manifest.txt
                 path: path.join('metadata', 'manifest.txt'),
@@ -528,13 +528,13 @@ describe('electron-node-api filesystem adapter', () => {
             permissionState: 'granted',
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'guide.md',
             // guide.md
             path: 'guide.md',
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'README.md',
             // README.md
             path: 'README.md',
@@ -572,25 +572,25 @@ describe('electron-node-api filesystem adapter', () => {
 
         expect(result).toEqual([
           {
-            type: filesystemItemTypes.DIRECTORY,
+            type: filesystemEntryTypes.DIRECTORY,
             name: 'archive',
             // /Users/alice/Documents/archive
             path: path.join(basePath, 'archive'),
             children: [
               {
-                type: filesystemItemTypes.FILE,
+                type: filesystemEntryTypes.FILE,
                 name: 'document.pdf',
                 // /Users/alice/Documents/archive/document.pdf
                 path: path.join(basePath, 'archive', 'document.pdf'),
               },
               {
-                type: filesystemItemTypes.FILE,
+                type: filesystemEntryTypes.FILE,
                 name: 'guide.md',
                 // /Users/alice/Documents/archive/guide.md
                 path: path.join(basePath, 'archive', 'guide.md'),
               },
               {
-                type: filesystemItemTypes.FILE,
+                type: filesystemEntryTypes.FILE,
                 name: 'notes.txt',
                 // /Users/alice/Documents/archive/notes.txt
                 path: path.join(basePath, 'archive', 'notes.txt'),
@@ -626,7 +626,7 @@ describe('electron-node-api filesystem adapter', () => {
 
         expect(result).toEqual([
           {
-            type: filesystemItemTypes.DIRECTORY,
+            type: filesystemEntryTypes.DIRECTORY,
             name: 'empty-folder',
             // /Users/alice/Documents/empty-folder
             path: path.join(basePath, 'empty-folder'),
@@ -657,7 +657,7 @@ describe('electron-node-api filesystem adapter', () => {
 
         expect(result).toEqual([
           {
-            type: filesystemItemTypes.DIRECTORY,
+            type: filesystemEntryTypes.DIRECTORY,
             name: 'docs',
             // /Users/alice/Documents/docs
             path: path.join(basePath, 'docs'),
@@ -666,7 +666,7 @@ describe('electron-node-api filesystem adapter', () => {
             permissionState: 'granted',
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'README.md',
             // /Users/alice/Documents/README.md
             path: path.join(basePath, 'README.md'),
@@ -731,19 +731,19 @@ describe('electron-node-api filesystem adapter', () => {
 
         expect(result).toEqual([
           {
-            type: filesystemItemTypes.DIRECTORY,
+            type: filesystemEntryTypes.DIRECTORY,
             name: 'docs',
             // /Users/alice/Documents/docs
             path: path.join(basePath, 'docs'),
             children: [
               {
-                type: filesystemItemTypes.DIRECTORY,
+                type: filesystemEntryTypes.DIRECTORY,
                 name: 'templates',
                 // /Users/alice/Documents/docs/templates
                 path: path.join(basePath, 'docs', 'templates'),
                 children: [
                   {
-                    type: filesystemItemTypes.FILE,
+                    type: filesystemEntryTypes.FILE,
                     name: 'templates.docx',
                     // /Users/alice/Documents/docs/templates/templates.docx
                     path: path.join(
@@ -757,7 +757,7 @@ describe('electron-node-api filesystem adapter', () => {
                 permissionState: 'granted',
               },
               {
-                type: filesystemItemTypes.FILE,
+                type: filesystemEntryTypes.FILE,
                 name: 'intro.md',
                 // /Users/alice/Documents/docs/intro.md
                 path: path.join(basePath, 'docs', 'intro.md'),
@@ -766,13 +766,13 @@ describe('electron-node-api filesystem adapter', () => {
             permissionState: 'granted',
           },
           {
-            type: filesystemItemTypes.DIRECTORY,
+            type: filesystemEntryTypes.DIRECTORY,
             name: 'metadata',
             // /Users/alice/Documents/metadata
             path: path.join(basePath, 'metadata'),
             children: [
               {
-                type: filesystemItemTypes.FILE,
+                type: filesystemEntryTypes.FILE,
                 name: 'manifest.txt',
                 // /Users/alice/Documents/metadata/manifest.txt
                 path: path.join(basePath, 'metadata', 'manifest.txt'),
@@ -781,7 +781,7 @@ describe('electron-node-api filesystem adapter', () => {
             permissionState: 'granted',
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'README.md',
             // /Users/alice/Documents/README.md
             path: path.join(basePath, 'README.md'),
@@ -832,19 +832,19 @@ describe('electron-node-api filesystem adapter', () => {
 
         expect(result).toEqual([
           {
-            type: filesystemItemTypes.DIRECTORY,
+            type: filesystemEntryTypes.DIRECTORY,
             name: 'docs',
             // docs
             path: 'docs',
             children: [
               {
-                type: filesystemItemTypes.DIRECTORY,
+                type: filesystemEntryTypes.DIRECTORY,
                 name: 'templates',
                 // docs/templates
                 path: path.join('docs', 'templates'),
                 children: [
                   {
-                    type: filesystemItemTypes.FILE,
+                    type: filesystemEntryTypes.FILE,
                     name: 'guide.pdf',
                     // docs/templates/guide.pdf
                     path: path.join('docs', 'templates', 'guide.pdf'),
@@ -853,7 +853,7 @@ describe('electron-node-api filesystem adapter', () => {
                 permissionState: 'granted',
               },
               {
-                type: filesystemItemTypes.FILE,
+                type: filesystemEntryTypes.FILE,
                 name: 'intro.md',
                 // docs/intro.md
                 path: path.join('docs', 'intro.md'),
@@ -862,7 +862,7 @@ describe('electron-node-api filesystem adapter', () => {
             permissionState: 'granted',
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'README.md',
             // README.md
             path: 'README.md',
@@ -903,13 +903,13 @@ describe('electron-node-api filesystem adapter', () => {
 
         expect(result).toEqual([
           {
-            type: filesystemItemTypes.DIRECTORY,
+            type: filesystemEntryTypes.DIRECTORY,
             name: 'docs',
             // /Users/alice/Documents/docs
             path: path.join(basePath, 'docs'),
             children: [
               {
-                type: filesystemItemTypes.DIRECTORY,
+                type: filesystemEntryTypes.DIRECTORY,
                 name: 'templates',
                 // /Users/alice/Documents/docs/templates
                 path: path.join(basePath, 'docs', 'templates'),
@@ -917,7 +917,7 @@ describe('electron-node-api filesystem adapter', () => {
                 permissionState: 'granted',
               },
               {
-                type: filesystemItemTypes.FILE,
+                type: filesystemEntryTypes.FILE,
                 name: 'intro.md',
                 // /Users/alice/Documents/docs/intro.md
                 path: path.join(basePath, 'docs', 'intro.md'),
@@ -926,7 +926,7 @@ describe('electron-node-api filesystem adapter', () => {
             permissionState: 'granted',
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'README.md',
             // /Users/alice/Documents/README.md
             path: path.join(basePath, 'README.md'),
@@ -997,19 +997,19 @@ describe('electron-node-api filesystem adapter', () => {
 
         expect(result).toEqual([
           {
-            type: filesystemItemTypes.DIRECTORY,
+            type: filesystemEntryTypes.DIRECTORY,
             name: 'archive',
             // /Users/alice/Documents/archive
             path: path.join(basePath, 'archive'),
             children: [
               {
-                type: filesystemItemTypes.DIRECTORY,
+                type: filesystemEntryTypes.DIRECTORY,
                 name: 'data',
                 // /Users/alice/Documents/archive/data
                 path: path.join(basePath, 'archive', 'data'),
                 children: [
                   {
-                    type: filesystemItemTypes.FILE,
+                    type: filesystemEntryTypes.FILE,
                     name: 'notes.txt',
                     // /Users/alice/Documents/archive/data/notes.txt
                     path: path.join(basePath, 'archive', 'data', 'notes.txt'),
@@ -1018,7 +1018,7 @@ describe('electron-node-api filesystem adapter', () => {
                 permissionState: 'granted',
               },
               {
-                type: filesystemItemTypes.FILE,
+                type: filesystemEntryTypes.FILE,
                 name: 'index.md',
                 // /Users/alice/Documents/archive/index.md
                 path: path.join(basePath, 'archive', 'index.md'),
@@ -1027,19 +1027,19 @@ describe('electron-node-api filesystem adapter', () => {
             permissionState: 'granted',
           },
           {
-            type: filesystemItemTypes.DIRECTORY,
+            type: filesystemEntryTypes.DIRECTORY,
             name: 'data',
             // /Users/alice/Documents/data
             path: path.join(basePath, 'data'),
             children: [
               {
-                type: filesystemItemTypes.DIRECTORY,
+                type: filesystemEntryTypes.DIRECTORY,
                 name: 'config',
                 // /Users/alice/Documents/data/config
                 path: path.join(basePath, 'data', 'config'),
                 children: [
                   {
-                    type: filesystemItemTypes.FILE,
+                    type: filesystemEntryTypes.FILE,
                     name: 'index.md',
                     // /Users/alice/Documents/data/config/index.md
                     path: path.join(basePath, 'data', 'config', 'index.md'),
@@ -1048,7 +1048,7 @@ describe('electron-node-api filesystem adapter', () => {
                 permissionState: 'granted',
               },
               {
-                type: filesystemItemTypes.FILE,
+                type: filesystemEntryTypes.FILE,
                 name: 'index.md',
                 // /Users/alice/Documents/data/index.md
                 path: path.join(basePath, 'data', 'index.md'),
@@ -1057,7 +1057,7 @@ describe('electron-node-api filesystem adapter', () => {
             permissionState: 'granted',
           },
           {
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             name: 'index.md',
             // /Users/alice/Documents/index.md
             path: path.join(basePath, 'index.md'),

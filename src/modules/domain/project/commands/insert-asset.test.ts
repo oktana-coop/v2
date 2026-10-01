@@ -5,7 +5,7 @@ import {
   AbortError,
   type BinaryFile,
   type File,
-  filesystemItemTypes,
+  filesystemEntryTypes,
 } from '../../../../modules/infrastructure/filesystem';
 import { type ArtifactId } from '../../../../modules/infrastructure/version-control';
 import { NotFoundError as VersionedProjectNotFoundError } from '../errors';
@@ -24,7 +24,7 @@ const alreadyInProjectAt = (relPath: string) =>
 const outsideProject = () => vi.fn().mockReturnValue(Effect.succeed(null));
 
 const fileAt = (path: string): File => ({
-  type: filesystemItemTypes.FILE,
+  type: filesystemEntryTypes.FILE,
   name: path.split('/').pop() ?? path,
   path,
 });
@@ -52,7 +52,7 @@ const buildDeps = (
     overrides.readBinaryFile ??
     vi.fn().mockImplementation((path: string) =>
       Effect.succeed({
-        type: filesystemItemTypes.FILE,
+        type: filesystemEntryTypes.FILE,
         name: path.split('/').pop() ?? path,
         path,
         content: new Uint8Array([1, 2, 3]),

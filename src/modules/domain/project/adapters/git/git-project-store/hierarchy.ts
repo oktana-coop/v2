@@ -10,7 +10,7 @@ import {
   type Directory,
   type File,
   type Filesystem,
-  filesystemItemTypes,
+  filesystemEntryTypes,
   isDirectory,
 } from '../../../../../../modules/infrastructure/filesystem';
 import { createGitBlobRef } from '../../../../../../modules/infrastructure/version-control';
@@ -40,7 +40,7 @@ const toProjectTreeNode =
                 Effect.forEach(node.children ?? [], toProjectTreeNode(ref)),
                 Effect.map((children) => ({
                   path,
-                  filesystemType: filesystemItemTypes.DIRECTORY,
+                  filesystemType: filesystemEntryTypes.DIRECTORY,
                   children,
                 }))
               )
@@ -48,7 +48,7 @@ const toProjectTreeNode =
                 id: createGitBlobRef({ ref, path }),
                 path,
                 kind: inferArtifactKindFromExtension(path),
-                filesystemType: filesystemItemTypes.FILE,
+                filesystemType: filesystemEntryTypes.FILE,
               })
       )
     );
