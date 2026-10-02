@@ -1,4 +1,3 @@
-import { Page } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
@@ -28,16 +27,6 @@ import {
   renameKey,
   typeInEditorAndWaitForDebounce,
 } from '../shared/helpers';
-
-// Collapses the sidebar through the keyboard on its resize handle; the toggle
-// button has no accessible name to find it by.
-const collapseSidebar = async ({ window }: { window: Page }) => {
-  await window
-    .locator('[role="separator"][data-panel-group-direction="horizontal"]')
-    .first()
-    .focus();
-  await window.keyboard.press('Enter');
-};
 
 test.describe('empty project', () => {
   test('shows empty state when directory has no files', async ({
@@ -298,7 +287,9 @@ test.describe('flat directory structure', () => {
       folderPath: testProjectDir,
     });
 
-    await collapseSidebar({ window });
+    await window
+      .getByRole('button', { name: 'Hide Sidebar', exact: true })
+      .click();
     await expect(window.getByTestId('file-explorer')).not.toBeVisible();
 
     await openCommandPalette({ window });

@@ -62,6 +62,7 @@ export const ActionsBar = ({
       <IconButton
         ref={sidebarButtonRef}
         icon={isSidebarOpen ? <SidebarOpenIcon /> : <SidebarIcon />}
+        tooltip={isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
         onClick={handleSidebarToggle}
       />
       <div className="flex flex-initial items-center gap-2">

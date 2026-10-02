@@ -74,6 +74,7 @@ export const MergeConflictResolutionActionsBar = ({
       <IconButton
         ref={sidebarButtonRef}
         icon={isSidebarOpen ? <SidebarOpenIcon /> : <SidebarIcon />}
+        tooltip={isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
         onClick={handleSidebarToggle}
       />
       <h2 className="max-h-14 flex-auto overflow-y-hidden px-4 text-left text-base/7">
