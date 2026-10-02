@@ -21,3 +21,7 @@ When interacting with the filesystem, always consider cross-platform (MacOS/Wind
 Projects are used to organize documents and also serve as the unit of sharing. Think of them like Git repositories; when the underlying version control system is Git, project and Git repo are 1:1.
 
 From a UX perspective, the editor is managing a folder of documents. When Git is used for version control (the default), the editor is managing the `.git` folder.
+
+# Module Boundaries
+
+Don't assume how a module is consumed. Its code and comments describe what it does, not what callers do with it.
