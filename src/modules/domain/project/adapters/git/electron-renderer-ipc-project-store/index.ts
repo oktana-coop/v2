@@ -545,8 +545,10 @@ export const createAdapter = (): ProjectStore => ({
   createDocument: (...args: Parameters<ProjectStore['createDocument']>) =>
     effectifyIPCPromise(
       {
+        [FilesystemAlreadyExistsErrorTag]: AlreadyExistsError,
         [VersionedProjectValidationErrorTag]: ValidationError,
         [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
       } as ErrorRegistry<
         EffectErrorType<ReturnType<ProjectStore['createDocument']>>
       >,
@@ -555,6 +557,7 @@ export const createAdapter = (): ProjectStore => ({
   createDirectory: (...args: Parameters<ProjectStore['createDirectory']>) =>
     effectifyIPCPromise(
       {
+        [FilesystemAlreadyExistsErrorTag]: AlreadyExistsError,
         [VersionedProjectValidationErrorTag]: ValidationError,
         [VersionedProjectRepositoryErrorTag]: RepositoryError,
         [VersionedProjectNotFoundErrorTag]: NotFoundError,

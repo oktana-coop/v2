@@ -36,6 +36,7 @@ export const PrintPreviewActionsBar = ({
       <IconButton
         ref={sidebarButtonRef}
         icon={isSidebarOpen ? <SidebarOpenIcon /> : <SidebarIcon />}
+        tooltip={isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
         onClick={handleSidebarToggle}
       />
       <div className="flex items-center gap-2">

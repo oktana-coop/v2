@@ -28,7 +28,8 @@ import {
 } from '../modules/infrastructure/cross-platform/node';
 import {
   type CreateDirectoryArgs,
-  type CreateNewFileArgs,
+  type CreateFileArgs,
+  type CreateFileWithDialogArgs,
   type DeleteDirectoryArgs,
   type DeleteFileArgs,
   type GetRenamedPathArgs,
@@ -130,8 +131,10 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
     ipcRenderer.invoke('request-permission-for-directory', path),
   assertWritePermissionForDirectory: (path: string) =>
     ipcRenderer.invoke('assert-write-permission-for-directory', path),
-  createNewFile: (args: CreateNewFileArgs) =>
-    ipcRenderer.invoke('create-new-file', { ...args }),
+  createFileWithDialog: (args: CreateFileWithDialogArgs) =>
+    ipcRenderer.invoke('create-file-with-dialog', { ...args }),
+  createFile: (args: CreateFileArgs) =>
+    ipcRenderer.invoke('create-file', { ...args }),
   openFile: (args: OpenFileArgs) =>
     ipcRenderer.invoke('open-file', { ...args }),
   writeFile: (args: WriteFileArgs) =>

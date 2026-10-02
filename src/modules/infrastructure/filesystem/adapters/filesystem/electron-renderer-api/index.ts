@@ -92,17 +92,29 @@ export const createAdapter = (): Filesystem => ({
       >,
       RepositoryError
     )(window.filesystemAPI.assertWritePermissionForDirectory(...args)),
-  createNewFile: (...args: Parameters<Filesystem['createNewFile']>) =>
+  createFileWithDialog: (
+    ...args: Parameters<Filesystem['createFileWithDialog']>
+  ) =>
     effectifyIPCPromise(
       {
         [FilesystemAbortErrorTag]: AbortError,
         [FilesystemNotFoundErrorTag]: NotFoundError,
         [FilesystemRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<
-        EffectErrorType<ReturnType<Filesystem['createNewFile']>>
+        EffectErrorType<ReturnType<Filesystem['createFileWithDialog']>>
       >,
       RepositoryError
-    )(window.filesystemAPI.createNewFile(...args)),
+    )(window.filesystemAPI.createFileWithDialog(...args)),
+  createFile: (...args: Parameters<Filesystem['createFile']>) =>
+    effectifyIPCPromise(
+      {
+        [FilesystemAlreadyExistsErrorTag]: AlreadyExistsError,
+        [FilesystemAccessControlErrorTag]: AccessControlError,
+        [FilesystemNotFoundErrorTag]: NotFoundError,
+        [FilesystemRepositoryErrorTag]: RepositoryError,
+      } as ErrorRegistry<EffectErrorType<ReturnType<Filesystem['createFile']>>>,
+      RepositoryError
+    )(window.filesystemAPI.createFile(...args)),
   openFile: (...args: Parameters<Filesystem['openFile']>) =>
     effectifyIPCPromise(
       {
@@ -177,6 +189,7 @@ export const createAdapter = (): Filesystem => ({
   createDirectory: (...args: Parameters<Filesystem['createDirectory']>) =>
     effectifyIPCPromise(
       {
+        [FilesystemAlreadyExistsErrorTag]: AlreadyExistsError,
         [FilesystemNotFoundErrorTag]: NotFoundError,
         [FilesystemRepositoryErrorTag]: RepositoryError,
       } as ErrorRegistry<

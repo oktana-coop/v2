@@ -6,42 +6,58 @@ import {
   filesystemEntryTypes,
   removePath,
 } from '../../../../../../modules/infrastructure/filesystem';
-import { type ExplorerTreeNode, NEW_DIRECTORY_NODE_ID } from './tree/types';
+import {
+  type ExplorerTreeNode,
+  NEW_DIRECTORY_NODE_ID,
+  NEW_FILE_NODE_ID,
+  type PendingTreeEntry,
+} from './tree/types';
 
-export const injectPendingDirectoryNode = (
+const toPendingNode = ({
+  type,
+  name = '',
+}: PendingTreeEntry): ExplorerTreeNode =>
+  type === filesystemEntryTypes.DIRECTORY
+    ? {
+        id: NEW_DIRECTORY_NODE_ID,
+        name,
+        type: filesystemEntryTypes.DIRECTORY,
+        children: [],
+        shared: false,
+      }
+    : {
+        id: NEW_FILE_NODE_ID,
+        name,
+        type: filesystemEntryTypes.FILE,
+        shared: false,
+      };
+
+export const injectPendingNode = (
   nodes: ExplorerTreeNode[],
-  parentPath?: string
+  entry: PendingTreeEntry
 ): ExplorerTreeNode[] => {
-  const pendingDirectoryNode: ExplorerTreeNode = {
-    id: NEW_DIRECTORY_NODE_ID,
-    name: '',
-    type: filesystemEntryTypes.DIRECTORY,
-    children: [],
-    shared: false,
-  };
+  const pendingNode = toPendingNode(entry);
 
-  if (!parentPath) return [pendingDirectoryNode, ...nodes];
+  const injectInto = (siblings: ExplorerTreeNode[]): ExplorerTreeNode[] =>
+    siblings.map((node) => {
+      if (
+        node.type === filesystemEntryTypes.DIRECTORY &&
+        node.id === entry.parentPath
+      ) {
+        return {
+          ...node,
+          children: [pendingNode, ...(node.children ?? [])],
+        };
+      }
 
-  return nodes.map((node) => {
-    if (
-      node.type === filesystemEntryTypes.DIRECTORY &&
-      node.id === parentPath
-    ) {
-      return {
-        ...node,
-        children: [pendingDirectoryNode, ...(node.children ?? [])],
-      };
-    }
+      if (node.children) {
+        return { ...node, children: injectInto(node.children) };
+      }
 
-    if (node.children) {
-      return {
-        ...node,
-        children: injectPendingDirectoryNode(node.children, parentPath),
-      };
-    }
+      return node;
+    });
 
-    return node;
-  });
+  return entry.parentPath ? injectInto(nodes) : [pendingNode, ...nodes];
 };
 
 export const getExplorerTreeInProject = (

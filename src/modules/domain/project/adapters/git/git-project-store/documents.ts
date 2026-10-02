@@ -52,7 +52,7 @@ import {
   VersionControlRepositoryErrorTag,
 } from '../../../../../../modules/infrastructure/version-control';
 import { unique } from '../../../../../../utils/array';
-import { fromNullable, type Mutex } from '../../../../../../utils/effect';
+import { type Mutex } from '../../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../../utils/errors';
 import {
   DeletedDocumentError,
@@ -64,6 +64,7 @@ import {
 } from '../../../errors';
 import {
   docRelToProjectRel,
+  parseProjectRelPathEffect,
   type ProjectFsPath,
   type ProjectId,
   type ProjectRelPath,
@@ -320,57 +321,58 @@ export const createDocumentOps = ({
 
   const createDocument: DocumentOps['createDocument'] = ({
     projectId,
-    filePath,
-    writeToFile,
-    branch,
+    parentDirectoryPath,
+    name,
   }) =>
-    pipe(
-      fromNullable(
-        filePath,
-        () =>
-          new ValidationError(
-            'File path is required when creating a document in the Git repo'
-          )
+    Effect.Do.pipe(
+      Effect.bind('projectDir', () => ensureProjectIdIsFsPath(projectId)),
+      Effect.bind('filePath', () =>
+        parseProjectRelPathEffect(
+          parentDirectoryPath ? `${parentDirectoryPath}/${name}` : name
+        )
       ),
-      Effect.flatMap((path) =>
-        pipe(
-          branch
-            ? Effect.succeed(branch)
-            : pipe(
-                ensureProjectIdIsFsPath(projectId),
-                Effect.flatMap((projectDir) =>
-                  getCurrentBranch({ isoGitFs, projectDir })
+      Effect.flatMap(({ projectDir, filePath }) =>
+        currentBranchMutex(
+          pipe(
+            getCurrentBranch({ isoGitFs, projectDir }),
+            // A detached HEAD has no branch to create the document on.
+            Effect.catchTag(VersionedProjectNotFoundErrorTag, (err) =>
+              Effect.fail(new RepositoryError(err.message))
+            ),
+            Effect.flatMap((currentBranch) =>
+              Effect.try({
+                try: () =>
+                  createGitBlobRef({ ref: currentBranch, path: filePath }),
+                catch: mapErrorTo(
+                  ValidationError,
+                  'Cannot create the Git blob ref for the document'
                 ),
-                // Map errors related to branching to repo errors
-                Effect.catchAll(() =>
-                  Effect.fail(new RepositoryError('Git repo error'))
-                )
-              ),
-          Effect.flatMap((currentBranch) =>
-            Effect.try({
-              try: () =>
-                createGitBlobRef({
-                  ref: currentBranch,
-                  path,
+              })
+            ),
+            Effect.tap(() =>
+              pipe(
+                filesystem.getAbsolutePath({
+                  path: filePath,
+                  dirPath: projectDir,
                 }),
-              catch: mapErrorTo(
-                ValidationError,
-                'Cannot create the Git blob ref for the document'
-              ),
-            })
-          ),
-          Effect.tap(() =>
-            writeToFile
-              ? pipe(
-                  filesystem.writeFile({ path, content: '' }),
-                  Effect.catchAll(() =>
-                    Effect.fail(new RepositoryError('Git repo error'))
-                  )
+                Effect.flatMap((path) =>
+                  filesystem.createFile({ path, content: '' })
                 )
-              : Effect.succeed(undefined)
+              )
+            )
           )
         )
-      )
+      ),
+      // The filesystem AlreadyExistsError is left intact, so a name collision
+      // can be told apart from other failures.
+      Effect.catchTags({
+        [FilesystemAccessControlErrorTag]: (err) =>
+          Effect.fail(new RepositoryError(err.message)),
+        [FilesystemNotFoundErrorTag]: (err) =>
+          Effect.fail(new NotFoundError(err.message)),
+        [FilesystemRepositoryErrorTag]: (err) =>
+          Effect.fail(new RepositoryError(err.message)),
+      })
     );
 
   const readDocumentFromWorkdir: (

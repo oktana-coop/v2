@@ -9,6 +9,7 @@ import {
   type ProjectRelPath,
   renameDocumentInProject,
   urlEncodeProjectId,
+  VersionedProjectValidationErrorTag,
 } from '../../../../modules/domain/project';
 import { FilesystemAlreadyExistsErrorTag } from '../../../../modules/infrastructure/filesystem';
 import {
@@ -112,20 +113,26 @@ export const useRenamingOps = ({
               newName,
             }),
             Effect.map(({ newDocumentPath }) => ({
-              collision: false as const,
               newDocumentPath,
+              error: null,
             })),
-            Effect.catchTag(FilesystemAlreadyExistsErrorTag, () =>
-              Effect.succeed({
-                collision: true as const,
-                newDocumentPath: null,
-              })
-            )
+            Effect.catchTags({
+              [VersionedProjectValidationErrorTag]: (err) =>
+                Effect.succeed({
+                  newDocumentPath: null,
+                  error: err.message,
+                }),
+              [FilesystemAlreadyExistsErrorTag]: () =>
+                Effect.succeed({
+                  newDocumentPath: null,
+                  error: 'A document with this name already exists',
+                }),
+            })
           )
         );
 
-        if (result.collision) {
-          setRenameDocumentError('A document with this name already exists');
+        if (result.error !== null) {
+          setRenameDocumentError(result.error);
           return;
         }
 

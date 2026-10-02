@@ -18,9 +18,13 @@ export const ProjectContext = createContext<ProjectContextType>({
   // @ts-expect-error will get overriden by the provider
   requestPermissionForSelectedDirectory: async () => null,
   // @ts-expect-error will get overriden by the provider
-  createNewDocument: () => null,
-  // @ts-expect-error will get overriden by the provider
   findDocumentInProject: async () => null,
+  pendingNewDocument: null,
+  startCreateDocument: () => {},
+  createDocument: async () => {},
+  cancelCreateDocument: () => {},
+  createDocumentError: null,
+  clearCreateDocumentError: () => {},
   pendingNewDirectory: null,
   startCreateDirectory: () => {},
   // @ts-expect-error will get overriden by the provider

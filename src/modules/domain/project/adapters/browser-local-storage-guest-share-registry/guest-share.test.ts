@@ -27,6 +27,27 @@ describe('the name of a guest share', () => {
       }).name
     ).toBe('mine');
   });
+
+  it.each([
+    ['hello.md', 'hello'],
+    ['Notes.MD', 'Notes'],
+    ['Draft v1.2.md', 'Draft v1.2'],
+    ['config.yaml', 'config'],
+  ])('drops the extension from %j', (sharedName, expected) => {
+    expect(toGuestShare({ ...share('automerge:a', 1), sharedName }).name).toBe(
+      expected
+    );
+  });
+
+  it('keeps a label as the user typed it', () => {
+    expect(
+      toGuestShare({
+        ...share('automerge:a', 1),
+        sharedName: 'hello.md',
+        label: 'notes.md',
+      }).name
+    ).toBe('notes.md');
+  });
 });
 
 describe('creating or refreshing a guest share entry', () => {

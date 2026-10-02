@@ -8,7 +8,7 @@ import {
 } from '../../../../modules/infrastructure/filesystem';
 import { MigrationError } from '../../../../modules/infrastructure/version-control';
 import { NotFoundError, RepositoryError, ValidationError } from '../errors';
-import { type ProjectId } from '../models';
+import { parseDocumentNameEffect, type ProjectId } from '../models';
 import { type ProjectStore } from '../ports';
 
 export type RenameDocumentInProjectArgs = {
@@ -42,7 +42,10 @@ export const renameDocumentInProject =
     never
   > =>
     pipe(
-      getRenamedPath({ oldPath: oldDocumentPath, newName }),
+      parseDocumentNameEffect(newName),
+      Effect.flatMap((documentName) =>
+        getRenamedPath({ oldPath: oldDocumentPath, newName: documentName })
+      ),
       Effect.flatMap((newDocumentPath) =>
         pipe(
           renameDocumentInProjectStore({

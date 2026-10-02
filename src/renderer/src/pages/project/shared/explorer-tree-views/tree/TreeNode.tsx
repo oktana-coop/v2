@@ -1,10 +1,11 @@
 import { clsx } from 'clsx';
+import { useState } from 'react';
 import { type NodeRendererProps } from 'react-arborist';
 
 import { EXPLORER_TREE_NODE } from '../../../../../../../modules/infrastructure/cross-platform';
 import {
   filesystemEntryTypes,
-  removeExtension,
+  getExtension,
 } from '../../../../../../../modules/infrastructure/filesystem';
 import {
   ChevronDownIcon,
@@ -21,6 +22,7 @@ import { useTreeCallbacks } from './TreeView';
 import {
   type ExplorerTreeNode,
   NEW_DIRECTORY_NODE_ID,
+  NEW_FILE_NODE_ID,
   STRUCTURAL_CONFLICTS_NODE_TYPE,
 } from './types';
 
@@ -33,8 +35,11 @@ const NewDirectoryNode = ({
   const handleSubmit = (value: string) => {
     const name = value.trim();
 
-    if (name) onCreateDirectory(name);
-    else onCancelCreateDirectory();
+    if (name) {
+      onCreateDirectory(name);
+    } else {
+      onCancelCreateDirectory();
+    }
   };
 
   return (
@@ -48,8 +53,67 @@ const NewDirectoryNode = ({
       <ChevronDownIcon className="mr-2 shrink-0 -rotate-90" size={20} />
       <TreeRowInput
         className="flex-1"
+        label="New folder name"
         onSubmit={handleSubmit}
         onCancel={onCancelCreateDirectory}
+      />
+    </div>
+  );
+};
+
+const MISSING_EXTENSION_WARNING =
+  'This name has no extension (such as .md). Press Enter again to keep it.';
+
+const NewFileNode = ({ node, style }: NodeRendererProps<ExplorerTreeNode>) => {
+  const {
+    onCreateDocument,
+    onCancelCreateDocument,
+    onClearCreateDocumentError,
+    createDocumentError,
+  } = useTreeCallbacks();
+  const [isConfirming, setIsConfirming] = useState(false);
+
+  const handleSubmit = (value: string) => {
+    const name = value.trim();
+
+    if (!name) {
+      onCancelCreateDocument();
+      return;
+    }
+
+    // A name without an extension takes a second Enter.
+    if (getExtension(name) === '' && !isConfirming) {
+      setIsConfirming(true);
+      return;
+    }
+
+    onCreateDocument(name);
+  };
+
+  const handleChange = () => {
+    setIsConfirming(false);
+    onClearCreateDocumentError();
+  };
+
+  return (
+    <div
+      className={treeEditingRowClasses}
+      style={{
+        ...style,
+        paddingLeft: node.level * 24 + 40,
+      }}
+    >
+      <FileExtensionIcon fileName={node.data.name} />
+      <TreeRowInput
+        className="flex-1"
+        label="New file name"
+        defaultValue={node.data.name}
+        mayIncludeExtension
+        error={createDocumentError}
+        warning={isConfirming ? MISSING_EXTENSION_WARNING : null}
+        onSubmit={handleSubmit}
+        onCancel={onCancelCreateDocument}
+        onChange={handleChange}
       />
     </div>
   );
@@ -65,12 +129,28 @@ const RenamingFileNode = ({
     onClearRenameDocumentError,
     renameDocumentError,
   } = useTreeCallbacks();
+  const [isConfirming, setIsConfirming] = useState(false);
 
   const handleSubmit = (value: string) => {
     const name = value.trim();
 
-    if (name) onRenameDocument(node.data.id, name);
-    else onCancelRenameDocument();
+    if (!name) {
+      onCancelRenameDocument();
+      return;
+    }
+
+    // A name without an extension takes a second Enter.
+    if (getExtension(name) === '' && !isConfirming) {
+      setIsConfirming(true);
+      return;
+    }
+
+    onRenameDocument(node.data.id, name);
+  };
+
+  const handleChange = () => {
+    setIsConfirming(false);
+    onClearRenameDocumentError();
   };
 
   return (
@@ -84,11 +164,14 @@ const RenamingFileNode = ({
       <FileExtensionIcon fileName={node.data.name} />
       <TreeRowInput
         className="flex-1"
-        defaultValue={removeExtension(node.data.name)}
+        label="File name"
+        defaultValue={node.data.name}
+        mayIncludeExtension
         error={renameDocumentError}
+        warning={isConfirming ? MISSING_EXTENSION_WARNING : null}
         onSubmit={handleSubmit}
         onCancel={onCancelRenameDocument}
-        onChange={onClearRenameDocumentError}
+        onChange={handleChange}
       />
     </div>
   );
@@ -108,8 +191,11 @@ const RenamingDirectoryNode = ({
   const handleSubmit = (value: string) => {
     const name = value.trim();
 
-    if (name) onRenameDirectory(node.data.id, name);
-    else onCancelRenameDirectory();
+    if (name) {
+      onRenameDirectory(node.data.id, name);
+    } else {
+      onCancelRenameDirectory();
+    }
   };
 
   return (
@@ -123,6 +209,7 @@ const RenamingDirectoryNode = ({
       <ChevronDownIcon className="mr-2 shrink-0 -rotate-90" size={20} />
       <TreeRowInput
         className="flex-1"
+        label="Folder name"
         defaultValue={node.data.name}
         error={renameDirectoryError}
         onSubmit={handleSubmit}
@@ -257,6 +344,10 @@ export const TreeNode = ({
 
   if (node.data.id === NEW_DIRECTORY_NODE_ID) {
     return <NewDirectoryNode node={node} {...nodeRendererProps} />;
+  }
+
+  if (node.data.id === NEW_FILE_NODE_ID) {
+    return <NewFileNode node={node} {...nodeRendererProps} />;
   }
 
   if (node.data.type === STRUCTURAL_CONFLICTS_NODE_TYPE) {

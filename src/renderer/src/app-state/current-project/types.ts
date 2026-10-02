@@ -20,9 +20,9 @@ export type Unsubscribe = () => void;
 // A branch switch that would overwrite local changes to these files.
 export type BranchSwitchRefusal = { filepaths: string[] };
 
-export type CreateNewDocumentArgs = {
-  name?: string;
+export type PendingNewDocument = {
   parentPath?: string;
+  defaultName: string;
 };
 
 export type PendingNewDirectory = {
@@ -49,11 +49,6 @@ export type ProjectContextType = {
   subscribeToProjectDirChanges: (listener: () => void) => Unsubscribe;
   openDirectory: (cloneUrl?: string) => Promise<Directory>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
-  createNewDocument: (args?: CreateNewDocumentArgs) => Promise<{
-    projectId: ProjectId;
-    documentId: ArtifactId;
-    path: string;
-  } | null>;
   findDocumentInProject: (args: {
     projectId: ProjectId;
     documentPath: string;
@@ -85,6 +80,12 @@ export type ProjectContextType = {
   pullFromRemoteProject: () => Promise<void>;
   pulledUpstreamChanges: boolean;
   onHandlePulledUpstreamChanges: () => void;
+  pendingNewDocument: PendingNewDocument | null;
+  startCreateDocument: (parentPath?: string) => void;
+  createDocument: (name: string) => Promise<void>;
+  cancelCreateDocument: () => void;
+  createDocumentError: string | null;
+  clearCreateDocumentError: () => void;
   pendingNewDirectory: PendingNewDirectory | null;
   startCreateDirectory: (parentPath?: string) => void;
   createDirectory: (name: string) => Promise<void>;

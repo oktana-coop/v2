@@ -331,7 +331,7 @@ export const createAdapter = (): Filesystem => {
         })
       );
 
-  const createNewFile: Filesystem['createNewFile'] = ({
+  const createFileWithDialog: Filesystem['createFileWithDialog'] = ({
     suggestedName,
     extensions,
     content = '',
@@ -357,6 +357,40 @@ export const createAdapter = (): Filesystem => {
         content,
       }))
     );
+
+  const createFile: Filesystem['createFile'] = ({ path: filePath, content }) =>
+    Effect.tryPromise({
+      try: () =>
+        fs.writeFile(
+          filePath,
+          content,
+          // `wx` checks and creates in one step, so a file created meanwhile by
+          // another process is never overwritten.
+          { flag: 'wx' }
+        ),
+      catch: (err: unknown) => {
+        if (isNodeError(err)) {
+          switch (err.code) {
+            case 'EEXIST':
+              return new AlreadyExistsError(
+                `A file already exists at path ${filePath}`
+              );
+            case 'ENOENT':
+              return new NotFoundError(
+                `The parent directory of ${filePath} does not exist`
+              );
+            case 'EACCES':
+              return new AccessControlError(
+                `Permission denied when creating ${filePath}`
+              );
+            default:
+              return new RepositoryError(err.message);
+          }
+        }
+
+        return new RepositoryError(`Error creating file ${filePath}`);
+      },
+    });
 
   const openFile: Filesystem['openFile'] = ({ extensions }) =>
     pipe(
@@ -512,7 +546,10 @@ export const createAdapter = (): Filesystem => {
     return pipe(
       Effect.tryPromise({
         try: () => fs.mkdir(fullPath),
-        catch: mapErrorTo(RepositoryError, 'Node filesystem API error'),
+        catch: (err: unknown) =>
+          isNodeError(err) && err.code === 'EEXIST'
+            ? new AlreadyExistsError(`Something already exists at ${fullPath}`)
+            : mapErrorTo(RepositoryError, 'Node filesystem API error')(err),
       }),
       Effect.map(() => ({
         type: filesystemEntryTypes.DIRECTORY,
@@ -608,11 +645,7 @@ export const createAdapter = (): Filesystem => {
     Effect.try({
       try: () => {
         const dir = path.dirname(oldPath);
-        return path.format({
-          dir: dir === '.' ? '' : dir,
-          name: newName,
-          ext: path.extname(oldPath),
-        });
+        return path.format({ dir: dir === '.' ? '' : dir, base: newName });
       },
       catch: mapErrorTo(RepositoryError, 'Could not compute renamed path'),
     });
@@ -660,7 +693,8 @@ export const createAdapter = (): Filesystem => {
     listDirectoryTree,
     requestPermissionForDirectory,
     assertWritePermissionForDirectory,
-    createNewFile,
+    createFileWithDialog,
+    createFile,
     openFile,
     writeFile,
     readBinaryFile,

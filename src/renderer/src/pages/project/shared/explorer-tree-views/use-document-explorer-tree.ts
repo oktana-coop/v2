@@ -1,16 +1,19 @@
 import { useContext, useEffect, useState } from 'react';
 
+import { filesystemEntryTypes } from '../../../../../../modules/infrastructure/filesystem';
 import { ProjectContext } from '../../../../app-state';
-import {
-  getExplorerTreeInProject,
-  injectPendingDirectoryNode,
-} from './explorer-tree';
+import { getExplorerTreeInProject, injectPendingNode } from './explorer-tree';
 import { type ExplorerTreeNode } from './tree/types';
 
 export const useDocumentExplorerTree = () => {
   const {
     directory,
     directoryTree,
+    pendingNewDocument,
+    createDocument,
+    cancelCreateDocument,
+    createDocumentError,
+    clearCreateDocumentError,
     pendingNewDirectory,
     startCreateDirectory,
     createDirectory,
@@ -32,6 +35,7 @@ export const useDocumentExplorerTree = () => {
     currentArtifact,
   } = useContext(ProjectContext);
   const [explorerTree, setExplorerTree] = useState<ExplorerTreeNode[]>([]);
+  const [hasPendingNewDocument, setHasPendingNewDocument] = useState(false);
   const [hasPendingNewDirectory, setHasPendingNewDirectory] = useState(false);
   const [canShowTree, setCanShowTree] = useState<boolean>(false);
   const [selection, setSelection] = useState<string | null>(null);
@@ -41,15 +45,32 @@ export const useDocumentExplorerTree = () => {
     let newTree = getExplorerTreeInProject(directoryTree);
 
     if (pendingNewDirectory) {
-      newTree = injectPendingDirectoryNode(
-        newTree,
-        pendingNewDirectory.parentPath
-      );
+      newTree = injectPendingNode(newTree, {
+        type: filesystemEntryTypes.DIRECTORY,
+        parentPath: pendingNewDirectory.parentPath,
+      });
+    }
+
+    if (pendingNewDocument) {
+      newTree = injectPendingNode(newTree, {
+        type: filesystemEntryTypes.FILE,
+        parentPath: pendingNewDocument.parentPath,
+        name: pendingNewDocument.defaultName,
+      });
     }
 
     setExplorerTree(newTree);
     setSelection(currentArtifactPath ?? null);
-  }, [directoryTree, currentArtifactPath, pendingNewDirectory]);
+  }, [
+    directoryTree,
+    currentArtifactPath,
+    pendingNewDirectory,
+    pendingNewDocument,
+  ]);
+
+  useEffect(() => {
+    setHasPendingNewDocument(pendingNewDocument !== null);
+  }, [pendingNewDocument]);
 
   useEffect(() => {
     setHasPendingNewDirectory(pendingNewDirectory !== null);
@@ -65,6 +86,11 @@ export const useDocumentExplorerTree = () => {
     canShowTree,
     explorerTree,
     selection,
+    hasPendingNewDocument,
+    createDocument,
+    cancelCreateDocument,
+    createDocumentError,
+    clearCreateDocumentError,
     hasPendingNewDirectory,
     startCreateDirectory,
     createDirectory,

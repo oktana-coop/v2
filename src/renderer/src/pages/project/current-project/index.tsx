@@ -74,7 +74,7 @@ const Project = () => {
     isOpen: isBranchingCommandPaletteOpen,
     closeBranchingCommandPalette,
   } = useContext(BranchingCommandPaletteContext);
-  const { triggerDocumentCreationDialog } = useCreateDocument();
+  const { startCreateDocument } = useCreateDocument();
   const {
     projectId,
     filePathToDelete,
@@ -99,7 +99,7 @@ const Project = () => {
     BranchingCommandPaletteContext
   );
 
-  const handleOpenCreateDocumentDialog = () => triggerDocumentCreationDialog();
+  const handleStartCreateDocument = () => startCreateDocument();
 
   const handleOpenProjectSettings = () => {
     if (projectId) {
@@ -180,7 +180,7 @@ const Project = () => {
           onConfirm={confirmDeleteDirectory}
         />
         <ProjectCommandPalette
-          onCreateDocument={handleOpenCreateDocumentDialog}
+          onCreateDocument={handleStartCreateDocument}
           onOpenProjectSettings={handleOpenProjectSettings}
           onOpenPrintPreview={handleOpenPrintPreview}
         />

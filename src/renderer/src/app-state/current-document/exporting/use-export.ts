@@ -2,10 +2,7 @@ import * as Effect from 'effect/Effect';
 import { useContext } from 'react';
 import { useParams } from 'react-router';
 
-import {
-  getArtifactName,
-  type ProjectId,
-} from '../../../../../modules/domain/project';
+import { type ProjectId } from '../../../../../modules/domain/project';
 import {
   type BinaryRichTextRepresentation,
   binaryRichTextRepresentations,
@@ -15,6 +12,10 @@ import {
   type TextRichTextRepresentation,
 } from '../../../../../modules/domain/rich-text';
 import { RepresentationTransformContext } from '../../../../../modules/domain/rich-text/react/representation-transform-context';
+import {
+  removeExtension,
+  removePath,
+} from '../../../../../modules/infrastructure/filesystem';
 import {
   createErrorNotification,
   createSuccessNotification,
@@ -42,8 +43,8 @@ export const useExport = () => {
   const { projectId: projectIdParam } = useParams();
   const documentId = useCurrentDocumentId();
   const { currentArtifact } = useContext(ProjectContext);
-  const currentDocumentName = currentArtifact
-    ? getArtifactName(currentArtifact.path)
+  const suggestedExportName = currentArtifact
+    ? removeExtension(removePath(currentArtifact.path))
     : null;
   const getExportAssetMounts = useExportAssetMounts();
 
@@ -118,8 +119,8 @@ export const useExport = () => {
     content: string | Uint8Array
   ) =>
     Effect.runPromise(
-      filesystem.createNewFile({
-        suggestedName: currentDocumentName ?? undefined,
+      filesystem.createFileWithDialog({
+        suggestedName: suggestedExportName ?? undefined,
         extensions: [richTextRepresentationExtensions[representation]],
         content,
       })

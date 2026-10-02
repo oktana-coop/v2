@@ -85,11 +85,10 @@ export const openProjectFolder = async ({
 };
 
 /**
- * Mocks Electron's showSaveDialog so the next "new document" flow
- * (button click, keyboard shortcut, or context menu) will create a file
- * at the given path without showing the native OS dialog.
+ * Mocks Electron's showSaveDialog so it answers with the given path without
+ * showing the native OS dialog.
  */
-export const mockCreateNewFile = async ({
+export const mockCreateFileWithDialog = async ({
   electronApp,
   filePath,
 }: {
@@ -105,9 +104,9 @@ export const mockCreateNewFile = async ({
 };
 
 /**
- * Mocks Electron's showOpenDialog so the next file-picker flow (e.g. inserting
- * an image) resolves to the given file path without showing the native OS
- * dialog. The open-file counterpart to {@link mockCreateNewFile}.
+ * Mocks Electron's showOpenDialog so it answers with the given file path
+ * without showing the native OS dialog. The open-file counterpart to
+ * {@link mockCreateFileWithDialog}.
  */
 export const mockPickFile = async ({
   electronApp,
@@ -122,41 +121,72 @@ export const mockPickFile = async ({
 };
 
 /**
- * Prepares a new file via {@link mockCreateNewFile}, then clicks the
- * "New Document" button and waits for the editor to open.
+ * The field in the explorer tree where a new file is named.
  */
-export const createNewFileFromButton = async ({
-  electronApp,
+export const newDocumentInput = ({ window }: { window: Page }) =>
+  window.getByRole('textbox', { name: 'New file name', exact: true });
+
+/**
+ * The field in the explorer tree where a new folder is named.
+ */
+export const newFolderInput = ({ window }: { window: Page }) =>
+  window.getByRole('textbox', { name: 'New folder name', exact: true });
+
+/**
+ * The field in the explorer tree where a file is renamed.
+ */
+export const renameFileInput = ({ window }: { window: Page }) =>
+  window.getByRole('textbox', { name: 'File name', exact: true });
+
+/**
+ * The field in the explorer tree where a folder is renamed.
+ */
+export const renameFolderInput = ({ window }: { window: Page }) =>
+  window.getByRole('textbox', { name: 'Folder name', exact: true });
+
+/**
+ * Types a name into the new-file field and confirms it.
+ */
+export const nameNewDocument = async ({
   window,
-  filePath,
+  name,
 }: {
-  electronApp: ElectronApplication;
   window: Page;
-  filePath: string;
+  name: string;
 }): Promise<void> => {
-  await mockCreateNewFile({ electronApp, filePath });
+  const input = newDocumentInput({ window });
+  await input.waitFor({ state: 'visible', timeout: 2_000 });
+  await input.fill(name);
+  await window.keyboard.press('Enter');
+};
 
+/**
+ * Clicks the "New Document" button, names the file in the explorer tree and
+ * waits for the editor to open.
+ */
+export const createNewDocumentFromButton = async ({
+  window,
+  name,
+}: {
+  window: Page;
+  name: string;
+}): Promise<void> => {
   await window.getByRole('button', { name: /new document/i }).click();
+  await nameNewDocument({ window, name });
 
-  // Wait for the editor to open for the new file
   await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
 };
 
 /**
  * Mocks the main-process context-menu:show handler to auto-respond with
  * a "New File" action (bypassing the native OS menu popup that Playwright
- * cannot interact with). Also mocks showSaveDialog to return the desired
- * file path.
+ * cannot interact with).
  */
-export const createNewFileFromContextMenu = async ({
+export const createNewDocumentFromContextMenu = async ({
   electronApp,
-  newFilePath,
 }: {
   electronApp: ElectronApplication;
-  newFilePath: string;
 }): Promise<void> => {
-  await mockCreateNewFile({ electronApp, filePath: newFilePath });
-
   await electronApp.evaluate(async ({ ipcMain, BrowserWindow }) => {
     ipcMain.removeHandler('context-menu:show');
 

@@ -69,6 +69,7 @@ export const DocumentHistoryActionsBar = ({
       <IconButton
         ref={sidebarButtonRef}
         icon={isSidebarOpen ? <SidebarOpenIcon /> : <SidebarIcon />}
+        tooltip={isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
         onClick={handleSidebarToggle}
       />
       <div className="flex max-h-14 flex-auto items-center overflow-y-hidden px-4">

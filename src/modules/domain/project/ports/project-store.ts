@@ -257,10 +257,8 @@ export type ProjectGetRemoteBranchInfoResult = Record<Branch, Commit['id']>;
 
 export type CreateDocumentArgs = {
   projectId: ProjectId;
-  content: string | null;
-  filePath?: string;
-  writeToFile?: boolean;
-  branch?: Branch;
+  parentDirectoryPath?: ProjectRelPath;
+  name: string;
 };
 
 export type CreateDirectoryArgs = {
@@ -609,12 +607,16 @@ export type ProjectStore = {
   >;
   createDocument: (
     args: CreateDocumentArgs
-  ) => Effect.Effect<ArtifactId, ValidationError | RepositoryError, never>;
+  ) => Effect.Effect<
+    ArtifactId,
+    AlreadyExistsError | ValidationError | RepositoryError | NotFoundError,
+    never
+  >;
   createDirectory: (
     args: CreateDirectoryArgs
   ) => Effect.Effect<
     void,
-    ValidationError | RepositoryError | NotFoundError,
+    AlreadyExistsError | ValidationError | RepositoryError | NotFoundError,
     never
   >;
   deleteDirectory: (

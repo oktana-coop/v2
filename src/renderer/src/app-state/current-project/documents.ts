@@ -1,39 +1,45 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
-import * as Option from 'effect/Option';
 import { useCallback, useContext, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import {
   createDocumentInProject,
   findFileNodeByPath,
+  getNewDocumentName,
+  listNamesInDirectory,
   parseProjectRelPath,
   type ProjectId,
   type ProjectRelPath,
   urlEncodeProjectId,
+  VersionedProjectValidationErrorTag,
 } from '../../../../modules/domain/project';
+import { FilesystemAlreadyExistsErrorTag } from '../../../../modules/infrastructure/filesystem';
 import {
   createErrorNotification,
   NotificationsContext,
 } from '../../../../modules/infrastructure/notifications/browser';
-import { type ChangeId } from '../../../../modules/infrastructure/version-control';
-import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
-import { type CreateNewDocumentArgs, type ProjectContextType } from './types';
+import {
+  type ChangeId,
+  urlEncodeArtifactId,
+} from '../../../../modules/infrastructure/version-control';
+import { type PendingNewDocument, type ProjectContextType } from './types';
 
 type DocumentDeps = Pick<
   ProjectContextType,
-  | 'projectId'
-  | 'projectStore'
-  | 'directory'
-  | 'directoryTree'
-  | 'refreshDirectoryTree'
+  'projectId' | 'projectStore' | 'directoryTree' | 'refreshDirectoryTree'
 > & {
   currentArtifactPath: ProjectRelPath | null;
 };
 
 type DocumentOps = Pick<
   ProjectContextType,
-  | 'createNewDocument'
+  | 'pendingNewDocument'
+  | 'startCreateDocument'
+  | 'createDocument'
+  | 'cancelCreateDocument'
+  | 'createDocumentError'
+  | 'clearCreateDocumentError'
   | 'findDocumentInProject'
   | 'filePathToDelete'
   | 'startDeleteDocument'
@@ -45,61 +51,109 @@ type DocumentOps = Pick<
 export const useDocumentOps = ({
   projectId,
   projectStore,
-  directory,
   directoryTree,
   refreshDirectoryTree,
   currentArtifactPath,
 }: DocumentDeps): DocumentOps => {
-  const { filesystem } = useContext(InfrastructureAdaptersContext);
   const { dispatchNotification } = useContext(NotificationsContext);
   const navigate = useNavigate();
 
   const [filePathToDelete, setFileToDelete] = useState<string | null>(null);
+  const [pendingNewDocument, setPendingNewDocument] =
+    useState<PendingNewDocument | null>(null);
+  const [createDocumentError, setCreateDocumentError] = useState<string | null>(
+    null
+  );
 
-  const handleCreateNewDocument = useCallback(
-    async (args?: CreateNewDocumentArgs) => {
-      if (!projectStore || !projectId || !directory) {
-        throw new Error(
-          'Cannot create document. Document and project store have not been initialized yet.'
-        );
-      }
+  const startCreateDocument = useCallback(
+    (parentPath?: string) => {
+      const defaultName = getNewDocumentName({
+        namesInDirectory: listNamesInDirectory({
+          tree: directoryTree,
+          directoryPath: parentPath
+            ? parseProjectRelPath(parentPath)
+            : undefined,
+        }),
+      });
 
-      const parentDirectoryPath = args?.parentPath
-        ? parseProjectRelPath(args.parentPath)
+      setPendingNewDocument({ parentPath, defaultName });
+      setCreateDocumentError(null);
+    },
+    [directoryTree]
+  );
+
+  const handleCreateDocument = useCallback(
+    async (name: string) => {
+      if (!projectStore || !projectId || !pendingNewDocument) return;
+
+      const parentDirectoryPath = pendingNewDocument.parentPath
+        ? parseProjectRelPath(pendingNewDocument.parentPath)
         : undefined;
 
-      const result = await Effect.runPromise(
-        pipe(
-          createDocumentInProject({
-            createNewFile: filesystem.createNewFile,
-            getRelativePath: filesystem.getRelativePath,
-            getAbsolutePath: filesystem.getAbsolutePath,
-            createDocument: projectStore.createDocument,
-          })({
-            projectId,
-            projectDirectory: directory,
-            parentDirectoryPath,
-            content: null,
-          }),
-          Effect.map(Option.getOrNull)
-        )
-      );
+      try {
+        const result = await Effect.runPromise(
+          pipe(
+            createDocumentInProject({
+              createDocument: projectStore.createDocument,
+            })({ projectId, parentDirectoryPath, name }),
+            Effect.map((documentId) => ({ documentId, error: null })),
+            Effect.catchTags({
+              [VersionedProjectValidationErrorTag]: (err) =>
+                Effect.succeed({
+                  documentId: null,
+                  error: err.message,
+                }),
+              [FilesystemAlreadyExistsErrorTag]: () =>
+                Effect.succeed({
+                  documentId: null,
+                  error: 'A document with this name already exists',
+                }),
+            })
+          )
+        );
 
-      // Save dialog was cancelled.
-      if (!result) {
-        return null;
+        if (result.error !== null) {
+          setCreateDocumentError(result.error);
+          return;
+        }
+
+        await refreshDirectoryTree();
+        setPendingNewDocument(null);
+        setCreateDocumentError(null);
+        navigate(
+          `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(result.documentId)}`
+        );
+      } catch (err) {
+        console.error(err);
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Create Document Error',
+            message:
+              'An error happened when trying to create the document. Please try again.',
+          })
+        );
+        setPendingNewDocument(null);
+        setCreateDocumentError(null);
       }
-
-      await refreshDirectoryTree();
-
-      return {
-        projectId,
-        documentId: result.documentId,
-        path: result.filePath,
-      };
     },
-    [projectStore, projectId, directory, filesystem, refreshDirectoryTree]
+    [
+      projectStore,
+      projectId,
+      pendingNewDocument,
+      refreshDirectoryTree,
+      navigate,
+      dispatchNotification,
+    ]
   );
+
+  const cancelCreateDocument = useCallback(() => {
+    setPendingNewDocument(null);
+    setCreateDocumentError(null);
+  }, []);
+
+  const clearCreateDocumentError = useCallback(() => {
+    setCreateDocumentError(null);
+  }, []);
 
   const handleFindDocumentInProject = async (args: {
     projectId: ProjectId;
@@ -190,7 +244,12 @@ export const useDocumentOps = ({
   );
 
   return {
-    createNewDocument: handleCreateNewDocument,
+    pendingNewDocument,
+    startCreateDocument,
+    createDocument: handleCreateDocument,
+    cancelCreateDocument,
+    createDocumentError,
+    clearCreateDocumentError,
     findDocumentInProject: handleFindDocumentInProject,
     filePathToDelete,
     startDeleteDocument: setFileToDelete,

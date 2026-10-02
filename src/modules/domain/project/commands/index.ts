@@ -1,4 +1,7 @@
-export { createDocumentInProject } from './create-document-in-project';
+export {
+  createDocumentInProject,
+  type CreateDocumentInProjectDeps,
+} from './create-document-in-project';
 export { renameDocumentInProject } from './rename-document-in-project';
 export {
   insertAsset,

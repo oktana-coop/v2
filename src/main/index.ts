@@ -26,7 +26,8 @@ import {
 } from '../modules/infrastructure/cross-platform/node';
 import {
   type CreateDirectoryArgs,
-  type CreateNewFileArgs,
+  type CreateFileArgs,
+  type CreateFileWithDialogArgs,
   type DeleteDirectoryArgs,
   type DeleteFileArgs,
   type GetAbsolutePathArgs,
@@ -205,8 +206,15 @@ async function createWindow() {
       filesystemAPI.assertWritePermissionForDirectory(path)
     )
   );
-  ipcMain.handle('create-new-file', (_, args: CreateNewFileArgs) =>
-    runPromiseSerializingErrorsForIPC(filesystemAPI.createNewFile(args))
+  ipcMain.handle(
+    'create-file-with-dialog',
+    (_, args: CreateFileWithDialogArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        filesystemAPI.createFileWithDialog(args)
+      )
+  );
+  ipcMain.handle('create-file', (_, args: CreateFileArgs) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.createFile(args))
   );
   ipcMain.handle('open-file', async (_, args: OpenFileArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.openFile(args))

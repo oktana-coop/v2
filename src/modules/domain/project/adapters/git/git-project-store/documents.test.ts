@@ -5,6 +5,8 @@ import git, { Errors as IsoGitErrors } from 'isomorphic-git';
 
 import { type Username } from '../../../../../auth';
 import {
+  AlreadyExistsError as FilesystemAlreadyExistsError,
+  FilesystemAlreadyExistsErrorTag,
   NotFoundError as FilesystemNotFoundError,
   RepositoryError as FilesystemRepositoryError,
 } from '../../../../../infrastructure/filesystem';
@@ -25,9 +27,10 @@ import {
   VersionedProjectRepositoryErrorTag,
   VersionedProjectValidationErrorTag,
 } from '../../../errors';
-import { type ProjectId } from '../../../models';
+import { parseProjectRelPath, type ProjectId } from '../../../models';
 import {
   buildTestStore,
+  mockCreateFile,
   mockGetAbsolutePath,
   mockListDirectoryFiles,
   mockReadTextFile,
@@ -255,6 +258,75 @@ describe('documents', () => {
       );
 
       expect(failure._tag).toBe(VersionedProjectRepositoryErrorTag);
+    });
+  });
+
+  describe('createDocument', () => {
+    const store = buildTestStore();
+
+    beforeEach(() => {
+      mockGetAbsolutePath.mockImplementation(({ path, dirPath }) =>
+        Effect.succeed(`${dirPath}/${path}`)
+      );
+      mockGetCurrentBranch.mockReturnValue(Effect.succeed('main'));
+      mockCreateFile.mockReturnValue(Effect.void);
+    });
+
+    it('creates an empty file and returns its id on the current branch', async () => {
+      const documentId = await Effect.runPromise(
+        store.createDocument({ projectId: PROJECT_PATH, name: 'notes.md' })
+      );
+
+      expect(documentId).toBe('/blob/main/notes.md');
+      expect(mockCreateFile).toHaveBeenCalledWith({
+        path: `${PROJECT_PATH}/notes.md`,
+        content: '',
+      });
+    });
+
+    it('creates the file inside the parent directory', async () => {
+      const documentId = await Effect.runPromise(
+        store.createDocument({
+          projectId: PROJECT_PATH,
+          parentDirectoryPath: parseProjectRelPath('drafts'),
+          name: 'config.yaml',
+        })
+      );
+
+      expect(documentId).toBe('/blob/main/drafts/config.yaml');
+      expect(mockCreateFile).toHaveBeenCalledWith({
+        path: `${PROJECT_PATH}/drafts/config.yaml`,
+        content: '',
+      });
+    });
+
+    it('leaves a name collision as the filesystem reports it', async () => {
+      mockCreateFile.mockReturnValue(
+        Effect.fail(new FilesystemAlreadyExistsError('notes.md exists'))
+      );
+
+      const failure = await Effect.runPromise(
+        Effect.flip(
+          store.createDocument({ projectId: PROJECT_PATH, name: 'notes.md' })
+        )
+      );
+
+      expect(failure._tag).toBe(FilesystemAlreadyExistsErrorTag);
+    });
+
+    it('creates no file when HEAD is detached', async () => {
+      mockGetCurrentBranch.mockReturnValue(
+        Effect.fail(new VersionControlNotFoundError('HEAD is detached'))
+      );
+
+      const failure = await Effect.runPromise(
+        Effect.flip(
+          store.createDocument({ projectId: PROJECT_PATH, name: 'notes.md' })
+        )
+      );
+
+      expect(failure._tag).toBe(VersionedProjectRepositoryErrorTag);
+      expect(mockCreateFile).not.toHaveBeenCalled();
     });
   });
 
@@ -486,6 +558,47 @@ describe('documents', () => {
         VersionedProjectDocumentNotOnCurrentRefErrorTag
       );
       expect(mockWriteFile).not.toHaveBeenCalled();
+    });
+
+    it('holds a create issued during a switch until it is over, then creates it on the branch switched to', async () => {
+      const store = buildTestStore();
+      const finished = Effect.runSync(Deferred.make<void>());
+      // HEAD is read when the store looks the branch up, not when it builds
+      // the lookup, as with the real git call.
+      let head = draft;
+      mockGetCurrentBranch.mockImplementation(() => Effect.sync(() => head));
+      mockSwitchToBranch.mockReturnValue(
+        pipe(
+          Deferred.await(finished),
+          Effect.tap(() =>
+            Effect.sync(() => {
+              head = main;
+            })
+          )
+        )
+      );
+      mockGetAbsolutePath.mockImplementation(({ path, dirPath }) =>
+        Effect.succeed(`${dirPath}/${path}`)
+      );
+      mockCreateFile.mockReturnValue(Effect.void);
+
+      const switched = Effect.runPromise(
+        store.switchToBranch({ projectId: PROJECT_PATH, branch: main })
+      );
+      await settle();
+      const created = Effect.runPromise(
+        store.createDocument({ projectId: PROJECT_PATH, name: 'new.md' })
+      );
+      await settle();
+
+      expect(mockCreateFile).not.toHaveBeenCalled();
+
+      await Effect.runPromise(Deferred.succeed(finished, undefined));
+      await switched;
+      const documentId = await created;
+
+      expect(documentId).toBe(`/blob/${main}/new.md`);
+      expect(mockCreateFile).toHaveBeenCalled();
     });
 
     it('holds a switch issued during a read until the read is over', async () => {

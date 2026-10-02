@@ -4,20 +4,26 @@ import path from 'path';
 import { expect, test } from '../shared/fixtures';
 import {
   confirmDeletion,
-  createNewFileFromButton,
-  createNewFileFromContextMenu,
+  createNewDocumentFromButton,
+  createNewDocumentFromContextMenu,
   createNewSubfolderFromContextMenu,
   deleteFileFromContextMenu,
   deleteFolderFromContextMenu,
   deleteKey,
   focusAndTypeInEditor,
-  mockCreateNewFile,
+  nameNewDocument,
+  navigateToProjectHistory,
+  newDocumentInput,
   newFileKey,
+  newFolderInput,
   newFolderKey,
+  openCommandPalette,
   openHelloMd,
   openProjectFolder,
   renameFileFromContextMenu,
+  renameFileInput,
   renameFolderFromContextMenu,
+  renameFolderInput,
   renameKey,
   typeInEditorAndWaitForDebounce,
 } from '../shared/helpers';
@@ -39,6 +45,26 @@ test.describe('empty project', () => {
 
     // EmptyView renders when the directory has no documents
     await expect(explorer).toContainText('no documents');
+  });
+
+  test('creates the first file from the empty explorer', async ({
+    electronApp,
+    window,
+    emptyProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: emptyProjectDir,
+    });
+
+    const explorer = window.getByTestId('file-explorer');
+    await explorer.getByRole('button', { name: /create document/i }).click();
+    await nameNewDocument({ window, name: 'first.md' });
+
+    await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
+    await expect(explorer.getByText('first.md')).toBeVisible();
+    expect(fs.existsSync(path.join(emptyProjectDir, 'first.md'))).toBe(true);
   });
 });
 
@@ -104,22 +130,203 @@ test.describe('flat directory structure', () => {
       folderPath: testProjectDir,
     });
 
-    // Mock showSaveDialog so we control the filename, then click create-file-button
-    const newFilePath = path.join(testProjectDir, 'my-new-doc.md');
-    await createNewFileFromButton({
-      electronApp,
-      window,
-      filePath: newFilePath,
-    });
+    await createNewDocumentFromButton({ window, name: 'my-new-doc.md' });
 
     // The new file should appear in the explorer sidebar
     await expect(window.getByTestId('file-explorer')).toContainText(
-      'my-new-doc'
+      'my-new-doc.md'
+    );
+    expect(fs.existsSync(path.join(testProjectDir, 'my-new-doc.md'))).toBe(
+      true
     );
 
     // The editor should be open and editable
     await typeInEditorAndWaitForDebounce({ window, text: 'Hello new doc' });
     await expect(window.locator('.ProseMirror')).toContainText('Hello new doc');
+  });
+
+  test('creating a file with the name of an existing one shows an error and keeps the input', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    const helloContent = fs.readFileSync(
+      path.join(testProjectDir, 'hello.md'),
+      'utf8'
+    );
+
+    await window.getByRole('button', { name: /new document/i }).click();
+    await nameNewDocument({ window, name: 'hello.md' });
+
+    const input = newDocumentInput({ window });
+    await expect(input).toBeVisible();
+    await expect(input).toHaveAccessibleDescription(/already exists/);
+    expect(fs.readFileSync(path.join(testProjectDir, 'hello.md'), 'utf8')).toBe(
+      helloContent
+    );
+
+    // Typing clears the error
+    await window.keyboard.type('x');
+    await expect(input).toHaveAccessibleDescription('');
+
+    await window.keyboard.press('Escape');
+    await expect(input).not.toBeVisible();
+  });
+
+  test('a new file is offered as Untitled.md and keeps its extension while typing', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    await window.getByRole('button', { name: /new document/i }).click();
+
+    const input = newDocumentInput({ window });
+    await expect(input).toHaveValue('Untitled.md');
+
+    // Only the name is selected, so typing replaces it and keeps the extension
+    await window.keyboard.type('notes');
+    await expect(input).toHaveValue('notes.md');
+    await window.keyboard.press('Enter');
+
+    await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
+    expect(fs.existsSync(path.join(testProjectDir, 'notes.md'))).toBe(true);
+  });
+
+  test('a file without an extension is created only once Enter is pressed again', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    await window.getByRole('button', { name: /new document/i }).click();
+    await nameNewDocument({ window, name: 'notes' });
+
+    const input = newDocumentInput({ window });
+    await expect(input).toBeVisible();
+    await expect(input).toHaveAccessibleDescription(/no extension/);
+    expect(fs.existsSync(path.join(testProjectDir, 'notes'))).toBe(false);
+
+    await window.keyboard.press('Enter');
+
+    await expect(input).not.toBeVisible();
+    await expect(
+      window.getByTestId('file-explorer').getByText('notes', { exact: true })
+    ).toBeVisible();
+    expect(fs.existsSync(path.join(testProjectDir, 'notes'))).toBe(true);
+  });
+
+  test('editing the name again asks for the confirmation again', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    await window.getByRole('button', { name: /new document/i }).click();
+    await nameNewDocument({ window, name: 'notes' });
+
+    const input = newDocumentInput({ window });
+    await expect(input).toHaveAccessibleDescription(/no extension/);
+
+    await window.keyboard.type('2');
+    await expect(input).toHaveAccessibleDescription('');
+    await window.keyboard.press('Enter');
+
+    await expect(input).toHaveAccessibleDescription(/no extension/);
+    expect(fs.existsSync(path.join(testProjectDir, 'notes2'))).toBe(false);
+  });
+
+  test('creating a file with an empty name cancels', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    const entriesBefore = fs.readdirSync(testProjectDir).sort();
+
+    await window.getByRole('button', { name: /new document/i }).click();
+    await nameNewDocument({ window, name: '' });
+
+    await expect(newDocumentInput({ window })).not.toBeVisible();
+    expect(fs.readdirSync(testProjectDir).sort()).toEqual(entriesBefore);
+  });
+
+  test('create a new file from the command palette with the sidebar closed', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    await window
+      .getByRole('button', { name: 'Hide Sidebar', exact: true })
+      .click();
+    await expect(window.getByTestId('file-explorer')).not.toBeVisible();
+
+    await openCommandPalette({ window });
+    // The option's name also holds its shortcut keys
+    await window
+      .getByRole('option', { name: /^Create a new document/ })
+      .click();
+    await nameNewDocument({ window, name: 'from-palette.md' });
+
+    await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
+    await expect(window.getByTestId('file-explorer')).toContainText(
+      'from-palette.md'
+    );
+    expect(fs.existsSync(path.join(testProjectDir, 'from-palette.md'))).toBe(
+      true
+    );
+  });
+
+  test('create a new file from the project history view', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await navigateToProjectHistory({ window });
+
+    await window.keyboard.press(newFileKey);
+    await nameNewDocument({ window, name: 'from-history.md' });
+
+    await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
+    expect(fs.existsSync(path.join(testProjectDir, 'from-history.md'))).toBe(
+      true
+    );
   });
 
   test('document switching: content is preserved', async ({
@@ -162,20 +369,17 @@ test.describe('flat directory structure', () => {
       folderPath: testProjectDir,
     });
 
-    await mockCreateNewFile({
-      electronApp,
-      filePath: path.join(testProjectDir, 'root-new.md'),
-    });
-
     // Click the sidebar heading to give the window focus without focusing any tree node
     await window.getByText('File Explorer').click();
 
     await window.keyboard.press(newFileKey);
+    await nameNewDocument({ window, name: 'root-new.md' });
 
     await window.waitForSelector('.ProseMirror', { timeout: 5_000 });
 
     const explorer = window.getByTestId('file-explorer');
-    await expect(explorer).toContainText('root-new');
+    await expect(explorer).toContainText('root-new.md');
+    expect(fs.existsSync(path.join(testProjectDir, 'root-new.md'))).toBe(true);
   });
 });
 
@@ -309,7 +513,7 @@ test.describe('nested directory structure', () => {
     await window.getByText('beta-folder').click({ button: 'right' });
 
     // An inline text input should appear for naming the new folder
-    const input = window.locator('input[type="text"]');
+    const input = newFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     // Type the new folder name and confirm
@@ -338,7 +542,7 @@ test.describe('nested directory structure', () => {
 
     await window.getByText('beta-folder').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = newFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     // Type each character individually with a small delay to expose any
@@ -368,23 +572,23 @@ test.describe('nested directory structure', () => {
       folderPath: nestedProjectDir,
     });
 
-    const betaFolder = path.join(nestedProjectDir, 'beta-folder');
-    const newFilePath = path.join(betaFolder, 'new-in-beta.md');
-
-    await createNewFileFromContextMenu({
-      electronApp,
-      newFilePath,
-    });
+    await createNewDocumentFromContextMenu({ electronApp });
 
     // Right-click the beta-folder directory node to trigger context menu IPC
     await window.getByText('beta-folder').click({ button: 'right' });
+    await nameNewDocument({ window, name: 'new-in-beta.md' });
 
     // Wait for the editor to open for the new file
     await window.waitForSelector('.ProseMirror', { timeout: 2_000 });
 
     // The new file should appear under beta-folder in the explorer
     const explorer = window.getByTestId('file-explorer');
-    await expect(explorer).toContainText('new-in-beta');
+    await expect(explorer).toContainText('new-in-beta.md');
+    expect(
+      fs.existsSync(
+        path.join(nestedProjectDir, 'beta-folder', 'new-in-beta.md')
+      )
+    ).toBe(true);
 
     // The editor should be open and editable
     await typeInEditorAndWaitForDebounce({
@@ -394,6 +598,35 @@ test.describe('nested directory structure', () => {
     await expect(window.locator('.ProseMirror')).toContainText(
       'Created in subfolder'
     );
+  });
+
+  test('create a new file via context menu on a collapsed directory', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    // Collapse alpha-folder, so its children are hidden
+    const explorer = window.getByTestId('file-explorer');
+    await explorer.getByText('alpha-folder').click();
+    await expect(explorer.getByText('notes')).not.toBeVisible();
+
+    await createNewDocumentFromContextMenu({ electronApp });
+    await explorer.getByText('alpha-folder').click({ button: 'right' });
+    await nameNewDocument({ window, name: 'new-in-alpha.md' });
+
+    await window.waitForSelector('.ProseMirror', { timeout: 2_000 });
+    await expect(explorer.getByText('new-in-alpha.md')).toBeVisible();
+    expect(
+      fs.existsSync(
+        path.join(nestedProjectDir, 'alpha-folder', 'new-in-alpha.md')
+      )
+    ).toBe(true);
   });
 
   test('create a new file via keyboard shortcut on a directory', async ({
@@ -407,20 +640,21 @@ test.describe('nested directory structure', () => {
       folderPath: nestedProjectDir,
     });
 
-    await mockCreateNewFile({
-      electronApp,
-      filePath: path.join(nestedProjectDir, 'beta-folder', 'shortcut-new.md'),
-    });
-
-    // Click a directory to focus it in the tree
+    // Click a directory to focus it in the tree (which also collapses it)
     await window.getByText('beta-folder').click();
 
     await window.keyboard.press(newFileKey);
+    await nameNewDocument({ window, name: 'shortcut-new.md' });
 
     await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
 
     const explorer = window.getByTestId('file-explorer');
-    await expect(explorer).toContainText('shortcut-new');
+    await expect(explorer.getByText('shortcut-new.md')).toBeVisible();
+    expect(
+      fs.existsSync(
+        path.join(nestedProjectDir, 'beta-folder', 'shortcut-new.md')
+      )
+    ).toBe(true);
   });
 
   test('create a new file via keyboard shortcut on a file', async ({
@@ -434,22 +668,30 @@ test.describe('nested directory structure', () => {
       folderPath: nestedProjectDir,
     });
 
-    // File is inside beta-folder; shortcut should create under the parent directory
-    await mockCreateNewFile({
-      electronApp,
-      filePath: path.join(nestedProjectDir, 'beta-folder', 'sibling-new.md'),
-    });
-
-    // Click a file inside a subdirectory to focus it
+    // Focus a file inside a subdirectory in the tree; the first click opens it
+    // in the editor, the second moves focus back to the tree
     await window.getByText('beta-doc.md').click();
-    await window.waitForSelector('.ProseMirror', { timeout: 2_000 });
+    await expect(window.locator('.ProseMirror')).toBeFocused({
+      timeout: 5_000,
+    });
+    await window.getByText('beta-doc.md').click();
+    await expect(
+      window.getByRole('treeitem', { name: /beta-doc/ })
+    ).toBeFocused();
 
+    // The shortcut creates the file next to the focused one
     await window.keyboard.press(newFileKey);
+    await nameNewDocument({ window, name: 'sibling-new.md' });
 
-    await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
+    await expect(window.locator('.ProseMirror')).toBeVisible();
 
     const explorer = window.getByTestId('file-explorer');
-    await expect(explorer).toContainText('sibling-new');
+    await expect(explorer).toContainText('sibling-new.md');
+    expect(
+      fs.existsSync(
+        path.join(nestedProjectDir, 'beta-folder', 'sibling-new.md')
+      )
+    ).toBe(true);
   });
 
   test('create a new folder via keyboard shortcut with no tree focus', async ({
@@ -468,7 +710,7 @@ test.describe('nested directory structure', () => {
 
     await window.keyboard.press(newFolderKey);
 
-    const input = window.locator('input[type="text"]');
+    const input = newFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await input.fill('root-folder');
@@ -494,7 +736,7 @@ test.describe('nested directory structure', () => {
 
     await window.keyboard.press(newFolderKey);
 
-    const input = window.locator('input[type="text"]');
+    const input = newFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await input.fill('sub-in-beta');
@@ -525,7 +767,7 @@ test.describe('nested directory structure', () => {
 
     await window.keyboard.press(newFolderKey);
 
-    const input = window.locator('input[type="text"]');
+    const input = newFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 1_000 });
 
     await input.fill('new-from-file');
@@ -858,14 +1100,14 @@ test.describe('file rename', () => {
 
     await window.getByText('hello').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFileInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
-    await input.fill('renamed');
+    await input.fill('renamed.md');
     await window.keyboard.press('Enter');
 
     const explorer = window.getByTestId('file-explorer');
-    await expect(explorer.getByText('renamed')).toBeVisible({
+    await expect(explorer.getByText('renamed.md')).toBeVisible({
       timeout: 2_000,
     });
     await expect(explorer.getByText('hello')).not.toBeVisible({
@@ -888,14 +1130,14 @@ test.describe('file rename', () => {
 
     await window.getByText('beta-doc.md').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFileInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
-    await input.fill('gamma-doc');
+    await input.fill('gamma-doc.md');
     await window.keyboard.press('Enter');
 
     const explorer = window.getByTestId('file-explorer');
-    await expect(explorer.getByText('gamma-doc')).toBeVisible({
+    await expect(explorer.getByText('gamma-doc.md')).toBeVisible({
       timeout: 2_000,
     });
     await expect(explorer.getByText('beta-doc.md')).not.toBeVisible({
@@ -922,13 +1164,13 @@ test.describe('file rename', () => {
     const explorer = window.getByTestId('file-explorer');
     await explorer.getByText('hello').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFileInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
-    await input.fill('renamed-hello');
+    await input.fill('renamed-hello.md');
     await window.keyboard.press('Enter');
 
-    await expect(explorer.getByText('renamed-hello')).toBeVisible({
+    await expect(explorer.getByText('renamed-hello.md')).toBeVisible({
       timeout: 2_000,
     });
     // Editor should still be visible after rename
@@ -950,7 +1192,7 @@ test.describe('file rename', () => {
 
     await window.getByText('hello').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFileInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await window.keyboard.press('Escape');
@@ -976,7 +1218,7 @@ test.describe('file rename', () => {
 
     await window.getByText('hello').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFileInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await input.fill('');
@@ -1004,32 +1246,91 @@ test.describe('file rename', () => {
     const explorer = window.getByTestId('file-explorer');
     await window.getByText('hello').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFileInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     // First collision: rename 'hello' to the already-existing 'world'
     await input.clear();
-    await input.fill('world');
+    await input.fill('world.md');
     await window.keyboard.press('Enter');
     // Input should remain visible
     await expect(input).toBeVisible();
-    // Error tooltip is set
-    await expect(input).toHaveAttribute('title');
+    // The error is shown under the field
+    await expect(input).toHaveAccessibleDescription(/already exists/);
     await expect(explorer.getByText('world')).toBeVisible();
 
     // Type something to clear the error state
     await window.keyboard.type('x');
-    await expect(input).not.toHaveAttribute('title');
+    await expect(input).toHaveAccessibleDescription('');
 
     // Second collision: try the same conflicting name again
     await input.clear();
-    await input.fill('world');
+    await input.fill('world.md');
     await window.keyboard.press('Enter');
     // Input should remain visible
     await expect(input).toBeVisible();
-    // Error tooltip is set
-    await expect(input).toHaveAttribute('title');
+    // The error is shown under the field
+    await expect(input).toHaveAccessibleDescription(/already exists/);
     await expect(explorer.getByText('world')).toBeVisible();
+  });
+
+  test('a name without an extension asks for confirmation, and Escape keeps the file', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    await renameFileFromContextMenu({ electronApp });
+
+    const explorer = window.getByTestId('file-explorer');
+    await window.getByText('hello').click({ button: 'right' });
+
+    const input = renameFileInput({ window });
+    await input.waitFor({ state: 'visible', timeout: 500 });
+    await expect(input).toHaveValue('hello.md');
+
+    await input.fill('hello');
+    await window.keyboard.press('Enter');
+
+    await expect(input).toBeVisible();
+    await expect(input).toHaveAccessibleDescription(/no extension/);
+    expect(fs.existsSync(path.join(testProjectDir, 'hello.md'))).toBe(true);
+
+    await window.keyboard.press('Escape');
+    await expect(explorer.getByText('hello.md')).toBeVisible();
+  });
+
+  test('typing a new name keeps the extension', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    await renameFileFromContextMenu({ electronApp });
+    await window.getByText('hello').click({ button: 'right' });
+
+    const input = renameFileInput({ window });
+    await input.waitFor({ state: 'visible', timeout: 500 });
+
+    // Only the name is selected, so typing replaces it and keeps the extension
+    await window.keyboard.type('greeting');
+    await expect(input).toHaveValue('greeting.md');
+    await window.keyboard.press('Enter');
+
+    await expect(
+      window.getByTestId('file-explorer').getByText('greeting.md')
+    ).toBeVisible({ timeout: 2_000 });
+    expect(fs.existsSync(path.join(testProjectDir, 'greeting.md'))).toBe(true);
   });
 
   test('rename a file via keyboard shortcut', async ({
@@ -1055,15 +1356,15 @@ test.describe('file rename', () => {
     // Press the platform-appropriate rename key (Enter on Mac, F2 on Linux/Windows)
     await window.keyboard.press(renameKey);
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFileInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await input.clear();
-    await input.fill('keyboard-renamed');
+    await input.fill('keyboard-renamed.md');
     await window.keyboard.press('Enter');
 
     const explorer = window.getByTestId('file-explorer');
-    await expect(explorer.getByText('keyboard-renamed')).toBeVisible({
+    await expect(explorer.getByText('keyboard-renamed.md')).toBeVisible({
       timeout: 2_000,
     });
     await expect(explorer.getByText('beta-doc.md')).not.toBeVisible({
@@ -1089,7 +1390,7 @@ test.describe('folder rename', () => {
     const explorer = window.getByTestId('file-explorer');
     await explorer.getByText('beta-folder').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await input.clear();
@@ -1121,7 +1422,7 @@ test.describe('folder rename', () => {
     const explorer = window.getByTestId('file-explorer');
     await explorer.getByText('notes').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await input.clear();
@@ -1154,7 +1455,7 @@ test.describe('folder rename', () => {
 
     await explorer.getByText('beta-folder').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await input.clear();
@@ -1184,7 +1485,7 @@ test.describe('folder rename', () => {
     const explorer = window.getByTestId('file-explorer');
     await explorer.getByText('beta-folder').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await window.keyboard.press('Escape');
@@ -1209,7 +1510,7 @@ test.describe('folder rename', () => {
     const explorer = window.getByTestId('file-explorer');
     await explorer.getByText('alpha-folder').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     // Try to rename alpha-folder to beta-folder (already exists)
@@ -1219,8 +1520,8 @@ test.describe('folder rename', () => {
 
     // Input should remain visible
     await expect(input).toBeVisible();
-    // Error tooltip is set
-    await expect(input).toHaveAttribute('title');
+    // The error is shown under the field
+    await expect(input).toHaveAccessibleDescription(/already exists/);
     // The conflicting folder still exists (alpha-folder is in rename mode so its
     // text is inside the input, not a text node — check beta-folder instead)
     await expect(explorer.getByText('beta-folder')).toBeVisible();
@@ -1245,7 +1546,7 @@ test.describe('folder rename', () => {
     // Press the platform-appropriate rename key (Enter on Mac, F2 on Linux/Windows)
     await window.keyboard.press(renameKey);
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await input.clear();
