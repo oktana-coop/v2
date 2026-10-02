@@ -117,7 +117,7 @@ const NewFileNode = ({ node, style }: NodeRendererProps<ExplorerTreeNode>) => {
         className="flex-1"
         label="New file name"
         defaultValue={node.data.name}
-        selectBeforeExtension
+        mayIncludeExtension
         error={createDocumentError}
         warning={warning}
         onSubmit={handleSubmitValue}
@@ -167,7 +167,7 @@ const RenamingFileNode = ({
       <TreeRowInput
         className="flex-1"
         defaultValue={node.data.name}
-        selectBeforeExtension
+        mayIncludeExtension
         error={renameDocumentError}
         warning={warning}
         onSubmit={handleSubmitValue}
