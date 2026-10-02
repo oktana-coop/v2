@@ -2,7 +2,6 @@ import { useContext } from 'react';
 
 import {
   CloneFromGithubModalContext,
-  SidebarLayoutContext,
   useCreateDocument,
 } from '../../../../app-state';
 import { Button } from '../../../../components/actions/Button';
@@ -21,7 +20,6 @@ export const EmptyMainView = ({
   children?: React.ReactNode;
 }) => {
   const { openCloneFromGithubModal } = useContext(CloneFromGithubModalContext);
-  const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
 
   const { explorerTree: documents } = useDocumentExplorerTree();
   const { canCreateDocument } = useCreateDocument();
@@ -32,10 +30,7 @@ export const EmptyMainView = ({
   return (
     <div className="flex w-full flex-col">
       <div className="w-full">
-        <DefaultActionsBar
-          isSidebarOpen={isSidebarOpen}
-          onSidebarToggle={toggleSidebar}
-        />
+        <DefaultActionsBar />
       </div>
       <EmptyDocument
         message={

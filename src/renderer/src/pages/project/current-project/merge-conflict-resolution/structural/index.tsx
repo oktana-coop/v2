@@ -1,5 +1,3 @@
-import { useContext } from 'react';
-
 import {
   isFileDirectoryConflict,
   isModifyDeleteConflict,
@@ -9,7 +7,6 @@ import {
   isSubmoduleConflict,
   type StructuralConflict as StructuralConflictType,
 } from '../../../../../../../modules/infrastructure/version-control';
-import { SidebarLayoutContext } from '../../../../../app-state';
 import { DiffIcon } from '../../../../../components/icons';
 import { SectionHeader } from '../../../../shared/settings/SectionHeader';
 import { MergeConflictResolutionActionsBar } from '../ActionsBar';
@@ -17,7 +14,6 @@ import { useMergeConflictResolution } from '../use-merge-conflict-resolution';
 import { StructuralConflict } from './StructuralConflict';
 
 export const StructuralConflictResolution = () => {
-  const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const { mergeConflictInfo, structuralConflicts, abortMerge } =
     useMergeConflictResolution();
 
@@ -60,8 +56,6 @@ export const StructuralConflictResolution = () => {
       <div className="w-full">
         <MergeConflictResolutionActionsBar
           mergeConflictInfo={mergeConflictInfo}
-          isSidebarOpen={isSidebarOpen}
-          onSidebarToggle={toggleSidebar}
           onAbortMerge={handleAbortMerge}
           hasResolveConflictButton={false}
           hasEditorToolbarToggle={false}

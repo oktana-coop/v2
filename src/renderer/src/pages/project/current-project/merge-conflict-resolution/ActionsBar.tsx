@@ -1,25 +1,18 @@
-import { useRef } from 'react';
-
 import { MergeConflictInfo } from '../../../../../../modules/infrastructure/version-control';
 import { Button } from '../../../../components/actions/Button';
 import { IconButton } from '../../../../components/actions/IconButton';
-import {
-  SidebarIcon,
-  SidebarOpenIcon,
-  ToolbarToggleIcon,
-} from '../../../../components/icons';
+import { ToolbarToggleIcon } from '../../../../components/icons';
 import {
   Checkbox,
   CheckboxField,
 } from '../../../../components/inputs/Checkbox';
 import { Label } from '../../../../components/inputs/Fieldset';
+import { SidebarToggleButton } from '../../../shared/sidebar-toggle-button';
 import { MergeInfo } from './merge-info';
 import { MergePole } from './merge-info/MergePole';
 
 export const MergeConflictResolutionActionsBar = ({
   mergeConflictInfo,
-  isSidebarOpen,
-  onSidebarToggle,
   onAbortMerge,
   hasResolveConflictButton,
   onResolveConflict,
@@ -30,8 +23,6 @@ export const MergeConflictResolutionActionsBar = ({
   onSetShowDiffChecked,
 }: {
   mergeConflictInfo: MergeConflictInfo;
-  isSidebarOpen: boolean;
-  onSidebarToggle: () => void;
   onAbortMerge: () => void;
   hasResolveConflictButton: boolean;
   onResolveConflict?: () => void;
@@ -41,19 +32,6 @@ export const MergeConflictResolutionActionsBar = ({
   showDiff?: boolean;
   onSetShowDiffChecked?: (value: boolean) => void;
 }) => {
-  const sidebarButtonRef = useRef<HTMLButtonElement | null>(null);
-
-  const handleSidebarToggle = (ev: React.MouseEvent) => {
-    ev.preventDefault();
-    onSidebarToggle();
-
-    // manually remove the hover state because headless-ui doesn't handle it properly in this case
-    if (sidebarButtonRef.current) {
-      sidebarButtonRef.current.removeAttribute('data-headlessui-state');
-      sidebarButtonRef.current.removeAttribute('data-hover');
-    }
-  };
-
   const handleAbortMerge = (ev: React.MouseEvent) => {
     ev.preventDefault();
     onAbortMerge();
@@ -71,12 +49,7 @@ export const MergeConflictResolutionActionsBar = ({
 
   return (
     <div className="flex flex-initial items-center justify-between px-4 py-2">
-      <IconButton
-        ref={sidebarButtonRef}
-        icon={isSidebarOpen ? <SidebarOpenIcon /> : <SidebarIcon />}
-        tooltip={isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
-        onClick={handleSidebarToggle}
-      />
+      <SidebarToggleButton />
       <h2 className="max-h-14 flex-auto overflow-y-hidden px-4 text-left text-base/7">
         Resolving merge conflicts:{' '}
         <MergeInfo mergeConflictInfo={mergeConflictInfo} />
