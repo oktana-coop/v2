@@ -53,6 +53,7 @@ const NewDirectoryNode = ({
       <ChevronDownIcon className="mr-2 shrink-0 -rotate-90" size={20} />
       <TreeRowInput
         className="flex-1"
+        label="New folder name"
         onSubmit={handleSubmit}
         onCancel={onCancelCreateDirectory}
       />
@@ -163,6 +164,7 @@ const RenamingFileNode = ({
       <FileExtensionIcon fileName={node.data.name} />
       <TreeRowInput
         className="flex-1"
+        label="File name"
         defaultValue={node.data.name}
         mayIncludeExtension
         error={renameDocumentError}
@@ -207,6 +209,7 @@ const RenamingDirectoryNode = ({
       <ChevronDownIcon className="mr-2 shrink-0 -rotate-90" size={20} />
       <TreeRowInput
         className="flex-1"
+        label="Folder name"
         defaultValue={node.data.name}
         error={renameDirectoryError}
         onSubmit={handleSubmit}

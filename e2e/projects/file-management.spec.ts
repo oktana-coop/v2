@@ -16,12 +16,15 @@ import {
   navigateToProjectHistory,
   newDocumentInput,
   newFileKey,
+  newFolderInput,
   newFolderKey,
   openCommandPalette,
   openHelloMd,
   openProjectFolder,
   renameFileFromContextMenu,
+  renameFileInput,
   renameFolderFromContextMenu,
+  renameFolderInput,
   renameKey,
   typeInEditorAndWaitForDebounce,
 } from '../shared/helpers';
@@ -519,7 +522,7 @@ test.describe('nested directory structure', () => {
     await window.getByText('beta-folder').click({ button: 'right' });
 
     // An inline text input should appear for naming the new folder
-    const input = window.locator('input[type="text"]');
+    const input = newFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     // Type the new folder name and confirm
@@ -548,7 +551,7 @@ test.describe('nested directory structure', () => {
 
     await window.getByText('beta-folder').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = newFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     // Type each character individually with a small delay to expose any
@@ -716,7 +719,7 @@ test.describe('nested directory structure', () => {
 
     await window.keyboard.press(newFolderKey);
 
-    const input = window.locator('input[type="text"]');
+    const input = newFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await input.fill('root-folder');
@@ -742,7 +745,7 @@ test.describe('nested directory structure', () => {
 
     await window.keyboard.press(newFolderKey);
 
-    const input = window.locator('input[type="text"]');
+    const input = newFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await input.fill('sub-in-beta');
@@ -773,7 +776,7 @@ test.describe('nested directory structure', () => {
 
     await window.keyboard.press(newFolderKey);
 
-    const input = window.locator('input[type="text"]');
+    const input = newFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 1_000 });
 
     await input.fill('new-from-file');
@@ -1106,7 +1109,7 @@ test.describe('file rename', () => {
 
     await window.getByText('hello').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFileInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await input.fill('renamed.md');
@@ -1136,7 +1139,7 @@ test.describe('file rename', () => {
 
     await window.getByText('beta-doc.md').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFileInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await input.fill('gamma-doc.md');
@@ -1170,7 +1173,7 @@ test.describe('file rename', () => {
     const explorer = window.getByTestId('file-explorer');
     await explorer.getByText('hello').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFileInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await input.fill('renamed-hello.md');
@@ -1198,7 +1201,7 @@ test.describe('file rename', () => {
 
     await window.getByText('hello').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFileInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await window.keyboard.press('Escape');
@@ -1224,7 +1227,7 @@ test.describe('file rename', () => {
 
     await window.getByText('hello').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFileInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await input.fill('');
@@ -1252,7 +1255,7 @@ test.describe('file rename', () => {
     const explorer = window.getByTestId('file-explorer');
     await window.getByText('hello').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFileInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     // First collision: rename 'hello' to the already-existing 'world'
@@ -1296,7 +1299,7 @@ test.describe('file rename', () => {
     const explorer = window.getByTestId('file-explorer');
     await window.getByText('hello').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFileInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
     await expect(input).toHaveValue('hello.md');
 
@@ -1325,7 +1328,7 @@ test.describe('file rename', () => {
     await renameFileFromContextMenu({ electronApp });
     await window.getByText('hello').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFileInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     // Only the name is selected, so typing replaces it and keeps the extension
@@ -1362,7 +1365,7 @@ test.describe('file rename', () => {
     // Press the platform-appropriate rename key (Enter on Mac, F2 on Linux/Windows)
     await window.keyboard.press(renameKey);
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFileInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await input.clear();
@@ -1396,7 +1399,7 @@ test.describe('folder rename', () => {
     const explorer = window.getByTestId('file-explorer');
     await explorer.getByText('beta-folder').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await input.clear();
@@ -1428,7 +1431,7 @@ test.describe('folder rename', () => {
     const explorer = window.getByTestId('file-explorer');
     await explorer.getByText('notes').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await input.clear();
@@ -1461,7 +1464,7 @@ test.describe('folder rename', () => {
 
     await explorer.getByText('beta-folder').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await input.clear();
@@ -1491,7 +1494,7 @@ test.describe('folder rename', () => {
     const explorer = window.getByTestId('file-explorer');
     await explorer.getByText('beta-folder').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await window.keyboard.press('Escape');
@@ -1516,7 +1519,7 @@ test.describe('folder rename', () => {
     const explorer = window.getByTestId('file-explorer');
     await explorer.getByText('alpha-folder').click({ button: 'right' });
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     // Try to rename alpha-folder to beta-folder (already exists)
@@ -1552,7 +1555,7 @@ test.describe('folder rename', () => {
     // Press the platform-appropriate rename key (Enter on Mac, F2 on Linux/Windows)
     await window.keyboard.press(renameKey);
 
-    const input = window.locator('input[type="text"]');
+    const input = renameFolderInput({ window });
     await input.waitFor({ state: 'visible', timeout: 500 });
 
     await input.clear();

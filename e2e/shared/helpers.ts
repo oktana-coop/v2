@@ -85,8 +85,8 @@ export const openProjectFolder = async ({
 };
 
 /**
- * Mocks Electron's showSaveDialog so the next export writes to the given path
- * without showing the native OS dialog.
+ * Mocks Electron's showSaveDialog so it answers with the given path without
+ * showing the native OS dialog.
  */
 export const mockCreateFileWithDialog = async ({
   electronApp,
@@ -104,9 +104,9 @@ export const mockCreateFileWithDialog = async ({
 };
 
 /**
- * Mocks Electron's showOpenDialog so the next file-picker flow (e.g. inserting
- * an image) resolves to the given file path without showing the native OS
- * dialog. The open-file counterpart to {@link mockCreateFileWithDialog}.
+ * Mocks Electron's showOpenDialog so it answers with the given file path
+ * without showing the native OS dialog. The open-file counterpart to
+ * {@link mockCreateFileWithDialog}.
  */
 export const mockPickFile = async ({
   electronApp,
@@ -124,7 +124,25 @@ export const mockPickFile = async ({
  * The field in the explorer tree where a new file is named.
  */
 export const newDocumentInput = ({ window }: { window: Page }) =>
-  window.getByRole('textbox', { name: 'New file name' });
+  window.getByRole('textbox', { name: 'New file name', exact: true });
+
+/**
+ * The field in the explorer tree where a new folder is named.
+ */
+export const newFolderInput = ({ window }: { window: Page }) =>
+  window.getByRole('textbox', { name: 'New folder name', exact: true });
+
+/**
+ * The field in the explorer tree where a file is renamed.
+ */
+export const renameFileInput = ({ window }: { window: Page }) =>
+  window.getByRole('textbox', { name: 'File name', exact: true });
+
+/**
+ * The field in the explorer tree where a folder is renamed.
+ */
+export const renameFolderInput = ({ window }: { window: Page }) =>
+  window.getByRole('textbox', { name: 'Folder name', exact: true });
 
 /**
  * Types a name into the new-file field and confirms it.
