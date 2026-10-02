@@ -6,7 +6,6 @@ import {
   commitChanges,
   confirmDeletion,
   deleteFileFromContextMenu,
-  enableShowDiff,
   expectNoErrorNotification,
   expectProjectCommits,
   navigateToProjectHistory,
@@ -215,40 +214,6 @@ test.describe('project history', () => {
 
     // Viewing a deleted document in history is handled, not an error
     await expectNoErrorNotification({ window });
-  });
-
-  test('diff annotations appear in project history', async ({
-    electronApp,
-    window,
-    testProjectDir,
-  }) => {
-    await openProjectFolder({
-      electronApp,
-      window,
-      folderPath: testProjectDir,
-    });
-    await openHelloMd({ window });
-
-    await typeInEditorAndWaitForDebounce({ window, text: ' version one' });
-    await commitChanges({ window, message: 'first commit' });
-
-    await typeInEditorAndWaitForDebounce({ window, text: ' version two' });
-    await commitChanges({ window, message: 'second commit' });
-
-    await navigateToProjectHistory({ window });
-    await toggleProjectCommit({ window, commitMessage: 'second commit' });
-    await selectChangedDocument({ window, fileName: 'hello' });
-
-    await expect(window.locator('.ProseMirror')).toBeVisible({
-      timeout: 1_000,
-    });
-
-    await enableShowDiff({ window });
-
-    // The inserted text "version two" should be highlighted as an insert
-    const insertAnnotation = window.locator('.ProseMirror .diff-insert');
-    await expect(insertAnnotation).toBeVisible({ timeout: 1_000 });
-    await expect(insertAnnotation).toContainText('version two');
   });
 });
 

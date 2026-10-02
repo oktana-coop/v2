@@ -2,7 +2,7 @@ import { Page } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
-import { expect } from '../shared/fixtures';
+import { expect } from '../../shared/fixtures';
 import {
   commitChanges,
   createAndSwitchToBranch,
@@ -10,7 +10,7 @@ import {
   openDocument,
   switchToBranch,
   typeInParagraphAndWaitForDebounce,
-} from '../shared/helpers';
+} from '../../shared/helpers';
 
 const initialDocContent = '# Bar\n\nLorem ipsum dolor\n';
 

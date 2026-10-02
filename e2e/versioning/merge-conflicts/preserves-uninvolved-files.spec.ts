@@ -2,7 +2,7 @@ import { Page } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
-import { expect, test } from '../shared/fixtures';
+import { expect, test } from '../../shared/fixtures';
 import {
   commitChanges,
   createAndSwitchToBranch,
@@ -11,7 +11,7 @@ import {
   openProjectFolder,
   switchToBranch,
   typeInParagraphAndWaitForDebounce,
-} from '../shared/helpers';
+} from '../../shared/helpers';
 
 // Resolving a conflict may only change the files in conflict. Everything else
 // in the project must come out of the merge exactly as it went in, so these

@@ -4,10 +4,6 @@ import {
   joinFromButton,
   shareFromCommandPalette,
 } from '../collaboration/helpers';
-import {
-  createMergeConflictForDocument,
-  seedDocument,
-} from '../merge-conflicts/helpers';
 import { expect, test } from '../shared/fixtures';
 import {
   navigateToSettings,
@@ -17,6 +13,10 @@ import {
   selectUncommittedChanges,
   typeInParagraphAndWaitForDebounce,
 } from '../shared/helpers';
+import {
+  createMergeConflictForDocument,
+  seedDocument,
+} from '../versioning/merge-conflicts/helpers';
 
 // Hides the sidebar with the actions bar's toggle, then shows it again.
 const expectSidebarToToggle = async ({

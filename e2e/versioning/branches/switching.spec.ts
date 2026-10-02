@@ -1,6 +1,6 @@
 import { Page } from '@playwright/test';
 
-import { expect, test } from '../shared/fixtures';
+import { expect, test } from '../../shared/fixtures';
 import {
   attemptBranchSwitch,
   commitChanges,
@@ -13,7 +13,7 @@ import {
   openProjectFolder,
   switchToBranch,
   typeInParagraphAndWaitForDebounce,
-} from '../shared/helpers';
+} from '../../shared/helpers';
 
 const editor = (window: Page) => window.locator('.ProseMirror');
 

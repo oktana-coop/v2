@@ -5,6 +5,7 @@ import { expect, test } from '../shared/fixtures';
 import { initRepositoryWithCommit } from '../shared/git';
 import {
   createAndSwitchToBranch,
+  expectFileToContain,
   openDocument,
   openHelloMd,
   openProjectFolder,
@@ -80,6 +81,69 @@ test.describe('joining a share', () => {
         delay: 30,
       });
       await expect(bobEditor).toContainText('and joined', { timeout: 20_000 });
+    } finally {
+      await bob.close();
+    }
+  });
+
+  test('a share holding text the file lacks writes it to the file as an uncommitted change', async ({
+    syncServer,
+    electronApp,
+    window: aliceWindow,
+    testProjectDir: aliceProject,
+  }) => {
+    test.setTimeout(180_000);
+
+    fs.writeFileSync(
+      path.join(aliceProject, 'notes.md'),
+      '# Notes\n\nWritten by Alice.\n'
+    );
+    initRepositoryWithCommit({ repoDir: aliceProject, message: 'base' });
+
+    await openProjectFolder({
+      electronApp,
+      window: aliceWindow,
+      folderPath: aliceProject,
+    });
+    await openDocument({ window: aliceWindow, relativePath: 'notes.md' });
+    await typeInEditorSlowly({
+      window: aliceWindow,
+      text: ' not yet committed',
+      delay: 30,
+    });
+
+    const shareId = await shareFromCommandPalette({ window: aliceWindow });
+    await syncServer!.waitForShare(shareId);
+
+    const bob = await cloneAndLaunchApp({
+      syncServiceUrl: syncServer!.url,
+      source: aliceProject,
+    });
+    try {
+      await openProjectFolder({
+        electronApp: bob.app,
+        window: bob.window,
+        folderPath: bob.projectDir,
+      });
+      await openHelloMd({ window: bob.window });
+      await expect(bob.window.getByTestId('uncommitted-changes')).toHaveCount(
+        0
+      );
+
+      await joinFromCommandPalette({ window: bob.window, shareId });
+
+      await expect(bob.window.locator('.ProseMirror')).toContainText(
+        'not yet committed',
+        { timeout: 20_000 }
+      );
+      await expectFileToContain({
+        filePath: path.join(bob.projectDir, 'notes.md'),
+        text: 'not yet committed',
+      });
+      await expect(bob.window.getByTestId('uncommitted-changes')).toBeVisible();
+      await expect(
+        bob.window.getByRole('button', { name: /commit changes/i })
+      ).toBeEnabled();
     } finally {
       await bob.close();
     }

@@ -1,8 +1,8 @@
 import { Page } from '@playwright/test';
 import path from 'path';
 
-import { expect, test } from '../shared/fixtures';
-import { openProjectFolder } from '../shared/helpers';
+import { expect, test } from '../../shared/fixtures';
+import { openProjectFolder } from '../../shared/helpers';
 import { createMergeConflictForDocument, seedDocument } from './helpers';
 
 const expectConflictResolutionScreen = async ({

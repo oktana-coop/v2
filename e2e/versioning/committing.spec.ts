@@ -3,7 +3,9 @@ import { Page } from '@playwright/test';
 import { expect, test } from '../shared/fixtures';
 import {
   commitAllProjectChanges,
+  commitChanges,
   navigateToProjectHistory,
+  openCommandPalette,
   openHelloMd,
   openProjectFolder,
   selectUncommittedChanges,
@@ -16,7 +18,93 @@ const openWorldMd = async ({ window }: { window: Page }): Promise<void> => {
   await window.waitForSelector('.ProseMirror', { timeout: 2_000 });
 };
 
-test.describe('commit to project (multi-doc)', () => {
+test.describe('committing a document', () => {
+  test('a commit goes on top of the history and leaves nothing to commit', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    const commitButton = window.getByRole('button', {
+      name: /commit changes/i,
+    });
+    await expect(commitButton).toBeDisabled();
+
+    await typeInEditorAndWaitForDebounce({ window, text: ' first edit' });
+    await expect(window.getByTestId('uncommitted-changes')).toBeVisible();
+    await expect(commitButton).toBeEnabled();
+
+    await commitChanges({ window, message: 'first commit' });
+
+    // The new commit sits on top of the initial snapshot taken when the folder was opened.
+    const commits = window.getByTestId('history-commit');
+    await expect(commits).toHaveCount(2);
+    await expect(commits.first()).toContainText('first commit');
+    await expect(window.getByTestId('uncommitted-changes')).toHaveCount(0);
+    await expect(commitButton).toBeDisabled();
+  });
+
+  test('commits from the uncommitted changes view', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+
+    await typeInEditorAndWaitForDebounce({ window, text: ' first' });
+    await commitChanges({ window, message: 'first commit' });
+
+    await typeInEditorAndWaitForDebounce({ window, text: ' second' });
+    await selectUncommittedChanges({ window });
+    await commitChanges({ window, message: 'second commit' });
+
+    // The new commits sit on top of the initial snapshot taken when the folder was opened.
+    const commits = window.getByTestId('history-commit');
+    await expect(commits).toHaveCount(3);
+  });
+
+  test('the palette offers committing only when there is something to commit', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    const commitButton = window.getByRole('button', {
+      name: /commit changes/i,
+    });
+    const commitOption = window.getByRole('option', {
+      name: /^Commit changes/,
+    });
+    await expect(commitButton).toBeDisabled();
+
+    await openCommandPalette({ window });
+    await expect(commitOption).toHaveCount(0);
+    await window.keyboard.press('Escape');
+
+    await typeInEditorAndWaitForDebounce({ window, text: ' palette edit' });
+    await expect(commitButton).toBeEnabled();
+
+    await openCommandPalette({ window });
+    await expect(commitOption).toBeVisible();
+  });
+});
+
+test.describe('committing all project changes', () => {
   test('bundles uncommitted changes across documents into one commit', async ({
     electronApp,
     window,
@@ -63,7 +151,7 @@ test.describe('commit to project (multi-doc)', () => {
     await expect(changedDocs.filter({ hasText: 'world' })).toHaveCount(1);
   });
 
-  test('works from the document history view (uncommitted changes screen)', async ({
+  test('commits all project changes from the uncommitted changes view', async ({
     electronApp,
     window,
     testProjectDir,
