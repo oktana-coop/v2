@@ -35,8 +35,11 @@ const NewDirectoryNode = ({
   const handleSubmit = (value: string) => {
     const name = value.trim();
 
-    if (name) onCreateDirectory(name);
-    else onCancelCreateDirectory();
+    if (name) {
+      onCreateDirectory(name);
+    } else {
+      onCancelCreateDirectory();
+    }
   };
 
   return (
@@ -60,28 +63,6 @@ const NewDirectoryNode = ({
 const MISSING_EXTENSION_WARNING =
   'This name has no extension (such as .md). Press Enter again to keep it.';
 
-// Takes a file name without an extension only when Enter is pressed again
-// for the same name.
-const useMissingExtensionConfirmation = (submit: (name: string) => void) => {
-  const [nameToConfirm, setNameToConfirm] = useState<string | null>(null);
-
-  const handleSubmit = (name: string) => {
-    if (getExtension(name) === '' && nameToConfirm !== name) {
-      setNameToConfirm(name);
-      return;
-    }
-
-    setNameToConfirm(null);
-    submit(name);
-  };
-
-  return {
-    warning: nameToConfirm !== null ? MISSING_EXTENSION_WARNING : null,
-    handleSubmit,
-    resetConfirmation: () => setNameToConfirm(null),
-  };
-};
-
 const NewFileNode = ({ node, style }: NodeRendererProps<ExplorerTreeNode>) => {
   const {
     onCreateDocument,
@@ -89,18 +70,27 @@ const NewFileNode = ({ node, style }: NodeRendererProps<ExplorerTreeNode>) => {
     onClearCreateDocumentError,
     createDocumentError,
   } = useTreeCallbacks();
-  const { warning, handleSubmit, resetConfirmation } =
-    useMissingExtensionConfirmation((name) => onCreateDocument(name));
+  const [isConfirming, setIsConfirming] = useState(false);
 
-  const handleSubmitValue = (value: string) => {
+  const handleSubmit = (value: string) => {
     const name = value.trim();
 
-    if (name) handleSubmit(name);
-    else onCancelCreateDocument();
+    if (!name) {
+      onCancelCreateDocument();
+      return;
+    }
+
+    // A name without an extension takes a second Enter.
+    if (getExtension(name) === '' && !isConfirming) {
+      setIsConfirming(true);
+      return;
+    }
+
+    onCreateDocument(name);
   };
 
   const handleChange = () => {
-    resetConfirmation();
+    setIsConfirming(false);
     onClearCreateDocumentError();
   };
 
@@ -119,8 +109,8 @@ const NewFileNode = ({ node, style }: NodeRendererProps<ExplorerTreeNode>) => {
         defaultValue={node.data.name}
         mayIncludeExtension
         error={createDocumentError}
-        warning={warning}
-        onSubmit={handleSubmitValue}
+        warning={isConfirming ? MISSING_EXTENSION_WARNING : null}
+        onSubmit={handleSubmit}
         onCancel={onCancelCreateDocument}
         onChange={handleChange}
       />
@@ -138,20 +128,27 @@ const RenamingFileNode = ({
     onClearRenameDocumentError,
     renameDocumentError,
   } = useTreeCallbacks();
-  const { warning, handleSubmit, resetConfirmation } =
-    useMissingExtensionConfirmation((name) =>
-      onRenameDocument(node.data.id, name)
-    );
+  const [isConfirming, setIsConfirming] = useState(false);
 
-  const handleSubmitValue = (value: string) => {
+  const handleSubmit = (value: string) => {
     const name = value.trim();
 
-    if (name) handleSubmit(name);
-    else onCancelRenameDocument();
+    if (!name) {
+      onCancelRenameDocument();
+      return;
+    }
+
+    // A name without an extension takes a second Enter.
+    if (getExtension(name) === '' && !isConfirming) {
+      setIsConfirming(true);
+      return;
+    }
+
+    onRenameDocument(node.data.id, name);
   };
 
   const handleChange = () => {
-    resetConfirmation();
+    setIsConfirming(false);
     onClearRenameDocumentError();
   };
 
@@ -169,8 +166,8 @@ const RenamingFileNode = ({
         defaultValue={node.data.name}
         mayIncludeExtension
         error={renameDocumentError}
-        warning={warning}
-        onSubmit={handleSubmitValue}
+        warning={isConfirming ? MISSING_EXTENSION_WARNING : null}
+        onSubmit={handleSubmit}
         onCancel={onCancelRenameDocument}
         onChange={handleChange}
       />
@@ -192,8 +189,11 @@ const RenamingDirectoryNode = ({
   const handleSubmit = (value: string) => {
     const name = value.trim();
 
-    if (name) onRenameDirectory(node.data.id, name);
-    else onCancelRenameDirectory();
+    if (name) {
+      onRenameDirectory(node.data.id, name);
+    } else {
+      onCancelRenameDirectory();
+    }
   };
 
   return (
