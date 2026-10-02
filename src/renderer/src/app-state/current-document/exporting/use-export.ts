@@ -7,10 +7,12 @@ import {
   type BinaryRichTextRepresentation,
   binaryRichTextRepresentations,
   getDocumentRichTextContent,
+  prosemirror,
   richTextRepresentationExtensions,
   richTextRepresentations,
   type TextRichTextRepresentation,
 } from '../../../../../modules/domain/rich-text';
+import { ProseMirrorContext } from '../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { RepresentationTransformContext } from '../../../../../modules/domain/rich-text/react/representation-transform-context';
 import {
   removeExtension,
@@ -33,11 +35,14 @@ import {
   useExportAssetMounts,
 } from './use-export-asset-mounts';
 
+const { docFromSelection } = prosemirror;
+
 export const useExport = () => {
   const { filesystem, projectStore } = useContext(
     InfrastructureAdaptersContext
   );
   const { adapter } = useContext(RepresentationTransformContext);
+  const { view, convertFromProseMirror } = useContext(ProseMirrorContext);
   const { activeTemplate } = useContext(ExportTemplatesContext);
   const { dispatchNotification } = useContext(NotificationsContext);
   const { projectId: projectIdParam } = useParams();
@@ -164,6 +169,49 @@ export const useExport = () => {
       }
     };
 
+  // Read at render time: the palette re-renders when it opens, and the
+  // editor selection cannot change while it is open.
+  const canCopySelection = Boolean(view && !view.state.selection.empty);
+
+  const copySelectionToClipboard =
+    (representation: TextRichTextRepresentation) => async () => {
+      try {
+        if (!view) {
+          throw new Error(
+            'No editor view available when trying to copy the selection'
+          );
+        }
+
+        const selectionDoc = docFromSelection(view.state);
+
+        if (!selectionDoc) {
+          throw new Error('No selection to copy');
+        }
+
+        const text = await convertFromProseMirror({
+          pmDoc: selectionDoc,
+          to: representation,
+        });
+
+        await navigator.clipboard.writeText(text);
+        dispatchNotification(
+          createSuccessNotification({
+            title: 'Copied to Clipboard',
+            message: 'The selection was copied to the clipboard.',
+          })
+        );
+      } catch (err) {
+        console.error(err);
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Copy to Clipboard Error',
+            message:
+              'An error happened when trying to copy the selection to the clipboard. Please try again.',
+          })
+        );
+      }
+    };
+
   return {
     getExportText,
     getExportBinaryData,
@@ -171,5 +219,7 @@ export const useExport = () => {
     exportToBinary,
     exportToPDF,
     copyTextToClipboard,
+    copySelectionToClipboard,
+    canCopySelection,
   };
 };
