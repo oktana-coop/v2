@@ -6,7 +6,6 @@ import { ExportTemplatesContext } from '../../../../../../modules/personalizatio
 import {
   CommandPaletteContext,
   CurrentDocumentContext,
-  SidebarLayoutContext,
   useExport,
 } from '../../../../app-state';
 import { useKeyBindings } from '../../../../keyboard';
@@ -17,7 +16,6 @@ export const PrintPreview = () => {
   const { versionedDocumentId } = useContext(CurrentDocumentContext);
   const { activeTemplate } = useContext(ExportTemplatesContext);
   const { isOpen: isCommandPaletteOpen } = useContext(CommandPaletteContext);
-  const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const { exportToPDF, getExportText } = useExport();
   const navigate = useNavigate();
 
@@ -61,8 +59,6 @@ export const PrintPreview = () => {
   return (
     <div className="relative flex flex-auto flex-col overflow-hidden bg-zinc-100 dark:bg-zinc-800">
       <PrintPreviewActionsBar
-        isSidebarOpen={isSidebarOpen}
-        onSidebarToggle={toggleSidebar}
         onExportSettings={() => navigate('/settings/exports')}
         onExportToPDF={exportToPDF}
       />

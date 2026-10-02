@@ -5,7 +5,6 @@ import { ProseMirrorContext } from '../../../../../../../../modules/domain/rich-
 import {
   CommitModalContext,
   CurrentDocumentContext,
-  SidebarLayoutContext,
   useAssetInsertion,
   useAssetSrcResolver,
   useRemotePresence,
@@ -26,7 +25,6 @@ export const DocumentEditor = () => {
     onOpenShareDocumentDialog,
   } = useContext(CurrentDocumentContext);
   const { openCommitModal } = useContext(CommitModalContext);
-  const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const artifact = useCurrentArtifact();
   const resolveAssetSrc = useAssetSrcResolver({ docPath: artifact.path });
   const pickAsset = useAssetInsertion();
@@ -45,8 +43,6 @@ export const DocumentEditor = () => {
     <div className="relative flex flex-auto flex-col items-center overflow-hidden">
       <div className="w-full">
         <ActionsBar
-          isSidebarOpen={isSidebarOpen}
-          onSidebarToggle={toggleSidebar}
           onEditorToolbarToggle={handleEditorToolbarToggle}
           isShared={shareId !== null}
           participants={participants}

@@ -2,11 +2,7 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { uniqueParticipants } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
-import {
-  GuestEditingContext,
-  SidebarLayoutContext,
-  useRemotePresence,
-} from '../../app-state';
+import { GuestEditingContext, useRemotePresence } from '../../app-state';
 import { LiveDocumentEditor } from '../../components/editing/LiveDocumentEditor';
 import { LongTextSkeleton } from '../../components/progress/skeletons/LongText';
 import { ActionsBar } from '../shared/document-actions-bar';
@@ -16,7 +12,6 @@ export const GuestEditor = () => {
   const { view: editorView } = useContext(ProseMirrorContext);
   const { liveDocument, name, onLocalSelectionChange, onOpenSharingDialog } =
     useContext(GuestEditingContext);
-  const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const peers = useRemotePresence(liveDocument);
   const participants = useMemo(
     () => uniqueParticipants(peers.map((peer) => peer.participant)),
@@ -36,8 +31,6 @@ export const GuestEditor = () => {
     <div className="relative flex flex-auto flex-col items-center overflow-hidden">
       <div className="w-full">
         <ActionsBar
-          isSidebarOpen={isSidebarOpen}
-          onSidebarToggle={toggleSidebar}
           onEditorToolbarToggle={handleEditorToolbarToggle}
           isShared
           participants={participants}

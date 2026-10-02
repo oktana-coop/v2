@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 
-import { ProjectContext, SidebarLayoutContext } from '../../../../app-state';
+import { ProjectContext } from '../../../../app-state';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
 import { DefaultActionsBar } from '../../../shared/default-actions-bar';
@@ -9,7 +9,6 @@ import { ProjectSync } from './ProjectSync';
 
 export const ProjectSettings = () => {
   const { pendingNewDocument } = useContext(ProjectContext);
-  const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
 
   return (
     <SidebarLayout
@@ -22,10 +21,7 @@ export const ProjectSettings = () => {
     >
       <div className="flex w-full flex-col">
         <div className="w-full">
-          <DefaultActionsBar
-            isSidebarOpen={isSidebarOpen}
-            onSidebarToggle={toggleSidebar}
-          />
+          <DefaultActionsBar />
         </div>
         <div className="container mx-auto my-6 flex max-w-2xl flex-col gap-16">
           <ProjectSync />

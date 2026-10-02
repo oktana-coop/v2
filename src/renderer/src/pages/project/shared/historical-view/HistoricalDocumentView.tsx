@@ -1,4 +1,4 @@
-import { useContext, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import { type ProjectRelPath } from '../../../../../../modules/domain/project';
 import {
@@ -9,7 +9,6 @@ import {
   type CommitId,
   type CommitWithUrlInfo,
 } from '../../../../../../modules/infrastructure/version-control';
-import { SidebarLayoutContext } from '../../../../app-state';
 import { UnsupportedDocumentView } from '../../shared/unsupported-document-view';
 import { DocumentHistoryActionsBar } from './DocumentHistoryActionsBar';
 import { HistoricalViewContent } from './HistoricalViewContent';
@@ -48,8 +47,6 @@ export const HistoricalDocumentView = ({
   titleComponent,
   actions,
 }: HistoricalDocumentViewProps) => {
-  const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
-
   const isUnsupported = useMemo(
     () => (documentPath ? isUnsupportedExtension(documentPath) : false),
     [documentPath]
@@ -65,8 +62,6 @@ export const HistoricalDocumentView = ({
         <DocumentHistoryActionsBar
           title={title}
           titleComponent={titleComponent}
-          isSidebarOpen={isSidebarOpen}
-          onSidebarToggle={toggleSidebar}
           canShowDiff={canShowDiff}
           showDiff={showDiff}
           onSetShowDiffChecked={onSetShowDiff}

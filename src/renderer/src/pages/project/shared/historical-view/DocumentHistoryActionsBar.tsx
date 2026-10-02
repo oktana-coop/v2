@@ -1,13 +1,9 @@
-import { useRef } from 'react';
-
 import {
   type CommitId,
   type CommitWithUrlInfo,
   decodeUrlEncodedCommitId,
   urlEncodeChangeId,
 } from '../../../../../../modules/infrastructure/version-control';
-import { IconButton } from '../../../../components/actions/IconButton';
-import { SidebarIcon, SidebarOpenIcon } from '../../../../components/icons';
 import {
   Checkbox,
   CheckboxField,
@@ -18,12 +14,11 @@ import {
   ListboxLabel,
   ListboxOption,
 } from '../../../../components/inputs/Listbox';
+import { SidebarToggleButton } from '../../../shared/sidebar-toggle-button';
 
 export const DocumentHistoryActionsBar = ({
   title,
   titleComponent,
-  isSidebarOpen,
-  onSidebarToggle,
   canShowDiff,
   showDiff,
   onSetShowDiffChecked,
@@ -34,8 +29,6 @@ export const DocumentHistoryActionsBar = ({
 }: {
   title: string;
   titleComponent?: React.ReactNode;
-  isSidebarOpen: boolean;
-  onSidebarToggle: () => void;
   canShowDiff: boolean;
   showDiff: boolean;
   onSetShowDiffChecked: (value: boolean) => void;
@@ -44,19 +37,6 @@ export const DocumentHistoryActionsBar = ({
   onDiffCommitSelect: (commitId: CommitId) => void;
   actions?: React.ReactNode;
 }) => {
-  const sidebarButtonRef = useRef<HTMLButtonElement | null>(null);
-
-  const handleSidebarToggle = (ev: React.MouseEvent) => {
-    ev.preventDefault();
-    onSidebarToggle();
-
-    // manually remove the hover state because headless-ui doesn't handle it properly in this case
-    if (sidebarButtonRef.current) {
-      sidebarButtonRef.current.removeAttribute('data-headlessui-state');
-      sidebarButtonRef.current.removeAttribute('data-hover');
-    }
-  };
-
   const handleDiffCommitSelect = (commitId: string) => {
     const decodedChangeId = decodeUrlEncodedCommitId(commitId);
     if (decodedChangeId) {
@@ -66,12 +46,7 @@ export const DocumentHistoryActionsBar = ({
 
   return (
     <div className="flex min-h-[52px] flex-initial items-center justify-between px-4 py-2">
-      <IconButton
-        ref={sidebarButtonRef}
-        icon={isSidebarOpen ? <SidebarOpenIcon /> : <SidebarIcon />}
-        tooltip={isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
-        onClick={handleSidebarToggle}
-      />
+      <SidebarToggleButton />
       <div className="flex max-h-14 flex-auto items-center overflow-y-hidden px-4">
         {titleComponent ?? <h3 className="text-left text-base/7">{title}</h3>}
       </div>

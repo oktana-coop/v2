@@ -4,7 +4,7 @@ import { useParams } from 'react-router';
 import { type RichTextDocument } from '../../../../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { type CompareContentConflict as CompareContentConflictType } from '../../../../../../../modules/infrastructure/version-control';
-import { ProjectContext, SidebarLayoutContext } from '../../../../../app-state';
+import { ProjectContext } from '../../../../../app-state';
 import { LongTextSkeleton } from '../../../../../components/progress/skeletons/LongText';
 import { MergeConflictResolutionActionsBar } from '../ActionsBar';
 import { useMergeConflictResolution } from '../use-merge-conflict-resolution';
@@ -14,7 +14,6 @@ export const CompareContentConflictResolution = () => {
   const { compareContentPath } = useParams();
   const { projectId } = useContext(ProjectContext);
   const { view: editorView } = useContext(ProseMirrorContext);
-  const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const {
     mergeConflictInfo,
     compareContentConflicts,
@@ -71,8 +70,6 @@ export const CompareContentConflictResolution = () => {
       <div className="w-full">
         <MergeConflictResolutionActionsBar
           mergeConflictInfo={mergeConflictInfo}
-          isSidebarOpen={isSidebarOpen}
-          onSidebarToggle={toggleSidebar}
           hasEditorToolbarToggle={true}
           onEditorToolbarToggle={handleEditorToolbarToggle}
           onAbortMerge={handleAbortMerge}
