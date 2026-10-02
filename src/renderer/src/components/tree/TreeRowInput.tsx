@@ -28,10 +28,8 @@ const FieldMessage = ({
   floatingStyles: React.CSSProperties;
 }) => {
   const messageClasses: Record<Severity, string> = {
-    error:
-      'border-red-500 bg-red-50 text-red-800 dark:border-red-400 dark:bg-red-950 dark:text-red-200',
-    warning:
-      'border-amber-500 bg-amber-50 text-amber-900 dark:border-amber-400 dark:bg-amber-950 dark:text-amber-100',
+    error: 'bg-red-100 text-red-900 dark:bg-red-950 dark:text-white',
+    warning: 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-white',
   };
 
   return (
@@ -42,7 +40,7 @@ const FieldMessage = ({
         role={severity === 'error' ? 'alert' : 'status'}
         style={floatingStyles}
         className={clsx(
-          'z-50 max-w-xs border px-2 py-1 text-xs shadow-md',
+          'z-50 max-w-xs px-2 py-1 text-xs shadow-md',
           messageClasses[severity]
         )}
       >
