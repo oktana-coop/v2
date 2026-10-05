@@ -76,7 +76,6 @@ export const CurrentDocumentProvider = ({
     currentBranch,
     currentArtifact,
     restoreDocumentChanges,
-    subscribeToProjectDirChanges,
     switchToBranch,
     listBranches,
   } = useContext(ProjectContext);
@@ -196,7 +195,7 @@ export const CurrentDocumentProvider = ({
         findDocumentById: projectStore.findDocumentById,
         updateRichTextDocumentContent:
           projectStore.updateRichTextDocumentContent,
-        subscribeToProjectDirChanges,
+        projectContentChangeEvents: projectStore.projectContentChangeEvents,
       })({ projectId, documentId, shareId: shareId ?? undefined })
     )
       .then((handle) => {
@@ -226,13 +225,7 @@ export const CurrentDocumentProvider = ({
       if (opened) close(opened);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    documentId,
-    projectId,
-    projectStore,
-    representationTransformAdapter,
-    subscribeToProjectDirChanges,
-  ]);
+  }, [documentId, projectId, projectStore, representationTransformAdapter]);
 
   // What the open document reports with nobody waiting on it. The editor keeps
   // working through all of it, so only what the user would otherwise never

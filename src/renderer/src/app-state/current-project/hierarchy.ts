@@ -16,7 +16,7 @@ type HierarchyDeps = Pick<
   | 'projectStore'
   | 'directory'
   | 'currentBranch'
-  | 'subscribeToProjectDirChanges'
+  | 'subscribeToProjectContentChangeEvents'
 > & {
   pulledUpstreamChanges: boolean;
   shareRegistry: ShareRegistry;
@@ -35,8 +35,8 @@ export const useHierarchyOps = ({
   directory,
   currentBranch,
   pulledUpstreamChanges,
-  subscribeToProjectDirChanges,
   shareRegistry,
+  subscribeToProjectContentChangeEvents,
   shares,
 }: HierarchyDeps): HierarchyOps => {
   const [directoryTree, setDirectoryTree] = useState<ProjectTreeNode[]>([]);
@@ -75,10 +75,13 @@ export const useHierarchyOps = ({
 
   useEffect(
     () =>
-      subscribeToProjectDirChanges(() => {
-        refreshDirectoryTree();
+      subscribeToProjectContentChangeEvents({
+        emitOnStart: false,
+        onEvent: () => {
+          refreshDirectoryTree();
+        },
       }),
-    [subscribeToProjectDirChanges, refreshDirectoryTree]
+    [subscribeToProjectContentChangeEvents, refreshDirectoryTree]
   );
 
   return { directoryTree, refreshDirectoryTree };

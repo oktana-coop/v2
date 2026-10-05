@@ -11,6 +11,7 @@ import {
   type OpenOrCreateProjectResult,
   type OpenProjectByIdArgs,
   type OpenProjectByIdResult,
+  type ProjectContentChangeEventsArgs,
   type ProjectStore,
 } from './src/modules/domain/project';
 import {
@@ -60,17 +61,6 @@ export type ElectronAPI = {
     html: string;
     stylesheet?: string;
   }) => Promise<IPCResult<Uint8Array>>;
-};
-
-export type DirectoryWatcherAPI = {
-  startWatching: (args: {
-    path: string;
-    ignoredTopLevelEntries: string[];
-  }) => void;
-  stopWatching: (path: string) => void;
-  onDirectoryChanged: (
-    callback: (path: string) => void
-  ) => UnregisterListenerFn;
 };
 
 export type PersonalizationAPI = {
@@ -131,7 +121,16 @@ export type ProjectStoreManagerAPI = {
 
 export type FilesystemPromiseAPI = PromisifyEffects<FilesystemAPI>;
 
-export type ProjectStorePromiseAPI = PromisifyEffects<ProjectStore>;
+export type ProjectStoreChangesAPI = {
+  subscribeToProjectContentChangeEvents: (
+    args: ProjectContentChangeEventsArgs & { onEvent: () => void }
+  ) => UnregisterListenerFn;
+};
+
+export type ProjectStorePromiseAPI = PromisifyEffects<
+  Omit<ProjectStore, 'projectContentChangeEvents'>
+> &
+  ProjectStoreChangesAPI;
 
 export type VersionControlSyncProvidersAPI = {
   getGithubUserRepositories: () => Promise<GithubRepositoryInfo[]>;
@@ -177,7 +176,6 @@ declare global {
     personalizationAPI: PersonalizationAPI;
     authAPI: AuthAPI;
     filesystemAPI: FilesystemPromiseAPI;
-    directoryWatcherAPI: DirectoryWatcherAPI;
     projectStoreAPI: ProjectStorePromiseAPI;
     projectStoreManagerAPI: ProjectStoreManagerAPI;
     versionControlSyncProvidersAPI: VersionControlSyncProvidersAPI;

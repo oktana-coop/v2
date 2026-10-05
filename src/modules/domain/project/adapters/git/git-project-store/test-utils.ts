@@ -5,7 +5,10 @@ import {
 import { vi } from 'vitest';
 
 import { type DocumentAnalyzer } from '../../../../../domain/rich-text';
-import { type Filesystem } from '../../../../../infrastructure/filesystem';
+import {
+  type DirectoryWatcher,
+  type Filesystem,
+} from '../../../../../infrastructure/filesystem';
 import { type ProjectId } from '../../../models';
 import { createAdapter } from './index';
 
@@ -38,6 +41,15 @@ export const mockDocumentAnalyzer: DocumentAnalyzer = {
   extractLocalAssetReferences: mockExtractLocalAssetReferences,
 };
 
+export const mockUnwatchDirectory = vi.fn();
+export const mockWatchDirectory = vi.fn<DirectoryWatcher['watchDirectory']>(
+  () => mockUnwatchDirectory
+);
+export const mockDirectoryWatcher: DirectoryWatcher = {
+  watchDirectory: mockWatchDirectory,
+  unwatchAllDirectories: vi.fn(),
+};
+
 // Builds the fully composed store. Each test file supplies its own hoisted
 // vi.mock of version-control / isomorphic-git, which applies transitively here.
 export const buildTestStore = () =>
@@ -46,4 +58,5 @@ export const buildTestStore = () =>
     filesystem: mockFilesystem as Filesystem,
     isoGitHttp: {} as IsoGitHttpApi,
     documentAnalyzer: mockDocumentAnalyzer,
+    directoryWatcher: mockDirectoryWatcher,
   });

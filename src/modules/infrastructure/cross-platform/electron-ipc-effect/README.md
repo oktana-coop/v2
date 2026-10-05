@@ -23,3 +23,10 @@ In the process boundary we are working with **promises**, so we have to convert 
 ## Exposed Type Utils
 
 - `PromisifyEffects<T>`: This type util takes a TypeScript API whose functions return `Effect`s and returns a new one whose functions return `Promise`s, with the success type wrapped in `IPCResult`, which is a union type of the success and error results returned by `runPromiseSerializingErrorsForIPC`. The benefit of this type util is that we don't have to manually write the Promise-based APIs but calculate them from the Effect API. It's used in the preload script to describe the types of objects we use in the IPC boundary.
+
+## Streams
+
+A `Stream` pushes values for as long as it lives, which a request and its reply can't carry. Each subscription gets a [message channel](https://www.electronjs.org/docs/latest/tutorial/message-ports) of its own instead, and ends when either side closes it, including when the subscribing page reloads, crashes or closes.
+
+- `subscribeToStreamOverIPC`: subscribes to a stream served over IPC, receiving its values until the subscription ends.
+- `serveStreamOverIPC`: serves a stream over IPC to each subscriber, ending it when the subscription ends.

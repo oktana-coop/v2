@@ -61,7 +61,10 @@ import {
 } from '../../modules/domain/project/node';
 import { type DocumentAnalyzer } from '../../modules/domain/rich-text';
 import { runPromiseSerializingErrorsForIPC } from '../../modules/infrastructure/cross-platform';
-import { Filesystem } from '../../modules/infrastructure/filesystem';
+import {
+  type DirectoryWatcher,
+  Filesystem,
+} from '../../modules/infrastructure/filesystem';
 import { getGithubUserRepositories } from '../../modules/infrastructure/version-control';
 import {
   getProjectStore,
@@ -72,14 +75,17 @@ import {
 export const registerProjectStoresEvents = ({
   filesystem,
   documentAnalyzer,
+  directoryWatcher,
   encryptedStore,
 }: {
   filesystem: Filesystem;
   documentAnalyzer: DocumentAnalyzer;
+  directoryWatcher: DirectoryWatcher;
   encryptedStore: EncryptedStore;
 }) => {
   const projectStoreManager = createNodeGitProjectStoreManagerAdapter({
     documentAnalyzer,
+    directoryWatcher,
   });
 
   registerStoreManagerEvents({

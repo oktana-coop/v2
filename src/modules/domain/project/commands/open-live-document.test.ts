@@ -39,6 +39,7 @@ import {
   contentOf,
   contributionsTo,
   markdownDocument,
+  promiseWithResolvers,
   proseMirrorDocument,
   transformParagraphToText,
   typeAndContribute,
@@ -49,8 +50,7 @@ import {
 
 // Covers openLiveDocument together with what it composes: the live document,
 // the switchable convergent document and the stored copy. Fakes and mocks
-// stand in only for the convergent documents, the store, the watcher and the
-// conversion.
+// stand in only for the convergent documents, the store and the conversion.
 
 const projectId = '/projects/one' as ProjectId;
 const documentId = '/blob/main/note.md' as ArtifactId;
@@ -115,11 +115,11 @@ type FakeConvergentDocument = Awaited<
   ReturnType<typeof createFakeConvergentDocument>
 >;
 
-// The store holding the document's file, with the watcher that reports changes
-// under the project.
+// The store holding the document's file, announcing changes as a store does:
+// once when it starts listening, then for any change under the project.
 const createFakeDisk = ({ text }: { text: string }) => {
   let onDisk = text;
-  let watcher: (() => void) | undefined;
+  let announceChange: (() => void) | undefined;
 
   // Reads what the disk holds when the read runs.
   const findDocumentById = vi.fn<ProjectStore['findDocumentById']>(() =>
@@ -137,25 +137,33 @@ const createFakeDisk = ({ text }: { text: string }) => {
     })
   );
 
-  const subscribeToProjectDirChanges = (listener: () => void) => {
-    watcher = listener;
-    return () => {
-      watcher = undefined;
-    };
-  };
+  const projectContentChangeEvents = vi.fn<
+    ProjectStore['projectContentChangeEvents']
+  >(() =>
+    Stream.async<void>((emit) => {
+      announceChange = () => {
+        emit.single(undefined);
+      };
+      emit.single(undefined);
+
+      return Effect.sync(() => {
+        announceChange = undefined;
+      });
+    })
+  );
 
   return {
     findDocumentById,
     updateRichTextDocumentContent,
-    subscribeToProjectDirChanges,
-    // An edit made by another hand, reported like the watcher would.
+    projectContentChangeEvents,
+    // An edit made by another hand, announced like the store would.
     editDisk: (next: string) => {
       onDisk = next;
-      watcher?.();
+      announceChange?.();
     },
-    // The watcher reporting a change under the project, as it does for any.
-    notifyWatcher: () => {
-      watcher?.();
+    // The store announcing a change under the project, as it does for any.
+    announceChange: () => {
+      announceChange?.();
     },
     diskHolds: () => onDisk,
     // What the live document wrote to the disk, in order.
@@ -178,12 +186,14 @@ const openDocument = async ({
   // them after opening for anything later: opening calls some of them itself.
   beforeOpening?: (mocks: {
     openSharedDocument: Mock<OpenLiveDocumentDeps['openSharedDocument']>;
+    findDocumentById: Mock<ProjectStore['findDocumentById']>;
     updateRichTextDocumentContent: Mock<
       ProjectStore['updateRichTextDocumentContent']
     >;
+    editDisk: (next: string) => void;
   }) => void;
 } = {}) => {
-  const { subscribeToProjectDirChanges, ...disk } = createFakeDisk({
+  const { projectContentChangeEvents, ...disk } = createFakeDisk({
     text: diskText,
   });
 
@@ -215,7 +225,9 @@ const openDocument = async ({
 
   beforeOpening?.({
     openSharedDocument,
+    findDocumentById: disk.findDocumentById,
     updateRichTextDocumentContent: disk.updateRichTextDocumentContent,
+    editDisk: disk.editDisk,
   });
 
   const opened = await Effect.runPromise(
@@ -226,7 +238,7 @@ const openDocument = async ({
       transformToText,
       findDocumentById: disk.findDocumentById,
       updateRichTextDocumentContent: disk.updateRichTextDocumentContent,
-      subscribeToProjectDirChanges,
+      projectContentChangeEvents,
     })({ projectId, documentId, shareId })
   );
 
@@ -236,6 +248,12 @@ const openDocument = async ({
   subscribeToStream(opened.errors, (error) => {
     reportedErrors.push(error);
   });
+
+  // The store announces once it is listening, and the file is read again.
+  // Settled here, so that every test starts from a quiet document.
+  await vi.waitFor(() =>
+    expect(disk.findDocumentById).toHaveBeenCalledTimes(2)
+  );
 
   return {
     opened,
@@ -482,6 +500,34 @@ describe('openLiveDocument', () => {
   });
 
   describe('following the file', () => {
+    it('reads the file again once the store listens, and changes nothing', async () => {
+      const { findDocumentById, initialDocument, diskWrites } =
+        await openDocument({ diskText: 'hello' });
+
+      expect(findDocumentById).toHaveBeenCalledTimes(2);
+      expect(initialDocument.change).not.toHaveBeenCalled();
+      expect(diskWrites()).toEqual([]);
+    });
+
+    it('picks up a change made before the store listened', async () => {
+      const { opened } = await openDocument({
+        diskText: 'hello',
+        beforeOpening: ({ findDocumentById, editDisk }) => {
+          // The edit arrives right after the file is read for opening, while
+          // nobody is listening yet.
+          findDocumentById.mockReturnValueOnce(
+            Effect.sync((): ResolvedDocument => {
+              editDisk('changed before listening');
+              return { id: documentId, artifact: markdownDocument('hello') };
+            })
+          );
+        },
+      });
+
+      const content = await contentOf(opened);
+      expect(content).toContain('changed before listening');
+    });
+
     it('picks up a change made outside the app', async () => {
       const { opened, editDisk } = await openDocument({ diskText: 'hello' });
 
@@ -503,7 +549,7 @@ describe('openLiveDocument', () => {
       await Effect.runPromise(opened.flush);
       initialDocument.change.mockClear();
 
-      // The watcher reports the write this document just made.
+      // The store announces the write this document just made.
       editDisk('hello world');
       await vi.runAllTimersAsync();
 
@@ -516,7 +562,7 @@ describe('openLiveDocument', () => {
 
       await typeAndContribute({ opened, doc: markdownDocument('hello world') });
       await Effect.runPromise(opened.flush);
-      // Typed after the write, before the watcher reported it: still on its
+      // Typed after the write, before the store announced it: still on its
       // way to the document when the echo arrives.
       const contribution = typeLeavingPending({
         opened,
@@ -589,7 +635,7 @@ describe('openLiveDocument', () => {
       const {
         opened,
         findDocumentById,
-        notifyWatcher,
+        announceChange,
         reportedErrors,
         initialDocument,
       } = await openDocument({
@@ -602,7 +648,7 @@ describe('openLiveDocument', () => {
       findDocumentById.mockReturnValue(
         Effect.fail(new NotFoundError('the document is gone'))
       );
-      notifyWatcher();
+      announceChange();
       await vi.runAllTimersAsync();
 
       expect(initialDocument.change).not.toHaveBeenCalled();
@@ -610,7 +656,7 @@ describe('openLiveDocument', () => {
     });
 
     it('contributes nothing to the share, silently, while the project is on another branch', async () => {
-      const { findDocumentById, notifyWatcher, reportedErrors, documents } =
+      const { findDocumentById, announceChange, reportedErrors, documents } =
         await openDocument({
           diskText: 'hello',
           shareText: 'hello',
@@ -626,7 +672,7 @@ describe('openLiveDocument', () => {
           })
         )
       );
-      notifyWatcher();
+      announceChange();
       await vi.runAllTimersAsync();
 
       expect(share.change).not.toHaveBeenCalled();
@@ -634,7 +680,7 @@ describe('openLiveDocument', () => {
     });
 
     it('reports a re-read of the file that fails', async () => {
-      const { findDocumentById, notifyWatcher, reportedErrors } =
+      const { findDocumentById, announceChange, reportedErrors } =
         await openDocument({
           diskText: 'hello',
         });
@@ -642,7 +688,7 @@ describe('openLiveDocument', () => {
         Effect.fail(new RepositoryError('the store could not be read'))
       );
 
-      notifyWatcher();
+      announceChange();
 
       await vi.waitFor(() =>
         expect(reportedErrors[0]).toBeInstanceOf(RepositoryError)
@@ -884,6 +930,27 @@ describe('openLiveDocument', () => {
 
       expect(failure).toBeInstanceOf(RepresentationTransformError);
       expect(initialDocument.close).toHaveBeenCalledOnce();
+      expect(diskWrites()).toEqual([]);
+    });
+
+    it('finishes a re-read of the file that is under way when it closes', async () => {
+      const { opened, findDocumentById, announceChange, diskWrites } =
+        await openDocument({ diskText: 'hello' });
+      const read = promiseWithResolvers<ResolvedDocument>();
+      findDocumentById.mockReturnValueOnce(Effect.promise(() => read.promise));
+
+      announceChange();
+      await vi.waitFor(() => expect(findDocumentById).toHaveBeenCalledTimes(3));
+      const closing = Effect.runPromise(opened.close);
+      read.resolve({
+        id: documentId,
+        artifact: markdownDocument('changed outside'),
+      });
+      await closing;
+
+      const content = await contentOf(opened);
+      expect(content).toContain('changed outside');
+      // What the disk holds was taken in whole, so closing has nothing to write.
       expect(diskWrites()).toEqual([]);
     });
 

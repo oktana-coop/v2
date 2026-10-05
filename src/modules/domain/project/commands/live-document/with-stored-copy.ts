@@ -1,4 +1,5 @@
 import * as Effect from 'effect/Effect';
+import * as Fiber from 'effect/Fiber';
 import { pipe } from 'effect/Function';
 import * as PubSub from 'effect/PubSub';
 import * as Ref from 'effect/Ref';
@@ -14,7 +15,6 @@ import { type ArtifactId } from '../../../../../modules/infrastructure/version-c
 import {
   createErrorChannel,
   subscribeToRefChanges,
-  type Unsubscribe,
 } from '../../../../../utils/effect';
 import {
   VersionedProjectDocumentNotOnCurrentRefErrorTag,
@@ -34,7 +34,7 @@ export type WithStoredCopyDeps = {
   transformToText: RepresentationTransform['transformToText'];
   findDocumentById: ProjectStore['findDocumentById'];
   updateRichTextDocumentContent: ProjectStore['updateRichTextDocumentContent'];
-  subscribeToProjectDirChanges: (listener: () => void) => Unsubscribe;
+  projectContentChangeEvents: ProjectStore['projectContentChangeEvents'];
 };
 
 export type WithStoredCopyArgs = {
@@ -49,7 +49,7 @@ export const withStoredCopy =
     transformToText,
     findDocumentById,
     updateRichTextDocumentContent,
-    subscribeToProjectDirChanges,
+    projectContentChangeEvents,
   }: WithStoredCopyDeps) =>
   ({ projectId, documentId, storedContent }: WithStoredCopyArgs) =>
   (
@@ -186,7 +186,7 @@ export const withStoredCopy =
         // Unsubscribe first, so the echo of the closing write cannot start
         // a refresh on a document that is going away.
         const close = pipe(
-          Effect.sync(() => unsubscribeFromDisk()),
+          Effect.suspend(() => Fiber.interrupt(refreshingOnStoreChanges)),
           Effect.zipRight(Effect.sync(() => unsubscribeFromContent())),
           // Pending typing is contributed and the file written before the
           // document closes. It closes even when that fails, and the
@@ -194,12 +194,21 @@ export const withStoredCopy =
           Effect.zipRight(pipe(flush, Effect.ensuring(document.close)))
         );
 
-        // Any change under the project signals here, not just this
-        // document's file. Most settle in a read and an unchanged-content
-        // comparison, without reaching the editor.
-        const unsubscribeFromDisk = subscribeToProjectDirChanges(() => {
-          Effect.runFork(refresh);
-        });
+        // The store may announce changes that don't concern this document.
+        // Most settle in a read and an unchanged-content comparison, without
+        // reaching the editor. Listening runs on a fiber of its own, so the
+        // document can be handed over while it listens, and `close` stops
+        // listening by interrupting that fiber.
+        const refreshingOnStoreChanges = Effect.runFork(
+          Stream.runForEach(
+            projectContentChangeEvents({ projectId, emitOnStart: true }),
+            () =>
+              // `close` interrupts only the listening fiber, so no new refreshes
+              // start after it. Refreshes already started run on daemon fibers
+              // that `close` doesn't touch, so they run to the end.
+              Effect.forkDaemon(refresh)
+          )
+        );
 
         // The disk follows the live document: any new state, from any
         // source, is written.

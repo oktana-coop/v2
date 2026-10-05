@@ -34,7 +34,7 @@ export const ProjectHistoryPage = () => {
     getProjectChangedDocuments,
     getProjectUncommittedChanges,
     commitChanges,
-    subscribeToProjectDirChanges,
+    subscribeToProjectContentChangeEvents,
   } = useContext(ProjectContext);
 
   const selectArtifact = useProjectHistoryArtifactSelection();
@@ -100,11 +100,14 @@ export const ProjectHistoryPage = () => {
   // signal never flashes the loading state over content already on screen.
   useEffect(
     () =>
-      subscribeToProjectDirChanges(() => {
-        loadCommits({ showLoading: false });
-        loadUncommittedChanges({ showLoading: false });
+      subscribeToProjectContentChangeEvents({
+        emitOnStart: false,
+        onEvent: () => {
+          loadCommits({ showLoading: false });
+          loadUncommittedChanges({ showLoading: false });
+        },
       }),
-    [subscribeToProjectDirChanges, loadCommits, loadUncommittedChanges]
+    [subscribeToProjectContentChangeEvents, loadCommits, loadUncommittedChanges]
   );
 
   const toggleCommitExpansion = useCallback(

@@ -26,50 +26,91 @@ export const isIgnored = ({
   return ignoredTopLevelEntries.includes(topLevelEntry);
 };
 
+type Listener = {
+  notify: debounce.DebouncedFunction<() => void>;
+  ignoredTopLevelEntries: string[];
+};
+
+type WatchedDirectory = {
+  listeners: Set<Listener>;
+  closeWatch: () => void;
+};
+
 export const createAdapter = (): DirectoryWatcher => {
-  const watched = new Map<string, () => void>();
+  // One operating-system watch per directory, shared by everyone watching it.
+  const watched = new Map<string, WatchedDirectory>();
 
-  const unwatchDirectory = (path: string) => {
-    const stop = watched.get(path);
+  const closeDirectory = (path: string) => {
+    const directory = watched.get(path);
 
-    if (!stop) return;
+    if (!directory) return;
 
-    stop();
+    directory.listeners.forEach((listener) => listener.notify.clear());
+    directory.closeWatch();
     watched.delete(path);
+  };
+
+  // Resolves to null when the directory can't be watched, which yields no
+  // signals rather than an error.
+  const openDirectory = (path: string): WatchedDirectory | null => {
+    const listeners = new Set<Listener>();
+
+    try {
+      const watcher = watch(path, { recursive: true }, (_, filename) => {
+        listeners.forEach((listener) => {
+          if (
+            isIgnored({
+              filename,
+              ignoredTopLevelEntries: listener.ignoredTopLevelEntries,
+            })
+          ) {
+            return;
+          }
+
+          // Node explicitly warns that watch behavior is not fully consistent
+          // across platforms, so any event is only a signal that something changed.
+          listener.notify();
+        });
+      });
+
+      // A watched directory that disappears surfaces here instead of
+      // throwing, and leaves nothing behind to stop later.
+      watcher.on('error', () => closeDirectory(path));
+
+      const directory = { listeners, closeWatch: () => watcher.close() };
+      watched.set(path, directory);
+
+      return directory;
+    } catch {
+      return null;
+    }
   };
 
   return {
     watchDirectory: ({ path, onChange, ignoredTopLevelEntries = [] }) => {
-      if (watched.has(path)) return;
+      const directory = watched.get(path) ?? openDirectory(path);
 
-      const notify = debounce(onChange, COALESCE_MS);
+      if (!directory) return () => {};
 
-      try {
-        const watcher = watch(path, { recursive: true }, (_, filename) => {
-          if (isIgnored({ filename, ignoredTopLevelEntries })) return;
+      const listener: Listener = {
+        notify: debounce(onChange, COALESCE_MS),
+        ignoredTopLevelEntries,
+      };
 
-          // Node explicitly warns that watch behavior is not fully consistent
-          // across platforms, so any event is only a signal that something changed.
-          notify();
-        });
+      directory.listeners.add(listener);
 
-        // A watched directory that disappears surfaces here instead of
-        // throwing, and leaves nothing behind to stop later.
-        watcher.on('error', () => unwatchDirectory(path));
+      return () => {
+        listener.notify.clear();
 
-        watched.set(path, () => {
-          notify.clear();
-          watcher.close();
-        });
-      } catch {
-        // An unwatchable directory yields no signals rather than an error.
-        notify.clear();
-      }
+        // The watch may already be gone, after an error or a full stop.
+        if (watched.get(path) !== directory) return;
+
+        directory.listeners.delete(listener);
+        if (directory.listeners.size === 0) closeDirectory(path);
+      };
     },
-    unwatchDirectory,
     unwatchAllDirectories: () => {
-      watched.forEach((stop) => stop());
-      watched.clear();
+      Array.from(watched.keys()).forEach(closeDirectory);
     },
   };
 };

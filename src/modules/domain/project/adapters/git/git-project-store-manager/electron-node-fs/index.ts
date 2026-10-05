@@ -4,15 +4,18 @@ import * as Effect from 'effect/Effect';
 import http from 'isomorphic-git/http/node';
 
 import { type DocumentAnalyzer } from '../../../../../../../modules/domain/rich-text';
+import { type DirectoryWatcher } from '../../../../../../../modules/infrastructure/filesystem';
 import { DEFAULT_ASSETS_DIR_NAME } from '../../../../constants';
 import { type ProjectStoreManager } from '../../../../ports';
 import { createAdapter as createProjectStoreAdapter } from '../../git-project-store';
 
 export const createAdapter = ({
   documentAnalyzer,
+  directoryWatcher,
   assetsDirName = DEFAULT_ASSETS_DIR_NAME,
 }: {
   documentAnalyzer: DocumentAnalyzer;
+  directoryWatcher: DirectoryWatcher;
   assetsDirName?: string;
 }): ProjectStoreManager => {
   const openOrCreateProject: ProjectStoreManager['openOrCreateProject'] =
@@ -27,6 +30,7 @@ export const createAdapter = ({
               isoGitHttp: http,
               filesystem,
               documentAnalyzer,
+              directoryWatcher,
               assetsDirName,
             })
           )
@@ -80,6 +84,7 @@ export const createAdapter = ({
               isoGitHttp: http,
               filesystem,
               documentAnalyzer,
+              directoryWatcher,
               assetsDirName,
             })
           )

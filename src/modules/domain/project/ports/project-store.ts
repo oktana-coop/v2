@@ -1,4 +1,5 @@
 import * as Effect from 'effect/Effect';
+import * as Stream from 'effect/Stream';
 
 import type {
   ResolvedDocument,
@@ -299,6 +300,11 @@ export type UpdateRichTextDocumentContentArgs = {
   documentId: ArtifactId;
   representation: RichTextRepresentation;
   content: string;
+};
+
+export type ProjectContentChangeEventsArgs = {
+  projectId: ProjectId;
+  emitOnStart: boolean;
 };
 
 export type DeleteDocumentArgs = {
@@ -655,6 +661,9 @@ export type ProjectStore = {
     | DocumentNotOnCurrentRefError,
     never
   >;
+  projectContentChangeEvents: (
+    args: ProjectContentChangeEventsArgs
+  ) => Stream.Stream<void>;
   deleteDocument: (
     args: DeleteDocumentArgs
   ) => Effect.Effect<

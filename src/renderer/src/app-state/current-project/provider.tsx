@@ -3,6 +3,7 @@ import { useContext } from 'react';
 import { ShareRegistryContext } from '../share-registry';
 import { useBranchingOps } from './branching';
 import { useCommittingOps } from './committing';
+import { useContentChangeEventsOps } from './content-change-events';
 import { ProjectContext } from './context';
 import {
   useArtifactMetaDataFromTree,
@@ -11,7 +12,6 @@ import {
 import { useCurrentArtifactSync } from './current-artifact/sync';
 import { useCurrentArtifactId } from './current-artifact/use-current-artifact-id';
 import { useDirectoryOps } from './directories';
-import { useDirectoryWatchOps } from './directory-watch';
 import { useDocumentOps } from './documents';
 import { useExplorerContextMenu } from './explorer-context-menu';
 import { useHierarchyOps } from './hierarchy';
@@ -45,7 +45,10 @@ export const ProjectProvider = ({
     resolving: resolvingProject,
   } = projectOps;
 
-  const directoryWatchOps = useDirectoryWatchOps({ projectStore, directory });
+  const contentChangeEventsOps = useContentChangeEventsOps({
+    projectId,
+    projectStore,
+  });
   const { registry: shareRegistry, shares } = useContext(ShareRegistryContext);
 
   const historyOps = useHistoryOps({ projectId, projectStore, currentBranch });
@@ -60,8 +63,8 @@ export const ProjectProvider = ({
     pulledUpstreamChanges,
     shareRegistry,
     shares,
-    subscribeToProjectDirChanges:
-      directoryWatchOps.subscribeToProjectDirChanges,
+    subscribeToProjectContentChangeEvents:
+      contentChangeEventsOps.subscribeToProjectContentChangeEvents,
   });
 
   const routeArtifactId = useCurrentArtifactId();
@@ -170,7 +173,7 @@ export const ProjectProvider = ({
         ...renamingOps,
         ...historyOps,
         ...committingOps,
-        ...directoryWatchOps,
+        ...contentChangeEventsOps,
       }}
     >
       {children}

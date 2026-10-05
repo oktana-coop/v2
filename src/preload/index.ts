@@ -2,7 +2,6 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 import {
   type AuthAPI,
-  type DirectoryWatcherAPI,
   type ElectronAPI,
   type FilesystemPromiseAPI,
   type PersonalizationAPI,
@@ -19,6 +18,7 @@ import {
   type ContextMenuAction,
   type ContextMenuPayload,
   PDF_IPC_CHANNEL,
+  subscribeToStreamOverIPC,
 } from '../modules/infrastructure/cross-platform';
 import {
   isLinux,
@@ -161,15 +161,6 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
     ipcRenderer.invoke('is-descendant-path', { ...args }),
   exists: (path: string) => ipcRenderer.invoke('file-exists', path),
 } as FilesystemPromiseAPI);
-
-contextBridge.exposeInMainWorld('directoryWatcherAPI', {
-  startWatching: (args: { path: string; ignoredTopLevelEntries: string[] }) =>
-    ipcRenderer.send('directory-watcher:start', { ...args }),
-  stopWatching: (path: string) =>
-    ipcRenderer.send('directory-watcher:stop', path),
-  onDirectoryChanged: (callback) =>
-    registerIpcListener<string>('directory-watcher:changed', callback),
-} as DirectoryWatcherAPI);
 
 contextBridge.exposeInMainWorld('projectStoreAPI', {
   createProject: (args) =>
@@ -343,6 +334,13 @@ contextBridge.exposeInMainWorld('projectStoreAPI', {
   resolveContentConflict: (args) =>
     ipcRenderer.invoke('project-store:resolve-content-conflict', {
       ...args,
+    }),
+  subscribeToProjectContentChangeEvents: ({ onEvent, ...args }) =>
+    subscribeToStreamOverIPC({
+      ipcRenderer,
+      channel: 'project-store:project-content-change-events',
+      args,
+      onEvent,
     }),
 } as ProjectStorePromiseAPI);
 

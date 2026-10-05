@@ -21,11 +21,7 @@ import {
   createElectronRendererProjectStoreManagerAdapter,
 } from '../../../../modules/domain/project/browser';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
-import {
-  type DirectoryWatcher,
-  type Filesystem,
-} from '../../../../modules/infrastructure/filesystem';
-import { createAdapter as createElectronRendererDirectoryWatcherAdapter } from '../../../../modules/infrastructure/filesystem/adapters/directory-watcher/electron-renderer-api';
+import { type Filesystem } from '../../../../modules/infrastructure/filesystem';
 import { createAdapter as createElectronRendererFilesystemAPIAdapter } from '../../../../modules/infrastructure/filesystem/adapters/filesystem/electron-renderer-api';
 import {
   createAutomergeRepo,
@@ -36,7 +32,6 @@ import { LoadingText } from '../../components/progress/LoadingText';
 
 export type InfrastructureAdaptersContextType = {
   filesystem: Filesystem;
-  directoryWatcher: DirectoryWatcher;
   projectStoreManager: ProjectStoreManager;
   assetUrlProtocol: AssetUrlProtocol;
   projectStore: ProjectStore | null;
@@ -52,8 +47,6 @@ export const InfrastructureAdaptersContext =
   createContext<InfrastructureAdaptersContextType>({
     // @ts-expect-error will get overriden below
     filesystem: null,
-    // @ts-expect-error will get overriden below
-    directoryWatcher: null,
     // @ts-expect-error will get overriden below
     projectStoreManager: null,
     // @ts-expect-error will get overriden below
@@ -78,11 +71,6 @@ export const InfrastructureAdaptersProvider = ({
 
   const filesystem = useMemo(
     () => createElectronRendererFilesystemAPIAdapter(),
-    []
-  );
-
-  const directoryWatcher = useMemo(
-    () => createElectronRendererDirectoryWatcherAdapter(),
     []
   );
 
@@ -165,7 +153,6 @@ export const InfrastructureAdaptersProvider = ({
     <InfrastructureAdaptersContext.Provider
       value={{
         filesystem,
-        directoryWatcher,
         projectStoreManager,
         assetUrlProtocol,
         projectStore,

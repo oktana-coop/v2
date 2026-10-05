@@ -55,8 +55,8 @@ import {
 import { registerAuthInfoIPCHandlers } from './auth';
 import {
   registerContextMenusIPCHandlers,
-  registerDirectoryWatcherEvents,
   registerPdfIPCHandlers,
+  registerProjectStoreChangesEvents,
   registerProjectStoresEvents,
 } from './ipc';
 import { buildAppMenu } from './menus';
@@ -162,10 +162,9 @@ async function createWindow() {
   registerProjectStoresEvents({
     filesystem: filesystemAPI,
     documentAnalyzer,
+    directoryWatcher,
     encryptedStore,
   });
-
-  registerDirectoryWatcherEvents({ directoryWatcher, window: win });
 
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('renderer-process-id', rendererProcessId);
@@ -301,6 +300,8 @@ app.whenReady().then(() => {
   );
 
   installProjectAssetProtocolHandler({ assetUrlProtocol });
+
+  registerProjectStoreChangesEvents();
 
   setSavedOrDefaultTheme(store);
 

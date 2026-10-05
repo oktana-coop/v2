@@ -5,7 +5,10 @@ import {
 } from 'isomorphic-git';
 
 import { type DocumentAnalyzer } from '../../../../../../modules/domain/rich-text';
-import { type Filesystem } from '../../../../../../modules/infrastructure/filesystem';
+import {
+  type DirectoryWatcher,
+  type Filesystem,
+} from '../../../../../../modules/infrastructure/filesystem';
 import { type Mutex } from '../../../../../../utils/effect';
 import { DEFAULT_ASSETS_DIR_NAME, GIT_DIR_NAME } from '../../../constants';
 import { ProjectStore } from '../../../ports';
@@ -22,12 +25,14 @@ import { createMergingOps } from './merging';
 import { createProjectOps } from './project';
 import { createRemoteOps } from './remotes';
 import { createRenamingOps } from './renaming';
+import { createWatchingOps } from './watching';
 
 export const createAdapter = ({
   isoGitFs,
   filesystem,
   isoGitHttp,
   documentAnalyzer,
+  directoryWatcher,
   assetsDirName = DEFAULT_ASSETS_DIR_NAME,
 }: {
   // We have 2 filesystem APIs because isomorphic-git works well in both browser in Node.js
@@ -38,6 +43,7 @@ export const createAdapter = ({
   filesystem: Filesystem;
   isoGitHttp: IsoGitHttpApi;
   documentAnalyzer: DocumentAnalyzer;
+  directoryWatcher: DirectoryWatcher;
   // Folder for new asset insertions, relative to the project root. Defaults
   // to DEFAULT_ASSETS_DIR_NAME; will eventually be sourced from a user
   // setting.
@@ -85,6 +91,8 @@ export const createAdapter = ({
 
   const authOps = createAuthOps({ isoGitFs });
 
+  const watchingOps = createWatchingOps({ directoryWatcher });
+
   return {
     supportsBranching: true,
     assetsDirName,
@@ -103,5 +111,6 @@ export const createAdapter = ({
     ...committingOps,
     ...historyOps,
     ...authOps,
+    ...watchingOps,
   };
 };

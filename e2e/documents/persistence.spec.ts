@@ -86,6 +86,30 @@ test('outside edit: changing the .md file shows up in the open editor', async ({
   );
 });
 
+test('outside save through a temporary file shows up in the open editor', async ({
+  electronApp,
+  window,
+  testProjectDir,
+}) => {
+  await openProjectFolder({ electronApp, window, folderPath: testProjectDir });
+  await openHelloMd({ window });
+
+  await expect(window.locator('.ProseMirror').locator('h1')).toHaveText(
+    'Hello'
+  );
+
+  // Many editors save by writing a temporary file and renaming it over the
+  // original.
+  const temporaryPath = path.join(testProjectDir, '.hello.md.swp');
+  fs.writeFileSync(temporaryPath, '# Hello saved elsewhere\n', 'utf8');
+  fs.renameSync(temporaryPath, path.join(testProjectDir, 'hello.md'));
+
+  await expect(window.locator('.ProseMirror').locator('h1')).toHaveText(
+    'Hello saved elsewhere',
+    { timeout: 5_000 }
+  );
+});
+
 test('editing after a trip through history keeps every edit', async ({
   electronApp,
   window,

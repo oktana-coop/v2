@@ -1,3 +1,6 @@
+import * as Effect from 'effect/Effect';
+import * as Stream from 'effect/Stream';
+
 import {
   effectifyIPCPromise,
   type ErrorRegistry,
@@ -707,4 +710,17 @@ export const createAdapter = (): ProjectStore => ({
       >,
       RepositoryError
     )(window.projectStoreAPI.resolveContentConflict(...args)),
+  projectContentChangeEvents: (args) =>
+    Stream.async<void>((emit) => {
+      const unsubscribe =
+        window.projectStoreAPI.subscribeToProjectContentChangeEvents({
+          ...args,
+          onEvent: () => {
+            emit.single(undefined);
+          },
+        });
+
+      // Clean-up, run when the stream ends: once nobody listens.
+      return Effect.sync(unsubscribe);
+    }),
 });

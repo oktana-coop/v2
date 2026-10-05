@@ -99,3 +99,4 @@ export const effectifyIPCPromise =
     });
 
 export * from './types';
+export * from './streams';

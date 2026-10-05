@@ -15,7 +15,7 @@ import {
   type Commit,
   type MergeConflictInfo,
 } from '../../../../modules/infrastructure/version-control';
-export type Unsubscribe = () => void;
+import { type Unsubscribe } from '../../../../utils/effect';
 
 // A branch switch that would overwrite local changes to these files.
 export type BranchSwitchRefusal = { filepaths: string[] };
@@ -46,7 +46,10 @@ export type ProjectContextType = {
   resolvingCurrentArtifact: boolean;
   directoryTree: ProjectTreeNode[];
   refreshDirectoryTree: () => Promise<void>;
-  subscribeToProjectDirChanges: (listener: () => void) => Unsubscribe;
+  subscribeToProjectContentChangeEvents: (args: {
+    emitOnStart: boolean;
+    onEvent: () => void;
+  }) => Unsubscribe;
   openDirectory: (cloneUrl?: string) => Promise<Directory>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
   findDocumentInProject: (args: {

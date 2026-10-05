@@ -7,8 +7,9 @@ export type WatchDirectoryArgs = {
   ignoredTopLevelEntries?: string[];
 };
 
+export type UnwatchDirectory = () => void;
+
 export type DirectoryWatcher = {
-  watchDirectory: (args: WatchDirectoryArgs) => void;
-  unwatchDirectory: (path: string) => void;
+  watchDirectory: (args: WatchDirectoryArgs) => UnwatchDirectory;
   unwatchAllDirectories: () => void;
 };
