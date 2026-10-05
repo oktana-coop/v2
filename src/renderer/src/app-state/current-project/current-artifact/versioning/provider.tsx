@@ -180,7 +180,7 @@ export const CurrentArtifactVersioningProvider = ({
 
     const reloadAfterChanges = debounce(() => {
       Effect.runPromise(reloadHistory).catch(console.error);
-    }, 500);
+    }, 450);
 
     const unsubscribe = subscribeToProjectContentChangeEvents({
       emitOnStart: false,
