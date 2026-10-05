@@ -11,6 +11,7 @@ import { ElectronContext } from '../../../../../../modules/infrastructure/cross-
 import {
   CommandPaletteContext,
   CommitModalContext,
+  CurrentArtifactVersioningContext,
   CurrentDocumentContext,
   GuestShareRegistryContext,
   ProjectContext,
@@ -37,14 +38,10 @@ export const ProjectCommandPalette = ({
   const { isOpen: isCommandPaletteOpen, closeCommandPalette } = useContext(
     CommandPaletteContext
   );
-  const {
-    canCommit,
-    onOpenDiscardChangesDialog,
-    versionedDocumentId,
-    shareId,
-    onOpenShareDocumentDialog,
-    onOpenJoinSharedDocumentDialog,
-  } = useContext(CurrentDocumentContext);
+  const { canCommit, versionedDocumentId, onOpenDiscardChangesDialog } =
+    useContext(CurrentArtifactVersioningContext);
+  const { shareId, onOpenShareDocumentDialog, onOpenJoinSharedDocumentDialog } =
+    useContext(CurrentDocumentContext);
   const { openCommitModal } = useContext(CommitModalContext);
   const { checkForUpdate } = useContext(ElectronContext);
   const { directoryTree, currentArtifact } = useContext(ProjectContext);

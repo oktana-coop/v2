@@ -127,13 +127,4 @@ export type ProjectContextType = {
   ) => Promise<ChangedDocument[]>;
   getProjectUncommittedChanges: () => Promise<ChangedDocument[]>;
   commitChanges: (message: string) => Promise<void>;
-  commitDocumentChanges: (args: {
-    documentId: ArtifactId;
-    message: string;
-  }) => Promise<void>;
-  restoreDocumentChanges: (args: {
-    documentId: ArtifactId;
-    commit: Commit;
-    message?: string;
-  }) => Promise<Commit['id']>;
 };

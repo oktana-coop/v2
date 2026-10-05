@@ -11,11 +11,13 @@ import { urlEncodeArtifactId } from '../../../../../modules/infrastructure/versi
 import {
   BranchingCommandPaletteContext,
   CommitModalContext,
+  CurrentArtifactVersioningContext,
   CurrentDocumentContext,
   ProjectContext,
   useCommitDocumentChanges,
   useCommitToProject,
   useCreateDocument,
+  useCurrentDocumentId,
 } from '../../../app-state';
 import { BranchingCommandPaletteStateProvider } from '../../../app-state';
 import { ProjectCommandPalette } from '../shared/command-palette';
@@ -47,14 +49,6 @@ export const CurrentProject = () => {
 
 const Project = () => {
   const {
-    versionedDocumentId,
-    isRestoreCommitDialogOpen,
-    isDiscardChangesDialogOpen,
-    canCommit,
-    onCloseRestoreCommitDialog,
-    onCloseDiscardChangesDialog,
-    onRestoreCommit,
-    onDiscardChanges,
     shareId,
     isShareDocumentDialogOpen,
     isJoinSharedDocumentDialogOpen,
@@ -65,6 +59,16 @@ const Project = () => {
     onSwitchToBranchAndJoin,
     onLeaveSharedDocument,
   } = useContext(CurrentDocumentContext);
+  const {
+    canCommit,
+    isRestoreCommitDialogOpen,
+    isDiscardChangesDialogOpen,
+    onCloseRestoreCommitDialog,
+    onCloseDiscardChangesDialog,
+    onRestoreCommit,
+    onDiscardChanges,
+  } = useContext(CurrentArtifactVersioningContext);
+  const richTextDocumentId = useCurrentDocumentId();
   const { isOpen: isCommitDialogOpen, closeCommitModal } =
     useContext(CommitModalContext);
   const commitChangesToProject = useCommitToProject();
@@ -113,9 +117,9 @@ const Project = () => {
   };
 
   const handleOpenPrintPreview = () => {
-    if (projectId && versionedDocumentId) {
+    if (projectId && richTextDocumentId) {
       navigate(
-        `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(versionedDocumentId)}/print-preview`
+        `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(richTextDocumentId)}/print-preview`
       );
     }
   };

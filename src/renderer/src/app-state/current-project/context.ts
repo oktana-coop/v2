@@ -57,7 +57,4 @@ export const ProjectContext = createContext<ProjectContextType>({
   getProjectChangedDocuments: async () => [],
   getProjectUncommittedChanges: async () => [],
   commitChanges: async () => {},
-  commitDocumentChanges: async () => {},
-  // @ts-expect-error will get overriden by the provider
-  restoreDocumentChanges: async () => null,
 });

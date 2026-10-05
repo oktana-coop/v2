@@ -78,3 +78,14 @@ export const SharedDocumentNotInProjectErrorTag =
 export class SharedDocumentNotInProjectError extends Cause.YieldableError {
   readonly _tag = SharedDocumentNotInProjectErrorTag;
 }
+
+export const PendingEditsNotSavedErrorTag = 'PendingEditsNotSavedError';
+export class PendingEditsNotSavedError extends Cause.YieldableError {
+  readonly _tag = PendingEditsNotSavedErrorTag;
+  readonly data;
+
+  constructor(message: string, data: { cause: unknown }) {
+    super(message);
+    this.data = data;
+  }
+}

@@ -4,6 +4,7 @@ import { uniqueParticipants } from '../../../../../../../../modules/domain/rich-
 import { ProseMirrorContext } from '../../../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import {
   CommitModalContext,
+  CurrentArtifactVersioningContext,
   CurrentDocumentContext,
   useAssetInsertion,
   useAssetSrcResolver,
@@ -20,10 +21,10 @@ export const DocumentEditor = () => {
   const {
     liveDocument,
     onLocalSelectionChange,
-    canCommit,
     shareId,
     onOpenShareDocumentDialog,
   } = useContext(CurrentDocumentContext);
+  const { canCommit } = useContext(CurrentArtifactVersioningContext);
   const { openCommitModal } = useContext(CommitModalContext);
   const artifact = useCurrentArtifact();
   const resolveAssetSrc = useAssetSrcResolver({ docPath: artifact.path });

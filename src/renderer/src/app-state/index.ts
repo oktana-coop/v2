@@ -18,6 +18,12 @@ export {
 } from './current-project/current-artifact';
 
 export {
+  CurrentArtifactVersioningContext,
+  type CurrentArtifactVersioningContextType,
+  CurrentArtifactVersioningProvider,
+} from './current-project/current-artifact/versioning';
+
+export {
   CurrentDocumentContext,
   type CurrentDocumentContextType,
   type JoinSharedDocumentRefusal,

@@ -1,13 +1,15 @@
 import { useCallback, useContext } from 'react';
 
-import { CurrentDocumentContext } from '../current-document/context';
 import { ProjectContext } from '../current-project/context';
+import { CurrentArtifactVersioningContext } from '../current-project/current-artifact/versioning';
 import { CommitModalContext } from './commit-modal/context';
 
 export const useCommitToProject = () => {
   const { commitChanges: commit } = useContext(ProjectContext);
   const { closeCommitModal } = useContext(CommitModalContext);
-  const { reloadDocumentHistory } = useContext(CurrentDocumentContext);
+  const { reloadDocumentHistory } = useContext(
+    CurrentArtifactVersioningContext
+  );
 
   return useCallback(
     async (message: string) => {
