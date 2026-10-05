@@ -1,8 +1,7 @@
-import debounce from 'debounce';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { useMatch, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 
 import {
   getArtifactName,
@@ -10,8 +9,6 @@ import {
   leaveSharedDocument as leaveSharedDocumentCommand,
   openLiveDocument,
   type OpenSharedDocumentError,
-  type ProjectId,
-  type ProjectStore,
   SharedDocumentNotInProjectErrorTag,
   SharedDocumentOnAnotherBranchErrorTag,
   SharedDocumentUnavailableError,
@@ -23,8 +20,6 @@ import {
 import {
   ConvergentDocumentChangeErrorTag,
   ConvergentDocumentUnavailableErrorTag,
-  isEmpty,
-  type VersionedDocument,
 } from '../../../../modules/domain/rich-text';
 import { createPrivateConvergentDocument } from '../../../../modules/domain/rich-text/adapters/automerge-convergent-document';
 import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
@@ -36,19 +31,10 @@ import {
 import {
   type ArtifactId,
   type Branch,
-  type Change,
-  type ChangeId,
-  changeIdsAreSame,
-  type ChangeWithUrlInfo,
-  type Commit,
   urlEncodeArtifactId,
-  urlEncodeChangeId,
-  urlEncodeChangeIdForChange,
 } from '../../../../modules/infrastructure/version-control';
-import { FunctionalityConfigContext } from '../../../../modules/personalization/browser';
-import { subscribeToRef, subscribeToStream } from '../../../../utils/effect';
+import { subscribeToStream } from '../../../../utils/effect';
 import { ProjectContext } from '../';
-import { useCurrentChangeId } from '../current-project/current-artifact/use-current-change-id';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 import { ShareRegistryContext } from '../share-registry';
 import { CurrentDocumentContext } from './context';
@@ -56,14 +42,6 @@ import { type JoinSharedDocumentRefusal } from './types';
 import { useCurrentDocumentId } from './use-current-document-id';
 import { usePublishLocalPresence } from './use-presence';
 import { usePulledUpstreamChanges } from './use-pulled-upstream-changes';
-
-const findSelectedCommitIndex = ({
-  changeId,
-  history,
-}: {
-  changeId: ChangeId;
-  history: ChangeWithUrlInfo[];
-}) => history.findIndex((commit) => changeIdsAreSame(commit.id, changeId));
 
 export const CurrentDocumentProvider = ({
   children,
@@ -75,7 +53,6 @@ export const CurrentDocumentProvider = ({
     projectStore,
     currentBranch,
     currentArtifact,
-    restoreDocumentChanges,
     switchToBranch,
     listBranches,
   } = useContext(ProjectContext);
@@ -86,12 +63,10 @@ export const CurrentDocumentProvider = ({
     registry: { findShareId, rememberShare, forgetShare },
   } = useContext(ShareRegistryContext);
   const { dispatchNotification } = useContext(NotificationsContext);
-  const { showDiffInHistoryView } = useContext(FunctionalityConfigContext);
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
   );
   const navigate = useNavigate();
-  const changeId = useCurrentChangeId();
   const documentId = useCurrentDocumentId();
   const { pulledUpstreamChanges, resetPulledUpstreamChanges } =
     usePulledUpstreamChanges();
@@ -99,27 +74,10 @@ export const CurrentDocumentProvider = ({
     null
   );
   const onLocalSelectionChange = usePublishLocalPresence(liveDocument);
-  const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
-  const [versionedDocumentHistory, setVersionedDocumentHistory] = useState<
-    ChangeWithUrlInfo[]
-  >([]);
-  const [canCommit, setCanCommit] = useState(false);
-  const [selectedCommitIndex, setSelectedCommitIndex] = useState<number | null>(
-    null
-  );
-  const [isRestoreCommitDialogOpen, setIsRestoreCommitDialogOpen] =
-    useState<boolean>(false);
-  const [isDiscardChangesDialogOpen, setIsDiscardChangesDialogOpen] =
-    useState<boolean>(false);
-  const [commitToRestore, setCommitToRestore] = useState<Commit | null>(null);
   const [isShareDocumentDialogOpen, setIsShareDocumentDialogOpen] =
     useState<boolean>(false);
   const [isJoinSharedDocumentDialogOpen, setIsJoinSharedDocumentDialogOpen] =
     useState<boolean>(false);
-
-  const documentChangeSubRouteMatch = useMatch(
-    '/projects/:projectId/artifacts/:artifactId/changes/:changeId'
-  );
 
   const shareKey = useMemo(
     () =>
@@ -158,8 +116,6 @@ export const CurrentDocumentProvider = ({
           })
         );
       });
-
-    setLoadingHistory(true);
 
     // Sharing must never stand between the user and their document: whatever
     // goes wrong, the document opens without sharing instead. A share that can
@@ -217,7 +173,6 @@ export const CurrentDocumentProvider = ({
           })
         );
         setLiveDocument(null);
-        setLoadingHistory(false);
       });
 
     return () => {
@@ -262,280 +217,6 @@ export const CurrentDocumentProvider = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pulledUpstreamChanges]);
-
-  const checkIfContentChangedFromLastCommit = async ({
-    projectId,
-    projectStore,
-    documentId,
-    latestChangeId,
-    lastCommitId,
-  }: {
-    projectId: ProjectId;
-    projectStore: ProjectStore;
-    documentId: ArtifactId;
-    latestChangeId: ChangeId;
-    lastCommitId: ChangeId;
-  }) => {
-    if (!changeIdsAreSame(latestChangeId, lastCommitId)) {
-      const isContentSame = await Effect.runPromise(
-        projectStore.isContentSameAtChanges({
-          projectId,
-          documentId,
-          change1: latestChangeId,
-          change2: lastCommitId,
-        })
-      );
-
-      setCanCommit(!isContentSame);
-    } else {
-      setCanCommit(false);
-    }
-  };
-
-  const checkIfCanCommit = async ({
-    projectId,
-    projectStore,
-    docId,
-    doc,
-    latestChangeId,
-    lastCommitId,
-  }: {
-    projectId: ProjectId;
-    projectStore: ProjectStore;
-    docId: ArtifactId;
-    doc: VersionedDocument;
-    latestChangeId: ChangeId;
-    lastCommitId?: ChangeId;
-  }) => {
-    if (lastCommitId) {
-      return checkIfContentChangedFromLastCommit({
-        projectId,
-        projectStore,
-        documentId: docId,
-        latestChangeId,
-        lastCommitId,
-      });
-    }
-
-    setCanCommit(!isEmpty(doc));
-  };
-
-  const loadHistory = async (docId: ArtifactId) => {
-    if (!projectStore || !projectId) return [];
-
-    const historyInfo = await Effect.runPromise(
-      projectStore.getDocumentHistory({
-        projectId,
-        documentId: docId,
-      })
-    );
-
-    const historyWithURLInfo = historyInfo.history.map((commit) => ({
-      ...commit,
-      urlEncodedChangeId: urlEncodeChangeIdForChange(commit),
-    }));
-
-    setVersionedDocumentHistory(historyWithURLInfo);
-    setLoadingHistory(false);
-    await checkIfCanCommit({
-      projectId,
-      projectStore,
-      docId,
-      doc: historyInfo.current,
-      latestChangeId: historyInfo.latestChange.id,
-      lastCommitId: historyInfo.lastCommit?.id,
-    });
-
-    return historyWithURLInfo;
-  };
-
-  // History follows the live content: the subscribe-time replay performs the
-  // initial load, and later edits reload it once the typing settles.
-  useEffect(() => {
-    if (!projectStore || !documentId || !liveDocument) return;
-
-    const reloadHistory = debounce(() => {
-      loadHistory(documentId);
-    }, 500);
-
-    const unsubscribe = subscribeToRef(liveDocument.content, reloadHistory);
-
-    return () => {
-      unsubscribe();
-      reloadHistory.clear();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveDocument]);
-
-  useEffect(() => {
-    if (versionedDocumentHistory.length > 0 && changeId) {
-      const selectedCommitIndex = findSelectedCommitIndex({
-        changeId,
-        history: versionedDocumentHistory,
-      });
-
-      setSelectedCommitIndex(
-        selectedCommitIndex === -1 ? null : selectedCommitIndex
-      );
-    }
-  }, [versionedDocumentHistory, changeId]);
-
-  const reloadDocumentHistory = useCallback(async () => {
-    if (!projectStore || !liveDocument || !documentId) return;
-    await loadHistory(documentId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectStore, liveDocument, documentId]);
-
-  const navigateToChange = ({
-    projectId,
-    documentId,
-    history,
-    changeId,
-    showDiffInHistoryView,
-  }: {
-    projectId: ProjectId;
-    documentId: ArtifactId;
-    history: ChangeWithUrlInfo[];
-    changeId: ChangeId;
-    showDiffInHistoryView: boolean;
-  }) => {
-    const isInitialChange = (index: number, changes: Change[]) =>
-      index === changes.length - 1;
-
-    const selectedCommitIndex = findSelectedCommitIndex({ changeId, history });
-
-    const isFirstCommit = isInitialChange(selectedCommitIndex, history);
-
-    const diffCommit = isFirstCommit ? null : history[selectedCommitIndex + 1];
-
-    let newUrl = `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(documentId)}/changes/${urlEncodeChangeId(changeId)}`;
-    if (diffCommit) {
-      const diffChangeURLEncodedId = urlEncodeChangeIdForChange(diffCommit);
-      newUrl += `?diffWith=${diffChangeURLEncodedId}`;
-    }
-
-    if (showDiffInHistoryView && diffCommit) {
-      newUrl += `&showDiff=true`;
-    }
-
-    navigate(newUrl);
-  };
-
-  const handleSelectChange = useCallback(
-    (changeId: ChangeId, history?: ChangeWithUrlInfo[]) => {
-      if (!projectId || !documentId) {
-        throw new Error(
-          'Cannot select a change since projectId or documentId are not set yet.'
-        );
-      }
-
-      return navigateToChange({
-        projectId,
-        documentId,
-        history: history ?? versionedDocumentHistory,
-        changeId,
-        showDiffInHistoryView,
-      });
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [projectId, documentId, versionedDocumentHistory, showDiffInHistoryView]
-  );
-
-  const handleRestoreCommit = useCallback(
-    async ({ message, commit }: { message: string; commit: Commit }) => {
-      if (!documentId || !liveDocument || !projectStore) {
-        throw new Error(
-          'Cannot restore commit. Either the document or the project store is not initialized yet.'
-        );
-      }
-
-      // Save pending typing before the restore rewrites the working tree. If
-      // it cannot be saved, restoring would overwrite it, so nothing happens
-      // and the changes stay where the user can still see them.
-      try {
-        await Effect.runPromise(liveDocument.flush);
-      } catch (error) {
-        console.error(error);
-        dispatchNotification(
-          createErrorNotification({
-            title: 'Restore Version Error',
-            message:
-              'Your latest changes could not be saved, so this version was not restored.',
-          })
-        );
-        return;
-      }
-
-      const restoreCommitId = await restoreDocumentChanges({
-        documentId,
-        commit,
-        message,
-      });
-
-      await Effect.runPromise(liveDocument.refresh);
-
-      const newHistory = await loadHistory(documentId);
-
-      setIsRestoreCommitDialogOpen(false);
-      setCanCommit(false);
-      handleSelectChange(restoreCommitId, newHistory);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [documentId, liveDocument, projectStore, restoreDocumentChanges]
-  );
-
-  const handleDiscardChanges = useCallback(async () => {
-    if (!documentId || !liveDocument || !projectStore || !projectId) {
-      throw new Error(
-        'Cannot discard changes. Either the document or the project store is not initialized yet.'
-      );
-    }
-
-    await Effect.runPromise(
-      pipe(
-        liveDocument.dropPendingLocalEdits,
-        Effect.zipRight(
-          projectStore.discardUncommittedChanges({ projectId, documentId })
-        ),
-        Effect.zipRight(liveDocument.refresh)
-      )
-    );
-
-    const newHistory = await loadHistory(documentId);
-
-    if (documentChangeSubRouteMatch) {
-      const [lastCommit] = newHistory;
-      handleSelectChange(lastCommit.id, newHistory);
-    }
-
-    setIsDiscardChangesDialogOpen(false);
-    setCanCommit(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    documentId,
-    liveDocument,
-    projectStore,
-    projectId,
-    documentChangeSubRouteMatch,
-  ]);
-
-  const handleOpenRestoreCommitDialog = useCallback((commit: Commit) => {
-    setIsRestoreCommitDialogOpen(true);
-    setCommitToRestore(commit);
-  }, []);
-
-  const handleCloseRestoreCommitDialog = useCallback(() => {
-    setIsRestoreCommitDialogOpen(false);
-    setCommitToRestore(null);
-  }, []);
-
-  const handleOpenDiscardChangesDialog = useCallback(() => {
-    setIsDiscardChangesDialogOpen(true);
-  }, []);
-
-  const handleCloseDiscardChangesDialog = useCallback(() => {
-    setIsDiscardChangesDialogOpen(false);
-  }, []);
 
   const handleShareDocument = useCallback(async (): Promise<ShareId | null> => {
     if (!shareKey || !liveDocument || !currentArtifact) return null;
@@ -731,24 +412,8 @@ export const CurrentDocumentProvider = ({
   return (
     <CurrentDocumentContext.Provider
       value={{
-        versionedDocumentId: documentId,
         liveDocument,
         onLocalSelectionChange,
-        loadingHistory,
-        versionedDocumentHistory,
-        canCommit,
-        reloadDocumentHistory,
-        onRestoreCommit: handleRestoreCommit,
-        onDiscardChanges: handleDiscardChanges,
-        commitToRestore,
-        isRestoreCommitDialogOpen,
-        isDiscardChangesDialogOpen,
-        onOpenRestoreCommitDialog: handleOpenRestoreCommitDialog,
-        onCloseRestoreCommitDialog: handleCloseRestoreCommitDialog,
-        onOpenDiscardChangesDialog: handleOpenDiscardChangesDialog,
-        onCloseDiscardChangesDialog: handleCloseDiscardChangesDialog,
-        selectedCommitIndex,
-        onSelectChange: handleSelectChange,
         shareId,
         onShareDocument: handleShareDocument,
         onJoinSharedDocument: handleJoinSharedDocument,

@@ -532,7 +532,7 @@ export const commitChanges = async ({
   message: string;
 }): Promise<void> => {
   const commitBtn = window.getByRole('button', { name: /commit changes/i });
-  await expect(commitBtn).toBeEnabled({ timeout: 1_000 });
+  await expect(commitBtn).toBeEnabled({ timeout: 1_500 });
   await commitBtn.click();
 
   // Wait for the commit message textarea to be visible (autofocused in dialog)

@@ -3,7 +3,7 @@ import { Outlet } from 'react-router';
 
 export { DocumentEditor, DocumentHistoricalView } from './main';
 import {
-  CurrentDocumentContext,
+  CurrentArtifactVersioningContext,
   ProjectContext,
   useCurrentChangeId,
 } from '../../../../app-state';
@@ -14,7 +14,7 @@ import { DocumentHistory } from './sidebar/document-history/DocumentHistory';
 
 export const ProjectDocuments = () => {
   const { versionedDocumentHistory: changes, onSelectChange } = useContext(
-    CurrentDocumentContext
+    CurrentArtifactVersioningContext
   );
   const { pendingNewDocument } = useContext(ProjectContext);
   const changeId = useCurrentChangeId();

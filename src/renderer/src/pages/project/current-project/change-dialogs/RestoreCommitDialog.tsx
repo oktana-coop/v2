@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 
 import { type Commit } from '../../../../../../modules/infrastructure/version-control';
-import { CurrentDocumentContext } from '../../../../app-state';
+import { CurrentArtifactVersioningContext } from '../../../../app-state';
 import { Button } from '../../../../components/actions/Button';
 import { Modal } from '../../../../components/dialogs/Modal';
 import { CheckIcon } from '../../../../components/icons/Check';
@@ -18,7 +18,7 @@ export const RestoreCommitDialog = ({
   onCancel,
   onRestoreCommit,
 }: RestoreCommitDialogProps) => {
-  const { commitToRestore } = useContext(CurrentDocumentContext);
+  const { commitToRestore } = useContext(CurrentArtifactVersioningContext);
 
   const [commitMessage, setCommitMessage] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');

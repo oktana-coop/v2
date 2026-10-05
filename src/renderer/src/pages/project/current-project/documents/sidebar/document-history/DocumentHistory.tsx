@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 
 import { type Change } from '../../../../../../../../modules/infrastructure/version-control';
-import { CurrentDocumentContext } from '../../../../../../app-state';
+import { CurrentArtifactVersioningContext } from '../../../../../../app-state';
 import { CommitHistoryIcon } from '../../../../../../components/icons';
 import { SidebarHeading } from '../../../../../../components/sidebar/SidebarHeading';
 import { ChangeLog, ChangeLogSkeleton } from './change-log';
@@ -19,7 +19,7 @@ const DocumentHistoryContent = ({
   selectedChange,
 }: DocumentHistoryPanelProps) => {
   const { versionedDocumentId, loadingHistory } = useContext(
-    CurrentDocumentContext
+    CurrentArtifactVersioningContext
   );
 
   if (loadingHistory) {

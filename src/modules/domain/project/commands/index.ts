@@ -40,3 +40,17 @@ export {
   getProjectTree,
   markSharedDocuments,
 } from './get-project-tree';
+export {
+  type DocumentVersioningState,
+  type GetDocumentVersioningStateDeps,
+  getDocumentVersioningState,
+} from './get-document-versioning-state';
+export { commitDocument, type CommitDocumentDeps } from './commit-document';
+export {
+  restoreDocumentVersion,
+  type RestoreDocumentVersionDeps,
+} from './restore-document-version';
+export {
+  discardDocumentChanges,
+  type DiscardDocumentChangesDeps,
+} from './discard-document-changes';

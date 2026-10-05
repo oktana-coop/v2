@@ -5,7 +5,7 @@ import { richTextRepresentations } from '../../../../../../modules/domain/rich-t
 import { ExportTemplatesContext } from '../../../../../../modules/personalization/export-templates/context';
 import {
   CommandPaletteContext,
-  CurrentDocumentContext,
+  useCurrentDocumentId,
   useExport,
 } from '../../../../app-state';
 import { useKeyBindings } from '../../../../keyboard';
@@ -13,7 +13,7 @@ import { PagedPreview } from '../../../shared/paged-preview/PagedPreview';
 import { PrintPreviewActionsBar } from './PrintPreviewActionsBar';
 
 export const PrintPreview = () => {
-  const { versionedDocumentId } = useContext(CurrentDocumentContext);
+  const documentId = useCurrentDocumentId();
   const { activeTemplate } = useContext(ExportTemplatesContext);
   const { isOpen: isCommandPaletteOpen } = useContext(CommandPaletteContext);
   const { exportToPDF, getExportText } = useExport();
@@ -31,7 +31,7 @@ export const PrintPreview = () => {
   );
 
   useEffect(() => {
-    if (!versionedDocumentId) {
+    if (!documentId) {
       setHtml(null);
       return;
     }
@@ -42,13 +42,13 @@ export const PrintPreview = () => {
     };
 
     fetchHtml();
-  }, [versionedDocumentId, getExportText]);
+  }, [documentId, getExportText]);
 
   useEffect(() => {
     document.title = 'v2 | Print Preview';
   }, []);
 
-  if (!versionedDocumentId) {
+  if (!documentId) {
     return (
       <div className="flex h-full flex-col items-center justify-center text-zinc-400">
         <p className="text-sm">No document selected</p>

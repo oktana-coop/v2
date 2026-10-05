@@ -4,6 +4,7 @@ import { ProseMirrorProvider } from '../../../../../modules/domain/rich-text/rea
 import {
   CloneFromGithubModalProvider,
   CommitModalProvider,
+  CurrentArtifactVersioningProvider,
   CurrentDocumentProvider,
   ProjectProvider,
   ShareRegistryProvider,
@@ -16,13 +17,15 @@ export const ProjectProviders = () => {
       <ProjectProvider>
         <CommitModalProvider>
           <CurrentDocumentProvider>
-            <CloneFromGithubModalProvider>
-              <ProseMirrorProvider>
-                <SidebarLayoutProvider>
-                  <Outlet />
-                </SidebarLayoutProvider>
-              </ProseMirrorProvider>
-            </CloneFromGithubModalProvider>
+            <CurrentArtifactVersioningProvider>
+              <CloneFromGithubModalProvider>
+                <ProseMirrorProvider>
+                  <SidebarLayoutProvider>
+                    <Outlet />
+                  </SidebarLayoutProvider>
+                </ProseMirrorProvider>
+              </CloneFromGithubModalProvider>
+            </CurrentArtifactVersioningProvider>
           </CurrentDocumentProvider>
         </CommitModalProvider>
       </ProjectProvider>

@@ -7,7 +7,7 @@ import {
 } from '../../../../../../../../modules/infrastructure/version-control';
 import {
   CommitModalContext,
-  CurrentDocumentContext,
+  CurrentArtifactVersioningContext,
   useCurrentChangeId,
 } from '../../../../../../app-state';
 import { IconButton } from '../../../../../../components/actions/IconButton';
@@ -83,7 +83,7 @@ export const DocumentHistoricalView = () => {
     onSelectChange,
     onOpenRestoreCommitDialog,
     onOpenDiscardChangesDialog,
-  } = useContext(CurrentDocumentContext);
+  } = useContext(CurrentArtifactVersioningContext);
   const { openCommitModal } = useContext(CommitModalContext);
   const currentArtifact = useCurrentArtifact();
   const currentDocumentName = getArtifactName(currentArtifact.path);
