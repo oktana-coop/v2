@@ -163,6 +163,29 @@ describe('deleteDirectory', () => {
     expect(mockDeleteDirectory).not.toHaveBeenCalled();
   });
 
+  it('looks up the files by their POSIX paths when the filesystem gives backslash-separated ones', async () => {
+    mockListDirectoryFiles.mockReturnValue(
+      Effect.succeed([
+        fileNode(`${projectId}/docs/a.md`, 'a.md'),
+        fileNode(`${projectId}/docs/image.png`, 'image.png'),
+      ])
+    );
+    mockGetRelativePath.mockImplementation(({ path, relativeTo }) =>
+      Effect.succeed(path.slice(`${relativeTo}/`.length).replace(/\//g, '\\'))
+    );
+    mockLookupArtifactInProject.mockImplementation(({ path }) =>
+      Effect.succeed(createGitBlobRef({ ref: 'main', path }))
+    );
+    mockDeleteDocuments.mockReturnValue(Effect.void);
+
+    await Effect.runPromise(ops.deleteDirectory({ projectId, directoryPath }));
+
+    const lookedUpPaths = mockLookupArtifactInProject.mock.calls.map(
+      ([args]) => args.path
+    );
+    expect(lookedUpPaths).toEqual(['docs/a.md', 'docs/image.png']);
+  });
+
   it('removes an empty directory directly when it has no tracked documents', async () => {
     mockListDirectoryFiles.mockReturnValue(Effect.succeed([]));
     mockDeleteDirectory.mockReturnValue(Effect.void);

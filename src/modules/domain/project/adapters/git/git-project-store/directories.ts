@@ -13,6 +13,7 @@ import {
   RepositoryError,
   VersionedProjectNotFoundErrorTag,
 } from '../../../errors';
+import { parseProjectRelPathEffect } from '../../../models';
 import {
   type CreateDirectoryArgs,
   type DeleteDirectoryArgs,
@@ -90,6 +91,7 @@ export const createDirectoryOps = ({
                       path: file.path,
                       relativeTo: projectDir,
                     }),
+                    Effect.flatMap(parseProjectRelPathEffect),
                     Effect.flatMap((fileRelativePath) =>
                       pipe(
                         documentOps.lookupArtifactInProject({
