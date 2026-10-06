@@ -27,6 +27,7 @@ export default [
       'e2e-results/**',
       'storybook-static/**',
       'automerge-repo-data/**',
+      '.claude/worktrees/**',
     ],
   },
   ...fixupConfigRules(
