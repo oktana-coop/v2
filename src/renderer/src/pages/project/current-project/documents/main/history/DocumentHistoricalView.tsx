@@ -19,7 +19,7 @@ import {
 } from '../../../../../../components/icons';
 import {
   HistoricalDocumentView,
-  useHistoricalDocument,
+  useHistoricalArtifact,
 } from '../../../../shared/historical-view';
 import { useCurrentArtifact } from '../../../artifact-route';
 
@@ -92,18 +92,17 @@ export const DocumentHistoricalView = () => {
     selectedChange,
     isUncommitted,
     navigateToEdit,
+    documentId,
     documentPath,
-    doc,
-    diffProps,
-    loading,
-    error,
+    kind,
+    resolvingArtifact,
     showDiff,
     onSetShowDiff,
     diffCommitId,
     onDiffCommitSelect,
     canShowDiff,
     diffSelectorCommits,
-  } = useHistoricalDocument({ changes: commits });
+  } = useHistoricalArtifact({ changes: commits });
 
   // Auto-select first change when navigating to history without a changeId
   useEffect(() => {
@@ -154,11 +153,11 @@ export const DocumentHistoricalView = () => {
 
   return (
     <HistoricalDocumentView
+      documentId={documentId}
       documentPath={documentPath}
-      doc={doc}
-      diffProps={diffProps}
-      loading={loading}
-      error={error}
+      kind={kind}
+      resolvingArtifact={resolvingArtifact}
+      changeId={changeId}
       showDiff={showDiff}
       onSetShowDiff={onSetShowDiff}
       diffCommitId={diffCommitId}

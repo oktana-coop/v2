@@ -1,7 +1,6 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router';
+import { useCallback, useContext, useEffect, useState } from 'react';
 
 import {
   type ProjectRelPath,
@@ -10,145 +9,42 @@ import {
 import { type VersionedDocument } from '../../../../../../modules/domain/rich-text';
 import {
   type ArtifactId,
-  type Change,
   type ChangeId,
-  changeIdsAreSame,
-  type ChangeWithUrlInfo,
   type CommitId,
-  type CommitWithUrlInfo,
-  decodeUrlEncodedArtifactId,
-  decodeUrlEncodedCommitId,
-  isCommitWithUrlInfo,
-  isUncommittedChangeId,
   parseGitCommitHash,
-  urlEncodeChangeId,
 } from '../../../../../../modules/infrastructure/version-control';
-import { FunctionalityConfigContext } from '../../../../../../modules/personalization/browser';
 import {
   InfrastructureAdaptersContext,
   ProjectContext,
-  useArtifactMetaData,
-  useCurrentChangeId,
-  useNavigateToArtifact,
 } from '../../../../app-state';
-import { resolveDiffState } from './diff-state';
 import { type DiffViewProps } from './ReadOnlyDocumentView';
 
-export type UseHistoricalDocumentArgs = {
-  changes: ChangeWithUrlInfo[];
+export type UseHistoricalRichTextDocumentArgs = {
+  documentId: ArtifactId;
+  documentPath: ProjectRelPath;
+  changeId: ChangeId | null;
+  diffCommitId: CommitId | null;
 };
 
-export type UseHistoricalDocumentResult = {
-  documentId: ArtifactId | null;
-  changeId: ChangeId | null;
-  documentPath: ProjectRelPath | null;
-  isUncommitted: boolean;
-  selectedChange: Change | null;
-  navigateToEdit: () => void;
+export type UseHistoricalRichTextDocumentResult = {
   doc: VersionedDocument | null;
   diffProps: DiffViewProps | null;
   loading: boolean;
   error: string | null;
-  showDiff: boolean;
-  onSetShowDiff: (value: boolean) => void;
-  diffCommitId: CommitId | null;
-  onDiffCommitSelect: (id: CommitId) => void;
-  canShowDiff: boolean;
-  diffSelectorCommits: CommitWithUrlInfo[];
 };
 
-export const useHistoricalDocument = ({
-  changes,
-}: UseHistoricalDocumentArgs): UseHistoricalDocumentResult => {
-  const { artifactId: encodedDocumentId } = useParams();
-  const changeId = useCurrentChangeId();
+export const useHistoricalRichTextDocument = ({
+  documentId,
+  documentPath,
+  changeId,
+  diffCommitId,
+}: UseHistoricalRichTextDocumentArgs): UseHistoricalRichTextDocumentResult => {
   const { projectId } = useContext(ProjectContext);
   const { projectStore } = useContext(InfrastructureAdaptersContext);
-  const { showDiffInHistoryView, setShowDiffInHistoryView } = useContext(
-    FunctionalityConfigContext
-  );
-  const [searchParams, setSearchParams] = useSearchParams();
-  const navigateToArtifact = useNavigateToArtifact();
-
-  const documentId = useMemo(
-    () =>
-      encodedDocumentId ? decodeUrlEncodedArtifactId(encodedDocumentId) : null,
-    [encodedDocumentId]
-  );
-
-  const { artifact: historicalArtifact } = useArtifactMetaData(documentId);
-  const documentPath = historicalArtifact?.path ?? null;
-
-  const isUncommitted = useMemo(
-    () => (changeId ? isUncommittedChangeId(changeId) : false),
-    [changeId]
-  );
-
-  const selectedChange = useMemo(
-    () =>
-      changeId
-        ? (changes.find((c) => changeIdsAreSame(c.id, changeId)) ?? null)
-        : null,
-    [changeId, changes]
-  );
-
-  const navigateToEdit = useCallback(() => {
-    if (projectId && documentId) {
-      navigateToArtifact({
-        projectId,
-        artifactId: documentId,
-      });
-    }
-  }, [projectId, documentId, navigateToArtifact]);
-
-  const diffWithParam = useMemo((): CommitId | null => {
-    const param = searchParams.get('diffWith');
-    return param ? decodeUrlEncodedCommitId(param) : null;
-  }, [searchParams]);
-
-  const commits = useMemo(() => changes.filter(isCommitWithUrlInfo), [changes]);
-
-  const { diffCommitId, canShowDiff, diffSelectorCommits } = useMemo(
-    () =>
-      resolveDiffState({
-        commits,
-        changeId,
-        userWantsDiff: showDiffInHistoryView,
-        diffWithParam,
-      }),
-    [commits, changeId, showDiffInHistoryView, diffWithParam]
-  );
-
-  const onSetShowDiff = useCallback(
-    (checked: boolean) => {
-      setSearchParams((prev) => {
-        const newParams = new URLSearchParams(prev);
-        if (checked) {
-          newParams.set('showDiff', 'true');
-        } else {
-          newParams.delete('showDiff');
-        }
-        return newParams;
-      });
-      setShowDiffInHistoryView(checked);
-    },
-    [setSearchParams, setShowDiffInHistoryView]
-  );
-
-  const onDiffCommitSelect = useCallback(
-    (id: CommitId) => {
-      setSearchParams((prev) => {
-        const newParams = new URLSearchParams(prev);
-        newParams.set('diffWith', urlEncodeChangeId(id));
-        return newParams;
-      });
-    },
-    [setSearchParams]
-  );
 
   const [doc, setDoc] = useState<VersionedDocument | null>(null);
   const [diffProps, setDiffProps] = useState<DiffViewProps | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(changeId !== null);
   const [error, setError] = useState<string | null>(null);
 
   const getDocumentAtChange = useCallback(
@@ -200,7 +96,7 @@ export const useHistoricalDocument = ({
     let isLatest = true;
 
     const loadDocOrDiff = async () => {
-      if (!documentId || !changeId) return;
+      if (!changeId) return;
 
       setLoading(true);
       setError(null);
@@ -232,7 +128,7 @@ export const useHistoricalDocument = ({
 
               if (!isLatest) return;
 
-              if (diffTargetDoc && currentDoc && documentPath) {
+              if (diffTargetDoc && currentDoc) {
                 setDiffProps({
                   docBefore: diffTargetDoc,
                   docAfter: currentDoc,
@@ -274,22 +170,5 @@ export const useHistoricalDocument = ({
     isContentSameAtChanges,
   ]);
 
-  return {
-    documentId,
-    changeId,
-    documentPath,
-    isUncommitted,
-    selectedChange,
-    navigateToEdit,
-    doc,
-    diffProps,
-    loading,
-    error,
-    showDiff: showDiffInHistoryView,
-    onSetShowDiff,
-    diffCommitId,
-    onDiffCommitSelect,
-    canShowDiff,
-    diffSelectorCommits,
-  };
+  return { doc, diffProps, loading, error };
 };
