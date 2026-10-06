@@ -2,7 +2,10 @@ import { watch } from 'node:fs';
 
 import debounce from 'debounce';
 
+import { isLinux } from '../../../../cross-platform/node';
 import { type DirectoryWatcher } from '../../../ports/directory-watcher';
+import { watchPerDirectory } from './per-directory-watch';
+import { type WatchTree } from './tree-watch';
 
 // Editors and git rewrite a file in several steps, so events arrive in bursts.
 // One signal per lull is enough for a listener that re-reads anyway.
@@ -25,6 +28,21 @@ export const isIgnored = ({
 
   return ignoredTopLevelEntries.includes(topLevelEntry);
 };
+
+const watchRecursively: WatchTree = ({ path, onEvent, onError }) => {
+  const watcher = watch(path, { recursive: true }, (_, filename) =>
+    onEvent(filename)
+  );
+  watcher.on('error', onError);
+
+  return () => watcher.close();
+};
+
+// Node's recursive watch loses files replaced by a rename on Linux.
+//
+// TODO: Watch recursively everywhere once Electron bundles a Node that has the
+// fix (v26.9.0 and later).
+const watchTree: WatchTree = isLinux() ? watchPerDirectory : watchRecursively;
 
 type Listener = {
   notify: debounce.DebouncedFunction<() => void>;
@@ -56,28 +74,30 @@ export const createAdapter = (): DirectoryWatcher => {
     const listeners = new Set<Listener>();
 
     try {
-      const watcher = watch(path, { recursive: true }, (_, filename) => {
-        listeners.forEach((listener) => {
-          if (
-            isIgnored({
-              filename,
-              ignoredTopLevelEntries: listener.ignoredTopLevelEntries,
-            })
-          ) {
-            return;
-          }
+      const closeWatch = watchTree({
+        path,
+        onEvent: (filename) => {
+          listeners.forEach((listener) => {
+            if (
+              isIgnored({
+                filename,
+                ignoredTopLevelEntries: listener.ignoredTopLevelEntries,
+              })
+            ) {
+              return;
+            }
 
-          // Node explicitly warns that watch behavior is not fully consistent
-          // across platforms, so any event is only a signal that something changed.
-          listener.notify();
-        });
+            // Node explicitly warns that watch behavior is not fully consistent
+            // across platforms, so any event is only a signal that something changed.
+            listener.notify();
+          });
+        },
+        // A watched directory that disappears surfaces here instead of
+        // throwing, and leaves nothing behind to stop later.
+        onError: () => closeDirectory(path),
       });
 
-      // A watched directory that disappears surfaces here instead of
-      // throwing, and leaves nothing behind to stop later.
-      watcher.on('error', () => closeDirectory(path));
-
-      const directory = { listeners, closeWatch: () => watcher.close() };
+      const directory = { listeners, closeWatch };
       watched.set(path, directory);
 
       return directory;

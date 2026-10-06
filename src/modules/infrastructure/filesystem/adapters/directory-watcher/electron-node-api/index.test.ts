@@ -11,6 +11,10 @@ const { watch } = vi.hoisted(() => ({ watch: vi.fn() }));
 
 vi.mock('node:fs', () => ({ watch, default: { watch } }));
 
+// These cover Node's recursive watch. Linux watches each directory instead,
+// which is covered in its own module.
+vi.mock('../../../../cross-platform/node', () => ({ isLinux: () => false }));
+
 const ignoredTopLevelEntries = ['.git'];
 
 const path = '/projects/one';
