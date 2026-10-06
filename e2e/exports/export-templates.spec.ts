@@ -122,8 +122,8 @@ test.describe('export templates', () => {
       .first();
     await optionRow.locator('span[role="button"], button').last().click();
 
-    // Re-open the listbox and verify there is one fewer option
-    await window.locator('[data-slot="control"]').click();
+    // The listbox stays open after deleting; verify there is one fewer option
+    await expect(listbox).toBeVisible();
     await expect(listbox.getByRole('option')).toHaveCount(countBefore - 1);
   });
 
