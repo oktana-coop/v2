@@ -1,7 +1,19 @@
 name: Run E2E Tests
 on:
   workflow_dispatch:
+    inputs:
+      platforms:
+        description: 'Platforms to test on'
+        required: false
+        default: all
+        type: choice
+        options:
+          - all
+          - ubuntu
+          - windows
 jobs:
   e2e:
     uses: ./.github/workflows/e2e.yml
+    with:
+      platforms: ${{ inputs.platforms == 'ubuntu' && '["ubuntu-latest"]' || inputs.platforms == 'windows' && '["windows-latest"]' || '["ubuntu-latest","windows-latest"]' }}
     secrets: inherit

@@ -1,6 +1,12 @@
 name: E2E Tests
 on:
   workflow_call:
+    inputs:
+      platforms:
+        description: 'Platforms to test on (JSON array)'
+        required: false
+        default: '["ubuntu-latest","windows-latest"]'
+        type: string
     secrets:
       OKTANA_NPM_TOKEN:
         required: true
@@ -8,7 +14,7 @@ jobs:
   e2e:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: ${{ fromJSON(inputs.platforms) }}
     runs-on: ${{ matrix.os }}
     env:
       OKTANA_NPM_TOKEN: ${{ secrets.OKTANA_NPM_TOKEN }}
