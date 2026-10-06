@@ -1,6 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { renderHook } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { logicalKey, matchBinding, normalizeKey } from './use-key-bindings';
+import {
+  logicalKey,
+  matchBinding,
+  normalizeKey,
+  useKeyBindings,
+} from './use-key-bindings';
 
 const event = (
   overrides: Partial<{
@@ -263,5 +269,44 @@ describe('matchBinding', () => {
         }),
       })
     ).toBe('ctrl+alt+r');
+  });
+});
+
+describe('useKeyBindings', () => {
+  const focusedElement = document.createElement('div');
+  document.body.appendChild(focusedElement);
+
+  const pressCmdN = () =>
+    focusedElement.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'n',
+        code: 'KeyN',
+        metaKey: true,
+        bubbles: true,
+        cancelable: true,
+      })
+    );
+
+  afterEach(() => {
+    focusedElement.onkeydown = null;
+  });
+
+  it('runs the bound action for a key nothing else handled', () => {
+    const createDocument = vi.fn<() => void>();
+    renderHook(() => useKeyBindings({ 'ctrl+n': createDocument }));
+
+    pressCmdN();
+
+    expect(createDocument).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips a key the focused component already handled', () => {
+    const createDocument = vi.fn<() => void>();
+    renderHook(() => useKeyBindings({ 'ctrl+n': createDocument }));
+    focusedElement.onkeydown = (event) => event.preventDefault();
+
+    pressCmdN();
+
+    expect(createDocument).not.toHaveBeenCalled();
   });
 });

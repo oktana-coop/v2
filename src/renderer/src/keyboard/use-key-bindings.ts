@@ -103,6 +103,9 @@ export const useKeyBindings = (keyBindings: KeyBindings) => {
 
   useEffect(() => {
     const handleGenericKeyDown = (event: KeyboardEvent) => {
+      // A focused component, e.g. an editor, already handled the key.
+      if (event.defaultPrevented) return;
+
       const binding = match({ keyBindings, event });
       if (binding) {
         event.preventDefault();
