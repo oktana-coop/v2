@@ -1,7 +1,6 @@
 import type { ValueOf } from 'type-fest';
 
 import { buildConfig } from '../../../config';
-import { getExtension } from '../../../infrastructure/filesystem';
 
 const AUTOMERGE = 'AUTOMERGE';
 const PANDOC = 'PANDOC';
@@ -46,12 +45,3 @@ export const richTextRepresentationExtensions = {
 
 export const PRIMARY_RICH_TEXT_REPRESENTATION =
   buildConfig.primaryRichTextRepresentation ?? richTextRepresentations.MARKDOWN;
-
-// File extensions the editor can open as documents — currently just the
-// primary representation's extension.
-const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
-  richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
-]);
-
-export const isUnsupportedExtension = (path: string): boolean =>
-  !SUPPORTED_DOCUMENT_EXTENSIONS.has(getExtension(path).toLowerCase());

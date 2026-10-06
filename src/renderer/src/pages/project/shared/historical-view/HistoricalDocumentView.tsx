@@ -1,25 +1,25 @@
-import { useMemo } from 'react';
-
-import { type ProjectRelPath } from '../../../../../../modules/domain/project';
 import {
-  isUnsupportedExtension,
-  type VersionedDocument,
-} from '../../../../../../modules/domain/rich-text';
+  type ArtifactKind,
+  artifactKinds,
+  type ProjectRelPath,
+} from '../../../../../../modules/domain/project';
 import {
+  type ArtifactId,
+  type ChangeId,
   type CommitId,
   type CommitWithUrlInfo,
 } from '../../../../../../modules/infrastructure/version-control';
+import { LongTextSkeleton } from '../../../../components/progress/skeletons/LongText';
 import { UnsupportedDocumentView } from '../../shared/unsupported-document-view';
 import { DocumentHistoryActionsBar } from './DocumentHistoryActionsBar';
-import { HistoricalViewContent } from './HistoricalViewContent';
-import { type DiffViewProps } from './ReadOnlyDocumentView';
+import { RichTextHistoricalContent } from './RichTextHistoricalContent';
 
 export type HistoricalDocumentViewProps = {
+  documentId: ArtifactId | null;
   documentPath: ProjectRelPath | null;
-  doc: VersionedDocument | null;
-  diffProps: DiffViewProps | null;
-  loading: boolean;
-  error: string | null;
+  kind: ArtifactKind | null;
+  resolvingArtifact: boolean;
+  changeId: ChangeId | null;
   showDiff: boolean;
   onSetShowDiff: (value: boolean) => void;
   diffCommitId: CommitId | null;
@@ -31,12 +31,46 @@ export type HistoricalDocumentViewProps = {
   actions?: React.ReactNode;
 };
 
-export const HistoricalDocumentView = ({
+const HistoricalContent = ({
+  documentId,
   documentPath,
-  doc,
-  diffProps,
-  loading,
-  error,
+  kind,
+  resolvingArtifact,
+  changeId,
+  diffCommitId,
+}: Pick<
+  HistoricalDocumentViewProps,
+  | 'documentId'
+  | 'documentPath'
+  | 'kind'
+  | 'resolvingArtifact'
+  | 'changeId'
+  | 'diffCommitId'
+>) => {
+  if (documentId && documentPath && kind === artifactKinds.RICH_TEXT_DOCUMENT) {
+    return (
+      <RichTextHistoricalContent
+        documentId={documentId}
+        documentPath={documentPath}
+        changeId={changeId}
+        diffCommitId={diffCommitId}
+      />
+    );
+  }
+
+  if (resolvingArtifact) {
+    return <LongTextSkeleton />;
+  }
+
+  return null;
+};
+
+export const HistoricalDocumentView = ({
+  documentId,
+  documentPath,
+  kind,
+  resolvingArtifact,
+  changeId,
   showDiff,
   onSetShowDiff,
   diffCommitId,
@@ -47,12 +81,7 @@ export const HistoricalDocumentView = ({
   titleComponent,
   actions,
 }: HistoricalDocumentViewProps) => {
-  const isUnsupported = useMemo(
-    () => (documentPath ? isUnsupportedExtension(documentPath) : false),
-    [documentPath]
-  );
-
-  if (isUnsupported && documentPath) {
+  if (documentPath && kind && kind !== artifactKinds.RICH_TEXT_DOCUMENT) {
     return <UnsupportedDocumentView path={documentPath} />;
   }
 
@@ -74,12 +103,13 @@ export const HistoricalDocumentView = ({
 
       <div className="flex w-full flex-auto flex-col items-center overflow-auto">
         <div className="flex w-full max-w-3xl flex-col">
-          <HistoricalViewContent
-            doc={doc}
-            diffProps={diffProps}
+          <HistoricalContent
+            documentId={documentId}
             documentPath={documentPath}
-            loading={loading}
-            error={error}
+            kind={kind}
+            resolvingArtifact={resolvingArtifact}
+            changeId={changeId}
+            diffCommitId={diffCommitId}
           />
         </div>
       </div>

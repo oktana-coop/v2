@@ -12,7 +12,7 @@ import { IconButton } from '../../../../../components/actions/IconButton';
 import { PenIcon } from '../../../../../components/icons';
 import {
   HistoricalDocumentView,
-  useHistoricalDocument,
+  useHistoricalArtifact,
 } from '../../../shared/historical-view';
 import { ProjectHistoryActionBarTitle } from './ProjectHistoryActionBarTitle';
 
@@ -38,19 +38,19 @@ export const ProjectHistoryDocumentView = () => {
   const {
     selectedChange,
     isUncommitted,
+    documentId,
+    changeId,
     documentPath,
+    kind,
+    resolvingArtifact,
     navigateToEdit,
-    doc,
-    diffProps,
-    loading,
-    error,
     showDiff,
     onSetShowDiff,
     diffCommitId,
     onDiffCommitSelect,
     canShowDiff,
     diffSelectorCommits,
-  } = useHistoricalDocument({ changes: changesWithUrlInfo });
+  } = useHistoricalArtifact({ changes: changesWithUrlInfo });
 
   const docName = documentPath ? removePath(documentPath) : '';
 
@@ -87,11 +87,11 @@ export const ProjectHistoryDocumentView = () => {
 
   return (
     <HistoricalDocumentView
+      documentId={documentId}
       documentPath={documentPath}
-      doc={doc}
-      diffProps={diffProps}
-      loading={loading}
-      error={error}
+      kind={kind}
+      resolvingArtifact={resolvingArtifact}
+      changeId={changeId}
       showDiff={showDiff}
       onSetShowDiff={onSetShowDiff}
       diffCommitId={diffCommitId}

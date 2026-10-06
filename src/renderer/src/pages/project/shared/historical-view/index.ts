@@ -11,7 +11,7 @@ export {
   type SingleDocViewProps,
 } from './ReadOnlyDocumentView';
 export {
-  useHistoricalDocument,
-  type UseHistoricalDocumentArgs,
-  type UseHistoricalDocumentResult,
-} from './use-historical-document';
+  useHistoricalArtifact,
+  type UseHistoricalArtifactArgs,
+  type UseHistoricalArtifactResult,
+} from './use-historical-artifact';
