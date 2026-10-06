@@ -9,7 +9,6 @@ import {
   type DocumentAnalyzer,
   type RichTextLibError,
   RichTextLibErrorTag,
-  richTextRepresentations,
 } from '../../../../../../modules/domain/rich-text';
 import {
   CURRENT_SCHEMA_VERSION,
@@ -64,6 +63,7 @@ import {
 } from '../../../errors';
 import {
   artifactKinds,
+  canReferenceAssets,
   docRelToProjectRel,
   inferArtifactKindFromExtension,
   parseProjectRelPathEffect,
@@ -103,7 +103,7 @@ export const getDocumentReferencedAssetPaths = ({
   | RichTextLibError,
   never
 > => {
-  if (PRIMARY_RICH_TEXT_REPRESENTATION !== richTextRepresentations.MARKDOWN) {
+  if (!canReferenceAssets(inferArtifactKindFromExtension(documentPath))) {
     return Effect.succeed([]);
   }
 

@@ -11,3 +11,6 @@ export const artifactKinds = {
 } as const;
 
 export type ArtifactKind = ValueOf<typeof artifactKinds>;
+
+export const canReferenceAssets = (kind: ArtifactKind): boolean =>
+  kind === artifactKinds.RICH_TEXT_DOCUMENT;

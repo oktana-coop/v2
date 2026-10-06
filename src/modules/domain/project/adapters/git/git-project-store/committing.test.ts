@@ -149,6 +149,24 @@ describe('committing', () => {
       expect(result.skippedAssetPaths).toEqual([]);
       expect(mockCommit).toHaveBeenCalled();
     });
+
+    it('commits a file that is not a rich-text document on its own, without scanning it for assets', async () => {
+      const result = await Effect.runPromise(
+        store.commitDocumentChanges({
+          projectId: PROJECT_PATH,
+          documentId: '/blob/main/config.yaml' as ArtifactId,
+          message: 'msg',
+        })
+      );
+
+      expect(mockExtractLocalAssetReferences).not.toHaveBeenCalled();
+      expect(result.skippedAssetPaths).toEqual([]);
+      const stagedPaths = (
+        vi.mocked(git.add).mock.calls[0][0] as { filepath: string[] }
+      ).filepath;
+      expect(stagedPaths).toEqual(['config.yaml']);
+      expect(mockCommit).toHaveBeenCalled();
+    });
   });
 
   describe('restoreDocumentChanges', () => {
@@ -227,6 +245,27 @@ describe('committing', () => {
       expect(writtenPaths).toContain(`${PROJECT_PATH}/${docPath}`);
       expect(writtenPaths).toContain(`${PROJECT_PATH}/assets/present.png`);
       expect(writtenPaths).not.toContain(`${PROJECT_PATH}/assets/corrupt.png`);
+      expect(mockCommit).toHaveBeenCalled();
+    });
+
+    it('restores a file that is not a rich-text document on its own, without scanning it for assets', async () => {
+      vi.mocked(git.readBlob).mockResolvedValue({
+        oid: sourceCommitOid,
+        blob: new TextEncoder().encode('key: value\n'),
+      });
+
+      const result = await Effect.runPromise(
+        store.restoreDocumentChanges({
+          projectId: PROJECT_PATH,
+          documentId: '/blob/main/config.yaml' as ArtifactId,
+          commit,
+        })
+      );
+
+      expect(mockExtractLocalAssetReferences).not.toHaveBeenCalled();
+      expect(result.skippedAssetPaths).toEqual([]);
+      const writtenPaths = mockWriteFile.mock.calls.map(([args]) => args.path);
+      expect(writtenPaths).toEqual([`${PROJECT_PATH}/config.yaml`]);
       expect(mockCommit).toHaveBeenCalled();
     });
 

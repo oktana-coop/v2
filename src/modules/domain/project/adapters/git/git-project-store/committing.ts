@@ -7,7 +7,6 @@ import {
   type DocumentAnalyzer,
   PRIMARY_RICH_TEXT_REPRESENTATION,
   RichTextLibErrorTag,
-  richTextRepresentations,
 } from '../../../../../../modules/domain/rich-text';
 import {
   type Filesystem,
@@ -34,7 +33,9 @@ import {
   ValidationError,
 } from '../../../errors';
 import {
+  canReferenceAssets,
   docRelToProjectRel,
+  inferArtifactKindFromExtension,
   type ProjectFsPath,
   type ProjectRelPath,
 } from '../../../models';
@@ -236,8 +237,7 @@ export const createCommittingOps = ({
           ),
           // Scan the historical doc content for asset refs.
           Effect.bind('referencedAssetPaths', ({ docBytes }) =>
-            PRIMARY_RICH_TEXT_REPRESENTATION ===
-            richTextRepresentations.MARKDOWN
+            canReferenceAssets(inferArtifactKindFromExtension(documentPath))
               ? pipe(
                   documentAnalyzer.extractLocalAssetReferences({
                     representation: PRIMARY_RICH_TEXT_REPRESENTATION,
