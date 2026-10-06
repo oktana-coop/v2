@@ -112,7 +112,6 @@ export const ProjectProvider = ({
     projectStore,
     currentBranch,
     refreshDirectoryTree,
-    findDocumentInProject: documentOps.findDocumentInProject,
     currentArtifactPath,
   });
 
@@ -131,7 +130,6 @@ export const ProjectProvider = ({
     currentBranch,
     mergeConflictInfo,
     pulledUpstreamChanges,
-    findDocumentInProject: documentOps.findDocumentInProject,
     currentArtifactId,
     setPulledUpstreamChanges,
   });

@@ -151,8 +151,8 @@ export const createAdapter = (): ProjectStore => ({
       >,
       RepositoryError
     )(window.projectStoreAPI.renameDirectory(...args)),
-  lookupDocumentInProject: (
-    ...args: Parameters<ProjectStore['lookupDocumentInProject']>
+  lookupArtifactInProject: (
+    ...args: Parameters<ProjectStore['lookupArtifactInProject']>
   ) =>
     effectifyIPCPromise(
       {
@@ -161,10 +161,10 @@ export const createAdapter = (): ProjectStore => ({
         [VersionedProjectNotFoundErrorTag]: NotFoundError,
         [VersionControlMigrationErrorTag]: MigrationError,
       } as ErrorRegistry<
-        EffectErrorType<ReturnType<ProjectStore['lookupDocumentInProject']>>
+        EffectErrorType<ReturnType<ProjectStore['lookupArtifactInProject']>>
       >,
       RepositoryError
-    )(window.projectStoreAPI.lookupDocumentInProject(...args)),
+    )(window.projectStoreAPI.lookupArtifactInProject(...args)),
   findDocumentByPath: (
     ...args: Parameters<ProjectStore['findDocumentByPath']>
   ) =>

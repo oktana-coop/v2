@@ -63,7 +63,9 @@ import {
   VersionedProjectNotFoundErrorTag,
 } from '../../../errors';
 import {
+  artifactKinds,
   docRelToProjectRel,
+  inferArtifactKindFromExtension,
   parseProjectRelPathEffect,
   type ProjectFsPath,
   type ProjectId,
@@ -78,7 +80,7 @@ import {
 import { extractArtifactRelativePathFromId } from './artifacts';
 import { readAssetBytes } from './assets';
 import { getCurrentBranch, whileDocumentRefIsCheckedOut } from './branching';
-import { listProjectDocuments } from './project';
+import { listProjectArtifacts } from './project';
 import { ensureProjectIdIsFsPath } from './project-id';
 
 export const getDocumentReferencedAssetPaths = ({
@@ -137,7 +139,7 @@ type DocumentOps = Pick<
   | 'isContentSameAtChanges'
   | 'discardUncommittedChanges'
   | 'resolveContentConflict'
-  | 'lookupDocumentInProject'
+  | 'lookupArtifactInProject'
   | 'findDocumentByPath'
   | 'readDocumentReferencedAssets'
 >;
@@ -937,7 +939,7 @@ export const createDocumentOps = ({
                   message:
                     documentPaths.length === 1
                       ? `Removed ${documentPaths[0]}`
-                      : `Removed ${documentPaths.length} documents`,
+                      : `Removed ${documentPaths.length} files`,
                 })
               : Effect.succeed(undefined)
           ),
@@ -949,9 +951,9 @@ export const createDocumentOps = ({
       )
     );
 
-  const lookupDocumentInProjectHistory = (
+  const lookupArtifactInProjectHistory = (
     projectDir: string,
-    documentPath: string,
+    path: string,
     commitId: GitCommitHash
   ): Effect.Effect<
     ArtifactId,
@@ -963,52 +965,48 @@ export const createDocumentOps = ({
         isoGitFs,
         dir: projectDir,
         commitId,
-        filepath: documentPath,
+        filepath: path,
       }),
       Effect.catchTag(VersionControlNotFoundErrorTag, () =>
         Effect.fail(
           new NotFoundError(
-            `Document with path ${documentPath} not found at commit ${commitId}`
+            `File with path ${path} not found at commit ${commitId}`
           )
         )
       ),
       Effect.catchTag(VersionControlRepositoryErrorTag, (err) =>
         Effect.fail(new RepositoryError(err.message))
       ),
-      Effect.map(() => createGitBlobRef({ ref: commitId, path: documentPath }))
+      Effect.map(() => createGitBlobRef({ ref: commitId, path }))
     );
 
-  const lookupDocumentInProject: DocumentOps['lookupDocumentInProject'] = ({
+  const lookupArtifactInProject: DocumentOps['lookupArtifactInProject'] = ({
     projectId,
-    documentPath,
+    path,
     changeId,
   }) => {
     if (changeId && isGitCommitHash(changeId)) {
       return pipe(
         ensureProjectIdIsFsPath(projectId),
         Effect.flatMap((projectDir) =>
-          lookupDocumentInProjectHistory(projectDir, documentPath, changeId)
+          lookupArtifactInProjectHistory(projectDir, path, changeId)
         )
       );
     }
 
     return pipe(
-      listProjectDocuments({ isoGitFs, filesystem, id: projectId }),
-      Effect.flatMap((projectDocuments) =>
+      listProjectArtifacts({ isoGitFs, filesystem, id: projectId }),
+      Effect.flatMap((artifacts) =>
         pipe(
           Option.fromNullable(
-            projectDocuments.find(
-              (documentMetaData) => documentMetaData.path === documentPath
-            )
+            artifacts.find((artifact) => artifact.path === path)
           ),
           Option.match({
             onNone: () =>
               Effect.fail(
-                new NotFoundError(
-                  `Document with path ${documentPath} not found in project`
-                )
+                new NotFoundError(`File with path ${path} not found in project`)
               ),
-            onSome: (documentMetaData) => Effect.succeed(documentMetaData.id),
+            onSome: (artifact) => Effect.succeed(artifact.id),
           })
         )
       )
@@ -1080,7 +1078,19 @@ export const createDocumentOps = ({
     changeId,
   }) =>
     pipe(
-      lookupDocumentInProject({ projectId, documentPath, changeId }),
+      Effect.succeed(documentPath),
+      Effect.filterOrFail(
+        (path) =>
+          inferArtifactKindFromExtension(path) ===
+          artifactKinds.RICH_TEXT_DOCUMENT,
+        () =>
+          new ValidationError(
+            `Path ${documentPath} is not a rich-text document`
+          )
+      ),
+      Effect.flatMap(() =>
+        lookupArtifactInProject({ projectId, path: documentPath, changeId })
+      ),
       Effect.flatMap((documentId) =>
         readDocumentFromWorkdir({ projectId, documentId })
       )
@@ -1147,7 +1157,7 @@ export const createDocumentOps = ({
     isContentSameAtChanges,
     discardUncommittedChanges,
     resolveContentConflict,
-    lookupDocumentInProject,
+    lookupArtifactInProject,
     findDocumentByPath,
     readDocumentReferencedAssets,
   };

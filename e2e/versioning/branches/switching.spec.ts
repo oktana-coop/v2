@@ -81,6 +81,31 @@ test.describe('branch switching', () => {
       window.getByTestId('file-explorer').getByText('experiment-only')
     ).toBeHidden();
   });
+
+  test('re-resolves an open file that is not a rich-text document against the branch switched to', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await window.getByTestId('file-explorer').getByText('config.json').click();
+    await expect(window.getByText('Preview not available')).toBeVisible();
+
+    await createAndSwitchToBranch({ window, branchName: 'experiment' });
+    await expect(window.getByText('Preview not available')).toBeVisible();
+
+    await switchToBranch({ window, from: 'experiment', to: 'main' });
+    // Gives the re-resolution after the switch time to reset, if it would.
+    await window.waitForTimeout(500);
+    await expect(window.getByText('Preview not available')).toBeVisible();
+    await expect(
+      window.getByRole('heading', { name: /welcome to v2/i })
+    ).toBeHidden();
+  });
 });
 
 test.describe('switching with uncommitted changes', () => {

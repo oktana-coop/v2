@@ -758,7 +758,7 @@ describe('documents', () => {
       expect(mockRemoveFile).toHaveBeenCalledTimes(2);
       expect(mockCommit).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: 'Removed 2 documents',
+          message: 'Removed 2 files',
         })
       );
     });
@@ -850,7 +850,7 @@ describe('documents', () => {
     });
   });
 
-  describe('lookupDocumentInProject', () => {
+  describe('lookupArtifactInProject', () => {
     const docPath = 'doc.md';
 
     describe('at a specific commit', () => {
@@ -860,9 +860,9 @@ describe('documents', () => {
         mockFileExistsAtCommit.mockReturnValue(Effect.succeed(undefined));
 
         const result = await Effect.runPromise(
-          store.lookupDocumentInProject({
+          store.lookupArtifactInProject({
             projectId: PROJECT_PATH,
-            documentPath: docPath,
+            path: docPath,
             changeId: commitHash as ChangeId,
           })
         );
@@ -883,9 +883,9 @@ describe('documents', () => {
 
         const error = await Effect.runPromise(
           store
-            .lookupDocumentInProject({
+            .lookupArtifactInProject({
               projectId: PROJECT_PATH,
-              documentPath: docPath,
+              path: docPath,
               changeId: commitHash as ChangeId,
             })
             .pipe(Effect.flip)
@@ -901,9 +901,9 @@ describe('documents', () => {
 
         const error = await Effect.runPromise(
           store
-            .lookupDocumentInProject({
+            .lookupArtifactInProject({
               projectId: PROJECT_PATH,
-              documentPath: docPath,
+              path: docPath,
               changeId: commitHash as ChangeId,
             })
             .pipe(Effect.flip)
@@ -924,9 +924,9 @@ describe('documents', () => {
         );
 
         const result = await Effect.runPromise(
-          store.lookupDocumentInProject({
+          store.lookupArtifactInProject({
             projectId: PROJECT_PATH,
-            documentPath: docPath,
+            path: docPath,
           })
         );
 
@@ -943,9 +943,9 @@ describe('documents', () => {
         );
 
         const result = await Effect.runPromise(
-          store.lookupDocumentInProject({
+          store.lookupArtifactInProject({
             projectId: PROJECT_PATH,
-            documentPath: docPath,
+            path: docPath,
           })
         );
 
@@ -960,9 +960,9 @@ describe('documents', () => {
 
         const error = await Effect.runPromise(
           store
-            .lookupDocumentInProject({
+            .lookupArtifactInProject({
               projectId: PROJECT_PATH,
-              documentPath: docPath,
+              path: docPath,
             })
             .pipe(Effect.flip)
         );
@@ -977,9 +977,9 @@ describe('documents', () => {
         );
 
         const result = await Effect.runPromise(
-          store.lookupDocumentInProject({
+          store.lookupArtifactInProject({
             projectId: PROJECT_PATH,
-            documentPath: docPath,
+            path: docPath,
             changeId: UNCOMMITTED_CHANGE_ID,
           })
         );
@@ -987,6 +987,75 @@ describe('documents', () => {
         expect(mockFileExistsAtCommit).not.toHaveBeenCalled();
         expect(result).toContain(docPath);
       });
+
+      it('finds files that are not rich-text documents', async () => {
+        mockGetCurrentBranch.mockReturnValue(Effect.succeed('main'));
+        mockListDirectoryFiles.mockReturnValue(
+          Effect.succeed([
+            { name: docPath, path: docPath },
+            { name: 'config.yaml', path: 'config.yaml' },
+            { name: 'image.png', path: 'assets/image.png' },
+          ])
+        );
+
+        const configId = await Effect.runPromise(
+          store.lookupArtifactInProject({
+            projectId: PROJECT_PATH,
+            path: 'config.yaml',
+          })
+        );
+        const imageId = await Effect.runPromise(
+          store.lookupArtifactInProject({
+            projectId: PROJECT_PATH,
+            path: 'assets/image.png',
+          })
+        );
+
+        expect(configId).toBe('/blob/main/config.yaml');
+        expect(imageId).toBe('/blob/main/assets/image.png');
+      });
+    });
+  });
+
+  describe('findDocumentByPath', () => {
+    beforeEach(() => {
+      mockGetCurrentBranch.mockReturnValue(Effect.succeed('main'));
+      mockListDirectoryFiles.mockReturnValue(
+        Effect.succeed([
+          { name: 'notes.md', path: 'notes.md' },
+          { name: 'config.yaml', path: 'config.yaml' },
+        ])
+      );
+      mockGetAbsolutePath.mockReturnValue(
+        Effect.succeed(`${PROJECT_PATH}/notes.md`)
+      );
+      mockReadTextFile.mockReturnValue(Effect.succeed({ content: '# Notes' }));
+    });
+
+    it('reads a rich-text document found by its path', async () => {
+      const document = await Effect.runPromise(
+        store.findDocumentByPath({
+          projectId: PROJECT_PATH,
+          documentPath: 'notes.md',
+        })
+      );
+
+      expect(document.id).toBe('/blob/main/notes.md');
+      expect(document.artifact.content).toBe('# Notes');
+    });
+
+    it('fails with ValidationError for a file that is not a rich-text document, without reading it', async () => {
+      const error = await Effect.runPromise(
+        store
+          .findDocumentByPath({
+            projectId: PROJECT_PATH,
+            documentPath: 'config.yaml',
+          })
+          .pipe(Effect.flip)
+      );
+
+      expect(error._tag).toBe(VersionedProjectValidationErrorTag);
+      expect(mockReadTextFile).not.toHaveBeenCalled();
     });
   });
 

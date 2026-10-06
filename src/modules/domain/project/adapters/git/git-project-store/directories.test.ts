@@ -27,7 +27,7 @@ const mockCreateDirectory = vi.fn();
 const mockListDirectoryFiles = vi.fn();
 const mockGetRelativePath = vi.fn();
 const mockDeleteDirectory = vi.fn();
-const mockFindDocumentByPath = vi.fn();
+const mockLookupArtifactInProject = vi.fn();
 const mockDeleteDocuments = vi.fn();
 
 const filesystem: Partial<Filesystem> = {
@@ -40,9 +40,9 @@ const filesystem: Partial<Filesystem> = {
 
 const documentOps: Pick<
   ProjectStore,
-  'findDocumentByPath' | 'deleteDocuments'
+  'lookupArtifactInProject' | 'deleteDocuments'
 > = {
-  findDocumentByPath: mockFindDocumentByPath,
+  lookupArtifactInProject: mockLookupArtifactInProject,
   deleteDocuments: mockDeleteDocuments,
 };
 
@@ -135,17 +135,16 @@ describe('createDirectory', () => {
 describe('deleteDirectory', () => {
   const directoryPath = parseProjectRelPath('docs');
 
-  it('deletes the tracked documents inside the directory', async () => {
+  it('deletes the files inside the directory, whatever their kind', async () => {
     mockListDirectoryFiles.mockReturnValue(
       Effect.succeed([
         fileNode(`${projectId}/docs/a.md`, 'a.md'),
-        fileNode(`${projectId}/docs/b.md`, 'b.md'),
+        fileNode(`${projectId}/docs/config.yaml`, 'config.yaml'),
+        fileNode(`${projectId}/docs/image.png`, 'image.png'),
       ])
     );
-    mockFindDocumentByPath.mockImplementation(({ documentPath }) =>
-      Effect.succeed({
-        id: createGitBlobRef({ ref: 'main', path: documentPath }),
-      })
+    mockLookupArtifactInProject.mockImplementation(({ path }) =>
+      Effect.succeed(createGitBlobRef({ ref: 'main', path }))
     );
     mockDeleteDocuments.mockReturnValue(Effect.void);
 
@@ -154,7 +153,8 @@ describe('deleteDirectory', () => {
     expect(mockDeleteDocuments).toHaveBeenCalledWith({
       documentIds: [
         createGitBlobRef({ ref: 'main', path: 'docs/a.md' }),
-        createGitBlobRef({ ref: 'main', path: 'docs/b.md' }),
+        createGitBlobRef({ ref: 'main', path: 'docs/config.yaml' }),
+        createGitBlobRef({ ref: 'main', path: 'docs/image.png' }),
       ],
       projectId,
       deleteFromFilesystem: true,
@@ -182,7 +182,7 @@ describe('deleteDirectory', () => {
       ])
     );
     // Untracked file — the lookup reports not-found and is silently skipped.
-    mockFindDocumentByPath.mockReturnValue(
+    mockLookupArtifactInProject.mockReturnValue(
       Effect.fail(new NotFoundError('Document is ignored or absent'))
     );
     mockDeleteDirectory.mockReturnValue(Effect.void);
@@ -202,7 +202,7 @@ describe('deleteDirectory', () => {
     // A real lookup failure (not a not-found) must not be treated as
     // "untracked" — otherwise the folder, including the tracked file, would be
     // removed from disk without staging its git removal.
-    mockFindDocumentByPath.mockReturnValue(
+    mockLookupArtifactInProject.mockReturnValue(
       Effect.fail(new RepositoryError('git index unreadable'))
     );
     mockDeleteDirectory.mockReturnValue(Effect.void);

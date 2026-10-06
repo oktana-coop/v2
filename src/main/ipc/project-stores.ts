@@ -17,6 +17,7 @@ import {
   type DeleteDocumentsArgs,
   type DiscardUncommittedChangesArgs,
   type FindDocumentByIdArgs,
+  type FindDocumentByPathArgs,
   type GetArtifactMetaDataByIdArgs,
   type GetDocumentAtChangeArgs,
   type GetDocumentHistoryArgs,
@@ -24,8 +25,8 @@ import {
   type GetProjectRelativePathArgs,
   type IsContentSameAtChangesArgs,
   type LookupArtifactByPathArgs,
+  type LookupArtifactInProjectArgs,
   type LookupAssetByNameInProjectArgs,
-  type LookupDocumentInProjectArgs,
   type OpenOrCreateProjectArgs,
   type OpenProjectByIdArgs,
   type ProjectAbortMergeArgs,
@@ -310,13 +311,13 @@ const registerProjectStoreEvents = ({
   );
 
   ipcMain.handle(
-    'project-store:lookup-document-in-project',
-    async (_, args: LookupDocumentInProjectArgs) =>
+    'project-store:lookup-artifact-in-project',
+    async (_, args: LookupArtifactInProjectArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
           getProjectStore(args.projectId),
           Effect.flatMap((projectStore) =>
-            projectStore.lookupDocumentInProject(args)
+            projectStore.lookupArtifactInProject(args)
           )
         )
       )
@@ -324,7 +325,7 @@ const registerProjectStoreEvents = ({
 
   ipcMain.handle(
     'project-store:find-document-by-path',
-    async (_, args: LookupDocumentInProjectArgs) =>
+    async (_, args: FindDocumentByPathArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
           getProjectStore(args.projectId),

@@ -8,6 +8,9 @@ const git = (args: string[], cwd: string): string =>
 export const lastCommitAuthor = ({ repoDir }: { repoDir: string }): string =>
   git(['log', '-1', '--format=%an <%ae>'], repoDir);
 
+export const lastCommitMessage = ({ repoDir }: { repoDir: string }): string =>
+  git(['log', '-1', '--format=%s'], repoDir);
+
 export const hasCleanWorkingTree = ({
   repoDir,
 }: {

@@ -21,8 +21,13 @@ import {
   writeGitignoreIfMissing,
 } from '../../../../../../modules/infrastructure/version-control';
 import { mapErrorTo } from '../../../../../../utils/errors';
-import { RepositoryError, ValidationError } from '../../../errors';
 import {
+  type NotFoundError,
+  RepositoryError,
+  ValidationError,
+} from '../../../errors';
+import {
+  type ArtifactMetaData,
   type AssetMetaData,
   CURRENT_PROJECT_SCHEMA_VERSION,
   type DocumentMetaData,
@@ -63,7 +68,7 @@ const getDirectoryFiles = ({
     )
   );
 
-export const findProjectById = ({
+export const listProjectArtifacts = ({
   isoGitFs,
   filesystem,
   id,
@@ -71,7 +76,11 @@ export const findProjectById = ({
   isoGitFs: IsoGitFsApi;
   filesystem: Filesystem;
   id: ProjectId;
-}): ReturnType<ProjectStore['findProjectById']> =>
+}): Effect.Effect<
+  ArtifactMetaData[],
+  ValidationError | RepositoryError | NotFoundError,
+  never
+> =>
   Effect.Do.pipe(
     Effect.bind('files', () => getDirectoryFiles({ filesystem, id })),
     Effect.bind('currentBranch', () =>
@@ -83,36 +92,46 @@ export const findProjectById = ({
       )
     ),
     Effect.flatMap(({ files, currentBranch }) =>
-      Effect.reduce(
-        files,
+      Effect.forEach(files, (file) =>
+        pipe(
+          parseProjectRelPathEffect(file.path),
+          Effect.map((path): ArtifactMetaData => ({
+            // TODO: Handle errors returned by createGitBlobRef
+            id: createGitBlobRef({ ref: currentBranch, path }),
+            path,
+            kind: inferArtifactKindFromExtension(path),
+          }))
+        )
+      )
+    )
+  );
+
+export const findProjectById = ({
+  isoGitFs,
+  filesystem,
+  id,
+}: {
+  isoGitFs: IsoGitFsApi;
+  filesystem: Filesystem;
+  id: ProjectId;
+}): ReturnType<ProjectStore['findProjectById']> =>
+  pipe(
+    listProjectArtifacts({ isoGitFs, filesystem, id }),
+    Effect.map((artifacts) =>
+      artifacts.reduce(
+        (acc, artifact) => {
+          if (isDocumentMetaData(artifact)) {
+            acc.documents[artifact.id] = artifact;
+          } else if (isAssetMetaData(artifact)) {
+            acc.assets[artifact.id] = artifact;
+          }
+
+          return acc;
+        },
         {
           documents: {} as Record<ArtifactId, DocumentMetaData>,
           assets: {} as Record<ArtifactId, AssetMetaData>,
-        },
-        (acc, file) =>
-          pipe(
-            parseProjectRelPathEffect(file.path),
-            Effect.map((path) => {
-              // TODO: Handle errors returned by createGitBlobRef
-              const artifactId = createGitBlobRef({
-                ref: currentBranch,
-                path,
-              });
-              const artifact = {
-                id: artifactId,
-                path,
-                kind: inferArtifactKindFromExtension(path),
-              };
-
-              if (isDocumentMetaData(artifact)) {
-                acc.documents[artifactId] = artifact;
-              } else if (isAssetMetaData(artifact)) {
-                acc.assets[artifactId] = artifact;
-              }
-
-              return acc;
-            })
-          )
+        }
       )
     ),
     Effect.map(({ documents, assets }) => ({

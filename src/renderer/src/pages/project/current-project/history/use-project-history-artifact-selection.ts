@@ -53,9 +53,9 @@ export const useProjectHistoryArtifactSelection = () => {
       // still display the deletion.
       return Effect.runPromise(
         pipe(
-          projectStore.lookupDocumentInProject({
+          projectStore.lookupArtifactInProject({
             projectId,
-            documentPath: path,
+            path,
             changeId: resolvedChangeId,
           }),
           Effect.catchTag('VersionedProjectNotFoundError', () =>

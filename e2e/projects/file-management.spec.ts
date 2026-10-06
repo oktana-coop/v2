@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
+import { hasCleanWorkingTree, lastCommitMessage } from '../shared/git';
 import {
   confirmDeletion,
   createNewDocumentFromButton,
@@ -1050,6 +1051,13 @@ test.describe('folder deletion', () => {
     });
     // Other folders should remain
     await expect(explorer.getByText('alpha-folder')).toBeVisible();
+    // Both files' removal is committed, the non-document one included.
+    await expect
+      .poll(() => hasCleanWorkingTree({ repoDir: nestedProjectDir }))
+      .toBe(true);
+    expect(lastCommitMessage({ repoDir: nestedProjectDir })).toBe(
+      'Removed 2 files'
+    );
   });
 
   test('delete a folder via keyboard shortcut', async ({
@@ -1467,6 +1475,40 @@ test.describe('folder rename', () => {
     });
     // Editor should still be visible after rename
     await expect(window.locator('.ProseMirror')).toBeVisible();
+  });
+
+  test('rename the folder containing an open file that is not a rich-text document', async ({
+    electronApp,
+    window,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    const explorer = window.getByTestId('file-explorer');
+    await explorer.getByText('image1.png').click();
+    await expect(window.getByText('Preview not available')).toBeVisible();
+
+    await renameFolderFromContextMenu({ electronApp });
+
+    await explorer.getByText('beta-folder').click({ button: 'right' });
+
+    const input = renameFolderInput({ window });
+    await input.waitFor({ state: 'visible', timeout: 500 });
+
+    await input.clear();
+    await input.fill('renamed-beta');
+    await window.keyboard.press('Enter');
+
+    await expect(explorer.getByText('renamed-beta')).toBeVisible({
+      timeout: 2_000,
+    });
+    // Gives the rename time to follow the open file, or leave it, if it would.
+    await window.waitForTimeout(500);
+    await expect(window.getByText('Preview not available')).toBeVisible();
   });
 
   test('abort rename with Escape keeps original name', async ({

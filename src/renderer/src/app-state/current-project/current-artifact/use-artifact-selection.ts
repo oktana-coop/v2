@@ -1,16 +1,11 @@
 import * as Effect from 'effect/Effect';
 import { useContext } from 'react';
 
-import {
-  artifactKinds,
-  inferArtifactKindFromExtension,
-} from '../../../../../modules/domain/project';
 import { ProjectContext } from '../context';
 import { useNavigateToArtifact } from './use-navigate-to-artifact';
 
 export const useArtifactSelection = () => {
-  const { projectId, projectStore, currentBranch, findDocumentInProject } =
-    useContext(ProjectContext);
+  const { projectId, projectStore } = useContext(ProjectContext);
   const navigateToArtifact = useNavigateToArtifact();
 
   return async (path: string) => {
@@ -19,42 +14,10 @@ export const useArtifactSelection = () => {
       throw new Error('Could not select file because no project was found');
     }
 
-    if (
-      inferArtifactKindFromExtension(path) !== artifactKinds.RICH_TEXT_DOCUMENT
-    ) {
-      if (!currentBranch) {
-        throw new Error(
-          'Could not select file because the current branch is not known'
-        );
-      }
+    const artifactId = await Effect.runPromise(
+      projectStore.lookupArtifactInProject({ projectId, path })
+    );
 
-      const artifactId = await Effect.runPromise(
-        projectStore.lookupArtifactByPath({
-          projectId,
-          path,
-          ref: currentBranch,
-        })
-      );
-
-      navigateToArtifact({ projectId, artifactId });
-      return;
-    }
-
-    const resolvedDocument = await findDocumentInProject({
-      projectId,
-      documentPath: path,
-    });
-
-    if (!resolvedDocument) {
-      // TODO: Handle more gracefully
-      throw new Error(
-        'Could not select file because the versioned document was not found in project'
-      );
-    }
-
-    navigateToArtifact({
-      projectId,
-      artifactId: resolvedDocument.id,
-    });
+    navigateToArtifact({ projectId, artifactId });
   };
 };

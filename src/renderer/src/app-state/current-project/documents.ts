@@ -9,7 +9,6 @@ import {
   getNewDocumentName,
   listNamesInDirectory,
   parseProjectRelPath,
-  type ProjectId,
   type ProjectRelPath,
   urlEncodeProjectId,
   VersionedProjectValidationErrorTag,
@@ -19,10 +18,7 @@ import {
   createErrorNotification,
   NotificationsContext,
 } from '../../../../modules/infrastructure/notifications/browser';
-import {
-  type ChangeId,
-  urlEncodeArtifactId,
-} from '../../../../modules/infrastructure/version-control';
+import { urlEncodeArtifactId } from '../../../../modules/infrastructure/version-control';
 import { type PendingNewDocument, type ProjectContextType } from './types';
 
 type DocumentDeps = Pick<
@@ -40,7 +36,6 @@ type DocumentOps = Pick<
   | 'cancelCreateDocument'
   | 'createDocumentError'
   | 'clearCreateDocumentError'
-  | 'findDocumentInProject'
   | 'filePathToDelete'
   | 'startDeleteDocument'
   | 'deleteDocument'
@@ -155,26 +150,6 @@ export const useDocumentOps = ({
     setCreateDocumentError(null);
   }, []);
 
-  const handleFindDocumentInProject = async (args: {
-    projectId: ProjectId;
-    documentPath: string;
-    changeId?: ChangeId;
-  }) => {
-    if (!projectStore) {
-      throw new Error(
-        'Cannot create document. Document and project store have not been initialized yet.'
-      );
-    }
-
-    return Effect.runPromise(
-      projectStore.findDocumentByPath({
-        projectId: args.projectId,
-        documentPath: args.documentPath,
-        changeId: args.changeId,
-      })
-    );
-  };
-
   const handleDeleteDocument = useCallback(
     async ({ relativePath }: { relativePath: string }) => {
       if (!projectStore || !projectId) {
@@ -250,7 +225,6 @@ export const useDocumentOps = ({
     cancelCreateDocument,
     createDocumentError,
     clearCreateDocumentError,
-    findDocumentInProject: handleFindDocumentInProject,
     filePathToDelete,
     startDeleteDocument: setFileToDelete,
     deleteDocument: handleDeleteDocument,

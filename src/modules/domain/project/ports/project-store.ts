@@ -106,7 +106,13 @@ export type RenameDirectoryResult = {
   newDirectoryPath: ProjectRelPath;
 };
 
-export type LookupDocumentInProjectArgs = {
+export type LookupArtifactInProjectArgs = {
+  projectId: ProjectId;
+  path: string;
+  changeId?: ChangeId;
+};
+
+export type FindDocumentByPathArgs = {
   projectId: ProjectId;
   documentPath: string;
   changeId?: ChangeId;
@@ -419,15 +425,15 @@ export type ProjectStore = {
     | NotFoundError,
     never
   >;
-  lookupDocumentInProject: (
-    args: LookupDocumentInProjectArgs
+  lookupArtifactInProject: (
+    args: LookupArtifactInProjectArgs
   ) => Effect.Effect<
     ArtifactId,
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
   findDocumentByPath: (
-    args: LookupDocumentInProjectArgs
+    args: FindDocumentByPathArgs
   ) => Effect.Effect<
     ResolvedDocument,
     ValidationError | RepositoryError | NotFoundError | MigrationError,

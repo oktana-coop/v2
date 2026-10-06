@@ -22,11 +22,7 @@ import { type ProjectContextType } from './types';
 
 type RenamingDeps = Pick<
   ProjectContextType,
-  | 'projectId'
-  | 'projectStore'
-  | 'currentBranch'
-  | 'refreshDirectoryTree'
-  | 'findDocumentInProject'
+  'projectId' | 'projectStore' | 'currentBranch' | 'refreshDirectoryTree'
 > & {
   currentArtifactPath: ProjectRelPath | null;
 };
@@ -52,7 +48,6 @@ export const useRenamingOps = ({
   projectStore,
   currentBranch,
   refreshDirectoryTree,
-  findDocumentInProject,
   currentArtifactPath,
 }: RenamingDeps): RenamingOps => {
   const { filesystem } = useContext(InfrastructureAdaptersContext);
@@ -247,12 +242,14 @@ export const useRenamingOps = ({
             result.newDirectoryPath +
             currentArtifactPath.slice(oldRelativePath.length);
           try {
-            const doc = await findDocumentInProject({
-              projectId,
-              documentPath: newFilePath,
-            });
+            const artifactId = await Effect.runPromise(
+              projectStore.lookupArtifactInProject({
+                projectId,
+                path: newFilePath,
+              })
+            );
             navigate(
-              `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(doc.id)}`
+              `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(artifactId)}`
             );
           } catch {
             navigate(`/projects/${urlEncodeProjectId(projectId)}/artifacts`);
@@ -274,7 +271,6 @@ export const useRenamingOps = ({
         setRenameDirectoryError(null);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       projectStore,
       projectId,

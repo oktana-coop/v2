@@ -191,8 +191,8 @@ contextBridge.exposeInMainWorld('projectStoreAPI', {
     ipcRenderer.invoke('project-store:rename-document-in-project', { ...args }),
   renameDirectory: (args) =>
     ipcRenderer.invoke('project-store:rename-directory', { ...args }),
-  lookupDocumentInProject: (args) =>
-    ipcRenderer.invoke('project-store:lookup-document-in-project', { ...args }),
+  lookupArtifactInProject: (args) =>
+    ipcRenderer.invoke('project-store:lookup-artifact-in-project', { ...args }),
   findDocumentByPath: (args) =>
     ipcRenderer.invoke('project-store:find-document-by-path', { ...args }),
   addAssetToProject: (args) =>

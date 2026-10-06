@@ -16,7 +16,6 @@ type CurrentArtifactDeps = Pick<
   | 'currentBranch'
   | 'mergeConflictInfo'
   | 'pulledUpstreamChanges'
-  | 'findDocumentInProject'
 > &
   Pick<ProjectStateSetters, 'setPulledUpstreamChanges'> & {
     currentArtifactId: ArtifactId | null;
@@ -30,7 +29,6 @@ export const useCurrentArtifactSync = ({
   currentBranch,
   mergeConflictInfo,
   pulledUpstreamChanges,
-  findDocumentInProject,
   currentArtifactId,
   setPulledUpstreamChanges,
 }: CurrentArtifactDeps): void => {
@@ -64,15 +62,17 @@ export const useCurrentArtifactSync = ({
           })
         );
 
-        const doc = await findDocumentInProject({
-          projectId,
-          documentPath: selectedArtifact.path,
-        });
+        const artifactId = await Effect.runPromise(
+          projectStore.lookupArtifactInProject({
+            projectId,
+            path: selectedArtifact.path,
+          })
+        );
 
         if (cancelled) return;
         setPulledUpstreamChanges(false);
         navigate(
-          `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(doc.id)}`
+          `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(artifactId)}`
         );
       } catch {
         if (cancelled) return;

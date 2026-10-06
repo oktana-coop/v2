@@ -5,13 +5,11 @@ import {
   type ProjectTreeNode,
   type RemoteProjectInfo,
 } from '../../../../modules/domain/project';
-import { type ResolvedDocument } from '../../../../modules/domain/rich-text';
 import { type Directory } from '../../../../modules/infrastructure/filesystem';
 import {
   type ArtifactId,
   type Branch,
   type ChangedDocument,
-  type ChangeId,
   type Commit,
   type MergeConflictInfo,
 } from '../../../../modules/infrastructure/version-control';
@@ -52,11 +50,6 @@ export type ProjectContextType = {
   }) => Unsubscribe;
   openDirectory: (cloneUrl?: string) => Promise<Directory>;
   requestPermissionForSelectedDirectory: () => Promise<void>;
-  findDocumentInProject: (args: {
-    projectId: ProjectId;
-    documentPath: string;
-    changeId?: ChangeId;
-  }) => Promise<ResolvedDocument>;
   listBranches: () => Promise<Branch[]>;
   createAndSwitchToBranch: (branchName: string) => Promise<void>;
   // Resolves to what stood in the way, or null once switched.

@@ -2,10 +2,6 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import {
-  PRIMARY_RICH_TEXT_REPRESENTATION,
-  richTextRepresentationExtensions,
-} from '../../../../../../modules/domain/rich-text';
-import {
   type Filesystem,
   FilesystemDataIntegrityErrorTag,
   FilesystemNotFoundErrorTag,
@@ -24,13 +20,12 @@ import {
 } from '../../../ports';
 import { ensureProjectIdIsFsPath } from './project-id';
 
-type DocumentOps = Pick<ProjectStore, 'findDocumentByPath' | 'deleteDocuments'>;
+type DocumentOps = Pick<
+  ProjectStore,
+  'lookupArtifactInProject' | 'deleteDocuments'
+>;
 
 type DirectoryOps = Pick<ProjectStore, 'createDirectory' | 'deleteDirectory'>;
-
-const documentExtensions = [
-  richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION],
-];
 
 export const createDirectoryOps = ({
   filesystem,
@@ -85,10 +80,9 @@ export const createDirectoryOps = ({
               filesystem.listDirectoryFiles({
                 path: absoluteDirPath,
                 recursive: true,
-                extensions: documentExtensions,
               }),
-              // Resolve the tracked documents inside the directory (untracked
-              // files are silently skipped).
+              // Resolve the files inside the directory (files the lookup can't
+              // find are skipped).
               Effect.flatMap((files) =>
                 Effect.forEach(files, (file) =>
                   pipe(
@@ -98,11 +92,10 @@ export const createDirectoryOps = ({
                     }),
                     Effect.flatMap((fileRelativePath) =>
                       pipe(
-                        documentOps.findDocumentByPath({
+                        documentOps.lookupArtifactInProject({
                           projectId,
-                          documentPath: fileRelativePath,
+                          path: fileRelativePath,
                         }),
-                        Effect.map((doc) => doc.id),
                         Effect.catchTag(VersionedProjectNotFoundErrorTag, () =>
                           Effect.succeed(null)
                         )
@@ -114,16 +107,16 @@ export const createDirectoryOps = ({
               Effect.map((ids) =>
                 ids.filter((id): id is NonNullable<typeof id> => id !== null)
               ),
-              Effect.flatMap((documentIds) =>
-                documentIds.length > 0
+              Effect.flatMap((artifactIds) =>
+                artifactIds.length > 0
                   ? documentOps.deleteDocuments({
-                      documentIds,
+                      documentIds: artifactIds,
                       projectId,
                       deleteFromFilesystem: true,
                       directoryPath: absoluteDirPath,
                     })
-                  : // None of the directory's documents are tracked; just
-                    // remove the directory.
+                  : // None of the directory's files were found; just remove
+                    // the directory.
                     pipe(
                       filesystem.deleteDirectory({ path: absoluteDirPath }),
                       Effect.catchAll(() =>
