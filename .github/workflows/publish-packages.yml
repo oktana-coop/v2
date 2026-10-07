@@ -6,6 +6,8 @@ on:
 jobs:
   publish-ubuntu:
     runs-on: ubuntu-latest
+    env:
+      APT_BUCKET: v2-apt
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v6
@@ -29,24 +31,23 @@ jobs:
           chmod +x ./scripts/ubuntu/generate-apt-repo.sh
           ./scripts/ubuntu/generate-apt-repo.sh ${{ github.event.release.tag_name }}
 
-      - name: Clone v2-deb repository
-        uses: actions/checkout@v6
-        with:
-          repository: oktana-coop/v2-deb
-          token: ${{ secrets.GH_PAT }}
-          path: v2-deb
-
-      - name: Update v2-deb repository
+      - name: Upload APT repository to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_ENDPOINT_URL: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
         run: |
-          # Copy repository files
-          cp -r apt-repo/* v2-deb/
+          # Uploads in three steps, so that a user running apt during an upload
+          # never gets an index that disagrees with the packages.
 
-          # Configure git
-          cd v2-deb
-          git config user.name "Oktana Coop"
-          git config user.email "team@oktana.dev"
+          # 1. Upload the new packages to pool/, keeping the old ones (the current index still points at them).
+          aws s3 sync apt-repo/pool "s3://$APT_BUCKET/pool"
 
-          # Commit and push
-          git add .
-          git commit -m "Update to ${{ github.event.release.tag_name }}" || echo "No changes to commit"
-          git push origin main
+          # 2. Upload the index and public.key with Cache-Control: no-cache, so Cloudflare doesn't serve a stale Packages.gz.
+          aws s3 sync apt-repo "s3://$APT_BUCKET" --exclude "pool/*" --delete --cache-control "no-cache"
+
+          # 3. Delete the old packages from pool/, which nothing points at anymore.
+          aws s3 sync apt-repo/pool "s3://$APT_BUCKET/pool" --delete

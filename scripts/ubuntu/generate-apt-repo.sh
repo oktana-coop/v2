@@ -114,6 +114,7 @@ else
     echo "Signing Release file..."
     gpg --batch --pinentry-mode loopback --default-key "${GPG_KEY_ID}" -abs -o dists/stable/Release.gpg dists/stable/Release
     gpg --batch --pinentry-mode loopback --default-key "${GPG_KEY_ID}" --clearsign -o dists/stable/InRelease dists/stable/Release
+    gpg --batch --armor --export "${GPG_KEY_ID}" > public.key
     echo "Release file signed successfully"
 fi
 
