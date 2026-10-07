@@ -80,7 +80,11 @@ When a release is published, the `Publish Packages` workflow also publishes to a
 
 This allows Ubuntu/Debian users to install and update v2 via `apt`. See [oktana-coop/v2-deb](https://github.com/oktana-coop/v2-deb) for installation instructions.
 
-Required secrets: `APT_GPG_PRIVATE_KEY`, `APT_GPG_KEY_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ACCOUNT_ID`
+Required secrets: `APT_GPG_PRIVATE_KEY`, `APT_GPG_KEY_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`
+
+Required variables:
+
+- `R2_S3_API_HOST` — Host of the bucket's S3 API, e.g. `<account-id>.eu.r2.cloudflarestorage.com`. Labeled "S3 API" in the bucket's settings in Cloudflare, which show it as a URL: use only the host, without `https://` and the bucket name.
 
 ## Package the app for your OS (locally)
 

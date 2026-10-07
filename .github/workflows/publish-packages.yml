@@ -36,8 +36,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
-          # The bucket is assumed to be in the EU jurisdiction
-          AWS_ENDPOINT_URL: https://${{ secrets.R2_ACCOUNT_ID }}.eu.r2.cloudflarestorage.com
+          AWS_ENDPOINT_URL: https://${{ vars.R2_S3_API_HOST }}
           AWS_REQUEST_CHECKSUM_CALCULATION: when_required
           AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
         run: |
