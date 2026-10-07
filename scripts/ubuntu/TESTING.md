@@ -163,8 +163,8 @@ multipass launch 22.04 --name v2-test
 multipass shell v2-test
 
 # Inside the VM, add the repository and install
-curl -fsSL https://oktana-coop.github.io/v2-deb/public.key | sudo gpg --dearmor -o /usr/share/keyrings/v2-archive-keyring.gpg
-echo "deb [signed-by=/usr/share/keyrings/v2-archive-keyring.gpg] https://oktana-coop.github.io/v2-deb stable main" | sudo tee /etc/apt/sources.list.d/v2.list
+curl -fsSL https://apt.v2editor.com/public.key | sudo gpg --dearmor -o /usr/share/keyrings/v2-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/v2-archive-keyring.gpg] https://apt.v2editor.com stable main" | sudo tee /etc/apt/sources.list.d/v2.list
 sudo apt update
 sudo apt install v2
 
@@ -190,8 +190,8 @@ docker run -it --rm \
 
 # Inside container:
 apt update && apt install curl gnupg
-curl -fsSL https://oktana-coop.github.io/v2-deb/public.key | gpg --dearmor -o /usr/share/keyrings/v2-archive-keyring.gpg
-echo "deb [signed-by=/usr/share/keyrings/v2-archive-keyring.gpg] https://oktana-coop.github.io/v2-deb stable main" > /etc/apt/sources.list.d/v2.list
+curl -fsSL https://apt.v2editor.com/public.key | gpg --dearmor -o /usr/share/keyrings/v2-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/v2-archive-keyring.gpg] https://apt.v2editor.com stable main" > /etc/apt/sources.list.d/v2.list
 apt update
 apt install -y v2
 v2  # Should launch the app

@@ -10,10 +10,10 @@ Add the repository and install v2 with these three commands:
 
 ```bash
 # Add GPG key
-curl -fsSL https://oktana-coop.github.io/v2-deb/public.key | sudo gpg --dearmor -o /usr/share/keyrings/v2-archive-keyring.gpg
+curl -fsSL https://apt.v2editor.com/public.key | sudo gpg --dearmor -o /usr/share/keyrings/v2-archive-keyring.gpg
 
 # Add repository
-echo "deb [signed-by=/usr/share/keyrings/v2-archive-keyring.gpg] https://oktana-coop.github.io/v2-deb stable main" | sudo tee /etc/apt/sources.list.d/v2.list
+echo "deb [signed-by=/usr/share/keyrings/v2-archive-keyring.gpg] https://apt.v2editor.com stable main" | sudo tee /etc/apt/sources.list.d/v2.list
 
 # Install v2
 sudo apt update && sudo apt install v2
@@ -53,7 +53,7 @@ sudo apt-get install -f
 - **Suite**: stable
 - **Components**: main
 - **Architectures**: amd64, arm64
-- **Repository URL**: https://oktana-coop.github.io/v2-deb
+- **Repository URL**: https://apt.v2editor.com
 - **Maintainer**: team@oktana.dev
 
 ## Repository Structure
@@ -78,7 +78,7 @@ This repository is automatically updated when a new version of v2 is released on
 1. Downloads `.deb` packages from the GitHub release
 2. Generates APT repository metadata
 3. Signs the repository with GPG
-4. Publishes to GitHub Pages
+4. Uploads to Cloudflare R2, served at https://apt.v2editor.com
 
 ## Verification
 
@@ -111,7 +111,7 @@ If you see GPG signature errors:
 
 ```bash
 # Re-add the GPG key
-curl -fsSL https://oktana-coop.github.io/v2-deb/public.key | sudo gpg --dearmor -o /usr/share/keyrings/v2-archive-keyring.gpg
+curl -fsSL https://apt.v2editor.com/public.key | sudo gpg --dearmor -o /usr/share/keyrings/v2-archive-keyring.gpg
 sudo apt update
 ```
 

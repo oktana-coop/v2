@@ -76,11 +76,11 @@ When a release is published, the `Publish Packages` workflow also publishes to a
 1. Downloads the `.deb` packages (amd64 and arm64) from the GitHub release
 2. Generates APT repository metadata (Packages, Release files)
 3. Signs the repository with GPG
-4. Commits to the separate `v2-deb` repository hosted on GitHub Pages
+4. Uploads the repository to the `v2-apt` Cloudflare R2 bucket, served at `https://apt.v2editor.com`
 
 This allows Ubuntu/Debian users to install and update v2 via `apt`. See [oktana-coop/v2-deb](https://github.com/oktana-coop/v2-deb) for installation instructions.
 
-Required secrets: `APT_GPG_PRIVATE_KEY`, `APT_GPG_KEY_ID`, `GH_PAT`
+Required secrets: `APT_GPG_PRIVATE_KEY`, `APT_GPG_KEY_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ACCOUNT_ID`
 
 ## Package the app for your OS (locally)
 
