@@ -78,7 +78,7 @@ When a release is published, the `Publish Packages` workflow also publishes to a
 3. Signs the repository with GPG
 4. Uploads the repository to the `v2-apt` Cloudflare R2 bucket, served at `https://apt.v2editor.com`
 
-This allows Ubuntu/Debian users to install and update v2 via `apt`. See [oktana-coop/v2-deb](https://github.com/oktana-coop/v2-deb) for installation instructions.
+This allows Ubuntu/Debian users to install and update v2 via `apt`. See the [Linux installation docs](install-linux.md#ubuntudebian).
 
 Required secrets: `APT_GPG_PRIVATE_KEY`, `APT_GPG_KEY_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_S3_API_HOST`
 

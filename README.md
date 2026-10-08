@@ -4,6 +4,10 @@
 
 Built on top of [Git](https://git-scm.com), [Automerge](https://automerge.org/), [ProseMirror](https://prosemirror.net/) and integrated with the [Pandoc](https://pandoc.org/) ecosystem.
 
+## Installation
+
+Download v2 from [v2editor.com](https://v2editor.com/) or the [GitHub releases](https://github.com/oktana-coop/v2/releases). On Ubuntu/Debian, install it from the APT repository to get updates along with your system updates: see [docs/install-linux.md](docs/install-linux.md).
+
 ## Development
 
 ### Recommended tooling/practices
