@@ -63,7 +63,7 @@ Required secrets:
 
 #### Arch Linux
 
-Arch packaging lives in the [AUR](https://aur.archlinux.org/) and is **community-maintained**. We do not publish to the AUR from this repository. The AUR convention is that packages are recipes (`PKGBUILD`s) that build from source and are reviewed, built and tested by their maintainer on Arch before each bump; pushing prebuilt or untested packaging from upstream CI inverts that flow, so we don't.
+Arch packaging lives in the [AUR](https://aur.archlinux.org/), in two packages: [`v2`](https://aur.archlinux.org/packages/v2) builds from source and is maintained by Caleb Maclennan ([@alerque](https://github.com/alerque)); [`v2-bin`](https://aur.archlinux.org/packages/v2-bin) installs the prebuilt AppImage and is maintained by Oktana Coop together with @alerque. We do not publish to the AUR from this repository. The AUR convention is that packages are recipes (`PKGBUILD`s) that build from source and are reviewed, built and tested by their maintainer on Arch before each bump; pushing prebuilt or untested packaging from upstream CI inverts that flow, so we don't.
 
 If you maintain an AUR package for v2 and need to build it from source, the build is `pnpm install --frozen-lockfile && pnpm run build`. The app's behaviour is baked in at build time from `VITE_*` env vars (see `src/modules/config/build.ts`). The required values are committed in `.env.production` and loaded automatically by the production build, so a clean `pnpm run build` produces a correct app with no extra configuration. CI passes the same values as real env vars, which take precedence over the file.
 

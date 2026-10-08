@@ -23,3 +23,10 @@ sudo apt remove v2
 sudo rm /etc/apt/sources.list.d/v2.list /usr/share/keyrings/v2-archive-keyring.gpg
 sudo apt update
 ```
+
+## Arch Linux
+
+v2 is available in the AUR:
+
+- [`v2`](https://aur.archlinux.org/packages/v2) builds v2 from source, maintained by [Caleb Maclennan (@alerque)](https://github.com/alerque).
+- [`v2-bin`](https://aur.archlinux.org/packages/v2-bin) installs the prebuilt AppImage from the GitHub releases, maintained by Oktana Coop together with @alerque.
