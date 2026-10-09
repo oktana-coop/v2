@@ -127,10 +127,13 @@ importers:
         version: 14.0.1
       vite-plugin-top-level-await:
         specifier: ^1.6.0
-        version: 1.6.0(@swc/helpers@0.5.23)(rollup@4.62.4)(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7))
+        version: 1.6.0(@swc/helpers@0.5.23)(rollup@4.62.4)(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1))
       vite-plugin-wasm:
         specifier: ^3.6.0
-        version: 3.6.0(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7))
+        version: 3.6.0(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1))
+      yaml:
+        specifier: 2.9.1
+        version: 2.9.1
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -185,7 +188,7 @@ importers:
         version: 8.6.18(@storybook/test@8.6.18(storybook@8.6.18(prettier@3.9.6)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(storybook@8.6.18(prettier@3.9.6))(typescript@5.9.3)
       '@storybook/react-vite':
         specifier: ^8.6.18
-        version: 8.6.18(@storybook/test@8.6.18(storybook@8.6.18(prettier@3.9.6)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.62.4)(storybook@8.6.18(prettier@3.9.6))(typescript@5.9.3)(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7))
+        version: 8.6.18(@storybook/test@8.6.18(storybook@8.6.18(prettier@3.9.6)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.62.4)(storybook@8.6.18(prettier@3.9.6))(typescript@5.9.3)(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1))
       '@storybook/test':
         specifier: ^8.6.18
         version: 8.6.18(storybook@8.6.18(prettier@3.9.6))
@@ -215,7 +218,7 @@ importers:
         version: 8.66.0(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3)
       '@vitejs/plugin-react':
         specifier: ^4.7.0
-        version: 4.7.0(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7))
+        version: 4.7.0(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1))
       autoprefixer:
         specifier: ^10.5.4
         version: 10.5.4(postcss@8.5.26)
@@ -230,7 +233,7 @@ importers:
         version: 26.17.0(electron-builder-squirrel-windows@26.17.0)
       electron-vite:
         specifier: ^5.0.0
-        version: 5.0.0(@swc/core@1.15.47(@swc/helpers@0.5.23))(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7))
+        version: 5.0.0(@swc/core@1.15.47(@swc/helpers@0.5.23))(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1))
       eslint:
         specifier: ^9.39.5
         version: 9.39.5(jiti@1.21.7)
@@ -278,10 +281,10 @@ importers:
         version: 4.0.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(storybook@8.6.18(prettier@3.9.6))
       tailwind-scrollbar:
         specifier: ^3.1.0
-        version: 3.1.0(tailwindcss@3.4.19)
+        version: 3.1.0(tailwindcss@3.4.19(yaml@2.9.1))
       tailwindcss:
         specifier: ^3.4.19
-        version: 3.4.19
+        version: 3.4.19(yaml@2.9.1)
       type-fest:
         specifier: ^4.41.0
         version: 4.41.0
@@ -290,10 +293,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: ^6.4.3
-        version: 6.4.3(@types/node@26.6.3)(jiti@1.21.7)
+        version: 6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1)
       vitest:
         specifier: ^4.1.10
-        version: 4.1.10(@types/node@26.6.3)(jsdom@28.1.0(@noble/hashes@2.3.0))(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7))
+        version: 4.1.10(@types/node@26.6.3)(jsdom@28.1.0(@noble/hashes@2.3.0))(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1))
 
 packages:
 
@@ -4812,6 +4815,11 @@ packages:
     resolution: {integrity: sha512-YgvUTfwqyc7UXVMrB+SImsVYSmTS8X/tSrtdNZMImM+n7+QTriRXyXim0mBrTXNeqzVF0KWGgHPeiyViFFrNDw==}
     engines: {node: '>=18'}
 
+  yaml@2.9.1:
+    resolution: {integrity: sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==}
+    engines: {node: '>= 14.6'}
+    hasBin: true
+
   yargs-parser@21.1.1:
     resolution: {integrity: sha512-tVpsJW7DdjecAiFpbIB1e3qxIQsE6NoPc5/eTdrbbIC4h0LVsWhnoa3g+m2HclBIujHzsxZ4VJVA+GUuc2/LBw==}
     engines: {node: '>=12'}
@@ -5442,12 +5450,12 @@ snapshots:
     dependencies:
       minipass: 7.1.3
 
-  '@joshwooding/vite-plugin-react-docgen-typescript@0.5.0(typescript@5.9.3)(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7))':
+  '@joshwooding/vite-plugin-react-docgen-typescript@0.5.0(typescript@5.9.3)(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1))':
     dependencies:
       glob: 10.5.0
       magic-string: 0.27.0
       react-docgen-typescript: 2.4.0(typescript@5.9.3)
-      vite: 6.4.3(@types/node@26.6.3)(jiti@1.21.7)
+      vite: 6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1)
     optionalDependencies:
       typescript: 5.9.3
 
@@ -5823,13 +5831,13 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  '@storybook/builder-vite@8.6.18(storybook@8.6.18(prettier@3.9.6))(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7))':
+  '@storybook/builder-vite@8.6.18(storybook@8.6.18(prettier@3.9.6))(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1))':
     dependencies:
       '@storybook/csf-plugin': 8.6.18(storybook@8.6.18(prettier@3.9.6))
       browser-assert: 1.2.1
       storybook: 8.6.18(prettier@3.9.6)
       ts-dedent: 2.3.0
-      vite: 6.4.3(@types/node@26.6.3)(jiti@1.21.7)
+      vite: 6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1)
 
   '@storybook/channels@8.6.14(storybook@8.6.18(prettier@3.9.6))':
     dependencies:
@@ -5908,11 +5916,11 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
       storybook: 8.6.18(prettier@3.9.6)
 
-  '@storybook/react-vite@8.6.18(@storybook/test@8.6.18(storybook@8.6.18(prettier@3.9.6)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.62.4)(storybook@8.6.18(prettier@3.9.6))(typescript@5.9.3)(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7))':
+  '@storybook/react-vite@8.6.18(@storybook/test@8.6.18(storybook@8.6.18(prettier@3.9.6)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.62.4)(storybook@8.6.18(prettier@3.9.6))(typescript@5.9.3)(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1))':
     dependencies:
-      '@joshwooding/vite-plugin-react-docgen-typescript': 0.5.0(typescript@5.9.3)(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7))
+      '@joshwooding/vite-plugin-react-docgen-typescript': 0.5.0(typescript@5.9.3)(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1))
       '@rollup/pluginutils': 5.4.0(rollup@4.62.4)
-      '@storybook/builder-vite': 8.6.18(storybook@8.6.18(prettier@3.9.6))(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7))
+      '@storybook/builder-vite': 8.6.18(storybook@8.6.18(prettier@3.9.6))(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1))
       '@storybook/react': 8.6.18(@storybook/test@8.6.18(storybook@8.6.18(prettier@3.9.6)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(storybook@8.6.18(prettier@3.9.6))(typescript@5.9.3)
       find-up: 5.0.0
       magic-string: 0.30.21
@@ -5922,7 +5930,7 @@ snapshots:
       resolve: 1.22.12
       storybook: 8.6.18(prettier@3.9.6)
       tsconfig-paths: 4.2.0
-      vite: 6.4.3(@types/node@26.6.3)(jiti@1.21.7)
+      vite: 6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1)
     optionalDependencies:
       '@storybook/test': 8.6.18(storybook@8.6.18(prettier@3.9.6))
     transitivePeerDependencies:
@@ -6293,7 +6301,7 @@ snapshots:
 
   '@ungap/structured-clone@1.3.3': {}
 
-  '@vitejs/plugin-react@4.7.0(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7))':
+  '@vitejs/plugin-react@4.7.0(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1))':
     dependencies:
       '@babel/core': 7.29.7
       '@babel/plugin-transform-react-jsx-self': 7.29.7(@babel/core@7.29.7)
@@ -6301,7 +6309,7 @@ snapshots:
       '@rolldown/pluginutils': 1.0.0-beta.27
       '@types/babel__core': 7.20.5
       react-refresh: 0.17.0
-      vite: 6.4.3(@types/node@26.6.3)(jiti@1.21.7)
+      vite: 6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -6321,13 +6329,13 @@ snapshots:
       chai: 6.2.2
       tinyrainbow: 3.1.1
 
-  '@vitest/mocker@4.1.10(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7))':
+  '@vitest/mocker@4.1.10(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1))':
     dependencies:
       '@vitest/spy': 4.1.10
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 6.4.3(@types/node@26.6.3)(jiti@1.21.7)
+      vite: 6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1)
 
   '@vitest/pretty-format@2.0.5':
     dependencies:
@@ -7118,7 +7126,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  electron-vite@5.0.0(@swc/core@1.15.47(@swc/helpers@0.5.23))(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)):
+  electron-vite@5.0.0(@swc/core@1.15.47(@swc/helpers@0.5.23))(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1)):
     dependencies:
       '@babel/core': 7.29.7
       '@babel/plugin-transform-arrow-functions': 7.29.7(@babel/core@7.29.7)
@@ -7126,7 +7134,7 @@ snapshots:
       esbuild: 0.25.12
       magic-string: 0.30.21
       picocolors: 1.1.1
-      vite: 6.4.3(@types/node@26.6.3)(jiti@1.21.7)
+      vite: 6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1)
     optionalDependencies:
       '@swc/core': 1.15.47(@swc/helpers@0.5.23)
     transitivePeerDependencies:
@@ -8394,12 +8402,13 @@ snapshots:
       camelcase-css: 2.0.1
       postcss: 8.5.26
 
-  postcss-load-config@6.0.1(jiti@1.21.7)(postcss@8.5.26):
+  postcss-load-config@6.0.1(jiti@1.21.7)(postcss@8.5.26)(yaml@2.9.1):
     dependencies:
       lilconfig: 3.1.3
     optionalDependencies:
       jiti: 1.21.7
       postcss: 8.5.26
+      yaml: 2.9.1
 
   postcss-nested@6.2.0(postcss@8.5.26):
     dependencies:
@@ -9154,11 +9163,11 @@ snapshots:
 
   tabbable@6.5.0: {}
 
-  tailwind-scrollbar@3.1.0(tailwindcss@3.4.19):
+  tailwind-scrollbar@3.1.0(tailwindcss@3.4.19(yaml@2.9.1)):
     dependencies:
-      tailwindcss: 3.4.19
+      tailwindcss: 3.4.19(yaml@2.9.1)
 
-  tailwindcss@3.4.19:
+  tailwindcss@3.4.19(yaml@2.9.1):
     dependencies:
       '@alloc/quick-lru': 5.2.0
       arg: 5.0.2
@@ -9177,7 +9186,7 @@ snapshots:
       postcss: 8.5.26
       postcss-import: 15.1.0(postcss@8.5.26)
       postcss-js: 4.1.0(postcss@8.5.26)
-      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.26)
+      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.26)(yaml@2.9.1)
       postcss-nested: 6.2.0(postcss@8.5.26)
       postcss-selector-parser: 6.1.4
       resolve: 1.22.12
@@ -9417,22 +9426,22 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vite-plugin-top-level-await@1.6.0(@swc/helpers@0.5.23)(rollup@4.62.4)(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)):
+  vite-plugin-top-level-await@1.6.0(@swc/helpers@0.5.23)(rollup@4.62.4)(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1)):
     dependencies:
       '@rollup/plugin-virtual': 3.0.2(rollup@4.62.4)
       '@swc/core': 1.15.47(@swc/helpers@0.5.23)
       '@swc/wasm': 1.15.47
       uuid: 10.0.0
-      vite: 6.4.3(@types/node@26.6.3)(jiti@1.21.7)
+      vite: 6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1)
     transitivePeerDependencies:
       - '@swc/helpers'
       - rollup
 
-  vite-plugin-wasm@3.6.0(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)):
+  vite-plugin-wasm@3.6.0(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1)):
     dependencies:
-      vite: 6.4.3(@types/node@26.6.3)(jiti@1.21.7)
+      vite: 6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1)
 
-  vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7):
+  vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1):
     dependencies:
       esbuild: 0.25.12
       fdir: 6.5.0(picomatch@4.0.5)
@@ -9444,11 +9453,12 @@ snapshots:
       '@types/node': 26.6.3
       fsevents: 2.3.3
       jiti: 1.21.7
+      yaml: 2.9.1
 
-  vitest@4.1.10(@types/node@26.6.3)(jsdom@28.1.0(@noble/hashes@2.3.0))(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)):
+  vitest@4.1.10(@types/node@26.6.3)(jsdom@28.1.0(@noble/hashes@2.3.0))(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1)):
     dependencies:
       '@vitest/expect': 4.1.10
-      '@vitest/mocker': 4.1.10(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7))
+      '@vitest/mocker': 4.1.10(vite@6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1))
       '@vitest/pretty-format': 4.1.10
       '@vitest/runner': 4.1.10
       '@vitest/snapshot': 4.1.10
@@ -9465,7 +9475,7 @@ snapshots:
       tinyexec: 1.3.0
       tinyglobby: 0.2.17
       tinyrainbow: 3.1.1
-      vite: 6.4.3(@types/node@26.6.3)(jiti@1.21.7)
+      vite: 6.4.3(@types/node@26.6.3)(jiti@1.21.7)(yaml@2.9.1)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 26.6.3
@@ -9580,6 +9590,8 @@ snapshots:
   yallist@4.0.0: {}
 
   yallist@5.0.0: {}
+
+  yaml@2.9.1: {}
 
   yargs-parser@21.1.1: {}
 

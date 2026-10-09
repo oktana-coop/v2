@@ -1,6 +1,7 @@
 import * as Effect from 'effect/Effect';
 import { z } from 'zod';
 
+import { mapErrorTo } from '../../../../utils/errors';
 import { ValidationError } from '../errors';
 
 const plainTextDocumentSchema = z
@@ -27,14 +28,8 @@ export type PlainTextDocument = z.infer<typeof plainTextDocumentSchema>;
 
 export const parsePlainTextDocument = (
   bytes: Uint8Array
-): Effect.Effect<PlainTextDocument, ValidationError, never> => {
-  const result = plainTextDocumentSchema.safeParse(bytes);
-
-  return result.success
-    ? Effect.succeed(result.data)
-    : Effect.fail(
-        new ValidationError(
-          result.error.issues.map((issue) => issue.message).join('. ')
-        )
-      );
-};
+): Effect.Effect<PlainTextDocument, ValidationError, never> =>
+  Effect.try({
+    try: () => plainTextDocumentSchema.parse(bytes),
+    catch: mapErrorTo(ValidationError, 'Invalid plain-text document'),
+  });

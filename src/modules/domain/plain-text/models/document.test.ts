@@ -43,14 +43,14 @@ describe('parsePlainTextDocument', () => {
     const failure = await parseFailure(new Uint8Array([0x61, 0xff, 0x62]));
 
     expect(failure._tag).toBe(PlainTextValidationErrorTag);
-    expect(failure.message).toBe('The content is not valid UTF-8');
+    expect(failure.message).toContain('The content is not valid UTF-8');
   });
 
   it('refuses a NUL byte', async () => {
     const failure = await parseFailure(new Uint8Array([0x61, 0x00, 0x62]));
 
     expect(failure._tag).toBe(PlainTextValidationErrorTag);
-    expect(failure.message).toBe('The content holds a NUL byte');
+    expect(failure.message).toContain('The content holds a NUL byte');
   });
 
   it('refuses a PNG file', async () => {
