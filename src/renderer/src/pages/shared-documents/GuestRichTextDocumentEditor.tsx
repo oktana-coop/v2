@@ -3,11 +3,11 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { uniqueParticipants } from '../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
 import { GuestEditingContext, useRemotePresence } from '../../app-state';
-import { LiveDocumentEditor } from '../../components/editing/LiveDocumentEditor';
+import { LiveRichTextDocumentEditor } from '../../components/editing/LiveRichTextDocumentEditor';
 import { LongTextSkeleton } from '../../components/progress/skeletons/LongText';
 import { ActionsBar } from '../shared/document-actions-bar';
 
-export const GuestEditor = () => {
+export const GuestRichTextDocumentEditor = () => {
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
   const { view: editorView } = useContext(ProseMirrorContext);
   const { liveDocument, name, onLocalSelectionChange, onOpenSharingDialog } =
@@ -41,7 +41,7 @@ export const GuestEditor = () => {
       <div className="flex w-full flex-auto flex-col items-center overflow-auto">
         <div className="flex w-full max-w-3xl flex-col">
           {liveDocument ? (
-            <LiveDocumentEditor
+            <LiveRichTextDocumentEditor
               liveDocument={liveDocument}
               onLocalSelectionChange={onLocalSelectionChange}
               isToolbarOpen={isEditorToolbarOpen}

@@ -34,7 +34,7 @@ export const useExportAssetMounts = () => {
     const readReferencedAssets = (): Promise<ReferencedAsset[]> =>
       projectStore && currentArtifactId
         ? Effect.runPromise(
-            projectStore.readDocumentReferencedAssets({
+            projectStore.readRichTextDocumentReferencedAssets({
               projectId,
               documentId: currentArtifactId,
             })

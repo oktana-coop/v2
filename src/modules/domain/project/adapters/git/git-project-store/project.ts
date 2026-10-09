@@ -10,7 +10,6 @@ import {
   FilesystemRepositoryErrorTag,
 } from '../../../../../../modules/infrastructure/filesystem';
 import {
-  type ArtifactId,
   cloneRepository as cloneGitRepo,
   createGitBlobRef,
   DEFAULT_AUTHOR,
@@ -28,10 +27,7 @@ import {
 } from '../../../errors';
 import {
   type ArtifactMetaData,
-  CURRENT_PROJECT_SCHEMA_VERSION,
-  type DocumentMetaData,
   inferArtifactKindFromExtension,
-  isDocumentMetaData,
   parseProjectFsPath,
   parseProjectRelPathEffect,
   type ProjectId,
@@ -104,48 +100,9 @@ export const listProjectArtifacts = ({
     )
   );
 
-export const findProjectById = ({
-  isoGitFs,
-  filesystem,
-  id,
-}: {
-  isoGitFs: IsoGitFsApi;
-  filesystem: Filesystem;
-  id: ProjectId;
-}): ReturnType<ProjectStore['findProjectById']> =>
-  pipe(
-    listProjectArtifacts({ isoGitFs, filesystem, id }),
-    Effect.map((artifacts) => ({
-      schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
-      path: id,
-      documents: Object.fromEntries(
-        artifacts
-          .filter(isDocumentMetaData)
-          .map((document) => [document.id, document])
-      ) as Record<ArtifactId, DocumentMetaData>,
-    }))
-  );
-
-export const listProjectDocuments = ({
-  isoGitFs,
-  filesystem,
-  id,
-}: {
-  isoGitFs: IsoGitFsApi;
-  filesystem: Filesystem;
-  id: ProjectId;
-}): ReturnType<ProjectStore['listProjectDocuments']> =>
-  pipe(
-    findProjectById({ isoGitFs, filesystem, id }),
-    Effect.map((project) => Object.values(project.documents))
-  );
-
 type ProjectOps = Pick<
   ProjectStore,
-  | 'createProject'
-  | 'findProjectById'
-  | 'listProjectDocuments'
-  | 'getProjectRelativePath'
+  'createProject' | 'getProjectRelativePath'
 >;
 
 export const createProjectOps = ({
@@ -258,12 +215,6 @@ export const createProjectOps = ({
       )
     );
 
-  const findProjectByIdOp: ProjectOps['findProjectById'] = (id) =>
-    findProjectById({ isoGitFs, filesystem, id });
-
-  const listProjectDocumentsOp: ProjectOps['listProjectDocuments'] = (id) =>
-    listProjectDocuments({ isoGitFs, filesystem, id });
-
   const getProjectRelativePath: ProjectOps['getProjectRelativePath'] = ({
     projectId,
     absolutePath,
@@ -288,8 +239,6 @@ export const createProjectOps = ({
 
   return {
     createProject,
-    findProjectById: findProjectByIdOp,
-    listProjectDocuments: listProjectDocumentsOp,
     getProjectRelativePath,
   };
 };

@@ -14,7 +14,7 @@ import {
   useAssetInsertion,
   useAssetSrcResolver,
 } from '../../../../../app-state';
-import { SnapshotDocumentEditor } from '../../../../../components/editing/SnapshotDocumentEditor';
+import { SnapshotRichTextDocumentEditor } from '../../../../../components/editing/SnapshotRichTextDocumentEditor';
 import { LongTextSkeleton } from '../../../../../components/progress/skeletons/LongText';
 import { useMergeConflictResolution } from '../use-merge-conflict-resolution';
 import { SuggestedMergeInfoPanel } from './SuggestedMergeInfoPanel';
@@ -77,7 +77,7 @@ export const ContentConflict = ({
       <div className="p-4">
         <SuggestedMergeInfoPanel />
       </div>
-      <SnapshotDocumentEditor
+      <SnapshotRichTextDocumentEditor
         doc={suggestedResolution.docAfter}
         isToolbarOpen={isEditorToolbarOpen}
         onDocChange={onDocChange}

@@ -10,9 +10,9 @@ import {
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
 import {
   type ContentBinding,
-  EditorBase,
+  RichTextEditorBase,
   type SharedEditorProps,
-} from './EditorBase';
+} from './RichTextEditorBase';
 
 const { oneWaySyncPlugin, pmDocFromJSONString, pmDocToJSONString } =
   prosemirror;
@@ -20,18 +20,18 @@ const { oneWaySyncPlugin, pmDocFromJSONString, pmDocToJSONString } =
 // Backed by a document snapshot value: the editor renders what it is given and
 // reports changes back through `onDocChange`. Keeping the snapshot fresh is the
 // caller's responsibility.
-export type SnapshotDocumentEditorProps = SharedEditorProps & {
+export type SnapshotRichTextDocumentEditorProps = SharedEditorProps & {
   doc: RichTextDocument;
   onDocChange: (doc: RichTextDocument) => Promise<void>;
   showDiffWith?: RichTextDocument;
 };
 
-export const SnapshotDocumentEditor = ({
+export const SnapshotRichTextDocumentEditor = ({
   doc,
   onDocChange,
   showDiffWith,
   ...shared
-}: SnapshotDocumentEditorProps) => {
+}: SnapshotRichTextDocumentEditorProps) => {
   const { convertToProseMirror } = useContext(ProseMirrorContext);
 
   const bindContent = useCallback(
@@ -58,6 +58,10 @@ export const SnapshotDocumentEditor = ({
   );
 
   return (
-    <EditorBase bindContent={bindContent} diffWith={showDiffWith} {...shared} />
+    <RichTextEditorBase
+      bindContent={bindContent}
+      diffWith={showDiffWith}
+      {...shared}
+    />
   );
 };

@@ -106,19 +106,19 @@ export type ContentBinding = {
   presencePlugin?: Plugin;
 };
 
-type EditorBaseProps = SharedEditorProps & {
+type RichTextEditorBaseProps = SharedEditorProps & {
   bindContent: (schema: Schema) => Promise<ContentBinding>;
   diffWith?: RichTextDocument;
 };
 
 // The editing layer: everything that turns a rendered document into an editable one.
 // Read-only views skip this layer and use ProseMirrorEditor directly.
-export const EditorBase = ({
+export const RichTextEditorBase = ({
   bindContent,
   diffWith,
   isToolbarOpen = false,
   assetResolution,
-}: EditorBaseProps) => {
+}: RichTextEditorBaseProps) => {
   const resolveAssetSrc =
     assetResolution?.resolveAssetSrc ?? ((src: string) => src);
   const { view, parseMarkdown, convertFromProseMirror, proseMirrorDiff } =

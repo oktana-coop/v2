@@ -152,6 +152,11 @@ export const CurrentArtifactVersioningProvider = ({
         getDocumentVersioningState({
           getDocumentHistory: projectStore.getDocumentHistory,
           isContentSameAtChanges: projectStore.isContentSameAtChanges,
+          readDocumentContent: (args) =>
+            pipe(
+              projectStore.findRichTextDocumentById(args),
+              Effect.map(({ artifact }) => artifact.content)
+            ),
         })({ projectId, documentId }),
         Effect.map((state) => ({
           ...state,

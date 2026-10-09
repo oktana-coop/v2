@@ -122,7 +122,9 @@ const createFakeDisk = ({ text }: { text: string }) => {
   let announceChange: (() => void) | undefined;
 
   // Reads what the disk holds when the read runs.
-  const findDocumentById = vi.fn<ProjectStore['findDocumentById']>(() =>
+  const findRichTextDocumentById = vi.fn<
+    ProjectStore['findRichTextDocumentById']
+  >(() =>
     Effect.sync((): ResolvedDocument => ({
       id: documentId,
       artifact: markdownDocument(onDisk),
@@ -153,7 +155,7 @@ const createFakeDisk = ({ text }: { text: string }) => {
   );
 
   return {
-    findDocumentById,
+    findRichTextDocumentById,
     updateRichTextDocumentContent,
     projectContentChangeEvents,
     // An edit made by another hand, announced like the store would.
@@ -186,7 +188,7 @@ const openDocument = async ({
   // them after opening for anything later: opening calls some of them itself.
   beforeOpening?: (mocks: {
     openSharedDocument: Mock<OpenLiveDocumentDeps['openSharedDocument']>;
-    findDocumentById: Mock<ProjectStore['findDocumentById']>;
+    findRichTextDocumentById: Mock<ProjectStore['findRichTextDocumentById']>;
     updateRichTextDocumentContent: Mock<
       ProjectStore['updateRichTextDocumentContent']
     >;
@@ -225,7 +227,7 @@ const openDocument = async ({
 
   beforeOpening?.({
     openSharedDocument,
-    findDocumentById: disk.findDocumentById,
+    findRichTextDocumentById: disk.findRichTextDocumentById,
     updateRichTextDocumentContent: disk.updateRichTextDocumentContent,
     editDisk: disk.editDisk,
   });
@@ -236,7 +238,7 @@ const openDocument = async ({
       openSharedDocument,
       onShareUnavailable,
       transformToText,
-      findDocumentById: disk.findDocumentById,
+      findRichTextDocumentById: disk.findRichTextDocumentById,
       updateRichTextDocumentContent: disk.updateRichTextDocumentContent,
       projectContentChangeEvents,
     })({ projectId, documentId, shareId })
@@ -252,7 +254,7 @@ const openDocument = async ({
   // The store announces once it is listening, and the file is read again.
   // Settled here, so that every test starts from a quiet document.
   await vi.waitFor(() =>
-    expect(disk.findDocumentById).toHaveBeenCalledTimes(2)
+    expect(disk.findRichTextDocumentById).toHaveBeenCalledTimes(2)
   );
 
   return {
@@ -501,10 +503,10 @@ describe('openLiveDocument', () => {
 
   describe('following the file', () => {
     it('reads the file again once the store listens, and changes nothing', async () => {
-      const { findDocumentById, initialDocument, diskWrites } =
+      const { findRichTextDocumentById, initialDocument, diskWrites } =
         await openDocument({ diskText: 'hello' });
 
-      expect(findDocumentById).toHaveBeenCalledTimes(2);
+      expect(findRichTextDocumentById).toHaveBeenCalledTimes(2);
       expect(initialDocument.change).not.toHaveBeenCalled();
       expect(diskWrites()).toEqual([]);
     });
@@ -512,10 +514,10 @@ describe('openLiveDocument', () => {
     it('picks up a change made before the store listened', async () => {
       const { opened } = await openDocument({
         diskText: 'hello',
-        beforeOpening: ({ findDocumentById, editDisk }) => {
+        beforeOpening: ({ findRichTextDocumentById, editDisk }) => {
           // The edit arrives right after the file is read for opening, while
           // nobody is listening yet.
-          findDocumentById.mockReturnValueOnce(
+          findRichTextDocumentById.mockReturnValueOnce(
             Effect.sync((): ResolvedDocument => {
               editDisk('changed before listening');
               return { id: documentId, artifact: markdownDocument('hello') };
@@ -634,7 +636,7 @@ describe('openLiveDocument', () => {
     it('keeps working, silently, when the document is gone', async () => {
       const {
         opened,
-        findDocumentById,
+        findRichTextDocumentById,
         announceChange,
         reportedErrors,
         initialDocument,
@@ -645,7 +647,7 @@ describe('openLiveDocument', () => {
 
       await typeAndContribute({ opened, doc: markdownDocument('hello typed') });
       initialDocument.change.mockClear();
-      findDocumentById.mockReturnValue(
+      findRichTextDocumentById.mockReturnValue(
         Effect.fail(new NotFoundError('the document is gone'))
       );
       announceChange();
@@ -656,16 +658,20 @@ describe('openLiveDocument', () => {
     });
 
     it('contributes nothing to the share, silently, while the project is on another branch', async () => {
-      const { findDocumentById, announceChange, reportedErrors, documents } =
-        await openDocument({
-          diskText: 'hello',
-          shareText: 'hello',
-          shareId: shareLink,
-        });
+      const {
+        findRichTextDocumentById,
+        announceChange,
+        reportedErrors,
+        documents,
+      } = await openDocument({
+        diskText: 'hello',
+        shareText: 'hello',
+        shareId: shareLink,
+      });
       useFakeTimersInTest();
       const [share] = documents;
 
-      findDocumentById.mockReturnValue(
+      findRichTextDocumentById.mockReturnValue(
         Effect.fail(
           new DocumentNotOnCurrentRefError('the project is on another branch', {
             currentBranch: 'draft' as Branch,
@@ -680,11 +686,11 @@ describe('openLiveDocument', () => {
     });
 
     it('reports a re-read of the file that fails', async () => {
-      const { findDocumentById, announceChange, reportedErrors } =
+      const { findRichTextDocumentById, announceChange, reportedErrors } =
         await openDocument({
           diskText: 'hello',
         });
-      findDocumentById.mockReturnValueOnce(
+      findRichTextDocumentById.mockReturnValueOnce(
         Effect.fail(new RepositoryError('the store could not be read'))
       );
 
@@ -934,13 +940,17 @@ describe('openLiveDocument', () => {
     });
 
     it('finishes a re-read of the file that is under way when it closes', async () => {
-      const { opened, findDocumentById, announceChange, diskWrites } =
+      const { opened, findRichTextDocumentById, announceChange, diskWrites } =
         await openDocument({ diskText: 'hello' });
       const read = promiseWithResolvers<ResolvedDocument>();
-      findDocumentById.mockReturnValueOnce(Effect.promise(() => read.promise));
+      findRichTextDocumentById.mockReturnValueOnce(
+        Effect.promise(() => read.promise)
+      );
 
       announceChange();
-      await vi.waitFor(() => expect(findDocumentById).toHaveBeenCalledTimes(3));
+      await vi.waitFor(() =>
+        expect(findRichTextDocumentById).toHaveBeenCalledTimes(3)
+      );
       const closing = Effect.runPromise(opened.close);
       read.resolve({
         id: documentId,

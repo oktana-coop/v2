@@ -148,7 +148,7 @@ export const CurrentDocumentProvider = ({
         openSharedDocument: documentSharing.openSharedDocument,
         onShareUnavailable: reportShareFailure,
         transformToText: representationTransformAdapter.transformToText,
-        findDocumentById: projectStore.findDocumentById,
+        findRichTextDocumentById: projectStore.findRichTextDocumentById,
         updateRichTextDocumentContent:
           projectStore.updateRichTextDocumentContent,
         projectContentChangeEvents: projectStore.projectContentChangeEvents,
@@ -272,7 +272,7 @@ export const CurrentDocumentProvider = ({
         pipe(
           joinSharedDocument({
             getSharedDocumentInfo: documentSharing.getSharedDocumentInfo,
-            findDocumentById: projectStore.findDocumentById,
+            findRichTextDocumentById: projectStore.findRichTextDocumentById,
             rememberShare,
             openDocument: branch === currentBranch ? liveDocument : null,
           })({ shareId: joinedShareId, projectId, branch }),

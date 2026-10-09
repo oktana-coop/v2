@@ -222,7 +222,7 @@ const Project = () => {
 };
 
 export {
-  DocumentEditor,
+  RichTextDocumentEditor,
   DocumentHistoricalView,
   ProjectDocuments,
 } from './documents';

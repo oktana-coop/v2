@@ -17,7 +17,6 @@ import {
   type DeleteDocumentsArgs,
   type DiscardUncommittedChangesArgs,
   type FindDocumentByIdArgs,
-  type FindDocumentByPathArgs,
   type GetArtifactMetaDataByIdArgs,
   type GetDocumentAtChangeArgs,
   type GetDocumentHistoryArgs,
@@ -54,7 +53,7 @@ import {
   type ProjectSetAuthorInfoArgs,
   type ProjectStoreManager,
   type ProjectSwitchToBranchArgs,
-  type ReadDocumentReferencedAssetsFromProjectArgs,
+  type ReadRichTextDocumentReferencedAssetsFromProjectArgs,
   type RenameDirectoryArgs,
   type RenameDocumentInProjectArgs,
   type ResolveContentConflictArgs,
@@ -197,28 +196,6 @@ const registerProjectStoreEvents = ({
       )
   );
 
-  ipcMain.handle('project-store:find-project-by-id', async (_, id: ProjectId) =>
-    runPromiseSerializingErrorsForIPC(
-      pipe(
-        getProjectStore(id),
-        Effect.flatMap((projectStore) => projectStore.findProjectById(id))
-      )
-    )
-  );
-
-  ipcMain.handle(
-    'project-store:list-project-documents',
-    async (_, id: ProjectId) =>
-      runPromiseSerializingErrorsForIPC(
-        pipe(
-          getProjectStore(id),
-          Effect.flatMap((projectStore) =>
-            projectStore.listProjectDocuments(id)
-          )
-        )
-      )
-  );
-
   ipcMain.handle('project-store:get-project-tree', async (_, id: ProjectId) =>
     runPromiseSerializingErrorsForIPC(
       pipe(
@@ -325,19 +302,6 @@ const registerProjectStoreEvents = ({
   );
 
   ipcMain.handle(
-    'project-store:find-document-by-path',
-    async (_, args: FindDocumentByPathArgs) =>
-      runPromiseSerializingErrorsForIPC(
-        pipe(
-          getProjectStore(args.projectId),
-          Effect.flatMap((projectStore) =>
-            projectStore.findDocumentByPath(args)
-          )
-        )
-      )
-  );
-
-  ipcMain.handle(
     'project-store:add-asset-to-project',
     async (_, args: AddAssetToProjectArgs) =>
       runPromiseSerializingErrorsForIPC(
@@ -373,13 +337,13 @@ const registerProjectStoreEvents = ({
   );
 
   ipcMain.handle(
-    'project-store:read-document-referenced-assets',
-    async (_, args: ReadDocumentReferencedAssetsFromProjectArgs) =>
+    'project-store:read-rich-text-document-referenced-assets',
+    async (_, args: ReadRichTextDocumentReferencedAssetsFromProjectArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
           getProjectStore(args.projectId),
           Effect.flatMap((projectStore) =>
-            projectStore.readDocumentReferencedAssets(args)
+            projectStore.readRichTextDocumentReferencedAssets(args)
           )
         )
       )
@@ -713,12 +677,14 @@ const registerProjectStoreEvents = ({
   );
 
   ipcMain.handle(
-    'project-store:find-document-by-id',
+    'project-store:find-rich-text-document-by-id',
     async (_, args: FindDocumentByIdArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
           validateProjectIdAndGetProjectStore(args.projectId),
-          Effect.flatMap((projectStore) => projectStore.findDocumentById(args))
+          Effect.flatMap((projectStore) =>
+            projectStore.findRichTextDocumentById(args)
+          )
         )
       )
   );
@@ -800,13 +766,13 @@ const registerProjectStoreEvents = ({
   );
 
   ipcMain.handle(
-    'project-store:get-document-at-change',
+    'project-store:get-rich-text-document-at-change',
     async (_, args: GetDocumentAtChangeArgs) =>
       runPromiseSerializingErrorsForIPC(
         pipe(
           validateProjectIdAndGetProjectStore(args.projectId),
           Effect.flatMap((projectStore) =>
-            projectStore.getDocumentAtChange(args)
+            projectStore.getRichTextDocumentAtChange(args)
           )
         )
       )

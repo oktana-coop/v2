@@ -167,10 +167,6 @@ contextBridge.exposeInMainWorld('projectStoreAPI', {
     ipcRenderer.invoke('project-store:create-project', {
       ...args,
     }),
-  findProjectById: (id) =>
-    ipcRenderer.invoke('project-store:find-project-by-id', id),
-  listProjectDocuments: (id) =>
-    ipcRenderer.invoke('project-store:list-project-documents', id),
   getProjectTree: (id) =>
     ipcRenderer.invoke('project-store:get-project-tree', id),
   createDirectory: (args) =>
@@ -193,8 +189,6 @@ contextBridge.exposeInMainWorld('projectStoreAPI', {
     ipcRenderer.invoke('project-store:rename-directory', { ...args }),
   lookupArtifactInProject: (args) =>
     ipcRenderer.invoke('project-store:lookup-artifact-in-project', { ...args }),
-  findDocumentByPath: (args) =>
-    ipcRenderer.invoke('project-store:find-document-by-path', { ...args }),
   addAssetToProject: (args) =>
     ipcRenderer.invoke('project-store:add-asset-to-project', {
       ...args,
@@ -205,10 +199,13 @@ contextBridge.exposeInMainWorld('projectStoreAPI', {
     }),
   getProjectRelativePath: (args) =>
     ipcRenderer.invoke('project-store:get-project-relative-path', { ...args }),
-  readDocumentReferencedAssets: (args) =>
-    ipcRenderer.invoke('project-store:read-document-referenced-assets', {
-      ...args,
-    }),
+  readRichTextDocumentReferencedAssets: (args) =>
+    ipcRenderer.invoke(
+      'project-store:read-rich-text-document-referenced-assets',
+      {
+        ...args,
+      }
+    ),
   commitChanges: (args) =>
     ipcRenderer.invoke('project-store:commit-changes', {
       ...args,
@@ -301,8 +298,8 @@ contextBridge.exposeInMainWorld('projectStoreAPI', {
     }),
   createDocument: (args) =>
     ipcRenderer.invoke('project-store:create-document', { ...args }),
-  findDocumentById: (args) =>
-    ipcRenderer.invoke('project-store:find-document-by-id', {
+  findRichTextDocumentById: (args) =>
+    ipcRenderer.invoke('project-store:find-rich-text-document-by-id', {
       ...args,
     }),
   findPlainTextDocumentById: (args) =>
@@ -327,8 +324,8 @@ contextBridge.exposeInMainWorld('projectStoreAPI', {
     ipcRenderer.invoke('project-store:get-document-history', {
       ...args,
     }),
-  getDocumentAtChange: (args) =>
-    ipcRenderer.invoke('project-store:get-document-at-change', {
+  getRichTextDocumentAtChange: (args) =>
+    ipcRenderer.invoke('project-store:get-rich-text-document-at-change', {
       ...args,
     }),
   getPlainTextDocumentAtChange: (args) =>

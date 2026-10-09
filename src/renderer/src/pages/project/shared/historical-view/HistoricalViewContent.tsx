@@ -3,8 +3,8 @@ import { type VersionedDocument } from '../../../../../../modules/domain/rich-te
 import { LongTextSkeleton } from '../../../../components/progress/skeletons/LongText';
 import {
   type DiffViewProps,
-  ReadOnlyDocumentView,
-} from './ReadOnlyDocumentView';
+  ReadOnlyRichTextDocumentView,
+} from './ReadOnlyRichTextDocumentView';
 
 export const HistoricalViewContent = ({
   doc,
@@ -36,8 +36,8 @@ export const HistoricalViewContent = ({
   }
 
   if (diffProps) {
-    return <ReadOnlyDocumentView {...diffProps} />;
+    return <ReadOnlyRichTextDocumentView {...diffProps} />;
   }
 
-  return <ReadOnlyDocumentView doc={doc} documentPath={documentPath} />;
+  return <ReadOnlyRichTextDocumentView doc={doc} documentPath={documentPath} />;
 };

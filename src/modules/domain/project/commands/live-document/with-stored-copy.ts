@@ -32,7 +32,7 @@ import { rebasedOn, storedCopy } from './stored-copy';
 
 export type WithStoredCopyDeps = {
   transformToText: RepresentationTransform['transformToText'];
-  findDocumentById: ProjectStore['findDocumentById'];
+  findRichTextDocumentById: ProjectStore['findRichTextDocumentById'];
   updateRichTextDocumentContent: ProjectStore['updateRichTextDocumentContent'];
   projectContentChangeEvents: ProjectStore['projectContentChangeEvents'];
 };
@@ -47,7 +47,7 @@ export type WithStoredCopyArgs = {
 export const withStoredCopy =
   ({
     transformToText,
-    findDocumentById,
+    findRichTextDocumentById,
     updateRichTextDocumentContent,
     projectContentChangeEvents,
   }: WithStoredCopyDeps) =>
@@ -122,7 +122,9 @@ export const withStoredCopy =
         const refresh = persistMutex(
           pipe(
             // Suspended so each refresh issues its own read.
-            Effect.suspend(() => findDocumentById({ projectId, documentId })),
+            Effect.suspend(() =>
+              findRichTextDocumentById({ projectId, documentId })
+            ),
             Effect.flatMap(({ artifact: fresh }) =>
               pipe(
                 Ref.get(stored),

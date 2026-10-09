@@ -30,7 +30,7 @@ import {
 
 export type JoinSharedDocumentDeps = {
   getSharedDocumentInfo: DocumentSharing['getSharedDocumentInfo'];
-  findDocumentById: ProjectStore['findDocumentById'];
+  findRichTextDocumentById: ProjectStore['findRichTextDocumentById'];
   rememberShare: ShareRegistry['rememberShare'];
   openDocument: Pick<LiveDocument, 'documentId' | 'attachTo'> | null;
 };
@@ -60,7 +60,7 @@ export type JoinSharedDocumentError =
 export const joinSharedDocument =
   ({
     getSharedDocumentInfo,
-    findDocumentById,
+    findRichTextDocumentById,
     rememberShare,
     openDocument,
   }: JoinSharedDocumentDeps) =>
@@ -91,7 +91,7 @@ export const joinSharedDocument =
       ),
       Effect.tap((documentId) =>
         pipe(
-          findDocumentById({ projectId, documentId }),
+          findRichTextDocumentById({ projectId, documentId }),
           Effect.catchTag(VersionedProjectNotFoundErrorTag, () =>
             Effect.fail(
               new SharedDocumentNotInProjectError(

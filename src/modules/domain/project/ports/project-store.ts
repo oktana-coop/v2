@@ -31,14 +31,11 @@ import {
 } from '../errors';
 import {
   type ArtifactMetaData,
-  type DocumentMetaData,
-  type Project,
   type ProjectId,
   type ProjectRelPath,
   type ProjectStoreTreeNode,
   type ReferencedAsset,
   type RemoteProjectInfo,
-  type VersionedProject,
 } from '../models';
 
 type UserInfo = {
@@ -48,7 +45,6 @@ type UserInfo = {
 
 export type CreateProjectArgs = {
   path: string;
-  documents?: Project['documents'];
   cloneUrl?: string;
   authToken?: string;
 } & UserInfo;
@@ -74,7 +70,7 @@ export type ReadAssetBytesFromProjectArgs = {
   relPath: ProjectRelPath;
 };
 
-export type ReadDocumentReferencedAssetsFromProjectArgs = {
+export type ReadRichTextDocumentReferencedAssetsFromProjectArgs = {
   projectId: ProjectId;
   documentId: ArtifactId;
 };
@@ -110,12 +106,6 @@ export type RenameDirectoryResult = {
 export type LookupArtifactInProjectArgs = {
   projectId: ProjectId;
   path: string;
-  changeId?: ChangeId;
-};
-
-export type FindDocumentByPathArgs = {
-  projectId: ProjectId;
-  documentPath: string;
   changeId?: ChangeId;
 };
 
@@ -333,7 +323,6 @@ export type GetDocumentHistoryArgs = {
 
 export type GetDocumentHistoryResponse = {
   history: Change[];
-  current: VersionedDocument;
   latestChange: Change;
   lastCommit: Commit | null;
   hasUncommittedChanges: boolean;
@@ -382,20 +371,6 @@ export type ProjectStore = {
   createProject: (
     args: CreateProjectArgs
   ) => Effect.Effect<ProjectId, ValidationError | RepositoryError, never>;
-  findProjectById: (
-    id: ProjectId
-  ) => Effect.Effect<
-    VersionedProject,
-    ValidationError | RepositoryError | NotFoundError | MigrationError,
-    never
-  >;
-  listProjectDocuments: (
-    id: ProjectId
-  ) => Effect.Effect<
-    DocumentMetaData[],
-    ValidationError | RepositoryError | NotFoundError | MigrationError,
-    never
-  >;
   getProjectTree: (
     id: ProjectId
   ) => Effect.Effect<
@@ -439,13 +414,6 @@ export type ProjectStore = {
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
-  findDocumentByPath: (
-    args: FindDocumentByPathArgs
-  ) => Effect.Effect<
-    ResolvedDocument,
-    ValidationError | RepositoryError | NotFoundError | MigrationError,
-    never
-  >;
   addAssetToProject: (
     args: AddAssetToProjectArgs
   ) => Effect.Effect<
@@ -474,8 +442,8 @@ export type ProjectStore = {
     ValidationError | RepositoryError | NotFoundError,
     never
   >;
-  readDocumentReferencedAssets: (
-    args: ReadDocumentReferencedAssetsFromProjectArgs
+  readRichTextDocumentReferencedAssets: (
+    args: ReadRichTextDocumentReferencedAssetsFromProjectArgs
   ) => Effect.Effect<
     ReferencedAsset[],
     ValidationError | RepositoryError | NotFoundError,
@@ -638,7 +606,7 @@ export type ProjectStore = {
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
-  findDocumentById: (
+  findRichTextDocumentById: (
     args: FindDocumentByIdArgs
   ) => Effect.Effect<
     ResolvedDocument,
@@ -702,7 +670,7 @@ export type ProjectStore = {
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;
-  getDocumentAtChange: (
+  getRichTextDocumentAtChange: (
     args: GetDocumentAtChangeArgs
   ) => Effect.Effect<
     VersionedDocument,

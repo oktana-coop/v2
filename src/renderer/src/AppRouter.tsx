@@ -7,7 +7,6 @@ import {
   ArtifactRoute,
   CompareContentConflictResolution,
   CurrentProject,
-  DocumentEditor,
   DocumentHistoricalView,
   DocumentSelection,
   HistoryNoProject,
@@ -19,6 +18,7 @@ import {
   ProjectProviders,
   ProjectSelection,
   ProjectSettings,
+  RichTextDocumentEditor,
   StructuralConflictResolution,
 } from './pages/project';
 import {
@@ -30,7 +30,7 @@ import {
 } from './pages/settings';
 import { TemplateEditor } from './pages/settings/exports';
 import {
-  GuestEditor,
+  GuestRichTextDocumentEditor,
   SharedDocuments,
   SharedDocumentSelection,
   SharedDocumentsProviders,
@@ -48,7 +48,7 @@ export const AppRouter = () => {
               <Route path="artifacts" element={<ProjectDocuments />}>
                 <Route index element={<DocumentSelection />} />
                 <Route path=":artifactId" element={<ArtifactRoute />}>
-                  <Route index element={<DocumentEditor />} />
+                  <Route index element={<RichTextDocumentEditor />} />
                   <Route
                     path="changes/:changeId"
                     element={<DocumentHistoricalView />}
@@ -81,7 +81,10 @@ export const AppRouter = () => {
           >
             <Route element={<SharedDocuments />}>
               <Route index element={<SharedDocumentSelection />} />
-              <Route path=":shareId" element={<GuestEditor />} />
+              <Route
+                path=":shareId"
+                element={<GuestRichTextDocumentEditor />}
+              />
             </Route>
           </Route>
           <Route path="/history" element={<HistoryNoProject />} />

@@ -68,7 +68,7 @@ export const useExport = () => {
     }
 
     const { artifact: document } = await Effect.runPromise(
-      projectStore.findDocumentById({
+      projectStore.findRichTextDocumentById({
         projectId: projectIdParam as ProjectId,
         documentId,
       })

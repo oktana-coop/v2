@@ -17,7 +17,7 @@ import {
   InfrastructureAdaptersContext,
   ProjectContext,
 } from '../../../../app-state';
-import { type DiffViewProps } from './ReadOnlyDocumentView';
+import { type DiffViewProps } from './ReadOnlyRichTextDocumentView';
 
 export type UseHistoricalRichTextDocumentArgs = {
   documentId: ArtifactId;
@@ -47,7 +47,7 @@ export const useHistoricalRichTextDocument = ({
   const [loading, setLoading] = useState(changeId !== null);
   const [error, setError] = useState<string | null>(null);
 
-  const getDocumentAtChange = useCallback(
+  const getRichTextDocumentAtChange = useCallback(
     async (args: { documentId: ArtifactId; changeId: ChangeId }) => {
       if (!projectStore || !projectId) {
         throw new Error(
@@ -56,12 +56,12 @@ export const useHistoricalRichTextDocument = ({
       }
       return Effect.runPromise(
         pipe(
-          projectStore.getDocumentAtChange({ projectId, ...args }),
+          projectStore.getRichTextDocumentAtChange({ projectId, ...args }),
           // When the document was deleted in this commit, fall back to the
           // parent commit to show the last known content.
           Effect.catchTag(VersionedProjectDeletedDocumentErrorTag, (e) =>
             e.data.parentCommitId
-              ? projectStore.getDocumentAtChange({
+              ? projectStore.getRichTextDocumentAtChange({
                   projectId,
                   ...args,
                   changeId: parseGitCommitHash(e.data.parentCommitId),
@@ -103,7 +103,7 @@ export const useHistoricalRichTextDocument = ({
       setDiffProps(null);
 
       try {
-        const currentDoc = await getDocumentAtChange({
+        const currentDoc = await getRichTextDocumentAtChange({
           documentId,
           changeId,
         });
@@ -121,7 +121,7 @@ export const useHistoricalRichTextDocument = ({
 
           if (!shouldSkipDiff) {
             try {
-              const diffTargetDoc = await getDocumentAtChange({
+              const diffTargetDoc = await getRichTextDocumentAtChange({
                 documentId,
                 changeId: diffCommitId,
               });
@@ -166,7 +166,7 @@ export const useHistoricalRichTextDocument = ({
     documentPath,
     changeId,
     diffCommitId,
-    getDocumentAtChange,
+    getRichTextDocumentAtChange,
     isContentSameAtChanges,
   ]);
 

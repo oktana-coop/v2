@@ -142,7 +142,7 @@ beforeEach(() => {
 });
 
 describe('documents', () => {
-  describe('findDocumentById', () => {
+  describe('findRichTextDocumentById', () => {
     const store = buildTestStore();
     const docId = '/blob/main/notes.md' as ArtifactId;
 
@@ -157,7 +157,10 @@ describe('documents', () => {
 
     it('reads a document whose branch is checked out', async () => {
       const document = await Effect.runPromise(
-        store.findDocumentById({ projectId: PROJECT_PATH, documentId: docId })
+        store.findRichTextDocumentById({
+          projectId: PROJECT_PATH,
+          documentId: docId,
+        })
       );
 
       expect(document.artifact.content).toBe('# Notes');
@@ -168,7 +171,7 @@ describe('documents', () => {
 
     it('reads a document whose commit is checked out', async () => {
       const document = await Effect.runPromise(
-        store.findDocumentById({
+        store.findRichTextDocumentById({
           projectId: PROJECT_PATH,
           documentId: '/blob/4a1d2e3f/notes.md' as ArtifactId,
         })
@@ -186,7 +189,10 @@ describe('documents', () => {
 
       const failure = await Effect.runPromise(
         Effect.flip(
-          store.findDocumentById({ projectId: PROJECT_PATH, documentId: docId })
+          store.findRichTextDocumentById({
+            projectId: PROJECT_PATH,
+            documentId: docId,
+          })
         )
       );
 
@@ -205,7 +211,10 @@ describe('documents', () => {
 
       const failure = await Effect.runPromise(
         Effect.flip(
-          store.findDocumentById({ projectId: PROJECT_PATH, documentId: docId })
+          store.findRichTextDocumentById({
+            projectId: PROJECT_PATH,
+            documentId: docId,
+          })
         )
       );
 
@@ -223,7 +232,10 @@ describe('documents', () => {
 
       const failure = await Effect.runPromise(
         Effect.flip(
-          store.findDocumentById({ projectId: PROJECT_PATH, documentId: docId })
+          store.findRichTextDocumentById({
+            projectId: PROJECT_PATH,
+            documentId: docId,
+          })
         )
       );
 
@@ -241,7 +253,10 @@ describe('documents', () => {
 
       const failure = await Effect.runPromise(
         Effect.flip(
-          store.findDocumentById({ projectId: PROJECT_PATH, documentId: docId })
+          store.findRichTextDocumentById({
+            projectId: PROJECT_PATH,
+            documentId: docId,
+          })
         )
       );
 
@@ -255,7 +270,10 @@ describe('documents', () => {
 
       const failure = await Effect.runPromise(
         Effect.flip(
-          store.findDocumentById({ projectId: PROJECT_PATH, documentId: docId })
+          store.findRichTextDocumentById({
+            projectId: PROJECT_PATH,
+            documentId: docId,
+          })
         )
       );
 
@@ -508,7 +526,7 @@ describe('documents', () => {
 
         const read = Effect.runPromise(
           Effect.flip(
-            store.findDocumentById({
+            store.findRichTextDocumentById({
               projectId: PROJECT_PATH,
               documentId: docId,
             })
@@ -612,7 +630,10 @@ describe('documents', () => {
       mockSwitchToBranch.mockReturnValue(Effect.void);
 
       const read = Effect.runPromise(
-        store.findDocumentById({ projectId: PROJECT_PATH, documentId: docId })
+        store.findRichTextDocumentById({
+          projectId: PROJECT_PATH,
+          documentId: docId,
+        })
       );
       await settle();
       const switched = Effect.runPromise(
@@ -1019,49 +1040,7 @@ describe('documents', () => {
     });
   });
 
-  describe('findDocumentByPath', () => {
-    beforeEach(() => {
-      mockGetCurrentBranch.mockReturnValue(Effect.succeed('main'));
-      mockListDirectoryFiles.mockReturnValue(
-        Effect.succeed([
-          { name: 'notes.md', path: 'notes.md' },
-          { name: 'config.yaml', path: 'config.yaml' },
-        ])
-      );
-      mockGetAbsolutePath.mockReturnValue(
-        Effect.succeed(`${PROJECT_PATH}/notes.md`)
-      );
-      mockReadTextFile.mockReturnValue(Effect.succeed({ content: '# Notes' }));
-    });
-
-    it('reads a rich-text document found by its path', async () => {
-      const document = await Effect.runPromise(
-        store.findDocumentByPath({
-          projectId: PROJECT_PATH,
-          documentPath: 'notes.md',
-        })
-      );
-
-      expect(document.id).toBe('/blob/main/notes.md');
-      expect(document.artifact.content).toBe('# Notes');
-    });
-
-    it('fails with ValidationError for a file that is not a rich-text document, without reading it', async () => {
-      const error = await Effect.runPromise(
-        store
-          .findDocumentByPath({
-            projectId: PROJECT_PATH,
-            documentPath: 'config.yaml',
-          })
-          .pipe(Effect.flip)
-      );
-
-      expect(error._tag).toBe(VersionedProjectValidationErrorTag);
-      expect(mockReadTextFile).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('getDocumentAtChange', () => {
+  describe('getRichTextDocumentAtChange', () => {
     const docPath = 'doc.md';
 
     describe('when changeId is a commit hash', () => {
@@ -1079,7 +1058,7 @@ describe('documents', () => {
         } as Awaited<ReturnType<typeof git.readBlob>>);
 
         const result = await Effect.runPromise(
-          store.getDocumentAtChange({
+          store.getRichTextDocumentAtChange({
             projectId,
             documentId: docId,
             changeId: commitHash as ChangeId,
@@ -1102,7 +1081,7 @@ describe('documents', () => {
 
         const error = await Effect.runPromise(
           store
-            .getDocumentAtChange({
+            .getRichTextDocumentAtChange({
               projectId,
               documentId: docId,
               changeId: commitHash as ChangeId,
@@ -1131,7 +1110,7 @@ describe('documents', () => {
 
         const error = await Effect.runPromise(
           store
-            .getDocumentAtChange({
+            .getRichTextDocumentAtChange({
               projectId,
               documentId: docId,
               changeId: commitHash as ChangeId,
@@ -1160,7 +1139,7 @@ describe('documents', () => {
 
         const error = await Effect.runPromise(
           store
-            .getDocumentAtChange({
+            .getRichTextDocumentAtChange({
               projectId,
               documentId: docId,
               changeId: commitHash as ChangeId,
@@ -1176,7 +1155,7 @@ describe('documents', () => {
 
         const error = await Effect.runPromise(
           store
-            .getDocumentAtChange({
+            .getRichTextDocumentAtChange({
               projectId,
               documentId: docId,
               changeId: commitHash as ChangeId,
@@ -1200,7 +1179,7 @@ describe('documents', () => {
         mockReadTextFile.mockReturnValue(Effect.succeed({ content }));
 
         const result = await Effect.runPromise(
-          store.getDocumentAtChange({
+          store.getRichTextDocumentAtChange({
             projectId,
             documentId: docId,
             changeId: UNCOMMITTED_CHANGE_ID,
@@ -1215,7 +1194,7 @@ describe('documents', () => {
       it('fails with ValidationError for an invalid document id', async () => {
         const error = await Effect.runPromise(
           store
-            .getDocumentAtChange({
+            .getRichTextDocumentAtChange({
               projectId,
               documentId: 'not-a-blob-ref' as ArtifactId,
               changeId: 'abc1234' as ChangeId,
@@ -1229,7 +1208,7 @@ describe('documents', () => {
       it('fails with ValidationError for an invalid commit hash', async () => {
         const error = await Effect.runPromise(
           store
-            .getDocumentAtChange({
+            .getRichTextDocumentAtChange({
               projectId,
               documentId: `/blob/abc1234/${docPath}` as ArtifactId,
               changeId: 'not-a-hash!' as ChangeId,
@@ -1657,7 +1636,7 @@ describe('documents', () => {
           },
         ])
       );
-      // getDocumentAtCommit for last commit: document not found → deleted
+      // getRichTextDocumentAtCommit for last commit: document not found → deleted
       mockResolveRef
         .mockResolvedValueOnce(lastCommitOid)
         .mockResolvedValueOnce(parentOid);

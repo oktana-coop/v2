@@ -47,13 +47,13 @@ export type ArtifactMetaData = BaseArtifactMetaData & {
 
 // An artifact known to be a rich-text document, so consumers holding a
 // collection of documents don't have to re-check what they already know.
-export type DocumentMetaData = ArtifactMetaData & {
+export type RichTextDocumentMetaData = ArtifactMetaData & {
   kind: typeof artifactKinds.RICH_TEXT_DOCUMENT;
 };
 
-export const isDocumentMetaData = (
+export const isRichTextDocumentMetaData = (
   artifact: ArtifactMetaData
-): artifact is DocumentMetaData =>
+): artifact is RichTextDocumentMetaData =>
   artifact.kind === artifactKinds.RICH_TEXT_DOCUMENT;
 
 // A file as the project store lists it. Version control tracks these, so a

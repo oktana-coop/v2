@@ -11,9 +11,9 @@ import {
   type ProseMirrorContextType,
 } from '../../../../modules/domain/rich-text/react/prosemirror-context';
 import { markdownDocument } from '../../../../modules/domain/rich-text/test-utils';
-import { SnapshotDocumentEditor } from './SnapshotDocumentEditor';
+import { SnapshotRichTextDocumentEditor } from './SnapshotRichTextDocumentEditor';
 
-describe('SnapshotDocumentEditor', () => {
+describe('SnapshotRichTextDocumentEditor', () => {
   // A document swapped in while its predecessor is still converting must win,
   // even if the predecessor's conversion resolves first.
   it('builds from the latest document, not a superseded one', async () => {
@@ -36,7 +36,7 @@ describe('SnapshotDocumentEditor', () => {
 
     const editor = (richText: RichTextDocument) => (
       <ProseMirrorContext.Provider value={context}>
-        <SnapshotDocumentEditor
+        <SnapshotRichTextDocumentEditor
           doc={richText}
           onDocChange={async () => {}}
           assetResolution={{
@@ -78,7 +78,7 @@ describe('SnapshotDocumentEditor', () => {
 
     const editor = (richText: RichTextDocument) => (
       <ProseMirrorContext.Provider value={context}>
-        <SnapshotDocumentEditor
+        <SnapshotRichTextDocumentEditor
           doc={richText}
           onDocChange={async () => {}}
           assetResolution={{

@@ -40,12 +40,13 @@ const setUpJoin = ({
   const getSharedDocumentInfo = vi.fn<
     JoinSharedDocumentDeps['getSharedDocumentInfo']
   >(() => Effect.succeed({ branch, documentId, name: 'note' }));
-  const findDocumentById = vi.fn<JoinSharedDocumentDeps['findDocumentById']>(
-    ({ documentId: foundId }) =>
-      Effect.succeed({
-        id: foundId,
-        artifact: markdownDocument('what this project holds'),
-      })
+  const findRichTextDocumentById = vi.fn<
+    JoinSharedDocumentDeps['findRichTextDocumentById']
+  >(({ documentId: foundId }) =>
+    Effect.succeed({
+      id: foundId,
+      artifact: markdownDocument('what this project holds'),
+    })
   );
   const rememberShare = vi.fn<JoinSharedDocumentDeps['rememberShare']>();
 
@@ -54,13 +55,18 @@ const setUpJoin = ({
   const join = Effect.suspend(() =>
     joinSharedDocument({
       getSharedDocumentInfo,
-      findDocumentById,
+      findRichTextDocumentById,
       rememberShare,
       openDocument,
     })({ shareId, projectId, branch })
   );
 
-  return { join, getSharedDocumentInfo, findDocumentById, rememberShare };
+  return {
+    join,
+    getSharedDocumentInfo,
+    findRichTextDocumentById,
+    rememberShare,
+  };
 };
 
 describe('joinSharedDocument', () => {
@@ -125,8 +131,8 @@ describe('joinSharedDocument', () => {
   });
 
   it('refuses a share whose document this project does not have', async () => {
-    const { join, findDocumentById, rememberShare } = setUpJoin();
-    findDocumentById.mockReturnValueOnce(
+    const { join, findRichTextDocumentById, rememberShare } = setUpJoin();
+    findRichTextDocumentById.mockReturnValueOnce(
       Effect.fail(new NotFoundError('no such document'))
     );
 

@@ -47,9 +47,11 @@ const isDiffViewProps = (
   );
 };
 
-type ReadOnlyDocumentViewProps = DiffViewProps | SingleDocViewProps;
+type ReadOnlyRichTextDocumentViewProps = DiffViewProps | SingleDocViewProps;
 
-export const ReadOnlyDocumentView = (props: ReadOnlyDocumentViewProps) => {
+export const ReadOnlyRichTextDocumentView = (
+  props: ReadOnlyRichTextDocumentViewProps
+) => {
   const { representationTransformAdapterReady } =
     useContext(ProseMirrorContext);
 
@@ -61,10 +63,12 @@ export const ReadOnlyDocumentView = (props: ReadOnlyDocumentViewProps) => {
     return <LongTextSkeleton />;
   }
 
-  return <ReadOnlyDocumentContent {...props} />;
+  return <ReadOnlyRichTextDocumentContent {...props} />;
 };
 
-const ReadOnlyDocumentContent = (props: ReadOnlyDocumentViewProps) => {
+const ReadOnlyRichTextDocumentContent = (
+  props: ReadOnlyRichTextDocumentViewProps
+) => {
   const { openExternalLink } = useContext(ElectronContext);
   const resolveAssetSrc = useAssetSrcResolver({ docPath: props.documentPath });
   const { proseMirrorDiff, convertToProseMirror, convertFromProseMirror } =

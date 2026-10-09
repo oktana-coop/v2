@@ -9,7 +9,10 @@ import {
 } from '../../../../modules/infrastructure/version-control';
 import { type ProjectId } from '../models';
 import { type GetDocumentHistoryResponse, type ProjectStore } from '../ports';
-import { getDocumentVersioningState } from './get-document-versioning-state';
+import {
+  getDocumentVersioningState,
+  type GetDocumentVersioningStateDeps,
+} from './get-document-versioning-state';
 
 const projectId = '/projects/one' as ProjectId;
 const documentId = 'notes.md' as ArtifactId;
@@ -24,7 +27,6 @@ const uncommittedChange: UncommitedChange = { id: UNCOMMITTED_CHANGE_ID };
 
 const committedHistory: GetDocumentHistoryResponse = {
   history: [firstCommit],
-  current: { schemaVersion: 1, representation: 'MARKDOWN', content: 'Hello' },
   latestChange: firstCommit,
   lastCommit: firstCommit,
   hasUncommittedChanges: false,
@@ -37,22 +39,21 @@ const modifiedHistory: GetDocumentHistoryResponse = {
   hasUncommittedChanges: true,
 };
 
-const neverCommittedHistory = (
-  content: string
-): GetDocumentHistoryResponse => ({
+const neverCommittedHistory: GetDocumentHistoryResponse = {
   history: [uncommittedChange],
-  current: { schemaVersion: 1, representation: 'MARKDOWN', content },
   latestChange: uncommittedChange,
   lastCommit: null,
   hasUncommittedChanges: true,
-});
+};
 
 const setUp = ({
   history,
   isContentSame = false,
+  content = 'Hello',
 }: {
   history: GetDocumentHistoryResponse;
   isContentSame?: boolean;
+  content?: string;
 }) => {
   const getDocumentHistory = vi.fn<ProjectStore['getDocumentHistory']>(() =>
     Effect.succeed(history)
@@ -60,13 +61,22 @@ const setUp = ({
   const isContentSameAtChanges = vi.fn<ProjectStore['isContentSameAtChanges']>(
     () => Effect.succeed(isContentSame)
   );
+  const readDocumentContent = vi.fn<
+    GetDocumentVersioningStateDeps<never>['readDocumentContent']
+  >(() => Effect.succeed(content));
 
   const getState = getDocumentVersioningState({
     getDocumentHistory,
     isContentSameAtChanges,
+    readDocumentContent,
   })({ projectId, documentId });
 
-  return { getState, getDocumentHistory, isContentSameAtChanges };
+  return {
+    getState,
+    getDocumentHistory,
+    isContentSameAtChanges,
+    readDocumentContent,
+  };
 };
 
 describe('getDocumentVersioningState', () => {
@@ -121,19 +131,36 @@ describe('getDocumentVersioningState', () => {
   });
 
   it('can commit a never-committed document that has content', async () => {
-    const { getState } = setUp({ history: neverCommittedHistory('Hello') });
+    const { getState, readDocumentContent } = setUp({
+      history: neverCommittedHistory,
+      content: 'Hello',
+    });
 
     const state = await Effect.runPromise(getState);
 
     expect(state.canCommit).toBe(true);
+    expect(readDocumentContent).toHaveBeenCalledWith({ projectId, documentId });
   });
 
   it('cannot commit a never-committed document that is empty', async () => {
-    const { getState } = setUp({ history: neverCommittedHistory('') });
+    const { getState } = setUp({
+      history: neverCommittedHistory,
+      content: '',
+    });
 
     const state = await Effect.runPromise(getState);
 
     expect(state.canCommit).toBe(false);
+  });
+
+  it('reads the content only for a never-committed document', async () => {
+    const { getState, readDocumentContent } = setUp({
+      history: modifiedHistory,
+    });
+
+    await Effect.runPromise(getState);
+
+    expect(readDocumentContent).not.toHaveBeenCalled();
   });
 
   it('reads the history again on every run', async () => {

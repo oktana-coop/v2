@@ -10,12 +10,12 @@ import {
   useAssetSrcResolver,
   useRemotePresence,
 } from '../../../../../../app-state';
-import { LiveDocumentEditor } from '../../../../../../components/editing/LiveDocumentEditor';
+import { LiveRichTextDocumentEditor } from '../../../../../../components/editing/LiveRichTextDocumentEditor';
 import { LongTextSkeleton } from '../../../../../../components/progress/skeletons/LongText';
 import { ActionsBar } from '../../../../../shared/document-actions-bar';
 import { useCurrentArtifact } from '../../../artifact-route';
 
-export const DocumentEditor = () => {
+export const RichTextDocumentEditor = () => {
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
   const { view: editorView } = useContext(ProseMirrorContext);
   const {
@@ -55,7 +55,7 @@ export const DocumentEditor = () => {
       <div className="flex w-full flex-auto flex-col items-center overflow-auto">
         <div className="flex w-full max-w-3xl flex-col">
           {liveDocument ? (
-            <LiveDocumentEditor
+            <LiveRichTextDocumentEditor
               liveDocument={liveDocument}
               onLocalSelectionChange={onLocalSelectionChange}
               isToolbarOpen={isEditorToolbarOpen}

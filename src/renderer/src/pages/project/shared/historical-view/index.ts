@@ -6,10 +6,10 @@ export {
 } from './HistoricalDocumentView';
 export { HistoricalViewContent } from './HistoricalViewContent';
 export {
-  ReadOnlyDocumentView,
+  ReadOnlyRichTextDocumentView,
   type DiffViewProps,
   type SingleDocViewProps,
-} from './ReadOnlyDocumentView';
+} from './ReadOnlyRichTextDocumentView';
 export {
   useHistoricalArtifact,
   type UseHistoricalArtifactArgs,

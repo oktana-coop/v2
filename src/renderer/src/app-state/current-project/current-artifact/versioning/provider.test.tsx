@@ -14,6 +14,7 @@ import {
   type StoredLiveDocument,
   urlEncodeProjectId,
 } from '../../../../../../modules/domain/project';
+import { type ResolvedDocument } from '../../../../../../modules/domain/rich-text';
 import { NotificationsContext } from '../../../../../../modules/infrastructure/notifications/browser';
 import {
   createGitBlobRef,
@@ -62,7 +63,6 @@ const uncommittedChange: UncommitedChange = { id: UNCOMMITTED_CHANGE_ID };
 
 const committedHistory: GetDocumentHistoryResponse = {
   history: [firstCommit],
-  current: { schemaVersion: 1, representation: 'MARKDOWN', content: 'Hello' },
   latestChange: firstCommit,
   lastCommit: firstCommit,
   hasUncommittedChanges: false,
@@ -88,6 +88,19 @@ const getDocumentHistory = vi.fn<ProjectStore['getDocumentHistory']>(() =>
 const isContentSameAtChanges = vi.fn<ProjectStore['isContentSameAtChanges']>(
   () => Effect.succeed(false)
 );
+const findRichTextDocumentById = vi.fn<
+  ProjectStore['findRichTextDocumentById']
+>(({ documentId }) =>
+  Effect.succeed({
+    id: documentId,
+    artifact: {
+      schemaVersion: 1,
+      representation: 'MARKDOWN',
+      content: 'Hello',
+    },
+    handle: null,
+  } as ResolvedDocument)
+);
 const discarded = vi.fn<() => void>();
 const discardUncommittedChanges = vi.fn<
   ProjectStore['discardUncommittedChanges']
@@ -111,6 +124,7 @@ const restoreDocumentChanges = vi.fn<ProjectStore['restoreDocumentChanges']>(
 const projectStore = {
   getDocumentHistory,
   isContentSameAtChanges,
+  findRichTextDocumentById,
   discardUncommittedChanges,
   commitDocumentChanges,
   restoreDocumentChanges,
@@ -290,6 +304,29 @@ describe('CurrentArtifactVersioningProvider', () => {
     await waitFor(() => expect(isContentSameAtChanges).toHaveBeenCalled());
 
     expect(exposed.current?.canCommit).toBe(false);
+  });
+
+  it('can commit a never-committed document that has content', async () => {
+    getDocumentHistory.mockReturnValueOnce(
+      Effect.succeed({
+        history: [uncommittedChange],
+        latestChange: uncommittedChange,
+        lastCommit: null,
+        hasUncommittedChanges: true,
+      })
+    );
+
+    const { exposed } = renderVersioning({
+      currentArtifact: notes,
+      url: artifactUrl(notes),
+    });
+
+    await waitFor(() => expect(exposed.current?.canCommit).toBe(true));
+
+    expect(findRichTextDocumentById).toHaveBeenCalledWith({
+      projectId,
+      documentId: notes.id,
+    });
   });
 
   it('reloads the history after the store announces a content change', async () => {

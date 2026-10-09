@@ -61,7 +61,7 @@ export const openLiveDocument =
           );
 
     return pipe(
-      deps.findDocumentById({ projectId, documentId }),
+      deps.findRichTextDocumentById({ projectId, documentId }),
       Effect.flatMap(({ artifact }) =>
         pipe(
           openInitialDocument(artifact.content),

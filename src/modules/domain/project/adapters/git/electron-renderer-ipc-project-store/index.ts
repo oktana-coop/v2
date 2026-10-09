@@ -75,32 +75,6 @@ export const createAdapter = (): ProjectStore => ({
       >,
       RepositoryError
     )(window.projectStoreAPI.createProject(...args)),
-  findProjectById: (...args: Parameters<ProjectStore['findProjectById']>) =>
-    effectifyIPCPromise(
-      {
-        [VersionedProjectValidationErrorTag]: ValidationError,
-        [VersionedProjectRepositoryErrorTag]: RepositoryError,
-        [VersionedProjectNotFoundErrorTag]: NotFoundError,
-        [VersionControlMigrationErrorTag]: MigrationError,
-      } as ErrorRegistry<
-        EffectErrorType<ReturnType<ProjectStore['findProjectById']>>
-      >,
-      RepositoryError
-    )(window.projectStoreAPI.findProjectById(...args)),
-  listProjectDocuments: (
-    ...args: Parameters<ProjectStore['listProjectDocuments']>
-  ) =>
-    effectifyIPCPromise(
-      {
-        [VersionedProjectValidationErrorTag]: ValidationError,
-        [VersionedProjectRepositoryErrorTag]: RepositoryError,
-        [VersionedProjectNotFoundErrorTag]: NotFoundError,
-        [VersionControlMigrationErrorTag]: MigrationError,
-      } as ErrorRegistry<
-        EffectErrorType<ReturnType<ProjectStore['listProjectDocuments']>>
-      >,
-      RepositoryError
-    )(window.projectStoreAPI.listProjectDocuments(...args)),
   getProjectTree: (...args: Parameters<ProjectStore['getProjectTree']>) =>
     effectifyIPCPromise(
       {
@@ -167,20 +141,6 @@ export const createAdapter = (): ProjectStore => ({
       >,
       RepositoryError
     )(window.projectStoreAPI.lookupArtifactInProject(...args)),
-  findDocumentByPath: (
-    ...args: Parameters<ProjectStore['findDocumentByPath']>
-  ) =>
-    effectifyIPCPromise(
-      {
-        [VersionedProjectValidationErrorTag]: ValidationError,
-        [VersionedProjectRepositoryErrorTag]: RepositoryError,
-        [VersionedProjectNotFoundErrorTag]: NotFoundError,
-        [VersionControlMigrationErrorTag]: MigrationError,
-      } as ErrorRegistry<
-        EffectErrorType<ReturnType<ProjectStore['findDocumentByPath']>>
-      >,
-      RepositoryError
-    )(window.projectStoreAPI.findDocumentByPath(...args)),
   addAssetToProject: (...args: Parameters<ProjectStore['addAssetToProject']>) =>
     effectifyIPCPromise(
       {
@@ -230,8 +190,8 @@ export const createAdapter = (): ProjectStore => ({
       >,
       RepositoryError
     )(window.projectStoreAPI.readAssetBytes(...args)),
-  readDocumentReferencedAssets: (
-    ...args: Parameters<ProjectStore['readDocumentReferencedAssets']>
+  readRichTextDocumentReferencedAssets: (
+    ...args: Parameters<ProjectStore['readRichTextDocumentReferencedAssets']>
   ) =>
     effectifyIPCPromise(
       {
@@ -240,11 +200,11 @@ export const createAdapter = (): ProjectStore => ({
         [VersionedProjectNotFoundErrorTag]: NotFoundError,
       } as ErrorRegistry<
         EffectErrorType<
-          ReturnType<ProjectStore['readDocumentReferencedAssets']>
+          ReturnType<ProjectStore['readRichTextDocumentReferencedAssets']>
         >
       >,
       RepositoryError
-    )(window.projectStoreAPI.readDocumentReferencedAssets(...args)),
+    )(window.projectStoreAPI.readRichTextDocumentReferencedAssets(...args)),
   getProjectRelativePath: (
     ...args: Parameters<ProjectStore['getProjectRelativePath']>
   ) =>
@@ -571,7 +531,9 @@ export const createAdapter = (): ProjectStore => ({
       >,
       RepositoryError
     )(window.projectStoreAPI.deleteDirectory(...args)),
-  findDocumentById: (...args: Parameters<ProjectStore['findDocumentById']>) =>
+  findRichTextDocumentById: (
+    ...args: Parameters<ProjectStore['findRichTextDocumentById']>
+  ) =>
     effectifyIPCPromise(
       {
         [VersionedProjectValidationErrorTag]: ValidationError,
@@ -581,10 +543,10 @@ export const createAdapter = (): ProjectStore => ({
         [VersionedProjectDocumentNotOnCurrentRefErrorTag]:
           DocumentNotOnCurrentRefError,
       } as ErrorRegistry<
-        EffectErrorType<ReturnType<ProjectStore['findDocumentById']>>
+        EffectErrorType<ReturnType<ProjectStore['findRichTextDocumentById']>>
       >,
       RepositoryError
-    )(window.projectStoreAPI.findDocumentById(...args)),
+    )(window.projectStoreAPI.findRichTextDocumentById(...args)),
   findPlainTextDocumentById: (
     ...args: Parameters<ProjectStore['findPlainTextDocumentById']>
   ) =>
@@ -675,8 +637,8 @@ export const createAdapter = (): ProjectStore => ({
       >,
       RepositoryError
     )(window.projectStoreAPI.getDocumentHistory(...args)),
-  getDocumentAtChange: (
-    ...args: Parameters<ProjectStore['getDocumentAtChange']>
+  getRichTextDocumentAtChange: (
+    ...args: Parameters<ProjectStore['getRichTextDocumentAtChange']>
   ) =>
     effectifyIPCPromise(
       {
@@ -686,10 +648,10 @@ export const createAdapter = (): ProjectStore => ({
         [VersionControlMigrationErrorTag]: MigrationError,
         [VersionedProjectDeletedDocumentErrorTag]: DeletedDocumentError,
       } as ErrorRegistry<
-        EffectErrorType<ReturnType<ProjectStore['getDocumentAtChange']>>
+        EffectErrorType<ReturnType<ProjectStore['getRichTextDocumentAtChange']>>
       >,
       RepositoryError
-    )(window.projectStoreAPI.getDocumentAtChange(...args)),
+    )(window.projectStoreAPI.getRichTextDocumentAtChange(...args)),
   getPlainTextDocumentAtChange: (
     ...args: Parameters<ProjectStore['getPlainTextDocumentAtChange']>
   ) =>

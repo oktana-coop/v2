@@ -25,11 +25,11 @@ const projectId = parseProjectId('/tmp/v2-test-project');
 const changeId = parseCommitId('1111111111111111111111111111111111111111');
 
 // Never resolves, so the view stays on the loading state.
-const getDocumentAtChange = vi.fn<ProjectStore['getDocumentAtChange']>(
-  () => Effect.never
-);
+const getRichTextDocumentAtChange = vi.fn<
+  ProjectStore['getRichTextDocumentAtChange']
+>(() => Effect.never);
 
-const projectStore = { getDocumentAtChange } as unknown as ProjectStore;
+const projectStore = { getRichTextDocumentAtChange } as unknown as ProjectStore;
 
 const renderView = ({ path, kind }: { path: string; kind: ArtifactKind }) => {
   const documentPath = parseProjectRelPath(path);
@@ -76,7 +76,7 @@ describe('HistoricalDocumentView', () => {
       kind: artifactKinds.RICH_TEXT_DOCUMENT,
     });
 
-    expect(getDocumentAtChange).toHaveBeenCalledWith({
+    expect(getRichTextDocumentAtChange).toHaveBeenCalledWith({
       projectId,
       documentId,
       changeId,
@@ -88,6 +88,6 @@ describe('HistoricalDocumentView', () => {
     renderView({ path: 'image.png', kind: artifactKinds.BINARY_FILE });
 
     expect(screen.getByText('Preview not available')).toBeTruthy();
-    expect(getDocumentAtChange).not.toHaveBeenCalled();
+    expect(getRichTextDocumentAtChange).not.toHaveBeenCalled();
   });
 });

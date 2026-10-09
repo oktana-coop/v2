@@ -1,12 +1,12 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
-import { isEmpty } from '../../../../modules/domain/rich-text';
 import {
   type ArtifactId,
   type Change,
   changeIdsAreSame,
 } from '../../../../modules/infrastructure/version-control';
+import { type EffectErrorType } from '../../../../utils/effect';
 import { type ProjectId } from '../models';
 import { type GetDocumentHistoryResponse, type ProjectStore } from '../ports';
 
@@ -15,9 +15,14 @@ export type DocumentVersioningState = {
   canCommit: boolean;
 };
 
-export type GetDocumentVersioningStateDeps = {
+export type GetDocumentVersioningStateDeps<E> = {
   getDocumentHistory: ProjectStore['getDocumentHistory'];
   isContentSameAtChanges: ProjectStore['isContentSameAtChanges'];
+  // The document's current stored content, read for the kind of document.
+  readDocumentContent: (args: {
+    projectId: ProjectId;
+    documentId: ArtifactId;
+  }) => Effect.Effect<string, E>;
 };
 
 export type GetDocumentVersioningStateArgs = {
@@ -26,17 +31,29 @@ export type GetDocumentVersioningStateArgs = {
 };
 
 const hasCommittableChanges =
-  ({
+  <E>({
     isContentSameAtChanges,
-  }: Pick<GetDocumentVersioningStateDeps, 'isContentSameAtChanges'>) =>
+    readDocumentContent,
+  }: Pick<
+    GetDocumentVersioningStateDeps<E>,
+    'isContentSameAtChanges' | 'readDocumentContent'
+  >) =>
   ({
     projectId,
     documentId,
-    historyInfo: { current, latestChange, lastCommit },
+    historyInfo: { latestChange, lastCommit },
   }: GetDocumentVersioningStateArgs & {
     historyInfo: GetDocumentHistoryResponse;
-  }) => {
-    if (!lastCommit) return Effect.succeed(!isEmpty(current));
+  }): Effect.Effect<
+    boolean,
+    E | EffectErrorType<ReturnType<ProjectStore['isContentSameAtChanges']>>
+  > => {
+    if (!lastCommit) {
+      return pipe(
+        readDocumentContent({ projectId, documentId }),
+        Effect.map((content) => content !== '')
+      );
+    }
 
     if (changeIdsAreSame(latestChange.id, lastCommit.id)) {
       return Effect.succeed(false);
@@ -54,17 +71,21 @@ const hasCommittableChanges =
   };
 
 export const getDocumentVersioningState =
-  ({
+  <E>({
     getDocumentHistory,
     isContentSameAtChanges,
-  }: GetDocumentVersioningStateDeps) =>
+    readDocumentContent,
+  }: GetDocumentVersioningStateDeps<E>) =>
   ({ projectId, documentId }: GetDocumentVersioningStateArgs) =>
     pipe(
       // Suspended so each run issues its own read.
       Effect.suspend(() => getDocumentHistory({ projectId, documentId })),
       Effect.flatMap((historyInfo) =>
         pipe(
-          hasCommittableChanges({ isContentSameAtChanges })({
+          hasCommittableChanges({
+            isContentSameAtChanges,
+            readDocumentContent,
+          })({
             projectId,
             documentId,
             historyInfo,

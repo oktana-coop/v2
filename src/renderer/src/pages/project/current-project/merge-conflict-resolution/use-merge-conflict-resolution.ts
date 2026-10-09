@@ -102,7 +102,7 @@ export const useMergeConflictResolution = () => {
       return Effect.runPromise(
         suggestMerge({
           getDocumentAtChange: (args) =>
-            projectStore.getDocumentAtChange({ projectId, ...args }),
+            projectStore.getRichTextDocumentAtChange({ projectId, ...args }),
           resolveMergeConflicts: mergeConflictResolver.resolveMergeConflicts,
         })({
           sourceDocumentId: sourceDocumentId,

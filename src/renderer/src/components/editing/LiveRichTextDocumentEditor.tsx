@@ -18,9 +18,9 @@ import {
 import { getColorClass } from '../user/color';
 import {
   type ContentBinding,
-  EditorBase,
+  RichTextEditorBase,
   type SharedEditorProps,
-} from './EditorBase';
+} from './RichTextEditorBase';
 
 const {
   liveSyncPlugin,
@@ -29,17 +29,17 @@ const {
   pmDocFromJSONString,
 } = prosemirror;
 
-export type LiveDocumentEditorProps = SharedEditorProps & {
+export type LiveRichTextDocumentEditorProps = SharedEditorProps & {
   liveDocument: Pick<LiveDocument, 'content' | 'edit' | 'presence'>;
   // Where the caret is, for whoever else is at the document.
   onLocalSelectionChange: (selection: ParticipantSelection | null) => void;
 };
 
-export const LiveDocumentEditor = ({
+export const LiveRichTextDocumentEditor = ({
   liveDocument,
   onLocalSelectionChange,
   ...shared
-}: LiveDocumentEditorProps) => {
+}: LiveRichTextDocumentEditorProps) => {
   const { convertToProseMirror, proseMirrorSteps } =
     useContext(ProseMirrorContext);
   const { dispatchNotification } = useContext(NotificationsContext);
@@ -107,5 +107,5 @@ export const LiveDocumentEditor = ({
     [liveDocument, onLocalSelectionChange]
   );
 
-  return <EditorBase bindContent={bindContent} {...shared} />;
+  return <RichTextEditorBase bindContent={bindContent} {...shared} />;
 };

@@ -67,7 +67,6 @@ import {
   VersionedProjectNotFoundErrorTag,
 } from '../../../errors';
 import {
-  artifactKinds,
   canReferenceAssets,
   docRelToProjectRel,
   inferArtifactKindFromExtension,
@@ -145,7 +144,7 @@ const decodePlainText =
 type DocumentOps = Pick<
   ProjectStore,
   | 'createDocument'
-  | 'findDocumentById'
+  | 'findRichTextDocumentById'
   | 'findPlainTextDocumentById'
   | 'getDocumentLastChangeId'
   | 'updateRichTextDocumentContent'
@@ -153,14 +152,13 @@ type DocumentOps = Pick<
   | 'deleteDocument'
   | 'deleteDocuments'
   | 'getDocumentHistory'
-  | 'getDocumentAtChange'
+  | 'getRichTextDocumentAtChange'
   | 'getPlainTextDocumentAtChange'
   | 'isContentSameAtChanges'
   | 'discardUncommittedChanges'
   | 'resolveContentConflict'
   | 'lookupArtifactInProject'
-  | 'findDocumentByPath'
-  | 'readDocumentReferencedAssets'
+  | 'readRichTextDocumentReferencedAssets'
 >;
 
 export const createDocumentOps = ({
@@ -299,7 +297,7 @@ export const createDocumentOps = ({
     );
   };
 
-  const getDocumentAtCommit: (args: {
+  const getRichTextDocumentAtCommit: (args: {
     projectDir: string;
     documentPath: string;
     commitHash: GitCommitHash;
@@ -423,7 +421,7 @@ export const createDocumentOps = ({
       })
     );
 
-  const readDocumentFromWorkdir: (
+  const readRichTextFromWorkdir: (
     args: FindDocumentByIdArgs
   ) => Effect.Effect<
     ResolvedDocument,
@@ -459,13 +457,15 @@ export const createDocumentOps = ({
       )
     );
 
-  const findDocumentById: DocumentOps['findDocumentById'] = (args) =>
+  const findRichTextDocumentById: DocumentOps['findRichTextDocumentById'] = (
+    args
+  ) =>
     currentBranchMutex(
       whileDocumentRefIsCheckedOut({
         isoGitFs,
         projectId: args.projectId,
         documentId: args.documentId,
-      })(readDocumentFromWorkdir(args))
+      })(readRichTextFromWorkdir(args))
     );
 
   const readPlainTextFromWorkdir: (
@@ -506,7 +506,7 @@ export const createDocumentOps = ({
       })(readPlainTextFromWorkdir(args))
     );
 
-  const getDocumentFromFs: (
+  const getRichTextDocumentFromFs: (
     projectId: ProjectId,
     documentId: ArtifactId
   ) => Effect.Effect<
@@ -515,7 +515,7 @@ export const createDocumentOps = ({
     never
   > = (projectId, documentId) =>
     pipe(
-      readDocumentFromWorkdir({ projectId, documentId }),
+      readRichTextFromWorkdir({ projectId, documentId }),
       Effect.map((resolvedDocument) => resolvedDocument.artifact)
     );
 
@@ -714,10 +714,7 @@ export const createDocumentOps = ({
       Effect.bind('documentPath', () =>
         extractArtifactRelativePathFromId(documentId)
       ),
-      Effect.bind('document', () =>
-        readDocumentFromWorkdir({ projectId, documentId })
-      ),
-      Effect.flatMap(({ projectDir, documentPath, document }) =>
+      Effect.flatMap(({ projectDir, documentPath }) =>
         Effect.Do.pipe(
           Effect.bind('documentCommitHistory', () =>
             getDocumentCommitHistory({ documentPath, projectDir })
@@ -729,15 +726,6 @@ export const createDocumentOps = ({
             getDocumentChangeHistory({
               modified: isModified,
               commitHistory: documentCommitHistory,
-            })
-          ),
-          Effect.map(
-            ({ history, latestChange, lastCommit, hasUncommittedChanges }) => ({
-              history,
-              latestChange,
-              lastCommit,
-              current: document.artifact,
-              hasUncommittedChanges,
             })
           )
         )
@@ -783,19 +771,16 @@ export const createDocumentOps = ({
       )
     );
 
-  const getDocumentAtChange: DocumentOps['getDocumentAtChange'] = ({
-    projectId,
-    documentId,
-    changeId,
-  }) =>
-    isUncommittedChangeId(changeId)
-      ? getDocumentFromFs(projectId, documentId)
-      : readAtCommittedChange({
-          projectId,
-          documentId,
-          changeId,
-          readAtCommit: getDocumentAtCommit,
-        });
+  const getRichTextDocumentAtChange: DocumentOps['getRichTextDocumentAtChange'] =
+    ({ projectId, documentId, changeId }) =>
+      isUncommittedChangeId(changeId)
+        ? getRichTextDocumentFromFs(projectId, documentId)
+        : readAtCommittedChange({
+            projectId,
+            documentId,
+            changeId,
+            readAtCommit: getRichTextDocumentAtCommit,
+          });
 
   const getPlainTextDocumentAtChange: DocumentOps['getPlainTextDocumentAtChange'] =
     ({ projectId, documentId, changeId }) =>
@@ -817,7 +802,7 @@ export const createDocumentOps = ({
     never
   > = (projectId, documentId) =>
     pipe(
-      getDocumentFromFs(projectId, documentId),
+      getRichTextDocumentFromFs(projectId, documentId),
       Effect.flatMap(({ content }) =>
         Effect.tryPromise({
           try: () =>
@@ -924,7 +909,7 @@ export const createDocumentOps = ({
                     (val) => new ValidationError(`Invalid commit hash: ${val}`)
                   ),
                   Effect.flatMap((commitHash) =>
-                    getDocumentAtCommit({
+                    getRichTextDocumentAtCommit({
                       projectDir,
                       documentPath,
                       commitHash,
@@ -937,7 +922,7 @@ export const createDocumentOps = ({
                     (e) =>
                       e.data.parentCommitId
                         ? pipe(
-                            getDocumentAtCommit({
+                            getRichTextDocumentAtCommit({
                               projectDir,
                               documentPath,
                               commitHash: parseGitCommitHash(
@@ -1199,31 +1184,7 @@ export const createDocumentOps = ({
       )
     );
 
-  const findDocumentByPath: DocumentOps['findDocumentByPath'] = ({
-    projectId,
-    documentPath,
-    changeId,
-  }) =>
-    pipe(
-      Effect.succeed(documentPath),
-      Effect.filterOrFail(
-        (path) =>
-          inferArtifactKindFromExtension(path) ===
-          artifactKinds.RICH_TEXT_DOCUMENT,
-        () =>
-          new ValidationError(
-            `Path ${documentPath} is not a rich-text document`
-          )
-      ),
-      Effect.flatMap(() =>
-        lookupArtifactInProject({ projectId, path: documentPath, changeId })
-      ),
-      Effect.flatMap((documentId) =>
-        readDocumentFromWorkdir({ projectId, documentId })
-      )
-    );
-
-  const readDocumentReferencedAssets: DocumentOps['readDocumentReferencedAssets'] =
+  const readRichTextDocumentReferencedAssets: DocumentOps['readRichTextDocumentReferencedAssets'] =
     ({ projectId, documentId }) =>
       pipe(
         Effect.Do.pipe(
@@ -1274,7 +1235,7 @@ export const createDocumentOps = ({
 
   return {
     createDocument,
-    findDocumentById,
+    findRichTextDocumentById,
     findPlainTextDocumentById,
     getDocumentLastChangeId,
     updateRichTextDocumentContent,
@@ -1282,13 +1243,12 @@ export const createDocumentOps = ({
     deleteDocument,
     deleteDocuments,
     getDocumentHistory,
-    getDocumentAtChange,
+    getRichTextDocumentAtChange,
     getPlainTextDocumentAtChange,
     isContentSameAtChanges,
     discardUncommittedChanges,
     resolveContentConflict,
     lookupArtifactInProject,
-    findDocumentByPath,
-    readDocumentReferencedAssets,
+    readRichTextDocumentReferencedAssets,
   };
 };
