@@ -17,11 +17,11 @@ const DOCUMENT_EXTENSION =
   ].toLowerCase();
 
 // Classifies a file path by its extension: the primary rich-text
-// representation is a document, anything else is an asset.
+// representation is a document, anything else is a binary file.
 export const inferArtifactKindFromExtension = (path: string): ArtifactKind =>
   getExtension(path).toLowerCase() === DOCUMENT_EXTENSION
     ? artifactKinds.RICH_TEXT_DOCUMENT
-    : artifactKinds.ASSET;
+    : artifactKinds.BINARY_FILE;
 
 export type BaseArtifactMetaData = {
   id: ArtifactId;
@@ -32,14 +32,10 @@ export type ArtifactMetaData = BaseArtifactMetaData & {
   kind: ArtifactKind;
 };
 
-// An artifact known to be one kind or the other, so consumers holding a
+// An artifact known to be a rich-text document, so consumers holding a
 // collection of documents don't have to re-check what they already know.
 export type DocumentMetaData = ArtifactMetaData & {
   kind: typeof artifactKinds.RICH_TEXT_DOCUMENT;
-};
-
-export type AssetMetaData = ArtifactMetaData & {
-  kind: typeof artifactKinds.ASSET;
 };
 
 export const isDocumentMetaData = (
@@ -47,9 +43,6 @@ export const isDocumentMetaData = (
 ): artifact is DocumentMetaData =>
   artifact.kind === artifactKinds.RICH_TEXT_DOCUMENT;
 
-export const isAssetMetaData = (
-  artifact: ArtifactMetaData
-): artifact is AssetMetaData => artifact.kind === artifactKinds.ASSET;
 // A file as the project store lists it. Version control tracks these, so a
 // file has an artifact identity of its own.
 export type ProjectStoreFileNode = ArtifactMetaData & {
@@ -175,7 +168,7 @@ export const findNodeById = ({
     .find((node) => node.id === id) ?? null;
 
 // Filters a project tree to the files the editor can open, descending into
-// subdirectories and dropping assets with unsupported extensions.
+// subdirectories and dropping binary files.
 export const listOpenableArtifacts = (
   tree: ProjectStoreTreeNode[]
 ): ProjectStoreFileNode[] =>

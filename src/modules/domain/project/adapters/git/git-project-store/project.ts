@@ -28,11 +28,9 @@ import {
 } from '../../../errors';
 import {
   type ArtifactMetaData,
-  type AssetMetaData,
   CURRENT_PROJECT_SCHEMA_VERSION,
   type DocumentMetaData,
   inferArtifactKindFromExtension,
-  isAssetMetaData,
   isDocumentMetaData,
   parseProjectFsPath,
   parseProjectRelPathEffect,
@@ -117,28 +115,14 @@ export const findProjectById = ({
 }): ReturnType<ProjectStore['findProjectById']> =>
   pipe(
     listProjectArtifacts({ isoGitFs, filesystem, id }),
-    Effect.map((artifacts) =>
-      artifacts.reduce(
-        (acc, artifact) => {
-          if (isDocumentMetaData(artifact)) {
-            acc.documents[artifact.id] = artifact;
-          } else if (isAssetMetaData(artifact)) {
-            acc.assets[artifact.id] = artifact;
-          }
-
-          return acc;
-        },
-        {
-          documents: {} as Record<ArtifactId, DocumentMetaData>,
-          assets: {} as Record<ArtifactId, AssetMetaData>,
-        }
-      )
-    ),
-    Effect.map(({ documents, assets }) => ({
+    Effect.map((artifacts) => ({
       schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
       path: id,
-      documents,
-      assets,
+      documents: Object.fromEntries(
+        artifacts
+          .filter(isDocumentMetaData)
+          .map((document) => [document.id, document])
+      ) as Record<ArtifactId, DocumentMetaData>,
     }))
   );
 

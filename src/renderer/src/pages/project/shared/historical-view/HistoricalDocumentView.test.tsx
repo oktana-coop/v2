@@ -85,7 +85,7 @@ describe('HistoricalDocumentView', () => {
   });
 
   it('shows another kind of file as unsupported, without loading it', () => {
-    renderView({ path: 'image.png', kind: artifactKinds.ASSET });
+    renderView({ path: 'image.png', kind: artifactKinds.BINARY_FILE });
 
     expect(screen.getByText('Preview not available')).toBeTruthy();
     expect(getDocumentAtChange).not.toHaveBeenCalled();

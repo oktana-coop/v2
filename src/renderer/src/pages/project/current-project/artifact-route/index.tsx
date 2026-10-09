@@ -20,7 +20,7 @@ export const useCurrentArtifact = (): ArtifactMetaData =>
   useOutletContext<ArtifactOutletContext>().artifact;
 
 // Dispatches the artifact route by type: rich-text documents render the editor
-// subtree (Outlet), while anything else (e.g. image assets) renders a viewer.
+// subtree (Outlet), while anything else (e.g. images) renders a viewer.
 // For now non-documents fall back to the unsupported-document view. When the
 // artifact cannot be resolved, that is an unexpected state — we surface it in
 // the console and render the empty view rather than guessing.
@@ -43,7 +43,7 @@ export const ArtifactRoute = () => {
   }
 
   if (currentArtifact.kind !== artifactKinds.RICH_TEXT_DOCUMENT) {
-    // TODO: Use asset-specific views.
+    // TODO: Use views for binary files.
     return <UnsupportedDocumentView path={currentArtifact.path} />;
   }
 

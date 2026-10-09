@@ -38,7 +38,7 @@ export const useProjectHistoryArtifactSelection = () => {
 
         if (!ref) {
           throw new Error(
-            'Could not select asset because the current branch is not known'
+            'Could not select the file because the current branch is not known'
           );
         }
 

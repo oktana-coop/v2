@@ -29,7 +29,6 @@ import {
 } from '../errors';
 import {
   type ArtifactMetaData,
-  type AssetMetaData,
   type DocumentMetaData,
   type Project,
   type ProjectId,
@@ -457,13 +456,6 @@ export type ProjectStore = {
     args: LookupAssetByNameInProjectArgs
   ) => Effect.Effect<
     ArtifactId,
-    ValidationError | RepositoryError | NotFoundError | MigrationError,
-    never
-  >;
-  listProjectAssets: (
-    id: ProjectId
-  ) => Effect.Effect<
-    AssetMetaData[],
     ValidationError | RepositoryError | NotFoundError | MigrationError,
     never
   >;

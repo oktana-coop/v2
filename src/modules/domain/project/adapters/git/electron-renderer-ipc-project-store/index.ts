@@ -217,18 +217,6 @@ export const createAdapter = (): ProjectStore => ({
       >,
       RepositoryError
     )(window.projectStoreAPI.lookupAssetByName(...args)),
-  listProjectAssets: (...args: Parameters<ProjectStore['listProjectAssets']>) =>
-    effectifyIPCPromise(
-      {
-        [VersionedProjectValidationErrorTag]: ValidationError,
-        [VersionedProjectRepositoryErrorTag]: RepositoryError,
-        [VersionedProjectNotFoundErrorTag]: NotFoundError,
-        [VersionControlMigrationErrorTag]: MigrationError,
-      } as ErrorRegistry<
-        EffectErrorType<ReturnType<ProjectStore['listProjectAssets']>>
-      >,
-      RepositoryError
-    )(window.projectStoreAPI.listProjectAssets(...args)),
   readAssetBytes: (...args: Parameters<ProjectStore['readAssetBytes']>) =>
     effectifyIPCPromise(
       {

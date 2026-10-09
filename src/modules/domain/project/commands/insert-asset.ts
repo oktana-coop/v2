@@ -16,7 +16,7 @@ import {
   MigrationError,
 } from '../../../../modules/infrastructure/version-control';
 import { type AssetDocRelPath } from '../../rich-text';
-import { ASSET_FILE_EXTENSIONS } from '../constants';
+import { SUPPORTED_ASSET_EXTENSIONS } from '../constants';
 import {
   NotFoundError as VersionedProjectNotFoundError,
   RepositoryError as VersionedProjectRepositoryError,
@@ -83,7 +83,7 @@ export const insertAsset =
         )
       ),
       Effect.bind('file', () =>
-        openFile({ extensions: [...ASSET_FILE_EXTENSIONS] })
+        openFile({ extensions: [...SUPPORTED_ASSET_EXTENSIONS] })
       ),
       // Copy the asset into the project (if it isn't already there) and resolve
       // its project-relative path.

@@ -424,10 +424,10 @@ describe('CurrentArtifactVersioningProvider', () => {
     expect(contentChangeEvents.subscribe).not.toHaveBeenCalled();
   });
 
-  it('has no versioned document when the artifact is an asset', () => {
+  it('has no versioned document when the artifact is a binary file', () => {
     const image: ArtifactMetaData = {
       ...documentArtifact('assets/image.png'),
-      kind: artifactKinds.ASSET,
+      kind: artifactKinds.BINARY_FILE,
     };
 
     const { exposed } = renderVersioning({

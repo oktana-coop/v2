@@ -23,7 +23,6 @@ import {
 import { type ProjectId, type ProjectRelPath } from '../../../models';
 import { type ProjectStore } from '../../../ports';
 import { getCurrentBranch } from './branching';
-import { findProjectById } from './project';
 import { ensureProjectIdIsFsPath } from './project-id';
 
 export const readAssetBytes = ({
@@ -81,7 +80,6 @@ type AssetOps = Pick<
   | 'addAssetToProject'
   | 'deleteAssetFromProject'
   | 'lookupAssetByName'
-  | 'listProjectAssets'
   | 'readAssetBytes'
 >;
 
@@ -195,12 +193,6 @@ export const createAssetOps = ({
       })
     );
 
-  const listProjectAssets: AssetOps['listProjectAssets'] = (id) =>
-    pipe(
-      findProjectById({ isoGitFs, filesystem, id }),
-      Effect.map((project) => Object.values(project.assets))
-    );
-
   const readAssetBytesOp: AssetOps['readAssetBytes'] = (args) =>
     readAssetBytes({ filesystem, ...args });
 
@@ -213,7 +205,6 @@ export const createAssetOps = ({
     addAssetToProject,
     deleteAssetFromProject,
     lookupAssetByName,
-    listProjectAssets,
     readAssetBytes: readAssetBytesOp,
   };
 };
