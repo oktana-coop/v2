@@ -18,6 +18,7 @@ export const mockListDirectoryFiles = vi.fn();
 export const mockListDirectoryTree = vi.fn();
 export const mockGetAbsolutePath = vi.fn();
 export const mockReadTextFile = vi.fn();
+export const mockReadBinaryFile = vi.fn();
 export const mockWriteFile = vi.fn();
 export const mockCreateFile = vi.fn();
 export const mockDeleteFile = vi.fn();
@@ -29,6 +30,7 @@ export const mockFilesystem: Partial<Filesystem> = {
   listDirectoryTree: mockListDirectoryTree,
   getAbsolutePath: mockGetAbsolutePath,
   readTextFile: mockReadTextFile,
+  readBinaryFile: mockReadBinaryFile,
   writeFile: mockWriteFile,
   createFile: mockCreateFile,
   deleteFile: mockDeleteFile,

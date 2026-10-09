@@ -89,3 +89,9 @@ export class PendingEditsNotSavedError extends Cause.YieldableError {
     this.data = data;
   }
 }
+
+export const VersionedProjectTextDecodingErrorTag =
+  'VersionedProjectTextDecodingError';
+export class TextDecodingError extends Cause.YieldableError {
+  readonly _tag = VersionedProjectTextDecodingErrorTag;
+}

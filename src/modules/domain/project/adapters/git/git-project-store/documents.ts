@@ -4,6 +4,10 @@ import * as Option from 'effect/Option';
 import git, { type PromiseFsClient as IsoGitFsApi } from 'isomorphic-git';
 
 import {
+  parsePlainTextDocument,
+  type PlainTextDocument,
+} from '../../../../../../modules/domain/plain-text';
+import {
   type DocumentAnalysisError,
   DocumentAnalysisErrorTag,
   type DocumentAnalyzer,
@@ -57,6 +61,7 @@ import {
   DeletedDocumentError,
   NotFoundError,
   RepositoryError,
+  TextDecodingError,
   ValidationError,
   VersionedProjectDeletedDocumentErrorTag,
   VersionedProjectNotFoundErrorTag,
@@ -72,11 +77,7 @@ import {
   type ProjectRelPath,
   type ReferencedAsset,
 } from '../../../models';
-import {
-  type FindDocumentByIdArgs,
-  type ProjectStore,
-  type UpdateRichTextDocumentContentArgs,
-} from '../../../ports';
+import { type FindDocumentByIdArgs, type ProjectStore } from '../../../ports';
 import { extractArtifactRelativePathFromId } from './artifacts';
 import { readAssetBytes } from './assets';
 import { getCurrentBranch, whileDocumentRefIsCheckedOut } from './branching';
@@ -126,16 +127,34 @@ export const getDocumentReferencedAssetPaths = ({
   );
 };
 
+const decodePlainText =
+  (documentPath: string) =>
+  (
+    bytes: Uint8Array
+  ): Effect.Effect<PlainTextDocument, TextDecodingError, never> =>
+    pipe(
+      parsePlainTextDocument(bytes),
+      Effect.mapError(
+        (error) =>
+          new TextDecodingError(
+            `"${documentPath}" could not be read as text. ${error.message}.`
+          )
+      )
+    );
+
 type DocumentOps = Pick<
   ProjectStore,
   | 'createDocument'
   | 'findDocumentById'
+  | 'findPlainTextDocumentById'
   | 'getDocumentLastChangeId'
   | 'updateRichTextDocumentContent'
+  | 'updatePlainTextDocumentContent'
   | 'deleteDocument'
   | 'deleteDocuments'
   | 'getDocumentHistory'
   | 'getDocumentAtChange'
+  | 'getPlainTextDocumentAtChange'
   | 'isContentSameAtChanges'
   | 'discardUncommittedChanges'
   | 'resolveContentConflict'
@@ -213,12 +232,12 @@ export const createDocumentOps = ({
       })
     );
 
-  const getDocumentAtCommit: (args: {
+  const readDocumentBytesAtCommit: (args: {
     projectDir: string;
     documentPath: string;
     commitHash: GitCommitHash;
   }) => Effect.Effect<
-    RichTextDocument,
+    Uint8Array,
     RepositoryError | NotFoundError | DeletedDocumentError,
     never
   > = ({ projectDir, documentPath, commitHash }) => {
@@ -276,7 +295,21 @@ export const createDocumentOps = ({
             );
           })
         )
-      ),
+      )
+    );
+  };
+
+  const getDocumentAtCommit: (args: {
+    projectDir: string;
+    documentPath: string;
+    commitHash: GitCommitHash;
+  }) => Effect.Effect<
+    RichTextDocument,
+    RepositoryError | NotFoundError | DeletedDocumentError,
+    never
+  > = (args) =>
+    pipe(
+      readDocumentBytesAtCommit(args),
       Effect.flatMap((blob) =>
         Effect.try({
           try: () => Buffer.from(blob).toString('utf8'),
@@ -289,7 +322,20 @@ export const createDocumentOps = ({
         content,
       }))
     );
-  };
+
+  const getPlainTextDocumentAtCommit: (args: {
+    projectDir: string;
+    documentPath: string;
+    commitHash: GitCommitHash;
+  }) => Effect.Effect<
+    PlainTextDocument,
+    RepositoryError | NotFoundError | DeletedDocumentError | TextDecodingError,
+    never
+  > = (args) =>
+    pipe(
+      readDocumentBytesAtCommit(args),
+      Effect.flatMap(decodePlainText(args.documentPath))
+    );
 
   const getDocumentHashAtCommit: (args: {
     projectDir: string;
@@ -422,6 +468,44 @@ export const createDocumentOps = ({
       })(readDocumentFromWorkdir(args))
     );
 
+  const readPlainTextFromWorkdir: (
+    args: FindDocumentByIdArgs
+  ) => Effect.Effect<
+    PlainTextDocument,
+    ValidationError | RepositoryError | NotFoundError | TextDecodingError,
+    never
+  > = ({ projectId, documentId }) =>
+    pipe(
+      ensureProjectIdIsFsPath(projectId),
+      Effect.flatMap((projectDir) =>
+        buildDocumentAbsolutePathFromId({ projectDir, id: documentId })
+      ),
+      Effect.flatMap((documentPath) =>
+        pipe(
+          filesystem.readBinaryFile(documentPath),
+          Effect.mapError((error) =>
+            error._tag === FilesystemNotFoundErrorTag
+              ? new NotFoundError(`File with path ${documentPath} not found`)
+              : new RepositoryError('Git repo error')
+          ),
+          Effect.flatMap(({ content }) =>
+            decodePlainText(documentPath)(content)
+          )
+        )
+      )
+    );
+
+  const findPlainTextDocumentById: DocumentOps['findPlainTextDocumentById'] = (
+    args
+  ) =>
+    currentBranchMutex(
+      whileDocumentRefIsCheckedOut({
+        isoGitFs,
+        projectId: args.projectId,
+        documentId: args.documentId,
+      })(readPlainTextFromWorkdir(args))
+    );
+
   const getDocumentFromFs: (
     projectId: ProjectId,
     documentId: ArtifactId
@@ -505,9 +589,11 @@ export const createDocumentOps = ({
   // Writes the new content to the document's file in the workdir. The store
   // owns the workdir, so the target path is derived from the document id
   // rather than supplied by the caller.
-  const writeDocumentToWorkdir: (
-    args: UpdateRichTextDocumentContentArgs
-  ) => Effect.Effect<void, RepositoryError, never> = ({
+  const writeDocumentToWorkdir: (args: {
+    projectId: ProjectId;
+    documentId: ArtifactId;
+    content: string;
+  }) => Effect.Effect<void, RepositoryError, never> = ({
     projectId,
     documentId,
     content,
@@ -522,6 +608,16 @@ export const createDocumentOps = ({
     );
 
   const updateRichTextDocumentContent: DocumentOps['updateRichTextDocumentContent'] =
+    (args) =>
+      currentBranchMutex(
+        whileDocumentRefIsCheckedOut({
+          isoGitFs,
+          projectId: args.projectId,
+          documentId: args.documentId,
+        })(writeDocumentToWorkdir(args))
+      );
+
+  const updatePlainTextDocumentContent: DocumentOps['updatePlainTextDocumentContent'] =
     (args) =>
       currentBranchMutex(
         whileDocumentRefIsCheckedOut({
@@ -649,36 +745,68 @@ export const createDocumentOps = ({
     );
   };
 
+  const readAtCommittedChange = <A, E>({
+    projectId,
+    documentId,
+    changeId,
+    readAtCommit,
+  }: {
+    projectId: ProjectId;
+    documentId: ArtifactId;
+    changeId: Change['id'];
+    readAtCommit: (args: {
+      projectDir: string;
+      documentPath: string;
+      commitHash: GitCommitHash;
+    }) => Effect.Effect<A, E, never>;
+  }): Effect.Effect<A, E | ValidationError, never> =>
+    Effect.Do.pipe(
+      Effect.bind('projectDir', () => ensureProjectIdIsFsPath(projectId)),
+      Effect.bind('documentPath', () =>
+        extractArtifactRelativePathFromId(documentId)
+      ),
+      Effect.flatMap(({ projectDir, documentPath }) =>
+        pipe(
+          Effect.succeed(changeId),
+          Effect.filterOrFail(
+            isGitCommitHash,
+            (val) => new ValidationError(`Invalid commit hash: ${val}`)
+          ),
+          Effect.flatMap((commitHash) =>
+            readAtCommit({
+              projectDir,
+              documentPath,
+              commitHash,
+            })
+          )
+        )
+      )
+    );
+
   const getDocumentAtChange: DocumentOps['getDocumentAtChange'] = ({
     projectId,
     documentId,
     changeId,
-  }) => {
-    return isUncommittedChangeId(changeId)
+  }) =>
+    isUncommittedChangeId(changeId)
       ? getDocumentFromFs(projectId, documentId)
-      : Effect.Do.pipe(
-          Effect.bind('projectDir', () => ensureProjectIdIsFsPath(projectId)),
-          Effect.bind('documentPath', () =>
-            extractArtifactRelativePathFromId(documentId)
-          ),
-          Effect.flatMap(({ projectDir, documentPath }) =>
-            pipe(
-              Effect.succeed(changeId),
-              Effect.filterOrFail(
-                isGitCommitHash,
-                (val) => new ValidationError(`Invalid commit hash: ${val}`)
-              ),
-              Effect.flatMap((commitHash) =>
-                getDocumentAtCommit({
-                  projectDir,
-                  documentPath,
-                  commitHash,
-                })
-              )
-            )
-          )
-        );
-  };
+      : readAtCommittedChange({
+          projectId,
+          documentId,
+          changeId,
+          readAtCommit: getDocumentAtCommit,
+        });
+
+  const getPlainTextDocumentAtChange: DocumentOps['getPlainTextDocumentAtChange'] =
+    ({ projectId, documentId, changeId }) =>
+      isUncommittedChangeId(changeId)
+        ? readPlainTextFromWorkdir({ projectId, documentId })
+        : readAtCommittedChange({
+            projectId,
+            documentId,
+            changeId,
+            readAtCommit: getPlainTextDocumentAtCommit,
+          });
 
   const getUncommittedDocumentStateHash: (
     projectId: ProjectId,
@@ -836,7 +964,6 @@ export const createDocumentOps = ({
                 writeDocumentToWorkdir({
                   projectId,
                   documentId,
-                  representation: documentAtCommit.representation,
                   content: documentAtCommit.content,
                 })
               )
@@ -1148,12 +1275,15 @@ export const createDocumentOps = ({
   return {
     createDocument,
     findDocumentById,
+    findPlainTextDocumentById,
     getDocumentLastChangeId,
     updateRichTextDocumentContent,
+    updatePlainTextDocumentContent,
     deleteDocument,
     deleteDocuments,
     getDocumentHistory,
     getDocumentAtChange,
+    getPlainTextDocumentAtChange,
     isContentSameAtChanges,
     discardUncommittedChanges,
     resolveContentConflict,

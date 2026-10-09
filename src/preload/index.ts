@@ -305,12 +305,20 @@ contextBridge.exposeInMainWorld('projectStoreAPI', {
     ipcRenderer.invoke('project-store:find-document-by-id', {
       ...args,
     }),
+  findPlainTextDocumentById: (args) =>
+    ipcRenderer.invoke('project-store:find-plain-text-document-by-id', {
+      ...args,
+    }),
   getDocumentLastChangeId: (args) =>
     ipcRenderer.invoke('project-store:get-document-last-change-id', {
       ...args,
     }),
   updateRichTextDocumentContent: (args) =>
     ipcRenderer.invoke('project-store:update-rich-text-document-content', {
+      ...args,
+    }),
+  updatePlainTextDocumentContent: (args) =>
+    ipcRenderer.invoke('project-store:update-plain-text-document-content', {
       ...args,
     }),
   deleteDocument: (args) =>
@@ -321,6 +329,10 @@ contextBridge.exposeInMainWorld('projectStoreAPI', {
     }),
   getDocumentAtChange: (args) =>
     ipcRenderer.invoke('project-store:get-document-at-change', {
+      ...args,
+    }),
+  getPlainTextDocumentAtChange: (args) =>
+    ipcRenderer.invoke('project-store:get-plain-text-document-at-change', {
       ...args,
     }),
   isContentSameAtChanges: (args) =>

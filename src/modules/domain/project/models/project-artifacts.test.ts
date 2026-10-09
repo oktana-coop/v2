@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { filesystemEntryTypes } from '../../../infrastructure/filesystem';
 import { type ArtifactId } from '../../../infrastructure/version-control';
+import { artifactKinds } from './artifact-kind';
 import {
   areProjectTreesEqual,
   findFileNodeByPath,
@@ -35,6 +36,46 @@ const directory = ({
   children,
 });
 
+describe('inferArtifactKindFromExtension', () => {
+  it.each(['notes.md', 'notes.markdown', 'docs/NOTES.MD'])(
+    'classifies %s as a rich-text document',
+    (path) => {
+      expect(inferArtifactKindFromExtension(path)).toBe(
+        artifactKinds.RICH_TEXT_DOCUMENT
+      );
+    }
+  );
+
+  it.each([
+    'assets/image.png',
+    'assets/logo.svg',
+    'paper.pdf',
+    'photo.TIFF',
+    'report.docx',
+    'archive.zip',
+    'font.woff2',
+    'clip.mp4',
+  ])('classifies %s as a binary file', (path) => {
+    expect(inferArtifactKindFromExtension(path)).toBe(
+      artifactKinds.BINARY_FILE
+    );
+  });
+
+  it.each([
+    'config.yaml',
+    'config.yml',
+    'data.json',
+    'notes.txt',
+    'Makefile',
+    'v1.2/LICENSE',
+    'export.tar.gz.sha256',
+  ])('classifies %s as a plain-text document', (path) => {
+    expect(inferArtifactKindFromExtension(path)).toBe(
+      artifactKinds.PLAIN_TEXT_DOCUMENT
+    );
+  });
+});
+
 describe('listOpenableArtifacts', () => {
   it('keeps files with a supported (document) extension', () => {
     const tree = [file({ path: 'notes.md' })];
@@ -47,6 +88,7 @@ describe('listOpenableArtifacts', () => {
       file({ path: 'notes.md' }),
       file({ path: 'image.png' }),
       file({ path: 'archive.pdf' }),
+      file({ path: 'config.yaml' }),
     ];
 
     expect(listOpenableArtifacts(tree)).toEqual([file({ path: 'notes.md' })]);

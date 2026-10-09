@@ -6,8 +6,8 @@ import { type ProjectId } from '../../../../../modules/domain/project';
 import {
   type BinaryRichTextRepresentation,
   binaryRichTextRepresentations,
+  getDefaultRichTextRepresentationExtension,
   getDocumentRichTextContent,
-  richTextRepresentationExtensions,
   richTextRepresentations,
   type TextRichTextRepresentation,
 } from '../../../../../modules/domain/rich-text';
@@ -121,7 +121,7 @@ export const useExport = () => {
     Effect.runPromise(
       filesystem.createFileWithDialog({
         suggestedName: suggestedExportName ?? undefined,
-        extensions: [richTextRepresentationExtensions[representation]],
+        extensions: [getDefaultRichTextRepresentationExtension(representation)],
         content,
       })
     );

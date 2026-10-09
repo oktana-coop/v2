@@ -8,20 +8,33 @@ import {
   PRIMARY_RICH_TEXT_REPRESENTATION,
   richTextRepresentationExtensions,
 } from '../../rich-text';
+import { BINARY_FILE_EXTENSIONS } from '../constants';
 import { type ArtifactKind, artifactKinds } from './artifact-kind';
 import { type ProjectRelPath } from './project-rel-path';
 
-const DOCUMENT_EXTENSION =
-  richTextRepresentationExtensions[
-    PRIMARY_RICH_TEXT_REPRESENTATION
-  ].toLowerCase();
+const RICH_TEXT_DOCUMENT_EXTENSIONS = new Set(
+  richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION].map(
+    (extension) => extension.toLowerCase()
+  )
+);
 
-// Classifies a file path by its extension: the primary rich-text
-// representation is a document, anything else is a binary file.
-export const inferArtifactKindFromExtension = (path: string): ArtifactKind =>
-  getExtension(path).toLowerCase() === DOCUMENT_EXTENSION
-    ? artifactKinds.RICH_TEXT_DOCUMENT
-    : artifactKinds.BINARY_FILE;
+const BINARY_FILE_EXTENSION_SET = new Set(
+  BINARY_FILE_EXTENSIONS.map((extension) => extension.toLowerCase())
+);
+
+export const inferArtifactKindFromExtension = (path: string): ArtifactKind => {
+  const extension = getExtension(path).toLowerCase();
+
+  if (RICH_TEXT_DOCUMENT_EXTENSIONS.has(extension)) {
+    return artifactKinds.RICH_TEXT_DOCUMENT;
+  }
+
+  if (BINARY_FILE_EXTENSION_SET.has(extension)) {
+    return artifactKinds.BINARY_FILE;
+  }
+
+  return artifactKinds.PLAIN_TEXT_DOCUMENT;
+};
 
 export type BaseArtifactMetaData = {
   id: ArtifactId;
@@ -168,7 +181,7 @@ export const findNodeById = ({
     .find((node) => node.id === id) ?? null;
 
 // Filters a project tree to the files the editor can open, descending into
-// subdirectories and dropping binary files.
+// subdirectories: rich-text documents, for now.
 export const listOpenableArtifacts = (
   tree: ProjectStoreTreeNode[]
 ): ProjectStoreFileNode[] =>

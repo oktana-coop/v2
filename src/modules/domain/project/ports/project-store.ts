@@ -1,6 +1,7 @@
 import * as Effect from 'effect/Effect';
 import * as Stream from 'effect/Stream';
 
+import { type PlainTextDocument } from '../../../../modules/domain/plain-text';
 import type {
   ResolvedDocument,
   RichTextRepresentation,
@@ -25,6 +26,7 @@ import {
   DocumentNotOnCurrentRefError,
   NotFoundError,
   RepositoryError,
+  TextDecodingError,
   ValidationError,
 } from '../errors';
 import {
@@ -304,6 +306,12 @@ export type UpdateRichTextDocumentContentArgs = {
   projectId: ProjectId;
   documentId: ArtifactId;
   representation: RichTextRepresentation;
+  content: string;
+};
+
+export type UpdatePlainTextDocumentContentArgs = {
+  projectId: ProjectId;
+  documentId: ArtifactId;
   content: string;
 };
 
@@ -659,6 +667,24 @@ export type ProjectStore = {
     | DocumentNotOnCurrentRefError,
     never
   >;
+  findPlainTextDocumentById: (
+    args: FindDocumentByIdArgs
+  ) => Effect.Effect<
+    PlainTextDocument,
+    | ValidationError
+    | RepositoryError
+    | NotFoundError
+    | DocumentNotOnCurrentRefError
+    | TextDecodingError,
+    never
+  >;
+  updatePlainTextDocumentContent: (
+    args: UpdatePlainTextDocumentContentArgs
+  ) => Effect.Effect<
+    void,
+    ValidationError | RepositoryError | DocumentNotOnCurrentRefError,
+    never
+  >;
   projectContentChangeEvents: (
     args: ProjectContentChangeEventsArgs
   ) => Stream.Stream<void>;
@@ -685,6 +711,17 @@ export type ProjectStore = {
     | NotFoundError
     | MigrationError
     | DeletedDocumentError,
+    never
+  >;
+  getPlainTextDocumentAtChange: (
+    args: GetDocumentAtChangeArgs
+  ) => Effect.Effect<
+    PlainTextDocument,
+    | ValidationError
+    | RepositoryError
+    | NotFoundError
+    | DeletedDocumentError
+    | TextDecodingError,
     never
   >;
   isContentSameAtChanges: (

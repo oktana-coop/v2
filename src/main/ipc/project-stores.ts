@@ -58,6 +58,7 @@ import {
   type RenameDirectoryArgs,
   type RenameDocumentInProjectArgs,
   type ResolveContentConflictArgs,
+  type UpdatePlainTextDocumentContentArgs,
   type UpdateRichTextDocumentContentArgs,
 } from '../../modules/domain/project/node';
 import { type DocumentAnalyzer } from '../../modules/domain/rich-text';
@@ -723,6 +724,19 @@ const registerProjectStoreEvents = ({
   );
 
   ipcMain.handle(
+    'project-store:find-plain-text-document-by-id',
+    async (_, args: FindDocumentByIdArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.findPlainTextDocumentById(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
     'project-store:get-document-last-change-id',
     async (_, args: GetDocumentLastChangeIdArgs) =>
       runPromiseSerializingErrorsForIPC(
@@ -743,6 +757,19 @@ const registerProjectStoreEvents = ({
           validateProjectIdAndGetProjectStore(args.projectId),
           Effect.flatMap((projectStore) =>
             projectStore.updateRichTextDocumentContent(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'project-store:update-plain-text-document-content',
+    async (_, args: UpdatePlainTextDocumentContentArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.updatePlainTextDocumentContent(args)
           )
         )
       )
@@ -780,6 +807,19 @@ const registerProjectStoreEvents = ({
           validateProjectIdAndGetProjectStore(args.projectId),
           Effect.flatMap((projectStore) =>
             projectStore.getDocumentAtChange(args)
+          )
+        )
+      )
+  );
+
+  ipcMain.handle(
+    'project-store:get-plain-text-document-at-change',
+    async (_, args: GetDocumentAtChangeArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        pipe(
+          validateProjectIdAndGetProjectStore(args.projectId),
+          Effect.flatMap((projectStore) =>
+            projectStore.getPlainTextDocumentAtChange(args)
           )
         )
       )

@@ -1645,6 +1645,32 @@ test.describe('unsupported file types', () => {
     await expect(window.getByText('Preview not available')).not.toBeVisible();
   });
 
+  test('a .markdown file opens in the editor like a .md file', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    fs.writeFileSync(
+      path.join(testProjectDir, 'notes.markdown'),
+      '# Notes\n\nWritten with the longer extension.\n'
+    );
+
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    await window.getByText('notes.markdown').click();
+
+    await expect(
+      window
+        .locator('.ProseMirror')
+        .getByText('Written with the longer extension.')
+    ).toBeVisible({ timeout: 2_000 });
+    await expect(window.getByText('Preview not available')).not.toBeVisible();
+  });
+
   test('switching from .md file to unsupported file shows the placeholder', async ({
     electronApp,
     window,

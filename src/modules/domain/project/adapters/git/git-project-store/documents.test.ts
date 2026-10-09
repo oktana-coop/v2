@@ -25,6 +25,7 @@ import {
   VersionedProjectDocumentNotOnCurrentRefErrorTag,
   VersionedProjectNotFoundErrorTag,
   VersionedProjectRepositoryErrorTag,
+  VersionedProjectTextDecodingErrorTag,
   VersionedProjectValidationErrorTag,
 } from '../../../errors';
 import { parseProjectRelPath, type ProjectId } from '../../../models';
@@ -33,6 +34,7 @@ import {
   mockCreateFile,
   mockGetAbsolutePath,
   mockListDirectoryFiles,
+  mockReadBinaryFile,
   mockReadTextFile,
   mockWriteFile,
   PROJECT_PATH,
@@ -1236,6 +1238,339 @@ describe('documents', () => {
         );
 
         expect(error._tag).toBe(VersionedProjectValidationErrorTag);
+      });
+    });
+  });
+
+  describe('findPlainTextDocumentById', () => {
+    const store = buildTestStore();
+    const docId = '/blob/main/config.yaml' as ArtifactId;
+
+    beforeEach(() => {
+      mockGetAbsolutePath.mockReturnValue(
+        Effect.succeed(`${PROJECT_PATH}/config.yaml`)
+      );
+      mockIsRefCheckedOut.mockReturnValue(Effect.succeed(true));
+      mockGetCurrentBranch.mockReturnValue(Effect.succeed('main'));
+    });
+
+    it('reads the text as stored, line endings and byte order mark included', async () => {
+      mockReadBinaryFile.mockReturnValue(
+        Effect.succeed({
+          content: textEncoder.encode('\uFEFFname: v2\r\nkind: editor\r\n'),
+        })
+      );
+
+      const document = await Effect.runPromise(
+        store.findPlainTextDocumentById({
+          projectId: PROJECT_PATH,
+          documentId: docId,
+        })
+      );
+
+      expect(document).toEqual({
+        content: '\uFEFFname: v2\r\nkind: editor\r\n',
+      });
+    });
+
+    it('fails with TextDecodingError when the file does not hold text', async () => {
+      mockReadBinaryFile.mockReturnValue(
+        Effect.succeed({ content: new Uint8Array([0x89, 0x50, 0x00, 0xff]) })
+      );
+
+      const failure = await Effect.runPromise(
+        Effect.flip(
+          store.findPlainTextDocumentById({
+            projectId: PROJECT_PATH,
+            documentId: docId,
+          })
+        )
+      );
+
+      expect(failure._tag).toBe(VersionedProjectTextDecodingErrorTag);
+    });
+
+    it('refuses a document whose ref is not checked out, without reading its file', async () => {
+      mockIsRefCheckedOut.mockReturnValue(Effect.succeed(false));
+      mockGetCurrentBranch.mockReturnValue(Effect.succeed('draft'));
+
+      const failure = await Effect.runPromise(
+        Effect.flip(
+          store.findPlainTextDocumentById({
+            projectId: PROJECT_PATH,
+            documentId: docId,
+          })
+        )
+      );
+
+      expect(failure._tag).toBe(
+        VersionedProjectDocumentNotOnCurrentRefErrorTag
+      );
+      expect(failure).toHaveProperty('data', { currentBranch: 'draft' });
+      expect(mockReadBinaryFile).not.toHaveBeenCalled();
+    });
+
+    it('refuses a document whose ref stops being checked out while its file is read', async () => {
+      mockReadBinaryFile.mockReturnValue(
+        Effect.succeed({ content: textEncoder.encode('name: v2\n') })
+      );
+      mockIsRefCheckedOut
+        .mockReturnValueOnce(Effect.succeed(true))
+        .mockReturnValueOnce(Effect.succeed(false));
+      mockGetCurrentBranch.mockReturnValue(Effect.succeed('draft'));
+
+      const failure = await Effect.runPromise(
+        Effect.flip(
+          store.findPlainTextDocumentById({
+            projectId: PROJECT_PATH,
+            documentId: docId,
+          })
+        )
+      );
+
+      expect(failure._tag).toBe(
+        VersionedProjectDocumentNotOnCurrentRefErrorTag
+      );
+      expect(mockIsRefCheckedOut).toHaveBeenCalledTimes(2);
+    });
+
+    it('fails with NotFoundError when the project has no such document', async () => {
+      mockReadBinaryFile.mockReturnValue(
+        Effect.fail(new FilesystemNotFoundError('no such file'))
+      );
+
+      const failure = await Effect.runPromise(
+        Effect.flip(
+          store.findPlainTextDocumentById({
+            projectId: PROJECT_PATH,
+            documentId: docId,
+          })
+        )
+      );
+
+      expect(failure._tag).toBe(VersionedProjectNotFoundErrorTag);
+    });
+
+    it('fails with RepositoryError when the file cannot be read', async () => {
+      mockReadBinaryFile.mockReturnValue(
+        Effect.fail(new FilesystemRepositoryError('disk is unhappy'))
+      );
+
+      const failure = await Effect.runPromise(
+        Effect.flip(
+          store.findPlainTextDocumentById({
+            projectId: PROJECT_PATH,
+            documentId: docId,
+          })
+        )
+      );
+
+      expect(failure._tag).toBe(VersionedProjectRepositoryErrorTag);
+    });
+  });
+
+  describe('updatePlainTextDocumentContent', () => {
+    const store = buildTestStore();
+    const docId = '/blob/main/config.yaml' as ArtifactId;
+
+    beforeEach(() => {
+      mockGetAbsolutePath.mockReturnValue(
+        Effect.succeed(`${PROJECT_PATH}/config.yaml`)
+      );
+      mockIsRefCheckedOut.mockReturnValue(Effect.succeed(true));
+      mockGetCurrentBranch.mockReturnValue(Effect.succeed('main'));
+      mockWriteFile.mockReturnValue(Effect.succeed(undefined));
+    });
+
+    it('writes the text as given', async () => {
+      await Effect.runPromise(
+        store.updatePlainTextDocumentContent({
+          projectId: PROJECT_PATH,
+          documentId: docId,
+          content: 'name: v2\r\n',
+        })
+      );
+
+      expect(mockWriteFile).toHaveBeenCalledWith({
+        path: `${PROJECT_PATH}/config.yaml`,
+        content: 'name: v2\r\n',
+      });
+    });
+
+    it('refuses a document whose ref is not checked out, without writing its file', async () => {
+      mockIsRefCheckedOut.mockReturnValue(Effect.succeed(false));
+      mockGetCurrentBranch.mockReturnValue(Effect.succeed('draft'));
+
+      const failure = await Effect.runPromise(
+        Effect.flip(
+          store.updatePlainTextDocumentContent({
+            projectId: PROJECT_PATH,
+            documentId: docId,
+            content: 'name: v2\n',
+          })
+        )
+      );
+
+      expect(failure._tag).toBe(
+        VersionedProjectDocumentNotOnCurrentRefErrorTag
+      );
+      expect(failure).toHaveProperty('data', { currentBranch: 'draft' });
+      expect(mockWriteFile).not.toHaveBeenCalled();
+    });
+
+    it('fails, after writing, when the ref stops being checked out while its file is written', async () => {
+      mockIsRefCheckedOut
+        .mockReturnValueOnce(Effect.succeed(true))
+        .mockReturnValueOnce(Effect.succeed(false));
+      mockGetCurrentBranch.mockReturnValue(Effect.succeed('draft'));
+
+      const failure = await Effect.runPromise(
+        Effect.flip(
+          store.updatePlainTextDocumentContent({
+            projectId: PROJECT_PATH,
+            documentId: docId,
+            content: 'name: v2\n',
+          })
+        )
+      );
+
+      expect(failure._tag).toBe(
+        VersionedProjectDocumentNotOnCurrentRefErrorTag
+      );
+      expect(mockWriteFile).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('getPlainTextDocumentAtChange', () => {
+    const docPath = 'config.yaml';
+
+    describe('when changeId is a commit hash', () => {
+      const commitHash = 'abc1234';
+      const docId = `/blob/${commitHash}/${docPath}` as ArtifactId;
+      const commitOid = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+
+      it('returns the text at the given commit as stored', async () => {
+        mockResolveRef.mockResolvedValue(commitOid);
+        mockReadBlob.mockResolvedValue({
+          oid: 'bloboid',
+          blob: textEncoder.encode('name: v2\r\n'),
+        } as Awaited<ReturnType<typeof git.readBlob>>);
+
+        const document = await Effect.runPromise(
+          store.getPlainTextDocumentAtChange({
+            projectId,
+            documentId: docId,
+            changeId: commitHash as ChangeId,
+          })
+        );
+
+        expect(document).toEqual({ content: 'name: v2\r\n' });
+      });
+
+      it('fails with TextDecodingError when the commit holds bytes that are not text', async () => {
+        mockResolveRef.mockResolvedValue(commitOid);
+        mockReadBlob.mockResolvedValue({
+          oid: 'bloboid',
+          blob: new Uint8Array([0x61, 0xff, 0x62]),
+        } as Awaited<ReturnType<typeof git.readBlob>>);
+
+        const error = await Effect.runPromise(
+          store
+            .getPlainTextDocumentAtChange({
+              projectId,
+              documentId: docId,
+              changeId: commitHash as ChangeId,
+            })
+            .pipe(Effect.flip)
+        );
+
+        expect(error._tag).toBe(VersionedProjectTextDecodingErrorTag);
+      });
+
+      it('fails with DeletedDocumentError when the document existed in the parent but not at the commit', async () => {
+        const parentOid = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+
+        mockResolveRef.mockResolvedValue(commitOid);
+        mockReadBlob
+          .mockRejectedValueOnce(new IsoGitErrors.NotFoundError('not found'))
+          .mockResolvedValueOnce({
+            oid: 'bloboid',
+            blob: textEncoder.encode('name: v1\n'),
+          } as Awaited<ReturnType<typeof git.readBlob>>);
+        mockReadCommit.mockResolvedValue({
+          commit: { parent: [parentOid] },
+        } as Awaited<ReturnType<typeof git.readCommit>>);
+
+        const error = await Effect.runPromise(
+          store
+            .getPlainTextDocumentAtChange({
+              projectId,
+              documentId: docId,
+              changeId: commitHash as ChangeId,
+            })
+            .pipe(Effect.flip)
+        );
+
+        expect(error._tag).toBe(VersionedProjectDeletedDocumentErrorTag);
+        expect(error).toHaveProperty('data', { parentCommitId: parentOid });
+      });
+
+      it('fails with ValidationError for an invalid commit hash', async () => {
+        const error = await Effect.runPromise(
+          store
+            .getPlainTextDocumentAtChange({
+              projectId,
+              documentId: docId,
+              changeId: 'not-a-hash!' as ChangeId,
+            })
+            .pipe(Effect.flip)
+        );
+
+        expect(error._tag).toBe(VersionedProjectValidationErrorTag);
+      });
+    });
+
+    describe('when changeId is uncommitted', () => {
+      const docId = `/blob/main/${docPath}` as ArtifactId;
+
+      beforeEach(() => {
+        mockGetAbsolutePath.mockReturnValue(
+          Effect.succeed(`${projectDir}/${docPath}`)
+        );
+      });
+
+      it('returns the current text from the filesystem', async () => {
+        mockReadBinaryFile.mockReturnValue(
+          Effect.succeed({ content: textEncoder.encode('name: v2\n') })
+        );
+
+        const document = await Effect.runPromise(
+          store.getPlainTextDocumentAtChange({
+            projectId,
+            documentId: docId,
+            changeId: UNCOMMITTED_CHANGE_ID,
+          })
+        );
+
+        expect(document).toEqual({ content: 'name: v2\n' });
+      });
+
+      it('fails with TextDecodingError when the file does not hold text', async () => {
+        mockReadBinaryFile.mockReturnValue(
+          Effect.succeed({ content: new Uint8Array([0x61, 0x00]) })
+        );
+
+        const error = await Effect.runPromise(
+          store
+            .getPlainTextDocumentAtChange({
+              projectId,
+              documentId: docId,
+              changeId: UNCOMMITTED_CHANGE_ID,
+            })
+            .pipe(Effect.flip)
+        );
+
+        expect(error._tag).toBe(VersionedProjectTextDecodingErrorTag);
       });
     });
   });

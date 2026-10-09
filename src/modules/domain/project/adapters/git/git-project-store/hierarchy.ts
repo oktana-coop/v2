@@ -71,7 +71,7 @@ export const createHierarchyOps = ({
               filesystem.listDirectoryTree({
                 path: projectDir,
                 extensions: [
-                  richTextRepresentationExtensions[
+                  ...richTextRepresentationExtensions[
                     PRIMARY_RICH_TEXT_REPRESENTATION
                   ],
                 ],

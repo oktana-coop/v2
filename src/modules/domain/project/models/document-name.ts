@@ -7,8 +7,8 @@ import {
   parseEntryNameEffect,
 } from '../../../infrastructure/filesystem';
 import {
+  getDefaultRichTextRepresentationExtension,
   PRIMARY_RICH_TEXT_REPRESENTATION,
-  richTextRepresentationExtensions,
 } from '../../rich-text';
 import { ValidationError } from '../errors';
 
@@ -45,8 +45,9 @@ export const getNewDocumentName = ({
 }: {
   namesInDirectory: string[];
 }): string => {
-  const extension =
-    richTextRepresentationExtensions[PRIMARY_RICH_TEXT_REPRESENTATION];
+  const extension = getDefaultRichTextRepresentationExtension(
+    PRIMARY_RICH_TEXT_REPRESENTATION
+  );
   const takenNames = new Set(
     namesInDirectory.map((name) => name.toLowerCase())
   );

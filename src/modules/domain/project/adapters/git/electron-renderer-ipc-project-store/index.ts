@@ -24,11 +24,13 @@ import {
   DocumentNotOnCurrentRefError,
   NotFoundError,
   RepositoryError,
+  TextDecodingError,
   ValidationError,
   VersionedProjectDeletedDocumentErrorTag,
   VersionedProjectDocumentNotOnCurrentRefErrorTag,
   VersionedProjectNotFoundErrorTag,
   VersionedProjectRepositoryErrorTag,
+  VersionedProjectTextDecodingErrorTag,
   VersionedProjectValidationErrorTag,
 } from '../../../errors';
 import { ProjectStore } from '../../../ports';
@@ -583,6 +585,22 @@ export const createAdapter = (): ProjectStore => ({
       >,
       RepositoryError
     )(window.projectStoreAPI.findDocumentById(...args)),
+  findPlainTextDocumentById: (
+    ...args: Parameters<ProjectStore['findPlainTextDocumentById']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionedProjectDocumentNotOnCurrentRefErrorTag]:
+          DocumentNotOnCurrentRefError,
+        [VersionedProjectTextDecodingErrorTag]: TextDecodingError,
+      } as ErrorRegistry<
+        EffectErrorType<ReturnType<ProjectStore['findPlainTextDocumentById']>>
+      >,
+      RepositoryError
+    )(window.projectStoreAPI.findPlainTextDocumentById(...args)),
   getDocumentLastChangeId: (
     ...args: Parameters<ProjectStore['getDocumentLastChangeId']>
   ) =>
@@ -615,6 +633,22 @@ export const createAdapter = (): ProjectStore => ({
       >,
       RepositoryError
     )(window.projectStoreAPI.updateRichTextDocumentContent(...args)),
+  updatePlainTextDocumentContent: (
+    ...args: Parameters<ProjectStore['updatePlainTextDocumentContent']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectDocumentNotOnCurrentRefErrorTag]:
+          DocumentNotOnCurrentRefError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<ProjectStore['updatePlainTextDocumentContent']>
+        >
+      >,
+      RepositoryError
+    )(window.projectStoreAPI.updatePlainTextDocumentContent(...args)),
   deleteDocument: (...args: Parameters<ProjectStore['deleteDocument']>) =>
     effectifyIPCPromise(
       {
@@ -656,6 +690,23 @@ export const createAdapter = (): ProjectStore => ({
       >,
       RepositoryError
     )(window.projectStoreAPI.getDocumentAtChange(...args)),
+  getPlainTextDocumentAtChange: (
+    ...args: Parameters<ProjectStore['getPlainTextDocumentAtChange']>
+  ) =>
+    effectifyIPCPromise(
+      {
+        [VersionedProjectValidationErrorTag]: ValidationError,
+        [VersionedProjectRepositoryErrorTag]: RepositoryError,
+        [VersionedProjectNotFoundErrorTag]: NotFoundError,
+        [VersionedProjectDeletedDocumentErrorTag]: DeletedDocumentError,
+        [VersionedProjectTextDecodingErrorTag]: TextDecodingError,
+      } as ErrorRegistry<
+        EffectErrorType<
+          ReturnType<ProjectStore['getPlainTextDocumentAtChange']>
+        >
+      >,
+      RepositoryError
+    )(window.projectStoreAPI.getPlainTextDocumentAtChange(...args)),
   isContentSameAtChanges: (
     ...args: Parameters<ProjectStore['isContentSameAtChanges']>
   ) =>

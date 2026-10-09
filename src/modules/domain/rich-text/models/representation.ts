@@ -33,15 +33,22 @@ export type BinaryRichTextRepresentation = ValueOf<
 >;
 export type RichTextRepresentation = ValueOf<typeof richTextRepresentations>;
 
-export const richTextRepresentationExtensions = {
-  AUTOMERGE: 'json',
-  PANDOC: 'txt',
-  MARKDOWN: 'md',
-  HTML: 'html',
-  PROSEMIRROR: 'json',
-  DOCX: 'docx',
-  PDF: 'pdf',
+export const richTextRepresentationExtensions: Record<
+  RichTextRepresentation,
+  readonly [string, ...string[]]
+> = {
+  AUTOMERGE: ['json'],
+  PANDOC: ['txt'],
+  MARKDOWN: ['md', 'markdown'],
+  HTML: ['html'],
+  PROSEMIRROR: ['json'],
+  DOCX: ['docx'],
+  PDF: ['pdf'],
 };
+
+export const getDefaultRichTextRepresentationExtension = (
+  representation: RichTextRepresentation
+): string => richTextRepresentationExtensions[representation][0];
 
 export const PRIMARY_RICH_TEXT_REPRESENTATION =
   buildConfig.primaryRichTextRepresentation ?? richTextRepresentations.MARKDOWN;
