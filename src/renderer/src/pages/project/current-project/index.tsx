@@ -3,9 +3,9 @@ import { Outlet, useNavigate } from 'react-router';
 
 import {
   type ShareId,
-  urlEncodeProjectId,
   urlEncodeShareId,
-} from '../../../../../modules/domain/project';
+} from '../../../../../modules/domain/collaboration';
+import { urlEncodeProjectId } from '../../../../../modules/domain/project';
 import { removePath } from '../../../../../modules/infrastructure/filesystem';
 import { urlEncodeArtifactId } from '../../../../../modules/infrastructure/version-control';
 import {

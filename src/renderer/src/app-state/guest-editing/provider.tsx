@@ -5,10 +5,12 @@ import { useNavigate } from 'react-router';
 
 import {
   leaveDocumentAsGuest,
-  type NamedLiveDocument,
-  openDocumentAsGuest,
   SharedDocumentUnavailableErrorTag,
   type ShareId,
+} from '../../../../modules/domain/collaboration';
+import {
+  type NamedLiveRichTextDocument,
+  openLiveRichTextDocumentAsGuest,
 } from '../../../../modules/domain/project';
 import { createPrivateConvergentDocument } from '../../../../modules/domain/rich-text/adapters/automerge-convergent-document';
 import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
@@ -26,7 +28,7 @@ import { useCurrentShareId } from './use-current-share-id';
 // How opening the share in the route went: the document, or what to tell the
 // user. The entry stays listed either way; leaving is the user's call.
 type OpenOutcome =
-  | { document: NamedLiveDocument }
+  | { document: NamedLiveRichTextDocument }
   | { document: null; notification: Notification };
 
 export const GuestEditingProvider = ({
@@ -47,11 +49,10 @@ export const GuestEditingProvider = ({
   const navigate = useNavigate();
   const shareId = useCurrentShareId();
 
-  const [liveDocument, setLiveDocument] = useState<NamedLiveDocument | null>(
-    null
-  );
+  const [liveDocument, setLiveDocument] =
+    useState<NamedLiveRichTextDocument | null>(null);
   // The document to close when the route moves on, unless leaving closed it.
-  const openedRef = useRef<NamedLiveDocument | null>(null);
+  const openedRef = useRef<NamedLiveRichTextDocument | null>(null);
   const onLocalSelectionChange = usePublishLocalPresence(liveDocument);
   const [isSharingDialogOpen, setIsSharingDialogOpen] = useState(false);
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
@@ -64,7 +65,7 @@ export const GuestEditingProvider = ({
 
     let cancelled = false;
 
-    const close = (document: NamedLiveDocument) =>
+    const close = (document: NamedLiveRichTextDocument) =>
       Effect.runPromise(
         pipe(document.applyPendingLocalEdits, Effect.ensuring(document.close))
       ).catch((error) => {
@@ -79,11 +80,11 @@ export const GuestEditingProvider = ({
 
     Effect.runPromise(
       pipe(
-        openDocumentAsGuest({
+        openLiveRichTextDocumentAsGuest({
           getSharedDocumentInfo: documentSharing.getSharedDocumentInfo,
           openSharedDocument: documentSharing.openSharedDocument,
-          createPrivateDocument: (initialText) =>
-            createPrivateConvergentDocument({ initialText, privateRepo }),
+          createPrivateDocument: (initialDocument) =>
+            createPrivateConvergentDocument({ initialDocument, privateRepo }),
           transformToText: representationTransformAdapter.transformToText,
         })({ shareId }),
         Effect.map((document): OpenOutcome => ({ document })),

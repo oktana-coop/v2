@@ -2,17 +2,14 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
 import {
-  type DocumentShareKey,
   type DocumentSharing,
-  type ShareRegistry,
-} from '../ports';
-import {
-  type LiveDocument,
+  type EditableLiveDocument,
   type LocalEditsContributionError,
-} from './live-document';
+} from '../../collaboration';
+import { type DocumentShareKey, type ShareRegistry } from '../ports';
 
 export type LeaveSharedDocumentDeps = {
-  liveDocument: Pick<LiveDocument, 'detach'>;
+  liveDocument: Pick<EditableLiveDocument, 'detach'>;
   findShareId: ShareRegistry['findShareId'];
   forgetShare: ShareRegistry['forgetShare'];
   leaveSharedDocument: DocumentSharing['leaveSharedDocument'];

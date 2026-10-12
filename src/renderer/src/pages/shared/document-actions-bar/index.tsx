@@ -1,4 +1,4 @@
-import { type Participant } from '../../../../../modules/domain/rich-text';
+import { type Participant } from '../../../../../modules/domain/collaboration';
 import { IconButton } from '../../../components/actions/IconButton';
 import {
   CheckIcon,

@@ -13,9 +13,9 @@ import { useFakeTimersInTest } from '../../../../../utils/test-utils';
 import { parseUsername } from '../../../../auth';
 import {
   type ConvergentDocumentVersion,
-  type ParticipantSelection,
   type RemotePresence,
-} from '../../models';
+} from '../../../collaboration';
+import { type ParticipantSelection } from '../../models';
 import { schema } from '../schema';
 import { type LiveSyncState } from '../sync/live-sync-plugin';
 import { doc, para } from '../test-utils';
@@ -42,7 +42,9 @@ const selectionAt = ({
   version: ConvergentDocumentVersion;
 }): ParticipantSelection => ({ anchor: position, head: position, version });
 
-const peerWithoutSelection = (name: string): RemotePresence => ({
+const peerWithoutSelection = (
+  name: string
+): RemotePresence<ParticipantSelection> => ({
   peerId: name.toLowerCase(),
   participant: { name: parseUsername(name), email: null, avatarUrl: null },
   selection: null,
@@ -56,14 +58,16 @@ const peerAt = ({
   name: string;
   position: number;
   version: ConvergentDocumentVersion;
-}): RemotePresence => ({
+}): RemotePresence<ParticipantSelection> => ({
   ...peerWithoutSelection(name),
   selection: selectionAt({ position, version }),
 });
 
 const setUpEditor = async () => {
   const peers = await Effect.runPromise(
-    SubscriptionRef.make<ReadonlyArray<RemotePresence>>([])
+    SubscriptionRef.make<ReadonlyArray<RemotePresence<ParticipantSelection>>>(
+      []
+    )
   );
   const publish = vi.fn<(selection: ParticipantSelection | null) => void>();
 
@@ -102,7 +106,7 @@ const setUpEditor = async () => {
   return {
     view,
     publish,
-    setPeers: async (list: RemotePresence[]) => {
+    setPeers: async (list: RemotePresence<ParticipantSelection>[]) => {
       await Effect.runPromise(SubscriptionRef.set(peers, list));
       await vi.runAllTimersAsync();
     },

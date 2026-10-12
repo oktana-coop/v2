@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { useNavigate } from 'react-router';
 
-import { urlEncodeShareId } from '../../../../modules/domain/project';
+import { urlEncodeShareId } from '../../../../modules/domain/collaboration';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import {
   CommandPaletteContext,

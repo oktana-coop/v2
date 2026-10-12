@@ -4,7 +4,7 @@ import { useParams } from 'react-router';
 import {
   decodeUrlEncodedShareId,
   type ShareId,
-} from '../../../../modules/domain/project';
+} from '../../../../modules/domain/collaboration';
 
 export const useCurrentShareId = (): ShareId | null => {
   const { shareId } = useParams();

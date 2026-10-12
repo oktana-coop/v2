@@ -1,12 +1,14 @@
 import * as Effect from 'effect/Effect';
 import { describe, expect, it, vi } from 'vitest';
 
-import { RepresentationTransformError } from '../../../../modules/domain/rich-text';
 import {
   type ArtifactId,
   type Branch,
 } from '../../../../modules/infrastructure/version-control';
-import { SharedDocumentUnavailableError } from '../errors';
+import {
+  LocalEditsContributionError,
+  SharedDocumentUnavailableError,
+} from '../../collaboration';
 import { type ProjectId } from '../models';
 import {
   leaveSharedDocument,
@@ -64,12 +66,12 @@ describe('leaveSharedDocument', () => {
   it('keeps the share when the document refuses to detach', async () => {
     const { leave, detach, forgetShare, released } = await setUpLeave();
     detach.mockReturnValueOnce(
-      Effect.fail(new RepresentationTransformError('the conversion failed'))
+      Effect.fail(new LocalEditsContributionError('the conversion failed'))
     );
 
     const failure = await Effect.runPromise(Effect.flip(leave));
 
-    expect(failure).toBeInstanceOf(RepresentationTransformError);
+    expect(failure).toBeInstanceOf(LocalEditsContributionError);
     expect(forgetShare).not.toHaveBeenCalled();
     expect(released).not.toHaveBeenCalled();
   });

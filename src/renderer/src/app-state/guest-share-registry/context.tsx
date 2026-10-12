@@ -1,10 +1,10 @@
 import { createContext, useState, useSyncExternalStore } from 'react';
 
 import {
-  createBrowserLocalStorageGuestShareRegistryAdapter,
   type GuestShare,
   type GuestShareRegistry,
-} from '../../../../modules/domain/project/browser';
+} from '../../../../modules/domain/collaboration';
+import { createAdapter as createBrowserLocalStorageGuestShareRegistryAdapter } from '../../../../modules/domain/collaboration/adapters/browser-local-storage-guest-share-registry';
 
 export type GuestShareRegistryContextType = {
   registry: GuestShareRegistry;

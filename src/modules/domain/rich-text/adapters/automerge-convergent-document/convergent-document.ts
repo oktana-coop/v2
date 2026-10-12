@@ -10,25 +10,26 @@ import { createErrorChannel } from '../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../utils/errors';
 import {
   ConvergentDocumentChangeError,
-  ConvergentDocumentUnavailableError,
-} from '../../errors';
-import {
-  type ConvergentDocumentVersion,
-  CURRENT_SCHEMA_VERSION,
-  PRIMARY_RICH_TEXT_REPRESENTATION,
-} from '../../models';
-import {
-  type ConvergentDocument,
   type ConvergentDocumentChangeOptions,
   type ConvergentDocumentError,
-  type ConvergentDocumentState,
+  ConvergentDocumentUnavailableError,
+  type ConvergentDocumentVersion,
   type Presence,
+} from '../../../collaboration';
+import {
+  type ParticipantSelection,
+  type PrimaryRichTextDocument,
+  primaryRichTextDocument,
+} from '../../models';
+import {
+  type RichTextConvergentDocument,
+  type RichTextConvergentDocumentState,
 } from '../../ports/convergent-document';
 import { type DocumentContent } from './document-content';
 
 export type AutomergeConvergentDocumentDeps = {
   handle: DocHandle<DocumentContent>;
-  presence: Presence;
+  presence: Presence<ParticipantSelection>;
 };
 
 // Automerge identifies a state by its heads; sorting makes the encoding
@@ -41,15 +42,11 @@ const decodeVersion = (version: ConvergentDocumentVersion): UrlHeads =>
 export const createConvergentDocument = ({
   handle,
   presence,
-}: AutomergeConvergentDocumentDeps): Effect.Effect<ConvergentDocument> =>
+}: AutomergeConvergentDocumentDeps): Effect.Effect<RichTextConvergentDocument> =>
   pipe(
     Effect.all({
-      content: SubscriptionRef.make<ConvergentDocumentState>({
-        doc: {
-          schemaVersion: CURRENT_SCHEMA_VERSION,
-          representation: PRIMARY_RICH_TEXT_REPRESENTATION,
-          content: handle.fullDoc().content,
-        },
+      content: SubscriptionRef.make<RichTextConvergentDocumentState>({
+        doc: primaryRichTextDocument(handle.fullDoc().content),
         version: encodeVersion(handle.heads()),
       }),
       errorChannel: createErrorChannel<ConvergentDocumentError>(),
@@ -61,12 +58,8 @@ export const createConvergentDocument = ({
 
       const currentVersion = () => encodeVersion(handle.heads());
 
-      const readChange = (): ConvergentDocumentState => ({
-        doc: {
-          schemaVersion: CURRENT_SCHEMA_VERSION,
-          representation: PRIMARY_RICH_TEXT_REPRESENTATION,
-          content: handle.fullDoc().content,
-        },
+      const readChange = (): RichTextConvergentDocumentState => ({
+        doc: primaryRichTextDocument(handle.fullDoc().content),
         version: currentVersion(),
       });
 
@@ -103,10 +96,10 @@ export const createConvergentDocument = ({
       };
 
       const change = (
-        content: string,
+        doc: PrimaryRichTextDocument,
         options?: ConvergentDocumentChangeOptions
       ) => {
-        const result = commitText(content, options?.base);
+        const result = commitText(doc.content, options?.base);
 
         // Published before resolving, so once a contribution resolves,
         // subscribers already hold a state that contains it — what lets the

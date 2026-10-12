@@ -5,18 +5,17 @@ import {
   type ArtifactId,
   type Branch,
 } from '../../../../modules/infrastructure/version-control';
+import { type LiveDocument, type ShareId } from '../../collaboration';
 import {
   NotFoundError,
   SharedDocumentNotInProjectError,
   SharedDocumentOnAnotherBranchError,
 } from '../errors';
 import { type ProjectId } from '../models';
-import { type ShareId } from '../ports';
 import {
   joinSharedDocument,
   type JoinSharedDocumentDeps,
 } from './join-shared-document';
-import { type LiveDocument } from './live-document';
 import { markdownDocument } from './test-utils';
 
 const projectId = '/projects/one' as ProjectId;

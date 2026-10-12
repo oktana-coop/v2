@@ -23,18 +23,20 @@ export {
   shareLiveDocument,
 } from './share-live-document';
 export {
-  type LiveDocument,
-  type LiveDocumentError,
-  type NamedLiveDocument,
+  type StoredContent,
+  type StoredContentReadError,
   type StoredLiveDocument,
+  type StoredLiveDocumentError,
 } from './live-document';
 export { openLiveDocument } from './open-live-document';
 export {
-  leaveDocumentAsGuest,
-  type LeaveDocumentAsGuestDeps,
-  openDocumentAsGuest,
-  type OpenDocumentAsGuestDeps,
-} from './guest';
+  type LiveRichTextDocument,
+  type NamedLiveRichTextDocument,
+  openLiveRichTextDocument,
+  openLiveRichTextDocumentAsGuest,
+  type OpenLiveRichTextDocumentAsGuestDeps,
+  type OpenLiveRichTextDocumentDeps,
+} from './open-live-rich-text-document';
 export {
   type GetProjectTreeDeps,
   getProjectTree,

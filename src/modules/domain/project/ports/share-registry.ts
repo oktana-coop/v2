@@ -2,8 +2,8 @@ import {
   type ArtifactId,
   type Branch,
 } from '../../../../modules/infrastructure/version-control';
+import { type ShareId } from '../../collaboration';
 import { type ProjectId } from '../models';
-import { type ShareId } from './document-sharing';
 
 export type DocumentShareKey = {
   projectId: ProjectId;

@@ -6,97 +6,117 @@ import * as Ref from 'effect/Ref';
 import * as Stream from 'effect/Stream';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 
-import {
-  type ConvergentDocument,
-  type ConvergentDocumentState,
-  type RepresentationTransform,
-} from '../../../../../modules/domain/rich-text';
 import { type ArtifactId } from '../../../../../modules/infrastructure/version-control';
 import {
   createErrorChannel,
   subscribeToRefChanges,
 } from '../../../../../utils/effect';
 import {
+  type ConvergentDocumentState,
+  type EditableLiveDocument,
+  type LocalEditsContributionError,
+  type ShareId,
+} from '../../../collaboration';
+import {
   VersionedProjectDocumentNotOnCurrentRefErrorTag,
   VersionedProjectNotFoundErrorTag,
 } from '../../errors';
 import { type ProjectId } from '../../models';
-import { type ProjectStore, type ShareId } from '../../ports';
-import { persistDocument } from '../persist-document';
-import {
-  type LiveDocument,
-  type LiveDocumentError,
-  type StoredLiveDocument,
-} from './live-document';
+import { type ProjectStore } from '../../ports';
 import { rebasedOn, storedCopy } from './stored-copy';
+import {
+  type StoredContentReadError,
+  type StoredCopyWriteError,
+  type StoredLiveDocument,
+} from './stored-live-document';
 
-export type WithStoredCopyDeps = {
-  transformToText: RepresentationTransform['transformToText'];
-  findRichTextDocumentById: ProjectStore['findRichTextDocumentById'];
-  updateRichTextDocumentContent: ProjectStore['updateRichTextDocumentContent'];
+export type StoredContent<DocumentType> = {
+  read: (args: {
+    projectId: ProjectId;
+    documentId: ArtifactId;
+  }) => Effect.Effect<DocumentType, StoredContentReadError>;
+  write: (args: {
+    projectId: ProjectId;
+    documentId: ArtifactId;
+    document: DocumentType;
+  }) => Effect.Effect<void, StoredCopyWriteError>;
+  areEqual: (a: DocumentType, b: DocumentType) => boolean;
+};
+
+export type WithStoredCopyDeps<DocumentType> = {
+  storedContent: StoredContent<DocumentType>;
   projectContentChangeEvents: ProjectStore['projectContentChangeEvents'];
 };
 
-export type WithStoredCopyArgs = {
+export type WithStoredCopyArgs<DocumentType> = {
   projectId: ProjectId;
   documentId: ArtifactId;
   // What the store holds for this document.
-  storedContent: string;
+  initial: DocumentType;
 };
 
 export const withStoredCopy =
-  ({
-    transformToText,
-    findRichTextDocumentById,
-    updateRichTextDocumentContent,
+  <DocumentType>({
+    storedContent: { read, write, areEqual },
     projectContentChangeEvents,
-  }: WithStoredCopyDeps) =>
-  ({ projectId, documentId, storedContent }: WithStoredCopyArgs) =>
-  (
-    document: LiveDocument & Pick<ConvergentDocument, 'change'>
-  ): Effect.Effect<StoredLiveDocument> =>
+  }: WithStoredCopyDeps<DocumentType>) =>
+  ({ projectId, documentId, initial }: WithStoredCopyArgs<DocumentType>) =>
+  <ParticipantSelectionType, EditorDocumentType = DocumentType>(
+    document: EditableLiveDocument<
+      DocumentType,
+      ParticipantSelectionType,
+      EditorDocumentType
+    >
+  ): Effect.Effect<
+    StoredLiveDocument<
+      DocumentType,
+      ParticipantSelectionType,
+      EditorDocumentType
+    >
+  > =>
     pipe(
       SubscriptionRef.get(document.content),
       Effect.flatMap((initialState) =>
         Effect.all({
-          errorChannel: createErrorChannel<LiveDocumentError>(),
-          // The content is the store's, the base the document's: opened
-          // privately those agree, since the document was started from this
-          // very text. Opened at a share they potentially do not.
+          errorChannel: createErrorChannel<
+            | LocalEditsContributionError
+            | StoredContentReadError
+            | StoredCopyWriteError
+          >(),
+          // The document is the store's, the base the live document's: opened
+          // privately those agree, since the live document was started from
+          // this very document. Opened at a share they potentially do not.
           stored: Ref.make(
-            storedCopy({ content: storedContent, base: initialState.version })
+            storedCopy({ document: initial, base: initialState.version })
           ),
           persistSemaphore: Effect.makeSemaphore(1),
         })
       ),
       Effect.flatMap(({ errorChannel, stored, persistSemaphore }) => {
-        const report = (error: LiveDocumentError) =>
-          Effect.asVoid(PubSub.publish(errorChannel, error));
+        const report = (
+          error:
+            | LocalEditsContributionError
+            | StoredContentReadError
+            | StoredCopyWriteError
+        ) => Effect.asVoid(PubSub.publish(errorChannel, error));
 
         // Persistence ops run strictly one after another: the next starts
         // only after the previous has fully finished.
         const persistMutex = persistSemaphore.withPermits(1);
 
-        const persistToStore = persistDocument({
-          transformToText,
-          updateRichTextDocumentContent,
-        });
-
-        const persist = ({ doc, version }: ConvergentDocumentState) =>
+        const persist = (state: ConvergentDocumentState<DocumentType>) =>
           pipe(
             Ref.get(stored),
             Effect.flatMap((copy) =>
-              persistToStore({
-                projectId,
-                documentId,
-                document: doc,
-                skipIfContentEquals: copy.content,
-              })
+              // What the store already holds is not written again.
+              areEqual(state.doc, copy.document)
+                ? Effect.void
+                : write({ projectId, documentId, document: state.doc })
             ),
-            Effect.flatMap((textContent) =>
+            Effect.zipRight(
               Ref.set(
                 stored,
-                storedCopy({ content: textContent, base: version })
+                storedCopy({ document: state.doc, base: state.version })
               )
             )
           );
@@ -122,30 +142,23 @@ export const withStoredCopy =
         const refresh = persistMutex(
           pipe(
             // Suspended so each refresh issues its own read.
-            Effect.suspend(() =>
-              findRichTextDocumentById({ projectId, documentId })
-            ),
-            Effect.flatMap(({ artifact: fresh }) =>
+            Effect.suspend(() => read({ projectId, documentId })),
+            Effect.flatMap((fresh) =>
               pipe(
                 Ref.get(stored),
                 Effect.flatMap((copy) =>
                   // Content the store already holds is a write or read of
                   // our own coming back, not an edit made by another hand.
-                  copy.content === fresh.content
+                  areEqual(fresh, copy.document)
                     ? Effect.void
                     : pipe(
                         // The disk content was derived from the state we
                         // last wrote or read, so anchor the change there.
-                        // It holds the primary representation already, so
-                        // it contributes as it is.
-                        document.change(fresh.content, { base: copy.base }),
+                        document.change(fresh, { base: copy.base }),
                         Effect.flatMap((version) =>
                           Ref.set(
                             stored,
-                            storedCopy({
-                              content: fresh.content,
-                              base: version,
-                            })
+                            storedCopy({ document: fresh, base: version })
                           )
                         ),
                         Effect.asVoid
@@ -228,9 +241,15 @@ export const withStoredCopy =
           Stream.fromPubSub(errorChannel)
         );
 
-        const kept: StoredLiveDocument = {
+        const kept: StoredLiveDocument<
+          DocumentType,
+          ParticipantSelectionType,
+          EditorDocumentType
+        > = {
           documentId: document.documentId,
           content: document.content,
+          currentDocument: document.currentDocument,
+          change: document.change,
           edit: document.edit,
           applyPendingLocalEdits: document.applyPendingLocalEdits,
           dropPendingLocalEdits: document.dropPendingLocalEdits,
@@ -250,7 +269,7 @@ export const withStoredCopy =
         return pipe(
           SubscriptionRef.get(document.content),
           Effect.flatMap((current) =>
-            current.doc.content === storedContent
+            areEqual(current.doc, initial)
               ? Effect.void
               : pipe(flush, Effect.catchAll(report))
           ),

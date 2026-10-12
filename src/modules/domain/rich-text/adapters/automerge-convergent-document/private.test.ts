@@ -3,6 +3,7 @@ import * as Effect from 'effect/Effect';
 import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { describe, expect, it } from 'vitest';
 
+import { primaryRichTextDocument } from '../../models';
 import { createPrivateConvergentDocument } from './private';
 
 describe('private convergent document', () => {
@@ -12,7 +13,7 @@ describe('private convergent document', () => {
     const document = await Effect.runPromise(
       createPrivateConvergentDocument({
         privateRepo: Effect.succeed(repo),
-        initialText: 'fresh from disk',
+        initialDocument: primaryRichTextDocument('fresh from disk'),
       })
     );
 

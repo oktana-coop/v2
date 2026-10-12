@@ -2,7 +2,10 @@ import { type DocHandle } from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
 import { z } from 'zod';
 
-import { UnsupportedDocumentFormatError, ValidationError } from '../../errors';
+import {
+  UnsupportedDocumentFormatError,
+  ValidationError,
+} from '../../../collaboration';
 
 // The shape every Automerge document this app writes takes, private or
 // shared alike, and the version of that shape. The version matters when
@@ -31,12 +34,15 @@ export const initialDocumentContent = (content: string): DocumentContent => ({
 // A document this app did not write can hold anything, so nothing about its
 // shape can be assumed. A version this app does not implement yields an
 // error.
-export const validateDocumentContent = (
-  handle: DocHandle<DocumentContent>
-): Effect.Effect<void, UnsupportedDocumentFormatError | ValidationError> =>
+export const parseDocumentContent = (
+  handle: DocHandle<unknown>
+): Effect.Effect<
+  DocHandle<DocumentContent>,
+  UnsupportedDocumentFormatError | ValidationError
+> =>
   Effect.suspend(
     (): Effect.Effect<
-      void,
+      DocHandle<DocumentContent>,
       UnsupportedDocumentFormatError | ValidationError
     > => {
       const doc: unknown = handle.fullDoc();
@@ -63,7 +69,7 @@ export const validateDocumentContent = (
       }
 
       return documentContentSchema.safeParse(doc).success
-        ? Effect.void
+        ? Effect.succeed(handle as DocHandle<DocumentContent>)
         : Effect.fail(
             new ValidationError(
               `The document does not hold what format ${DOCUMENT_FORMAT_VERSION} describes.`

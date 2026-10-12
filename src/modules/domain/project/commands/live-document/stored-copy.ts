@@ -1,19 +1,24 @@
-import { type ConvergentDocumentVersion } from '../../../../../modules/domain/rich-text';
+import { type ConvergentDocumentVersion } from '../../../collaboration';
 
-export type StoredCopy = {
-  content: string;
-  // The version the app takes the stored content to derive from.
+export type StoredCopy<DocumentType> = {
+  document: DocumentType;
+  // The version the app takes the stored document to derive from.
   base: ConvergentDocumentVersion;
 };
 
-export const storedCopy = ({
-  content,
+export const storedCopy = <DocumentType>({
+  document,
   base,
 }: {
-  content: string;
+  document: DocumentType;
   base: ConvergentDocumentVersion;
-}): StoredCopy => ({ content, base });
+}): StoredCopy<DocumentType> => ({ document, base });
 
 export const rebasedOn =
   (base: ConvergentDocumentVersion) =>
-  (stored: StoredCopy): StoredCopy => ({ content: stored.content, base });
+  <DocumentType>(
+    stored: StoredCopy<DocumentType>
+  ): StoredCopy<DocumentType> => ({
+    document: stored.document,
+    base,
+  });

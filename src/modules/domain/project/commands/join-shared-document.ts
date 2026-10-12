@@ -7,6 +7,13 @@ import {
   type MigrationError,
 } from '../../../../modules/infrastructure/version-control';
 import {
+  type DocumentSharing,
+  type EditableLiveDocument,
+  type LocalEditsContributionError,
+  type OpenSharedDocumentError,
+  type ShareId,
+} from '../../collaboration';
+import {
   type DocumentNotOnCurrentRefError,
   type NotFoundError,
   type RepositoryError,
@@ -16,23 +23,13 @@ import {
   VersionedProjectNotFoundErrorTag,
 } from '../errors';
 import { type ProjectId } from '../models';
-import {
-  type DocumentSharing,
-  type OpenSharedDocumentError,
-  type ProjectStore,
-  type ShareId,
-  type ShareRegistry,
-} from '../ports';
-import {
-  type LiveDocument,
-  type LocalEditsContributionError,
-} from './live-document';
+import { type ProjectStore, type ShareRegistry } from '../ports';
 
 export type JoinSharedDocumentDeps = {
   getSharedDocumentInfo: DocumentSharing['getSharedDocumentInfo'];
   findRichTextDocumentById: ProjectStore['findRichTextDocumentById'];
   rememberShare: ShareRegistry['rememberShare'];
-  openDocument: Pick<LiveDocument, 'documentId' | 'attachTo'> | null;
+  openDocument: Pick<EditableLiveDocument, 'documentId' | 'attachTo'> | null;
 };
 
 export type JoinSharedDocumentResult = {

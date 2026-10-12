@@ -1,14 +1,12 @@
 import { createContext } from 'react';
 
-import {
-  type NamedLiveDocument,
-  type ShareId,
-} from '../../../../modules/domain/project';
+import { type ShareId } from '../../../../modules/domain/collaboration';
+import { type NamedLiveRichTextDocument } from '../../../../modules/domain/project';
 import { type ParticipantSelection } from '../../../../modules/domain/rich-text';
 
 export type GuestEditingContextType = {
   shareId: ShareId | null;
-  liveDocument: NamedLiveDocument | null;
+  liveDocument: NamedLiveRichTextDocument | null;
   name: string | null;
   onLocalSelectionChange: (selection: ParticipantSelection | null) => void;
   onLeave: (shareId: ShareId) => Promise<void>;

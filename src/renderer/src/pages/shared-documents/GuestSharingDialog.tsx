@@ -1,7 +1,9 @@
 import { useCallback, useState } from 'react';
 
-import { type ShareId } from '../../../../modules/domain/project';
-import { type Participant } from '../../../../modules/domain/rich-text';
+import {
+  type Participant,
+  type ShareId,
+} from '../../../../modules/domain/collaboration';
 import { Button } from '../../components/actions/Button';
 import { Modal } from '../../components/dialogs/Modal';
 import { CheckIcon, CopyIcon } from '../../components/icons';
