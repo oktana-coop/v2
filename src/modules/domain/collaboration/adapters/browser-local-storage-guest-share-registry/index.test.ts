@@ -25,11 +25,14 @@ const createMemoryStorage = (): Storage => {
   };
 };
 
+const kind = 'TEXT';
+
 const openedAt = (time: number) => vi.spyOn(Date, 'now').mockReturnValue(time);
 
 const stored = (shareId: string, lastOpenedAt: number) => ({
   shareId,
   sharedName: shareId,
+  kind,
   label: null,
   lastOpenedAt,
 });
@@ -52,13 +55,21 @@ describe('browser local storage guest share registry', () => {
     const registry = createAdapter();
 
     openedAt(1);
-    registry.rememberShare({ shareId: 'automerge:a', sharedName: 'a' });
+    registry.rememberShare({
+      shareId: 'automerge:a',
+      sharedName: 'a',
+      kind,
+    });
     openedAt(2);
-    registry.rememberShare({ shareId: 'automerge:b', sharedName: 'b' });
+    registry.rememberShare({
+      shareId: 'automerge:b',
+      sharedName: 'b',
+      kind,
+    });
 
     expect(registry.listShares()).toEqual([
-      { shareId: 'automerge:b', name: 'b', lastOpenedAt: 2 },
-      { shareId: 'automerge:a', name: 'a', lastOpenedAt: 1 },
+      { shareId: 'automerge:b', name: 'b', kind, lastOpenedAt: 2 },
+      { shareId: 'automerge:a', name: 'a', kind, lastOpenedAt: 1 },
     ]);
   });
 
@@ -66,15 +77,27 @@ describe('browser local storage guest share registry', () => {
     const registry = createAdapter();
 
     openedAt(1);
-    registry.rememberShare({ shareId: 'automerge:a', sharedName: 'a' });
+    registry.rememberShare({
+      shareId: 'automerge:a',
+      sharedName: 'a',
+      kind,
+    });
     openedAt(2);
-    registry.rememberShare({ shareId: 'automerge:b', sharedName: 'b' });
+    registry.rememberShare({
+      shareId: 'automerge:b',
+      sharedName: 'b',
+      kind,
+    });
     openedAt(3);
-    registry.rememberShare({ shareId: 'automerge:a', sharedName: 'renamed' });
+    registry.rememberShare({
+      shareId: 'automerge:a',
+      sharedName: 'renamed',
+      kind,
+    });
 
     expect(registry.listShares()).toEqual([
-      { shareId: 'automerge:b', name: 'b', lastOpenedAt: 2 },
-      { shareId: 'automerge:a', name: 'renamed', lastOpenedAt: 3 },
+      { shareId: 'automerge:b', name: 'b', kind, lastOpenedAt: 2 },
+      { shareId: 'automerge:a', name: 'renamed', kind, lastOpenedAt: 3 },
     ]);
   });
 
@@ -82,15 +105,27 @@ describe('browser local storage guest share registry', () => {
     const registry = createAdapter();
 
     openedAt(1);
-    registry.rememberShare({ shareId: 'automerge:a', sharedName: 'a' });
+    registry.rememberShare({
+      shareId: 'automerge:a',
+      sharedName: 'a',
+      kind,
+    });
     openedAt(2);
-    registry.rememberShare({ shareId: 'automerge:b', sharedName: 'b' });
+    registry.rememberShare({
+      shareId: 'automerge:b',
+      sharedName: 'b',
+      kind,
+    });
     openedAt(3);
-    registry.rememberShare({ shareId: 'automerge:a', sharedName: 'a' });
+    registry.rememberShare({
+      shareId: 'automerge:a',
+      sharedName: 'a',
+      kind,
+    });
 
     expect(createAdapter().listShares()).toEqual([
-      { shareId: 'automerge:a', name: 'a', lastOpenedAt: 3 },
-      { shareId: 'automerge:b', name: 'b', lastOpenedAt: 2 },
+      { shareId: 'automerge:a', name: 'a', kind, lastOpenedAt: 3 },
+      { shareId: 'automerge:b', name: 'b', kind, lastOpenedAt: 2 },
     ]);
   });
 
@@ -98,12 +133,20 @@ describe('browser local storage guest share registry', () => {
     const registry = createAdapter();
 
     openedAt(1);
-    registry.rememberShare({ shareId: 'automerge:a', sharedName: 'note' });
+    registry.rememberShare({
+      shareId: 'automerge:a',
+      sharedName: 'note',
+      kind,
+    });
     registry.labelShare({ shareId: 'automerge:a', label: ' mine ' });
 
     expect(registry.listShares()[0]?.name).toBe('mine');
 
-    registry.rememberShare({ shareId: 'automerge:a', sharedName: 'renamed' });
+    registry.rememberShare({
+      shareId: 'automerge:a',
+      sharedName: 'renamed',
+      kind,
+    });
 
     expect(registry.listShares()[0]?.name).toBe('mine');
     expect(createAdapter().listShares()[0]?.name).toBe('mine');
@@ -125,7 +168,11 @@ describe('browser local storage guest share registry', () => {
     const registry = createAdapter();
 
     openedAt(1);
-    registry.rememberShare({ shareId: 'automerge:a', sharedName: 'a' });
+    registry.rememberShare({
+      shareId: 'automerge:a',
+      sharedName: 'a',
+      kind,
+    });
     registry.forgetShare('automerge:a');
 
     expect(registry.listShares()).toEqual([]);
@@ -139,7 +186,12 @@ describe('browser local storage guest share registry', () => {
     );
 
     expect(createAdapter().listShares()).toEqual([
-      { shareId: 'automerge:a', name: 'automerge:a', lastOpenedAt: 1 },
+      {
+        shareId: 'automerge:a',
+        name: 'automerge:a',
+        kind,
+        lastOpenedAt: 1,
+      },
     ]);
   });
 
@@ -161,11 +213,19 @@ describe('browser local storage guest share registry', () => {
     const unsubscribe = registry.subscribe(listener);
 
     openedAt(1);
-    registry.rememberShare({ shareId: 'automerge:a', sharedName: 'a' });
+    registry.rememberShare({
+      shareId: 'automerge:a',
+      sharedName: 'a',
+      kind,
+    });
     registry.labelShare({ shareId: 'automerge:a', label: 'mine' });
     registry.forgetShare('automerge:a');
     unsubscribe();
-    registry.rememberShare({ shareId: 'automerge:a', sharedName: 'a' });
+    registry.rememberShare({
+      shareId: 'automerge:a',
+      sharedName: 'a',
+      kind,
+    });
 
     expect(listener).toHaveBeenCalledTimes(3);
   });

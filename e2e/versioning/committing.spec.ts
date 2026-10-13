@@ -1,6 +1,9 @@
 import { Page } from '@playwright/test';
+import fs from 'fs';
+import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
+import { hasCleanWorkingTree, lastCommitMessage } from '../shared/git';
 import {
   commitAllProjectChanges,
   commitChanges,
@@ -192,5 +195,38 @@ test.describe('committing all project changes', () => {
     const changedDocs = window.getByTestId('changed-document-row');
     await expect(changedDocs.filter({ hasText: 'hello' })).toHaveCount(1);
     await expect(changedDocs.filter({ hasText: 'world' })).toHaveCount(1);
+  });
+});
+
+test.describe('committing a plain-text document', () => {
+  test('commits a plain-text file from the command palette', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    // A different length, so git's status sees the change at once.
+    fs.writeFileSync(
+      path.join(testProjectDir, 'config.json'),
+      '{ "key": "a changed value" }\n'
+    );
+    await window.getByTestId('file-explorer').getByText('config.json').click();
+    await expect(window.getByText('Preview not available')).toBeVisible();
+
+    await openCommandPalette({ window });
+    await window.getByRole('option', { name: /^Commit changes/ }).click();
+    const textarea = window.getByRole('textbox');
+    await textarea.fill('change the config');
+    await window.getByRole('button', { name: /^Commit$/i }).click();
+    await textarea.waitFor({ state: 'hidden', timeout: 5_000 });
+
+    expect(lastCommitMessage({ repoDir: testProjectDir })).toBe(
+      'change the config'
+    );
+    expect(hasCleanWorkingTree({ repoDir: testProjectDir })).toBe(true);
   });
 });

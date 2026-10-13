@@ -2,7 +2,11 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { uniqueParticipants } from '../../../../modules/domain/collaboration';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
-import { GuestEditingContext, useRemotePresence } from '../../app-state';
+import {
+  GuestEditingContext,
+  useGuestRichTextDocument,
+  useRemotePresence,
+} from '../../app-state';
 import { LiveRichTextDocumentEditor } from '../../components/editing/LiveRichTextDocumentEditor';
 import { LongTextSkeleton } from '../../components/progress/skeletons/LongText';
 import { ActionsBar } from '../shared/document-actions-bar';
@@ -10,9 +14,9 @@ import { ActionsBar } from '../shared/document-actions-bar';
 export const GuestRichTextDocumentEditor = () => {
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
   const { view: editorView } = useContext(ProseMirrorContext);
-  const { liveDocument, name, onLocalSelectionChange, onOpenSharingDialog } =
-    useContext(GuestEditingContext);
-  const peers = useRemotePresence(liveDocument);
+  const { name, onOpenSharingDialog } = useContext(GuestEditingContext);
+  const richTextDocument = useGuestRichTextDocument();
+  const peers = useRemotePresence(richTextDocument?.liveDocument ?? null);
   const participants = useMemo(
     () => uniqueParticipants(peers.map((peer) => peer.participant)),
     [peers]
@@ -40,10 +44,10 @@ export const GuestRichTextDocumentEditor = () => {
       </div>
       <div className="flex w-full flex-auto flex-col items-center overflow-auto">
         <div className="flex w-full max-w-3xl flex-col">
-          {liveDocument ? (
+          {richTextDocument ? (
             <LiveRichTextDocumentEditor
-              liveDocument={liveDocument}
-              onLocalSelectionChange={onLocalSelectionChange}
+              liveDocument={richTextDocument.liveDocument}
+              onLocalSelectionChange={richTextDocument.onLocalSelectionChange}
               isToolbarOpen={isEditorToolbarOpen}
               assetResolution={null}
             />

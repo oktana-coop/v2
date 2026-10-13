@@ -6,8 +6,7 @@ import { type CurrentDocumentContextType } from './types';
 // this context outside `CurrentDocumentProvider` yields them rather than an error.
 export const CurrentDocumentContext = createContext<CurrentDocumentContextType>(
   {
-    liveDocument: null,
-    onLocalSelectionChange: () => {},
+    currentDocument: null,
     shareId: null,
     onShareDocument: async () => null,
     onJoinSharedDocument: async () => null,

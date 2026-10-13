@@ -1,5 +1,10 @@
 import { type ShareId } from '../../../../modules/domain/collaboration';
-import { type LiveRichTextDocument } from '../../../../modules/domain/project';
+import { type ParticipantSelection as PlainTextParticipantSelection } from '../../../../modules/domain/plain-text';
+import {
+  type artifactKinds,
+  type LivePlainTextDocument,
+  type LiveRichTextDocument,
+} from '../../../../modules/domain/project';
 import { type ParticipantSelection } from '../../../../modules/domain/rich-text';
 import { type Branch } from '../../../../modules/infrastructure/version-control';
 
@@ -7,10 +12,25 @@ export type JoinSharedDocumentRefusal =
   | { reason: 'other-branch'; branch: Branch; canSwitch: boolean }
   | { reason: 'not-in-project' };
 
-export type CurrentDocumentContextType = {
-  liveDocument: LiveRichTextDocument | null;
-  // Where we are in the open document, for whoever else is at it.
+export type CurrentRichTextDocument = {
+  kind: typeof artifactKinds.RICH_TEXT_DOCUMENT;
+  liveDocument: LiveRichTextDocument;
   onLocalSelectionChange: (selection: ParticipantSelection | null) => void;
+};
+
+export type CurrentPlainTextDocument = {
+  kind: typeof artifactKinds.PLAIN_TEXT_DOCUMENT;
+  liveDocument: LivePlainTextDocument;
+  onLocalSelectionChange: (
+    selection: PlainTextParticipantSelection | null
+  ) => void;
+};
+
+export type CurrentDocument =
+  CurrentRichTextDocument | CurrentPlainTextDocument;
+
+export type CurrentDocumentContextType = {
+  currentDocument: CurrentDocument | null;
   // The share the open document takes part in, if any.
   shareId: ShareId | null;
   // Resolves to the share ID so the caller can act on it right away.

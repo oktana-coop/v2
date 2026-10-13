@@ -27,7 +27,7 @@ import {
 } from '../../../../../modules/personalization/browser';
 import { ProjectContext } from '../../current-project/context';
 import { InfrastructureAdaptersContext } from '../../infrastructure-adapters/context';
-import { useCurrentDocumentId } from '../use-current-document-id';
+import { useCurrentRichTextDocumentId } from '../use-current-document-id';
 import {
   emptyExportAssetMounts,
   useExportAssetMounts,
@@ -41,7 +41,7 @@ export const useExport = () => {
   const { activeTemplate } = useContext(ExportTemplatesContext);
   const { dispatchNotification } = useContext(NotificationsContext);
   const { projectId: projectIdParam } = useParams();
-  const documentId = useCurrentDocumentId();
+  const documentId = useCurrentRichTextDocumentId();
   const { currentArtifact } = useContext(ProjectContext);
   const suggestedExportName = currentArtifact
     ? removeExtension(removePath(currentArtifact.path))

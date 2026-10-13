@@ -4,11 +4,11 @@ import * as Ref from 'effect/Ref';
 
 import {
   lineEndings,
+  type ParticipantSelection as PlainTextParticipantSelection,
   type PlainTextConvergentDocument,
   type PlainTextDocument,
   plainTextDocumentsAreEqual,
   plainTextEditing,
-  type PlainTextParticipantSelection,
   plainTextToRawPlainText,
   type RawPlainTextFormat,
   rawPlainTextToPlainText,

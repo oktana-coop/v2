@@ -8,6 +8,7 @@ import {
   CurrentDocumentContext,
   useAssetInsertion,
   useAssetSrcResolver,
+  useCurrentRichTextDocument,
   useRemotePresence,
 } from '../../../../../../app-state';
 import { LiveRichTextDocumentEditor } from '../../../../../../components/editing/LiveRichTextDocumentEditor';
@@ -18,18 +19,16 @@ import { useCurrentArtifact } from '../../../artifact-route';
 export const RichTextDocumentEditor = () => {
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
   const { view: editorView } = useContext(ProseMirrorContext);
-  const {
-    liveDocument,
-    onLocalSelectionChange,
-    shareId,
-    onOpenShareDocumentDialog,
-  } = useContext(CurrentDocumentContext);
+  const { shareId, onOpenShareDocumentDialog } = useContext(
+    CurrentDocumentContext
+  );
+  const richTextDocument = useCurrentRichTextDocument();
   const { canCommit } = useContext(CurrentArtifactVersioningContext);
   const { openCommitModal } = useContext(CommitModalContext);
   const artifact = useCurrentArtifact();
   const resolveAssetSrc = useAssetSrcResolver({ docPath: artifact.path });
   const pickAsset = useAssetInsertion();
-  const peers = useRemotePresence(liveDocument);
+  const peers = useRemotePresence(richTextDocument?.liveDocument ?? null);
   const participants = useMemo(
     () => uniqueParticipants(peers.map((peer) => peer.participant)),
     [peers]
@@ -54,10 +53,10 @@ export const RichTextDocumentEditor = () => {
 
       <div className="flex w-full flex-auto flex-col items-center overflow-auto">
         <div className="flex w-full max-w-3xl flex-col">
-          {liveDocument ? (
+          {richTextDocument ? (
             <LiveRichTextDocumentEditor
-              liveDocument={liveDocument}
-              onLocalSelectionChange={onLocalSelectionChange}
+              liveDocument={richTextDocument.liveDocument}
+              onLocalSelectionChange={richTextDocument.onLocalSelectionChange}
               isToolbarOpen={isEditorToolbarOpen}
               assetResolution={{ pickAsset, resolveAssetSrc }}
             />

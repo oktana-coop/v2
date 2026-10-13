@@ -5,10 +5,7 @@ import { pipe } from 'effect/Function';
 import { mapErrorTo } from '../../../../../utils/errors';
 import { ValidationError } from '../../../collaboration';
 import { createPresence } from '../../../collaboration/adapters/automerge-presence';
-import {
-  parsePlainTextParticipantSelection,
-  plainTextSelectionsAreSame,
-} from '../../models';
+import { parseParticipantSelection, selectionsAreSame } from '../../models';
 import { type PlainTextConvergentDocument } from '../../ports';
 import { createConvergentDocument } from './convergent-document';
 import { type DocumentContent } from './document-content';
@@ -26,10 +23,10 @@ export const createSharedConvergentDocument = ({
       selection: {
         parse: (value) =>
           pipe(
-            parsePlainTextParticipantSelection(value),
+            parseParticipantSelection(value),
             Effect.mapError(mapErrorTo(ValidationError))
           ),
-        areSame: plainTextSelectionsAreSame,
+        areSame: selectionsAreSame,
       },
     }),
     Effect.flatMap((presence) => createConvergentDocument({ handle, presence }))

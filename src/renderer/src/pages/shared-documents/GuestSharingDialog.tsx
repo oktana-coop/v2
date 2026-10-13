@@ -1,9 +1,6 @@
 import { useCallback, useState } from 'react';
 
-import {
-  type Participant,
-  type ShareId,
-} from '../../../../modules/domain/collaboration';
+import { type ShareId } from '../../../../modules/domain/collaboration';
 import { Button } from '../../components/actions/Button';
 import { Modal } from '../../components/dialogs/Modal';
 import { CheckIcon, CopyIcon } from '../../components/icons';
@@ -11,7 +8,6 @@ import { CheckIcon, CopyIcon } from '../../components/icons';
 export type GuestSharingDialogProps = {
   isOpen?: boolean;
   shareId: ShareId | null;
-  participants: Participant[];
   onLeave: () => Promise<void>;
   onCancel: () => void;
 };
@@ -19,7 +15,6 @@ export type GuestSharingDialogProps = {
 export const GuestSharingDialog = ({
   isOpen,
   shareId,
-  participants,
   onLeave,
   onCancel,
 }: GuestSharingDialogProps) => {
@@ -63,11 +58,6 @@ export const GuestSharingDialog = ({
           data-testid="share-id"
         >
           {shareId}
-        </p>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          {participants.length === 0
-            ? 'Nobody else is here right now.'
-            : `Here now: ${participants.map((participant) => participant.name).join(', ')}.`}
         </p>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
           Leaving removes this document from your list. Others keep the shared

@@ -1,11 +1,8 @@
-import { useCallback, useContext, useMemo } from 'react';
+import { useCallback, useContext } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 
-import {
-  uniqueParticipants,
-  urlEncodeShareId,
-} from '../../../../modules/domain/collaboration';
-import { GuestEditingContext, useRemotePresence } from '../../app-state';
+import { urlEncodeShareId } from '../../../../modules/domain/collaboration';
+import { GuestEditingContext } from '../../app-state';
 import { SidebarLayout } from '../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../components/layout/StackedResizablePanelsLayout';
 import { JoinSharedDocumentDialog } from '../project/current-project/sharing-dialogs';
@@ -16,7 +13,6 @@ import { GuestSharingDialog } from './GuestSharingDialog';
 export const SharedDocuments = () => {
   const {
     shareId,
-    liveDocument,
     isSharingDialogOpen,
     onCloseSharingDialog,
     onLeave,
@@ -24,11 +20,6 @@ export const SharedDocuments = () => {
     onCloseJoinDialog,
   } = useContext(GuestEditingContext);
   const navigate = useNavigate();
-  const peers = useRemotePresence(liveDocument);
-  const participants = useMemo(
-    () => uniqueParticipants(peers.map((peer) => peer.participant)),
-    [peers]
-  );
 
   const handleJoin = useCallback(
     async (joinedShareId: string) => {
@@ -51,7 +42,6 @@ export const SharedDocuments = () => {
         <GuestSharingDialog
           isOpen={isSharingDialogOpen}
           shareId={shareId}
-          participants={participants}
           onLeave={async () => {
             if (shareId) await onLeave(shareId);
           }}

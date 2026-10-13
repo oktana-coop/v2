@@ -6,23 +6,29 @@ import { useNavigate } from 'react-router';
 import {
   ConvergentDocumentChangeErrorTag,
   ConvergentDocumentUnavailableErrorTag,
+  type DocumentSharing,
+  type EditableLiveDocument,
+  type LocalEditsContributionError,
   type OpenSharedDocumentError,
   SharedDocumentUnavailableError,
   type ShareId,
 } from '../../../../modules/domain/collaboration';
+import { createPrivateConvergentDocument as createPrivatePlainTextConvergentDocument } from '../../../../modules/domain/plain-text/adapters/automerge-convergent-document';
 import {
+  artifactKinds,
+  type DocumentShareKey,
   getArtifactName,
   joinSharedDocument,
   leaveSharedDocument as leaveSharedDocumentCommand,
-  type LiveRichTextDocument,
+  openLivePlainTextDocument,
   openLiveRichTextDocument,
   SharedDocumentNotInProjectErrorTag,
   SharedDocumentOnAnotherBranchErrorTag,
   shareLiveDocument,
+  type ShareLiveDocumentArgs,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
-import { type PrimaryRichTextDocument } from '../../../../modules/domain/rich-text';
-import { createPrivateConvergentDocument } from '../../../../modules/domain/rich-text/adapters/automerge-convergent-document';
+import { createPrivateConvergentDocument as createPrivateRichTextConvergentDocument } from '../../../../modules/domain/rich-text/adapters/automerge-convergent-document';
 import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
 import {
   createErrorNotification,
@@ -39,10 +45,32 @@ import { ProjectContext } from '../';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
 import { ShareRegistryContext } from '../share-registry';
 import { CurrentDocumentContext } from './context';
-import { type JoinSharedDocumentRefusal } from './types';
-import { useCurrentDocumentId } from './use-current-document-id';
+import {
+  type CurrentDocument,
+  type CurrentPlainTextDocument,
+  type CurrentRichTextDocument,
+  type JoinSharedDocumentRefusal,
+} from './types';
+import {
+  useCurrentDocumentId,
+  useCurrentDocumentKind,
+} from './use-current-document-id';
 import { usePublishLocalPresence } from './use-presence';
 import { usePulledUpstreamChanges } from './use-pulled-upstream-changes';
+
+// Sharing and leaving the open document, through its own kind's sharing.
+type OpenedDocumentSharing = {
+  share: (args: ShareLiveDocumentArgs) => Effect.Effect<ShareId, unknown>;
+  leave: (
+    shareKey: DocumentShareKey
+  ) => Effect.Effect<void, LocalEditsContributionError>;
+};
+
+type OpenedDocument = (
+  | Pick<CurrentRichTextDocument, 'kind' | 'liveDocument'>
+  | Pick<CurrentPlainTextDocument, 'kind' | 'liveDocument'>
+) &
+  OpenedDocumentSharing;
 
 export const CurrentDocumentProvider = ({
   children,
@@ -57,7 +85,7 @@ export const CurrentDocumentProvider = ({
     switchToBranch,
     listBranches,
   } = useContext(ProjectContext);
-  const { privateRepo, documentSharing } = useContext(
+  const { privateRepo, documentSharing, sharedDocumentResolver } = useContext(
     InfrastructureAdaptersContext
   );
   const {
@@ -69,12 +97,38 @@ export const CurrentDocumentProvider = ({
   );
   const navigate = useNavigate();
   const documentId = useCurrentDocumentId();
+  const documentKind = useCurrentDocumentKind();
   const { pulledUpstreamChanges, resetPulledUpstreamChanges } =
     usePulledUpstreamChanges();
-  const [liveDocument, setLiveDocument] = useState<LiveRichTextDocument | null>(
+  const [openedDocument, setOpenedDocument] = useState<OpenedDocument | null>(
     null
   );
-  const onLocalSelectionChange = usePublishLocalPresence(liveDocument);
+  const liveDocument = openedDocument?.liveDocument ?? null;
+  const onRichTextSelectionChange = usePublishLocalPresence(
+    openedDocument?.kind === artifactKinds.RICH_TEXT_DOCUMENT
+      ? openedDocument.liveDocument
+      : null
+  );
+  const onPlainTextSelectionChange = usePublishLocalPresence(
+    openedDocument?.kind === artifactKinds.PLAIN_TEXT_DOCUMENT
+      ? openedDocument.liveDocument
+      : null
+  );
+  const currentDocument = useMemo((): CurrentDocument | null => {
+    if (!openedDocument) return null;
+
+    return openedDocument.kind === artifactKinds.RICH_TEXT_DOCUMENT
+      ? {
+          kind: openedDocument.kind,
+          liveDocument: openedDocument.liveDocument,
+          onLocalSelectionChange: onRichTextSelectionChange,
+        }
+      : {
+          kind: openedDocument.kind,
+          liveDocument: openedDocument.liveDocument,
+          onLocalSelectionChange: onPlainTextSelectionChange,
+        };
+  }, [openedDocument, onRichTextSelectionChange, onPlainTextSelectionChange]);
   const [isShareDocumentDialogOpen, setIsShareDocumentDialogOpen] =
     useState<boolean>(false);
   const [isJoinSharedDocumentDialogOpen, setIsJoinSharedDocumentDialogOpen] =
@@ -93,21 +147,24 @@ export const CurrentDocumentProvider = ({
   // until the new one resolves, so a reload never blanks the state in between;
   // only the first load, with nothing yet to show, starts empty.
   useEffect(() => {
+    if (!projectStore || !projectId || !documentId || !documentKind) {
+      setOpenedDocument(null);
+      return;
+    }
+
     if (
-      !projectStore ||
-      !projectId ||
-      !documentId ||
+      documentKind === artifactKinds.RICH_TEXT_DOCUMENT &&
       !representationTransformAdapter
     ) {
-      setLiveDocument(null);
+      setOpenedDocument(null);
       return;
     }
 
     // Ignore an open the selection has already moved on from.
     let cancelled = false;
-    let opened: LiveRichTextDocument | null = null;
+    let opened: OpenedDocument | null = null;
 
-    const close = (handle: LiveRichTextDocument) =>
+    const close = ({ liveDocument: handle }: OpenedDocument) =>
       Effect.runPromise(handle.close).catch((error) => {
         console.error(error);
         dispatchNotification(
@@ -140,28 +197,103 @@ export const CurrentDocumentProvider = ({
       );
     };
 
-    const createPrivateDocument = (initialDocument: PrimaryRichTextDocument) =>
-      createPrivateConvergentDocument({ initialDocument, privateRepo });
+    // Binds the document to its kind's sharing, so nothing later has to tell
+    // the kinds apart to share or leave it.
+    const bindSharing = <DocumentType, ParticipantSelectionType>({
+      liveDocument: handle,
+      sharingAdapter,
+    }: {
+      liveDocument: Pick<
+        EditableLiveDocument<DocumentType>,
+        'currentDocument' | 'attachTo' | 'applyPendingLocalEdits' | 'detach'
+      >;
+      sharingAdapter: Pick<
+        DocumentSharing<DocumentType, ParticipantSelectionType>,
+        'shareDocument' | 'leaveSharedDocument'
+      >;
+    }): OpenedDocumentSharing => ({
+      share: shareLiveDocument({
+        liveDocument: handle,
+        shareDocument: sharingAdapter.shareDocument,
+        rememberShare,
+      }),
+      leave: leaveSharedDocumentCommand({
+        liveDocument: handle,
+        findShareId,
+        forgetShare,
+        leaveSharedDocument: sharingAdapter.leaveSharedDocument,
+      }),
+    });
 
-    Effect.runPromise(
-      openLiveRichTextDocument({
-        createPrivateDocument,
-        openSharedDocument: documentSharing.openSharedDocument,
-        onShareUnavailable: reportShareFailure,
-        transformToText: representationTransformAdapter.transformToText,
-        findRichTextDocumentById: projectStore.findRichTextDocumentById,
-        updateRichTextDocumentContent:
-          projectStore.updateRichTextDocumentContent,
-        projectContentChangeEvents: projectStore.projectContentChangeEvents,
-      })({ projectId, documentId, shareId: shareId ?? undefined })
-    )
+    const args = { projectId, documentId, shareId: shareId ?? undefined };
+
+    const open = (): Effect.Effect<OpenedDocument, unknown> =>
+      documentKind === artifactKinds.RICH_TEXT_DOCUMENT &&
+      representationTransformAdapter
+        ? pipe(
+            openLiveRichTextDocument({
+              createPrivateDocument: (initialDocument) =>
+                createPrivateRichTextConvergentDocument({
+                  initialDocument,
+                  privateRepo,
+                }),
+              openSharedDocument:
+                documentSharing[artifactKinds.RICH_TEXT_DOCUMENT]
+                  .openSharedDocument,
+              onShareUnavailable: reportShareFailure,
+              transformToText: representationTransformAdapter.transformToText,
+              findRichTextDocumentById: projectStore.findRichTextDocumentById,
+              updateRichTextDocumentContent:
+                projectStore.updateRichTextDocumentContent,
+              projectContentChangeEvents:
+                projectStore.projectContentChangeEvents,
+            })(args),
+            Effect.map((handle): OpenedDocument => ({
+              kind: artifactKinds.RICH_TEXT_DOCUMENT,
+              liveDocument: handle,
+              ...bindSharing({
+                liveDocument: handle,
+                sharingAdapter:
+                  documentSharing[artifactKinds.RICH_TEXT_DOCUMENT],
+              }),
+            }))
+          )
+        : pipe(
+            openLivePlainTextDocument({
+              createPrivateDocument: (initialDocument) =>
+                createPrivatePlainTextConvergentDocument({
+                  initialDocument,
+                  privateRepo,
+                }),
+              openSharedDocument:
+                documentSharing[artifactKinds.PLAIN_TEXT_DOCUMENT]
+                  .openSharedDocument,
+              onShareUnavailable: reportShareFailure,
+              findPlainTextDocumentById: projectStore.findPlainTextDocumentById,
+              updatePlainTextDocumentContent:
+                projectStore.updatePlainTextDocumentContent,
+              projectContentChangeEvents:
+                projectStore.projectContentChangeEvents,
+            })(args),
+            Effect.map((handle): OpenedDocument => ({
+              kind: artifactKinds.PLAIN_TEXT_DOCUMENT,
+              liveDocument: handle,
+              ...bindSharing({
+                liveDocument: handle,
+                sharingAdapter:
+                  documentSharing[artifactKinds.PLAIN_TEXT_DOCUMENT],
+              }),
+            }))
+          );
+
+    Effect.runPromise(open())
       .then((handle) => {
         if (cancelled) {
           close(handle);
           return;
         }
         opened = handle;
-        setLiveDocument(handle);
+        setOpenedDocument(handle);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -173,7 +305,7 @@ export const CurrentDocumentProvider = ({
               'This document could not be opened. It may have been moved or deleted.',
           })
         );
-        setLiveDocument(null);
+        setOpenedDocument(null);
       });
 
     return () => {
@@ -181,7 +313,13 @@ export const CurrentDocumentProvider = ({
       if (opened) close(opened);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documentId, projectId, projectStore, representationTransformAdapter]);
+  }, [
+    documentId,
+    documentKind,
+    projectId,
+    projectStore,
+    representationTransformAdapter,
+  ]);
 
   // What the open document reports with nobody waiting on it. The editor keeps
   // working through all of it, so only what the user would otherwise never
@@ -220,15 +358,11 @@ export const CurrentDocumentProvider = ({
   }, [pulledUpstreamChanges]);
 
   const handleShareDocument = useCallback(async (): Promise<ShareId | null> => {
-    if (!shareKey || !liveDocument || !currentArtifact) return null;
+    if (!shareKey || !openedDocument || !currentArtifact) return null;
 
     try {
       return await Effect.runPromise(
-        shareLiveDocument({
-          liveDocument,
-          shareDocument: documentSharing.shareDocument,
-          rememberShare,
-        })({
+        openedDocument.share({
           projectId: shareKey.projectId,
           branch: shareKey.branch,
           documentId: shareKey.documentId,
@@ -245,14 +379,7 @@ export const CurrentDocumentProvider = ({
       );
       return null;
     }
-  }, [
-    shareKey,
-    liveDocument,
-    currentArtifact,
-    documentSharing,
-    rememberShare,
-    dispatchNotification,
-  ]);
+  }, [shareKey, openedDocument, currentArtifact, dispatchNotification]);
 
   const join = useCallback(
     async ({
@@ -272,8 +399,17 @@ export const CurrentDocumentProvider = ({
       const outcome = await Effect.runPromise(
         pipe(
           joinSharedDocument({
-            getSharedDocumentInfo: documentSharing.getSharedDocumentInfo,
-            findRichTextDocumentById: projectStore.findRichTextDocumentById,
+            getSharedDocumentKind: sharedDocumentResolver.getSharedDocumentKind,
+            getArtifactMetaDataById: projectStore.getArtifactMetaDataById,
+            getSharedDocumentInfo: {
+              [artifactKinds.RICH_TEXT_DOCUMENT]:
+                documentSharing[artifactKinds.RICH_TEXT_DOCUMENT]
+                  .getSharedDocumentInfo,
+              [artifactKinds.PLAIN_TEXT_DOCUMENT]:
+                documentSharing[artifactKinds.PLAIN_TEXT_DOCUMENT]
+                  .getSharedDocumentInfo,
+            },
+            lookupArtifactInProject: projectStore.lookupArtifactInProject,
             rememberShare,
             openDocument: branch === currentBranch ? liveDocument : null,
           })({ shareId: joinedShareId, projectId, branch }),
@@ -336,6 +472,7 @@ export const CurrentDocumentProvider = ({
       documentId,
       liveDocument,
       documentSharing,
+      sharedDocumentResolver,
       rememberShare,
       listBranches,
       dispatchNotification,
@@ -379,17 +516,10 @@ export const CurrentDocumentProvider = ({
   );
 
   const handleLeaveSharedDocument = useCallback(async () => {
-    if (!shareKey || !shareId || !liveDocument) return;
+    if (!shareKey || !shareId || !openedDocument) return;
 
     try {
-      await Effect.runPromise(
-        leaveSharedDocumentCommand({
-          liveDocument,
-          findShareId,
-          forgetShare,
-          leaveSharedDocument: documentSharing.leaveSharedDocument,
-        })(shareKey)
-      );
+      await Effect.runPromise(openedDocument.leave(shareKey));
     } catch (error) {
       console.error(error);
       dispatchNotification(
@@ -400,21 +530,12 @@ export const CurrentDocumentProvider = ({
         })
       );
     }
-  }, [
-    shareKey,
-    shareId,
-    liveDocument,
-    findShareId,
-    forgetShare,
-    documentSharing,
-    dispatchNotification,
-  ]);
+  }, [shareKey, shareId, openedDocument, dispatchNotification]);
 
   return (
     <CurrentDocumentContext.Provider
       value={{
-        liveDocument,
-        onLocalSelectionChange,
+        currentDocument,
         shareId,
         onShareDocument: handleShareDocument,
         onJoinSharedDocument: handleJoinSharedDocument,

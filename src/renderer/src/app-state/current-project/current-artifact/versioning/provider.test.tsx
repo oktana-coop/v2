@@ -46,6 +46,11 @@ const documentArtifact = (path: string): ArtifactMetaData => ({
 
 const notes = documentArtifact('notes.md');
 const ideas = documentArtifact('ideas.md');
+const config: ArtifactMetaData = {
+  id: createGitBlobRef({ ref: 'main', path: 'config.yaml' }),
+  path: parseProjectRelPath('config.yaml'),
+  kind: artifactKinds.PLAIN_TEXT_DOCUMENT,
+};
 
 const firstCommit = {
   id: parseCommitId('1111111111111111111111111111111111111111'),
@@ -101,6 +106,9 @@ const findRichTextDocumentById = vi.fn<
     handle: null,
   } as ResolvedDocument)
 );
+const findPlainTextDocumentById = vi.fn<
+  ProjectStore['findPlainTextDocumentById']
+>(() => Effect.succeed({ content: '' }));
 const discarded = vi.fn<() => void>();
 const discardUncommittedChanges = vi.fn<
   ProjectStore['discardUncommittedChanges']
@@ -125,6 +133,7 @@ const projectStore = {
   getDocumentHistory,
   isContentSameAtChanges,
   findRichTextDocumentById,
+  findPlainTextDocumentById,
   discardUncommittedChanges,
   commitDocumentChanges,
   restoreDocumentChanges,
@@ -217,7 +226,10 @@ const renderVersioning = ({
           <CurrentDocumentContext.Provider
             value={
               {
-                liveDocument: openDocument,
+                currentDocument: openDocument && {
+                  kind: artifactKinds.RICH_TEXT_DOCUMENT,
+                  liveDocument: openDocument,
+                },
               } as unknown as CurrentDocumentContextType
             }
           >
@@ -327,6 +339,32 @@ describe('CurrentArtifactVersioningProvider', () => {
       projectId,
       documentId: notes.id,
     });
+  });
+
+  it('reads a never-committed plain-text document as plain text', async () => {
+    getDocumentHistory.mockReturnValueOnce(
+      Effect.succeed({
+        history: [uncommittedChange],
+        latestChange: uncommittedChange,
+        lastCommit: null,
+        hasUncommittedChanges: true,
+      })
+    );
+
+    const { exposed } = renderVersioning({
+      currentArtifact: config,
+      url: artifactUrl(config),
+    });
+
+    await waitFor(() =>
+      expect(findPlainTextDocumentById).toHaveBeenCalledWith({
+        projectId,
+        documentId: config.id,
+      })
+    );
+    // An empty file holds nothing to commit.
+    expect(exposed.current?.canCommit).toBe(false);
+    expect(findRichTextDocumentById).not.toHaveBeenCalled();
   });
 
   it('reloads the history after the store announces a content change', async () => {

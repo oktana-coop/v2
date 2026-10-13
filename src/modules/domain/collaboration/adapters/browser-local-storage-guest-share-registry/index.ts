@@ -14,6 +14,7 @@ const STORAGE_KEY = 'guest-shares';
 const storedGuestShareSchema = z.object({
   shareId: z.string(),
   sharedName: z.string(),
+  kind: z.string(),
   label: z.string().nullable(),
   lastOpenedAt: z.number(),
 });
@@ -64,7 +65,7 @@ export const createAdapter = (): GuestShareRegistry => {
 
   return {
     listShares: () => shares,
-    rememberShare: ({ shareId, sharedName }) =>
+    rememberShare: ({ shareId, sharedName, kind }) =>
       update(
         replaceOrPrependGuestShare({
           current: stored,
@@ -72,6 +73,7 @@ export const createAdapter = (): GuestShareRegistry => {
             existing: findStored(shareId),
             shareId,
             sharedName,
+            kind,
             openedAt: Date.now(),
           }),
         })

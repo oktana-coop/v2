@@ -7,10 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { subscribeToStream } from '../../../../../utils/effect';
 import { type ConvergentDocumentError } from '../../../collaboration';
 import { createNullPresence } from '../../../collaboration/adapters/automerge-presence';
-import {
-  plainTextDocument,
-  type PlainTextParticipantSelection,
-} from '../../models';
+import { type ParticipantSelection, plainTextDocument } from '../../models';
 import { type PlainTextConvergentDocument } from '../../ports';
 import { createConvergentDocument } from './convergent-document';
 import {
@@ -28,9 +25,7 @@ const open = async (initialText: string) => {
   const handle = repo.create<DocumentContent>(seed(initialText));
 
   const presence =
-    await Effect.runPromise(
-      createNullPresence<PlainTextParticipantSelection>()
-    );
+    await Effect.runPromise(createNullPresence<ParticipantSelection>());
   const live = await Effect.runPromise(
     createConvergentDocument({ handle, presence })
   );

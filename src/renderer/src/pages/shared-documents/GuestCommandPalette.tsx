@@ -15,7 +15,7 @@ export const GuestCommandPalette = () => {
   const { isOpen, closeCommandPalette } = useContext(CommandPaletteContext);
   const {
     shareId,
-    liveDocument,
+    guestDocument,
     onOpenSharingDialog,
     onLeave,
     onOpenJoinDialog,
@@ -49,7 +49,7 @@ export const GuestCommandPalette = () => {
       onClose={closeCommandPalette}
       documentsGroupTitle="Shared with me"
       contextualSection={
-        liveDocument
+        guestDocument
           ? {
               groupTitle: `Current document: ${name}`,
               actions: documentActions,

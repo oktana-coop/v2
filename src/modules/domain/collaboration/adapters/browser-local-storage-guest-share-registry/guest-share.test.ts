@@ -7,9 +7,12 @@ import {
   toGuestShare,
 } from './guest-share';
 
+const kind = 'TEXT';
+
 const share = (shareId: string, lastOpenedAt: number) => ({
   shareId,
   sharedName: shareId,
+  kind,
   label: null,
   lastOpenedAt,
 });
@@ -23,6 +26,7 @@ describe('the name of a guest share', () => {
       toGuestShare({
         ...share('automerge:a', 1),
         sharedName: 'note',
+        kind,
         label: 'mine',
       }).name
     ).toBe('mine');
@@ -44,6 +48,7 @@ describe('the name of a guest share', () => {
       toGuestShare({
         ...share('automerge:a', 1),
         sharedName: 'hello.md',
+        kind,
         label: 'notes.md',
       }).name
     ).toBe('notes.md');
@@ -57,11 +62,13 @@ describe('creating or refreshing a guest share entry', () => {
         existing: undefined,
         shareId: 'automerge:a',
         sharedName: 'note',
+        kind,
         openedAt: 5,
       })
     ).toEqual({
       shareId: 'automerge:a',
       sharedName: 'note',
+      kind,
       label: null,
       lastOpenedAt: 5,
     });
@@ -71,6 +78,7 @@ describe('creating or refreshing a guest share entry', () => {
     const existing = {
       shareId: 'automerge:a',
       sharedName: 'note',
+      kind,
       label: 'mine',
       lastOpenedAt: 1,
     };
@@ -80,11 +88,13 @@ describe('creating or refreshing a guest share entry', () => {
         existing,
         shareId: 'automerge:a',
         sharedName: 'renamed note',
+        kind,
         openedAt: 5,
       })
     ).toEqual({
       shareId: 'automerge:a',
       sharedName: 'renamed note',
+      kind,
       label: 'mine',
       lastOpenedAt: 5,
     });
@@ -95,18 +105,21 @@ describe('replacing or prepending a guest share', () => {
   const a = {
     shareId: 'automerge:a',
     sharedName: 'a',
+    kind,
     label: null,
     lastOpenedAt: 3,
   };
   const b = {
     shareId: 'automerge:b',
     sharedName: 'b',
+    kind,
     label: null,
     lastOpenedAt: 2,
   };
   const c = {
     shareId: 'automerge:c',
     sharedName: 'c',
+    kind,
     label: null,
     lastOpenedAt: 1,
   };
@@ -123,6 +136,7 @@ describe('replacing or prepending a guest share', () => {
     const joined = {
       shareId: 'automerge:d',
       sharedName: 'd',
+      kind,
       label: null,
       lastOpenedAt: 9,
     };
@@ -137,6 +151,7 @@ describe('labeling a guest share', () => {
   const share = {
     shareId: 'automerge:a',
     sharedName: 'note',
+    kind,
     label: null,
     lastOpenedAt: 1,
   };

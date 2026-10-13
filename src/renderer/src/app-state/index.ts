@@ -29,6 +29,11 @@ export {
   type JoinSharedDocumentRefusal,
   CurrentDocumentProvider,
   useCurrentDocumentId,
+  useCurrentDocumentKind,
+  useCurrentDocumentMetaData,
+  useCurrentLiveDocument,
+  useCurrentRichTextDocument,
+  useCurrentRichTextDocumentId,
   useExport,
   useRemotePresence,
 } from './current-document';
@@ -86,4 +91,5 @@ export {
   type GuestEditingContextType,
   GuestEditingProvider,
   useCurrentShareId,
+  useGuestRichTextDocument,
 } from './guest-editing';

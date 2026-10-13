@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 
 import { urlEncodeShareId } from '../../../../../../modules/domain/collaboration';
 import {
+  artifactKinds,
   getArtifactName,
   listOpenableArtifacts,
 } from '../../../../../../modules/domain/project';
@@ -50,6 +51,8 @@ export const ProjectCommandPalette = ({
   const currentDocumentName = currentArtifact
     ? getArtifactName(currentArtifact.path)
     : null;
+  const isRichTextDocument =
+    currentArtifact?.kind === artifactKinds.RICH_TEXT_DOCUMENT;
   const { selection, startCreateDirectory } = useDocumentExplorerTree();
   const clearWebStorage = useClearWebStorage();
   const { guestShares } = useContext(GuestShareRegistryContext);
@@ -113,36 +116,7 @@ export const ProjectCommandPalette = ({
     ...electronSpecificActions,
   ];
 
-  const documentActions = [
-    ...(canCommit
-      ? [
-          {
-            name: keyBindings.ctrlS.command,
-            shortcut: keyBindings.ctrlS.keyBinding,
-            onActionSelection: openCommitModal,
-          },
-          {
-            name: 'Discard changes',
-            onActionSelection: onOpenDiscardChangesDialog,
-          },
-        ]
-      : []),
-    {
-      name: 'Copy as Markdown',
-      onActionSelection: copyTextToClipboard(richTextRepresentations.MARKDOWN),
-    },
-    {
-      name: shareId ? 'Sharing options' : 'Share this document',
-      onActionSelection: onOpenShareDocumentDialog,
-    },
-    ...(shareId
-      ? []
-      : [
-          {
-            name: 'Join shared document',
-            onActionSelection: onOpenJoinSharedDocumentDialog,
-          },
-        ]),
+  const richTextExportActions = [
     {
       name: keyBindings.ctrlShiftM.command,
       shortcut: keyBindings.ctrlShiftM.keyBinding,
@@ -172,6 +146,45 @@ export const ProjectCommandPalette = ({
       name: 'Export to Pandoc',
       onActionSelection: exportToText(richTextRepresentations.PANDOC),
     },
+  ];
+
+  const documentActions = [
+    ...(canCommit
+      ? [
+          {
+            name: keyBindings.ctrlS.command,
+            shortcut: keyBindings.ctrlS.keyBinding,
+            onActionSelection: openCommitModal,
+          },
+          {
+            name: 'Discard changes',
+            onActionSelection: onOpenDiscardChangesDialog,
+          },
+        ]
+      : []),
+    ...(isRichTextDocument
+      ? [
+          {
+            name: 'Copy as Markdown',
+            onActionSelection: copyTextToClipboard(
+              richTextRepresentations.MARKDOWN
+            ),
+          },
+        ]
+      : []),
+    {
+      name: shareId ? 'Sharing options' : 'Share this document',
+      onActionSelection: onOpenShareDocumentDialog,
+    },
+    ...(shareId
+      ? []
+      : [
+          {
+            name: 'Join shared document',
+            onActionSelection: onOpenJoinSharedDocumentDialog,
+          },
+        ]),
+    ...(isRichTextDocument ? richTextExportActions : []),
   ];
 
   return (

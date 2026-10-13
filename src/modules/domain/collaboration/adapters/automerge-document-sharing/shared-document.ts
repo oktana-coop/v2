@@ -1,5 +1,6 @@
 import { type DocHandle } from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 import { z } from 'zod';
 
 import { mapErrorTo } from '../../../../../utils/errors';
@@ -45,29 +46,39 @@ export const initialSharedDocumentContent = <ContentType>({
   name,
 });
 
+export const readSharedDocumentKind = (
+  handle: DocHandle<unknown>
+): Effect.Effect<string, ValidationError> => {
+  const parsed = sharedDocumentKindSchema.safeParse(handle.fullDoc());
+
+  return parsed.success
+    ? Effect.succeed(parsed.data.kind)
+    : Effect.fail(
+        new ValidationError(
+          'The share does not say what kind of document it is.'
+        )
+      );
+};
+
 export const checkSharedDocumentKind = ({
   handle,
   kind,
 }: {
   handle: DocHandle<unknown>;
   kind: string;
-}): Effect.Effect<void, UnexpectedDocumentKindError | ValidationError> => {
-  const parsed = sharedDocumentKindSchema.safeParse(handle.fullDoc());
-
-  if (!parsed.success) {
-    return Effect.fail(
-      new ValidationError('The share does not say what kind of document it is.')
-    );
-  }
-
-  return parsed.data.kind === kind
-    ? Effect.void
-    : Effect.fail(
-        new UnexpectedDocumentKindError(
-          `The share holds a ${parsed.data.kind} document, not a ${kind} one.`
-        )
-      );
-};
+}): Effect.Effect<void, UnexpectedDocumentKindError | ValidationError> =>
+  pipe(
+    readSharedDocumentKind(handle),
+    Effect.flatMap((sharedKind) =>
+      sharedKind === kind
+        ? Effect.void
+        : Effect.fail(
+            new UnexpectedDocumentKindError(
+              `The share holds a ${sharedKind} document, not a ${kind} one.`
+            )
+          )
+    )
+  );
 
 export const readSharedDocumentInfo = (
   handle: DocHandle<unknown>

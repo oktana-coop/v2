@@ -4,7 +4,7 @@ import {
   openProjectFolder,
   typeInEditorSlowly,
 } from '../shared/helpers';
-import { startTcpListener } from '../shared/sync-server';
+import { connectPeer, startTcpListener } from '../shared/sync-server';
 import {
   closeShareDialog,
   expectPrivate,
@@ -194,6 +194,38 @@ test.describe('a document before and while sharing', () => {
       );
     } finally {
       await bob.close();
+    }
+  });
+});
+
+test.describe('sharing a plain-text document', () => {
+  test.use({ withSyncServer: true });
+
+  test('shares a plain-text file as plain text', async ({
+    syncServer,
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await window.getByTestId('file-explorer').getByText('config.json').click();
+    await expect(window.getByText('Preview not available')).toBeVisible();
+
+    const shareId = await shareFromCommandPalette({ window });
+    await syncServer!.waitForShare(shareId);
+
+    const scriptedPeer = connectPeer(syncServer!.url);
+    try {
+      const peerHandle = await scriptedPeer.findDocument(shareId);
+
+      expect(peerHandle.fullDoc().kind).toBe('PLAIN_TEXT_DOCUMENT');
+      expect(peerHandle.fullDoc().content).toBe('{ "key": "value" }\n');
+    } finally {
+      scriptedPeer.disconnect();
     }
   });
 });

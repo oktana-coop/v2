@@ -15,7 +15,6 @@ import {
   type Participant,
   type RemotePresence,
 } from '../../../../modules/domain/collaboration';
-import { type ParticipantSelection } from '../../../../modules/domain/rich-text';
 import { subscribeToRef } from '../../../../utils/effect';
 
 // Generated once per app window, so an anonymous name lasts while the window
@@ -35,13 +34,13 @@ export const useLocalParticipant = (): Participant => {
   );
 };
 
-type DocumentWithPresence = Pick<
-  LiveDocument<unknown, ParticipantSelection>,
+type DocumentWithPresence<ParticipantSelectionType> = Pick<
+  LiveDocument<unknown, ParticipantSelectionType>,
   'presence'
 >;
 
-export const usePublishLocalPresence = (
-  liveDocument: DocumentWithPresence | null
+export const usePublishLocalPresence = <ParticipantSelectionType>(
+  liveDocument: DocumentWithPresence<ParticipantSelectionType> | null
 ) => {
   const participant = useLocalParticipant();
   // Read through a ref, so the returned function only changes with the
@@ -51,12 +50,12 @@ export const usePublishLocalPresence = (
 
   // A selection only means something in the document it was made in.
   const lastSelection = useRef<{
-    document: DocumentWithPresence;
-    selection: ParticipantSelection | null;
+    document: DocumentWithPresence<ParticipantSelectionType>;
+    selection: ParticipantSelectionType | null;
   } | null>(null);
 
   const publish = useCallback(
-    (selection: ParticipantSelection | null) => {
+    (selection: ParticipantSelectionType | null) => {
       if (!liveDocument) return;
 
       lastSelection.current = { document: liveDocument, selection };
@@ -80,11 +79,11 @@ export const usePublishLocalPresence = (
   return publish;
 };
 
-export const useRemotePresence = (
-  liveDocument: DocumentWithPresence | null
-): ReadonlyArray<RemotePresence<ParticipantSelection>> => {
+export const useRemotePresence = <ParticipantSelectionType>(
+  liveDocument: DocumentWithPresence<ParticipantSelectionType> | null
+): ReadonlyArray<RemotePresence<ParticipantSelectionType>> => {
   const [peers, setPeers] = useState<
-    ReadonlyArray<RemotePresence<ParticipantSelection>>
+    ReadonlyArray<RemotePresence<ParticipantSelectionType>>
   >([]);
 
   useEffect(() => {

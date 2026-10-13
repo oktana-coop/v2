@@ -4,8 +4,8 @@ import { pipe } from 'effect/Function';
 
 import { createNullPresence } from '../../../collaboration/adapters/automerge-presence';
 import {
+  type ParticipantSelection,
   type PlainTextDocument,
-  type PlainTextParticipantSelection,
 } from '../../models';
 import { type PlainTextConvergentDocument } from '../../ports';
 import { createConvergentDocument } from './convergent-document';
@@ -30,7 +30,7 @@ export const createPrivateConvergentDocument = ({
           initialDocumentContent(initialDocument.content)
         )
       ),
-      presence: createNullPresence<PlainTextParticipantSelection>(),
+      presence: createNullPresence<ParticipantSelection>(),
     }),
     Effect.flatMap(createConvergentDocument)
   );
