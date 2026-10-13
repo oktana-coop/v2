@@ -1,7 +1,7 @@
 import * as Effect from 'effect/Effect';
 
-import { type Diagnostic, type NormalizedText } from '../models';
+import { type Diagnostic, type PlainText } from '../models';
 
 export type Linter = {
-  lint: (text: NormalizedText) => Effect.Effect<Diagnostic[]>;
+  lint: (text: PlainText) => Effect.Effect<Diagnostic[]>;
 };

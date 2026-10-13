@@ -2,15 +2,13 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import { describe, expect, it } from 'vitest';
 
-import { diagnosticSeverities, parseNormalizedText } from '../../models';
+import { diagnosticSeverities, parsePlainText } from '../../models';
 import { createAdapter } from './index';
 
 const linter = createAdapter();
 
 const lint = (text: string) =>
-  Effect.runPromise(
-    pipe(parseNormalizedText(text), Effect.flatMap(linter.lint))
-  );
+  Effect.runPromise(pipe(parsePlainText(text), Effect.flatMap(linter.lint)));
 
 describe('YAML linter', () => {
   it('reports nothing for valid YAML', async () => {

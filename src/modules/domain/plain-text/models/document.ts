@@ -4,32 +4,24 @@ import { z } from 'zod';
 import { mapErrorTo } from '../../../../utils/errors';
 import { ValidationError } from '../errors';
 
-const plainTextDocumentSchema = z
-  .custom<Uint8Array>((value) => ArrayBuffer.isView(value), 'Expected bytes')
-  .refine((bytes) => !bytes.includes(0), 'The content holds a NUL byte')
-  .transform((bytes, context) => {
-    try {
-      return {
-        content: new TextDecoder('utf-8', {
-          fatal: true,
-          ignoreBOM: true,
-        }).decode(bytes),
-      };
-    } catch {
-      context.addIssue({
-        code: 'custom',
-        message: 'The content is not valid UTF-8',
-      });
-      return z.NEVER;
-    }
-  });
+const BYTE_ORDER_MARK = String.fromCharCode(0xfeff);
 
-export type PlainTextDocument = z.infer<typeof plainTextDocumentSchema>;
+// Text with `\n` line endings and no byte order mark.
+const plainTextSchema = z
+  .string()
+  .refine((text) => !text.includes('\r'), 'The text holds a carriage return')
+  .refine(
+    (text) => !text.startsWith(BYTE_ORDER_MARK),
+    'The text starts with a byte order mark'
+  )
+  .brand('PlainText');
 
-export const parsePlainTextDocument = (
-  bytes: Uint8Array
-): Effect.Effect<PlainTextDocument, ValidationError, never> =>
+export type PlainText = z.infer<typeof plainTextSchema>;
+
+export const parsePlainText = (
+  text: string
+): Effect.Effect<PlainText, ValidationError, never> =>
   Effect.try({
-    try: () => plainTextDocumentSchema.parse(bytes),
-    catch: mapErrorTo(ValidationError, 'Invalid plain-text document'),
+    try: () => plainTextSchema.parse(text),
+    catch: mapErrorTo(ValidationError, 'Invalid plain text'),
   });

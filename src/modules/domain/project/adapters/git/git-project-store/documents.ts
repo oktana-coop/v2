@@ -4,8 +4,8 @@ import * as Option from 'effect/Option';
 import git, { type PromiseFsClient as IsoGitFsApi } from 'isomorphic-git';
 
 import {
-  parsePlainTextDocument,
-  type PlainTextDocument,
+  parseRawPlainText,
+  type RawPlainText,
 } from '../../../../../../modules/domain/plain-text';
 import {
   type DocumentAnalysisError,
@@ -128,11 +128,9 @@ export const getDocumentReferencedAssetPaths = ({
 
 const decodePlainText =
   (documentPath: string) =>
-  (
-    bytes: Uint8Array
-  ): Effect.Effect<PlainTextDocument, TextDecodingError, never> =>
+  (bytes: Uint8Array): Effect.Effect<RawPlainText, TextDecodingError, never> =>
     pipe(
-      parsePlainTextDocument(bytes),
+      parseRawPlainText(bytes),
       Effect.mapError(
         (error) =>
           new TextDecodingError(
@@ -326,7 +324,7 @@ export const createDocumentOps = ({
     documentPath: string;
     commitHash: GitCommitHash;
   }) => Effect.Effect<
-    PlainTextDocument,
+    RawPlainText,
     RepositoryError | NotFoundError | DeletedDocumentError | TextDecodingError,
     never
   > = (args) =>
@@ -471,7 +469,7 @@ export const createDocumentOps = ({
   const readPlainTextFromWorkdir: (
     args: FindDocumentByIdArgs
   ) => Effect.Effect<
-    PlainTextDocument,
+    RawPlainText,
     ValidationError | RepositoryError | NotFoundError | TextDecodingError,
     never
   > = ({ projectId, documentId }) =>

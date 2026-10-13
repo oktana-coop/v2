@@ -1,7 +1,7 @@
 import * as Effect from 'effect/Effect';
 import * as Stream from 'effect/Stream';
 
-import { type PlainTextDocument } from '../../../../modules/domain/plain-text';
+import { type RawPlainText } from '../../../../modules/domain/plain-text';
 import type {
   ResolvedDocument,
   RichTextRepresentation,
@@ -638,7 +638,7 @@ export type ProjectStore = {
   findPlainTextDocumentById: (
     args: FindDocumentByIdArgs
   ) => Effect.Effect<
-    PlainTextDocument,
+    RawPlainText,
     | ValidationError
     | RepositoryError
     | NotFoundError
@@ -684,7 +684,7 @@ export type ProjectStore = {
   getPlainTextDocumentAtChange: (
     args: GetDocumentAtChangeArgs
   ) => Effect.Effect<
-    PlainTextDocument,
+    RawPlainText,
     | ValidationError
     | RepositoryError
     | NotFoundError
