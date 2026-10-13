@@ -25,3 +25,23 @@ export const parsePlainText = (
     try: () => plainTextSchema.parse(text),
     catch: mapErrorTo(ValidationError, 'Invalid plain text'),
   });
+
+// Takes any text as plain text: line breaks become `\n`, and leading byte
+// order marks are removed.
+export const toPlainText = (text: string): PlainText =>
+  plainTextSchema.parse(
+    text.replace(new RegExp(`^${BYTE_ORDER_MARK}+`), '').replace(/\r\n?/g, '\n')
+  );
+
+export type PlainTextDocument = {
+  content: PlainText;
+};
+
+export const plainTextDocument = (text: string): PlainTextDocument => ({
+  content: toPlainText(text),
+});
+
+export const plainTextDocumentsAreEqual = (
+  a: PlainTextDocument,
+  b: PlainTextDocument
+): boolean => a.content === b.content;

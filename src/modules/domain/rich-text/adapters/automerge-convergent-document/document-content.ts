@@ -8,25 +8,30 @@ import {
 } from '../../../collaboration';
 
 // The shape every Automerge document this app writes takes, private or
-// shared alike, and the version of that shape. The version matters when
-// documents meet: a peer that does not know a format cannot take part in its
-// changes.
+// shared alike, the kind of document it holds and the version of that shape.
+// The version matters when documents meet: a peer that does not know a format
+// cannot take part in its changes.
+export const DOCUMENT_KIND = 'RICH_TEXT';
 export const DOCUMENT_FORMAT_VERSION = 1;
 
 export const documentContentSchema = z.object({
+  kind: z.literal(DOCUMENT_KIND),
   formatVersion: z.number(),
   content: z.string(),
 });
 
 export type DocumentContent = z.infer<typeof documentContentSchema>;
 
-// The same shape, read as far as the version and no further: a document from
-// a later format may hold nothing else this app would recognize.
+// The same shape, read as far as the kind or the version and no further: a
+// document of another kind, or from a later format, may hold nothing else
+// this app would recognize.
+const kindSchema = documentContentSchema.pick({ kind: true });
 const formatSchema = documentContentSchema.pick({ formatVersion: true });
 
 // Peers converge on a document only if they all start from the same bytes,
 // so every document starts in this shape — minted once, never re-derived.
 export const initialDocumentContent = (content: string): DocumentContent => ({
+  kind: DOCUMENT_KIND,
   formatVersion: DOCUMENT_FORMAT_VERSION,
   content,
 });
@@ -47,7 +52,15 @@ export const parseDocumentContent = (
     > => {
       const doc: unknown = handle.fullDoc();
 
-      // Check the version first because newer versions may also change the
+      // Check the kind first because the version and the content schema are
+      // the kind's own.
+      if (!kindSchema.safeParse(doc).success) {
+        return Effect.fail(
+          new ValidationError('The document is not a rich-text document.')
+        );
+      }
+
+      // Check the version next because newer versions may also change the
       // content schema.
       const formatParsingResult = formatSchema.safeParse(doc);
 

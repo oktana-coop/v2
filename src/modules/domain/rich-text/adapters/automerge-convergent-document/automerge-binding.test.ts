@@ -18,6 +18,7 @@ import { type RichTextConvergentDocument } from '../../ports';
 import { richTextAutomergeBinding } from './automerge-binding';
 import {
   DOCUMENT_FORMAT_VERSION,
+  DOCUMENT_KIND,
   type DocumentContent,
 } from './document-content';
 
@@ -44,6 +45,7 @@ const info = {
 };
 
 const seed = (content: string): DocumentContent => ({
+  kind: DOCUMENT_KIND,
   formatVersion: DOCUMENT_FORMAT_VERSION,
   content,
 });
@@ -123,6 +125,7 @@ describe('richTextAutomergeBinding', () => {
   it('refuses a share whose format it does not implement', async () => {
     const repo = new Repo({ network: [] });
     const handle = repo.create({
+      kind: DOCUMENT_KIND,
       formatVersion: DOCUMENT_FORMAT_VERSION + 1,
       content: 'from a newer app',
     });
@@ -139,6 +142,7 @@ describe('richTextAutomergeBinding', () => {
     // A later format need not keep its text in `content`, or at all: the
     // version is read before anything else, so the shape never comes up.
     const handle = repo.create({
+      kind: DOCUMENT_KIND,
       formatVersion: DOCUMENT_FORMAT_VERSION + 1,
       spans: [{ kind: 'paragraph' }],
     });
@@ -155,8 +159,24 @@ describe('richTextAutomergeBinding', () => {
   it('refuses a share of its own format that holds the wrong thing', async () => {
     const repo = new Repo({ network: [] });
     const handle = repo.create({
+      kind: DOCUMENT_KIND,
       formatVersion: DOCUMENT_FORMAT_VERSION,
       content: 42,
+    });
+
+    const failure = await Effect.runPromise(
+      Effect.flip(syncFor(repo).openSharedDocument({ shareId: handle.url }))
+    );
+
+    expect(failure).toBeInstanceOf(ValidationError);
+  });
+
+  it('refuses a document of another kind', async () => {
+    const repo = new Repo({ network: [] });
+    const handle = repo.create({
+      kind: 'PLAIN_TEXT',
+      formatVersion: DOCUMENT_FORMAT_VERSION,
+      content: 'a: 1',
     });
 
     const failure = await Effect.runPromise(

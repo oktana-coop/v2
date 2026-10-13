@@ -30,6 +30,14 @@ export {
 } from './live-document';
 export { openLiveDocument } from './open-live-document';
 export {
+  type LivePlainTextDocument,
+  type NamedLivePlainTextDocument,
+  openLivePlainTextDocument,
+  openLivePlainTextDocumentAsGuest,
+  type OpenLivePlainTextDocumentAsGuestDeps,
+  type OpenLivePlainTextDocumentDeps,
+} from './open-live-plain-text-document';
+export {
   type LiveRichTextDocument,
   type NamedLiveRichTextDocument,
   openLiveRichTextDocument,

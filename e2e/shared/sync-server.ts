@@ -163,7 +163,11 @@ export const startLatencyProxy = async ({
   };
 };
 
-export type DocumentContent = { formatVersion: number; content: string };
+export type DocumentContent = {
+  kind: string;
+  formatVersion: number;
+  content: string;
+};
 
 // A plain automerge-repo client of the sync server, standing in for a peer.
 export const connectPeer = (syncServerUrl: string) => {

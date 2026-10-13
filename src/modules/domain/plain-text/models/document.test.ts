@@ -2,7 +2,7 @@ import * as Effect from 'effect/Effect';
 import { describe, expect, it } from 'vitest';
 
 import { PlainTextValidationErrorTag } from '../errors';
-import { parsePlainText } from './document';
+import { parsePlainText, toPlainText } from './document';
 
 const BYTE_ORDER_MARK = String.fromCharCode(0xfeff);
 
@@ -29,5 +29,23 @@ describe('parsePlainText', () => {
 
     expect(failure._tag).toBe(PlainTextValidationErrorTag);
     expect(failure.message).toContain('The text starts with a byte order mark');
+  });
+});
+
+describe('toPlainText', () => {
+  it('turns every line break into LF', () => {
+    expect(toPlainText('a: 1\r\nb: 2\rc: 3\n')).toBe('a: 1\nb: 2\nc: 3\n');
+  });
+
+  it('removes leading byte order marks', () => {
+    expect(toPlainText(`${BYTE_ORDER_MARK}${BYTE_ORDER_MARK}a: 1`)).toBe(
+      'a: 1'
+    );
+  });
+
+  it('keeps a byte order mark that does not start the text', () => {
+    expect(toPlainText(`a: ${BYTE_ORDER_MARK}1`)).toBe(
+      `a: ${BYTE_ORDER_MARK}1`
+    );
   });
 });
