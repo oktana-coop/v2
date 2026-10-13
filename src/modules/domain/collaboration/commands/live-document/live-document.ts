@@ -57,8 +57,6 @@ export type LocalEditing<EditorDocumentType> = {
   dropPendingLocalEdits: Effect.Effect<void>;
 };
 
-// Switching first contributes the editor's edits still on their way, which
-// can fail.
 export type EditableLiveDocument<
   DocumentType = unknown,
   ParticipantSelectionType = unknown,

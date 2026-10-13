@@ -17,8 +17,6 @@ import {
 } from '../../models';
 import { type Presence } from '../../ports';
 
-// A selection as the kind of document's editor puts it: how to read one a
-// peer sent, and when two say the same.
 export type PresenceSelection<ParticipantSelectionType> = {
   parse: (
     value: unknown

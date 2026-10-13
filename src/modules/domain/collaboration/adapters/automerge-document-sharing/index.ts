@@ -26,7 +26,7 @@ import {
   initialSharedDocumentContent,
   readSharedDocumentInfo,
 } from './shared-document';
-// How a kind of document is held in Automerge, and how to work on one.
+
 export type AutomergeBinding<
   DocumentType,
   ParticipantSelectionType,

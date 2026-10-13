@@ -10,7 +10,6 @@ import {
   type LocalEditing,
 } from './live-document';
 
-// How a kind of document turns the editor's edits into document content.
 export type EditContributor<EditorDocumentType> =
   LocalEditing<EditorDocumentType> & {
     // Contributions made to a document that was left mean nothing on the next
