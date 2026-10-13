@@ -9,8 +9,19 @@ import {
   useState,
 } from 'react';
 
-import { type DocumentSharing } from '../../../../modules/domain/collaboration';
-import { createAdapter as createAutomergeDocumentSharingAdapter } from '../../../../modules/domain/collaboration/adapters/automerge-document-sharing';
+import {
+  type DocumentSharing,
+  type SharedDocumentResolver,
+} from '../../../../modules/domain/collaboration';
+import {
+  createAdapter as createAutomergeDocumentSharingAdapter,
+  createResolverAdapter as createAutomergeSharedDocumentResolverAdapter,
+} from '../../../../modules/domain/collaboration/adapters/automerge-document-sharing';
+import {
+  type ParticipantSelection as PlainTextParticipantSelection,
+  type PlainTextDocument,
+} from '../../../../modules/domain/plain-text';
+import { plainTextAutomergeBinding } from '../../../../modules/domain/plain-text/adapters/automerge-convergent-document';
 import {
   artifactKinds,
   type AssetUrlProtocol,
@@ -36,16 +47,26 @@ import {
 import { mapErrorTo } from '../../../../utils/errors';
 import { LoadingText } from '../../components/progress/LoadingText';
 
+// How documents of each kind are shared.
+export type DocumentSharingByKind = {
+  [artifactKinds.RICH_TEXT_DOCUMENT]: DocumentSharing<
+    PrimaryRichTextDocument,
+    ParticipantSelection
+  >;
+  [artifactKinds.PLAIN_TEXT_DOCUMENT]: DocumentSharing<
+    PlainTextDocument,
+    PlainTextParticipantSelection
+  >;
+};
+
 export type InfrastructureAdaptersContextType = {
   filesystem: Filesystem;
   projectStoreManager: ProjectStoreManager;
   assetUrlProtocol: AssetUrlProtocol;
   projectStore: ProjectStore | null;
   setProjectStore: (store: ProjectStore | null) => void;
-  documentSharing: DocumentSharing<
-    PrimaryRichTextDocument,
-    ParticipantSelection
-  >;
+  documentSharing: DocumentSharingByKind;
+  sharedDocumentResolver: SharedDocumentResolver;
   // The repo that talks to the sync service, and the one that never talks
   // to anyone: documents this app keeps to itself live in the latter.
   syncedRepo: Effect.Effect<AutomergeRepo, SyncServiceError>;
@@ -64,6 +85,8 @@ export const InfrastructureAdaptersContext =
     setProjectStore: () => {},
     // @ts-expect-error will get overriden below
     documentSharing: null,
+    // @ts-expect-error will get overriden below
+    sharedDocumentResolver: null,
     // @ts-expect-error will get overriden below
     syncedRepo: null,
     // @ts-expect-error will get overriden below
@@ -133,12 +156,26 @@ export const InfrastructureAdaptersProvider = ({
   );
 
   const documentSharing = useMemo(
-    () =>
-      createAutomergeDocumentSharingAdapter({
-        syncedRepo,
-        kind: artifactKinds.RICH_TEXT_DOCUMENT,
-        binding: richTextAutomergeBinding,
-      }),
+    (): DocumentSharingByKind => ({
+      [artifactKinds.RICH_TEXT_DOCUMENT]: createAutomergeDocumentSharingAdapter(
+        {
+          syncedRepo,
+          kind: artifactKinds.RICH_TEXT_DOCUMENT,
+          binding: richTextAutomergeBinding,
+        }
+      ),
+      [artifactKinds.PLAIN_TEXT_DOCUMENT]:
+        createAutomergeDocumentSharingAdapter({
+          syncedRepo,
+          kind: artifactKinds.PLAIN_TEXT_DOCUMENT,
+          binding: plainTextAutomergeBinding,
+        }),
+    }),
+    [syncedRepo]
+  );
+
+  const sharedDocumentResolver = useMemo(
+    () => createAutomergeSharedDocumentResolverAdapter({ syncedRepo }),
     [syncedRepo]
   );
 
@@ -172,6 +209,7 @@ export const InfrastructureAdaptersProvider = ({
         projectStore,
         setProjectStore: handleSetProjectStore,
         documentSharing,
+        sharedDocumentResolver,
         syncedRepo,
         privateRepo,
       }}

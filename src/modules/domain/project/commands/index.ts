@@ -19,6 +19,7 @@ export {
   leaveSharedDocument,
 } from './leave-shared-document';
 export {
+  type ShareLiveDocumentArgs,
   type ShareLiveDocumentDeps,
   shareLiveDocument,
 } from './share-live-document';
@@ -55,6 +56,10 @@ export {
   type GetDocumentVersioningStateDeps,
   getDocumentVersioningState,
 } from './get-document-versioning-state';
+export {
+  readDocumentContent,
+  type ReadDocumentContentDeps,
+} from './read-document-content';
 export { commitDocument, type CommitDocumentDeps } from './commit-document';
 export {
   restoreDocumentVersion,

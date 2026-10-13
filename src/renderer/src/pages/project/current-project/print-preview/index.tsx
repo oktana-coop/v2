@@ -5,7 +5,7 @@ import { richTextRepresentations } from '../../../../../../modules/domain/rich-t
 import { ExportTemplatesContext } from '../../../../../../modules/personalization/export-templates/context';
 import {
   CommandPaletteContext,
-  useCurrentDocumentId,
+  useCurrentRichTextDocumentId,
   useExport,
 } from '../../../../app-state';
 import { useKeyBindings } from '../../../../keyboard';
@@ -13,7 +13,7 @@ import { PagedPreview } from '../../../shared/paged-preview/PagedPreview';
 import { PrintPreviewActionsBar } from './PrintPreviewActionsBar';
 
 export const PrintPreview = () => {
-  const documentId = useCurrentDocumentId();
+  const documentId = useCurrentRichTextDocumentId();
   const { activeTemplate } = useContext(ExportTemplatesContext);
   const { isOpen: isCommandPaletteOpen } = useContext(CommandPaletteContext);
   const { exportToPDF, getExportText } = useExport();

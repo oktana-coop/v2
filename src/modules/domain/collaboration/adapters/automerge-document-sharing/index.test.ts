@@ -29,7 +29,7 @@ import {
   type ConvergentDocumentState,
 } from '../../ports';
 import { createNullPresence } from '../automerge-presence';
-import { type AutomergeBinding, createAdapter } from '.';
+import { type AutomergeBinding, createAdapter, createResolverAdapter } from '.';
 
 // A kind of document of the tests' own, holding plain text.
 type TextDocument = { text: string };
@@ -332,5 +332,47 @@ describe('automergeDocumentSharing', () => {
     await Effect.runPromise(
       syncFor(repo).leaveSharedDocument({ shareId: 'not-a-url' })
     );
+  });
+});
+
+describe('automergeSharedDocumentResolver', () => {
+  const resolverFor = (repo: Repo) =>
+    createResolverAdapter({ syncedRepo: Effect.succeed(repo) });
+
+  it('tells what kind of document a share holds, whatever the kind', async () => {
+    const repo = new Repo({ network: [] });
+    // Content no binding of these tests reads.
+    const handle = repo.create({ kind: 'OTHER', spans: [] });
+
+    const kind = await Effect.runPromise(
+      resolverFor(repo).getSharedDocumentKind({ shareId: handle.url })
+    );
+
+    expect(kind).toBe('OTHER');
+  });
+
+  it('refuses a share that does not say what kind it holds', async () => {
+    const repo = new Repo({ network: [] });
+    const handle = repo.create({ text: 'no kind' });
+
+    const failure = await Effect.runPromise(
+      Effect.flip(
+        resolverFor(repo).getSharedDocumentKind({ shareId: handle.url })
+      )
+    );
+
+    expect(failure).toBeInstanceOf(ValidationError);
+  });
+
+  it('refuses a link that is not a shared document link', async () => {
+    const repo = new Repo({ network: [] });
+
+    const failure = await Effect.runPromise(
+      Effect.flip(
+        resolverFor(repo).getSharedDocumentKind({ shareId: 'not-a-url' })
+      )
+    );
+
+    expect(failure).toBeInstanceOf(ValidationError);
   });
 });

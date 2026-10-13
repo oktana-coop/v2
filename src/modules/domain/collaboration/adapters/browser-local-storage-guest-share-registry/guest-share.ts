@@ -7,6 +7,7 @@ export type StoredGuestShare = {
   // The share's own name is a suggestion: an entry follows it until the user
   // gives the entry a label of their own.
   sharedName: string;
+  kind: string;
   label: string | null;
   lastOpenedAt: number;
 };
@@ -14,12 +15,14 @@ export type StoredGuestShare = {
 export const toGuestShare = ({
   shareId,
   sharedName,
+  kind,
   label,
   lastOpenedAt,
 }: StoredGuestShare): GuestShare => ({
   shareId,
   // Guests have no files, so an extension says nothing to them.
   name: label ?? removeExtension(sharedName),
+  kind,
   lastOpenedAt,
 });
 
@@ -27,16 +30,18 @@ export const createOrRefreshGuestShare = ({
   existing,
   shareId,
   sharedName,
+  kind,
   openedAt,
 }: {
   existing: StoredGuestShare | undefined;
   shareId: ShareId;
   sharedName: string;
+  kind: string;
   openedAt: number;
 }): StoredGuestShare =>
   existing
-    ? { ...existing, sharedName, lastOpenedAt: openedAt }
-    : { shareId, sharedName, label: null, lastOpenedAt: openedAt };
+    ? { ...existing, sharedName, kind, lastOpenedAt: openedAt }
+    : { shareId, sharedName, kind, label: null, lastOpenedAt: openedAt };
 
 export const replaceOrPrependGuestShare = ({
   current,

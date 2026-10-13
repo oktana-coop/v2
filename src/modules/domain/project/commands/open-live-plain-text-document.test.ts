@@ -5,10 +5,10 @@ import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  type ParticipantSelection as PlainTextParticipantSelection,
   type PlainTextConvergentDocument,
   type PlainTextConvergentDocumentState,
   plainTextDocument,
-  type PlainTextParticipantSelection,
 } from '../../../../modules/domain/plain-text';
 import { type ArtifactId } from '../../../../modules/infrastructure/version-control';
 import { type RemotePresence, type ShareId } from '../../collaboration';

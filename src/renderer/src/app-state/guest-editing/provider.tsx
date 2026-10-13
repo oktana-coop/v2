@@ -1,18 +1,30 @@
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useNavigate } from 'react-router';
 
 import {
+  type DocumentSharing,
   leaveDocumentAsGuest,
   SharedDocumentUnavailableErrorTag,
   type ShareId,
+  ValidationError,
 } from '../../../../modules/domain/collaboration';
+import { createPrivateConvergentDocument as createPrivatePlainTextConvergentDocument } from '../../../../modules/domain/plain-text/adapters/automerge-convergent-document';
 import {
-  type NamedLiveRichTextDocument,
+  artifactKinds,
+  isDocumentKind,
+  openLivePlainTextDocumentAsGuest,
   openLiveRichTextDocumentAsGuest,
 } from '../../../../modules/domain/project';
-import { createPrivateConvergentDocument } from '../../../../modules/domain/rich-text/adapters/automerge-convergent-document';
+import { createPrivateConvergentDocument as createPrivateRichTextConvergentDocument } from '../../../../modules/domain/rich-text/adapters/automerge-convergent-document';
 import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
 import {
   createErrorNotification,
@@ -22,21 +34,32 @@ import {
 import { usePublishLocalPresence } from '../current-document/use-presence';
 import { GuestShareRegistryContext } from '../guest-share-registry';
 import { InfrastructureAdaptersContext } from '../infrastructure-adapters/context';
-import { GuestEditingContext } from './context';
+import {
+  type GuestDocument,
+  GuestEditingContext,
+  type GuestPlainTextDocument,
+  type GuestRichTextDocument,
+} from './context';
 import { useCurrentShareId } from './use-current-share-id';
+
+type OpenedDocument = (
+  | Pick<GuestRichTextDocument, 'kind' | 'liveDocument'>
+  | Pick<GuestPlainTextDocument, 'kind' | 'liveDocument'>
+) & {
+  leaveSharedDocument: DocumentSharing['leaveSharedDocument'];
+};
 
 // How opening the share in the route went: the document, or what to tell the
 // user. The entry stays listed either way; leaving is the user's call.
 type OpenOutcome =
-  | { document: NamedLiveRichTextDocument }
-  | { document: null; notification: Notification };
+  { document: OpenedDocument } | { document: null; notification: Notification };
 
 export const GuestEditingProvider = ({
   children,
 }: {
   children: React.ReactNode;
 }) => {
-  const { privateRepo, documentSharing } = useContext(
+  const { privateRepo, documentSharing, sharedDocumentResolver } = useContext(
     InfrastructureAdaptersContext
   );
   const { adapter: representationTransformAdapter } = useContext(
@@ -49,23 +72,48 @@ export const GuestEditingProvider = ({
   const navigate = useNavigate();
   const shareId = useCurrentShareId();
 
-  const [liveDocument, setLiveDocument] =
-    useState<NamedLiveRichTextDocument | null>(null);
+  const [openedDocument, setOpenedDocument] = useState<OpenedDocument | null>(
+    null
+  );
   // The document to close when the route moves on, unless leaving closed it.
-  const openedRef = useRef<NamedLiveRichTextDocument | null>(null);
-  const onLocalSelectionChange = usePublishLocalPresence(liveDocument);
+  const openedRef = useRef<OpenedDocument | null>(null);
+  const onRichTextSelectionChange = usePublishLocalPresence(
+    openedDocument?.kind === artifactKinds.RICH_TEXT_DOCUMENT
+      ? openedDocument.liveDocument
+      : null
+  );
+  const onPlainTextSelectionChange = usePublishLocalPresence(
+    openedDocument?.kind === artifactKinds.PLAIN_TEXT_DOCUMENT
+      ? openedDocument.liveDocument
+      : null
+  );
+  const guestDocument = useMemo((): GuestDocument | null => {
+    if (!openedDocument) return null;
+
+    return openedDocument.kind === artifactKinds.RICH_TEXT_DOCUMENT
+      ? {
+          kind: openedDocument.kind,
+          liveDocument: openedDocument.liveDocument,
+          onLocalSelectionChange: onRichTextSelectionChange,
+        }
+      : {
+          kind: openedDocument.kind,
+          liveDocument: openedDocument.liveDocument,
+          onLocalSelectionChange: onPlainTextSelectionChange,
+        };
+  }, [openedDocument, onRichTextSelectionChange, onPlainTextSelectionChange]);
   const [isSharingDialogOpen, setIsSharingDialogOpen] = useState(false);
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!shareId || !representationTransformAdapter) {
-      setLiveDocument(null);
+      setOpenedDocument(null);
       return;
     }
 
     let cancelled = false;
 
-    const close = (document: NamedLiveRichTextDocument) =>
+    const close = ({ liveDocument: document }: OpenedDocument) =>
       Effect.runPromise(
         pipe(document.applyPendingLocalEdits, Effect.ensuring(document.close))
       ).catch((error) => {
@@ -78,15 +126,61 @@ export const GuestEditingProvider = ({
         );
       });
 
+    const open = pipe(
+      sharedDocumentResolver.getSharedDocumentKind({ shareId }),
+      Effect.flatMap((kind) => {
+        if (kind === artifactKinds.RICH_TEXT_DOCUMENT) {
+          const sharing = documentSharing[artifactKinds.RICH_TEXT_DOCUMENT];
+
+          return pipe(
+            openLiveRichTextDocumentAsGuest({
+              getSharedDocumentInfo: sharing.getSharedDocumentInfo,
+              openSharedDocument: sharing.openSharedDocument,
+              createPrivateDocument: (initialDocument) =>
+                createPrivateRichTextConvergentDocument({
+                  initialDocument,
+                  privateRepo,
+                }),
+              transformToText: representationTransformAdapter.transformToText,
+            })({ shareId }),
+            Effect.map((liveDocument): OpenedDocument => ({
+              kind: artifactKinds.RICH_TEXT_DOCUMENT,
+              liveDocument,
+              leaveSharedDocument: sharing.leaveSharedDocument,
+            }))
+          );
+        }
+
+        if (kind === artifactKinds.PLAIN_TEXT_DOCUMENT) {
+          const sharing = documentSharing[artifactKinds.PLAIN_TEXT_DOCUMENT];
+
+          return pipe(
+            openLivePlainTextDocumentAsGuest({
+              getSharedDocumentInfo: sharing.getSharedDocumentInfo,
+              openSharedDocument: sharing.openSharedDocument,
+              createPrivateDocument: (initialDocument) =>
+                createPrivatePlainTextConvergentDocument({
+                  initialDocument,
+                  privateRepo,
+                }),
+            })({ shareId }),
+            Effect.map((liveDocument): OpenedDocument => ({
+              kind: artifactKinds.PLAIN_TEXT_DOCUMENT,
+              liveDocument,
+              leaveSharedDocument: sharing.leaveSharedDocument,
+            }))
+          );
+        }
+
+        return Effect.fail(
+          new ValidationError('The share is not of a document.')
+        );
+      })
+    );
+
     Effect.runPromise(
       pipe(
-        openLiveRichTextDocumentAsGuest({
-          getSharedDocumentInfo: documentSharing.getSharedDocumentInfo,
-          openSharedDocument: documentSharing.openSharedDocument,
-          createPrivateDocument: (initialDocument) =>
-            createPrivateConvergentDocument({ initialDocument, privateRepo }),
-          transformToText: representationTransformAdapter.transformToText,
-        })({ shareId }),
+        open,
         Effect.map((document): OpenOutcome => ({ document })),
         Effect.catchTag(SharedDocumentUnavailableErrorTag, (error) => {
           console.error(error);
@@ -128,10 +222,11 @@ export const GuestEditingProvider = ({
         }
 
         openedRef.current = outcome.document;
-        setLiveDocument(outcome.document);
+        setOpenedDocument(outcome.document);
         guestShareRegistry.rememberShare({
           shareId,
-          sharedName: outcome.document.name,
+          sharedName: outcome.document.liveDocument.name,
+          kind: outcome.document.kind,
         });
       })
       .catch(console.error);
@@ -147,24 +242,27 @@ export const GuestEditingProvider = ({
     shareId,
     representationTransformAdapter,
     documentSharing,
+    sharedDocumentResolver,
     privateRepo,
     dispatchNotification,
   ]);
 
   const remembered = guestShares.find((share) => share.shareId === shareId);
-  const name = liveDocument ? (remembered?.name ?? liveDocument.name) : null;
+  const name = openedDocument
+    ? (remembered?.name ?? openedDocument.liveDocument.name)
+    : null;
 
   const onLeave = useCallback(
     async (target: ShareId) => {
-      if (target === shareId && liveDocument) {
+      if (target === shareId && openedDocument) {
         // A refused leave keeps the document where the user can still see
         // the typing that could not be saved.
         try {
           await Effect.runPromise(
             leaveDocumentAsGuest({
-              liveDocument,
+              liveDocument: openedDocument.liveDocument,
               forgetShare: () => guestShareRegistry.forgetShare(target),
-              leaveSharedDocument: documentSharing.leaveSharedDocument,
+              leaveSharedDocument: openedDocument.leaveSharedDocument,
             })(target)
           );
         } catch (error) {
@@ -180,19 +278,27 @@ export const GuestEditingProvider = ({
         }
 
         openedRef.current = null;
-        setLiveDocument(null);
+        setOpenedDocument(null);
         setIsSharingDialogOpen(false);
         navigate('/shared-documents');
       } else {
+        // Left through the kind the share said it held when it was opened.
+        const listed = guestShares.find((share) => share.shareId === target);
+        const kind = listed?.kind ?? null;
+
         guestShareRegistry.forgetShare(target);
-        await Effect.runPromise(
-          documentSharing.leaveSharedDocument({ shareId: target })
-        ).catch(console.error);
+
+        if (kind && isDocumentKind(kind)) {
+          await Effect.runPromise(
+            documentSharing[kind].leaveSharedDocument({ shareId: target })
+          ).catch(console.error);
+        }
       }
     },
     [
       shareId,
-      liveDocument,
+      openedDocument,
+      guestShares,
       guestShareRegistry,
       documentSharing,
       navigate,
@@ -204,9 +310,8 @@ export const GuestEditingProvider = ({
     <GuestEditingContext.Provider
       value={{
         shareId,
-        liveDocument,
+        guestDocument,
         name,
-        onLocalSelectionChange,
         onLeave,
         isSharingDialogOpen,
         onOpenSharingDialog: () => setIsSharingDialogOpen(true),

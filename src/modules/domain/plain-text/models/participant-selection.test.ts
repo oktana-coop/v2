@@ -3,14 +3,14 @@ import { describe, expect, it } from 'vitest';
 
 import { PlainTextValidationErrorTag } from '../errors';
 import {
-  parsePlainTextParticipantSelection,
-  plainTextSelectionsAreSame,
+  parseParticipantSelection,
+  selectionsAreSame,
 } from './participant-selection';
 
-describe('parsePlainTextParticipantSelection', () => {
+describe('parseParticipantSelection', () => {
   it('reads offsets and the version they are valid in', async () => {
     const selection = await Effect.runPromise(
-      parsePlainTextParticipantSelection({ anchor: 2, head: 5, version: 'v1' })
+      parseParticipantSelection({ anchor: 2, head: 5, version: 'v1' })
     );
 
     expect(selection).toEqual({ anchor: 2, head: 5, version: 'v1' });
@@ -23,22 +23,22 @@ describe('parsePlainTextParticipantSelection', () => {
     'not a selection',
   ])('refuses %j', async (value) => {
     const failure = await Effect.runPromise(
-      Effect.flip(parsePlainTextParticipantSelection(value))
+      Effect.flip(parseParticipantSelection(value))
     );
 
     expect(failure._tag).toBe(PlainTextValidationErrorTag);
   });
 });
 
-describe('plainTextSelectionsAreSame', () => {
+describe('selectionsAreSame', () => {
   it('compares offsets and versions', () => {
     const selection = { anchor: 2, head: 5, version: 'v1' };
 
-    expect(plainTextSelectionsAreSame(selection, { ...selection })).toBe(true);
-    expect(
-      plainTextSelectionsAreSame(selection, { ...selection, version: 'v2' })
-    ).toBe(false);
-    expect(plainTextSelectionsAreSame(selection, null)).toBe(false);
-    expect(plainTextSelectionsAreSame(null, null)).toBe(true);
+    expect(selectionsAreSame(selection, { ...selection })).toBe(true);
+    expect(selectionsAreSame(selection, { ...selection, version: 'v2' })).toBe(
+      false
+    );
+    expect(selectionsAreSame(selection, null)).toBe(false);
+    expect(selectionsAreSame(null, null)).toBe(true);
   });
 });

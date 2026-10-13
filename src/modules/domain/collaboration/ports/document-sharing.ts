@@ -42,6 +42,18 @@ export type GetSharedDocumentInfoArgs = {
   shareId: ShareId;
 };
 
+export type GetSharedDocumentKindArgs = {
+  shareId: ShareId;
+};
+
+// What kind of document a share holds, as it says itself, read before
+// knowing which kind's sharing can open it.
+export type SharedDocumentResolver = {
+  getSharedDocumentKind: (
+    args: GetSharedDocumentKindArgs
+  ) => Effect.Effect<string, SharedDocumentUnavailableError | ValidationError>;
+};
+
 export type LeaveSharedDocumentArgs = {
   shareId: ShareId;
 };

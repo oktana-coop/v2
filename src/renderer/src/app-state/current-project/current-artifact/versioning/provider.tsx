@@ -19,6 +19,7 @@ import {
   PendingEditsNotSavedErrorTag,
   type ProjectId,
   type ProjectRelPath,
+  readDocumentContent,
   restoreDocumentVersion,
   urlEncodeProjectId,
 } from '../../../../../../modules/domain/project';
@@ -37,8 +38,11 @@ import {
   urlEncodeChangeIdForChange,
 } from '../../../../../../modules/infrastructure/version-control';
 import { FunctionalityConfigContext } from '../../../../../../modules/personalization/functionality-config/context';
-import { CurrentDocumentContext } from '../../../current-document/context';
-import { useCurrentDocumentId } from '../../../current-document/use-current-document-id';
+import { useCurrentLiveDocument } from '../../../current-document/use-current-document';
+import {
+  useCurrentDocumentId,
+  useCurrentDocumentKind,
+} from '../../../current-document/use-current-document-id';
 import { ProjectContext } from '../../context';
 import { CurrentArtifactVersioningContext } from './context';
 import {
@@ -87,11 +91,12 @@ export const CurrentArtifactVersioningProvider = ({
 }) => {
   const { projectId, projectStore, subscribeToProjectContentChangeEvents } =
     useContext(ProjectContext);
-  const { liveDocument } = useContext(CurrentDocumentContext);
+  const liveDocument = useCurrentLiveDocument();
   const { showDiffInHistoryView } = useContext(FunctionalityConfigContext);
   const { dispatchNotification } = useContext(NotificationsContext);
   const navigate = useNavigate();
   const documentId = useCurrentDocumentId();
+  const documentKind = useCurrentDocumentKind();
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
   const [versionedDocumentHistory, setVersionedDocumentHistory] = useState<
     ChangeWithUrlInfo[]
@@ -141,7 +146,7 @@ export const CurrentArtifactVersioningProvider = ({
   );
 
   const reloadHistory = useMemo(() => {
-    if (!documentId || !projectStore || !projectId) {
+    if (!documentId || !documentKind || !projectStore || !projectId) {
       return Effect.succeed<ChangeWithUrlInfo[]>([]);
     }
 
@@ -152,11 +157,10 @@ export const CurrentArtifactVersioningProvider = ({
         getDocumentVersioningState({
           getDocumentHistory: projectStore.getDocumentHistory,
           isContentSameAtChanges: projectStore.isContentSameAtChanges,
-          readDocumentContent: (args) =>
-            pipe(
-              projectStore.findRichTextDocumentById(args),
-              Effect.map(({ artifact }) => artifact.content)
-            ),
+          readDocumentContent: readDocumentContent({
+            findRichTextDocumentById: projectStore.findRichTextDocumentById,
+            findPlainTextDocumentById: projectStore.findPlainTextDocumentById,
+          })(documentKind),
         })({ projectId, documentId }),
         Effect.map((state) => ({
           ...state,
@@ -171,7 +175,7 @@ export const CurrentArtifactVersioningProvider = ({
         Effect.map(({ history }) => history)
       )
     );
-  }, [documentId, projectId, projectStore, applyVersioningState]);
+  }, [documentId, documentKind, projectId, projectStore, applyVersioningState]);
 
   useEffect(() => {
     if (!documentId) return;

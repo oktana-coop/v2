@@ -5,18 +5,28 @@ import {
   type ArtifactId,
   type Branch,
 } from '../../../../modules/infrastructure/version-control';
-import { type LiveDocument, type ShareId } from '../../collaboration';
+import {
+  type DocumentSharing,
+  type LiveDocument,
+  type ShareId,
+  UnsupportedDocumentFormatError,
+} from '../../collaboration';
 import {
   NotFoundError,
   SharedDocumentNotInProjectError,
   SharedDocumentOnAnotherBranchError,
+  ValidationError,
 } from '../errors';
-import { type ProjectId } from '../models';
+import {
+  artifactKinds,
+  inferArtifactKindFromExtension,
+  parseProjectRelPath,
+  type ProjectId,
+} from '../models';
 import {
   joinSharedDocument,
   type JoinSharedDocumentDeps,
 } from './join-shared-document';
-import { markdownDocument } from './test-utils';
 
 const projectId = '/projects/one' as ProjectId;
 const branch = 'main' as Branch;
@@ -33,28 +43,57 @@ const openDocumentFor = (openDocumentId: ArtifactId) => ({
 // the join to run once the test has adjusted them.
 const setUpJoin = ({
   openDocument = null,
+  sharedDocumentId = documentId,
+  sharedKind = artifactKinds.RICH_TEXT_DOCUMENT,
 }: {
   openDocument?: ReturnType<typeof openDocumentFor> | null;
+  sharedDocumentId?: ArtifactId;
+  // What kind of document the share says it holds.
+  sharedKind?: string;
 } = {}) => {
-  const getSharedDocumentInfo = vi.fn<
-    JoinSharedDocumentDeps['getSharedDocumentInfo']
-  >(() => Effect.succeed({ branch, documentId, name: 'note' }));
-  const findRichTextDocumentById = vi.fn<
-    JoinSharedDocumentDeps['findRichTextDocumentById']
-  >(({ documentId: foundId }) =>
-    Effect.succeed({
-      id: foundId,
-      artifact: markdownDocument('what this project holds'),
-    })
-  );
+  const sharedDocumentInfo = Effect.succeed({
+    branch,
+    documentId: sharedDocumentId,
+    name: 'shared',
+  });
+
+  const getSharedDocumentKind = vi.fn<
+    JoinSharedDocumentDeps['getSharedDocumentKind']
+  >(() => Effect.succeed(sharedKind));
+  // Resolves an id as a git store does: the id ends in the document's path.
+  const getArtifactMetaDataById = vi.fn<
+    JoinSharedDocumentDeps['getArtifactMetaDataById']
+  >(({ artifactId }) => {
+    const path = parseProjectRelPath(artifactId.split('/').slice(3).join('/'));
+
+    return Effect.succeed({
+      id: artifactId,
+      path,
+      kind: inferArtifactKindFromExtension(path),
+    });
+  });
+  const getRichTextSharedDocumentInfo = vi.fn<
+    DocumentSharing['getSharedDocumentInfo']
+  >(() => sharedDocumentInfo);
+  const getPlainTextSharedDocumentInfo = vi.fn<
+    DocumentSharing['getSharedDocumentInfo']
+  >(() => sharedDocumentInfo);
+  const lookupArtifactInProject = vi.fn<
+    JoinSharedDocumentDeps['lookupArtifactInProject']
+  >(() => Effect.succeed(sharedDocumentId));
   const rememberShare = vi.fn<JoinSharedDocumentDeps['rememberShare']>();
 
   // Built when run: the command calls some dependencies while building its
   // steps, so mocks adjusted before running must be in place by then.
   const join = Effect.suspend(() =>
     joinSharedDocument({
-      getSharedDocumentInfo,
-      findRichTextDocumentById,
+      getSharedDocumentKind,
+      getArtifactMetaDataById,
+      getSharedDocumentInfo: {
+        [artifactKinds.RICH_TEXT_DOCUMENT]: getRichTextSharedDocumentInfo,
+        [artifactKinds.PLAIN_TEXT_DOCUMENT]: getPlainTextSharedDocumentInfo,
+      },
+      lookupArtifactInProject,
       rememberShare,
       openDocument,
     })({ shareId, projectId, branch })
@@ -62,8 +101,9 @@ const setUpJoin = ({
 
   return {
     join,
-    getSharedDocumentInfo,
-    findRichTextDocumentById,
+    getRichTextSharedDocumentInfo,
+    getPlainTextSharedDocumentInfo,
+    lookupArtifactInProject,
     rememberShare,
   };
 };
@@ -118,8 +158,8 @@ describe('joinSharedDocument', () => {
   });
 
   it('refuses a share made on another branch', async () => {
-    const { join, getSharedDocumentInfo, rememberShare } = setUpJoin();
-    getSharedDocumentInfo.mockReturnValueOnce(
+    const { join, getRichTextSharedDocumentInfo, rememberShare } = setUpJoin();
+    getRichTextSharedDocumentInfo.mockReturnValueOnce(
       Effect.succeed({ branch: 'other' as Branch, documentId, name: 'note' })
     );
 
@@ -130,14 +170,57 @@ describe('joinSharedDocument', () => {
   });
 
   it('refuses a share whose document this project does not have', async () => {
-    const { join, findRichTextDocumentById, rememberShare } = setUpJoin();
-    findRichTextDocumentById.mockReturnValueOnce(
+    const { join, lookupArtifactInProject, rememberShare } = setUpJoin();
+    lookupArtifactInProject.mockReturnValueOnce(
       Effect.fail(new NotFoundError('no such document'))
     );
 
     const failure = await Effect.runPromise(Effect.flip(join));
 
     expect(failure).toBeInstanceOf(SharedDocumentNotInProjectError);
+    expect(rememberShare).not.toHaveBeenCalled();
+  });
+
+  it('refuses a share its kind of document cannot read', async () => {
+    const { join, getRichTextSharedDocumentInfo, rememberShare } = setUpJoin();
+    getRichTextSharedDocumentInfo.mockReturnValueOnce(
+      Effect.fail(new UnsupportedDocumentFormatError('from a newer app'))
+    );
+
+    const failure = await Effect.runPromise(Effect.flip(join));
+
+    expect(failure).toBeInstanceOf(UnsupportedDocumentFormatError);
+    expect(rememberShare).not.toHaveBeenCalled();
+  });
+
+  it('reads a share of a plain-text document as plain text', async () => {
+    const plainTextDocumentId = '/blob/main/config.yaml' as ArtifactId;
+    const {
+      join,
+      getRichTextSharedDocumentInfo,
+      getPlainTextSharedDocumentInfo,
+    } = setUpJoin({
+      sharedDocumentId: plainTextDocumentId,
+      sharedKind: artifactKinds.PLAIN_TEXT_DOCUMENT,
+    });
+
+    const found = await Effect.runPromise(join);
+
+    expect(found.documentId).toBe(plainTextDocumentId);
+    expect(getPlainTextSharedDocumentInfo).toHaveBeenCalledExactlyOnceWith({
+      shareId,
+    });
+    expect(getRichTextSharedDocumentInfo).not.toHaveBeenCalled();
+  });
+
+  it('refuses a share that does not hold a document', async () => {
+    const { join, rememberShare } = setUpJoin({
+      sharedKind: 'SOMETHING_ELSE',
+    });
+
+    const failure = await Effect.runPromise(Effect.flip(join));
+
+    expect(failure).toBeInstanceOf(ValidationError);
     expect(rememberShare).not.toHaveBeenCalled();
   });
 });

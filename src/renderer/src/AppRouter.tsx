@@ -30,7 +30,7 @@ import {
 } from './pages/settings';
 import { TemplateEditor } from './pages/settings/exports';
 import {
-  GuestRichTextDocumentEditor,
+  GuestDocumentView,
   SharedDocuments,
   SharedDocumentSelection,
   SharedDocumentsProviders,
@@ -81,10 +81,7 @@ export const AppRouter = () => {
           >
             <Route element={<SharedDocuments />}>
               <Route index element={<SharedDocumentSelection />} />
-              <Route
-                path=":shareId"
-                element={<GuestRichTextDocumentEditor />}
-              />
+              <Route path=":shareId" element={<GuestDocumentView />} />
             </Route>
           </Route>
           <Route path="/history" element={<HistoryNoProject />} />

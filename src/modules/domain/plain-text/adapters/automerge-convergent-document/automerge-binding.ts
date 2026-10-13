@@ -1,7 +1,7 @@
 import { type AutomergeBinding } from '../../../collaboration/adapters/automerge-document-sharing';
 import {
+  type ParticipantSelection,
   type PlainTextDocument,
-  type PlainTextParticipantSelection,
 } from '../../models';
 import {
   type DocumentContent,
@@ -12,7 +12,7 @@ import { createSharedConvergentDocument } from './shared';
 
 export const plainTextAutomergeBinding: AutomergeBinding<
   PlainTextDocument,
-  PlainTextParticipantSelection,
+  ParticipantSelection,
   DocumentContent
 > = {
   initialContent: (doc) => initialDocumentContent(doc.content),

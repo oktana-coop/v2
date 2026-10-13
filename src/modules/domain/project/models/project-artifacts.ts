@@ -9,7 +9,12 @@ import {
   richTextRepresentationExtensions,
 } from '../../rich-text';
 import { BINARY_FILE_EXTENSIONS } from '../constants';
-import { type ArtifactKind, artifactKinds } from './artifact-kind';
+import {
+  type ArtifactKind,
+  artifactKinds,
+  type DocumentKind,
+  isDocumentKind,
+} from './artifact-kind';
 import { type ProjectRelPath } from './project-rel-path';
 
 const RICH_TEXT_DOCUMENT_EXTENSIONS = new Set(
@@ -44,6 +49,14 @@ export type ArtifactMetaData = BaseArtifactMetaData & {
   path: ProjectRelPath;
   kind: ArtifactKind;
 };
+
+export type DocumentMetaData = ArtifactMetaData & {
+  kind: DocumentKind;
+};
+
+export const isDocumentMetaData = (
+  artifact: ArtifactMetaData
+): artifact is DocumentMetaData => isDocumentKind(artifact.kind);
 
 // An artifact known to be a rich-text document, so consumers holding a
 // collection of documents don't have to re-check what they already know.

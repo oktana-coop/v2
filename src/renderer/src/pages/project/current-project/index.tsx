@@ -17,7 +17,7 @@ import {
   useCommitDocumentChanges,
   useCommitToProject,
   useCreateDocument,
-  useCurrentDocumentId,
+  useCurrentRichTextDocumentId,
 } from '../../../app-state';
 import { BranchingCommandPaletteStateProvider } from '../../../app-state';
 import { ProjectCommandPalette } from '../shared/command-palette';
@@ -68,7 +68,7 @@ const Project = () => {
     onRestoreCommit,
     onDiscardChanges,
   } = useContext(CurrentArtifactVersioningContext);
-  const richTextDocumentId = useCurrentDocumentId();
+  const richTextDocumentId = useCurrentRichTextDocumentId();
   const { isOpen: isCommitDialogOpen, closeCommitModal } =
     useContext(CommitModalContext);
   const commitChangesToProject = useCommitToProject();

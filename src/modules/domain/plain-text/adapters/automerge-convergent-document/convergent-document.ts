@@ -17,9 +17,9 @@ import {
   type Presence,
 } from '../../../collaboration';
 import {
+  type ParticipantSelection,
   type PlainTextDocument,
   plainTextDocument,
-  type PlainTextParticipantSelection,
 } from '../../models';
 import {
   type PlainTextConvergentDocument,
@@ -29,7 +29,7 @@ import { type DocumentContent } from './document-content';
 
 export type AutomergeConvergentDocumentDeps = {
   handle: DocHandle<DocumentContent>;
-  presence: Presence<PlainTextParticipantSelection>;
+  presence: Presence<ParticipantSelection>;
 };
 
 // Automerge identifies a state by its heads; sorting makes the encoding

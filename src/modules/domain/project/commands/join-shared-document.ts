@@ -11,23 +11,29 @@ import {
   type EditableLiveDocument,
   type LocalEditsContributionError,
   type OpenSharedDocumentError,
+  type SharedDocumentInfo,
+  type SharedDocumentResolver,
   type ShareId,
 } from '../../collaboration';
 import {
-  type DocumentNotOnCurrentRefError,
   type NotFoundError,
   type RepositoryError,
   SharedDocumentNotInProjectError,
   SharedDocumentOnAnotherBranchError,
-  type ValidationError,
+  ValidationError,
   VersionedProjectNotFoundErrorTag,
 } from '../errors';
-import { type ProjectId } from '../models';
+import { type DocumentKind, isDocumentKind, type ProjectId } from '../models';
 import { type ProjectStore, type ShareRegistry } from '../ports';
 
 export type JoinSharedDocumentDeps = {
-  getSharedDocumentInfo: DocumentSharing['getSharedDocumentInfo'];
-  findRichTextDocumentById: ProjectStore['findRichTextDocumentById'];
+  getSharedDocumentKind: SharedDocumentResolver['getSharedDocumentKind'];
+  getArtifactMetaDataById: ProjectStore['getArtifactMetaDataById'];
+  getSharedDocumentInfo: Record<
+    DocumentKind,
+    DocumentSharing['getSharedDocumentInfo']
+  >;
+  lookupArtifactInProject: ProjectStore['lookupArtifactInProject'];
   rememberShare: ShareRegistry['rememberShare'];
   openDocument: Pick<EditableLiveDocument, 'documentId' | 'attachTo'> | null;
 };
@@ -51,13 +57,14 @@ export type JoinSharedDocumentError =
   | ValidationError
   | NotFoundError
   | MigrationError
-  | DocumentNotOnCurrentRefError
   | LocalEditsContributionError;
 
 export const joinSharedDocument =
   ({
+    getSharedDocumentKind,
+    getArtifactMetaDataById,
     getSharedDocumentInfo,
-    findRichTextDocumentById,
+    lookupArtifactInProject,
     rememberShare,
     openDocument,
   }: JoinSharedDocumentDeps) =>
@@ -74,11 +81,43 @@ export const joinSharedDocument =
         ? pipe(openDocument.attachTo(shareId), Effect.as(true))
         : Effect.succeed(false);
 
+    const readSharedDocumentInfo = pipe(
+      getSharedDocumentKind({ shareId }),
+      Effect.flatMap(
+        (
+          kind
+        ): Effect.Effect<
+          SharedDocumentInfo,
+          OpenSharedDocumentError | ValidationError
+        > =>
+          isDocumentKind(kind)
+            ? getSharedDocumentInfo[kind]({ shareId })
+            : Effect.fail(
+                new ValidationError('The share is not of a document.')
+              )
+      )
+    );
+
+    const findInProject = (documentId: ArtifactId) =>
+      pipe(
+        getArtifactMetaDataById({ projectId, artifactId: documentId }),
+        Effect.flatMap(({ path }) =>
+          lookupArtifactInProject({ projectId, path })
+        ),
+        Effect.catchTag(VersionedProjectNotFoundErrorTag, () =>
+          Effect.fail(
+            new SharedDocumentNotInProjectError(
+              'The share belongs to a document this project does not have.'
+            )
+          )
+        )
+      );
+
     return pipe(
-      getSharedDocumentInfo({ shareId }),
+      readSharedDocumentInfo,
       Effect.flatMap((sharedDocInfo) =>
         sharedDocInfo.branch === branch
-          ? Effect.succeed(sharedDocInfo.documentId)
+          ? Effect.succeed(sharedDocInfo)
           : Effect.fail(
               new SharedDocumentOnAnotherBranchError(
                 `The share belongs to branch "${sharedDocInfo.branch}"; this project is on "${branch}".`,
@@ -86,19 +125,8 @@ export const joinSharedDocument =
               )
             )
       ),
-      Effect.tap((documentId) =>
-        pipe(
-          findRichTextDocumentById({ projectId, documentId }),
-          Effect.catchTag(VersionedProjectNotFoundErrorTag, () =>
-            Effect.fail(
-              new SharedDocumentNotInProjectError(
-                'The share belongs to a document this project does not have.'
-              )
-            )
-          )
-        )
-      ),
-      Effect.flatMap((documentId) =>
+      Effect.tap(({ documentId }) => findInProject(documentId)),
+      Effect.flatMap(({ documentId }) =>
         pipe(
           attachIfOpen(documentId),
           Effect.map((attached) => ({ documentId, attached }))

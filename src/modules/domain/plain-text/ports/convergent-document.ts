@@ -2,15 +2,12 @@ import {
   type ConvergentDocument,
   type ConvergentDocumentState,
 } from '../../collaboration';
-import {
-  type PlainTextDocument,
-  type PlainTextParticipantSelection,
-} from '../models';
+import { type ParticipantSelection, type PlainTextDocument } from '../models';
 
 export type PlainTextConvergentDocumentState =
   ConvergentDocumentState<PlainTextDocument>;
 
 export type PlainTextConvergentDocument = ConvergentDocument<
   PlainTextDocument,
-  PlainTextParticipantSelection
+  ParticipantSelection
 >;

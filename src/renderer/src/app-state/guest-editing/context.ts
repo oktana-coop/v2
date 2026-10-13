@@ -1,14 +1,34 @@
 import { createContext } from 'react';
 
 import { type ShareId } from '../../../../modules/domain/collaboration';
-import { type NamedLiveRichTextDocument } from '../../../../modules/domain/project';
+import { type ParticipantSelection as PlainTextParticipantSelection } from '../../../../modules/domain/plain-text';
+import {
+  type artifactKinds,
+  type NamedLivePlainTextDocument,
+  type NamedLiveRichTextDocument,
+} from '../../../../modules/domain/project';
 import { type ParticipantSelection } from '../../../../modules/domain/rich-text';
+
+export type GuestRichTextDocument = {
+  kind: typeof artifactKinds.RICH_TEXT_DOCUMENT;
+  liveDocument: NamedLiveRichTextDocument;
+  onLocalSelectionChange: (selection: ParticipantSelection | null) => void;
+};
+
+export type GuestPlainTextDocument = {
+  kind: typeof artifactKinds.PLAIN_TEXT_DOCUMENT;
+  liveDocument: NamedLivePlainTextDocument;
+  onLocalSelectionChange: (
+    selection: PlainTextParticipantSelection | null
+  ) => void;
+};
+
+export type GuestDocument = GuestRichTextDocument | GuestPlainTextDocument;
 
 export type GuestEditingContextType = {
   shareId: ShareId | null;
-  liveDocument: NamedLiveRichTextDocument | null;
+  guestDocument: GuestDocument | null;
   name: string | null;
-  onLocalSelectionChange: (selection: ParticipantSelection | null) => void;
   onLeave: (shareId: ShareId) => Promise<void>;
   isSharingDialogOpen: boolean;
   onOpenSharingDialog: () => void;
@@ -20,9 +40,8 @@ export type GuestEditingContextType = {
 
 export const GuestEditingContext = createContext<GuestEditingContextType>({
   shareId: null,
-  liveDocument: null,
+  guestDocument: null,
   name: null,
-  onLocalSelectionChange: () => {},
   onLeave: async () => {},
   isSharingDialogOpen: false,
   onOpenSharingDialog: () => {},
