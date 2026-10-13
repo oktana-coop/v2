@@ -12,6 +12,7 @@ import {
 import { type DocumentSharing } from '../../../../modules/domain/collaboration';
 import { createAdapter as createAutomergeDocumentSharingAdapter } from '../../../../modules/domain/collaboration/adapters/automerge-document-sharing';
 import {
+  artifactKinds,
   type AssetUrlProtocol,
   type ProjectStore,
   type ProjectStoreManager,
@@ -135,6 +136,7 @@ export const InfrastructureAdaptersProvider = ({
     () =>
       createAutomergeDocumentSharingAdapter({
         syncedRepo,
+        kind: artifactKinds.RICH_TEXT_DOCUMENT,
         binding: richTextAutomergeBinding,
       }),
     [syncedRepo]

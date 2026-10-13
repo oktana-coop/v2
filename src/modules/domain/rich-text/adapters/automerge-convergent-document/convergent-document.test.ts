@@ -16,12 +16,10 @@ import { type RichTextConvergentDocument } from '../../ports/convergent-document
 import { createConvergentDocument } from './convergent-document';
 import {
   DOCUMENT_FORMAT_VERSION,
-  DOCUMENT_KIND,
   type DocumentContent,
 } from './document-content';
 
 const seed = (content: string): DocumentContent => ({
-  kind: DOCUMENT_KIND,
   formatVersion: DOCUMENT_FORMAT_VERSION,
   content,
 });

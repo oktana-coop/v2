@@ -53,7 +53,7 @@ test.describe('remote changes in the editor', () => {
     try {
       const peerHandle = await scriptedPeer.findDocument(shareId);
 
-      expect(peerHandle.fullDoc().kind).toBe('RICH_TEXT');
+      expect(peerHandle.fullDoc().kind).toBe('RICH_TEXT_DOCUMENT');
       expect(peerHandle.fullDoc().formatVersion).toBe(1);
       expect(peerHandle.fullDoc().content).toContain(
         'This is a test document.'

@@ -24,6 +24,12 @@ export class UnsupportedDocumentFormatError extends Cause.YieldableError {
   readonly _tag = UnsupportedDocumentFormatErrorTag;
 }
 
+// A share holding another kind of document than the one asked for.
+export const UnexpectedDocumentKindErrorTag = 'UnexpectedDocumentKindError';
+export class UnexpectedDocumentKindError extends Cause.YieldableError {
+  readonly _tag = UnexpectedDocumentKindErrorTag;
+}
+
 // The editor's edits could not be turned into document content.
 export const LocalEditsContributionErrorTag = 'LocalEditsContributionError';
 export class LocalEditsContributionError extends Cause.YieldableError {

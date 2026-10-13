@@ -6,6 +6,7 @@ import {
 } from '../../../../modules/infrastructure/version-control';
 import {
   type SharedDocumentUnavailableError,
+  type UnexpectedDocumentKindError,
   type UnsupportedDocumentFormatError,
   type ValidationError,
 } from '../errors';
@@ -16,6 +17,7 @@ import { type ConvergentDocument } from './convergent-document';
 // kind expected.
 export type OpenSharedDocumentError =
   | SharedDocumentUnavailableError
+  | UnexpectedDocumentKindError
   | UnsupportedDocumentFormatError
   | ValidationError;
 

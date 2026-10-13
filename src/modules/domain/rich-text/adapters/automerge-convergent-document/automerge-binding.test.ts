@@ -18,7 +18,6 @@ import { type RichTextConvergentDocument } from '../../ports';
 import { richTextAutomergeBinding } from './automerge-binding';
 import {
   DOCUMENT_FORMAT_VERSION,
-  DOCUMENT_KIND,
   type DocumentContent,
 } from './document-content';
 
@@ -45,14 +44,17 @@ const info = {
 };
 
 const seed = (content: string): DocumentContent => ({
-  kind: DOCUMENT_KIND,
   formatVersion: DOCUMENT_FORMAT_VERSION,
   content,
 });
 
+// What the shares made in these tests say they hold.
+const KIND = 'RICH_TEXT_DOCUMENT';
+
 const syncFor = (repo: Repo) =>
   createAdapter({
     syncedRepo: Effect.succeed(repo),
+    kind: KIND,
     binding: richTextAutomergeBinding,
   });
 
@@ -73,7 +75,10 @@ describe('richTextAutomergeBinding', () => {
     );
 
     const handle = await findShared(repo, shareId);
-    expect(handle.fullDoc()).toMatchObject(seed('shared text'));
+    expect(handle.fullDoc()).toMatchObject({
+      ...seed('shared text'),
+      kind: KIND,
+    });
   });
 
   // The minted document and the document that gets edited are described in
@@ -105,7 +110,10 @@ describe('richTextAutomergeBinding', () => {
 
   it('opens a share both peers then converge on', async () => {
     const { alice, bob } = createPeers();
-    const handle = alice.create<DocumentContent>(seed('hello'));
+    const handle = alice.create({
+      ...seed('hello'),
+      kind: KIND,
+    });
     const aliceDocument = await Effect.runPromise(
       syncFor(alice).openSharedDocument({ shareId: handle.url })
     );
@@ -125,7 +133,7 @@ describe('richTextAutomergeBinding', () => {
   it('refuses a share whose format it does not implement', async () => {
     const repo = new Repo({ network: [] });
     const handle = repo.create({
-      kind: DOCUMENT_KIND,
+      kind: KIND,
       formatVersion: DOCUMENT_FORMAT_VERSION + 1,
       content: 'from a newer app',
     });
@@ -142,7 +150,7 @@ describe('richTextAutomergeBinding', () => {
     // A later format need not keep its text in `content`, or at all: the
     // version is read before anything else, so the shape never comes up.
     const handle = repo.create({
-      kind: DOCUMENT_KIND,
+      kind: KIND,
       formatVersion: DOCUMENT_FORMAT_VERSION + 1,
       spans: [{ kind: 'paragraph' }],
     });
@@ -159,24 +167,9 @@ describe('richTextAutomergeBinding', () => {
   it('refuses a share of its own format that holds the wrong thing', async () => {
     const repo = new Repo({ network: [] });
     const handle = repo.create({
-      kind: DOCUMENT_KIND,
+      kind: KIND,
       formatVersion: DOCUMENT_FORMAT_VERSION,
       content: 42,
-    });
-
-    const failure = await Effect.runPromise(
-      Effect.flip(syncFor(repo).openSharedDocument({ shareId: handle.url }))
-    );
-
-    expect(failure).toBeInstanceOf(ValidationError);
-  });
-
-  it('refuses a document of another kind', async () => {
-    const repo = new Repo({ network: [] });
-    const handle = repo.create({
-      kind: 'PLAIN_TEXT',
-      formatVersion: DOCUMENT_FORMAT_VERSION,
-      content: 'a: 1',
     });
 
     const failure = await Effect.runPromise(

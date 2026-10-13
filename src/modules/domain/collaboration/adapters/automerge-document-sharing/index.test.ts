@@ -19,7 +19,11 @@ import {
   type ArtifactId,
   type Branch,
 } from '../../../../infrastructure/version-control';
-import { SharedDocumentUnavailableError, ValidationError } from '../../errors';
+import {
+  SharedDocumentUnavailableError,
+  UnexpectedDocumentKindError,
+  ValidationError,
+} from '../../errors';
 import {
   type ConvergentDocument,
   type ConvergentDocumentState,
@@ -62,6 +66,9 @@ const openTextDocument = (handle: DocHandle<TextContent>) =>
     )
   );
 
+// What the tests' shares say they hold.
+const TEXT_KIND = 'TEXT';
+
 const textBinding: AutomergeBinding<TextDocument, null, TextContent> = {
   initialContent: ({ text }) => ({ text }),
   parse: (handle) =>
@@ -95,10 +102,19 @@ const identity = {
 // What the share was called when made.
 const info = { ...identity, name: 'notes' };
 
-const seedShare = (text: string) => ({ text, identity, name: info.name });
+const seedShare = (text: string) => ({
+  text,
+  kind: TEXT_KIND,
+  identity,
+  name: info.name,
+});
 
 const syncFor = (repo: Repo) =>
-  createAdapter({ syncedRepo: Effect.succeed(repo), binding: textBinding });
+  createAdapter({
+    syncedRepo: Effect.succeed(repo),
+    kind: TEXT_KIND,
+    binding: textBinding,
+  });
 
 // In-memory storage, so a repo keeps documents and sync states the way a
 // persistent one does.
@@ -190,7 +206,7 @@ describe('automergeDocumentSharing', () => {
   it('refuses to say what a share that names no document is', async () => {
     const repo = new Repo({ network: [] });
     // Readable as the kind, but says nothing about where it came from.
-    const handle = repo.create<TextContent>({ text: 'no identity' });
+    const handle = repo.create({ kind: TEXT_KIND, text: 'no identity' });
 
     const failure = await Effect.runPromise(
       Effect.flip(syncFor(repo).getSharedDocumentInfo({ shareId: handle.url }))
@@ -222,9 +238,35 @@ describe('automergeDocumentSharing', () => {
     );
   });
 
+  it('refuses a share of another kind, before reading its content', async () => {
+    const repo = new Repo({ network: [] });
+    const handle = repo.create({ ...seedShare('text'), kind: 'OTHER' });
+
+    const opening = await Effect.runPromise(
+      Effect.flip(syncFor(repo).openSharedDocument({ shareId: handle.url }))
+    );
+    const reading = await Effect.runPromise(
+      Effect.flip(syncFor(repo).getSharedDocumentInfo({ shareId: handle.url }))
+    );
+
+    expect(opening).toBeInstanceOf(UnexpectedDocumentKindError);
+    expect(reading).toBeInstanceOf(UnexpectedDocumentKindError);
+  });
+
+  it('refuses a share that does not say what kind it holds', async () => {
+    const repo = new Repo({ network: [] });
+    const handle = repo.create({ text: 'text', identity, name: info.name });
+
+    const failure = await Effect.runPromise(
+      Effect.flip(syncFor(repo).openSharedDocument({ shareId: handle.url }))
+    );
+
+    expect(failure).toBeInstanceOf(ValidationError);
+  });
+
   it('refuses a share its kind cannot read', async () => {
     const repo = new Repo({ network: [] });
-    const handle = repo.create({ something: 'else' });
+    const handle = repo.create({ kind: TEXT_KIND, something: 'else' });
 
     const failure = await Effect.runPromise(
       Effect.flip(syncFor(repo).openSharedDocument({ shareId: handle.url }))

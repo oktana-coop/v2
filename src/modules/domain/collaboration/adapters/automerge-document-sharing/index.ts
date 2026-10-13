@@ -23,6 +23,7 @@ import {
   type ShareDocumentArgs,
 } from '../../ports';
 import {
+  checkSharedDocumentKind,
   initialSharedDocumentContent,
   readSharedDocumentInfo,
 } from './shared-document';
@@ -56,6 +57,9 @@ export type AutomergeDocumentSharingDeps<
 > = {
   // This is an effect because we want to lazily connect on first share/join.
   syncedRepo: Effect.Effect<Repo, unknown>;
+  // The kind of document this adapter shares. Every share stores it, so it
+  // must stay the same across versions.
+  kind: string;
   binding: AutomergeBinding<
     DocumentType,
     ParticipantSelectionType,
@@ -79,6 +83,7 @@ export const createAdapter = <
   AutomergeContentType,
 >({
   syncedRepo,
+  kind,
   binding,
 }: AutomergeDocumentSharingDeps<
   DocumentType,
@@ -115,6 +120,13 @@ export const createAdapter = <
       Effect.flatMap(({ repo, url }) => find({ repo, url }))
     );
 
+  const findReadableShare = (shareId: string) =>
+    pipe(
+      findShare(shareId),
+      Effect.tap((handle) => checkSharedDocumentKind({ handle, kind })),
+      Effect.flatMap(binding.parse)
+    );
+
   const shareDocument = ({ doc, ...info }: ShareDocumentArgs<DocumentType>) =>
     pipe(
       connectedRepo,
@@ -122,6 +134,7 @@ export const createAdapter = <
         (repo) =>
           repo.create(
             initialSharedDocumentContent({
+              kind,
               content: binding.initialContent(doc),
               ...info,
             })
@@ -130,18 +143,10 @@ export const createAdapter = <
     );
 
   const openSharedDocument = ({ shareId }: OpenSharedDocumentArgs) =>
-    pipe(
-      findShare(shareId),
-      Effect.flatMap(binding.parse),
-      Effect.flatMap(binding.open)
-    );
+    pipe(findReadableShare(shareId), Effect.flatMap(binding.open));
 
   const getSharedDocumentInfo = ({ shareId }: GetSharedDocumentInfoArgs) =>
-    pipe(
-      findShare(shareId),
-      Effect.tap(binding.parse),
-      Effect.flatMap(readSharedDocumentInfo)
-    );
+    pipe(findReadableShare(shareId), Effect.flatMap(readSharedDocumentInfo));
 
   const leaveSharedDocument = ({ shareId }: LeaveSharedDocumentArgs) =>
     pipe(
