@@ -1,7 +1,7 @@
 import { Plugin, PluginKey } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
 
-import { noteContentNumbering } from '../../../../../renderer/src/components/editing/inlines';
+import { noteContentNumbering } from '../../../../../renderer/src/components/rich-text-editing/inlines';
 import {
   createNoteNumberingTransaction,
   ensureTrailingSpaceAfterContentBlockNumbers,

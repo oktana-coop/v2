@@ -10,13 +10,13 @@ import {
 import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
 import { useAssetSrcResolver } from '../../../../app-state';
-import { FindBar } from '../../../../components/editing/FindBar';
+import { LongTextSkeleton } from '../../../../components/progress/skeletons/LongText';
+import { FindBar } from '../../../../components/rich-text-editing/FindBar';
 import {
   type EditorSeed,
   ProseMirrorEditor,
-} from '../../../../components/editing/ProseMirrorEditor';
-import { useEditorSeed } from '../../../../components/editing/use-editor-seed';
-import { LongTextSkeleton } from '../../../../components/progress/skeletons/LongText';
+} from '../../../../components/rich-text-editing/ProseMirrorEditor';
+import { useEditorSeed } from '../../../../components/rich-text-editing/use-editor-seed';
 
 const {
   assetsPlugin,

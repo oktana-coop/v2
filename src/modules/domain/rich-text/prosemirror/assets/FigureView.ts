@@ -1,7 +1,7 @@
 import { Node as PMNode } from 'prosemirror-model';
 import { EditorView, type NodeView } from 'prosemirror-view';
 
-import { figure as figureClasses } from '../../../../../renderer/src/components/editing/blocks';
+import { figure as figureClasses } from '../../../../../renderer/src/components/rich-text-editing/blocks';
 
 export class FigureView implements NodeView {
   node: PMNode;

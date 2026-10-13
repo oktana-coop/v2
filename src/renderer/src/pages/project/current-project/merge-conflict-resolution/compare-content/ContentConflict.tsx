@@ -14,8 +14,8 @@ import {
   useAssetInsertion,
   useAssetSrcResolver,
 } from '../../../../../app-state';
-import { SnapshotRichTextDocumentEditor } from '../../../../../components/editing/SnapshotRichTextDocumentEditor';
 import { LongTextSkeleton } from '../../../../../components/progress/skeletons/LongText';
+import { SnapshotRichTextDocumentEditor } from '../../../../../components/rich-text-editing/SnapshotRichTextDocumentEditor';
 import { useMergeConflictResolution } from '../use-merge-conflict-resolution';
 import { SuggestedMergeInfoPanel } from './SuggestedMergeInfoPanel';
 

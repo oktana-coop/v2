@@ -7,8 +7,8 @@ import {
   useGuestRichTextDocument,
   useRemotePresence,
 } from '../../app-state';
-import { LiveRichTextDocumentEditor } from '../../components/editing/LiveRichTextDocumentEditor';
 import { LongTextSkeleton } from '../../components/progress/skeletons/LongText';
+import { LiveRichTextDocumentEditor } from '../../components/rich-text-editing/LiveRichTextDocumentEditor';
 import { ActionsBar } from '../shared/document-actions-bar';
 
 export const GuestRichTextDocumentEditor = () => {
