@@ -1,6 +1,6 @@
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-import { uniqueParticipants } from '../../../../modules/domain/rich-text';
+import { uniqueParticipants } from '../../../../modules/domain/collaboration';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
 import { GuestEditingContext, useRemotePresence } from '../../app-state';
 import { LiveRichTextDocumentEditor } from '../../components/editing/LiveRichTextDocumentEditor';

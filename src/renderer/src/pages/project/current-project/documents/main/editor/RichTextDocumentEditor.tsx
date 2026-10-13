@@ -1,6 +1,6 @@
 import { useCallback, useContext, useMemo, useState } from 'react';
 
-import { uniqueParticipants } from '../../../../../../../../modules/domain/rich-text';
+import { uniqueParticipants } from '../../../../../../../../modules/domain/collaboration';
 import { ProseMirrorContext } from '../../../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import {
   CommitModalContext,

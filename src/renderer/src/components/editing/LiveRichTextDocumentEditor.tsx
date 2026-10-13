@@ -3,7 +3,7 @@ import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { type Schema } from 'prosemirror-model';
 import { useCallback, useContext } from 'react';
 
-import { type LiveDocument } from '../../../../modules/domain/project';
+import { type LiveRichTextDocument } from '../../../../modules/domain/project';
 import {
   LiveSyncFallbackError,
   type ParticipantSelection,
@@ -30,7 +30,7 @@ const {
 } = prosemirror;
 
 export type LiveRichTextDocumentEditorProps = SharedEditorProps & {
-  liveDocument: Pick<LiveDocument, 'content' | 'edit' | 'presence'>;
+  liveDocument: Pick<LiveRichTextDocument, 'content' | 'edit' | 'presence'>;
   // Where the caret is, for whoever else is at the document.
   onLocalSelectionChange: (selection: ParticipantSelection | null) => void;
 };

@@ -1,5 +1,5 @@
 import { getInitials } from '../../../../modules/auth';
-import { type Participant } from '../../../../modules/domain/rich-text';
+import { type Participant } from '../../../../modules/domain/collaboration';
 import { Tooltip } from '../accessibility/Tooltip';
 import { Avatar } from './Avatar';
 import { getColorClass } from './color';

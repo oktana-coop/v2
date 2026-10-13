@@ -17,6 +17,10 @@ import {
   useFakeTimersInTest,
 } from '../../../../../utils/test-utils';
 import {
+  type ConvergentDocumentVersion,
+  type RemotePresence,
+} from '../../../collaboration';
+import {
   LiveSyncFallbackError,
   PatchError,
   RepresentationTransformError,
@@ -24,19 +28,21 @@ import {
   WebEditorError,
 } from '../../errors';
 import {
-  type ConvergentDocumentVersion,
   CURRENT_SCHEMA_VERSION,
+  type ParticipantSelection,
   PRIMARY_RICH_TEXT_REPRESENTATION,
-  type RemotePresence,
   type RichTextDocument,
   richTextRepresentations,
 } from '../../models';
 import {
-  type ConvergentDocument,
-  type ConvergentDocumentState,
+  type PrimaryRichTextDocument,
+  primaryRichTextDocument,
+} from '../../models';
+import {
+  type RichTextConvergentDocument,
+  type RichTextConvergentDocumentState,
 } from '../../ports/convergent-document';
 import { type ProseMirrorStepsResult } from '../../ports/diff-patch';
-import { markdownDocument } from '../../test-utils';
 import { pmDocFromJSONString } from '../json';
 import { schema } from '../schema';
 import { doc, para, textSlice } from '../test-utils';
@@ -47,8 +53,8 @@ import {
 } from './live-sync-plugin';
 
 // Nobody else is at these documents.
-const noPresence: Effect.Effect<ConvergentDocument['presence']> = pipe(
-  SubscriptionRef.make<ReadonlyArray<RemotePresence>>([]),
+const noPresence: Effect.Effect<RichTextConvergentDocument['presence']> = pipe(
+  SubscriptionRef.make<ReadonlyArray<RemotePresence<ParticipantSelection>>>([]),
   Effect.map((peers) => ({ peers, publish: () => Effect.void }))
 );
 
@@ -95,12 +101,12 @@ const eventually = (assertions: () => void | Promise<void>) =>
 // convergence itself is the real convergent document's concern.
 const createConvergentDocumentInMemory = (
   initialText: string
-): Promise<ConvergentDocument> =>
+): Promise<RichTextConvergentDocument> =>
   Effect.runPromise(
     pipe(
       Effect.all({
-        content: SubscriptionRef.make<ConvergentDocumentState>({
-          doc: markdownDocument(initialText),
+        content: SubscriptionRef.make<RichTextConvergentDocumentState>({
+          doc: primaryRichTextDocument(initialText),
           version: 'v0',
         }),
         presence: noPresence,
@@ -108,7 +114,7 @@ const createConvergentDocumentInMemory = (
       Effect.map(({ content, presence }) => {
         let versions = 0;
 
-        const change = (text: string) =>
+        const change = ({ content: text }: RichTextDocument) =>
           pipe(
             SubscriptionRef.get(content),
             Effect.flatMap((previous) =>
@@ -121,7 +127,10 @@ const createConvergentDocumentInMemory = (
                     const version = `v${versions}`;
 
                     // [effect result, new state].
-                    return [version, { doc: markdownDocument(text), version }];
+                    return [
+                      version,
+                      { doc: primaryRichTextDocument(text), version },
+                    ];
                   })
             )
           );
@@ -152,7 +161,7 @@ const setUpEditor = async ({
   // Stands in for what the command does around the document: contributions
   // arrive in the editor's representation and reach it as primary text.
   const onChange = vi.fn<LiveSyncPluginArgs['onChange']>((doc, options) =>
-    liveDocument.change(textOf(doc), options)
+    liveDocument.change(primaryRichTextDocument(textOf(doc)), options)
   );
   // The steps to the incoming doc, asynchronous like the real computation so
   // the checks after the await see the same interleavings.
@@ -238,7 +247,7 @@ describe('liveSyncPlugin', () => {
       });
 
       const peerVersion = await Effect.runPromise(
-        liveDocument.change('from a peer')
+        liveDocument.change(primaryRichTextDocument('from a peer'))
       );
       await eventually(() =>
         expect(view.state.doc.textContent).toBe('from a peer')
@@ -257,7 +266,9 @@ describe('liveSyncPlugin', () => {
     it("applies a peer's change as one transaction, kept out of the undo history", async () => {
       const { liveDocument, view, dispatched } = await setUpEditor();
 
-      await Effect.runPromise(liveDocument.change('from a peer'));
+      await Effect.runPromise(
+        liveDocument.change(primaryRichTextDocument('from a peer'))
+      );
 
       await eventually(() =>
         expect(view.state.doc.textContent).toBe('from a peer')
@@ -276,7 +287,9 @@ describe('liveSyncPlugin', () => {
         view.state.tr.setSelection(TextSelection.create(view.state.doc, 6))
       );
 
-      await Effect.runPromise(liveDocument.change('hello world and more'));
+      await Effect.runPromise(
+        liveDocument.change(primaryRichTextDocument('hello world and more'))
+      );
 
       await eventually(() =>
         expect(view.state.doc.textContent).toBe('hello world and more')
@@ -304,7 +317,9 @@ describe('liveSyncPlugin', () => {
       );
       const dispatchedBefore = dispatched().length;
 
-      await Effect.runPromise(liveDocument.change('Xhello worldY'));
+      await Effect.runPromise(
+        liveDocument.change(primaryRichTextDocument('Xhello worldY'))
+      );
 
       await eventually(() =>
         expect(view.state.doc.textContent).toBe('Xhello worldY')
@@ -321,11 +336,12 @@ describe('liveSyncPlugin', () => {
 
       await Effect.runPromise(
         SubscriptionRef.set(liveDocument.content, {
+          // As a build whose primary representation is ProseMirror holds it.
           doc: {
             schemaVersion: CURRENT_SCHEMA_VERSION,
             representation: richTextRepresentations.PROSEMIRROR,
             content: JSON.stringify(doc([para('from a peer')]).toJSON()),
-          },
+          } as PrimaryRichTextDocument,
           version: 'r1',
         })
       );
@@ -348,12 +364,16 @@ describe('liveSyncPlugin', () => {
         Effect.promise(() => firstSteps.promise)
       );
 
-      await Effect.runPromise(liveDocument.change('first'));
+      await Effect.runPromise(
+        liveDocument.change(primaryRichTextDocument('first'))
+      );
       await vi.waitFor(() => expect(proseMirrorSteps).toHaveBeenCalledOnce());
       // The other changes queue up while the first one's steps are still being
       // computed.
       for (const text of ['second', 'third', 'latest']) {
-        await Effect.runPromise(liveDocument.change(text));
+        await Effect.runPromise(
+          liveDocument.change(primaryRichTextDocument(text))
+        );
       }
       firstSteps.resolve(
         stepsBetween({
@@ -381,7 +401,9 @@ describe('liveSyncPlugin', () => {
         Effect.promise(() => incomingSteps.promise)
       );
 
-      await Effect.runPromise(liveDocument.change('from a peer'));
+      await Effect.runPromise(
+        liveDocument.change(primaryRichTextDocument('from a peer'))
+      );
       await vi.waitFor(() => expect(proseMirrorSteps).toHaveBeenCalledOnce());
       // The incoming state's steps are still being computed when a keystroke
       // comes in.
@@ -419,7 +441,7 @@ describe('liveSyncPlugin', () => {
 
       await Effect.runPromise(
         SubscriptionRef.set(liveDocument.content, {
-          doc: markdownDocument('from a peer'),
+          doc: primaryRichTextDocument('from a peer'),
           version: 'r1',
         })
       );
@@ -436,7 +458,7 @@ describe('liveSyncPlugin', () => {
       secondVersion.resolve('v2');
       await Effect.runPromise(
         SubscriptionRef.set(liveDocument.content, {
-          doc: markdownDocument('hello!? from a peer'),
+          doc: primaryRichTextDocument('hello!? from a peer'),
           version: 'r2',
         })
       );
@@ -458,7 +480,7 @@ describe('liveSyncPlugin', () => {
       // A peer's edit, merged with the '!' that reached the document.
       await Effect.runPromise(
         SubscriptionRef.set(liveDocument.content, {
-          doc: markdownDocument('hello! from a peer'),
+          doc: primaryRichTextDocument('hello! from a peer'),
           version: 'r1',
         })
       );
@@ -482,7 +504,7 @@ describe('liveSyncPlugin', () => {
       // Typing '!' contributes 'hello!'. The document publishes it back
       // straight away as its new state: the echo. Its version reaches the editor
       // only when the test resolves it.
-      const echo = { doc: markdownDocument('hello!'), version: 'v1' };
+      const echo = { doc: primaryRichTextDocument('hello!'), version: 'v1' };
       const echoVersion = promiseWithResolvers<ConvergentDocumentVersion>();
       onChange.mockImplementationOnce(() =>
         pipe(
@@ -499,7 +521,7 @@ describe('liveSyncPlugin', () => {
           Effect.promise(() => nextVersion.promise),
           Effect.tap((version) =>
             SubscriptionRef.set(liveDocument.content, {
-              doc: markdownDocument('hello!?'),
+              doc: primaryRichTextDocument('hello!?'),
               version,
             })
           )
@@ -530,7 +552,7 @@ describe('liveSyncPlugin', () => {
 
       // Typing '!' contributes 'hello!'. The document publishes it back as its
       // new state, the echo, and resolves with the echo's version.
-      const echo = { doc: markdownDocument('hello!'), version: 'v1' };
+      const echo = { doc: primaryRichTextDocument('hello!'), version: 'v1' };
       onChange.mockImplementationOnce(() =>
         pipe(
           SubscriptionRef.set(liveDocument.content, echo),
@@ -558,7 +580,9 @@ describe('liveSyncPlugin', () => {
         })
       );
 
-      await Effect.runPromise(liveDocument.change('from a peer'));
+      await Effect.runPromise(
+        liveDocument.change(primaryRichTextDocument('from a peer'))
+      );
 
       await eventually(() =>
         expect(view.state.doc.textContent).toBe('from a peer')
@@ -582,7 +606,9 @@ describe('liveSyncPlugin', () => {
         Effect.succeed({ pmDocAfter: doc([para('from a peer')]), steps: [] })
       );
 
-      await Effect.runPromise(liveDocument.change('from a peer'));
+      await Effect.runPromise(
+        liveDocument.change(primaryRichTextDocument('from a peer'))
+      );
 
       await eventually(() =>
         expect(view.state.doc.textContent).toBe('from a peer')
@@ -609,7 +635,9 @@ describe('liveSyncPlugin', () => {
         view.state.tr.setSelection(TextSelection.create(view.state.doc, 6))
       );
 
-      await Effect.runPromise(liveDocument.change('hello world and more'));
+      await Effect.runPromise(
+        liveDocument.change(primaryRichTextDocument('hello world and more'))
+      );
 
       await eventually(() =>
         expect(view.state.doc.textContent).toBe('hello world and more')
@@ -645,12 +673,16 @@ describe('liveSyncPlugin', () => {
       const reportedError = promiseWithResolvers<unknown>();
       onError.mockImplementationOnce(reportedError.resolve);
 
-      await Effect.runPromise(liveDocument.change('breaks'));
+      await Effect.runPromise(
+        liveDocument.change(primaryRichTextDocument('breaks'))
+      );
       // The plugin only applies the latest state, so 'recovers' published
       // straight away could skip 'breaks'.
       const reported = await reportedError.promise;
 
-      await Effect.runPromise(liveDocument.change('recovers'));
+      await Effect.runPromise(
+        liveDocument.change(primaryRichTextDocument('recovers'))
+      );
       await eventually(() =>
         expect(view.state.doc.textContent).toBe('recovers')
       );
@@ -669,7 +701,9 @@ describe('liveSyncPlugin', () => {
         Effect.succeed({ pmDocAfter: null as unknown as PMNode, steps: [] })
       );
 
-      await Effect.runPromise(liveDocument.change('anything'));
+      await Effect.runPromise(
+        liveDocument.change(primaryRichTextDocument('anything'))
+      );
 
       await eventually(() => expect(onError).toHaveBeenCalledTimes(1));
       expect(onError.mock.calls[0][0]).toBeInstanceOf(WebEditorError);
@@ -696,7 +730,7 @@ describe('liveSyncPlugin', () => {
           Effect.promise(() => contribution.promise),
           Effect.tap((version) =>
             SubscriptionRef.set(liveDocument.content, {
-              doc: markdownDocument(textOf(doc)),
+              doc: primaryRichTextDocument(textOf(doc)),
               version,
             })
           )
@@ -722,7 +756,7 @@ describe('liveSyncPlugin', () => {
       const { liveDocument, view } = await setUpEditor();
 
       const version = await Effect.runPromise(
-        liveDocument.change('hello from a peer')
+        liveDocument.change(primaryRichTextDocument('hello from a peer'))
       );
 
       await eventually(() =>

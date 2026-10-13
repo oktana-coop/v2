@@ -1,13 +1,12 @@
-// The document as the app uses it, and what it takes to run one.
+// The live document kept in step with the project's store.
 export {
-  type LiveDocument,
-  type LiveDocumentError,
-  type LocalEditsContributionError,
-  type NamedLiveDocument,
+  type StoredContentReadError,
+  type StoredCopyWriteError,
   type StoredLiveDocument,
-} from './live-document';
+  type StoredLiveDocumentError,
+} from './stored-live-document';
 export {
-  createLiveDocument,
-  type CreateLiveDocumentDeps,
-} from './create-live-document';
-export { withStoredCopy, type WithStoredCopyDeps } from './with-stored-copy';
+  type StoredContent,
+  withStoredCopy,
+  type WithStoredCopyDeps,
+} from './with-stored-copy';

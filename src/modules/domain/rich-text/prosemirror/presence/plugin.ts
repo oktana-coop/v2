@@ -14,23 +14,24 @@ import { subscribeToRef } from '../../../../../utils/effect';
 import {
   type ConvergentDocumentVersion,
   type Participant,
-  type ParticipantSelection,
   type RemotePresence,
-  selectionsAreSame,
-} from '../../models';
+} from '../../../collaboration';
+import { type ParticipantSelection, selectionsAreSame } from '../../models';
 import { type LiveSyncState } from '../sync/live-sync-plugin';
 import { caretElement, placeLabels } from './dom';
 
 const pluginKey = new PluginKey<PresencePluginState>('pm-presence');
 
 export type PresencePluginArgs = {
-  peers: SubscriptionRef.SubscriptionRef<ReadonlyArray<RemotePresence>>;
+  peers: SubscriptionRef.SubscriptionRef<
+    ReadonlyArray<RemotePresence<ParticipantSelection>>
+  >;
   readSyncState: (state: EditorState) => LiveSyncState;
   publish: (selection: ParticipantSelection | null) => void;
   colorClassFor: (participant: Participant) => string;
 };
 
-type PresenceWithSelection = RemotePresence & {
+type PresenceWithSelection = RemotePresence<ParticipantSelection> & {
   selection: ParticipantSelection;
 };
 
@@ -42,7 +43,9 @@ export type PresencePluginState = {
   decorations: DecorationSet;
 };
 
-type PresenceMeta = { peers: ReadonlyArray<RemotePresence> };
+type PresenceMeta = {
+  peers: ReadonlyArray<RemotePresence<ParticipantSelection>>;
+};
 
 export const getPresencePluginState = (state: EditorState) =>
   pluginKey.getState(state) as PresencePluginState;
@@ -165,7 +168,7 @@ export const presencePlugin = ({
     incoming,
     previous,
   }: {
-    incoming: ReadonlyArray<RemotePresence>;
+    incoming: ReadonlyArray<RemotePresence<ParticipantSelection>>;
     previous: PresencePluginState;
   }): PresencePluginState => {
     const presenceByPeer: PresencePluginState['presenceByPeer'] = new Map(

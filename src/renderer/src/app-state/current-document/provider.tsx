@@ -4,23 +4,24 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import {
+  ConvergentDocumentChangeErrorTag,
+  ConvergentDocumentUnavailableErrorTag,
+  type OpenSharedDocumentError,
+  SharedDocumentUnavailableError,
+  type ShareId,
+} from '../../../../modules/domain/collaboration';
+import {
   getArtifactName,
   joinSharedDocument,
   leaveSharedDocument as leaveSharedDocumentCommand,
-  openLiveDocument,
-  type OpenSharedDocumentError,
+  type LiveRichTextDocument,
+  openLiveRichTextDocument,
   SharedDocumentNotInProjectErrorTag,
   SharedDocumentOnAnotherBranchErrorTag,
-  SharedDocumentUnavailableError,
-  type ShareId,
   shareLiveDocument,
-  type StoredLiveDocument,
   urlEncodeProjectId,
 } from '../../../../modules/domain/project';
-import {
-  ConvergentDocumentChangeErrorTag,
-  ConvergentDocumentUnavailableErrorTag,
-} from '../../../../modules/domain/rich-text';
+import { type PrimaryRichTextDocument } from '../../../../modules/domain/rich-text';
 import { createPrivateConvergentDocument } from '../../../../modules/domain/rich-text/adapters/automerge-convergent-document';
 import { RepresentationTransformContext } from '../../../../modules/domain/rich-text/react/representation-transform-context';
 import {
@@ -70,7 +71,7 @@ export const CurrentDocumentProvider = ({
   const documentId = useCurrentDocumentId();
   const { pulledUpstreamChanges, resetPulledUpstreamChanges } =
     usePulledUpstreamChanges();
-  const [liveDocument, setLiveDocument] = useState<StoredLiveDocument | null>(
+  const [liveDocument, setLiveDocument] = useState<LiveRichTextDocument | null>(
     null
   );
   const onLocalSelectionChange = usePublishLocalPresence(liveDocument);
@@ -104,9 +105,9 @@ export const CurrentDocumentProvider = ({
 
     // Ignore an open the selection has already moved on from.
     let cancelled = false;
-    let opened: StoredLiveDocument | null = null;
+    let opened: LiveRichTextDocument | null = null;
 
-    const close = (handle: StoredLiveDocument) =>
+    const close = (handle: LiveRichTextDocument) =>
       Effect.runPromise(handle.close).catch((error) => {
         console.error(error);
         dispatchNotification(
@@ -139,11 +140,11 @@ export const CurrentDocumentProvider = ({
       );
     };
 
-    const createPrivateDocument = (initialText: string) =>
-      createPrivateConvergentDocument({ initialText, privateRepo });
+    const createPrivateDocument = (initialDocument: PrimaryRichTextDocument) =>
+      createPrivateConvergentDocument({ initialDocument, privateRepo });
 
     Effect.runPromise(
-      openLiveDocument({
+      openLiveRichTextDocument({
         createPrivateDocument,
         openSharedDocument: documentSharing.openSharedDocument,
         onShareUnavailable: reportShareFailure,

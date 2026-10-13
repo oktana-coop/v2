@@ -9,6 +9,3 @@ export {
   type RegisteredShare,
   type ShareRegistry,
 } from './ports';
-
-export { createAdapter as createBrowserLocalStorageGuestShareRegistryAdapter } from './adapters/browser-local-storage-guest-share-registry';
-export { type GuestShare, type GuestShareRegistry } from './ports';

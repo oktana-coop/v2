@@ -55,12 +55,6 @@ export class DocumentNotOnCurrentRefError extends Cause.YieldableError {
   }
 }
 
-export const SharedDocumentUnavailableErrorTag =
-  'SharedDocumentUnavailableError';
-export class SharedDocumentUnavailableError extends Cause.YieldableError {
-  readonly _tag = SharedDocumentUnavailableErrorTag;
-}
-
 export const SharedDocumentOnAnotherBranchErrorTag =
   'SharedDocumentOnAnotherBranchError';
 export class SharedDocumentOnAnotherBranchError extends Cause.YieldableError {

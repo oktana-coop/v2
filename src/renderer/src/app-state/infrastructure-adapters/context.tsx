@@ -9,17 +9,22 @@ import {
   useState,
 } from 'react';
 
+import { type DocumentSharing } from '../../../../modules/domain/collaboration';
+import { createAdapter as createAutomergeDocumentSharingAdapter } from '../../../../modules/domain/collaboration/adapters/automerge-document-sharing';
 import {
   type AssetUrlProtocol,
-  type DocumentSharing,
   type ProjectStore,
   type ProjectStoreManager,
 } from '../../../../modules/domain/project';
-import { createAdapter as createAutomergeDocumentSharingAdapter } from '../../../../modules/domain/project/adapters/automerge-document-sharing';
 import {
   createElectronAssetProtocolAdapter,
   createElectronRendererProjectStoreManagerAdapter,
 } from '../../../../modules/domain/project/browser';
+import {
+  type ParticipantSelection,
+  type PrimaryRichTextDocument,
+} from '../../../../modules/domain/rich-text';
+import { richTextAutomergeBinding } from '../../../../modules/domain/rich-text/adapters/automerge-convergent-document';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import { type Filesystem } from '../../../../modules/infrastructure/filesystem';
 import { createAdapter as createElectronRendererFilesystemAPIAdapter } from '../../../../modules/infrastructure/filesystem/adapters/filesystem/electron-renderer-api';
@@ -36,7 +41,10 @@ export type InfrastructureAdaptersContextType = {
   assetUrlProtocol: AssetUrlProtocol;
   projectStore: ProjectStore | null;
   setProjectStore: (store: ProjectStore | null) => void;
-  documentSharing: DocumentSharing;
+  documentSharing: DocumentSharing<
+    PrimaryRichTextDocument,
+    ParticipantSelection
+  >;
   // The repo that talks to the sync service, and the one that never talks
   // to anyone: documents this app keeps to itself live in the latter.
   syncedRepo: Effect.Effect<AutomergeRepo, SyncServiceError>;
@@ -124,7 +132,11 @@ export const InfrastructureAdaptersProvider = ({
   );
 
   const documentSharing = useMemo(
-    () => createAutomergeDocumentSharingAdapter({ syncedRepo }),
+    () =>
+      createAutomergeDocumentSharingAdapter({
+        syncedRepo,
+        binding: richTextAutomergeBinding,
+      }),
     [syncedRepo]
   );
 

@@ -3,42 +3,29 @@ import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { type Mock, vi } from 'vitest';
 
 import {
-  type ConvergentDocument,
-  type ConvergentDocumentState,
-  type ConvergentDocumentVersion,
-  CURRENT_SCHEMA_VERSION,
+  type RichTextConvergentDocument,
+  type RichTextConvergentDocumentState,
   type RichTextDocument,
-  richTextRepresentations,
 } from '../../../../modules/domain/rich-text';
-import { markdownDocument } from '../../../../modules/domain/rich-text/test-utils';
-import { type LiveDocument } from './live-document';
+import { primaryRichTextDocument } from '../../../../modules/domain/rich-text';
+import {
+  markdownDocument,
+  proseMirrorDocument,
+  transformParagraphToText,
+} from '../../../../modules/domain/rich-text/test-utils';
+import { type ConvergentDocumentVersion } from '../../collaboration';
+import { type LiveRichTextDocument } from './open-live-rich-text-document';
 
-export { markdownDocument };
+export {
+  markdownDocument,
+  primaryRichTextDocument,
+  proseMirrorDocument,
+  transformParagraphToText,
+};
 export {
   promiseWithResolvers,
   useFakeTimersInTest,
 } from '../../../../utils/test-utils';
-
-type ParagraphPMJSON = {
-  type: 'doc';
-  content: [{ type: 'paragraph'; content: [{ type: 'text'; text: string }] }];
-};
-
-export const proseMirrorDocument = (text: string): RichTextDocument => {
-  const json: ParagraphPMJSON = {
-    type: 'doc',
-    content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
-  };
-
-  return {
-    schemaVersion: CURRENT_SCHEMA_VERSION,
-    representation: richTextRepresentations.PROSEMIRROR,
-    content: JSON.stringify(json),
-  };
-};
-
-export const transformParagraphToText = async ({ input }: { input: string }) =>
-  (JSON.parse(input) as ParagraphPMJSON).content[0].content[0].text;
 
 // Types content and waits for it to reach the document, without the pause
 // that normally contributes it.
@@ -47,7 +34,7 @@ export const typeAndContribute = async ({
   doc,
   base,
 }: {
-  opened: Pick<LiveDocument, 'edit' | 'applyPendingLocalEdits'>;
+  opened: Pick<LiveRichTextDocument, 'edit' | 'applyPendingLocalEdits'>;
   doc: RichTextDocument;
   base?: ConvergentDocumentVersion;
 }) => {
@@ -63,26 +50,28 @@ export const typeLeavingPending = ({
   doc,
   base,
 }: {
-  opened: Pick<LiveDocument, 'edit'>;
+  opened: Pick<LiveRichTextDocument, 'edit'>;
   doc: RichTextDocument;
   base?: ConvergentDocumentVersion;
 }) => Effect.runPromise(opened.edit(doc, { base }));
 
-export const contentOf = (opened: Pick<LiveDocument, 'content'>) =>
+export const contentOf = (opened: Pick<LiveRichTextDocument, 'content'>) =>
   Effect.runPromise(SubscriptionRef.get(opened.content)).then(
     (current) => current.doc.content
   );
 
 // What reached a convergent document whose `change` is spied on, in order.
 export const contributionsTo = (document: {
-  change: Mock<ConvergentDocument['change']>;
+  change: Mock<RichTextConvergentDocument['change']>;
 }) =>
-  document.change.mock.calls.map(([text, options]) => ({
-    text,
+  document.change.mock.calls.map(([doc, options]) => ({
+    text: doc.content,
     base: options?.base,
   }));
 
-export const versionOf = (document: Pick<ConvergentDocument, 'content'>) =>
+export const versionOf = (
+  document: Pick<RichTextConvergentDocument, 'content'>
+) =>
   Effect.runPromise(SubscriptionRef.get(document.content)).then(
     (current) => current.version
   );
@@ -90,23 +79,31 @@ export const versionOf = (document: Pick<ConvergentDocument, 'content'>) =>
 // A live document showing fixed content, whose operations are spied on.
 export const createFakeLiveDocument = async () => {
   const content = await Effect.runPromise(
-    SubscriptionRef.make<ConvergentDocumentState>({
-      doc: markdownDocument('what the editor shows'),
+    SubscriptionRef.make<RichTextConvergentDocumentState>({
+      doc: primaryRichTextDocument('what the editor shows'),
       version: 'v0',
     })
   );
   const applyPendingLocalEdits = vi.fn<
-    () => LiveDocument['applyPendingLocalEdits']
+    () => LiveRichTextDocument['applyPendingLocalEdits']
   >(() => Effect.void);
-  const attachTo = vi.fn<LiveDocument['attachTo']>(() => Effect.void);
-  const detach = vi.fn<() => LiveDocument['detach']>(() => Effect.void);
-  const close = vi.fn<() => LiveDocument['close']>(() => Effect.void);
+  const attachTo = vi.fn<LiveRichTextDocument['attachTo']>(() => Effect.void);
+  const detach = vi.fn<() => LiveRichTextDocument['detach']>(() => Effect.void);
+  const close = vi.fn<() => Effect.Effect<void>>(() => Effect.void);
 
   const liveDocument: Pick<
-    LiveDocument,
-    'content' | 'applyPendingLocalEdits' | 'attachTo' | 'detach' | 'close'
-  > = {
+    LiveRichTextDocument,
+    | 'content'
+    | 'currentDocument'
+    | 'applyPendingLocalEdits'
+    | 'attachTo'
+    | 'detach'
+  > & { close: Effect.Effect<void> } = {
     content,
+    currentDocument: Effect.map(
+      SubscriptionRef.get(content),
+      (current) => current.doc
+    ),
     applyPendingLocalEdits: Effect.suspend(applyPendingLocalEdits),
     attachTo,
     detach: Effect.suspend(detach),

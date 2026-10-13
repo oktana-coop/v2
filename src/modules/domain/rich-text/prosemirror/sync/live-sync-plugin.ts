@@ -15,21 +15,18 @@ import { type Step } from 'prosemirror-transform';
 import { runOnLatestRefChange } from '../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../utils/errors';
 import {
+  type ConvergentDocumentChangeOptions,
+  type ConvergentDocumentVersion,
+} from '../../../collaboration';
+import {
   LiveSyncFallbackError,
   type PatchError,
   RepresentationTransformError,
   type RichTextLibError,
   WebEditorError,
 } from '../../errors';
-import {
-  type ConvergentDocumentVersion,
-  type RichTextDocument,
-  richTextRepresentations,
-} from '../../models';
-import {
-  type ConvergentDocumentChangeOptions,
-  type ConvergentDocumentState,
-} from '../../ports/convergent-document';
+import { type RichTextDocument, richTextRepresentations } from '../../models';
+import { type RichTextConvergentDocumentState } from '../../ports/convergent-document';
 import { type ProseMirrorStepsResult } from '../../ports/diff-patch';
 import { pmDocToJSONString } from '../json';
 import {
@@ -56,7 +53,7 @@ export const getLiveSyncState = (state: EditorState): LiveSyncState =>
   pluginKey.getState(state) as LiveSyncState;
 
 export type LiveSyncPluginArgs = {
-  content: SubscriptionRef.SubscriptionRef<ConvergentDocumentState>;
+  content: SubscriptionRef.SubscriptionRef<RichTextConvergentDocumentState>;
   onChange: (
     doc: RichTextDocument,
     options?: ConvergentDocumentChangeOptions
@@ -280,7 +277,7 @@ export const liveSyncPlugin = ({
 
       // Whether typing or a newer state came in since this state was read.
       const isStale = (
-        state: ConvergentDocumentState
+        state: RichTextConvergentDocumentState
       ): Effect.Effect<boolean> =>
         pipe(
           Effect.all({

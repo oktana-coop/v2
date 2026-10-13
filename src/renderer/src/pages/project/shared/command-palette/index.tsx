@@ -1,10 +1,10 @@
 import { useContext, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 
+import { urlEncodeShareId } from '../../../../../../modules/domain/collaboration';
 import {
   getArtifactName,
   listOpenableArtifacts,
-  urlEncodeShareId,
 } from '../../../../../../modules/domain/project';
 import { richTextRepresentations } from '../../../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';

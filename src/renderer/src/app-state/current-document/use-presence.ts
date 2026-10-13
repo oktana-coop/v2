@@ -9,13 +9,13 @@ import {
 } from 'react';
 
 import { AuthContext } from '../../../../modules/auth/browser';
-import { type LiveDocument } from '../../../../modules/domain/project';
 import {
   anonymousParticipantName,
+  type LiveDocument,
   type Participant,
-  type ParticipantSelection,
   type RemotePresence,
-} from '../../../../modules/domain/rich-text';
+} from '../../../../modules/domain/collaboration';
+import { type ParticipantSelection } from '../../../../modules/domain/rich-text';
 import { subscribeToRef } from '../../../../utils/effect';
 
 // Generated once per app window, so an anonymous name lasts while the window
@@ -35,7 +35,10 @@ export const useLocalParticipant = (): Participant => {
   );
 };
 
-type DocumentWithPresence = Pick<LiveDocument, 'presence'>;
+type DocumentWithPresence = Pick<
+  LiveDocument<unknown, ParticipantSelection>,
+  'presence'
+>;
 
 export const usePublishLocalPresence = (
   liveDocument: DocumentWithPresence | null
@@ -79,8 +82,10 @@ export const usePublishLocalPresence = (
 
 export const useRemotePresence = (
   liveDocument: DocumentWithPresence | null
-): ReadonlyArray<RemotePresence> => {
-  const [peers, setPeers] = useState<ReadonlyArray<RemotePresence>>([]);
+): ReadonlyArray<RemotePresence<ParticipantSelection>> => {
+  const [peers, setPeers] = useState<
+    ReadonlyArray<RemotePresence<ParticipantSelection>>
+  >([]);
 
   useEffect(() => {
     if (!liveDocument) {

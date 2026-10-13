@@ -1,8 +1,10 @@
 import { useCallback, useContext, useMemo } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 
-import { urlEncodeShareId } from '../../../../modules/domain/project';
-import { uniqueParticipants } from '../../../../modules/domain/rich-text';
+import {
+  uniqueParticipants,
+  urlEncodeShareId,
+} from '../../../../modules/domain/collaboration';
 import { GuestEditingContext, useRemotePresence } from '../../app-state';
 import { SidebarLayout } from '../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../components/layout/StackedResizablePanelsLayout';

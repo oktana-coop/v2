@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-import { type ShareId } from '../../../../../../modules/domain/project';
+import { type ShareId } from '../../../../../../modules/domain/collaboration';
 import { type Branch } from '../../../../../../modules/infrastructure/version-control';
 import { type JoinSharedDocumentRefusal } from '../../../../app-state';
 import { Button } from '../../../../components/actions/Button';

@@ -1,17 +1,18 @@
 import * as Effect from 'effect/Effect';
 import { describe, expect, it, vi } from 'vitest';
 
+import { type PrimaryRichTextDocument } from '../../../../modules/domain/rich-text';
 import {
   type ArtifactId,
   type Branch,
 } from '../../../../modules/infrastructure/version-control';
-import { SharedDocumentUnavailableError } from '../errors';
+import { SharedDocumentUnavailableError } from '../../collaboration';
 import { type ProjectId } from '../models';
 import {
   shareLiveDocument,
   type ShareLiveDocumentDeps,
 } from './share-live-document';
-import { createFakeLiveDocument } from './test-utils';
+import { createFakeLiveDocument, primaryRichTextDocument } from './test-utils';
 
 const projectId = '/projects/one' as ProjectId;
 const branch = 'main' as Branch;
@@ -20,10 +21,11 @@ const documentId = '/blob/main/note.md' as ArtifactId;
 const setUpShare = async () => {
   const { liveDocument, applyPendingLocalEdits, attachTo } =
     await createFakeLiveDocument();
-  const shareDocument = vi.fn<ShareLiveDocumentDeps['shareDocument']>(() =>
-    Effect.succeed('automerge:url')
-  );
-  const rememberShare = vi.fn<ShareLiveDocumentDeps['rememberShare']>();
+  const shareDocument = vi.fn<
+    ShareLiveDocumentDeps<PrimaryRichTextDocument>['shareDocument']
+  >(() => Effect.succeed('automerge:url'));
+  const rememberShare =
+    vi.fn<ShareLiveDocumentDeps<PrimaryRichTextDocument>['rememberShare']>();
 
   // Built when run, so mocks adjusted before running are in place by then.
   const share = Effect.suspend(() =>
@@ -60,7 +62,7 @@ describe('shareLiveDocument', () => {
     // everything typed has reached it.
     expect(applyPendingLocalEdits).toHaveBeenCalledBefore(shareDocument);
     expect(shareDocument).toHaveBeenCalledExactlyOnceWith({
-      content: 'what the editor shows',
+      doc: primaryRichTextDocument('what the editor shows'),
       branch,
       documentId,
       name: 'note',

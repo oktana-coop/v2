@@ -2,7 +2,7 @@ import { useCallback, useContext, useRef } from 'react';
 import { type NodeApi, type TreeApi } from 'react-arborist';
 import { useNavigate } from 'react-router';
 
-import { urlEncodeShareId } from '../../../../modules/domain/project';
+import { urlEncodeShareId } from '../../../../modules/domain/collaboration';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import {
   GuestEditingContext,

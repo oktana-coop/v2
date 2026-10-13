@@ -2,10 +2,13 @@ import { type DocHandle } from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 
-import { type ConvergentDocument } from '../../ports/convergent-document';
+import { mapErrorTo } from '../../../../../utils/errors';
+import { ValidationError } from '../../../collaboration';
+import { createPresence } from '../../../collaboration/adapters/automerge-presence';
+import { parseParticipantSelection, selectionsAreSame } from '../../models';
+import { type RichTextConvergentDocument } from '../../ports/convergent-document';
 import { createConvergentDocument } from './convergent-document';
 import { type DocumentContent } from './document-content';
-import { createPresence } from './presence';
 
 export type SharedConvergentDocumentDeps = {
   handle: DocHandle<DocumentContent>;
@@ -13,8 +16,18 @@ export type SharedConvergentDocumentDeps = {
 
 export const createSharedConvergentDocument = ({
   handle,
-}: SharedConvergentDocumentDeps): Effect.Effect<ConvergentDocument> =>
+}: SharedConvergentDocumentDeps): Effect.Effect<RichTextConvergentDocument> =>
   pipe(
-    createPresence({ handle }),
+    createPresence({
+      handle,
+      selection: {
+        parse: (value) =>
+          pipe(
+            parseParticipantSelection(value),
+            Effect.mapError(mapErrorTo(ValidationError))
+          ),
+        areSame: selectionsAreSame,
+      },
+    }),
     Effect.flatMap((presence) => createConvergentDocument({ handle, presence }))
   );

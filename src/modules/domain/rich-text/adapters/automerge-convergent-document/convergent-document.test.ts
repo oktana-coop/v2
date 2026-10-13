@@ -5,17 +5,19 @@ import * as SubscriptionRef from 'effect/SubscriptionRef';
 import { describe, expect, it, vi } from 'vitest';
 
 import { subscribeToStream } from '../../../../../utils/effect';
-import { PRIMARY_RICH_TEXT_REPRESENTATION } from '../../models';
+import { type ConvergentDocumentError } from '../../../collaboration';
+import { createNullPresence } from '../../../collaboration/adapters/automerge-presence';
 import {
-  type ConvergentDocument,
-  type ConvergentDocumentError,
-} from '../../ports/convergent-document';
+  type ParticipantSelection,
+  PRIMARY_RICH_TEXT_REPRESENTATION,
+  primaryRichTextDocument,
+} from '../../models';
+import { type RichTextConvergentDocument } from '../../ports/convergent-document';
 import { createConvergentDocument } from './convergent-document';
 import {
   DOCUMENT_FORMAT_VERSION,
   type DocumentContent,
 } from './document-content';
-import { createNullPresence } from './presence';
 
 const seed = (content: string): DocumentContent => ({
   formatVersion: DOCUMENT_FORMAT_VERSION,
@@ -26,7 +28,8 @@ const open = async (initialText: string) => {
   const repo = new Repo({ network: [] });
   const handle = repo.create<DocumentContent>(seed(initialText));
 
-  const presence = await Effect.runPromise(createNullPresence());
+  const presence =
+    await Effect.runPromise(createNullPresence<ParticipantSelection>());
   const live = await Effect.runPromise(
     createConvergentDocument({ handle, presence })
   );
@@ -39,7 +42,7 @@ const open = async (initialText: string) => {
   return { repo, handle, live, reported };
 };
 
-const versionOf = (live: ConvergentDocument) =>
+const versionOf = (live: RichTextConvergentDocument) =>
   Effect.runPromise(SubscriptionRef.get(live.content)).then(
     (change) => change.version
   );
@@ -58,7 +61,9 @@ describe('automerge live document', () => {
   it('applies a contribution', async () => {
     const { live, handle } = await open('hello');
 
-    await Effect.runPromise(live.change('hello world'));
+    await Effect.runPromise(
+      live.change(primaryRichTextDocument('hello world'))
+    );
 
     expect(textOf(handle)).toBe('hello world');
   });
@@ -66,7 +71,9 @@ describe('automerge live document', () => {
   it('publishes the contribution before resolving', async () => {
     const { live } = await open('hello');
 
-    await Effect.runPromise(live.change('hello world'));
+    await Effect.runPromise(
+      live.change(primaryRichTextDocument('hello world'))
+    );
 
     const current = await Effect.runPromise(SubscriptionRef.get(live.content));
     expect(current.doc.content).toBe('hello world');
@@ -79,8 +86,12 @@ describe('automerge live document', () => {
     const { live, handle } = await open('hello');
     const base = await versionOf(live);
 
-    await Effect.runPromise(live.change('hello DISK', { base }));
-    await Effect.runPromise(live.change('hello LOCAL', { base }));
+    await Effect.runPromise(
+      live.change(primaryRichTextDocument('hello DISK'), { base })
+    );
+    await Effect.runPromise(
+      live.change(primaryRichTextDocument('hello LOCAL'), { base })
+    );
 
     expect(textOf(handle)).toContain('DISK');
     expect(textOf(handle)).toContain('LOCAL');
@@ -96,7 +107,9 @@ describe('automerge live document', () => {
       Automerge.updateText(doc, ['content'], 'one two three PEER')
     );
 
-    await Effect.runPromise(live.change('one two three LOCAL', { base }));
+    await Effect.runPromise(
+      live.change(primaryRichTextDocument('one two three LOCAL'), { base })
+    );
 
     expect(textOf(handle)).toContain('PEER');
     expect(textOf(handle)).toContain('LOCAL');
@@ -153,7 +166,9 @@ describe('automerge live document', () => {
     handle.change((doc) => Automerge.updateText(doc, ['content'], 'hello you'));
 
     await Effect.runPromise(
-      live.change('derived from another document', { base: foreignBase })
+      live.change(primaryRichTextDocument('derived from another document'), {
+        base: foreignBase,
+      })
     );
 
     expect(textOf(handle)).toBe('hello you');
