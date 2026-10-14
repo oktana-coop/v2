@@ -322,6 +322,10 @@ export const typeAtEndOfPlainTextDocument = async ({
   await window.keyboard.type(text);
 };
 
+// The underlines under the text a lint error is about.
+export const lintErrorUnderlines = ({ window }: { window: Page }) =>
+  window.locator('.cm-lintRange-error');
+
 export const moveToEndOfFirstPlainTextLine = async ({
   window,
 }: {

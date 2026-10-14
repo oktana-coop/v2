@@ -92,5 +92,6 @@ export {
   type GuestEditingContextType,
   GuestEditingProvider,
   useCurrentShareId,
+  useGuestPlainTextDocument,
   useGuestRichTextDocument,
 } from './guest-editing';

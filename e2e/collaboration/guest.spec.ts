@@ -7,9 +7,13 @@ import { expect, test } from '../shared/fixtures';
 import {
   expectNoErrorNotification,
   expectNoOpenDocument,
+  lintErrorUnderlines,
   openCommandPalette,
   openHelloMd,
+  openPlainTextDocument,
   openProjectFolder,
+  plainTextEditorLines,
+  typeAtEndOfPlainTextDocument,
   typeInRichTextEditorSlowly,
 } from '../shared/helpers';
 import { type SyncServer } from '../shared/sync-server';
@@ -547,6 +551,61 @@ test.describe('the list entry menu', () => {
       await expect(guest.window.locator('.ProseMirror')).toContainText(
         'This is a test document'
       );
+    } finally {
+      await guest.close();
+    }
+  });
+});
+
+test.describe('a guest in a plain-text document', () => {
+  test('a guest opens a YAML share in the plain-text editor, with its errors, and edits with the host', async ({
+    electronApp,
+    window,
+    testProjectDir,
+    syncServer,
+  }) => {
+    test.setTimeout(120_000);
+
+    fs.writeFileSync(path.join(testProjectDir, 'config.yaml'), 'name: v2\n');
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openPlainTextDocument({ window, name: 'config.yaml' });
+    const shareId = await shareFromCommandPalette({ window });
+    await syncServer!.waitForShare(shareId);
+
+    const guest = await launchApp({ syncServiceUrl: syncServer!.url });
+    try {
+      await joinFromButton({ window: guest.window, shareId });
+
+      await expect
+        .poll(
+          () =>
+            plainTextEditorLines({ window: guest.window }).allTextContents(),
+          { timeout: 20_000 }
+        )
+        .toEqual(['name: v2', '']);
+      await expect(guest.window).toHaveTitle('v2 | config');
+
+      // The guest's editor lints the share as YAML, as a project would.
+      await typeAtEndOfPlainTextDocument({
+        window: guest.window,
+        text: 'name: again',
+      });
+      await expect(lintErrorUnderlines({ window: guest.window })).toBeVisible({
+        timeout: 5_000,
+      });
+
+      await expect
+        .poll(() => plainTextEditorLines({ window }).allTextContents(), {
+          timeout: 20_000,
+        })
+        .toEqual(['name: v2', 'name: again']);
+
+      await leaveFromActionsBar({ window: guest.window });
+      await expect(guestShares(guest.window)).toHaveCount(0);
     } finally {
       await guest.close();
     }

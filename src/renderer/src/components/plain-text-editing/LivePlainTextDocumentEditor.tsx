@@ -4,27 +4,36 @@ import { useContext, useMemo } from 'react';
 
 import {
   type Linter,
+  type ParticipantSelection,
   type PlainTextLanguage,
 } from '../../../../modules/domain/plain-text';
-import { liveSync } from '../../../../modules/domain/plain-text/codemirror';
+import {
+  getLiveSyncState,
+  liveSync,
+  presence,
+} from '../../../../modules/domain/plain-text/codemirror';
 import { type LivePlainTextDocument } from '../../../../modules/domain/project';
 import {
   createErrorNotification,
   NotificationsContext,
 } from '../../../../modules/infrastructure/notifications/browser';
+import { getColorClass, getSelectionColorClass } from '../user/color';
 import {
   type ContentBinding,
   PlainTextEditorBase,
 } from './PlainTextEditorBase';
 
 export type LivePlainTextDocumentEditorProps = {
-  liveDocument: Pick<LivePlainTextDocument, 'content' | 'edit'>;
+  liveDocument: Pick<LivePlainTextDocument, 'content' | 'edit' | 'presence'>;
+  // Where the caret is, for whoever else is at the document.
+  onLocalSelectionChange: (selection: ParticipantSelection | null) => void;
   language: PlainTextLanguage;
   linter: Linter | null;
 };
 
 export const LivePlainTextDocumentEditor = ({
   liveDocument,
+  onLocalSelectionChange,
   language,
   linter,
 }: LivePlainTextDocumentEditorProps) => {
@@ -54,9 +63,17 @@ export const LivePlainTextDocumentEditor = ({
         initialVersion: initial.version,
         onError: handleLiveSyncError,
       }),
+      presenceExtension: presence({
+        peers: liveDocument.presence.peers,
+        readSyncState: getLiveSyncState,
+        publish: onLocalSelectionChange,
+        colorClassFor: (participant) => getColorClass(participant.name),
+        selectionColorClassFor: (participant) =>
+          getSelectionColorClass(participant.name),
+      }),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveDocument]);
+  }, [liveDocument, onLocalSelectionChange]);
 
   return (
     <PlainTextEditorBase

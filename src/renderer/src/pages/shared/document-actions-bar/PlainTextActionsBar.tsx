@@ -13,14 +13,14 @@ export const PlainTextActionsBar = ({
   isShared: boolean;
   participants: Participant[];
   onShareClick: () => void;
-  commitAction: CommitAction;
+  commitAction: CommitAction | null;
 }) => (
   <div className="flex flex-initial items-center justify-between px-4 py-2">
     <SidebarToggleButton />
     <div className="flex flex-initial items-center gap-2">
       <PresenceAvatars participants={participants} />
       <ShareButton isShared={isShared} onShareClick={onShareClick} />
-      <CommitButton commitAction={commitAction} />
+      {commitAction && <CommitButton commitAction={commitAction} />}
     </div>
   </div>
 );

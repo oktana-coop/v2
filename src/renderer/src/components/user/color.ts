@@ -75,3 +75,14 @@ export const getColorClass = (name: string): string => {
   // Same name always gets the same color.
   return colors[Math.abs(hash) % colors.length];
 };
+
+// The participant's colour as a see-through background, for text they have
+// selected: their background classes only, so the text keeps its own colour.
+export const getSelectionColorClass = (name: string): string =>
+  [
+    ...getColorClass(name)
+      .split(' ')
+      .filter((className) => className.includes('bg-')),
+    'bg-opacity-25',
+    'dark:bg-opacity-25',
+  ].join(' ');

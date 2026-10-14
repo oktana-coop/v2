@@ -4,15 +4,12 @@ import path from 'path';
 
 import { expect, test } from '../../shared/fixtures';
 import {
+  lintErrorUnderlines,
   modKey,
   openPlainTextDocument,
   openProjectFolder,
   typeAtEndOfPlainTextDocument,
 } from '../../shared/helpers';
-
-// The underlines under the text an error is about.
-const lintErrorUnderlines = ({ window }: { window: Page }) =>
-  window.locator('.cm-lintRange-error');
 
 // The markers in the gutter beside lines with errors.
 const lintErrorMarkers = ({ window }: { window: Page }) =>

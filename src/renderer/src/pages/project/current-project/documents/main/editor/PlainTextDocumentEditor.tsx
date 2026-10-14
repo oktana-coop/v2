@@ -2,11 +2,6 @@ import { useContext, useMemo } from 'react';
 
 import { uniqueParticipants } from '../../../../../../../../modules/domain/collaboration';
 import {
-  inferPlainTextLanguageFromExtension,
-  plainTextLanguages,
-} from '../../../../../../../../modules/domain/plain-text';
-import { createAdapter as createYamlLinterAdapter } from '../../../../../../../../modules/domain/plain-text/adapters/yaml-linter';
-import {
   CommitModalContext,
   CurrentArtifactVersioningContext,
   CurrentDocumentContext,
@@ -14,6 +9,7 @@ import {
   useRemotePresence,
 } from '../../../../../../app-state';
 import { LivePlainTextDocumentEditor } from '../../../../../../components/plain-text-editing/LivePlainTextDocumentEditor';
+import { usePlainTextLanguage } from '../../../../../../components/plain-text-editing/use-plain-text-language';
 import { LongTextSkeleton } from '../../../../../../components/progress/skeletons/LongText';
 import { PlainTextActionsBar } from '../../../../../shared/document-actions-bar';
 import { useCurrentArtifact } from '../../../artifact-route';
@@ -26,12 +22,7 @@ export const PlainTextDocumentEditor = () => {
   const { canCommit } = useContext(CurrentArtifactVersioningContext);
   const { openCommitModal } = useContext(CommitModalContext);
   const artifact = useCurrentArtifact();
-  const language = inferPlainTextLanguageFromExtension(artifact.path);
-  const linter = useMemo(
-    () =>
-      language === plainTextLanguages.YAML ? createYamlLinterAdapter() : null,
-    [language]
-  );
+  const { language, linter } = usePlainTextLanguage(artifact.path);
   const peers = useRemotePresence(plainTextDocument?.liveDocument ?? null);
   const participants = useMemo(
     () => uniqueParticipants(peers.map((peer) => peer.participant)),
@@ -53,6 +44,7 @@ export const PlainTextDocumentEditor = () => {
         {plainTextDocument ? (
           <LivePlainTextDocumentEditor
             liveDocument={plainTextDocument.liveDocument}
+            onLocalSelectionChange={plainTextDocument.onLocalSelectionChange}
             language={language}
             linter={linter}
           />
