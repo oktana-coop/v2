@@ -32,6 +32,7 @@ export const GuestPlainTextDocumentEditor = () => {
     <div className="relative flex flex-auto flex-col overflow-hidden">
       <div className="w-full">
         <PlainTextActionsBar
+          title={name ?? ''}
           isShared
           participants={participants}
           onShareClick={onOpenSharingDialog}

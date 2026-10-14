@@ -1,6 +1,7 @@
 import { useContext, useMemo } from 'react';
 
 import { uniqueParticipants } from '../../../../../../../../modules/domain/collaboration';
+import { getArtifactName } from '../../../../../../../../modules/domain/project';
 import {
   CommitModalContext,
   CurrentArtifactVersioningContext,
@@ -33,6 +34,7 @@ export const PlainTextDocumentEditor = () => {
     <div className="relative flex flex-auto flex-col overflow-hidden">
       <div className="w-full">
         <PlainTextActionsBar
+          title={getArtifactName(artifact.path)}
           isShared={shareId !== null}
           participants={participants}
           onShareClick={onOpenShareDocumentDialog}

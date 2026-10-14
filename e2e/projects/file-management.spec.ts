@@ -699,11 +699,11 @@ test.describe('nested directory structure', () => {
 
     // Focus a file inside a subdirectory in the tree; the first click opens it
     // in the editor, the second moves focus back to the tree
-    await window.getByText('beta-doc.md').click();
+    await window.getByTestId('file-explorer').getByText('beta-doc.md').click();
     await expect(window.locator('.ProseMirror')).toBeFocused({
       timeout: 5_000,
     });
-    await window.getByText('beta-doc.md').click();
+    await window.getByTestId('file-explorer').getByText('beta-doc.md').click();
     await expect(
       window.getByRole('treeitem', { name: /beta-doc/ })
     ).toBeFocused();
@@ -1380,11 +1380,11 @@ test.describe('file rename', () => {
       folderPath: nestedProjectDir,
     });
 
-    await window.getByText('beta-doc.md').click();
+    await window.getByTestId('file-explorer').getByText('beta-doc.md').click();
     await expect(window.locator('.ProseMirror')).toBeFocused({
       timeout: 5_000,
     });
-    await window.getByText('beta-doc.md').click();
+    await window.getByTestId('file-explorer').getByText('beta-doc.md').click();
     await expect(
       window.getByRole('treeitem', { name: /beta-doc/ })
     ).toBeFocused();

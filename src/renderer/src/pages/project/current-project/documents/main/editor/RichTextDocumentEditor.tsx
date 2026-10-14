@@ -1,6 +1,7 @@
 import { useCallback, useContext, useMemo, useState } from 'react';
 
 import { uniqueParticipants } from '../../../../../../../../modules/domain/collaboration';
+import { getArtifactName } from '../../../../../../../../modules/domain/project';
 import { ProseMirrorContext } from '../../../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import {
   CommitModalContext,
@@ -43,6 +44,7 @@ export const RichTextDocumentEditor = () => {
     <div className="relative flex flex-auto flex-col items-center overflow-hidden">
       <div className="w-full">
         <ActionsBar
+          title={getArtifactName(artifact.path)}
           onEditorToolbarToggle={handleEditorToolbarToggle}
           isShared={shareId !== null}
           participants={participants}
