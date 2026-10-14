@@ -100,7 +100,7 @@ export const ProjectHistoryDocumentView = () => {
       diffSelectorCommits={diffSelectorCommits}
       title={docName}
       titleComponent={
-        <h3 className="flex flex-auto items-center text-left text-base/7">
+        <h2 className="flex flex-auto items-center text-left text-base/7">
           {docName}
           {selectedChangedDocument && (
             <ProjectHistoryActionBarTitle
@@ -108,7 +108,7 @@ export const ProjectHistoryDocumentView = () => {
               commitMessage={commitMessage}
             />
           )}
-        </h3>
+        </h2>
       }
       actions={
         isUncommitted ? (
