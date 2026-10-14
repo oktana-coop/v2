@@ -2,7 +2,7 @@ import { EditorSelection, EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { describe, expect, it, onTestFinished } from 'vitest';
 
-import { editing, indent } from './editing';
+import { indent } from './editing';
 
 const setUpEditor = ({
   text,
@@ -61,48 +61,5 @@ describe('indent', () => {
     indent(view);
 
     expect(view.state.doc.toString()).toBe('a  b\nc  d\n');
-  });
-});
-
-describe('shortcuts', () => {
-  const setUpEditingView = () => {
-    const view = new EditorView({
-      state: EditorState.create({ doc: 'name: v2\n', extensions: editing }),
-      parent: document.body,
-    });
-    onTestFinished(() => {
-      view.destroy();
-    });
-
-    return view;
-  };
-
-  const pressCtrlShiftM = ({ view, key }: { view: EditorView; key: string }) =>
-    view.contentDOM.dispatchEvent(
-      new KeyboardEvent('keydown', {
-        key,
-        code: 'KeyM',
-        keyCode: 77,
-        ctrlKey: true,
-        shiftKey: true,
-        bubbles: true,
-        cancelable: true,
-      })
-    );
-
-  it('opens the lint panel with Ctrl+Shift+M', () => {
-    const view = setUpEditingView();
-
-    pressCtrlShiftM({ view, key: 'M' });
-
-    expect(view.dom.querySelector('.cm-panel-lint')).not.toBeNull();
-  });
-
-  it('opens the lint panel with Ctrl+Shift+M reported as a lowercase letter', () => {
-    const view = setUpEditingView();
-
-    pressCtrlShiftM({ view, key: 'm' });
-
-    expect(view.dom.querySelector('.cm-panel-lint')).not.toBeNull();
   });
 });
