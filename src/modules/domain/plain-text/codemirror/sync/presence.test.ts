@@ -220,7 +220,7 @@ describe('presence', () => {
       expect(view.contentDOM.textContent).toBe('hello world');
     });
 
-    it("highlights a peer's selected text in their colour, with their caret at its head", async () => {
+    it("highlights a peer's selected text in their color, with their caret at its head", async () => {
       const { setPeers, carets, selections } = await setUpEditor();
 
       await setPeers([

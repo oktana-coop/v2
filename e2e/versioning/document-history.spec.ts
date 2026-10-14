@@ -7,15 +7,19 @@ import {
   commitChanges,
   createAndSwitchToBranch,
   openHelloMd,
+  openPlainTextDocument,
   openProjectFolder,
   openRichTextDocument,
   openRichTextDocumentExpectingContent,
+  plainTextEditor,
+  plainTextEditorLines,
   renameFileFromContextMenu,
   renameFileInput,
   returnToRichTextEditor,
   selectFirstCommit,
   selectUncommittedChanges,
   switchToBranch,
+  typeAtEndOfPlainTextDocument,
   typeInEditorAndWaitForDebounce,
 } from '../shared/helpers';
 
@@ -319,5 +323,38 @@ test.describe('changes made outside the app', () => {
     );
     await expect(uncommittedChanges(window)).toBeVisible();
     await expect(commitButton(window)).toBeEnabled();
+  });
+});
+
+test.describe("a plain-text document's history", () => {
+  test('selecting a commit shows the file as it was then, read-only', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openPlainTextDocument({ window, name: 'config.json' });
+    await typeAtEndOfPlainTextDocument({ window, text: 'changed' });
+    await commitChanges({ window, message: 'change the config' });
+
+    await selectFirstCommit({ window, commitMessage: 'Set up versioning' });
+
+    await expect
+      .poll(() => plainTextEditorLines({ window }).allTextContents())
+      .toEqual(['{ "key": "value" }', '']);
+    await expect(plainTextEditor({ window })).toHaveAttribute(
+      'contenteditable',
+      'false'
+    );
+
+    await selectFirstCommit({ window, commitMessage: 'change the config' });
+
+    await expect
+      .poll(() => plainTextEditorLines({ window }).allTextContents())
+      .toEqual(['{ "key": "value" }', 'changed']);
   });
 });

@@ -1,6 +1,7 @@
 import { type ProjectRelPath } from '../../../../../../modules/domain/project';
 import { type VersionedDocument } from '../../../../../../modules/domain/rich-text';
 import { LongTextSkeleton } from '../../../../components/progress/skeletons/LongText';
+import { ContentLoadError } from './ContentLoadError';
 import {
   type DiffViewProps,
   ReadOnlyRichTextDocumentView,
@@ -24,11 +25,7 @@ export const HistoricalViewContent = ({
   }
 
   if (error) {
-    return (
-      <div className="flex items-center justify-center p-8 text-zinc-400 dark:text-neutral-500">
-        <p className="text-sm">{error}</p>
-      </div>
-    );
+    return <ContentLoadError message={error} />;
   }
 
   if (!doc || !documentPath) {

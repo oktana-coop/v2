@@ -76,8 +76,8 @@ export const getColorClass = (name: string): string => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-// The participant's colour as a see-through background, for text they have
-// selected: their background classes only, so the text keeps its own colour.
+// The participant's color as a see-through background, for text they have
+// selected: their background classes only, so the text keeps its own color.
 export const getSelectionColorClass = (name: string): string =>
   [
     ...getColorClass(name)

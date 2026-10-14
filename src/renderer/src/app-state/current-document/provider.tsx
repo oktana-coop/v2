@@ -298,6 +298,9 @@ export const CurrentDocumentProvider = ({
       .catch((err) => {
         if (cancelled) return;
         console.error(err);
+        // TODO: Decide how a document that can't be read is shown; today a
+        // plain-text file that isn't UTF-8 ends up here, with the page left
+        // on its skeleton.
         dispatchNotification(
           createErrorNotification({
             title: 'Open Document Error',

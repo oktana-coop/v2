@@ -1,17 +1,26 @@
+import { type ElectronApplication, type Page } from '@playwright/test';
+import fs from 'fs';
+import path from 'path';
+
 import { expect, test } from '../shared/fixtures';
 import {
   clickToolbarButton,
   commitChanges,
   enableShowDiff,
   focusParagraph,
+  lineEndKey,
+  modKey,
+  moveToEndOfFirstPlainTextLine,
   navigateToProjectHistory,
   openEditorToolbar,
   openHelloMd,
+  openPlainTextDocument,
   openProjectFolder,
   selectChangedDocument,
   selectFirstCommit,
   selectUncommittedChanges,
   toggleProjectCommit,
+  typeAtEndOfPlainTextDocument,
   typeInEditorAndWaitForDebounce,
   typeInParagraphAndWaitForDebounce,
 } from '../shared/helpers';
@@ -72,7 +81,7 @@ test.describe('diff controls', () => {
   });
 });
 
-test.describe('diff annotations', () => {
+test.describe('diff annotations in a rich-text document', () => {
   test('highlight text inserted by a commit', async ({
     electronApp,
     window,
@@ -233,5 +242,107 @@ test.describe('diff annotations', () => {
     const insertAnnotation = window.locator('.ProseMirror .diff-insert');
     await expect(insertAnnotation).toBeVisible({ timeout: 1_000 });
     await expect(insertAnnotation).toContainText('version two');
+  });
+});
+
+test.describe('diff annotations in a plain-text document', () => {
+  // A YAML file of two lines, open in the editor.
+  const openConfigYaml = async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }: {
+    electronApp: ElectronApplication;
+    window: Page;
+    testProjectDir: string;
+  }) => {
+    fs.writeFileSync(
+      path.join(testProjectDir, 'config.yaml'),
+      'name: v2\nversion: 1.2\n'
+    );
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openPlainTextDocument({ window, name: 'config.yaml' });
+  };
+
+  const insertedLines = (window: Page) => window.locator('.cm-changedLine');
+  const deletedLines = (window: Page) =>
+    window.locator('.cm-deletedChunk .cm-deletedLine');
+
+  test('highlight a line added by a commit', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openConfigYaml({ electronApp, window, testProjectDir });
+    await typeAtEndOfPlainTextDocument({ window, text: 'owner: oktana' });
+    await commitChanges({ window, message: 'add the owner' });
+
+    await selectFirstCommit({ window, commitMessage: 'add the owner' });
+    await enableShowDiff({ window });
+
+    await expect(insertedLines(window)).toHaveText(['owner: oktana'], {
+      timeout: 5_000,
+    });
+  });
+
+  test('highlight a line deleted by a commit', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openConfigYaml({ electronApp, window, testProjectDir });
+    await moveToEndOfFirstPlainTextLine({ window });
+    await window.keyboard.press('ArrowDown');
+    await window.keyboard.press(`${modKey}+Shift+k`);
+    await commitChanges({ window, message: 'drop the version' });
+
+    await selectFirstCommit({ window, commitMessage: 'drop the version' });
+    await enableShowDiff({ window });
+
+    await expect(deletedLines(window)).toHaveText(['version: 1.2'], {
+      timeout: 5_000,
+    });
+    await expect(insertedLines(window)).toHaveCount(0);
+  });
+
+  test('highlight a line edited by a commit, as it was and as it is', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openConfigYaml({ electronApp, window, testProjectDir });
+    await moveToEndOfFirstPlainTextLine({ window });
+    await window.keyboard.press('ArrowDown');
+    await window.keyboard.press(lineEndKey);
+    await window.keyboard.type('5');
+    await commitChanges({ window, message: 'bump the version' });
+
+    await selectFirstCommit({ window, commitMessage: 'bump the version' });
+    await enableShowDiff({ window });
+
+    await expect(deletedLines(window)).toHaveText(['version: 1.2'], {
+      timeout: 5_000,
+    });
+    await expect(insertedLines(window)).toHaveText(['version: 1.25']);
+  });
+
+  test('highlight a line added since the last commit', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openConfigYaml({ electronApp, window, testProjectDir });
+    await typeAtEndOfPlainTextDocument({ window, text: 'owner: oktana' });
+
+    await selectUncommittedChanges({ window });
+    await enableShowDiff({ window });
+
+    await expect(insertedLines(window)).toHaveText(['owner: oktana'], {
+      timeout: 5_000,
+    });
   });
 });

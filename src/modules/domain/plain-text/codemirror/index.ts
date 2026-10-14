@@ -1,3 +1,4 @@
+export * from './diff';
 export * from './display';
 export * from './editing';
 export * from './language';

@@ -192,6 +192,24 @@
   @apply bg-red-200 dark:text-black;
 }
 
+/* The app's colors for the plain-text editor. The diff colors are the same
+ * ones the relevant diff classes use.
+ */
+:root {
+  --plain-text-editor-border: theme('colors.neutral.200');
+  --plain-text-editor-control-background: theme('colors.white');
+  --plain-text-editor-focus: theme('colors.purple.500');
+  --plain-text-editor-panel-background: theme('colors.neutral.100');
+  --diff-insert-background: theme('colors.green.300');
+  --diff-delete-background: theme('colors.red.200');
+}
+.dark {
+  --plain-text-editor-border: theme('colors.neutral.700');
+  --plain-text-editor-control-background: theme('colors.neutral.800');
+  --plain-text-editor-focus: theme('colors.purple.300');
+  --diff-text: theme('colors.black');
+}
+
 /* Find-in-document match highlights. Like the diff annotations above, the
  * class names (from prosemirror-search) only appear at runtime, so they
  * live at the top level to escape Tailwind's tree-shaking.

@@ -6,11 +6,13 @@ import {
   commitChanges,
   discardChanges,
   openHelloMd,
+  openPlainTextDocument,
   openProjectFolder,
   restoreCommit,
   returnToRichTextEditor,
   selectFirstCommit,
   selectUncommittedChanges,
+  typeAtEndOfPlainTextDocument,
   typeInEditorAndWaitForDebounce,
 } from '../shared/helpers';
 
@@ -153,5 +155,34 @@ test.describe('restoring', () => {
     );
     expect(content).toContain('keep this');
     expect(content).not.toContain('remove this');
+  });
+});
+
+test.describe('a plain-text document', () => {
+  test('restoring a commit from the history writes its content to the file', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openPlainTextDocument({ window, name: 'config.json' });
+    await typeAtEndOfPlainTextDocument({ window, text: 'changed' });
+    await commitChanges({ window, message: 'change the config' });
+
+    await selectFirstCommit({ window, commitMessage: 'Set up versioning' });
+    await restoreCommit({ window });
+
+    await expect(window.getByTestId('history-commit').first()).toContainText(
+      'Restore'
+    );
+    await expect
+      .poll(() =>
+        fs.readFileSync(path.join(testProjectDir, 'config.json'), 'utf8')
+      )
+      .toBe('{ "key": "value" }\n');
   });
 });

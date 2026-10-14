@@ -10,10 +10,13 @@ import {
   expectProjectCommits,
   navigateToProjectHistory,
   openHelloMd,
+  openPlainTextDocument,
   openProjectFolder,
+  plainTextEditorLines,
   selectChangedDocument,
   selectUncommittedDocument,
   toggleProjectCommit,
+  typeAtEndOfPlainTextDocument,
   typeInEditorAndWaitForDebounce,
 } from '../shared/helpers';
 
@@ -245,5 +248,30 @@ test.describe('outside changes', () => {
     await expect(
       panel.getByTestId('changed-document-row').filter({ hasText: 'hello' })
     ).toBeVisible({ timeout: 5_000 });
+  });
+});
+
+test.describe('a plain-text file in the project history', () => {
+  test('selecting a changed plain-text file shows its content', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openPlainTextDocument({ window, name: 'config.json' });
+    await typeAtEndOfPlainTextDocument({ window, text: 'changed' });
+    await commitChanges({ window, message: 'change the config' });
+
+    await navigateToProjectHistory({ window });
+    await toggleProjectCommit({ window, commitMessage: 'change the config' });
+    await selectChangedDocument({ window, fileName: 'config.json' });
+
+    await expect
+      .poll(() => plainTextEditorLines({ window }).allTextContents())
+      .toEqual(['{ "key": "value" }', 'changed']);
   });
 });

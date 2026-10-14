@@ -9,7 +9,13 @@ import { indentOnInput, indentUnit } from '@codemirror/language';
 import { lintKeymap } from '@codemirror/lint';
 import { search, searchKeymap } from '@codemirror/search';
 import { EditorState, type Extension } from '@codemirror/state';
-import { type Command, type KeyBinding, keymap } from '@codemirror/view';
+import {
+  type Command,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  type KeyBinding,
+  keymap,
+} from '@codemirror/view';
 
 // Tab inserts indentation at the caret, or indents the selected lines.
 export const indent: Command = (view) => {
@@ -34,6 +40,8 @@ const tabIndentation: KeyBinding = {
 
 export const editing: Extension = [
   history(),
+  highlightActiveLine(),
+  highlightActiveLineGutter(),
   multipleSelections,
   indentOnInput(),
   search({ top: true }),

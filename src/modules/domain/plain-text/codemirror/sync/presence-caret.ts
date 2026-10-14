@@ -1,6 +1,6 @@
 import { type EditorView } from '@codemirror/view';
 
-// A cursor line with a label above it, both in the given colour.
+// A cursor line with a label above it, both in the given color.
 export const caretElement = ({
   label,
   colorClass,
