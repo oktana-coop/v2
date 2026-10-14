@@ -7,7 +7,7 @@ import {
   commitChanges,
   createAndSwitchToBranch,
   mergeToMainBranch,
-  openDocument,
+  openRichTextDocument,
   switchToBranch,
   typeInParagraphAndWaitForDebounce,
 } from '../../shared/helpers';
@@ -35,7 +35,7 @@ export const createMergeConflictForDocument = async ({
   window: Page;
   relativePath: string;
 }): Promise<void> => {
-  await openDocument({ window, relativePath });
+  await openRichTextDocument({ window, relativePath });
 
   await expect(editor(window)).toContainText('Lorem ipsum dolor');
 

@@ -10,7 +10,7 @@ import {
   openCommandPalette,
   openHelloMd,
   openProjectFolder,
-  typeInEditorSlowly,
+  typeInRichTextEditorSlowly,
 } from '../shared/helpers';
 import { type SyncServer } from '../shared/sync-server';
 import {
@@ -61,7 +61,7 @@ test.describe('guest editing', () => {
       await expect(listed).toContainText('hello');
 
       // Edits flow both ways.
-      await typeInEditorSlowly({
+      await typeInRichTextEditorSlowly({
         window: guest.window,
         text: ' guest',
         delay: 30,
@@ -69,7 +69,7 @@ test.describe('guest editing', () => {
       await expect(window.locator('.ProseMirror')).toContainText('guest', {
         timeout: 20_000,
       });
-      await typeInEditorSlowly({ window, text: ' host', delay: 30 });
+      await typeInRichTextEditorSlowly({ window, text: ' host', delay: 30 });
       await expect(guestEditor).toContainText('host', { timeout: 20_000 });
 
       // Each sees the other.
@@ -262,7 +262,7 @@ test.describe('guest leaving and joining again', () => {
       });
 
       // Still one document, and edits still flow.
-      await typeInEditorSlowly({
+      await typeInRichTextEditorSlowly({
         window: guest.window,
         text: ' again',
         delay: 30,
@@ -406,7 +406,7 @@ test.describe('guest leaving while the host stays', () => {
       // updates to the guest, who left but is still connected.
       // TODO: once leaving really leaves, check that the host's edits no longer
       // reach the guest (see leaveSharedDocument).
-      await typeInEditorSlowly({
+      await typeInRichTextEditorSlowly({
         window: hostWindow,
         text: ' still here',
         delay: 30,

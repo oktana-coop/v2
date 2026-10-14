@@ -8,6 +8,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
+import { PNG_1x1 } from './helpers';
 import { startSyncServer, type SyncServer } from './sync-server';
 
 export const launchElectronApp = ({
@@ -96,6 +97,7 @@ export const test = base.extend<Fixtures>({
       '# World\n\nAnother document.\n'
     );
     fs.writeFileSync(path.join(dir, 'config.json'), '{ "key": "value" }\n');
+    fs.writeFileSync(path.join(dir, 'diagram.png'), PNG_1x1);
     await use(dir);
 
     // The Electron app is torn down after this fixture (Playwright teardown

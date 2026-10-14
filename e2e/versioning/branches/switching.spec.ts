@@ -5,12 +5,14 @@ import {
   attemptBranchSwitch,
   commitChanges,
   createAndSwitchToBranch,
-  createNewDocumentFromButton,
+  createNewRichTextDocumentFromButton,
   expectCurrentBranch,
   expectErrorNotification,
   expectNoOpenDocument,
-  openDocument,
+  openPlainTextDocument,
   openProjectFolder,
+  openRichTextDocument,
+  plainTextEditor,
   switchToBranch,
   typeInParagraphAndWaitForDebounce,
 } from '../../shared/helpers';
@@ -28,7 +30,7 @@ test.describe('branch switching', () => {
       window,
       folderPath: testProjectDir,
     });
-    await openDocument({ window, relativePath: 'hello.md' });
+    await openRichTextDocument({ window, relativePath: 'hello.md' });
     await expect(editor(window)).toContainText('This is a test document.');
 
     await createAndSwitchToBranch({ window, branchName: 'experiment' });
@@ -55,12 +57,15 @@ test.describe('branch switching', () => {
       window,
       folderPath: testProjectDir,
     });
-    await openDocument({ window, relativePath: 'hello.md' });
+    await openRichTextDocument({ window, relativePath: 'hello.md' });
 
     await createAndSwitchToBranch({ window, branchName: 'experiment' });
 
     // A document that only ever exists on experiment.
-    await createNewDocumentFromButton({ window, name: 'experiment-only.md' });
+    await createNewRichTextDocumentFromButton({
+      window,
+      name: 'experiment-only.md',
+    });
     await typeInParagraphAndWaitForDebounce({
       window,
       text: 'Only on experiment',
@@ -92,16 +97,15 @@ test.describe('branch switching', () => {
       window,
       folderPath: testProjectDir,
     });
-    await window.getByTestId('file-explorer').getByText('config.json').click();
-    await expect(window.getByText('Preview not available')).toBeVisible();
+    await openPlainTextDocument({ window, name: 'config.json' });
 
     await createAndSwitchToBranch({ window, branchName: 'experiment' });
-    await expect(window.getByText('Preview not available')).toBeVisible();
+    await expect(plainTextEditor({ window })).toContainText('"key"');
 
     await switchToBranch({ window, from: 'experiment', to: 'main' });
     // Gives the re-resolution after the switch time to reset, if it would.
     await window.waitForTimeout(500);
-    await expect(window.getByText('Preview not available')).toBeVisible();
+    await expect(plainTextEditor({ window })).toContainText('"key"');
     await expect(
       window.getByRole('heading', { name: /welcome to v2/i })
     ).toBeHidden();
@@ -119,7 +123,7 @@ test.describe('switching with uncommitted changes', () => {
       window,
       folderPath: testProjectDir,
     });
-    await openDocument({ window, relativePath: 'hello.md' });
+    await openRichTextDocument({ window, relativePath: 'hello.md' });
 
     await createAndSwitchToBranch({ window, branchName: 'experiment' });
     await typeInParagraphAndWaitForDebounce({ window, text: ' on experiment' });
@@ -148,13 +152,13 @@ test.describe('switching with uncommitted changes', () => {
       window,
       folderPath: testProjectDir,
     });
-    await openDocument({ window, relativePath: 'hello.md' });
+    await openRichTextDocument({ window, relativePath: 'hello.md' });
 
     await createAndSwitchToBranch({ window, branchName: 'experiment' });
     await typeInParagraphAndWaitForDebounce({ window, text: ' on experiment' });
     await commitChanges({ window, message: 'experiment commit' });
 
-    await openDocument({ window, relativePath: 'world.md' });
+    await openRichTextDocument({ window, relativePath: 'world.md' });
     await typeInParagraphAndWaitForDebounce({ window, text: ' not committed' });
     await switchToBranch({ window, from: 'experiment', to: 'main' });
 

@@ -14,11 +14,11 @@ import {
   expectNoOpenDocument,
   expectProjectCommits,
   navigateToProjectHistory,
-  openDocument,
   openProjectFolder,
+  openRichTextDocument,
 } from '../shared/helpers';
 
-type Window = Parameters<typeof openDocument>[0]['window'];
+type Window = Parameters<typeof openRichTextDocument>[0]['window'];
 
 const fileExplorer = (window: Window) => window.getByTestId('file-explorer');
 
@@ -64,7 +64,13 @@ test.describe('project opening', () => {
     await expectCommitChanges({
       window,
       commitMessage: 'Set up versioning',
-      added: ['.gitignore', 'config.json', 'hello.md', 'world.md'],
+      added: [
+        '.gitignore',
+        'config.json',
+        'diagram.png',
+        'hello.md',
+        'world.md',
+      ],
     });
 
     // Nothing the folder came with is left dangling as an uncommitted change.
@@ -96,7 +102,7 @@ test.describe('project opening', () => {
     await expectCommitChanges({
       window,
       commitMessage: 'Set up versioning',
-      added: ['.gitignore', 'hello.md', 'world.md'],
+      added: ['.gitignore', 'diagram.png', 'hello.md', 'world.md'],
     });
 
     expect(
@@ -136,7 +142,7 @@ test.describe('project opening', () => {
       window,
       folderPath: testProjectDir,
     });
-    await openDocument({ window, relativePath: 'hello.md' });
+    await openRichTextDocument({ window, relativePath: 'hello.md' });
 
     await window.reload();
 
@@ -182,7 +188,7 @@ test.describe('project opening', () => {
       window,
       folderPath: longDocumentProjectDir,
     });
-    await openDocument({ window, relativePath: 'chapter.md' });
+    await openRichTextDocument({ window, relativePath: 'chapter.md' });
     await window.locator('.ProseMirror').click();
     await expect(window.locator('.ProseMirror')).toBeFocused();
 
@@ -212,7 +218,7 @@ test.describe('project opening', () => {
       window,
       folderPath: testProjectDir,
     });
-    await openDocument({ window, relativePath: 'hello.md' });
+    await openRichTextDocument({ window, relativePath: 'hello.md' });
     await expect(window.locator('.ProseMirror')).toContainText('Hello');
 
     await electronApp.evaluate(async ({ dialog }) => {

@@ -1,13 +1,12 @@
 import { type Participant } from '../../../../../modules/domain/collaboration';
 import { IconButton } from '../../../components/actions/IconButton';
-import {
-  CheckIcon,
-  GroupIcon,
-  ToolbarToggleIcon,
-  UserAddIcon,
-} from '../../../components/icons';
+import { ToolbarToggleIcon } from '../../../components/icons';
 import { PresenceAvatars } from '../../../components/user/PresenceAvatars';
 import { SidebarToggleButton } from '../sidebar-toggle-button';
+import { type CommitAction, CommitButton } from './CommitButton';
+import { ShareButton } from './ShareButton';
+
+export { PlainTextActionsBar } from './PlainTextActionsBar';
 
 export const ActionsBar = ({
   onEditorToolbarToggle,
@@ -20,21 +19,11 @@ export const ActionsBar = ({
   isShared: boolean;
   participants: Participant[];
   onShareClick: () => void;
-  commitAction: { canCommit: boolean; onCommitClick: () => void } | null;
+  commitAction: CommitAction | null;
 }) => {
   const handleToolbarToggle = (ev: React.MouseEvent) => {
     ev.preventDefault();
     onEditorToolbarToggle();
-  };
-
-  const handleShareClick = (ev: React.MouseEvent) => {
-    ev.preventDefault();
-    onShareClick();
-  };
-
-  const handleCommitClick = (ev: React.MouseEvent) => {
-    ev.preventDefault();
-    commitAction?.onCommitClick();
   };
 
   return (
@@ -47,20 +36,8 @@ export const ActionsBar = ({
           onClick={handleToolbarToggle}
           tooltip="Toggle Toolbar"
         />
-        <IconButton
-          icon={isShared ? <GroupIcon /> : <UserAddIcon />}
-          onClick={handleShareClick}
-          tooltip={isShared ? 'Sharing Options' : 'Share Document'}
-        />
-        {commitAction && (
-          <IconButton
-            onClick={handleCommitClick}
-            icon={<CheckIcon />}
-            color="purple"
-            disabled={!commitAction.canCommit}
-            tooltip="Commit Changes"
-          />
-        )}
+        <ShareButton isShared={isShared} onShareClick={onShareClick} />
+        {commitAction && <CommitButton commitAction={commitAction} />}
       </div>
     </div>
   );

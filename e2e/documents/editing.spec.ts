@@ -2,10 +2,10 @@ import { Page } from '@playwright/test';
 
 import { expect, test } from '../shared/fixtures';
 import {
-  clearEditor,
+  clearRichTextEditor,
   clickToolbarButton,
-  focusAndTypeInEditor,
-  getEditorHTML,
+  focusAndTypeInRichTextEditor,
+  getRichTextEditorHTML,
   modKey,
   openEditorToolbar,
   openHelloMd,
@@ -13,7 +13,7 @@ import {
   pasteMarkdown,
   typeInEditor,
   typeInEditorAndWaitForDebounce,
-  typeInEditorSlowly,
+  typeInRichTextEditorSlowly,
 } from '../shared/helpers';
 
 const setupEditor = async ({
@@ -36,9 +36,13 @@ test.describe('typing', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await typeInEditorSlowly({ window, text: 'Hello World', delay: 30 });
+    await typeInRichTextEditorSlowly({
+      window,
+      text: 'Hello World',
+      delay: 30,
+    });
 
     const editor = window.locator('.ProseMirror');
     await expect(editor).toContainText('Hello World');
@@ -50,13 +54,13 @@ test.describe('typing', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await focusAndTypeInEditor({ window, text: 'First paragraph' });
+    await focusAndTypeInRichTextEditor({ window, text: 'First paragraph' });
     await window.keyboard.press('Enter');
-    await focusAndTypeInEditor({ window, text: 'Second paragraph' });
+    await focusAndTypeInRichTextEditor({ window, text: 'Second paragraph' });
     await window.keyboard.press('Enter');
-    await focusAndTypeInEditor({ window, text: 'Third paragraph' });
+    await focusAndTypeInRichTextEditor({ window, text: 'Third paragraph' });
 
     const paragraphs = window.locator('.ProseMirror p');
     await expect(paragraphs).toHaveCount(3);
@@ -70,9 +74,9 @@ test.describe('markdown input rules', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await focusAndTypeInEditor({ window, text: '# Heading One' });
+    await focusAndTypeInRichTextEditor({ window, text: '# Heading One' });
 
     await expect(window.locator('.ProseMirror h1')).toContainText(
       'Heading One'
@@ -85,9 +89,9 @@ test.describe('markdown input rules', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await focusAndTypeInEditor({ window, text: '## Heading Two' });
+    await focusAndTypeInRichTextEditor({ window, text: '## Heading Two' });
 
     await expect(window.locator('.ProseMirror h2')).toContainText(
       'Heading Two'
@@ -100,9 +104,9 @@ test.describe('markdown input rules', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await focusAndTypeInEditor({ window, text: '### Heading Three' });
+    await focusAndTypeInRichTextEditor({ window, text: '### Heading Three' });
 
     await expect(window.locator('.ProseMirror h3')).toContainText(
       'Heading Three'
@@ -115,9 +119,9 @@ test.describe('markdown input rules', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await focusAndTypeInEditor({ window, text: '> Quoted text' });
+    await focusAndTypeInRichTextEditor({ window, text: '> Quoted text' });
 
     await expect(window.locator('.ProseMirror blockquote')).toContainText(
       'Quoted text'
@@ -130,9 +134,9 @@ test.describe('markdown input rules', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await focusAndTypeInEditor({ window, text: '```' });
+    await focusAndTypeInRichTextEditor({ window, text: '```' });
     await window.keyboard.press('Enter');
 
     await expect(window.locator('.ProseMirror pre')).toBeVisible();
@@ -144,9 +148,9 @@ test.describe('markdown input rules', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await focusAndTypeInEditor({ window, text: '- List item' });
+    await focusAndTypeInRichTextEditor({ window, text: '- List item' });
 
     await expect(window.locator('.ProseMirror ul')).toContainText('List item');
   });
@@ -157,9 +161,9 @@ test.describe('markdown input rules', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await focusAndTypeInEditor({ window, text: '1. First item' });
+    await focusAndTypeInRichTextEditor({ window, text: '1. First item' });
 
     await expect(window.locator('.ProseMirror ol')).toContainText('First item');
   });
@@ -170,9 +174,13 @@ test.describe('markdown input rules', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await typeInEditorSlowly({ window, text: '**bold text**', delay: 20 });
+    await typeInRichTextEditorSlowly({
+      window,
+      text: '**bold text**',
+      delay: 20,
+    });
 
     await expect(window.locator('.ProseMirror strong')).toContainText(
       'bold text'
@@ -185,9 +193,13 @@ test.describe('markdown input rules', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await typeInEditorSlowly({ window, text: '*italic text*', delay: 20 });
+    await typeInRichTextEditorSlowly({
+      window,
+      text: '*italic text*',
+      delay: 20,
+    });
 
     await expect(window.locator('.ProseMirror em')).toContainText(
       'italic text'
@@ -200,9 +212,13 @@ test.describe('markdown input rules', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await typeInEditorSlowly({ window, text: '`code text`', delay: 20 });
+    await typeInRichTextEditorSlowly({
+      window,
+      text: '`code text`',
+      delay: 20,
+    });
 
     await expect(window.locator('.ProseMirror code')).toContainText(
       'code text'
@@ -369,9 +385,9 @@ test.describe('undo', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await focusAndTypeInEditor({ window, text: 'temporary text' });
+    await focusAndTypeInRichTextEditor({ window, text: 'temporary text' });
     await expect(window.locator('.ProseMirror')).toContainText(
       'temporary text'
     );
@@ -389,9 +405,9 @@ test.describe('undo', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await focusAndTypeInEditor({ window, text: 'plain text' });
+    await focusAndTypeInRichTextEditor({ window, text: 'plain text' });
     await window.keyboard.press(`${modKey}+a`);
     await window.keyboard.press(`${modKey}+b`);
 
@@ -411,9 +427,9 @@ test.describe('undo', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await focusAndTypeInEditor({ window, text: 'redo me' });
+    await focusAndTypeInRichTextEditor({ window, text: 'redo me' });
     await expect(window.locator('.ProseMirror')).toContainText('redo me');
 
     await window.keyboard.press(`${modKey}+z`);
@@ -431,7 +447,7 @@ test.describe('paste markdown', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
     await pasteMarkdown({ window, text: '# Heading\n\nSome paragraph' });
 
@@ -443,7 +459,7 @@ test.describe('paste markdown', () => {
 
   test('paste bullet list', async ({ electronApp, window, testProjectDir }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
     await pasteMarkdown({ window, text: '- item 1\n- item 2' });
 
@@ -457,7 +473,7 @@ test.describe('paste markdown', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
     await pasteMarkdown({ window, text: '**bold** and *italic*' });
 
@@ -473,7 +489,7 @@ test.describe('links', () => {
     text,
     href,
   }: {
-    window: Parameters<typeof clearEditor>[0]['window'];
+    window: Parameters<typeof clearRichTextEditor>[0]['window'];
     text: string;
     href: string;
   }) => {
@@ -525,7 +541,7 @@ test.describe('links', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
     await createLinkViaKeyboard({
       window,
@@ -542,7 +558,7 @@ test.describe('links', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
     await createLinkViaKeyboard({
       window,
@@ -566,7 +582,7 @@ test.describe('links', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
     await createLinkViaKeyboard({
       window,
@@ -589,7 +605,7 @@ test.describe('links', () => {
     await window.getByRole('button', { name: 'Save' }).click();
 
     // Verify updated link
-    const html = await getEditorHTML({ window });
+    const html = await getRichTextEditorHTML({ window });
     expect(html).toContain('https://updated.com');
   });
 
@@ -599,7 +615,7 @@ test.describe('links', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
     await createLinkViaKeyboard({
       window,
@@ -630,9 +646,9 @@ test.describe('additional editing', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await focusAndTypeInEditor({ window, text: 'bold text' });
+    await focusAndTypeInRichTextEditor({ window, text: 'bold text' });
     await window.keyboard.press(`${modKey}+a`);
     await window.keyboard.press(`${modKey}+b`);
 
@@ -652,9 +668,9 @@ test.describe('additional editing', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await focusAndTypeInEditor({ window, text: 'italic text' });
+    await focusAndTypeInRichTextEditor({ window, text: 'italic text' });
     await window.keyboard.press(`${modKey}+a`);
     await window.keyboard.press(`${modKey}+i`);
 
@@ -678,10 +694,10 @@ test.describe('additional editing', () => {
     // The editor should have initial content from hello.md
     await expect(window.locator('.ProseMirror')).toContainText('Hello');
 
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
     // After clearing, typing new text should work
-    await focusAndTypeInEditor({ window, text: 'New content' });
+    await focusAndTypeInRichTextEditor({ window, text: 'New content' });
     await expect(window.locator('.ProseMirror')).toContainText('New content');
     await expect(window.locator('.ProseMirror')).not.toContainText(
       'test document'
@@ -694,7 +710,7 @@ test.describe('additional editing', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
     // The placeholder "Start writing..." should be visible as a widget decoration
     const placeholder = window.locator('.ProseMirror span.pointer-events-none');
@@ -708,9 +724,12 @@ test.describe('additional editing', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await focusAndTypeInEditor({ window, text: 'Starting from scratch' });
+    await focusAndTypeInRichTextEditor({
+      window,
+      text: 'Starting from scratch',
+    });
     await expect(window.locator('.ProseMirror')).toContainText(
       'Starting from scratch'
     );
@@ -724,9 +743,9 @@ test.describe('horizontal rule', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await focusAndTypeInEditor({ window, text: '---' });
+    await focusAndTypeInRichTextEditor({ window, text: '---' });
 
     await expect(window.locator('.ProseMirror hr')).toHaveCount(1);
   });
@@ -737,9 +756,9 @@ test.describe('horizontal rule', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await focusAndTypeInEditor({ window, text: 'abc---' });
+    await focusAndTypeInRichTextEditor({ window, text: 'abc---' });
 
     await expect(window.locator('.ProseMirror hr')).toHaveCount(0);
     await expect(window.locator('.ProseMirror p').first()).toContainText(
@@ -753,9 +772,9 @@ test.describe('horizontal rule', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await focusAndTypeInEditor({ window, text: 'abc-- ' });
+    await focusAndTypeInRichTextEditor({ window, text: 'abc-- ' });
 
     await expect(window.locator('.ProseMirror hr')).toHaveCount(0);
     await expect(window.locator('.ProseMirror p').first()).toContainText(
@@ -769,12 +788,12 @@ test.describe('horizontal rule', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
     // alpha / [empty] / beta. After typing 'alpha' + Enter+Enter the cursor is
     // already in the third (empty) paragraph, so use `typeInEditor` (no click)
     // to keep it there.
-    await focusAndTypeInEditor({ window, text: 'alpha' });
+    await focusAndTypeInRichTextEditor({ window, text: 'alpha' });
     await window.keyboard.press('Enter');
     await window.keyboard.press('Enter');
     await typeInEditor({ window, text: 'beta' });
@@ -804,9 +823,9 @@ test.describe('horizontal rule', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await focusAndTypeInEditor({ window, text: '---' });
+    await focusAndTypeInRichTextEditor({ window, text: '---' });
 
     await expect(window.locator('.ProseMirror hr')).toHaveCount(1);
     // ensureTrailingParagraphPlugin always leaves an editable paragraph after the hr
@@ -826,7 +845,7 @@ test.describe('horizontal rule', () => {
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
     await openEditorToolbar({ window });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
     await clickToolbarButton({ window, label: 'Horizontal Rule' });
 
@@ -856,7 +875,7 @@ test.describe('horizontal rule', () => {
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
     await openEditorToolbar({ window });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
     // After clearing, the cursor is in an empty paragraph
     await expect(
@@ -870,9 +889,9 @@ test.describe('horizontal rule', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
-    await focusAndTypeInEditor({ window, text: '---' });
+    await focusAndTypeInRichTextEditor({ window, text: '---' });
     await expect(window.locator('.ProseMirror hr')).toHaveCount(1);
 
     // First Backspace: empty trailing paragraph is removed and the hr becomes

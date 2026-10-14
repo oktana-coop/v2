@@ -6,13 +6,13 @@ import { expect, test } from '../shared/fixtures';
 import {
   commitChanges,
   createAndSwitchToBranch,
-  openDocument,
-  openDocumentExpectingContent,
   openHelloMd,
   openProjectFolder,
+  openRichTextDocument,
+  openRichTextDocumentExpectingContent,
   renameFileFromContextMenu,
   renameFileInput,
-  returnToEditor,
+  returnToRichTextEditor,
   selectFirstCommit,
   selectUncommittedChanges,
   switchToBranch,
@@ -102,7 +102,7 @@ test.describe("the open document's history", () => {
     await selectUncommittedChanges({ window });
 
     // Return to editor without discarding
-    await returnToEditor({ window });
+    await returnToRichTextEditor({ window });
 
     // Editor reloads from disk — the saved "more text" should be present
     await expect(window.locator('.ProseMirror')).toContainText('more text');
@@ -125,7 +125,7 @@ test.describe('following the selected document', () => {
     await commitChanges({ window, message: 'edit hello' });
     await expect(historyCommits(window)).toHaveCount(2);
 
-    await openDocumentExpectingContent({
+    await openRichTextDocumentExpectingContent({
       window,
       relativePath: 'world.md',
       content: 'Another document',
@@ -136,7 +136,7 @@ test.describe('following the selected document', () => {
     await expect(uncommittedChanges(window)).toHaveCount(0);
     await expect(commitButton(window)).toBeDisabled();
 
-    await openDocumentExpectingContent({
+    await openRichTextDocumentExpectingContent({
       window,
       relativePath: 'hello.md',
       content: 'hello edit',
@@ -187,10 +187,10 @@ test.describe('following the selected document', () => {
     await typeInEditorAndWaitForDebounce({ window, text: ' not committed' });
     await expect(uncommittedChanges(window)).toBeVisible();
 
-    await openDocument({ window, relativePath: 'world.md' });
+    await openRichTextDocument({ window, relativePath: 'world.md' });
     await expect(uncommittedChanges(window)).toHaveCount(0);
 
-    await openDocument({ window, relativePath: 'hello.md' });
+    await openRichTextDocument({ window, relativePath: 'hello.md' });
     await expect(window.locator('.ProseMirror')).toContainText('not committed');
     await expect(uncommittedChanges(window)).toBeVisible();
     await expect(commitButton(window)).toBeEnabled();
@@ -284,7 +284,7 @@ test.describe('changes made outside the app', () => {
       '# World\n\nChanged before opening.\n'
     );
 
-    await openDocumentExpectingContent({
+    await openRichTextDocumentExpectingContent({
       window,
       relativePath: 'world.md',
       content: 'Changed before opening',

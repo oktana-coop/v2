@@ -12,6 +12,7 @@ export {
 } from './use-current-document-id';
 export {
   useCurrentLiveDocument,
+  useCurrentPlainTextDocument,
   useCurrentRichTextDocument,
 } from './use-current-document';
 export { useExport } from './exporting';

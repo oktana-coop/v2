@@ -32,6 +32,7 @@ export {
   useCurrentDocumentKind,
   useCurrentDocumentMetaData,
   useCurrentLiveDocument,
+  useCurrentPlainTextDocument,
   useCurrentRichTextDocument,
   useCurrentRichTextDocumentId,
   useExport,

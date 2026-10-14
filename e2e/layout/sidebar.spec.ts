@@ -9,6 +9,7 @@ import {
   navigateToSettings,
   openCommandPalette,
   openHelloMd,
+  openPlainTextDocument,
   openProjectFolder,
   selectUncommittedChanges,
   typeInParagraphAndWaitForDebounce,
@@ -113,6 +114,24 @@ test.describe('hiding and showing the sidebar', () => {
       });
     });
 
+    test('the plain-text document editor', async ({
+      electronApp,
+      window,
+      testProjectDir,
+    }) => {
+      await openProjectFolder({
+        electronApp,
+        window,
+        folderPath: testProjectDir,
+      });
+      await openPlainTextDocument({ window, name: 'config.json' });
+
+      await expectSidebarToToggle({
+        window,
+        sidebar: window.getByTestId('file-explorer'),
+      });
+    });
+
     test('an unsupported file', async ({
       electronApp,
       window,
@@ -123,7 +142,7 @@ test.describe('hiding and showing the sidebar', () => {
         window,
         folderPath: testProjectDir,
       });
-      await window.getByText('config.json').click();
+      await window.getByText('diagram.png').click();
       await expect(window.getByText('Preview not available')).toBeVisible({
         timeout: 5_000,
       });

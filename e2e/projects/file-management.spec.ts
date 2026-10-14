@@ -5,13 +5,13 @@ import { expect, test } from '../shared/fixtures';
 import { hasCleanWorkingTree, lastCommitMessage } from '../shared/git';
 import {
   confirmDeletion,
-  createNewDocumentFromButton,
   createNewDocumentFromContextMenu,
+  createNewRichTextDocumentFromButton,
   createNewSubfolderFromContextMenu,
   deleteFileFromContextMenu,
   deleteFolderFromContextMenu,
   deleteKey,
-  focusAndTypeInEditor,
+  focusAndTypeInRichTextEditor,
   nameNewDocument,
   navigateToProjectHistory,
   newDocumentInput,
@@ -21,11 +21,13 @@ import {
   openCommandPalette,
   openHelloMd,
   openProjectFolder,
+  plainTextEditor,
   renameFileFromContextMenu,
   renameFileInput,
   renameFolderFromContextMenu,
   renameFolderInput,
   renameKey,
+  typeAtEndOfPlainTextDocument,
   typeInEditorAndWaitForDebounce,
 } from '../shared/helpers';
 
@@ -110,7 +112,7 @@ test.describe('flat directory structure', () => {
     await expect(editor.locator('h1')).toHaveText('Hello');
 
     // Type some new content
-    await focusAndTypeInEditor({ window, text: ' — edited' });
+    await focusAndTypeInRichTextEditor({ window, text: ' — edited' });
 
     // Verify the DOM reflects the edit
     await expect(editor).toContainText('Hello — edited');
@@ -131,7 +133,10 @@ test.describe('flat directory structure', () => {
       folderPath: testProjectDir,
     });
 
-    await createNewDocumentFromButton({ window, name: 'my-new-doc.md' });
+    await createNewRichTextDocumentFromButton({
+      window,
+      name: 'my-new-doc.md',
+    });
 
     // The new file should appear in the explorer sidebar
     await expect(window.getByTestId('file-explorer')).toContainText(
@@ -144,6 +149,29 @@ test.describe('flat directory structure', () => {
     // The editor should be open and editable
     await typeInEditorAndWaitForDebounce({ window, text: 'Hello new doc' });
     await expect(window.locator('.ProseMirror')).toContainText('Hello new doc');
+  });
+
+  test('a new plain-text file opens in the plain-text editor', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+
+    await window.getByRole('button', { name: /new document/i }).click();
+    await nameNewDocument({ window, name: 'config.yaml' });
+
+    await plainTextEditor({ window }).waitFor({ timeout: 5_000 });
+    await typeAtEndOfPlainTextDocument({ window, text: 'name: v2' });
+    await expect
+      .poll(() =>
+        fs.readFileSync(path.join(testProjectDir, 'config.yaml'), 'utf8')
+      )
+      .toBe('name: v2');
   });
 
   test('creating a file with the name of an existing one shows an error and keeps the input', async ({
@@ -1616,7 +1644,7 @@ test.describe('unsupported file types', () => {
       folderPath: testProjectDir,
     });
 
-    await window.getByText('config.json').click();
+    await window.getByText('diagram.png').click();
 
     await expect(window.getByText('Preview not available')).toBeVisible({
       timeout: 2_000,
@@ -1635,7 +1663,7 @@ test.describe('unsupported file types', () => {
       folderPath: testProjectDir,
     });
 
-    await window.getByText('config.json').click();
+    await window.getByText('diagram.png').click();
     await expect(window.getByText('Preview not available')).toBeVisible({
       timeout: 2_000,
     });
@@ -1685,7 +1713,7 @@ test.describe('unsupported file types', () => {
     await openHelloMd({ window });
     await expect(window.locator('.ProseMirror')).toBeVisible();
 
-    await window.getByText('config.json').click();
+    await window.getByText('diagram.png').click();
     await expect(window.getByText('Preview not available')).toBeVisible({
       timeout: 2_000,
     });

@@ -13,7 +13,7 @@ import {
   openHelloMd,
   openProjectFolder,
   switchToBranch,
-  typeInEditorSlowly,
+  typeInRichTextEditorSlowly,
 } from '../shared/helpers';
 import {
   connectPeer,
@@ -54,7 +54,7 @@ const commitPrivateDraftAndShareOnMain = async ({
   await openProjectFolder({ electronApp, window, folderPath: testProjectDir });
   await openHelloMd({ window });
   await createAndSwitchToBranch({ window, branchName: 'private-draft' });
-  await typeInEditorSlowly({
+  await typeInRichTextEditorSlowly({
     window,
     text: ` ${privateDraftOnlyText}`,
     delay: 30,

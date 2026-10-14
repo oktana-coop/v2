@@ -7,7 +7,7 @@ import git from 'isomorphic-git';
 
 import { expect, test } from '../shared/fixtures';
 import {
-  clearEditor,
+  clearRichTextEditor,
   clickToolbarButton,
   commitChanges,
   enableShowDiff,
@@ -69,7 +69,7 @@ test.describe('figure', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
     await pasteMarkdown({
       window,
@@ -99,7 +99,7 @@ test.describe('figure', () => {
     testProjectDir,
   }) => {
     await setupEditor({ electronApp, window, testProjectDir });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
     await pasteMarkdown({
       window,
@@ -144,7 +144,7 @@ test.describe('figure', () => {
       folderPath: testProjectDir,
     });
     await openHelloMd({ window });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
     await mockPickFile({ electronApp, filePath: externalImage });
     await insertImageFromToolbar(window);
@@ -172,7 +172,7 @@ test.describe('figure', () => {
       folderPath: testProjectDir,
     });
     await openHelloMd({ window });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
     await mockPickFile({ electronApp, filePath: externalImage });
     await insertImageFromToolbar(window);
@@ -210,7 +210,7 @@ test.describe('figure', () => {
       folderPath: testProjectDir,
     });
     await openHelloMd({ window });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
     await mockPickFile({ electronApp, filePath: externalImage });
     await insertImageFromToolbar(window);
@@ -252,13 +252,13 @@ test.describe('figure', () => {
 
     // Baseline commit: a non-empty doc with no figure, so the figure commit has
     // a parent to diff against.
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
     await pasteMarkdown({ window, text: 'baseline' });
     await window.waitForTimeout(600);
     await commitChanges({ window, message: 'baseline' });
 
     // Add a figure and commit it.
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
     await mockPickFile({ electronApp, filePath: externalImage });
     await insertImageFromToolbar(window);
     await window.waitForTimeout(600);
@@ -288,7 +288,7 @@ test.describe('figure', () => {
       folderPath: testProjectDir,
     });
     await openHelloMd({ window });
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
 
     // Commit a document that contains the figure.
     await mockPickFile({ electronApp, filePath: externalImage });
@@ -297,7 +297,7 @@ test.describe('figure', () => {
     await commitChanges({ window, message: 'with image' });
 
     // Remove the figure and commit.
-    await clearEditor({ window });
+    await clearRichTextEditor({ window });
     await window.waitForTimeout(600);
     await commitChanges({ window, message: 'remove image' });
 

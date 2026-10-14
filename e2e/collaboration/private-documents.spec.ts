@@ -8,10 +8,10 @@ import { expect, test } from '../shared/fixtures';
 import {
   expectCurrentProject,
   expectFileToContain,
-  openDocumentExpectingContent,
   openHelloMd,
   openProjectFolder,
-  typeInEditorSlowly,
+  openRichTextDocumentExpectingContent,
+  typeInRichTextEditorSlowly,
 } from '../shared/helpers';
 import { connectPeer, type DocumentContent } from '../shared/sync-server';
 import {
@@ -55,13 +55,17 @@ test.describe('private documents alongside shared ones', () => {
     await openHelloMd({ window });
     const shareId = await shareFromActionsBar({ window });
 
-    await openDocumentExpectingContent({
+    await openRichTextDocumentExpectingContent({
       window,
       relativePath: 'world.md',
       content: 'Another document.',
     });
     await expectPrivate({ window });
-    await typeInEditorSlowly({ window, text: ' kept local', delay: 30 });
+    await typeInRichTextEditorSlowly({
+      window,
+      text: ' kept local',
+      delay: 30,
+    });
     await expectFileToContain({
       filePath: path.join(testProjectDir, 'world.md'),
       text: 'kept local',
@@ -89,7 +93,7 @@ test.describe('private documents alongside shared ones', () => {
     await openHelloMd({ window });
     const shareId = await shareFromActionsBar({ window });
     await syncServer!.waitForShare(shareId);
-    await typeInEditorSlowly({ window, text: ' shared', delay: 30 });
+    await typeInRichTextEditorSlowly({ window, text: ' shared', delay: 30 });
 
     const peer = connectPeer(syncServer!.url);
     try {
@@ -100,7 +104,11 @@ test.describe('private documents alongside shared ones', () => {
 
       await stopSharingFromActionsBar({ window });
       await expectPrivate({ window });
-      await typeInEditorSlowly({ window, text: ' kept local', delay: 30 });
+      await typeInRichTextEditorSlowly({
+        window,
+        text: ' kept local',
+        delay: 30,
+      });
       await expectFileToContain({
         filePath: path.join(testProjectDir, 'hello.md'),
         text: 'kept local',
@@ -192,31 +200,43 @@ test.describe('private documents alongside shared ones', () => {
       const peerHandle = await peer.findDocument(shareId);
       const worldPath = path.join(testProjectDir, 'world.md');
 
-      await openDocumentExpectingContent({
+      await openRichTextDocumentExpectingContent({
         window,
         relativePath: 'world.md',
         content: 'Another document.',
       });
       await expectPrivate({ window });
-      await typeInEditorSlowly({ window, text: ' first visit', delay: 30 });
+      await typeInRichTextEditorSlowly({
+        window,
+        text: ' first visit',
+        delay: 30,
+      });
       await expectFileToContain({ filePath: worldPath, text: 'first visit' });
 
-      await openDocumentExpectingContent({
+      await openRichTextDocumentExpectingContent({
         window,
         relativePath: 'hello.md',
         content: 'This is a test document.',
       });
       await expectShared({ window });
-      await typeInEditorSlowly({ window, text: ' back in hello', delay: 30 });
+      await typeInRichTextEditorSlowly({
+        window,
+        text: ' back in hello',
+        delay: 30,
+      });
       await expectShareToContain({ handle: peerHandle, text: 'back in hello' });
 
-      await openDocumentExpectingContent({
+      await openRichTextDocumentExpectingContent({
         window,
         relativePath: 'world.md',
         content: 'first visit',
       });
       await expectPrivate({ window });
-      await typeInEditorSlowly({ window, text: ' second visit', delay: 30 });
+      await typeInRichTextEditorSlowly({
+        window,
+        text: ' second visit',
+        delay: 30,
+      });
       await expectFileToContain({ filePath: worldPath, text: 'second visit' });
 
       await expectSyncServerToHoldOnlyOverTime({
@@ -271,13 +291,17 @@ test.describe('private documents alongside shared ones', () => {
         folderPath: secondProject,
       });
       await expectCurrentProject({ window, directory: secondProject });
-      await openDocumentExpectingContent({
+      await openRichTextDocumentExpectingContent({
         window,
         relativePath: 'hello.md',
         content: 'This is a test document.',
       });
       await expectPrivate({ window });
-      await typeInEditorSlowly({ window, text: ' in the clone', delay: 30 });
+      await typeInRichTextEditorSlowly({
+        window,
+        text: ' in the clone',
+        delay: 30,
+      });
       await expectFileToContain({
         filePath: secondHello,
         text: 'in the clone',
@@ -289,13 +313,17 @@ test.describe('private documents alongside shared ones', () => {
         folderPath: firstProject,
       });
       await expectCurrentProject({ window, directory: firstProject });
-      await openDocumentExpectingContent({
+      await openRichTextDocumentExpectingContent({
         window,
         relativePath: 'hello.md',
         content: 'This is a test document.',
       });
       await expectShared({ window });
-      await typeInEditorSlowly({ window, text: ' in the original', delay: 30 });
+      await typeInRichTextEditorSlowly({
+        window,
+        text: ' in the original',
+        delay: 30,
+      });
       await expectShareToContain({
         handle: peerHandle,
         text: 'in the original',

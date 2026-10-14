@@ -10,6 +10,7 @@ import {
   navigateToProjectHistory,
   openCommandPalette,
   openHelloMd,
+  openPlainTextDocument,
   openProjectFolder,
   selectUncommittedChanges,
   toggleProjectCommit,
@@ -214,12 +215,11 @@ test.describe('committing a plain-text document', () => {
       path.join(testProjectDir, 'config.json'),
       '{ "key": "a changed value" }\n'
     );
-    await window.getByTestId('file-explorer').getByText('config.json').click();
-    await expect(window.getByText('Preview not available')).toBeVisible();
+    await openPlainTextDocument({ window, name: 'config.json' });
 
     await openCommandPalette({ window });
     await window.getByRole('option', { name: /^Commit changes/ }).click();
-    const textarea = window.getByRole('textbox');
+    const textarea = window.getByRole('dialog').getByRole('textbox');
     await textarea.fill('change the config');
     await window.getByRole('button', { name: /^Commit$/i }).click();
     await textarea.waitFor({ state: 'hidden', timeout: 5_000 });

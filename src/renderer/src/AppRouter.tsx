@@ -7,6 +7,7 @@ import {
   ArtifactRoute,
   CompareContentConflictResolution,
   CurrentProject,
+  DocumentEditor,
   DocumentHistoricalView,
   DocumentSelection,
   HistoryNoProject,
@@ -18,7 +19,6 @@ import {
   ProjectProviders,
   ProjectSelection,
   ProjectSettings,
-  RichTextDocumentEditor,
   StructuralConflictResolution,
 } from './pages/project';
 import {
@@ -48,7 +48,7 @@ export const AppRouter = () => {
               <Route path="artifacts" element={<ProjectDocuments />}>
                 <Route index element={<DocumentSelection />} />
                 <Route path=":artifactId" element={<ArtifactRoute />}>
-                  <Route index element={<RichTextDocumentEditor />} />
+                  <Route index element={<DocumentEditor />} />
                   <Route
                     path="changes/:changeId"
                     element={<DocumentHistoricalView />}

@@ -5,9 +5,13 @@ import path from 'path';
 import { expect, test } from '../shared/fixtures';
 import {
   expectFileToContain,
+  moveToEndOfFirstPlainTextLine,
   openHelloMd,
+  openPlainTextDocument,
   openProjectFolder,
-  typeInEditorSlowly,
+  plainTextEditor,
+  plainTextEditorLines,
+  typeInRichTextEditorSlowly,
 } from '../shared/helpers';
 import { connectPeer } from '../shared/sync-server';
 import {
@@ -26,7 +30,7 @@ const textBeforeCaretInNode = (window: Page) =>
     return selection.anchorNode.textContent?.slice(0, selection.anchorOffset);
   });
 
-test.describe('remote changes in the editor', () => {
+test.describe('remote changes in the rich-text editor', () => {
   test.use({ withSyncServer: true });
 
   test('tokens written by a peer appear once and the document settles', async ({
@@ -189,7 +193,7 @@ test.describe('remote changes in the editor', () => {
       // Type like a person: fast enough that changes overlap with their own
       // sync round-trips.
       const typed = 'mercury venus earth mars jupiter';
-      await typeInEditorSlowly({
+      await typeInRichTextEditorSlowly({
         window: aliceWindow,
         text: ` ${typed}`,
         delay: 30,
@@ -203,6 +207,125 @@ test.describe('remote changes in the editor', () => {
           expect(peerHandle.fullDoc().content).toBe(
             `# Hello ${typed}\n\nThis is a test document.\n`
           ),
+      });
+    } finally {
+      scriptedPeer.disconnect();
+    }
+  });
+});
+
+test.describe('remote changes in the plain-text editor', () => {
+  test.use({ withSyncServer: true });
+
+  test("a peer's edits on both sides of the caret appear in place, with the caret where it was", async ({
+    syncServer,
+    electronApp,
+    window: aliceWindow,
+    testProjectDir: aliceProject,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window: aliceWindow,
+      folderPath: aliceProject,
+    });
+    await openPlainTextDocument({ window: aliceWindow, name: 'config.json' });
+
+    const shareId = await shareFromCommandPalette({ window: aliceWindow });
+    await syncServer!.waitForShare(shareId);
+
+    await moveToEndOfFirstPlainTextLine({ window: aliceWindow });
+
+    const scriptedPeer = connectPeer(syncServer!.url);
+    try {
+      const peerHandle = await scriptedPeer.findDocument(shareId);
+
+      peerHandle.change((doc) =>
+        Automerge.updateText(
+          doc,
+          ['content'],
+          '[\n{ "key": "value" }\n{ "from": "a peer" }\n]\n'
+        )
+      );
+
+      await expect
+        .poll(
+          () => plainTextEditorLines({ window: aliceWindow }).allTextContents(),
+          { timeout: 10_000 }
+        )
+        .toEqual(['[', '{ "key": "value" }', '{ "from": "a peer" }', ']', '']);
+
+      await aliceWindow.keyboard.type(' typed');
+
+      await expect
+        .poll(() => peerHandle.fullDoc().content, { timeout: 10_000 })
+        .toBe('[\n{ "key": "value" } typed\n{ "from": "a peer" }\n]\n');
+      await expectFileToContain({
+        filePath: path.join(aliceProject, 'config.json'),
+        text: '{ "from": "a peer" }',
+      });
+    } finally {
+      scriptedPeer.disconnect();
+    }
+  });
+
+  test('typing while a peer writes elsewhere keeps both, each once', async ({
+    syncServer,
+    electronApp,
+    window: aliceWindow,
+    testProjectDir: aliceProject,
+  }) => {
+    test.setTimeout(120_000);
+
+    await openProjectFolder({
+      electronApp,
+      window: aliceWindow,
+      folderPath: aliceProject,
+    });
+    await openPlainTextDocument({ window: aliceWindow, name: 'config.json' });
+
+    const shareId = await shareFromCommandPalette({ window: aliceWindow });
+    await syncServer!.waitForShare(shareId);
+
+    await moveToEndOfFirstPlainTextLine({ window: aliceWindow });
+
+    const scriptedPeer = connectPeer(syncServer!.url);
+    try {
+      const peerHandle = await scriptedPeer.findDocument(shareId);
+
+      // The peer adds a line at the end, one token at a time, from the text
+      // it holds then, so what Alice typed meanwhile is part of it.
+      const tokens = ['red', 'orange', 'yellow', 'green', 'blue'];
+      const writeAsPeer = async () => {
+        for (const token of tokens) {
+          const text = `${peerHandle.fullDoc().content}${token}\n`;
+          peerHandle.change((doc) =>
+            Automerge.updateText(doc, ['content'], text)
+          );
+          await sleep(200);
+        }
+      };
+
+      // Alice types on the first line at the same time, fast enough that her
+      // changes overlap with the peer's and with their own sync round-trips.
+      const typed = ' mercury venus earth mars';
+      await Promise.all([
+        aliceWindow.keyboard.type(typed, { delay: 30 }),
+        writeAsPeer(),
+      ]);
+
+      const expected = `{ "key": "value" }${typed}\n${tokens.map((token) => `${token}\n`).join('')}`;
+
+      // The editor's lines run together, as the rest of the suite compares
+      // editor text; the peer's copy keeps its line breaks.
+      await expectTextOverTime({
+        editor: plainTextEditor({ window: aliceWindow }),
+        text: `{ "key": "value" }${typed}${tokens.join('')}`,
+        alsoExpectPerSample: () =>
+          expect(peerHandle.fullDoc().content).toBe(expected),
+      });
+      await expectFileToContain({
+        filePath: path.join(aliceProject, 'config.json'),
+        text: expected,
       });
     } finally {
       scriptedPeer.disconnect();

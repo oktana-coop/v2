@@ -164,7 +164,7 @@ export const nameNewDocument = async ({
  * Clicks the "New Document" button, names the file in the explorer tree and
  * waits for the editor to open.
  */
-export const createNewDocumentFromButton = async ({
+export const createNewRichTextDocumentFromButton = async ({
   window,
   name,
 }: {
@@ -292,7 +292,47 @@ export const openHelloMd = async ({
   await window.waitForSelector('.ProseMirror', { timeout: 2_000 });
 };
 
-export const openDocument = async ({
+export const plainTextEditor = ({ window }: { window: Page }) =>
+  window.locator('.cm-content');
+
+export const openPlainTextDocument = async ({
+  window,
+  name,
+}: {
+  window: Page;
+  name: string;
+}): Promise<void> => {
+  await window.getByTestId('file-explorer').getByText(name).click();
+  await plainTextEditor({ window }).waitFor({ timeout: 5_000 });
+};
+
+// The plain-text editor's lines as rendered, so only those on screen.
+export const plainTextEditorLines = ({ window }: { window: Page }) =>
+  plainTextEditor({ window }).locator('.cm-line');
+
+export const typeAtEndOfPlainTextDocument = async ({
+  window,
+  text,
+}: {
+  window: Page;
+  text: string;
+}): Promise<void> => {
+  await plainTextEditor({ window }).click();
+  await window.keyboard.press(documentEndKey);
+  await window.keyboard.type(text);
+};
+
+export const moveToEndOfFirstPlainTextLine = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  await plainTextEditor({ window }).click();
+  await window.keyboard.press(documentStartKey);
+  await window.keyboard.press(lineEndKey);
+};
+
+export const openRichTextDocument = async ({
   window,
   relativePath,
 }: {
@@ -304,7 +344,7 @@ export const openDocument = async ({
   await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
 };
 
-export const openDocumentExpectingContent = async ({
+export const openRichTextDocumentExpectingContent = async ({
   window,
   relativePath,
   content,
@@ -313,7 +353,7 @@ export const openDocumentExpectingContent = async ({
   relativePath: string;
   content: string;
 }): Promise<void> => {
-  await openDocument({ window, relativePath });
+  await openRichTextDocument({ window, relativePath });
   await expect(window.locator('.ProseMirror')).toContainText(content);
 };
 
@@ -327,7 +367,7 @@ export const typeInEditor = async ({
   await window.keyboard.type(text);
 };
 
-export const focusAndTypeInEditor = async ({
+export const focusAndTypeInRichTextEditor = async ({
   window,
   text,
 }: {
@@ -344,7 +384,7 @@ export const focusAndTypeInEditor = async ({
  * Types text in the editor with a simulated delay between keystrokes,
  * mimicking real user typing behavior.
  */
-export const typeInEditorSlowly = async ({
+export const typeInRichTextEditorSlowly = async ({
   window,
   text,
   delay = 50,
@@ -362,7 +402,7 @@ export const typeInEditorSlowly = async ({
 /**
  * Clears all content in the ProseMirror editor by selecting all and deleting.
  */
-export const clearEditor = async ({
+export const clearRichTextEditor = async ({
   window,
 }: {
   window: Page;
@@ -376,7 +416,7 @@ export const clearEditor = async ({
 /**
  * Returns the inner HTML of the ProseMirror editor.
  */
-export const getEditorHTML = async ({
+export const getRichTextEditorHTML = async ({
   window,
 }: {
   window: Page;
@@ -431,7 +471,7 @@ export const typeInEditorAndWaitForDebounce = async ({
   text: string;
   waitFor?: number;
 }): Promise<void> => {
-  await focusAndTypeInEditor({ window, text });
+  await focusAndTypeInRichTextEditor({ window, text });
   await window.waitForTimeout(waitFor);
 };
 
@@ -452,7 +492,7 @@ export const setupEditorWithText = async ({
 }): Promise<void> => {
   await openProjectFolder({ electronApp, window, folderPath });
   await openHelloMd({ window });
-  await clearEditor({ window });
+  await clearRichTextEditor({ window });
   await typeInEditorAndWaitForDebounce({ window, text });
 };
 
@@ -536,7 +576,7 @@ export const commitChanges = async ({
   await commitBtn.click();
 
   // Wait for the commit message textarea to be visible (autofocused in dialog)
-  const textarea = window.getByRole('textbox');
+  const textarea = window.getByRole('dialog').getByRole('textbox');
   await textarea.waitFor({ state: 'visible', timeout: 1_000 });
   await textarea.fill(message);
 
@@ -564,7 +604,7 @@ export const commitAllProjectChanges = async ({
   await expect(commitBtn).toBeEnabled({ timeout: 1_000 });
   await commitBtn.click();
 
-  const textarea = window.getByRole('textbox');
+  const textarea = window.getByRole('dialog').getByRole('textbox');
   await textarea.waitFor({ state: 'visible', timeout: 1_000 });
   await textarea.fill(message);
 
@@ -613,7 +653,7 @@ export const selectFirstCommit = async ({
  * Clicks the "Edit Document" (PenIcon) button in the history ActionsBar
  * to return to the editor from the history view.
  */
-export const returnToEditor = async ({
+export const returnToRichTextEditor = async ({
   window,
 }: {
   window: Page;
@@ -990,7 +1030,7 @@ export const createAndSwitchToBranch = async ({
     name: /create branch/i,
   });
   await expect(createBranchBtn).toBeVisible({ timeout: 3_000 });
-  await window.getByRole('textbox').fill(branchName);
+  await window.getByRole('dialog').getByRole('textbox').fill(branchName);
   await createBranchBtn.click();
 
   await expectCurrentBranch({ window, branch: branchName });
@@ -1058,6 +1098,7 @@ export const expectNoOpenDocument = async ({
   window: Page;
 }): Promise<void> => {
   await expect(window.locator('.ProseMirror')).toHaveCount(0);
+  await expect(plainTextEditor({ window })).toHaveCount(0);
 };
 
 export const expectCurrentProject = async ({

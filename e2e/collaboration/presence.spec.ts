@@ -2,7 +2,7 @@ import { expect, test } from '../shared/fixtures';
 import {
   openHelloMd,
   openProjectFolder,
-  typeInEditorSlowly,
+  typeInRichTextEditorSlowly,
 } from '../shared/helpers';
 import {
   expectPeerAvatars,
@@ -81,7 +81,7 @@ test.describe('presence while sharing', () => {
       await joinFromCommandPalette({ window: bob.window, shareId });
 
       const typed = 'presence';
-      await typeInEditorSlowly({
+      await typeInRichTextEditorSlowly({
         window: aliceWindow,
         text: ` ${typed}`,
         delay: 30,

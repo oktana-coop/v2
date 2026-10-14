@@ -6,11 +6,11 @@ import { initRepositoryWithCommit } from '../shared/git';
 import {
   createAndSwitchToBranch,
   expectFileToContain,
-  openDocument,
   openHelloMd,
   openProjectFolder,
+  openRichTextDocument,
   switchToBranch,
-  typeInEditorSlowly,
+  typeInRichTextEditorSlowly,
 } from '../shared/helpers';
 import {
   attemptJoinFromCommandPalette,
@@ -46,7 +46,10 @@ test.describe('joining a share', () => {
       window: aliceWindow,
       folderPath: aliceProject,
     });
-    await openDocument({ window: aliceWindow, relativePath: 'notes.md' });
+    await openRichTextDocument({
+      window: aliceWindow,
+      relativePath: 'notes.md',
+    });
 
     const shareId = await shareFromCommandPalette({ window: aliceWindow });
     await syncServer!.waitForShare(shareId);
@@ -75,7 +78,7 @@ test.describe('joining a share', () => {
       });
 
       // And on the share rather than merely the file: Alice's typing arrives.
-      await typeInEditorSlowly({
+      await typeInRichTextEditorSlowly({
         window: aliceWindow,
         text: ' and joined',
         delay: 30,
@@ -105,8 +108,11 @@ test.describe('joining a share', () => {
       window: aliceWindow,
       folderPath: aliceProject,
     });
-    await openDocument({ window: aliceWindow, relativePath: 'notes.md' });
-    await typeInEditorSlowly({
+    await openRichTextDocument({
+      window: aliceWindow,
+      relativePath: 'notes.md',
+    });
+    await typeInRichTextEditorSlowly({
       window: aliceWindow,
       text: ' not yet committed',
       delay: 30,
@@ -169,7 +175,10 @@ test.describe('joining a share', () => {
       window: aliceWindow,
       folderPath: aliceProject,
     });
-    await openDocument({ window: aliceWindow, relativePath: 'notes.md' });
+    await openRichTextDocument({
+      window: aliceWindow,
+      relativePath: 'notes.md',
+    });
 
     const shareId = await shareFromCommandPalette({ window: aliceWindow });
     await syncServer!.waitForShare(shareId);
@@ -258,7 +267,7 @@ test.describe('joining a share', () => {
       );
 
       // Joined on the branch: edits flow.
-      await typeInEditorSlowly({
+      await typeInRichTextEditorSlowly({
         window: aliceWindow,
         text: ' from draft',
         delay: 30,

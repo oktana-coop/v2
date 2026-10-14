@@ -8,7 +8,7 @@ import {
   openHelloMd,
   openProjectFolder,
   restoreCommit,
-  returnToEditor,
+  returnToRichTextEditor,
   selectFirstCommit,
   selectUncommittedChanges,
   typeInEditorAndWaitForDebounce,
@@ -43,7 +43,7 @@ test.describe('discarding', () => {
     );
     expect(content).not.toContain('extra');
 
-    await returnToEditor({ window });
+    await returnToRichTextEditor({ window });
     await expect(editor).not.toContainText('extra');
     await expect(
       window.getByRole('button', { name: /commit changes/i })
@@ -116,7 +116,7 @@ test.describe('restoring', () => {
     await expect(window.getByTestId('uncommitted-changes')).toHaveCount(0);
 
     // Return to editor and verify content matches the original
-    await returnToEditor({ window });
+    await returnToRichTextEditor({ window });
     const editor = window.locator('.ProseMirror');
     await expect(editor).toContainText('original', { timeout: 500 });
     await expect(editor).not.toContainText('changed');

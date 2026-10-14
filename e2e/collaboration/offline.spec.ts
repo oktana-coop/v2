@@ -8,7 +8,7 @@ import {
   expectNoErrorNotification,
   openHelloMd,
   openProjectFolder,
-  typeInEditorSlowly,
+  typeInRichTextEditorSlowly,
 } from '../shared/helpers';
 import { startSyncServer } from '../shared/sync-server';
 import {
@@ -70,7 +70,7 @@ test.describe('a shared document across a restart', () => {
       }
       syncService.stop();
 
-      await typeInEditorSlowly({
+      await typeInRichTextEditorSlowly({
         window: beforeRestart.window,
         text: ' OFFLINE',
         delay: 30,

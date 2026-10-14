@@ -1,8 +1,9 @@
 import { expect, test } from '../shared/fixtures';
 import {
   openHelloMd,
+  openPlainTextDocument,
   openProjectFolder,
-  typeInEditorSlowly,
+  typeInRichTextEditorSlowly,
 } from '../shared/helpers';
 import { connectPeer, startTcpListener } from '../shared/sync-server';
 import {
@@ -75,20 +76,20 @@ test.describe('sharing from the actions bar', () => {
       folderPath: testProjectDir,
     });
     await openHelloMd({ window });
-    await typeInEditorSlowly({ window, text: ' mercury', delay: 30 });
+    await typeInRichTextEditorSlowly({ window, text: ' mercury', delay: 30 });
 
     const first = await shareFromActionsBar({ window });
     await expectShared({ window });
-    await typeInEditorSlowly({ window, text: ' venus', delay: 30 });
+    await typeInRichTextEditorSlowly({ window, text: ' venus', delay: 30 });
 
     await stopSharingFromActionsBar({ window });
     await expectPrivate({ window });
-    await typeInEditorSlowly({ window, text: ' earth', delay: 30 });
+    await typeInRichTextEditorSlowly({ window, text: ' earth', delay: 30 });
 
     const second = await shareFromActionsBar({ window });
     await expectShared({ window });
     expect(second).not.toBe(first);
-    await typeInEditorSlowly({ window, text: ' mars', delay: 30 });
+    await typeInRichTextEditorSlowly({ window, text: ' mars', delay: 30 });
 
     await stopSharingFromActionsBar({ window });
     await expectPrivate({ window });
@@ -136,7 +137,7 @@ test.describe('a document before and while sharing', () => {
         folderPath: alice.projectDir,
       });
       await openHelloMd({ window: alice.window });
-      await typeInEditorSlowly({
+      await typeInRichTextEditorSlowly({
         window: alice.window,
         text: ' kept local',
         delay: 30,
@@ -166,7 +167,7 @@ test.describe('a document before and while sharing', () => {
     });
     await openHelloMd({ window: aliceWindow });
 
-    await typeInEditorSlowly({
+    await typeInRichTextEditorSlowly({
       window: aliceWindow,
       text: ' before',
       delay: 30,
@@ -174,7 +175,7 @@ test.describe('a document before and while sharing', () => {
 
     const shareId = await shareFromCommandPalette({ window: aliceWindow });
 
-    await typeInEditorSlowly({
+    await typeInRichTextEditorSlowly({
       window: aliceWindow,
       text: ' after',
       delay: 30,
@@ -212,8 +213,7 @@ test.describe('sharing a plain-text document', () => {
       window,
       folderPath: testProjectDir,
     });
-    await window.getByTestId('file-explorer').getByText('config.json').click();
-    await expect(window.getByText('Preview not available')).toBeVisible();
+    await openPlainTextDocument({ window, name: 'config.json' });
 
     const shareId = await shareFromCommandPalette({ window });
     await syncServer!.waitForShare(shareId);

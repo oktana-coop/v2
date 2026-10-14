@@ -193,15 +193,15 @@ export const findNodeById = ({
     .filter(isProjectFileNode)
     .find((node) => node.id === id) ?? null;
 
-// Filters a project tree to the files the editor can open, descending into
-// subdirectories: rich-text documents, for now.
+// Filters a project tree to the artifacts the editor can open, descending into
+// subdirectories.
 export const listOpenableArtifacts = (
   tree: ProjectStoreTreeNode[]
 ): ProjectStoreFileNode[] =>
-  tree.flatMap((node) =>
-    isProjectDirectoryNode(node)
-      ? listOpenableArtifacts(node.children)
-      : node.kind === artifactKinds.RICH_TEXT_DOCUMENT
-        ? [node]
-        : []
-  );
+  tree.flatMap((node) => {
+    if (isProjectDirectoryNode(node)) {
+      return listOpenableArtifacts(node.children);
+    }
+
+    return isDocumentKind(node.kind) ? [node] : [];
+  });

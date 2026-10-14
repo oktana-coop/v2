@@ -7,8 +7,8 @@ import {
   commitChanges,
   createAndSwitchToBranch,
   mergeToMainBranch,
-  openDocument,
   openProjectFolder,
+  openRichTextDocument,
   switchToBranch,
   typeInParagraphAndWaitForDebounce,
 } from '../../shared/helpers';
@@ -65,7 +65,7 @@ const mergeWithConflict = async ({
   window: Page;
   projectDir: string;
 }): Promise<void> => {
-  await openDocument({ window, relativePath: CONFLICTING_DOC });
+  await openRichTextDocument({ window, relativePath: CONFLICTING_DOC });
   await expect(editor(window)).toContainText('Lorem ipsum dolor');
 
   await createAndSwitchToBranch({ window, branchName: 'experiment' });

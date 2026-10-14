@@ -7,10 +7,10 @@ import {
   documentEndKey,
   documentStartKey,
   lineEndKey,
-  openDocument,
   openHelloMd,
   openProjectFolder,
-  typeInEditorSlowly,
+  openRichTextDocument,
+  typeInRichTextEditorSlowly,
 } from '../shared/helpers';
 import { startLatencyProxy } from '../shared/sync-server';
 import {
@@ -56,7 +56,7 @@ test.describe('convergence without sync latency', () => {
 
       // Alice types; Bob only watches.
       const typed = 'mercury venus earth mars jupiter';
-      await typeInEditorSlowly({
+      await typeInRichTextEditorSlowly({
         window: aliceWindow,
         text: ` ${typed}`,
         delay: 30,
@@ -109,7 +109,7 @@ test.describe('convergence without sync latency', () => {
       await joinFromCommandPalette({ window: bob.window, shareId });
 
       const typed = 'mercury venus earth mars jupiter';
-      await typeInEditorSlowly({
+      await typeInRichTextEditorSlowly({
         window: aliceWindow,
         text: ` ${typed}`,
         delay: 30,
@@ -146,7 +146,7 @@ test.describe('convergence without sync latency', () => {
       window: aliceWindow,
       folderPath: aliceProject,
     });
-    await openDocument({ window: aliceWindow, relativePath: 'Foo.md' });
+    await openRichTextDocument({ window: aliceWindow, relativePath: 'Foo.md' });
 
     const bob = await cloneAndLaunchApp({
       syncServiceUrl: syncServer!.url,
@@ -158,7 +158,10 @@ test.describe('convergence without sync latency', () => {
         window: bob.window,
         folderPath: bob.projectDir,
       });
-      await openDocument({ window: bob.window, relativePath: 'Foo.md' });
+      await openRichTextDocument({
+        window: bob.window,
+        relativePath: 'Foo.md',
+      });
 
       const shareId = await shareFromCommandPalette({ window: aliceWindow });
       await syncServer!.waitForShare(shareId);
@@ -167,7 +170,7 @@ test.describe('convergence without sync latency', () => {
       const aliceEditor = aliceWindow.locator('.ProseMirror');
       const bobEditor = bob.window.locator('.ProseMirror');
 
-      await typeInEditorSlowly({
+      await typeInRichTextEditorSlowly({
         window: aliceWindow,
         text: 'lorem',
         delay: 40,
@@ -219,7 +222,7 @@ test.describe('convergence under sync latency', () => {
       await joinFromCommandPalette({ window: bob.window, shareId });
 
       const typed = 'mercury venus earth mars jupiter';
-      await typeInEditorSlowly({
+      await typeInRichTextEditorSlowly({
         window: aliceWindow,
         text: ` ${typed}`,
         delay: 30,
@@ -301,7 +304,7 @@ test.describe('convergence under sync latency', () => {
         'neptune',
       ];
       for (const token of tokens) {
-        await typeInEditorSlowly({
+        await typeInRichTextEditorSlowly({
           window: alice.window,
           text: ` ${token}`,
           delay: 40,
@@ -366,7 +369,7 @@ test.describe('convergence under sync latency', () => {
       await joinFromCommandPalette({ window: bob.window, shareId });
 
       const typed = 'mercury venus earth mars jupiter saturn uranus neptune';
-      await typeInEditorSlowly({
+      await typeInRichTextEditorSlowly({
         window: aliceWindow,
         text: ` ${typed}`,
         delay: 30,
@@ -503,7 +506,7 @@ test.describe('convergence under sync latency', () => {
       await joinFromCommandPalette({ window: bob.window, shareId });
 
       const typed = 'mercury venus earth mars jupiter';
-      await typeInEditorSlowly({
+      await typeInRichTextEditorSlowly({
         window: aliceWindow,
         text: ` ${typed}`,
         delay: 30,

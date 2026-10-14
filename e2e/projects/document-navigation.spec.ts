@@ -7,8 +7,12 @@ import { Page } from '@playwright/test';
 import { expect, test } from '../shared/fixtures';
 import {
   expectFigureImageRendered,
-  openDocument,
+  openCommandPalette,
+  openHelloMd,
+  openPlainTextDocument,
   openProjectFolder,
+  openRichTextDocument,
+  plainTextEditor,
   PNG_1x1,
 } from '../shared/helpers';
 
@@ -53,7 +57,7 @@ const openAndExpectContent = async ({
   relativePath: string;
   heading: string;
 }): Promise<void> => {
-  await openDocument({ window, relativePath });
+  await openRichTextDocument({ window, relativePath });
   await expect(window.locator('.ProseMirror').first()).toContainText(heading, {
     timeout: 5_000,
   });
@@ -68,7 +72,7 @@ const openAndExpectImageRendered = async (args: {
   await expectFigureImageRendered({ window: args.window });
 };
 
-test.describe('document navigation', () => {
+test.describe('rich-text document navigation', () => {
   test('renders the first document opened, from a subfolder', async ({
     electronApp,
     window,
@@ -233,6 +237,51 @@ test.describe('document navigation', () => {
       window,
       relativePath: 'docs/architecture.md',
       heading: 'Architecture',
+    });
+  });
+});
+
+test.describe('plain-text document navigation', () => {
+  test('moves between a rich-text and a plain-text document', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+
+    await openPlainTextDocument({ window, name: 'config.json' });
+    await expect(plainTextEditor({ window })).toContainText('"key"');
+    await expect(window.locator('.ProseMirror')).toBeHidden();
+
+    await openHelloMd({ window });
+    await expect(window.locator('.ProseMirror')).toContainText(
+      'This is a test document.'
+    );
+    await expect(plainTextEditor({ window })).toBeHidden();
+  });
+
+  test('opens a plain-text document from the command palette', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+
+    await openCommandPalette({ window });
+    await window.getByRole('option', { name: 'config.json' }).click();
+
+    await expect(plainTextEditor({ window })).toContainText('"key"', {
+      timeout: 5_000,
     });
   });
 });

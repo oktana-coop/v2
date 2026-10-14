@@ -77,18 +77,20 @@ describe('inferArtifactKindFromExtension', () => {
 });
 
 describe('listOpenableArtifacts', () => {
-  it('keeps files with a supported (document) extension', () => {
-    const tree = [file({ path: 'notes.md' })];
+  it('keeps rich-text and plain-text documents', () => {
+    const tree = [file({ path: 'notes.md' }), file({ path: 'config.yaml' })];
 
-    expect(listOpenableArtifacts(tree)).toEqual([file({ path: 'notes.md' })]);
+    expect(listOpenableArtifacts(tree)).toEqual([
+      file({ path: 'notes.md' }),
+      file({ path: 'config.yaml' }),
+    ]);
   });
 
-  it('drops files with an unsupported extension', () => {
+  it('drops binary files', () => {
     const tree = [
       file({ path: 'notes.md' }),
       file({ path: 'image.png' }),
       file({ path: 'archive.pdf' }),
-      file({ path: 'config.yaml' }),
     ];
 
     expect(listOpenableArtifacts(tree)).toEqual([file({ path: 'notes.md' })]);
@@ -121,7 +123,7 @@ describe('listOpenableArtifacts', () => {
             path: 'a/b',
             children: [
               file({ path: 'a/b/deep.md' }),
-              file({ path: 'a/b/skip.txt' }),
+              file({ path: 'a/b/skip.png' }),
             ],
           }),
         ],

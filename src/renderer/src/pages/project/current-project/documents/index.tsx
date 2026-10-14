@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { Outlet } from 'react-router';
 
-export { RichTextDocumentEditor, DocumentHistoricalView } from './main';
+export { DocumentEditor, DocumentHistoricalView } from './main';
 import {
   CurrentArtifactVersioningContext,
   ProjectContext,
