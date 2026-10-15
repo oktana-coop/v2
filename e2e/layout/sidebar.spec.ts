@@ -1,4 +1,6 @@
 import { type Locator, type Page } from '@playwright/test';
+import fs from 'fs';
+import path from 'path';
 
 import {
   joinFromButton,
@@ -265,5 +267,32 @@ test.describe('hiding and showing the sidebar', () => {
 
       await expectSidebarToToggle({ window, sidebar: sharedWithMe });
     });
+  });
+});
+
+test.describe('a document wider than the window', () => {
+  test('keeps the sidebar and the editor within the window', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    // A minified stylesheet: one line of about 50,000 characters.
+    fs.writeFileSync(
+      path.join(testProjectDir, 'wide.css'),
+      '.note{color:red}'.repeat(3_000)
+    );
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openPlainTextDocument({ window, name: 'wide.css' });
+
+    const windowWidth = await window.evaluate(() => globalThis.innerWidth);
+    const sidebarBox = await window.getByTestId('file-explorer').boundingBox();
+    const editorBox = await window.locator('.cm-scroller').boundingBox();
+
+    expect(sidebarBox?.width).toBeLessThan(windowWidth);
+    expect(editorBox?.width).toBeLessThan(windowWidth);
   });
 });

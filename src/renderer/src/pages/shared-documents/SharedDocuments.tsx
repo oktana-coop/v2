@@ -31,7 +31,7 @@ export const SharedDocuments = () => {
   );
 
   return (
-    <div className="flex h-full flex-auto flex-col">
+    <div className="flex h-full min-w-0 flex-auto flex-col">
       <div className="flex flex-auto overflow-y-auto">
         <JoinSharedDocumentDialog
           isOpen={isJoinDialogOpen}
