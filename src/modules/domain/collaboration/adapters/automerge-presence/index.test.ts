@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { Repo } from '@automerge/automerge-repo';
 import { MessageChannelNetworkAdapter } from '@automerge/automerge-repo-network-messagechannel';
 import * as Effect from 'effect/Effect';
