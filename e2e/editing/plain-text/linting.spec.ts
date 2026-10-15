@@ -78,3 +78,32 @@ test.describe('YAML', () => {
     await expect(lintErrorMarkers({ window })).toHaveCount(0);
   });
 });
+
+test.describe('JSON', () => {
+  test("shows the parser's errors in the text and the gutter", async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    fs.writeFileSync(
+      path.join(testProjectDir, 'package.json'),
+      '{\n  "name": \n}\n'
+    );
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openPlainTextDocument({ window, name: 'package.json' });
+
+    await expect(lintErrorUnderlines({ window })).toBeVisible({
+      timeout: 5_000,
+    });
+    await expect(lintErrorMarkers({ window })).toBeVisible();
+
+    await window.locator('.cm-content').click();
+    await openLintPanel({ window });
+
+    await expect(lintMessages({ window })).toHaveText(['Expected a value']);
+  });
+});
