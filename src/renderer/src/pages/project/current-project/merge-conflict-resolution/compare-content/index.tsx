@@ -1,12 +1,17 @@
 import { useCallback, useContext, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 
+import {
+  artifactKinds,
+  inferArtifactKindFromExtension,
+} from '../../../../../../../modules/domain/project';
 import { type RichTextDocument } from '../../../../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { type CompareContentConflict as CompareContentConflictType } from '../../../../../../../modules/infrastructure/version-control';
 import { ProjectContext } from '../../../../../app-state';
 import { LongTextSkeleton } from '../../../../../components/progress/skeletons/LongText';
 import { MergeConflictResolutionActionsBar } from '../ActionsBar';
+import { UnsupportedConflict } from '../UnsupportedConflict';
 import { useMergeConflictResolution } from '../use-merge-conflict-resolution';
 import { CompareContentConflict } from './CompareContentConflict';
 
@@ -26,6 +31,14 @@ export const CompareContentConflictResolution = () => {
   const [tempConflictDocs] = useState<Record<string, RichTextDocument>>({});
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
   const [showDiff, setShowDiff] = useState<boolean>(true);
+
+  // TODO: Resolve conflicts in plain-text files in the editor. Until then
+  // they are not resolved here at all: the rich-text resolver would
+  // rewrite the file as Markdown.
+  const isPlainTextConflict =
+    conflict !== null &&
+    inferArtifactKindFromExtension(conflict.path) ===
+      artifactKinds.PLAIN_TEXT_DOCUMENT;
 
   useEffect(() => {
     const selectedConflict = compareContentConflicts.find(
@@ -61,6 +74,31 @@ export const CompareContentConflictResolution = () => {
     }
   };
 
+  const conflictView = () => {
+    if (!conflict || !mergeConflictInfo) {
+      return <LongTextSkeleton />;
+    }
+
+    if (isPlainTextConflict) {
+      return (
+        <UnsupportedConflict>
+          v2 can&apos;t resolve conflicts in plain-text files yet. To leave both
+          branches as they are, abort the merge.
+        </UnsupportedConflict>
+      );
+    }
+
+    return (
+      <CompareContentConflict
+        conflict={conflict}
+        mergeConflictInfo={mergeConflictInfo}
+        isEditorToolbarOpen={isEditorToolbarOpen}
+        showDiff={showDiff}
+        onDocChange={handleDocChange(conflict.path)}
+      />
+    );
+  };
+
   if (!mergeConflictInfo) {
     return null;
   }
@@ -70,30 +108,18 @@ export const CompareContentConflictResolution = () => {
       <div className="w-full">
         <MergeConflictResolutionActionsBar
           mergeConflictInfo={mergeConflictInfo}
-          hasEditorToolbarToggle={true}
+          hasEditorToolbarToggle={!isPlainTextConflict}
           onEditorToolbarToggle={handleEditorToolbarToggle}
           onAbortMerge={handleAbortMerge}
-          hasResolveConflictButton={true}
+          hasResolveConflictButton={!isPlainTextConflict}
           onResolveConflict={handleResolveConflict}
-          hasShowDiffCheckbox={true}
+          hasShowDiffCheckbox={!isPlainTextConflict}
           showDiff={showDiff}
           onSetShowDiffChecked={handleSetShowDiff}
         />
       </div>
       <div className="flex w-full flex-auto flex-col items-center overflow-auto">
-        <div className="flex w-full max-w-3xl flex-col">
-          {conflict ? (
-            <CompareContentConflict
-              conflict={conflict}
-              mergeConflictInfo={mergeConflictInfo}
-              isEditorToolbarOpen={isEditorToolbarOpen}
-              showDiff={showDiff}
-              onDocChange={handleDocChange(conflict.path)}
-            />
-          ) : (
-            <LongTextSkeleton />
-          )}
-        </div>
+        <div className="flex w-full max-w-3xl flex-col">{conflictView()}</div>
       </div>
     </div>
   );

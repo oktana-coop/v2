@@ -37,5 +37,10 @@ export const CompareContentConflict = ({
   // TODO: Implement AddAddConflict.
   // In this case it's probably best to ask from the user
   // to select one of the two versions instead of comparing.
-  return <UnsupportedConflict />;
+  return (
+    <UnsupportedConflict>
+      v2 is not yet able to handle this conflict type. Please reach out to us
+      for support.
+    </UnsupportedConflict>
+  );
 };
