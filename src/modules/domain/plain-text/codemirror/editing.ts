@@ -17,8 +17,6 @@ import {
   keymap,
 } from '@codemirror/view';
 
-import { caseInsensitiveKeyBindings } from './key-bindings';
-
 // Tab inserts indentation at the caret, or indents the selected lines.
 export const indent: Command = (view) => {
   if (view.state.selection.ranges.some((range) => !range.empty)) {
@@ -41,7 +39,6 @@ const tabIndentation: KeyBinding = {
 };
 
 export const editing: Extension = [
-  caseInsensitiveKeyBindings,
   history(),
   highlightActiveLine(),
   highlightActiveLineGutter(),
