@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 type Modifier = 'ctrl' | 'shift' | 'alt';
 type Letters =
-  'k' | 'o' | 't' | 'n' | 's' | 'm' | 'h' | 'w' | 'd' | 'f' | 'l' | 'p'; // for now only the ones used in the application
+  'k' | 'o' | 't' | 'n' | 'c' | 'm' | 'h' | 'w' | 'd' | 'f' | 'l' | 'p'; // for now only the ones used in the application
 type SpecialKey = 'enter' | 'escape' | 'tab' | ',';
 type Key = Letters | SpecialKey;
 

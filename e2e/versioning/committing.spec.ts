@@ -7,6 +7,7 @@ import { hasCleanWorkingTree, lastCommitMessage } from '../shared/git';
 import {
   commitAllProjectChanges,
   commitChanges,
+  modKey,
   navigateToProjectHistory,
   openCommandPalette,
   openHelloMd,
@@ -105,6 +106,27 @@ test.describe('committing a document', () => {
 
     await openCommandPalette({ window });
     await expect(commitOption).toBeVisible();
+  });
+
+  test('Ctrl/Cmd+Shift+C opens the commit dialog from the editor', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    await typeInEditorAndWaitForDebounce({ window, text: ' shortcut edit' });
+    await expect(
+      window.getByRole('button', { name: /commit changes/i })
+    ).toBeEnabled();
+
+    await window.keyboard.press(`${modKey}+Shift+C`);
+
+    await expect(window.getByRole('dialog').getByRole('textbox')).toBeVisible();
   });
 });
 
@@ -222,6 +244,39 @@ test.describe('committing a plain-text document', () => {
     const textarea = window.getByRole('dialog').getByRole('textbox');
     await textarea.fill('change the config');
     await window.getByRole('button', { name: /^Commit$/i }).click();
+    await textarea.waitFor({ state: 'hidden', timeout: 5_000 });
+
+    expect(lastCommitMessage({ repoDir: testProjectDir })).toBe(
+      'change the config'
+    );
+    expect(hasCleanWorkingTree({ repoDir: testProjectDir })).toBe(true);
+  });
+
+  test('commits from the editor with Ctrl/Cmd+Shift+C, confirming with Ctrl/Cmd+Enter', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    // A different length, so git's status sees the change at once.
+    fs.writeFileSync(
+      path.join(testProjectDir, 'config.json'),
+      '{ "key": "a changed value" }\n'
+    );
+    await openPlainTextDocument({ window, name: 'config.json' });
+    await expect(
+      window.getByRole('button', { name: /commit changes/i })
+    ).toBeEnabled();
+    await window.locator('.cm-content').click();
+
+    await window.keyboard.press(`${modKey}+Shift+C`);
+    const textarea = window.getByRole('dialog').getByRole('textbox');
+    await textarea.fill('change the config');
+    await window.keyboard.press(`${modKey}+Enter`);
     await textarea.waitFor({ state: 'hidden', timeout: 5_000 });
 
     expect(lastCommitMessage({ repoDir: testProjectDir })).toBe(

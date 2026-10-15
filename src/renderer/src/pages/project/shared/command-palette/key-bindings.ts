@@ -26,12 +26,9 @@ export const keyBindings: Record<
     command: 'Create a new document',
     keyBinding: 'ctrl+n',
   },
-  ctrlS: {
-    // aka save
-    // as this is the "proper save" shortcut that allows you to save with context, hence commit
-    // while the "simple save" (no context) is handled automatically. auto-save is always on.
+  ctrlShiftC: {
     command: 'Commit changes',
-    keyBinding: 'ctrl+s',
+    keyBinding: 'ctrl+shift+c',
   },
   ctrlShiftM: {
     command: 'Export to Markdown',

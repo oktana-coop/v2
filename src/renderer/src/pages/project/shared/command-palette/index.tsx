@@ -152,8 +152,8 @@ export const ProjectCommandPalette = ({
     ...(canCommit
       ? [
           {
-            name: keyBindings.ctrlS.command,
-            shortcut: keyBindings.ctrlS.keyBinding,
+            name: keyBindings.ctrlShiftC.command,
+            shortcut: keyBindings.ctrlShiftC.keyBinding,
             onActionSelection: openCommitModal,
           },
           {
