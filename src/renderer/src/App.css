@@ -30,9 +30,16 @@
   width: 100%;
   flex: auto;
   text-wrap: wrap;
+  overflow-wrap: break-word;
   outline: none;
   overflow-x: hidden;
   text-align: left;
+}
+
+.ProseMirror pre {
+  overflow-x: auto;
+  /* Code blocks are dark in both modes. */
+  @apply scrollbar scrollbar-track-transparent scrollbar-thumb-neutral-600;
 }
 
 .editor {

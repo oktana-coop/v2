@@ -115,7 +115,7 @@ export const ProseMirrorEditor = ({
 
   return (
     <div
-      className="editor flex-auto font-editor"
+      className="editor min-w-0 flex-auto font-editor"
       id="editor"
       ref={editorRoot}
     />
