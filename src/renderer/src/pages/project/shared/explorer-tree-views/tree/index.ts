@@ -1,4 +1,5 @@
 export {
+  type ExplorerOpenState,
   type ExplorerTreeNode,
   NEW_DIRECTORY_NODE_ID,
   NEW_FILE_NODE_ID,

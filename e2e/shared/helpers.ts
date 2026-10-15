@@ -852,6 +852,20 @@ export const navigateToProjectHistory = async ({
   });
 };
 
+export const navigateToEdit = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  await window
+    .getByTestId('nav-bar')
+    .getByRole('link', { name: /edit/i })
+    .click();
+  await window.waitForSelector('[data-testid="file-explorer"]', {
+    timeout: 2_000,
+  });
+};
+
 /**
  * Navigates to the Settings page by clicking the options link in the nav bar
  * and waiting for the Settings title.

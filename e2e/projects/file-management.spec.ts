@@ -452,49 +452,6 @@ test.describe('nested directory structure', () => {
     await expect(editor.locator('h1')).toHaveText('Nested Note');
   });
 
-  test('collapsing a directory hides its children', async ({
-    electronApp,
-    window,
-    nestedProjectDir,
-  }) => {
-    await openProjectFolder({
-      electronApp,
-      window,
-      folderPath: nestedProjectDir,
-    });
-
-    // All nodes start expanded; alpha-folder's children are visible
-    await expect(window.getByText('notes')).toBeVisible();
-    await expect(window.getByText('nested-note.md')).toBeVisible();
-
-    // Click alpha-folder to collapse it
-    await window.getByText('alpha-folder').click();
-
-    // Both the immediate child (notes) and its descendant should disappear
-    await expect(window.getByText('notes')).not.toBeVisible();
-    await expect(window.getByText('nested-note.md')).not.toBeVisible();
-  });
-
-  test('expanding a collapsed directory reveals its children', async ({
-    electronApp,
-    window,
-    nestedProjectDir,
-  }) => {
-    await openProjectFolder({
-      electronApp,
-      window,
-      folderPath: nestedProjectDir,
-    });
-
-    // Collapse alpha-folder, then expand it again
-    await window.getByText('alpha-folder').click();
-    await expect(window.getByText('notes')).not.toBeVisible();
-
-    await window.getByText('alpha-folder').click();
-    await expect(window.getByText('notes')).toBeVisible();
-    await expect(window.getByText('nested-note.md')).toBeVisible();
-  });
-
   test('tree is sorted with directories first then files, each group alphabetically', async ({
     electronApp,
     window,

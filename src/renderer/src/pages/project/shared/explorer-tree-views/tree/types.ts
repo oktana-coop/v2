@@ -12,6 +12,9 @@ export type ExplorerTreeNode = {
   shared: boolean;
 };
 
+// Whether each folder is open, by id. A folder missing from it is open.
+export type ExplorerOpenState = Record<string, boolean>;
+
 // A file or folder being named in the tree, before it exists on disk.
 export type PendingTreeEntry = {
   type: FilesystemEntryType;

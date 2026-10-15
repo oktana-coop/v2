@@ -6,6 +6,7 @@ import { filesystemEntryTypes } from '../../../../../../../modules/infrastructur
 import { AutoSizedTree, TREE_ROW_HEIGHT } from '../../../../../components/tree';
 import { TreeNode } from './TreeNode';
 import {
+  type ExplorerOpenState,
   type ExplorerTreeNode,
   NEW_FILE_NODE_ID,
   STRUCTURAL_CONFLICTS_NODE_TYPE,
@@ -81,6 +82,8 @@ export const TreeView = ({
   onStartCreateDirectory,
   hasPendingNewDocument = false,
   hasPendingNewDirectory = false,
+  initialOpenState,
+  onOpenStateChange,
 }: {
   data: ExplorerTreeNode[];
   selection: string | null;
@@ -109,6 +112,8 @@ export const TreeView = ({
   onStartCreateDirectory?: (parentPath?: string) => void;
   hasPendingNewDocument?: boolean;
   hasPendingNewDirectory?: boolean;
+  initialOpenState?: ExplorerOpenState;
+  onOpenStateChange?: (openState: ExplorerOpenState) => void;
 }) => {
   const { isMac } = useContext(ElectronContext);
   const treeRef = useRef<TreeApi<ExplorerTreeNode>>(null);
@@ -117,6 +122,11 @@ export const TreeView = ({
   useEffect(() => {
     if (hasPendingNewDocument) treeRef.current?.scrollTo(NEW_FILE_NODE_ID);
   }, [hasPendingNewDocument, data]);
+
+  const handleToggle = () => {
+    const tree = treeRef.current;
+    if (tree) onOpenStateChange?.(tree.openState);
+  };
 
   const handleActivate = (node: NodeApi<ExplorerTreeNode>) => {
     if (
@@ -234,6 +244,8 @@ export const TreeView = ({
           selection={selection ?? undefined}
           rowHeight={TREE_ROW_HEIGHT}
           className="explorer-tree"
+          initialOpenState={initialOpenState}
+          onToggle={handleToggle}
           onActivate={handleActivate}
         >
           {TreeNode}

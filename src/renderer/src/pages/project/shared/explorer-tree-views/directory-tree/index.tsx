@@ -9,7 +9,11 @@ import {
 import { IconButton } from '../../../../../components/actions/IconButton';
 import { FolderIcon, PlusIcon } from '../../../../../components/icons';
 import { SidebarHeading } from '../../../../../components/sidebar/SidebarHeading';
-import { type ExplorerTreeNode, TreeView } from '../tree';
+import {
+  type ExplorerOpenState,
+  type ExplorerTreeNode,
+  TreeView,
+} from '../tree';
 import { useDocumentExplorerTree } from '../use-document-explorer-tree';
 import { EmptyView } from './EmptyView';
 import { NoActiveDirectoryView } from './NoActiveDirectoryView';
@@ -43,6 +47,8 @@ const DirectoryTree = ({
   onStartDeleteDirectory,
   onStartCreateDirectory,
   hasPendingNewDirectory,
+  initialOpenState,
+  onOpenStateChange,
 }: {
   directory: Directory | null;
   data: ExplorerTreeNode[];
@@ -72,6 +78,8 @@ const DirectoryTree = ({
   onStartDeleteDirectory: (path: string) => void;
   onStartCreateDirectory?: (parentPath?: string) => void;
   hasPendingNewDirectory?: boolean;
+  initialOpenState: ExplorerOpenState;
+  onOpenStateChange: (openState: ExplorerOpenState) => void;
 }) => {
   const handleStartCreateDocument = () => onStartCreateDocument();
 
@@ -111,6 +119,8 @@ const DirectoryTree = ({
           onStartCreateDirectory={onStartCreateDirectory}
           hasPendingNewDocument={hasPendingNewDocument}
           hasPendingNewDirectory={hasPendingNewDirectory}
+          initialOpenState={initialOpenState}
+          onOpenStateChange={onOpenStateChange}
         />
       </div>
     );
@@ -120,12 +130,14 @@ const DirectoryTree = ({
 };
 
 export const DirectoryTreeView = () => {
-  const { directory, openDirectory } = useContext(ProjectContext);
+  const { projectId, directory, openDirectory } = useContext(ProjectContext);
   const handleArtifactSelection = useArtifactSelection();
   const {
     explorerTree: documents,
     canShowTree,
     selection,
+    initialOpenState,
+    rememberOpenState,
     hasPendingNewDocument,
     createDocument,
     cancelCreateDocument,
@@ -188,6 +200,7 @@ export const DirectoryTreeView = () => {
 
       {canShowTree ? (
         <DirectoryTree
+          key={projectId}
           directory={directory}
           data={documents}
           selection={selection}
@@ -216,6 +229,8 @@ export const DirectoryTreeView = () => {
           onStartDeleteDirectory={startDeleteDirectory}
           onStartCreateDirectory={startCreateDirectory}
           hasPendingNewDirectory={hasPendingNewDirectory}
+          initialOpenState={initialOpenState}
+          onOpenStateChange={rememberOpenState}
         />
       ) : (
         <NoActiveDirectoryView />

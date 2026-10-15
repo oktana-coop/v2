@@ -1,9 +1,10 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 
 import { filesystemEntryTypes } from '../../../../../../modules/infrastructure/filesystem';
 import { ProjectContext } from '../../../../app-state';
 import { getExplorerTreeInProject, injectPendingNode } from './explorer-tree';
-import { type ExplorerTreeNode } from './tree/types';
+import { readStoredOpenState, storeOpenState } from './stored-open-state';
+import { type ExplorerOpenState, type ExplorerTreeNode } from './tree/types';
 
 export const useDocumentExplorerTree = () => {
   const {
@@ -33,6 +34,7 @@ export const useDocumentExplorerTree = () => {
     startDeleteDocument,
     startDeleteDirectory,
     currentArtifact,
+    projectId,
   } = useContext(ProjectContext);
   const [explorerTree, setExplorerTree] = useState<ExplorerTreeNode[]>([]);
   const [hasPendingNewDocument, setHasPendingNewDocument] = useState(false);
@@ -68,6 +70,15 @@ export const useDocumentExplorerTree = () => {
     pendingNewDocument,
   ]);
 
+  const initialOpenState = useMemo(
+    () => (projectId ? readStoredOpenState(projectId) : {}),
+    [projectId]
+  );
+
+  const rememberOpenState = (openState: ExplorerOpenState) => {
+    if (projectId) storeOpenState({ projectId, openState });
+  };
+
   useEffect(() => {
     setHasPendingNewDocument(pendingNewDocument !== null);
   }, [pendingNewDocument]);
@@ -86,6 +97,8 @@ export const useDocumentExplorerTree = () => {
     canShowTree,
     explorerTree,
     selection,
+    initialOpenState,
+    rememberOpenState,
     hasPendingNewDocument,
     createDocument,
     cancelCreateDocument,

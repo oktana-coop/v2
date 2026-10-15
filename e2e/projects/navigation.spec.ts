@@ -2,6 +2,7 @@ import { type Page } from '@playwright/test';
 
 import { expect, test } from '../shared/fixtures';
 import {
+  navigateToEdit,
   navigateToProjectHistory,
   openHelloMd,
   openProjectFolder,
@@ -17,16 +18,6 @@ const navigateToSettings = async ({
     .getByRole('link', { name: /options/i })
     .click();
   await expect(window).toHaveTitle(/settings/i, { timeout: 2_000 });
-};
-
-const navigateToEdit = async ({ window }: { window: Page }): Promise<void> => {
-  await window
-    .getByTestId('nav-bar')
-    .getByRole('link', { name: /edit/i })
-    .click();
-  await window.waitForSelector('[data-testid="file-explorer"]', {
-    timeout: 2_000,
-  });
 };
 
 test.describe('multi-document project navigation', () => {
