@@ -48,7 +48,7 @@ export const DocumentHistoryActionsBar = ({
     <div className="flex min-h-[52px] flex-initial items-center justify-between px-4 py-2">
       <SidebarToggleButton />
       <div className="flex max-h-14 flex-auto items-center overflow-y-hidden px-4">
-        {titleComponent ?? <h3 className="text-left text-base/7">{title}</h3>}
+        {titleComponent ?? <h2 className="text-left text-base/7">{title}</h2>}
       </div>
       <div className="flex flex-initial items-center gap-3">
         {canShowDiff && (

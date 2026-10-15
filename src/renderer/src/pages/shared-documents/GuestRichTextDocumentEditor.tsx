@@ -35,6 +35,7 @@ export const GuestRichTextDocumentEditor = () => {
     <div className="relative flex flex-auto flex-col items-center overflow-hidden">
       <div className="w-full">
         <ActionsBar
+          title={name ?? ''}
           onEditorToolbarToggle={handleEditorToolbarToggle}
           isShared
           participants={participants}
