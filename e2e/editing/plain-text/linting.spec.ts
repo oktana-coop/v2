@@ -20,7 +20,8 @@ const lintMessages = ({ window }: { window: Page }) =>
   window.locator('.cm-panel-lint .cm-diagnosticText');
 
 const openLintPanel = async ({ window }: { window: Page }): Promise<void> => {
-  await window.keyboard.press(`${modKey}+Shift+m`);
+  // TODO: Lowercase `m` with Shift runs Ctrl+M; match shortcuts regardless of case.
+  await window.keyboard.press(`${modKey}+Shift+M`);
 };
 
 test.describe('YAML', () => {
