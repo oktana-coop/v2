@@ -13,6 +13,12 @@
   }
 }
 
+/* CodeMirror's own scroller; its class only appears at runtime, so it lives
+ * at the top level to escape Tailwind's tree-shaking. */
+.cm-scroller {
+  @apply scrollbar scrollbar-track-transparent scrollbar-thumb-neutral-300 dark:scrollbar-thumb-neutral-600;
+}
+
 #root {
   margin: 0 auto;
   text-align: center;

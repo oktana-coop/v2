@@ -21,7 +21,7 @@ const appOverrides: Extension = Prec.high(
     },
     '&.cm-focused': { outline: 'none' },
     '&.cm-editor .cm-scroller': { fontFamily, lineHeight: '1.5' },
-    '.cm-content': { padding: '0.5rem 0' },
+    '.cm-content': { padding: '0.5rem 0 50vh' },
     '.cm-gutters': { backgroundColor: 'transparent', border: 'none' },
     '.cm-panels.cm-panels-top': {
       borderBottom: '1px solid var(--plain-text-editor-border)',
