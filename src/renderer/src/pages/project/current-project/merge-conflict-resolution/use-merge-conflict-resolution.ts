@@ -2,6 +2,7 @@ import * as Effect from 'effect/Effect';
 import { pipe } from 'effect/Function';
 import { useCallback, useContext, useEffect, useState } from 'react';
 
+import { type RawPlainText } from '../../../../../../modules/domain/plain-text';
 import {
   persistDocument,
   type ProjectId,
@@ -75,7 +76,7 @@ export const useMergeConflictResolution = () => {
     setMergeConflictInfo(conflictInfo);
   }, [projectMergeConflictInfo]);
 
-  const suggestContentMerge = useCallback(
+  const suggestRichTextContentMerge = useCallback(
     async ({
       projectId,
       sourceDocumentId,
@@ -117,25 +118,19 @@ export const useMergeConflictResolution = () => {
     [projectStore, mergeConflictResolver]
   );
 
-  const resolveContentConflict = useCallback(
+  const applyContentConflictResolution = useCallback(
     async ({
       documentId,
       projectId,
-      doc,
+      writeContent,
     }: {
       documentId: ArtifactId;
       projectId: ProjectId;
-      doc: RichTextDocument;
+      writeContent: Effect.Effect<void, unknown, never>;
     }) => {
       if (!projectStore) {
         throw new Error(
           'Versioned document store not ready yet or mismatched project.'
-        );
-      }
-
-      if (!representationTransformAdapter) {
-        throw new Error(
-          'No representation transform adapter found when trying to resolve a content conflict.'
         );
       }
 
@@ -148,15 +143,7 @@ export const useMergeConflictResolution = () => {
       try {
         await Effect.runPromise(
           pipe(
-            persistDocument({
-              transformToText: representationTransformAdapter.transformToText,
-              updateRichTextDocumentContent:
-                projectStore.updateRichTextDocumentContent,
-            })({
-              projectId,
-              documentId,
-              document: doc,
-            }),
+            writeContent,
             Effect.flatMap(() =>
               projectStore.resolveContentConflict({
                 projectId,
@@ -180,11 +167,82 @@ export const useMergeConflictResolution = () => {
     },
     [
       projectStore,
-      representationTransformAdapter,
       mergeConflictInfo,
       refreshConflictsAndMergeIfPossible,
       dispatchNotification,
     ]
+  );
+
+  const resolveRichTextContentConflict = useCallback(
+    async ({
+      documentId,
+      projectId,
+      doc,
+    }: {
+      documentId: ArtifactId;
+      projectId: ProjectId;
+      doc: RichTextDocument;
+    }) => {
+      if (!projectStore) {
+        throw new Error(
+          'Versioned document store not ready yet or mismatched project.'
+        );
+      }
+
+      if (!representationTransformAdapter) {
+        throw new Error(
+          'No representation transform adapter found when trying to resolve a content conflict.'
+        );
+      }
+
+      await applyContentConflictResolution({
+        documentId,
+        projectId,
+        writeContent: persistDocument({
+          transformToText: representationTransformAdapter.transformToText,
+          updateRichTextDocumentContent:
+            projectStore.updateRichTextDocumentContent,
+        })({
+          projectId,
+          documentId,
+          document: doc,
+        }),
+      });
+    },
+    [
+      projectStore,
+      representationTransformAdapter,
+      applyContentConflictResolution,
+    ]
+  );
+
+  const resolvePlainTextContentConflict = useCallback(
+    async ({
+      documentId,
+      projectId,
+      content,
+    }: {
+      documentId: ArtifactId;
+      projectId: ProjectId;
+      content: RawPlainText;
+    }) => {
+      if (!projectStore) {
+        throw new Error(
+          'Versioned document store not ready yet or mismatched project.'
+        );
+      }
+
+      await applyContentConflictResolution({
+        documentId,
+        projectId,
+        writeContent: projectStore.updatePlainTextDocumentContent({
+          projectId,
+          documentId,
+          content: content.content,
+        }),
+      });
+    },
+    [projectStore, applyContentConflictResolution]
   );
 
   return {
@@ -192,8 +250,9 @@ export const useMergeConflictResolution = () => {
     structuralConflicts,
     compareContentConflicts,
     abortMerge,
-    suggestContentMerge,
-    resolveContentConflict,
+    suggestRichTextContentMerge,
+    resolveRichTextContentConflict,
+    resolvePlainTextContentConflict,
     resolveConflictByKeepingDocument,
     resolveConflictByDeletingDocument,
   };

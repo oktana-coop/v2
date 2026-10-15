@@ -7,7 +7,8 @@ const fontFamily = "'FiraCode-Regular', 'SFMono-Regular', monospace";
 
 // Fits the editor into the page: the page's background and the app's
 // monospace font, the search panel's fields and buttons in the app's style,
-// and changes in the colors of the app's diffs. The colors are the app's,
+// changes in the colors of the app's diffs, and merge conflicts with each
+// side in its own color and actions above them. The colors are the app's,
 // for the light or dark mode in use. It takes precedence over the color
 // theme it is used with.
 const appOverrides: Extension = Prec.high(
@@ -66,6 +67,36 @@ const appOverrides: Extension = Prec.high(
     },
     '&.cm-merge-b .cm-changedText *, &.cm-merge-b .cm-deletedText *': {
       color: 'var(--diff-text, inherit)',
+    },
+    '.cm-mergeConflictMarker': {
+      backgroundColor: 'var(--merge-conflict-marker-background)',
+    },
+    '.cm-mergeConflictTarget': {
+      backgroundColor: 'var(--merge-conflict-target-background)',
+    },
+    '.cm-mergeConflictBase': {
+      backgroundColor: 'var(--merge-conflict-base-background)',
+    },
+    '.cm-mergeConflictSource': {
+      backgroundColor: 'var(--merge-conflict-source-background)',
+    },
+    '.cm-mergeConflictActions': {
+      display: 'flex',
+      gap: '0.5rem',
+      padding: '0.5rem 6px 0.25rem',
+      fontFamily: 'var(--font-ui), sans-serif',
+    },
+    '.cm-mergeConflictAction': {
+      backgroundColor: 'transparent',
+      color: 'var(--plain-text-editor-action)',
+      border: '1px solid var(--plain-text-editor-action)',
+      padding: '0.125rem 0.625rem',
+      fontSize: '0.8125rem',
+      fontWeight: '500',
+      cursor: 'pointer',
+    },
+    '.cm-mergeConflictAction:hover': {
+      backgroundColor: 'var(--plain-text-editor-action-hover-background)',
     },
   })
 );

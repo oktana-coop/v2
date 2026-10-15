@@ -15,8 +15,8 @@ import {
   typeInParagraphAndWaitForDebounce,
 } from '../shared/helpers';
 import {
-  createMergeConflictForDocument,
-  seedDocument,
+  createMergeConflictForRichTextDocument,
+  seedRichTextDocument,
 } from '../versioning/merge-conflicts/helpers';
 
 // Hides the sidebar with the actions bar's toggle, then shows it again.
@@ -197,13 +197,13 @@ test.describe('hiding and showing the sidebar', () => {
       emptyProjectDir,
     }) => {
       const relativePath = 'Bar.md';
-      seedDocument({ projectDir: emptyProjectDir, relativePath });
+      seedRichTextDocument({ projectDir: emptyProjectDir, relativePath });
       await openProjectFolder({
         electronApp,
         window,
         folderPath: emptyProjectDir,
       });
-      await createMergeConflictForDocument({ window, relativePath });
+      await createMergeConflictForRichTextDocument({ window, relativePath });
 
       await expectSidebarToToggle({
         window,

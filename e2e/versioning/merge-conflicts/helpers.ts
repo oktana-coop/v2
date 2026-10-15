@@ -16,9 +16,9 @@ import {
   typeInParagraphAndWaitForDebounce,
 } from '../../shared/helpers';
 
-const initialDocContent = '# Bar\n\nLorem ipsum dolor\n';
+const initialRichTextContent = '# Bar\n\nLorem ipsum dolor\n';
 
-export const seedDocument = ({
+export const seedRichTextDocument = ({
   projectDir,
   relativePath,
 }: {
@@ -27,12 +27,12 @@ export const seedDocument = ({
 }): void => {
   const fullPath = path.join(projectDir, relativePath);
   fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-  fs.writeFileSync(fullPath, initialDocContent);
+  fs.writeFileSync(fullPath, initialRichTextContent);
 };
 
 const editor = (window: Page) => window.locator('.ProseMirror');
 
-export const createMergeConflictForDocument = async ({
+export const createMergeConflictForRichTextDocument = async ({
   window,
   relativePath,
 }: {
@@ -60,10 +60,22 @@ export const createMergeConflictForDocument = async ({
   await mergeToMainBranch({ window, currentBranch: 'experiment' });
 };
 
-// Both branches change the second line of a two-line YAML file, `main` to
-// `version: 1.29` and `experiment` to `version: 1.25`, then `experiment` is
+const initialPlainTextContent = 'name: v2\nversion: 1.2\n';
+
+export const seedPlainTextDocument = ({
+  projectDir,
+  name,
+}: {
+  projectDir: string;
+  name: string;
+}): void => {
+  fs.writeFileSync(path.join(projectDir, name), initialPlainTextContent);
+};
+
+// Both branches change the second line of a seeded plain-text document, `main`
+// to `version: 1.29` and `experiment` to `version: 1.25`, then `experiment` is
 // merged into `main`.
-export const createMergeConflictForPlainTextFile = async ({
+export const createMergeConflictForPlainTextDocument = async ({
   window,
   name,
 }: {

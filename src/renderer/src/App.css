@@ -200,14 +200,26 @@
   --plain-text-editor-control-background: theme('colors.white');
   --plain-text-editor-focus: theme('colors.purple.500');
   --plain-text-editor-panel-background: theme('colors.neutral.100');
+  --plain-text-editor-action: theme('colors.purple.500');
+  --plain-text-editor-action-hover-background: theme('colors.purple.50');
   --diff-insert-background: theme('colors.green.300');
   --diff-delete-background: theme('colors.red.200');
+  --merge-conflict-marker-background: theme('colors.neutral.200');
+  --merge-conflict-target-background: theme('colors.orange.100');
+  --merge-conflict-base-background: theme('colors.neutral.100');
+  --merge-conflict-source-background: theme('colors.sky.100');
 }
 .dark {
   --plain-text-editor-border: theme('colors.neutral.700');
   --plain-text-editor-control-background: theme('colors.neutral.800');
   --plain-text-editor-focus: theme('colors.purple.300');
+  --plain-text-editor-action: theme('colors.purple.300');
+  --plain-text-editor-action-hover-background: theme('colors.white / 5%');
   --diff-text: theme('colors.black');
+  --merge-conflict-marker-background: theme('colors.neutral.700');
+  --merge-conflict-target-background: theme('colors.amber.900 / 30%');
+  --merge-conflict-base-background: theme('colors.neutral.800');
+  --merge-conflict-source-background: theme('colors.sky.900 / 40%');
 }
 
 /* Find-in-document match highlights. Like the diff annotations above, the

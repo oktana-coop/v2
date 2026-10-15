@@ -7,13 +7,20 @@ import {
 } from '../../../../../../../modules/domain/project';
 import { type RichTextDocument } from '../../../../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../../../../modules/domain/rich-text/react/prosemirror-context';
-import { type CompareContentConflict as CompareContentConflictType } from '../../../../../../../modules/infrastructure/version-control';
+import {
+  type CompareContentConflict as CompareContentConflictType,
+  isContentConflict,
+} from '../../../../../../../modules/infrastructure/version-control';
 import { ProjectContext } from '../../../../../app-state';
 import { LongTextSkeleton } from '../../../../../components/progress/skeletons/LongText';
 import { MergeConflictResolutionActionsBar } from '../ActionsBar';
 import { UnsupportedConflict } from '../UnsupportedConflict';
 import { useMergeConflictResolution } from '../use-merge-conflict-resolution';
-import { CompareContentConflict } from './CompareContentConflict';
+import {
+  type PlainTextConflictEdit,
+  PlainTextContentConflict,
+} from './plain-text/PlainTextContentConflict';
+import { RichTextContentConflict } from './rich-text/RichTextContentConflict';
 
 export const CompareContentConflictResolution = () => {
   const { compareContentPath } = useParams();
@@ -23,22 +30,26 @@ export const CompareContentConflictResolution = () => {
     mergeConflictInfo,
     compareContentConflicts,
     abortMerge,
-    resolveContentConflict,
+    resolveRichTextContentConflict,
+    resolvePlainTextContentConflict,
   } = useMergeConflictResolution();
   const [conflict, setConflict] = useState<CompareContentConflictType | null>(
     null
   );
-  const [tempConflictDocs] = useState<Record<string, RichTextDocument>>({});
+  const [richTextEdits] = useState<Record<string, RichTextDocument>>({});
+  const [plainTextEdits, setPlainTextEdits] = useState<
+    Record<string, PlainTextConflictEdit>
+  >({});
   const [isEditorToolbarOpen, toggleEditorToolbar] = useState<boolean>(false);
   const [showDiff, setShowDiff] = useState<boolean>(true);
 
-  // TODO: Resolve conflicts in plain-text files in the editor. Until then
-  // they are not resolved here at all: the rich-text resolver would
-  // rewrite the file as Markdown.
   const isPlainTextConflict =
     conflict !== null &&
     inferArtifactKindFromExtension(conflict.path) ===
       artifactKinds.PLAIN_TEXT_DOCUMENT;
+  const plainTextEdit = conflict ? plainTextEdits[conflict.path] : undefined;
+  const canResolvePlainTextConflict =
+    plainTextEdit !== undefined && !plainTextEdit.hasMergeConflictMarkers;
 
   useEffect(() => {
     const selectedConflict = compareContentConflicts.find(
@@ -60,16 +71,40 @@ export const CompareContentConflictResolution = () => {
     abortMerge();
   };
 
-  const handleDocChange = (path: string) => async (doc: RichTextDocument) => {
-    tempConflictDocs[path] = doc;
-  };
+  const handleRichTextEdit =
+    (path: string) => async (doc: RichTextDocument) => {
+      richTextEdits[path] = doc;
+    };
+
+  const handlePlainTextEdit =
+    (path: string) => (edit: PlainTextConflictEdit) => {
+      setPlainTextEdits((edits) => ({
+        ...edits,
+        [path]: edit,
+      }));
+    };
 
   const handleResolveConflict = async () => {
-    if (projectId && conflict && tempConflictDocs[conflict.path]) {
-      await resolveContentConflict({
+    if (!projectId || !conflict) {
+      return;
+    }
+
+    if (isPlainTextConflict) {
+      if (plainTextEdit && canResolvePlainTextConflict) {
+        await resolvePlainTextContentConflict({
+          documentId: conflict.targetArtifactId,
+          projectId,
+          content: plainTextEdit.content,
+        });
+      }
+      return;
+    }
+
+    if (richTextEdits[conflict.path]) {
+      await resolveRichTextContentConflict({
         documentId: conflict.targetArtifactId,
         projectId,
-        doc: tempConflictDocs[conflict.path],
+        doc: richTextEdits[conflict.path],
       });
     }
   };
@@ -79,22 +114,35 @@ export const CompareContentConflictResolution = () => {
       return <LongTextSkeleton />;
     }
 
-    if (isPlainTextConflict) {
+    // TODO: Implement AddAddConflict.
+    // In this case it's probably best to ask from the user
+    // to select one of the two versions instead of comparing.
+    if (!isContentConflict(conflict)) {
       return (
         <UnsupportedConflict>
-          v2 can&apos;t resolve conflicts in plain-text files yet. To leave both
-          branches as they are, abort the merge.
+          v2 is not yet able to handle this conflict type. Please reach out to
+          us for support.
         </UnsupportedConflict>
       );
     }
 
+    if (isPlainTextConflict) {
+      return (
+        <PlainTextContentConflict
+          key={conflict.path}
+          conflict={conflict}
+          onEdit={handlePlainTextEdit(conflict.path)}
+        />
+      );
+    }
+
     return (
-      <CompareContentConflict
+      <RichTextContentConflict
         conflict={conflict}
         mergeConflictInfo={mergeConflictInfo}
         isEditorToolbarOpen={isEditorToolbarOpen}
         showDiff={showDiff}
-        onDocChange={handleDocChange(conflict.path)}
+        onDocChange={handleRichTextEdit(conflict.path)}
       />
     );
   };
@@ -111,16 +159,25 @@ export const CompareContentConflictResolution = () => {
           hasEditorToolbarToggle={!isPlainTextConflict}
           onEditorToolbarToggle={handleEditorToolbarToggle}
           onAbortMerge={handleAbortMerge}
-          hasResolveConflictButton={!isPlainTextConflict}
+          hasResolveConflictButton
+          isResolveConflictDisabled={
+            isPlainTextConflict && !canResolvePlainTextConflict
+          }
           onResolveConflict={handleResolveConflict}
           hasShowDiffCheckbox={!isPlainTextConflict}
           showDiff={showDiff}
           onSetShowDiffChecked={handleSetShowDiff}
         />
       </div>
-      <div className="flex w-full flex-auto flex-col items-center overflow-auto">
-        <div className="flex w-full max-w-3xl flex-col">{conflictView()}</div>
-      </div>
+      {isPlainTextConflict ? (
+        <div className="flex min-h-0 w-full flex-auto flex-col">
+          {conflictView()}
+        </div>
+      ) : (
+        <div className="flex w-full flex-auto flex-col items-center overflow-auto">
+          <div className="flex w-full max-w-3xl flex-col">{conflictView()}</div>
+        </div>
+      )}
     </div>
   );
 };

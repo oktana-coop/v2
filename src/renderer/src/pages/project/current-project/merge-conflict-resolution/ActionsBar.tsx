@@ -15,6 +15,7 @@ export const MergeConflictResolutionActionsBar = ({
   mergeConflictInfo,
   onAbortMerge,
   hasResolveConflictButton,
+  isResolveConflictDisabled,
   onResolveConflict,
   hasEditorToolbarToggle,
   onEditorToolbarToggle,
@@ -25,6 +26,7 @@ export const MergeConflictResolutionActionsBar = ({
   mergeConflictInfo: MergeConflictInfo;
   onAbortMerge: () => void;
   hasResolveConflictButton: boolean;
+  isResolveConflictDisabled?: boolean;
   onResolveConflict?: () => void;
   hasEditorToolbarToggle: boolean;
   onEditorToolbarToggle?: () => void;
@@ -92,7 +94,12 @@ export const MergeConflictResolutionActionsBar = ({
           Abort Merge
         </Button>
         {hasResolveConflictButton && (
-          <Button color="purple" onClick={handleResolveConflict} size="sm">
+          <Button
+            color="purple"
+            onClick={handleResolveConflict}
+            disabled={isResolveConflictDisabled}
+            size="sm"
+          >
             Resolve Conflict
           </Button>
         )}
