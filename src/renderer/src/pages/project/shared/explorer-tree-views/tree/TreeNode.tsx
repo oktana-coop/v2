@@ -287,9 +287,6 @@ const FileNode = ({
     });
   };
 
-  // Files the editor cannot open as documents (e.g. images, PDFs) are dimmed to
-  // signal they are not editable. They stay clickable so selecting one still
-  // surfaces the unsupported-document view explaining why.
   const isUnopenable = !isDocumentKind(
     inferArtifactKindFromExtension(node.data.name)
   );
@@ -300,13 +297,17 @@ const FileNode = ({
       onContextMenu={handleContextMenu}
       className={clsx(
         treeRowClasses(node.isSelected),
-        isUnopenable && 'opacity-50'
+        isUnopenable && 'opacity-60'
       )}
       style={{
         ...style,
         paddingLeft: node.level * 24 + 40,
       }}
-      title={isUnopenable ? `${node.data.name} can't be opened` : undefined}
+      title={
+        isUnopenable
+          ? `${node.data.name} can't be displayed in the editor yet`
+          : undefined
+      }
     >
       <FileExtensionIcon fileName={node.data.name} />
       {node.data.name}

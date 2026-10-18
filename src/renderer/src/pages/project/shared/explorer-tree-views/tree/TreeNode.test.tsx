@@ -33,15 +33,18 @@ describe('TreeNode file dimming', () => {
     renderFileNode('image.png');
 
     const row = screen.getByText('image.png').closest('div');
-    expect(row).toHaveClass('opacity-50');
-    expect(row).toHaveAttribute('title', "image.png can't be opened");
+    expect(row).toHaveClass('opacity-60');
+    expect(row).toHaveAttribute(
+      'title',
+      "image.png can't be displayed in the editor yet"
+    );
   });
 
   it.each(['notes.md', 'script.ts'])('does not dim %s', (name) => {
     renderFileNode(name);
 
     const row = screen.getByText(name).closest('div');
-    expect(row).not.toHaveClass('opacity-50');
+    expect(row).not.toHaveClass('opacity-60');
     expect(row).not.toHaveAttribute('title');
   });
 });
