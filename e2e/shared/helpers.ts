@@ -1,11 +1,29 @@
 import { ElectronApplication, expect, Page } from '@playwright/test';
+import * as fs from 'fs';
 import * as os from 'os';
+import * as path from 'path';
 
 /**
  * Returns the platform-appropriate modifier key for keyboard shortcuts.
  * macOS uses Meta (Cmd), Linux/Windows use Control.
  */
 export const modKey = os.platform() === 'darwin' ? 'Meta' : 'Control';
+
+/**
+ * Returns the platform-appropriate shortcuts for moving the caret to the start
+ * or end of the document. macOS uses Cmd+Up/Down, Linux/Windows Ctrl+Home/End.
+ */
+export const documentStartKey =
+  os.platform() === 'darwin' ? 'Meta+ArrowUp' : 'Control+Home';
+export const documentEndKey =
+  os.platform() === 'darwin' ? 'Meta+ArrowDown' : 'Control+End';
+
+/**
+ * Returns the platform-appropriate shortcut for moving the caret to the end of
+ * the line. macOS uses Cmd+Right (End only scrolls there), Linux/Windows End.
+ */
+export const lineEndKey =
+  os.platform() === 'darwin' ? 'Meta+ArrowRight' : 'End';
 
 /**
  * Returns the platform-appropriate key for triggering rename in the file tree.
@@ -35,7 +53,7 @@ export const newFolderKey = `${modKey}+Alt+n`;
  * Opens a project folder in the app by:
  * 1. Mocking Electron's showOpenDialog to return the given path
  * 2. Clicking the "Open Folder" button in the UI to trigger the flow
- * 3. Waiting for the file explorer sidebar to appear
+ * 3. Waiting for the project route to mount
  */
 export const openProjectFolder = async ({
   electronApp,
@@ -60,18 +78,17 @@ export const openProjectFolder = async ({
     .first()
     .click();
 
-  // Wait for the sidebar / file tree to appear — confirms project is loaded
-  await window.waitForSelector('[data-testid="file-explorer"]', {
-    timeout: 800,
+  // Wait for the project bottom bar to appear — confirms project is loaded
+  await window.waitForSelector('[data-testid="project-bottom-bar"]', {
+    timeout: 15_000,
   });
 };
 
 /**
- * Mocks Electron's showSaveDialog so the next "new document" flow
- * (button click, keyboard shortcut, or context menu) will create a file
- * at the given path without showing the native OS dialog.
+ * Mocks Electron's showSaveDialog so it answers with the given path without
+ * showing the native OS dialog.
  */
-export const mockCreateNewFile = async ({
+export const mockCreateFileWithDialog = async ({
   electronApp,
   filePath,
 }: {
@@ -87,9 +104,9 @@ export const mockCreateNewFile = async ({
 };
 
 /**
- * Mocks Electron's showOpenDialog so the next file-picker flow (e.g. inserting
- * an image) resolves to the given file path without showing the native OS
- * dialog. The open-file counterpart to {@link mockCreateNewFile}.
+ * Mocks Electron's showOpenDialog so it answers with the given file path
+ * without showing the native OS dialog. The open-file counterpart to
+ * {@link mockCreateFileWithDialog}.
  */
 export const mockPickFile = async ({
   electronApp,
@@ -104,41 +121,72 @@ export const mockPickFile = async ({
 };
 
 /**
- * Prepares a new file via {@link mockCreateNewFile}, then clicks the
- * "New Document" button and waits for the editor to open.
+ * The field in the explorer tree where a new file is named.
  */
-export const createNewFileFromButton = async ({
-  electronApp,
+export const newDocumentInput = ({ window }: { window: Page }) =>
+  window.getByRole('textbox', { name: 'New file name', exact: true });
+
+/**
+ * The field in the explorer tree where a new folder is named.
+ */
+export const newFolderInput = ({ window }: { window: Page }) =>
+  window.getByRole('textbox', { name: 'New folder name', exact: true });
+
+/**
+ * The field in the explorer tree where a file is renamed.
+ */
+export const renameFileInput = ({ window }: { window: Page }) =>
+  window.getByRole('textbox', { name: 'File name', exact: true });
+
+/**
+ * The field in the explorer tree where a folder is renamed.
+ */
+export const renameFolderInput = ({ window }: { window: Page }) =>
+  window.getByRole('textbox', { name: 'Folder name', exact: true });
+
+/**
+ * Types a name into the new-file field and confirms it.
+ */
+export const nameNewDocument = async ({
   window,
-  filePath,
+  name,
 }: {
-  electronApp: ElectronApplication;
   window: Page;
-  filePath: string;
+  name: string;
 }): Promise<void> => {
-  await mockCreateNewFile({ electronApp, filePath });
+  const input = newDocumentInput({ window });
+  await input.waitFor({ state: 'visible', timeout: 2_000 });
+  await input.fill(name);
+  await window.keyboard.press('Enter');
+};
 
+/**
+ * Clicks the "New Document" button, names the file in the explorer tree and
+ * waits for the editor to open.
+ */
+export const createNewRichTextDocumentFromButton = async ({
+  window,
+  name,
+}: {
+  window: Page;
+  name: string;
+}): Promise<void> => {
   await window.getByRole('button', { name: /new document/i }).click();
+  await nameNewDocument({ window, name });
 
-  // Wait for the editor to open for the new file
   await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
 };
 
 /**
  * Mocks the main-process context-menu:show handler to auto-respond with
  * a "New File" action (bypassing the native OS menu popup that Playwright
- * cannot interact with). Also mocks showSaveDialog to return the desired
- * file path.
+ * cannot interact with).
  */
-export const createNewFileFromContextMenu = async ({
+export const createNewDocumentFromContextMenu = async ({
   electronApp,
-  newFilePath,
 }: {
   electronApp: ElectronApplication;
-  newFilePath: string;
 }): Promise<void> => {
-  await mockCreateNewFile({ electronApp, filePath: newFilePath });
-
   await electronApp.evaluate(async ({ ipcMain, BrowserWindow }) => {
     ipcMain.removeHandler('context-menu:show');
 
@@ -197,6 +245,44 @@ export const openCommandPalette = async ({
   await window.waitForTimeout(300);
 };
 
+/**
+ * Opens the command palette and clicks the action with the given name.
+ */
+export const runPaletteAction = async ({
+  window,
+  actionName,
+}: {
+  window: Page;
+  actionName: string;
+}): Promise<void> => {
+  await openCommandPalette({ window });
+
+  const option = window.getByRole('option', { name: actionName, exact: true });
+  await option.waitFor({ state: 'visible', timeout: 5_000 });
+  await option.click();
+};
+
+/**
+ * Reads the system clipboard through Electron's clipboard module in the
+ * main process.
+ */
+export const readClipboardText = async ({
+  electronApp,
+}: {
+  electronApp: ElectronApplication;
+}): Promise<string> =>
+  electronApp.evaluate(({ clipboard }) => clipboard.readText());
+
+/**
+ * Clears the system clipboard, so a test cannot pass on a value left over
+ * from a previous copy.
+ */
+export const clearClipboard = async ({
+  electronApp,
+}: {
+  electronApp: ElectronApplication;
+}): Promise<void> => electronApp.evaluate(({ clipboard }) => clipboard.clear());
+
 export const openHelloMd = async ({
   window,
 }: {
@@ -204,6 +290,75 @@ export const openHelloMd = async ({
 }): Promise<void> => {
   await window.getByText('hello').click();
   await window.waitForSelector('.ProseMirror', { timeout: 2_000 });
+};
+
+export const plainTextEditor = ({ window }: { window: Page }) =>
+  window.locator('.cm-content');
+
+export const openPlainTextDocument = async ({
+  window,
+  name,
+}: {
+  window: Page;
+  name: string;
+}): Promise<void> => {
+  await window.getByTestId('file-explorer').getByText(name).click();
+  await plainTextEditor({ window }).waitFor({ timeout: 5_000 });
+};
+
+// The plain-text editor's lines as rendered, so only those on screen.
+export const plainTextEditorLines = ({ window }: { window: Page }) =>
+  plainTextEditor({ window }).locator('.cm-line');
+
+export const typeAtEndOfPlainTextDocument = async ({
+  window,
+  text,
+}: {
+  window: Page;
+  text: string;
+}): Promise<void> => {
+  await plainTextEditor({ window }).click();
+  await window.keyboard.press(documentEndKey);
+  await window.keyboard.type(text);
+};
+
+// The underlines under the text a lint error is about.
+export const lintErrorUnderlines = ({ window }: { window: Page }) =>
+  window.locator('.cm-lintRange-error');
+
+export const moveToEndOfFirstPlainTextLine = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  await plainTextEditor({ window }).click();
+  await window.keyboard.press(documentStartKey);
+  await window.keyboard.press(lineEndKey);
+};
+
+export const openRichTextDocument = async ({
+  window,
+  relativePath,
+}: {
+  window: Page;
+  relativePath: string;
+}): Promise<void> => {
+  const name = path.basename(relativePath, path.extname(relativePath));
+  await window.getByTestId('file-explorer').getByText(name).click();
+  await window.waitForSelector('.ProseMirror', { timeout: 3_000 });
+};
+
+export const openRichTextDocumentExpectingContent = async ({
+  window,
+  relativePath,
+  content,
+}: {
+  window: Page;
+  relativePath: string;
+  content: string;
+}): Promise<void> => {
+  await openRichTextDocument({ window, relativePath });
+  await expect(window.locator('.ProseMirror')).toContainText(content);
 };
 
 export const typeInEditor = async ({
@@ -216,7 +371,7 @@ export const typeInEditor = async ({
   await window.keyboard.type(text);
 };
 
-export const focusAndTypeInEditor = async ({
+export const focusAndTypeInRichTextEditor = async ({
   window,
   text,
 }: {
@@ -225,7 +380,7 @@ export const focusAndTypeInEditor = async ({
 }): Promise<void> => {
   const editor = window.locator('.ProseMirror');
   await editor.click();
-  await window.keyboard.press('End');
+  await window.keyboard.press(lineEndKey);
   await typeInEditor({ window, text });
 };
 
@@ -233,7 +388,7 @@ export const focusAndTypeInEditor = async ({
  * Types text in the editor with a simulated delay between keystrokes,
  * mimicking real user typing behavior.
  */
-export const typeInEditorSlowly = async ({
+export const typeInRichTextEditorSlowly = async ({
   window,
   text,
   delay = 50,
@@ -244,14 +399,14 @@ export const typeInEditorSlowly = async ({
 }): Promise<void> => {
   const editor = window.locator('.ProseMirror');
   await editor.click();
-  await window.keyboard.press('End');
+  await window.keyboard.press(lineEndKey);
   await window.keyboard.type(text, { delay });
 };
 
 /**
  * Clears all content in the ProseMirror editor by selecting all and deleting.
  */
-export const clearEditor = async ({
+export const clearRichTextEditor = async ({
   window,
 }: {
   window: Page;
@@ -265,7 +420,7 @@ export const clearEditor = async ({
 /**
  * Returns the inner HTML of the ProseMirror editor.
  */
-export const getEditorHTML = async ({
+export const getRichTextEditorHTML = async ({
   window,
 }: {
   window: Page;
@@ -320,7 +475,62 @@ export const typeInEditorAndWaitForDebounce = async ({
   text: string;
   waitFor?: number;
 }): Promise<void> => {
-  await focusAndTypeInEditor({ window, text });
+  await focusAndTypeInRichTextEditor({ window, text });
+  await window.waitForTimeout(waitFor);
+};
+
+/**
+ * Opens the given project folder, opens hello.md, and replaces its content
+ * with the given text.
+ */
+export const setupEditorWithText = async ({
+  electronApp,
+  window,
+  folderPath,
+  text,
+}: {
+  electronApp: ElectronApplication;
+  window: Page;
+  folderPath: string;
+  text: string;
+}): Promise<void> => {
+  await openProjectFolder({ electronApp, window, folderPath });
+  await openHelloMd({ window });
+  await clearRichTextEditor({ window });
+  await typeInEditorAndWaitForDebounce({ window, text });
+};
+
+/**
+ * Focuses the body paragraph (one ArrowDown below the H1); assumes a
+ * title-then-paragraph document.
+ */
+export const focusParagraph = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  // TODO: clicking `.ProseMirror p` directly doesn't move the ProseMirror
+  // cursor into the paragraph — it stays at the beginning of the document.
+  // Using ArrowDown as a workaround until we understand why.
+  await window.locator('.ProseMirror').click();
+  await window.keyboard.press('ArrowDown');
+};
+
+/**
+ * Appends to the body paragraph and waits for the save debounce.
+ */
+export const typeInParagraphAndWaitForDebounce = async ({
+  window,
+  text,
+  waitFor = 350,
+}: {
+  window: Page;
+  text: string;
+  waitFor?: number;
+}): Promise<void> => {
+  await focusParagraph({ window });
+  await window.keyboard.press(lineEndKey);
+  await window.keyboard.type(text);
   await window.waitForTimeout(waitFor);
 };
 
@@ -366,11 +576,11 @@ export const commitChanges = async ({
   message: string;
 }): Promise<void> => {
   const commitBtn = window.getByRole('button', { name: /commit changes/i });
-  await expect(commitBtn).toBeEnabled({ timeout: 1_000 });
+  await expect(commitBtn).toBeEnabled({ timeout: 1_500 });
   await commitBtn.click();
 
   // Wait for the commit message textarea to be visible (autofocused in dialog)
-  const textarea = window.getByRole('textbox');
+  const textarea = window.getByRole('dialog').getByRole('textbox');
   await textarea.waitFor({ state: 'visible', timeout: 1_000 });
   await textarea.fill(message);
 
@@ -398,7 +608,7 @@ export const commitAllProjectChanges = async ({
   await expect(commitBtn).toBeEnabled({ timeout: 1_000 });
   await commitBtn.click();
 
-  const textarea = window.getByRole('textbox');
+  const textarea = window.getByRole('dialog').getByRole('textbox');
   await textarea.waitFor({ state: 'visible', timeout: 1_000 });
   await textarea.fill(message);
 
@@ -447,7 +657,7 @@ export const selectFirstCommit = async ({
  * Clicks the "Edit Document" (PenIcon) button in the history ActionsBar
  * to return to the editor from the history view.
  */
-export const returnToEditor = async ({
+export const returnToRichTextEditor = async ({
   window,
 }: {
   window: Page;
@@ -642,6 +852,20 @@ export const navigateToProjectHistory = async ({
   });
 };
 
+export const navigateToEdit = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  await window
+    .getByTestId('nav-bar')
+    .getByRole('link', { name: /edit/i })
+    .click();
+  await window.waitForSelector('[data-testid="file-explorer"]', {
+    timeout: 2_000,
+  });
+};
+
 /**
  * Navigates to the Settings page by clicking the options link in the nav bar
  * and waiting for the Settings title.
@@ -690,6 +914,71 @@ export const toggleProjectCommit = async ({
 };
 
 /**
+ * Asserts the project history sidebar holds exactly these commits, newest
+ * first, matched by message.
+ */
+export const expectProjectCommits = async ({
+  window,
+  messages,
+}: {
+  window: Page;
+  messages: string[];
+}): Promise<void> => {
+  const commitRows = window.getByTestId('project-commit-row');
+  await expect(commitRows).toHaveCount(messages.length);
+
+  await Promise.all(
+    messages.map((message, index) =>
+      expect(commitRows.nth(index)).toContainText(message)
+    )
+  );
+};
+
+// The single letter each change type is badged with in the sidebar.
+const changeTypeLabels = {
+  added: 'A',
+  modified: 'M',
+  deleted: 'D',
+  renamed: 'R',
+} as const;
+
+type ChangedPaths = Partial<Record<keyof typeof changeTypeLabels, string[]>>;
+
+/**
+ * Expands a commit and asserts exactly which files it changed and how. Paths
+ * not listed must be absent, so this pins the whole change set rather than
+ * spot-checking it.
+ */
+export const expectCommitChanges = async ({
+  window,
+  commitMessage,
+  ...changedPaths
+}: {
+  window: Page;
+  commitMessage: string;
+} & ChangedPaths): Promise<void> => {
+  await toggleProjectCommit({ window, commitMessage });
+
+  const expected = Object.entries(changedPaths).flatMap(([changeType, paths]) =>
+    paths.map((path) => ({
+      path,
+      label: changeTypeLabels[changeType as keyof typeof changeTypeLabels],
+    }))
+  );
+
+  const changedRows = window.getByTestId('changed-document-row');
+  await expect(changedRows).toHaveCount(expected.length);
+
+  await Promise.all(
+    expected.map(async ({ path, label }) => {
+      const row = changedRows.filter({ hasText: path });
+      await expect(row).toHaveCount(1);
+      await expect(row.getByTestId('change-type-badge')).toHaveText(label);
+    })
+  );
+};
+
+/**
  * Clicks a changed document row inside an expanded commit in project history.
  * The document is identified by its file name text.
  */
@@ -727,4 +1016,183 @@ export const selectUncommittedDocument = async ({
     .first()
     .locator('button')
     .dispatchEvent('click');
+};
+
+export const openBranchingPalette = async ({
+  window,
+  currentBranch = 'main',
+}: {
+  window: Page;
+  currentBranch?: string;
+}): Promise<void> => {
+  await window.getByRole('button', { name: currentBranch }).click();
+  await expect(
+    window.getByPlaceholder('Search for branches and actions')
+  ).toBeVisible();
+};
+
+export const createAndSwitchToBranch = async ({
+  window,
+  currentBranch = 'main',
+  branchName,
+}: {
+  window: Page;
+  currentBranch?: string;
+  branchName: string;
+}): Promise<void> => {
+  await openBranchingPalette({ window, currentBranch });
+  await window.getByRole('option', { name: 'Create New Branch' }).click();
+
+  // The CreateBranchDialog opens after the palette closes.
+  const createBranchBtn = window.getByRole('button', {
+    name: /create branch/i,
+  });
+  await expect(createBranchBtn).toBeVisible({ timeout: 3_000 });
+  await window.getByRole('dialog').getByRole('textbox').fill(branchName);
+  await createBranchBtn.click();
+
+  await expectCurrentBranch({ window, branch: branchName });
+};
+
+export const expectCurrentBranch = async ({
+  window,
+  branch,
+}: {
+  window: Page;
+  branch: string;
+}): Promise<void> => {
+  await expect(window.getByRole('button', { name: branch })).toBeVisible({
+    timeout: 5_000,
+  });
+};
+
+export const expectErrorNotification = async ({
+  window,
+  message,
+}: {
+  window: Page;
+  message: string;
+}): Promise<void> => {
+  await expect(window.getByTestId('error-notification')).toContainText(message);
+};
+
+export const expectNoErrorNotification = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  await expect(window.getByTestId('error-notification')).toHaveCount(0);
+};
+
+// Waits until the file on disk contains the text, e.g. once a save reaches it.
+export const expectFileToContain = async ({
+  filePath,
+  text,
+  timeout = 10_000,
+}: {
+  filePath: string;
+  text: string;
+  timeout?: number;
+}): Promise<void> => {
+  await expect
+    .poll(() => fs.readFileSync(filePath, 'utf8'), { timeout })
+    .toContain(text);
+};
+
+export const expectNoErrorNotificationAfterWaiting = async ({
+  window,
+  ms = 500,
+}: {
+  window: Page;
+  ms?: number;
+}): Promise<void> => {
+  await window.waitForTimeout(ms);
+  await expectNoErrorNotification({ window });
+};
+
+export const expectNoOpenDocument = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  await expect(window.locator('.ProseMirror')).toHaveCount(0);
+  await expect(plainTextEditor({ window })).toHaveCount(0);
+};
+
+export const expectCurrentProject = async ({
+  window,
+  directory,
+}: {
+  window: Page;
+  directory: string;
+}): Promise<void> => {
+  await expect(
+    window
+      .getByTestId('file-explorer')
+      .getByRole('heading', { name: path.basename(directory) })
+  ).toBeVisible();
+};
+
+export const attemptBranchSwitch = async ({
+  window,
+  from = 'main',
+  to,
+}: {
+  window: Page;
+  from?: string;
+  to: string;
+}): Promise<void> => {
+  await openBranchingPalette({ window, currentBranch: from });
+  await window.getByRole('option', { name: to, exact: true }).click();
+};
+
+export const switchToBranch = async ({
+  window,
+  from = 'main',
+  to,
+}: {
+  window: Page;
+  from?: string;
+  to: string;
+}): Promise<void> => {
+  await attemptBranchSwitch({ window, from, to });
+  await expectCurrentBranch({ window, branch: to });
+};
+
+export const mergeToMainBranch = async ({
+  window,
+  currentBranch = 'main',
+}: {
+  window: Page;
+  currentBranch?: string;
+}): Promise<void> => {
+  await openBranchingPalette({ window, currentBranch });
+  await window.getByRole('option', { name: 'Merge to Main Branch' }).click();
+};
+
+/**
+ * A real, minimal 1x1 PNG, for specs that need actual image bytes on disk.
+ */
+export const PNG_1x1 = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64'
+);
+
+/**
+ * Asserts the figure's <img> resolved to a project-asset:// URL and actually
+ * decoded its bytes (naturalWidth stays 0 for a broken or unresolved src).
+ */
+export const expectFigureImageRendered = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  const img = window.locator('.ProseMirror figure img').first();
+  await expect(img).toBeAttached({ timeout: 3_000 });
+  expect(await img.getAttribute('src')).toMatch(/^project-asset:\/\//);
+  await expect
+    .poll(() => img.evaluate((el) => (el as HTMLImageElement).naturalWidth), {
+      timeout: 3_000,
+    })
+    .toBeGreaterThan(0);
 };

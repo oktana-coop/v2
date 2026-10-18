@@ -1,10 +1,11 @@
 import { Plugin, PluginKey } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
 
-import { noteContentNumbering } from '../../../../../renderer/src/components/editing/inlines';
+import { noteContentNumbering } from '../../../../../renderer/src/components/rich-text-editing/inlines';
 import {
   createNoteNumberingTransaction,
   ensureTrailingSpaceAfterContentBlockNumbers,
+  numberNotes,
 } from './commands';
 import { handleBackspaceOrDelete } from './events';
 import { getNotes } from './state';
@@ -14,6 +15,22 @@ const pluginKey = new PluginKey('note-numbering');
 export const notesPlugin = () =>
   new Plugin({
     key: pluginKey,
+    // Initial numbering pass: stored numbering may be stale, so dispatch one renumbering
+    // transaction up-front. Deferred with queueMicrotask: plugin views are constructed
+    // inside EditorView creation/updateState, and a synchronous dispatch would start
+    // a second update while the first is still on the stack.
+    view(editorView) {
+      let cancelled = false;
+      queueMicrotask(() => {
+        if (cancelled || editorView.isDestroyed) return;
+        numberNotes(editorView.state, editorView.dispatch);
+      });
+      return {
+        destroy() {
+          cancelled = true;
+        },
+      };
+    },
     state: {
       init: () => ({}),
       apply(_, prev) {

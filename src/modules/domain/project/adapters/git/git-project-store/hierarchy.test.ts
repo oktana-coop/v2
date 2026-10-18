@@ -1,0 +1,172 @@
+import * as Effect from 'effect/Effect';
+import git from 'isomorphic-git';
+
+import {
+  type Directory,
+  type File,
+  filesystemEntryTypes,
+} from '../../../../../infrastructure/filesystem';
+import { VersionedProjectRepositoryErrorTag } from '../../../errors';
+import { artifactKinds } from '../../../models';
+import {
+  buildTestStore,
+  mockListDirectoryTree,
+  PROJECT_PATH,
+} from './test-utils';
+
+// getProjectTree resolves the current branch via git.currentBranch; everything
+// else (ref construction, path parsing) runs for real so ids are concrete.
+vi.mock('isomorphic-git', () => ({
+  default: {
+    currentBranch: vi.fn(),
+  },
+}));
+
+const mockCurrentBranch = vi.mocked(git.currentBranch);
+
+const store = buildTestStore();
+
+const file = (path: string, name: string): File => ({
+  type: filesystemEntryTypes.FILE,
+  path,
+  name,
+});
+
+const directory = (
+  path: string,
+  name: string,
+  children: Array<Directory | File>
+): Directory => ({
+  type: filesystemEntryTypes.DIRECTORY,
+  path,
+  name,
+  permissionState: 'granted',
+  children,
+});
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockCurrentBranch.mockResolvedValue('main');
+});
+
+describe('getProjectTree', () => {
+  it('maps files to blob-ref artifact nodes', async () => {
+    mockListDirectoryTree.mockReturnValue(
+      Effect.succeed([file('readme.md', 'readme.md')])
+    );
+
+    const tree = await Effect.runPromise(store.getProjectTree(PROJECT_PATH));
+
+    expect(tree).toEqual([
+      {
+        id: '/blob/main/readme.md',
+        kind: artifactKinds.RICH_TEXT_DOCUMENT,
+        path: 'readme.md',
+        filesystemType: filesystemEntryTypes.FILE,
+      },
+    ]);
+  });
+
+  it('maps directories to id-less nodes with recursively mapped children', async () => {
+    mockListDirectoryTree.mockReturnValue(
+      Effect.succeed([
+        file('readme.md', 'readme.md'),
+        directory('docs', 'docs', [
+          file('docs/guide.md', 'guide.md'),
+          directory('docs/2024', '2024', [
+            file('docs/2024/notes.md', 'notes.md'),
+          ]),
+        ]),
+      ])
+    );
+
+    const tree = await Effect.runPromise(store.getProjectTree(PROJECT_PATH));
+
+    expect(tree).toEqual([
+      {
+        id: '/blob/main/readme.md',
+        kind: artifactKinds.RICH_TEXT_DOCUMENT,
+        path: 'readme.md',
+        filesystemType: filesystemEntryTypes.FILE,
+      },
+      {
+        path: 'docs',
+        filesystemType: filesystemEntryTypes.DIRECTORY,
+        children: [
+          {
+            id: '/blob/main/docs/guide.md',
+            kind: artifactKinds.RICH_TEXT_DOCUMENT,
+            path: 'docs/guide.md',
+            filesystemType: filesystemEntryTypes.FILE,
+          },
+          {
+            path: 'docs/2024',
+            filesystemType: filesystemEntryTypes.DIRECTORY,
+            children: [
+              {
+                id: '/blob/main/docs/2024/notes.md',
+                kind: artifactKinds.RICH_TEXT_DOCUMENT,
+                path: 'docs/2024/notes.md',
+                filesystemType: filesystemEntryTypes.FILE,
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('represents an empty directory with an empty children array', async () => {
+    mockListDirectoryTree.mockReturnValue(
+      Effect.succeed([directory('empty', 'empty', [])])
+    );
+
+    const tree = await Effect.runPromise(store.getProjectTree(PROJECT_PATH));
+
+    expect(tree).toEqual([
+      {
+        path: 'empty',
+        filesystemType: filesystemEntryTypes.DIRECTORY,
+        children: [],
+      },
+    ]);
+  });
+
+  it('returns an empty tree for an empty project', async () => {
+    mockListDirectoryTree.mockReturnValue(Effect.succeed([]));
+
+    const tree = await Effect.runPromise(store.getProjectTree(PROJECT_PATH));
+
+    expect(tree).toEqual([]);
+  });
+
+  it('reflects the current branch in artifact ids', async () => {
+    mockCurrentBranch.mockResolvedValue('feature');
+    mockListDirectoryTree.mockReturnValue(
+      Effect.succeed([
+        file('readme.md', 'readme.md'),
+        directory('docs', 'docs', []),
+      ])
+    );
+
+    const tree = await Effect.runPromise(store.getProjectTree(PROJECT_PATH));
+    const [fileNode, directoryNode] = tree;
+
+    expect(fileNode).toMatchObject({ id: '/blob/feature/readme.md' });
+    // Directories are derived structure, so there is no id to scope to a branch.
+    expect(directoryNode).not.toHaveProperty('id');
+  });
+
+  it('maps a directory-listing failure to a RepositoryError', async () => {
+    mockListDirectoryTree.mockReturnValue(Effect.fail(new Error('disk error')));
+
+    const result = await Effect.runPromise(
+      Effect.either(store.getProjectTree(PROJECT_PATH))
+    );
+
+    expect(result._tag).toBe('Left');
+    if (result._tag === 'Left') {
+      expect(result.left._tag).toBe(VersionedProjectRepositoryErrorTag);
+    }
+  });
+});

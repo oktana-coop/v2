@@ -4,6 +4,8 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    // Turns off Node's built-in localStorage, which doesn't work here and replaces jsdom's.
+    execArgv: ['--no-experimental-webstorage'],
     setupFiles: ['./vitest.setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
     server: {

@@ -1,15 +1,43 @@
 export {
-  CurrentDocumentContext,
-  type CurrentDocumentContextType,
-  CurrentDocumentProvider,
-} from './current-document/context';
-
-export {
   ProjectContext,
   type ProjectContextType,
   ProjectProvider,
-  type SelectedFileInfo,
-} from './current-project/context';
+  useAssetInsertion,
+  useCreateDocument,
+  useNavigateToResolveConflicts,
+} from './current-project';
+
+export {
+  useArtifactMetaData,
+  type UseArtifactMetaDataResult,
+  useArtifactSelection,
+  useAssetSrcResolver,
+  useCurrentArtifactId,
+  useCurrentChangeId,
+  useNavigateToArtifact,
+} from './current-project/current-artifact';
+
+export {
+  CurrentArtifactVersioningContext,
+  type CurrentArtifactVersioningContextType,
+  CurrentArtifactVersioningProvider,
+} from './current-project/current-artifact/versioning';
+
+export {
+  CurrentDocumentContext,
+  type CurrentDocumentContextType,
+  type JoinSharedDocumentRefusal,
+  CurrentDocumentProvider,
+  useCurrentDocumentId,
+  useCurrentDocumentKind,
+  useCurrentDocumentMetaData,
+  useCurrentLiveDocument,
+  useCurrentPlainTextDocument,
+  useCurrentRichTextDocument,
+  useCurrentRichTextDocumentId,
+  useExport,
+  useRemotePresence,
+} from './current-document';
 
 export {
   CommandPaletteContext,
@@ -33,7 +61,9 @@ export {
   CommitModalContext,
   type CommitModalContextType,
   CommitModalProvider,
-} from './commit-modal/context';
+  useCommitDocumentChanges,
+  useCommitToProject,
+} from './commit-flow';
 
 export {
   SidebarLayoutContext,
@@ -46,3 +76,22 @@ export {
   type InfrastructureAdaptersContextType,
   InfrastructureAdaptersProvider,
 } from './infrastructure-adapters/context';
+
+export { useClearWebStorage } from './web-storage';
+
+export { ShareRegistryContext, ShareRegistryProvider } from './share-registry';
+
+export {
+  GuestShareRegistryContext,
+  type GuestShareRegistryContextType,
+  GuestShareRegistryProvider,
+} from './guest-share-registry';
+
+export {
+  GuestEditingContext,
+  type GuestEditingContextType,
+  GuestEditingProvider,
+  useCurrentShareId,
+  useGuestPlainTextDocument,
+  useGuestRichTextDocument,
+} from './guest-editing';

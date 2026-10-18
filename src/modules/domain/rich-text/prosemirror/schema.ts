@@ -11,12 +11,12 @@ import {
   noteContent as noteContentClasses,
   orderedList as orderedListClasses,
   paragraph as paragraphClasses,
-} from '../../../../renderer/src/components/editing/blocks';
-import { noteRef as noteRefClasses } from '../../../../renderer/src/components/editing/inlines';
+} from '../../../../renderer/src/components/rich-text-editing/blocks';
+import { noteRef as noteRefClasses } from '../../../../renderer/src/components/rich-text-editing/inlines';
 import {
   code as codeClasses,
   link as linkClasses,
-} from '../../../../renderer/src/components/editing/marks';
+} from '../../../../renderer/src/components/rich-text-editing/marks';
 import { codeBlockLanguages } from '../constants';
 import { getLinkAttrsFromDomElement } from '../models/link';
 

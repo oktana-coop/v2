@@ -6,20 +6,18 @@ import {
   type Commit,
   decodeUrlEncodedArtifactId,
   decodeUrlEncodedChangeId,
-  decomposeGitBlobRef,
-  isGitBlobRef,
   isUncommittedChangeId,
   urlEncodeChangeId,
 } from '../../../../../../modules/infrastructure/version-control';
-import { ProjectContext } from '../../../../app-state';
+import { ProjectContext, useArtifactMetaData } from '../../../../app-state';
 import { PersonalFile } from '../../../../components/illustrations/PersonalFile';
 import { SidebarLayout } from '../../../../components/layout/SidebarLayout';
 import { StackedResizablePanelsLayout } from '../../../../components/layout/StackedResizablePanelsLayout';
-import { useProjectHistoryArtifactSelection } from '../../../../hooks';
 import { CommitDialog } from '../change-dialogs';
 import { type ProjectHistoryOutletContext } from './main/ProjectHistoryDocumentView';
 import { CommitHistoryPanel } from './sidebar/CommitHistoryPanel';
 import { UncommittedChangesPanel } from './sidebar/UncommittedChangesPanel';
+import { useProjectHistoryArtifactSelection } from './use-project-history-artifact-selection';
 
 const HIDDEN_FILES = new Set(['.gitignore']);
 
@@ -36,6 +34,7 @@ export const ProjectHistoryPage = () => {
     getProjectChangedDocuments,
     getProjectUncommittedChanges,
     commitChanges,
+    subscribeToProjectContentChangeEvents,
   } = useContext(ProjectContext);
 
   const selectArtifact = useProjectHistoryArtifactSelection();
@@ -55,31 +54,37 @@ export const ProjectHistoryPage = () => {
   const [loadingUncommitted, setLoadingUncommitted] = useState(false);
   const [isCommitDialogOpen, setIsCommitDialogOpen] = useState(false);
 
-  const loadCommits = useCallback(async () => {
-    setLoadingCommits(true);
-    try {
-      const result = await getProjectHistory();
-      setCommits(result);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoadingCommits(false);
-    }
-  }, [getProjectHistory]);
+  const loadCommits = useCallback(
+    async ({ showLoading = true }: { showLoading?: boolean } = {}) => {
+      if (showLoading) setLoadingCommits(true);
+      try {
+        const result = await getProjectHistory();
+        setCommits(result);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        if (showLoading) setLoadingCommits(false);
+      }
+    },
+    [getProjectHistory]
+  );
 
-  const loadUncommittedChanges = useCallback(async () => {
-    setLoadingUncommitted(true);
-    try {
-      const result = await getProjectUncommittedChanges();
-      setUncommittedChanges(
-        result.filter((change) => !HIDDEN_FILES.has(change.path))
-      );
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoadingUncommitted(false);
-    }
-  }, [getProjectUncommittedChanges]);
+  const loadUncommittedChanges = useCallback(
+    async ({ showLoading = true }: { showLoading?: boolean } = {}) => {
+      if (showLoading) setLoadingUncommitted(true);
+      try {
+        const result = await getProjectUncommittedChanges();
+        setUncommittedChanges(
+          result.filter((change) => !HIDDEN_FILES.has(change.path))
+        );
+      } catch (error) {
+        console.error(error);
+      } finally {
+        if (showLoading) setLoadingUncommitted(false);
+      }
+    },
+    [getProjectUncommittedChanges]
+  );
 
   useEffect(() => {
     loadCommits();
@@ -88,6 +93,22 @@ export const ProjectHistoryPage = () => {
   useEffect(() => {
     loadUncommittedChanges();
   }, [loadUncommittedChanges]);
+
+  // A change on disk can alter both panels: the working tree feeds the
+  // uncommitted panel, and external git operations that rewrite it (pull,
+  // checkout, merge) bring new commits with it. Loading stays hidden, so a
+  // signal never flashes the loading state over content already on screen.
+  useEffect(
+    () =>
+      subscribeToProjectContentChangeEvents({
+        emitOnStart: false,
+        onEvent: () => {
+          loadCommits({ showLoading: false });
+          loadUncommittedChanges({ showLoading: false });
+        },
+      }),
+    [subscribeToProjectContentChangeEvents, loadCommits, loadUncommittedChanges]
+  );
 
   const toggleCommitExpansion = useCallback(
     async (commitId: Commit['id']) => {
@@ -144,13 +165,16 @@ export const ProjectHistoryPage = () => {
     '/projects/:projectId/history/:artifactId/changes/:changeId'
   );
 
-  const selectedDocumentPath = useMemo(() => {
+  const selectedDocumentId = useMemo(() => {
     const encodedDocumentId = documentChangeMatch?.params.artifactId;
-    if (!encodedDocumentId) return null;
-    const documentId = decodeUrlEncodedArtifactId(encodedDocumentId);
-    if (!documentId || !isGitBlobRef(documentId)) return null;
-    return decomposeGitBlobRef(documentId).path;
+    return encodedDocumentId
+      ? decodeUrlEncodedArtifactId(encodedDocumentId)
+      : null;
   }, [documentChangeMatch]);
+
+  const { artifact: selectedArtifact } =
+    useArtifactMetaData(selectedDocumentId);
+  const selectedDocumentPath = selectedArtifact?.path ?? null;
 
   const selectedCommitId = useMemo((): Commit['id'] | null => {
     const encodedChangeId = documentChangeMatch?.params.changeId;

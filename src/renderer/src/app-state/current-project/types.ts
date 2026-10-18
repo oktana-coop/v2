@@ -1,0 +1,123 @@
+import {
+  type ArtifactMetaData,
+  type ProjectId,
+  type ProjectStore,
+  type ProjectTreeNode,
+  type RemoteProjectInfo,
+} from '../../../../modules/domain/project';
+import { type Directory } from '../../../../modules/infrastructure/filesystem';
+import {
+  type ArtifactId,
+  type Branch,
+  type ChangedDocument,
+  type Commit,
+  type MergeConflictInfo,
+} from '../../../../modules/infrastructure/version-control';
+import { type Unsubscribe } from '../../../../utils/effect';
+
+// A branch switch that would overwrite local changes to these files.
+export type BranchSwitchRefusal = { filepaths: string[] };
+
+export type PendingNewDocument = {
+  parentPath?: string;
+  defaultName: string;
+};
+
+export type PendingNewDirectory = {
+  parentPath?: string;
+};
+
+export type ProjectStateSetters = {
+  setCurrentBranch: (branch: Branch) => void;
+  setMergeConflictInfo: (mergeConflictInfo: MergeConflictInfo | null) => void;
+  setRemoteProject: (remoteProject: RemoteProjectInfo | null) => void;
+  setPulledUpstreamChanges: (pulledUpstreamChanges: boolean) => void;
+};
+
+export type ProjectContextType = {
+  resolving: boolean;
+  projectId: ProjectId | null;
+  directory: Directory | null;
+  currentBranch: Branch | null;
+  projectStore: ProjectStore | null;
+  currentArtifact: ArtifactMetaData | null;
+  resolvingCurrentArtifact: boolean;
+  directoryTree: ProjectTreeNode[];
+  refreshDirectoryTree: () => Promise<void>;
+  subscribeToProjectContentChangeEvents: (args: {
+    emitOnStart: boolean;
+    onEvent: () => void;
+  }) => Unsubscribe;
+  openDirectory: (cloneUrl?: string) => Promise<Directory>;
+  requestPermissionForSelectedDirectory: () => Promise<void>;
+  listBranches: () => Promise<Branch[]>;
+  createAndSwitchToBranch: (branchName: string) => Promise<void>;
+  // Resolves to what stood in the way, or null once switched.
+  switchToBranch: (branch: Branch) => Promise<BranchSwitchRefusal | null>;
+  isCreateBranchDialogOpen: boolean;
+  openCreateBranchDialog: () => void;
+  closeCreateBranchDialog: () => void;
+  deleteBranch: (branch: Branch) => Promise<void>;
+  mergeAndDeleteBranch: (branch: Branch) => Promise<void>;
+  abortMerge: () => Promise<void>;
+  refreshConflictsAndMergeIfPossible: () => Promise<void>;
+  resolveConflictByKeepingDocument: (documentId: ArtifactId) => Promise<void>;
+  resolveConflictByDeletingDocument: (documentId: ArtifactId) => Promise<void>;
+  branchToDelete: Branch | null;
+  openDeleteBranchDialog: (branch: Branch) => void;
+  closeDeleteBranchDialog: () => void;
+  supportsBranching: boolean;
+  supportsSync: boolean;
+  mergeConflictInfo: MergeConflictInfo | null;
+  remoteProject: RemoteProjectInfo | null;
+  addRemoteProject: (url: string) => Promise<void>;
+  remoteBranchInfo: Record<Branch, Commit['id']>;
+  pushToRemoteProject: () => Promise<void>;
+  pullFromRemoteProject: () => Promise<void>;
+  pulledUpstreamChanges: boolean;
+  onHandlePulledUpstreamChanges: () => void;
+  pendingNewDocument: PendingNewDocument | null;
+  startCreateDocument: (parentPath?: string) => void;
+  createDocument: (name: string) => Promise<void>;
+  cancelCreateDocument: () => void;
+  createDocumentError: string | null;
+  clearCreateDocumentError: () => void;
+  pendingNewDirectory: PendingNewDirectory | null;
+  startCreateDirectory: (parentPath?: string) => void;
+  createDirectory: (name: string) => Promise<void>;
+  cancelCreateDirectory: () => void;
+  filePathToDelete: string | null;
+  startDeleteDocument: (path: string) => void;
+  deleteDocument: (args: { relativePath: string }) => Promise<void>;
+  confirmDeleteDocument: () => void;
+  cancelDeleteDocument: () => void;
+  directoryPathToDelete: string | null;
+  startDeleteDirectory: (path: string) => void;
+  deleteDirectory: (args: { relativePath: string }) => Promise<void>;
+  confirmDeleteDirectory: () => void;
+  cancelDeleteDirectory: () => void;
+  filePathToRename: string | null;
+  startRenameDocument: (path: string) => void;
+  renameDocumentError: string | null;
+  clearRenameDocumentError: () => void;
+  renameDocument: (args: {
+    oldRelativePath: string;
+    newName: string;
+  }) => Promise<void>;
+  cancelRenameDocument: () => void;
+  directoryPathToRename: string | null;
+  startRenameDirectory: (path: string) => void;
+  renameDirectoryError: string | null;
+  clearRenameDirectoryError: () => void;
+  renameDirectory: (args: {
+    oldRelativePath: string;
+    newName: string;
+  }) => Promise<void>;
+  cancelRenameDirectory: () => void;
+  getProjectHistory: () => Promise<Commit[]>;
+  getProjectChangedDocuments: (
+    changeId: Commit['id']
+  ) => Promise<ChangedDocument[]>;
+  getProjectUncommittedChanges: () => Promise<ChangedDocument[]>;
+  commitChanges: (message: string) => Promise<void>;
+};

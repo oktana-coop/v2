@@ -1,25 +1,30 @@
-import { useContext } from 'react';
+import { useContext, useMemo } from 'react';
+import { useNavigate } from 'react-router';
 
+import { urlEncodeShareId } from '../../../../../../modules/domain/collaboration';
+import {
+  artifactKinds,
+  getArtifactName,
+  listOpenableArtifacts,
+} from '../../../../../../modules/domain/project';
 import { richTextRepresentations } from '../../../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
-import { removeExtension } from '../../../../../../modules/infrastructure/filesystem';
 import {
   CommandPaletteContext,
   CommitModalContext,
+  CurrentArtifactVersioningContext,
   CurrentDocumentContext,
+  GuestShareRegistryContext,
+  ProjectContext,
+  useArtifactSelection,
+  useClearWebStorage,
+  useExport,
 } from '../../../../app-state';
 import {
   type ActionOption,
   CommandPalette,
 } from '../../../../components/dialogs/command-palette';
-import {
-  getOpenableDocuments,
-  useArtifactSelection,
-  useClearWebStorage,
-  useCurrentDocumentName,
-  useDocumentExplorerTree,
-  useExport,
-} from '../../../../hooks';
+import { useDocumentExplorerTree } from '../explorer-tree-views';
 import { keyBindings } from './key-bindings';
 
 export const ProjectCommandPalette = ({
@@ -34,22 +39,35 @@ export const ProjectCommandPalette = ({
   const { isOpen: isCommandPaletteOpen, closeCommandPalette } = useContext(
     CommandPaletteContext
   );
-  const { canCommit, onOpenDiscardChangesDialog } = useContext(
-    CurrentDocumentContext
-  );
+  const { canCommit, versionedDocumentId, onOpenDiscardChangesDialog } =
+    useContext(CurrentArtifactVersioningContext);
+  const { shareId, onOpenShareDocumentDialog, onOpenJoinSharedDocumentDialog } =
+    useContext(CurrentDocumentContext);
   const { openCommitModal } = useContext(CommitModalContext);
   const { checkForUpdate } = useContext(ElectronContext);
+  const { directoryTree, currentArtifact } = useContext(ProjectContext);
 
   const handleArtifactSelection = useArtifactSelection();
-  const currentDocumentName = useCurrentDocumentName();
-  const {
-    explorerTree: documents,
-    selection,
-    startCreateDirectory,
-  } = useDocumentExplorerTree();
+  const currentDocumentName = currentArtifact
+    ? getArtifactName(currentArtifact.path)
+    : null;
+  const isRichTextDocument =
+    currentArtifact?.kind === artifactKinds.RICH_TEXT_DOCUMENT;
+  const { selection, startCreateDirectory } = useDocumentExplorerTree();
   const clearWebStorage = useClearWebStorage();
+  const { guestShares } = useContext(GuestShareRegistryContext);
+  const navigate = useNavigate();
 
-  const { exportToText, exportToBinary, exportToPDF } = useExport();
+  const { exportToText, exportToBinary, exportToPDF, copyTextToClipboard } =
+    useExport();
+
+  const openableDocuments = useMemo(
+    () =>
+      listOpenableArtifacts(directoryTree).filter(
+        (doc) => doc.path !== selection
+      ),
+    [directoryTree, selection]
+  );
 
   const projectActions = [
     {
@@ -70,6 +88,18 @@ export const ProjectCommandPalette = ({
     },
   ];
 
+  const sharedDocumentActions: ActionOption[] = [
+    {
+      name: 'Shared with me',
+      onActionSelection: () => navigate('/shared-documents'),
+    },
+    ...guestShares.map((share) => ({
+      name: `Open shared document: ${share.name}`,
+      onActionSelection: () =>
+        navigate(`/shared-documents/${urlEncodeShareId(share.shareId)}`),
+    })),
+  ];
+
   const generalActions = [
     {
       name: keyBindings.ctrlN.command,
@@ -82,23 +112,11 @@ export const ProjectCommandPalette = ({
       onActionSelection: onOpenProjectSettings,
     },
     ...projectActions,
+    ...sharedDocumentActions,
     ...electronSpecificActions,
   ];
 
-  const documentActions = [
-    ...(canCommit
-      ? [
-          {
-            name: keyBindings.ctrlS.command,
-            shortcut: keyBindings.ctrlS.keyBinding,
-            onActionSelection: openCommitModal,
-          },
-          {
-            name: 'Discard changes',
-            onActionSelection: onOpenDiscardChangesDialog,
-          },
-        ]
-      : []),
+  const richTextExportActions = [
     {
       name: keyBindings.ctrlShiftM.command,
       shortcut: keyBindings.ctrlShiftM.keyBinding,
@@ -130,29 +148,66 @@ export const ProjectCommandPalette = ({
     },
   ];
 
+  const documentActions = [
+    ...(canCommit
+      ? [
+          {
+            name: keyBindings.ctrlShiftC.command,
+            shortcut: keyBindings.ctrlShiftC.keyBinding,
+            onActionSelection: openCommitModal,
+          },
+          {
+            name: 'Discard changes',
+            onActionSelection: onOpenDiscardChangesDialog,
+          },
+        ]
+      : []),
+    ...(isRichTextDocument
+      ? [
+          {
+            name: 'Copy as Markdown',
+            onActionSelection: copyTextToClipboard(
+              richTextRepresentations.MARKDOWN
+            ),
+          },
+        ]
+      : []),
+    {
+      name: shareId ? 'Sharing options' : 'Share this document',
+      onActionSelection: onOpenShareDocumentDialog,
+    },
+    ...(shareId
+      ? []
+      : [
+          {
+            name: 'Join shared document',
+            onActionSelection: onOpenJoinSharedDocumentDialog,
+          },
+        ]),
+    ...(isRichTextDocument ? richTextExportActions : []),
+  ];
+
   return (
     <CommandPalette
       open={isCommandPaletteOpen}
       onClose={closeCommandPalette}
       documentsGroupTitle="Project documents"
       contextualSection={
-        currentDocumentName
+        versionedDocumentId && currentDocumentName
           ? {
               groupTitle: `Current document: ${currentDocumentName}`,
               actions: documentActions,
             }
           : undefined
       }
-      documents={getOpenableDocuments(documents)
-        .filter((doc) => doc.id !== selection)
-        .map((doc) => ({
-          id: doc.id,
-          title: removeExtension(doc.name),
-          onDocumentSelection: () => {
-            handleArtifactSelection(doc.id);
-            closeCommandPalette();
-          },
-        }))}
+      documents={openableDocuments.map((doc) => ({
+        id: doc.path,
+        title: getArtifactName(doc.path),
+        onDocumentSelection: () => {
+          handleArtifactSelection(doc.path);
+          closeCommandPalette();
+        },
+      }))}
       actions={generalActions}
     />
   );

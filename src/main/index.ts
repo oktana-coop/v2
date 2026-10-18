@@ -16,6 +16,7 @@ import {
 import os from 'os';
 
 import { createElectronMainEncryptedStoreAdapter } from '../modules/auth/node';
+import { readHeadlessWindowOverride } from '../modules/config';
 import { createPandocDocumentAnalyzerAdapter } from '../modules/domain/rich-text';
 import { createPagedJsElectronNodeAdapter } from '../modules/domain/rich-text/node';
 import { allowedPermissions } from '../modules/infrastructure/cross-platform';
@@ -25,7 +26,8 @@ import {
 } from '../modules/infrastructure/cross-platform/node';
 import {
   type CreateDirectoryArgs,
-  type CreateNewFileArgs,
+  type CreateFileArgs,
+  type CreateFileWithDialogArgs,
   type DeleteDirectoryArgs,
   type DeleteFileArgs,
   type GetAbsolutePathArgs,
@@ -38,7 +40,8 @@ import {
   type RenameArgs,
   type WriteFileArgs,
 } from '../modules/infrastructure/filesystem';
-import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/infrastructure/filesystem/adapters/electron-node-api';
+import { createAdapter as createElectronNodeDirectoryWatcherAdapter } from '../modules/infrastructure/filesystem/adapters/directory-watcher/electron-node-api';
+import { createAdapter as createElectronNodeFilesystemAPIAdapter } from '../modules/infrastructure/filesystem/adapters/filesystem/electron-node-api';
 import { type RunWasiCLIArgs } from '../modules/infrastructure/wasm';
 import { createAdapter as createNodeWasmAdapter } from '../modules/infrastructure/wasm/adapters/node-wasm';
 import {
@@ -53,7 +56,8 @@ import { registerAuthInfoIPCHandlers } from './auth';
 import {
   registerContextMenusIPCHandlers,
   registerPdfIPCHandlers,
-  registerVersionedStoresEvents,
+  registerProjectStoreChangesEvents,
+  registerProjectStoresEvents,
 } from './ipc';
 import { buildAppMenu } from './menus';
 import { initializeStore } from './store';
@@ -61,6 +65,7 @@ import { update } from './update';
 
 const store = initializeStore();
 const filesystemAPI = createElectronNodeFilesystemAPIAdapter();
+const directoryWatcher = createElectronNodeDirectoryWatcherAdapter();
 const encryptedStore = createElectronMainEncryptedStoreAdapter({
   filesystem: filesystemAPI,
 });
@@ -80,7 +85,7 @@ globalThis.__dirname = dirname(__filename);
 // │ └─┬ renderer
 // │   └── index.mjs
 process.env.DIST_ELECTRON = join(__dirname, '../');
-process.env.DIST = join(process.env.DIST_ELECTRON, '../dist');
+process.env.DIST = process.env.DIST_ELECTRON;
 process.env.VITE_PUBLIC = process.env.VITE_DEV_SERVER_URL
   ? join(process.env.DIST_ELECTRON, '../public')
   : process.env.DIST;
@@ -139,7 +144,7 @@ async function createWindow() {
     },
     ...(isMac() && { titleBarStyle: 'hidden' }),
     // Hide the window when running E2E tests headlessly.
-    ...(process.argv.includes('--headless-window') && { show: false }),
+    ...(readHeadlessWindowOverride(process.argv) && { show: false }),
   });
 
   if (url) {
@@ -154,9 +159,10 @@ async function createWindow() {
 
   const rendererProcessId = String(win.webContents.id);
 
-  registerVersionedStoresEvents({
+  registerProjectStoresEvents({
     filesystem: filesystemAPI,
     documentAnalyzer,
+    directoryWatcher,
     encryptedStore,
   });
 
@@ -199,8 +205,15 @@ async function createWindow() {
       filesystemAPI.assertWritePermissionForDirectory(path)
     )
   );
-  ipcMain.handle('create-new-file', (_, args: CreateNewFileArgs) =>
-    runPromiseSerializingErrorsForIPC(filesystemAPI.createNewFile(args))
+  ipcMain.handle(
+    'create-file-with-dialog',
+    (_, args: CreateFileWithDialogArgs) =>
+      runPromiseSerializingErrorsForIPC(
+        filesystemAPI.createFileWithDialog(args)
+      )
+  );
+  ipcMain.handle('create-file', (_, args: CreateFileArgs) =>
+    runPromiseSerializingErrorsForIPC(filesystemAPI.createFile(args))
   );
   ipcMain.handle('open-file', async (_, args: OpenFileArgs) =>
     runPromiseSerializingErrorsForIPC(filesystemAPI.openFile(args))
@@ -288,20 +301,16 @@ app.whenReady().then(() => {
 
   installProjectAssetProtocolHandler({ assetUrlProtocol });
 
+  registerProjectStoreChangesEvents();
+
   setSavedOrDefaultTheme(store);
 
   createWindow();
 });
 
-app.on('before-quit', async () => {
-  const defaultSession = session.defaultSession;
-  await defaultSession.clearStorageData({
-    storages: ['indexdb'],
-  });
-});
-
 app.on('window-all-closed', () => {
   win = null;
+  directoryWatcher.unwatchAllDirectories();
   if (process.platform !== 'darwin') app.quit();
 });
 

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import type { ComponentProps } from 'react';
 
-import { KeyBinding } from '../../../hooks';
+import { KeyBinding } from '../../../keyboard';
 import { CommandPalette } from './CommandPalette';
 
 const meta: Meta<typeof CommandPalette> = {

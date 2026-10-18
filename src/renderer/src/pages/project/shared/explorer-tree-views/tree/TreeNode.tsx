@@ -1,74 +1,123 @@
 import { clsx } from 'clsx';
-import { useEffect, useRef } from 'react';
-import { type NodeApi, type NodeRendererProps } from 'react-arborist';
+import { useState } from 'react';
+import { type NodeRendererProps } from 'react-arborist';
 
-import { isUnsupportedExtension } from '../../../../../../../modules/domain/rich-text';
+import {
+  inferArtifactKindFromExtension,
+  isDocumentKind,
+} from '../../../../../../../modules/domain/project';
 import { EXPLORER_TREE_NODE } from '../../../../../../../modules/infrastructure/cross-platform';
-import { filesystemItemTypes } from '../../../../../../../modules/infrastructure/filesystem';
-import { ChevronDownIcon, DiffIcon } from '../../../../../components/icons';
+import {
+  filesystemEntryTypes,
+  getExtension,
+} from '../../../../../../../modules/infrastructure/filesystem';
+import {
+  ChevronDownIcon,
+  DiffIcon,
+  GroupIcon,
+} from '../../../../../components/icons';
 import { FileExtensionIcon } from '../../../../../components/navigation';
+import {
+  treeEditingRowClasses,
+  treeRowClasses,
+  TreeRowInput,
+} from '../../../../../components/tree';
+import { useTreeCallbacks } from './TreeView';
 import {
   type ExplorerTreeNode,
   NEW_DIRECTORY_NODE_ID,
+  NEW_FILE_NODE_ID,
   STRUCTURAL_CONFLICTS_NODE_TYPE,
-} from '../../../../../hooks';
-import { useTreeCallbacks } from './TreeView';
-
-const nodeClasses = (node: NodeApi<ExplorerTreeNode>) =>
-  clsx(
-    'flex items-center h-[32px] cursor-pointer overflow-hidden text-ellipsis text-nowrap text-sm py-0.5 hover:bg-zinc-950/5 dark:hover:bg-white/5',
-    node.isSelected ? 'bg-purple-50 dark:bg-neutral-600' : ''
-  );
+} from './types';
 
 const NewDirectoryNode = ({
   node,
   style,
 }: NodeRendererProps<ExplorerTreeNode>) => {
   const { onCreateDirectory, onCancelCreateDirectory } = useTreeCallbacks();
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+  const handleSubmit = (value: string) => {
+    const name = value.trim();
 
-  const handleKeyDown = (ev: React.KeyboardEvent<HTMLInputElement>) => {
-    // Prevent react-arborist from intercepting keyboard events (e.g. arrow
-    // navigation), which would steal focus from the input and trigger onBlur.
-    ev.stopPropagation();
-
-    if (ev.key === 'Enter') {
-      const value = inputRef.current?.value.trim() ?? '';
-      if (value) {
-        onCreateDirectory(value);
-      } else {
-        onCancelCreateDirectory();
-      }
-    } else if (ev.key === 'Escape') {
+    if (name) {
+      onCreateDirectory(name);
+    } else {
       onCancelCreateDirectory();
     }
   };
 
-  const handleBlur = () => {
-    onCancelCreateDirectory();
-  };
-
   return (
     <div
-      className={clsx(
-        'flex h-[32px] items-center overflow-hidden py-0.5 text-sm'
-      )}
+      className={treeEditingRowClasses}
       style={{
         ...style,
         paddingLeft: node.level * 24 + 36,
       }}
     >
       <ChevronDownIcon className="mr-2 shrink-0 -rotate-90" size={20} />
-      <input
-        ref={inputRef}
-        type="text"
-        className="min-w-0 flex-1 border border-purple-400 bg-transparent px-1 text-sm outline-none dark:border-purple-300"
-        onKeyDown={handleKeyDown}
-        onBlur={handleBlur}
+      <TreeRowInput
+        className="flex-1"
+        label="New folder name"
+        onSubmit={handleSubmit}
+        onCancel={onCancelCreateDirectory}
+      />
+    </div>
+  );
+};
+
+const MISSING_EXTENSION_WARNING =
+  'This name has no extension (such as .md). Press Enter again to keep it.';
+
+const NewFileNode = ({ node, style }: NodeRendererProps<ExplorerTreeNode>) => {
+  const {
+    onCreateDocument,
+    onCancelCreateDocument,
+    onClearCreateDocumentError,
+    createDocumentError,
+  } = useTreeCallbacks();
+  const [isConfirming, setIsConfirming] = useState(false);
+
+  const handleSubmit = (value: string) => {
+    const name = value.trim();
+
+    if (!name) {
+      onCancelCreateDocument();
+      return;
+    }
+
+    // A name without an extension takes a second Enter.
+    if (getExtension(name) === '' && !isConfirming) {
+      setIsConfirming(true);
+      return;
+    }
+
+    onCreateDocument(name);
+  };
+
+  const handleChange = () => {
+    setIsConfirming(false);
+    onClearCreateDocumentError();
+  };
+
+  return (
+    <div
+      className={treeEditingRowClasses}
+      style={{
+        ...style,
+        paddingLeft: node.level * 24 + 40,
+      }}
+    >
+      <FileExtensionIcon fileName={node.data.name} />
+      <TreeRowInput
+        className="flex-1"
+        label="New file name"
+        defaultValue={node.data.name}
+        mayIncludeExtension
+        error={createDocumentError}
+        warning={isConfirming ? MISSING_EXTENSION_WARNING : null}
+        onSubmit={handleSubmit}
+        onCancel={onCancelCreateDocument}
+        onChange={handleChange}
       />
     </div>
   );
@@ -84,65 +133,49 @@ const RenamingFileNode = ({
     onClearRenameDocumentError,
     renameDocumentError,
   } = useTreeCallbacks();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
 
-  const fileName = node.data.name;
-  const extIndex = fileName.lastIndexOf('.');
-  const nameWithoutExt = extIndex >= 0 ? fileName.slice(0, extIndex) : fileName;
+  const handleSubmit = (value: string) => {
+    const name = value.trim();
 
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, []);
-
-  const handleKeyDown = (ev: React.KeyboardEvent<HTMLInputElement>) => {
-    ev.stopPropagation();
-
-    if (ev.key === 'Enter') {
-      const value = inputRef.current?.value.trim() ?? '';
-      if (value) {
-        onRenameDocument(node.data.id, value);
-      } else {
-        onCancelRenameDocument();
-      }
-    } else if (ev.key === 'Escape') {
+    if (!name) {
       onCancelRenameDocument();
+      return;
     }
+
+    // A name without an extension takes a second Enter.
+    if (getExtension(name) === '' && !isConfirming) {
+      setIsConfirming(true);
+      return;
+    }
+
+    onRenameDocument(node.data.id, name);
   };
 
   const handleChange = () => {
+    setIsConfirming(false);
     onClearRenameDocumentError();
-  };
-
-  const handleBlur = () => {
-    onCancelRenameDocument();
   };
 
   return (
     <div
-      className="flex h-[32px] items-center overflow-hidden py-0.5 text-sm"
+      className={treeEditingRowClasses}
       style={{
         ...style,
         paddingLeft: node.level * 24 + 40,
       }}
     >
       <FileExtensionIcon fileName={node.data.name} />
-      <input
-        ref={inputRef}
-        type="text"
-        defaultValue={nameWithoutExt}
-        title={renameDocumentError ?? undefined}
-        className={clsx(
-          'min-w-0 flex-1 border bg-transparent px-1 text-sm outline-none',
-          renameDocumentError
-            ? 'border-red-500 dark:border-red-400'
-            : 'border-purple-400 dark:border-purple-300'
-        )}
-        onKeyDown={handleKeyDown}
+      <TreeRowInput
+        className="flex-1"
+        label="File name"
+        defaultValue={node.data.name}
+        mayIncludeExtension
+        error={renameDocumentError}
+        warning={isConfirming ? MISSING_EXTENSION_WARNING : null}
+        onSubmit={handleSubmit}
+        onCancel={onCancelRenameDocument}
         onChange={handleChange}
-        onBlur={handleBlur}
       />
     </div>
   );
@@ -158,61 +191,34 @@ const RenamingDirectoryNode = ({
     onClearRenameDirectoryError,
     renameDirectoryError,
   } = useTreeCallbacks();
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, []);
+  const handleSubmit = (value: string) => {
+    const name = value.trim();
 
-  const handleKeyDown = (ev: React.KeyboardEvent<HTMLInputElement>) => {
-    ev.stopPropagation();
-
-    if (ev.key === 'Enter') {
-      const value = inputRef.current?.value.trim() ?? '';
-      if (value) {
-        onRenameDirectory(node.data.id, value);
-      } else {
-        onCancelRenameDirectory();
-      }
-    } else if (ev.key === 'Escape') {
+    if (name) {
+      onRenameDirectory(node.data.id, name);
+    } else {
       onCancelRenameDirectory();
     }
   };
 
-  const handleChange = () => {
-    onClearRenameDirectoryError();
-  };
-
-  const handleBlur = () => {
-    onCancelRenameDirectory();
-  };
-
   return (
     <div
-      className="flex h-[32px] items-center overflow-hidden py-0.5 text-sm"
+      className={treeEditingRowClasses}
       style={{
         ...style,
         paddingLeft: node.level * 24 + 36,
       }}
     >
       <ChevronDownIcon className="mr-2 shrink-0 -rotate-90" size={20} />
-      <input
-        ref={inputRef}
-        type="text"
+      <TreeRowInput
+        className="flex-1"
+        label="Folder name"
         defaultValue={node.data.name}
-        title={renameDirectoryError ?? undefined}
-        className={clsx(
-          'min-w-0 flex-1 border bg-transparent px-1 text-sm outline-none',
-          renameDirectoryError
-            ? 'border-red-500 dark:border-red-400'
-            : 'border-purple-400 dark:border-purple-300'
-        )}
-        onKeyDown={handleKeyDown}
-        onChange={handleChange}
-        onBlur={handleBlur}
+        error={renameDirectoryError}
+        onSubmit={handleSubmit}
+        onCancel={onCancelRenameDirectory}
+        onChange={onClearRenameDirectoryError}
       />
     </div>
   );
@@ -239,7 +245,7 @@ const DirectoryNode = ({
     <div
       onClick={onClick}
       onContextMenu={handleContextMenu}
-      className={nodeClasses(node)}
+      className={treeRowClasses(node.isSelected)}
       style={{
         ...style,
         paddingLeft: node.level * 24 + 36,
@@ -284,13 +290,18 @@ const FileNode = ({
   // Files the editor cannot open as documents (e.g. images, PDFs) are dimmed to
   // signal they are not editable. They stay clickable so selecting one still
   // surfaces the unsupported-document view explaining why.
-  const isUnopenable = isUnsupportedExtension(node.data.name);
+  const isUnopenable = !isDocumentKind(
+    inferArtifactKindFromExtension(node.data.name)
+  );
 
   return (
     <div
       onClick={onClick}
       onContextMenu={handleContextMenu}
-      className={clsx(nodeClasses(node), isUnopenable && 'opacity-50')}
+      className={clsx(
+        treeRowClasses(node.isSelected),
+        isUnopenable && 'opacity-50'
+      )}
       style={{
         ...style,
         paddingLeft: node.level * 24 + 40,
@@ -299,6 +310,14 @@ const FileNode = ({
     >
       <FileExtensionIcon fileName={node.data.name} />
       {node.data.name}
+      {node.data.shared && (
+        <span
+          className="ml-1 inline-flex shrink-0 text-purple-500 dark:text-purple-300"
+          data-testid="shared-document-badge"
+        >
+          <GroupIcon size={16} />
+        </span>
+      )}
     </div>
   );
 };
@@ -312,7 +331,7 @@ const StructuralConflictsNode = ({
 }) => (
   <div
     onClick={onClick}
-    className={nodeClasses(node)}
+    className={treeRowClasses(node.isSelected)}
     style={{
       ...style,
       paddingLeft: node.level * 24 + 36,
@@ -333,13 +352,17 @@ export const TreeNode = ({
     node.handleClick?.(ev);
 
     // if the node represents a directory, toggle its collapsed state
-    if (node.data.type === filesystemItemTypes.DIRECTORY) {
+    if (node.data.type === filesystemEntryTypes.DIRECTORY) {
       node.toggle();
     }
   };
 
   if (node.data.id === NEW_DIRECTORY_NODE_ID) {
     return <NewDirectoryNode node={node} {...nodeRendererProps} />;
+  }
+
+  if (node.data.id === NEW_FILE_NODE_ID) {
+    return <NewFileNode node={node} {...nodeRendererProps} />;
   }
 
   if (node.data.type === STRUCTURAL_CONFLICTS_NODE_TYPE) {
@@ -352,7 +375,7 @@ export const TreeNode = ({
     );
   }
 
-  if (node.data.type === filesystemItemTypes.DIRECTORY) {
+  if (node.data.type === filesystemEntryTypes.DIRECTORY) {
     if (directoryPathToRename === node.data.id) {
       return <RenamingDirectoryNode node={node} {...nodeRendererProps} />;
     }

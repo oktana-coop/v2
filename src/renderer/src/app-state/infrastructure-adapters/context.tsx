@@ -1,28 +1,76 @@
+import { type Repo as AutomergeRepo } from '@automerge/automerge-repo/slim';
 import * as Effect from 'effect/Effect';
-import { createContext, useContext, useEffect, useState } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import {
+  type DocumentSharing,
+  type SharedDocumentResolver,
+} from '../../../../modules/domain/collaboration';
+import {
+  createAdapter as createAutomergeDocumentSharingAdapter,
+  createResolverAdapter as createAutomergeSharedDocumentResolverAdapter,
+} from '../../../../modules/domain/collaboration/adapters/automerge-document-sharing';
+import {
+  type ParticipantSelection as PlainTextParticipantSelection,
+  type PlainTextDocument,
+} from '../../../../modules/domain/plain-text';
+import { plainTextAutomergeBinding } from '../../../../modules/domain/plain-text/adapters/automerge-convergent-document';
+import {
+  artifactKinds,
   type AssetUrlProtocol,
+  type ProjectStore,
   type ProjectStoreManager,
 } from '../../../../modules/domain/project';
 import {
   createElectronAssetProtocolAdapter,
   createElectronRendererProjectStoreManagerAdapter,
 } from '../../../../modules/domain/project/browser';
-import { type VersionedDocumentStore } from '../../../../modules/domain/rich-text';
+import {
+  type ParticipantSelection,
+  type PrimaryRichTextDocument,
+} from '../../../../modules/domain/rich-text';
+import { richTextAutomergeBinding } from '../../../../modules/domain/rich-text/adapters/automerge-convergent-document';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
 import { type Filesystem } from '../../../../modules/infrastructure/filesystem';
-import { createAdapter as createElectronRendererFilesystemAPIAdapter } from '../../../../modules/infrastructure/filesystem/adapters/electron-renderer-api';
+import { createAdapter as createElectronRendererFilesystemAPIAdapter } from '../../../../modules/infrastructure/filesystem/adapters/filesystem/electron-renderer-api';
+import {
+  createAutomergeRepo,
+  SyncServiceError,
+} from '../../../../modules/infrastructure/sync';
+import { mapErrorTo } from '../../../../utils/errors';
 import { LoadingText } from '../../components/progress/LoadingText';
+
+// How documents of each kind are shared.
+export type DocumentSharingByKind = {
+  [artifactKinds.RICH_TEXT_DOCUMENT]: DocumentSharing<
+    PrimaryRichTextDocument,
+    ParticipantSelection
+  >;
+  [artifactKinds.PLAIN_TEXT_DOCUMENT]: DocumentSharing<
+    PlainTextDocument,
+    PlainTextParticipantSelection
+  >;
+};
 
 export type InfrastructureAdaptersContextType = {
   filesystem: Filesystem;
   projectStoreManager: ProjectStoreManager;
   assetUrlProtocol: AssetUrlProtocol;
-  versionedDocumentStore: VersionedDocumentStore | null;
-  setVersionedDocumentStore: (
-    documentStore: VersionedDocumentStore | null
-  ) => void;
+  projectStore: ProjectStore | null;
+  setProjectStore: (store: ProjectStore | null) => void;
+  documentSharing: DocumentSharingByKind;
+  sharedDocumentResolver: SharedDocumentResolver;
+  // The repo that talks to the sync service, and the one that never talks
+  // to anyone: documents this app keeps to itself live in the latter.
+  syncedRepo: Effect.Effect<AutomergeRepo, SyncServiceError>;
+  privateRepo: Effect.Effect<AutomergeRepo>;
 };
 
 export const InfrastructureAdaptersContext =
@@ -33,8 +81,16 @@ export const InfrastructureAdaptersContext =
     projectStoreManager: null,
     // @ts-expect-error will get overriden below
     assetUrlProtocol: null,
-    versionedDocumentStore: null,
-    setVersionedDocumentStore: () => {},
+    projectStore: null,
+    setProjectStore: () => {},
+    // @ts-expect-error will get overriden below
+    documentSharing: null,
+    // @ts-expect-error will get overriden below
+    sharedDocumentResolver: null,
+    // @ts-expect-error will get overriden below
+    syncedRepo: null,
+    // @ts-expect-error will get overriden below
+    privateRepo: null,
   });
 
 export const InfrastructureAdaptersProvider = ({
@@ -42,13 +98,86 @@ export const InfrastructureAdaptersProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { processId } = useContext(ElectronContext);
-  const [versionedDocumentStore, setVersionedDocumentStore] =
-    useState<VersionedDocumentStore | null>(null);
+  const { processId, config } = useContext(ElectronContext);
+  const [projectStore, setProjectStore] = useState<ProjectStore | null>(null);
 
-  const filesystem = createElectronRendererFilesystemAPIAdapter();
+  const filesystem = useMemo(
+    () => createElectronRendererFilesystemAPIAdapter(),
+    []
+  );
 
-  const assetUrlProtocol = createElectronAssetProtocolAdapter();
+  const assetUrlProtocol = useMemo(
+    () => createElectronAssetProtocolAdapter(),
+    []
+  );
+
+  // Private documents live in a repo with no network: they structurally cannot
+  // reach the sync service. The repo is created lazily on first use.
+  const privateRepoRef = useRef<Promise<AutomergeRepo> | null>(null);
+  const privateRepo = useMemo(
+    () =>
+      Effect.promise(() => {
+        if (privateRepoRef.current === null) {
+          privateRepoRef.current = Effect.runPromise(createAutomergeRepo({}));
+        }
+
+        return privateRepoRef.current;
+      }),
+    []
+  );
+
+  // The synced repo dials the sync service, so it is built on first use rather than
+  // on startup: a client that never shares never connects.
+  const syncedRepoRef = useRef<Promise<AutomergeRepo> | null>(null);
+  const syncedRepo = useMemo(
+    () =>
+      Effect.tryPromise({
+        try: () => {
+          if (syncedRepoRef.current === null) {
+            // Shared documents outlive the process, so what was typed while
+            // the sync service was out of reach is still there to sync after
+            // a restart.
+            syncedRepoRef.current = Effect.runPromise(
+              createAutomergeRepo({
+                syncServiceUrl: config.syncServiceUrl,
+                storage: 'indexeddb',
+              })
+            );
+          }
+
+          return syncedRepoRef.current;
+        },
+        catch: mapErrorTo(
+          SyncServiceError,
+          'The sync service could not be started.'
+        ),
+      }),
+    [config.syncServiceUrl]
+  );
+
+  const documentSharing = useMemo(
+    (): DocumentSharingByKind => ({
+      [artifactKinds.RICH_TEXT_DOCUMENT]: createAutomergeDocumentSharingAdapter(
+        {
+          syncedRepo,
+          kind: artifactKinds.RICH_TEXT_DOCUMENT,
+          binding: richTextAutomergeBinding,
+        }
+      ),
+      [artifactKinds.PLAIN_TEXT_DOCUMENT]:
+        createAutomergeDocumentSharingAdapter({
+          syncedRepo,
+          kind: artifactKinds.PLAIN_TEXT_DOCUMENT,
+          binding: plainTextAutomergeBinding,
+        }),
+    }),
+    [syncedRepo]
+  );
+
+  const sharedDocumentResolver = useMemo(
+    () => createAutomergeSharedDocumentResolverAdapter({ syncedRepo }),
+    [syncedRepo]
+  );
 
   const [projectStoreManager, setProjectStoreManager] =
     useState<ProjectStoreManager | null>(null);
@@ -67,13 +196,8 @@ export const InfrastructureAdaptersProvider = ({
     return <LoadingText />;
   }
 
-  const handleSetDocumentStore = async (
-    documentStore: VersionedDocumentStore | null
-  ) => {
-    if (versionedDocumentStore) {
-      await Effect.runPromise(versionedDocumentStore.disconnect());
-    }
-    setVersionedDocumentStore(documentStore);
+  const handleSetProjectStore = (store: ProjectStore | null) => {
+    setProjectStore(store);
   };
 
   return (
@@ -82,8 +206,12 @@ export const InfrastructureAdaptersProvider = ({
         filesystem,
         projectStoreManager,
         assetUrlProtocol,
-        versionedDocumentStore,
-        setVersionedDocumentStore: handleSetDocumentStore,
+        projectStore,
+        setProjectStore: handleSetProjectStore,
+        documentSharing,
+        sharedDocumentResolver,
+        syncedRepo,
+        privateRepo,
       }}
     >
       {children}

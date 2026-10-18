@@ -1,21 +1,25 @@
 import { useContext, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 
+import {
+  type ShareId,
+  urlEncodeShareId,
+} from '../../../../../modules/domain/collaboration';
 import { urlEncodeProjectId } from '../../../../../modules/domain/project';
 import { removePath } from '../../../../../modules/infrastructure/filesystem';
 import { urlEncodeArtifactId } from '../../../../../modules/infrastructure/version-control';
 import {
   BranchingCommandPaletteContext,
   CommitModalContext,
+  CurrentArtifactVersioningContext,
   CurrentDocumentContext,
   ProjectContext,
-} from '../../../app-state';
-import { BranchingCommandPaletteStateProvider } from '../../../app-state';
-import {
   useCommitDocumentChanges,
   useCommitToProject,
   useCreateDocument,
-} from '../../../hooks';
+  useCurrentRichTextDocumentId,
+} from '../../../app-state';
+import { BranchingCommandPaletteStateProvider } from '../../../app-state';
 import { ProjectCommandPalette } from '../shared/command-palette';
 import { BottomBar } from './bottom-bar';
 import {
@@ -30,6 +34,10 @@ import {
   DiscardChangesDialog,
   RestoreCommitDialog,
 } from './change-dialogs';
+import {
+  JoinSharedDocumentDialog,
+  ShareDocumentDialog,
+} from './sharing-dialogs';
 
 export const CurrentProject = () => {
   return (
@@ -41,15 +49,26 @@ export const CurrentProject = () => {
 
 const Project = () => {
   const {
-    versionedDocumentId,
+    shareId,
+    isShareDocumentDialogOpen,
+    isJoinSharedDocumentDialogOpen,
+    onCloseShareDocumentDialog,
+    onCloseJoinSharedDocumentDialog,
+    onShareDocument,
+    onJoinSharedDocument,
+    onSwitchToBranchAndJoin,
+    onLeaveSharedDocument,
+  } = useContext(CurrentDocumentContext);
+  const {
+    canCommit,
     isRestoreCommitDialogOpen,
     isDiscardChangesDialogOpen,
-    canCommit,
     onCloseRestoreCommitDialog,
     onCloseDiscardChangesDialog,
     onRestoreCommit,
     onDiscardChanges,
-  } = useContext(CurrentDocumentContext);
+  } = useContext(CurrentArtifactVersioningContext);
+  const richTextDocumentId = useCurrentRichTextDocumentId();
   const { isOpen: isCommitDialogOpen, closeCommitModal } =
     useContext(CommitModalContext);
   const commitChangesToProject = useCommitToProject();
@@ -59,7 +78,7 @@ const Project = () => {
     isOpen: isBranchingCommandPaletteOpen,
     closeBranchingCommandPalette,
   } = useContext(BranchingCommandPaletteContext);
-  const { triggerDocumentCreationDialog } = useCreateDocument();
+  const { startCreateDocument } = useCreateDocument();
   const {
     projectId,
     filePathToDelete,
@@ -84,7 +103,7 @@ const Project = () => {
     BranchingCommandPaletteContext
   );
 
-  const handleOpenCreateDocumentDialog = () => triggerDocumentCreationDialog();
+  const handleStartCreateDocument = () => startCreateDocument();
 
   const handleOpenProjectSettings = () => {
     if (projectId) {
@@ -93,16 +112,20 @@ const Project = () => {
     }
   };
 
+  const handleOpenAsGuest = (shareId: ShareId) => {
+    navigate(`/shared-documents/${urlEncodeShareId(shareId)}`);
+  };
+
   const handleOpenPrintPreview = () => {
-    if (projectId && versionedDocumentId) {
+    if (projectId && richTextDocumentId) {
       navigate(
-        `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(versionedDocumentId)}/print-preview`
+        `/projects/${urlEncodeProjectId(projectId)}/artifacts/${urlEncodeArtifactId(richTextDocumentId)}/print-preview`
       );
     }
   };
 
   return (
-    <div className="flex h-full flex-auto flex-col">
+    <div className="flex h-full min-w-0 flex-auto flex-col">
       <div className="flex flex-auto overflow-y-auto">
         <CommitDialog
           isOpen={isCommitDialogOpen}
@@ -132,6 +155,20 @@ const Project = () => {
           onCancel={onCloseDiscardChangesDialog}
           onDiscardChanges={() => onDiscardChanges()}
         />
+        <ShareDocumentDialog
+          isOpen={isShareDocumentDialogOpen}
+          shareId={shareId}
+          onShare={onShareDocument}
+          onStopSharing={onLeaveSharedDocument}
+          onCancel={onCloseShareDocumentDialog}
+        />
+        <JoinSharedDocumentDialog
+          isOpen={isJoinSharedDocumentDialogOpen}
+          onJoin={onJoinSharedDocument}
+          onSwitchToBranchAndJoin={onSwitchToBranchAndJoin}
+          onOpenAsGuest={handleOpenAsGuest}
+          onCancel={onCloseJoinSharedDocumentDialog}
+        />
         <DeleteDocumentDialog
           isOpen={filePathToDelete !== null}
           documentName={filePathToDelete ? removePath(filePathToDelete) : null}
@@ -147,7 +184,7 @@ const Project = () => {
           onConfirm={confirmDeleteDirectory}
         />
         <ProjectCommandPalette
-          onCreateDocument={handleOpenCreateDocumentDialog}
+          onCreateDocument={handleStartCreateDocument}
           onOpenProjectSettings={handleOpenProjectSettings}
           onOpenPrintPreview={handleOpenPrintPreview}
         />

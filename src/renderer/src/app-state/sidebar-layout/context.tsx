@@ -5,6 +5,7 @@ export type SidebarLayoutContextType = {
   isSidebarOpen: boolean;
   sidebarPanelRef: React.MutableRefObject<ImperativePanelHandle | null>;
   toggleSidebar: () => void;
+  openSidebar: () => void;
   collapseSidebar: () => void;
   expandSidebar: () => void;
 };
@@ -13,6 +14,7 @@ export const SidebarLayoutContext = createContext<SidebarLayoutContextType>({
   isSidebarOpen: true,
   sidebarPanelRef: { current: null },
   toggleSidebar: () => {},
+  openSidebar: () => {},
   collapseSidebar: () => {},
   expandSidebar: () => {},
 });
@@ -40,6 +42,14 @@ export const SidebarLayoutProvider = ({
     }
   }, [sidebarPanelRef]);
 
+  const handleOpenSidebar = useCallback(() => {
+    const sidebarPanel = sidebarPanelRef.current;
+
+    if (sidebarPanel?.isCollapsed()) {
+      sidebarPanel.expand(MIN_EXPAND_SIZE);
+    }
+  }, [sidebarPanelRef]);
+
   const handleCollapseSidebar = () => {
     setSidebarOpen(false);
   };
@@ -54,6 +64,7 @@ export const SidebarLayoutProvider = ({
         isSidebarOpen,
         sidebarPanelRef,
         toggleSidebar: handleSidebarToggle,
+        openSidebar: handleOpenSidebar,
         collapseSidebar: handleCollapseSidebar,
         expandSidebar: handleExpandSidebar,
       }}

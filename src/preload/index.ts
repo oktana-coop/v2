@@ -7,16 +7,18 @@ import {
   type PersonalizationAPI,
   type ProjectStoreManagerAPI,
   type ProjectStorePromiseAPI,
-  type RendererConfig,
   type VersionControlSyncProvidersAPI,
-  type VersionedDocumentStorePromiseAPI,
 } from '../../renderer';
 import { type GithubDeviceFlowVerificationInfo } from '../modules/auth';
-import { buildConfig } from '../modules/config';
+import {
+  readSyncServiceUrlOverride,
+  resolveRendererConfig,
+} from '../modules/config';
 import {
   type ContextMenuAction,
   type ContextMenuPayload,
   PDF_IPC_CHANNEL,
+  subscribeToStreamOverIPC,
 } from '../modules/infrastructure/cross-platform';
 import {
   isLinux,
@@ -26,7 +28,8 @@ import {
 } from '../modules/infrastructure/cross-platform/node';
 import {
   type CreateDirectoryArgs,
-  type CreateNewFileArgs,
+  type CreateFileArgs,
+  type CreateFileWithDialogArgs,
   type DeleteDirectoryArgs,
   type DeleteFileArgs,
   type GetRenamedPathArgs,
@@ -36,7 +39,7 @@ import {
   type RenameArgs,
   type WriteFileArgs,
 } from '../modules/infrastructure/filesystem';
-import type { ResolvedArtifactId } from '../modules/infrastructure/version-control';
+import type { ArtifactId } from '../modules/infrastructure/version-control';
 import type {
   RunWasiCLIArgs,
   Wasm as WasmAPI,
@@ -57,7 +60,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('renderer-process-id', (_, processId) =>
       callback(processId)
     ),
-  sendCurrentDocumentId: (id: ResolvedArtifactId) =>
+  sendCurrentDocumentId: (id: ArtifactId) =>
     ipcRenderer.send('current-document-id', id),
   openExternalLink: (url: string) =>
     ipcRenderer.send('open-external-link', url),
@@ -77,9 +80,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke(PDF_IPC_CHANNEL, args),
 } as ElectronAPI);
 
-contextBridge.exposeInMainWorld('config', {
-  primaryRichTextRepresentation: buildConfig.primaryRichTextRepresentation,
-} as RendererConfig);
+contextBridge.exposeInMainWorld(
+  'config',
+  resolveRendererConfig({
+    syncServiceUrl: readSyncServiceUrlOverride(process.env),
+  })
+);
 
 contextBridge.exposeInMainWorld('personalizationAPI', {
   setTheme: (theme) => ipcRenderer.send('set-theme', theme),
@@ -125,8 +131,10 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
     ipcRenderer.invoke('request-permission-for-directory', path),
   assertWritePermissionForDirectory: (path: string) =>
     ipcRenderer.invoke('assert-write-permission-for-directory', path),
-  createNewFile: (args: CreateNewFileArgs) =>
-    ipcRenderer.invoke('create-new-file', { ...args }),
+  createFileWithDialog: (args: CreateFileWithDialogArgs) =>
+    ipcRenderer.invoke('create-file-with-dialog', { ...args }),
+  createFile: (args: CreateFileArgs) =>
+    ipcRenderer.invoke('create-file', { ...args }),
   openFile: (args: OpenFileArgs) =>
     ipcRenderer.invoke('open-file', { ...args }),
   writeFile: (args: WriteFileArgs) =>
@@ -154,110 +162,33 @@ contextBridge.exposeInMainWorld('filesystemAPI', {
   exists: (path: string) => ipcRenderer.invoke('file-exists', path),
 } as FilesystemPromiseAPI);
 
-contextBridge.exposeInMainWorld('versionedDocumentStoreAPI', {
-  setProjectId: (id) =>
-    ipcRenderer.invoke('versioned-document-store:set-project-id', id),
-  createDocument: (args, projectId) =>
-    ipcRenderer.invoke(
-      'versioned-document-store:create-document',
-      { ...args },
-      projectId
-    ),
-  findDocumentById: (id, projectId) =>
-    ipcRenderer.invoke(
-      'versioned-document-store:find-document-by-id',
-      id,
-      projectId
-    ),
-  getDocumentLastChangeId: (id, projectId) =>
-    ipcRenderer.invoke(
-      'versioned-document-store:get-document-last-change-id',
-      id,
-      projectId
-    ),
-  updateRichTextDocumentContent: (args, projectId) =>
-    ipcRenderer.invoke(
-      'versioned-document-store:update-rich-text-document-content',
-      { ...args },
-      projectId
-    ),
-  deleteDocument: (args, projectId) =>
-    ipcRenderer.invoke(
-      'versioned-document-store:delete-document',
-      args,
-      projectId
-    ),
-  getDocumentHistory: (id, projectId) =>
-    ipcRenderer.invoke(
-      'versioned-document-store:get-document-history',
-      id,
-      projectId
-    ),
-  getDocumentAtChange: (args, projectId) =>
-    ipcRenderer.invoke(
-      'versioned-document-store:get-document-at-change',
-      {
-        ...args,
-      },
-      projectId
-    ),
-  isContentSameAtChanges: (args, projectId) =>
-    ipcRenderer.invoke(
-      'versioned-document-store:is-content-same-at-changes',
-      {
-        ...args,
-      },
-      projectId
-    ),
-  discardUncommittedChanges: (args, projectId) =>
-    ipcRenderer.invoke(
-      'versioned-document-store:discard-uncommitted-changes',
-      {
-        ...args,
-      },
-      projectId
-    ),
-  resolveContentConflict: (args, projectId) =>
-    ipcRenderer.invoke(
-      'versioned-document-store:resolve-content-conflict',
-      {
-        ...args,
-      },
-      projectId
-    ),
-  disconnect: (projectId) =>
-    ipcRenderer.invoke('versioned-document-store:disconnect', projectId),
-} as VersionedDocumentStorePromiseAPI);
-
 contextBridge.exposeInMainWorld('projectStoreAPI', {
   createProject: (args) =>
     ipcRenderer.invoke('project-store:create-project', {
       ...args,
     }),
-  findProjectById: (id) =>
-    ipcRenderer.invoke('project-store:find-project-by-id', id),
-  listProjectDocuments: (id) =>
-    ipcRenderer.invoke('project-store:list-project-documents', id),
-  addDocumentToProject: (args) =>
-    ipcRenderer.invoke('project-store:add-document-to-project', {
+  getProjectTree: (id) =>
+    ipcRenderer.invoke('project-store:get-project-tree', id),
+  createDirectory: (args) =>
+    ipcRenderer.invoke('project-store:create-directory', { ...args }),
+  deleteDirectory: (args) =>
+    ipcRenderer.invoke('project-store:delete-directory', { ...args }),
+  getArtifactMetaDataById: (args) =>
+    ipcRenderer.invoke('project-store:get-artifact-metadata-by-id', {
       ...args,
     }),
-  deleteDocumentFromProject: (args) =>
-    ipcRenderer.invoke('project-store:delete-document-from-project', {
-      ...args,
-    }),
-  deleteDocumentsFromProject: (args) =>
-    ipcRenderer.invoke('project-store:delete-documents-from-project', {
+  lookupArtifactByPath: (args) =>
+    ipcRenderer.invoke('project-store:lookup-artifact-by-path', { ...args }),
+  deleteDocuments: (args) =>
+    ipcRenderer.invoke('project-store:delete-documents', {
       ...args,
     }),
   renameDocumentInProject: (args) =>
     ipcRenderer.invoke('project-store:rename-document-in-project', { ...args }),
-  renameDocumentsInProject: (args) =>
-    ipcRenderer.invoke('project-store:rename-documents-in-project', {
-      ...args,
-    }),
-  findDocumentInProject: (args) =>
-    ipcRenderer.invoke('project-store:find-document-in-project', { ...args }),
+  renameDirectory: (args) =>
+    ipcRenderer.invoke('project-store:rename-directory', { ...args }),
+  lookupArtifactInProject: (args) =>
+    ipcRenderer.invoke('project-store:lookup-artifact-in-project', { ...args }),
   addAssetToProject: (args) =>
     ipcRenderer.invoke('project-store:add-asset-to-project', {
       ...args,
@@ -268,10 +199,13 @@ contextBridge.exposeInMainWorld('projectStoreAPI', {
     }),
   getProjectRelativePath: (args) =>
     ipcRenderer.invoke('project-store:get-project-relative-path', { ...args }),
-  readDocumentReferencedAssets: (args) =>
-    ipcRenderer.invoke('project-store:read-document-referenced-assets', {
-      ...args,
-    }),
+  readRichTextDocumentReferencedAssets: (args) =>
+    ipcRenderer.invoke(
+      'project-store:read-rich-text-document-referenced-assets',
+      {
+        ...args,
+      }
+    ),
   commitChanges: (args) =>
     ipcRenderer.invoke('project-store:commit-changes', {
       ...args,
@@ -361,6 +295,61 @@ contextBridge.exposeInMainWorld('projectStoreAPI', {
   getChangedDocumentsAtChange: (args) =>
     ipcRenderer.invoke('project-store:get-changed-documents-at-change', {
       ...args,
+    }),
+  createDocument: (args) =>
+    ipcRenderer.invoke('project-store:create-document', { ...args }),
+  findRichTextDocumentById: (args) =>
+    ipcRenderer.invoke('project-store:find-rich-text-document-by-id', {
+      ...args,
+    }),
+  findPlainTextDocumentById: (args) =>
+    ipcRenderer.invoke('project-store:find-plain-text-document-by-id', {
+      ...args,
+    }),
+  getDocumentLastChangeId: (args) =>
+    ipcRenderer.invoke('project-store:get-document-last-change-id', {
+      ...args,
+    }),
+  updateRichTextDocumentContent: (args) =>
+    ipcRenderer.invoke('project-store:update-rich-text-document-content', {
+      ...args,
+    }),
+  updatePlainTextDocumentContent: (args) =>
+    ipcRenderer.invoke('project-store:update-plain-text-document-content', {
+      ...args,
+    }),
+  deleteDocument: (args) =>
+    ipcRenderer.invoke('project-store:delete-document', { ...args }),
+  getDocumentHistory: (args) =>
+    ipcRenderer.invoke('project-store:get-document-history', {
+      ...args,
+    }),
+  getRichTextDocumentAtChange: (args) =>
+    ipcRenderer.invoke('project-store:get-rich-text-document-at-change', {
+      ...args,
+    }),
+  getPlainTextDocumentAtChange: (args) =>
+    ipcRenderer.invoke('project-store:get-plain-text-document-at-change', {
+      ...args,
+    }),
+  isContentSameAtChanges: (args) =>
+    ipcRenderer.invoke('project-store:is-content-same-at-changes', {
+      ...args,
+    }),
+  discardUncommittedChanges: (args) =>
+    ipcRenderer.invoke('project-store:discard-uncommitted-changes', {
+      ...args,
+    }),
+  resolveContentConflict: (args) =>
+    ipcRenderer.invoke('project-store:resolve-content-conflict', {
+      ...args,
+    }),
+  subscribeToProjectContentChangeEvents: ({ onEvent, ...args }) =>
+    subscribeToStreamOverIPC({
+      ipcRenderer,
+      channel: 'project-store:project-content-change-events',
+      args,
+      onEvent,
     }),
 } as ProjectStorePromiseAPI);
 

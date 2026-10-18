@@ -49,6 +49,7 @@ export const GithubVerificationInfoDialog = ({
   return (
     <Modal
       isOpen={isOpen}
+      onClose={onCancel}
       title="GitHub Integration"
       secondaryButton={
         <Button variant="plain" onClick={onCancel}>

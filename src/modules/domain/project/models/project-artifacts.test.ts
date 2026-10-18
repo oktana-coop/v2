@@ -1,0 +1,345 @@
+import { describe, expect, it } from 'vitest';
+
+import { filesystemEntryTypes } from '../../../infrastructure/filesystem';
+import { type ArtifactId } from '../../../infrastructure/version-control';
+import { artifactKinds } from './artifact-kind';
+import {
+  areProjectTreesEqual,
+  findFileNodeByPath,
+  findNodeById,
+  inferArtifactKindFromExtension,
+  listNamesInDirectory,
+  listOpenableArtifacts,
+  type ProjectDirectoryNode,
+  type ProjectFileNode,
+  type ProjectTreeNode,
+} from './project-artifacts';
+import { parseProjectRelPath } from './project-rel-path';
+
+const file = ({ path }: { path: string }): ProjectFileNode => ({
+  id: path as ArtifactId,
+  path: parseProjectRelPath(path),
+  kind: inferArtifactKindFromExtension(path),
+  filesystemType: filesystemEntryTypes.FILE,
+  shared: false,
+});
+
+const directory = ({
+  path,
+  children,
+}: {
+  path: string;
+  children: ProjectTreeNode[];
+}): ProjectDirectoryNode => ({
+  path: parseProjectRelPath(path),
+  filesystemType: filesystemEntryTypes.DIRECTORY,
+  children,
+});
+
+describe('inferArtifactKindFromExtension', () => {
+  it.each(['notes.md', 'notes.markdown', 'docs/NOTES.MD'])(
+    'classifies %s as a rich-text document',
+    (path) => {
+      expect(inferArtifactKindFromExtension(path)).toBe(
+        artifactKinds.RICH_TEXT_DOCUMENT
+      );
+    }
+  );
+
+  it.each([
+    'assets/image.png',
+    'assets/logo.svg',
+    'paper.pdf',
+    'photo.TIFF',
+    'report.docx',
+    'archive.zip',
+    'font.woff2',
+    'clip.mp4',
+  ])('classifies %s as a binary file', (path) => {
+    expect(inferArtifactKindFromExtension(path)).toBe(
+      artifactKinds.BINARY_FILE
+    );
+  });
+
+  it.each([
+    'config.yaml',
+    'config.yml',
+    'data.json',
+    'notes.txt',
+    'Makefile',
+    'v1.2/LICENSE',
+    'export.tar.gz.sha256',
+  ])('classifies %s as a plain-text document', (path) => {
+    expect(inferArtifactKindFromExtension(path)).toBe(
+      artifactKinds.PLAIN_TEXT_DOCUMENT
+    );
+  });
+});
+
+describe('listOpenableArtifacts', () => {
+  it('keeps rich-text and plain-text documents', () => {
+    const tree = [file({ path: 'notes.md' }), file({ path: 'config.yaml' })];
+
+    expect(listOpenableArtifacts(tree)).toEqual([
+      file({ path: 'notes.md' }),
+      file({ path: 'config.yaml' }),
+    ]);
+  });
+
+  it('drops binary files', () => {
+    const tree = [
+      file({ path: 'notes.md' }),
+      file({ path: 'image.png' }),
+      file({ path: 'archive.pdf' }),
+    ];
+
+    expect(listOpenableArtifacts(tree)).toEqual([file({ path: 'notes.md' })]);
+  });
+
+  it('drops directory nodes while surfacing their openable children', () => {
+    const tree = [
+      file({ path: 'readme.md' }),
+      directory({
+        path: 'docs',
+        children: [
+          file({ path: 'docs/guide.md' }),
+          file({ path: 'docs/logo.svg' }),
+        ],
+      }),
+    ];
+
+    expect(listOpenableArtifacts(tree)).toEqual([
+      file({ path: 'readme.md' }),
+      file({ path: 'docs/guide.md' }),
+    ]);
+  });
+
+  it('descends into deeply nested directories', () => {
+    const tree = [
+      directory({
+        path: 'a',
+        children: [
+          directory({
+            path: 'a/b',
+            children: [
+              file({ path: 'a/b/deep.md' }),
+              file({ path: 'a/b/skip.png' }),
+            ],
+          }),
+        ],
+      }),
+    ];
+
+    expect(listOpenableArtifacts(tree)).toEqual([
+      file({ path: 'a/b/deep.md' }),
+    ]);
+  });
+
+  it('handles empty input and childless directories without throwing', () => {
+    expect(listOpenableArtifacts([])).toEqual([]);
+    expect(
+      listOpenableArtifacts([directory({ path: 'empty', children: [] })])
+    ).toEqual([]);
+  });
+});
+
+const tree: ProjectTreeNode[] = [
+  file({ path: 'readme.md' }),
+  directory({
+    path: 'docs',
+    children: [
+      file({ path: 'docs/guide.md' }),
+      directory({
+        path: 'docs/2024',
+        children: [file({ path: 'docs/2024/notes.md' })],
+      }),
+    ],
+  }),
+];
+
+describe('findFileNodeByPath', () => {
+  it('finds a file at the root', () => {
+    expect(
+      findFileNodeByPath({ tree, path: parseProjectRelPath('readme.md') })
+    ).toBe(tree[0]);
+  });
+
+  it('finds a deeply nested file', () => {
+    expect(
+      findFileNodeByPath({
+        tree,
+        path: parseProjectRelPath('docs/2024/notes.md'),
+      })?.path
+    ).toBe('docs/2024/notes.md');
+  });
+
+  // Directories aren't tracked artifacts, so there is nothing to hand back.
+  it('returns null for a directory path', () => {
+    expect(
+      findFileNodeByPath({ tree, path: parseProjectRelPath('docs') })
+    ).toBeNull();
+  });
+
+  it('returns null when the path is absent', () => {
+    expect(
+      findFileNodeByPath({ tree, path: parseProjectRelPath('docs/missing.md') })
+    ).toBeNull();
+  });
+
+  it('returns null for an empty tree', () => {
+    expect(
+      findFileNodeByPath({ tree: [], path: parseProjectRelPath('readme.md') })
+    ).toBeNull();
+  });
+});
+
+describe('areProjectTreesEqual', () => {
+  const buildTree = (): ProjectTreeNode[] => [
+    file({ path: 'readme.md' }),
+    directory({
+      path: 'docs',
+      children: [
+        file({ path: 'docs/guide.md' }),
+        directory({
+          path: 'docs/2024',
+          children: [file({ path: 'docs/2024/notes.md' })],
+        }),
+      ],
+    }),
+  ];
+
+  it('treats independently built identical trees as equal', () => {
+    expect(areProjectTreesEqual(buildTree(), buildTree())).toBe(true);
+  });
+
+  it('treats empty trees as equal', () => {
+    expect(areProjectTreesEqual([], [])).toBe(true);
+  });
+
+  it('detects an added file', () => {
+    expect(
+      areProjectTreesEqual(buildTree(), [
+        ...buildTree(),
+        file({ path: 'new.md' }),
+      ])
+    ).toBe(false);
+  });
+
+  it('detects a removed nested file', () => {
+    const pruned = [
+      file({ path: 'readme.md' }),
+      directory({
+        path: 'docs',
+        children: [
+          file({ path: 'docs/guide.md' }),
+          directory({ path: 'docs/2024', children: [] }),
+        ],
+      }),
+    ];
+
+    expect(areProjectTreesEqual(buildTree(), pruned)).toBe(false);
+  });
+
+  it('detects a renamed nested file', () => {
+    const renamed = [
+      file({ path: 'readme.md' }),
+      directory({
+        path: 'docs',
+        children: [
+          file({ path: 'docs/handbook.md' }),
+          directory({
+            path: 'docs/2024',
+            children: [file({ path: 'docs/2024/notes.md' })],
+          }),
+        ],
+      }),
+    ];
+
+    expect(areProjectTreesEqual(buildTree(), renamed)).toBe(false);
+  });
+
+  it('detects a file replaced by a directory at the same position', () => {
+    expect(
+      areProjectTreesEqual(
+        [file({ path: 'notes.md' })],
+        [directory({ path: 'notes.md', children: [] })]
+      )
+    ).toBe(false);
+  });
+
+  it('is sensitive to sibling order', () => {
+    expect(
+      areProjectTreesEqual(
+        [file({ path: 'a.md' }), file({ path: 'b.md' })],
+        [file({ path: 'b.md' }), file({ path: 'a.md' })]
+      )
+    ).toBe(false);
+  });
+});
+
+describe('findNodeById', () => {
+  it('finds a deeply nested file by its artifact id', () => {
+    expect(
+      findNodeById({ tree, id: 'docs/2024/notes.md' as ArtifactId })?.path
+    ).toBe('docs/2024/notes.md');
+  });
+
+  it('returns null when no file carries the id', () => {
+    expect(
+      findNodeById({ tree, id: 'docs/absent.md' as ArtifactId })
+    ).toBeNull();
+  });
+
+  // A directory path can never resolve to an artifact, even though the
+  // explorer keys directory nodes by that same path.
+  it('returns null for a path that belongs to a directory', () => {
+    expect(findNodeById({ tree, id: 'docs' as ArtifactId })).toBeNull();
+  });
+});
+
+describe('listNamesInDirectory', () => {
+  const tree = [
+    directory({
+      path: 'drafts',
+      children: [
+        directory({
+          path: 'drafts/old',
+          children: [file({ path: 'drafts/old/a.md' })],
+        }),
+        file({ path: 'drafts/b.md' }),
+      ],
+    }),
+    file({ path: 'c.md' }),
+  ];
+
+  it('lists the names at the project root when no directory is given', () => {
+    expect(listNamesInDirectory({ tree })).toEqual(['drafts', 'c.md']);
+  });
+
+  it('lists the names directly inside a directory', () => {
+    expect(
+      listNamesInDirectory({
+        tree,
+        directoryPath: parseProjectRelPath('drafts'),
+      })
+    ).toEqual(['old', 'b.md']);
+  });
+
+  it('lists the names inside a nested directory', () => {
+    expect(
+      listNamesInDirectory({
+        tree,
+        directoryPath: parseProjectRelPath('drafts/old'),
+      })
+    ).toEqual(['a.md']);
+  });
+
+  it('lists nothing for a directory that is not in the tree', () => {
+    expect(
+      listNamesInDirectory({
+        tree,
+        directoryPath: parseProjectRelPath('missing'),
+      })
+    ).toEqual([]);
+  });
+});

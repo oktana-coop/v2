@@ -61,3 +61,27 @@ export const RichTextLibErrorTag = 'RichTextLibError';
 export class RichTextLibError extends Cause.YieldableError {
   readonly _tag = RichTextLibErrorTag;
 }
+
+export const WebEditorErrorTag = 'WebEditorError';
+export class WebEditorError extends Cause.YieldableError {
+  readonly _tag = WebEditorErrorTag;
+}
+
+export const PatchErrorTag = 'PatchError';
+export class PatchError extends Cause.YieldableError {
+  readonly _tag = PatchErrorTag;
+}
+
+export const LiveSyncFallbackErrorTag = 'LiveSyncFallbackError';
+export type LiveSyncFallbackReason = 'steps-failed' | 'steps-mismatch';
+// Reported, not raised: the incoming change was still applied, by the
+// coarser region replace.
+export class LiveSyncFallbackError extends Cause.YieldableError {
+  readonly _tag = LiveSyncFallbackErrorTag;
+  readonly data;
+
+  constructor(message: string, data: { reason: LiveSyncFallbackReason }) {
+    super(message);
+    this.data = data;
+  }
+}

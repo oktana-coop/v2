@@ -37,6 +37,13 @@ export const BranchingCommandPalette = ({
   currentBranch,
 }: BranchingCommandPaletteProps) => {
   const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      setQuery('');
+    }
+  }, [open]);
+
   const [branches, setBranches] = useState<Branch[] | null>(null);
   const [branchActionOptions, setBranchActionOptions] = useState<
     ActionOption[]
@@ -153,14 +160,7 @@ export const BranchingCommandPalette = ({
   ]);
 
   return (
-    <Dialog
-      className="relative z-10"
-      open={open}
-      onClose={() => {
-        onClose();
-        setQuery('');
-      }}
-    >
+    <Dialog className="relative z-10" open={open} onClose={onClose}>
       <div className="fixed inset-0 z-10 w-screen overflow-y-auto p-4 sm:p-6 md:p-20">
         <DialogPanel
           transition
@@ -170,7 +170,6 @@ export const BranchingCommandPalette = ({
             onChange={(option: ActionOption | null) => {
               if (option === null) return;
               onClose();
-              setQuery('');
 
               // as the Command Palette dialog has a smooth transition out effect (see data-[leave]:duration-200 above)
               // we trigger the action selection after a short delay
@@ -184,9 +183,6 @@ export const BranchingCommandPalette = ({
                 placeholder="Search for branches and actions"
                 onChange={(event) => {
                   setQuery(event.target.value);
-                }}
-                onBlur={() => {
-                  setQuery('');
                 }}
               />
             </div>

@@ -1,17 +1,20 @@
 import { useContext } from 'react';
 
 import { type Directory } from '../../../../../../../modules/infrastructure/filesystem';
-import { ProjectContext } from '../../../../../app-state';
+import {
+  ProjectContext,
+  useArtifactSelection,
+  useCreateDocument,
+} from '../../../../../app-state';
 import { IconButton } from '../../../../../components/actions/IconButton';
 import { FolderIcon, PlusIcon } from '../../../../../components/icons';
 import { SidebarHeading } from '../../../../../components/sidebar/SidebarHeading';
 import {
+  type ExplorerOpenState,
   type ExplorerTreeNode,
-  useArtifactSelection,
-  useCreateDocument,
-  useDocumentExplorerTree,
-} from '../../../../../hooks';
-import { TreeView } from '../tree';
+  TreeView,
+} from '../tree';
+import { useDocumentExplorerTree } from '../use-document-explorer-tree';
 import { EmptyView } from './EmptyView';
 import { NoActiveDirectoryView } from './NoActiveDirectoryView';
 
@@ -19,8 +22,13 @@ const DirectoryTree = ({
   directory,
   data,
   selection,
-  onCreateDocument,
   onSelectItem,
+  onStartCreateDocument,
+  onCreateDocument,
+  onCancelCreateDocument,
+  onClearCreateDocumentError,
+  createDocumentError,
+  hasPendingNewDocument,
   onCreateDirectory,
   onCancelCreateDirectory,
   onStartRenameDocument,
@@ -37,15 +45,21 @@ const DirectoryTree = ({
   renameDirectoryError,
   onStartDeleteDocument,
   onStartDeleteDirectory,
-  onCreateNewFile,
   onStartCreateDirectory,
   hasPendingNewDirectory,
+  initialOpenState,
+  onOpenStateChange,
 }: {
   directory: Directory | null;
   data: ExplorerTreeNode[];
   selection: string | null;
-  onCreateDocument: () => void;
   onSelectItem: (id: string) => Promise<void>;
+  onStartCreateDocument: (parentPath?: string) => void;
+  onCreateDocument: (name: string) => Promise<void>;
+  onCancelCreateDocument: () => void;
+  onClearCreateDocumentError: () => void;
+  createDocumentError: string | null;
+  hasPendingNewDocument: boolean;
   onCreateDirectory: (name: string) => Promise<void>;
   onCancelCreateDirectory: () => void;
   onStartRenameDocument: (path: string) => void;
@@ -62,10 +76,13 @@ const DirectoryTree = ({
   renameDirectoryError: string | null;
   onStartDeleteDocument: (path: string) => void;
   onStartDeleteDirectory: (path: string) => void;
-  onCreateNewFile?: (parentPath?: string) => Promise<void>;
   onStartCreateDirectory?: (parentPath?: string) => void;
   hasPendingNewDirectory?: boolean;
+  initialOpenState: ExplorerOpenState;
+  onOpenStateChange: (openState: ExplorerOpenState) => void;
 }) => {
+  const handleStartCreateDocument = () => onStartCreateDocument();
+
   if (data.length > 0) {
     return (
       <div className="flex h-full flex-col items-stretch overflow-hidden">
@@ -78,6 +95,10 @@ const DirectoryTree = ({
           data={data}
           selection={selection}
           onSelectItem={onSelectItem}
+          onCreateDocument={onCreateDocument}
+          onCancelCreateDocument={onCancelCreateDocument}
+          onClearCreateDocumentError={onClearCreateDocumentError}
+          createDocumentError={createDocumentError}
           onCreateDirectory={onCreateDirectory}
           onCancelCreateDirectory={onCancelCreateDirectory}
           onStartRenameDocument={onStartRenameDocument}
@@ -94,28 +115,34 @@ const DirectoryTree = ({
           renameDirectoryError={renameDirectoryError}
           onStartDeleteDocument={onStartDeleteDocument}
           onStartDeleteDirectory={onStartDeleteDirectory}
-          onCreateNewFile={onCreateNewFile}
+          onStartCreateDocument={onStartCreateDocument}
           onStartCreateDirectory={onStartCreateDirectory}
+          hasPendingNewDocument={hasPendingNewDocument}
           hasPendingNewDirectory={hasPendingNewDirectory}
+          initialOpenState={initialOpenState}
+          onOpenStateChange={onOpenStateChange}
         />
       </div>
     );
   }
 
-  return <EmptyView onCreateDocumentButtonClick={onCreateDocument} />;
+  return <EmptyView onCreateDocumentButtonClick={handleStartCreateDocument} />;
 };
 
-export const DirectoryTreeView = ({
-  onCreateDocument,
-}: {
-  onCreateDocument: () => void;
-}) => {
-  const { directory, openDirectory } = useContext(ProjectContext);
+export const DirectoryTreeView = () => {
+  const { projectId, directory, openDirectory } = useContext(ProjectContext);
   const handleArtifactSelection = useArtifactSelection();
   const {
     explorerTree: documents,
     canShowTree,
     selection,
+    initialOpenState,
+    rememberOpenState,
+    hasPendingNewDocument,
+    createDocument,
+    cancelCreateDocument,
+    createDocumentError,
+    clearCreateDocumentError,
     hasPendingNewDirectory,
     startCreateDirectory,
     createDirectory,
@@ -135,8 +162,7 @@ export const DirectoryTreeView = ({
     startDeleteDocument,
     startDeleteDirectory,
   } = useDocumentExplorerTree();
-  const { canCreateDocument, triggerDocumentCreationDialog } =
-    useCreateDocument();
+  const { canCreateDocument, startCreateDocument } = useCreateDocument();
 
   const handleRenameDocument = (oldPath: string, newName: string) =>
     renameDocument({ oldRelativePath: oldPath, newName });
@@ -144,8 +170,8 @@ export const DirectoryTreeView = ({
   const handleRenameDirectory = (oldPath: string, newName: string) =>
     renameDirectory({ oldRelativePath: oldPath, newName });
 
-  const handleCreateNewFile = (parentPath: string | undefined) =>
-    triggerDocumentCreationDialog({ parentPath });
+  const handleStartCreateDocument = (parentPath?: string) =>
+    startCreateDocument({ parentPath });
 
   return (
     <div
@@ -164,7 +190,7 @@ export const DirectoryTreeView = ({
           />
           {canCreateDocument && (
             <IconButton
-              onClick={onCreateDocument}
+              onClick={() => handleStartCreateDocument()}
               icon={<PlusIcon size={20} />}
               tooltip="New Document"
             />
@@ -174,11 +200,17 @@ export const DirectoryTreeView = ({
 
       {canShowTree ? (
         <DirectoryTree
+          key={projectId}
           directory={directory}
           data={documents}
           selection={selection}
-          onCreateDocument={onCreateDocument}
           onSelectItem={handleArtifactSelection}
+          onStartCreateDocument={handleStartCreateDocument}
+          onCreateDocument={createDocument}
+          onCancelCreateDocument={cancelCreateDocument}
+          onClearCreateDocumentError={clearCreateDocumentError}
+          createDocumentError={createDocumentError}
+          hasPendingNewDocument={hasPendingNewDocument}
           onCreateDirectory={createDirectory}
           onCancelCreateDirectory={cancelCreateDirectory}
           onStartRenameDocument={startRenameDocument}
@@ -195,9 +227,10 @@ export const DirectoryTreeView = ({
           renameDirectoryError={renameDirectoryError}
           onStartDeleteDocument={startDeleteDocument}
           onStartDeleteDirectory={startDeleteDirectory}
-          onCreateNewFile={handleCreateNewFile}
           onStartCreateDirectory={startCreateDirectory}
           hasPendingNewDirectory={hasPendingNewDirectory}
+          initialOpenState={initialOpenState}
+          onOpenStateChange={rememberOpenState}
         />
       ) : (
         <NoActiveDirectoryView />

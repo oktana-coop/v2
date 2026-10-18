@@ -19,7 +19,10 @@ export const BottomBar = ({
   currentBranch: Branch | null;
   onBranchButtonClick: () => void;
 }) => (
-  <div className="flex items-center justify-between bg-neutral-100 p-1.5 dark:bg-neutral-900">
+  <div
+    className="flex items-center justify-between bg-neutral-100 p-1.5 dark:bg-neutral-900"
+    data-testid="project-bottom-bar"
+  >
     <div className="flex inline-flex">
       {currentBranch && (
         <Button

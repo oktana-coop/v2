@@ -63,7 +63,7 @@ Required secrets:
 
 #### Arch Linux
 
-Arch packaging lives in the [AUR](https://aur.archlinux.org/) and is **community-maintained**. We do not publish to the AUR from this repository. The AUR convention is that packages are recipes (`PKGBUILD`s) that build from source and are reviewed, built and tested by their maintainer on Arch before each bump; pushing prebuilt or untested packaging from upstream CI inverts that flow, so we don't.
+Arch packaging lives in the [AUR](https://aur.archlinux.org/), in two packages: [`v2`](https://aur.archlinux.org/packages/v2) builds from source and is maintained by Caleb Maclennan ([@alerque](https://github.com/alerque)); [`v2-bin`](https://aur.archlinux.org/packages/v2-bin) installs the prebuilt AppImage and is maintained by Oktana Coop together with @alerque. We do not publish to the AUR from this repository. The AUR convention is that packages are recipes (`PKGBUILD`s) that build from source and are reviewed, built and tested by their maintainer on Arch before each bump; pushing prebuilt or untested packaging from upstream CI inverts that flow, so we don't.
 
 If you maintain an AUR package for v2 and need to build it from source, the build is `pnpm install --frozen-lockfile && pnpm run build`. The app's behaviour is baked in at build time from `VITE_*` env vars (see `src/modules/config/build.ts`). The required values are committed in `.env.production` and loaded automatically by the production build, so a clean `pnpm run build` produces a correct app with no extra configuration. CI passes the same values as real env vars, which take precedence over the file.
 
@@ -76,11 +76,13 @@ When a release is published, the `Publish Packages` workflow also publishes to a
 1. Downloads the `.deb` packages (amd64 and arm64) from the GitHub release
 2. Generates APT repository metadata (Packages, Release files)
 3. Signs the repository with GPG
-4. Commits to the separate `v2-deb` repository hosted on GitHub Pages
+4. Uploads the repository to the `v2-apt` Cloudflare R2 bucket, served at `https://apt.v2editor.com`
 
-This allows Ubuntu/Debian users to install and update v2 via `apt`. See [oktana-coop/v2-deb](https://github.com/oktana-coop/v2-deb) for installation instructions.
+This allows Ubuntu/Debian users to install and update v2 via `apt`. See the [Linux installation docs](install-linux.md#ubuntudebian).
 
-Required secrets: `APT_GPG_PRIVATE_KEY`, `APT_GPG_KEY_ID`, `GH_PAT`
+Required secrets: `APT_GPG_PRIVATE_KEY`, `APT_GPG_KEY_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_S3_API_HOST`
+
+- `R2_S3_API_HOST` — Host of the bucket's S3 API, e.g. `<account-id>.eu.r2.cloudflarestorage.com`. Labeled "S3 API" in the bucket's settings in Cloudflare, which show it as a URL: use only the host, without `https://` and the bucket name.
 
 ## Package the app for your OS (locally)
 

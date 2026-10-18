@@ -29,8 +29,7 @@ const previewStyles = `
 
 const getPreviewUrl = (): string => {
   const devServerUrl = import.meta.env.VITE_DEV_SERVER_URL as
-    | string
-    | undefined;
+    string | undefined;
   return devServerUrl ? `${devServerUrl}/preview.html` : './preview.html';
 };
 

@@ -36,3 +36,14 @@ export const parseProjectRelPathEffect = (s: string) =>
 
 export const safeParseProjectRelPath = (s: string) =>
   projectRelPathSchema.safeParse(s);
+
+// True when `filePath` is `directoryPath` itself or nested anywhere beneath it.
+// Both are project-relative (POSIX), so a plain `/` separator check is correct.
+export const isPathInsideDirectory = ({
+  directoryPath,
+  filePath,
+}: {
+  directoryPath: ProjectRelPath;
+  filePath: ProjectRelPath;
+}): boolean =>
+  filePath === directoryPath || filePath.startsWith(`${directoryPath}/`);

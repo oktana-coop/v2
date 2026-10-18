@@ -10,15 +10,14 @@ import {
   PAGEDJS_TIMEOUT_MS,
 } from '../common/constants';
 
-// Derive path relative to __dirname (dist/main/) rather than process.env.DIST,
-// because electron-vite replaces process.env per-module at build time.
-const printHtml = join(__dirname, '../renderer/print.html');
-
 const loadPrintPage = async (win: BrowserWindow): Promise<void> => {
   const devServerUrl = process.env.VITE_DEV_SERVER_URL;
   if (devServerUrl) {
     await win.loadURL(`${devServerUrl}/print.html`);
   } else {
+    // Derive path relative to __dirname (dist/main/) rather than process.env.DIST,
+    // because electron-vite replaces process.env per-module at build time.
+    const printHtml = join(__dirname, '../renderer/print.html');
     await win.loadFile(printHtml);
   }
 };

@@ -1,5 +1,5 @@
+import { type ArtifactId } from '../artifact-id';
 import { type Commit } from '../commit';
-import { type ResolvedArtifactId } from '../resolved-artifact-id';
 import { type MergePole } from './merge-poles';
 
 // Unfortunately, there is no definitive list for these conflict types.
@@ -9,9 +9,9 @@ import { type MergePole } from './merge-poles';
 // Both poles modified the same file in conflicting ways.
 export type ContentConflict = {
   kind: 'content';
-  sourceArtifactId: ResolvedArtifactId;
-  targetArtifactId: ResolvedArtifactId;
-  commonAncestorArtifactId: ResolvedArtifactId;
+  sourceArtifactId: ArtifactId;
+  targetArtifactId: ArtifactId;
+  commonAncestorArtifactId: ArtifactId;
   path: string;
 };
 
@@ -22,7 +22,7 @@ export const isContentConflict = (
 // One pole deleted a file while the other modified it.
 export type ModifyDeleteConflict = {
   kind: 'modify/delete';
-  artifactId: ResolvedArtifactId;
+  artifactId: ArtifactId;
   path: string;
   deletedIn: MergePole;
 };
@@ -34,8 +34,8 @@ export const isModifyDeleteConflict = (
 // Both poles added a file with the same name but different content.
 export type AddAddConflict = {
   kind: 'add/add';
-  sourceArtifactId: ResolvedArtifactId;
-  targetArtifactId: ResolvedArtifactId;
+  sourceArtifactId: ArtifactId;
+  targetArtifactId: ArtifactId;
   path: string;
 };
 
@@ -57,7 +57,7 @@ export const isFileDirectoryConflict = (
 // Both poles renamed the same file to different names.
 export type RenameRenameConflict = {
   kind: 'rename/rename';
-  artifactId: ResolvedArtifactId;
+  artifactId: ArtifactId;
   basePath: string;
   targetPath: string;
   sourcePath: string;
@@ -70,7 +70,7 @@ export const isRenameRenameConflict = (
 // One pole renamed a file while the other deleted it.
 export type RenameDeleteConflict = {
   kind: 'rename/delete';
-  artifactId: ResolvedArtifactId;
+  artifactId: ArtifactId;
   basePath: string;
   renamedPath: string;
   deletedIn: MergePole;
@@ -83,10 +83,10 @@ export const isRenameDeleteConflict = (
 // One pole renamed a file to a name that the other pole used for a new file.
 export type RenameAddConflict = {
   kind: 'rename/add';
-  renamedArtifactId: ResolvedArtifactId;
+  renamedArtifactId: ArtifactId;
   basePath: string;
   renamedPath: string;
-  addedArtifactId: ResolvedArtifactId;
+  addedArtifactId: ArtifactId;
   addedPath: string;
 };
 

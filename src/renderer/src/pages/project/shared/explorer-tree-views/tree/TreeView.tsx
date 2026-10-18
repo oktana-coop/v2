@@ -1,18 +1,24 @@
-import { createContext, useContext, useRef } from 'react';
-import { type NodeApi, Tree, type TreeApi } from 'react-arborist';
-import { AutoSizer } from 'react-virtualized-auto-sizer';
+import { createContext, useContext, useEffect, useRef } from 'react';
+import { type NodeApi, type TreeApi } from 'react-arborist';
 
 import { ElectronContext } from '../../../../../../../modules/infrastructure/cross-platform/browser';
-import { filesystemItemTypes } from '../../../../../../../modules/infrastructure/filesystem';
-import {
-  type ExplorerTreeNode,
-  STRUCTURAL_CONFLICTS_NODE_TYPE,
-} from '../../../../../hooks';
+import { filesystemEntryTypes } from '../../../../../../../modules/infrastructure/filesystem';
+import { AutoSizedTree, TREE_ROW_HEIGHT } from '../../../../../components/tree';
 import { TreeNode } from './TreeNode';
+import {
+  type ExplorerOpenState,
+  type ExplorerTreeNode,
+  NEW_FILE_NODE_ID,
+  STRUCTURAL_CONFLICTS_NODE_TYPE,
+} from './types';
 
 // Provides callbacks to node renderers without requiring prop-drilling
 // through react-arborist's renderer boundary.
 type TreeCallbacks = {
+  onCreateDocument: (name: string) => Promise<void>;
+  onCancelCreateDocument: () => void;
+  onClearCreateDocumentError: () => void;
+  createDocumentError: string | null;
   onCreateDirectory: (name: string) => Promise<void>;
   onCancelCreateDirectory: () => void;
   onRenameDocument: (oldPath: string, newName: string) => Promise<void>;
@@ -28,6 +34,10 @@ type TreeCallbacks = {
 };
 
 const TreeCallbacksContext = createContext<TreeCallbacks>({
+  onCreateDocument: async () => {},
+  onCancelCreateDocument: () => {},
+  onClearCreateDocumentError: () => {},
+  createDocumentError: null,
   onCreateDirectory: async () => {},
   onCancelCreateDirectory: () => {},
   onRenameDocument: async () => {},
@@ -48,6 +58,10 @@ export const TreeView = ({
   data,
   selection,
   onSelectItem,
+  onCreateDocument = async () => {},
+  onCancelCreateDocument = () => {},
+  onClearCreateDocumentError = () => {},
+  createDocumentError = null,
   onCreateDirectory = async () => {},
   onCancelCreateDirectory = () => {},
   onStartRenameDocument,
@@ -64,13 +78,20 @@ export const TreeView = ({
   renameDirectoryError = null,
   onStartDeleteDocument,
   onStartDeleteDirectory,
-  onCreateNewFile,
+  onStartCreateDocument,
   onStartCreateDirectory,
+  hasPendingNewDocument = false,
   hasPendingNewDirectory = false,
+  initialOpenState,
+  onOpenStateChange,
 }: {
   data: ExplorerTreeNode[];
   selection: string | null;
   onSelectItem: (id: string) => Promise<void>;
+  onCreateDocument?: (name: string) => Promise<void>;
+  onCancelCreateDocument?: () => void;
+  onClearCreateDocumentError?: () => void;
+  createDocumentError?: string | null;
   onCreateDirectory?: (name: string) => Promise<void>;
   onCancelCreateDirectory?: () => void;
   onStartRenameDocument?: (path: string) => void;
@@ -87,16 +108,29 @@ export const TreeView = ({
   renameDirectoryError?: string | null;
   onStartDeleteDocument?: (path: string) => void;
   onStartDeleteDirectory?: (path: string) => void;
-  onCreateNewFile?: (parentPath?: string) => Promise<void>;
+  onStartCreateDocument?: (parentPath?: string) => void;
   onStartCreateDirectory?: (parentPath?: string) => void;
+  hasPendingNewDocument?: boolean;
   hasPendingNewDirectory?: boolean;
+  initialOpenState?: ExplorerOpenState;
+  onOpenStateChange?: (openState: ExplorerOpenState) => void;
 }) => {
   const { isMac } = useContext(ElectronContext);
   const treeRef = useRef<TreeApi<ExplorerTreeNode>>(null);
 
+  // Opens the folders above a new file's name field, wherever it was started.
+  useEffect(() => {
+    if (hasPendingNewDocument) treeRef.current?.scrollTo(NEW_FILE_NODE_ID);
+  }, [hasPendingNewDocument, data]);
+
+  const handleToggle = () => {
+    const tree = treeRef.current;
+    if (tree) onOpenStateChange?.(tree.openState);
+  };
+
   const handleActivate = (node: NodeApi<ExplorerTreeNode>) => {
     if (
-      node.data.type === filesystemItemTypes.FILE ||
+      node.data.type === filesystemEntryTypes.FILE ||
       node.data.type === STRUCTURAL_CONFLICTS_NODE_TYPE
     ) {
       onSelectItem(node.id);
@@ -107,14 +141,19 @@ export const TreeView = ({
     focused: NodeApi<ExplorerTreeNode> | null
   ): string | undefined => {
     if (!focused) return undefined;
-    if (focused.data.type === filesystemItemTypes.DIRECTORY) return focused.id;
+    if (focused.data.type === filesystemEntryTypes.DIRECTORY) return focused.id;
     const parentId = focused.parent?.id;
     if (!parentId || focused.parent?.isRoot) return undefined;
     return parentId;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (filePathToRename || directoryPathToRename || hasPendingNewDirectory)
+    if (
+      filePathToRename ||
+      directoryPathToRename ||
+      hasPendingNewDocument ||
+      hasPendingNewDirectory
+    )
       return;
 
     const modKey = isMac ? e.metaKey : e.ctrlKey;
@@ -130,10 +169,10 @@ export const TreeView = ({
     const focused = treeRef.current?.focusedNode ?? null;
 
     // New file: works with or without a focused node
-    if (isNewFileKey && onCreateNewFile) {
+    if (isNewFileKey && onStartCreateDocument) {
       e.preventDefault();
       e.stopPropagation();
-      onCreateNewFile(getNewFileParentPath(focused));
+      onStartCreateDocument(getNewFileParentPath(focused));
       return;
     }
 
@@ -155,8 +194,8 @@ export const TreeView = ({
     // Delete and rename require a focused node
     if (!focused) return;
 
-    const isFile = focused.data.type === filesystemItemTypes.FILE;
-    const isDirectory = focused.data.type === filesystemItemTypes.DIRECTORY;
+    const isFile = focused.data.type === filesystemEntryTypes.FILE;
+    const isDirectory = focused.data.type === filesystemEntryTypes.DIRECTORY;
 
     const action = isDeleteKey
       ? // Delete
@@ -176,6 +215,10 @@ export const TreeView = ({
   return (
     <TreeCallbacksContext.Provider
       value={{
+        onCreateDocument,
+        onCancelCreateDocument,
+        onClearCreateDocumentError,
+        createDocumentError,
         onCreateDirectory,
         onCancelCreateDirectory,
         onRenameDocument,
@@ -195,22 +238,18 @@ export const TreeView = ({
         style={{ scrollbarColor: 'inherit', scrollbarWidth: 'inherit' }}
         onKeyDownCapture={handleKeyDown}
       >
-        <AutoSizer
-          renderProp={({ width, height }) => (
-            <Tree
-              ref={treeRef}
-              data={data}
-              selection={selection ?? undefined}
-              width={width ?? '100%'}
-              height={height}
-              rowHeight={32}
-              className="explorer-tree overflow-auto"
-              onActivate={handleActivate}
-            >
-              {TreeNode}
-            </Tree>
-          )}
-        />
+        <AutoSizedTree
+          treeRef={treeRef}
+          data={data}
+          selection={selection ?? undefined}
+          rowHeight={TREE_ROW_HEIGHT}
+          className="explorer-tree"
+          initialOpenState={initialOpenState}
+          onToggle={handleToggle}
+          onActivate={handleActivate}
+        >
+          {TreeNode}
+        </AutoSizedTree>
       </div>
     </TreeCallbacksContext.Provider>
   );

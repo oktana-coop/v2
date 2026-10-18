@@ -5,19 +5,17 @@ import { richTextRepresentations } from '../../../../../../modules/domain/rich-t
 import { ExportTemplatesContext } from '../../../../../../modules/personalization/export-templates/context';
 import {
   CommandPaletteContext,
-  CurrentDocumentContext,
-  SidebarLayoutContext,
+  useCurrentRichTextDocumentId,
+  useExport,
 } from '../../../../app-state';
-import { useExport } from '../../../../hooks/use-export';
-import { useKeyBindings } from '../../../../hooks/use-key-bindings';
+import { useKeyBindings } from '../../../../keyboard';
 import { PagedPreview } from '../../../shared/paged-preview/PagedPreview';
 import { PrintPreviewActionsBar } from './PrintPreviewActionsBar';
 
 export const PrintPreview = () => {
-  const { versionedDocumentId } = useContext(CurrentDocumentContext);
+  const documentId = useCurrentRichTextDocumentId();
   const { activeTemplate } = useContext(ExportTemplatesContext);
   const { isOpen: isCommandPaletteOpen } = useContext(CommandPaletteContext);
-  const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
   const { exportToPDF, getExportText } = useExport();
   const navigate = useNavigate();
 
@@ -33,7 +31,7 @@ export const PrintPreview = () => {
   );
 
   useEffect(() => {
-    if (!versionedDocumentId) {
+    if (!documentId) {
       setHtml(null);
       return;
     }
@@ -44,13 +42,13 @@ export const PrintPreview = () => {
     };
 
     fetchHtml();
-  }, [versionedDocumentId, getExportText]);
+  }, [documentId, getExportText]);
 
   useEffect(() => {
     document.title = 'v2 | Print Preview';
   }, []);
 
-  if (!versionedDocumentId) {
+  if (!documentId) {
     return (
       <div className="flex h-full flex-col items-center justify-center text-zinc-400">
         <p className="text-sm">No document selected</p>
@@ -61,8 +59,6 @@ export const PrintPreview = () => {
   return (
     <div className="relative flex flex-auto flex-col overflow-hidden bg-zinc-100 dark:bg-zinc-800">
       <PrintPreviewActionsBar
-        isSidebarOpen={isSidebarOpen}
-        onSidebarToggle={toggleSidebar}
         onExportSettings={() => navigate('/settings/exports')}
         onExportToPDF={exportToPDF}
       />

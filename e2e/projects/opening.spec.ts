@@ -1,0 +1,236 @@
+import fs from 'fs';
+import path from 'path';
+
+import { expect, test } from '../shared/fixtures';
+import {
+  hasCleanWorkingTree,
+  initRepositoryWithCommit,
+  lastCommitAuthor,
+} from '../shared/git';
+import {
+  expectCommitChanges,
+  expectCurrentProject,
+  expectNoErrorNotificationAfterWaiting,
+  expectNoOpenDocument,
+  expectProjectCommits,
+  navigateToProjectHistory,
+  openProjectFolder,
+  openRichTextDocument,
+} from '../shared/helpers';
+
+type Window = Parameters<typeof openRichTextDocument>[0]['window'];
+
+const fileExplorer = (window: Window) => window.getByTestId('file-explorer');
+
+test.describe('project opening', () => {
+  test('.git missing, folder empty: commits just the generated .gitignore', async ({
+    electronApp,
+    window,
+    emptyProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: emptyProjectDir,
+    });
+    // The history view renders only once the project is open, so asserting the
+    // snapshot here is also what makes the git reads below race-free.
+    await navigateToProjectHistory({ window });
+    await expectProjectCommits({ window, messages: ['Set up versioning'] });
+    await expectCommitChanges({
+      window,
+      commitMessage: 'Set up versioning',
+      added: ['.gitignore'],
+    });
+
+    expect(hasCleanWorkingTree({ repoDir: emptyProjectDir })).toBe(true);
+  });
+
+  test('.git missing, .gitignore missing: initialises and commits the folder as found', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    // testProjectDir is created with mkdtempSync — no .git initially
+    expect(fs.existsSync(path.join(testProjectDir, '.git'))).toBe(false);
+
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await navigateToProjectHistory({ window });
+    await expectProjectCommits({ window, messages: ['Set up versioning'] });
+    await expectCommitChanges({
+      window,
+      commitMessage: 'Set up versioning',
+      added: [
+        '.gitignore',
+        'config.json',
+        'diagram.png',
+        'hello.md',
+        'world.md',
+      ],
+    });
+
+    // Nothing the folder came with is left dangling as an uncommitted change.
+    expect(hasCleanWorkingTree({ repoDir: testProjectDir })).toBe(true);
+    expect(lastCommitAuthor({ repoDir: testProjectDir })).toBe(
+      'v2 Bot <bot@v2editor.com>'
+    );
+  });
+
+  test('.git missing, .gitignore present: keeps it and honours its rules', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const existingGitignore = '# mine\nconfig.json\n';
+    fs.writeFileSync(
+      path.join(testProjectDir, '.gitignore'),
+      existingGitignore
+    );
+
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await navigateToProjectHistory({ window });
+    await expectProjectCommits({ window, messages: ['Set up versioning'] });
+    // config.json is excluded by their rules, so it never enters the snapshot.
+    await expectCommitChanges({
+      window,
+      commitMessage: 'Set up versioning',
+      added: ['.gitignore', 'diagram.png', 'hello.md', 'world.md'],
+    });
+
+    expect(
+      fs.readFileSync(path.join(testProjectDir, '.gitignore'), 'utf8')
+    ).toBe(existingGitignore);
+  });
+
+  test('.git present: nothing is created', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    initRepositoryWithCommit({
+      repoDir: testProjectDir,
+      message: 'their own commit',
+    });
+
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await expect(fileExplorer(window).getByText('hello.md')).toBeVisible();
+    await navigateToProjectHistory({ window });
+    await expectProjectCommits({ window, messages: ['their own commit'] });
+
+    expect(fs.existsSync(path.join(testProjectDir, '.gitignore'))).toBe(false);
+  });
+
+  test('reopens the last opened project after a reload', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openRichTextDocument({ window, relativePath: 'hello.md' });
+
+    await window.reload();
+
+    // The last opened project is restored from browser storage — no folder is
+    // picked again here.
+    await expect(fileExplorer(window).getByText('hello.md')).toBeVisible();
+    await expectCurrentProject({ window, directory: testProjectDir });
+  });
+
+  test('switches to another project when a different folder is opened', async ({
+    electronApp,
+    window,
+    testProjectDir,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await expect(fileExplorer(window).getByText('hello.md')).toBeVisible();
+
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    // The explorer reflects the second project, and nothing of the first is left.
+    await expect(fileExplorer(window).getByText('armadillo.md')).toBeVisible();
+    await expect(fileExplorer(window).getByText('hello.md')).toBeHidden();
+    await expectCurrentProject({ window, directory: nestedProjectDir });
+  });
+
+  test('switches to another project while a document is open in the editor', async ({
+    electronApp,
+    window,
+    longDocumentProjectDir,
+    nestedProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: longDocumentProjectDir,
+    });
+    await openRichTextDocument({ window, relativePath: 'chapter.md' });
+    await window.locator('.ProseMirror').click();
+    await expect(window.locator('.ProseMirror')).toBeFocused();
+
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: nestedProjectDir,
+    });
+
+    await expectCurrentProject({ window, directory: nestedProjectDir });
+
+    // The first project's document is not carried over.
+    await expectNoOpenDocument({ window });
+
+    // Looking up that document in the second project would fail with an error
+    // notification shortly after the switch.
+    await expectNoErrorNotificationAfterWaiting({ window });
+  });
+
+  test('keeps the open document when the folder dialog is cancelled', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openRichTextDocument({ window, relativePath: 'hello.md' });
+    await expect(window.locator('.ProseMirror')).toContainText('Hello');
+
+    await electronApp.evaluate(async ({ dialog }) => {
+      dialog.showOpenDialog = async () => ({ canceled: true, filePaths: [] });
+    });
+    await window
+      .getByRole('button', { name: /open folder/i })
+      .first()
+      .click();
+
+    // Nothing was opened, so the document stays where it was.
+    await expectNoErrorNotificationAfterWaiting({ window });
+    await expect(window.locator('.ProseMirror')).toContainText('Hello');
+  });
+});

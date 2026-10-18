@@ -58,6 +58,7 @@ const ErrorNotification = ({
     iconClasses="text-red-400"
     title={notification.title}
     message={notification.message}
+    testId="error-notification"
   />
 );
 

@@ -1,7 +1,7 @@
 import { Node as PMNode } from 'prosemirror-model';
 import { EditorView, type NodeView } from 'prosemirror-view';
 
-import { codeBlock as codeBlockClasses } from '../../../../../renderer/src/components/editing/blocks';
+import { codeBlock as codeBlockClasses } from '../../../../../renderer/src/components/rich-text-editing/blocks';
 import { codeBlockLanguageNames, codeBlockLanguages } from '../../constants';
 
 const createSelectElement = (initialValue: string) => {

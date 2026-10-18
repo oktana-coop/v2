@@ -17,6 +17,7 @@ export const DeleteDirectoryDialog = ({
 }: DeleteDirectoryDialogProps) => (
   <Modal
     isOpen={isOpen}
+    onClose={onCancel}
     title="Delete Folder"
     secondaryButton={
       <Button variant="plain" onClick={onCancel}>
@@ -24,7 +25,7 @@ export const DeleteDirectoryDialog = ({
       </Button>
     }
     primaryButton={
-      <Button onClick={onConfirm} color="red">
+      <Button onClick={onConfirm} color="red" autoFocus>
         <TrashIcon />
         Delete
       </Button>

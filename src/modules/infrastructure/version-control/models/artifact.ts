@@ -1,4 +1,4 @@
-import { type ResolvedArtifactId } from './resolved-artifact-id';
+import { type ArtifactId } from './artifact-id';
 
 // This is the same with Automerge.Doc
 // https://github.com/automerge/automerge/blob/main/javascript/src/types.ts#L29
@@ -7,10 +7,7 @@ export type VersionedArtifact<ArtifactType> = {
   readonly [P in keyof ArtifactType]: ArtifactType[P];
 };
 
-export type ResolvedArtifact<
-  ArtifactId extends ResolvedArtifactId,
-  ArtifactType,
-> = {
-  id: ArtifactId;
+export type ResolvedArtifact<Id extends ArtifactId, ArtifactType> = {
+  id: Id;
   artifact: VersionedArtifact<ArtifactType>;
 };

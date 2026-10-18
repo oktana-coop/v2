@@ -3,10 +3,12 @@ import { BrowserWindow, ipcMain } from 'electron';
 import {
   type ContextMenuPayload,
   EXPLORER_TREE_NODE,
+  GUEST_SHARE,
 } from '../../modules/infrastructure/cross-platform';
 import {
   buildAndShowExplorerDirectoryContextMenu,
   buildAndShowExplorerFileContextMenu,
+  buildAndShowGuestShareContextMenu,
 } from '../menus';
 
 export const registerContextMenusIPCHandlers = ({
@@ -28,6 +30,10 @@ export const registerContextMenusIPCHandlers = ({
         if (payload.nodeType === 'DIRECTORY') {
           buildAndShowExplorerDirectoryContextMenu({ win, path: payload.path });
         }
+      }
+
+      if (payload.context === GUEST_SHARE) {
+        buildAndShowGuestShareContextMenu({ win, shareId: payload.shareId });
       }
     }
   );

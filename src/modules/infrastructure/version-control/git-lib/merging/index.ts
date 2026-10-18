@@ -7,8 +7,8 @@ import path from 'path';
 
 import { fromNullable } from '../../../../../utils/effect';
 import { mapErrorTo } from '../../../../../utils/errors';
-import { DEFAULT_AUTHOR_NAME } from '../../constants';
 import {
+  BranchSwitchConflictError,
   MergeConflictError,
   NotFoundError,
   RepositoryError,
@@ -27,7 +27,8 @@ import {
   parseGitCommitHash,
 } from '../../models';
 import { deleteBranch, switchToBranch } from '../branching';
-import { stageAndCommitWorkdirChanges } from '../committing';
+import { resolveAuthor, stageAndCommitWorkdirChanges } from '../committing';
+import { getCommitForRef } from '../refs';
 import { IsoGitDeps } from '../types';
 
 export type MergeAndDeleteBranchArgs = Omit<IsoGitDeps, 'isoGitHttp'> & {
@@ -48,7 +49,10 @@ export const mergeAndDeleteBranch = ({
   into,
 }: MergeAndDeleteBranchArgs): Effect.Effect<
   Commit['id'],
-  RepositoryError | NotFoundError | MergeConflictError,
+  | RepositoryError
+  | NotFoundError
+  | MergeConflictError
+  | BranchSwitchConflictError,
   never
 > => {
   type IsoGitMergeConflictErrorData = {
@@ -180,7 +184,8 @@ export const mergeAndDeleteBranch = ({
 
   return pipe(
     switchToBranch({ isoGitFs, dir, branch: into }),
-    Effect.flatMap(() =>
+    Effect.flatMap(() => resolveAuthor({ isoGitFs, dir })),
+    Effect.flatMap((author) =>
       Effect.tryPromise({
         try: () =>
           git.merge({
@@ -188,9 +193,7 @@ export const mergeAndDeleteBranch = ({
             dir,
             ours: into,
             theirs: from,
-            author: {
-              name: DEFAULT_AUTHOR_NAME,
-            },
+            author,
             abortOnConflict: false,
           }),
         catch: (err) => {
@@ -274,36 +277,6 @@ export const isInMergeConflictState = ({
   );
 
 export type GetMergeConflictInfoArgs = Omit<IsoGitDeps, 'isoGitHttp'>;
-
-const getCommitForRef = ({
-  ref,
-  isoGitFs,
-  dir,
-}: Omit<IsoGitDeps, 'isoGitHttp'> & { ref: string }): Effect.Effect<
-  GitCommitHash,
-  RepositoryError,
-  never
-> =>
-  pipe(
-    Effect.tryPromise({
-      try: () =>
-        git.resolveRef({
-          fs: isoGitFs,
-          dir,
-          ref,
-        }),
-      catch: mapErrorTo(RepositoryError, 'Error in resolving Git ref.'),
-    }),
-    Effect.flatMap((commitOid) =>
-      Effect.try({
-        try: () => parseGitCommitHash(commitOid),
-        catch: mapErrorTo(
-          RepositoryError,
-          'Error in resolving Git ref commit id.'
-        ),
-      })
-    )
-  );
 
 const getConflictCommits = ({
   isoGitFs,

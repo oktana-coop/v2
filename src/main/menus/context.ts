@@ -10,6 +10,8 @@ import {
   EXPLORER_TREE_FILE,
   type ExplorerTreeDirectoryAction,
   type ExplorerTreeFileAction,
+  GUEST_SHARE,
+  type GuestShareAction,
 } from '../../modules/infrastructure/cross-platform';
 import { isMac } from '../../modules/infrastructure/cross-platform/node';
 import { sendIPCMessageToFocusedWindow } from './utils';
@@ -115,4 +117,26 @@ export const buildAndShowExplorerDirectoryContextMenu = ({
   const menu = Menu.buildFromTemplate(menuOptions);
 
   menu.popup({ window: win });
+};
+
+export const buildAndShowGuestShareContextMenu = ({
+  win,
+  shareId,
+}: {
+  win: BrowserWindow;
+  shareId: string;
+}) => {
+  const send = (action: GuestShareAction) =>
+    sendIPCMessageToFocusedWindow('context-menu:action', {
+      context: GUEST_SHARE,
+      action,
+    } as ContextMenuAction);
+
+  const menuOptions: MenuItemConstructorOptions[] = [
+    { label: 'Rename', click: () => send({ type: 'RENAME', shareId }) },
+    { type: 'separator' },
+    { label: 'Leave', click: () => send({ type: 'LEAVE', shareId }) },
+  ];
+
+  Menu.buildFromTemplate(menuOptions).popup({ window: win });
 };

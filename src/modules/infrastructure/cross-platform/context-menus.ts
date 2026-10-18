@@ -15,7 +15,8 @@ export type ExplorerEmptyTreeContextMenuPayload = {
 
 export type ContextMenuPayload =
   | ExplorerTreeNodeContextMenuPayload
-  | ExplorerEmptyTreeContextMenuPayload;
+  | ExplorerEmptyTreeContextMenuPayload
+  | GuestShareContextMenuPayload;
 
 export type ContextMenuAction =
   | {
@@ -25,14 +26,30 @@ export type ContextMenuAction =
   | {
       context: typeof EXPLORER_TREE_DIRECTORY;
       action: ExplorerTreeDirectoryAction;
-    };
+    }
+  | GuestShareContextMenuAction;
 
 export type ExplorerTreeFileAction =
-  | { type: 'RENAME'; path: string }
-  | { type: 'DELETE'; path: string };
+  { type: 'RENAME'; path: string } | { type: 'DELETE'; path: string };
 
 export type ExplorerTreeDirectoryAction =
   | { type: 'NEW_FILE'; parentPath: string }
   | { type: 'NEW_DIRECTORY'; parentPath: string }
   | { type: 'RENAME'; path: string }
   | { type: 'DELETE'; path: string };
+
+// A shared document held without its project, as listed in "Shared with me".
+export const GUEST_SHARE = 'GUEST_SHARE';
+
+export type GuestShareContextMenuPayload = {
+  context: typeof GUEST_SHARE;
+  shareId: string;
+};
+
+export type GuestShareAction =
+  { type: 'RENAME'; shareId: string } | { type: 'LEAVE'; shareId: string };
+
+export type GuestShareContextMenuAction = {
+  context: typeof GUEST_SHARE;
+  action: GuestShareAction;
+};

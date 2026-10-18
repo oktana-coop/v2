@@ -1,2 +1,6 @@
 export { suggestMerge } from './suggest-merge';
-export { processDocumentChange } from './process-document-change';
+export {
+  toPrimaryTextRepresentation,
+  type ToPrimaryTextRepresentationDeps,
+} from './to-primary-text-representation';
+export { richTextEditing, type RichTextEditingDeps } from './rich-text-editing';

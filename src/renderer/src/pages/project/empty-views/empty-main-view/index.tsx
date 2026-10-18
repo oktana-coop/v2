@@ -2,23 +2,24 @@ import { useContext } from 'react';
 
 import {
   CloneFromGithubModalContext,
-  SidebarLayoutContext,
+  useCreateDocument,
 } from '../../../../app-state';
 import { Button } from '../../../../components/actions/Button';
 import { EmptyDocument } from '../../../../components/document-views/EmptyDocument';
 import { FolderIcon, GithubIcon, PenIcon } from '../../../../components/icons';
-import { useCreateDocument, useDocumentExplorerTree } from '../../../../hooks';
 import { DefaultActionsBar } from '../../../shared/default-actions-bar';
+import { useDocumentExplorerTree } from '../../shared/explorer-tree-views';
 
 export const EmptyMainView = ({
   onCreateDocumentButtonClick,
   onOpenDirectoryButtonClick,
+  children,
 }: {
   onCreateDocumentButtonClick: () => void;
   onOpenDirectoryButtonClick: () => void;
+  children?: React.ReactNode;
 }) => {
   const { openCloneFromGithubModal } = useContext(CloneFromGithubModalContext);
-  const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
 
   const { explorerTree: documents } = useDocumentExplorerTree();
   const { canCreateDocument } = useCreateDocument();
@@ -29,10 +30,7 @@ export const EmptyMainView = ({
   return (
     <div className="flex w-full flex-col">
       <div className="w-full">
-        <DefaultActionsBar
-          isSidebarOpen={isSidebarOpen}
-          onSidebarToggle={toggleSidebar}
-        />
+        <DefaultActionsBar />
       </div>
       <EmptyDocument
         message={
@@ -68,6 +66,7 @@ export const EmptyMainView = ({
           <GithubIcon className="mr-1" />
           Clone from GitHub
         </Button>
+        {children}
       </EmptyDocument>
     </div>
   );

@@ -62,10 +62,7 @@ type RequestAccessTokenGithubApiSuccessResponse = {
 
 type RequestAccessTokenGithubApiErrorResponse = {
   error:
-    | 'authorization_pending'
-    | 'slow_down'
-    | 'expired_token'
-    | 'access_denied';
+    'authorization_pending' | 'slow_down' | 'expired_token' | 'access_denied';
 };
 
 type RequestAccessTokenGithubApiResponse =

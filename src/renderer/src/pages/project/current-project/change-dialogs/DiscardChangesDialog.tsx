@@ -15,6 +15,7 @@ export const DiscardChangesDialog = ({
 }: DiscardChangesDialogProps) => (
   <Modal
     isOpen={isOpen}
+    onClose={onCancel}
     title="Discard Changes"
     secondaryButton={
       <Button variant="plain" onClick={onCancel}>
@@ -22,7 +23,7 @@ export const DiscardChangesDialog = ({
       </Button>
     }
     primaryButton={
-      <Button onClick={onDiscardChanges} color="red">
+      <Button onClick={onDiscardChanges} color="red" autoFocus>
         <TrashIcon />
         Discard
       </Button>

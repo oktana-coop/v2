@@ -1,5 +1,7 @@
 import * as Cause from 'effect/Cause';
 
+import { type Branch } from '../../../infrastructure/version-control';
+
 export const VersionedProjectRepositoryErrorTag =
   'VersionedProjectRepositoryError';
 export class RepositoryError extends Cause.YieldableError {
@@ -27,4 +29,63 @@ export const VersionedProjectValidationErrorTag =
   'VersionedProjectValidationError';
 export class ValidationError extends Cause.YieldableError {
   readonly _tag = VersionedProjectValidationErrorTag;
+}
+
+export const VersionedProjectDeletedDocumentErrorTag =
+  'VersionedProjectDeletedDocumentError';
+export class DeletedDocumentError extends Cause.YieldableError {
+  readonly _tag = VersionedProjectDeletedDocumentErrorTag;
+  readonly data;
+
+  constructor(message: string, data: { parentCommitId: string | null }) {
+    super(message);
+    this.data = data;
+  }
+}
+
+export const VersionedProjectDocumentNotOnCurrentRefErrorTag =
+  'VersionedProjectDocumentNotOnCurrentRefError';
+export class DocumentNotOnCurrentRefError extends Cause.YieldableError {
+  readonly _tag = VersionedProjectDocumentNotOnCurrentRefErrorTag;
+  readonly data;
+
+  constructor(message: string, data: { currentBranch: Branch | null }) {
+    super(message);
+    this.data = data;
+  }
+}
+
+export const SharedDocumentOnAnotherBranchErrorTag =
+  'SharedDocumentOnAnotherBranchError';
+export class SharedDocumentOnAnotherBranchError extends Cause.YieldableError {
+  readonly _tag = SharedDocumentOnAnotherBranchErrorTag;
+  readonly data;
+
+  constructor(message: string, data: { branch: Branch }) {
+    super(message);
+    this.data = data;
+  }
+}
+
+export const SharedDocumentNotInProjectErrorTag =
+  'SharedDocumentNotInProjectError';
+export class SharedDocumentNotInProjectError extends Cause.YieldableError {
+  readonly _tag = SharedDocumentNotInProjectErrorTag;
+}
+
+export const PendingEditsNotSavedErrorTag = 'PendingEditsNotSavedError';
+export class PendingEditsNotSavedError extends Cause.YieldableError {
+  readonly _tag = PendingEditsNotSavedErrorTag;
+  readonly data;
+
+  constructor(message: string, data: { cause: unknown }) {
+    super(message);
+    this.data = data;
+  }
+}
+
+export const VersionedProjectTextDecodingErrorTag =
+  'VersionedProjectTextDecodingError';
+export class TextDecodingError extends Cause.YieldableError {
+  readonly _tag = VersionedProjectTextDecodingErrorTag;
 }

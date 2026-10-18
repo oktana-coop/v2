@@ -22,5 +22,10 @@ export const StructuralConflict = ({
     );
   }
 
-  return <UnsupportedConflict />;
+  return (
+    <UnsupportedConflict>
+      v2 is not yet able to handle this conflict type. Please reach out to us
+      for support.
+    </UnsupportedConflict>
+  );
 };

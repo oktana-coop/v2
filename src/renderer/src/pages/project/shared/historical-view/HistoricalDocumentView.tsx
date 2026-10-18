@@ -1,25 +1,27 @@
-import { useContext, useMemo } from 'react';
-
 import {
-  isUnsupportedExtension,
-  type VersionedDocument,
-} from '../../../../../../modules/domain/rich-text';
+  type ArtifactKind,
+  artifactKinds,
+  isDocumentKind,
+  type ProjectRelPath,
+} from '../../../../../../modules/domain/project';
 import {
+  type ArtifactId,
+  type ChangeId,
   type CommitId,
   type CommitWithUrlInfo,
 } from '../../../../../../modules/infrastructure/version-control';
-import { SidebarLayoutContext } from '../../../../app-state';
+import { LongTextSkeleton } from '../../../../components/progress/skeletons/LongText';
 import { UnsupportedDocumentView } from '../../shared/unsupported-document-view';
 import { DocumentHistoryActionsBar } from './DocumentHistoryActionsBar';
-import { HistoricalViewContent } from './HistoricalViewContent';
-import { type DiffViewProps } from './ReadOnlyDocumentView';
+import { PlainTextHistoricalContent } from './PlainTextHistoricalContent';
+import { RichTextHistoricalContent } from './RichTextHistoricalContent';
 
 export type HistoricalDocumentViewProps = {
-  documentPath: string | null;
-  doc: VersionedDocument | null;
-  diffProps: DiffViewProps | null;
-  loading: boolean;
-  error: string | null;
+  documentId: ArtifactId | null;
+  documentPath: ProjectRelPath | null;
+  kind: ArtifactKind | null;
+  resolvingArtifact: boolean;
+  changeId: ChangeId | null;
   showDiff: boolean;
   onSetShowDiff: (value: boolean) => void;
   diffCommitId: CommitId | null;
@@ -31,12 +33,73 @@ export type HistoricalDocumentViewProps = {
   actions?: React.ReactNode;
 };
 
-export const HistoricalDocumentView = ({
+const HistoricalContent = ({
+  documentId,
   documentPath,
-  doc,
-  diffProps,
-  loading,
-  error,
+  kind,
+  resolvingArtifact,
+  changeId,
+  diffCommitId,
+}: Pick<
+  HistoricalDocumentViewProps,
+  | 'documentId'
+  | 'documentPath'
+  | 'kind'
+  | 'resolvingArtifact'
+  | 'changeId'
+  | 'diffCommitId'
+>) => {
+  if (
+    documentId &&
+    documentPath &&
+    kind === artifactKinds.PLAIN_TEXT_DOCUMENT
+  ) {
+    return (
+      <PlainTextHistoricalContent
+        documentId={documentId}
+        documentPath={documentPath}
+        changeId={changeId}
+        diffCommitId={diffCommitId}
+      />
+    );
+  }
+
+  if (documentId && documentPath && kind === artifactKinds.RICH_TEXT_DOCUMENT) {
+    return (
+      <NarrowCenteredLayout>
+        <RichTextHistoricalContent
+          documentId={documentId}
+          documentPath={documentPath}
+          changeId={changeId}
+          diffCommitId={diffCommitId}
+        />
+      </NarrowCenteredLayout>
+    );
+  }
+
+  if (resolvingArtifact) {
+    return (
+      <NarrowCenteredLayout>
+        <LongTextSkeleton />
+      </NarrowCenteredLayout>
+    );
+  }
+
+  return null;
+};
+
+const NarrowCenteredLayout = ({ children }: { children: React.ReactNode }) => (
+  <div className="flex w-full flex-auto flex-col items-center overflow-auto">
+    <div className="flex w-full max-w-3xl flex-col">{children}</div>
+  </div>
+);
+
+export const HistoricalDocumentView = ({
+  documentId,
+  documentPath,
+  kind,
+  resolvingArtifact,
+  changeId,
   showDiff,
   onSetShowDiff,
   diffCommitId,
@@ -47,25 +110,16 @@ export const HistoricalDocumentView = ({
   titleComponent,
   actions,
 }: HistoricalDocumentViewProps) => {
-  const { isSidebarOpen, toggleSidebar } = useContext(SidebarLayoutContext);
-
-  const isUnsupported = useMemo(
-    () => (documentPath ? isUnsupportedExtension(documentPath) : false),
-    [documentPath]
-  );
-
-  if (isUnsupported) {
-    return <UnsupportedDocumentView />;
+  if (documentPath && kind && !isDocumentKind(kind)) {
+    return <UnsupportedDocumentView path={documentPath} />;
   }
 
   return (
-    <div className="flex flex-auto flex-col items-center">
+    <div className="relative flex flex-auto flex-col items-center overflow-hidden">
       <div className="w-full">
         <DocumentHistoryActionsBar
           title={title}
           titleComponent={titleComponent}
-          isSidebarOpen={isSidebarOpen}
-          onSidebarToggle={toggleSidebar}
           canShowDiff={canShowDiff}
           showDiff={showDiff}
           onSetShowDiffChecked={onSetShowDiff}
@@ -76,16 +130,15 @@ export const HistoricalDocumentView = ({
         />
       </div>
 
-      <div className="flex w-full flex-auto flex-col items-center overflow-auto">
-        <div className="flex w-full max-w-3xl flex-col">
-          <HistoricalViewContent
-            doc={doc}
-            diffProps={diffProps}
-            documentPath={documentPath}
-            loading={loading}
-            error={error}
-          />
-        </div>
+      <div className="flex min-h-0 w-full flex-auto flex-col">
+        <HistoricalContent
+          documentId={documentId}
+          documentPath={documentPath}
+          kind={kind}
+          resolvingArtifact={resolvingArtifact}
+          changeId={changeId}
+          diffCommitId={diffCommitId}
+        />
       </div>
     </div>
   );

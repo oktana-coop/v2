@@ -1,21 +1,20 @@
 import { useContext, useEffect, useState } from 'react';
 import { useMatch, useParams } from 'react-router';
 
+import { filesystemEntryTypes } from '../../../../../../modules/infrastructure/filesystem';
 import {
-  filesystemItemTypes,
-  removeExtension,
-} from '../../../../../../modules/infrastructure/filesystem';
-import { ProjectContext } from '../../../../app-state';
+  ProjectContext,
+  useNavigateToResolveConflicts,
+} from '../../../../app-state';
 import { MergeIcon } from '../../../../components/icons';
 import { SidebarHeading } from '../../../../components/sidebar/SidebarHeading';
 import {
   type ExplorerTreeNode,
   STRUCTURAL_CONFLICTS_NODE_TYPE,
-  useMergeConflictResolution,
-  useNavigateToResolveConflicts,
-} from '../../../../hooks';
-import { TreeView } from '../../shared/explorer-tree-views/tree';
+  TreeView,
+} from '../../shared/explorer-tree-views/tree';
 import { EmptyView } from './EmptyView';
+import { useMergeConflictResolution } from './use-merge-conflict-resolution';
 
 export const MergeConflictsList = () => {
   const { projectId } = useContext(ProjectContext);
@@ -43,6 +42,7 @@ export const MergeConflictsList = () => {
               type: STRUCTURAL_CONFLICTS_NODE_TYPE,
               id: 'structural',
               name: 'File Changes',
+              shared: false,
             },
           ]
         : [];
@@ -50,9 +50,10 @@ export const MergeConflictsList = () => {
     const compareContentConflictItems: ExplorerTreeNode[] =
       compareContentConflicts.length > 0
         ? compareContentConflicts.map((conflict) => ({
-            type: filesystemItemTypes.FILE,
+            type: filesystemEntryTypes.FILE,
             id: conflict.path,
-            name: removeExtension(conflict.path),
+            name: conflict.path,
+            shared: false,
           }))
         : [];
 

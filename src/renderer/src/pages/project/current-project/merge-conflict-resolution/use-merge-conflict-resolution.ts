@@ -1,0 +1,259 @@
+import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
+import { useCallback, useContext, useEffect, useState } from 'react';
+
+import { type RawPlainText } from '../../../../../../modules/domain/plain-text';
+import {
+  persistDocument,
+  type ProjectId,
+} from '../../../../../../modules/domain/project';
+import {
+  type RichTextDocument,
+  suggestMerge,
+} from '../../../../../../modules/domain/rich-text';
+import { MergeConflictResolverContext } from '../../../../../../modules/domain/rich-text/react/merge-conflict-resover-context';
+import { RepresentationTransformContext } from '../../../../../../modules/domain/rich-text/react/representation-transform-context';
+import {
+  createErrorNotification,
+  NotificationsContext,
+} from '../../../../../../modules/infrastructure/notifications/browser';
+import {
+  type ArtifactId,
+  type CompareContentConflict,
+  isCompareContentConflict,
+  isStructuralConflict,
+  type MergeConflictInfo,
+  type StructuralConflict,
+} from '../../../../../../modules/infrastructure/version-control';
+import {
+  InfrastructureAdaptersContext,
+  ProjectContext,
+} from '../../../../app-state';
+
+export const useMergeConflictResolution = () => {
+  const {
+    mergeConflictInfo: projectMergeConflictInfo,
+    abortMerge,
+    refreshConflictsAndMergeIfPossible,
+    resolveConflictByKeepingDocument,
+    resolveConflictByDeletingDocument,
+  } = useContext(ProjectContext);
+  const { projectStore } = useContext(InfrastructureAdaptersContext);
+  const { adapter: representationTransformAdapter } = useContext(
+    RepresentationTransformContext
+  );
+  const { adapter: mergeConflictResolver } = useContext(
+    MergeConflictResolverContext
+  );
+  const { dispatchNotification } = useContext(NotificationsContext);
+
+  const [mergeConflictInfo, setMergeConflictInfo] =
+    useState<MergeConflictInfo | null>(null);
+  const [structuralConflicts, setStructuralConflicts] = useState<
+    StructuralConflict[]
+  >([]);
+  const [compareContentConflicts, setCompareContentConflicts] = useState<
+    CompareContentConflict[]
+  >([]);
+
+  useEffect(() => {
+    const conflictInfo = projectMergeConflictInfo;
+
+    if (conflictInfo) {
+      const structuralConflicts = conflictInfo.conflicts.filter((conflict) =>
+        isStructuralConflict(conflict)
+      );
+      const compareContentConflicts = conflictInfo.conflicts.filter(
+        (conflict) => isCompareContentConflict(conflict)
+      );
+      setStructuralConflicts(structuralConflicts);
+      setCompareContentConflicts(compareContentConflicts);
+    } else {
+      setStructuralConflicts([]);
+      setCompareContentConflicts([]);
+    }
+
+    setMergeConflictInfo(conflictInfo);
+  }, [projectMergeConflictInfo]);
+
+  const suggestRichTextContentMerge = useCallback(
+    async ({
+      projectId,
+      sourceDocumentId,
+      targetDocumentId,
+      commonAncestorDocumentId,
+      mergeConflictInfo,
+    }: {
+      projectId: ProjectId;
+      sourceDocumentId: ArtifactId;
+      targetDocumentId: ArtifactId;
+      commonAncestorDocumentId: ArtifactId;
+      mergeConflictInfo: MergeConflictInfo;
+    }) => {
+      if (!projectStore) {
+        throw new Error(
+          'Versioned document store not ready yet or mismatched project.'
+        );
+      }
+
+      if (!mergeConflictResolver) {
+        throw new Error('Merge conflict resolver adpater not ready yet.');
+      }
+
+      return Effect.runPromise(
+        suggestMerge({
+          getDocumentAtChange: (args) =>
+            projectStore.getRichTextDocumentAtChange({ projectId, ...args }),
+          resolveMergeConflicts: mergeConflictResolver.resolveMergeConflicts,
+        })({
+          sourceDocumentId: sourceDocumentId,
+          targetDocumentId: targetDocumentId,
+          commonAncestorDocumentId: commonAncestorDocumentId,
+          sourceCommitId: mergeConflictInfo.sourceCommitId,
+          targetCommitId: mergeConflictInfo.targetCommitId,
+          commonAncestorCommitId: mergeConflictInfo.commonAncestorCommitId,
+        })
+      );
+    },
+    [projectStore, mergeConflictResolver]
+  );
+
+  const applyContentConflictResolution = useCallback(
+    async ({
+      documentId,
+      projectId,
+      writeContent,
+    }: {
+      documentId: ArtifactId;
+      projectId: ProjectId;
+      writeContent: Effect.Effect<void, unknown, never>;
+    }) => {
+      if (!projectStore) {
+        throw new Error(
+          'Versioned document store not ready yet or mismatched project.'
+        );
+      }
+
+      if (!mergeConflictInfo) {
+        throw new Error(
+          'No merge conflict info found when trying to resolve a conflict.'
+        );
+      }
+
+      try {
+        await Effect.runPromise(
+          pipe(
+            writeContent,
+            Effect.flatMap(() =>
+              projectStore.resolveContentConflict({
+                projectId,
+                documentId,
+              })
+            )
+          )
+        );
+      } catch (err) {
+        console.error(err);
+        const notification = createErrorNotification({
+          title: 'Resolve Conflict Error',
+          message:
+            'An error happened when trying to resolve the conflict. Please try again and if the error persists contact us for support.',
+        });
+
+        dispatchNotification(notification);
+      }
+
+      refreshConflictsAndMergeIfPossible();
+    },
+    [
+      projectStore,
+      mergeConflictInfo,
+      refreshConflictsAndMergeIfPossible,
+      dispatchNotification,
+    ]
+  );
+
+  const resolveRichTextContentConflict = useCallback(
+    async ({
+      documentId,
+      projectId,
+      doc,
+    }: {
+      documentId: ArtifactId;
+      projectId: ProjectId;
+      doc: RichTextDocument;
+    }) => {
+      if (!projectStore) {
+        throw new Error(
+          'Versioned document store not ready yet or mismatched project.'
+        );
+      }
+
+      if (!representationTransformAdapter) {
+        throw new Error(
+          'No representation transform adapter found when trying to resolve a content conflict.'
+        );
+      }
+
+      await applyContentConflictResolution({
+        documentId,
+        projectId,
+        writeContent: persistDocument({
+          transformToText: representationTransformAdapter.transformToText,
+          updateRichTextDocumentContent:
+            projectStore.updateRichTextDocumentContent,
+        })({
+          projectId,
+          documentId,
+          document: doc,
+        }),
+      });
+    },
+    [
+      projectStore,
+      representationTransformAdapter,
+      applyContentConflictResolution,
+    ]
+  );
+
+  const resolvePlainTextContentConflict = useCallback(
+    async ({
+      documentId,
+      projectId,
+      content,
+    }: {
+      documentId: ArtifactId;
+      projectId: ProjectId;
+      content: RawPlainText;
+    }) => {
+      if (!projectStore) {
+        throw new Error(
+          'Versioned document store not ready yet or mismatched project.'
+        );
+      }
+
+      await applyContentConflictResolution({
+        documentId,
+        projectId,
+        writeContent: projectStore.updatePlainTextDocumentContent({
+          projectId,
+          documentId,
+          content: content.content,
+        }),
+      });
+    },
+    [projectStore, applyContentConflictResolution]
+  );
+
+  return {
+    mergeConflictInfo,
+    structuralConflicts,
+    compareContentConflicts,
+    abortMerge,
+    suggestRichTextContentMerge,
+    resolveRichTextContentConflict,
+    resolvePlainTextContentConflict,
+    resolveConflictByKeepingDocument,
+    resolveConflictByDeletingDocument,
+  };
+};

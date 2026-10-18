@@ -3,7 +3,7 @@
 // know where a key binding has already been taken
 // and for what purpose
 
-import type { KeyBinding } from '../../../../hooks/use-key-bindings';
+import type { KeyBinding } from '../../../../keyboard';
 
 // ctrl is used here to represent both ctrl (Windows/Linux) and cmd (Mac)
 export const keyBindings: Record<
@@ -26,12 +26,9 @@ export const keyBindings: Record<
     command: 'Create a new document',
     keyBinding: 'ctrl+n',
   },
-  ctrlS: {
-    // aka save
-    // as this is the "proper save" shortcut that allows you to save with context, hence commit
-    // while the "simple save" (no context) is handled automatically. auto-save is always on.
+  ctrlShiftC: {
     command: 'Commit changes',
-    keyBinding: 'ctrl+s',
+    keyBinding: 'ctrl+shift+c',
   },
   ctrlShiftM: {
     command: 'Export to Markdown',
@@ -52,6 +49,10 @@ export const keyBindings: Record<
   ctrlAltF: {
     command: 'Insert footnote',
     keyBinding: 'ctrl+alt+f',
+  },
+  ctrlF: {
+    command: 'Find in document',
+    keyBinding: 'ctrl+f',
   },
   ctrlComma: {
     command: 'Open Project Settings',

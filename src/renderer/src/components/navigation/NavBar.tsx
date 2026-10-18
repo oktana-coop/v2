@@ -4,12 +4,9 @@ import { NavLink, useMatch } from 'react-router';
 
 import { urlEncodeProjectId } from '../../../../modules/domain/project';
 import { type ProjectId } from '../../../../modules/domain/project/models';
-import {
-  type BrowserStorageProjectData,
-  PROJECT_BROWSER_STORAGE_KEY,
-} from '../../app-state/current-project/browser-storage';
+import { readStoredProject } from '../../app-state/current-project';
 import { Logo } from '../brand/Logo';
-import { BranchIcon, OptionsIcon, PenIcon } from '../icons';
+import { BranchIcon, GroupIcon, OptionsIcon, PenIcon } from '../icons';
 import { IconProps } from '../icons/types';
 
 const ICON_SIZE = 32;
@@ -57,16 +54,8 @@ export const NavBarItem = ({ item }: { item: NavItem }) => {
   );
 };
 
-const getStoredProjectId = (): ProjectId | null => {
-  const stored = localStorage.getItem(PROJECT_BROWSER_STORAGE_KEY);
-  if (!stored) return null;
-
-  try {
-    return (JSON.parse(stored) as BrowserStorageProjectData).projectId ?? null;
-  } catch {
-    return null;
-  }
-};
+const getStoredProjectId = (): ProjectId | null =>
+  readStoredProject()?.projectId ?? null;
 
 export function NavBar() {
   const projectMatch = useMatch('/projects/:projectId/*');
@@ -74,15 +63,17 @@ export function NavBar() {
     (projectMatch?.params.projectId as ProjectId | undefined) ?? null;
   const projectId = projectIdFromUrl ?? getStoredProjectId();
 
+  const editHref = getProjectSubroute({
+    subpath: 'artifacts',
+    fallback: '/projects',
+    projectId,
+  });
+
   const projectSpecificNavItems: NavItem[] = useMemo(
     () => [
       {
         name: 'Edit',
-        href: getProjectSubroute({
-          subpath: 'artifacts',
-          fallback: '/projects',
-          projectId,
-        }),
+        href: editHref,
         icon: PenIcon,
         current: true,
       },
@@ -96,8 +87,14 @@ export function NavBar() {
         icon: BranchIcon,
         current: false,
       },
+      {
+        name: 'Shared with me',
+        href: '/shared-documents',
+        icon: GroupIcon,
+        current: false,
+      },
     ],
-    [projectId]
+    [editHref, projectId]
   );
 
   const appWideNavItems: NavItem[] = [
@@ -114,7 +111,7 @@ export function NavBar() {
       className="flex h-full w-12 flex-none flex-col items-center gap-y-5 overflow-y-auto border-r border-gray-300 bg-transparent py-4 dark:border-neutral-600"
       data-testid="nav-bar"
     >
-      <NavLink to="/projects">
+      <NavLink to={editHref}>
         <Logo />
       </NavLink>
 

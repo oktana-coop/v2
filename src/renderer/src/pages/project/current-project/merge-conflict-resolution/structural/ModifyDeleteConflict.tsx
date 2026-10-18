@@ -1,4 +1,3 @@
-import { removeExtension } from '../../../../../../../modules/infrastructure/filesystem';
 import {
   type MergeConflictInfo,
   mergePoles,
@@ -7,8 +6,8 @@ import {
 import { Button } from '../../../../../components/actions/Button';
 import { FileDocumentIcon } from '../../../../../components/icons';
 import { Heading3 } from '../../../../../components/typography/headings/Heading3';
-import { useMergeConflictResolution } from '../../../../../hooks';
 import { MergePole } from '../merge-info/MergePole';
+import { useMergeConflictResolution } from '../use-merge-conflict-resolution';
 
 export const ModifyDeleteConflict = ({
   conflict,
@@ -34,7 +33,7 @@ export const ModifyDeleteConflict = ({
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-x-2">
         <FileDocumentIcon className="text-black text-opacity-90 dark:text-white dark:text-opacity-90" />
-        <Heading3 className="!mb-0">{removeExtension(conflict.path)}</Heading3>
+        <Heading3 className="!mb-0">{conflict.path}</Heading3>
       </div>
       <ul className="flex list-disc flex-col gap-3 pl-5">
         <li>

@@ -1,9 +1,11 @@
+import { type ProjectRelPath } from '../../../../../../modules/domain/project';
 import { type VersionedDocument } from '../../../../../../modules/domain/rich-text';
 import { LongTextSkeleton } from '../../../../components/progress/skeletons/LongText';
+import { ContentLoadError } from './ContentLoadError';
 import {
   type DiffViewProps,
-  ReadOnlyDocumentView,
-} from './ReadOnlyDocumentView';
+  ReadOnlyRichTextDocumentView,
+} from './ReadOnlyRichTextDocumentView';
 
 export const HistoricalViewContent = ({
   doc,
@@ -14,7 +16,7 @@ export const HistoricalViewContent = ({
 }: {
   doc: VersionedDocument | null;
   diffProps: DiffViewProps | null;
-  documentPath: string | null;
+  documentPath: ProjectRelPath | null;
   loading: boolean;
   error: string | null;
 }) => {
@@ -23,20 +25,16 @@ export const HistoricalViewContent = ({
   }
 
   if (error) {
-    return (
-      <div className="flex items-center justify-center p-8 text-zinc-400 dark:text-neutral-500">
-        <p className="text-sm">{error}</p>
-      </div>
-    );
+    return <ContentLoadError message={error} />;
   }
 
-  if (!doc) {
+  if (!doc || !documentPath) {
     return null;
   }
 
   if (diffProps) {
-    return <ReadOnlyDocumentView {...diffProps} />;
+    return <ReadOnlyRichTextDocumentView {...diffProps} />;
   }
 
-  return <ReadOnlyDocumentView doc={doc} documentPath={documentPath} />;
+  return <ReadOnlyRichTextDocumentView doc={doc} documentPath={documentPath} />;
 };

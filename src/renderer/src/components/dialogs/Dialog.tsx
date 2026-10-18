@@ -54,6 +54,7 @@ export function Dialog({
               leaveTo="opacity-0 translate-y-12 sm:translate-y-0"
             >
               <Headless.DialogPanel
+                data-testid="dialog-panel"
                 className={clsx(
                   className,
                   sizes[size],

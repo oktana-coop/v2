@@ -1,10 +1,12 @@
 import { type Node, type Schema } from 'prosemirror-model';
+import { type EditorState } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
+  useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -13,17 +15,14 @@ import {
   NotificationsContext,
 } from '../../../../modules/infrastructure/notifications/browser';
 import { WasmContext } from '../../../../modules/infrastructure/wasm/react/wasm-context';
-import { createAdapter as createPandocDiffAdapter } from '../adapters/pandoc-diff';
+import { createAdapter as createPandocDiffPatchAdapter } from '../adapters/pandoc-diff-patch';
 import {
+  getDocumentRichTextContent,
   RichTextDocument,
   richTextRepresentations,
   type TextRichTextRepresentation,
 } from '../models';
-import {
-  type Diff,
-  type ProseMirrorDiffArgs,
-  type ProseMirrorDiffResult,
-} from '../ports/diff';
+import { type DiffPatch } from '../ports/diff-patch';
 import { pmDocFromJSONString, pmDocToJSONString } from '../prosemirror';
 import { type PMNode } from '../prosemirror/hs-lib';
 import { RepresentationTransformContext } from './representation-transform-context';
@@ -40,11 +39,14 @@ export type ConvertFromProseMirrorArgs = {
 
 export type ProseMirrorContextType = {
   view: EditorView | null;
-  setView: (view: EditorView | null) => void;
-  proseMirrorDiff: (
-    args: ProseMirrorDiffArgs
-  ) => Promise<ProseMirrorDiffResult>;
-  diffAdapterReady: boolean;
+  setView: (view: EditorView) => void;
+  clearViewIfCurrent: (view: EditorView) => void;
+  // The owner of the view calls onViewStateChange whenever it puts a new state on the view
+  onViewStateChange: () => void;
+  subscribeToViewState: (listener: () => void) => () => void;
+  getViewState: () => EditorState | null;
+  proseMirrorDiff: DiffPatch['proseMirrorDiff'];
+  proseMirrorSteps: DiffPatch['proseMirrorSteps'];
   convertToProseMirror: (args: ConvertToProseMirrorArgs) => Promise<Node>;
   convertFromProseMirror: (args: ConvertFromProseMirrorArgs) => Promise<string>;
   parseMarkdown: (schema: Schema) => (input: string) => Promise<Node>;
@@ -54,11 +56,16 @@ export type ProseMirrorContextType = {
 export const ProseMirrorContext = createContext<ProseMirrorContextType>({
   view: null,
   setView: () => {},
+  clearViewIfCurrent: () => {},
+  subscribeToViewState: () => () => {},
+  getViewState: () => null,
+  onViewStateChange: () => {},
   // @ts-expect-error will get overriden below
   proseMirrorDiff: () => null,
   // @ts-expect-error will get overriden below
+  proseMirrorSteps: () => null,
+  // @ts-expect-error will get overriden below
   parseMarkdown: () => null,
-  diffAdapterReady: false,
 });
 
 export const ProseMirrorProvider = ({
@@ -68,36 +75,42 @@ export const ProseMirrorProvider = ({
 }) => {
   const { runWasiCLIOutputingText } = useContext(WasmContext);
   const [view, setView] = useState<EditorView | null>(null);
-  const [diffAdapter, setDiffAdapter] = useState<Diff | null>(null);
+  // The WASM runner is in hand once this renders, so the adapter is too.
+  const diffPatchAdapter = useMemo(
+    () => createPandocDiffPatchAdapter({ runWasiCLIOutputingText }),
+    [runWasiCLIOutputingText]
+  );
   const { adapter: representationTransformAdapter } = useContext(
     RepresentationTransformContext
   );
   const { dispatchNotification } = useContext(NotificationsContext);
 
-  useEffect(() => {
-    const pandocDiffAdapter = createPandocDiffAdapter({
-      runWasiCLIOutputingText,
-    });
-    setDiffAdapter(pandocDiffAdapter);
-  }, [runWasiCLIOutputingText]);
-
-  const handleSetView = useCallback((view: EditorView | null) => {
+  const handleSetView = useCallback((view: EditorView) => {
     setView(view);
   }, []);
 
-  const produceProseMirrorDiff = useCallback(
-    async (args: ProseMirrorDiffArgs) => {
-      // TODO: Handle adapter readiness with a promise
-      if (!diffAdapter) {
-        throw new Error(
-          'No diff adapter found when trying to produce the ProseMirror diff'
-        );
-      }
+  // Clears the view only if the context still holds that exact view, so a
+  // teardown never clears a view announced by someone else in the meantime.
+  const handleClearViewIfCurrent = useCallback((viewToClear: EditorView) => {
+    setView((current) => (current === viewToClear ? null : current));
+  }, []);
 
-      return diffAdapter.proseMirrorDiff(args);
-    },
-    [diffAdapter]
-  );
+  // Listeners live in a ref: a state change must reach subscribers without
+  // re-rendering every context consumer.
+  const viewStateListeners = useRef<Set<() => void>>(new Set());
+
+  const handleSubscribeToViewState = useCallback((listener: () => void) => {
+    viewStateListeners.current.add(listener);
+    return () => {
+      viewStateListeners.current.delete(listener);
+    };
+  }, []);
+
+  const handleViewStateChange = useCallback(() => {
+    viewStateListeners.current.forEach((listener) => listener());
+  }, []);
+
+  const handleGetViewState = useCallback(() => view?.state ?? null, [view]);
 
   const handleConvertToProseMirror = async (args: ConvertToProseMirrorArgs) => {
     // TODO: Handle adapter readiness with a promise
@@ -107,9 +120,11 @@ export const ProseMirrorProvider = ({
       );
     }
 
+    const content = getDocumentRichTextContent(args.document);
+
     // If the document content is empty, return a minimal ProseMirror document
     // consisting of the root `doc` node with a single empty `paragraph` child.
-    if (!args.document.content) {
+    if (!content) {
       const emptyParagraphDoc = {
         type: 'doc',
         content: [
@@ -129,7 +144,7 @@ export const ProseMirrorProvider = ({
       const result = await representationTransformAdapter.transformToText({
         from: args.document.representation,
         to: richTextRepresentations.PROSEMIRROR,
-        input: args.document.content,
+        input: content,
       });
 
       type RepresentationTransformPMOutput = PMNode;
@@ -207,8 +222,12 @@ export const ProseMirrorProvider = ({
       value={{
         view,
         setView: handleSetView,
-        proseMirrorDiff: produceProseMirrorDiff,
-        diffAdapterReady: Boolean(diffAdapter),
+        clearViewIfCurrent: handleClearViewIfCurrent,
+        subscribeToViewState: handleSubscribeToViewState,
+        getViewState: handleGetViewState,
+        onViewStateChange: handleViewStateChange,
+        proseMirrorDiff: diffPatchAdapter.proseMirrorDiff,
+        proseMirrorSteps: diffPatchAdapter.proseMirrorSteps,
         convertToProseMirror: handleConvertToProseMirror,
         convertFromProseMirror: handleConvertFromProseMirror,
         representationTransformAdapterReady: Boolean(

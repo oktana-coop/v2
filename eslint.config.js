@@ -21,10 +21,13 @@ export default [
   {
     ignores: [
       '**/dist/**',
+      'dist-*/**',
+      '.dev-peers/**',
       '**/.eslintrc.cjs',
       'e2e-results/**',
       'storybook-static/**',
       'automerge-repo-data/**',
+      '.claude/worktrees/**',
     ],
   },
   ...fixupConfigRules(

@@ -17,6 +17,7 @@ export const DeleteDocumentDialog = ({
 }: DeleteDocumentDialogProps) => (
   <Modal
     isOpen={isOpen}
+    onClose={onCancel}
     title="Delete Document"
     secondaryButton={
       <Button variant="plain" onClick={onCancel}>
@@ -24,7 +25,7 @@ export const DeleteDocumentDialog = ({
       </Button>
     }
     primaryButton={
-      <Button onClick={onConfirm} color="red">
+      <Button onClick={onConfirm} color="red" autoFocus>
         <TrashIcon />
         Delete
       </Button>

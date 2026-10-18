@@ -1,7 +1,4 @@
-import {
-  removeExtension,
-  removePath,
-} from '../../../../../../../modules/infrastructure/filesystem';
+import { removePath } from '../../../../../../../modules/infrastructure/filesystem';
 import {
   type ChangedDocument,
   documentChangeTypes,
@@ -17,7 +14,7 @@ export const ProjectHistoryActionBarTitle = ({
 }) => {
   const previousName =
     document.changeType === documentChangeTypes.RENAMED
-      ? removeExtension(removePath(document.previousPath))
+      ? removePath(document.previousPath)
       : null;
 
   return (

@@ -1,13 +1,71 @@
-export { createVersionedDocument } from './create-versioned-document';
-export { deleteDocumentFromProject } from './delete-document-from-project';
-export { deleteDocumentsFromProject } from './delete-documents-from-project';
-export { renameDocumentInProject } from './rename-document-in-project';
-export { renameDirectoryInProject } from './rename-directory-in-project';
-export { findDocumentInProject } from './find-document-in-project';
 export {
-  insertAssetInProject,
-  type InsertAssetInProjectArgs,
-  type InsertAssetInProjectDeps,
-  type InsertAssetInProjectResult,
-} from './insert-asset-in-project';
+  createDocumentInProject,
+  type CreateDocumentInProjectDeps,
+} from './create-document-in-project';
+export { renameDocumentInProject } from './rename-document-in-project';
+export {
+  insertAsset,
+  type InsertAssetArgs,
+  type InsertAssetDeps,
+} from './insert-asset';
 export * from './resolve-document-asset-url';
+export { persistDocument } from './persist-document';
+export {
+  type JoinSharedDocumentDeps,
+  joinSharedDocument,
+} from './join-shared-document';
+export {
+  type LeaveSharedDocumentDeps,
+  leaveSharedDocument,
+} from './leave-shared-document';
+export {
+  type ShareLiveDocumentArgs,
+  type ShareLiveDocumentDeps,
+  shareLiveDocument,
+} from './share-live-document';
+export {
+  type StoredContent,
+  type StoredContentReadError,
+  type StoredLiveDocument,
+  type StoredLiveDocumentError,
+} from './live-document';
+export { openLiveDocument } from './open-live-document';
+export {
+  type LivePlainTextDocument,
+  type NamedLivePlainTextDocument,
+  openLivePlainTextDocument,
+  openLivePlainTextDocumentAsGuest,
+  type OpenLivePlainTextDocumentAsGuestDeps,
+  type OpenLivePlainTextDocumentDeps,
+} from './open-live-plain-text-document';
+export {
+  type LiveRichTextDocument,
+  type NamedLiveRichTextDocument,
+  openLiveRichTextDocument,
+  openLiveRichTextDocumentAsGuest,
+  type OpenLiveRichTextDocumentAsGuestDeps,
+  type OpenLiveRichTextDocumentDeps,
+} from './open-live-rich-text-document';
+export {
+  type GetProjectTreeDeps,
+  getProjectTree,
+  markSharedDocuments,
+} from './get-project-tree';
+export {
+  type DocumentVersioningState,
+  type GetDocumentVersioningStateDeps,
+  getDocumentVersioningState,
+} from './get-document-versioning-state';
+export {
+  readDocumentContent,
+  type ReadDocumentContentDeps,
+} from './read-document-content';
+export { commitDocument, type CommitDocumentDeps } from './commit-document';
+export {
+  restoreDocumentVersion,
+  type RestoreDocumentVersionDeps,
+} from './restore-document-version';
+export {
+  discardDocumentChanges,
+  type DiscardDocumentChangesDeps,
+} from './discard-document-changes';

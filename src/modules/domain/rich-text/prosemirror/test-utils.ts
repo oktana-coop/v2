@@ -1,4 +1,4 @@
-import { type Node } from 'prosemirror-model';
+import { Fragment, type Node, Slice } from 'prosemirror-model';
 import {
   type Command,
   EditorState,
@@ -20,6 +20,13 @@ export const figureWith = ({ src }: { src: string }): Node =>
 
 export const para = (text?: string): Node =>
   schema.node('paragraph', null, text ? [schema.text(text)] : []);
+
+export const hr = (): Node => schema.node('horizontal_rule');
+
+export const sliceOf = (...nodes: Node[]): Slice =>
+  new Slice(Fragment.from(nodes), 0, 0);
+
+export const textSlice = (text: string): Slice => sliceOf(schema.text(text));
 
 export const heading = ({
   text,
@@ -46,6 +53,17 @@ export const withCursorAt = ({
   pos: number;
 }): EditorState =>
   state.apply(state.tr.setSelection(TextSelection.create(state.doc, pos)));
+
+export const withSelectionAt = ({
+  state,
+  from,
+  to,
+}: {
+  state: EditorState;
+  from: number;
+  to: number;
+}): EditorState =>
+  state.apply(state.tr.setSelection(TextSelection.create(state.doc, from, to)));
 
 // Run a command with a capturing dispatch and return the resulting state.
 export const runCommand = ({

@@ -11,7 +11,7 @@ import {
   VersionedProjectNotFoundErrorTag,
   VersionedProjectValidationErrorTag,
 } from '../modules/domain/project/node';
-import { getVersionedStores } from './versioned-stores';
+import { getProjectStore } from './project-stores';
 
 export const createAssetUrlProtocol = (): AssetUrlProtocol => {
   protocol.registerSchemesAsPrivileged([
@@ -33,10 +33,8 @@ const readAssetBytes = (args: {
   relPath: ProjectRelPath;
 }) =>
   pipe(
-    getVersionedStores(args.projectId),
-    Effect.flatMap((stores) =>
-      stores.versionedProjectStore.readAssetBytes(args)
-    )
+    getProjectStore(args.projectId),
+    Effect.flatMap((projectStore) => projectStore.readAssetBytes(args))
   );
 
 const statusForError = (tag: string): number => {

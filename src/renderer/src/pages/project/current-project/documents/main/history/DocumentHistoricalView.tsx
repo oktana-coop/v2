@@ -1,13 +1,14 @@
 import { useContext, useEffect, useMemo } from 'react';
-import { useParams } from 'react-router';
 
+import { getArtifactName } from '../../../../../../../../modules/domain/project';
 import {
   changeIdsAreSame,
   isCommit,
 } from '../../../../../../../../modules/infrastructure/version-control';
 import {
   CommitModalContext,
-  CurrentDocumentContext,
+  CurrentArtifactVersioningContext,
+  useCurrentChangeId,
 } from '../../../../../../app-state';
 import { IconButton } from '../../../../../../components/actions/IconButton';
 import {
@@ -16,11 +17,11 @@ import {
   RestoreCommitIcon,
   TrashIcon,
 } from '../../../../../../components/icons';
-import { useCurrentDocumentName } from '../../../../../../hooks';
 import {
   HistoricalDocumentView,
-  useHistoricalDocument,
+  useHistoricalArtifact,
 } from '../../../../shared/historical-view';
+import { useCurrentArtifact } from '../../../artifact-route';
 
 const UncommittedChangesActions = ({
   onEdit,
@@ -76,39 +77,39 @@ const CommittedChangeActions = ({
 );
 
 export const DocumentHistoricalView = () => {
-  const { changeId: encodedChangeId } = useParams();
+  const changeId = useCurrentChangeId();
   const {
     versionedDocumentHistory: commits,
     onSelectChange,
     onOpenRestoreCommitDialog,
     onOpenDiscardChangesDialog,
-  } = useContext(CurrentDocumentContext);
+  } = useContext(CurrentArtifactVersioningContext);
   const { openCommitModal } = useContext(CommitModalContext);
-  const currentDocumentName = useCurrentDocumentName();
+  const currentArtifact = useCurrentArtifact();
+  const currentDocumentName = getArtifactName(currentArtifact.path);
 
   const {
     selectedChange,
     isUncommitted,
     navigateToEdit,
+    documentId,
     documentPath,
-    doc,
-    diffProps,
-    loading,
-    error,
+    kind,
+    resolvingArtifact,
     showDiff,
     onSetShowDiff,
     diffCommitId,
     onDiffCommitSelect,
     canShowDiff,
     diffSelectorCommits,
-  } = useHistoricalDocument({ changes: commits });
+  } = useHistoricalArtifact({ changes: commits });
 
   // Auto-select first change when navigating to history without a changeId
   useEffect(() => {
-    if (commits.length > 0 && !encodedChangeId) {
+    if (commits.length > 0 && !changeId) {
       onSelectChange(commits[0].id);
     }
-  }, [commits, encodedChangeId]);
+  }, [commits, changeId]);
 
   // Set window title
   useEffect(() => {
@@ -152,11 +153,11 @@ export const DocumentHistoricalView = () => {
 
   return (
     <HistoricalDocumentView
+      documentId={documentId}
       documentPath={documentPath}
-      doc={doc}
-      diffProps={diffProps}
-      loading={loading}
-      error={error}
+      kind={kind}
+      resolvingArtifact={resolvingArtifact}
+      changeId={changeId}
       showDiff={showDiff}
       onSetShowDiff={onSetShowDiff}
       diffCommitId={diffCommitId}

@@ -2,9 +2,9 @@ import * as Effect from 'effect/Effect';
 import git from 'isomorphic-git';
 import { type PromiseFsClient as IsoGitFsApi } from 'isomorphic-git';
 
-import { DEFAULT_AUTHOR_NAME } from '../../constants';
 import {
   commitStagedChanges,
+  DEFAULT_AUTHOR,
   stageAndCommitChangesToFiles,
   stageAndCommitWorkdirChanges,
 } from './index';
@@ -78,7 +78,7 @@ describe('commitStagedChanges', () => {
       mockGetConfig.mockResolvedValue(undefined);
     });
 
-    it('uses DEFAULT_AUTHOR_NAME as the commit author', async () => {
+    it('uses the default author', async () => {
       mockCommit.mockResolvedValue(commitOid);
 
       await Effect.runPromise(
@@ -87,7 +87,30 @@ describe('commitStagedChanges', () => {
 
       expect(mockCommit).toHaveBeenCalledWith(
         expect.objectContaining({
-          author: { name: DEFAULT_AUTHOR_NAME, email: undefined },
+          author: DEFAULT_AUTHOR,
+        })
+      );
+    });
+  });
+
+  describe('with an explicit author', () => {
+    it('commits as that author without reading the repo config', async () => {
+      stubAuthorConfig();
+      mockCommit.mockResolvedValue(commitOid);
+
+      await Effect.runPromise(
+        commitStagedChanges({
+          isoGitFs: mockFs,
+          dir,
+          message: 'msg',
+          author: DEFAULT_AUTHOR,
+        })
+      );
+
+      expect(mockGetConfig).not.toHaveBeenCalled();
+      expect(mockCommit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          author: DEFAULT_AUTHOR,
         })
       );
     });
@@ -134,6 +157,26 @@ describe('stageAndCommitWorkdirChanges', () => {
       const commitOrder = mockCommit.mock.invocationCallOrder[0];
       expect(addOrder).toBeLessThan(commitOrder);
     });
+  });
+
+  it('forwards an explicit author to the commit', async () => {
+    mockAdd.mockResolvedValue(undefined);
+    mockCommit.mockResolvedValue(commitOid);
+
+    await Effect.runPromise(
+      stageAndCommitWorkdirChanges({
+        isoGitFs: mockFs,
+        dir,
+        message: 'msg',
+        author: DEFAULT_AUTHOR,
+      })
+    );
+
+    expect(mockCommit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        author: DEFAULT_AUTHOR,
+      })
+    );
   });
 
   it('fails with RepositoryError when the staging step fails', async () => {
