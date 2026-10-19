@@ -3,6 +3,7 @@ import { type Node } from 'prosemirror-model';
 import {
   AddMarkStep,
   AttrStep,
+  DocAttrStep,
   RemoveMarkStep,
   ReplaceStep,
 } from 'prosemirror-transform';
@@ -68,6 +69,10 @@ const failure = ({
       .pipe(Effect.flip)
   );
 
+const pandocMeta = JSON.stringify({
+  status: { t: 'MetaInlines', c: [{ t: 'Str', c: 'draft' }] },
+});
+
 const success = (stepsJSON: PMStep[]) =>
   JSON.stringify({ data: { doc: afterJSON, steps: stepsJSON } });
 
@@ -127,17 +132,19 @@ describe('pandoc-diff-patch proseMirrorSteps', () => {
         },
         { stepType: 'addMark', from: 14, to: 17, mark: { type: 'strong' } },
         { stepType: 'removeMark', from: 14, to: 17, mark: { type: 'em' } },
+        { stepType: 'docAttr', attr: 'pandocMeta', value: pandocMeta },
       ])
     );
 
     const result = await steps({ mockedCliRun });
 
     expect(result.pmDocAfter.toJSON()).toEqual(afterJSON);
-    expect(result.steps).toHaveLength(4);
+    expect(result.steps).toHaveLength(5);
     expect(result.steps[0]).toBeInstanceOf(AttrStep);
     expect(result.steps[1]).toBeInstanceOf(ReplaceStep);
     expect(result.steps[2]).toBeInstanceOf(AddMarkStep);
     expect(result.steps[3]).toBeInstanceOf(RemoveMarkStep);
+    expect(result.steps[4]).toBeInstanceOf(DocAttrStep);
     expect(result.steps.map((step) => step.toJSON())).toEqual([
       { stepType: 'attr', pos: 0, attr: 'level', value: 2 },
       {
@@ -148,6 +155,7 @@ describe('pandoc-diff-patch proseMirrorSteps', () => {
       },
       { stepType: 'addMark', from: 14, to: 17, mark: { type: 'strong' } },
       { stepType: 'removeMark', from: 14, to: 17, mark: { type: 'em' } },
+      { stepType: 'docAttr', attr: 'pandocMeta', value: pandocMeta },
     ]);
   });
 

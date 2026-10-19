@@ -73,5 +73,11 @@ export type PMAttrStep = {
   value: unknown;
 };
 
+export type PMDocAttrStep = {
+  stepType: 'docAttr';
+  attr: string;
+  value: unknown;
+};
+
 export type PMStep =
-  PMReplaceStep | PMAddMarkStep | PMRemoveMarkStep | PMAttrStep;
+  PMReplaceStep | PMAddMarkStep | PMRemoveMarkStep | PMAttrStep | PMDocAttrStep;

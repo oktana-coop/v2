@@ -135,6 +135,68 @@ test.describe('a rich-text document', () => {
     );
   });
 
+  test('typing keeps the order of the front matter keys', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const helloPath = path.join(testProjectDir, 'hello.md');
+    fs.writeFileSync(
+      helloPath,
+      '---\ntitle: Hello\ndate: 2025-09-04\nauthor: Ada\n---\n\n# Hello\n',
+      'utf8'
+    );
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+
+    await focusAndTypeInRichTextEditor({ window, text: ' world' });
+
+    await expectFileToContain({
+      filePath: helloPath,
+      text: '---\ntitle: Hello\ndate: 2025-09-04\nauthor: Ada\n---\n\n# Hello world',
+    });
+  });
+
+  test('outside edit: changed front matter is kept when typing afterwards', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const helloPath = path.join(testProjectDir, 'hello.md');
+    fs.writeFileSync(helloPath, '---\ntitle: Hello\n---\n\n# Hello\n', 'utf8');
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    await expect(window.locator('.ProseMirror').locator('h1')).toHaveText(
+      'Hello'
+    );
+
+    // Stands in for the user editing the file in another editor.
+    fs.writeFileSync(
+      helloPath,
+      '---\ntitle: Changed outside\nstatus: draft\n---\n\n# Hello from outside\n',
+      'utf8'
+    );
+    await expect(window.locator('.ProseMirror').locator('h1')).toHaveText(
+      'Hello from outside',
+      { timeout: 5_000 }
+    );
+
+    await focusAndTypeInRichTextEditor({ window, text: ' and inside' });
+
+    await expectFileToContain({
+      filePath: helloPath,
+      text: '---\ntitle: Changed outside\nstatus: draft\n---\n\n# Hello from outside and inside',
+    });
+  });
+
   test('editing after a trip through history keeps every edit', async ({
     electronApp,
     window,

@@ -4,6 +4,7 @@ import { EditorState, TextSelection } from 'prosemirror-state';
 import {
   AddMarkStep,
   AttrStep,
+  DocAttrStep,
   RemoveMarkStep,
   ReplaceStep,
 } from 'prosemirror-transform';
@@ -72,6 +73,20 @@ describe('patch', () => {
       state: editorState(before),
       steps,
       target: doc(after),
+    });
+
+    expect(Either.isRight(result)).toBe(true);
+  });
+
+  it('applies a docAttr step', () => {
+    const pandocMeta = JSON.stringify({
+      status: { t: 'MetaInlines', c: [{ t: 'Str', c: 'draft' }] },
+    });
+
+    const result = patch({
+      state: editorState([para('Hello')]),
+      steps: [new DocAttrStep('pandocMeta', pandocMeta)],
+      target: schema.node('doc', { pandocMeta }, [para('Hello')]),
     });
 
     expect(Either.isRight(result)).toBe(true);
