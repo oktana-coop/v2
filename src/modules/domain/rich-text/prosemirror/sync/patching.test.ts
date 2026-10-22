@@ -30,6 +30,10 @@ const helloBigWorld = schema.node('paragraph', null, [
   schema.text(' world'),
 ]);
 
+const pandocMeta = JSON.stringify({
+  status: { t: 'MetaInlines', c: [{ t: 'Str', c: 'draft' }] },
+});
+
 const errorMessageOf = (result: Either.Either<unknown, Error>) =>
   Either.match(result, {
     onLeft: (error) => error.message,
@@ -79,10 +83,6 @@ describe('patch', () => {
   });
 
   it('applies a docAttr step', () => {
-    const pandocMeta = JSON.stringify({
-      status: { t: 'MetaInlines', c: [{ t: 'Str', c: 'draft' }] },
-    });
-
     const result = patch({
       state: editorState([para('Hello')]),
       steps: [new DocAttrStep('pandocMeta', pandocMeta)],
@@ -180,6 +180,22 @@ describe('coarseDiffReplace', () => {
 
     expect(tr.doc.eq(target)).toBe(true);
     expect(tr.mapping.map(1)).toBe(1);
+  });
+
+  it.each([
+    { kind: 'only its doc attributes', after: [para('Hello world')] },
+    {
+      kind: 'its doc attributes and content',
+      after: [para('Hello big world')],
+    },
+  ])('produces a target that differs in $kind', ({ after }) => {
+    const withPandocMeta = schema.node('doc', { pandocMeta }, after);
+
+    const tr = coarseDiffReplace({ state, target: withPandocMeta });
+
+    expect(tr.doc.eq(withPandocMeta)).toBe(true);
+    // A caret after "Hello", outside the region that differs.
+    expect(tr.mapping.map(6)).toBe(6);
   });
 
   it('replaces the whole document when nothing is shared', () => {

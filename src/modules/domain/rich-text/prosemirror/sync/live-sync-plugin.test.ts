@@ -654,6 +654,57 @@ describe('liveSyncPlugin', () => {
       );
     });
 
+    it.each([
+      { changed: 'the front matter', incomingText: 'hello' },
+      {
+        changed: 'the front matter and the text',
+        incomingText: 'hello from a peer',
+      },
+    ])(
+      'updates $changed in a coarse replace and contributes it with the next edit',
+      async ({ incomingText }) => {
+        const {
+          liveDocument,
+          view,
+          onChange,
+          proseMirrorSteps,
+          convertToProseMirror,
+        } = await setUpEditor();
+        const pandocMeta = JSON.stringify({
+          status: { t: 'MetaInlines', c: [{ t: 'Str', c: 'draft' }] },
+        });
+        proseMirrorSteps.mockReturnValue(
+          Effect.fail(new PatchError('Cannot emit steps: table'))
+        );
+        // The in-memory document holds only text, so the front matter comes
+        // in through the conversion.
+        convertToProseMirror.mockResolvedValue(
+          schema.node('doc', { pandocMeta }, [para(incomingText)])
+        );
+
+        await Effect.runPromise(
+          SubscriptionRef.set(liveDocument.content, {
+            doc: primaryRichTextDocument(incomingText),
+            version: 'r1',
+          })
+        );
+
+        await eventually(() =>
+          expect(view.state.doc.attrs.pandocMeta).toBe(pandocMeta)
+        );
+        expect(view.state.doc.textContent).toBe(incomingText);
+
+        view.dispatch(view.state.tr.insertText('!', 1));
+
+        await eventually(() => expect(onChange).toHaveBeenCalledOnce());
+        const contributed = pmDocFromJSONString(
+          JSON.parse(onChange.mock.calls[0][0].content),
+          schema
+        );
+        expect(contributed.attrs.pandocMeta).toBe(pandocMeta);
+      }
+    );
+
     it('reports a failed fallback conversion as a transform error and keeps applying later changes', async () => {
       const {
         liveDocument,

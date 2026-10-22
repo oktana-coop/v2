@@ -68,8 +68,8 @@ export const patch = ({
     )
   );
 
-// The coarse update: one replace of the region that differs, so a caret
-// outside it keeps its place.
+// The coarse update: the target's doc attributes, then one replace of the
+// region that differs, so a caret outside it keeps its place.
 export const coarseDiffReplace = ({
   state,
   target,
@@ -77,16 +77,19 @@ export const coarseDiffReplace = ({
   state: EditorState;
   target: Node;
 }): Transaction => {
+  const tr = Object.entries(target.attrs).reduce(
+    (attrsSet, [attr, value]) => attrsSet.setDocAttribute(attr, value),
+    state.tr
+  );
+
   const start = state.doc.content.findDiffStart(target.content);
   const end = state.doc.content.findDiffEnd(target.content);
 
-  if (start === null || end === null) {
-    return state.tr.replaceWith(0, state.doc.content.size, target.content);
-  }
+  if (start === null || end === null) return tr;
 
   const overlap = Math.max(0, start - Math.min(end.a, end.b));
 
-  return state.tr.replace(
+  return tr.replace(
     start,
     end.a + overlap,
     target.slice(start, end.b + overlap)
