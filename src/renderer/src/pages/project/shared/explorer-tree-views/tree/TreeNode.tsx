@@ -2,6 +2,10 @@ import { clsx } from 'clsx';
 import { useState } from 'react';
 import { type NodeRendererProps } from 'react-arborist';
 
+import {
+  inferArtifactKindFromExtension,
+  isDocumentKind,
+} from '../../../../../../../modules/domain/project';
 import { EXPLORER_TREE_NODE } from '../../../../../../../modules/infrastructure/cross-platform';
 import {
   filesystemEntryTypes,
@@ -283,15 +287,27 @@ const FileNode = ({
     });
   };
 
+  const isUnopenable = !isDocumentKind(
+    inferArtifactKindFromExtension(node.data.name)
+  );
+
   return (
     <div
       onClick={onClick}
       onContextMenu={handleContextMenu}
-      className={treeRowClasses(node.isSelected)}
+      className={clsx(
+        treeRowClasses(node.isSelected),
+        isUnopenable && 'opacity-60'
+      )}
       style={{
         ...style,
         paddingLeft: node.level * 24 + 40,
       }}
+      title={
+        isUnopenable
+          ? `${node.data.name} can't be displayed in the editor yet`
+          : undefined
+      }
     >
       <FileExtensionIcon fileName={node.data.name} />
       {node.data.name}
