@@ -19,8 +19,7 @@ export const RepresentationTransformProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { runWasiCLIOutputingText, runWasiCLIOutputingBinary } =
-    useContext(WasmContext);
+  const { runWasiCLIOutputingText } = useContext(WasmContext);
 
   const [adapter, setAdapter] = useState<RepresentationTransform | null>(null);
 
@@ -29,7 +28,6 @@ export const RepresentationTransformProvider = ({
 
     const adapter = createPandocRepresentationTransformAdapter({
       runWasiCLIOutputingText,
-      runWasiCLIOutputingBinary,
       pdfEngine,
     });
 

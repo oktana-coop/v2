@@ -5,7 +5,10 @@ import {
   InvalidMetadataErrorTag,
   VersionedDocumentRepresentationTransformErrorTag,
 } from '../../errors';
-import { richTextRepresentations } from '../../models';
+import {
+  binaryRichTextRepresentations,
+  richTextRepresentations,
+} from '../../models';
 import { type PdfEngine } from '../../ports/pdf-engine';
 import { createAdapter } from './index';
 
@@ -16,11 +19,24 @@ const toProseMirror = ({
 }) =>
   createAdapter({
     runWasiCLIOutputingText: mockedCliRun,
-    runWasiCLIOutputingBinary: vi.fn(),
     pdfEngine: {} as PdfEngine,
   }).transformToText({
     from: richTextRepresentations.MARKDOWN,
     to: richTextRepresentations.PROSEMIRROR,
+    input: 'Hello',
+  });
+
+const toDocx = ({
+  mockedCliRun,
+}: {
+  mockedCliRun: Wasm['runWasiCLIOutputingText'];
+}) =>
+  createAdapter({
+    runWasiCLIOutputingText: mockedCliRun,
+    pdfEngine: {} as PdfEngine,
+  }).transformToBinary({
+    from: richTextRepresentations.MARKDOWN,
+    to: binaryRichTextRepresentations.DOCX,
     input: 'Hello',
   });
 
@@ -66,6 +82,31 @@ describe('pandoc-representation-transform transformToText', () => {
     await expect(toProseMirror({ mockedCliRun })).rejects.toMatchObject({
       _tag: VersionedDocumentRepresentationTransformErrorTag,
       message: 'Conversion failed: No output returned',
+    });
+  });
+});
+
+describe('pandoc-representation-transform transformToBinary', () => {
+  it('decodes the bytes the CLI sends base64-encoded', async () => {
+    const mockedCliRun = vi
+      .fn()
+      .mockResolvedValue(JSON.stringify({ data: btoa('PK\u0003\u0004') }));
+
+    await expect(toDocx({ mockedCliRun })).resolves.toEqual(
+      new Uint8Array([80, 75, 3, 4])
+    );
+  });
+
+  it('fails with RepresentationTransformError when the CLI reports errors', async () => {
+    const mockedCliRun = vi.fn().mockResolvedValue(
+      JSON.stringify({
+        errors: [{ type: 'writeError', message: 'Something went wrong' }],
+      })
+    );
+
+    await expect(toDocx({ mockedCliRun })).rejects.toMatchObject({
+      _tag: VersionedDocumentRepresentationTransformErrorTag,
+      message: 'Conversion failed: Something went wrong',
     });
   });
 });

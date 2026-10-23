@@ -1,4 +1,5 @@
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 import { useContext } from 'react';
 import { useParams } from 'react-router';
 
@@ -13,6 +14,7 @@ import {
 } from '../../../../../modules/domain/rich-text';
 import { RepresentationTransformContext } from '../../../../../modules/domain/rich-text/react/representation-transform-context';
 import {
+  FilesystemAbortErrorTag,
   removeExtension,
   removePath,
 } from '../../../../../modules/infrastructure/filesystem';
@@ -119,11 +121,17 @@ export const useExport = () => {
     content: string | Uint8Array
   ) =>
     Effect.runPromise(
-      filesystem.createFileWithDialog({
-        suggestedName: suggestedExportName ?? undefined,
-        extensions: [getDefaultRichTextRepresentationExtension(representation)],
-        content,
-      })
+      pipe(
+        filesystem.createFileWithDialog({
+          suggestedName: suggestedExportName ?? undefined,
+          extensions: [
+            getDefaultRichTextRepresentationExtension(representation),
+          ],
+          content,
+        }),
+        // Closing the dialog without saving isn't an error.
+        Effect.catchTag(FilesystemAbortErrorTag, () => Effect.void)
+      )
     );
 
   const exportToText =
@@ -133,10 +141,21 @@ export const useExport = () => {
 
   const exportToBinary =
     (representation: BinaryRichTextRepresentation) => async () => {
-      await saveToFile(
-        representation,
-        await getExportBinaryData(representation)
-      );
+      try {
+        await saveToFile(
+          representation,
+          await getExportBinaryData(representation)
+        );
+      } catch (err) {
+        console.error(err);
+        dispatchNotification(
+          createErrorNotification({
+            title: 'Export Error',
+            message:
+              'An error happened when exporting the document. Please reach out to us for support.',
+          })
+        );
+      }
     };
 
   const exportToPDF = exportToBinary(binaryRichTextRepresentations.PDF);

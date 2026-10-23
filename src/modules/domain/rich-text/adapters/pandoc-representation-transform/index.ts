@@ -45,13 +45,42 @@ const resourcePathArgs = (resourcePath: string | undefined): string[] =>
     ? ['--resource-path', toWasiFsPath(resourcePath)]
     : [];
 
+const getHSLibOutputData = <T>(output: string): T => {
+  if (!output) {
+    throw new RepresentationTransformError(
+      'Conversion failed: No output returned'
+    );
+  }
+
+  // TODO: Perform proper validation & handle error cases
+  const parsedOutput = JSON.parse(output) as HSLibOutput<T>;
+
+  if (isHSLibFailureOutput(parsedOutput)) {
+    const invalidMetadata = parsedOutput.errors.find(
+      isHSLibInvalidMetadataError
+    );
+
+    if (invalidMetadata) {
+      throw new InvalidMetadataError(invalidMetadata.message);
+    }
+
+    throw new RepresentationTransformError(
+      `Conversion failed: ${joinHSLibErrorMessages(parsedOutput.errors)}`
+    );
+  }
+
+  return parsedOutput.data;
+};
+
+// The CLI sends the bytes of a binary conversion base64-encoded in its JSON output.
+const bytesFromBase64 = (base64: string): Uint8Array =>
+  Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+
 export const createAdapter = ({
   runWasiCLIOutputingText,
-  runWasiCLIOutputingBinary,
   pdfEngine,
 }: {
   runWasiCLIOutputingText: Wasm['runWasiCLIOutputingText'];
-  runWasiCLIOutputingBinary: Wasm['runWasiCLIOutputingBinary'];
   pdfEngine: PdfEngine;
 }): RepresentationTransform => {
   const transformToText: RepresentationTransform['transformToText'] = async ({
@@ -81,30 +110,7 @@ export const createAdapter = ({
       files: toWasiFsFiles(assetFiles),
     });
 
-    if (!output) {
-      throw new RepresentationTransformError(
-        'Conversion failed: No output returned'
-      );
-    }
-
-    // TODO: Perform proper validation & handle error cases
-    const parsedOutput = JSON.parse(output) as HSLibOutput<string>;
-
-    if (isHSLibFailureOutput(parsedOutput)) {
-      const invalidMetadata = parsedOutput.errors.find(
-        isHSLibInvalidMetadataError
-      );
-
-      if (invalidMetadata) {
-        throw new InvalidMetadataError(invalidMetadata.message);
-      }
-
-      throw new RepresentationTransformError(
-        `Conversion failed: ${joinHSLibErrorMessages(parsedOutput.errors)}`
-      );
-    }
-
-    return parsedOutput.data;
+    return getHSLibOutputData<string>(output);
   };
 
   const transformToBinary: RepresentationTransform['transformToBinary'] =
@@ -120,7 +126,7 @@ export const createAdapter = ({
         return Effect.runPromise(pdfEngine.printToPdf({ html, stylesheet }));
       }
 
-      const output = await runWasiCLIOutputingBinary({
+      const output = await runWasiCLIOutputingText({
         type: cliTypes.HS_LIB,
         args: [
           'v2-hs-lib',
@@ -136,7 +142,7 @@ export const createAdapter = ({
         files: toWasiFsFiles(assetFiles),
       });
 
-      return output;
+      return bytesFromBase64(getHSLibOutputData<string>(output));
     };
 
   return {
