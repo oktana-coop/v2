@@ -4,10 +4,14 @@ import {
   cliTypes,
   type Wasm,
 } from '../../../../../modules/infrastructure/wasm';
-import { RepresentationTransformError } from '../../errors';
+import {
+  InvalidMetadataError,
+  RepresentationTransformError,
+} from '../../errors';
 import {
   type HSLibOutput,
   isHSLibFailureOutput,
+  isHSLibInvalidMetadataError,
   joinHSLibErrorMessages,
   representationToCliArg,
 } from '../../hs-lib-cli';
@@ -87,6 +91,14 @@ export const createAdapter = ({
     const parsedOutput = JSON.parse(output) as HSLibOutput<string>;
 
     if (isHSLibFailureOutput(parsedOutput)) {
+      const invalidMetadata = parsedOutput.errors.find(
+        isHSLibInvalidMetadataError
+      );
+
+      if (invalidMetadata) {
+        throw new InvalidMetadataError(invalidMetadata.message);
+      }
+
       throw new RepresentationTransformError(
         `Conversion failed: ${joinHSLibErrorMessages(parsedOutput.errors)}`
       );

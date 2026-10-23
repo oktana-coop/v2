@@ -24,6 +24,11 @@ export class ValidationError extends Cause.YieldableError {
   readonly _tag = VersionedDocumentValidationErrorTag;
 }
 
+export const InvalidMetadataErrorTag = 'InvalidMetadataError';
+export class InvalidMetadataError extends Cause.YieldableError {
+  readonly _tag = InvalidMetadataErrorTag;
+}
+
 export const VersionedDocumentDiffErrorTag = 'VersionedDocumentDiffError';
 export class DiffError extends Cause.YieldableError {
   readonly _tag = VersionedDocumentDiffErrorTag;

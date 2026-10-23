@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { type Wasm } from '../../../../../modules/infrastructure/wasm';
-import { VersionedDocumentRepresentationTransformErrorTag } from '../../errors';
+import {
+  InvalidMetadataErrorTag,
+  VersionedDocumentRepresentationTransformErrorTag,
+} from '../../errors';
 import { richTextRepresentations } from '../../models';
 import { type PdfEngine } from '../../ports/pdf-engine';
 import { createAdapter } from './index';
@@ -39,6 +42,21 @@ describe('pandoc-representation-transform transformToText', () => {
       _tag: VersionedDocumentRepresentationTransformErrorTag,
       message:
         'Conversion failed: Cannot convert input to ProseMirror: it contains content with no ProseMirror representation.',
+    });
+  });
+
+  it('fails with InvalidMetadataError, with the CLI message, when the metadata is not valid', async () => {
+    const message =
+      'Error parsing YAML metadata at (line 1, column 1):\nYAML parse exception at line 2, column 13:\nmapping values are not allowed in this context';
+    const mockedCliRun = vi.fn().mockResolvedValue(
+      JSON.stringify({
+        errors: [{ type: 'invalidMetadataError', message }],
+      })
+    );
+
+    await expect(toProseMirror({ mockedCliRun })).rejects.toMatchObject({
+      _tag: InvalidMetadataErrorTag,
+      message,
     });
   });
 

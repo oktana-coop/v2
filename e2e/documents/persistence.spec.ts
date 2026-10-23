@@ -3,6 +3,7 @@ import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
 import {
+  expectErrorNotification,
   expectFileToContain,
   focusAndTypeInRichTextEditor,
   openHelloMd,
@@ -194,6 +195,30 @@ test.describe('a rich-text document', () => {
     await expectFileToContain({
       filePath: helloPath,
       text: '---\ntitle: Changed outside\nstatus: draft\n---\n\n# Hello from outside and inside',
+    });
+  });
+
+  test('opening a document whose front matter is not valid YAML shows an error saying so', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    fs.writeFileSync(
+      path.join(testProjectDir, 'hello.md'),
+      '---\ntitle: Hello\nauthor Ada: x: y\n---\n\n# Hello\n',
+      'utf8'
+    );
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    // The editor can't read the document, so it doesn't wait for one.
+    await window.getByText('hello').click();
+
+    await expectErrorNotification({
+      window,
+      message: "The document metadata isn't valid.",
     });
   });
 

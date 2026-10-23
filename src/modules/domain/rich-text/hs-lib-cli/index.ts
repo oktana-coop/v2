@@ -20,19 +20,31 @@ export const representationToCliArg = (
   }
 };
 
+export type HSLibReadError = {
+  type: 'readError';
+  message: string;
+};
+
+export type HSLibInvalidMetadataError = {
+  type: 'invalidMetadataError';
+  message: string;
+};
+
+export type HSLibWriteError = {
+  type: 'writeError';
+  message: string;
+};
+
+export type HSLibPatchError = {
+  type: 'patchError';
+  message: string;
+};
+
 export type HSLibError =
-  | {
-      type: 'readError';
-      message: string;
-    }
-  | {
-      type: 'writeError';
-      message: string;
-    }
-  | {
-      type: 'patchError';
-      message: string;
-    };
+  | HSLibReadError
+  | HSLibInvalidMetadataError
+  | HSLibWriteError
+  | HSLibPatchError;
 
 export type HSLibSuccessOutput<T> = {
   data: T;
@@ -49,6 +61,10 @@ export const isHSLibFailureOutput = <T>(
 ): output is HSLibFailureOutput => {
   return 'errors' in output;
 };
+
+export const isHSLibInvalidMetadataError = (
+  error: HSLibError
+): error is HSLibInvalidMetadataError => error.type === 'invalidMetadataError';
 
 export const joinHSLibErrorMessages = (errors: HSLibError[]): string =>
   errors.map((error) => error.message).join(', ');

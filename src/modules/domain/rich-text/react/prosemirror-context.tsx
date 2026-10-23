@@ -16,6 +16,7 @@ import {
 } from '../../../../modules/infrastructure/notifications/browser';
 import { WasmContext } from '../../../../modules/infrastructure/wasm/react/wasm-context';
 import { createAdapter as createPandocDiffPatchAdapter } from '../adapters/pandoc-diff-patch';
+import { InvalidMetadataError } from '../errors';
 import {
   getDocumentRichTextContent,
   RichTextDocument,
@@ -67,6 +68,14 @@ export const ProseMirrorContext = createContext<ProseMirrorContextType>({
   // @ts-expect-error will get overriden below
   parseMarkdown: () => null,
 });
+
+const getReadingDocumentErrorMessage = (error: unknown): string => {
+  if (error instanceof InvalidMetadataError) {
+    return "The document metadata isn't valid.";
+  }
+
+  return 'An error happened when the editor tried to read the document. Please reach out to us for support.';
+};
 
 export const ProseMirrorProvider = ({
   children,
@@ -159,8 +168,7 @@ export const ProseMirrorProvider = ({
     } catch (error) {
       const notification = createErrorNotification({
         title: 'Error Reading Document',
-        message: `An error happened when the editor tried to read the document. Please reach out to us for
-    support.`,
+        message: getReadingDocumentErrorMessage(error),
       });
       dispatchNotification(notification);
       throw error;
