@@ -11,6 +11,7 @@ import { DocumentAnalysisError, RichTextLibError } from '../../errors';
 import {
   type HSLibOutput,
   isHSLibFailureOutput,
+  joinHSLibErrorMessages,
   representationToCliArg,
 } from '../../hs-lib-cli';
 import { parseAssetDocRelPathEffect } from '../../models';
@@ -59,7 +60,7 @@ export const createAdapter = ({
           isHSLibFailureOutput(parsedOutput)
             ? Effect.fail(
                 new DocumentAnalysisError(
-                  `Asset extraction failed: ${parsedOutput.errors.map((error) => error.message).join(', ')}`
+                  `Asset extraction failed: ${joinHSLibErrorMessages(parsedOutput.errors)}`
                 )
               )
             : Effect.succeed(parsedOutput.data)

@@ -4,9 +4,11 @@ import {
   cliTypes,
   type Wasm,
 } from '../../../../../modules/infrastructure/wasm';
+import { RepresentationTransformError } from '../../errors';
 import {
   type HSLibOutput,
   isHSLibFailureOutput,
+  joinHSLibErrorMessages,
   representationToCliArg,
 } from '../../hs-lib-cli';
 import {
@@ -76,15 +78,17 @@ export const createAdapter = ({
     });
 
     if (!output) {
-      throw new Error('Conversion failed: No output returned');
+      throw new RepresentationTransformError(
+        'Conversion failed: No output returned'
+      );
     }
 
     // TODO: Perform proper validation & handle error cases
     const parsedOutput = JSON.parse(output) as HSLibOutput<string>;
 
     if (isHSLibFailureOutput(parsedOutput)) {
-      throw new Error(
-        `Conversion failed: ${parsedOutput.errors.map((error) => error.message).join(', ')}`
+      throw new RepresentationTransformError(
+        `Conversion failed: ${joinHSLibErrorMessages(parsedOutput.errors)}`
       );
     }
 

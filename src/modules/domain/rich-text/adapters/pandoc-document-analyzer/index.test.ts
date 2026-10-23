@@ -108,7 +108,9 @@ describe('pandoc-document-analyzer', () => {
   it('fails with DocumentAnalysisError when the CLI returns errors', async () => {
     const mockedCliRun = vi
       .fn()
-      .mockResolvedValue(JSON.stringify({ errors: [{ message: 'boom' }] }));
+      .mockResolvedValue(
+        JSON.stringify({ errors: [{ type: 'readError', message: 'boom' }] })
+      );
 
     const error = await Effect.runPromise(
       extract({ mockedCliRun }).pipe(Effect.flip)

@@ -13,7 +13,11 @@ import {
   cliTypes,
   type Wasm,
 } from '../../../../../modules/infrastructure/wasm';
-import { PatchErrorTag, RichTextLibErrorTag } from '../../errors';
+import {
+  PatchErrorTag,
+  RichTextLibErrorTag,
+  VersionedDocumentDiffErrorTag,
+} from '../../errors';
 import {
   CURRENT_SCHEMA_VERSION,
   type RichTextDocument,
@@ -75,6 +79,34 @@ const pandocMeta = JSON.stringify({
 
 const success = (stepsJSON: PMStep[]) =>
   JSON.stringify({ data: { doc: afterJSON, steps: stepsJSON } });
+
+describe('pandoc-diff-patch proseMirrorDiff', () => {
+  it('fails with DiffError, with the messages of all the CLI errors', async () => {
+    const mockedCliRun = vi.fn().mockResolvedValue(
+      JSON.stringify({
+        errors: [
+          { type: 'readError', message: 'Invalid block type' },
+          { type: 'readError', message: 'Unexpected end-of-input' },
+        ],
+      })
+    );
+
+    const result = createAdapter({
+      runWasiCLIOutputingText: mockedCliRun,
+    }).proseMirrorDiff({
+      representation: richTextRepresentations.MARKDOWN,
+      proseMirrorSchema: schema,
+      docBefore: 'Hello',
+      docAfter: 'Hello world',
+      transformImageSrc: (src) => src,
+    });
+
+    await expect(result).rejects.toMatchObject({
+      _tag: VersionedDocumentDiffErrorTag,
+      message: 'Diff failed: Invalid block type, Unexpected end-of-input',
+    });
+  });
+});
 
 describe('pandoc-diff-patch proseMirrorSteps', () => {
   it('invokes the CLI with the live doc as ProseMirror and a markdown after side', async () => {
@@ -160,11 +192,11 @@ describe('pandoc-diff-patch proseMirrorSteps', () => {
   });
 
   it('fails with PatchError when the CLI reports errors', async () => {
-    const mockedCliRun = vi
-      .fn()
-      .mockResolvedValue(
-        JSON.stringify({ errors: [{ message: 'Cannot emit steps: table' }] })
-      );
+    const mockedCliRun = vi.fn().mockResolvedValue(
+      JSON.stringify({
+        errors: [{ type: 'patchError', message: 'Cannot emit steps: table' }],
+      })
+    );
 
     const error = await failure({ mockedCliRun });
 

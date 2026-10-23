@@ -8,10 +8,11 @@ import {
   type Wasm,
 } from '../../../../../modules/infrastructure/wasm';
 import { mapErrorTo } from '../../../../../utils/errors';
-import { PatchError, RichTextLibError } from '../../errors';
+import { DiffError, PatchError, RichTextLibError } from '../../errors';
 import {
   type HSLibOutput,
   isHSLibFailureOutput,
+  joinHSLibErrorMessages,
   representationToCliArg,
 } from '../../hs-lib-cli';
 import {
@@ -117,8 +118,8 @@ export const createAdapter = ({
     const parsedOutput = JSON.parse(output) as HSLibOutput<HSLibDiffData>;
 
     if (isHSLibFailureOutput(parsedOutput)) {
-      throw new Error(
-        `Diff failed: ${parsedOutput.errors.map((error) => error.message).join(', ')}`
+      throw new DiffError(
+        `Diff failed: ${joinHSLibErrorMessages(parsedOutput.errors)}`
       );
     }
 
@@ -181,7 +182,7 @@ export const createAdapter = ({
         isHSLibFailureOutput(parsedOutput)
           ? Effect.fail(
               new PatchError(
-                `Steps failed: ${parsedOutput.errors.map((error) => error.message).join(', ')}`
+                `Steps failed: ${joinHSLibErrorMessages(parsedOutput.errors)}`
               )
             )
           : Effect.succeed(parsedOutput.data)

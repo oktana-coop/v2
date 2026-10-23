@@ -20,9 +20,19 @@ export const representationToCliArg = (
   }
 };
 
-export type HSLibError = {
-  message: string;
-};
+export type HSLibError =
+  | {
+      type: 'readError';
+      message: string;
+    }
+  | {
+      type: 'writeError';
+      message: string;
+    }
+  | {
+      type: 'patchError';
+      message: string;
+    };
 
 export type HSLibSuccessOutput<T> = {
   data: T;
@@ -39,3 +49,6 @@ export const isHSLibFailureOutput = <T>(
 ): output is HSLibFailureOutput => {
   return 'errors' in output;
 };
+
+export const joinHSLibErrorMessages = (errors: HSLibError[]): string =>
+  errors.map((error) => error.message).join(', ');
