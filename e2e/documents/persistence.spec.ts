@@ -222,6 +222,30 @@ test.describe('a rich-text document', () => {
     });
   });
 
+  test('opening a document with a table shows an error saying the editor can not show tables yet', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    fs.writeFileSync(
+      path.join(testProjectDir, 'hello.md'),
+      '# Hello\n\n| a | b |\n|---|---|\n| 1 | 2 |\n',
+      'utf8'
+    );
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    // The editor can't read the document, so it doesn't wait for one.
+    await window.getByText('hello').click();
+
+    await expectErrorNotification({
+      window,
+      message: "The editor can't show tables yet.",
+    });
+  });
+
   test('editing after a trip through history keeps every edit', async ({
     electronApp,
     window,

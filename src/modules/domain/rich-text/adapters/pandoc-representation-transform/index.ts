@@ -4,14 +4,11 @@ import {
   cliTypes,
   type Wasm,
 } from '../../../../../modules/infrastructure/wasm';
+import { RepresentationTransformError } from '../../errors';
 import {
-  InvalidMetadataError,
-  RepresentationTransformError,
-} from '../../errors';
-import {
+  findDocumentContentError,
   type HSLibOutput,
   isHSLibFailureOutput,
-  isHSLibInvalidMetadataError,
   joinHSLibErrorMessages,
   representationToCliArg,
 } from '../../hs-lib-cli';
@@ -56,12 +53,10 @@ const getHSLibOutputData = <T>(output: string): T => {
   const parsedOutput = JSON.parse(output) as HSLibOutput<T>;
 
   if (isHSLibFailureOutput(parsedOutput)) {
-    const invalidMetadata = parsedOutput.errors.find(
-      isHSLibInvalidMetadataError
-    );
+    const documentContentError = findDocumentContentError(parsedOutput.errors);
 
-    if (invalidMetadata) {
-      throw new InvalidMetadataError(invalidMetadata.message);
+    if (documentContentError) {
+      throw documentContentError;
     }
 
     throw new RepresentationTransformError(

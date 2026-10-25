@@ -16,7 +16,11 @@ import {
 } from '../../../../modules/infrastructure/notifications/browser';
 import { WasmContext } from '../../../../modules/infrastructure/wasm/react/wasm-context';
 import { createAdapter as createPandocDiffPatchAdapter } from '../adapters/pandoc-diff-patch';
-import { InvalidMetadataError } from '../errors';
+import {
+  InvalidMetadataError,
+  type UnrepresentableContent,
+  UnrepresentableContentError,
+} from '../errors';
 import {
   getDocumentRichTextContent,
   RichTextDocument,
@@ -69,13 +73,40 @@ export const ProseMirrorContext = createContext<ProseMirrorContextType>({
   parseMarkdown: () => null,
 });
 
-const getReadingDocumentErrorMessage = (error: unknown): string => {
+const unrepresentableContentNames: Record<UnrepresentableContent, string> = {
+  tables: 'tables',
+  definitionLists: 'definition lists',
+  lineBlocks: 'line blocks',
+  rawBlocks: 'embedded HTML or LaTeX',
+};
+
+const getDocumentContentErrorMessage = (error: unknown): string | undefined => {
   if (error instanceof InvalidMetadataError) {
     return "The document metadata isn't valid.";
   }
 
-  return 'An error happened when the editor tried to read the document. Please reach out to us for support.';
+  if (error instanceof UnrepresentableContentError) {
+    const names = error.data.content.map(
+      (content) => unrepresentableContentNames[content]
+    );
+
+    return `The editor can't show ${new Intl.ListFormat('en', { type: 'conjunction' }).format(names)} yet.`;
+  }
+
+  return undefined;
 };
+
+const getReadingDocumentErrorMessage = (error: unknown): string =>
+  getDocumentContentErrorMessage(error) ??
+  'An error happened when the editor tried to read the document. Please reach out to us for support.';
+
+const getDiffErrorMessage = (error: unknown): string =>
+  getDocumentContentErrorMessage(error) ??
+  'An error happened when the editor tried to show the changes. Please reach out to us for support.';
+
+const getReadingMarkdownErrorMessage = (error: unknown): string =>
+  getDocumentContentErrorMessage(error) ??
+  'An error happened when the editor tried to read the Markdown. Please reach out to us for support.';
 
 export const ProseMirrorProvider = ({
   children,
@@ -175,7 +206,20 @@ export const ProseMirrorProvider = ({
     }
   };
 
-  const handleParseMarkdown = (schema: Schema) => async (input: string) => {
+  const handleProseMirrorDiff: DiffPatch['proseMirrorDiff'] = async (args) => {
+    try {
+      return await diffPatchAdapter.proseMirrorDiff(args);
+    } catch (error) {
+      const notification = createErrorNotification({
+        title: 'Error Showing Changes',
+        message: getDiffErrorMessage(error),
+      });
+      dispatchNotification(notification);
+      throw error;
+    }
+  };
+
+  const parseMarkdown = async (schema: Schema, input: string) => {
     // TODO: Handle adapter readiness with a promise
     if (!representationTransformAdapter) {
       throw new Error(
@@ -208,6 +252,19 @@ export const ProseMirrorProvider = ({
     return pmDoc;
   };
 
+  const handleParseMarkdown = (schema: Schema) => async (input: string) => {
+    try {
+      return await parseMarkdown(schema, input);
+    } catch (error) {
+      const notification = createErrorNotification({
+        title: 'Error Reading Markdown',
+        message: getReadingMarkdownErrorMessage(error),
+      });
+      dispatchNotification(notification);
+      throw error;
+    }
+  };
+
   const handleConvertFromProseMirror = async (
     args: ConvertFromProseMirrorArgs
   ) => {
@@ -234,7 +291,7 @@ export const ProseMirrorProvider = ({
         subscribeToViewState: handleSubscribeToViewState,
         getViewState: handleGetViewState,
         onViewStateChange: handleViewStateChange,
-        proseMirrorDiff: diffPatchAdapter.proseMirrorDiff,
+        proseMirrorDiff: handleProseMirrorDiff,
         proseMirrorSteps: diffPatchAdapter.proseMirrorSteps,
         convertToProseMirror: handleConvertToProseMirror,
         convertFromProseMirror: handleConvertFromProseMirror,

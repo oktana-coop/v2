@@ -10,6 +10,7 @@ import {
 import { mapErrorTo } from '../../../../../utils/errors';
 import { DiffError, PatchError, RichTextLibError } from '../../errors';
 import {
+  findDocumentContentError,
   type HSLibOutput,
   isHSLibFailureOutput,
   joinHSLibErrorMessages,
@@ -118,6 +119,14 @@ export const createAdapter = ({
     const parsedOutput = JSON.parse(output) as HSLibOutput<HSLibDiffData>;
 
     if (isHSLibFailureOutput(parsedOutput)) {
+      const documentContentError = findDocumentContentError(
+        parsedOutput.errors
+      );
+
+      if (documentContentError) {
+        throw documentContentError;
+      }
+
       throw new DiffError(
         `Diff failed: ${joinHSLibErrorMessages(parsedOutput.errors)}`
       );

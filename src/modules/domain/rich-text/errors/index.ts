@@ -29,6 +29,20 @@ export class InvalidMetadataError extends Cause.YieldableError {
   readonly _tag = InvalidMetadataErrorTag;
 }
 
+export type UnrepresentableContent =
+  'tables' | 'definitionLists' | 'lineBlocks' | 'rawBlocks';
+
+export const UnrepresentableContentErrorTag = 'UnrepresentableContentError';
+export class UnrepresentableContentError extends Cause.YieldableError {
+  readonly _tag = UnrepresentableContentErrorTag;
+  readonly data;
+
+  constructor(message: string, data: { content: UnrepresentableContent[] }) {
+    super(message);
+    this.data = data;
+  }
+}
+
 export const VersionedDocumentDiffErrorTag = 'VersionedDocumentDiffError';
 export class DiffError extends Cause.YieldableError {
   readonly _tag = VersionedDocumentDiffErrorTag;

@@ -1,3 +1,8 @@
+import {
+  InvalidMetadataError,
+  type UnrepresentableContent,
+  UnrepresentableContentError,
+} from '../errors';
 import { RichTextRepresentation, richTextRepresentations } from '../models';
 
 export const representationToCliArg = (
@@ -35,6 +40,12 @@ export type HSLibWriteError = {
   message: string;
 };
 
+export type HSLibUnrepresentableContentError = {
+  type: 'unrepresentableContentError';
+  message: string;
+  content: UnrepresentableContent[];
+};
+
 export type HSLibPatchError = {
   type: 'patchError';
   message: string;
@@ -44,6 +55,7 @@ export type HSLibError =
   | HSLibReadError
   | HSLibInvalidMetadataError
   | HSLibWriteError
+  | HSLibUnrepresentableContentError
   | HSLibPatchError;
 
 export type HSLibSuccessOutput<T> = {
@@ -65,6 +77,33 @@ export const isHSLibFailureOutput = <T>(
 export const isHSLibInvalidMetadataError = (
   error: HSLibError
 ): error is HSLibInvalidMetadataError => error.type === 'invalidMetadataError';
+
+export const isHSLibUnrepresentableContentError = (
+  error: HSLibError
+): error is HSLibUnrepresentableContentError =>
+  error.type === 'unrepresentableContentError';
+
+export const findDocumentContentError = (
+  errors: HSLibError[]
+): InvalidMetadataError | UnrepresentableContentError | undefined => {
+  const invalidMetadata = errors.find(isHSLibInvalidMetadataError);
+
+  if (invalidMetadata) {
+    return new InvalidMetadataError(invalidMetadata.message);
+  }
+
+  const unrepresentableContent = errors.find(
+    isHSLibUnrepresentableContentError
+  );
+
+  if (unrepresentableContent) {
+    return new UnrepresentableContentError(unrepresentableContent.message, {
+      content: unrepresentableContent.content,
+    });
+  }
+
+  return undefined;
+};
 
 export const joinHSLibErrorMessages = (errors: HSLibError[]): string =>
   errors.map((error) => error.message).join(', ');

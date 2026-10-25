@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { type Wasm } from '../../../../../modules/infrastructure/wasm';
 import {
   InvalidMetadataErrorTag,
+  UnrepresentableContentErrorTag,
   VersionedDocumentRepresentationTransformErrorTag,
 } from '../../errors';
 import {
@@ -73,6 +74,26 @@ describe('pandoc-representation-transform transformToText', () => {
     await expect(toProseMirror({ mockedCliRun })).rejects.toMatchObject({
       _tag: InvalidMetadataErrorTag,
       message,
+    });
+  });
+
+  it('fails with UnrepresentableContentError for content the editor cannot show', async () => {
+    const mockedCliRun = vi.fn().mockResolvedValue(
+      JSON.stringify({
+        errors: [
+          {
+            type: 'unrepresentableContentError',
+            message:
+              "The document has content ProseMirror can't represent: tables, lineBlocks",
+            content: ['tables', 'lineBlocks'],
+          },
+        ],
+      })
+    );
+
+    await expect(toProseMirror({ mockedCliRun })).rejects.toMatchObject({
+      _tag: UnrepresentableContentErrorTag,
+      data: { content: ['tables', 'lineBlocks'] },
     });
   });
 

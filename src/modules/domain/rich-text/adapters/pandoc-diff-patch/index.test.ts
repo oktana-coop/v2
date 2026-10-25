@@ -16,6 +16,7 @@ import {
 import {
   PatchErrorTag,
   RichTextLibErrorTag,
+  UnrepresentableContentErrorTag,
   VersionedDocumentDiffErrorTag,
 } from '../../errors';
 import {
@@ -104,6 +105,36 @@ describe('pandoc-diff-patch proseMirrorDiff', () => {
     await expect(result).rejects.toMatchObject({
       _tag: VersionedDocumentDiffErrorTag,
       message: 'Diff failed: Invalid block type, Unexpected end-of-input',
+    });
+  });
+
+  it('fails with UnrepresentableContentError for content the editor cannot show', async () => {
+    const mockedCliRun = vi.fn().mockResolvedValue(
+      JSON.stringify({
+        errors: [
+          {
+            type: 'unrepresentableContentError',
+            message:
+              "The document has content ProseMirror can't represent: tables",
+            content: ['tables'],
+          },
+        ],
+      })
+    );
+
+    const result = createAdapter({
+      runWasiCLIOutputingText: mockedCliRun,
+    }).proseMirrorDiff({
+      representation: richTextRepresentations.MARKDOWN,
+      proseMirrorSchema: schema,
+      docBefore: 'Hello',
+      docAfter: '| a | b |\n|---|---|\n| 1 | 2 |\n',
+      transformImageSrc: (src) => src,
+    });
+
+    await expect(result).rejects.toMatchObject({
+      _tag: UnrepresentableContentErrorTag,
+      data: { content: ['tables'] },
     });
   });
 });
