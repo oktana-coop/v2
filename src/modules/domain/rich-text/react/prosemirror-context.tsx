@@ -78,6 +78,15 @@ const unrepresentableContentNames: Record<UnrepresentableContent, string> = {
   definitionLists: 'definition lists',
   lineBlocks: 'line blocks',
   rawBlocks: 'embedded HTML or LaTeX',
+  strikeout: 'strikethrough',
+  underline: 'underlined text',
+  smallCaps: 'small caps',
+  superscript: 'superscript',
+  subscript: 'subscript',
+  spans: 'text with custom attributes',
+  math: 'math',
+  citations: 'citations',
+  rawInlines: 'embedded HTML or LaTeX',
 };
 
 const getDocumentContentErrorMessage = (error: unknown): string | undefined => {
@@ -86,9 +95,13 @@ const getDocumentContentErrorMessage = (error: unknown): string | undefined => {
   }
 
   if (error instanceof UnrepresentableContentError) {
-    const names = error.data.content.map(
-      (content) => unrepresentableContentNames[content]
-    );
+    const names = [
+      ...new Set(
+        error.data.content.map(
+          (content) => unrepresentableContentNames[content]
+        )
+      ),
+    ];
 
     return `The editor can't show ${new Intl.ListFormat('en', { type: 'conjunction' }).format(names)} yet.`;
   }

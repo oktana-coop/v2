@@ -30,7 +30,19 @@ export class InvalidMetadataError extends Cause.YieldableError {
 }
 
 export type UnrepresentableContent =
-  'tables' | 'definitionLists' | 'lineBlocks' | 'rawBlocks';
+  | 'tables'
+  | 'definitionLists'
+  | 'lineBlocks'
+  | 'rawBlocks'
+  | 'strikeout'
+  | 'underline'
+  | 'smallCaps'
+  | 'superscript'
+  | 'subscript'
+  | 'spans'
+  | 'math'
+  | 'citations'
+  | 'rawInlines';
 
 export const UnrepresentableContentErrorTag = 'UnrepresentableContentError';
 export class UnrepresentableContentError extends Cause.YieldableError {

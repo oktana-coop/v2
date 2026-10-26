@@ -248,6 +248,54 @@ test.describe('a rich-text document', () => {
     });
   });
 
+  test('opening a document with math shows an error saying the editor can not show math yet', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    fs.writeFileSync(
+      path.join(testProjectDir, 'hello.md'),
+      '# Hello\n\nEnergy is $E = mc^2$.\n',
+      'utf8'
+    );
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    // The editor can't read the document, so it doesn't wait for one.
+    await window.getByText('hello').click();
+
+    await expectErrorNotification({
+      window,
+      message: "The editor can't show math yet.",
+    });
+  });
+
+  test('opening a document with HTML in a block and in a paragraph names it once', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    fs.writeFileSync(
+      path.join(testProjectDir, 'hello.md'),
+      '# Hello\n\n<details>\n<summary>More</summary>\n\nA block\n\n</details>\n\nSome <b>bold</b> text.\n',
+      'utf8'
+    );
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    // The editor can't read the document, so it doesn't wait for one.
+    await window.getByText('hello').click();
+
+    await expectErrorNotification({
+      window,
+      message: "The editor can't show embedded HTML or LaTeX yet.",
+    });
+  });
+
   test('a document with an empty code block opens and saves', async ({
     electronApp,
     window,
