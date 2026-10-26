@@ -2,6 +2,10 @@ import { clsx } from 'clsx';
 import { useState } from 'react';
 import { type NodeRendererProps } from 'react-arborist';
 
+import {
+  inferArtifactKindFromExtension,
+  isDocumentKind,
+} from '../../../../../../../modules/domain/project';
 import { EXPLORER_TREE_NODE } from '../../../../../../../modules/infrastructure/cross-platform';
 import {
   filesystemEntryTypes,
@@ -259,6 +263,8 @@ const DirectoryNode = ({
   );
 };
 
+const UNSUPPORTED_FILE_HINT = "can't be displayed in the editor yet";
+
 const FileNode = ({
   node,
   style,
@@ -283,6 +289,10 @@ const FileNode = ({
     });
   };
 
+  const isUnsupported = !isDocumentKind(
+    inferArtifactKindFromExtension(node.data.name)
+  );
+
   return (
     <div
       onClick={onClick}
@@ -292,9 +302,19 @@ const FileNode = ({
         ...style,
         paddingLeft: node.level * 24 + 40,
       }}
+      title={
+        isUnsupported ? `${node.data.name} ${UNSUPPORTED_FILE_HINT}` : undefined
+      }
     >
-      <FileExtensionIcon fileName={node.data.name} />
-      {node.data.name}
+      <span
+        className={clsx('flex items-center', isUnsupported && 'opacity-60')}
+      >
+        <FileExtensionIcon fileName={node.data.name} />
+        {node.data.name}
+      </span>
+      {isUnsupported && (
+        <span className="sr-only">{` ${UNSUPPORTED_FILE_HINT}`}</span>
+      )}
       {node.data.shared && (
         <span
           className="ml-1 inline-flex shrink-0 text-purple-500 dark:text-purple-300"
