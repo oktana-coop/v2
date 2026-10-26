@@ -5,6 +5,7 @@ import { expect, test } from '../shared/fixtures';
 import {
   expectErrorNotification,
   expectFileToContain,
+  expectNoErrorNotification,
   focusAndTypeInRichTextEditor,
   openHelloMd,
   openPlainTextDocument,
@@ -15,6 +16,7 @@ import {
   selectFirstCommit,
   typeAtEndOfPlainTextDocument,
   typeInEditorAndWaitForDebounce,
+  typeInParagraphAndWaitForDebounce,
 } from '../shared/helpers';
 
 test.describe('a rich-text document', () => {
@@ -244,6 +246,33 @@ test.describe('a rich-text document', () => {
       window,
       message: "The editor can't show tables yet.",
     });
+  });
+
+  test('a document with an empty code block opens and saves', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    fs.writeFileSync(
+      path.join(testProjectDir, 'hello.md'),
+      '# Hello\n\nThis is a test document.\n\n``` plaintext\n```\n',
+      'utf8'
+    );
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    await expect(window.locator('.ProseMirror pre')).toBeVisible();
+
+    await typeInParagraphAndWaitForDebounce({ window, text: ' persisted' });
+
+    await expectFileToContain({
+      filePath: path.join(testProjectDir, 'hello.md'),
+      text: 'This is a test document. persisted\n\n``` plaintext\n```\n',
+    });
+    await expectNoErrorNotification({ window });
   });
 
   test('editing after a trip through history keeps every edit', async ({
