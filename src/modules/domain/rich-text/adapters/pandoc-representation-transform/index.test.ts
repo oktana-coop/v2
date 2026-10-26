@@ -49,7 +49,7 @@ describe('pandoc-representation-transform transformToText', () => {
           {
             type: 'writeError',
             message:
-              'Cannot convert input to ProseMirror: it contains content with no ProseMirror representation.',
+              'The figure content must contain at most one image (no other inline content)',
           },
         ],
       })
@@ -58,7 +58,7 @@ describe('pandoc-representation-transform transformToText', () => {
     await expect(toProseMirror({ mockedCliRun })).rejects.toMatchObject({
       _tag: VersionedDocumentRepresentationTransformErrorTag,
       message:
-        'Conversion failed: Cannot convert input to ProseMirror: it contains content with no ProseMirror representation.',
+        'Conversion failed: The figure content must contain at most one image (no other inline content)',
     });
   });
 
