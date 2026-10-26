@@ -32,19 +32,18 @@ describe('TreeNode file dimming', () => {
   it('dims files the editor cannot open', () => {
     renderFileNode('image.png');
 
-    const row = screen.getByText('image.png').closest('div');
-    expect(row).toHaveClass('opacity-60');
-    expect(row).toHaveAttribute(
-      'title',
-      "image.png can't be displayed in the editor yet"
-    );
+    expect(screen.getByText('image.png')).toHaveClass('opacity-60');
+    expect(
+      screen.getByText("can't be displayed in the editor yet")
+    ).toBeInTheDocument();
   });
 
   it.each(['notes.md', 'script.ts'])('does not dim %s', (name) => {
     renderFileNode(name);
 
-    const row = screen.getByText(name).closest('div');
-    expect(row).not.toHaveClass('opacity-60');
-    expect(row).not.toHaveAttribute('title');
+    expect(screen.getByText(name)).not.toHaveClass('opacity-60');
+    expect(
+      screen.queryByText("can't be displayed in the editor yet")
+    ).not.toBeInTheDocument();
   });
 });

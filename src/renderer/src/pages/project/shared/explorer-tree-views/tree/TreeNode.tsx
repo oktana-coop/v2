@@ -263,6 +263,8 @@ const DirectoryNode = ({
   );
 };
 
+const UNSUPPORTED_FILE_HINT = "can't be displayed in the editor yet";
+
 const FileNode = ({
   node,
   style,
@@ -287,7 +289,7 @@ const FileNode = ({
     });
   };
 
-  const isUnopenable = !isDocumentKind(
+  const isUnsupported = !isDocumentKind(
     inferArtifactKindFromExtension(node.data.name)
   );
 
@@ -295,22 +297,24 @@ const FileNode = ({
     <div
       onClick={onClick}
       onContextMenu={handleContextMenu}
-      className={clsx(
-        treeRowClasses(node.isSelected),
-        isUnopenable && 'opacity-60'
-      )}
+      className={treeRowClasses(node.isSelected)}
       style={{
         ...style,
         paddingLeft: node.level * 24 + 40,
       }}
       title={
-        isUnopenable
-          ? `${node.data.name} can't be displayed in the editor yet`
-          : undefined
+        isUnsupported ? `${node.data.name} ${UNSUPPORTED_FILE_HINT}` : undefined
       }
     >
-      <FileExtensionIcon fileName={node.data.name} />
-      {node.data.name}
+      <span
+        className={clsx('flex items-center', isUnsupported && 'opacity-60')}
+      >
+        <FileExtensionIcon fileName={node.data.name} />
+        {node.data.name}
+      </span>
+      {isUnsupported && (
+        <span className="sr-only">{` ${UNSUPPORTED_FILE_HINT}`}</span>
+      )}
       {node.data.shared && (
         <span
           className="ml-1 inline-flex shrink-0 text-purple-500 dark:text-purple-300"
