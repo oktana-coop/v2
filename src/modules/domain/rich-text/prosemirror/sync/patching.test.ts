@@ -30,9 +30,7 @@ const helloBigWorld = schema.node('paragraph', null, [
   schema.text(' world'),
 ]);
 
-const pandocMeta = JSON.stringify({
-  status: { t: 'MetaInlines', c: [{ t: 'Str', c: 'draft' }] },
-});
+const frontMatter = 'status: draft\n';
 
 const errorMessageOf = (result: Either.Either<unknown, Error>) =>
   Either.match(result, {
@@ -85,8 +83,8 @@ describe('patch', () => {
   it('applies a docAttr step', () => {
     const result = patch({
       state: editorState([para('Hello')]),
-      steps: [new DocAttrStep('pandocMeta', pandocMeta)],
-      target: schema.node('doc', { pandocMeta }, [para('Hello')]),
+      steps: [new DocAttrStep('frontMatter', frontMatter)],
+      target: schema.node('doc', { frontMatter }, [para('Hello')]),
     });
 
     expect(Either.isRight(result)).toBe(true);
@@ -189,11 +187,11 @@ describe('coarseDiffReplace', () => {
       after: [para('Hello big world')],
     },
   ])('produces a target that differs in $kind', ({ after }) => {
-    const withPandocMeta = schema.node('doc', { pandocMeta }, after);
+    const withFrontMatter = schema.node('doc', { frontMatter }, after);
 
-    const tr = coarseDiffReplace({ state, target: withPandocMeta });
+    const tr = coarseDiffReplace({ state, target: withFrontMatter });
 
-    expect(tr.doc.eq(withPandocMeta)).toBe(true);
+    expect(tr.doc.eq(withFrontMatter)).toBe(true);
     // A caret after "Hello", outside the region that differs.
     expect(tr.mapping.map(6)).toBe(6);
   });

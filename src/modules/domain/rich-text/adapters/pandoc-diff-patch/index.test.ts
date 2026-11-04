@@ -74,9 +74,7 @@ const failure = ({
       .pipe(Effect.flip)
   );
 
-const pandocMeta = JSON.stringify({
-  status: { t: 'MetaInlines', c: [{ t: 'Str', c: 'draft' }] },
-});
+const frontMatter = 'status: draft\n';
 
 const success = (stepsJSON: PMStep[]) =>
   JSON.stringify({ data: { doc: afterJSON, steps: stepsJSON } });
@@ -195,7 +193,7 @@ describe('pandoc-diff-patch proseMirrorSteps', () => {
         },
         { stepType: 'addMark', from: 14, to: 17, mark: { type: 'strong' } },
         { stepType: 'removeMark', from: 14, to: 17, mark: { type: 'em' } },
-        { stepType: 'docAttr', attr: 'pandocMeta', value: pandocMeta },
+        { stepType: 'docAttr', attr: 'frontMatter', value: frontMatter },
       ])
     );
 
@@ -218,7 +216,7 @@ describe('pandoc-diff-patch proseMirrorSteps', () => {
       },
       { stepType: 'addMark', from: 14, to: 17, mark: { type: 'strong' } },
       { stepType: 'removeMark', from: 14, to: 17, mark: { type: 'em' } },
-      { stepType: 'docAttr', attr: 'pandocMeta', value: pandocMeta },
+      { stepType: 'docAttr', attr: 'frontMatter', value: frontMatter },
     ]);
   });
 

@@ -35,7 +35,7 @@ export const heading = ({
   schema.node('heading', { level }, text ? [schema.text(text)] : []);
 
 export const doc = (children: Node[]): Node =>
-  schema.node('doc', { pandocMeta: null }, children);
+  schema.node('doc', { frontMatter: null }, children);
 
 export const editorState = (
   children: Node[],

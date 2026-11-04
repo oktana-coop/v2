@@ -670,16 +670,14 @@ describe('liveSyncPlugin', () => {
           proseMirrorSteps,
           convertToProseMirror,
         } = await setUpEditor();
-        const pandocMeta = JSON.stringify({
-          status: { t: 'MetaInlines', c: [{ t: 'Str', c: 'draft' }] },
-        });
+        const frontMatter = 'status: draft\n';
         proseMirrorSteps.mockReturnValue(
           Effect.fail(new PatchError('Cannot emit steps: table'))
         );
         // The in-memory document holds only text, so the front matter comes
         // in through the conversion.
         convertToProseMirror.mockResolvedValue(
-          schema.node('doc', { pandocMeta }, [para(incomingText)])
+          schema.node('doc', { frontMatter }, [para(incomingText)])
         );
 
         await Effect.runPromise(
@@ -690,7 +688,7 @@ describe('liveSyncPlugin', () => {
         );
 
         await eventually(() =>
-          expect(view.state.doc.attrs.pandocMeta).toBe(pandocMeta)
+          expect(view.state.doc.attrs.frontMatter).toBe(frontMatter)
         );
         expect(view.state.doc.textContent).toBe(incomingText);
 
@@ -701,7 +699,7 @@ describe('liveSyncPlugin', () => {
           JSON.parse(onChange.mock.calls[0][0].content),
           schema
         );
-        expect(contributed.attrs.pandocMeta).toBe(pandocMeta);
+        expect(contributed.attrs.frontMatter).toBe(frontMatter);
       }
     );
 

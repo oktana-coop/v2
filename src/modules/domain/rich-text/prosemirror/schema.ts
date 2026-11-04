@@ -46,7 +46,7 @@ const schemaSpec: SchemaSpec = {
     doc: {
       content: 'block+',
       attrs: {
-        pandocMeta: { default: null },
+        frontMatter: { default: null },
       },
     },
 
