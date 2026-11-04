@@ -296,6 +296,30 @@ test.describe('a rich-text document', () => {
     });
   });
 
+  test('opening a document with a footnote in its front matter shows an error saying the editor can not show it yet', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    fs.writeFileSync(
+      path.join(testProjectDir, 'hello.md'),
+      '---\ntitle: Hello[^1]\n---\n\n# Hello\n\n[^1]: A note.\n',
+      'utf8'
+    );
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    // The editor can't read the document, so it doesn't wait for one.
+    await window.getByText('hello').click();
+
+    await expectErrorNotification({
+      window,
+      message: "The editor can't show footnotes in the document metadata yet.",
+    });
+  });
+
   test('a document with an empty code block opens and saves', async ({
     electronApp,
     window,

@@ -87,6 +87,7 @@ const unrepresentableContentNames: Record<UnrepresentableContent, string> = {
   math: 'math',
   citations: 'citations',
   rawInlines: 'embedded HTML or LaTeX',
+  metadataNotes: 'footnotes in the document metadata',
 };
 
 const getDocumentContentErrorMessage = (error: unknown): string | undefined => {

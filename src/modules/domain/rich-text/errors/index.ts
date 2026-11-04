@@ -42,7 +42,8 @@ export type UnrepresentableContent =
   | 'spans'
   | 'math'
   | 'citations'
-  | 'rawInlines';
+  | 'rawInlines'
+  | 'metadataNotes';
 
 export const UnrepresentableContentErrorTag = 'UnrepresentableContentError';
 export class UnrepresentableContentError extends Cause.YieldableError {
