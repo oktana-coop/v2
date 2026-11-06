@@ -200,13 +200,14 @@ test.describe('a rich-text document', () => {
     });
   });
 
-  test('opening a document whose front matter is not valid YAML shows an error saying so', async ({
+  test('a document whose front matter is not valid YAML opens, and typing keeps the front matter as it was', async ({
     electronApp,
     window,
     testProjectDir,
   }) => {
+    const helloPath = path.join(testProjectDir, 'hello.md');
     fs.writeFileSync(
-      path.join(testProjectDir, 'hello.md'),
+      helloPath,
       '---\ntitle: Hello\nauthor Ada: x: y\n---\n\n# Hello\n',
       'utf8'
     );
@@ -215,13 +216,15 @@ test.describe('a rich-text document', () => {
       window,
       folderPath: testProjectDir,
     });
-    // The editor can't read the document, so it doesn't wait for one.
-    await window.getByText('hello').click();
+    await openHelloMd({ window });
 
-    await expectErrorNotification({
-      window,
-      message: "The document metadata isn't valid.",
+    await focusAndTypeInRichTextEditor({ window, text: ' world' });
+
+    await expectFileToContain({
+      filePath: helloPath,
+      text: '---\ntitle: Hello\nauthor Ada: x: y\n---\n\n# Hello world',
     });
+    await expectNoErrorNotification({ window });
   });
 
   test('opening a document with a table shows an error saying the editor can not show tables yet', async ({
