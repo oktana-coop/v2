@@ -76,3 +76,7 @@ pnpm run start
 ## Release and Versioning
 
 See [docs/release.md](docs/release.md) for the release workflow, code signing setup per OS, and local packaging/debug instructions.
+
+## Support
+
+If you like our work, please consider [supporting us financially](https://oktana.dev/#support), so that we can do more of this. We statutorily do not accept venture capital investment so that we stay independent and our resources are currently limited and based on personal savings from previous work we’ve undertaken. It would be amazing for us to reach a point where our work is community-funded.
