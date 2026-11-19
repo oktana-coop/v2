@@ -4,3 +4,4 @@ export * from './heading';
 export * from './link';
 export * from './document-asset';
 export * from './presence';
+export * from './front-matter';
