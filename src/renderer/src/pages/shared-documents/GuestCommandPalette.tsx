@@ -2,7 +2,9 @@ import { useContext } from 'react';
 import { useNavigate } from 'react-router';
 
 import { urlEncodeShareId } from '../../../../modules/domain/collaboration';
+import { artifactKinds } from '../../../../modules/domain/project';
 import { ElectronContext } from '../../../../modules/infrastructure/cross-platform/browser';
+import { FunctionalityConfigContext } from '../../../../modules/personalization/browser';
 import {
   CommandPaletteContext,
   GuestEditingContext,
@@ -22,12 +24,25 @@ export const GuestCommandPalette = () => {
   } = useContext(GuestEditingContext);
   const { guestShares } = useContext(GuestShareRegistryContext);
   const { checkForUpdate } = useContext(ElectronContext);
+  const { showMetadata, setShowMetadata } = useContext(
+    FunctionalityConfigContext
+  );
   const clearWebStorage = useClearWebStorage();
   const navigate = useNavigate();
 
   const otherShares = guestShares.filter((share) => share.shareId !== shareId);
+  const isRichTextDocument =
+    guestDocument?.kind === artifactKinds.RICH_TEXT_DOCUMENT;
 
   const documentActions = [
+    ...(isRichTextDocument
+      ? [
+          {
+            name: showMetadata ? 'Hide properties' : 'Show properties',
+            onActionSelection: () => setShowMetadata(!showMetadata),
+          },
+        ]
+      : []),
     { name: 'Sharing options', onActionSelection: onOpenSharingDialog },
     {
       name: 'Leave shared document',

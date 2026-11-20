@@ -3,6 +3,7 @@ import { IconButton } from '../../../components/actions/IconButton';
 import { ToolbarToggleIcon } from '../../../components/icons';
 import { PresenceAvatars } from '../../../components/user/PresenceAvatars';
 import { ActionsBarTitle } from '../actions-bar-title';
+import { MetadataToggleButton } from '../metadata-toggle-button';
 import { SidebarToggleButton } from '../sidebar-toggle-button';
 import { type CommitAction, CommitButton } from './CommitButton';
 import { ShareButton } from './ShareButton';
@@ -40,6 +41,7 @@ export const ActionsBar = ({
           onClick={handleToolbarToggle}
           tooltip="Toggle Toolbar"
         />
+        <MetadataToggleButton />
         <ShareButton isShared={isShared} onShareClick={onShareClick} />
         {commitAction && <CommitButton commitAction={commitAction} />}
       </div>

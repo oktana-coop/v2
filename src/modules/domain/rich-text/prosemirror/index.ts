@@ -1,5 +1,6 @@
 export * from './selection';
 export * from './schema';
+export * from './front-matter';
 export * from './input-rules';
 export * from './commands';
 export * from './blocks';

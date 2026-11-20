@@ -2,6 +2,7 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { uniqueParticipants } from '../../../../modules/domain/collaboration';
 import { ProseMirrorContext } from '../../../../modules/domain/rich-text/react/prosemirror-context';
+import { FunctionalityConfigContext } from '../../../../modules/personalization/browser';
 import {
   GuestEditingContext,
   useGuestRichTextDocument,
@@ -9,6 +10,7 @@ import {
 } from '../../app-state';
 import { LongTextSkeleton } from '../../components/progress/skeletons/LongText';
 import { LiveRichTextDocumentEditor } from '../../components/rich-text-editing/LiveRichTextDocumentEditor';
+import { EditorMetadataPanel } from '../../components/rich-text-editing/metadata/MetadataPanel';
 import { ActionsBar } from '../shared/document-actions-bar';
 
 export const GuestRichTextDocumentEditor = () => {
@@ -16,6 +18,7 @@ export const GuestRichTextDocumentEditor = () => {
   const { view: editorView } = useContext(ProseMirrorContext);
   const { name, onOpenSharingDialog } = useContext(GuestEditingContext);
   const richTextDocument = useGuestRichTextDocument();
+  const { showMetadata } = useContext(FunctionalityConfigContext);
   const peers = useRemotePresence(richTextDocument?.liveDocument ?? null);
   const participants = useMemo(
     () => uniqueParticipants(peers.map((peer) => peer.participant)),
@@ -46,12 +49,15 @@ export const GuestRichTextDocumentEditor = () => {
       <div className="flex w-full flex-auto flex-col items-center overflow-auto">
         <div className="flex w-full max-w-3xl flex-col">
           {richTextDocument ? (
-            <LiveRichTextDocumentEditor
-              liveDocument={richTextDocument.liveDocument}
-              onLocalSelectionChange={richTextDocument.onLocalSelectionChange}
-              isToolbarOpen={isEditorToolbarOpen}
-              assetResolution={null}
-            />
+            <>
+              {showMetadata && <EditorMetadataPanel />}
+              <LiveRichTextDocumentEditor
+                liveDocument={richTextDocument.liveDocument}
+                onLocalSelectionChange={richTextDocument.onLocalSelectionChange}
+                isToolbarOpen={isEditorToolbarOpen}
+                assetResolution={null}
+              />
+            </>
           ) : (
             <LongTextSkeleton />
           )}
