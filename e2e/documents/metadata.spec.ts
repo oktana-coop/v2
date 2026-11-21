@@ -2,7 +2,12 @@ import fs from 'fs';
 import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
-import { openHelloMd, openProjectFolder } from '../shared/helpers';
+import {
+  commitChanges,
+  openHelloMd,
+  openProjectFolder,
+  selectFirstCommit,
+} from '../shared/helpers';
 
 const frontMatter = [
   'title: Hello *world*',
@@ -92,6 +97,43 @@ test.describe('the metadata of a rich-text document', () => {
     await expect(
       window.getByRole('region', { name: 'Properties' }).getByRole('term')
     ).toHaveText(['title', 'abstract', 'draft', 'tags', 'author']);
+  });
+
+  test('a commit in history shows the front matter it holds', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const helloPath = path.join(testProjectDir, 'hello.md');
+    fs.writeFileSync(helloPath, '---\ntitle: First\n---\n\n# Hello\n', 'utf8');
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    fs.writeFileSync(
+      helloPath,
+      '---\ntitle: Second version\n---\n\n# Hello again\n',
+      'utf8'
+    );
+    await expect(window.locator('.ProseMirror').locator('h1')).toHaveText(
+      'Hello again',
+      { timeout: 5_000 }
+    );
+    await commitChanges({ window, message: 'second title' });
+    const values = window
+      .getByRole('region', { name: 'Properties' })
+      .getByRole('definition');
+
+    await selectFirstCommit({ window, commitMessage: 'Set up versioning' });
+    await window.getByRole('button', { name: 'Show properties' }).click();
+
+    await expect(values).toHaveText(['First']);
+
+    await selectFirstCommit({ window, commitMessage: 'second title' });
+
+    await expect(values).toHaveText(['Second version']);
   });
 
   test('a document without front matter shows that it has no properties', async ({

@@ -11,6 +11,7 @@ import {
   type CommitWithUrlInfo,
 } from '../../../../../../modules/infrastructure/version-control';
 import { LongTextSkeleton } from '../../../../components/progress/skeletons/LongText';
+import { MetadataToggleButton } from '../../../shared/metadata-toggle-button';
 import { UnsupportedDocumentView } from '../../shared/unsupported-document-view';
 import { DocumentHistoryActionsBar } from './DocumentHistoryActionsBar';
 import { PlainTextHistoricalContent } from './PlainTextHistoricalContent';
@@ -126,7 +127,14 @@ export const HistoricalDocumentView = ({
           diffCommitId={diffCommitId}
           history={diffSelectorCommits}
           onDiffCommitSelect={onDiffCommitSelect}
-          actions={actions}
+          actions={
+            <>
+              {kind === artifactKinds.RICH_TEXT_DOCUMENT && (
+                <MetadataToggleButton />
+              )}
+              {actions}
+            </>
+          }
         />
       </div>
 
