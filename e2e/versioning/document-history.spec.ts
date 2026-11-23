@@ -6,6 +6,7 @@ import { expect, test } from '../shared/fixtures';
 import {
   commitChanges,
   createAndSwitchToBranch,
+  metadataPanel,
   openHelloMd,
   openPlainTextDocument,
   openProjectFolder,
@@ -18,6 +19,7 @@ import {
   returnToRichTextEditor,
   selectFirstCommit,
   selectUncommittedChanges,
+  showMetadata,
   switchToBranch,
   typeAtEndOfPlainTextDocument,
   typeInEditorAndWaitForDebounce,
@@ -84,6 +86,41 @@ test.describe("the open document's history", () => {
         timeout: 300,
       }
     );
+  });
+
+  test('selecting a commit shows the metadata it had', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const helloPath = path.join(testProjectDir, 'hello.md');
+    fs.writeFileSync(helloPath, '---\ntitle: First\n---\n\n# Hello\n', 'utf8');
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    fs.writeFileSync(
+      helloPath,
+      '---\ntitle: Second version\n---\n\n# Hello again\n',
+      'utf8'
+    );
+    await expect(window.locator('.ProseMirror').locator('h1')).toHaveText(
+      'Hello again',
+      { timeout: 5_000 }
+    );
+    await commitChanges({ window, message: 'second title' });
+    const values = metadataPanel({ window }).getByRole('definition');
+
+    await selectFirstCommit({ window, commitMessage: 'Set up versioning' });
+    await showMetadata({ window });
+
+    await expect(values).toHaveText(['First']);
+
+    await selectFirstCommit({ window, commitMessage: 'second title' });
+
+    await expect(values).toHaveText(['Second version']);
   });
 
   test('viewing uncommitted changes and going back to the editor keeps them', async ({

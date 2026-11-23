@@ -1,13 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 
-import { expect, test } from '../shared/fixtures';
+import { expect, test } from '../../shared/fixtures';
 import {
-  commitChanges,
+  metadataPanel,
   openHelloMd,
   openProjectFolder,
-  selectFirstCommit,
-} from '../shared/helpers';
+  showMetadata,
+} from '../../shared/helpers';
 
 const frontMatter = [
   'title: Hello *world*',
@@ -25,7 +25,7 @@ const frontMatter = [
 ].join('\n');
 
 test.describe('the metadata of a rich-text document', () => {
-  test('the info toggle shows and hides the front matter above the document', async ({
+  test('the info toggle shows and hides the metadata above the document', async ({
     electronApp,
     window,
     testProjectDir,
@@ -41,7 +41,7 @@ test.describe('the metadata of a rich-text document', () => {
       folderPath: testProjectDir,
     });
     await openHelloMd({ window });
-    const panel = window.getByRole('region', { name: 'Properties' });
+    const panel = metadataPanel({ window });
 
     await expect(panel).toHaveCount(0);
 
@@ -84,7 +84,7 @@ test.describe('the metadata of a rich-text document', () => {
       folderPath: testProjectDir,
     });
     await openHelloMd({ window });
-    await window.getByRole('button', { name: 'Show properties' }).click();
+    await showMetadata({ window });
 
     await window.reload();
     await openProjectFolder({
@@ -94,53 +94,42 @@ test.describe('the metadata of a rich-text document', () => {
     });
     await openHelloMd({ window });
 
-    await expect(
-      window.getByRole('region', { name: 'Properties' }).getByRole('term')
-    ).toHaveText(['title', 'abstract', 'draft', 'tags', 'author']);
+    await expect(metadataPanel({ window }).getByRole('term')).toHaveText([
+      'title',
+      'abstract',
+      'draft',
+      'tags',
+      'author',
+    ]);
   });
 
-  test('a commit in history shows the front matter it holds', async ({
+  test('a document without front matter shows that it has no metadata', async ({
     electronApp,
     window,
     testProjectDir,
   }) => {
-    const helloPath = path.join(testProjectDir, 'hello.md');
-    fs.writeFileSync(helloPath, '---\ntitle: First\n---\n\n# Hello\n', 'utf8');
     await openProjectFolder({
       electronApp,
       window,
       folderPath: testProjectDir,
     });
     await openHelloMd({ window });
+
+    await showMetadata({ window });
+
+    await expect(metadataPanel({ window })).toHaveText('No properties');
+  });
+
+  test("a document whose front matter isn't valid YAML shows that its metadata can't be shown", async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
     fs.writeFileSync(
-      helloPath,
-      '---\ntitle: Second version\n---\n\n# Hello again\n',
+      path.join(testProjectDir, 'hello.md'),
+      '---\ntitle: [unclosed\n---\n\n# Hello\n',
       'utf8'
     );
-    await expect(window.locator('.ProseMirror').locator('h1')).toHaveText(
-      'Hello again',
-      { timeout: 5_000 }
-    );
-    await commitChanges({ window, message: 'second title' });
-    const values = window
-      .getByRole('region', { name: 'Properties' })
-      .getByRole('definition');
-
-    await selectFirstCommit({ window, commitMessage: 'Set up versioning' });
-    await window.getByRole('button', { name: 'Show properties' }).click();
-
-    await expect(values).toHaveText(['First']);
-
-    await selectFirstCommit({ window, commitMessage: 'second title' });
-
-    await expect(values).toHaveText(['Second version']);
-  });
-
-  test('a document without front matter shows that it has no properties', async ({
-    electronApp,
-    window,
-    testProjectDir,
-  }) => {
     await openProjectFolder({
       electronApp,
       window,
@@ -148,10 +137,10 @@ test.describe('the metadata of a rich-text document', () => {
     });
     await openHelloMd({ window });
 
-    await window.getByRole('button', { name: 'Show properties' }).click();
+    await showMetadata({ window });
 
-    await expect(window.getByRole('region', { name: 'Properties' })).toHaveText(
-      'No properties'
+    await expect(metadataPanel({ window })).toHaveText(
+      "The properties can't be shown here yet."
     );
   });
 });

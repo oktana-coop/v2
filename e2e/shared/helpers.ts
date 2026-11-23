@@ -462,6 +462,18 @@ export const clickToolbarButton = async ({
   await window.getByRole('button', { name: label }).click();
 };
 
+export const metadataPanel = ({ window }: { window: Page }) =>
+  window.getByRole('region', { name: 'Properties' });
+
+export const showMetadata = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  await window.getByRole('button', { name: 'Show properties' }).click();
+  await expect(metadataPanel({ window })).toBeVisible();
+};
+
 /**
  * There is a debounce of (at the time of writing this) 300ms as the user is typing.
  * This function waits for this debounce period before returning.

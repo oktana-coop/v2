@@ -1,4 +1,5 @@
 import * as Effect from 'effect/Effect';
+import * as Either from 'effect/Either';
 import { pipe } from 'effect/Function';
 import { Node, type Schema } from 'prosemirror-model';
 import { Decoration, DecorationSet } from 'prosemirror-view';
@@ -18,6 +19,7 @@ import {
 } from '../../hs-lib-cli';
 import {
   getDocumentRichTextContent,
+  parseMetadataDiff,
   richTextRepresentations,
 } from '../../models';
 import { type DiffPatch } from '../../ports/diff-patch';
@@ -41,6 +43,7 @@ import {
 type HSLibDiffData = {
   doc: PMNode;
   decorations: DiffDecoration[];
+  metadataDiff: unknown;
 };
 
 type HSLibStepsData = {
@@ -132,6 +135,15 @@ export const createAdapter = ({
       );
     }
 
+    const metadataDiff =
+      parsedOutput.data.metadataDiff === null
+        ? Either.right(null)
+        : parseMetadataDiff(parsedOutput.data.metadataDiff);
+
+    if (Either.isLeft(metadataDiff)) {
+      throw new DiffError(`Diff failed: ${metadataDiff.left.message}`);
+    }
+
     const decorations = parsedOutput.data.decorations.map((decoration) => {
       switch (decoration.type) {
         case 'inline':
@@ -151,6 +163,7 @@ export const createAdapter = ({
     return {
       pmDocAfter: pmDoc,
       decorations: DecorationSet.create(pmDoc, decorations),
+      metadataDiff: metadataDiff.right,
     };
   };
 

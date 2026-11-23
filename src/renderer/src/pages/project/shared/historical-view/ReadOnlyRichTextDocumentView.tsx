@@ -4,14 +4,20 @@ import { useCallback, useContext } from 'react';
 import { type ProjectRelPath } from '../../../../../../modules/domain/project';
 import {
   getDocumentRichTextContent,
+  hasChanges,
   prosemirror,
   type RichTextDocument,
 } from '../../../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
+import { FunctionalityConfigContext } from '../../../../../../modules/personalization/browser';
 import { useAssetSrcResolver } from '../../../../app-state';
 import { LongTextSkeleton } from '../../../../components/progress/skeletons/LongText';
 import { FindBar } from '../../../../components/rich-text-editing/FindBar';
+import {
+  MetadataPanel,
+  type MetadataPanelDiff,
+} from '../../../../components/rich-text-editing/metadata/MetadataPanel';
 import {
   type EditorSeed,
   ProseMirrorEditor,
@@ -25,6 +31,7 @@ const {
   openExternalLinkPlugin,
   codeBlockHighlightPlugin,
   searchPlugin,
+  getDocFrontMatter,
 } = prosemirror;
 
 export type DiffViewProps = {
@@ -66,29 +73,52 @@ export const ReadOnlyRichTextDocumentView = (
   return <ReadOnlyRichTextDocumentContent {...props} />;
 };
 
+type ReadOnlySeed = EditorSeed & {
+  metadataPanelDiff: MetadataPanelDiff | null;
+};
+
 const ReadOnlyRichTextDocumentContent = (
   props: ReadOnlyRichTextDocumentViewProps
 ) => {
   const { openExternalLink } = useContext(ElectronContext);
+  const { showMetadata } = useContext(FunctionalityConfigContext);
   const resolveAssetSrc = useAssetSrcResolver({ docPath: props.documentPath });
   const { proseMirrorDiff, convertToProseMirror, convertFromProseMirror } =
     useContext(ProseMirrorContext);
 
   const createSeed = useCallback(
-    async (schema: Schema): Promise<EditorSeed> => {
+    async (schema: Schema): Promise<ReadOnlySeed> => {
       if (isDiffViewProps(props)) {
         const contentBefore = getDocumentRichTextContent(props.docBefore);
         const contentAfter = getDocumentRichTextContent(props.docAfter);
 
-        const { pmDocAfter, decorations } = await proseMirrorDiff({
-          representation: props.docAfter.representation,
-          proseMirrorSchema: schema,
-          docBefore: contentBefore,
-          docAfter: contentAfter,
-          transformImageSrc: resolveAssetSrc,
-        });
+        const { pmDocAfter, decorations, metadataDiff } = await proseMirrorDiff(
+          {
+            representation: props.docAfter.representation,
+            proseMirrorSchema: schema,
+            docBefore: contentBefore,
+            docAfter: contentAfter,
+            transformImageSrc: resolveAssetSrc,
+          }
+        );
+
+        const metadataPanelDiff =
+          metadataDiff && metadataDiff.some(hasChanges)
+            ? // Only the metadata panel needs the before version as ProseMirror, for the
+              // values its diff doesn't carry, so it's converted only when metadata changed.
+              {
+                frontMatterBefore: getDocFrontMatter(
+                  await convertToProseMirror({
+                    schema,
+                    document: props.docBefore,
+                  })
+                ),
+                metadataDiff,
+              }
+            : null;
 
         return {
+          metadataPanelDiff,
           doc: pmDocAfter,
           plugins: [
             assetsPlugin(resolveAssetSrc),
@@ -111,6 +141,7 @@ const ReadOnlyRichTextDocumentContent = (
       });
 
       return {
+        metadataPanelDiff: null,
         doc: pmDoc,
         plugins: [
           assetsPlugin(resolveAssetSrc),
@@ -132,9 +163,17 @@ const ReadOnlyRichTextDocumentContent = (
   }
 
   return (
-    <div className="flex flex-auto p-4">
-      <ProseMirrorEditor seed={seed} isEditable={false} />
-      <FindBar />
-    </div>
+    <>
+      {showMetadata && (
+        <MetadataPanel
+          frontMatter={getDocFrontMatter(seed.doc)}
+          diff={seed.metadataPanelDiff}
+        />
+      )}
+      <div className="flex flex-auto p-4">
+        <ProseMirrorEditor seed={seed} isEditable={false} />
+        <FindBar />
+      </div>
+    </>
   );
 };

@@ -1,10 +1,6 @@
-import { useContext } from 'react';
-
 import { type ProjectRelPath } from '../../../../../../modules/domain/project';
 import { type VersionedDocument } from '../../../../../../modules/domain/rich-text';
-import { FunctionalityConfigContext } from '../../../../../../modules/personalization/browser';
 import { LongTextSkeleton } from '../../../../components/progress/skeletons/LongText';
-import { EditorMetadataPanel } from '../../../../components/rich-text-editing/metadata/MetadataPanel';
 import { ContentLoadError } from './ContentLoadError';
 import {
   type DiffViewProps,
@@ -24,8 +20,6 @@ export const HistoricalViewContent = ({
   loading: boolean;
   error: string | null;
 }) => {
-  const { showMetadata } = useContext(FunctionalityConfigContext);
-
   if (loading) {
     return <LongTextSkeleton />;
   }
@@ -38,14 +32,9 @@ export const HistoricalViewContent = ({
     return null;
   }
 
-  return (
-    <>
-      {showMetadata && <EditorMetadataPanel />}
-      {diffProps ? (
-        <ReadOnlyRichTextDocumentView {...diffProps} />
-      ) : (
-        <ReadOnlyRichTextDocumentView doc={doc} documentPath={documentPath} />
-      )}
-    </>
-  );
+  if (diffProps) {
+    return <ReadOnlyRichTextDocumentView {...diffProps} />;
+  }
+
+  return <ReadOnlyRichTextDocumentView doc={doc} documentPath={documentPath} />;
 };

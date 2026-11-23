@@ -4,7 +4,11 @@ import { type Step } from 'prosemirror-transform';
 import { type DecorationSet } from 'prosemirror-view';
 
 import { type PatchError, type RichTextLibError } from '../errors';
-import { type RichTextDocument, type RichTextRepresentation } from '../models';
+import {
+  type MetadataKeyDiff,
+  type RichTextDocument,
+  type RichTextRepresentation,
+} from '../models';
 
 export type ProseMirrorDiffArgs = {
   representation: RichTextRepresentation;
@@ -18,6 +22,8 @@ export type ProseMirrorDiffArgs = {
 export type ProseMirrorDiffResult = {
   pmDocAfter: Node;
   decorations: DecorationSet;
+  // `null` when either document's front matter isn't valid YAML.
+  metadataDiff: MetadataKeyDiff[] | null;
 };
 
 export type ProseMirrorStepsArgs = {
