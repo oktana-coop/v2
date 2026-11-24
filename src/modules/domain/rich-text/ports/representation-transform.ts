@@ -1,3 +1,10 @@
+import * as Effect from 'effect/Effect';
+
+import {
+  type InvalidMetadataError,
+  type RepresentationTransformError,
+  type UnrepresentableContentError,
+} from '../errors';
 import {
   type BinaryRichTextRepresentation,
   type RichTextRepresentation,
@@ -32,4 +39,12 @@ export type TransformToBinaryArgs = {
 export type RepresentationTransform = {
   transformToText: (args: TransformToTextArgs) => Promise<string>;
   transformToBinary: (args: TransformToBinaryArgs) => Promise<Uint8Array>;
+  normalizeFrontMatter: (
+    frontMatter: string
+  ) => Effect.Effect<
+    string | null,
+    | InvalidMetadataError
+    | UnrepresentableContentError
+    | RepresentationTransformError
+  >;
 };

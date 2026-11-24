@@ -1,3 +1,4 @@
+import * as Effect from 'effect/Effect';
 import { type Node, type Schema } from 'prosemirror-model';
 import { type EditorState } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
@@ -18,6 +19,7 @@ import { WasmContext } from '../../../../modules/infrastructure/wasm/react/wasm-
 import { createAdapter as createPandocDiffPatchAdapter } from '../adapters/pandoc-diff-patch';
 import {
   InvalidMetadataError,
+  RepresentationTransformError,
   type UnrepresentableContent,
   UnrepresentableContentError,
 } from '../errors';
@@ -28,6 +30,7 @@ import {
   type TextRichTextRepresentation,
 } from '../models';
 import { type DiffPatch } from '../ports/diff-patch';
+import { type RepresentationTransform } from '../ports/representation-transform';
 import { pmDocFromJSONString, pmDocToJSONString } from '../prosemirror';
 import { type PMNode } from '../prosemirror/hs-lib';
 import { RepresentationTransformContext } from './representation-transform-context';
@@ -54,6 +57,7 @@ export type ProseMirrorContextType = {
   proseMirrorSteps: DiffPatch['proseMirrorSteps'];
   convertToProseMirror: (args: ConvertToProseMirrorArgs) => Promise<Node>;
   convertFromProseMirror: (args: ConvertFromProseMirrorArgs) => Promise<string>;
+  normalizeFrontMatter: RepresentationTransform['normalizeFrontMatter'];
   parseMarkdown: (schema: Schema) => (input: string) => Promise<Node>;
   representationTransformAdapterReady: boolean;
 };
@@ -296,6 +300,16 @@ export const ProseMirrorProvider = ({
     });
   };
 
+  const handleNormalizeFrontMatter: RepresentationTransform['normalizeFrontMatter'] =
+    (frontMatter) =>
+      representationTransformAdapter
+        ? representationTransformAdapter.normalizeFrontMatter(frontMatter)
+        : Effect.fail(
+            new RepresentationTransformError(
+              'No representation transform adapter found when trying to normalize front matter'
+            )
+          );
+
   return (
     <ProseMirrorContext.Provider
       value={{
@@ -309,6 +323,7 @@ export const ProseMirrorProvider = ({
         proseMirrorSteps: diffPatchAdapter.proseMirrorSteps,
         convertToProseMirror: handleConvertToProseMirror,
         convertFromProseMirror: handleConvertFromProseMirror,
+        normalizeFrontMatter: handleNormalizeFrontMatter,
         representationTransformAdapterReady: Boolean(
           representationTransformAdapter
         ),

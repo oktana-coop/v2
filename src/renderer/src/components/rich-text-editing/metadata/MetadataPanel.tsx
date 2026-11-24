@@ -1,17 +1,23 @@
 import * as Either from 'effect/Either';
-import { useEffect, useMemo } from 'react';
+import { type ReactNode, useContext, useEffect, useMemo } from 'react';
 
 import {
   type InvalidMetadataError,
+  type MetadataEdit,
   type MetadataEntry,
   type MetadataKeyDiff,
   parseFrontMatter,
+  prosemirror,
 } from '../../../../../modules/domain/rich-text';
+import { ProseMirrorContext } from '../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { Text } from '../../typography/Text';
 import { type MetadataDiffRow, toMetadataDiffRows } from './metadata-diff-rows';
 import { MetadataDiffRows } from './MetadataDiffRows';
 import { MetadataEntries } from './MetadataEntries';
+import { MetadataForm } from './MetadataForm';
 import { useEditorFrontMatter } from './use-editor-front-matter';
+
+const { hasMetadataEditingPlugin, editMetadata } = prosemirror;
 
 export type MetadataPanelDiff = {
   frontMatterBefore: string | null;
@@ -72,6 +78,24 @@ const ContentView = ({ content }: { content: PanelContent }) => {
   }
 };
 
+// The panel around the metadata.
+const MetadataSection = ({ children }: { children: ReactNode }) => (
+  <section aria-label="Properties" className="px-4 pt-4 text-left">
+    <div className="border-b border-zinc-950/5 pb-4 dark:border-white/5">
+      {children}
+    </div>
+  </section>
+);
+
+// Front matter the panel can't show; the reason goes to the console.
+const UnreadableMetadata = ({ error }: { error: InvalidMetadataError }) => {
+  useEffect(() => {
+    console.error(error);
+  }, [error]);
+
+  return <Text>The properties can't be shown here yet.</Text>;
+};
+
 export const MetadataPanel = ({
   frontMatter,
   diff = null,
@@ -85,30 +109,59 @@ export const MetadataPanel = ({
     [frontMatter, diff]
   );
 
-  useEffect(() => {
-    if (Either.isLeft(content)) {
-      console.error(content.left);
-    }
-  }, [content]);
+  return (
+    <MetadataSection>
+      {Either.match(content, {
+        onLeft: (error) => <UnreadableMetadata error={error} />,
+        onRight: (panelContent) => <ContentView content={panelContent} />,
+      })}
+    </MetadataSection>
+  );
+};
+
+const MetadataFormPanel = ({
+  frontMatter,
+  onEdit,
+}: {
+  frontMatter: string | null;
+  onEdit: (edit: MetadataEdit) => void;
+}) => {
+  const entries = useMemo(() => parseOrEmpty(frontMatter), [frontMatter]);
 
   return (
-    <section aria-label="Properties" className="px-4 pt-4 text-left">
-      <div className="border-b border-zinc-950/5 pb-4 dark:border-white/5">
-        {Either.match(content, {
-          onLeft: () => <Text>The properties can't be shown here yet.</Text>,
-          onRight: (panelContent) => <ContentView content={panelContent} />,
-        })}
-      </div>
-    </section>
+    <MetadataSection>
+      {Either.match(entries, {
+        onLeft: (error) => <UnreadableMetadata error={error} />,
+        onRight: (formEntries) =>
+          formEntries.length === 0 ? (
+            noProperties
+          ) : (
+            <MetadataForm entries={formEntries} onEdit={onEdit} />
+          ),
+      })}
+    </MetadataSection>
   );
 };
 
 export const EditorMetadataPanel = () => {
   const frontMatter = useEditorFrontMatter();
+  const { view } = useContext(ProseMirrorContext);
 
   if (frontMatter === undefined) {
     return null;
   }
 
-  return <MetadataPanel frontMatter={frontMatter} />;
+  // An editor without metadata editing shows the metadata as it is.
+  if (!view || !hasMetadataEditingPlugin(view.state)) {
+    return <MetadataPanel frontMatter={frontMatter} />;
+  }
+
+  return (
+    <MetadataFormPanel
+      frontMatter={frontMatter}
+      onEdit={(edit) => {
+        editMetadata(edit)(view.state, view.dispatch);
+      }}
+    />
+  );
 };

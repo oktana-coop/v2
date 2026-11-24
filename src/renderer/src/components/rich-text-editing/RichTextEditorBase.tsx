@@ -82,6 +82,7 @@ const {
   diffPlugin,
   codeBlockHighlightPlugin,
   searchPlugin,
+  metadataEditingPlugin,
 } = prosemirror;
 
 export type SharedEditorProps = {
@@ -121,8 +122,13 @@ export const RichTextEditorBase = ({
 }: RichTextEditorBaseProps) => {
   const resolveAssetSrc =
     assetResolution?.resolveAssetSrc ?? ((src: string) => src);
-  const { view, parseMarkdown, convertFromProseMirror, proseMirrorDiff } =
-    useContext(ProseMirrorContext);
+  const {
+    view,
+    parseMarkdown,
+    convertFromProseMirror,
+    proseMirrorDiff,
+    normalizeFrontMatter,
+  } = useContext(ProseMirrorContext);
   const [leafBlockType, setLeafBlockType] = useState<LeafBlockType | null>(
     null
   );
@@ -215,6 +221,10 @@ export const RichTextEditorBase = ({
     moveCursorToNextBlockOnInsertionPlugin(schema),
     ensureTrailingSpaceAfterAtomPlugin(),
     removeEmptyFiguresPlugin(schema),
+    metadataEditingPlugin({
+      normalizeFrontMatter,
+      onError: (error) => console.error(error),
+    }),
     syncPlugin,
     // Reads the sync plugin's state, so it comes after it.
     ...(presencePlugin ? [presencePlugin] : []),

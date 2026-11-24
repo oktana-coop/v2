@@ -1,9 +1,12 @@
+import { type ElectronApplication, type Page } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
 import { expect, test } from '../../shared/fixtures';
 import {
+  focusAndTypeInRichTextEditor,
   metadataPanel,
+  modKey,
   openHelloMd,
   openProjectFolder,
   showMetadata,
@@ -142,5 +145,80 @@ test.describe('the metadata of a rich-text document', () => {
     await expect(metadataPanel({ window })).toHaveText(
       "The properties can't be shown here yet."
     );
+  });
+});
+
+test.describe("editing a rich-text document's metadata", () => {
+  // hello.md with a draft boolean, open with its metadata shown.
+  const openHelloMdWithDraft = async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }: {
+    electronApp: ElectronApplication;
+    window: Page;
+    testProjectDir: string;
+  }) => {
+    const helloPath = path.join(testProjectDir, 'hello.md');
+    fs.writeFileSync(
+      helloPath,
+      '---\ntitle: Hello\ndraft: true\n---\n\n# Hello\n',
+      'utf8'
+    );
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    await showMetadata({ window });
+
+    return {
+      helloPath,
+      draft: metadataPanel({ window }).getByRole('checkbox', { name: 'draft' }),
+    };
+  };
+
+  test('toggling a boolean saves it to the file', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const { helloPath, draft } = await openHelloMdWithDraft({
+      electronApp,
+      window,
+      testProjectDir,
+    });
+
+    await draft.click();
+
+    await expect(draft).not.toBeChecked();
+    await expect
+      .poll(() => fs.readFileSync(helloPath, 'utf8'))
+      .toContain('draft: false');
+  });
+
+  test("undo in the document doesn't revert a toggled boolean", async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const { helloPath, draft } = await openHelloMdWithDraft({
+      electronApp,
+      window,
+      testProjectDir,
+    });
+    await focusAndTypeInRichTextEditor({ window, text: ' world' });
+    await expect(window.locator('.ProseMirror h1')).toHaveText('Hello world');
+    await draft.click();
+    await expect
+      .poll(() => fs.readFileSync(helloPath, 'utf8'))
+      .toContain('draft: false');
+
+    await window.locator('.ProseMirror').click();
+    await window.keyboard.press(`${modKey}+z`);
+
+    await expect(window.locator('.ProseMirror h1')).toHaveText('Hello');
+    await expect(draft).not.toBeChecked();
   });
 });

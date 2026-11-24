@@ -1,15 +1,9 @@
 import * as Either from 'effect/Either';
-import {
-  isMap,
-  isScalar,
-  isSeq,
-  type Pair,
-  parseDocument,
-  Scalar,
-  type YAMLMap,
-} from 'yaml';
+import { pipe } from 'effect/Function';
+import { isMap, isScalar, isSeq, type Pair, Scalar, type YAMLMap } from 'yaml';
 
 import { InvalidMetadataError } from '../../errors';
+import { parseFrontMatterYaml } from './front-matter-yaml';
 
 export type MetadataEntry = { key: string; value: MetadataValue };
 
@@ -85,26 +79,10 @@ const toMetadataEntries = (
 // Entries in the order the front matter holds them.
 export const parseFrontMatter = (
   frontMatter: string
-): MetadataResult<MetadataEntry[]> => {
-  const document = parseDocument(frontMatter, {
-    schema: 'failsafe',
-    prettyErrors: false,
-  });
-  const [error] = document.errors;
-
-  if (error) {
-    return Either.left(new InvalidMetadataError(error.message));
-  }
-
-  if (document.contents === null) {
-    return Either.right([]);
-  }
-
-  return isMap(document.contents)
-    ? toMetadataEntries(document.contents)
-    : Either.left(
-        new InvalidMetadataError(
-          'The front matter is not a map of keys to values.'
-        )
-      );
-};
+): MetadataResult<MetadataEntry[]> =>
+  pipe(
+    parseFrontMatterYaml(frontMatter),
+    Either.flatMap(({ contents }) =>
+      isMap(contents) ? toMetadataEntries(contents) : Either.right([])
+    )
+  );
