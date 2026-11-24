@@ -143,12 +143,9 @@ const MetadataFormPanel = ({
     <MetadataSection>
       {Either.match(entries, {
         onLeft: (error) => <UnreadableMetadata error={error} />,
-        onRight: (formEntries) =>
-          formEntries.length === 0 ? (
-            noProperties
-          ) : (
-            <MetadataForm entries={formEntries} {...formProps} />
-          ),
+        onRight: (formEntries) => (
+          <MetadataForm entries={formEntries} {...formProps} />
+        ),
       })}
     </MetadataSection>
   );

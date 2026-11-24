@@ -8,9 +8,11 @@ import { type EditMetadataFn } from './field-props';
 export const RowMenu = ({
   metadataKey,
   onEdit,
+  onInsertBelow,
 }: {
   metadataKey: string;
   onEdit: EditMetadataFn;
+  onInsertBelow: () => void;
 }) => {
   const handleRemove = () => {
     onEdit({ type: 'removeKey', key: metadataKey });
@@ -29,6 +31,7 @@ export const RowMenu = ({
         <MoreVerticalAltIcon size={16} />
       </Headless.MenuButton>
       <MenuItems>
+        <MenuItem label="Insert below" onClick={onInsertBelow} />
         <MenuItem label="Remove" onClick={handleRemove} />
       </MenuItems>
     </Headless.Menu>

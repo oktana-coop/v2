@@ -1,3 +1,6 @@
+import { Fragment, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
+
 import {
   type MetadataEntry,
   type prosemirror,
@@ -7,6 +10,7 @@ import { Field } from '../../../inputs/Fieldset';
 import { MetadataGrid, MetadataGridRow } from '../MetadataGrid';
 import { MetadataValueView } from '../MetadataValueView';
 import { textListItems } from '../text-list';
+import { AddEntryButton } from './AddEntryButton';
 import { BlocksField } from './BlocksField';
 import {
   type EditMetadataFn,
@@ -16,6 +20,7 @@ import {
 import { TextFieldErrors } from './FieldErrors';
 import { InlinesField } from './InlinesField';
 import { KeyField } from './KeyField';
+import { type NewEntry, NewEntryRow } from './NewEntryRow';
 import { RowMenu } from './RowMenu';
 import { TextListField } from './TextListField';
 import { useTextDraft } from './use-text-draft';
@@ -65,20 +70,35 @@ const ValueField = ({
 const isKeyEdit = (failure: MetadataEditFailure): boolean =>
   failure.edit.type === 'renameKey' || failure.edit.type === 'removeKey';
 
+// An added key's failure is its new row's, also when another row has the key.
+const isAddition = (failure: MetadataEditFailure): boolean =>
+  failure.edit.type === 'addKey';
+
 const EntryRow = ({
   entry,
   otherKeys,
   failures,
   onEdit,
   onClearFailure,
-}: FormProps & { entry: MetadataEntry; otherKeys: string[] }) => {
+  onInsertBelow,
+}: FormProps & {
+  entry: MetadataEntry;
+  otherKeys: string[];
+  onInsertBelow: (key: string) => void;
+}) => {
   const { key } = entry;
-  const failure = failures.get(key);
+  const storedFailure = failures.get(key);
+  const failure =
+    storedFailure && !isAddition(storedFailure) ? storedFailure : undefined;
   const keyFailure = failure && isKeyEdit(failure) ? failure : undefined;
   const valueFailure = failure && !isKeyEdit(failure) ? failure : undefined;
 
   const handleClearFailure = () => {
     onClearFailure(key);
+  };
+
+  const handleInsertBelow = () => {
+    onInsertBelow(key);
   };
 
   const keyDraft = useTextDraft({
@@ -112,7 +132,11 @@ const EntryRow = ({
               onClearFailure={handleClearFailure}
             />
           </div>
-          <RowMenu metadataKey={key} onEdit={onEdit} />
+          <RowMenu
+            metadataKey={key}
+            onEdit={onEdit}
+            onInsertBelow={handleInsertBelow}
+          />
         </div>
         <TextFieldErrors
           validationError={keyDraft.validationError}
@@ -127,18 +151,82 @@ export const MetadataForm = ({
   entries,
   ...formProps
 }: FormProps & { entries: MetadataEntry[] }) => {
+  const [newEntry, setNewEntry] = useState<NewEntry | null>(null);
+  const newEntryName = useRef<HTMLInputElement>(null);
   const keys = entries.map(({ key }) => key);
 
+  // A committed new property is an entry once the document holds its key.
+  if (newEntry?.committed && keys.includes(newEntry.key)) {
+    setNewEntry(null);
+  }
+
+  const storedNewEntryFailure =
+    newEntry?.committed === true
+      ? formProps.failures.get(newEntry.key)
+      : undefined;
+  const newEntryFailure =
+    storedNewEntryFailure && isAddition(storedNewEntryFailure)
+      ? storedNewEntryFailure
+      : undefined;
+  // Below the key it goes below while there is one, else after the others.
+  const newEntryAfter =
+    newEntry && newEntry.after !== null && keys.includes(newEntry.after)
+      ? newEntry.after
+      : null;
+
+  // Opens a new row, or moves the one being edited, keeping what's typed in it,
+  // and focuses its name; the row is rendered first, so the name can be focused.
+  const handleOpenNewEntry = (after: string | null) => {
+    flushSync(() => {
+      setNewEntry((current) =>
+        current && !current.committed
+          ? { ...current, after }
+          : { after, key: '', value: '', committed: false }
+      );
+    });
+    newEntryName.current?.focus();
+  };
+
+  const handleAddEntry = () => {
+    handleOpenNewEntry(null);
+  };
+
+  const handleDiscardNewEntry = () => {
+    setNewEntry(null);
+  };
+
+  const newEntryRow = newEntry && (
+    <NewEntryRow
+      nameInput={newEntryName}
+      entry={newEntry}
+      existingKeys={keys}
+      failure={newEntryFailure}
+      onChange={setNewEntry}
+      onDiscard={handleDiscardNewEntry}
+      onEdit={formProps.onEdit}
+      onClearFailure={formProps.onClearFailure}
+    />
+  );
+
   return (
-    <MetadataGrid>
-      {entries.map((entry) => (
-        <EntryRow
-          key={entry.key}
-          entry={entry}
-          otherKeys={keys.filter((key) => key !== entry.key)}
-          {...formProps}
-        />
-      ))}
-    </MetadataGrid>
+    <>
+      {(entries.length > 0 || newEntry) && (
+        <MetadataGrid>
+          {entries.map((entry) => (
+            <Fragment key={entry.key}>
+              <EntryRow
+                entry={entry}
+                otherKeys={keys.filter((key) => key !== entry.key)}
+                onInsertBelow={handleOpenNewEntry}
+                {...formProps}
+              />
+              {newEntryAfter === entry.key && newEntryRow}
+            </Fragment>
+          ))}
+          {newEntryAfter === null && newEntryRow}
+        </MetadataGrid>
+      )}
+      <AddEntryButton className="mt-2" onClick={handleAddEntry} />
+    </>
   );
 };

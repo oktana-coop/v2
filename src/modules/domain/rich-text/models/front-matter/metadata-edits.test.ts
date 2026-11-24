@@ -230,6 +230,85 @@ describe('applyMetadataEdit', () => {
     });
   });
 
+  describe('addKey', () => {
+    it('adds the key after the others when it goes below none', () => {
+      const edited = applyMetadataEdit({
+        frontMatter: lines('title: Hello'),
+        edit: { type: 'addKey', key: 'subtitle', value: 'World', after: null },
+      });
+
+      expect(Either.getOrThrow(edited)).toBe(
+        lines('title: Hello', 'subtitle: "World"')
+      );
+    });
+
+    it('adds the key right below the one it goes below', () => {
+      const edited = applyMetadataEdit({
+        frontMatter: lines('title: Hello', 'draft: true'),
+        edit: {
+          type: 'addKey',
+          key: 'subtitle',
+          value: 'World',
+          after: 'title',
+        },
+      });
+
+      expect(Either.getOrThrow(edited)).toBe(
+        lines('title: Hello', 'subtitle: "World"', 'draft: true')
+      );
+    });
+
+    it('adds the key after the others when the one it goes below is gone', () => {
+      const edited = applyMetadataEdit({
+        frontMatter: lines('title: Hello'),
+        edit: {
+          type: 'addKey',
+          key: 'subtitle',
+          value: 'World',
+          after: 'draft',
+        },
+      });
+
+      expect(Either.getOrThrow(edited)).toBe(
+        lines('title: Hello', 'subtitle: "World"')
+      );
+    });
+
+    it('starts the front matter when the document has none', () => {
+      const edited = applyMetadataEdit({
+        frontMatter: null,
+        edit: { type: 'addKey', key: 'title', value: 'Hello', after: null },
+      });
+
+      expect(entriesOf(edited)).toEqual([
+        { key: 'title', value: { type: 'MetaInlines', source: 'Hello' } },
+      ]);
+    });
+
+    it.each([
+      ['another key has', 'title', { type: 'alreadyExists', key: 'title' }],
+      ['is empty', '', { type: 'empty' }],
+      ['ends in _', 'subtitle_', { type: 'endsInUnderscore' }],
+    ])(
+      'fails with InvalidMetadataKeyError for a key that %s, and why',
+      (_, key, reason) => {
+        const error = Either.getOrThrow(
+          Either.flip(
+            applyMetadataEdit({
+              frontMatter: lines('title: Hello'),
+              edit: { type: 'addKey', key, value: 'World', after: null },
+            })
+          )
+        );
+
+        expect(error).toMatchObject({
+          _tag: InvalidMetadataKeyErrorTag,
+          data: { reason },
+        });
+      }
+    );
+  });
+
   describe('renameKey', () => {
     it('renames the key in place, keeping its value', () => {
       const edited = applyMetadataEdit({

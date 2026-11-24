@@ -9,6 +9,7 @@ import {
 import {
   appendListItem,
   type FrontMatterYaml,
+  insertInlines,
   keysOf,
   parseFrontMatterYaml,
   removeKey,
@@ -35,6 +36,8 @@ export type MetadataEdit =
       value: string;
     }
   | { type: 'addListItem' | 'removeListItem'; key: string; item: string }
+  // `after` is the key it goes below; null for after the others.
+  | { type: 'addKey'; key: string; value: string; after: string | null }
   | { type: 'renameKey'; key: string; newKey: string }
   | { type: 'removeKey'; key: string };
 
@@ -123,6 +126,14 @@ const applyEdit = ({
       }
       return;
     }
+    case 'addKey':
+      insertInlines({
+        document,
+        key: edit.key,
+        source: edit.value,
+        after: edit.after,
+      });
+      return;
     case 'renameKey':
       renameKey({ document, key: edit.key, newKey: edit.newKey });
       return;
@@ -132,8 +143,27 @@ const applyEdit = ({
   }
 };
 
-// Fails for a rename of a key the front matter holds to one that can't name a
-// property.
+// The key the edit gives a property: an added key, or a rename's new key while
+// the renamed key is there. Null for an edit that gives none.
+const newKeyOf = ({
+  edit,
+  existingKeys,
+}: {
+  edit: MetadataEdit;
+  existingKeys: readonly string[];
+}): string | null => {
+  if (edit.type === 'addKey') {
+    return edit.key;
+  }
+
+  return edit.type === 'renameKey' &&
+    edit.newKey !== edit.key &&
+    existingKeys.includes(edit.key)
+    ? edit.newKey
+    : null;
+};
+
+// Fails for an edit whose new key can't name a property.
 const checkEdit = ({
   document,
   edit,
@@ -142,22 +172,17 @@ const checkEdit = ({
   edit: MetadataEdit;
 }): Either.Either<FrontMatterYaml, InvalidMetadataKeyError> => {
   const existingKeys = keysOf(document);
-
-  if (
-    edit.type !== 'renameKey' ||
-    edit.newKey === edit.key ||
-    !existingKeys.includes(edit.key)
-  ) {
-    return Either.right(document);
-  }
-
-  const reason = invalidMetadataKeyReason({ key: edit.newKey, existingKeys });
+  const newKey = newKeyOf({ edit, existingKeys });
+  const reason =
+    newKey === null
+      ? null
+      : invalidMetadataKeyReason({ key: newKey, existingKeys });
 
   return reason === null
     ? Either.right(document)
     : Either.left(
         new InvalidMetadataKeyError(
-          `The key "${edit.newKey}" can't name a property (${reason.type}).`,
+          `The key "${newKey}" can't name a property (${reason.type}).`,
           { reason }
         )
       );

@@ -187,6 +187,36 @@ export const setInlines = ({
   document.set(key, inlinesScalar(source));
 };
 
+// Adds the key right below another; after the others when that one is gone or
+// not given.
+export const insertInlines = ({
+  document,
+  key,
+  source,
+  after,
+}: {
+  document: FrontMatterYaml;
+  key: string;
+  source: string;
+  after: string | null;
+}): void => {
+  document.set(key, inlinesScalar(source));
+
+  if (after === null || !isMap(document.contents)) {
+    return;
+  }
+
+  const { items } = document.contents;
+  const index = items.findIndex(
+    (pair) => isScalar(pair.key) && pair.key.value === after
+  );
+
+  if (index !== -1) {
+    const added = items.splice(-1);
+    items.splice(index + 1, 0, ...added);
+  }
+};
+
 export const setBlocks = ({
   document,
   key,

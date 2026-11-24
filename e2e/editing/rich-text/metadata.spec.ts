@@ -115,7 +115,7 @@ test.describe('the metadata of a rich-text document', () => {
       .toEqual(['title', 'abstract', 'draft', 'tags', 'author']);
   });
 
-  test('a document without front matter shows that it has no metadata', async ({
+  test('a document without front matter shows only the button to add a property', async ({
     electronApp,
     window,
     testProjectDir,
@@ -129,7 +129,7 @@ test.describe('the metadata of a rich-text document', () => {
 
     await showMetadata({ window });
 
-    await expect(metadataPanel({ window })).toHaveText('No properties');
+    await expect(metadataPanel({ window })).toHaveText('Add property');
   });
 
   test("a document whose front matter isn't valid YAML shows that its metadata can't be shown", async ({
@@ -467,6 +467,192 @@ test.describe("editing a rich-text document's metadata", () => {
 
     await expect.poll(fileText).toContain('---\ntitle: Hello\n---');
     await expect(panel.getByRole('checkbox', { name: 'draft' })).toHaveCount(0);
+  });
+
+  test('adding a property saves it after the others', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const { panel, fileText } = await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: 'title: Hello\ndraft: true',
+    });
+    const newName = panel.getByRole('textbox', {
+      name: 'Name of the new property',
+    });
+    const newValue = panel.getByRole('textbox', {
+      name: 'Value of the new property',
+    });
+
+    await panel.getByRole('button', { name: 'Add property' }).click();
+    await expect(newName).toBeFocused();
+    await newName.fill('subtitle');
+    await newName.press('Enter');
+    await expect(newValue).toBeFocused();
+    await newValue.fill('World');
+    await newValue.press('Enter');
+
+    await expect
+      .poll(fileText)
+      .toContain('---\ntitle: Hello\ndraft: true\nsubtitle: World\n---');
+    await expect
+      .poll(propertyNames({ panel }))
+      .toEqual(['title', 'draft', 'subtitle']);
+    await expect(
+      panel.getByRole('textbox', { name: 'subtitle', exact: true })
+    ).toHaveValue('World');
+  });
+
+  test('inserting a property below another saves it there', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const { panel, fileText } = await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: 'title: Hello\ndraft: true',
+    });
+    const newName = panel.getByRole('textbox', {
+      name: 'Name of the new property',
+    });
+    const newValue = panel.getByRole('textbox', {
+      name: 'Value of the new property',
+    });
+
+    await panel.getByRole('button', { name: 'Options for title' }).click();
+    await window.getByRole('menuitem', { name: 'Insert below' }).click();
+    await expect(newName).toBeFocused();
+    await newName.fill('subtitle');
+    await newValue.fill('World');
+    await newValue.press('Enter');
+
+    await expect
+      .poll(fileText)
+      .toContain('---\ntitle: Hello\nsubtitle: World\ndraft: true\n---');
+    await expect
+      .poll(propertyNames({ panel }))
+      .toEqual(['title', 'subtitle', 'draft']);
+  });
+
+  test('adding a property to a document without front matter starts it', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    await showMetadata({ window });
+    const panel = metadataPanel({ window });
+    const newValue = panel.getByRole('textbox', {
+      name: 'Value of the new property',
+    });
+
+    await panel.getByRole('button', { name: 'Add property' }).click();
+    await panel
+      .getByRole('textbox', { name: 'Name of the new property' })
+      .fill('title');
+    await newValue.fill('Hello');
+    await newValue.press('Enter');
+
+    await expect
+      .poll(() =>
+        fs.readFileSync(path.join(testProjectDir, 'hello.md'), 'utf8')
+      )
+      .toMatch(/^---\ntitle: Hello\n---\n/);
+  });
+
+  test('a new property whose name is refused stays, until Escape discards it', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const { panel, fileText } = await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: 'title: Hello',
+    });
+    const newName = panel.getByRole('textbox', {
+      name: 'Name of the new property',
+    });
+    const newValue = panel.getByRole('textbox', {
+      name: 'Value of the new property',
+    });
+
+    await panel.getByRole('button', { name: 'Add property' }).click();
+    await newName.fill('title');
+    await newValue.fill('World');
+    await newValue.press('Enter');
+
+    await expect(
+      panel.getByText("There's already a property named “title”")
+    ).toBeVisible();
+    await expect(newValue).toHaveValue('World');
+
+    await newName.press('Escape');
+
+    await expect(newName).toHaveCount(0);
+    expect(fileText()).toContain('---\ntitle: Hello\n---');
+  });
+
+  test('a new property left with nothing typed is discarded', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const { panel } = await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: 'title: Hello',
+    });
+    const newName = panel.getByRole('textbox', {
+      name: 'Name of the new property',
+    });
+
+    await panel.getByRole('button', { name: 'Add property' }).click();
+    await expect(newName).toBeFocused();
+    await newName.blur();
+
+    await expect(newName).toHaveCount(0);
+  });
+
+  test("a new property whose value the editor can't show is refused, with the reason", async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const { panel, fileText } = await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: 'title: Hello',
+    });
+    const newValue = panel.getByRole('textbox', {
+      name: 'Value of the new property',
+    });
+
+    await panel.getByRole('button', { name: 'Add property' }).click();
+    await panel
+      .getByRole('textbox', { name: 'Name of the new property' })
+      .fill('subtitle');
+    await newValue.fill('The $x^2$ subtitle');
+    await newValue.press('Enter');
+
+    await expect(
+      panel.getByText("The editor can't show math yet.")
+    ).toBeVisible();
+    await expect(newValue).toHaveValue('The $x^2$ subtitle');
+    expect(fileText()).toContain('---\ntitle: Hello\n---');
   });
 
   test('the menu button hides again once its menu closes', async ({
