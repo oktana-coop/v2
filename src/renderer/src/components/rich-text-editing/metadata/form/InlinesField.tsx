@@ -5,8 +5,13 @@ import { type ChangeEvent, type KeyboardEvent } from 'react';
 import { Field } from '../../../inputs/Fieldset';
 import { type FieldProps } from './field-props';
 import { TextFieldErrors } from './FieldErrors';
-import { plainField, plainFieldFocus, plainFieldInvalid } from './plain-field';
+import {
+  plainFieldFocus,
+  plainFieldInvalid,
+  plainValueField,
+} from './plain-field';
 import { useTextDraft } from './use-text-draft';
+import { validateValue } from './validation';
 
 // One-line text; Enter commits it and leaves the field, Escape leaves it
 // without committing.
@@ -20,6 +25,7 @@ export const InlinesField = ({
   const draft = useTextDraft({
     source,
     failedText: failure?.edit.type === 'setInlines' ? failure.edit.value : null,
+    validate: validateValue,
     onFocus: onClearFailure,
     onCommit: ({ base, text }) =>
       onEdit({ type: 'setInlines', key: metadataKey, base, value: text }),
@@ -44,19 +50,22 @@ export const InlinesField = ({
       <Input
         aria-label={metadataKey}
         className={clsx(
-          plainField,
+          plainValueField,
           plainFieldFocus,
           plainFieldInvalid,
           'block'
         )}
         value={draft.text}
-        invalid={draft.isCleared || failure !== undefined}
+        invalid={draft.validationError !== null || failure !== undefined}
         onFocus={draft.onFocus}
         onChange={handleChange}
         onBlur={draft.onBlur}
         onKeyDown={handleKeyDown}
       />
-      <TextFieldErrors isCleared={draft.isCleared} failure={failure} />
+      <TextFieldErrors
+        validationError={draft.validationError}
+        failure={failure}
+      />
     </Field>
   );
 };

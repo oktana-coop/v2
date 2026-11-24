@@ -1,9 +1,10 @@
 import * as Either from 'effect/Either';
+import { pipe } from 'effect/Function';
 import { describe, expect, it } from 'vitest';
 
 import {
-  type InvalidMetadataError,
   InvalidMetadataErrorTag,
+  InvalidMetadataKeyErrorTag,
 } from '../../errors';
 import { type MetadataValue, parseFrontMatter } from './metadata';
 import { applyMetadataEdit } from './metadata-edits';
@@ -16,8 +17,8 @@ const textList = (...sources: string[]): MetadataValue => ({
 });
 
 // The entries the edited front matter reads as.
-const entriesOf = (edited: Either.Either<string, InvalidMetadataError>) =>
-  Either.getOrThrow(Either.flatMap(edited, parseFrontMatter));
+const entriesOf = (edited: ReturnType<typeof applyMetadataEdit>) =>
+  Either.getOrThrow(pipe(edited, Either.flatMap(parseFrontMatter)));
 
 describe('applyMetadataEdit', () => {
   describe('setBoolean', () => {
@@ -54,9 +55,7 @@ describe('applyMetadataEdit', () => {
         edit: { type: 'setBoolean', key: 'draft', value: true },
       });
 
-      expect(
-        Either.getOrThrow(Either.flatMap(edited, parseFrontMatter))
-      ).toEqual([
+      expect(entriesOf(edited)).toEqual([
         { key: 'title', value: { type: 'MetaInlines', source: 'Hello' } },
         { key: 'draft', value: { type: 'MetaBool', value: true } },
       ]);
@@ -228,6 +227,82 @@ describe('applyMetadataEdit', () => {
       expect(entriesOf(edited)).toEqual([
         { key: 'tags', value: textList('a') },
       ]);
+    });
+  });
+
+  describe('renameKey', () => {
+    it('renames the key in place, keeping its value', () => {
+      const edited = applyMetadataEdit({
+        frontMatter: lines('title: Hello', 'draft: true', 'tags:', '- a'),
+        edit: { type: 'renameKey', key: 'draft', newKey: 'published' },
+      });
+
+      expect(entriesOf(edited)).toEqual([
+        { key: 'title', value: { type: 'MetaInlines', source: 'Hello' } },
+        { key: 'published', value: { type: 'MetaBool', value: true } },
+        { key: 'tags', value: textList('a') },
+      ]);
+    });
+
+    it('writes a key that reads as text, whatever it holds', () => {
+      const edited = applyMetadataEdit({
+        frontMatter: lines('title: Hello'),
+        edit: { type: 'renameKey', key: 'title', newKey: 'true' },
+      });
+
+      expect(Either.getOrThrow(edited)).toBe(lines('"true": Hello'));
+    });
+
+    it('leaves the front matter as it is when the key is gone', () => {
+      const edited = applyMetadataEdit({
+        frontMatter: lines('title: Hello'),
+        edit: { type: 'renameKey', key: 'draft', newKey: 'published' },
+      });
+
+      expect(Either.getOrThrow(edited)).toBe(lines('title: Hello'));
+    });
+
+    it.each([
+      ['another key has', 'title', { type: 'alreadyExists', key: 'title' }],
+      ['is empty', '', { type: 'empty' }],
+      ['ends in _', 'subtitle_', { type: 'endsInUnderscore' }],
+    ])(
+      'fails with InvalidMetadataKeyError for a new name that %s, and why',
+      (_, newKey, reason) => {
+        const error = Either.getOrThrow(
+          Either.flip(
+            applyMetadataEdit({
+              frontMatter: lines('title: Hello', 'subtitle: World'),
+              edit: { type: 'renameKey', key: 'subtitle', newKey },
+            })
+          )
+        );
+
+        expect(error).toMatchObject({
+          _tag: InvalidMetadataKeyErrorTag,
+          data: { reason },
+        });
+      }
+    );
+  });
+
+  describe('removeKey', () => {
+    it('removes the key and its value', () => {
+      const edited = applyMetadataEdit({
+        frontMatter: lines('title: Hello', 'draft: true'),
+        edit: { type: 'removeKey', key: 'draft' },
+      });
+
+      expect(Either.getOrThrow(edited)).toBe(lines('title: Hello'));
+    });
+
+    it('leaves the front matter as it is when the key is gone', () => {
+      const edited = applyMetadataEdit({
+        frontMatter: lines('title: Hello'),
+        edit: { type: 'removeKey', key: 'draft' },
+      });
+
+      expect(Either.getOrThrow(edited)).toBe(lines('title: Hello'));
     });
   });
 });

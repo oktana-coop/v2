@@ -5,8 +5,13 @@ import { type ChangeEvent, type KeyboardEvent } from 'react';
 import { Field } from '../../../inputs/Fieldset';
 import { type FieldProps } from './field-props';
 import { TextFieldErrors } from './FieldErrors';
-import { plainField, plainFieldFocus, plainFieldInvalid } from './plain-field';
+import {
+  plainFieldFocus,
+  plainFieldInvalid,
+  plainValueField,
+} from './plain-field';
 import { useTextDraft } from './use-text-draft';
+import { validateValue } from './validation';
 
 // Multi-paragraph text; Enter starts a new line, Cmd/Ctrl+Enter commits it and
 // leaves the field, and Escape leaves it without committing.
@@ -21,6 +26,7 @@ export const BlocksField = ({
     source,
     failedText: failure?.edit.type === 'setBlocks' ? failure.edit.value : null,
     toText: (text) => text.trimEnd(),
+    validate: validateValue,
     onFocus: onClearFailure,
     onCommit: ({ base, text }) =>
       onEdit({ type: 'setBlocks', key: metadataKey, base, value: text }),
@@ -46,20 +52,23 @@ export const BlocksField = ({
       <Textarea
         aria-label={metadataKey}
         className={clsx(
-          plainField,
+          plainValueField,
           plainFieldFocus,
           plainFieldInvalid,
           'block resize-none'
         )}
         value={draft.text}
         rows={draft.text.split('\n').length}
-        invalid={draft.isCleared || failure !== undefined}
+        invalid={draft.validationError !== null || failure !== undefined}
         onFocus={draft.onFocus}
         onChange={handleChange}
         onBlur={draft.onBlur}
         onKeyDown={handleKeyDown}
       />
-      <TextFieldErrors isCleared={draft.isCleared} failure={failure} />
+      <TextFieldErrors
+        validationError={draft.validationError}
+        failure={failure}
+      />
     </Field>
   );
 };

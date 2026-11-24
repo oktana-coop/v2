@@ -1,4 +1,8 @@
+import * as Either from 'effect/Either';
+import { pipe } from 'effect/Function';
 import { useRef, useState } from 'react';
+
+import { type Validate } from './validation';
 
 // The text typed in a field, and the text it started from: the base an edit
 // of it merges from.
@@ -11,12 +15,13 @@ type DraftState =
   | { type: 'committed'; source: string; text: string };
 
 // A text field's draft. Typing changes only the draft; leaving the field
-// commits it, unless it's unchanged, cleared or cancelled. The text of a failed
-// edit comes back into the field.
+// commits the text its validation gives, unless it's unchanged, invalid or
+// cancelled. The text of a failed edit comes back into the field.
 export const useTextDraft = ({
   source,
   failedText,
   toText = (text) => text,
+  validate,
   onFocus,
   onCommit,
 }: {
@@ -25,6 +30,7 @@ export const useTextDraft = ({
   failedText: string | null;
   // The field's text for a value.
   toText?: (source: string) => string;
+  validate: Validate;
   onFocus: () => void;
   onCommit: (draft: TextDraft) => void;
 }) => {
@@ -39,6 +45,13 @@ export const useTextDraft = ({
     draft.type === 'editing'
       ? draft.text
       : (failedText ?? committedText ?? toText(source));
+  const validationError =
+    draft.type === 'editing'
+      ? pipe(
+          validate(draft.text),
+          Either.match({ onLeft: (message) => message, onRight: () => null })
+        )
+      : null;
 
   const handleFocus = () => {
     setDraft({
@@ -69,22 +82,25 @@ export const useTextDraft = ({
       return;
     }
 
+    const validated = validate(draft.text);
+
     if (
       cancelled ||
-      draft.text.trim() === '' ||
-      draft.text === toText(draft.base)
+      Either.isLeft(validated) ||
+      validated.right === toText(draft.base)
     ) {
       setDraft({ type: 'idle' });
       return;
     }
 
-    onCommit({ base: draft.base, text: draft.text });
-    setDraft({ type: 'committed', source, text: draft.text });
+    onCommit({ base: draft.base, text: validated.right });
+    setDraft({ type: 'committed', source, text: validated.right });
   };
 
   return {
     text,
-    isCleared: draft.type === 'editing' && draft.text.trim() === '',
+    // Why the draft can't be committed, while it's being edited.
+    validationError,
     onFocus: handleFocus,
     onChange: handleChange,
     onCancel: handleCancel,

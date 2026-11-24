@@ -16,10 +16,12 @@ import { type MetadataEntry, type MetadataValue } from './metadata';
 
 type MetadataResult<T> = Either.Either<T, InvalidMetadataError>;
 
+export type FrontMatterYaml = Document.Parsed;
+
 // The front matter as a YAML document holding a map of keys to values, or no contents for empty text.
 export const parseFrontMatterYaml = (
   frontMatter: string
-): MetadataResult<Document.Parsed> => {
+): MetadataResult<FrontMatterYaml> => {
   const document = parseDocument(frontMatter, {
     schema: 'failsafe',
     prettyErrors: false,
@@ -38,6 +40,9 @@ export const parseFrontMatterYaml = (
         )
       );
 };
+
+export const toFrontMatter = (document: FrontMatterYaml): string =>
+  document.toString();
 
 const isBooleanScalar = (scalar: Scalar<string>): boolean =>
   scalar.type === Scalar.PLAIN &&
@@ -108,13 +113,21 @@ export const valueAt = ({
   document,
   key,
 }: {
-  document: Document.Parsed;
+  document: FrontMatterYaml;
   key: string;
 }): MetadataResult<MetadataValue | undefined> => {
   const node = document.get(key, true);
 
   return node === undefined ? Either.right(undefined) : toMetadataValue(node);
 };
+
+// The keys the document holds, in its order.
+export const keysOf = (document: FrontMatterYaml): string[] =>
+  isMap(document.contents)
+    ? document.contents.items.flatMap(({ key }) =>
+        isScalar<string>(key) ? [key.value] : []
+      )
+    : [];
 
 const scalarOf = ({
   value,
@@ -129,23 +142,136 @@ const scalarOf = ({
 };
 
 // `true` or `false` unquoted, as a string: the failsafe schema can't write booleans.
-export const booleanScalar = (value: boolean): Scalar<string> =>
+const booleanScalar = (value: boolean): Scalar<string> =>
   scalarOf({ value: String(value), type: Scalar.PLAIN });
 
 // Quoted, so that no YAML reader takes the text for a boolean, a null or a number.
-export const inlinesScalar = (source: string): Scalar<string> =>
+const inlinesScalar = (source: string): Scalar<string> =>
   scalarOf({ value: source, type: Scalar.QUOTE_DOUBLE });
 
 // A literal block, which keeps the text's lines and its final newline.
-export const blocksScalar = (source: string): Scalar<string> =>
+const blocksScalar = (source: string): Scalar<string> =>
   scalarOf({ value: source, type: Scalar.BLOCK_LITERAL });
 
 // The text ending in a newline, so that it reads as blocks.
 export const withFinalNewline = (text: string): string =>
   endsInNewline(text) ? text : `${text}\n`;
 
-export const listOf = (source: string): YAMLSeq<Scalar<string>> => {
+const listOf = (items: string[]): YAMLSeq<Scalar<string>> => {
   const list = new YAMLSeq<Scalar<string>>();
-  list.add(inlinesScalar(source));
+  items.forEach((item) => list.add(inlinesScalar(item)));
   return list;
+};
+
+export const setBoolean = ({
+  document,
+  key,
+  value,
+}: {
+  document: FrontMatterYaml;
+  key: string;
+  value: boolean;
+}): void => {
+  document.set(key, booleanScalar(value));
+};
+
+export const setInlines = ({
+  document,
+  key,
+  source,
+}: {
+  document: FrontMatterYaml;
+  key: string;
+  source: string;
+}): void => {
+  document.set(key, inlinesScalar(source));
+};
+
+export const setBlocks = ({
+  document,
+  key,
+  source,
+}: {
+  document: FrontMatterYaml;
+  key: string;
+  source: string;
+}): void => {
+  document.set(key, blocksScalar(withFinalNewline(source)));
+};
+
+export const setList = ({
+  document,
+  key,
+  items,
+}: {
+  document: FrontMatterYaml;
+  key: string;
+  items: string[];
+}): void => {
+  document.set(key, listOf(items));
+};
+
+// Adds the item after the list's items; nothing when the key holds no list.
+export const appendListItem = ({
+  document,
+  key,
+  item,
+}: {
+  document: FrontMatterYaml;
+  key: string;
+  item: string;
+}): void => {
+  const list = document.get(key, true);
+
+  if (isSeq(list)) {
+    list.add(inlinesScalar(item));
+  }
+};
+
+// Removes the list's item at the index; nothing when the key holds no list.
+export const removeListItemAt = ({
+  document,
+  key,
+  index,
+}: {
+  document: FrontMatterYaml;
+  key: string;
+  index: number;
+}): void => {
+  const list = document.get(key, true);
+
+  if (isSeq(list)) {
+    list.delete(index);
+  }
+};
+
+export const renameKey = ({
+  document,
+  key,
+  newKey,
+}: {
+  document: FrontMatterYaml;
+  key: string;
+  newKey: string;
+}): void => {
+  const keyNode = isMap(document.contents)
+    ? document.contents.items
+        .map((pair) => pair.key)
+        .find((node) => isScalar(node) && node.value === key)
+    : undefined;
+
+  if (isScalar(keyNode)) {
+    keyNode.value = newKey;
+    keyNode.type = Scalar.QUOTE_DOUBLE;
+  }
+};
+
+export const removeKey = ({
+  document,
+  key,
+}: {
+  document: FrontMatterYaml;
+  key: string;
+}): void => {
+  document.delete(key);
 };

@@ -3,6 +3,7 @@ import { type EditorState, PluginKey } from 'prosemirror-state';
 
 import {
   type InvalidMetadataError,
+  type InvalidMetadataKeyError,
   type UnrepresentableContentError,
 } from '../../errors';
 import { type MetadataEdit } from '../../models';
@@ -10,7 +11,10 @@ import { type MetadataEdit } from '../../models';
 // An edit the front matter couldn't take, and why.
 export type MetadataEditFailure = {
   edit: MetadataEdit;
-  error: InvalidMetadataError | UnrepresentableContentError;
+  error:
+    | InvalidMetadataError
+    | InvalidMetadataKeyError
+    | UnrepresentableContentError;
 };
 
 // The last failed edit of each property, by its key.

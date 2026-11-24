@@ -8,15 +8,11 @@ import { Field } from '../../../inputs/Fieldset';
 import { type FieldProps } from './field-props';
 import { ClearedMessage, FailureMessage } from './FieldErrors';
 import {
-  plainField,
   plainFieldFocusWithin,
   plainFieldInvalid,
+  plainValueField,
 } from './plain-field';
 
-// A list of one-line text: each item with a button to remove it, and after
-// them an input that adds one with Enter or on leaving it; Escape leaves it
-// without adding, and Backspace in it, when empty, removes the last item. The
-// row is one plain field.
 export const TextListField = ({
   metadataKey,
   items,
@@ -94,7 +90,7 @@ export const TextListField = ({
     <Field>
       <div
         className={clsx(
-          plainField,
+          plainValueField,
           plainFieldFocusWithin,
           plainFieldInvalid,
           'flex flex-wrap items-center gap-1 py-0.5'

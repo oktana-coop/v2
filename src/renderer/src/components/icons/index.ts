@@ -43,6 +43,7 @@ export { LinkIcon } from './Link';
 export { MarkdownIcon } from './Markdown';
 export { MergeIcon } from './Merge';
 export { MoonIcon } from './Moon';
+export { MoreVerticalAltIcon } from './MoreVerticalAlt';
 export { OptionsIcon } from './Options';
 export { OrderedListIcon } from './OrderedList';
 export { PdfIcon } from './Pdf';

@@ -1,19 +1,29 @@
 import * as Either from 'effect/Either';
 import { pipe } from 'effect/Function';
-import { type Document, isSeq } from 'yaml';
 
 import { mergeText } from '../../../plain-text/codemirror';
-import { type InvalidMetadataError } from '../../errors';
 import {
-  blocksScalar,
-  booleanScalar,
-  inlinesScalar,
-  listOf,
+  type InvalidMetadataError,
+  InvalidMetadataKeyError,
+} from '../../errors';
+import {
+  appendListItem,
+  type FrontMatterYaml,
+  keysOf,
   parseFrontMatterYaml,
+  removeKey,
+  removeListItemAt,
+  renameKey,
+  setBlocks,
+  setBoolean,
+  setInlines,
+  setList,
+  toFrontMatter,
   valueAt,
   withFinalNewline,
 } from './front-matter-yaml';
 import { type MetadataValue } from './metadata';
+import { invalidMetadataKeyReason } from './metadata-keys';
 
 export type MetadataEdit =
   | { type: 'setBoolean'; key: string; value: boolean }
@@ -24,7 +34,9 @@ export type MetadataEdit =
       base: string;
       value: string;
     }
-  | { type: 'addListItem' | 'removeListItem'; key: string; item: string };
+  | { type: 'addListItem' | 'removeListItem'; key: string; item: string }
+  | { type: 'renameKey'; key: string; newKey: string }
+  | { type: 'removeKey'; key: string };
 
 type MetadataTextValue = Extract<
   MetadataValue,
@@ -57,55 +69,47 @@ const applyEdit = ({
   current,
   edit,
 }: {
-  document: Document.Parsed;
+  document: FrontMatterYaml;
   current: MetadataValue | undefined;
   edit: MetadataEdit;
 }): void => {
   switch (edit.type) {
     case 'setBoolean':
-      document.set(edit.key, booleanScalar(edit.value));
+      setBoolean({ document, key: edit.key, value: edit.value });
       return;
     case 'setInlines':
-      document.set(
-        edit.key,
-        inlinesScalar(
-          mergedText({
-            current,
-            type: 'MetaInlines',
-            base: edit.base,
-            value: edit.value,
-          })
-        )
-      );
+      setInlines({
+        document,
+        key: edit.key,
+        source: mergedText({
+          current,
+          type: 'MetaInlines',
+          base: edit.base,
+          value: edit.value,
+        }),
+      });
       return;
     case 'setBlocks':
-      document.set(
-        edit.key,
-        blocksScalar(
-          withFinalNewline(
-            mergedText({
-              current,
-              type: 'MetaBlocks',
-              base: withFinalNewline(edit.base),
-              value: withFinalNewline(edit.value),
-            })
-          )
-        )
-      );
+      setBlocks({
+        document,
+        key: edit.key,
+        source: mergedText({
+          current,
+          type: 'MetaBlocks',
+          base: withFinalNewline(edit.base),
+          value: withFinalNewline(edit.value),
+        }),
+      });
       return;
-    case 'addListItem': {
-      const list = document.get(edit.key, true);
-
-      if (current?.type === 'MetaList' && isSeq(list)) {
-        list.add(inlinesScalar(edit.item));
+    case 'addListItem':
+      if (current?.type === 'MetaList') {
+        appendListItem({ document, key: edit.key, item: edit.item });
         return;
       }
 
-      document.set(edit.key, listOf(edit.item));
+      setList({ document, key: edit.key, items: [edit.item] });
       return;
-    }
     case 'removeListItem': {
-      const list = document.get(edit.key, true);
       const index =
         current?.type === 'MetaList'
           ? current.items.findIndex(
@@ -114,12 +118,49 @@ const applyEdit = ({
             )
           : -1;
 
-      if (isSeq(list) && index !== -1) {
-        list.delete(index);
+      if (index !== -1) {
+        removeListItemAt({ document, key: edit.key, index });
       }
       return;
     }
+    case 'renameKey':
+      renameKey({ document, key: edit.key, newKey: edit.newKey });
+      return;
+    case 'removeKey':
+      removeKey({ document, key: edit.key });
+      return;
   }
+};
+
+// Fails for a rename of a key the front matter holds to one that can't name a
+// property.
+const checkEdit = ({
+  document,
+  edit,
+}: {
+  document: FrontMatterYaml;
+  edit: MetadataEdit;
+}): Either.Either<FrontMatterYaml, InvalidMetadataKeyError> => {
+  const existingKeys = keysOf(document);
+
+  if (
+    edit.type !== 'renameKey' ||
+    edit.newKey === edit.key ||
+    !existingKeys.includes(edit.key)
+  ) {
+    return Either.right(document);
+  }
+
+  const reason = invalidMetadataKeyReason({ key: edit.newKey, existingKeys });
+
+  return reason === null
+    ? Either.right(document)
+    : Either.left(
+        new InvalidMetadataKeyError(
+          `The key "${edit.newKey}" can't name a property (${reason.type}).`,
+          { reason }
+        )
+      );
 };
 
 // The front matter with the edit applied; a key the edit sets is added if missing.
@@ -129,15 +170,16 @@ export const applyMetadataEdit = ({
 }: {
   frontMatter: string | null;
   edit: MetadataEdit;
-}): Either.Either<string, InvalidMetadataError> =>
+}): Either.Either<string, InvalidMetadataError | InvalidMetadataKeyError> =>
   pipe(
     parseFrontMatterYaml(frontMatter ?? ''),
+    Either.flatMap((document) => checkEdit({ document, edit })),
     Either.flatMap((document) =>
       pipe(
         valueAt({ document, key: edit.key }),
         Either.map((current) => {
           applyEdit({ document, current, edit });
-          return document.toString();
+          return toFrontMatter(document);
         })
       )
     )

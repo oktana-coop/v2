@@ -29,6 +29,22 @@ export class InvalidMetadataError extends Cause.YieldableError {
   readonly _tag = InvalidMetadataErrorTag;
 }
 
+export type InvalidMetadataKeyReason =
+  | { type: 'empty' }
+  | { type: 'endsInUnderscore' }
+  | { type: 'alreadyExists'; key: string };
+
+export const InvalidMetadataKeyErrorTag = 'InvalidMetadataKeyError';
+export class InvalidMetadataKeyError extends Cause.YieldableError {
+  readonly _tag = InvalidMetadataKeyErrorTag;
+  readonly data;
+
+  constructor(message: string, data: { reason: InvalidMetadataKeyReason }) {
+    super(message);
+    this.data = data;
+  }
+}
+
 export type UnrepresentableContent =
   | 'tables'
   | 'definitionLists'

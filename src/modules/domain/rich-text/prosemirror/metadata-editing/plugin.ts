@@ -9,6 +9,7 @@ import { type EditorView } from 'prosemirror-view';
 
 import {
   type InvalidMetadataError,
+  type InvalidMetadataKeyError,
   type RepresentationTransformError,
   type UnrepresentableContentError,
 } from '../../errors';
@@ -26,6 +27,7 @@ import {
 // An edit the front matter can't take, or a failed normalization.
 type CommitError =
   | InvalidMetadataError
+  | InvalidMetadataKeyError
   | UnrepresentableContentError
   | RepresentationTransformError;
 
@@ -141,6 +143,7 @@ export const metadataEditingPlugin = ({
               commit({ view, edit }),
               Effect.catchTags({
                 InvalidMetadataError: keepFailure({ view, edit }),
+                InvalidMetadataKeyError: keepFailure({ view, edit }),
                 UnrepresentableContentError: keepFailure({ view, edit }),
               }),
               Effect.catchAllCause((cause) =>
