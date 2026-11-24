@@ -17,7 +17,7 @@ import { FindBar } from '../../../../components/rich-text-editing/FindBar';
 import {
   MetadataPanel,
   type MetadataPanelDiff,
-} from '../../../../components/rich-text-editing/metadata/MetadataPanel';
+} from '../../../../components/rich-text-editing/metadata';
 import {
   type EditorSeed,
   ProseMirrorEditor,

@@ -1,25 +1,23 @@
 import { type MetadataValue } from '../../../../../modules/domain/rich-text';
 import { Badge } from '../../highlighting/Badge';
 import { Checkbox } from '../../inputs/Checkbox';
-
-type InlinesValue = { type: 'MetaInlines'; source: string };
-
-const isInlines = (value: MetadataValue): value is InlinesValue =>
-  value.type === 'MetaInlines';
+import { textListItems } from './text-list';
 
 const itemCount = (count: number): string =>
   count === 1 ? '1 item' : `${count} items`;
 
 const ListValue = ({ items }: { items: MetadataValue[] }) => {
-  if (!items.every(isInlines)) {
+  const textItems = textListItems(items);
+
+  if (textItems === null) {
     return <span>{itemCount(items.length)}</span>;
   }
 
   return (
     <span className="flex flex-wrap gap-1">
-      {items.map((item, index) => (
+      {textItems.map((item, index) => (
         <Badge key={index} color="zinc">
-          {item.source}
+          {item}
         </Badge>
       ))}
     </span>

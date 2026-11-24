@@ -57,14 +57,17 @@ test.describe('the metadata of a rich-text document', () => {
       'tags',
       'author',
     ]);
-    await expect(panel.getByRole('definition')).toHaveText([
-      'Hello *world*',
-      'First paragraph. Second paragraph.',
-      '',
-      'historycomputing',
-      'name, email',
-    ]);
+    await expect(panel.getByRole('textbox', { name: 'title' })).toHaveValue(
+      'Hello *world*'
+    );
+    await expect(panel.getByRole('textbox', { name: 'abstract' })).toHaveValue(
+      'First paragraph.\n\nSecond paragraph.'
+    );
     await expect(panel.getByRole('checkbox', { name: 'draft' })).toBeChecked();
+    // The tags, and the nested map's summary.
+    const values = panel.getByRole('definition');
+    await expect(values.nth(3)).toHaveText('historycomputing');
+    await expect(values.nth(4)).toHaveText('name, email');
 
     await window.getByRole('button', { name: 'Hide properties' }).click();
 
@@ -149,20 +152,22 @@ test.describe('the metadata of a rich-text document', () => {
 });
 
 test.describe("editing a rich-text document's metadata", () => {
-  // hello.md with a draft boolean, open with its metadata shown.
-  const openHelloMdWithDraft = async ({
+  // hello.md with the given front matter, open with its metadata shown.
+  const openHelloMdWithFrontMatter = async ({
     electronApp,
     window,
     testProjectDir,
+    frontMatter,
   }: {
     electronApp: ElectronApplication;
     window: Page;
     testProjectDir: string;
+    frontMatter: string;
   }) => {
     const helloPath = path.join(testProjectDir, 'hello.md');
     fs.writeFileSync(
       helloPath,
-      '---\ntitle: Hello\ndraft: true\n---\n\n# Hello\n',
+      `---\n${frontMatter}\n---\n\n# Hello\n`,
       'utf8'
     );
     await openProjectFolder({
@@ -175,7 +180,9 @@ test.describe("editing a rich-text document's metadata", () => {
 
     return {
       helloPath,
-      draft: metadataPanel({ window }).getByRole('checkbox', { name: 'draft' }),
+      panel: metadataPanel({ window }),
+      // The file's text, for `expect.poll`.
+      fileText: () => fs.readFileSync(helloPath, 'utf8'),
     };
   };
 
@@ -184,11 +191,13 @@ test.describe("editing a rich-text document's metadata", () => {
     window,
     testProjectDir,
   }) => {
-    const { helloPath, draft } = await openHelloMdWithDraft({
+    const { helloPath, panel } = await openHelloMdWithFrontMatter({
       electronApp,
       window,
       testProjectDir,
+      frontMatter: 'title: Hello\ndraft: true',
     });
+    const draft = panel.getByRole('checkbox', { name: 'draft' });
 
     await draft.click();
 
@@ -203,11 +212,13 @@ test.describe("editing a rich-text document's metadata", () => {
     window,
     testProjectDir,
   }) => {
-    const { helloPath, draft } = await openHelloMdWithDraft({
+    const { helloPath, panel } = await openHelloMdWithFrontMatter({
       electronApp,
       window,
       testProjectDir,
+      frontMatter: 'title: Hello\ndraft: true',
     });
+    const draft = panel.getByRole('checkbox', { name: 'draft' });
     await focusAndTypeInRichTextEditor({ window, text: ' world' });
     await expect(window.locator('.ProseMirror h1')).toHaveText('Hello world');
     await draft.click();
@@ -220,5 +231,157 @@ test.describe("editing a rich-text document's metadata", () => {
 
     await expect(window.locator('.ProseMirror h1')).toHaveText('Hello');
     await expect(draft).not.toBeChecked();
+  });
+
+  test('editing a one-line value saves it to the file', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const { panel, fileText } = await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: 'title: Hello',
+    });
+    const title = panel.getByRole('textbox', { name: 'title' });
+
+    await title.fill('Hello world');
+    await title.press('Enter');
+
+    await expect(title).toHaveValue('Hello world');
+    await expect.poll(fileText).toContain('title: Hello world\n');
+  });
+
+  test('editing a multi-paragraph value saves it to the file', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const { panel, fileText } = await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: 'abstract: |\n  First paragraph.',
+    });
+    const abstract = panel.getByRole('textbox', { name: 'abstract' });
+
+    await abstract.fill('First paragraph.\n\nSecond paragraph.');
+    await abstract.press(`${modKey}+Enter`);
+
+    await expect
+      .poll(fileText)
+      .toContain('abstract: |\n  First paragraph.\n\n  Second paragraph.\n');
+  });
+
+  test('adding and removing list items saves them to the file', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const { panel, fileText } = await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: 'tags:\n- history\n- computing',
+    });
+    const newTag = panel.getByRole('textbox', { name: 'Add to tags' });
+
+    await newTag.fill('essay');
+    await newTag.press('Enter');
+    await expect
+      .poll(fileText)
+      .toContain('tags:\n- history\n- computing\n- essay\n');
+
+    await panel.getByRole('button', { name: 'Remove history' }).click();
+
+    await expect.poll(fileText).toContain('tags:\n- computing\n- essay\n');
+
+    // Backspace in the empty input removes the last item.
+    await newTag.press('Backspace');
+
+    await expect.poll(fileText).toContain('tags:\n- computing\n---');
+  });
+
+  test("a value the editor can't show is refused, with the reason", async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const { panel, fileText } = await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: 'title: Hello',
+    });
+    const title = panel.getByRole('textbox', { name: 'title' });
+
+    await title.fill('The $x^2$ title');
+    await title.press('Enter');
+
+    await expect(
+      panel.getByText("The editor can't show math yet.")
+    ).toBeVisible();
+    await expect(title).toHaveValue('The $x^2$ title');
+    expect(fileText()).toContain('title: Hello\n');
+  });
+
+  test('clearing a value or a list is refused', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const { panel, fileText } = await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: 'title: Hello\ntags:\n- history',
+    });
+    const title = panel.getByRole('textbox', { name: 'title' });
+    const refusal = panel.getByText('Use Remove to delete the property');
+
+    await title.fill('');
+
+    await expect(refusal).toBeVisible();
+
+    await title.press('Enter');
+
+    await expect(title).toHaveValue('Hello');
+
+    await panel.getByRole('button', { name: 'Remove history' }).click();
+
+    await expect(refusal).toBeVisible();
+    expect(fileText()).toContain('title: Hello\ntags:\n- history\n');
+  });
+
+  test('Escape leaves a field without committing it', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const { panel, fileText } = await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: 'title: Hello\ntags:\n- history',
+    });
+    const title = panel.getByRole('textbox', { name: 'title' });
+    const newTag = panel.getByRole('textbox', { name: 'Add to tags' });
+
+    await title.fill('Changed');
+    await title.press('Escape');
+    await newTag.fill('essay');
+    await newTag.press('Escape');
+
+    await expect(title).toHaveValue('Hello');
+    await expect(newTag).toHaveValue('');
+
+    // Edits are committed in order, so once this one is saved, a cancelled
+    // edit would have been saved before it.
+    await newTag.fill('computing');
+    await newTag.press('Enter');
+    await expect
+      .poll(fileText)
+      .toContain('title: Hello\ntags:\n- history\n- computing\n');
   });
 });

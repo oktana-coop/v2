@@ -10,14 +10,23 @@ import {
   prosemirror,
 } from '../../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../../modules/domain/rich-text/react/prosemirror-context';
+import { useEditorState } from '../../../../../modules/domain/rich-text/react/use-editor-state';
 import { Text } from '../../typography/Text';
-import { type MetadataDiffRow, toMetadataDiffRows } from './metadata-diff-rows';
-import { MetadataDiffRows } from './MetadataDiffRows';
+import {
+  type MetadataDiffRow,
+  toMetadataDiffRows,
+} from './diff/metadata-diff-rows';
+import { MetadataDiffRows } from './diff/MetadataDiffRows';
+import { MetadataForm } from './form/MetadataForm';
 import { MetadataEntries } from './MetadataEntries';
-import { MetadataForm } from './MetadataForm';
 import { useEditorFrontMatter } from './use-editor-front-matter';
 
-const { hasMetadataEditingPlugin, editMetadata } = prosemirror;
+const {
+  clearMetadataEditFailure,
+  editMetadata,
+  getMetadataEditFailures,
+  hasMetadataEditingPlugin,
+} = prosemirror;
 
 export type MetadataPanelDiff = {
   frontMatterBefore: string | null;
@@ -121,10 +130,12 @@ export const MetadataPanel = ({
 
 const MetadataFormPanel = ({
   frontMatter,
-  onEdit,
+  ...formProps
 }: {
   frontMatter: string | null;
+  failures: prosemirror.MetadataEditFailures;
   onEdit: (edit: MetadataEdit) => void;
+  onClearFailure: (key: string) => void;
 }) => {
   const entries = useMemo(() => parseOrEmpty(frontMatter), [frontMatter]);
 
@@ -136,7 +147,7 @@ const MetadataFormPanel = ({
           formEntries.length === 0 ? (
             noProperties
           ) : (
-            <MetadataForm entries={formEntries} onEdit={onEdit} />
+            <MetadataForm entries={formEntries} {...formProps} />
           ),
       })}
     </MetadataSection>
@@ -145,9 +156,10 @@ const MetadataFormPanel = ({
 
 export const EditorMetadataPanel = () => {
   const frontMatter = useEditorFrontMatter();
+  const failures = useEditorState(getMetadataEditFailures);
   const { view } = useContext(ProseMirrorContext);
 
-  if (frontMatter === undefined) {
+  if (frontMatter === undefined || failures === undefined) {
     return null;
   }
 
@@ -156,12 +168,20 @@ export const EditorMetadataPanel = () => {
     return <MetadataPanel frontMatter={frontMatter} />;
   }
 
+  const handleEdit = (edit: MetadataEdit) => {
+    editMetadata(edit)(view.state, view.dispatch);
+  };
+
+  const handleClearFailure = (key: string) => {
+    clearMetadataEditFailure(key)(view.state, view.dispatch);
+  };
+
   return (
     <MetadataFormPanel
       frontMatter={frontMatter}
-      onEdit={(edit) => {
-        editMetadata(edit)(view.state, view.dispatch);
-      }}
+      failures={failures}
+      onEdit={handleEdit}
+      onClearFailure={handleClearFailure}
     />
   );
 };

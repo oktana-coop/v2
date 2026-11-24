@@ -1,7 +1,7 @@
+import { MetadataGrid, MetadataGridRow } from '../MetadataGrid';
+import { MetadataValueView } from '../MetadataValueView';
 import { Deleted, Inserted } from './DiffMarks';
 import { type MetadataDiffRow } from './metadata-diff-rows';
-import { MetadataGrid, MetadataGridRow } from './MetadataGrid';
-import { MetadataValueView } from './MetadataValueView';
 
 const RowKey = ({ row }: { row: MetadataDiffRow }) => {
   switch (row.mark) {

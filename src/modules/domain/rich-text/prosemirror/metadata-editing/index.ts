@@ -1,6 +1,11 @@
-export { editMetadata } from './commands';
+export { clearMetadataEditFailure, editMetadata } from './commands';
 export {
   metadataEditingPlugin,
   type MetadataEditingPluginArgs,
 } from './plugin';
-export { hasMetadataEditingPlugin } from './state';
+export {
+  getMetadataEditFailures,
+  hasMetadataEditingPlugin,
+  type MetadataEditFailure,
+  type MetadataEditFailures,
+} from './state';

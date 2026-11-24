@@ -16,7 +16,12 @@ import { applyMetadataEdit, type MetadataEdit } from '../../models';
 import { type RepresentationTransform } from '../../ports/representation-transform';
 import { getDocFrontMatter } from '../front-matter';
 import { setFrontMatter } from './commands';
-import { pluginKey } from './state';
+import {
+  type MetadataEditFailure,
+  type MetadataEditFailures,
+  type MetadataEditingMeta,
+  pluginKey,
+} from './state';
 
 // An edit the front matter can't take, or a failed normalization.
 type CommitError =
@@ -58,12 +63,53 @@ const commitEdit =
             return commitEdit({ normalizeFrontMatter })({ view, edit });
           }
 
+          // The property's earlier failure no longer stands.
+          const meta: MetadataEditingMeta = {
+            type: 'failureCleared',
+            key: edit.key,
+          };
+
           return Effect.sync(() =>
-            setFrontMatter(normalized)(view.state, view.dispatch)
+            setFrontMatter(normalized)(view.state, (tr) =>
+              view.dispatch(tr.setMeta(pluginKey, meta))
+            )
           );
         })
       );
     });
+
+// Keeps the edit's failure in the plugin's state, for its property.
+const keepFailure =
+  ({ view, edit }: { view: EditorView; edit: MetadataEdit }) =>
+  (error: MetadataEditFailure['error']): Effect.Effect<void> =>
+    Effect.sync(() => {
+      if (view.isDestroyed) {
+        return;
+      }
+
+      const meta: MetadataEditingMeta = {
+        type: 'failed',
+        failure: { edit, error },
+      };
+      view.dispatch(view.state.tr.setMeta(pluginKey, meta));
+    });
+
+const applyMeta = ({
+  failures,
+  meta,
+}: {
+  failures: MetadataEditFailures;
+  meta: MetadataEditingMeta;
+}): MetadataEditFailures => {
+  switch (meta.type) {
+    case 'failed':
+      return new Map([...failures, [meta.failure.edit.key, meta.failure]]);
+    case 'failureCleared':
+      return failures.has(meta.key)
+        ? new Map([...failures].filter(([key]) => key !== meta.key))
+        : failures;
+  }
+};
 
 export const metadataEditingPlugin = ({
   normalizeFrontMatter,
@@ -72,18 +118,31 @@ export const metadataEditingPlugin = ({
   const edits = Effect.runSync(Queue.unbounded<MetadataEdit>());
   const commit = commitEdit({ normalizeFrontMatter });
 
-  return new Plugin({
+  return new Plugin<MetadataEditFailures>({
     key: pluginKey,
     edits,
+    state: {
+      init: () => new Map(),
+      apply: (tr, failures) => {
+        const meta: MetadataEditingMeta | undefined = tr.getMeta(pluginKey);
+
+        return meta ? applyMeta({ failures, meta }) : failures;
+      },
+    },
     view: (view) => {
       // Commits the edits one at a time, in the order they were made, until
-      // the plugin's view goes away.
+      // the plugin's view goes away. A failure of the edit itself is kept for
+      // its property; any other is reported.
       const committer = Effect.runFork(
         pipe(
           Stream.fromQueue(edits),
           Stream.runForEach((edit) =>
             pipe(
               commit({ view, edit }),
+              Effect.catchTags({
+                InvalidMetadataError: keepFailure({ view, edit }),
+                UnrepresentableContentError: keepFailure({ view, edit }),
+              }),
               Effect.catchAllCause((cause) =>
                 Effect.sync(() => onError(Cause.squash(cause)))
               )

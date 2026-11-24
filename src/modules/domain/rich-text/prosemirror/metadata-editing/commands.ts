@@ -2,7 +2,12 @@ import * as Queue from 'effect/Queue';
 import { type Command } from 'prosemirror-state';
 
 import { type MetadataEdit } from '../../models';
-import { getEdits } from './state';
+import {
+  getEdits,
+  getMetadataEditFailures,
+  type MetadataEditingMeta,
+  pluginKey,
+} from './state';
 
 // Sets the document's front matter, outside the undo history.
 export const setFrontMatter =
@@ -31,5 +36,18 @@ export const editMetadata =
       Queue.unsafeOffer(edits, edit);
     }
 
+    return true;
+  };
+
+// Forgets the property's last failed edit; it applies when there is one.
+export const clearMetadataEditFailure =
+  (key: string): Command =>
+  (state, dispatch) => {
+    if (!getMetadataEditFailures(state).has(key)) {
+      return false;
+    }
+
+    const meta: MetadataEditingMeta = { type: 'failureCleared', key };
+    dispatch?.(state.tr.setMeta(pluginKey, meta));
     return true;
   };

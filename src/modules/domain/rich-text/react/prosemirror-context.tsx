@@ -17,12 +17,7 @@ import {
 } from '../../../../modules/infrastructure/notifications/browser';
 import { WasmContext } from '../../../../modules/infrastructure/wasm/react/wasm-context';
 import { createAdapter as createPandocDiffPatchAdapter } from '../adapters/pandoc-diff-patch';
-import {
-  InvalidMetadataError,
-  RepresentationTransformError,
-  type UnrepresentableContent,
-  UnrepresentableContentError,
-} from '../errors';
+import { RepresentationTransformError } from '../errors';
 import {
   getDocumentRichTextContent,
   RichTextDocument,
@@ -33,6 +28,7 @@ import { type DiffPatch } from '../ports/diff-patch';
 import { type RepresentationTransform } from '../ports/representation-transform';
 import { pmDocFromJSONString, pmDocToJSONString } from '../prosemirror';
 import { type PMNode } from '../prosemirror/hs-lib';
+import { getDocumentContentErrorMessage } from './document-content-errors';
 import { RepresentationTransformContext } from './representation-transform-context';
 
 export type ConvertToProseMirrorArgs = {
@@ -76,43 +72,6 @@ export const ProseMirrorContext = createContext<ProseMirrorContextType>({
   // @ts-expect-error will get overriden below
   parseMarkdown: () => null,
 });
-
-const unrepresentableContentNames: Record<UnrepresentableContent, string> = {
-  tables: 'tables',
-  definitionLists: 'definition lists',
-  lineBlocks: 'line blocks',
-  rawBlocks: 'embedded HTML or LaTeX',
-  strikeout: 'strikethrough',
-  underline: 'underlined text',
-  smallCaps: 'small caps',
-  superscript: 'superscript',
-  subscript: 'subscript',
-  spans: 'text with custom attributes',
-  math: 'math',
-  citations: 'citations',
-  rawInlines: 'embedded HTML or LaTeX',
-  metadataNotes: 'footnotes in the document metadata',
-};
-
-const getDocumentContentErrorMessage = (error: unknown): string | undefined => {
-  if (error instanceof InvalidMetadataError) {
-    return "The document metadata isn't valid.";
-  }
-
-  if (error instanceof UnrepresentableContentError) {
-    const names = [
-      ...new Set(
-        error.data.content.map(
-          (content) => unrepresentableContentNames[content]
-        )
-      ),
-    ];
-
-    return `The editor can't show ${new Intl.ListFormat('en', { type: 'conjunction' }).format(names)} yet.`;
-  }
-
-  return undefined;
-};
 
 const getReadingDocumentErrorMessage = (error: unknown): string =>
   getDocumentContentErrorMessage(error) ??

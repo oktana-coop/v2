@@ -1,6 +1,6 @@
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 
-import { changesBetween } from './text-changes';
+import { changesBetween, mergeText } from './text-changes';
 
 describe('changesBetween', () => {
   it('is empty for equal texts', () => {
@@ -117,5 +117,45 @@ describe('changesBetween', () => {
         { from: 1, to: 20, insert: 'XbYcZdWeVfUgThSiRjQ' },
       ]);
     });
+  });
+});
+
+describe('mergeText', () => {
+  it('keeps both changes when they touch different parts of the base', () => {
+    expect(
+      mergeText({
+        base: 'A short title',
+        yours: 'A shorter title',
+        theirs: 'A short essay title',
+      })
+    ).toBe('A shorter essay title');
+  });
+
+  it('gives theirs when yours is the base', () => {
+    expect(
+      mergeText({ base: 'Hello', yours: 'Hello', theirs: 'Hello there' })
+    ).toBe('Hello there');
+  });
+
+  it('gives yours when theirs is the base', () => {
+    expect(
+      mergeText({ base: 'Hello', yours: 'Hello world', theirs: 'Hello' })
+    ).toBe('Hello world');
+  });
+
+  it('keeps one copy of a change both made', () => {
+    expect(
+      mergeText({ base: 'Hello', yours: 'Hello world', theirs: 'Hello world' })
+    ).toBe('Hello world');
+  });
+
+  it('merges changes on different lines', () => {
+    expect(
+      mergeText({
+        base: 'First line.\nSecond line.\n',
+        yours: 'First line, edited.\nSecond line.\n',
+        theirs: 'First line.\nSecond line, edited.\n',
+      })
+    ).toBe('First line, edited.\nSecond line, edited.\n');
   });
 });

@@ -3,7 +3,7 @@ import {
   type MetadataEntry,
   type MetadataKeyDiff,
   type MetadataValue,
-} from '../../../../../modules/domain/rich-text';
+} from '../../../../../../modules/domain/rich-text';
 
 export type MetadataDiffRow =
   | {

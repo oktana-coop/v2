@@ -15,7 +15,7 @@ import {
 } from '../../../../../../app-state';
 import { LongTextSkeleton } from '../../../../../../components/progress/skeletons/LongText';
 import { LiveRichTextDocumentEditor } from '../../../../../../components/rich-text-editing/LiveRichTextDocumentEditor';
-import { EditorMetadataPanel } from '../../../../../../components/rich-text-editing/metadata/MetadataPanel';
+import { EditorMetadataPanel } from '../../../../../../components/rich-text-editing/metadata';
 import { ActionsBar } from '../../../../../shared/document-actions-bar';
 import { useCurrentArtifact } from '../../../artifact-route';
 

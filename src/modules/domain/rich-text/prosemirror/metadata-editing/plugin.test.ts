@@ -8,6 +8,7 @@ import { promiseWithResolvers } from '../../../../../utils/test-utils';
 import {
   InvalidMetadataErrorTag,
   RepresentationTransformError,
+  UnrepresentableContentError,
 } from '../../errors';
 import { type MetadataEdit } from '../../models';
 import { getDocFrontMatter } from '../front-matter';
@@ -18,6 +19,7 @@ import {
   metadataEditingPlugin,
   type MetadataEditingPluginArgs,
 } from './plugin';
+import { getMetadataEditFailures } from './state';
 
 type NormalizeFrontMatter = MetadataEditingPluginArgs['normalizeFrontMatter'];
 
@@ -200,7 +202,7 @@ describe('metadataEditingPlugin', () => {
     expect(onError).toHaveBeenCalledExactlyOnceWith(failure);
   });
 
-  it("reports an edit the front matter can't take, without normalizing it", async () => {
+  it("keeps the failure of an edit the front matter can't take, without normalizing it", async () => {
     const normalizeFrontMatter = vi.fn<NormalizeFrontMatter>();
     const onError = vi.fn<MetadataEditingPluginArgs['onError']>();
     const view = viewWith({
@@ -208,15 +210,74 @@ describe('metadataEditingPlugin', () => {
       normalizeFrontMatter,
       onError,
     });
+    const edit = setBoolean({ key: 'draft', value: false });
 
-    runEditMetadata({ view, edit: setBoolean({ key: 'draft', value: false }) });
+    runEditMetadata({ view, edit });
 
     await eventually(() =>
-      expect(onError).toHaveBeenCalledWith(
-        expect.objectContaining({ _tag: InvalidMetadataErrorTag })
-      )
+      expect(getMetadataEditFailures(view.state).get('draft')).toEqual({
+        edit,
+        error: expect.objectContaining({ _tag: InvalidMetadataErrorTag }),
+      })
     );
     expect(normalizeFrontMatter).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
     expect(frontMatterOf(view)).toBe('title: [unclosed\n');
+  });
+
+  it("keeps the failure of an edit whose content the editor can't show, for its property", async () => {
+    const error = new UnrepresentableContentError(
+      "The document has content ProseMirror can't represent: math",
+      { content: ['math'] }
+    );
+    const onError = vi.fn<MetadataEditingPluginArgs['onError']>();
+    const view = viewWith({
+      frontMatter: 'title: Hello\n',
+      normalizeFrontMatter: () => Effect.fail(error),
+      onError,
+    });
+    const edit: MetadataEdit = {
+      type: 'setInlines',
+      key: 'title',
+      base: 'Hello',
+      value: '$x^2$',
+    };
+
+    runEditMetadata({ view, edit });
+
+    await eventually(() =>
+      expect(getMetadataEditFailures(view.state).get('title')).toEqual({
+        edit,
+        error,
+      })
+    );
+    expect(onError).not.toHaveBeenCalled();
+    expect(frontMatterOf(view)).toBe('title: Hello\n');
+  });
+
+  it("clears the property's failure when a later edit of it is committed", async () => {
+    const error = new UnrepresentableContentError(
+      "The document has content ProseMirror can't represent: math",
+      { content: ['math'] }
+    );
+    const view = viewWith({
+      frontMatter: 'title: Hello\n',
+      normalizeFrontMatter: vi
+        .fn<NormalizeFrontMatter>()
+        .mockReturnValueOnce(Effect.fail(error))
+        .mockImplementation(unchanged),
+    });
+
+    runEditMetadata({
+      view,
+      edit: { type: 'setInlines', key: 'title', base: 'Hello', value: '$x^2$' },
+    });
+    runEditMetadata({
+      view,
+      edit: { type: 'setInlines', key: 'title', base: 'Hello', value: 'Hi' },
+    });
+
+    await eventually(() => expect(frontMatterOf(view)).toBe('title: "Hi"\n'));
+    expect(getMetadataEditFailures(view.state).has('title')).toBe(false);
   });
 });
