@@ -655,6 +655,99 @@ test.describe("editing a rich-text document's metadata", () => {
     expect(fileText()).toContain('---\ntitle: Hello\n---');
   });
 
+  test('changing a one-line value to a list saves it to the file', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const { panel, fileText } = await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: 'subject: history\ndraft: true',
+    });
+
+    await panel.getByRole('button', { name: 'Options for subject' }).click();
+    await window.getByRole('menuitem', { name: 'Change to list' }).click();
+
+    await expect
+      .poll(fileText)
+      .toContain('---\nsubject:\n- history\ndraft: true\n---');
+    await expect(
+      panel.getByRole('textbox', { name: 'subject', exact: true })
+    ).toHaveCount(0);
+  });
+
+  test('changing a list to text saves its items joined to the file', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const { panel, fileText } = await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: 'tags:\n- history\n- computing\ndraft: true',
+    });
+
+    await panel.getByRole('button', { name: 'Options for tags' }).click();
+    await window.getByRole('menuitem', { name: 'Change to text' }).click();
+
+    await expect
+      .poll(fileText)
+      .toContain('---\ntags: history, computing\ndraft: true\n---');
+    await expect(
+      panel.getByRole('textbox', { name: 'tags', exact: true })
+    ).toHaveValue('history, computing');
+  });
+
+  test("a property's menu offers only the change of kind that fits it", async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const { panel } = await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: [
+        'title: Hello',
+        'abstract: |',
+        '  First.',
+        '',
+        '  Second.',
+        'draft: true',
+        'tags:',
+        '- history',
+      ].join('\n'),
+    });
+    const changeToList = window.getByRole('menuitem', {
+      name: 'Change to list',
+    });
+    const changeToText = window.getByRole('menuitem', {
+      name: 'Change to text',
+    });
+    // The changes each row's menu offers.
+    const changesOffered = async (key: string) => {
+      await panel.getByRole('button', { name: `Options for ${key}` }).click();
+      await expect(
+        window.getByRole('menuitem', { name: 'Remove' })
+      ).toBeVisible();
+      const offered = {
+        toList: await changeToList.count(),
+        toText: await changeToText.count(),
+      };
+      await window.keyboard.press('Escape');
+      await expect(window.getByRole('menuitem')).toHaveCount(0);
+      return offered;
+    };
+
+    expect(await changesOffered('title')).toEqual({ toList: 1, toText: 0 });
+    expect(await changesOffered('abstract')).toEqual({ toList: 0, toText: 0 });
+    expect(await changesOffered('draft')).toEqual({ toList: 0, toText: 0 });
+    expect(await changesOffered('tags')).toEqual({ toList: 0, toText: 1 });
+  });
+
   test('the menu button hides again once its menu closes', async ({
     electronApp,
     window,

@@ -230,6 +230,69 @@ describe('applyMetadataEdit', () => {
     });
   });
 
+  describe('changeToList', () => {
+    it('makes one-line text the only item of a list, in its place', () => {
+      const edited = applyMetadataEdit({
+        frontMatter: lines('subject: history', 'draft: true'),
+        edit: { type: 'changeToList', key: 'subject' },
+      });
+
+      expect(entriesOf(edited)).toEqual([
+        { key: 'subject', value: textList('history') },
+        { key: 'draft', value: { type: 'MetaBool', value: true } },
+      ]);
+    });
+
+    it('leaves a value that is no longer one-line text as it is', () => {
+      const edited = applyMetadataEdit({
+        frontMatter: lines('subject: true'),
+        edit: { type: 'changeToList', key: 'subject' },
+      });
+
+      expect(Either.getOrThrow(edited)).toBe(lines('subject: true'));
+    });
+
+    it('leaves the front matter as it is when the key is gone', () => {
+      const edited = applyMetadataEdit({
+        frontMatter: lines('title: Hello'),
+        edit: { type: 'changeToList', key: 'subject' },
+      });
+
+      expect(Either.getOrThrow(edited)).toBe(lines('title: Hello'));
+    });
+  });
+
+  describe('changeToText', () => {
+    it("makes a list of one-line text the items' text, joined", () => {
+      const edited = applyMetadataEdit({
+        frontMatter: lines('tags:', '- history', '- computing', 'draft: true'),
+        edit: { type: 'changeToText', key: 'tags' },
+      });
+
+      expect(Either.getOrThrow(edited)).toBe(
+        lines('tags: "history, computing"', 'draft: true')
+      );
+    });
+
+    it('leaves a value that is no longer a list of one-line text as it is', () => {
+      const edited = applyMetadataEdit({
+        frontMatter: lines('tags: history'),
+        edit: { type: 'changeToText', key: 'tags' },
+      });
+
+      expect(Either.getOrThrow(edited)).toBe(lines('tags: history'));
+    });
+
+    it('leaves the front matter as it is when the key is gone', () => {
+      const edited = applyMetadataEdit({
+        frontMatter: lines('title: Hello'),
+        edit: { type: 'changeToText', key: 'tags' },
+      });
+
+      expect(Either.getOrThrow(edited)).toBe(lines('title: Hello'));
+    });
+  });
+
   describe('addKey', () => {
     it('adds the key after the others when it goes below none', () => {
       const edited = applyMetadataEdit({

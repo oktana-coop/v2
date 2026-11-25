@@ -1,19 +1,36 @@
 import * as Headless from '@headlessui/react';
 import clsx from 'clsx';
 
+import {
+  type MetadataValue,
+  textListItems,
+} from '../../../../../../modules/domain/rich-text';
 import { MoreVerticalAltIcon } from '../../../icons';
 import { MenuItem, MenuItems } from '../../../menus/Menu';
 import { type EditMetadataFn } from './field-props';
 
+const isTextList = (value: MetadataValue): boolean =>
+  value.type === 'MetaList' && textListItems(value.items) !== null;
+
 export const RowMenu = ({
   metadataKey,
+  value,
   onEdit,
   onInsertBelow,
 }: {
   metadataKey: string;
+  value: MetadataValue;
   onEdit: EditMetadataFn;
   onInsertBelow: () => void;
 }) => {
+  const handleChangeToList = () => {
+    onEdit({ type: 'changeToList', key: metadataKey });
+  };
+
+  const handleChangeToText = () => {
+    onEdit({ type: 'changeToText', key: metadataKey });
+  };
+
   const handleRemove = () => {
     onEdit({ type: 'removeKey', key: metadataKey });
   };
@@ -32,6 +49,12 @@ export const RowMenu = ({
       </Headless.MenuButton>
       <MenuItems>
         <MenuItem label="Insert below" onClick={onInsertBelow} />
+        {value.type === 'MetaInlines' && (
+          <MenuItem label="Change to list" onClick={handleChangeToList} />
+        )}
+        {isTextList(value) && (
+          <MenuItem label="Change to text" onClick={handleChangeToText} />
+        )}
         <MenuItem label="Remove" onClick={handleRemove} />
       </MenuItems>
     </Headless.Menu>

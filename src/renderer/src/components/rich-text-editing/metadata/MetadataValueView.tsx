@@ -1,7 +1,9 @@
-import { type MetadataValue } from '../../../../../modules/domain/rich-text';
+import {
+  type MetadataValue,
+  textListItems,
+} from '../../../../../modules/domain/rich-text';
 import { Badge } from '../../highlighting/Badge';
 import { Checkbox } from '../../inputs/Checkbox';
-import { textListItems } from './text-list';
 
 const itemCount = (count: number): string =>
   count === 1 ? '1 item' : `${count} items`;

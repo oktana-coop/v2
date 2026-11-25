@@ -4,12 +4,12 @@ import { flushSync } from 'react-dom';
 import {
   type MetadataEntry,
   type prosemirror,
+  textListItems,
 } from '../../../../../../modules/domain/rich-text';
 import { Checkbox } from '../../../inputs/Checkbox';
 import { Field } from '../../../inputs/Fieldset';
 import { MetadataGrid, MetadataGridRow } from '../MetadataGrid';
 import { MetadataValueView } from '../MetadataValueView';
-import { textListItems } from '../text-list';
 import { AddEntryButton } from './AddEntryButton';
 import { BlocksField } from './BlocksField';
 import {
@@ -134,6 +134,7 @@ const EntryRow = ({
           </div>
           <RowMenu
             metadataKey={key}
+            value={entry.value}
             onEdit={onEdit}
             onInsertBelow={handleInsertBelow}
           />

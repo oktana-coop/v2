@@ -23,7 +23,7 @@ import {
   valueAt,
   withFinalNewline,
 } from './front-matter-yaml';
-import { type MetadataValue } from './metadata';
+import { type MetadataValue, textListItems } from './metadata';
 import { invalidMetadataKeyReason } from './metadata-keys';
 
 export type MetadataEdit =
@@ -36,6 +36,9 @@ export type MetadataEdit =
       value: string;
     }
   | { type: 'addListItem' | 'removeListItem'; key: string; item: string }
+  // One-line text to a list holding it, or a list of one-line text to its
+  // items joined.
+  | { type: 'changeToList' | 'changeToText'; key: string }
   // `after` is the key it goes below; null for after the others.
   | { type: 'addKey'; key: string; value: string; after: string | null }
   | { type: 'renameKey'; key: string; newKey: string }
@@ -123,6 +126,20 @@ const applyEdit = ({
 
       if (index !== -1) {
         removeListItemAt({ document, key: edit.key, index });
+      }
+      return;
+    }
+    case 'changeToList':
+      if (current?.type === 'MetaInlines') {
+        setList({ document, key: edit.key, items: [current.source] });
+      }
+      return;
+    case 'changeToText': {
+      const items =
+        current?.type === 'MetaList' ? textListItems(current.items) : null;
+
+      if (items !== null) {
+        setInlines({ document, key: edit.key, source: items.join(', ') });
       }
       return;
     }
