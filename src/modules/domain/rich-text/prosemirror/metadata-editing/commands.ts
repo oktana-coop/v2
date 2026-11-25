@@ -3,8 +3,9 @@ import { type Command } from 'prosemirror-state';
 
 import { type MetadataEdit } from '../../models';
 import {
-  getEdits,
+  getMetadataEditCommits,
   getMetadataEditFailures,
+  type MetadataEditCommit,
   type MetadataEditingMeta,
   pluginKey,
 } from './state';
@@ -21,23 +22,28 @@ export const setFrontMatter =
     return true;
   };
 
-// Edits the document's metadata once the edits before it are committed; it
-// applies where the plugin is installed.
-export const editMetadata =
-  (edit: MetadataEdit): Command =>
+const queueCommit =
+  (commit: MetadataEditCommit): Command =>
   (state, dispatch) => {
-    const edits = getEdits(state);
+    const commits = getMetadataEditCommits(state);
 
-    if (!edits) {
+    if (!commits) {
       return false;
     }
 
     if (dispatch) {
-      Queue.unsafeOffer(edits, edit);
+      Queue.unsafeOffer(commits, commit);
     }
 
     return true;
   };
+
+export const editMetadata = (edit: MetadataEdit): Command =>
+  queueCommit({ type: 'edit', edit });
+
+export const undoMetadataEdit: Command = queueCommit({ type: 'undo' });
+
+export const redoMetadataEdit: Command = queueCommit({ type: 'redo' });
 
 // Forgets the property's last failed edit; it applies when there is one.
 export const clearMetadataEditFailure =

@@ -1,5 +1,6 @@
 import * as Cause from 'effect/Cause';
 import * as Effect from 'effect/Effect';
+import type * as Either from 'effect/Either';
 import * as Fiber from 'effect/Fiber';
 import { pipe } from 'effect/Function';
 import * as Queue from 'effect/Queue';
@@ -18,13 +19,26 @@ import { type RepresentationTransform } from '../../ports/representation-transfo
 import { getDocFrontMatter } from '../front-matter';
 import { setFrontMatter } from './commands';
 import {
+  emptyHistory,
+  type FrontMatterChange,
+  type MetadataEditHistoryOperation,
+  nextChange,
+  reverseChange,
+  withCommit,
+  withoutNextChange,
+  withReversal,
+} from './history';
+import {
+  getMetadataHistory,
+  type MetadataEditCommit,
   type MetadataEditFailure,
   type MetadataEditFailures,
   type MetadataEditingMeta,
+  type MetadataEditingState,
   pluginKey,
 } from './state';
 
-// An edit the front matter can't take, or a failed normalization.
+// Front matter that can't be changed that way, or a failed normalization.
 type CommitError =
   | InvalidMetadataError
   | InvalidMetadataKeyError
@@ -36,24 +50,34 @@ export type MetadataEditingPluginArgs = {
   onError: (error: unknown) => void;
 };
 
-// Applies the edit to the current front matter and normalizes it, then sets it
-// on the document if the front matter is still the one the edit was applied to.
-const commitEdit =
+type CommitDeps = {
+  view: EditorView;
+  normalizeFrontMatter: MetadataEditingPluginArgs['normalizeFrontMatter'];
+};
+
+type ProcessCommitDeps = CommitDeps &
+  Pick<MetadataEditingPluginArgs, 'onError'>;
+
+// Applies the change to the current front matter and normalizes it, then sets
+// it on the document, with the meta for the change, if the front matter is
+// still the one it was applied to.
+const commitChange =
+  (deps: CommitDeps) =>
   ({
-    normalizeFrontMatter,
-  }: Pick<MetadataEditingPluginArgs, 'normalizeFrontMatter'>) =>
-  ({
-    view,
-    edit,
+    apply,
+    toMeta,
   }: {
-    view: EditorView;
-    edit: MetadataEdit;
+    apply: (
+      frontMatter: string | null
+    ) => Either.Either<string, InvalidMetadataError | InvalidMetadataKeyError>;
+    toMeta: (change: FrontMatterChange) => MetadataEditingMeta;
   }): Effect.Effect<void, CommitError> =>
     Effect.suspend(() => {
+      const { view, normalizeFrontMatter } = deps;
       const frontMatter = getDocFrontMatter(view.state.doc);
 
       return pipe(
-        applyMetadataEdit({ frontMatter, edit }),
+        apply(frontMatter),
         Effect.flatMap(normalizeFrontMatter),
         Effect.flatMap((normalized) => {
           if (view.isDestroyed) {
@@ -62,14 +86,10 @@ const commitEdit =
 
           // Another change reached the front matter meanwhile.
           if (getDocFrontMatter(view.state.doc) !== frontMatter) {
-            return commitEdit({ normalizeFrontMatter })({ view, edit });
+            return commitChange(deps)({ apply, toMeta });
           }
 
-          // The property's earlier failure no longer stands.
-          const meta: MetadataEditingMeta = {
-            type: 'failureCleared',
-            key: edit.key,
-          };
+          const meta = toMeta({ before: frontMatter, after: normalized });
 
           return Effect.sync(() =>
             setFrontMatter(normalized)(view.state, (tr) =>
@@ -80,36 +100,150 @@ const commitEdit =
       );
     });
 
-// Keeps the edit's failure in the plugin's state, for its property.
-const keepFailure =
-  ({ view, edit }: { view: EditorView; edit: MetadataEdit }) =>
-  (error: MetadataEditFailure['error']): Effect.Effect<void> =>
+const commitEdit =
+  (deps: CommitDeps) =>
+  (edit: MetadataEdit): Effect.Effect<void, CommitError> =>
+    commitChange(deps)({
+      apply: (frontMatter) => applyMetadataEdit({ frontMatter, edit }),
+      toMeta: (change) => ({ type: 'committed', key: edit.key, change }),
+    });
+
+const commitReversal =
+  (deps: CommitDeps) =>
+  (operation: MetadataEditHistoryOperation): Effect.Effect<void, CommitError> =>
+    Effect.suspend(() => {
+      const change = nextChange({
+        history: getMetadataHistory(deps.view.state),
+        operation,
+      });
+
+      if (change === undefined) {
+        return Effect.void;
+      }
+
+      return commitChange(deps)({
+        apply: (frontMatter) => reverseChange({ change, frontMatter }),
+        toMeta: (madeChange) => ({
+          type: 'reversed',
+          operation,
+          change: madeChange,
+        }),
+      });
+    });
+
+const storeFailure =
+  ({ view }: { view: EditorView }) =>
+  (failure: MetadataEditFailure): Effect.Effect<void> =>
     Effect.sync(() => {
       if (view.isDestroyed) {
         return;
       }
 
-      const meta: MetadataEditingMeta = {
-        type: 'failed',
-        failure: { edit, error },
-      };
+      const meta: MetadataEditingMeta = { type: 'failed', failure };
       view.dispatch(view.state.tr.setMeta(pluginKey, meta));
     });
 
-const applyMeta = ({
+const dropNextChange =
+  ({ view }: { view: EditorView }) =>
+  (operation: MetadataEditHistoryOperation): Effect.Effect<void> =>
+    Effect.sync(() => {
+      if (view.isDestroyed) {
+        return;
+      }
+
+      const meta: MetadataEditingMeta = { type: 'reversalFailed', operation };
+      view.dispatch(view.state.tr.setMeta(pluginKey, meta));
+    });
+
+const processCommit =
+  (deps: ProcessCommitDeps) =>
+  (commit: MetadataEditCommit): Effect.Effect<void> => {
+    const report = (cause: Cause.Cause<unknown>): Effect.Effect<void> =>
+      Effect.sync(() => deps.onError(Cause.squash(cause)));
+
+    switch (commit.type) {
+      case 'edit': {
+        const { edit } = commit;
+        const storedFailure = (error: MetadataEditFailure['error']) =>
+          storeFailure(deps)({ edit, error });
+
+        return pipe(
+          commitEdit(deps)(edit),
+          Effect.catchTags({
+            InvalidMetadataError: storedFailure,
+            InvalidMetadataKeyError: storedFailure,
+            UnrepresentableContentError: storedFailure,
+          }),
+          Effect.catchAllCause(report)
+        );
+      }
+      case 'undo':
+      case 'redo': {
+        const operation = commit.type;
+
+        return pipe(
+          commitReversal(deps)(operation),
+          Effect.tapErrorCause(() => dropNextChange(deps)(operation)),
+          Effect.catchAllCause(report)
+        );
+      }
+    }
+  };
+
+const withoutFailure = ({
   failures,
-  meta,
+  key,
 }: {
   failures: MetadataEditFailures;
+  key: string;
+}): MetadataEditFailures =>
+  failures.has(key)
+    ? new Map([...failures].filter(([failedKey]) => failedKey !== key))
+    : failures;
+
+const applyMeta = ({
+  state,
+  meta,
+}: {
+  state: MetadataEditingState;
   meta: MetadataEditingMeta;
-}): MetadataEditFailures => {
+}): MetadataEditingState => {
   switch (meta.type) {
     case 'failed':
-      return new Map([...failures, [meta.failure.edit.key, meta.failure]]);
+      return {
+        ...state,
+        failures: new Map([
+          ...state.failures,
+          [meta.failure.edit.key, meta.failure],
+        ]),
+      };
     case 'failureCleared':
-      return failures.has(meta.key)
-        ? new Map([...failures].filter(([key]) => key !== meta.key))
-        : failures;
+      return {
+        ...state,
+        failures: withoutFailure({ failures: state.failures, key: meta.key }),
+      };
+    case 'committed':
+      return {
+        failures: withoutFailure({ failures: state.failures, key: meta.key }),
+        history: withCommit({ history: state.history, change: meta.change }),
+      };
+    case 'reversed':
+      return {
+        ...state,
+        history: withReversal({
+          history: state.history,
+          operation: meta.operation,
+          change: meta.change,
+        }),
+      };
+    case 'reversalFailed':
+      return {
+        ...state,
+        history: withoutNextChange({
+          history: state.history,
+          operation: meta.operation,
+        }),
+      };
   }
 };
 
@@ -117,46 +251,34 @@ export const metadataEditingPlugin = ({
   normalizeFrontMatter,
   onError,
 }: MetadataEditingPluginArgs) => {
-  const edits = Effect.runSync(Queue.unbounded<MetadataEdit>());
-  const commit = commitEdit({ normalizeFrontMatter });
+  const commits = Effect.runSync(Queue.unbounded<MetadataEditCommit>());
 
-  return new Plugin<MetadataEditFailures>({
+  return new Plugin<MetadataEditingState>({
     key: pluginKey,
-    edits,
+    commits,
     state: {
-      init: () => new Map(),
-      apply: (tr, failures) => {
+      init: () => ({ failures: new Map(), history: emptyHistory }),
+      apply: (tr, state) => {
         const meta: MetadataEditingMeta | undefined = tr.getMeta(pluginKey);
 
-        return meta ? applyMeta({ failures, meta }) : failures;
+        return meta ? applyMeta({ state, meta }) : state;
       },
     },
     view: (view) => {
-      // Commits the edits one at a time, in the order they were made, until
-      // the plugin's view goes away. A failure of the edit itself is kept for
-      // its property; any other is reported.
-      const committer = Effect.runFork(
+      // Runs the commits one at a time, in the order they were made, until the
+      // plugin's view goes away.
+      const commitProcessing = Effect.runFork(
         pipe(
-          Stream.fromQueue(edits),
-          Stream.runForEach((edit) =>
-            pipe(
-              commit({ view, edit }),
-              Effect.catchTags({
-                InvalidMetadataError: keepFailure({ view, edit }),
-                InvalidMetadataKeyError: keepFailure({ view, edit }),
-                UnrepresentableContentError: keepFailure({ view, edit }),
-              }),
-              Effect.catchAllCause((cause) =>
-                Effect.sync(() => onError(Cause.squash(cause)))
-              )
-            )
+          Stream.fromQueue(commits),
+          Stream.runForEach(
+            processCommit({ view, normalizeFrontMatter, onError })
           )
         )
       );
 
       return {
         destroy: () => {
-          Effect.runFork(Fiber.interrupt(committer));
+          Effect.runFork(Fiber.interrupt(commitProcessing));
         },
       };
     },

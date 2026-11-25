@@ -1,4 +1,9 @@
-export { clearMetadataEditFailure, editMetadata } from './commands';
+export {
+  clearMetadataEditFailure,
+  editMetadata,
+  redoMetadataEdit,
+  undoMetadataEdit,
+} from './commands';
 export {
   metadataEditingPlugin,
   type MetadataEditingPluginArgs,

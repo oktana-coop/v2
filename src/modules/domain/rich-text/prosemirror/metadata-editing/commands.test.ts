@@ -11,7 +11,9 @@ import { para, runCommand } from '../test-utils';
 import {
   clearMetadataEditFailure,
   editMetadata,
+  redoMetadataEdit,
   setFrontMatter,
+  undoMetadataEdit,
 } from './commands';
 import { metadataEditingPlugin } from './plugin';
 import {
@@ -64,6 +66,19 @@ describe('editMetadata', () => {
     const state = EditorState.create({ doc });
 
     expect(editMetadata(setDraft)(state)).toBe(false);
+  });
+});
+
+describe.each([
+  { name: 'undoMetadataEdit', command: undoMetadataEdit },
+  { name: 'redoMetadataEdit', command: redoMetadataEdit },
+])('$name', ({ command }) => {
+  it('applies where the plugin is installed', () => {
+    expect(command(stateWithPlugin())).toBe(true);
+  });
+
+  it("doesn't apply where the plugin isn't installed", () => {
+    expect(command(EditorState.create({ doc }))).toBe(false);
   });
 });
 

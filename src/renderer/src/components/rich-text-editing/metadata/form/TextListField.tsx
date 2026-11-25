@@ -7,6 +7,7 @@ import { CloseIcon } from '../../../icons';
 import { Field } from '../../../inputs/Fieldset';
 import { type FieldProps } from './field-props';
 import { ClearedMessage, FailureMessage } from './FieldErrors';
+import { useFormPanel } from './form-panel';
 import {
   plainFieldFocusWithin,
   plainFieldInvalid,
@@ -23,6 +24,7 @@ export const TextListField = ({
   // The item typed while the input is focused.
   const [newItem, setNewItem] = useState<string | null>(null);
   const [isRemovalRefused, setIsRemovalRefused] = useState(false);
+  const panel = useFormPanel();
   // Set right before the input is left with Escape, for the blur to see it.
   const isCancelled = useRef(false);
   const failedItem =
@@ -58,6 +60,17 @@ export const TextListField = ({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    // While an item is typed, undo and redo are contained to the browser's
+    // handling of the input.
+    if (
+      newItem !== null &&
+      newItem !== '' &&
+      panel.isEditHistoryKey(event.nativeEvent)
+    ) {
+      // Kept from the panel, not prevented, so the browser's undo still runs.
+      event.stopPropagation();
+    }
+
     if (event.key === 'Enter') {
       event.preventDefault();
       handleAddItem();
@@ -66,7 +79,7 @@ export const TextListField = ({
 
     if (event.key === 'Escape') {
       isCancelled.current = true;
-      event.currentTarget.blur();
+      panel.focus();
     }
 
     if (

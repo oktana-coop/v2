@@ -1,4 +1,10 @@
-import { Fragment, useRef, useState } from 'react';
+import {
+  type FocusEvent,
+  Fragment,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { flushSync } from 'react-dom';
 
 import {
@@ -18,6 +24,7 @@ import {
   type MetadataEditFailure,
 } from './field-props';
 import { TextFieldErrors } from './FieldErrors';
+import { useFormPanel } from './form-panel';
 import { InlinesField } from './InlinesField';
 import { KeyField } from './KeyField';
 import { type NewEntry, NewEntryRow } from './NewEntryRow';
@@ -87,6 +94,9 @@ const EntryRow = ({
   onInsertBelow: (key: string) => void;
 }) => {
   const { key } = entry;
+  const { focus: focusPanel } = useFormPanel();
+  // Whether the focus is in the row, or in its open menu.
+  const hasFocus = useRef(false);
   const storedFailure = failures.get(key);
   const failure =
     storedFailure && !isAddition(storedFailure) ? storedFailure : undefined;
@@ -101,6 +111,25 @@ const EntryRow = ({
     onInsertBelow(key);
   };
 
+  const handleFocus = () => {
+    hasFocus.current = true;
+  };
+
+  const handleBlur = (event: FocusEvent<HTMLDivElement>) => {
+    hasFocus.current = event.currentTarget.contains(event.relatedTarget);
+  };
+
+  // When the row unmounts with the focus in it, the focus moves to the panel
+  // instead of being lost.
+  useLayoutEffect(
+    () => () => {
+      if (hasFocus.current) {
+        focusPanel();
+      }
+    },
+    [focusPanel]
+  );
+
   const keyDraft = useTextDraft({
     source: key,
     failedText: failure?.edit.type === 'renameKey' ? failure.edit.newKey : null,
@@ -110,7 +139,11 @@ const EntryRow = ({
   });
 
   return (
-    <Field className="group/row contents">
+    <Field
+      className="group/row contents"
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+    >
       <MetadataGridRow
         term={
           <KeyField

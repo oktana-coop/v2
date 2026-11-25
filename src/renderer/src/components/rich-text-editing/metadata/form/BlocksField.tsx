@@ -37,13 +37,15 @@ export const BlocksField = ({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    draft.onKeyDown(event);
+
     if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
       event.preventDefault();
-      event.currentTarget.blur();
+      draft.commit();
     }
 
     if (event.key === 'Escape') {
-      draft.onCancel(event.currentTarget);
+      draft.cancel();
     }
   };
 

@@ -1,5 +1,14 @@
 import * as Either from 'effect/Either';
-import { type ReactNode, useContext, useEffect, useMemo } from 'react';
+import {
+  forwardRef,
+  type KeyboardEventHandler,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 
 import {
   type InvalidMetadataError,
@@ -11,12 +20,14 @@ import {
 } from '../../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { useEditorState } from '../../../../../modules/domain/rich-text/react/use-editor-state';
+import { type KeyBindings, useKeyBindingMatcher } from '../../../keyboard';
 import { Text } from '../../typography/Text';
 import {
   type MetadataDiffRow,
   toMetadataDiffRows,
 } from './diff/metadata-diff-rows';
 import { MetadataDiffRows } from './diff/MetadataDiffRows';
+import { type FormPanel, FormPanelContext } from './form/form-panel';
 import { MetadataForm } from './form/MetadataForm';
 import { MetadataEntries } from './MetadataEntries';
 import { useEditorFrontMatter } from './use-editor-front-matter';
@@ -26,6 +37,8 @@ const {
   editMetadata,
   getMetadataEditFailures,
   hasMetadataEditingPlugin,
+  redoMetadataEdit,
+  undoMetadataEdit,
 } = prosemirror;
 
 export type MetadataPanelDiff = {
@@ -88,13 +101,27 @@ const ContentView = ({ content }: { content: PanelContent }) => {
 };
 
 // The panel around the metadata.
-const MetadataSection = ({ children }: { children: ReactNode }) => (
-  <section aria-label="Properties" className="px-4 pt-4 text-left">
-    <div className="border-b border-zinc-950/5 pb-4 dark:border-white/5">
-      {children}
-    </div>
-  </section>
-);
+const MetadataSection = forwardRef<
+  HTMLElement,
+  {
+    children: ReactNode;
+    tabIndex?: number;
+    onKeyDown?: KeyboardEventHandler<HTMLElement>;
+  }
+>(function MetadataSection({ children, ...sectionProps }, ref) {
+  return (
+    <section
+      ref={ref}
+      aria-label="Properties"
+      className="px-4 pt-4 text-left focus:outline-none"
+      {...sectionProps}
+    >
+      <div className="border-b border-zinc-950/5 pb-4 dark:border-white/5">
+        {children}
+      </div>
+    </section>
+  );
+});
 
 // Front matter the panel can't show; the reason goes to the console.
 const UnreadableMetadata = ({ error }: { error: InvalidMetadataError }) => {
@@ -130,21 +157,56 @@ export const MetadataPanel = ({
 
 const MetadataFormPanel = ({
   frontMatter,
+  onUndo,
+  onRedo,
   ...formProps
 }: {
   frontMatter: string | null;
   failures: prosemirror.MetadataEditFailures;
   onEdit: (edit: MetadataEdit) => void;
   onClearFailure: (key: string) => void;
+  onUndo: () => void;
+  onRedo: () => void;
 }) => {
   const entries = useMemo(() => parseOrEmpty(frontMatter), [frontMatter]);
+  const section = useRef<HTMLElement>(null);
+  const matchKey = useKeyBindingMatcher();
+  const editHistoryKeys: KeyBindings = {
+    'ctrl+z': onUndo,
+    'ctrl+shift+z': onRedo,
+    'ctrl+y': onRedo,
+  };
+
+  const focus = useCallback(() => {
+    section.current?.focus();
+  }, []);
+
+  const panel: FormPanel = {
+    focus,
+    isEditHistoryKey: (event) =>
+      matchKey({ keyBindings: editHistoryKeys, event }) !== null,
+  };
+
+  // Undo and redo leave the field that has the focus, for it to show the
+  // document's value.
+  const handleKeyDown: KeyboardEventHandler<HTMLElement> = (event) => {
+    const binding = matchKey({ keyBindings: editHistoryKeys, event });
+
+    if (binding !== null) {
+      event.preventDefault();
+      focus();
+      editHistoryKeys[binding]?.();
+    }
+  };
 
   return (
-    <MetadataSection>
+    <MetadataSection ref={section} tabIndex={-1} onKeyDown={handleKeyDown}>
       {Either.match(entries, {
         onLeft: (error) => <UnreadableMetadata error={error} />,
         onRight: (formEntries) => (
-          <MetadataForm entries={formEntries} {...formProps} />
+          <FormPanelContext.Provider value={panel}>
+            <MetadataForm entries={formEntries} {...formProps} />
+          </FormPanelContext.Provider>
         ),
       })}
     </MetadataSection>
@@ -173,12 +235,22 @@ export const EditorMetadataPanel = () => {
     clearMetadataEditFailure(key)(view.state, view.dispatch);
   };
 
+  const handleUndo = () => {
+    undoMetadataEdit(view.state, view.dispatch);
+  };
+
+  const handleRedo = () => {
+    redoMetadataEdit(view.state, view.dispatch);
+  };
+
   return (
     <MetadataFormPanel
       frontMatter={frontMatter}
       failures={failures}
       onEdit={handleEdit}
       onClearFailure={handleClearFailure}
+      onUndo={handleUndo}
+      onRedo={handleRedo}
     />
   );
 };

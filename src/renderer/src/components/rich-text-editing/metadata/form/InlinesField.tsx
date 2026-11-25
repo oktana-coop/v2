@@ -36,12 +36,14 @@ export const InlinesField = ({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    draft.onKeyDown(event);
+
     if (event.key === 'Enter') {
-      event.currentTarget.blur();
+      draft.commit();
     }
 
     if (event.key === 'Escape') {
-      draft.onCancel(event.currentTarget);
+      draft.cancel();
     }
   };
 

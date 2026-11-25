@@ -14,7 +14,7 @@ import { type MetadataEdit } from '../../models';
 import { getDocFrontMatter } from '../front-matter';
 import { schema } from '../schema';
 import { para } from '../test-utils';
-import { editMetadata } from './commands';
+import { editMetadata, redoMetadataEdit, undoMetadataEdit } from './commands';
 import {
   metadataEditingPlugin,
   type MetadataEditingPluginArgs,
@@ -81,6 +81,23 @@ const runEditMetadata = ({
   view: EditorView;
   edit: MetadataEdit;
 }) => editMetadata(edit)(view.state, view.dispatch);
+
+const runUndo = (view: EditorView) =>
+  undoMetadataEdit(view.state, view.dispatch);
+
+const runRedo = (view: EditorView) =>
+  redoMetadataEdit(view.state, view.dispatch);
+
+// Another change reaching the front matter, e.g. a peer's.
+const setOtherFrontMatter = ({
+  view,
+  frontMatter,
+}: {
+  view: EditorView;
+  frontMatter: string;
+}) => {
+  view.dispatch(view.state.tr.setDocAttribute('frontMatter', frontMatter));
+};
 
 describe('metadataEditingPlugin', () => {
   it('sets the normalized front matter of an edit on the document', async () => {
@@ -279,5 +296,187 @@ describe('metadataEditingPlugin', () => {
 
     await eventually(() => expect(frontMatterOf(view)).toBe('title: "Hi"\n'));
     expect(getMetadataEditFailures(view.state).has('title')).toBe(false);
+  });
+
+  describe('undo and redo', () => {
+    it('undoes the last commit, keeping it out of the undo history', async () => {
+      const view = viewWith({
+        frontMatter: 'draft: true\n',
+        normalizeFrontMatter: unchanged,
+      });
+
+      runEditMetadata({
+        view,
+        edit: setBoolean({ key: 'draft', value: false }),
+      });
+      runEditMetadata({
+        view,
+        edit: setBoolean({ key: 'published', value: true }),
+      });
+      runUndo(view);
+
+      await eventually(() =>
+        expect(frontMatterOf(view)).toBe('draft: false\n')
+      );
+      expect(undoDepth(view.state)).toBe(0);
+    });
+
+    it('keeps a change made to the front matter since the commit it undoes', async () => {
+      const view = viewWith({
+        frontMatter: 'draft: true\n',
+        normalizeFrontMatter: unchanged,
+      });
+
+      runEditMetadata({
+        view,
+        edit: setBoolean({ key: 'draft', value: false }),
+      });
+      await eventually(() =>
+        expect(frontMatterOf(view)).toBe('draft: false\n')
+      );
+
+      setOtherFrontMatter({
+        view,
+        frontMatter: 'title: Other\ndraft: false\n',
+      });
+      runUndo(view);
+
+      await eventually(() =>
+        expect(frontMatterOf(view)).toBe('title: Other\ndraft: true\n')
+      );
+    });
+
+    it('redoes what was undone, keeping a change made since', async () => {
+      const view = viewWith({
+        frontMatter: 'draft: true\n',
+        normalizeFrontMatter: unchanged,
+      });
+
+      runEditMetadata({
+        view,
+        edit: setBoolean({ key: 'draft', value: false }),
+      });
+      runUndo(view);
+      await eventually(() => expect(frontMatterOf(view)).toBe('draft: true\n'));
+
+      setOtherFrontMatter({ view, frontMatter: 'title: Other\ndraft: true\n' });
+      runRedo(view);
+
+      await eventually(() =>
+        expect(frontMatterOf(view)).toBe('title: Other\ndraft: false\n')
+      );
+    });
+
+    it('undoes once the commits before it are done', async () => {
+      const second = pendingNormalization();
+      const normalizeFrontMatter = vi
+        .fn<NormalizeFrontMatter>()
+        .mockImplementationOnce(unchanged)
+        .mockReturnValueOnce(second.normalized)
+        .mockImplementation(unchanged);
+      const view = viewWith({
+        frontMatter: 'draft: true\n',
+        normalizeFrontMatter,
+      });
+
+      runEditMetadata({
+        view,
+        edit: setBoolean({ key: 'draft', value: false }),
+      });
+      runEditMetadata({
+        view,
+        edit: setBoolean({ key: 'published', value: true }),
+      });
+      await eventually(() =>
+        expect(normalizeFrontMatter).toHaveBeenCalledTimes(2)
+      );
+
+      runUndo(view);
+      second.resolve('draft: false\npublished: true\n');
+
+      await eventually(() =>
+        expect(normalizeFrontMatter).toHaveBeenCalledTimes(3)
+      );
+      await eventually(() =>
+        expect(frontMatterOf(view)).toBe('draft: false\n')
+      );
+    });
+
+    it("doesn't redo what was undone once another edit is committed", async () => {
+      const view = viewWith({
+        frontMatter: 'draft: true\n',
+        normalizeFrontMatter: unchanged,
+      });
+
+      runEditMetadata({
+        view,
+        edit: setBoolean({ key: 'draft', value: false }),
+      });
+      runUndo(view);
+      runEditMetadata({
+        view,
+        edit: setBoolean({ key: 'published', value: true }),
+      });
+      runRedo(view);
+      runEditMetadata({
+        view,
+        edit: setBoolean({ key: 'archived', value: true }),
+      });
+
+      await eventually(() =>
+        expect(frontMatterOf(view)).toBe(
+          'draft: true\npublished: true\narchived: true\n'
+        )
+      );
+    });
+
+    it('changes nothing when there is nothing to undo', async () => {
+      const view = viewWith({
+        frontMatter: 'draft: true\n',
+        normalizeFrontMatter: unchanged,
+      });
+
+      runUndo(view);
+      runEditMetadata({
+        view,
+        edit: setBoolean({ key: 'published', value: true }),
+      });
+
+      await eventually(() =>
+        expect(frontMatterOf(view)).toBe('draft: true\npublished: true\n')
+      );
+    });
+
+    it('reports an undo that fails and drops its change, so the next undo reverses the one before', async () => {
+      const failure = new RepresentationTransformError('normalization failed');
+      const normalizeFrontMatter = vi
+        .fn<NormalizeFrontMatter>()
+        .mockImplementationOnce(unchanged)
+        .mockImplementationOnce(unchanged)
+        .mockReturnValueOnce(Effect.fail(failure))
+        .mockImplementation(unchanged);
+      const onError = vi.fn<MetadataEditingPluginArgs['onError']>();
+      const view = viewWith({
+        frontMatter: 'draft: true\n',
+        normalizeFrontMatter,
+        onError,
+      });
+
+      runEditMetadata({
+        view,
+        edit: setBoolean({ key: 'draft', value: false }),
+      });
+      runEditMetadata({
+        view,
+        edit: setBoolean({ key: 'published', value: true }),
+      });
+      runUndo(view);
+      runUndo(view);
+
+      await eventually(() =>
+        expect(frontMatterOf(view)).toBe('draft: true\npublished: true\n')
+      );
+      expect(onError).toHaveBeenCalledExactlyOnceWith(failure);
+    });
   });
 });

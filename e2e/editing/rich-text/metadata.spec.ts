@@ -773,4 +773,90 @@ test.describe("editing a rich-text document's metadata", () => {
 
     await expect(menuButton).toHaveCSS('opacity', '0');
   });
+
+  test('undo and redo in the panel take back and make again a committed value', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const { panel, fileText } = await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: 'title: Hello',
+    });
+    const title = panel.getByRole('textbox', { name: 'title', exact: true });
+    await title.fill('Hello world');
+    await title.press('Enter');
+    await expect.poll(fileText).toContain('title: Hello world\n');
+    await expect(panel).toBeFocused();
+
+    await window.keyboard.press(`${modKey}+z`);
+
+    await expect.poll(fileText).toContain('title: Hello\n');
+    await expect(title).toHaveValue('Hello');
+
+    await window.keyboard.press(`${modKey}+Shift+z`);
+
+    await expect.poll(fileText).toContain('title: Hello world\n');
+    await expect(title).toHaveValue('Hello world');
+  });
+
+  test('undo in the panel brings back a removed property', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const { panel, fileText } = await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: 'title: Hello\ndraft: true',
+    });
+    await panel.getByRole('button', { name: 'Options for draft' }).click();
+    await window.getByRole('menuitem', { name: 'Remove' }).click();
+    await expect.poll(fileText).toContain('---\ntitle: Hello\n---');
+    // The row went away with the focus, which went to the panel.
+    await expect(panel).toBeFocused();
+
+    await window.keyboard.press(`${modKey}+z`);
+
+    await expect
+      .poll(fileText)
+      .toContain('---\ntitle: Hello\ndraft: true\n---');
+    await expect(panel.getByRole('checkbox', { name: 'draft' })).toBeChecked();
+  });
+
+  test('undo in a field with typing undoes the typing, not the properties', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const { panel, fileText } = await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: 'title: Hello\ntags:\n- history',
+    });
+    const title = panel.getByRole('textbox', { name: 'title', exact: true });
+    const newTag = panel.getByRole('textbox', { name: 'Add to tags' });
+    await title.fill('Hi');
+    await title.press('Enter');
+    await newTag.fill('essay');
+    await newTag.press('Enter');
+    await expect
+      .poll(fileText)
+      .toContain('title: Hi\ntags:\n- history\n- essay\n');
+
+    await title.fill('Changed');
+    await title.press(`${modKey}+z`);
+
+    await expect(title).toHaveValue('Hi');
+
+    // The panel's undo takes back only the last commit, so the one before
+    // wasn't taken back with the field's undo.
+    await title.press('Escape');
+    await window.keyboard.press(`${modKey}+z`);
+    await expect.poll(fileText).toContain('title: Hi\ntags:\n- history\n---');
+  });
 });

@@ -15,6 +15,7 @@ import { Field } from '../../../inputs/Fieldset';
 import { MetadataGridRow } from '../MetadataGrid';
 import { type EditMetadataFn, type MetadataEditFailure } from './field-props';
 import { TextFieldErrors } from './FieldErrors';
+import { useFormPanel } from './form-panel';
 import {
   plainField,
   plainFieldFocus,
@@ -55,6 +56,7 @@ export const NewEntryRow = ({
   onClearFailure: (key: string) => void;
 }) => {
   const valueInput = useRef<HTMLInputElement>(null);
+  const panel = useFormPanel();
   // Set right before a discarded row's field is left, for the blur to see it.
   const isDiscarded = useRef(false);
 
@@ -84,30 +86,45 @@ export const NewEntryRow = ({
     onChange({ ...entry, value: event.target.value });
   };
 
-  const handleDiscard = (field: HTMLElement) => {
+  const handleDiscard = () => {
     isDiscarded.current = true;
-    field.blur();
+    panel.focus();
     onClearFailure(entry.key);
     onDiscard();
   };
 
+  // While the row has typing, undo and redo are contained to the browser's
+  // handling of its fields.
+  const stopEditHistoryKeyPropagation = (
+    event: KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (!isBlank && panel.isEditHistoryKey(event.nativeEvent)) {
+      // Kept from the panel, not prevented, so the browser's undo still runs.
+      event.stopPropagation();
+    }
+  };
+
   const handleKeyKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    stopEditHistoryKeyPropagation(event);
+
     if (event.key === 'Enter') {
       valueInput.current?.focus();
     }
 
     if (event.key === 'Escape') {
-      handleDiscard(event.currentTarget);
+      handleDiscard();
     }
   };
 
   const handleValueKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    stopEditHistoryKeyPropagation(event);
+
     if (event.key === 'Enter') {
-      event.currentTarget.blur();
+      panel.focus();
     }
 
     if (event.key === 'Escape') {
-      handleDiscard(event.currentTarget);
+      handleDiscard();
     }
   };
 
