@@ -132,30 +132,6 @@ test.describe('the metadata of a rich-text document', () => {
 
     await expect(metadataPanel({ window })).toHaveText('Add property');
   });
-
-  test("a document whose front matter isn't valid YAML shows that its metadata can't be shown", async ({
-    electronApp,
-    window,
-    testProjectDir,
-  }) => {
-    fs.writeFileSync(
-      path.join(testProjectDir, 'hello.md'),
-      '---\ntitle: [unclosed\n---\n\n# Hello\n',
-      'utf8'
-    );
-    await openProjectFolder({
-      electronApp,
-      window,
-      folderPath: testProjectDir,
-    });
-    await openHelloMd({ window });
-
-    await showMetadata({ window });
-
-    await expect(metadataPanel({ window })).toHaveText(
-      "The properties can't be shown here yet."
-    );
-  });
 });
 
 test.describe("editing a rich-text document's metadata", () => {
@@ -996,6 +972,34 @@ test.describe("editing a rich-text document's metadata", () => {
       await expect(
         panel.getByRole('textbox', { name: 'title', exact: true })
       ).toHaveValue('Hello');
+    });
+
+    test("front matter that isn't valid YAML can't be shown as a form, and is fixed as YAML", async ({
+      electronApp,
+      window,
+      testProjectDir,
+    }) => {
+      const { panel, fileText } = await openHelloMdWithFrontMatter({
+        electronApp,
+        window,
+        testProjectDir,
+        frontMatter: 'title: [unclosed',
+      });
+
+      await expect(panel).toHaveText(
+        "The properties can't be shown as a form."
+      );
+
+      await panel.getByRole('button', { name: 'Edit as YAML' }).click();
+
+      await expect.poll(yamlLines({ panel })).toEqual(['title: [unclosed', '']);
+
+      await yamlEditor({ panel }).click();
+      await window.keyboard.press(`${modKey}+a`);
+      await window.keyboard.type('title: Fixed');
+      await window.keyboard.press(`${modKey}+Enter`);
+
+      await expect.poll(fileText).toContain('---\ntitle: Fixed\n---');
     });
 
     test('YAML mode holds after a reload', async ({

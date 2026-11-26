@@ -132,12 +132,18 @@ const MetadataSection = forwardRef<
 });
 
 // Front matter the panel can't show; the reason goes to the console.
-const UnreadableMetadata = ({ error }: { error: InvalidMetadataError }) => {
+const UnreadableMetadata = ({
+  error,
+  message,
+}: {
+  error: InvalidMetadataError;
+  message: string;
+}) => {
   useEffect(() => {
     console.error(error);
   }, [error]);
 
-  return <Text>The properties can't be shown here yet.</Text>;
+  return <Text>{message}</Text>;
 };
 
 export const MetadataPanel = ({
@@ -156,7 +162,12 @@ export const MetadataPanel = ({
   return (
     <MetadataSection>
       {Either.match(content, {
-        onLeft: (error) => <UnreadableMetadata error={error} />,
+        onLeft: (error) => (
+          <UnreadableMetadata
+            error={error}
+            message="The properties can't be shown here yet."
+          />
+        ),
         onRight: (panelContent) => <ContentView content={panelContent} />,
       })}
     </MetadataSection>
@@ -175,7 +186,12 @@ const MetadataFormContent = ({
   const entries = useMemo(() => parseOrEmpty(frontMatter), [frontMatter]);
 
   return Either.match(entries, {
-    onLeft: (error) => <UnreadableMetadata error={error} />,
+    onLeft: (error) => (
+      <UnreadableMetadata
+        error={error}
+        message="The properties can't be shown as a form."
+      />
+    ),
     onRight: (formEntries) => (
       <MetadataForm entries={formEntries} {...formProps} />
     ),
