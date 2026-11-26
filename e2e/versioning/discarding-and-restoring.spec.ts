@@ -5,6 +5,7 @@ import { expect, test } from '../shared/fixtures';
 import {
   commitChanges,
   discardChanges,
+  metadataPanel,
   openHelloMd,
   openPlainTextDocument,
   openProjectFolder,
@@ -12,6 +13,7 @@ import {
   returnToRichTextEditor,
   selectFirstCommit,
   selectUncommittedChanges,
+  showMetadata,
   typeAtEndOfPlainTextDocument,
   typeInEditorAndWaitForDebounce,
 } from '../shared/helpers';
@@ -84,6 +86,43 @@ test.describe('discarding', () => {
     const editor = window.locator('.ProseMirror');
     await expect(editor).toContainText('stable');
     await expect(editor).not.toContainText('temporary');
+  });
+
+  test('reverts a value changed in the metadata panel, in the panel and the file', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const helloPath = path.join(testProjectDir, 'hello.md');
+    fs.writeFileSync(helloPath, '---\ntitle: Hello\n---\n\n# Hello\n', 'utf8');
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    await showMetadata({ window });
+    const title = metadataPanel({ window }).getByRole('textbox', {
+      name: 'title',
+      exact: true,
+    });
+
+    await title.fill('Changed');
+    await title.press('Enter');
+    await expect
+      .poll(() => fs.readFileSync(helloPath, 'utf8'))
+      .toContain('title: Changed\n');
+
+    await selectUncommittedChanges({ window });
+    await discardChanges({ window });
+
+    await expect
+      .poll(() => fs.readFileSync(helloPath, 'utf8'))
+      .toContain('title: Hello\n');
+
+    await returnToRichTextEditor({ window });
+
+    await expect(title).toHaveValue('Hello');
   });
 });
 

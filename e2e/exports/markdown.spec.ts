@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+
 import { expect, test } from '../shared/fixtures';
 import {
   clearClipboard,
@@ -31,5 +34,34 @@ test.describe('copy as markdown', () => {
     const clipboardText = await readClipboardText({ electronApp });
     expect(clipboardText).toContain('# Hello');
     expect(clipboardText).toContain('This is a test document.');
+  });
+
+  test('copies the front matter with the document', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    fs.writeFileSync(
+      path.join(testProjectDir, 'hello.md'),
+      '---\ntitle: Hello\ndraft: true\n---\n\n# Hello\n',
+      'utf8'
+    );
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    await clearClipboard({ electronApp });
+
+    await runPaletteAction({ window, actionName: 'Copy as Markdown' });
+
+    await expect(window.getByText('Copied to Clipboard')).toBeVisible({
+      timeout: 10_000,
+    });
+
+    const clipboardText = await readClipboardText({ electronApp });
+    expect(clipboardText).toMatch(/^---\ntitle: Hello\ndraft: true\n---\n/);
+    expect(clipboardText).toContain('# Hello');
   });
 });

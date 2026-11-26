@@ -1,19 +1,22 @@
 import { next as Automerge } from '@automerge/automerge';
-import { type Page } from '@playwright/test';
+import { type ElectronApplication, type Page } from '@playwright/test';
+import fs from 'fs';
 import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
 import {
   expectFileToContain,
+  metadataPanel,
   moveToEndOfFirstPlainTextLine,
   openHelloMd,
   openPlainTextDocument,
   openProjectFolder,
   plainTextEditor,
   plainTextEditorLines,
+  showMetadata,
   typeInRichTextEditorSlowly,
 } from '../shared/helpers';
-import { connectPeer } from '../shared/sync-server';
+import { connectPeer, type SyncServer } from '../shared/sync-server';
 import {
   expectTextOverTime,
   recordCoarseSyncApplies,
@@ -327,6 +330,169 @@ test.describe('remote changes in the plain-text editor', () => {
         filePath: path.join(aliceProject, 'config.json'),
         text: expected,
       });
+    } finally {
+      scriptedPeer.disconnect();
+    }
+  });
+});
+
+test.describe("remote changes to a rich-text document's metadata", () => {
+  test.use({ withSyncServer: true });
+
+  // hello.md with the given front matter, open with its metadata shown, and shared.
+  const shareHelloMdWithFrontMatter = async ({
+    syncServer,
+    electronApp,
+    window,
+    testProjectDir,
+    frontMatter,
+  }: {
+    syncServer: SyncServer;
+    electronApp: ElectronApplication;
+    window: Page;
+    testProjectDir: string;
+    frontMatter: string;
+  }): Promise<string> => {
+    fs.writeFileSync(
+      path.join(testProjectDir, 'hello.md'),
+      `---\n${frontMatter}\n---\n\n# Hello\n\nThis is a test document.\n`,
+      'utf8'
+    );
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    await showMetadata({ window });
+
+    const shareId = await shareFromCommandPalette({ window });
+    await syncServer.waitForShare(shareId);
+
+    return shareId;
+  };
+
+  test('a value a peer changes shows in the metadata panel', async ({
+    syncServer,
+    electronApp,
+    window: aliceWindow,
+    testProjectDir: aliceProject,
+  }) => {
+    test.setTimeout(120_000);
+
+    const shareId = await shareHelloMdWithFrontMatter({
+      syncServer: syncServer!,
+      electronApp,
+      window: aliceWindow,
+      testProjectDir: aliceProject,
+      frontMatter: 'title: Hello',
+    });
+    const title = metadataPanel({ window: aliceWindow }).getByRole('textbox', {
+      name: 'title',
+      exact: true,
+    });
+
+    const scriptedPeer = connectPeer(syncServer!.url);
+    try {
+      const peerHandle = await scriptedPeer.findDocument(shareId);
+      expect(peerHandle.fullDoc().content).toContain('title: Hello\n');
+
+      const content = peerHandle
+        .fullDoc()
+        .content.replace('title: Hello\n', 'title: Hello there\n');
+      peerHandle.change((doc) =>
+        Automerge.updateText(doc, ['content'], content)
+      );
+
+      await expect(title).toHaveValue('Hello there', { timeout: 15_000 });
+
+      await expectFileToContain({
+        filePath: path.join(aliceProject, 'hello.md'),
+        text: 'title: Hello there\n',
+      });
+    } finally {
+      scriptedPeer.disconnect();
+    }
+  });
+
+  test('a value edited in the metadata panel reaches the peer', async ({
+    syncServer,
+    electronApp,
+    window: aliceWindow,
+    testProjectDir: aliceProject,
+  }) => {
+    test.setTimeout(120_000);
+
+    const shareId = await shareHelloMdWithFrontMatter({
+      syncServer: syncServer!,
+      electronApp,
+      window: aliceWindow,
+      testProjectDir: aliceProject,
+      frontMatter: 'title: Hello',
+    });
+    const title = metadataPanel({ window: aliceWindow }).getByRole('textbox', {
+      name: 'title',
+      exact: true,
+    });
+
+    const scriptedPeer = connectPeer(syncServer!.url);
+    try {
+      const peerHandle = await scriptedPeer.findDocument(shareId);
+
+      await title.fill('Hello there');
+      await title.press('Enter');
+
+      await expect
+        .poll(() => peerHandle.fullDoc().content, { timeout: 15_000 })
+        .toContain('title: Hello there\n');
+    } finally {
+      scriptedPeer.disconnect();
+    }
+  });
+
+  test('editing one value while a peer changes another keeps both', async ({
+    syncServer,
+    electronApp,
+    window: aliceWindow,
+    testProjectDir: aliceProject,
+  }) => {
+    test.setTimeout(120_000);
+
+    const shareId = await shareHelloMdWithFrontMatter({
+      syncServer: syncServer!,
+      electronApp,
+      window: aliceWindow,
+      testProjectDir: aliceProject,
+      frontMatter: 'title: Hello\ndraft: true',
+    });
+    const panel = metadataPanel({ window: aliceWindow });
+    const title = panel.getByRole('textbox', { name: 'title', exact: true });
+    const draft = panel.getByRole('checkbox', { name: 'draft' });
+
+    const scriptedPeer = connectPeer(syncServer!.url);
+    try {
+      const peerHandle = await scriptedPeer.findDocument(shareId);
+      expect(peerHandle.fullDoc().content).toContain('draft: true\n');
+
+      // Typed in the field, not committed yet.
+      await title.fill('Hello there');
+
+      const content = peerHandle
+        .fullDoc()
+        .content.replace('draft: true\n', 'draft: false\n');
+      peerHandle.change((doc) =>
+        Automerge.updateText(doc, ['content'], content)
+      );
+      await expect(draft).not.toBeChecked({ timeout: 15_000 });
+
+      await title.press('Enter');
+
+      await expect
+        .poll(() => peerHandle.fullDoc().content, { timeout: 15_000 })
+        .toContain('title: Hello there\ndraft: false\n');
+
+      await expect(title).toHaveValue('Hello there');
+      await expect(draft).not.toBeChecked();
     } finally {
       scriptedPeer.disconnect();
     }
