@@ -9,6 +9,13 @@ import * as path from 'path';
  */
 export const modKey = os.platform() === 'darwin' ? 'Meta' : 'Control';
 
+// Undo and redo through their keyboard shortcuts, in whatever has the focus.
+export const pressUndo = async ({ window }: { window: Page }) =>
+  window.keyboard.press(`${modKey}+z`);
+
+export const pressRedo = async ({ window }: { window: Page }) =>
+  window.keyboard.press(`${modKey}+Shift+z`);
+
 /**
  * Returns the platform-appropriate shortcuts for moving the caret to the start
  * or end of the document. macOS uses Cmd+Up/Down, Linux/Windows Ctrl+Home/End.
