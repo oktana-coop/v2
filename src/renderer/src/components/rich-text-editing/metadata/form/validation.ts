@@ -4,9 +4,7 @@ import {
   type InvalidMetadataKeyReason,
   invalidMetadataKeyReason,
 } from '../../../../../../modules/domain/rich-text';
-
-// The text a field commits for the text typed in it, or why it can't commit it.
-export type Validate = (text: string) => Either.Either<string, string>;
+import { type Validate } from '../use-text-draft';
 
 export const clearedMessage = 'Use Remove to delete the property';
 

@@ -2,8 +2,8 @@ import { Input } from '@headlessui/react';
 import clsx from 'clsx';
 import { type ChangeEvent, type KeyboardEvent } from 'react';
 
+import { type useTextDraft } from '../use-text-draft';
 import { plainField, plainFieldFocus, plainFieldInvalid } from './plain-field';
-import { type useTextDraft } from './use-text-draft';
 
 export const KeyField = ({
   metadataKey,

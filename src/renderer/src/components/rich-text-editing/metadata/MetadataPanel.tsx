@@ -28,8 +28,8 @@ import {
   toMetadataDiffRows,
 } from './diff/metadata-diff-rows';
 import { MetadataDiffRows } from './diff/MetadataDiffRows';
-import { type FormPanel, FormPanelContext } from './form/form-panel';
 import { MetadataForm } from './form/MetadataForm';
+import { type FormPanel, FormPanelContext } from './form-panel';
 import { MetadataEntries } from './MetadataEntries';
 import { MetadataPanelModeToggle } from './MetadataPanelModeToggle';
 import { useEditorFrontMatter } from './use-editor-front-matter';

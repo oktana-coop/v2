@@ -12,10 +12,10 @@ import {
 
 import { InvalidMetadataKeyError } from '../../../../../../modules/domain/rich-text';
 import { Field } from '../../../inputs/Fieldset';
+import { useFormPanel } from '../form-panel';
 import { MetadataGridRow } from '../MetadataGrid';
 import { type EditMetadataFn, type MetadataEditFailure } from './field-props';
 import { TextFieldErrors } from './FieldErrors';
-import { useFormPanel } from './form-panel';
 import {
   plainField,
   plainFieldFocus,

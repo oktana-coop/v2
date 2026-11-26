@@ -21,7 +21,7 @@ import {
   PlainTextEditorBase,
 } from '../../../plain-text-editing/PlainTextEditorBase';
 import { useLinter } from '../../../plain-text-editing/use-plain-text-language';
-import { useTextDraft } from '../form/use-text-draft';
+import { useTextDraft } from '../use-text-draft';
 import { draftKeymap, draftSync, replaceWithDocumentText } from './draft-sync';
 import { fittedToText } from './theme';
 

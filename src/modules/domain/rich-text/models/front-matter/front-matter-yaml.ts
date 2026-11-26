@@ -103,7 +103,7 @@ const toMetadataEntry = ({
       );
 
 // A map's entries, in the order it holds them.
-export const toMetadataEntries = (
+const toMetadataEntries = (
   map: YAMLMap<unknown, unknown>
 ): MetadataResult<MetadataEntry[]> =>
   Either.all(map.items.map(toMetadataEntry));
@@ -120,6 +120,14 @@ export const valueAt = ({
 
   return node === undefined ? Either.right(undefined) : toMetadataValue(node);
 };
+
+// The entries the document holds, in its order; none when it's empty.
+export const entriesOf = (
+  document: FrontMatterYaml
+): MetadataResult<MetadataEntry[]> =>
+  isMap(document.contents)
+    ? toMetadataEntries(document.contents)
+    : Either.right([]);
 
 // The keys the document holds, in its order.
 export const keysOf = (document: FrontMatterYaml): string[] =>

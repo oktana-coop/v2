@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { type ChangeEvent, type KeyboardEvent } from 'react';
 
 import { Field } from '../../../inputs/Fieldset';
+import { useTextDraft } from '../use-text-draft';
 import { type FieldProps } from './field-props';
 import { TextFieldErrors } from './FieldErrors';
 import {
@@ -10,7 +11,6 @@ import {
   plainFieldInvalid,
   plainValueField,
 } from './plain-field';
-import { useTextDraft } from './use-text-draft';
 import { validateValue } from './validation';
 
 // Multi-paragraph text; Enter starts a new line, Cmd/Ctrl+Enter commits it and

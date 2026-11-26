@@ -14,8 +14,10 @@ import {
 } from '../../../../../../modules/domain/rich-text';
 import { Checkbox } from '../../../inputs/Checkbox';
 import { Field } from '../../../inputs/Fieldset';
+import { useFormPanel } from '../form-panel';
 import { MetadataGrid, MetadataGridRow } from '../MetadataGrid';
 import { MetadataValueView } from '../MetadataValueView';
+import { useTextDraft } from '../use-text-draft';
 import { AddEntryButton } from './AddEntryButton';
 import { BlocksField } from './BlocksField';
 import {
@@ -24,13 +26,11 @@ import {
   type MetadataEditFailure,
 } from './field-props';
 import { TextFieldErrors } from './FieldErrors';
-import { useFormPanel } from './form-panel';
 import { InlinesField } from './InlinesField';
 import { KeyField } from './KeyField';
 import { type NewEntry, NewEntryRow } from './NewEntryRow';
 import { RowMenu } from './RowMenu';
 import { TextListField } from './TextListField';
-import { useTextDraft } from './use-text-draft';
 import { validateKey } from './validation';
 
 type FormProps = {

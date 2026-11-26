@@ -5,9 +5,9 @@ import { type ChangeEvent, type KeyboardEvent, useRef, useState } from 'react';
 import { Badge } from '../../../highlighting/Badge';
 import { CloseIcon } from '../../../icons';
 import { Field } from '../../../inputs/Fieldset';
+import { useFormPanel } from '../form-panel';
 import { type FieldProps } from './field-props';
 import { ClearedMessage, FailureMessage } from './FieldErrors';
-import { useFormPanel } from './form-panel';
 import {
   plainFieldFocusWithin,
   plainFieldInvalid,
@@ -23,7 +23,8 @@ export const TextListField = ({
 }: FieldProps & { items: string[] }) => {
   // The item typed while the input is focused.
   const [newItem, setNewItem] = useState<string | null>(null);
-  const [isRemovalRefused, setIsRemovalRefused] = useState(false);
+  const [isLastItemRemovalRefused, setIsLastItemRemovalRefused] =
+    useState(false);
   const panel = useFormPanel();
   // Set right before the input is left with Escape, for the blur to see it.
   const isCancelled = useRef(false);
@@ -41,17 +42,17 @@ export const TextListField = ({
   // Removing the last item would remove the property.
   const handleRemoveItem = (item: string) => {
     if (items.length === 1) {
-      setIsRemovalRefused(true);
+      setIsLastItemRemovalRefused(true);
       return;
     }
 
-    setIsRemovalRefused(false);
+    setIsLastItemRemovalRefused(false);
     onEdit({ type: 'removeListItem', key: metadataKey, item });
   };
 
   const handleFocus = () => {
     setNewItem(failedItem ?? '');
-    setIsRemovalRefused(false);
+    setIsLastItemRemovalRefused(false);
     onClearFailure();
   };
 
@@ -134,8 +135,10 @@ export const TextListField = ({
           onBlur={handleBlur}
         />
       </div>
-      {isRemovalRefused && <ClearedMessage />}
-      {!isRemovalRefused && failure && <FailureMessage failure={failure} />}
+      {isLastItemRemovalRefused && <ClearedMessage />}
+      {!isLastItemRemovalRefused && failure && (
+        <FailureMessage failure={failure} />
+      )}
     </Field>
   );
 };

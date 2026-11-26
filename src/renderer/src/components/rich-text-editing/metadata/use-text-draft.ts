@@ -3,11 +3,13 @@ import { pipe } from 'effect/Function';
 import { type KeyboardEvent, useRef, useState } from 'react';
 
 import { useFormPanel } from './form-panel';
-import { type Validate } from './validation';
 
 // The text typed in a field, and the text it started from: the base an edit
 // of it merges from.
 export type TextDraft = { base: string; text: string };
+
+// The text a field commits for the text typed in it, or why it can't commit it.
+export type Validate = (text: string) => Either.Either<string, string>;
 
 type DraftState =
   | { type: 'idle' }
