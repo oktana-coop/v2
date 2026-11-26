@@ -160,9 +160,7 @@ const applyEdit = ({
   }
 };
 
-// The key the edit gives a property: an added key, or a rename's new key while
-// the renamed key is there. Null for an edit that gives none.
-const newKeyOf = ({
+const keyCreatedBy = ({
   edit,
   existingKeys,
 }: {
@@ -173,14 +171,38 @@ const newKeyOf = ({
     return edit.key;
   }
 
-  return edit.type === 'renameKey' &&
+  if (
+    edit.type === 'renameKey' &&
     edit.newKey !== edit.key &&
     existingKeys.includes(edit.key)
-    ? edit.newKey
-    : null;
+  ) {
+    return edit.newKey;
+  }
+
+  return null;
 };
 
-// Fails for an edit whose new key can't name a property.
+const checkKey = ({
+  key,
+  existingKeys,
+}: {
+  key: string;
+  existingKeys: readonly string[];
+}): Either.Either<string, InvalidMetadataKeyError> => {
+  const keyInvalidReason = invalidMetadataKeyReason({ key, existingKeys });
+
+  if (keyInvalidReason === null) {
+    return Either.right(key);
+  }
+
+  return Either.left(
+    new InvalidMetadataKeyError(
+      `The key "${key}" can't name a property (${keyInvalidReason.type}).`,
+      { reason: keyInvalidReason }
+    )
+  );
+};
+
 const checkEdit = ({
   document,
   edit,
@@ -189,23 +211,18 @@ const checkEdit = ({
   edit: MetadataEdit;
 }): Either.Either<FrontMatterYaml, InvalidMetadataKeyError> => {
   const existingKeys = keysOf(document);
-  const newKey = newKeyOf({ edit, existingKeys });
-  const reason =
-    newKey === null
-      ? null
-      : invalidMetadataKeyReason({ key: newKey, existingKeys });
+  const createdKey = keyCreatedBy({ edit, existingKeys });
 
-  return reason === null
-    ? Either.right(document)
-    : Either.left(
-        new InvalidMetadataKeyError(
-          `The key "${newKey}" can't name a property (${reason.type}).`,
-          { reason }
-        )
-      );
+  if (createdKey === null) {
+    return Either.right(document);
+  }
+
+  return pipe(
+    checkKey({ key: createdKey, existingKeys }),
+    Either.map(() => document)
+  );
 };
 
-// The front matter with the edit applied; a key the edit sets is added if missing.
 export const applyMetadataEdit = ({
   frontMatter,
   edit,
