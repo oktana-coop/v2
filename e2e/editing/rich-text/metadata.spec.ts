@@ -8,6 +8,7 @@ import path from 'path';
 
 import { expect, test } from '../../shared/fixtures';
 import {
+  documentStartKey,
   focusAndTypeInRichTextEditor,
   metadataPanel,
   modKey,
@@ -858,5 +859,170 @@ test.describe("editing a rich-text document's metadata", () => {
     await title.press('Escape');
     await window.keyboard.press(`${modKey}+z`);
     await expect.poll(fileText).toContain('title: Hi\ntags:\n- history\n---');
+  });
+
+  test.describe('as YAML', () => {
+    const yamlEditor = ({ panel }: { panel: Locator }) =>
+      panel.locator('.cm-content');
+
+    // The YAML editor's lines, for `expect.poll`.
+    const yamlLines =
+      ({ panel }: { panel: Locator }) =>
+      () =>
+        yamlEditor({ panel }).locator('.cm-line').allTextContents();
+
+    const typeAtEndOfFirstLine = async ({
+      window,
+      panel,
+      text,
+    }: {
+      window: Page;
+      panel: Locator;
+      text: string;
+    }) => {
+      await yamlEditor({ panel }).click();
+      await window.keyboard.press(documentStartKey);
+      await window.keyboard.press('End');
+      await window.keyboard.type(text);
+    };
+
+    test('editing the YAML saves it to the file with Cmd/Ctrl+Enter', async ({
+      electronApp,
+      window,
+      testProjectDir,
+    }) => {
+      const { panel, fileText } = await openHelloMdWithFrontMatter({
+        electronApp,
+        window,
+        testProjectDir,
+        frontMatter: 'title: Hello\ndraft: true',
+      });
+
+      await panel.getByRole('button', { name: 'Edit as YAML' }).click();
+      await expect
+        .poll(yamlLines({ panel }))
+        .toEqual(['title: Hello', 'draft: true', '']);
+      await typeAtEndOfFirstLine({ window, panel, text: ' world' });
+      await window.keyboard.press(`${modKey}+Enter`);
+
+      await expect
+        .poll(fileText)
+        .toContain('title: Hello world\ndraft: true\n');
+      await expect(panel).toBeFocused();
+
+      await panel.getByRole('button', { name: 'Edit as form' }).click();
+
+      await expect(
+        panel.getByRole('textbox', { name: 'title', exact: true })
+      ).toHaveValue('Hello world');
+    });
+
+    test('leaving the YAML editor saves it to the file', async ({
+      electronApp,
+      window,
+      testProjectDir,
+    }) => {
+      const { panel, fileText } = await openHelloMdWithFrontMatter({
+        electronApp,
+        window,
+        testProjectDir,
+        frontMatter: 'title: Hello',
+      });
+      await panel.getByRole('button', { name: 'Edit as YAML' }).click();
+      await typeAtEndOfFirstLine({ window, panel, text: '\ndraft: true' });
+
+      await window.locator('.ProseMirror').click();
+
+      await expect.poll(fileText).toContain('title: Hello\ndraft: true\n');
+    });
+
+    test("YAML that can't be saved stays with the error, until Escape sets it back", async ({
+      electronApp,
+      window,
+      testProjectDir,
+    }) => {
+      const { panel, fileText } = await openHelloMdWithFrontMatter({
+        electronApp,
+        window,
+        testProjectDir,
+        frontMatter: 'title: Hello',
+      });
+      await panel.getByRole('button', { name: 'Edit as YAML' }).click();
+      await typeAtEndOfFirstLine({ window, panel, text: '\ndraft: [' });
+
+      await window.keyboard.press(`${modKey}+Enter`);
+
+      await expect(
+        panel.getByText("This YAML can't be saved as properties.")
+      ).toBeVisible();
+      await expect
+        .poll(yamlLines({ panel }))
+        .toEqual(['title: Hello', 'draft: [', '']);
+      expect(fileText()).toContain('title: Hello\n');
+
+      await yamlEditor({ panel }).click();
+      await window.keyboard.press('Escape');
+
+      await expect.poll(yamlLines({ panel })).toEqual(['title: Hello', '']);
+
+      // Escape's change is in the editor's undo history.
+      await window.keyboard.press(`${modKey}+z`);
+
+      await expect
+        .poll(yamlLines({ panel }))
+        .toEqual(['title: Hello', 'draft: [', '']);
+    });
+
+    test('undo in the form takes back a change made as YAML', async ({
+      electronApp,
+      window,
+      testProjectDir,
+    }) => {
+      const { panel, fileText } = await openHelloMdWithFrontMatter({
+        electronApp,
+        window,
+        testProjectDir,
+        frontMatter: 'title: Hello',
+      });
+      await panel.getByRole('button', { name: 'Edit as YAML' }).click();
+      await typeAtEndOfFirstLine({ window, panel, text: ' world' });
+      await window.keyboard.press(`${modKey}+Enter`);
+      await expect.poll(fileText).toContain('title: Hello world\n');
+      await panel.getByRole('button', { name: 'Edit as form' }).click();
+
+      await window.keyboard.press(`${modKey}+z`);
+
+      await expect.poll(fileText).toContain('title: Hello\n');
+      await expect(
+        panel.getByRole('textbox', { name: 'title', exact: true })
+      ).toHaveValue('Hello');
+    });
+
+    test('YAML mode holds after a reload', async ({
+      electronApp,
+      window,
+      testProjectDir,
+    }) => {
+      const { panel } = await openHelloMdWithFrontMatter({
+        electronApp,
+        window,
+        testProjectDir,
+        frontMatter: 'title: Hello',
+      });
+      await panel.getByRole('button', { name: 'Edit as YAML' }).click();
+
+      await window.reload();
+      await openProjectFolder({
+        electronApp,
+        window,
+        folderPath: testProjectDir,
+      });
+      await openHelloMd({ window });
+
+      await expect(
+        panel.getByRole('button', { name: 'Edit as form' })
+      ).toBeVisible();
+      await expect.poll(yamlLines({ panel })).toEqual(['title: Hello', '']);
+    });
   });
 });

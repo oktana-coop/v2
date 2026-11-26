@@ -14,12 +14,21 @@ import { type MetadataEdit } from '../../models';
 import { getDocFrontMatter } from '../front-matter';
 import { schema } from '../schema';
 import { para } from '../test-utils';
-import { editMetadata, redoMetadataEdit, undoMetadataEdit } from './commands';
+import {
+  editFrontMatter,
+  editMetadata,
+  redoMetadataEdit,
+  undoMetadataEdit,
+} from './commands';
 import {
   metadataEditingPlugin,
   type MetadataEditingPluginArgs,
 } from './plugin';
-import { getMetadataEditFailures } from './state';
+import {
+  type FrontMatterEdit,
+  getFrontMatterEditFailure,
+  getMetadataEditFailures,
+} from './state';
 
 type NormalizeFrontMatter = MetadataEditingPluginArgs['normalizeFrontMatter'];
 
@@ -81,6 +90,14 @@ const runEditMetadata = ({
   view: EditorView;
   edit: MetadataEdit;
 }) => editMetadata(edit)(view.state, view.dispatch);
+
+const runEditFrontMatter = ({
+  view,
+  edit,
+}: {
+  view: EditorView;
+  edit: FrontMatterEdit;
+}) => editFrontMatter(edit)(view.state, view.dispatch);
 
 const runUndo = (view: EditorView) =>
   undoMetadataEdit(view.state, view.dispatch);
@@ -296,6 +313,98 @@ describe('metadataEditingPlugin', () => {
 
     await eventually(() => expect(frontMatterOf(view)).toBe('title: "Hi"\n'));
     expect(getMetadataEditFailures(view.state).has('title')).toBe(false);
+  });
+
+  describe('front matter edits', () => {
+    it('merges the edit over a change made since it started, then normalizes it', async () => {
+      const normalizeFrontMatter = vi
+        .fn<NormalizeFrontMatter>()
+        .mockImplementation(unchanged);
+      const view = viewWith({
+        frontMatter: 'title: Hello\ndraft: true\n',
+        normalizeFrontMatter,
+      });
+
+      setOtherFrontMatter({
+        view,
+        frontMatter: 'title: Hello\ndraft: false\n',
+      });
+      runEditFrontMatter({
+        view,
+        edit: {
+          base: 'title: Hello\ndraft: true\n',
+          frontMatter: 'title: Hi\ndraft: true\n',
+        },
+      });
+
+      await eventually(() =>
+        expect(frontMatterOf(view)).toBe('title: Hi\ndraft: false\n')
+      );
+      expect(normalizeFrontMatter).toHaveBeenCalledWith(
+        'title: Hi\ndraft: false\n'
+      );
+    });
+
+    it("keeps the failure of an edit that isn't valid YAML, without normalizing it", async () => {
+      const normalizeFrontMatter = vi.fn<NormalizeFrontMatter>();
+      const onError = vi.fn<MetadataEditingPluginArgs['onError']>();
+      const view = viewWith({
+        frontMatter: 'title: Hello\n',
+        normalizeFrontMatter,
+        onError,
+      });
+      const edit = { base: 'title: Hello\n', frontMatter: 'title: [Hello\n' };
+
+      runEditFrontMatter({ view, edit });
+
+      await eventually(() =>
+        expect(getFrontMatterEditFailure(view.state)).toEqual({
+          edit,
+          error: expect.objectContaining({ _tag: InvalidMetadataErrorTag }),
+        })
+      );
+      expect(normalizeFrontMatter).not.toHaveBeenCalled();
+      expect(onError).not.toHaveBeenCalled();
+      expect(frontMatterOf(view)).toBe('title: Hello\n');
+    });
+
+    it('clears the failure when a later edit is committed', async () => {
+      const view = viewWith({
+        frontMatter: 'title: Hello\n',
+        normalizeFrontMatter: unchanged,
+      });
+
+      runEditFrontMatter({
+        view,
+        edit: { base: 'title: Hello\n', frontMatter: 'title: [Hello\n' },
+      });
+      runEditFrontMatter({
+        view,
+        edit: { base: 'title: Hello\n', frontMatter: 'title: Hi\n' },
+      });
+
+      await eventually(() => expect(frontMatterOf(view)).toBe('title: Hi\n'));
+      expect(getFrontMatterEditFailure(view.state)).toBeNull();
+    });
+
+    it('is undone like the other commits', async () => {
+      const view = viewWith({
+        frontMatter: 'title: Hello\n',
+        normalizeFrontMatter: unchanged,
+      });
+
+      runEditFrontMatter({
+        view,
+        edit: { base: 'title: Hello\n', frontMatter: 'title: Hi\n' },
+      });
+      await eventually(() => expect(frontMatterOf(view)).toBe('title: Hi\n'));
+
+      runUndo(view);
+
+      await eventually(() =>
+        expect(frontMatterOf(view)).toBe('title: Hello\n')
+      );
+    });
   });
 
   describe('undo and redo', () => {

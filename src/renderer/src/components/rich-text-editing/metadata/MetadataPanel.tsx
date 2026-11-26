@@ -20,6 +20,7 @@ import {
 } from '../../../../../modules/domain/rich-text';
 import { ProseMirrorContext } from '../../../../../modules/domain/rich-text/react/prosemirror-context';
 import { useEditorState } from '../../../../../modules/domain/rich-text/react/use-editor-state';
+import { FunctionalityConfigContext } from '../../../../../modules/personalization/browser';
 import { type KeyBindings, useKeyBindingMatcher } from '../../../keyboard';
 import { Text } from '../../typography/Text';
 import {
@@ -30,11 +31,16 @@ import { MetadataDiffRows } from './diff/MetadataDiffRows';
 import { type FormPanel, FormPanelContext } from './form/form-panel';
 import { MetadataForm } from './form/MetadataForm';
 import { MetadataEntries } from './MetadataEntries';
+import { MetadataPanelModeToggle } from './MetadataPanelModeToggle';
 import { useEditorFrontMatter } from './use-editor-front-matter';
+import { FrontMatterEditor } from './yaml/FrontMatterEditor';
 
 const {
+  clearFrontMatterEditFailure,
   clearMetadataEditFailure,
+  editFrontMatter,
   editMetadata,
+  getFrontMatterEditFailure,
   getMetadataEditFailures,
   hasMetadataEditingPlugin,
   redoMetadataEdit,
@@ -105,10 +111,11 @@ const MetadataSection = forwardRef<
   HTMLElement,
   {
     children: ReactNode;
+    modeToggle?: ReactNode;
     tabIndex?: number;
     onKeyDown?: KeyboardEventHandler<HTMLElement>;
   }
->(function MetadataSection({ children, ...sectionProps }, ref) {
+>(function MetadataSection({ children, modeToggle, ...sectionProps }, ref) {
   return (
     <section
       ref={ref}
@@ -116,8 +123,9 @@ const MetadataSection = forwardRef<
       className="px-4 pt-4 text-left focus:outline-none"
       {...sectionProps}
     >
-      <div className="border-b border-zinc-950/5 pb-4 dark:border-white/5">
-        {children}
+      <div className="flex items-start gap-2 border-b border-zinc-950/5 pb-4 dark:border-white/5">
+        <div className="min-w-0 flex-1">{children}</div>
+        {modeToggle}
       </div>
     </section>
   );
@@ -155,27 +163,43 @@ export const MetadataPanel = ({
   );
 };
 
-const MetadataFormPanel = ({
+const MetadataFormContent = ({
   frontMatter,
-  onUndo,
-  onRedo,
   ...formProps
 }: {
   frontMatter: string | null;
   failures: prosemirror.MetadataEditFailures;
   onEdit: (edit: MetadataEdit) => void;
   onClearFailure: (key: string) => void;
-  onUndo: () => void;
-  onRedo: () => void;
 }) => {
   const entries = useMemo(() => parseOrEmpty(frontMatter), [frontMatter]);
+
+  return Either.match(entries, {
+    onLeft: (error) => <UnreadableMetadata error={error} />,
+    onRight: (formEntries) => (
+      <MetadataForm entries={formEntries} {...formProps} />
+    ),
+  });
+};
+
+const EditableMetadataPanel = ({
+  showYaml,
+  onShowYamlChange,
+  onUndo,
+  onRedo,
+  children,
+}: {
+  showYaml: boolean;
+  onShowYamlChange: (showYaml: boolean) => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  children: ReactNode;
+}) => {
   const section = useRef<HTMLElement>(null);
   const matchKey = useKeyBindingMatcher();
-  const editHistoryKeys: KeyBindings = {
-    'ctrl+z': onUndo,
-    'ctrl+shift+z': onRedo,
-    'ctrl+y': onRedo,
-  };
+  const editHistoryKeys: KeyBindings = showYaml
+    ? {}
+    : { 'ctrl+z': onUndo, 'ctrl+shift+z': onRedo, 'ctrl+y': onRedo };
 
   const focus = useCallback(() => {
     section.current?.focus();
@@ -200,25 +224,38 @@ const MetadataFormPanel = ({
   };
 
   return (
-    <MetadataSection ref={section} tabIndex={-1} onKeyDown={handleKeyDown}>
-      {Either.match(entries, {
-        onLeft: (error) => <UnreadableMetadata error={error} />,
-        onRight: (formEntries) => (
-          <FormPanelContext.Provider value={panel}>
-            <MetadataForm entries={formEntries} {...formProps} />
-          </FormPanelContext.Provider>
-        ),
-      })}
+    <MetadataSection
+      ref={section}
+      modeToggle={
+        <MetadataPanelModeToggle
+          showYaml={showYaml}
+          onShowYamlChange={onShowYamlChange}
+        />
+      }
+      tabIndex={-1}
+      onKeyDown={handleKeyDown}
+    >
+      <FormPanelContext.Provider value={panel}>
+        {children}
+      </FormPanelContext.Provider>
     </MetadataSection>
   );
 };
 
 export const EditorMetadataPanel = () => {
+  const { showMetadataAsYaml, setShowMetadataAsYaml } = useContext(
+    FunctionalityConfigContext
+  );
   const frontMatter = useEditorFrontMatter();
   const failures = useEditorState(getMetadataEditFailures);
+  const frontMatterEditFailure = useEditorState(getFrontMatterEditFailure);
   const { view } = useContext(ProseMirrorContext);
 
-  if (frontMatter === undefined || failures === undefined) {
+  if (
+    frontMatter === undefined ||
+    failures === undefined ||
+    frontMatterEditFailure === undefined
+  ) {
     return null;
   }
 
@@ -235,6 +272,14 @@ export const EditorMetadataPanel = () => {
     clearMetadataEditFailure(key)(view.state, view.dispatch);
   };
 
+  const handleEditFrontMatter = (edit: prosemirror.FrontMatterEdit) => {
+    editFrontMatter(edit)(view.state, view.dispatch);
+  };
+
+  const handleClearFrontMatterEditFailure = () => {
+    clearFrontMatterEditFailure(view.state, view.dispatch);
+  };
+
   const handleUndo = () => {
     undoMetadataEdit(view.state, view.dispatch);
   };
@@ -244,13 +289,27 @@ export const EditorMetadataPanel = () => {
   };
 
   return (
-    <MetadataFormPanel
-      frontMatter={frontMatter}
-      failures={failures}
-      onEdit={handleEdit}
-      onClearFailure={handleClearFailure}
+    <EditableMetadataPanel
+      showYaml={showMetadataAsYaml}
+      onShowYamlChange={setShowMetadataAsYaml}
       onUndo={handleUndo}
       onRedo={handleRedo}
-    />
+    >
+      {showMetadataAsYaml ? (
+        <FrontMatterEditor
+          frontMatter={frontMatter}
+          failure={frontMatterEditFailure}
+          onEdit={handleEditFrontMatter}
+          onClearFailure={handleClearFrontMatterEditFailure}
+        />
+      ) : (
+        <MetadataFormContent
+          frontMatter={frontMatter}
+          failures={failures}
+          onEdit={handleEdit}
+          onClearFailure={handleClearFailure}
+        />
+      )}
+    </EditableMetadataPanel>
   );
 };

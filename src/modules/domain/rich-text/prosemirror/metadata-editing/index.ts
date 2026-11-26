@@ -1,5 +1,7 @@
 export {
+  clearFrontMatterEditFailure,
   clearMetadataEditFailure,
+  editFrontMatter,
   editMetadata,
   redoMetadataEdit,
   undoMetadataEdit,
@@ -9,6 +11,9 @@ export {
   type MetadataEditingPluginArgs,
 } from './plugin';
 export {
+  type FrontMatterEdit,
+  type FrontMatterEditFailure,
+  getFrontMatterEditFailure,
   getMetadataEditFailures,
   hasMetadataEditingPlugin,
   type MetadataEditFailure,

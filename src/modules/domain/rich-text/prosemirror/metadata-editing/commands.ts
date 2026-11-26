@@ -3,6 +3,8 @@ import { type Command } from 'prosemirror-state';
 
 import { type MetadataEdit } from '../../models';
 import {
+  type FrontMatterEdit,
+  getFrontMatterEditFailure,
   getMetadataEditCommits,
   getMetadataEditFailures,
   type MetadataEditCommit,
@@ -39,7 +41,10 @@ const queueCommit =
   };
 
 export const editMetadata = (edit: MetadataEdit): Command =>
-  queueCommit({ type: 'edit', edit });
+  queueCommit({ type: 'metadataEdit', edit });
+
+export const editFrontMatter = (edit: FrontMatterEdit): Command =>
+  queueCommit({ type: 'frontMatterEdit', edit });
 
 export const undoMetadataEdit: Command = queueCommit({ type: 'undo' });
 
@@ -53,7 +58,20 @@ export const clearMetadataEditFailure =
       return false;
     }
 
-    const meta: MetadataEditingMeta = { type: 'failureCleared', key };
+    const meta: MetadataEditingMeta = {
+      type: 'metadataEditFailureCleared',
+      key,
+    };
     dispatch?.(state.tr.setMeta(pluginKey, meta));
     return true;
   };
+
+export const clearFrontMatterEditFailure: Command = (state, dispatch) => {
+  if (getFrontMatterEditFailure(state) === null) {
+    return false;
+  }
+
+  const meta: MetadataEditingMeta = { type: 'frontMatterEditFailureCleared' };
+  dispatch?.(state.tr.setMeta(pluginKey, meta));
+  return true;
+};

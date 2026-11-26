@@ -9,7 +9,9 @@ import { getDocFrontMatter } from '../front-matter';
 import { schema } from '../schema';
 import { para, runCommand } from '../test-utils';
 import {
+  clearFrontMatterEditFailure,
   clearMetadataEditFailure,
+  editFrontMatter,
   editMetadata,
   redoMetadataEdit,
   setFrontMatter,
@@ -17,6 +19,8 @@ import {
 } from './commands';
 import { metadataEditingPlugin } from './plugin';
 import {
+  type FrontMatterEdit,
+  getFrontMatterEditFailure,
   getMetadataEditFailures,
   type MetadataEditingMeta,
   pluginKey,
@@ -30,6 +34,11 @@ const setDraft: MetadataEdit = {
   type: 'setBoolean',
   key: 'draft',
   value: false,
+};
+
+const retitle: FrontMatterEdit = {
+  base: 'draft: true\n',
+  frontMatter: 'title: Hello\ndraft: true\n',
 };
 
 const stateWithPlugin = () =>
@@ -70,6 +79,7 @@ describe('editMetadata', () => {
 });
 
 describe.each([
+  { name: 'editFrontMatter', command: editFrontMatter(retitle) },
   { name: 'undoMetadataEdit', command: undoMetadataEdit },
   { name: 'redoMetadataEdit', command: redoMetadataEdit },
 ])('$name', ({ command }) => {
@@ -86,7 +96,7 @@ describe('clearMetadataEditFailure', () => {
   it("forgets the property's failed edit", () => {
     const state = stateWithPlugin();
     const failed: MetadataEditingMeta = {
-      type: 'failed',
+      type: 'metadataEditFailed',
       failure: { edit: setDraft, error: new InvalidMetadataError('Invalid') },
     };
     const withFailure = state.apply(state.tr.setMeta(pluginKey, failed));
@@ -102,5 +112,31 @@ describe('clearMetadataEditFailure', () => {
 
   it("doesn't apply when the property has no failed edit", () => {
     expect(clearMetadataEditFailure('draft')(stateWithPlugin())).toBe(false);
+  });
+});
+
+describe('clearFrontMatterEditFailure', () => {
+  it("forgets the front matter's failed edit", () => {
+    const state = stateWithPlugin();
+    const failed: MetadataEditingMeta = {
+      type: 'frontMatterEditFailed',
+      failure: {
+        edit: retitle,
+        error: new InvalidMetadataError('Invalid'),
+      },
+    };
+    const withFailure = state.apply(state.tr.setMeta(pluginKey, failed));
+
+    const { handled, next } = runCommand({
+      state: withFailure,
+      command: clearFrontMatterEditFailure,
+    });
+
+    expect(handled).toBe(true);
+    expect(getFrontMatterEditFailure(next)).toBeNull();
+  });
+
+  it("doesn't apply when the front matter has no failed edit", () => {
+    expect(clearFrontMatterEditFailure(stateWithPlugin())).toBe(false);
   });
 });

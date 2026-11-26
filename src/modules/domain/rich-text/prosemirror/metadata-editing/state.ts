@@ -26,20 +26,36 @@ export type MetadataEditFailure = {
 // The last failed edit of each property, by its key.
 export type MetadataEditFailures = ReadonlyMap<string, MetadataEditFailure>;
 
+// The front matter as typed, and the front matter it started from.
+export type FrontMatterEdit = { base: string; frontMatter: string };
+
+export type FrontMatterEditFailure = {
+  edit: FrontMatterEdit;
+  error: InvalidMetadataError | UnrepresentableContentError;
+};
+
 export type MetadataEditingState = {
-  failures: MetadataEditFailures;
+  metadataEditFailures: MetadataEditFailures;
+  // The last failed edit of the whole front matter.
+  frontMatterEditFailure: FrontMatterEditFailure | null;
   history: MetadataHistory;
 };
 
 export type MetadataEditCommit =
-  { type: 'edit'; edit: MetadataEdit } | { type: MetadataEditHistoryOperation };
+  | { type: 'metadataEdit'; edit: MetadataEdit }
+  | { type: 'frontMatterEdit'; edit: FrontMatterEdit }
+  | { type: MetadataEditHistoryOperation };
 
 // What a transaction tells the plugin.
 export type MetadataEditingMeta =
-  | { type: 'failed'; failure: MetadataEditFailure }
-  | { type: 'failureCleared'; key: string }
+  | { type: 'metadataEditFailed'; failure: MetadataEditFailure }
+  | { type: 'metadataEditFailureCleared'; key: string }
   // An edit's change; the property's earlier failure no longer stands.
-  | { type: 'committed'; key: string; change: FrontMatterChange }
+  | { type: 'metadataEdited'; key: string; change: FrontMatterChange }
+  | { type: 'frontMatterEditFailed'; failure: FrontMatterEditFailure }
+  | { type: 'frontMatterEditFailureCleared' }
+  // A front matter edit's change; its earlier failure no longer stands.
+  | { type: 'frontMatterEdited'; change: FrontMatterChange }
   // The change an undo or redo made.
   | {
       type: 'reversed';
@@ -65,7 +81,13 @@ const noFailures: MetadataEditFailures = new Map();
 
 export const getMetadataEditFailures = (
   state: EditorState
-): MetadataEditFailures => pluginKey.getState(state)?.failures ?? noFailures;
+): MetadataEditFailures =>
+  pluginKey.getState(state)?.metadataEditFailures ?? noFailures;
+
+export const getFrontMatterEditFailure = (
+  state: EditorState
+): FrontMatterEditFailure | null =>
+  pluginKey.getState(state)?.frontMatterEditFailure ?? null;
 
 export const getMetadataHistory = (state: EditorState): MetadataHistory =>
   pluginKey.getState(state)?.history ?? emptyHistory;

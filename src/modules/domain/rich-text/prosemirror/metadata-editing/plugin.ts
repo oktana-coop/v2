@@ -14,7 +14,11 @@ import {
   type RepresentationTransformError,
   type UnrepresentableContentError,
 } from '../../errors';
-import { applyMetadataEdit, type MetadataEdit } from '../../models';
+import {
+  applyMetadataEdit,
+  mergeFrontMatter,
+  type MetadataEdit,
+} from '../../models';
 import { type RepresentationTransform } from '../../ports/representation-transform';
 import { getDocFrontMatter } from '../front-matter';
 import { setFrontMatter } from './commands';
@@ -29,6 +33,8 @@ import {
   withReversal,
 } from './history';
 import {
+  type FrontMatterEdit,
+  type FrontMatterEditFailure,
   getMetadataHistory,
   type MetadataEditCommit,
   type MetadataEditFailure,
@@ -68,16 +74,16 @@ const commitChange =
     toMeta,
   }: {
     apply: (
-      frontMatter: string | null
+      currentFrontMatter: string | null
     ) => Either.Either<string, InvalidMetadataError | InvalidMetadataKeyError>;
     toMeta: (change: FrontMatterChange) => MetadataEditingMeta;
   }): Effect.Effect<void, CommitError> =>
     Effect.suspend(() => {
       const { view, normalizeFrontMatter } = deps;
-      const frontMatter = getDocFrontMatter(view.state.doc);
+      const currentFrontMatter = getDocFrontMatter(view.state.doc);
 
       return pipe(
-        apply(frontMatter),
+        apply(currentFrontMatter),
         Effect.flatMap(normalizeFrontMatter),
         Effect.flatMap((normalized) => {
           if (view.isDestroyed) {
@@ -85,11 +91,14 @@ const commitChange =
           }
 
           // Another change reached the front matter meanwhile.
-          if (getDocFrontMatter(view.state.doc) !== frontMatter) {
+          if (getDocFrontMatter(view.state.doc) !== currentFrontMatter) {
             return commitChange(deps)({ apply, toMeta });
           }
 
-          const meta = toMeta({ before: frontMatter, after: normalized });
+          const meta = toMeta({
+            before: currentFrontMatter,
+            after: normalized,
+          });
 
           return Effect.sync(() =>
             setFrontMatter(normalized)(view.state, (tr) =>
@@ -100,12 +109,25 @@ const commitChange =
       );
     });
 
-const commitEdit =
+const commitMetadataEdit =
   (deps: CommitDeps) =>
   (edit: MetadataEdit): Effect.Effect<void, CommitError> =>
     commitChange(deps)({
       apply: (frontMatter) => applyMetadataEdit({ frontMatter, edit }),
-      toMeta: (change) => ({ type: 'committed', key: edit.key, change }),
+      toMeta: (change) => ({ type: 'metadataEdited', key: edit.key, change }),
+    });
+
+const commitFrontMatterEdit =
+  (deps: CommitDeps) =>
+  (edit: FrontMatterEdit): Effect.Effect<void, CommitError> =>
+    commitChange(deps)({
+      apply: (currentFrontMatter) =>
+        mergeFrontMatter({
+          base: edit.base,
+          yours: edit.frontMatter,
+          theirs: currentFrontMatter,
+        }),
+      toMeta: (change) => ({ type: 'frontMatterEdited', change }),
     });
 
 const commitReversal =
@@ -131,29 +153,29 @@ const commitReversal =
       });
     });
 
-const storeFailure =
+const dispatchMeta =
   ({ view }: { view: EditorView }) =>
-  (failure: MetadataEditFailure): Effect.Effect<void> =>
+  (meta: MetadataEditingMeta): Effect.Effect<void> =>
     Effect.sync(() => {
-      if (view.isDestroyed) {
-        return;
+      if (!view.isDestroyed) {
+        view.dispatch(view.state.tr.setMeta(pluginKey, meta));
       }
-
-      const meta: MetadataEditingMeta = { type: 'failed', failure };
-      view.dispatch(view.state.tr.setMeta(pluginKey, meta));
     });
+
+const storeMetadataEditFailure =
+  (deps: { view: EditorView }) =>
+  (failure: MetadataEditFailure): Effect.Effect<void> =>
+    dispatchMeta(deps)({ type: 'metadataEditFailed', failure });
+
+const storeFrontMatterEditFailure =
+  (deps: { view: EditorView }) =>
+  (failure: FrontMatterEditFailure): Effect.Effect<void> =>
+    dispatchMeta(deps)({ type: 'frontMatterEditFailed', failure });
 
 const dropNextChange =
-  ({ view }: { view: EditorView }) =>
+  (deps: { view: EditorView }) =>
   (operation: MetadataEditHistoryOperation): Effect.Effect<void> =>
-    Effect.sync(() => {
-      if (view.isDestroyed) {
-        return;
-      }
-
-      const meta: MetadataEditingMeta = { type: 'reversalFailed', operation };
-      view.dispatch(view.state.tr.setMeta(pluginKey, meta));
-    });
+    dispatchMeta(deps)({ type: 'reversalFailed', operation });
 
 const processCommit =
   (deps: ProcessCommitDeps) =>
@@ -162,16 +184,30 @@ const processCommit =
       Effect.sync(() => deps.onError(Cause.squash(cause)));
 
     switch (commit.type) {
-      case 'edit': {
+      case 'metadataEdit': {
         const { edit } = commit;
         const storedFailure = (error: MetadataEditFailure['error']) =>
-          storeFailure(deps)({ edit, error });
+          storeMetadataEditFailure(deps)({ edit, error });
 
         return pipe(
-          commitEdit(deps)(edit),
+          commitMetadataEdit(deps)(edit),
           Effect.catchTags({
             InvalidMetadataError: storedFailure,
             InvalidMetadataKeyError: storedFailure,
+            UnrepresentableContentError: storedFailure,
+          }),
+          Effect.catchAllCause(report)
+        );
+      }
+      case 'frontMatterEdit': {
+        const { edit } = commit;
+        const storedFailure = (error: FrontMatterEditFailure['error']) =>
+          storeFrontMatterEditFailure(deps)({ edit, error });
+
+        return pipe(
+          commitFrontMatterEdit(deps)(edit),
+          Effect.catchTags({
+            InvalidMetadataError: storedFailure,
             UnrepresentableContentError: storedFailure,
           }),
           Effect.catchAllCause(report)
@@ -209,22 +245,39 @@ const applyMeta = ({
   meta: MetadataEditingMeta;
 }): MetadataEditingState => {
   switch (meta.type) {
-    case 'failed':
+    case 'metadataEditFailed':
       return {
         ...state,
-        failures: new Map([
-          ...state.failures,
+        metadataEditFailures: new Map([
+          ...state.metadataEditFailures,
           [meta.failure.edit.key, meta.failure],
         ]),
       };
-    case 'failureCleared':
+    case 'metadataEditFailureCleared':
       return {
         ...state,
-        failures: withoutFailure({ failures: state.failures, key: meta.key }),
+        metadataEditFailures: withoutFailure({
+          failures: state.metadataEditFailures,
+          key: meta.key,
+        }),
       };
-    case 'committed':
+    case 'metadataEdited':
       return {
-        failures: withoutFailure({ failures: state.failures, key: meta.key }),
+        ...state,
+        metadataEditFailures: withoutFailure({
+          failures: state.metadataEditFailures,
+          key: meta.key,
+        }),
+        history: withCommit({ history: state.history, change: meta.change }),
+      };
+    case 'frontMatterEditFailed':
+      return { ...state, frontMatterEditFailure: meta.failure };
+    case 'frontMatterEditFailureCleared':
+      return { ...state, frontMatterEditFailure: null };
+    case 'frontMatterEdited':
+      return {
+        ...state,
+        frontMatterEditFailure: null,
         history: withCommit({ history: state.history, change: meta.change }),
       };
     case 'reversed':
@@ -257,7 +310,11 @@ export const metadataEditingPlugin = ({
     key: pluginKey,
     commits,
     state: {
-      init: () => ({ failures: new Map(), history: emptyHistory }),
+      init: () => ({
+        metadataEditFailures: new Map(),
+        frontMatterEditFailure: null,
+        history: emptyHistory,
+      }),
       apply: (tr, state) => {
         const meta: MetadataEditingMeta | undefined = tr.getMeta(pluginKey);
 

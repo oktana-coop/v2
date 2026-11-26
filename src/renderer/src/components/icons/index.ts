@@ -63,3 +63,4 @@ export { TrashIcon } from './Trash';
 export { UpdateIcon } from './Update';
 export { UserIcon } from './User';
 export { UserAddIcon } from './UserAdd';
+export { ViewListIcon } from './ViewList';
