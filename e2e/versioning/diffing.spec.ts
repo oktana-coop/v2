@@ -1,4 +1,8 @@
-import { type ElectronApplication, type Page } from '@playwright/test';
+import {
+  type ElectronApplication,
+  type Locator,
+  type Page,
+} from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
@@ -9,6 +13,7 @@ import {
   enableShowDiff,
   focusParagraph,
   lineEndKey,
+  metadataPanel,
   modKey,
   moveToEndOfFirstPlainTextLine,
   navigateToProjectHistory,
@@ -19,6 +24,7 @@ import {
   selectChangedDocument,
   selectFirstCommit,
   selectUncommittedChanges,
+  showMetadata,
   toggleProjectCommit,
   typeAtEndOfPlainTextDocument,
   typeInEditorAndWaitForDebounce,
@@ -242,6 +248,252 @@ test.describe('diff annotations in a rich-text document', () => {
     const insertAnnotation = window.locator('.ProseMirror .diff-insert');
     await expect(insertAnnotation).toBeVisible({ timeout: 1_000 });
     await expect(insertAnnotation).toContainText('version two');
+  });
+});
+
+test.describe("diff annotations in a rich-text document's metadata", () => {
+  // hello.md with the given front matter, open in the editor.
+  const openHelloMdWithFrontMatter = async ({
+    electronApp,
+    window,
+    testProjectDir,
+    frontMatter,
+  }: {
+    electronApp: ElectronApplication;
+    window: Page;
+    testProjectDir: string;
+    frontMatter: string;
+  }) => {
+    fs.writeFileSync(
+      path.join(testProjectDir, 'hello.md'),
+      `---\n${frontMatter}\n---\n\n# Hello\n`,
+      'utf8'
+    );
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+  };
+
+  // Rewrites hello.md outside the app, with a longer heading, and waits for the editor to show it.
+  const editHelloMdOutside = async ({
+    window,
+    testProjectDir,
+    frontMatter,
+  }: {
+    window: Page;
+    testProjectDir: string;
+    frontMatter: string | null;
+  }) => {
+    const body = '# Hello again\n';
+    fs.writeFileSync(
+      path.join(testProjectDir, 'hello.md'),
+      frontMatter === null ? body : `---\n${frontMatter}\n---\n\n${body}`,
+      'utf8'
+    );
+    await expect(window.locator('.ProseMirror').locator('h1')).toHaveText(
+      'Hello again',
+      { timeout: 5_000 }
+    );
+  };
+
+  test('highlight the metadata keys a commit added, removed and changed', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: 'title: First\nstatus: draft\ndraft: true',
+    });
+    await editHelloMdOutside({
+      window,
+      testProjectDir,
+      frontMatter: 'title: Second\ndraft: false\ntags:\n- essay',
+    });
+    await commitChanges({ window, message: 'second version' });
+    await selectFirstCommit({ window, commitMessage: 'second version' });
+    await showMetadata({ window });
+    const panel = metadataPanel({ window });
+
+    await enableShowDiff({ window });
+
+    const keys = panel.getByRole('term');
+    const values = panel.getByRole('definition');
+
+    await expect(keys).toHaveText(['title', 'status', 'draft', 'tags']);
+    await expect(keys.getByRole('deletion')).toHaveText(['status']);
+    await expect(keys.getByRole('insertion')).toHaveText(['tags']);
+    // The empty texts are the draft checkboxes, checked below.
+    await expect(values.getByRole('deletion')).toHaveText([
+      'First',
+      'draft',
+      '',
+    ]);
+    await expect(values.getByRole('insertion')).toHaveText([
+      'Second',
+      '',
+      'essay',
+    ]);
+    await expect(
+      values.getByRole('deletion').getByRole('checkbox', { name: 'draft' })
+    ).toBeChecked();
+    await expect(
+      values.getByRole('insertion').getByRole('checkbox', { name: 'draft' })
+    ).not.toBeChecked();
+  });
+
+  test('highlight no metadata for a commit that changed only the body', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: 'title: First',
+    });
+    await editHelloMdOutside({
+      window,
+      testProjectDir,
+      frontMatter: 'title: First',
+    });
+    await commitChanges({ window, message: 'new heading' });
+    await selectFirstCommit({ window, commitMessage: 'new heading' });
+    await showMetadata({ window });
+    const panel = metadataPanel({ window });
+
+    await enableShowDiff({ window });
+
+    // The body's marks come from the same diff as the metadata's marks.
+    await expect(window.locator('.ProseMirror .diff-insert')).toContainText(
+      'again'
+    );
+    await expect(panel.getByRole('definition')).toHaveText(['First']);
+    await expect(panel.getByRole('insertion')).toHaveCount(0);
+    await expect(panel.getByRole('deletion')).toHaveCount(0);
+  });
+
+  test('highlight every metadata key as removed for a commit that removed the front matter', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: 'title: First\ndraft: true',
+    });
+    await editHelloMdOutside({ window, testProjectDir, frontMatter: null });
+    await commitChanges({ window, message: 'no front matter' });
+    await selectFirstCommit({ window, commitMessage: 'no front matter' });
+    await showMetadata({ window });
+    const panel = metadataPanel({ window });
+
+    await enableShowDiff({ window });
+
+    const keys = panel.getByRole('term');
+    await expect(keys).toHaveText(['title', 'draft']);
+    await expect(keys.getByRole('deletion')).toHaveText(['title', 'draft']);
+    // The empty text is the draft checkbox.
+    await expect(
+      panel.getByRole('definition').getByRole('deletion')
+    ).toHaveText(['First', '']);
+    await expect(panel.getByRole('insertion')).toHaveCount(0);
+  });
+
+  test('highlight the metadata changed since the last commit', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    await openHelloMdWithFrontMatter({
+      electronApp,
+      window,
+      testProjectDir,
+      frontMatter: 'title: First',
+    });
+    await editHelloMdOutside({
+      window,
+      testProjectDir,
+      frontMatter: 'title: Second',
+    });
+    await selectUncommittedChanges({ window });
+    await showMetadata({ window });
+    const panel = metadataPanel({ window });
+
+    await enableShowDiff({ window });
+
+    await expect(panel.getByRole('deletion')).toHaveText(['First']);
+    await expect(panel.getByRole('insertion')).toHaveText(['Second']);
+  });
+
+  test.describe('as YAML', () => {
+    const insertedLines = (panel: Locator) => panel.locator('.cm-changedLine');
+    const deletedLines = (panel: Locator) =>
+      panel.locator('.cm-deletedChunk .cm-deletedLine');
+
+    test('highlight the lines of the front matter a commit changed', async ({
+      electronApp,
+      window,
+      testProjectDir,
+    }) => {
+      await openHelloMdWithFrontMatter({
+        electronApp,
+        window,
+        testProjectDir,
+        frontMatter: 'title: First\nstatus: draft',
+      });
+      await editHelloMdOutside({
+        window,
+        testProjectDir,
+        frontMatter: 'title: Second\nstatus: draft',
+      });
+      await commitChanges({ window, message: 'second title' });
+      await selectFirstCommit({ window, commitMessage: 'second title' });
+      await showMetadata({ window });
+      const panel = metadataPanel({ window });
+      await enableShowDiff({ window });
+
+      await panel.getByRole('button', { name: 'Show as YAML' }).click();
+
+      await expect(insertedLines(panel)).toHaveText(['title: Second']);
+      await expect(deletedLines(panel)).toHaveText(['title: First']);
+    });
+
+    test("highlight the lines of front matter a commit fixed, which couldn't be read before", async ({
+      electronApp,
+      window,
+      testProjectDir,
+    }) => {
+      await openHelloMdWithFrontMatter({
+        electronApp,
+        window,
+        testProjectDir,
+        frontMatter: 'title: [unclosed',
+      });
+      await editHelloMdOutside({
+        window,
+        testProjectDir,
+        frontMatter: 'title: Fixed',
+      });
+      await commitChanges({ window, message: 'fixed front matter' });
+      await selectFirstCommit({ window, commitMessage: 'fixed front matter' });
+      await showMetadata({ window });
+      const panel = metadataPanel({ window });
+      await enableShowDiff({ window });
+
+      await panel.getByRole('button', { name: 'Show as YAML' }).click();
+
+      await expect(insertedLines(panel)).toHaveText(['title: Fixed']);
+      await expect(deletedLines(panel)).toHaveText(['title: [unclosed']);
+    });
   });
 });
 

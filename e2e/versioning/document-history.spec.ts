@@ -6,6 +6,7 @@ import { expect, test } from '../shared/fixtures';
 import {
   commitChanges,
   createAndSwitchToBranch,
+  metadataPanel,
   openHelloMd,
   openPlainTextDocument,
   openProjectFolder,
@@ -18,6 +19,7 @@ import {
   returnToRichTextEditor,
   selectFirstCommit,
   selectUncommittedChanges,
+  showMetadata,
   switchToBranch,
   typeAtEndOfPlainTextDocument,
   typeInEditorAndWaitForDebounce,
@@ -84,6 +86,74 @@ test.describe("the open document's history", () => {
         timeout: 300,
       }
     );
+  });
+
+  test('selecting a commit shows the metadata it had', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const helloPath = path.join(testProjectDir, 'hello.md');
+    fs.writeFileSync(helloPath, '---\ntitle: First\n---\n\n# Hello\n', 'utf8');
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    fs.writeFileSync(
+      helloPath,
+      '---\ntitle: Second version\n---\n\n# Hello again\n',
+      'utf8'
+    );
+    await expect(window.locator('.ProseMirror').locator('h1')).toHaveText(
+      'Hello again',
+      { timeout: 5_000 }
+    );
+    await commitChanges({ window, message: 'second title' });
+    const values = metadataPanel({ window }).getByRole('definition');
+
+    await selectFirstCommit({ window, commitMessage: 'Set up versioning' });
+    await showMetadata({ window });
+
+    await expect(values).toHaveText(['First']);
+
+    await selectFirstCommit({ window, commitMessage: 'second title' });
+
+    await expect(values).toHaveText(['Second version']);
+  });
+
+  test("selecting a commit shows its front matter as YAML, and the editor's YAML mode with it", async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const helloPath = path.join(testProjectDir, 'hello.md');
+    fs.writeFileSync(helloPath, '---\ntitle: First\n---\n\n# Hello\n', 'utf8');
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    const panel = metadataPanel({ window });
+    // The YAML view's lines, for `expect.poll`.
+    const yamlLines = () =>
+      panel.locator('.cm-content .cm-line').allTextContents();
+
+    await selectFirstCommit({ window, commitMessage: 'Set up versioning' });
+    await showMetadata({ window });
+    await panel.getByRole('button', { name: 'Show as YAML' }).click();
+
+    await expect.poll(yamlLines).toEqual(['title: First', '']);
+
+    // History and the editor share the setting.
+    await returnToRichTextEditor({ window });
+
+    await expect(
+      panel.getByRole('button', { name: 'Edit as form' })
+    ).toBeVisible();
+    await expect.poll(yamlLines).toEqual(['title: First', '']);
   });
 
   test('viewing uncommitted changes and going back to the editor keeps them', async ({

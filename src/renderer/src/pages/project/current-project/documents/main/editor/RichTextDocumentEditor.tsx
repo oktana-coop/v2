@@ -3,6 +3,7 @@ import { useCallback, useContext, useMemo, useState } from 'react';
 import { uniqueParticipants } from '../../../../../../../../modules/domain/collaboration';
 import { getArtifactName } from '../../../../../../../../modules/domain/project';
 import { ProseMirrorContext } from '../../../../../../../../modules/domain/rich-text/react/prosemirror-context';
+import { FunctionalityConfigContext } from '../../../../../../../../modules/personalization/browser';
 import {
   CommitModalContext,
   CurrentArtifactVersioningContext,
@@ -14,6 +15,7 @@ import {
 } from '../../../../../../app-state';
 import { LongTextSkeleton } from '../../../../../../components/progress/skeletons/LongText';
 import { LiveRichTextDocumentEditor } from '../../../../../../components/rich-text-editing/LiveRichTextDocumentEditor';
+import { EditorMetadataPanel } from '../../../../../../components/rich-text-editing/metadata';
 import { ActionsBar } from '../../../../../shared/document-actions-bar';
 import { useCurrentArtifact } from '../../../artifact-route';
 
@@ -25,6 +27,7 @@ export const RichTextDocumentEditor = () => {
   );
   const richTextDocument = useCurrentRichTextDocument();
   const { canCommit } = useContext(CurrentArtifactVersioningContext);
+  const { showMetadata } = useContext(FunctionalityConfigContext);
   const { openCommitModal } = useContext(CommitModalContext);
   const artifact = useCurrentArtifact();
   const resolveAssetSrc = useAssetSrcResolver({ docPath: artifact.path });
@@ -56,12 +59,15 @@ export const RichTextDocumentEditor = () => {
       <div className="flex w-full flex-auto flex-col items-center overflow-auto">
         <div className="flex w-full max-w-3xl flex-col">
           {richTextDocument ? (
-            <LiveRichTextDocumentEditor
-              liveDocument={richTextDocument.liveDocument}
-              onLocalSelectionChange={richTextDocument.onLocalSelectionChange}
-              isToolbarOpen={isEditorToolbarOpen}
-              assetResolution={{ pickAsset, resolveAssetSrc }}
-            />
+            <>
+              {showMetadata && <EditorMetadataPanel />}
+              <LiveRichTextDocumentEditor
+                liveDocument={richTextDocument.liveDocument}
+                onLocalSelectionChange={richTextDocument.onLocalSelectionChange}
+                isToolbarOpen={isEditorToolbarOpen}
+                assetResolution={{ pickAsset, resolveAssetSrc }}
+              />
+            </>
           ) : (
             <LongTextSkeleton />
           )}

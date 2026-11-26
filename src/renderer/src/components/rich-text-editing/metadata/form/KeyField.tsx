@@ -1,0 +1,50 @@
+import { Input } from '@headlessui/react';
+import clsx from 'clsx';
+import { type ChangeEvent, type KeyboardEvent } from 'react';
+
+import { type useTextDraft } from '../use-text-draft';
+import { plainField, plainFieldFocus, plainFieldInvalid } from './plain-field';
+
+export const KeyField = ({
+  metadataKey,
+  draft,
+  invalid,
+}: {
+  metadataKey: string;
+  draft: ReturnType<typeof useTextDraft>;
+  invalid: boolean;
+}) => {
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    draft.onChange(event.target.value);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    draft.onKeyDown(event);
+
+    if (event.key === 'Enter') {
+      draft.commit();
+    }
+
+    if (event.key === 'Escape') {
+      draft.cancel();
+    }
+  };
+
+  return (
+    <Input
+      aria-label={`Name of ${metadataKey}`}
+      className={clsx(
+        plainField,
+        plainFieldFocus,
+        plainFieldInvalid,
+        'block min-w-[2ch] max-w-full [field-sizing:content]'
+      )}
+      value={draft.text}
+      invalid={invalid}
+      onFocus={draft.onFocus}
+      onChange={handleChange}
+      onBlur={draft.onBlur}
+      onKeyDown={handleKeyDown}
+    />
+  );
+};

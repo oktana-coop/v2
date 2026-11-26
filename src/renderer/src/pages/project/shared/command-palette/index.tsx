@@ -9,6 +9,7 @@ import {
 } from '../../../../../../modules/domain/project';
 import { richTextRepresentations } from '../../../../../../modules/domain/rich-text';
 import { ElectronContext } from '../../../../../../modules/infrastructure/cross-platform/browser';
+import { FunctionalityConfigContext } from '../../../../../../modules/personalization/browser';
 import {
   CommandPaletteContext,
   CommitModalContext,
@@ -45,6 +46,9 @@ export const ProjectCommandPalette = ({
     useContext(CurrentDocumentContext);
   const { openCommitModal } = useContext(CommitModalContext);
   const { checkForUpdate } = useContext(ElectronContext);
+  const { showMetadata, setShowMetadata } = useContext(
+    FunctionalityConfigContext
+  );
   const { directoryTree, currentArtifact } = useContext(ProjectContext);
 
   const handleArtifactSelection = useArtifactSelection();
@@ -164,6 +168,10 @@ export const ProjectCommandPalette = ({
       : []),
     ...(isRichTextDocument
       ? [
+          {
+            name: showMetadata ? 'Hide properties' : 'Show properties',
+            onActionSelection: () => setShowMetadata(!showMetadata),
+          },
           {
             name: 'Copy as Markdown',
             onActionSelection: copyTextToClipboard(

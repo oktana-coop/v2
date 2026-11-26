@@ -6,10 +6,10 @@ import { type EditorSeed } from './ProseMirrorEditor';
 
 const { schema } = prosemirror;
 
-export const useEditorSeed = (
-  createSeed: (schema: Schema) => Promise<EditorSeed>
-): EditorSeed | null => {
-  const [seed, setSeed] = useState<EditorSeed | null>(null);
+export const useEditorSeed = <Seed extends EditorSeed>(
+  createSeed: (schema: Schema) => Promise<Seed>
+): Seed | null => {
+  const [seed, setSeed] = useState<Seed | null>(null);
 
   useEffect(() => {
     let cancelled = false;

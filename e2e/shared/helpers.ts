@@ -9,6 +9,13 @@ import * as path from 'path';
  */
 export const modKey = os.platform() === 'darwin' ? 'Meta' : 'Control';
 
+// Undo and redo through their keyboard shortcuts, in whatever has the focus.
+export const pressUndo = async ({ window }: { window: Page }) =>
+  window.keyboard.press(`${modKey}+z`);
+
+export const pressRedo = async ({ window }: { window: Page }) =>
+  window.keyboard.press(`${modKey}+Shift+z`);
+
 /**
  * Returns the platform-appropriate shortcuts for moving the caret to the start
  * or end of the document. macOS uses Cmd+Up/Down, Linux/Windows Ctrl+Home/End.
@@ -460,6 +467,18 @@ export const clickToolbarButton = async ({
   label: string;
 }): Promise<void> => {
   await window.getByRole('button', { name: label }).click();
+};
+
+export const metadataPanel = ({ window }: { window: Page }) =>
+  window.getByRole('region', { name: 'Properties' });
+
+export const showMetadata = async ({
+  window,
+}: {
+  window: Page;
+}): Promise<void> => {
+  await window.getByRole('button', { name: 'Show properties' }).click();
+  await expect(metadataPanel({ window })).toBeVisible();
 };
 
 /**

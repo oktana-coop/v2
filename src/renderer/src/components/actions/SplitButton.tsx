@@ -4,6 +4,7 @@ import React from 'react';
 
 import { Tooltip } from '../accessibility/Tooltip';
 import { ChevronDownIcon } from '../icons';
+import { MenuItem, MenuItems } from '../menus/Menu';
 
 export type SplitButtonMenuItem = {
   label: string;
@@ -97,13 +98,7 @@ export const SplitButton = ({
           >
             <ChevronDownIcon size={16} />
           </Headless.MenuButton>
-          <Headless.MenuItems
-            anchor="bottom end"
-            className={clsx(
-              'z-10 mt-1 min-w-[14rem] bg-white py-1 shadow-lg ring-1 ring-black/5 focus:outline-none',
-              'dark:bg-zinc-800 dark:ring-white/10'
-            )}
-          >
+          <MenuItems>
             {menuLabel && (
               <div
                 className={clsx(
@@ -115,28 +110,15 @@ export const SplitButton = ({
               </div>
             )}
             {menuItems.map((item, index) => (
-              <Headless.MenuItem key={index} disabled={item.disabled}>
-                <button
-                  type="button"
-                  onClick={item.onClick}
-                  disabled={item.disabled}
-                  className={clsx(
-                    'block w-full px-3 py-2 text-left text-sm',
-                    'text-zinc-900 dark:text-white',
-                    'data-[focus]:bg-zinc-100 dark:data-[focus]:bg-zinc-700',
-                    'data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50'
-                  )}
-                >
-                  <div className="font-semibold">{item.label}</div>
-                  {item.description && (
-                    <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                      {item.description}
-                    </div>
-                  )}
-                </button>
-              </Headless.MenuItem>
+              <MenuItem
+                key={index}
+                label={item.label}
+                description={item.description}
+                disabled={item.disabled}
+                onClick={item.onClick}
+              />
             ))}
-          </Headless.MenuItems>
+          </MenuItems>
         </Headless.Menu>
       )}
     </div>

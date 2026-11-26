@@ -79,6 +79,22 @@ const frontMatter = 'status: draft\n';
 const success = (stepsJSON: PMStep[]) =>
   JSON.stringify({ data: { doc: afterJSON, steps: stepsJSON } });
 
+const diffOutput = ({ metadataDiff }: { metadataDiff: unknown }) =>
+  JSON.stringify({ data: { doc: afterJSON, decorations: [], metadataDiff } });
+
+const diff = ({ output }: { output: string }) =>
+  createAdapter({
+    runWasiCLIOutputingText: vi
+      .fn<Wasm['runWasiCLIOutputingText']>()
+      .mockResolvedValue(output),
+  }).proseMirrorDiff({
+    representation: richTextRepresentations.MARKDOWN,
+    proseMirrorSchema: schema,
+    docBefore: '---\ndraft: true\n---\n',
+    docAfter: '---\ndraft: false\n---\n',
+    transformImageSrc: (src) => src,
+  });
+
 describe('pandoc-diff-patch proseMirrorDiff', () => {
   it('fails with DiffError, with the messages of all the CLI errors', async () => {
     const mockedCliRun = vi.fn().mockResolvedValue(
@@ -133,6 +149,53 @@ describe('pandoc-diff-patch proseMirrorDiff', () => {
     await expect(result).rejects.toMatchObject({
       _tag: UnrepresentableContentErrorTag,
       data: { content: ['tables'] },
+    });
+  });
+
+  it('returns the metadata diff', async () => {
+    const metadataDiff = [
+      {
+        op: 'copy',
+        key: 'tags',
+        values: [
+          {
+            op: 'copy',
+            type: 'MetaList',
+            items: [
+              { op: 'delete', type: 'MetaInlines', hasChanges: true },
+              { op: 'copy', type: 'MetaInlines', hasChanges: false },
+              { op: 'insert', type: 'MetaInlines', hasChanges: true },
+            ],
+          },
+        ],
+      },
+      {
+        op: 'copy',
+        key: 'draft',
+        values: [{ type: 'MetaBoolDiff', before: true, after: false }],
+      },
+    ];
+
+    const result = await diff({ output: diffOutput({ metadataDiff }) });
+
+    expect(result.metadataDiff).toEqual(metadataDiff);
+  });
+
+  it('returns no metadata diff when the CLI sends none', async () => {
+    const result = await diff({ output: diffOutput({ metadataDiff: null }) });
+
+    expect(result.metadataDiff).toBeNull();
+  });
+
+  it('fails with DiffError for a metadata diff of an unexpected shape', async () => {
+    const result = diff({
+      output: diffOutput({
+        metadataDiff: [{ op: 'move', key: 'title', values: [] }],
+      }),
+    });
+
+    await expect(result).rejects.toMatchObject({
+      _tag: VersionedDocumentDiffErrorTag,
     });
   });
 });

@@ -21,10 +21,13 @@ const linterFor = (language: PlainTextLanguage): Linter | null => {
   return null;
 };
 
+export const useLinter = (language: PlainTextLanguage): Linter | null =>
+  useMemo(() => linterFor(language), [language]);
+
 // A plain-text file's language, from its name, and the linter for it, if any.
 export const usePlainTextLanguage = (fileName: string) => {
   const language = inferPlainTextLanguageFromExtension(fileName);
-  const linter = useMemo(() => linterFor(language), [language]);
+  const linter = useLinter(language);
 
   return { language, linter };
 };

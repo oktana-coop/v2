@@ -2,7 +2,20 @@ import { useCallback, useEffect, useState } from 'react';
 
 type Modifier = 'ctrl' | 'shift' | 'alt';
 type Letters =
-  'k' | 'o' | 't' | 'n' | 'c' | 'm' | 'h' | 'w' | 'd' | 'f' | 'l' | 'p'; // for now only the ones used in the application
+  | 'k'
+  | 'o'
+  | 't'
+  | 'n'
+  | 'c'
+  | 'm'
+  | 'h'
+  | 'w'
+  | 'd'
+  | 'f'
+  | 'l'
+  | 'p'
+  | 'z'
+  | 'y'; // for now only the ones used in the application
 type SpecialKey = 'enter' | 'escape' | 'tab' | ',';
 type Key = Letters | SpecialKey;
 
@@ -83,7 +96,7 @@ export const matchBinding =
       (candidate) => candidate in keyBindings
     ) ?? null;
 
-export const useKeyBindings = (keyBindings: KeyBindings) => {
+const useLayoutMap = (): KeyboardLayoutMap | null => {
   const [layoutMap, setLayoutMap] = useState<KeyboardLayoutMap | null>(null);
 
   useEffect(() => {
@@ -95,11 +108,22 @@ export const useKeyBindings = (keyBindings: KeyBindings) => {
     fetchLayoutMap();
   }, []);
 
-  const match = useCallback(
+  return layoutMap;
+};
+
+// The binding an event matches, for keys an element handles itself.
+export const useKeyBindingMatcher = () => {
+  const layoutMap = useLayoutMap();
+
+  return useCallback(
     (args: { keyBindings: KeyBindings; event: KeyEvent }) =>
       matchBinding(layoutMap)(args),
     [layoutMap]
   );
+};
+
+export const useKeyBindings = (keyBindings: KeyBindings) => {
+  const match = useKeyBindingMatcher();
 
   useEffect(() => {
     const handleGenericKeyDown = (event: KeyboardEvent) => {

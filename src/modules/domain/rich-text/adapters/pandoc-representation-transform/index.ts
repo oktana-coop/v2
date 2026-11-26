@@ -1,9 +1,11 @@
 import * as Effect from 'effect/Effect';
+import { pipe } from 'effect/Function';
 
 import {
   cliTypes,
   type Wasm,
 } from '../../../../../modules/infrastructure/wasm';
+import { mapErrorTo } from '../../../../../utils/errors';
 import { RepresentationTransformError } from '../../errors';
 import {
   findDocumentContentError,
@@ -140,8 +142,49 @@ export const createAdapter = ({
       return bytesFromBase64(getHSLibOutputData<string>(output));
     };
 
+  const normalizeFrontMatter: RepresentationTransform['normalizeFrontMatter'] =
+    (frontMatter) =>
+      pipe(
+        Effect.tryPromise({
+          try: () =>
+            runWasiCLIOutputingText({
+              type: cliTypes.HS_LIB,
+              args: [
+                'v2-hs-lib',
+                'normalizeFrontMatterForProseMirror',
+                '--',
+                frontMatter,
+              ],
+            }),
+          catch: mapErrorTo(
+            RepresentationTransformError,
+            'Failed to normalize the front matter'
+          ),
+        }),
+        Effect.flatMap((output) =>
+          Effect.try({
+            try: () => JSON.parse(output) as HSLibOutput<string | null>,
+            catch: mapErrorTo(
+              RepresentationTransformError,
+              'Failed to parse the normalized front matter'
+            ),
+          })
+        ),
+        Effect.flatMap((parsedOutput) =>
+          isHSLibFailureOutput(parsedOutput)
+            ? Effect.fail(
+                findDocumentContentError(parsedOutput.errors) ??
+                  new RepresentationTransformError(
+                    `Normalizing the front matter failed: ${joinHSLibErrorMessages(parsedOutput.errors)}`
+                  )
+              )
+            : Effect.succeed(parsedOutput.data)
+        )
+      );
+
   return {
     transformToText,
     transformToBinary,
+    normalizeFrontMatter,
   };
 };

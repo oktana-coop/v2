@@ -24,6 +24,8 @@ type PlainTextEditorBaseProps = {
   binding: ContentBinding;
   language: PlainTextLanguage;
   linter: Linter | null;
+  // Added after the editing layer's own.
+  extensions?: Extension;
 };
 
 // The editing layer: everything that turns a rendered document into an
@@ -33,6 +35,7 @@ export const PlainTextEditorBase = ({
   binding,
   language,
   linter,
+  extensions,
 }: PlainTextEditorBaseProps) => {
   const seed = useMemo(
     (): EditorSeed => ({
@@ -43,9 +46,10 @@ export const PlainTextEditorBase = ({
         linter ? lint(linter) : [],
         binding.syncExtension,
         binding.presenceExtension ?? [],
+        extensions ?? [],
       ],
     }),
-    [binding, language, linter]
+    [binding, language, linter, extensions]
   );
 
   return <CodeMirrorEditor seed={seed} />;
