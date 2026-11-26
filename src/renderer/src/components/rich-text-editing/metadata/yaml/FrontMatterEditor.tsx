@@ -1,5 +1,5 @@
-import { type Extension, Prec } from '@codemirror/state';
-import { EditorView } from '@codemirror/view';
+import { type Extension } from '@codemirror/state';
+import { type EditorView } from '@codemirror/view';
 import * as Either from 'effect/Either';
 import {
   type FocusEvent,
@@ -23,12 +23,7 @@ import {
 import { useLinter } from '../../../plain-text-editing/use-plain-text-language';
 import { useTextDraft } from '../form/use-text-draft';
 import { draftKeymap, draftSync, replaceWithDocumentText } from './draft-sync';
-
-const fittedToText = Prec.highest(
-  EditorView.theme({
-    '.cm-content': { paddingTop: '0', paddingBottom: '0.5rem' },
-  })
-);
+import { fittedToText } from './theme';
 
 const failureMessage = (failure: prosemirror.FrontMatterEditFailure): string =>
   failure.error instanceof InvalidMetadataError

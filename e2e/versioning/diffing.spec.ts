@@ -1,4 +1,8 @@
-import { type ElectronApplication, type Page } from '@playwright/test';
+import {
+  type ElectronApplication,
+  type Locator,
+  type Page,
+} from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
@@ -428,6 +432,68 @@ test.describe("diff annotations in a rich-text document's metadata", () => {
 
     await expect(panel.getByRole('deletion')).toHaveText(['First']);
     await expect(panel.getByRole('insertion')).toHaveText(['Second']);
+  });
+
+  test.describe('as YAML', () => {
+    const insertedLines = (panel: Locator) => panel.locator('.cm-changedLine');
+    const deletedLines = (panel: Locator) =>
+      panel.locator('.cm-deletedChunk .cm-deletedLine');
+
+    test('highlight the lines of the front matter a commit changed', async ({
+      electronApp,
+      window,
+      testProjectDir,
+    }) => {
+      await openHelloMdWithFrontMatter({
+        electronApp,
+        window,
+        testProjectDir,
+        frontMatter: 'title: First\nstatus: draft',
+      });
+      await editHelloMdOutside({
+        window,
+        testProjectDir,
+        frontMatter: 'title: Second\nstatus: draft',
+      });
+      await commitChanges({ window, message: 'second title' });
+      await selectFirstCommit({ window, commitMessage: 'second title' });
+      await showMetadata({ window });
+      const panel = metadataPanel({ window });
+      await enableShowDiff({ window });
+
+      await panel.getByRole('button', { name: 'Show as YAML' }).click();
+
+      await expect(insertedLines(panel)).toHaveText(['title: Second']);
+      await expect(deletedLines(panel)).toHaveText(['title: First']);
+    });
+
+    test("highlight the lines of front matter a commit fixed, which couldn't be read before", async ({
+      electronApp,
+      window,
+      testProjectDir,
+    }) => {
+      await openHelloMdWithFrontMatter({
+        electronApp,
+        window,
+        testProjectDir,
+        frontMatter: 'title: [unclosed',
+      });
+      await editHelloMdOutside({
+        window,
+        testProjectDir,
+        frontMatter: 'title: Fixed',
+      });
+      await commitChanges({ window, message: 'fixed front matter' });
+      await selectFirstCommit({ window, commitMessage: 'fixed front matter' });
+      await showMetadata({ window });
+      const panel = metadataPanel({ window });
+      await enableShowDiff({ window });
+
+      await panel.getByRole('button', { name: 'Show as YAML' }).click();
+
+      await expect(insertedLines(panel)).toHaveText(['title: Fixed']);
+      await expect(deletedLines(panel)).toHaveText(['title: [unclosed']);
+    });
   });
 });
 

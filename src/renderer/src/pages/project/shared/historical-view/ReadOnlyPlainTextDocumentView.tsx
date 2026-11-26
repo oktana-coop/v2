@@ -1,21 +1,17 @@
-import { EditorState, type Extension } from '@codemirror/state';
-import { EditorView } from '@codemirror/view';
 import { useMemo } from 'react';
 
 import {
   type PlainText,
   type PlainTextLanguage,
 } from '../../../../../../modules/domain/plain-text';
-import { diffWith } from '../../../../../../modules/domain/plain-text/codemirror';
+import {
+  diffWith,
+  readOnly,
+} from '../../../../../../modules/domain/plain-text/codemirror';
 import {
   CodeMirrorEditor,
   type EditorSeed,
 } from '../../../../components/plain-text-editing/CodeMirrorEditor';
-
-const readOnly: Extension = [
-  EditorState.readOnly.of(true),
-  EditorView.editable.of(false),
-];
 
 export const ReadOnlyPlainTextDocumentView = ({
   text,

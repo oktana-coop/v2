@@ -123,6 +123,39 @@ test.describe("the open document's history", () => {
     await expect(values).toHaveText(['Second version']);
   });
 
+  test("selecting a commit shows its front matter as YAML, and the editor's YAML mode with it", async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const helloPath = path.join(testProjectDir, 'hello.md');
+    fs.writeFileSync(helloPath, '---\ntitle: First\n---\n\n# Hello\n', 'utf8');
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    const panel = metadataPanel({ window });
+    // The YAML view's lines, for `expect.poll`.
+    const yamlLines = () =>
+      panel.locator('.cm-content .cm-line').allTextContents();
+
+    await selectFirstCommit({ window, commitMessage: 'Set up versioning' });
+    await showMetadata({ window });
+    await panel.getByRole('button', { name: 'Show as YAML' }).click();
+
+    await expect.poll(yamlLines).toEqual(['title: First', '']);
+
+    // History and the editor share the setting.
+    await returnToRichTextEditor({ window });
+
+    await expect(
+      panel.getByRole('button', { name: 'Edit as form' })
+    ).toBeVisible();
+    await expect.poll(yamlLines).toEqual(['title: First', '']);
+  });
+
   test('viewing uncommitted changes and going back to the editor keeps them', async ({
     electronApp,
     window,

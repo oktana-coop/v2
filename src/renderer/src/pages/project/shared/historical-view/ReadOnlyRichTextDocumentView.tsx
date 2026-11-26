@@ -103,9 +103,10 @@ const ReadOnlyRichTextDocumentContent = (
         );
 
         const metadataPanelDiff =
-          metadataDiff && metadataDiff.some(hasChanges)
+          metadataDiff === null || metadataDiff.some(hasChanges)
             ? // Only the metadata panel needs the before version as ProseMirror, for the
-              // values its diff doesn't carry, so it's converted only when metadata changed.
+              // values its diff doesn't carry and its YAML, so it's converted only when
+              // the metadata changed or either version's front matter can't be read.
               {
                 frontMatterBefore: getDocFrontMatter(
                   await convertToProseMirror({

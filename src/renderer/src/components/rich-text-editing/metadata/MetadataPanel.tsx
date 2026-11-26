@@ -34,6 +34,7 @@ import { MetadataEntries } from './MetadataEntries';
 import { MetadataPanelModeToggle } from './MetadataPanelModeToggle';
 import { useEditorFrontMatter } from './use-editor-front-matter';
 import { FrontMatterEditor } from './yaml/FrontMatterEditor';
+import { FrontMatterView } from './yaml/FrontMatterView';
 
 const {
   clearFrontMatterEditFailure,
@@ -49,7 +50,8 @@ const {
 
 export type MetadataPanelDiff = {
   frontMatterBefore: string | null;
-  metadataDiff: MetadataKeyDiff[];
+  // Null when either version's front matter can't be read.
+  metadataDiff: MetadataKeyDiff[] | null;
 };
 
 type PanelContent =
@@ -69,8 +71,9 @@ const toPanelContent = ({
   diff: MetadataPanelDiff | null;
 }): Either.Either<PanelContent, InvalidMetadataError> => {
   const after = parseOrEmpty(frontMatter);
+  const metadataDiff = diff?.metadataDiff ?? null;
 
-  if (!diff) {
+  if (!diff || metadataDiff === null) {
     return Either.map(after, (entries) => ({ type: 'entries', entries }));
   }
 
@@ -81,7 +84,7 @@ const toPanelContent = ({
       rows: toMetadataDiffRows({
         before: beforeEntries,
         after: afterEntries,
-        metadataDiff: diff.metadataDiff,
+        metadataDiff,
       }),
     })
   );
@@ -132,18 +135,12 @@ const MetadataSection = forwardRef<
 });
 
 // Front matter the panel can't show; the reason goes to the console.
-const UnreadableMetadata = ({
-  error,
-  message,
-}: {
-  error: InvalidMetadataError;
-  message: string;
-}) => {
+const UnreadableMetadata = ({ error }: { error: InvalidMetadataError }) => {
   useEffect(() => {
     console.error(error);
   }, [error]);
 
-  return <Text>{message}</Text>;
+  return <Text>The properties can't be shown as a form.</Text>;
 };
 
 export const MetadataPanel = ({
@@ -154,22 +151,40 @@ export const MetadataPanel = ({
   // The before version and the diff, to mark what changed.
   diff?: MetadataPanelDiff | null;
 }) => {
+  const { showMetadataAsYaml, setShowMetadataAsYaml } = useContext(
+    FunctionalityConfigContext
+  );
   const content = useMemo(
     () => toPanelContent({ frontMatter, diff }),
     [frontMatter, diff]
   );
 
+  const yamlView =
+    frontMatter === null && diff === null ? (
+      noProperties
+    ) : (
+      <FrontMatterView
+        frontMatter={frontMatter}
+        diffBase={diff ? (diff.frontMatterBefore ?? '') : null}
+      />
+    );
+
   return (
-    <MetadataSection>
-      {Either.match(content, {
-        onLeft: (error) => (
-          <UnreadableMetadata
-            error={error}
-            message="The properties can't be shown here yet."
-          />
-        ),
-        onRight: (panelContent) => <ContentView content={panelContent} />,
-      })}
+    <MetadataSection
+      modeToggle={
+        <MetadataPanelModeToggle
+          isEditable={false}
+          showYaml={showMetadataAsYaml}
+          onShowYamlChange={setShowMetadataAsYaml}
+        />
+      }
+    >
+      {showMetadataAsYaml
+        ? yamlView
+        : Either.match(content, {
+            onLeft: (error) => <UnreadableMetadata error={error} />,
+            onRight: (panelContent) => <ContentView content={panelContent} />,
+          })}
     </MetadataSection>
   );
 };
@@ -186,12 +201,7 @@ const MetadataFormContent = ({
   const entries = useMemo(() => parseOrEmpty(frontMatter), [frontMatter]);
 
   return Either.match(entries, {
-    onLeft: (error) => (
-      <UnreadableMetadata
-        error={error}
-        message="The properties can't be shown as a form."
-      />
-    ),
+    onLeft: (error) => <UnreadableMetadata error={error} />,
     onRight: (formEntries) => (
       <MetadataForm entries={formEntries} {...formProps} />
     ),
@@ -244,6 +254,7 @@ const EditableMetadataPanel = ({
       ref={section}
       modeToggle={
         <MetadataPanelModeToggle
+          isEditable
           showYaml={showYaml}
           onShowYamlChange={onShowYamlChange}
         />
