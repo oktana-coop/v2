@@ -1,12 +1,12 @@
 import { Page } from '@playwright/test';
 
-import { expect, test } from '../shared/fixtures';
+import { expect, test } from '../../shared/fixtures';
 import {
   commitChanges,
   modKey,
   selectFirstCommit,
   setupEditorWithText,
-} from '../shared/helpers';
+} from '../../shared/helpers';
 
 const findBar = (window: Page) =>
   window.getByRole('search', { name: /find in document/i });

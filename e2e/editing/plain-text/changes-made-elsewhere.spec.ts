@@ -4,11 +4,11 @@ import path from 'path';
 import { expect, test } from '../../shared/fixtures';
 import {
   expectFileToContain,
-  modKey,
   moveToEndOfFirstPlainTextLine,
   openPlainTextDocument,
   openProjectFolder,
   plainTextEditorLines,
+  pressUndo,
 } from '../../shared/helpers';
 
 test.describe('an outside edit', () => {
@@ -71,7 +71,7 @@ test.describe('an outside edit', () => {
       })
       .toEqual(['first line mine', 'second line', 'added outside', '']);
 
-    await window.keyboard.press(`${modKey}+z`);
+    await pressUndo({ window });
 
     await expect
       .poll(() => plainTextEditorLines({ window }).allTextContents())

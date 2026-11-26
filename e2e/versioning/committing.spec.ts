@@ -1,18 +1,26 @@
 import { Page } from '@playwright/test';
 import fs from 'fs';
+import git from 'isomorphic-git';
 import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
 import { hasCleanWorkingTree, lastCommitMessage } from '../shared/git';
 import {
+  clearRichTextEditor,
   commitAllProjectChanges,
   commitChanges,
+  expectFigureImageRendered,
+  insertImageFromToolbar,
+  mockPickFile,
   modKey,
   navigateToProjectHistory,
   openCommandPalette,
   openHelloMd,
   openPlainTextDocument,
   openProjectFolder,
+  PNG_1x1,
+  seedExternalImage,
+  selectChangedDocument,
   selectUncommittedChanges,
   toggleProjectCommit,
   typeInEditorAndWaitForDebounce,
@@ -127,6 +135,45 @@ test.describe('committing a document', () => {
     await window.keyboard.press(`${modKey}+Shift+C`);
 
     await expect(window.getByRole('dialog').getByRole('textbox')).toBeVisible();
+  });
+
+  test('committing a doc with a new image stages the asset in the same commit', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const externalImage = seedExternalImage('photo.png', PNG_1x1);
+
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    await clearRichTextEditor({ window });
+
+    await mockPickFile({ electronApp, filePath: externalImage });
+    await insertImageFromToolbar(window);
+    await window.waitForTimeout(600);
+
+    await commitChanges({ window, message: 'add image' });
+
+    const committed = await git.listFiles({
+      fs,
+      dir: testProjectDir,
+      ref: 'HEAD',
+    });
+    expect(committed).toContain('hello.md');
+    expect(committed).toContain('assets/photo.png');
+
+    // The committed document is viewable in project history with its image.
+    await navigateToProjectHistory({ window });
+    await toggleProjectCommit({ window, commitMessage: 'add image' });
+    await selectChangedDocument({ window, fileName: 'hello' });
+    await window.waitForSelector('.ProseMirror figure img', { timeout: 2_000 });
+    await expectFigureImageRendered({ window });
+
+    fs.rmSync(path.dirname(externalImage), { recursive: true, force: true });
   });
 });
 

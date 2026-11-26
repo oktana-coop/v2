@@ -8,6 +8,7 @@ import {
   modKey,
   openPlainTextDocument,
   openProjectFolder,
+  pressUndo,
   typeAtEndOfPlainTextDocument,
 } from '../../shared/helpers';
 
@@ -70,7 +71,7 @@ test.describe('YAML', () => {
       timeout: 5_000,
     });
 
-    await window.keyboard.press(`${modKey}+z`);
+    await pressUndo({ window });
 
     await expect(lintErrorUnderlines({ window })).toHaveCount(0, {
       timeout: 5_000,

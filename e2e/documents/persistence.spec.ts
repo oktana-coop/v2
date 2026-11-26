@@ -3,16 +3,22 @@ import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
 import {
+  clearRichTextEditor,
   expectErrorNotification,
+  expectFigureImageRendered,
   expectFileToContain,
   expectNoErrorNotification,
   focusAndTypeInRichTextEditor,
+  insertImageFromToolbar,
+  mockPickFile,
   openHelloMd,
   openPlainTextDocument,
   openProjectFolder,
   plainTextEditor,
   plainTextEditorLines,
+  PNG_1x1,
   returnToRichTextEditor,
+  seedExternalImage,
   selectFirstCommit,
   typeAtEndOfPlainTextDocument,
   typeInEditorAndWaitForDebounce,
@@ -386,6 +392,44 @@ test.describe('a rich-text document', () => {
       filePath: path.join(testProjectDir, 'hello.md'),
       text: 'Hello hello world',
     });
+  });
+
+  test('an inserted image is written to markdown and survives a reload', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const externalImage = seedExternalImage('photo.png', PNG_1x1);
+
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    await clearRichTextEditor({ window });
+
+    await mockPickFile({ electronApp, filePath: externalImage });
+    await insertImageFromToolbar(window);
+    // Let the debounced save flush the figure to hello.md.
+    await window.waitForTimeout(600);
+
+    // The figure serializes back to a Markdown image reference on disk.
+    const md = fs.readFileSync(path.join(testProjectDir, 'hello.md'), 'utf8');
+    expect(md).toContain('](assets/photo.png)');
+
+    await window.reload();
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    await window.waitForSelector('.ProseMirror figure img', { timeout: 2_000 });
+
+    await expectFigureImageRendered({ window });
+
+    fs.rmSync(path.dirname(externalImage), { recursive: true, force: true });
   });
 });
 

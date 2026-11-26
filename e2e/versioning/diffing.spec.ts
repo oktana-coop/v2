@@ -8,12 +8,15 @@ import path from 'path';
 
 import { expect, test } from '../shared/fixtures';
 import {
+  clearRichTextEditor,
   clickToolbarButton,
   commitChanges,
   enableShowDiff,
   focusParagraph,
+  insertImageFromToolbar,
   lineEndKey,
   metadataPanel,
+  mockPickFile,
   modKey,
   moveToEndOfFirstPlainTextLine,
   navigateToProjectHistory,
@@ -21,6 +24,9 @@ import {
   openHelloMd,
   openPlainTextDocument,
   openProjectFolder,
+  pasteMarkdown,
+  PNG_1x1,
+  seedExternalImage,
   selectChangedDocument,
   selectFirstCommit,
   selectUncommittedChanges,
@@ -248,6 +254,91 @@ test.describe('diff annotations in a rich-text document', () => {
     const insertAnnotation = window.locator('.ProseMirror .diff-insert');
     await expect(insertAnnotation).toBeVisible({ timeout: 1_000 });
     await expect(insertAnnotation).toContainText('version two');
+  });
+
+  const openCommitDiffForHello = async (
+    window: Page,
+    commitMessage: string
+  ): Promise<void> => {
+    await navigateToProjectHistory({ window });
+    await toggleProjectCommit({ window, commitMessage });
+    await selectChangedDocument({ window, fileName: 'hello' });
+    await enableShowDiff({ window });
+  };
+
+  test('an added figure is highlighted as an insertion in the diff', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const externalImage = seedExternalImage('photo.png', PNG_1x1);
+
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+
+    // Baseline commit: a non-empty doc with no figure, so the figure commit has
+    // a parent to diff against.
+    await clearRichTextEditor({ window });
+    await pasteMarkdown({ window, text: 'baseline' });
+    await window.waitForTimeout(600);
+    await commitChanges({ window, message: 'baseline' });
+
+    // Add a figure and commit it.
+    await clearRichTextEditor({ window });
+    await mockPickFile({ electronApp, filePath: externalImage });
+    await insertImageFromToolbar(window);
+    await window.waitForTimeout(600);
+    await commitChanges({ window, message: 'add image' });
+
+    await openCommitDiffForHello(window, 'add image');
+
+    await expect(
+      window.locator(
+        '.ProseMirror figure.diff-insert, .ProseMirror figure:has(.diff-insert)'
+      )
+    ).toBeVisible({ timeout: 2_000 });
+
+    fs.rmSync(path.dirname(externalImage), { recursive: true, force: true });
+  });
+
+  test('a removed figure is highlighted as a deletion in the diff', async ({
+    electronApp,
+    window,
+    testProjectDir,
+  }) => {
+    const externalImage = seedExternalImage('photo.png', PNG_1x1);
+
+    await openProjectFolder({
+      electronApp,
+      window,
+      folderPath: testProjectDir,
+    });
+    await openHelloMd({ window });
+    await clearRichTextEditor({ window });
+
+    // Commit a document that contains the figure.
+    await mockPickFile({ electronApp, filePath: externalImage });
+    await insertImageFromToolbar(window);
+    await window.waitForTimeout(600);
+    await commitChanges({ window, message: 'with image' });
+
+    // Remove the figure and commit.
+    await clearRichTextEditor({ window });
+    await window.waitForTimeout(600);
+    await commitChanges({ window, message: 'remove image' });
+
+    await openCommitDiffForHello(window, 'remove image');
+
+    // The removed figure is rendered with the parent wrapped in a delete decoration
+    await expect(
+      window.locator('.ProseMirror .diff-delete figure')
+    ).toBeVisible({ timeout: 2_000 });
+
+    fs.rmSync(path.dirname(externalImage), { recursive: true, force: true });
   });
 });
 

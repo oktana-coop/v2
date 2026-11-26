@@ -1215,3 +1215,19 @@ export const expectFigureImageRendered = async ({
     })
     .toBeGreaterThan(0);
 };
+
+// Creates a throwaway directory outside the project to hold a source image,
+// exercising the "pick a file from elsewhere → copy it into the project" flow.
+export const seedExternalImage = (name: string, bytes: Buffer): string => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'v2-e2e-ext-'));
+  const filePath = path.join(dir, name);
+  fs.writeFileSync(filePath, bytes);
+  return filePath;
+};
+
+export const insertImageFromToolbar = async (window: Page): Promise<void> => {
+  await openEditorToolbar({ window });
+  await clickToolbarButton({ window, label: 'Image' });
+  await window.waitForSelector('.ProseMirror figure img', { timeout: 2_000 });
+  await window.waitForTimeout(300);
+};
