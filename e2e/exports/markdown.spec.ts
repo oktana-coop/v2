@@ -60,7 +60,11 @@ test.describe('copy as markdown', () => {
       timeout: 10_000,
     });
 
-    const clipboardText = await readClipboardText({ electronApp });
+    // Text on the Windows clipboard has CRLF line endings.
+    const clipboardText = (await readClipboardText({ electronApp })).replace(
+      /\r\n/g,
+      '\n'
+    );
     expect(clipboardText).toMatch(/^---\ntitle: Hello\ndraft: true\n---\n/);
     expect(clipboardText).toContain('# Hello');
   });
