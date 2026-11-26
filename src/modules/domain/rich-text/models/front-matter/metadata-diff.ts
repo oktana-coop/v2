@@ -104,8 +104,7 @@ const valueHasChanges = (diff: MetadataValueDiff): boolean => {
   }
 };
 
-// Whether the node or anything below it changed, as the JSON's `hasChanges`
-// says for inlines and blocks.
+// Whether the node or anything below it changed.
 export const hasChanges = (
   diff: MetadataKeyDiff | MetadataValueDiff
 ): boolean =>

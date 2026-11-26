@@ -102,13 +102,11 @@ const toMetadataEntry = ({
         new InvalidMetadataError('The front matter has a key that is not text.')
       );
 
-// A map's entries, in the order it holds them.
 const toMetadataEntries = (
   map: YAMLMap<unknown, unknown>
 ): MetadataResult<MetadataEntry[]> =>
   Either.all(map.items.map(toMetadataEntry));
 
-// The value the document holds for a key; undefined when it holds none.
 export const valueAt = ({
   document,
   key,
@@ -121,7 +119,6 @@ export const valueAt = ({
   return node === undefined ? Either.right(undefined) : toMetadataValue(node);
 };
 
-// The entries the document holds, in its order; none when it's empty.
 export const entriesOf = (
   document: FrontMatterYaml
 ): MetadataResult<MetadataEntry[]> =>
@@ -129,7 +126,6 @@ export const entriesOf = (
     ? toMetadataEntries(document.contents)
     : Either.right([]);
 
-// The keys the document holds, in its order.
 export const keysOf = (document: FrontMatterYaml): string[] =>
   isMap(document.contents)
     ? document.contents.items.flatMap(({ key }) =>
@@ -195,8 +191,7 @@ export const setInlines = ({
   document.set(key, inlinesScalar(source));
 };
 
-// Adds the key right below another; after the others when that one is gone or
-// not given.
+// Adds the key right below `after`; last when `after` is null or missing.
 export const insertInlines = ({
   document,
   key,
@@ -249,7 +244,6 @@ export const setList = ({
   document.set(key, listOf(items));
 };
 
-// Adds the item after the list's items; nothing when the key holds no list.
 export const appendListItem = ({
   document,
   key,
@@ -266,7 +260,6 @@ export const appendListItem = ({
   }
 };
 
-// Removes the list's item at the index; nothing when the key holds no list.
 export const removeListItemAt = ({
   document,
   key,
